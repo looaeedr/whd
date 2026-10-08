@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-acquire-resume-gen7-after-queue-delay",
+  "request_id": "issue1431-acquire-resume-gen7-valid-control-root",
   "issue": 1431,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
@@ -14,14 +14,34 @@
       "kind": "APPLY_COMMIT"
     }
   },
-  "purpose": "Restore same native work1 lease after trusted APPLY_COMMIT queued beyond expiry; preserve exact tested work commit and reservation",
+  "purpose": "Resume expired native issue1431 work1 lease for already-tested applied work commit; preserve record and owner",
   "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
     "scope": "CONTROL_PLANE_ONLY",
     "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
     "provider": "github_repository_contract",
     "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "repository_content_write_unlocked": false
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".git",
+      ".agents",
+      ".github",
+      "AGENTS.md",
+      "tools",
+      "tests",
+      "ae_engine",
+      "gui_modules"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
