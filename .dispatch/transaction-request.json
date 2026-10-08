@@ -1,14 +1,32 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-acquire-gen4-refresh-preflight-20261008-v2",
+  "request_id": "issue1433-reserve-sevenpaths-after1435-release-gen5",
   "issue": 1433,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-  "expected_coord_head": "278f03234b8e2513effa4553484b5c8c702904a3",
-  "expected_generation": 4,
-  "effect": {},
-  "purpose": "Fresh readback of trusted Phase6 GREEN for same-owner #1433 ACQUIRE after target reconciliation",
+  "expected_coord_head": "1b7309a44a0bdff758e4d8abe08fce5e818ad9a5",
+  "expected_generation": 5,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+    "write_paths": [
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "AGENTS.md",
+      "tests/process/test_flow_v2_ready_slot_repair.py",
+      "tests/process/test_issue1391_dispatch_acquire_control_plane_only.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/control_transaction_request_builder.py",
+      "tools/control_transaction_request_ingress.py"
+    ],
+    "delete_paths": [],
+    "next_action": {
+      "args": {},
+      "display": "Create #1433 trusted delivery branch after admission",
+      "kind": "START_BRANCH"
+    }
+  },
+  "purpose": "Reserve exact seven-file #1433 tested candidate for conflict-safe upstream integration after #1435 DONE/RELEASED",
   "work_root_gate_evidence": {
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "drive_role": "MIRROR_BACKUP_ONLY",
@@ -163,6 +181,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T14:25:55.391Z"
+    "observed_at": "2026-10-08T14:28:59.917Z"
   }
 }
