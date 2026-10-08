@@ -1,30 +1,41 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1383-acquire-20261008-work1-6057689286",
+  "request_id": "issue1383-reserve-tested-c1-20261008",
   "issue": 1383,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-  "expected_coord_head": "a7d40e29eaa9c3b34c57fbb7a304569dc6a0b028",
-  "expected_generation": 1,
+  "expected_coord_head": "05dff661bb13b2fa78e1929a631fd54bc038bd3d",
+  "expected_generation": 2,
   "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+    "write_paths": [
+      "ae_engine/assembly_marking_geometry.py",
+      "ae_engine/receiving_joint_marking.py",
+      "ae_engine/receiving_pairing_marking.py",
+      "tests/test_issue1383_dm8_c1_neutral_geometry.py"
+    ],
+    "delete_paths": [],
     "next_action": {
       "kind": "START_BRANCH",
-      "args": {},
-      "display": "Deliver tested DM8-C1 Issue #1383 exact diff as isolated PR"
+      "args": {
+        "diff_digest": "2edfaf35d9829eabbd6d9c6e10327802b4ae6d1403d907dad835f002648dbc96"
+      },
+      "display": "Start exact tested delivery branch from production X"
     }
   },
-  "purpose": "Continue DM8-C1 #1383 with verified executor-local tested commit 05ab97b2; obtain work1 lease and deliver canonical tested PR.",
+  "purpose": "Reserve exact four already tested neutral geometry C1 file paths in native Flow v2; preserve tested diff identity and no concurrent writer.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
+    "scope": "REPOSITORY_CONTENT",
+    "read_mode": "WORKSPACE_GIT_BASELINE",
     "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "provider": "executor_local_workspace",
+    "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "workspace_root": "/mnt/data/whd1383-workspace",
     "production_branch": "cleanup/2d-3d-sync",
     "production_head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
     "drive_role": "MIRROR_BACKUP_ONLY",
@@ -40,7 +51,7 @@
       "tools"
     ],
     "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
+    "repository_content_write_unlocked": null,
     "status": "GREEN"
   },
   "preflight_evidence": {
@@ -72,6 +83,6 @@
       "基準檔/截角資料庫/certified_relief_rules.json",
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
     ],
-    "observed_at": "2026-10-08T10:20:07Z"
+    "observed_at": "2026-10-08T10:22:17Z"
   }
 }
