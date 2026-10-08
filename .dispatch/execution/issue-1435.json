@@ -12,19 +12,40 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "issue": 1435,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
+  "lane_id": "chatgpt.flowv2.work2",
+  "lease": {
+    "expires_at": "2026-10-08T13:31:41Z",
+    "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
+    "token": "lease:1435:37782960020:1"
+  },
+  "mutation_scope": {
+    "base_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      "AGENTS.md",
+      "docs/governance/flow_v2_pre_merge_recovery.md",
+      "tests/process/test_issue1391_dispatch_acquire_control_plane_only.py",
+      "tests/process/test_issue1429_pre_merge_recovery.py",
+      "tools/control_plane_regression.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/control_transaction_request_builder.py",
+      "tools/control_transaction_request_ingress.py",
+      "tools/flow_v2_pre_merge_recovery.py"
+    ]
+  },
   "next_action": {
     "args": {},
-    "display": "Acquire Issue #1435",
-    "kind": "ACQUIRE"
+    "display": "Start isolated content branch for #1435",
+    "kind": "START_BRANCH"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "chatgpt.flowv2.work2",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -39,15 +60,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-  "transaction": null,
-  "updated_at": "2026-10-08T13:10:20Z",
+  "transaction": {
+    "expected_fingerprint": "41c834824101627f4f0ada1a8b995d75dbc6bdadcdea13a5a909828101fe9003",
+    "id": "gha:37782960020:1435:ACQUIRE:1",
+    "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T13:16:41Z",
   "version": 2,
   "work_branch": "work/issue-1435-trusted-premerge-delivery"
 }
