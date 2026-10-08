@@ -4,5 +4,8 @@
   "expected_generation": 7,
   "verified_tested_sha": "87a6f791b63367cb2ff3b6e7805373d3b6538530",
   "native_next_action": "APPLY_COMMIT",
-  "work_branch": "work/issue-1431-flow-v2-entry-gate"
+  "work_branch": "work/issue-1431-flow-v2-entry-gate",
+  "retry": 2,
+  "previous_run": 37809832144,
+  "fix": "REST_PATCH_GIT_REFS_PLURAL"
 }
