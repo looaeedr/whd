@@ -247,7 +247,7 @@ CURRENT machine owners：
 - **功能完成不是 terminal evidence**：QA GREEN、PR 已 merge、功能已生效、watchdog 已停、使用者可見問題已修好，都不得單獨授權「完成／可以停／turn exit」。
 - user-visible completion/terminal claim 與 normal task exit 前，必須以 `tools/execution_invocation_exit.py::assert_durable_terminal_exit(record)` 驗 `WHD_EXECUTION_RECORD_V2`。
 - 唯一 durable terminal tuple：`state=DONE`、`next_action=null`、`lease=null`、`active_run=null`、`owner_kind/owner_id=NONE`、`lane_id=null`、`closure.issue_closed=true`、`closure.released_at!=null`、`mutation_scope` 為 `RELEASED` 或不存在。
-- 任一條未成立即 `DURABLE_TERMINAL_EXIT_BLOCKED`；同一 invocation 必須繼續 exact `next_action` 到 DONE，或留下 genuine machine blocker。**進度回報、使用者詢問進度、功能面成功、merge/QA 成功都不是停止點。** 唯一非 terminal durable YIELD 例外是 remote QA 確實 active、沒有可消費的 exact-head terminal result，且當輪沒有其他合法 next_action；此時仍非 DONE。
+- 工單接取後，同一 invocation 應依 ExecutionRecord 的 structured `next_action` 持續執行到 DONE 或 genuine machine blocker；進度回報、使用者詢問狀況或完成中間階段均非停止理由。任一 durable terminal tuple 未成立即 `DURABLE_TERMINAL_EXIT_BLOCKED`。**進度回報、使用者詢問進度、功能面成功、merge/QA 成功都不是停止點。** 唯一非 terminal durable YIELD 例外是 remote QA 確實 active、沒有可消費的 exact-head terminal result，且當輪沒有其他合法 next_action；此時仍非 DONE。
 - **GREEN consume hard gate**：exact-head QA/CI terminal GREEN 不得作為 turn exit。GREEN 必須先被 `ACCEPT_QA` / `CONSUME_QA` 寫入 canonical record；若 continuation=`MERGE`，立即進 no-yield terminal tail。
 - **terminal tail hard gate**：accepted exact-head QA + `next_action=MERGE`，以及 merged + `next_action=FINALIZE`，都固定由 `classify_invocation_exit` 回 `CONTINUE_TERMINAL_TAIL`；此時 host boundary / substantive progress 不得授權 YIELD；QA GREEN 可消費時必須立即 consume，再持續 MERGE → Issue close/readback → FINALIZE → RELEASED。
 - terminal tail 唯一正常終點是 `MERGE → Issue close/readback → FINALIZE → RELEASED/DONE`。`PR_MERGED` 本身仍是 nonterminal；只有 genuine machine blocker 可中斷。
@@ -301,7 +301,7 @@ pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能�
 2. 單一板件修改至少跑「驗該板件」；跨 2D/3D/DXF/persistence、multipart/dynamic IDs 時必須跑「完整板件驗收」。
 3. multipart 必須逐 physical piece 驗；不得只驗 aggregate logical `box_body`。
 4. DXF 相關必須 actual export → reopen → compare；Save/Reload 相關必須真的存檔再重建 canonical output。
-5. Remote QA 依 `monitoring-remote-qa`：本 invocation 觀察 exact run/head 一次；terminal 立即消費，active 則 durable YIELD，後續 invocation resume。cleanup 後做 tested-head → cleaned-head drift audit。
+5. Remote QA 依 `monitoring-remote-qa` 與 Flow v2 `next_action`：terminal GREEN 立即消費並續跑 terminal tail；active 不等於可直接 YIELD，只有無可消費 terminal result、無合法可執行 next_action 且符合 classifier 的 genuine remote wait，才 durable YIELD 並後續 resume。cleanup 後做 tested-head → cleaned-head drift audit。
 6. 若缺少 `驗證板件與DXF` 的 final evidence，狀態只能是 **focused GREEN / final acceptance pending**，禁止標記 ACCEPTED、merge 或 release。
 7. `.agents/skills/skill_registry.json` 的 `part-dxf-acceptance` route 是機器可讀防線；命中相關 changed-file / task keyword 時，Preflight 必須自動要求此 Skill，禁止靠 AI 記憶決定要不要跑。
 
