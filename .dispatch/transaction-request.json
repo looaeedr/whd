@@ -1,64 +1,86 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "2495517a-1762-4bf4-bb74-4ea8501b0eab",
-  "issue": 1331,
-  "kind": "START_BRANCH",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1431-dispatch-ready-20261008-work0-v1",
+  "issue": 1431,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work0",
-  "invocation_identity": "codex.issue1331.0c274de2-8e5f-4711-811a-59f48fd68791",
-  "expected_coord_head": "013bb71163b7a6fa2a1d2a21bb52cac25853e9b3",
-  "expected_generation": 6,
+  "invocation_identity": "chatgpt.issue1431.entry.20261008.work0",
+  "expected_coord_head": "ac2cae0cbe13e38ca551ba5a8f0a02354b5380c8",
+  "expected_generation": 1,
   "effect": {
-    "work_branch": "work/issue-1331",
-    "head_sha": "42ee3f97e724983d5557a220305008d33169cbc1",
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "5389acb0f92a7fa44001667480a26bfcaae75d9c",
-      "diff_digest": "658f38c2dabd5ec246aec7115eaad8d04c2e736194a1151db9a071549d07060b",
-      "issue": 1331,
-      "generation": 6,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "ae_engine/receiving_layout.py",
-        "ae_engine/receiving_shared_settings.py",
-        "gui_modules/application/fold_designer_adapter.py",
-        "gui_modules/application/receiving_set_bay_adapter.py",
-        "gui_modules/application/receiving_set_bay_controls.py",
-        "phase6_project_file.py",
-        "tests/test_issue1112_receiving_set_bay_editor.py",
-        "tests/test_issue1331_receiving_shared_settings.py",
-        "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
-        "tests/test_receiving_layer_ui_regression.py",
-        "修改日誌/20261007.md"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "36d615931ee1770f27ce409d72026c169ea7a33e485991355b2eeb228939ed43",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "next_action": {
-      "kind": "START_QA",
-      "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "驗證 #1331 exact delivery head"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1331,
-      "generation": 6,
-      "record_fingerprint": "36d615931ee1770f27ce409d72026c169ea7a33e485991355b2eeb228939ed43",
-      "lease_token": "lease:1331:37544858282:1",
-      "invocation_identity": "codex.issue1331.0c274de2-8e5f-4711-811a-59f48fd68791",
-      "expected_next_action": "START_BRANCH",
-      "expected_work_branch": "work/issue-1331",
-      "expected_work_head": "68c799d5708e29dd763eb1c168f81d08a3520957",
-      "expected_target_head": "5389acb0f92a7fa44001667480a26bfcaae75d9c"
-    }
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "user_request:issue1431.entry-gate",
+    "work_branch": "work/issue-1431-flow-v2-entry-gate",
+    "dispatch_transport": "GITHUB_CANONICAL"
   },
-  "session_reuse": {
-    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
-    "mode": "LIVE_LEASE_CONTINUATION"
+  "purpose": "Issue 1431 native execution admission before code mutation",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".git",
+      ".agents",
+      ".github",
+      "AGENTS.md",
+      "tools",
+      "tests",
+      "ae_engine",
+      "gui_modules"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1431,
+    "invocation_identity": "chatgpt.issue1431.entry.20261008.work0",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+    "required_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "Python測試實務",
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "Python測試實務",
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "observed_at": "2026-10-08T12:54:18.433Z"
   }
 }
-
