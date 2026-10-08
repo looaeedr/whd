@@ -96,6 +96,21 @@ jobs:
           observed="$(gh api "repos/$GH_REPO/git/ref/$ref" --jq '.object.sha')"
           test "$observed" = "$commit"
           echo "APP_REF_FORWARD_WRITE_GREEN"
+      - name: Check no-op PATCH on native coord ref (without advancing it)
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="heads/coord/execution-v2"
+          current="$(gh api "repos/$GH_REPO/git/ref/$ref" --jq '.object.sha')"
+          # Exactly same ref SHA; this may test write authorization but MUST NOT
+          # create a commit or change the canonical execution record.
+          gh api -X PATCH "repos/$GH_REPO/git/refs/$ref" -f sha="$current" -F force=false >/dev/null
+          observed="$(gh api "repos/$GH_REPO/git/ref/$ref" --jq '.object.sha')"
+          test "$observed" = "$current"
+          echo "COORD_REF_NOOP_PATCH_GREEN"
 
       - name: Checkout canonical source for work-root attestation
         uses: actions/checkout@v4
