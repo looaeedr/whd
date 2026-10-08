@@ -49,6 +49,19 @@ Codex / CLI / headless runtime 必須走同一 Flow v2 authority，但**不得�
 machine communication owner=`tools/execution_entry_contract.py::build_startup_communication_evidence`。
 
 
+### INTERACTIVE_ROLE_SELF_SWITCH_HARD_GATE_V1
+
+對 interactive `EXECUTE_TICKET`，`PM / Implementer / QA` 只是同一 physical runtime 的 role projection；`worker.slot.0~3` / `chatgpt.flowv2.workN` 是 native execution identity，不代表一定有另一個子 agent process。
+
+固定規則：
+1. 裸 `/派工` 選定 owning Issue / slot 後，current assistant 若具備執行 capability，必須 self-switch 到該 native work-slot identity並沿 structured `next_action` 繼續；不得因「沒有子 agent」停止。
+2. `HANDOFF` 是真正的 routing ownership transfer，不是 role switch。對 `EXECUTE_TICKET`，target 必須是**存在且具名、與 current routing identity不同**的 owner；`owner=NONE` 固定 fail closed。
+3. current assistant 本身可執行時，不得為了離開 invocation 而製造 HANDOFF / BLOCK。
+4. 真正缺 capability時，可 `BLOCK` 並附 durable evidence；只有存在具名 target owner時才可 HANDOFF。
+5. host-return / dispatch-completion 必須 fresh-read HANDOFF 後 target owner；owner=NONE 不得產生 `HANDOFF_COMPLETE` 或 `DISPATCH_COMPLETE_HANDOFF`。
+
+Machine enforcement owner=`tools/control_transaction.py` / `tools/execution_invocation_exit.py` / `tools/host_return_surface_gate.py`。
+
 ### OUTER_ACTION_MACHINE_GATE_V1 — control plane 必須退回 session internal
 
 
