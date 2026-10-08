@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -50,6 +51,7 @@ from tools.execution_dispatch_ingress import (
     plan_dispatch_ingress,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
+from tools.execution_work_slot_view import FIXED_SLOT_IDS, WorkSlotViewError, project_work_slots
 from tools.execution_invocation_exit import (
     InvocationExitError,
     assert_active_owning_issue_sticky,
@@ -1587,6 +1589,127 @@ def _write_state(
 
 
 
+
+def assert_unique_ready_slot_candidate(records: dict[int, ExecutionRecord], candidate: ExecutionRecord) -> None:
+    """Reject duplicate native slot before creating any READY record."""
+    if candidate.slot_id is None:
+        return
+    try:
+        project_work_slots([*records.values(), candidate])
+    except WorkSlotViewError as exc:
+        raise ProductionExecutorError(f"DISPATCH_READY_SLOT_COLLISION: {exc}") from exc
+
+
+def plan_ready_slot_repair(
+    records: dict[int, ExecutionRecord], *,
+    authority_issue: int, expected_authority_generation: int,
+    target_issue: int, expected_target_generation: int,
+    expected_old_slot_id: str, new_slot_id: str,
+    lane_id: str, invocation_identity: str,
+    observed_at: datetime | None = None,
+) -> ExecutionRecord:
+    """Pure repair; never fabricate ACQUIRE, lease, owner, QA or work-head history."""
+    current = observed_at or _now()
+    if current.tzinfo is None or current.utcoffset() is None:
+        raise ProductionExecutorError("REPAIR_READY_SLOT clock must be timezone-aware")
+    current = current.astimezone(timezone.utc)
+    if authority_issue == target_issue:
+        raise ProductionExecutorError("REPAIR_READY_SLOT authority cannot repair itself")
+    if (expected_old_slot_id not in FIXED_SLOT_IDS or new_slot_id not in FIXED_SLOT_IDS
+            or expected_old_slot_id == new_slot_id):
+        raise ProductionExecutorError("REPAIR_READY_SLOT requires distinct fixed work slots")
+    authority, target = records.get(authority_issue), records.get(target_issue)
+    if authority is None or target is None:
+        raise ProductionExecutorError("REPAIR_READY_SLOT requires existing native records")
+    if authority.generation != expected_authority_generation:
+        raise ProductionExecutorError("REPAIR_READY_SLOT authority generation drift")
+    if (authority.state != "ACTIVE" or authority.owner_id != lane_id
+            or authority.lane_id != lane_id or authority.lease is None
+            or authority.lease.invocation_identity != invocation_identity):
+        raise ProductionExecutorError("REPAIR_READY_SLOT requires owning ACTIVE lease")
+    expires = datetime.fromisoformat(authority.lease.expires_at.replace("Z", "+00:00"))
+    if expires <= current:
+        raise ProductionExecutorError("REPAIR_READY_SLOT authority lease expired")
+    if (target.state != "READY" or target.generation != expected_target_generation
+            or target.slot_id != expected_old_slot_id or target.owner_kind != "UNCLAIMED"
+            or target.owner_id != "NONE" or target.lane_id is not None
+            or target.lease is not None or target.active_run is not None
+            or target.transaction is not None or target.mutation_scope is not None
+            or target.next_action is None or target.next_action.kind != "ACQUIRE"
+            or target.qa.last_accepted_run is not None or target.qa.accepted_head_sha is not None):
+        raise ProductionExecutorError("REPAIR_READY_SLOT target must be exact unclaimed READY")
+    try:
+        slots = project_work_slots(
+            rec for number, rec in records.items() if number != target_issue
+        )
+    except WorkSlotViewError as exc:
+        raise ProductionExecutorError(f"REPAIR_READY_SLOT prior occupancy invalid: {exc}") from exc
+    if any(row.slot_id == new_slot_id and row.status != "EMPTY" for row in slots):
+        raise ProductionExecutorError("REPAIR_READY_SLOT destination slot occupied")
+    audit = {
+        "kind": "READY_SLOT_REPAIR", "authority_issue": authority_issue,
+        "from_slot_id": expected_old_slot_id, "to_slot_id": new_slot_id,
+        "observed_at": _iso(current),
+    }
+    return replace(
+        target, slot_id=new_slot_id, generation=target.generation + 1,
+        updated_at=_iso(current), recovery_history=(*target.recovery_history, audit),
+    )
+
+
+def repair_ready_slot(
+    *, repo: str, token: str, coord_branch: str,
+    authority_issue: int, expected_authority_generation: int,
+    target_issue: int, expected_target_generation: int,
+    expected_old_slot_id: str, new_slot_id: str,
+    lane_id: str, invocation_identity: str, expected_coord_head: str,
+) -> dict[str, object]:
+    """Atomic native CAS writer; slot repair never claims the repaired Issue."""
+    parent, tree, records = _load_state(repo, token, coord_branch)
+    if parent != expected_coord_head:
+        raise ControlTransactionConflict(
+            f"coord head drift: expected {expected_coord_head}, observed {parent}"
+        )
+    for attempt in range(5):
+        updated = plan_ready_slot_repair(
+            records, authority_issue=authority_issue,
+            expected_authority_generation=expected_authority_generation,
+            target_issue=target_issue, expected_target_generation=expected_target_generation,
+            expected_old_slot_id=expected_old_slot_id, new_slot_id=new_slot_id,
+            lane_id=lane_id, invocation_identity=invocation_identity,
+        )
+        candidates = dict(records)
+        candidates[target_issue] = updated
+        try:
+            commit_sha, blob_sha = _write_state(
+                repo, token, coord_branch, parent_sha=parent,
+                base_tree_sha=tree, records=candidates, issue=target_issue,
+            )
+            break
+        except ControlTransactionConflict as exc:
+            if not str(exc).startswith("coord/execution-v2 ref advanced during transaction") or attempt == 4:
+                raise
+            parent, tree, records = _load_state(repo, token, coord_branch)
+            if (records.get(target_issue) is None
+                    or records[target_issue].generation != expected_target_generation
+                    or records.get(authority_issue) is None
+                    or records[authority_issue].generation != expected_authority_generation):
+                raise ControlTransactionConflict("REPAIR_READY_SLOT exact native record drift") from exc
+    _, _, latest = _load_state(repo, token, coord_branch)
+    readback = latest.get(target_issue)
+    if readback is None or execution_record_fingerprint(readback) != execution_record_fingerprint(updated):
+        raise ProductionExecutorError("REPAIR_READY_SLOT post-write record fingerprint mismatch")
+    return {
+        "schema": RESULT_SCHEMA, "result": "APPLIED", "kind": "REPAIR_READY_SLOT",
+        "issue": target_issue, "authority_issue": authority_issue,
+        "coord_commit_sha": commit_sha, "record_blob_sha": blob_sha,
+        "post_generation": readback.generation, "post_state": readback.state,
+        "post_next_action": readback.next_action.kind if readback.next_action else None,
+        "post_slot_id": readback.slot_id,
+        "post_record_fingerprint": execution_record_fingerprint(readback),
+    }
+
+
 def dispatch_ready_missing_record(
     *,
     repo: str,
@@ -1638,6 +1761,7 @@ def dispatch_ready_missing_record(
             raise ControlTransactionConflict(
                 f"DISPATCH_READY same-Issue record appeared during bootstrap: {issue}"
             )
+        assert_unique_ready_slot_candidate(records, record)
         candidate_records = dict(records)
         candidate_records[issue] = record
         try:
