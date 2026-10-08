@@ -81,6 +81,10 @@ Machine owner=`tools/control_transaction.py::_execute_handoff` + `tools/host_ret
 - host surface 若不能證明 `return_hook_enforced=true + plain_final_bypass_blocked=true`，固定標 `HOST_RETURN_SEAM_UNENFORCED`；**不得把 repo-level verifier 宣稱成 physical host hard gate**。
 - 普通 `STATUS/PROGRESS/CHECKPOINT` 可以輸出，但不是 completion/exit authority；輸出後 exact `next_action` 可執行時必須繼續。
 
+### ISSUE_COMMENT_10MIN_INTERVENTION_BRIDGE_V1
+
+成功 `ACQUIRE` 後，接取者立即在**同一 GitHub 工單**留下 `WHD_ISSUE_OWNER_PROGRESS_V1` 身份與進度留言；活躍施工每 10 分鐘更新有效 `PROGRESS` 留言。後來者只 fresh-read 該 Issue 的可信留言，距最新有效留言 **<=600 秒一律不得介入，>600 秒方可交給原子 HANDOFF/ACQUIRE**；不再詢問原接取者、不重複人工確認。舊 heartbeat/lease/END/runtime observation 等時間判定已退出介入 eligibility，保留的 CAS／單寫者驗證不是第二套接手時間判定。詳見 canonical `flow-v2-execution::ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1`，本 Skill 不擁有第二套 machine。
+
 ## Dispatch
 open Issue、dependency-unblocked、空工作槽都不等於 execution authority。新工作必須由 `tools/execution_dispatch_ingress.py` 以明確 authority建立 READY record，再由 ACQUIRE transaction取得 owner/lease。互動式新工作未指定 slot 時仍以 `/工作0` / `worker.slot.0` 為既有預設；建立 READY 前若 fresh-read 發現 slot0 已 BOUND，才使用 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 往 `1→2→3` overflow；全滿即 fail closed，不得搶槽。
 PM/Implementer/QA只是角色視角；branch/head/owner/QA/closure/next_action只寫同一 native record。

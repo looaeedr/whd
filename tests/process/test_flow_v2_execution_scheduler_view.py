@@ -3,6 +3,7 @@ from dataclasses import replace
 import pytest
 
 from tools.execution_ready_index import build_ready_index
+from tools.issue_comment_progress import build_owner_progress_comment
 from tools.execution_record import ActionSpec, ChainState, ExecutionRecordError, LeaseState, execution_record_from_payload
 from tools.execution_scheduler_view import (
     SchedulerViewError,
@@ -284,6 +285,20 @@ def _runtime_observation(
     }
 
 
+def _owner_comment(record, *, created_at="2026-09-28T01:49:59Z"):
+    return {
+        "user": {"login": "looaeedr"}, "created_at": created_at,
+        "body": build_owner_progress_comment(
+            issue=record.issue, generation=record.generation,
+            owner_kind=record.owner_kind, owner_id=record.owner_id,
+            work_branch=record.work_branch, head_sha=record.head_sha,
+            lane_id=record.lane_id, slot_id=record.slot_id,
+            event="PROGRESS", done="完成分析", work="進行測試與驗收",
+            next_step="送出合規交付",
+        ),
+    }
+
+
 def test_stranded_foreign_scheduler_work_is_taken_over_before_ready_candidates():
     stranded = _record(
         1080,
@@ -300,6 +315,8 @@ def test_stranded_foreign_scheduler_work_is_taken_over_before_ready_candidates()
         lane_id=LANE_A,
         invocation_identity="scheduled:A00:new",
         now=NOW,
+        issue_comments={stranded.issue: [_owner_comment(stranded)]},
+        trusted_comment_authors={'looaeedr'},
         runtime_observations={"chatgpt.flowv2.work2": owner_moved_on},
     )
 
@@ -308,7 +325,7 @@ def test_stranded_foreign_scheduler_work_is_taken_over_before_ready_candidates()
     assert view.takeover_issues == (1080,)
     assert view.takeover_from_owner_id == "chatgpt.flowv2.work2"
     assert view.takeover_reason == (
-        "STUCK_UNOWNED_FAMILY_CONFIRMED:OWNER_MOVED_TO_OTHER_ISSUE"
+        "ISSUE_COMMENT_STALE_OVER_600S"
     )
     assert view.requires_transaction == "HANDOFF"
     assert view.next_action_kind == "APPLY_COMMIT"
@@ -349,7 +366,7 @@ def test_takeover_fails_closed_when_owner_runtime_was_not_fresh_read():
     assert view.selected_issue == 1200
 
 
-def test_live_foreign_lease_blocks_takeover_even_if_runtime_ended():
+def test_fresh_owner_comment_blocks_takeover_even_if_runtime_ended():
     foreign = _record(
         1080,
         "ACTIVE",
@@ -372,7 +389,7 @@ def test_live_foreign_lease_blocks_takeover_even_if_runtime_ended():
     assert view.decision == "NO_EXECUTABLE_WORK"
 
 
-def test_active_or_unknown_delegated_family_node_blocks_parent_takeover():
+def test_missing_issue_comment_blocks_parent_takeover_even_with_ended_runtime():
     parent = _record(
         1080,
         "ACTIVE",
@@ -416,6 +433,8 @@ def test_takeover_handoff_effect_changes_only_scheduler_owner_routing():
         lane_id=LANE_A,
         invocation_identity="scheduled:A00:new",
         now=NOW,
+        issue_comments={stranded.issue: [_owner_comment(stranded)]},
+        trusted_comment_authors={'looaeedr'},
         runtime_observations={
             "chatgpt.flowv2.work2": _runtime_observation(
                 stranded, issue=1143, state="ENDED"
@@ -508,6 +527,8 @@ def test_issue1080_shape_projects_takeover_before_new_work():
         lane_id=LANE_A,
         invocation_identity="scheduled:A00:new",
         now=NOW,
+        issue_comments={stranded.issue: [_owner_comment(stranded)]},
+        trusted_comment_authors={'looaeedr'},
         runtime_observations={"chatgpt.flowv2.work2": work2_latest},
     )
 

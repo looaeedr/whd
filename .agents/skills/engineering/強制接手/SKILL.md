@@ -18,8 +18,9 @@ whd_schema: WHD_DOC_META_V1
 
 本 Skill 是入口／角色 bridge，不擁有 execution state machine。所有 execution authority、resume、mutation、lease、handoff、recovery、scheduler 與 closure 語意一律服從 `.agents/skills/engineering/flow-v2-execution/SKILL.md`。
 
-## Takeover
-先fresh-read native record與lease。foreign live lease無明確失效證據則fail closed；expired/orphan runtime以atomic ACQUIRE/HANDOFF/RECONCILE轉移。無法安全判斷舊writer時bump generation+新canonical branch。superseded generation成果先當donor，可證明相容就收編。
+## Takeover — ISSUE_COMMENT_10MIN_INTERVENTION_BRIDGE_V1
+
+明確指定「強制接手」仍不得破壞現任 owner 的 **10 分鐘工單留言保護期**。只 fresh-read 該 exact GitHub Issue 最新有效 `WHD_ISSUE_OWNER_PROGRESS_V1`，核對 owner/generation/branch/head 及 GitHub trusted author。最新有效留言 **<=600 秒不得介入；>600 秒才可進 native atomic HANDOFF/ACQUIRE**。無法讀取有效留言、時間、身份不一致 → fail closed，不自行判定已失聯。舊 lease/heartbeat/END/orphan 失效條件全部退出介入 eligibility；單一寫者 CAS、generation fencing、QA/merge safety 仍保留。接手成功立即在工單留言新接取者身份及任務進度，並執行原 next_action；不再要求其他人工確認。
 
 任何與 canonical Flow v2 衝突的歷史 evidence 或相容工具都只可作 audit/reference，不得恢復成 CURRENT execution authority。
 
