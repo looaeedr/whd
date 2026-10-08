@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
   "issue": 1378,
   "lane_id": "chatgpt.flowv2.work1",
@@ -21,10 +21,20 @@
     "invocation_identity": "chatgpt.issue1378.reviewfix.20261008",
     "token": "lease:1378:37726760053:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "tests/process/test_issue1378_idempotent_readback_characterization.py"
+    ]
+  },
   "next_action": {
-    "args": {},
-    "display": "Deliver reviewed Issue1378 fence characterization",
+    "args": {
+      "diff_digest": "05b25429acfa45c2586e2fc1bfca2989df6632e86644dbd69256ee4e5b675926"
+    },
+    "display": "Deliver exact reviewed and tested T0 fence cases",
     "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work1",
@@ -43,7 +53,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
@@ -51,13 +61,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
   "transaction": {
-    "expected_fingerprint": "dd7544c3cbd8fdbef8a958416fa20cfcb5828ce36506503245d05c4f3762ea00",
-    "id": "gha:37726760053:1378:ACQUIRE:7",
+    "expected_fingerprint": "8f075b299f5599b38df0870d7dd6ed007060fe8d10078752d8e9713669637ac8",
+    "id": "gha:37726954589:1378:RESERVE_PATHS:8",
     "invocation_identity": "chatgpt.issue1378.reviewfix.20261008",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T04:17:55Z",
+  "updated_at": "2026-10-08T04:20:21Z",
   "version": 2,
   "work_branch": "work/issue-1378"
 }
