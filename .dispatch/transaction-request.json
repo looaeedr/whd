@@ -1,20 +1,29 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-acquire-gen3-slot1-after-repair-reconcile",
+  "request_id": "issue1431-reserve-four-paths-native-gate-gen4",
   "issue": 1431,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-  "expected_coord_head": "77c0e17f42633f861b77ec08bf6a0db47ab3e456",
-  "expected_generation": 3,
+  "expected_coord_head": "80e69b36e6ea52d99d19fa6c8667f6403121db88",
+  "expected_generation": 4,
   "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+    "write_paths": [
+      ".github/workflows/whd-governance-single-authority-gate.yml",
+      "tools/flow_v2_delivery_entry_gate.py",
+      "tests/process/test_issue1431_native_delivery_entry_gate.py",
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md"
+    ],
+    "delete_paths": [],
     "next_action": {
-      "kind": "START_BRANCH",
       "args": {},
-      "display": "Start Issue #1431 native pre-implementation entry hard gate"
+      "display": "Start Issue #1431 native pre-implementation entry hard gate",
+      "kind": "START_BRANCH"
     }
   },
-  "purpose": "Native ACQUIRE of repaired READY #1431 work1 before implementation; no fabricated QA",
+  "purpose": "Reserve four exact files for Issue1431 native pre-implementation GitHub PR delivery admission gate",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -55,29 +64,35 @@
       "root-local-first",
       "寫技能",
       "Python測試實務",
-      "phase6-release-packaging"
+      "phase6-release-packaging",
+      "monitoring-remote-qa",
+      "long-log-context-safe-execution"
     ],
     "completed_skills": [
       "flow-v2-execution",
       "root-local-first",
       "寫技能",
       "Python測試實務",
-      "phase6-release-packaging"
+      "phase6-release-packaging",
+      "monitoring-remote-qa",
+      "long-log-context-safe-execution"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
+      "release_required_artifacts.json",
+      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
+      "release_required_artifacts.json",
+      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
     ],
-    "observed_at": "2026-10-08T15:39:28.551Z"
+    "observed_at": "2026-10-08T15:43:07.080Z"
   }
 }
