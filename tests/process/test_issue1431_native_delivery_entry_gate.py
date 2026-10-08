@@ -1,7 +1,7 @@
 """Regression tests for fail-closed native issue-bound PR admission."""
 from datetime import datetime, timedelta, timezone
 import unittest
-from tools.flow_v2_delivery_entry_gate import DeliveryEntryError, validate_pr_entry
+from tools.flow_v2_delivery_entry_gate import DeliveryEntryError, validate_pr_entry, validate_work_entry
 
 NOW = datetime(2026, 10, 8, 16, 0, tzinfo=timezone.utc)
 SHA = 'a' * 40
@@ -37,6 +37,33 @@ class NativeDeliveryEntryTests(unittest.TestCase):
     def expect_failure(self, code, request=None, record=None):
         with self.assertRaisesRegex(DeliveryEntryError, code):
             validate_pr_entry(request or pr(), record, repository=REPO, now=NOW)
+
+    def test_pre_work_legitimate_claim_allowed(self):
+        rec = acquired(); rec['target_sha'] = 'b'*40
+        result = validate_work_entry(rec, issue=1431, expected_owner='chatgpt.flowv2.work1',
+            expected_lane='chatgpt.flowv2.work1', invocation_identity='test-invocation',
+            expected_target_sha='b'*40, now=NOW)
+        self.assertEqual(result['status'], 'GREEN')
+
+    def test_pre_work_missing_claim_denied(self):
+        with self.assertRaisesRegex(DeliveryEntryError, 'NATIVE_EXECUTION_RECORD_REQUIRED'):
+            validate_work_entry(None, issue=1431, expected_owner='chatgpt.flowv2.work1',
+                expected_lane='chatgpt.flowv2.work1', invocation_identity='test-invocation',
+                expected_target_sha='b'*40, now=NOW)
+
+    def test_pre_work_target_head_mismatch_denied(self):
+        rec = acquired(); rec['target_sha'] = 'c'*40
+        with self.assertRaisesRegex(DeliveryEntryError, 'NATIVE_TARGET_HEAD_MISMATCH'):
+            validate_work_entry(rec, issue=1431, expected_owner='chatgpt.flowv2.work1',
+                expected_lane='chatgpt.flowv2.work1', invocation_identity='test-invocation',
+                expected_target_sha='b'*40, now=NOW)
+
+    def test_pre_work_foreign_invocation_denied(self):
+        rec = acquired(); rec['target_sha'] = 'b'*40
+        with self.assertRaisesRegex(DeliveryEntryError, 'NATIVE_INVOCATION_MISMATCH'):
+            validate_work_entry(rec, issue=1431, expected_owner='chatgpt.flowv2.work1',
+                expected_lane='chatgpt.flowv2.work1', invocation_identity='foreign',
+                expected_target_sha='b'*40, now=NOW)
 
     def test_missing_record_denied(self):
         self.expect_failure('NATIVE_EXECUTION_RECORD_REQUIRED')
