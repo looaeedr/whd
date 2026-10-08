@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-renew-expired-owner-20261008-work1",
+  "request_id": "issue1433-expired-owning-lease-retry2-20261008-work1",
   "issue": 1433,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
@@ -8,7 +8,7 @@
   "expected_coord_head": "71cc30d2dee6d8dd259cb4dc2bcba1c7cd3f72b4",
   "expected_generation": 2,
   "effect": {},
-  "purpose": "Renew expired same owning Issue lease before continuing exact START_BRANCH without local machine",
+  "purpose": "Fresh-read retry after isolated App Git-ref actual write GREEN; renew owning lease only",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -72,6 +72,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T13:30:56.142Z"
+    "observed_at": "2026-10-08T13:36:46.708Z"
   }
 }
