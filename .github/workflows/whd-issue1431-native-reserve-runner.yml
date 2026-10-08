@@ -79,7 +79,14 @@ jobs:
           ]
           patch=subprocess.check_output(['git','-C',str(candidate),'diff','--binary',head,'HEAD','--',*paths])
           digest=hashlib.sha256(patch).hexdigest()
-          if digest!='738e248e891cdb2f5112d667c830c50eb5888994169b3454b70e5aa303549cae':
+          tested='87a6f791b63367cb2ff3b6e7805373d3b6538530'
+          for p in paths:
+              tested_blob=git(candidate,'rev-parse',tested+':'+p)
+              current_blob=git(candidate,'rev-parse','HEAD:'+p)
+              if tested_blob!=current_blob:
+                  raise SystemExit('FROZEN_TESTED_FILE_BLOB_DRIFT:'+p)
+          prior_patch=subprocess.check_output(['git','-C',str(candidate),'diff','--binary',head,tested,'--',*paths])
+          if hashlib.sha256(prior_patch).hexdigest()!=digest:
               raise SystemExit('FROZEN_TESTED_DIFF_DRIFT')
           changes=git(candidate,'diff','--name-only',head,'HEAD','--',*paths).splitlines()
           if sorted(changes)!=sorted(paths): raise SystemExit('DIFF_SCOPE_MISMATCH')
