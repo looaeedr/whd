@@ -1,21 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1383-start-branch-verified-tree-20261008",
+  "request_id": "issue1383-apply-verified-tree-20261008",
   "issue": 1383,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-  "expected_coord_head": "f53c29422ab2b941ea6c2e4518ab358100b1dc71",
-  "expected_generation": 3,
+  "expected_coord_head": "4ae1f577909d0072868e390f66f3c8e1e208394d",
+  "expected_generation": 4,
   "effect": {
-    "work_branch": "work/issue-1383",
-    "head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+    "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "candidate_commit_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b"
+        "workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Apply exact verified tested DM8-C1 commit"
+      "display": "Run canonical product regression on exact #1383 PR head"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -39,11 +38,11 @@
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1383,
-      "generation": 3,
-      "record_fingerprint": "8e526733cec60c457ea921db01c1ebb3cf5c9a36174916ea7df41e63205d35e5",
+      "generation": 4,
+      "record_fingerprint": "1afeac01c9f89ae427cec0ff6b30aafde5b96617236e09be01748fb36c539cb4",
       "lease_token": "lease:1383:37762792792:1",
       "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "work/issue-1383",
       "expected_work_head": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
       "expected_target_head": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf"
