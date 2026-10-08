@@ -160,6 +160,10 @@ startup declaration 只提供 provenance/intent，不取代 claim、Guard、Pref
 本 Skill 是 WHD execution/control-plane 的唯一 CURRENT operational contract。其他 workflow Skills 只可做入口 bridge，不得建立第二套 ownership、resume、closure、scheduler 或 recovery state machine。
 
 
+### GITHUB_CONNECTOR_FIRST_CONTINUITY_HARD_GATE_V1
+
+GitHub-backed Flow v2 在 exact action authorization 已成立時，GitHub Connector 是優先 GitHub transport；隔離 shell 的 DNS／network git／credential failure 不能推論 Connector 不可用。必須先嘗試 Connector 合法同 scope action；不支援則嘗試其他合法 transport 並繼續不受影響的 next_action。Connector 不建立 execution authority，也不替代 workspace author/test、Phase6、Flow v2 CAS、delivery PR/CI/merge 或 closure。/派工 本機禁止、explicit /接手 RC root、Issue 600 秒介入及 no-yield terminal tail 保留。詳細 gate 見 `AGENTS.md::GITHUB_CONNECTOR_FIRST_CONTINUITY_HARD_GATE_V1`。
+
 ### REMOTE_AUTHORITY_NON_PROPAGATION_HARD_GATE_V1
 
 

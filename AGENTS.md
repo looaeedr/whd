@@ -132,6 +132,20 @@ Codex / CLI / headless executor 是正式 execution surface，不是「缺少 Ch
 - 使用者已明確要求同一 repository-content task 時，可為該 exact task/scope mint 一次 `WORKSPACE_DELIVERY` GitHub authority；測試後進 push/PR/CI/merge 不得再次要求使用者重複授權。scope 擴張、不同 repository 或額外 remote action 仍必須重新授權。
 - host 真實網路/credential failure 可作 capability evidence，但 governance 不得把「需要 chat UI / AI Library / Drive mount / 第二次同 scope確認」冒充 capability blocker。
 
+### GITHUB_CONNECTOR_FIRST_CONTINUITY_HARD_GATE_V1
+
+<!-- GITHUB_CONNECTOR_FIRST_CONTINUITY_HARD_GATE_V1 -->
+
+WHD GitHub-backed 工作的 GitHub 端操作優先沿用已連接、已授權的 GitHub Connector（Issue、ExecutionRecord、branch、PR、Actions、Preflight request/result、留言與 readback）。隔離 shell/sandbox 的 DNS、network git 或 credential failure **不等於 GitHub Connector 失敗，不得以此直接停止工作**。
+
+1. 先確認 exact task/action 的 `WHD_REMOTE_CONNECTION_AUTHORITY_V1`；Connector 可用性不是新增 remote authority，也不取代 Flow v2 atomic CAS。
+2. shell 直連 GitHub 失敗時，優先用現有 GitHub Connector 繼續同 scope 已授權操作；不得要求重複授權。
+3. Connector 只負責 GitHub transport；repository-content 改動、workspace 測試 GREEN、exact diff、delivery PR、CI、merge、Issue closure 既有硬閘門全部保留。
+4. Connector 某 action 不支援時，標記 `GITHUB_CONNECTOR_ACTION_UNAVAILABLE`，改試其他合法 transport／繼續不受影響的 next_action；只有全部合法路徑都無法執行時才能回 genuine machine blocker，不得以單一 transport failure 讓整張工單停擺。
+5. /派工 不得使用本機 fallback；explicit /接手 的 RC 專用施工路徑維持不變。600 秒 Issue 留言規則與 terminal-tail 不可 YIELD 規則不變。
+
+此 gate 僅規範 transport priority 與 continuity，不建立額外 owner、checkpoint、journal 或狀態機。
+
 ### GITHUB_ONLY_REMOTE_PHASE6_PREFLIGHT_V1
 
 GitHub-only / scheduler runtime 若沒有 host shell 或任意命令執行能力，**不得**因無法直接執行上面的 Python command 就把 mandatory Preflight 降級、略過或永久 BLOCKED。remote Preflight 共用同一 canonical runner `tools/phase6_remote_preflight.py`，transport 依 runtime surface 固定：
