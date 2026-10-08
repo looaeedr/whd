@@ -79,7 +79,7 @@ def _build(kind: str):
 def test_control_plane_allowlist_has_only_native_bootstrap_resume_and_recovery():
     assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({
         "DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF",
-        "RECOVER_POST_DELIVERY", "RECOVER_PRE_MERGE",
+        "RECOVER_POST_DELIVERY", "RECOVER_PRE_MERGE", "REPAIR_READY_SLOT",
     })
 
 
@@ -127,3 +127,12 @@ def test_routing_only_handoff_can_use_control_plane_only_github_admission():
 def test_repository_content_mutation_cannot_borrow_dispatch_control_plane_scope():
     with pytest.raises(ValueError, match="control-plane-only admission is not allowed"):
         _build("START_BRANCH")
+
+
+def test_ready_slot_repair_requires_native_trusted_executor_after_control_plane_admission():
+    request = _build("REPAIR_READY_SLOT")
+    assert request["kind"] == "REPAIR_READY_SLOT"
+    assert request["startup_evidence"]["work_root_gate"]["scope"] == "CONTROL_PLANE_ONLY"
+    # This envelope grants no slot mutation by itself: trusted ingress still
+    # requires exact four-field effect + live owning lease + target READY,
+    # empty destination + coord CAS + record fingerprint readback.
