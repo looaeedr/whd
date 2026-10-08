@@ -1,0 +1,53 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+  "issue": 1431,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1431",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "ff7be2daa7c6d3cc298a3cc0471b22e208e2ee52067d7f3517fc2bce8eb39f17",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user_request:issue1431.entry-gate",
+      "dispatch_transport": "GITHUB_CANONICAL",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.0",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+  "transaction": null,
+  "updated_at": "2026-10-08T12:54:35Z",
+  "version": 2,
+  "work_branch": "work/issue-1431-flow-v2-entry-gate"
+}
