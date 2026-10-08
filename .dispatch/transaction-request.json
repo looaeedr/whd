@@ -1,51 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1383-apply-verified-tree-20261008",
+  "request_id": "issue1383-start-qa-pr1416-20261008",
   "issue": 1383,
-  "kind": "APPLY_COMMIT",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-  "expected_coord_head": "4ae1f577909d0072868e390f66f3c8e1e208394d",
-  "expected_generation": 4,
+  "expected_coord_head": "0b02d0157201ad0257a8a04c894d71c4c5d2f09c",
+  "expected_generation": 5,
   "effect": {
-    "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
+    "run_id": 37763726037,
+    "run_head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
+    "purpose": "WHD Product Regression exact PR #1416 head",
+    "run_status": "in_progress",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "POLL_QA",
       "args": {
-        "workflow": ".github/workflows/whd-product-regression.yml"
+        "run_id": 37763726037,
+        "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b"
       },
-      "display": "Run canonical product regression on exact #1383 PR head"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-      "diff_digest": "2edfaf35d9829eabbd6d9c6e10327802b4ae6d1403d907dad835f002648dbc96",
-      "issue": 1383,
-      "generation": 3,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "ae_engine/assembly_marking_geometry.py",
-        "ae_engine/receiving_joint_marking.py",
-        "ae_engine/receiving_pairing_marking.py",
-        "tests/test_issue1383_dm8_c1_neutral_geometry.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "8e526733cec60c457ea921db01c1ebb3cf5c9a36174916ea7df41e63205d35e5",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1383,
-      "generation": 4,
-      "record_fingerprint": "1afeac01c9f89ae427cec0ff6b30aafde5b96617236e09be01748fb36c539cb4",
-      "lease_token": "lease:1383:37762792792:1",
-      "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "work/issue-1383",
-      "expected_work_head": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-      "expected_target_head": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf"
+      "display": "Poll exact Product Regression run 37763726037"
     }
   },
   "reuse_admission_session": true
