@@ -96,3 +96,34 @@ jobs:
           observed="$(gh api "repos/$GH_REPO/git/ref/$ref" --jq '.object.sha')"
           test "$observed" = "$commit"
           echo "APP_REF_FORWARD_WRITE_GREEN"
+
+      - name: Checkout canonical source for work-root attestation
+        uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          path: attested-source
+          fetch-depth: 1
+      - name: Attest actual GitHub runner workspace root via canonical tool
+        shell: bash
+        working-directory: attested-source
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from subprocess import check_output
+          from tools.work_root_gate import build_work_root_gate_evidence, READ_MODE_WORKSPACE
+          expected = "859bb8295ef1ba814a70bb6d0359be6b87fa2873"
+          observed = check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if observed != expected:
+              raise SystemExit("ATTESATION_SOURCE_SHA_MISMATCH")
+          root = Path.cwd().resolve()
+          contract = json.loads((root / ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text(encoding="utf-8"))
+          evidence = build_work_root_gate_evidence(
+              gate_payload=contract, read_mode=READ_MODE_WORKSPACE,
+              execution_mode="INTERACTIVE",
+              root_entries=[p.name for p in root.iterdir()],
+              workspace_root=str(root), production_head_sha=observed,
+          )
+          print("WHD_WORK_ROOT_ATTESTATION_V1 " + json.dumps(evidence, sort_keys=True))
+          PY
