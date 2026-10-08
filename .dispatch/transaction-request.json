@@ -1,22 +1,93 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1381-capability-block-20261008-work1",
   "issue": 1381,
-  "kind": "BLOCK",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1381.dispatch.20261008.work1",
-  "expected_coord_head": "8fd51647e09db6b0ca9b9b4eacc4ccbc0db79cff",
-  "expected_generation": 2,
-  "effect": {
-    "blocker_kind": "MISSING_CAPABILITY",
-    "blocker_evidence": "GitHub canonical DISPATCH_READY + ACQUIRE have succeeded for Issue #1381 on worker.slot.1. This interactive /派工 runtime has GitHub control-plane transport but no verified writable/testable executor-local WHD repository workspace. /派工 prohibits substituting RC or the user's local shell. Exact next_action START_BRANCH cannot lawfully proceed without source edit + focused tests GREEN + exact diff in a verified workspace; untested GitHub hotfix and owner=NONE handoff forbidden. Resume exact Issue #1381 in a real workspace-capable runtime, fresh-read current record/lease and continue workspace edit/test -> tested delivery; no fabricated dispatch completion.",
-    "next_action": {
-      "kind": "WAIT_EXTERNAL",
-      "args": {
-        "blocker_kind": "MISSING_CAPABILITY"
-      },
-      "display": "等待有可寫可測 WHD workspace 的執行環境"
-    }
+  "invocation_identity": "chatgpt.issue1381.takeover.20261008",
+  "kind": "RECONCILE",
+  "request_id": "issue1381-takeover-workspace-unblock-20261008",
+  "expected_generation": 3,
+  "expected_coord_head": "4017121da47aa9800e71745acb881dcebbe07af8",
+  "purpose": "Resume exact Issue1381 in verified RC workspace after expired missing-capability blocker",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".git",
+      ".agents",
+      ".github",
+      "AGENTS.md",
+      "tools",
+      "tests",
+      "ae_engine",
+      "gui_modules"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
   },
-  "reuse_admission_session": true
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1381,
+    "invocation_identity": "chatgpt.issue1381.takeover.20261008",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
+    "required_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "Python測試實務"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "Python測試實務"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+    ],
+    "observed_at": "2026-10-08T07:54:51Z"
+  },
+  "effect": {
+    "observed_work_branch": "work/issue-1381",
+    "observed_head_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+    "observed_target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
+    "state": "ACTIVE",
+    "clear_blocker": true,
+    "semantic_state": "IMPLEMENTING",
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Deliver tested Issue1381 no-replay hardening"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1381,
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564"
+    }
+  }
 }
