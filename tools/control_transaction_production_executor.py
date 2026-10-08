@@ -1900,8 +1900,6 @@ def _execute_one_attempt(
     if issue not in records:
         raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
     record = records[issue]
-    if kind == "ACQUIRE":
-        _assert_owning_issue_open_for_acquire(repo, token, issue)
 
     if (_continuation_fingerprint is not None
         and execution_record_fingerprint(record) != _continuation_fingerprint):
@@ -1960,6 +1958,9 @@ def _execute_one_attempt(
         except InvocationExitError as exc:
             raise ControlTransactionConflict(str(exc)) from exc
 
+
+    if kind == "ACQUIRE":
+        _assert_owning_issue_open_for_acquire(repo, token, issue)
 
     plan = prepare_transaction(
         record,
