@@ -1,26 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1382-accept-qa-run37766073513-g8-20261008",
+  "request_id": "issue1382-merge-tested-pr1419-after-accepted-qa-g9-20261008",
   "issue": 1382,
-  "kind": "ACCEPT_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-  "expected_coord_head": "b3fa88edcee5d8794e001eb8866798188db47ce4",
-  "expected_generation": 8,
-  "effect": {
-    "run_id": 37766073513,
-    "run_head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1419,
-        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Merge tested O3 PR #1419 after exact QA and live target gate"
-    }
-  },
+  "expected_coord_head": "ed7c3b8d5e1999b2a9d3b60d3d14f0ce8e87d56b",
+  "expected_generation": 9,
+  "effect": {},
   "reuse_admission_session": true
 }
