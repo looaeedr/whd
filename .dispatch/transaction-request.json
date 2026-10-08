@@ -1,33 +1,35 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1380-align-live-target-20261008",
+  "request_id": "issue1380-acquire-six-file-scope-20261008",
   "issue": 1380,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1380.20261008",
-  "expected_coord_head": "472feaf813dc3b73e6c87182f77f0d5df1a541cb",
-  "expected_generation": 1,
+  "expected_coord_head": "b22a217a17a2e5cef1cb68e0ec9760bd848927be",
+  "expected_generation": 2,
   "effect": {
-    "observed_work_branch": "work/issue-1380",
-    "observed_head_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc",
-    "observed_target_sha": "d5d2dbc678c2f04859e08386309c9fd7e22f474f",
     "next_action": {
-      "kind": "ACQUIRE",
-      "args": {},
-      "display": "Acquire Issue #1380"
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "83301f627df9300ed96b008f19abaaa6c0450d6500e0c2b1009e042e02953588"
+      },
+      "display": "Deliver tested DM8-A2 runtime boundary"
     },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1380,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "d5d2dbc678c2f04859e08386309c9fd7e22f474f",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc"
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "d5d2dbc678c2f04859e08386309c9fd7e22f474f",
+      "write_paths": [
+        "tests/process/test_issue1378_idempotent_readback_characterization.py",
+        "tests/process/test_issue1380_runtime_boundary.py",
+        "tools/control_transaction.py",
+        "tools/control_transaction_production_executor.py",
+        "tools/control_transaction_request_ingress.py",
+        "tools/control_transaction_runtime.py"
+      ],
+      "delete_paths": []
     }
   },
-  "purpose": "Align READY record with current live target before bounded Issue1380 admission",
+  "purpose": "Acquire Issue1380 and reserve tested six-file runtime boundary scope",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -85,6 +87,6 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-08T05:11:44Z"
+    "observed_at": "2026-10-08T05:17:02Z"
   }
 }
