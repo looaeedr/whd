@@ -439,3 +439,40 @@ def test_same_issue_coord_drift_fails_closed_without_replaying_delete(monkeypatc
         )
 
     assert len(delete_calls) == 1
+
+@pytest.mark.parametrize("kind,method,path", [
+    ("MERGE", "PUT", "/pulls/1408/merge"),
+    ("SYNC_TARGET", "POST", "/merges"),
+    ("FINALIZE", "PATCH", "/issues/1378"),
+])
+def test_readback_only_fence_blocks_actual_mutation_branches(monkeypatch, kind, method, path):
+    """Exercise each production mutation branch against a GET-only provider seam."""
+    fence = ReadbackOnlyFence()
+
+    def provider(repo, verb, endpoint, token, payload=None):
+        if verb == "GET" and endpoint == "/issues/1378":
+            return {"number": 1378, "state": "open", "state_reason": None}
+        return fence(repo, verb, endpoint, token, payload)
+
+    monkeypatch.setattr(executor, "_api", provider)
+    if kind == "MERGE":
+        monkeypatch.setattr(executor, "_merge_precheck_readback",
+            lambda *args, **kwargs: ({}, SimpleNamespace(classification="READY_TO_MERGE")))
+        invoke = lambda: executor._trusted_merge_effect(
+            "looaeedr/whd", "token", record=_merge_record(),
+            invocation_identity=INV, supplied={})
+    elif kind == "SYNC_TARGET":
+        record = _sync_record()
+        monkeypatch.setattr(executor, "_read_branch_head",
+            lambda repo, token, branch: LIVE_TARGET if branch == record.target_branch else HEAD)
+        invoke = lambda: executor._trusted_sync_target_effect(
+            "looaeedr/whd", "token", record=record, invocation_identity=INV)
+    else:
+        monkeypatch.setattr(executor, "_finalize_target_readback",
+            lambda *args, **kwargs: {"observed_target_sha": LIVE_TARGET})
+        invoke = lambda: executor._ensure_issue_closed_for_finalize(
+            "looaeedr/whd", "token", issue=1378, record=_finalize_record())
+
+    with pytest.raises(AssertionError, match="readback-only fence blocked provider mutation"):
+        invoke()
+    assert fence.calls == [(method, path)]
