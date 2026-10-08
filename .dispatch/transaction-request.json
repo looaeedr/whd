@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-reconcile-ready-target-after1433-merge-gen2",
+  "request_id": "issue1431-reconcile-ready-after-network-failure-gen2-rebuild-v2",
   "issue": 1431,
   "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
@@ -91,6 +91,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T15:34:04.844Z"
+    "observed_at": "2026-10-08T15:35:50.873Z"
   }
 }
