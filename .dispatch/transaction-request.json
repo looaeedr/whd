@@ -1,20 +1,37 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1435-native-ready-bootstrap-20261008-2109",
+  "request_id": "issue1435-native-acquire-20261008-2113",
   "issue": 1435,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
-  "expected_coord_head": "a7b5097d190c80bf0bd9839e839b8bff5e3bcdc5",
+  "expected_coord_head": "1ca9d1de88b61a62bc4662bd256d404f9f165239",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user:fix missing ExecutionRecord for existing PR #1430 with trusted pre-merge recovery; bootstrap #1435 before authorized delivery",
-    "work_branch": "work/issue-1435-trusted-premerge-delivery",
-    "slot_id": "worker.slot.2",
-    "dispatch_transport": "GITHUB_CANONICAL"
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Start isolated content branch for #1435"
+    },
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+      "write_paths": [
+        "AGENTS.md",
+        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        "docs/governance/flow_v2_pre_merge_recovery.md",
+        "tests/process/test_issue1391_dispatch_acquire_control_plane_only.py",
+        "tests/process/test_issue1429_pre_merge_recovery.py",
+        "tools/control_plane_regression.py",
+        "tools/control_transaction_production_executor.py",
+        "tools/control_transaction_request_builder.py",
+        "tools/control_transaction_request_ingress.py",
+        "tools/flow_v2_pre_merge_recovery.py"
+      ],
+      "delete_paths": []
+    }
   },
-  "purpose": "Official first-dispatch of new Issue #1435 before any work authorized under this Issue; reuse tested 10-file candidate only through native claim, QA and trusted PR merge.",
+  "purpose": "Native ACQUIRE Issue #1435 before branch implementation, with exact path reservation and future QA/PR/MERGE under Flow v2",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -78,6 +95,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T13:07:53Z"
+    "observed_at": "2026-10-08T13:12:37Z"
   }
 }
