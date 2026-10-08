@@ -20,6 +20,7 @@ from tools.execution_ready_index import (
 )
 from tools.execution_record import ExecutionRecord, execution_record_fingerprint
 from tools.issue_comment_progress import evaluate_issue_comment_intervention
+from tools.flow_v2_compact_context import build_compact_execution_context
 from tools.scheduler_ready_ingress import SchedulerDispatchCandidate
 
 
@@ -61,6 +62,7 @@ class SchedulerView:
     takeover_issues: tuple[int, ...] = ()
     takeover_from_owner_id: str | None = None
     takeover_reason: str | None = None
+    compact_context: Mapping[str, object] | None = None
 
 
 def _required_text(value: object, field: str) -> str:
@@ -204,6 +206,7 @@ def build_scheduler_view(
     runtime_observations: Mapping[str, Mapping[str, object] | None] | None = None,
     issue_comments: Mapping[int, Iterable[Mapping[str, object]]] | None = None,
     trusted_comment_authors: Iterable[str] = (),
+    context_mode: str = "LEGACY",
 ) -> SchedulerView:
     """Build a deterministic, side-effect-free scheduler wake projection.
 
@@ -217,6 +220,8 @@ def build_scheduler_view(
     lane_id = _required_text(lane_id, "lane_id")
     invocation_identity = _required_text(invocation_identity, "invocation_identity")
     now_dt = _aware_timestamp(_required_text(now, "now"), "now")
+    if context_mode not in {"LEGACY", "COMPACT"}:
+        raise SchedulerViewError("context_mode must be LEGACY or COMPACT")
     materialized = tuple(records)
 
     current = _current_for_lane(materialized, lane_id)
@@ -249,6 +254,14 @@ def build_scheduler_view(
             ready_issues=(),
             selected_issue=None,
             requires_transaction=required_tx,
+            compact_context=(
+                build_compact_execution_context(
+                    current, now=now_dt,
+                    issue_comments=(issue_comments or {}).get(current.issue),
+                    trusted_comment_authors=trusted_comment_authors,
+                )
+                if context_mode == "COMPACT" else None
+            ),
         )
 
     # An absent/unfetched comment feed can NEVER mean an expired worker.
@@ -285,6 +298,14 @@ def build_scheduler_view(
             takeover_issues=tuple(item.record.issue for item in takeover),
             takeover_from_owner_id=record.owner_id,
             takeover_reason=selected.reason,
+            compact_context=(
+                build_compact_execution_context(
+                    record, now=now_dt,
+                    issue_comments=(issue_comments or {}).get(record.issue),
+                    trusted_comment_authors=trusted_comment_authors,
+                )
+                if context_mode == "COMPACT" else None
+            ),
         )
 
     if ready_index is None:
