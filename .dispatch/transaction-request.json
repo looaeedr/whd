@@ -1,12 +1,96 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-native-merge-gen12-pr1436-20261008",
-  "issue": 1433,
-  "kind": "MERGE",
+  "request_id": "issue1431-reconcile-ready-target-after1433-merge-gen2",
+  "issue": 1431,
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-  "expected_coord_head": "8392a6201962785d40efceba83629003d1e75db9",
-  "expected_generation": 12,
-  "effect": {},
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
+  "expected_coord_head": "3dae52eab58c046b76e55043bdc5dcd320fcca9a",
+  "expected_generation": 2,
+  "effect": {
+    "observed_work_branch": "work/issue-1431-flow-v2-entry-gate",
+    "observed_head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+    "observed_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+    "next_action": {
+      "args": {},
+      "display": "Acquire Issue #1431",
+      "kind": "ACQUIRE"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1431,
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873"
+    }
+  },
+  "purpose": "Reconcile exact unclaimed READY #1431 after trusted slot repair from old ancestor target to current production; no owner/lease/QA mutation",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".git",
+      ".agents",
+      ".github",
+      "AGENTS.md",
+      "tools",
+      "tests",
+      "ae_engine",
+      "gui_modules"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1431,
+    "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+    "required_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "Python測試實務",
+      "phase6-release-packaging"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "Python測試實務",
+      "phase6-release-packaging"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "observed_at": "2026-10-08T15:34:04.844Z"
+  }
 }
