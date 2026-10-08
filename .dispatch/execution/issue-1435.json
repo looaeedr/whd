@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
-    "released_at": null
+    "released_at": "2026-10-08T14:12:50Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
   "issue": 1435,
-  "lane_id": "chatgpt.flowv2.work2",
-  "lease": {
-    "expires_at": "2026-10-08T14:17:17Z",
-    "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
-    "token": "lease:1435:37788995609:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       ".agents/skills/engineering/flow-v2-execution/SKILL.md",
@@ -39,15 +35,9 @@
       "tools/flow_v2_pre_merge_recovery.py"
     ]
   },
-  "next_action": {
-    "args": {
-      "pr_number": 1437
-    },
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work2",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
     "last_accepted_run": 37781642378
@@ -62,21 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
   "transaction": {
-    "expected_fingerprint": "d4a22ccd0dda4e96defafbfe77c0388c60d3842c98874f31b80466de5dea52e5",
-    "id": "gha:37790191802:1435:MERGE:6",
+    "expected_fingerprint": "8a115a46a35ceeca0d774cf80929f9b448c2987d39cc98122b7b42dec9781c17",
+    "id": "gha:37790191802:1435:FINALIZE:7",
     "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T14:11:25Z",
+  "updated_at": "2026-10-08T14:12:24Z",
   "version": 2,
   "work_branch": "work/issue-1435-trusted-premerge-delivery"
 }
