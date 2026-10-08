@@ -1,13 +1,13 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1382-reconcile-after-actions-read-fix-20261008",
+  "request_id": "issue1382-renew-owner-lease-after-1427-fix-20261008",
   "issue": 1382,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-  "expected_coord_head": "c6fa78b94b841b4138c92010259ae1110eec7767",
-  "expected_generation": 5,
-  "purpose": "Native non-replay rebind to current X following merged PR #1427 permission repair; preserve exact tested PR #1419 work head and ongoing same owner.",
+  "expected_coord_head": "3aebcbf95dfe656046e61a24133bf14552fb4955",
+  "expected_generation": 6,
+  "purpose": "Renew expired same-owner Flow v2 lease after exact target drift reconciliation and merged GitHub Actions read permissions repair; preserve previous path reservation/PR #1419.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -65,29 +65,15 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-08T11:32:57Z"
+    "observed_at": "2026-10-08T11:35:13Z"
   },
   "effect": {
-    "observed_work_branch": "work/issue-1382",
-    "observed_head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
-    "observed_target_sha": "a2c463f9db59442a782ce849a4443796356a268c",
-    "semantic_state": "TARGET_DRIFT_RECONCILED",
     "next_action": {
-      "kind": "START_QA",
       "args": {
         "workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Recheck exact PR #1419 after native permissions fix and target drift"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1382,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "a2c463f9db59442a782ce849a4443796356a268c",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "ddf2377d60c157005fbbd2ca50021b381489d2e6"
+      "display": "Recheck exact PR #1419 after native permissions fix and target drift",
+      "kind": "START_QA"
     }
   }
 }
