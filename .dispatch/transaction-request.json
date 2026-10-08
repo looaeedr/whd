@@ -3,11 +3,11 @@
   "issue": 1381,
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1381.takeover.20261008",
-  "kind": "ACQUIRE",
-  "request_id": "issue1381-workspace-takeover-acquire-20261008",
-  "expected_generation": 4,
-  "expected_coord_head": "1bcd4dcacb8978e1ac34fd1300159784b7d5c052",
-  "purpose": "Acquire expired same-lane lease and continue exact tested workspace implementation",
+  "kind": "RESERVE_PATHS",
+  "request_id": "issue1381-tested-five-path-reservation-20261008",
+  "expected_generation": 5,
+  "expected_coord_head": "39f3e4531e69799904b1082b135c2fc459740b07",
+  "purpose": "Reserve exact frozen five-file GREEN candidate before tested delivery",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -67,5 +67,23 @@
     ],
     "observed_at": "2026-10-08T07:58:27Z"
   },
-  "effect": {}
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
+    "write_paths": [
+      "tests/process/test_issue1019_terminal_tail_drain.py",
+      "tests/process/test_issue1381_no_replay.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/control_transaction_request_ingress.py",
+      "tools/control_transaction_runtime.py"
+    ],
+    "delete_paths": [],
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "be13355903b62d77384af425cb826ff58d9f99ed96b744d8c82619f427605a9f"
+      },
+      "display": "Deliver tested Issue1381 no-replay hardening"
+    }
+  }
 }
