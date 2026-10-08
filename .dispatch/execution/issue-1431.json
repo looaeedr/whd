@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8",
   "issue": 1431,
   "lane_id": "chatgpt.flowv2.work1",
@@ -35,16 +35,20 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "expected_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+      "head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8",
+      "pr_number": 1438,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Run exact-head QA on tested four-file PR",
-    "kind": "START_QA"
+    "display": "Merge exact accepted PR #1438 after all required checks",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8",
+    "last_accepted_run": 37811000694
   },
   "recovery_history": [
     {
@@ -63,21 +67,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
   "transaction": {
-    "expected_fingerprint": "e9e3b6be88c465e15bc5c811a57240488c682946bb565e5bb7515cab7cad660e",
-    "id": "gha:37810798754:1431:APPLY_COMMIT:8",
+    "expected_fingerprint": "27627306be482e5506ec896b880c326b15a5d70679a67884b673e18aefab9ea8",
+    "id": "gha:37811182254:1431:CONSUME_QA:9",
     "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-    "kind": "APPLY_COMMIT",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T16:42:32Z",
+  "updated_at": "2026-10-08T16:45:48Z",
   "version": 2,
   "work_branch": "work/issue-1431-flow-v2-entry-gate"
 }
