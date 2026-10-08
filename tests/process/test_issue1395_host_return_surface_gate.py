@@ -238,7 +238,7 @@ def test_dispatch_complete_machine_event_requires_host_attestation_after_legal_y
     assert "工單：#1378" in prefix
 
 
-def test_routing_only_handoff_allows_exact_same_invocation_host_return():
+def test_null_owner_handoff_cannot_complete_host_return():
     record = replace(
         _record(),
         generation=5,
@@ -260,14 +260,8 @@ def test_routing_only_handoff_allows_exact_same_invocation_host_return():
         now="2026-10-08T00:10:00Z",
         host_boundary=True,
     )
-    assert decision.decision == "HANDOFF_COMPLETE"
-    assert decision.may_return is True
-    proof = build_host_exit_proof(
-        record,
-        invocation_identity=INV,
-        now="2026-10-08T00:10:00Z",
-    )
-    assert proof["decision"] == "HANDOFF_COMPLETE"
+    assert decision.decision == "ACQUIRE_REQUIRED"
+    assert decision.may_return is False
 
 
 def test_lease_null_reconcile_still_requires_acquire():

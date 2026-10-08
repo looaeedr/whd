@@ -1043,6 +1043,25 @@ def _execute_handoff(
     if record.state == "DONE":
         raise ControlTransactionError("HANDOFF cannot mutate DONE record")
 
+    target_owner_kind = _text(effect.get("owner_kind"), "owner_kind")
+    target_owner_id = _text(effect.get("owner_id"), "owner_id")
+    target_lane_id = _text(effect.get("lane_id"), "lane_id", optional=True)
+
+    if record.execution_intent == "EXECUTE_TICKET":
+        if target_owner_kind == "NONE" or target_owner_id == "NONE":
+            raise ControlTransactionError(
+                "EXECUTE_TICKET HANDOFF requires a named target owner; "
+                "owner=NONE is not a handoff"
+            )
+        if (target_owner_kind, target_owner_id, target_lane_id) == (
+            record.owner_kind,
+            record.owner_id,
+            record.lane_id,
+        ):
+            raise ControlTransactionError(
+                "EXECUTE_TICKET HANDOFF requires a different target routing identity; "
+                "same runtime must continue via its current work-slot identity"
+            )
 
     # Handoff is routing-only. Slot/work identity and exact continuation meaning
     # stay on the same canonical record; changing them would create a hidden
@@ -1068,9 +1087,9 @@ def _execute_handoff(
         record,
         plan,
         effect,
-        owner_kind=_text(effect.get("owner_kind"), "owner_kind"),
-        owner_id=_text(effect.get("owner_id"), "owner_id"),
-        lane_id=_text(effect.get("lane_id"), "lane_id", optional=True),
+        owner_kind=target_owner_kind,
+        owner_id=target_owner_id,
+        lane_id=target_lane_id,
         slot_id=record.slot_id,
         lease=lease,
         next_action=record.next_action,
