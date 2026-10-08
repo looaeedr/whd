@@ -1,18 +1,13 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1379-continue-handoff-1",
+  "request_id": "issue1379-continue-acquire-2",
   "issue": 1379,
-  "kind": "HANDOFF",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1379.continue.20261008",
-  "expected_coord_head": "eb83c0efff3bb01ad27923436c54507e455c6021",
-  "expected_generation": 1,
-  "effect": {
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work1",
-    "lane_id": "chatgpt.flowv2.work1",
-    "lease": null
-  },
+  "expected_coord_head": "4e075da2f8c5910da6cbbb7a8fbfe41965c6a618",
+  "expected_generation": 2,
+  "effect": {},
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
@@ -140,8 +135,8 @@
       "status": "GREEN"
     },
     "purpose": "Complete already-merged Issue1379 design decision trusted terminal tail",
-    "issued_at": "2026-10-08T04:50:00Z",
-    "expires_at": "2026-10-08T04:55:00Z",
+    "issued_at": "2026-10-08T04:52:24Z",
+    "expires_at": "2026-10-08T04:57:24Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Complete already-merged Issue1379 design decision trusted terminal tail\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。"
   },
   "preflight_evidence": {
@@ -165,7 +160,7 @@
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
-    "observed_at": "2026-10-08T04:50:00Z"
+    "observed_at": "2026-10-08T04:52:24Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -176,9 +171,9 @@
     "issue": 1379,
     "branch": "work/issue-1379",
     "head_sha": "d602638da1d2845af8819c2517a297af4360d1f4",
-    "startup_issued_at": "2026-10-08T04:50:00Z",
-    "preflight_observed_at": "2026-10-08T04:50:00Z",
-    "issued_at": "2026-10-08T04:50:00Z",
-    "expires_at": "2026-10-08T04:55:00Z"
+    "startup_issued_at": "2026-10-08T04:52:24Z",
+    "preflight_observed_at": "2026-10-08T04:52:24Z",
+    "issued_at": "2026-10-08T04:52:24Z",
+    "expires_at": "2026-10-08T04:57:24Z"
   }
 }
