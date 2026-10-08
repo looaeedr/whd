@@ -464,6 +464,15 @@ def classify_invocation_exit(
                 root_sync_receipt=root_sync_receipt,
                 lane_delivery_receipt=lane_delivery_receipt,
             )
+        # A terminal Issue is not terminal for the physical invocation if
+        # fresh discovery still found another executable leaf.
+        if alternative_executable_leaf_count > 0:
+            return _decision(
+                record,
+                "CONTINUE_OTHER_EXECUTABLE_LEAF",
+                may_return=False,
+                requires_yield=False,
+            )
         return _decision(record, "TASK_TERMINAL", may_return=True, requires_yield=False)
 
     if record.lease is None:
