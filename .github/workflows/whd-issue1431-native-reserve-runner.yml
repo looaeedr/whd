@@ -1,0 +1,164 @@
+name: WHD Issue1431 Verified Native Reserve
+on:
+  push:
+    branches: [test/issue1431-root-attest]
+    paths: [.dispatch/issue1431-native-reserve-trigger.json]
+permissions:
+  contents: read
+concurrency:
+  group: issue1431-native-reserve
+  cancel-in-progress: false
+jobs:
+  reserve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          path: prod
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: candidate
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          ref: coord/execution-v2
+          path: coord
+          fetch-depth: 1
+      - name: Verify native owner, checkout, tested diff and issue preflight
+        env:
+          RUN_ID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=prod python - <<'PY'
+          import os,sys,json,hashlib,subprocess
+          from pathlib import Path
+          from datetime import datetime,timezone
+          from tools.work_root_gate import build_work_root_gate_evidence,READ_MODE_WORKSPACE
+          from tools.phase6_remote_preflight import run_remote_preflight
+          from tools.control_transaction_request_builder import build_control_transaction_request_from_intent
+          root=Path('prod').resolve(strict=True)
+          candidate=Path('candidate').resolve(strict=True)
+          coord=Path('coord').resolve(strict=True)
+          def git(path,*args):
+              return subprocess.check_output(['git','-C',str(path),*args],text=True).strip()
+          if os.environ['GITHUB_REPOSITORY']!='looaeedr/whd': raise SystemExit('REPO_IDENTITY_MISMATCH')
+          for p in [root,candidate,coord]:
+              if not git(p,'remote','get-url','origin').endswith('/looaeedr/whd.git'):
+                  raise SystemExit('GIT_ORIGIN_MISMATCH')
+          head=git(root,'rev-parse','HEAD')
+          if head!=git(root,'ls-remote','origin','refs/heads/cleanup/2d-3d-sync').split()[0]:
+              raise SystemExit('PRODUCTION_DRIFT')
+          coord_head=git(coord,'rev-parse','HEAD')
+          if coord_head!=git(coord,'ls-remote','origin','refs/heads/coord/execution-v2').split()[0]:
+              raise SystemExit('COORD_DRIFT')
+          rec=json.loads((coord/'.dispatch/execution/issue-1431.json').read_text('utf-8'))
+          if rec.get('state')!='ACTIVE' or rec.get('generation',0)<5 or rec.get('issue')!=1431:
+              raise SystemExit('NATIVE_RECORD_NOT_RESUMED')
+          if rec.get('owner_id')!='chatgpt.flowv2.work1' or rec.get('lane_id')!='chatgpt.flowv2.work1' or rec.get('slot_id')!='worker.slot.1':
+              raise SystemExit('NATIVE_OWNER_MISMATCH')
+          if rec.get('mutation_scope') is not None: raise SystemExit('ALREADY_RESERVED')
+          lease=rec.get('lease') or {}
+          inv=lease.get('invocation_identity')
+          if inv!='chatgpt.issue1431.native-entry.work1.20261008': raise SystemExit('INVOCATION_MISMATCH')
+          expires=datetime.fromisoformat(lease['expires_at'].replace('Z','+00:00'))
+          if expires<=datetime.now(timezone.utc): raise SystemExit('LEASE_EXPIRED')
+          if rec.get('target_branch')!='cleanup/2d-3d-sync' or rec.get('target_sha')!=head:
+              raise SystemExit('TARGET_MISMATCH')
+          next_action=rec.get('next_action') or {}
+          if next_action.get('kind')!='START_BRANCH': raise SystemExit('CONTINUATION_MISMATCH')
+          paths=[
+              '.github/workflows/whd-governance-single-authority-gate.yml',
+              'tools/flow_v2_delivery_entry_gate.py',
+              'tests/process/test_issue1431_native_delivery_entry_gate.py',
+              '.agents/skills/engineering/flow-v2-execution/SKILL.md',
+          ]
+          patch=subprocess.check_output(['git','-C',str(candidate),'diff','--binary',head,'HEAD','--',*paths])
+          digest=hashlib.sha256(patch).hexdigest()
+          if digest!='738e248e891cdb2f5112d667c830c50eb5888994169b3454b70e5aa303549cae':
+              raise SystemExit('FROZEN_TESTED_DIFF_DRIFT')
+          changes=git(candidate,'diff','--name-only',head,'HEAD','--',*paths).splitlines()
+          if sorted(changes)!=sorted(paths): raise SystemExit('DIFF_SCOPE_MISMATCH')
+          subprocess.run([sys.executable,'-m','unittest','discover','-s','tests/process',
+              '-p','test_issue1431_native_delivery_entry_gate.py','-v'],cwd=candidate,check=True)
+          gate=json.loads((root/'.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json').read_text('utf-8'))
+          evidence=build_work_root_gate_evidence(gate_payload=gate,read_mode=READ_MODE_WORKSPACE,
+              execution_mode='INTERACTIVE',root_entries=[p.name for p in root.iterdir()],
+              workspace_root=str(root),production_head_sha=head)
+          phase6=run_remote_preflight({
+              'issue':1431,'worker':'chatgpt.flowv2.work1','executor_source':'chat',
+              'branch':'cleanup/2d-3d-sync','head_sha':head,
+              'invocation_identity':inv,
+              'task':'Implement native Issue1431 Flow v2 claim and PR delivery entry hard gate',
+              'changed_files':paths,
+          },run_id=int(os.environ['RUN_ID']),root=root)
+          if phase6.get('result')!='GREEN': raise SystemExit('PHASE6_FAILED')
+          intent={
+              'schema':'WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1',
+              'request_id':'issue1431-native-reserve-'+os.environ['RUN_ID'],
+              'issue':1431,'kind':'RESERVE_PATHS',
+              'lane_id':'chatgpt.flowv2.work1','invocation_identity':inv,
+              'expected_coord_head':coord_head,'expected_generation':rec['generation'],
+              'effect':{'target_branch':rec['target_branch'],'base_sha':head,
+                  'write_paths':paths,'delete_paths':[],'next_action':next_action},
+              'purpose':'After actual runner 18 tests GREEN and exact frozen diff, reserve delivery paths',
+              'work_root_gate_evidence':evidence,
+              'preflight_evidence':phase6['preflight_evidence'],
+          }
+          build_control_transaction_request_from_intent(intent)
+          out=Path(os.environ['RUNNER_TEMP'])
+          (out/'issue1431-native-reserve-intent.json').write_text(json.dumps(intent,ensure_ascii=False,indent=2)+'\n')
+          (out/'issue1431-native-reserve-check.json').write_text(json.dumps({
+              'run_id':os.environ['RUN_ID'],'issue':1431,'result':'GREEN',
+              'generation':rec['generation'],'production_sha':head,'coord_sha':coord_head,
+              'candidate_sha':git(candidate,'rev-parse','HEAD'),'diff_sha256':digest,
+              'lease_expires_at':lease['expires_at'],'workspace_root':str(root),
+              'phase6_status':phase6['result']},indent=2)+'\n')
+          print('CHECKED_RUNNER_TESTED_DIFF_GREEN')
+          PY
+      - name: Obtain WHD GitHub App token for existing request transport
+        id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.WHD_APP_ID }}
+          private-key: ${{ secrets.WHD_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Submit to trusted Flow v2 request branch (never coord directly)
+        shell: bash
+        env:
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,json,base64,urllib.request,urllib.parse
+          from pathlib import Path
+          base='https://api.github.com/repos/looaeedr/whd/contents/.dispatch/transaction-request.json'
+          branch='coord/transaction-requests-work1'
+          h={'Authorization':'Bearer '+os.environ['APP_TOKEN'],
+             'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',
+             'Content-Type':'application/json'}
+          def api(url,method='GET',payload=None):
+              req=urllib.request.Request(url,method=method,headers=h,
+                  data=json.dumps(payload).encode() if payload is not None else None)
+              with urllib.request.urlopen(req,timeout=40) as resp: return json.load(resp)
+          current=api(base+'?ref='+urllib.parse.quote(branch,safe=''))
+          raw=(Path(os.environ['RUNNER_TEMP'])/'issue1431-native-reserve-intent.json').read_bytes()
+          response=api(base,'PUT',{'branch':branch,'sha':current['sha'],
+              'message':'flow(issue1431): trusted runner native tested-diff reservation',
+              'content':base64.b64encode(raw).decode()})
+          print('SUBMITTED_TRUSTED_FLOW_V2_REQUEST '+response['commit']['sha'])
+          PY
+      - name: Upload Runner audit receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1431-runner-native-reserve-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/issue1431-native-reserve-intent.json
+            ${{ runner.temp }}/issue1431-native-reserve-check.json
+          if-no-files-found: warn
+          retention-days: 7
