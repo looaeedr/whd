@@ -11,8 +11,19 @@
       "target_branch": "cleanup/2d-3d-sync",
       "target_sha": "92158e6a1ff6b4546004cd6d5ed2d5f2e06d59e3",
       "updated_at": "2026-10-06T03:02:10.001Z"
+    },
+    {
+      "execution_intent": "EXECUTE_TICKET",
+      "generation": 1,
+      "issue": 1382,
+      "next_action_display": "Acquire Issue #1382",
+      "next_action_kind": "ACQUIRE",
+      "record_fingerprint": "5a7e03aa4fa310e95ff1fcde11f4f6e5744c5e41213a2dc47206f96dc3244970",
+      "target_branch": "cleanup/2d-3d-sync",
+      "target_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
+      "updated_at": "2026-10-08T10:42:22Z"
     }
   ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "b4ce575fd82fb43faf514660171f2056e4ceee645cd71a36beb01bbd7c517d67"
+  "source_digest": "a3de62ba4d4cf4d383ab9010f6e06e7449011a568ee5cfd6d323a78fde5a813e"
 }

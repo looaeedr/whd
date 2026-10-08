@@ -1,0 +1,53 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": 1374
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
+  "issue": 1382,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1382",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "92336ddeb44f72f1a7f94cb833b1d1271076418e167648376d43fda4bc13633a",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:continue DM8 #1382 2026-10-08",
+      "dispatch_transport": "GITHUB_CANONICAL",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
+  "transaction": null,
+  "updated_at": "2026-10-08T10:42:22Z",
+  "version": 2,
+  "work_branch": "work/issue-1382"
+}
