@@ -1,21 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1381-dispatch-ready-20261008-work1-6053331656",
+  "request_id": "issue1381-acquire-20261008-work1-6053331656",
   "issue": 1381,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1381.dispatch.20261008.work1",
-  "expected_coord_head": "3622c3e79de8c49960eafdac57ac8e34ceced654",
+  "expected_coord_head": "f77240b2b681c5468f462680531151f5ee75105e",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user:/派工 1381",
-    "work_branch": "work/issue-1381",
-    "parent_issue": 1374,
-    "slot_id": "worker.slot.1",
-    "dispatch_transport": "GITHUB_CANONICAL"
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Prepare tested delivery for Issue #1381"
+    }
   },
-  "purpose": "依使用者明確指示 /派工 1381，使用 GitHub canonical Flow v2 為 DM8-A3 建立 READY ExecutionRecord 並續行正式 ACQUIRE。",
+  "purpose": "依使用者 /派工 1381 指令，GitHub canonical Flow v2 正式 ACQUIRE #1381 到 worker.slot.1，保留 workspace-first 測試與 delivery hard gate。",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
