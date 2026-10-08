@@ -1,19 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-recover-existing-open-pr1430-20261008",
+  "request_id": "issue1429-native-acquire-premerge-ready-gen1-20261008",
   "issue": 1429,
-  "kind": "RECOVER_PRE_MERGE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1429.trusted.premerge.recovery.work2.20261008",
-  "expected_coord_head": "0c9086d0254a13495fea622264440505edbff36d",
+  "expected_coord_head": "70341d7f437127690f3f110a5d5ac3777990cf23",
   "expected_generation": 1,
-  "purpose": "Trusted pre-merge create-only missing-record recovery for existing exact delivered PR #1430, without backdating ACQUIRE or QA",
+  "purpose": "Native ACQUIRE for recovery READY on original compact-context PR #1430; preserve exact head and no historical QA",
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user:requested integrate WHD compact context and repair missing Flow v2 adoption of existing PR #1430",
-    "pr_number": 1430,
-    "expected_pr_head_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
-    "expected_target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd"
+    "next_action": {
+      "args": {
+        "post_accept_pr_number": 1430,
+        "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+        "post_accept_target_branch": "cleanup/2d-3d-sync",
+        "workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Fresh native QA on existing PR #1430 head before MERGE",
+      "kind": "START_QA"
+    }
   },
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
@@ -72,6 +77,6 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-08T14:13:17Z"
+    "observed_at": "2026-10-08T14:17:04Z"
   }
 }
