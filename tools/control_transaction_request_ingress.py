@@ -50,13 +50,27 @@ from tools.control_transaction_request_builder import (
 # WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1
 from tools.control_transaction_production_executor import (
     ProductionExecutorError,
-    _is_ancestor,
-    _load_state,
-    _read_branch_head,
     dispatch_ready_missing_record,
     execute_one,
     recover_post_delivery_missing_record,
 )
+
+from tools.control_transaction_runtime import production_provider
+
+
+# Ingress transport adapters use the public provider boundary. Keeping these
+# local seams preserves existing ingress transport doubles, not private imports.
+def _load_state(repo, token, coord_branch):
+    return production_provider(repo, token, coord_branch).read_state()
+
+
+def _read_branch_head(repo, token, branch):
+    return production_provider(repo, token).read_branch_head(branch)
+
+
+def _is_ancestor(repo, token, ancestor, descendant):
+    return production_provider(repo, token).is_ancestor(ancestor, descendant)
+
 
 ALLOWED_KINDS = {
     "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","CONSUME_QA","FAIL_QA",

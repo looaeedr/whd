@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 import re
 import sys
-from typing import Any
+from typing import Any, Callable
 from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -82,6 +82,11 @@ from tools.execution_record import (
     execution_record_fingerprint,
     execution_record_from_payload,
     execution_record_to_payload,
+)
+
+
+from tools.control_transaction_runtime import (
+    PRE_TRANSITION_EXTERNAL_MUTATION_PATHS, RuntimeMode, resolve_runtime_effect,
 )
 
 
@@ -836,6 +841,7 @@ def _trusted_merge_effect(
     record: ExecutionRecord,
     invocation_identity: str,
     supplied: dict[str, object],
+    before_mutation: Callable[[str, str], None] | None = None,
 ) -> dict[str, object]:
     _require_current_invocation_lease(record, invocation_identity)
     if record.next_action is None or record.next_action.kind != "MERGE":
@@ -927,6 +933,8 @@ def _trusted_merge_effect(
         )
 
 
+    if before_mutation is not None:
+        before_mutation("PUT", f"/pulls/{pr_number}/merge")
     merge_result = _api(
         repo,
         "PUT",
@@ -979,6 +987,7 @@ def _trusted_sync_target_effect(
     *,
     record: ExecutionRecord,
     invocation_identity: str,
+    before_mutation: Callable[[str, str], None] | None = None,
 ) -> dict[str, object]:
     _require_current_invocation_lease(record, invocation_identity)
     if record.next_action is None or record.next_action.kind != "SYNC_TARGET":
@@ -1024,6 +1033,8 @@ def _trusted_sync_target_effect(
             )
         new_head = live_work
     else:
+        if before_mutation is not None:
+            before_mutation("POST", "/merges")
         try:
             _api(
                 repo,
@@ -1154,6 +1165,7 @@ def _ensure_issue_closed_for_finalize(
     issue: int,
     record: ExecutionRecord,
     records: dict[int, ExecutionRecord] | None = None,
+    before_mutation: Callable[[str, str], None] | None = None,
 ) -> dict[str, object]:
     """Close/read back the GitHub Issue before a FINALIZE -> DONE transition."""
     control_only = is_control_only_finalize_record(record)
@@ -1174,6 +1186,8 @@ def _ensure_issue_closed_for_finalize(
         str(observed.get("state") or "").lower() != "closed"
         or str(observed.get("state_reason") or "").lower() != "completed"
     ):
+        if before_mutation is not None:
+            before_mutation("PATCH", f"/issues/{issue}")
         _api(
             repo,
             "PATCH",
@@ -1234,6 +1248,7 @@ def _trusted_stale_release_effect(
     record: ExecutionRecord,
     records: dict[int, ExecutionRecord] | None = None,
     supplied: dict[str, object],
+    before_mutation: Callable[[str, str], None] | None = None,
 ) -> dict[str, object]:
     """Delete one proven-safe stale work ref, then prove absence before READY reset.
 
@@ -1332,6 +1347,8 @@ def _trusted_stale_release_effect(
             )
 
 
+        if before_mutation is not None:
+            before_mutation("DELETE", f"/git/refs/heads/{encoded_work}")
         _api(repo, "DELETE", f"/git/refs/heads/{encoded_work}", token)
         deleted = True
 
@@ -1419,6 +1436,51 @@ def _trusted_consume_qa_effect(
         }
     )
     return effect
+
+
+class _ProductionRuntimeProvider:
+    """Transport/effect adapter only; no transition or retry state."""
+
+    def __init__(self, repo, token, coord_branch):
+        self.repo, self.token = repo, token
+        self.coord_branch = coord_branch
+
+    def read_state(self):
+        return _load_state(self.repo, self.token, self.coord_branch)
+
+    def read_branch_head(self, branch):
+        return _read_branch_head(self.repo, self.token, branch)
+
+    def is_ancestor(self, ancestor, descendant):
+        return _is_ancestor(self.repo, self.token, ancestor, descendant)
+
+    def resolve_effect(self, record, plan, supplied_effect, *, records, before_mutation):
+        kwargs = {"record": record, "before_mutation": before_mutation}
+        if plan.kind == "MERGE":
+            return _trusted_merge_effect(self.repo, self.token, **kwargs,
+                invocation_identity=plan.invocation_identity, supplied=dict(supplied_effect))
+        if plan.kind == "SYNC_TARGET":
+            return _trusted_sync_target_effect(self.repo, self.token, **kwargs,
+                invocation_identity=plan.invocation_identity)
+        if plan.kind == "RELEASE_PATHS":
+            return _trusted_stale_release_effect(self.repo, self.token, **kwargs,
+                records=records, supplied=dict(supplied_effect))
+        if plan.kind == "FINALIZE":
+            _require_current_invocation_lease(record, plan.invocation_identity)
+            if record.next_action is None or record.next_action.kind != "FINALIZE":
+                raise ControlTransactionConflict(
+                    "FINALIZE requires current structured FINALIZE next_action")
+            # FINALIZE does not trust caller-supplied closure booleans.
+            # The production provider owns Issue close and fresh readback.
+            effect = dict(supplied_effect)
+            effect.update(_ensure_issue_closed_for_finalize(
+                self.repo, self.token, issue=record.issue, records=records, **kwargs))
+            return effect
+        raise ProductionExecutorError(f"unsupported runtime effect: {plan.kind}")
+
+
+def build_runtime_provider(repo, token, coord_branch="coord/execution-v2"):
+    return _ProductionRuntimeProvider(repo, token, coord_branch)
 
 
 def _write_state(
@@ -1789,14 +1851,12 @@ def _execute_one_attempt(
         invocation_identity=invocation_identity,
         supplied=supplied_effect,
     )
-    if kind == "MERGE":
-        effect = _trusted_merge_effect(
-            repo,
-            token,
-            record=record,
-            invocation_identity=invocation_identity,
-            supplied=supplied_effect,
+    if kind in PRE_TRANSITION_EXTERNAL_MUTATION_PATHS:
+        envelope = resolve_runtime_effect(
+            record, plan, RuntimeMode(supplied_effect.get("runtime_mode", "MUTATION_ALLOWED")),
+            build_runtime_provider(repo, token, coord_branch), effect,
         )
+        effect = dict(envelope.effect)
     elif kind == "CONSUME_QA":
         effect = _trusted_consume_qa_effect(
             repo,
@@ -1804,21 +1864,6 @@ def _execute_one_attempt(
             record=record,
             invocation_identity=invocation_identity,
             supplied=supplied_effect,
-        )
-    elif kind == "SYNC_TARGET":
-        effect = _trusted_sync_target_effect(
-            repo,
-            token,
-            record=record,
-            invocation_identity=invocation_identity,
-        )
-    elif kind == "RELEASE_PATHS":
-        effect = _trusted_stale_release_effect(
-            repo,
-            token,
-            record=record,
-            records=records,
-            supplied=effect,
         )
     elif (
         kind == "RECONCILE"
@@ -1831,29 +1876,6 @@ def _execute_one_attempt(
             record=record,
             supplied=supplied_effect,
         )
-    elif kind == "FINALIZE":
-        # FINALIZE owns an external GitHub Issue close/readback side effect, so
-        # it must be fenced by the exact live invocation lease before touching
-        # the Issue.  A stale/different runtime may not close on behalf of the
-        # current owner.
-        _require_current_invocation_lease(record, invocation_identity)
-        if record.next_action is None or record.next_action.kind != "FINALIZE":
-            raise ControlTransactionConflict(
-                "FINALIZE requires current structured FINALIZE next_action"
-            )
-        # FINALIZE does not trust caller-supplied closure booleans. The trusted
-        # writer owns the GitHub side effect and fresh readback.
-        effect.update(
-            _ensure_issue_closed_for_finalize(
-                repo,
-                token,
-                issue=issue,
-                record=record,
-                records=records,
-            )
-        )
-
-
     post = execute_transaction(record, plan, effect=effect)
 
 
