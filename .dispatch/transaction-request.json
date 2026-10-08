@@ -1,52 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-native-apply-37810748487",
+  "request_id": "issue1431-consume-exact-head-qa-pr1438-run37811000694",
   "issue": 1431,
-  "kind": "APPLY_COMMIT",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-  "expected_coord_head": "c028afc71457ced1d0c8af57fe9843d7362e6461",
-  "expected_generation": 8,
+  "expected_coord_head": "eea8b70ba968c830d5cafe0d6515a95a15f78ea3",
+  "expected_generation": 9,
   "reuse_admission_session": true,
   "effect": {
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
-      "diff_digest": "62ed8ed750ad441cb74b6e4e92c55a14a7860f1eda3a14f0e28201d39414e1f9",
-      "issue": 1431,
-      "generation": 8,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-        ".github/workflows/whd-governance-single-authority-gate.yml",
-        "tests/process/test_issue1431_native_delivery_entry_gate.py",
-        "tools/flow_v2_delivery_entry_gate.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "e9e3b6be88c465e15bc5c811a57240488c682946bb565e5bb7515cab7cad660e",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1431,
-      "generation": 8,
-      "record_fingerprint": "e9e3b6be88c465e15bc5c811a57240488c682946bb565e5bb7515cab7cad660e",
-      "lease_token": "lease:1431:37810538939:1",
-      "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "work/issue-1431-flow-v2-entry-gate",
-      "expected_work_head": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
-      "expected_target_head": "3687c9e3e91898cb6c17f58757b008744da5e0ea"
-    },
+    "run_id": 37811000694,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "pr_number": 1438,
+        "head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Run exact-head QA on tested four-file PR"
-    },
-    "head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8"
+      "display": "Merge exact accepted PR #1438 after all required checks"
+    }
   }
 }
