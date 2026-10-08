@@ -1,14 +1,19 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-acquire-same-owner-work-head-for1431-repair-20261008",
+  "request_id": "issue1429-authorize1431-slot0-to-slot1-native-repair-gen3",
   "issue": 1429,
-  "kind": "ACQUIRE",
+  "kind": "REPAIR_READY_SLOT",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1429.slot1431.repair.work2.20261008",
-  "expected_coord_head": "a8e46b180cf1d0ae1880b5da1906a7287220dbcd",
-  "expected_generation": 2,
-  "effect": {},
-  "purpose": "Renew exact #1429 same-owner ACTIVE lease on actual work branch identity; authorize only later native #1431 unclaimed READY slot relocation",
+  "expected_coord_head": "b082cbb6906d226887bba96bcabe1f86b1b7be6d",
+  "expected_generation": 3,
+  "effect": {
+    "target_issue": 1431,
+    "target_generation": 1,
+    "expected_old_slot_id": "worker.slot.0",
+    "new_slot_id": "worker.slot.1"
+  },
+  "purpose": "Atomic native relocation of unclaimed Issue #1431 READY slot0 collision to free slot1; retain #1331 owner and preserve #1431 owner/lease/QA/head/next action",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -66,6 +71,6 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-08T15:28:06.105Z"
+    "observed_at": "2026-10-08T15:30:09.167Z"
   }
 }
