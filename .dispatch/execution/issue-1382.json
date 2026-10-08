@@ -12,19 +12,34 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
   "issue": 1382,
-  "lane_id": null,
-  "lease": null,
-  "mutation_scope": null,
-  "next_action": {
-    "args": {},
-    "display": "Acquire Issue #1382",
-    "kind": "ACQUIRE"
+  "lane_id": "chatgpt.flowv2.work1",
+  "lease": {
+    "expires_at": "2026-10-08T11:00:02Z",
+    "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
+    "token": "lease:1382:37765418402:1"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "mutation_scope": {
+    "base_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/contracts/WHD_DM8_SCENE_MUTATION_OWNER_DECISION_V1.json",
+      "tests/process/test_issue1382_o3_decision.py"
+    ]
+  },
+  "next_action": {
+    "args": {
+      "diff_digest": "07a7e2dfedef886d247789c32d58d6a2a0072b14b47b16945bcce60c5926e2dd"
+    },
+    "display": "Publish exact tested O3 decision contract and anti-regrowth tests",
+    "kind": "START_BRANCH"
+  },
+  "owner_id": "chatgpt.flowv2.work1",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -39,15 +54,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "READY",
+  "semantic_state": "CLAIMED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-  "transaction": null,
-  "updated_at": "2026-10-08T10:42:22Z",
+  "transaction": {
+    "expected_fingerprint": "5a7e03aa4fa310e95ff1fcde11f4f6e5744c5e41213a2dc47206f96dc3244970",
+    "id": "gha:37765418402:1382:ACQUIRE:1",
+    "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T10:45:02Z",
   "version": 2,
   "work_branch": "work/issue-1382"
 }
