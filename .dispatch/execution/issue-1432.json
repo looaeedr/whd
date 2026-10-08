@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+    "released_at": null
+  },
+  "execution_intent": "POST_DELIVERY_RECOVERY",
+  "generation": 1,
+  "head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
+  "issue": 1432,
+  "lane_id": "chatgpt.flowv2.work1",
+  "lease": {
+    "expires_at": "2026-10-08T17:15:13Z",
+    "invocation_identity": "chatgpt.issue1432.postdelivery.work1.20261009",
+    "token": "recovery:1432:37813022014"
+  },
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "pr_number": 1434,
+      "recovery_mode": "POST_DELIVERY_RECOVERY"
+    },
+    "display": "Finalize already-merged delivery from trusted recovery proof",
+    "kind": "FINALIZE"
+  },
+  "owner_id": "chatgpt.flowv2.work1",
+  "owner_kind": "RECOVERY",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "issue": 1432,
+      "issue_link_proof": "PR_CLOSING_KEYWORD",
+      "issue_state_at_recovery": "open",
+      "kind": "POST_DELIVERY_RECOVERY",
+      "merged_anchor_is_ancestor": true,
+      "merged_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+      "observed_at": "2026-10-08T17:00:13Z",
+      "observed_target_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
+      "pr_head_ref": "work/issue-1432-flow-v2-premerge",
+      "pr_head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
+      "pr_number": 1434,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "required_checks_green": true,
+      "schema": "WHD_FLOW_V2_POST_DELIVERY_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "slot_id": "worker.slot.1",
+  "source_branch": "work/issue-1432-flow-v2-premerge",
+  "source_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
+  "state": "INTEGRATING",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
+  "transaction": null,
+  "updated_at": "2026-10-08T17:00:13Z",
+  "version": 2,
+  "work_branch": "work/issue-1432-flow-v2-premerge"
+}
