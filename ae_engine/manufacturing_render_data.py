@@ -407,3 +407,8 @@ def _exploded_box_body_preview(pieces, *, gap=30.0):
         cursor += (maxx - minx) + float(gap)
     material = unary_union(materials)
     return PartRenderData(scene=scene, material=material, fold_guides=())
+
+
+def build_exploded_box_body_preview(pieces, *, gap=30.0):
+    """Public narrow preview primitive for immutable scene replacement."""
+    return _exploded_box_body_preview(pieces, gap=gap)

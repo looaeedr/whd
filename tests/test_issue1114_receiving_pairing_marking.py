@@ -12,9 +12,9 @@ from ae_engine.contracts import (
     ResolvedManufacturingPart,
 )
 from ae_engine.manufacturing_api import build_box_body_structure_render_data
-from ae_engine.receiving_joint_marking import (
-    _owner_render_data,
-    _replace_owner_render_data,
+from ae_engine.manufacturing_scene_access import (
+    owner_render_data,
+    replace_owner_render_data,
 )
 from ae_engine.receiving_layout import (
     RECEIVING_RUNTIME_SELECTION_KEY,
@@ -298,11 +298,11 @@ def test_t014_back_opening_30x20_is_fixed_and_oversize_injection_fails_closed(mo
 
 
 def _inject_left_primitive(geometry, primitive):
-    left = _owner_render_data(geometry, "box_body:left_side")
+    left = owner_render_data(geometry, "box_body:left_side")
     scene = DrawingScene()
     scene.extend(tuple(left.scene.primitives or ()))
     scene.add(primitive)
-    return _replace_owner_render_data(
+    return replace_owner_render_data(
         geometry, "box_body:left_side", replace(left, scene=scene)
     )
 
