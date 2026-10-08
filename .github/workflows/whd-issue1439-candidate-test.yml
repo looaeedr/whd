@@ -1,0 +1,23 @@
+name: WHD Issue 1439 Candidate Token Identity Regression
+on:
+  push:
+    branches: [test/issue1431-root-attest]
+    paths: [.github/workflows/whd-issue1439-candidate-test.yml]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit tests for owner-owned branch identity and no-bot fallback
+        run: PYTHONPATH=. python -m unittest tests.process.test_issue1439_tok_pat_ci_trigger -v
+      - name: Verify candidate Python syntax
+        run: python -m py_compile tools/control_transaction_production_executor.py tests/process/test_issue1439_tok_pat_ci_trigger.py
