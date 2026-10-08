@@ -65,3 +65,15 @@ jobs:
           set -euo pipefail
           gh api /repos/"$GH_REPO" --jq '.full_name' >/dev/null
           echo "APP_TOKEN_SMOKE_GREEN"
+      - name: Verify App Git ref PATCH permission on isolated smoke branch
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="heads/test/flow-v2-app-token-smoke"
+          sha="$(gh api "repos/$GH_REPO/git/ref/$ref" --jq '.object.sha')"
+          # Exact same SHA: tests permission without advancing the test branch.
+          gh api -X PATCH "repos/$GH_REPO/git/refs/$ref" -f sha="$sha" -F force=false >/dev/null
+          echo "APP_REF_PATCH_PERMISSION_GREEN"
