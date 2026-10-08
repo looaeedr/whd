@@ -1,12 +1,90 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1382-finalize-merged-pr1419-generation15-20261008",
-  "issue": 1382,
-  "kind": "FINALIZE",
+  "request_id": "issue1384-c2-scene-owner-ready-20261008",
+  "issue": 1384,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-  "expected_coord_head": "d3103571d634bd94fd57681d64010a9fda7a3056",
-  "expected_generation": 15,
-  "effect": {},
-  "reuse_admission_session": true
+  "invocation_identity": "chatgpt.issue1384.c2.20261008.work1",
+  "expected_coord_head": "ac2cae0cbe13e38ca551ba5a8f0a02354b5380c8",
+  "expected_generation": 1,
+  "effect": {
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "user:continue DM8 #1384 after #1382 and #1383 terminal 2026-10-08",
+    "work_branch": "work/issue-1384",
+    "parent_issue": 1374,
+    "slot_id": "worker.slot.1",
+    "dispatch_transport": "GITHUB_CANONICAL"
+  },
+  "purpose": "Start DM8-C2 exact isolated six-file tested manufacturing scene seam and Joint/Pairing migration after verified C0+C1 terminal success.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "40be9e499c6b24d77e04dee6d37b0d0982b2c990",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1384,
+    "invocation_identity": "chatgpt.issue1384.c2.20261008.work1",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "40be9e499c6b24d77e04dee6d37b0d0982b2c990",
+    "required_skills": [
+      "root-local-first",
+      "phase6-corner-3d-model-integrity",
+      "flow-v2-execution",
+      "驗證板件與DXF",
+      "monitoring-remote-qa",
+      "刪除"
+    ],
+    "completed_skills": [
+      "root-local-first",
+      "phase6-corner-3d-model-integrity",
+      "flow-v2-execution",
+      "驗證板件與DXF",
+      "monitoring-remote-qa",
+      "刪除"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "基準檔/截角資料庫/README_母規則說明.md",
+      "基準檔/截角資料庫/certified_relief_rules.json",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
+      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
+      ".agents/skills/engineering/刪除/SKILL.md"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "基準檔/截角資料庫/README_母規則說明.md",
+      "基準檔/截角資料庫/certified_relief_rules.json",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
+      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
+      ".agents/skills/engineering/刪除/SKILL.md"
+    ],
+    "observed_at": "2026-10-08T12:19:42Z"
+  }
 }
