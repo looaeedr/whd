@@ -44,6 +44,7 @@ from tools.control_transaction import (
     POST_DELIVERY_RECOVERY_PROOF_SCHEMA,
     is_post_delivery_recovery_finalize_record,
 )
+from tools.flow_v2_pre_merge_recovery import build_pre_merge_recovery_ready_record
 from tools.execution_dispatch_ingress import (
     DispatchIngressError,
     DispatchIngressRequest,
@@ -1690,6 +1691,117 @@ def dispatch_ready_missing_record(
         "runtime_observation_status": "NOT_APPLICABLE_UNCLAIMED_READY",
     }
 
+
+
+def recover_pre_merge_missing_record(
+    *,
+    repo: str, token: str, coord_branch: str,
+    issue: int, lane_id: str, invocation_identity: str,
+    expected_coord_head: str, supplied_effect: dict[str, object],
+) -> dict[str, object]:
+    """Create-only pre-merge READY from trusted live PR; no historical ACQUIRE.
+
+    Not a recovery owner or merger. The real owner ACQUIRE/QA/MERGE/FINALIZE
+    transactions are still mandatory. Same-Issue races fail closed.
+    """
+    parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
+    if parent_sha != expected_coord_head:
+        raise ControlTransactionConflict(
+            f"coord head drift: expected {expected_coord_head}, observed {parent_sha}"
+        )
+    if issue in records:
+        raise ControlTransactionConflict(
+            f"RECOVER_PRE_MERGE requires missing record; issue {issue} exists"
+        )
+    permitted_fields = {
+        "authority_kind", "authority_ref", "pr_number",
+        "expected_pr_head_sha", "expected_target_sha",
+    }
+    unexpected = set(supplied_effect) - permitted_fields
+    if unexpected:
+        raise ProductionExecutorError(
+            "RECOVER_PRE_MERGE cannot import owner, QA or historical state: "
+            + ",".join(sorted(unexpected))
+        )
+    if supplied_effect.get("authority_kind") != "USER_EXPLICIT" or not str(
+        supplied_effect.get("authority_ref") or ""
+    ).strip():
+        raise ProductionExecutorError(
+            "RECOVER_PRE_MERGE requires user-explicit authority reference"
+        )
+    pr_number = supplied_effect.get("pr_number")
+    if isinstance(pr_number, bool) or not isinstance(pr_number, int) or pr_number <= 0:
+        raise ProductionExecutorError("RECOVER_PRE_MERGE requires exact pr_number")
+    pr = _api(repo, "GET", f"/pulls/{pr_number}", token) or {}
+    owning = _api(repo, "GET", f"/issues/{issue}", token) or {}
+    target = _read_branch_head(repo, token, "cleanup/2d-3d-sync")
+    checks = list(_required_checks_for_target(repo, token, "cleanup/2d-3d-sync"))
+    conclusions = _check_conclusions_for_head(
+        repo, token, str((pr.get("head") or {}).get("sha") or "")
+    )
+    try:
+        record = build_pre_merge_recovery_ready_record(
+            repository=repo, issue=issue,
+            pr_number=pr_number,
+            lane_id=lane_id,
+            slot_id=_slot_for_lane(lane_id),
+            issue_readback=owning,
+            pr_readback=pr,
+            observed_target_sha=target,
+            required_checks=checks,
+            check_conclusions=conclusions,
+            expected_pr_head_sha=str(supplied_effect.get("expected_pr_head_sha") or ""),
+            expected_target_sha=str(supplied_effect.get("expected_target_sha") or ""),
+            pr_closes_issue=_pr_body_closes_issue(pr.get("body"), issue),
+            observed_at=_iso(_now()),
+        )
+    except (ValueError, ExecutionRecordError) as exc:
+        raise ProductionExecutorError(str(exc)) from exc
+
+    last_conflict: ControlTransactionConflict | None = None
+    for attempt in range(1, 6):
+        if issue in records:
+            raise ControlTransactionConflict(
+                "RECOVER_PRE_MERGE same-Issue record appeared during bootstrap"
+            )
+        candidate_records = dict(records)
+        candidate_records[issue] = record
+        try:
+            commit_sha, blob_sha = _write_state(
+                repo, token, coord_branch, parent_sha=parent_sha,
+                base_tree_sha=tree_sha, records=candidate_records, issue=issue,
+            )
+            break
+        except ControlTransactionConflict as exc:
+            last_conflict = exc
+            if not str(exc).startswith(
+                "coord/execution-v2 ref advanced during transaction"
+            ) or attempt >= 5:
+                raise
+            parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
+            if issue in records:
+                raise ControlTransactionConflict(
+                    "RECOVER_PRE_MERGE same-Issue record appeared during coord retry"
+                ) from exc
+    else:  # pragma: no cover
+        assert last_conflict is not None
+        raise last_conflict
+
+    _, _, fresh_records = _load_state(repo, token, coord_branch)
+    fresh = fresh_records.get(issue)
+    if fresh is None or execution_record_fingerprint(fresh) != execution_record_fingerprint(record):
+        raise ProductionExecutorError("RECOVER_PRE_MERGE post-write readback mismatch")
+    return {
+        "schema": RESULT_SCHEMA, "result": "APPLIED",
+        "issue": issue, "kind": "RECOVER_PRE_MERGE",
+        "coord_commit_sha": commit_sha, "record_blob_sha": blob_sha,
+        "post_generation": fresh.generation,
+        "post_record_fingerprint": execution_record_fingerprint(fresh),
+        "post_state": fresh.state,
+        "post_next_action": fresh.next_action.kind if fresh.next_action else None,
+        "lease_invocation_identity": None,
+        "runtime_observation_status": "NOT_APPLICABLE_UNCLAIMED_READY",
+    }
 
 
 def recover_post_delivery_missing_record(

@@ -73,6 +73,18 @@ Machine enforcement owner=`tools/control_transaction.py` / `tools/execution_invo
 
 
 
+### MISSING_EXECUTION_RECORD_PRE_MERGE_RECOVERY_V1 — 先領工單，已交付漏領只能 create-only 接入
+
+正常路徑的 **native READY → ACQUIRE → owning Issue 留言** 必須在任何 substantive repository-content mutation／PR 前完成；Phase6 Preflight 和 PR CI SUCCESS 都不能充當接取紀錄。這是**前置硬閘門**，不是事後補一個假的 ACQUIRE。
+
+若 exact Issue 的 ExecutionRecord **不存在**，但同 Issue 已有 **OPEN、尚未合併且有全套 required GREEN** 的現成 delivery PR，禁止直接 MERGE 或重做已完成的實作。固定走 trusted `RECOVER_PRE_MERGE`：
+1. Trusted ingress fresh-read Issue/PR/production HEAD/PR HEAD/required checks，檢查同 repo／exact closing keyword／mergeable／source branch、target SHA 及原始 user-exact Issue authority。
+2. 透過 `coord/execution-v2` create-only + expected coord SHA CAS 新增 **gen1 READY / UNCLAIMED / no lease / no QA** 的紀錄；proof 僅標當下可信證據，明示 **未重建過去 ACQUIRE/QA**。已有 native record 直接走原正常流程，不能覆寫。
+3. 綁定 `ACQUIRE.post_acquire=START_QA` 及 exact 原 PR；真正 native ACQUIRE 成功後立即擷取 GitHub server Issue 留言時鐘，按 10 分鐘規則繼續。以前的 GREEN run 只能**在當下重新驗證** workflow/HEAD/complete/success 後走 native `CONSUME_QA`，若不合規就重新 START_QA。
+4. 之後仍走正常 `MERGE → FINALIZE → Issue close/readback → DONE`。前置補救 transaction 不是完成或合併授權。
+
+CURRENT 實作：`tools/flow_v2_pre_merge_recovery.py`、`tools/control_transaction_production_executor.py::recover_pre_merge_missing_record`、`tools/control_transaction_request_ingress.py`；參考文件 `docs/governance/flow_v2_pre_merge_recovery.md`。已合併的漏 record 才適用下面的 `RECOVER_POST_DELIVERY`，兩者互斥。
+
 ### MISSING_EXECUTION_RECORD_POST_DELIVERY_RECOVERY_V1 — 已交付不得因缺 record 停住
 
 若 fresh durable evidence 已證明 repository-content delivery PR **已 merged 到 `cleanup/2d-3d-sync`**，但 owning Issue 在 `coord/execution-v2` 沒有 native `ExecutionRecord`，這是 **recovery condition，不是施工 blocker，也不是重做 implementation 的理由**。

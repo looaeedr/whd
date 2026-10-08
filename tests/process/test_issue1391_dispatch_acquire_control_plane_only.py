@@ -76,8 +76,21 @@ def _build(kind: str):
     )
 
 
-def test_dispatch_control_plane_allowlist_contains_ready_and_acquire_only():
-    assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({"DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF", "RECOVER_POST_DELIVERY"})
+def test_control_plane_allowlist_has_only_native_bootstrap_resume_and_recovery():
+    assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({
+        "DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF",
+        "RECOVER_POST_DELIVERY", "RECOVER_PRE_MERGE",
+    })
+
+
+def test_pre_merge_recovery_uses_fresh_trusted_admission_not_content_write():
+    request = _build("RECOVER_PRE_MERGE")
+    assert request["kind"] == "RECOVER_PRE_MERGE"
+    assert request["startup_evidence"]["work_root_gate"]["scope"] == "CONTROL_PLANE_ONLY"
+    assert request["startup_transition"]["status"] == "READY_FOR_EXECUTION"
+    assert "session_reuse" not in request
+    # Admission only: executor must still fresh-read Issue/PR/HEAD/checks,
+    # create only an unclaimed READY, and require real ACQUIRE + QA.
 
 
 def test_post_delivery_recovery_is_admitted_only_through_existing_trusted_ingress():
