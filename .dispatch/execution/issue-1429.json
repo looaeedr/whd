@@ -12,30 +12,28 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
   "issue": 1429,
-  "lane_id": null,
-  "lease": null,
+  "lane_id": "chatgpt.flowv2.work2",
+  "lease": {
+    "expires_at": "2026-10-08T14:37:39Z",
+    "invocation_identity": "chatgpt.issue1429.trusted.premerge.recovery.work2.20261008",
+    "token": "lease:1429:37791767309:1"
+  },
   "mutation_scope": null,
   "next_action": {
     "args": {
-      "post_acquire": {
-        "args": {
-          "post_accept_pr_number": 1430,
-          "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-          "post_accept_target_branch": "cleanup/2d-3d-sync",
-          "workflow": ".github/workflows/whd-product-regression.yml"
-        },
-        "display": "Fresh native QA on existing PR #1430 head before MERGE",
-        "kind": "START_QA"
-      }
+      "post_accept_pr_number": 1430,
+      "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "post_accept_target_branch": "cleanup/2d-3d-sync",
+      "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Acquire Issue #1429; preserve PR #1430 delivery",
-    "kind": "ACQUIRE"
+    "display": "Fresh native QA on existing PR #1430 head before MERGE",
+    "kind": "START_QA"
   },
-  "owner_id": "NONE",
-  "owner_kind": "UNCLAIMED",
+  "owner_id": "chatgpt.flowv2.work2",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +61,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PRE_MERGE_RECOVERY_READY",
+  "semantic_state": "CLAIMED",
   "slot_id": "worker.slot.2",
   "source_branch": "work/issue-1429-flow-v2-compact-context",
   "source_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
-  "state": "READY",
+  "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
-  "transaction": null,
-  "updated_at": "2026-10-08T14:15:52Z",
+  "transaction": {
+    "expected_fingerprint": "6422c222ac979a6c489c1f62f786df0d238c9ceb038f1d9b22410783c7ab434c",
+    "id": "gha:37791767309:1429:ACQUIRE:1",
+    "invocation_identity": "chatgpt.issue1429.trusted.premerge.recovery.work2.20261008",
+    "kind": "ACQUIRE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T14:22:39Z",
   "version": 2,
   "work_branch": "work/issue-1429-flow-v2-compact-context"
 }
