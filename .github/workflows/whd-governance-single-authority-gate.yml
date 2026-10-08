@@ -36,3 +36,31 @@ jobs:
             echo 'legacy paired governance instruction regrew' >&2
             exit 1
           fi
+
+      - name: Checkout canonical native Flow v2 records
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: coord/execution-v2
+          path: native-coord
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Reject stale canonical coord checkout
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          fetched=$(git -C native-coord rev-parse HEAD)
+          live=$(git -C native-coord ls-remote origin refs/heads/coord/execution-v2 | awk '{print $1}')
+          test -n "$live" && test "$fetched" = "$live"
+
+      - name: Verify issue-bound PR has native acquired execution
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/flow_v2_delivery_entry_gate.py \
+            --event-file "$GITHUB_EVENT_PATH" \
+            --records-root native-coord/.dispatch/execution \
+            --repository "$GITHUB_REPOSITORY"
