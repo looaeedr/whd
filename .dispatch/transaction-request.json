@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-consume-native-existing-product-green-gen4-20261009",
+  "request_id": "issue1429-consume-product-green-with-native-transition-gen4-20261009",
   "issue": 1429,
   "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work2",
@@ -9,6 +9,19 @@
   "expected_generation": 4,
   "reuse_admission_session": true,
   "effect": {
-    "run_id": 37776775898
+    "run_id": 37776775898,
+    "next_state": "INTEGRATING",
+    "next_action": {
+      "kind": "MERGE",
+      "args": {
+        "pr_number": 1430,
+        "head_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Merge exact accepted PR #1430 after all required checks"
+    },
+    "semantic_state": "QA_ACCEPTED"
   }
 }
