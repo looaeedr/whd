@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
-  "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+  "generation": 5,
+  "head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
   "issue": 1435,
   "lane_id": "chatgpt.flowv2.work2",
   "lease": {
@@ -41,10 +41,10 @@
   },
   "next_action": {
     "args": {
-      "candidate_commit_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f"
+      "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Apply exact tested ten-file commit to authorized delivery branch",
-    "kind": "APPLY_COMMIT"
+    "display": "Validate exact delivered PR head using trusted native QA",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -62,7 +62,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "DELIVERED_AWAITING_NATIVE_QA",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
@@ -70,13 +70,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "transaction": {
-    "expected_fingerprint": "cd6f17523ade61bfbc450c1ab8c7b122ba6594a47724379530071fead9a574b6",
-    "id": "gha:37788995609:1435:ACQUIRE:3",
+    "expected_fingerprint": "867cfcda102a7bb05a25852ad680959d6db5cf0c53a186096b219ebdacc31604",
+    "id": "gha:37789423780:1435:APPLY_COMMIT:4",
     "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
-    "kind": "ACQUIRE",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T14:02:17Z",
+  "updated_at": "2026-10-08T14:05:15Z",
   "version": 2,
   "work_branch": "work/issue-1435-trusted-premerge-delivery"
 }
