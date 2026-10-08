@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
-  "head_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+  "generation": 7,
+  "head_sha": "058730b19418d49bed47bef7d7d84751c86a6e14",
   "issue": 1381,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -36,10 +36,13 @@
   },
   "next_action": {
     "args": {
-      "diff_digest": "be13355903b62d77384af425cb826ff58d9f99ed96b744d8c82619f427605a9f"
+      "post_accept_pr_number": 1413,
+      "post_accept_target_branch": "cleanup/2d-3d-sync",
+      "post_accept_target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
+      "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Deliver tested Issue1381 no-replay hardening",
-    "kind": "START_BRANCH"
+    "display": "Validate exact PR #1413",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -57,7 +60,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
@@ -65,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
   "transaction": {
-    "expected_fingerprint": "10a3eafc970171055bca0f5d9eea84d1bfa3e98074dc6da9f9aec30db9d704b0",
-    "id": "gha:37747253986:1381:RESERVE_PATHS:5",
+    "expected_fingerprint": "ffe9e1549f3ee5550ebfa71734171f1a12170c163327652b81b197aa8ca42148",
+    "id": "gha:37747818236:1381:START_BRANCH:6",
     "invocation_identity": "chatgpt.issue1381.takeover.20261008",
-    "kind": "RESERVE_PATHS",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T08:03:50Z",
+  "updated_at": "2026-10-08T08:08:42Z",
   "version": 2,
   "work_branch": "work/issue-1381"
 }
