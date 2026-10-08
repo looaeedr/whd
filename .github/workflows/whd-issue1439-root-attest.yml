@@ -1,0 +1,55 @@
+name: WHD Issue 1439 Runner Root Attestation
+on:
+  push:
+    branches:
+      - test/issue1431-root-attest
+    paths:
+      - .github/workflows/whd-issue1439-root-attest.yml
+permissions:
+  contents: read
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          path: prod
+          fetch-depth: 1
+      - name: Verify exact canonical production checkout and output root evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          from datetime import datetime, timezone
+          root = Path("prod").resolve(strict=True)
+          def git(*args):
+              return subprocess.check_output(["git","-C",str(root),*args],text=True).strip()
+          if os.environ["GITHUB_REPOSITORY"] != "looaeedr/whd":
+              raise SystemExit("repository identity mismatch")
+          origin=git("remote","get-url","origin")
+          if not (origin.endswith("/looaeedr/whd") or origin.endswith("/looaeedr/whd.git")):
+              raise SystemExit("git origin mismatch")
+          head=git("rev-parse","HEAD")
+          remote=subprocess.check_output(["git","ls-remote","origin","refs/heads/cleanup/2d-3d-sync"],cwd=root,text=True).split()[0]
+          if head!=remote: raise SystemExit("production changed during checkout")
+          sys.path.insert(0,str(root))
+          from tools.work_root_gate import build_work_root_gate_evidence, READ_MODE_WORKSPACE
+          gate=json.loads((root/".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json").read_text("utf-8"))
+          evidence=build_work_root_gate_evidence(gate_payload=gate,read_mode=READ_MODE_WORKSPACE,execution_mode="INTERACTIVE",root_entries=sorted(p.name for p in root.iterdir()),workspace_root=str(root),production_head_sha=head)
+          report={"schema":"WHD_ISSUE1439_RUNNER_ACTUAL_ROOT_OBSERVATION_V1","issue":1439,"repository":os.environ["GITHUB_REPOSITORY"],"run_id":os.environ["GITHUB_RUN_ID"],"time":datetime.now(timezone.utc).isoformat(),"head_sha":head,"root":evidence,"authority":"OBSERVATION_ONLY_NOT_CONTENT_WRITE_UNLOCK"}
+          dest=Path(os.environ["RUNNER_TEMP"])/"issue1439-root-observation.json"
+          dest.write_text(json.dumps(report,ensure_ascii=False,indent=2,sort_keys=True)+"\n")
+          print("WHD_ISSUE1439_ROOT_START")
+          print(dest.read_text())
+          print("WHD_ISSUE1439_ROOT_END")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue1439-root-observation
+          path: ${{ runner.temp }}/issue1439-root-observation.json
+          if-no-files-found: error
+          retention-days: 7
