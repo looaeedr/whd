@@ -1099,6 +1099,6 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 
 ### ISSUE1433_READY_SLOT_ATOMIC_REPAIR_V1 — native entry slot fence
 
-- 在任何 `DISPATCH_READY` 正式寫入前，必須以最新 `coord/execution-v2` native records 檢查 fixed work-slot occupancy；已 BOUND 不可建立同 slot 的第二筆 READY；若預設 slot0 忙碌，先選其他 EMPTY slot 與對應 workN lane，不能直接用 slot0 的 request branch 偷換 slot。
+- 在任何 `DISPATCH_READY` 正式寫入前，必須以最新 `coord/execution-v2` native records 檢查本次 candidate fixed work-slot occupancy；已 BOUND 不可建立同 slot 的第二筆 READY；其他 slot 的歷史占槽錯誤應獨立修復、不得鎖死仍空閒的工作槽；若預設 slot0 忙碌，先選其他 EMPTY slot 與對應 workN lane，不能直接用 slot0 的 request branch 偷換 slot。
 - 原生 `REPAIR_READY_SLOT` 僅修復既有 `READY / UNCLAIMED / owner=NONE / lease=null / next_action=ACQUIRE` 錯誤占槽，以另一個正式 `ACTIVE` owning Issue 的當前同 invocation lease 授權，核對 generation / old slot / EMPTY destination / coord CAS 與 post-write fingerprint。不得冒稱已 ACQUIRE，亦不得改動其他 owner、head、QA、lease、next_action。
 - 施工前還必須先完成 exact Issue 的 `DISPATCH_READY → ACQUIRE` native readback。Phase6、GitHub Issue 留言、測試 GREEN、PR 建立不等於 owner 已接取，不能將「施工後補紀錄」當正常流程。

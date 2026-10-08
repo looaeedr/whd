@@ -74,6 +74,20 @@ def test_accept_unique_ready_occupancy():
     ) is None
 
 
+def test_preexisting_duplicate_elsewhere_must_not_stop_unrelated_free_slot():
+    source = records()  # legacy collision: #1331 and #1431 both slot0
+    assert_unique_ready_slot_candidate(source, ready(1450, "worker.slot.3")) is None
+    with pytest.raises(ProductionExecutorError, match="DISPATCH_READY_SLOT_COLLISION"):
+        assert_unique_ready_slot_candidate(source, ready(1451, "worker.slot.0"))
+
+
+def test_repair_can_fix_one_collision_while_another_old_slot_is_duplicated():
+    source = records()
+    source[1400] = ready(1400, "worker.slot.2")
+    result = call(source)
+    assert result.slot_id == "worker.slot.3"
+
+
 def test_repair_changes_only_slot_generation_time_and_real_audit_history():
     original = records()[1431]
     repaired = call()

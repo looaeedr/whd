@@ -51,7 +51,7 @@ from tools.execution_dispatch_ingress import (
     plan_dispatch_ingress,
 )
 from tools.execution_ready_index import build_ready_index, ready_index_to_payload
-from tools.execution_work_slot_view import FIXED_SLOT_IDS, WorkSlotViewError, project_work_slots
+from tools.execution_work_slot_view import FIXED_SLOT_IDS
 from tools.execution_invocation_exit import (
     InvocationExitError,
     assert_active_owning_issue_sticky,
@@ -1591,13 +1591,24 @@ def _write_state(
 
 
 def assert_unique_ready_slot_candidate(records: dict[int, ExecutionRecord], candidate: ExecutionRecord) -> None:
-    """Reject duplicate native slot before creating any READY record."""
+    """Reject the candidate's occupied slot, not unrelated pre-existing debt.
+
+    Legacy duplicate records may exist on a different slot. The atomic writer
+    must still prevent a *new* collision while allowing other EMPTY lanes to
+    make progress. Never infer that any existing duplicate was repaired.
+    """
     if candidate.slot_id is None:
         return
-    try:
-        project_work_slots([*records.values(), candidate])
-    except WorkSlotViewError as exc:
-        raise ProductionExecutorError(f"DISPATCH_READY_SLOT_COLLISION: {exc}") from exc
+    if candidate.slot_id not in FIXED_SLOT_IDS:
+        raise ProductionExecutorError("DISPATCH_READY_SLOT_COLLISION: candidate has unknown fixed slot")
+    for existing in records.values():
+        if not isinstance(existing, ExecutionRecord):
+            raise ProductionExecutorError("DISPATCH_READY requires native ExecutionRecords")
+        if existing.state != "DONE" and existing.slot_id == candidate.slot_id:
+            raise ProductionExecutorError(
+                f"DISPATCH_READY_SLOT_COLLISION: slot {candidate.slot_id} belongs to "
+                f"Issue #{existing.issue}; requested Issue #{candidate.issue}"
+            )
 
 
 def plan_ready_slot_repair(
@@ -1638,13 +1649,10 @@ def plan_ready_slot_repair(
             or target.next_action is None or target.next_action.kind != "ACQUIRE"
             or target.qa.last_accepted_run is not None or target.qa.accepted_head_sha is not None):
         raise ProductionExecutorError("REPAIR_READY_SLOT target must be exact unclaimed READY")
-    try:
-        slots = project_work_slots(
-            rec for number, rec in records.items() if number != target_issue
-        )
-    except WorkSlotViewError as exc:
-        raise ProductionExecutorError(f"REPAIR_READY_SLOT prior occupancy invalid: {exc}") from exc
-    if any(row.slot_id == new_slot_id and row.status != "EMPTY" for row in slots):
+    if any(
+        number != target_issue and rec.state != "DONE" and rec.slot_id == new_slot_id
+        for number, rec in records.items()
+    ):
         raise ProductionExecutorError("REPAIR_READY_SLOT destination slot occupied")
     audit = {
         "kind": "READY_SLOT_REPAIR", "authority_issue": authority_issue,
