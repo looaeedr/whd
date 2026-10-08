@@ -1,19 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1439-native-ready-user-tok-auth-fix-20261009",
-  "issue": 1439,
+  "request_id": "issue1384-ready-resume-available-work2-20261009",
+  "issue": 1384,
   "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.issue1439.tok-delivery.work2.20261009",
-  "expected_coord_head": "588b201e5e564e51c843ea77ea0a93e6c6ecc84f",
+  "invocation_identity": "chatgpt.issue1384.c2.resume.work2.20261009",
+  "expected_coord_head": "23ae3ce218925e2dec9b01e768a77a9a2fa96ab7",
   "expected_generation": 1,
   "effect": {
     "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "https://github.com/looaeedr/whd/issues/1439",
-    "work_branch": "work/issue-1439-tok-ci-identity",
-    "slot_id": "worker.slot.2"
+    "authority_ref": "user:繼續 #1384 2026-10-09",
+    "work_branch": "work/issue-1384",
+    "parent_issue": 1374,
+    "slot_id": "worker.slot.2",
+    "dispatch_transport": "GITHUB_CANONICAL"
   },
-  "purpose": "User-explicit fix TOK/PAT separation of PR Git mutations from native GitHub App control plane; formally dispatch before any content write",
+  "purpose": "Resume tested six-file DM8-C2 change in work2; work0 occupied by active #1331, work1 occupied by active #1439.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -45,44 +47,32 @@
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
-    "issue": 1439,
-    "invocation_identity": "chatgpt.issue1439.tok-delivery.work2.20261009",
+    "issue": 1384,
+    "invocation_identity": "chatgpt.issue1384.c2.resume.work2.20261009",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
     "required_skills": [
-      "flow-v2-execution",
       "root-local-first",
-      "寫技能",
-      "Python測試實務",
-      "phase6-release-packaging",
-      "diagnosing-bugs",
-      "tdd"
+      "flow-v2-execution",
+      "驗證板件與DXF",
+      "monitoring-remote-qa"
     ],
     "completed_skills": [
-      "flow-v2-execution",
       "root-local-first",
-      "寫技能",
-      "Python測試實務",
-      "phase6-release-packaging",
-      "diagnosing-bugs",
-      "tdd"
+      "flow-v2-execution",
+      "驗證板件與DXF",
+      "monitoring-remote-qa"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
+      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
+      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-08T23:01:04.583Z",
-    "remote_preflight_run_id": 37856959566,
-    "remote_preflight_comment_id": 6070739423
+    "observed_at": "2026-10-08T23:17:24Z"
   }
 }
