@@ -1,19 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1439-native-ready-work1-token-fix-20261009",
+  "request_id": "issue1439-native-acquire-work1-tok-fix-gen1-20261009",
   "issue": 1439,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1439.tok-fix.work1.20261009",
-  "expected_coord_head": "588b201e5e564e51c843ea77ea0a93e6c6ecc84f",
+  "expected_coord_head": "1cd5d149601dd99ec6c7c84225edbd68dc1d223f",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "https://github.com/looaeedr/whd/issues/1439",
-    "work_branch": "work/issue-1439-tok-ci-identity",
-    "slot_id": "worker.slot.1"
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Start native Issue1439 TOK/PAT trust-bound implementation"
+    }
   },
-  "purpose": "User-explicit Issue1439 TOK/PAT PR CI identity fix; native READY before code and work1 slot preserved",
+  "purpose": "User explicitly authorized Issue1439 TOK/PAT PR-trigger fix; ACQUIRE work1 for formal native work, no direct production edit",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -89,7 +90,7 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T23:03:49.516Z",
+    "observed_at": "2026-10-08T23:05:28.615Z",
     "remote_preflight_run_id": 37857234625,
     "remote_preflight_comment_id": 6070772644
   }
