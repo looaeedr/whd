@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tools.control_transaction import is_post_delivery_recovery_finalize_record
 from tools.control_transaction_production_executor import (
     _api,
     _load_state,
@@ -219,7 +220,55 @@ def finalize_pr_closing_issues(
     return results
 
 
+def drain_pending_post_delivery_finalizes(
+    *, repo: str, token: str,
+) -> list[dict[str, object]]:
+    """Resume exact trusted recovery tails left by an interrupted older push.
+
+    Only already-merged records carrying the validated post-delivery recovery
+    proof can enter this sweep. Reuse each recorded invocation identity as a
+    replay of its exact failed terminal step, not a new work claim.
+    """
+    _coord_head, _tree_sha, records = _load_state(repo, token, COORD_BRANCH)
+    finalized: list[dict[str, object]] = []
+    for issue, record in sorted(records.items()):
+        if not (
+            record.owner_kind == "RECOVERY"
+            and record.owner_id == RECOVERY_LANE
+            and record.lane_id == RECOVERY_LANE
+            and is_post_delivery_recovery_finalize_record(record)
+        ):
+            continue
+        if record.lease is None or not str(record.lease.invocation_identity).strip():
+            raise PostMergeFinalizeError(
+                f"Issue #{issue} trusted recovery FINALIZE missing exact prior lease"
+            )
+        terminal = execute_one(
+            repo=repo,
+            token=token,
+            coord_branch=COORD_BRANCH,
+            issue=issue,
+            kind="FINALIZE",
+            lane_id=RECOVERY_LANE,
+            invocation_identity=record.lease.invocation_identity,
+            supplied_effect={},
+            _allow_terminal_drain=False,
+            _allow_delivery_sibling_drain=True,
+        )
+        if terminal.get("post_state") != "DONE":
+            raise PostMergeFinalizeError(
+                f"Issue #{issue} recovery backlog FINALIZE did not reach DONE"
+            )
+        finalized.append(
+            {"issue": issue, "status": "FINALIZED", "post_state": "DONE"}
+        )
+    return finalized
+
+
 def run(*, repo: str, token: str, head_sha: str, run_identity: str) -> dict[str, object]:
+    recovery_backlog = drain_pending_post_delivery_finalizes(
+        repo=repo, token=token,
+    )
     prs = discover_exact_production_merge_prs(repo, token, head_sha)
     deliveries: list[dict[str, object]] = []
     for pr in prs:
@@ -240,6 +289,7 @@ def run(*, repo: str, token: str, head_sha: str, run_identity: str) -> dict[str,
         "head_sha": head_sha,
         "associated_merged_prs": [int(pr["number"]) for pr in prs],
         "deliveries": deliveries,
+        "recovery_backlog": recovery_backlog,
     }
 
 

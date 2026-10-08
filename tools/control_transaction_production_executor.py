@@ -1837,6 +1837,30 @@ def _readback_continuation_matches(previous, current, kind, invocation_identity)
     return True
 
 
+def _independent_post_delivery_finalizers(
+    requested: ExecutionRecord,
+    foreign: ExecutionRecord,
+    *,
+    kind: str,
+    lane_id: str,
+) -> bool:
+    """Only two trusted, already-merged recovery terminal tails may coexist.
+
+    The postmerge lane is a service identity, not a single interactive writer.
+    This never exempts arbitrary work, QA, merge, or repository mutations from
+    active-owning-Issue stickiness.
+    """
+    return bool(
+        kind == "FINALIZE"
+        and lane_id == "github.flowv2.postmerge"
+        and requested.lane_id == foreign.lane_id == lane_id
+        and requested.owner_kind == foreign.owner_kind == "RECOVERY"
+        and requested.owner_id == foreign.owner_id == lane_id
+        and is_post_delivery_recovery_finalize_record(requested)
+        and is_post_delivery_recovery_finalize_record(foreign)
+    )
+
+
 def _execute_one_attempt(
     *,
     repo: str,
@@ -1892,6 +1916,10 @@ def _execute_one_attempt(
         key=lambda row: row.issue,
     )
     for owning_record in same_lane_owners:
+        if _independent_post_delivery_finalizers(
+            record, owning_record, kind=kind, lane_id=lane_id,
+        ):
+            continue
         if released_stale_reset_residue(
             owning_record, observed_at=stickiness_observed_at
         ):
