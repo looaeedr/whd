@@ -6,8 +6,8 @@
   "diff_sha256": "738e248e891cdb2f5112d667c830c50eb5888994169b3454b70e5aa303549cae",
   "mode": "STRICT_ATTEST_BEFORE_TRUSTED_REQUEST",
   "user_device_use": false,
-  "retry": 3,
-  "previous_run": 37808716866,
+  "retry": 4,
+  "previous_run": 37808889482,
   "change": "canonical_remote_suffix_compatibility",
-  "verify": "EXACT_TESTED_FOUR_BLOB_SHA"
+  "verify": "SORTED_NATIVE_MUTATION_SCOPE_MODEL"
 }
