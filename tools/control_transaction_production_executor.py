@@ -1029,6 +1029,46 @@ def _trusted_merge_effect(
 
 
 
+
+def _verified_sync_target_user_token(repo: str) -> str:
+    """Verify user-owned TOK/PAT; never replace native app control-plane authority."""
+    token = os.environ.get("WHD_PR_BRANCH_WRITE_TOKEN", "").strip()
+    if not token:
+        raise ProductionExecutorError("SYNC_TARGET_TOK_MISSING: secrets.TOK is required for branch Git writes")
+    request = Request(
+        "https://api.github.com/user",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "whd-flow-v2-sync-target-identity",
+        },
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            identity = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        # Never log the token, HTTP response body, or caller Authorization header.
+        raise ProductionExecutorError(
+            f"SYNC_TARGET_TOK_IDENTITY_REJECTED: GitHub /user status {exc.code}"
+        ) from None
+    except (OSError, ValueError, TypeError):
+        raise ProductionExecutorError(
+            "SYNC_TARGET_TOK_IDENTITY_UNAVAILABLE: GitHub /user readback failed"
+        ) from None
+    if not isinstance(identity, dict):
+        raise ProductionExecutorError("SYNC_TARGET_TOK_IDENTITY_INVALID")
+    owner = repo.split("/", 1)[0]
+    login = str(identity.get("login") or "")
+    account_type = str(identity.get("type") or "")
+    if account_type != "User" or login.casefold() != owner.casefold():
+        raise ProductionExecutorError(
+            "SYNC_TARGET_TOK_IDENTITY_MISMATCH: expected repository-owner User, not Bot/App"
+        )
+    return token
+
+
+
 def _trusted_sync_target_effect(
     repo: str,
     token: str,
@@ -1081,6 +1121,9 @@ def _trusted_sync_target_effect(
             )
         new_head = live_work
     else:
+        # Fail closed before a content mutation if the user's TOK is missing or
+        # resolves to a GitHub App/Bot. Native CAS reads/writes still use token.
+        write_token = _verified_sync_target_user_token(repo)
         if before_mutation is not None:
             before_mutation("POST", "/merges")
         try:
@@ -1088,7 +1131,7 @@ def _trusted_sync_target_effect(
                 repo,
                 "POST",
                 "/merges",
-                token,
+                write_token,
                 {
                     "base": record.work_branch,
                     "head": target_sha,
