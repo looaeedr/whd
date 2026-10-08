@@ -1,23 +1,23 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1382-sync-target-fresh-admission-g10-20261008",
+  "request_id": "issue1382-lease-renew-after-approval-head634dde-20261008",
   "issue": 1382,
-  "kind": "SYNC_TARGET",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-  "expected_coord_head": "edc62aec8baf2ef16b41db7e74ffd56a0b12f15a",
-  "expected_generation": 10,
-  "purpose": "Native target-to-work merge using fresh mutation admission after stale PR base, preserving canonical QA invariant and forcing new QA upon new head.",
+  "expected_coord_head": "afefa3d84bc9858aedb4c9d2d78ca495cf092f9b",
+  "expected_generation": 11,
+  "purpose": "Renew same-owner Flow v2 lease after maintainer approved PR #1419 Actions workflows; native QA for exact synchronized candidate only.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "INTERACTIVE",
-    "scope": "REPOSITORY_CONTENT",
-    "read_mode": "WORKSPACE_GIT_BASELINE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
     "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "executor_local_workspace",
-    "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
-    "workspace_root": "/mnt/data/whd1382-workspace",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "production_branch": "cleanup/2d-3d-sync",
     "production_head_sha": "a2c463f9db59442a782ce849a4443796356a268c",
     "drive_role": "MIRROR_BACKUP_ONLY",
@@ -33,7 +33,7 @@
       "tools"
     ],
     "shared_zero_required": false,
-    "repository_content_write_unlocked": null,
+    "repository_content_write_unlocked": false,
     "status": "GREEN"
   },
   "preflight_evidence": {
@@ -46,26 +46,43 @@
     "required_skills": [
       "flow-v2-execution",
       "root-local-first",
-      "Python測試實務"
+      "Python測試實務",
+      "monitoring-remote-qa",
+      "long-log-context-safe-execution"
     ],
     "completed_skills": [
       "flow-v2-execution",
       "root-local-first",
-      "Python測試實務"
+      "Python測試實務",
+      "monitoring-remote-qa",
+      "long-log-context-safe-execution"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
     ],
-    "observed_at": "2026-10-08T11:47:27Z"
+    "observed_at": "2026-10-08T11:58:03Z"
   },
-  "effect": {}
+  "effect": {
+    "next_action": {
+      "args": {
+        "post_accept_pr_number": 1419,
+        "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+        "post_accept_target_branch": "cleanup/2d-3d-sync",
+        "workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Revalidate exact head after target synchronization",
+      "kind": "START_QA"
+    }
+  }
 }
