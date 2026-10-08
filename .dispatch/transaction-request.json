@@ -1,14 +1,33 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-reacquire-after1435-done-work1-20261008",
+  "request_id": "issue1433-target-drift-reconcile-after1435-v1-20261008",
   "issue": 1433,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-  "expected_coord_head": "70341d7f437127690f3f110a5d5ac3777990cf23",
+  "expected_coord_head": "58022bb016980b754af29f7140562dd9f81368a0",
   "expected_generation": 3,
-  "effect": {},
-  "purpose": "Renew same-owner expired native lease after Issue #1435 released overlapping reservation",
+  "effect": {
+    "observed_work_branch": "work/issue-1433-native-ready-slot-repair",
+    "observed_head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+    "observed_target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+    "next_action": {
+      "args": {},
+      "display": "Create #1433 trusted delivery branch after admission",
+      "kind": "START_BRANCH"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1433,
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873"
+    }
+  },
+  "purpose": "Trusted same-owner stale target reconciliation after completed #1435; preserve exact START_BRANCH and native authority",
   "work_root_gate_evidence": {
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "drive_role": "MIRROR_BACKUP_ONLY",
