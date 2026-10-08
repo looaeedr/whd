@@ -406,7 +406,7 @@ def test_monitor_failure_does_not_turn_committed_transaction_into_failed(monkeyp
 
 
 
-def test_trusted_side_effect_coord_race_retries_inside_same_workflow(monkeypatch):
+def test_unclassified_coord_conflict_never_reenters_provider_attempt(monkeypatch):
     import tools.control_transaction_production_executor as executor
 
 
@@ -430,20 +430,18 @@ def test_trusted_side_effect_coord_race_retries_inside_same_workflow(monkeypatch
 
 
     monkeypatch.setattr(executor, "_execute_one_attempt", fake_attempt)
-    result = executor.execute_one(
-        repo="looaeedr/whd",
-        token="token",
-        coord_branch="coord/execution-v2",
-        issue=1019,
-        kind="FINALIZE",
-        lane_id=LANE,
-        invocation_identity=INV,
-        supplied_effect={},
-    )
-    assert result["attempt"] == 2
-    assert calls["count"] == 2
-
-
+    with pytest.raises(ControlTransactionConflict, match="ref advanced"):
+        executor.execute_one(
+            repo="looaeedr/whd",
+            token="token",
+            coord_branch="coord/execution-v2",
+            issue=1019,
+            kind="FINALIZE",
+            lane_id=LANE,
+            invocation_identity=INV,
+            supplied_effect={},
+        )
+    assert calls["count"] == 1
 
 
 def test_merge_terminal_tail_is_drained_without_second_push_request(monkeypatch):

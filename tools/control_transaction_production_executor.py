@@ -87,6 +87,7 @@ from tools.execution_record import (
 
 from tools.control_transaction_runtime import (
     PRE_TRANSITION_EXTERNAL_MUTATION_PATHS, RuntimeMode, resolve_runtime_effect,
+    RuntimePostEffectConflict,
 )
 
 
@@ -1769,10 +1770,71 @@ def recover_post_delivery_missing_record(
 
 
 
-_RETRYABLE_TRUSTED_SIDE_EFFECT_KINDS = frozenset({"MERGE", "SYNC_TARGET", "FINALIZE"})
+_READBACK_CONTINUATION_KINDS = frozenset({"MERGE", "SYNC_TARGET", "FINALIZE"})
 _TERMINAL_TAIL_SOURCE_KINDS = frozenset({"MERGE", "RECONCILE", "ACQUIRE"})
 
 
+
+
+class _PostEffectCoordConflict(RuntimePostEffectConflict):
+    def __init__(self, conflict_class, *, record, current, kind, envelope, work_ref_readback=None):
+        self.previous_record, self.observed_record = record, current
+        diagnostics = {
+            "issue": record.issue, "kind": kind,
+            "pre_generation": record.generation,
+            "pre_fingerprint": execution_record_fingerprint(record),
+            "observed_generation": current.generation if current else None,
+            "observed_fingerprint": execution_record_fingerprint(current) if current else None,
+            "pre_work_branch": record.work_branch, "pre_work_head": record.head_sha,
+            "pre_target_branch": record.target_branch, "pre_target_head": record.target_sha,
+            "observed_work_branch": current.work_branch if current else None,
+            "observed_work_head": current.head_sha if current else None,
+            "observed_target_head": current.target_sha if current else None,
+            "pre_next_action": record.next_action.kind if record.next_action else None,
+            "observed_next_action": current.next_action.kind if current and current.next_action else None,
+            "provider_mutation_performed": envelope.provider_mutation_performed,
+        }
+        if work_ref_readback is not None:
+            diagnostics["work_ref_readback"] = work_ref_readback
+        super().__init__(conflict_class, diagnostics)
+
+
+def _fresh_stale_work_ref_observation(repo, token, record):
+    """Only a new GET 404 proves absence; errors and malformed refs are UNKNOWN."""
+    try:
+        payload = _api(repo, "GET", f"/git/ref/heads/{quote(record.work_branch, safe='')}", token)
+    except HTTPError as exc:
+        return "ABSENT" if exc.code == 404 else "UNKNOWN"
+    except Exception:
+        return "UNKNOWN"
+    return "PRESENT" if isinstance(payload, dict) and (payload.get("object") or {}).get("sha") else "UNKNOWN"
+
+
+def _readback_continuation_matches(previous, current, kind, invocation_identity):
+    # Identity checks are eligibility only. A newly prepared exact plan and the
+    # READBACK_ONLY mutation fence remain the sole continuation authority.
+    if current is None or kind not in _READBACK_CONTINUATION_KINDS:
+        return False
+    if current.next_action is None or current.next_action.kind != kind:
+        return False
+    fields = ("issue", "source_branch", "source_sha", "work_branch", "target_branch",
+              "owner_kind", "owner_id", "lane_id", "slot_id")
+    if any(getattr(previous, key) != getattr(current, key) for key in fields):
+        return False
+    if previous.lease is None or current.lease is None:
+        return False
+    if (previous.lease.token != current.lease.token
+        or current.lease.invocation_identity != invocation_identity):
+        return False
+    if previous.next_action is None:
+        return False
+    if previous.next_action.args.get("pr_number") != current.next_action.args.get("pr_number"):
+        return False
+    if kind in {"MERGE", "FINALIZE"} and previous.head_sha != current.head_sha:
+        return False
+    if kind == "FINALIZE" and previous.closure.merged_sha != current.closure.merged_sha:
+        return False
+    return True
 
 
 def _execute_one_attempt(
@@ -1785,11 +1847,19 @@ def _execute_one_attempt(
     lane_id: str,
     invocation_identity: str,
     supplied_effect: dict[str, object],
+    _continuation_fingerprint: str | None = None,
 ) -> dict[str, object]:
     parent_sha, tree_sha, records = _load_state(repo, token, coord_branch)
     if issue not in records:
         raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
     record = records[issue]
+
+    if (_continuation_fingerprint is not None
+        and execution_record_fingerprint(record) != _continuation_fingerprint):
+        raise RuntimePostEffectConflict("POST_EFFECT_CONTINUATION_DRIFT", {
+            "issue": issue, "kind": kind, "observed_generation": record.generation,
+        })
+    envelope = None
 
 
     # ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1.  Classify same-lane
@@ -1876,7 +1946,15 @@ def _execute_one_attempt(
             record=record,
             supplied=supplied_effect,
         )
-    post = execute_transaction(record, plan, effect=effect)
+    try:
+        post = execute_transaction(record, plan, effect=effect)
+    except ControlTransactionConflict as exc:
+        if envelope is not None:
+            raise RuntimePostEffectConflict("POST_EFFECT_SEMANTIC_REJECTED", {
+                "issue": issue, "kind": kind, "pre_generation": record.generation,
+                "provider_mutation_performed": envelope.provider_mutation_performed,
+            }) from exc
+        raise
 
 
     admission_reserved = (
@@ -1930,18 +2008,37 @@ def _execute_one_attempt(
             if not str(exc).startswith(
                 "coord/execution-v2 ref advanced during transaction"
             ):
-                raise
-            if write_attempt >= 5:
+                if envelope is not None:
+                    raise _PostEffectCoordConflict(
+                        "POST_EFFECT_COORD_WRITE_REJECTED", record=record, current=None,
+                        kind=kind, envelope=envelope,
+                    ) from exc
                 raise
             fresh_parent, fresh_tree, fresh_records = _load_state(
                 repo, token, coord_branch
             )
             current = fresh_records.get(issue)
+            if write_attempt >= 5 and envelope is not None:
+                raise _PostEffectCoordConflict(
+                    "POST_EFFECT_COORD_CAS_EXHAUSTED", record=record, current=current,
+                    kind=kind, envelope=envelope,
+                ) from exc
+            if write_attempt >= 5:
+                raise
             if (
                 current is None
                 or execution_record_fingerprint(current)
                 != pre_transaction_fingerprint
             ):
+                if envelope is not None:
+                    observation = (
+                        _fresh_stale_work_ref_observation(repo, token, record)
+                        if requested_stale_cleanup else None
+                    )
+                    raise _PostEffectCoordConflict(
+                        "POST_EFFECT_SAME_ISSUE_DRIFT", record=record, current=current,
+                        kind=kind, envelope=envelope, work_ref_readback=observation,
+                    ) from exc
                 raise ControlTransactionConflict(
                     "coord/execution-v2 ref advanced during transaction; "
                     "current Issue changed; fresh semantic rebuild required"
@@ -2031,34 +2128,35 @@ def execute_one(
     _allow_delivery_sibling_drain: bool = True,
 ) -> dict[str, object]:
     """Execute one transaction with bounded side-effect and delivery-tail recovery."""
-    last_conflict: ControlTransactionConflict | None = None
-    for attempt in range(1, 6):
+    try:
+        result = _execute_one_attempt(
+            repo=repo, token=token, coord_branch=coord_branch,
+            issue=issue, kind=kind, lane_id=lane_id,
+            invocation_identity=invocation_identity, supplied_effect=supplied_effect,
+        )
+        result["attempt"] = 1
+    except _PostEffectCoordConflict as exc:
+        current = exc.observed_record
+        if (exc.conflict_class != "POST_EFFECT_SAME_ISSUE_DRIFT"
+            or not _readback_continuation_matches(
+                exc.previous_record, current, kind, invocation_identity)):
+            raise
         try:
             result = _execute_one_attempt(
-                repo=repo,
-                token=token,
-                coord_branch=coord_branch,
-                issue=issue,
-                kind=kind,
-                lane_id=lane_id,
+                repo=repo, token=token, coord_branch=coord_branch,
+                issue=issue, kind=kind, lane_id=lane_id,
                 invocation_identity=invocation_identity,
-                supplied_effect=supplied_effect,
+                supplied_effect={"runtime_mode": "READBACK_ONLY"},
+                _continuation_fingerprint=execution_record_fingerprint(current),
             )
-            result["attempt"] = attempt
-            break
-        except ControlTransactionConflict as exc:
-            last_conflict = exc
-            retryable_coord_race = (
-                kind in _RETRYABLE_TRUSTED_SIDE_EFFECT_KINDS
-                and str(exc).startswith(
-                    "coord/execution-v2 ref advanced during transaction"
-                )
-            )
-            if not retryable_coord_race or attempt >= 5:
+        except Exception as continuation_error:
+            if isinstance(continuation_error, RuntimePostEffectConflict):
                 raise
-    else:  # pragma: no cover
-        assert last_conflict is not None
-        raise last_conflict
+            raise RuntimePostEffectConflict(
+                "POST_EFFECT_READBACK_CONTINUATION_REJECTED", exc.diagnostics,
+            ) from continuation_error
+        result["attempt"] = 1
+        result["readback_continuation"] = exc.diagnostics
 
     if (
         _allow_terminal_drain

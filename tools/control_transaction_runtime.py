@@ -30,6 +30,16 @@ class RuntimeMutationFenceError(RuntimeError):
     """A classified provider mutation requires a capability absent in this mode."""
 
 
+class RuntimePostEffectConflict(ControlTransactionConflict):
+    """A resolved or uncertain provider outcome must never authorize replay."""
+    retryable = False
+
+    def __init__(self, conflict_class: str, diagnostics: Mapping[str, object]):
+        self.conflict_class = conflict_class
+        self.diagnostics = dict(diagnostics, authority="NON_AUTHORITY")
+        super().__init__(f"{conflict_class}: current Issue changed or provider outcome requires readback/repair")
+
+
 class RuntimeProviderError(RuntimeError):
     """The runtime provider could not resolve the requested transport operation."""
 
@@ -82,10 +92,21 @@ def resolve_runtime_effect(
             raise RuntimeMutationFenceError(f"READBACK_ONLY blocked {method} {path}")
         mutation_performed = True
 
-    effect = provider.resolve_effect(
-        fresh, plan, supplied_effect, records=records,
-        before_mutation=before_mutation,
-    )
+    try:
+        effect = provider.resolve_effect(
+            fresh, plan, supplied_effect, records=records,
+            before_mutation=before_mutation,
+        )
+    except Exception as exc:
+        if mutation_performed:
+            raise RuntimePostEffectConflict("POST_EFFECT_PROVIDER_OUTCOME_UNPROVEN", {
+                "issue": fresh.issue, "kind": plan.kind,
+                "pre_generation": fresh.generation,
+                "provider_mutation_may_have_occurred": True,
+                "work_branch": fresh.work_branch, "work_head": fresh.head_sha,
+                "target_branch": fresh.target_branch, "target_head": fresh.target_sha,
+            }) from exc
+        raise
     return RuntimeEffectEnvelope(
         effect=MappingProxyType(dict(effect)),
         path_class=(RuntimePathClass.PRE_TRANSITION_EXTERNAL_MUTATION
