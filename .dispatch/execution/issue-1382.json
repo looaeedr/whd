@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
-    "id": 37766073513,
-    "purpose": "Accepted preexisting WHD Product Regression exact PR #1419 head; actions:read permission repaired",
-    "status": "completed"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
   "issue": 1382,
   "lane_id": "chatgpt.flowv2.work1",
@@ -38,17 +33,17 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
-      "run_id": 37766073513
+      "pr_number": 1419,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Accept exact #1382 Product Regression after repaired actions read",
-    "kind": "POLL_QA"
+    "display": "Merge tested O3 PR #1419 after exact QA and live target gate",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
+    "last_accepted_run": 37766073513
   },
   "recovery_history": [
     {
@@ -60,21 +55,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a2c463f9db59442a782ce849a4443796356a268c",
   "transaction": {
-    "expected_fingerprint": "9fe77e766808e6b57ccdef174a6f542bf486ccb753dfb14f75851fe8fb726f68",
-    "id": "gha:37771471764:1382:START_QA:7",
+    "expected_fingerprint": "53c7663083446180e6e076e1f6442e0a610cbccd739c4508e389c68e59816874",
+    "id": "gha:37771617651:1382:ACCEPT_QA:8",
     "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T11:40:00Z",
+  "updated_at": "2026-10-08T11:41:15Z",
   "version": 2,
   "work_branch": "work/issue-1382"
 }
