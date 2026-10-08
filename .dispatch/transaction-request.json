@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1384-acquire-atomic-reserve-six-tested-20261009",
+  "request_id": "issue1384-acquire-atomic-reserve-sorted-six-20261009",
   "issue": 1384,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work3",
@@ -20,8 +20,8 @@
       "target_branch": "cleanup/2d-3d-sync",
       "base_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
       "write_paths": [
-        "ae_engine/manufacturing_scene_access.py",
         "ae_engine/manufacturing_render_data.py",
+        "ae_engine/manufacturing_scene_access.py",
         "ae_engine/receiving_joint_marking.py",
         "ae_engine/receiving_pairing_marking.py",
         "tests/test_issue1114_receiving_pairing_marking.py",
@@ -93,6 +93,6 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-08T23:25:10Z"
+    "observed_at": "2026-10-08T23:26:34Z"
   }
 }
