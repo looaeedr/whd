@@ -1,0 +1,62 @@
+name: WHD - Issue 1433 GitHub Runner workspace proof (isolated)
+on:
+  push:
+    branches:
+      - test/issue1433-root-evidence
+    paths:
+      - 'tools/issue1433_runner_root_evidence_probe.py'
+      - '.github/workflows/whd-issue1433-runner-proof.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  workspace-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact proof logic
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: probe
+
+      - name: Checkout exact already-reviewed #1436 candidate into ephemeral Runner workspace
+        uses: actions/checkout@v4
+        with:
+          ref: 35d1b19aef44a564fe6e3a6b313b18ed26c2ade8
+          fetch-depth: 0
+          path: whd
+
+      - name: Checkout native Flow v2 authority, read only
+        uses: actions/checkout@v4
+        with:
+          ref: coord/execution-v2
+          path: coord
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+
+      - name: Run canonical root test commands in Runner workspace
+        working-directory: whd
+        run: python tools/control_plane_regression.py
+
+      - name: Validate exact source, native slot reservation, tested diff; construct root evidence
+        working-directory: whd
+        env:
+          GITHUB_ACTIONS: 'true'
+        run: PYTHONPATH=. python ../probe/tools/issue1433_runner_root_evidence_probe.py
+
+      - name: Retain immutable result with Runner ID
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1433-runner-root-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/issue1433-root-evidence.json
+          if-no-files-found: warn
+          retention-days: 7
