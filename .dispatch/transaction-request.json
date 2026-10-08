@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1435-renew-same-owner-20261008-2159",
+  "request_id": "issue1435-renew-same-owner-purpose-20261008-2200",
   "issue": 1435,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
@@ -80,5 +80,6 @@
       "release_required_artifacts.json"
     ],
     "observed_at": "2026-10-08T13:58:47Z"
-  }
+  },
+  "purpose": "Native same-owner ACQUIRE lease renewal on Issue #1435 generation 3 to resume exact APPLY_COMMIT under existing reserved ten-file path scope after device reconnect"
 }
