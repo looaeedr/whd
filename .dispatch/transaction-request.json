@@ -1,13 +1,13 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-native-acquire-premerge-ready-gen1-20261008",
+  "request_id": "issue1429-native-acquire-retry403-permission-20261008",
   "issue": 1429,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1429.trusted.premerge.recovery.work2.20261008",
   "expected_coord_head": "70341d7f437127690f3f110a5d5ac3777990cf23",
   "expected_generation": 1,
-  "purpose": "Native ACQUIRE for recovery READY on original compact-context PR #1430; preserve exact head and no historical QA",
+  "purpose": "Retry trusted native ACQUIRE Issue #1429 after previous GitHub Actions PATCH returned integration HTTP 403; preserve same READY/PR proof and exact owner/QA fences",
   "effect": {
     "next_action": {
       "args": {
