@@ -1,84 +1,51 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1382-acquire-reserve-o3-20261008",
+  "request_id": "issue1382-start-branch-tested-o3-20261008",
   "issue": 1382,
-  "kind": "ACQUIRE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-  "expected_coord_head": "d8167da2fdcafeea97206411fe34a17e39677060",
-  "expected_generation": 1,
+  "expected_coord_head": "d05624ff07e06ab0d01576054a5ae080701f9f07",
+  "expected_generation": 2,
   "effect": {
+    "work_branch": "work/issue-1382",
+    "head_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
     "next_action": {
-      "kind": "START_BRANCH",
+      "kind": "APPLY_COMMIT",
       "args": {
-        "diff_digest": "07a7e2dfedef886d247789c32d58d6a2a0072b14b47b16945bcce60c5926e2dd"
+        "candidate_commit_sha": "f0680ab8b290e45320733a349989a3355c29bc17"
       },
-      "display": "Publish exact tested O3 decision contract and anti-regrowth tests"
+      "display": "Apply exact verified tested DM8-C0 O3 contract commit"
     },
-    "admission_reservation": {
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
+      "diff_digest": "07a7e2dfedef886d247789c32d58d6a2a0072b14b47b16945bcce60c5926e2dd",
+      "issue": 1382,
+      "generation": 2,
       "target_branch": "cleanup/2d-3d-sync",
-      "base_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
       "write_paths": [
         ".agents/contracts/WHD_DM8_SCENE_MUTATION_OWNER_DECISION_V1.json",
         "tests/process/test_issue1382_o3_decision.py"
       ],
-      "delete_paths": []
+      "delete_paths": [],
+      "record_fingerprint": "ae4053fd4765f59851cab7169f36c210934c62bccfc922cbd79193c2dc2bd650",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1382,
+      "generation": 2,
+      "record_fingerprint": "ae4053fd4765f59851cab7169f36c210934c62bccfc922cbd79193c2dc2bd650",
+      "lease_token": "lease:1382:37765418402:1",
+      "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "work/issue-1382",
+      "expected_work_head": "9d8294392dceb697f6d3e7d08a00df818d478385",
+      "expected_target_head": "9d8294392dceb697f6d3e7d08a00df818d478385"
     }
   },
-  "purpose": "Direct #1382 ACQUIRE and atomic reservation for the exact two-file RED-first O3 architecture decision; 32 local tests GREEN.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-    "drive_role": "MIRROR_BACKUP_ONLY",
-    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1382,
-    "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-    "required_skills": [
-      "root-local-first",
-      "Python測試實務"
-    ],
-    "completed_skills": [
-      "root-local-first",
-      "Python測試實務"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
-    ],
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
-    ],
-    "observed_at": "2026-10-08T10:44:01Z"
-  }
+  "reuse_admission_session": true
 }
