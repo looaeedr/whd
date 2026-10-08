@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: flow-v2-compact-context
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # WHD Flow v2 唯讀精簡執行上下文（試行）
 
 WHD_FLOW_V2_COMPACT_CONTEXT_V1 只整理現有 ExecutionRecord 執行必要欄位；不是另一個流程狀態機、不是執行證據，也不儲存聊天推理。實作：tools/flow_v2_compact_context.py。
