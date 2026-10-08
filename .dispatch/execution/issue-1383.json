@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
   "issue": 1383,
   "lane_id": "chatgpt.flowv2.work1",
@@ -21,10 +21,23 @@
     "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
     "token": "lease:1383:37762792792:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "ae_engine/assembly_marking_geometry.py",
+      "ae_engine/receiving_joint_marking.py",
+      "ae_engine/receiving_pairing_marking.py",
+      "tests/test_issue1383_dm8_c1_neutral_geometry.py"
+    ]
+  },
   "next_action": {
-    "args": {},
-    "display": "Deliver tested DM8-C1 Issue #1383 exact diff as isolated PR",
+    "args": {
+      "diff_digest": "2edfaf35d9829eabbd6d9c6e10327802b4ae6d1403d907dad835f002648dbc96"
+    },
+    "display": "Start exact tested delivery branch from production X",
     "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work1",
@@ -43,7 +56,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
@@ -51,13 +64,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
   "transaction": {
-    "expected_fingerprint": "e07792e56df7567fd226296dcc134a95e29ffa9f3c745721ad364bfdaa90b3df",
-    "id": "gha:37762792792:1383:ACQUIRE:1",
+    "expected_fingerprint": "b5f7ec63a67cb949176051403b520cd38e2e8db7d7f192f5ed6a2a536f744005",
+    "id": "gha:37763029446:1383:RESERVE_PATHS:2",
     "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T10:21:17Z",
+  "updated_at": "2026-10-08T10:23:22Z",
   "version": 2,
   "work_branch": "work/issue-1383"
 }
