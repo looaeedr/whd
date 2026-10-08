@@ -1,33 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-reconcile-ready-after-network-failure-gen2-rebuild-v2",
+  "request_id": "issue1431-acquire-gen3-slot1-after-repair-reconcile",
   "issue": 1431,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-  "expected_coord_head": "3dae52eab58c046b76e55043bdc5dcd320fcca9a",
-  "expected_generation": 2,
+  "expected_coord_head": "77c0e17f42633f861b77ec08bf6a0db47ab3e456",
+  "expected_generation": 3,
   "effect": {
-    "observed_work_branch": "work/issue-1431-flow-v2-entry-gate",
-    "observed_head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-    "observed_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
     "next_action": {
+      "kind": "START_BRANCH",
       "args": {},
-      "display": "Acquire Issue #1431",
-      "kind": "ACQUIRE"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1431,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873"
+      "display": "Start Issue #1431 native pre-implementation entry hard gate"
     }
   },
-  "purpose": "Reconcile exact unclaimed READY #1431 after trusted slot repair from old ancestor target to current production; no owner/lease/QA mutation",
+  "purpose": "Native ACQUIRE of repaired READY #1431 work1 before implementation; no fabricated QA",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -91,6 +78,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T15:35:50.873Z"
+    "observed_at": "2026-10-08T15:39:28.551Z"
   }
 }
