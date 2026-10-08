@@ -1,0 +1,82 @@
+{
+  "schema": "WHD_DM8_SCENE_MUTATION_OWNER_DECISION_V1",
+  "version": 1,
+  "status": "CURRENT_DESIGN_DECISION",
+  "issue": 1382,
+  "parent_issue": 1374,
+  "predecessor_terminal_issue": 1381,
+  "decision": "DOMAIN_NEUTRAL_MANUFACTURING_SCENE_ACCESS",
+  "decision_rationale": "Joint Placement and Receiving pairing both need keyed FinalScene render-data lookup/replacement, but pairing currently imports joint-policy private functions. Assembly marking geometry is pure vector/contact/backprojection and must not own scene replacements. Select a stateless, domain-neutral scene-access/replacement owner, with two production consumers and zero copied projection or tolerance oracle.",
+  "scene_access_owner": "ae_engine/manufacturing_scene_access.py",
+  "owner_state": "C2_PROPOSED_NOT_IMPLEMENTED_IN_C0",
+  "public_interface": [
+    "owner_render_data",
+    "replace_owner_render_data"
+  ],
+  "required_production_callers": [
+    "ae_engine/receiving_joint_marking.py",
+    "ae_engine/receiving_pairing_marking.py"
+  ],
+  "decision_evidence": {
+    "joint_owner": "ae_engine/receiving_joint_marking.py::_owner_render_data/_replace_owner_render_data",
+    "pairing_private_import": "ae_engine/receiving_pairing_marking.py imports the joint private owner functions",
+    "joint_and_pairing_are_real_callers": true,
+    "current_composite_render_preview": "ae_engine/manufacturing_render_data.py::_exploded_box_body_preview",
+    "geometry_owner": "ae_engine/assembly_marking_geometry.py",
+    "scene_mutation_policy_owners": "Remain in individual Joint Placement and Receiving pairing modules"
+  },
+  "scene_owner_responsibilities": [
+    "direct keyed render-data lookup",
+    "box_body piece keyed render-data lookup",
+    "immutable direct and composite owner render-data replacement",
+    "deterministic composite exploded preview refresh",
+    "preserve existing scene and metadata identities"
+  ],
+  "prohibited_ownership": {
+    "receiving_joint_or_pairing_policy": true,
+    "scene_policy_selection_or_symbol_logic": true,
+    "new_backprojection_oracle": true,
+    "new_tolerance_source": true,
+    "second_scene_replacement_implementation": true
+  },
+  "world_to_flat_oracle": "ae_engine/assembly_marking_geometry.py::backproject_mapped_skin_world_points",
+  "tolerance_authority": "ae_engine/contracts.py::PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES",
+  "immutable_replacement_contract": {
+    "direct_part_key": "exact_part_key",
+    "composite_part_key": "box_body:<role>",
+    "role_match": "trimmed_lowercase",
+    "lookup_missing": "None",
+    "replace_missing": "KeyError",
+    "preserve_part_piece_order": true,
+    "rebuild_composite_preview": true,
+    "preserve_finalscene_metadata_diagnostics": true,
+    "scene_replacement_must_not_persist_derived_marking_coordinates": true
+  },
+  "migration_ticket": 1384,
+  "neutral_geometry_ticket": 1383,
+  "c2_deletion_proof": {
+    "status": "REQUIRED_FOR_C2_NOT_EXECUTED_IN_C0",
+    "old_private_owner_functions_to_remove": [
+      "_owner_render_data",
+      "_replace_owner_render_data"
+    ],
+    "expected_production_consumers": 2,
+    "deleting_public_seam_must_fail_both_callers": true,
+    "no_shadow_compatibility_owner": true,
+    "no_pairing_to_joint_private_import": true,
+    "migrate_joint_and_pairing_in_one_tested_change": true,
+    "static_anti_regrowth_guard_mandatory": true,
+    "geometry_marking_and_dxf_parity_green_required": true
+  },
+  "rejected_alternatives": {
+    "ASSEMBLY_MARKING_GEOMETRY_SCENE_OWNER": "Rejected: mixing FinalScene aggregate mutation with pure vector/contact/world-to-flat backprojection creates a broad second responsibility and risks policy leakage into the existing geometry oracle.",
+    "KEEP_JOINT_PRIVATE_SEAM_FOR_PAIRING": "Rejected: cross-feature private import makes Joint Placement a shared mutable-scene owner for Pairing and invites policy coupling.",
+    "DUPLICATE_LOOKUP_IN_EACH_RESOLVER": "Rejected: scene access/replacement and box_body preview refresh would regrow as two independent implementations."
+  },
+  "no_production_behavior_or_geometry_mutation": true,
+  "c0_code_scope": [
+    ".agents/contracts/WHD_DM8_SCENE_MUTATION_OWNER_DECISION_V1.json",
+    "tests/process/test_issue1382_o3_decision.py"
+  ],
+  "acceptance": "Commit design rationale and tested guard in production without implementing the new scene seam; C2 may cross boundary only after #1382 and #1383 terminal GREEN."
+}
