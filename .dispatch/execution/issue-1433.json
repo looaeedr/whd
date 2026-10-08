@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "c06d3a6aa50694ea1278b41ece4bf26a1deda92f",
   "issue": 1433,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
-    "expires_at": "2026-10-08T15:11:59Z",
+    "expires_at": "2026-10-08T15:28:46Z",
     "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-    "token": "lease:1433:37796547674:1"
+    "token": "lease:1433:37798872301:1"
   },
   "mutation_scope": {
     "base_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
@@ -67,13 +67,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
   "transaction": {
-    "expected_fingerprint": "8185475e9066da3786b8f12347d66e133d55522c14fd082f64e657b5fef6e356",
-    "id": "gha:37798479652:1433:CONSUME_QA:10",
+    "expected_fingerprint": "62ddb5b850d46713e0d03caf1e59bb7fad4e35ff0a6021c2d0ecfad8af641d69",
+    "id": "gha:37798872301:1433:ACQUIRE:11",
     "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-    "kind": "CONSUME_QA",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T15:10:53Z",
+  "updated_at": "2026-10-08T15:13:46Z",
   "version": 2,
   "work_branch": "work/issue-1433-native-ready-slot-repair"
 }
