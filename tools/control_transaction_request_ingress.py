@@ -54,6 +54,7 @@ from tools.control_transaction_production_executor import (
     execute_one,
     recover_post_delivery_missing_record,
     recover_pre_merge_missing_record,
+    repair_ready_slot,
 )
 
 from tools.control_transaction_runtime import production_provider
@@ -77,7 +78,7 @@ def _is_ancestor(repo, token, ancestor, descendant):
 ALLOWED_KINDS = {
     "SEED","ACQUIRE","START_BRANCH","APPLY_COMMIT","START_QA","ACCEPT_QA","CONSUME_QA","FAIL_QA",
     "BLOCK","MERGE","SYNC_TARGET","HANDOFF","FINALIZE","RECONCILE","RESERVE_PATHS","RELEASE_PATHS","YIELD",
-    "DISPATCH_READY","RECOVER_POST_DELIVERY","RECOVER_PRE_MERGE",
+    "DISPATCH_READY","RECOVER_POST_DELIVERY","RECOVER_PRE_MERGE","REPAIR_READY_SLOT",
 }
 
 REQUEST_BRANCH_LANES = {
@@ -954,6 +955,28 @@ def execute_request(
         repo=repo,
         token=token,
     )
+
+    if kind == "REPAIR_READY_SLOT":
+        effect = dict(request["effect"])
+        required = {"target_issue", "target_generation", "expected_old_slot_id", "new_slot_id"}
+        if set(effect) != required:
+            raise ProductionExecutorError("REPAIR_READY_SLOT requires exact four-field effect")
+        if any(
+            not isinstance(effect[k], int) or isinstance(effect[k], bool) or effect[k] <= 0
+            for k in ("target_issue", "target_generation")
+        ):
+            raise ProductionExecutorError("REPAIR_READY_SLOT requires positive target identity")
+        return repair_ready_slot(
+            repo=repo, token=token, coord_branch=coord_branch,
+            authority_issue=issue, expected_authority_generation=expected_generation,
+            target_issue=effect["target_issue"],
+            expected_target_generation=effect["target_generation"],
+            expected_old_slot_id=str(effect["expected_old_slot_id"]),
+            new_slot_id=str(effect["new_slot_id"]),
+            lane_id=str(request["lane_id"]),
+            invocation_identity=str(request["invocation_identity"]),
+            expected_coord_head=expected_parent,
+        )
 
     return execute_one(
         repo=repo,
