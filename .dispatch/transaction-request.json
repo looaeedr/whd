@@ -1,11 +1,11 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-native-consume-existing-qa-gen2-20261008",
+  "request_id": "issue1429-consume-qa-after-unrelated-coord1433-cas-retry-20261008",
   "issue": 1429,
   "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1429.trusted.premerge.recovery.work2.20261008",
-  "expected_coord_head": "58022bb016980b754af29f7140562dd9f81368a0",
+  "expected_coord_head": "278f03234b8e2513effa4553484b5c8c702904a3",
   "expected_generation": 2,
   "reuse_admission_session": true,
   "effect": {
