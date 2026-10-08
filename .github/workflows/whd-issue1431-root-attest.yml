@@ -111,6 +111,65 @@ jobs:
           grep -q 'tools/flow_v2_delivery_entry_gate.py' candidate/.github/workflows/whd-governance-single-authority-gate.yml
           grep -q 'ISSUE1431_NATIVE_WORK_AND_PR_ENTRY_GATE_V1' candidate/.agents/skills/engineering/flow-v2-execution/SKILL.md
 
+      - name: Freeze tested Issue 1431 exact four-file diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+          import os
+          import subprocess
+
+          repo = Path('candidate').resolve(strict=True)
+          prod = Path('prod').resolve(strict=True)
+          def git(*args):
+              return subprocess.check_output(['git','-C',str(repo),*args], text=True).strip()
+          source = subprocess.check_output(['git','-C',str(prod),'rev-parse','HEAD'], text=True).strip()
+          subprocess.run(['git','-C',str(repo),'fetch','--no-tags','--depth=1','origin',
+                          'refs/heads/cleanup/2d-3d-sync'], check=True)
+          if git('rev-parse','FETCH_HEAD') != source:
+              raise SystemExit('candidate baseline not equal to independently validated production root')
+          paths = [
+              '.github/workflows/whd-governance-single-authority-gate.yml',
+              'tools/flow_v2_delivery_entry_gate.py',
+              'tests/process/test_issue1431_native_delivery_entry_gate.py',
+              '.agents/skills/engineering/flow-v2-execution/SKILL.md',
+          ]
+          changed = git('diff', '--name-only', source, 'HEAD', '--', *paths).splitlines()
+          if sorted(changed) != sorted(paths):
+              raise SystemExit('frozen four-file diff scope changed')
+          patch = subprocess.check_output(['git','-C',str(repo),'diff','--binary',source,'HEAD','--',*paths])
+          candidate_sha = git('rev-parse','HEAD')
+          hashes = {p:hashlib.sha256((repo/p).read_bytes()).hexdigest() for p in paths}
+          receipt = {
+              'schema':'WHD_ISSUE1431_RUNNER_TESTED_DIFF_FREEZE_V1',
+              'issue':1431, 'status':'GREEN', 'production_sha':source,
+              'tested_candidate_sha':candidate_sha,
+              'test_command':'python -m unittest discover -s tests/process -p test_issue1431_native_delivery_entry_gate.py -v',
+              'expected_test_count':18, 'write_paths':paths, 'delete_paths':[],
+              'file_sha256':hashes, 'diff_sha256':hashlib.sha256(patch).hexdigest(),
+              'run_id':os.environ['GITHUB_RUN_ID'],
+              'notice':'Runner test/freeze artifact only; native Flow v2 delivery permission is separate',
+          }
+          dest = Path(os.environ['RUNNER_TEMP'])
+          (dest/'issue1431-candidate.patch').write_bytes(patch)
+          (dest/'issue1431-candidate-freeze.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n')
+          print(json.dumps({'status':'GREEN','source':source,'candidate':candidate_sha,
+                            'paths':len(paths),'diff_sha256':receipt['diff_sha256']}))
+          PY
+
+      - name: Upload tested exact candidate diff
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1431-tested-diff-freeze
+          path: |
+            ${{ runner.temp }}/issue1431-candidate.patch
+            ${{ runner.temp }}/issue1431-candidate-freeze.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload read-only root observation
         uses: actions/upload-artifact@v4
         with:
