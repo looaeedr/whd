@@ -1,0 +1,8 @@
+{
+  "schema": "WHD_ISSUE1431_NATIVE_APPLY_RUNNER_TRIGGER_V1",
+  "issue": 1431,
+  "expected_generation": 7,
+  "verified_tested_sha": "87a6f791b63367cb2ff3b6e7805373d3b6538530",
+  "native_next_action": "APPLY_COMMIT",
+  "work_branch": "work/issue-1431-flow-v2-entry-gate"
+}
