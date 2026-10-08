@@ -916,3 +916,9 @@ POLL_QA 是 observation。若 fresh-read 已存在 **exact-head + exact-workflow
 
 ### Frozen root evidence current-fence rule
 `generation` in the root test receipt is **freeze-time provenance** only. The current execution fence is `mutation_writer_guard`. A pure lease renewal / generation advance with unchanged source, lane manifest, paths, diff digest and test receipt must not invalidate frozen evidence and **不得要求重跑 root tests**.
+
+### ISSUE1433_READY_SLOT_ATOMIC_REPAIR_V1 — create-first slot uniqueness
+
+- `DISPATCH_READY` 的 trusted create-only writer 在任何 CAS write 前，必須逐筆 fresh native records 檢查 candidate 指定 fixed slot 尚未 BOUND；若該 slot 有紀錄，`DISPATCH_READY_SLOT_COLLISION` fail closed。其他 slot 的歷史重複占用只作獨立待修缺陷，不得把安全的空槽也連帶封鎖。遇 unrelated coord CAS churn 重讀、重新檢查，不能沿用舊 EMPTY 判斷。
+- 已存在 duplicate READY 時，只允許 `REPAIR_READY_SLOT` trusted transaction：使用本 lane 有效 `ACTIVE` ExecutionRecord lease 作授權，限定另一筆 exact generation 之 `READY / UNCLAIMED / owner=NONE / lease=null / next_action=ACQUIRE` native record，原子換到 EMPTY slot，且只變更 slot_id、generation、更新時間及真實 audit event；保留 owner/work head/QA/lease/action。
+- 修好 slot **不等於** 接取：仍須由修復後固定 slot 對應 lane 從同一張 Issue fresh-read，重新送 ACQUIRE 並得到 trusted 回讀，才准繼續。未取得正式 ACQUIRE 不能以 Phase6 GREEN / PR CI GREEN 冒充施工權限。
