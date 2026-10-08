@@ -487,9 +487,8 @@ def classify_invocation_exit(
             and tx.status == "RECONCILED"
             and tx.kind == "HANDOFF"
             and tx.invocation_identity == invocation
-            and record.owner_kind == "NONE"
-            and record.owner_id == "NONE"
-            and record.lane_id is None
+            and record.owner_kind != "NONE"
+            and record.owner_id != "NONE"
         ):
             if alternative_executable_leaf_count > 0:
                 return _decision(
