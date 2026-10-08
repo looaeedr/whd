@@ -113,6 +113,42 @@ def validate_pr_entry(
     return {"status": "GREEN", "issue": issue, "reason": "NATIVE_ISSUE_BOUND_PR_ADMISSION_VALID"}
 
 
+
+def validate_work_entry(
+    record: Mapping[str, object] | None,
+    *,
+    issue: int,
+    expected_owner: str,
+    expected_lane: str,
+    invocation_identity: str,
+    expected_target_sha: str,
+    now: datetime | None = None,
+) -> dict[str, object]:
+    """Fail-closed, read-only native ownership check before work authoring.
+
+    Identity values must come from trusted execution context and verified checkout.
+    """
+    if not isinstance(record, Mapping):
+        raise DeliveryEntryError("NATIVE_EXECUTION_RECORD_REQUIRED")
+    if record.get("schema") != RECORD_SCHEMA or record.get("issue") != issue:
+        raise DeliveryEntryError("NATIVE_EXECUTION_RECORD_IDENTITY_MISMATCH")
+    if record.get("state") != "ACTIVE":
+        raise DeliveryEntryError("NATIVE_ACQUIRE_REQUIRED")
+    if _field(record.get("owner_id")) != expected_owner or _field(record.get("lane_id")) != expected_lane:
+        raise DeliveryEntryError("NATIVE_OWNER_LANE_MISMATCH")
+    lease = record.get("lease")
+    if not isinstance(lease, Mapping) or not _field(lease.get("token")):
+        raise DeliveryEntryError("NATIVE_LEASE_MISSING")
+    if _field(lease.get("invocation_identity")) != invocation_identity:
+        raise DeliveryEntryError("NATIVE_INVOCATION_MISMATCH")
+    clock = now or datetime.now(timezone.utc)
+    if _parse_utc(lease.get("expires_at"), "NATIVE_LEASE_EXPIRY") <= clock:
+        raise DeliveryEntryError("NATIVE_LEASE_EXPIRED")
+    if _field(record.get("target_sha")) != expected_target_sha:
+        raise DeliveryEntryError("NATIVE_TARGET_HEAD_MISMATCH")
+    return {"status": "GREEN", "issue": issue, "reason": "NATIVE_PRE_WORK_CLAIM_VALID"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--event-file", type=Path, required=True)
