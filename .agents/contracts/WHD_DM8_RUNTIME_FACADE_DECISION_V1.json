@@ -45,7 +45,7 @@
   "readback_only_fence": {
     "rule": "READBACK_ONLY may perform provider reads needed to classify the live path but must raise before any provider mutation branch.",
     "error": "RuntimeMutationFenceError",
-    "merge": "ALREADY_MERGED/TARGET_DRIFT may continue; READY_TO_MERGE mutation branch is blocked",
+    "merge": "ALREADY_MERGED/TARGET_DRIFT may continue; READY_TO_MERGE is blocked before PUT /pulls/{pr}/merge",
     "sync_target": "already-applied ancestry may continue; POST /merges branch is blocked",
     "finalize": "already closed/completed may continue; PATCH close branch is blocked",
     "release_paths": "ACTIVE/non-stale and stale-absent may continue; stale DELETE branch is blocked"
