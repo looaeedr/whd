@@ -1,19 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "dm8-1385-workspace-capability-handoff-20261007T2325Z",
-  "issue": 1385,
-  "kind": "HANDOFF",
+  "request_id": "issue1435-native-ready-bootstrap-20261008-2109",
+  "issue": 1435,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.handoff.work2.20261007T2325Z",
-  "expected_coord_head": "182fa48cfe68f3d8c5f2750430f59573d1df4654",
-  "expected_generation": 4,
+  "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
+  "expected_coord_head": "a7b5097d190c80bf0bd9839e839b8bff5e3bcdc5",
+  "expected_generation": 1,
   "effect": {
-    "owner_kind": "NONE",
-    "owner_id": "NONE",
-    "lane_id": null,
-    "lease": null
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "user:fix missing ExecutionRecord for existing PR #1430 with trusted pre-merge recovery; bootstrap #1435 before authorized delivery",
+    "work_branch": "work/issue-1435-trusted-premerge-delivery",
+    "slot_id": "worker.slot.2",
+    "dispatch_transport": "GITHUB_CANONICAL"
   },
-  "purpose": "Bare /派工 #1385: routing-only HANDOFF because this chat surface has no writable/testable executor repo workspace and /派工 forbids RC/local fallback. Preserve slot/work branch/head/semantic state/START_BRANCH for a workspace-capable runtime.",
+  "purpose": "Official first-dispatch of new Issue #1435 before any work authorized under this Issue; reuse tested 10-file candidate only through native claim, QA and trusted PR merge.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -25,7 +26,7 @@
     "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
     "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
+    "production_head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
     "drive_role": "MIRROR_BACKUP_ONLY",
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "root_entries": [
@@ -45,32 +46,38 @@
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
-    "issue": 1385,
-    "invocation_identity": "chatgpt.dm8.autodispatch.issue1385.handoff.work2.20261007T2325Z",
+    "issue": 1435,
+    "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
     "branch": "cleanup/2d-3d-sync",
-    "head_sha": "414c82255481cd75d2e1ae06a94e1680171ae939",
+    "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
     "required_skills": [
       "flow-v2-execution",
-      "派工",
-      "issue-closure-gate",
-      "handoff"
+      "root-local-first",
+      "寫技能",
+      "Python測試實務",
+      "phase6-release-packaging"
     ],
     "completed_skills": [
       "flow-v2-execution",
-      "派工",
-      "issue-closure-gate",
-      "handoff"
+      "root-local-first",
+      "寫技能",
+      "Python測試實務",
+      "phase6-release-packaging"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-07T23:25:18Z"
+    "observed_at": "2026-10-08T13:07:53Z"
   }
 }
