@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "dm8-1378-acquire-renew-work1-20261008T0111Z",
+  "request_id": "issue1378-renew-work1-20261008T0206Z",
   "issue": 1378,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.dm8.resume.issue1378.work1.20261008T0109Z",
-  "expected_coord_head": "6e98f2ee607f3d440208f8f5758cf61b018f5ce9",
-  "expected_generation": 4,
+  "invocation_identity": "chatgpt.dm8.issue1378.work1.20261008T0206Z",
+  "expected_coord_head": "b56b185ef113f550c92adf66c68d61c9511f5b14",
+  "expected_generation": 5,
   "effect": {},
-  "purpose": "Resume #1378 on work1 in the same physical assistant after stale-target reconcile; renew expired lease and continue START_BRANCH.",
+  "purpose": "Renew the expired work1 lease for Issue 1378 and continue its current START_BRANCH action.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -41,21 +41,25 @@
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "status": "GREEN",
     "issue": 1378,
-    "invocation_identity": "chatgpt.dm8.resume.issue1378.work1.20261008T0109Z",
+    "invocation_identity": "chatgpt.dm8.issue1378.work1.20261008T0206Z",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "5ae65da033e736d4fce8dece1c884f6f43ed90d8",
     "required_skills": [
+      "flow-v2-execution",
       "handoff"
     ],
     "completed_skills": [
+      "flow-v2-execution",
       "handoff"
     ],
     "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
     "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
     ],
-    "observed_at": "2026-10-08T01:08:29Z"
+    "observed_at": "2026-10-08T02:06:00Z"
   }
 }
