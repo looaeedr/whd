@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
-  "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+  "generation": 8,
+  "head_sha": "35d1b19aef44a564fe6e3a6b313b18ed26c2ade8",
   "issue": 1433,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -37,9 +37,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Create #1433 trusted delivery branch after admission",
-    "kind": "START_BRANCH"
+    "args": {
+      "diff_digest": "74fece51d0752eab2064272958ec8c1811a7a4b08552f6ba919fe930b1f79edb"
+    },
+    "display": "Apply verified exact GitHub Runner tested seven-file candidate",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -57,7 +59,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "PATHS_RESERVED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
@@ -65,13 +67,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
   "transaction": {
-    "expected_fingerprint": "b1fccf8ff6f790d3e4f9bbfb50cec7b78f1843a17057a90fd67843af7133d021",
-    "id": "gha:37796547674:1433:ACQUIRE:6",
+    "expected_fingerprint": "2527dfe5023b2eb0729e0cfa38d477c86ae5e9c309cc86104bff34bed85bded2",
+    "id": "gha:37797074554:1433:START_BRANCH:7",
     "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T14:56:59Z",
+  "updated_at": "2026-10-08T15:01:23Z",
   "version": 2,
   "work_branch": "work/issue-1433-native-ready-slot-repair"
 }
