@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "c06d3a6aa50694ea1278b41ece4bf26a1deda92f",
   "issue": 1433,
   "lane_id": "chatgpt.flowv2.work1",
@@ -38,9 +38,10 @@
   },
   "next_action": {
     "args": {
-      "pr_number": 1436
+      "pr_number": 1436,
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
     },
-    "display": "Start exact-head GitHub QA for verified #1436 candidate",
+    "display": "Consume exact-head completed Control Plane QA with trusted workflow readback",
     "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
@@ -67,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
   "transaction": {
-    "expected_fingerprint": "6f9a21307dc1bb6ef9fdd8e395e8c6acd1873d4729b7259b29e18c5cb1862503",
-    "id": "gha:37797775251:1433:APPLY_COMMIT:8",
+    "expected_fingerprint": "203b48087024e0ffd6b205375929fe812ec4995135d7e7c542c396a22220e018",
+    "id": "gha:37798174838:1433:RECONCILE:9",
     "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-    "kind": "APPLY_COMMIT",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T15:05:47Z",
+  "updated_at": "2026-10-08T15:09:05Z",
   "version": 2,
   "work_branch": "work/issue-1433-native-ready-slot-repair"
 }
