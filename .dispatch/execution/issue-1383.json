@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
-  "head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+  "generation": 5,
+  "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
   "issue": 1383,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -35,10 +35,10 @@
   },
   "next_action": {
     "args": {
-      "candidate_commit_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b"
+      "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Apply exact verified tested DM8-C1 commit",
-    "kind": "APPLY_COMMIT"
+    "display": "Run canonical product regression on exact #1383 PR head",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -64,13 +64,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
   "transaction": {
-    "expected_fingerprint": "8e526733cec60c457ea921db01c1ebb3cf5c9a36174916ea7df41e63205d35e5",
-    "id": "gha:37763460104:1383:START_BRANCH:3",
+    "expected_fingerprint": "1afeac01c9f89ae427cec0ff6b30aafde5b96617236e09be01748fb36c539cb4",
+    "id": "gha:37763687197:1383:APPLY_COMMIT:4",
     "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T10:27:33Z",
+  "updated_at": "2026-10-08T10:29:14Z",
   "version": 2,
   "work_branch": "work/issue-1383"
 }
