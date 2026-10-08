@@ -702,9 +702,9 @@ Scheduler observation 亦必須保留 exact `invocation_identity`、branch/head�
 ### REMOTE_QA_NONBLOCKING_WAIT_HARD_GATE_V1
 
 
-Remote QA 是外部等待，但 active run 必須**持續輪詢到 terminal**，不能看到一次 `in_progress` 就停止本 invocation。對同一 `issue + run_id + head_sha`：
+Remote QA 是外部等待，但 active run 不能看到一次 `in_progress` 就無條件停止本 invocation。只要仍有合法可執行 `POLL_QA` 或其他 structured `next_action`，就繼續執行；僅在沒有可消費 terminal result、沒有任何合法可執行 leaf 且 invocation-exit classifier 授權 genuine remote wait 時，才可 durable YIELD 並由下一個 invocation resume。對同一 `issue + run_id + head_sha`：
 
-1. `queued / in_progress / pending / waiting / requested` 都屬 active；依 provider 合理 cadence 持續讀 structured run/job/status，classifier 回 `CONTINUE_REMOTE_QA_POLL`，不得因此 YIELD 或把「仍在跑」當停止點。
+1. `queued / in_progress / pending / waiting / requested` 都屬 active；依 provider 合理 cadence 讀 structured run/job/status。若 `POLL_QA` 仍可執行，classifier 回 `CONTINUE_REMOTE_QA_POLL`，不得因此 YIELD 或把「仍在跑」當完成；確實沒有可執行 leaf 時才按正式 classifier 進 remote-wait durable YIELD。
 2. progress/status 回報只是 non-blocking checkpoint；回報後繼續同一 exact run 的輪詢。
 3. **第一次 terminal observation 是狀態讀取終點**：`completed/success` 立刻走 `CONSUME_QA / ACCEPT_QA`，terminal non-success 立刻走 `FAIL_QA`；不得再讀第二次相同 run/job/status。
 4. terminal 後若同一 invocation 再觀測同一 run，machine owner=`tools/execution_invocation_exit.py::assert_remote_qa_active_observation_budget` 必須 fail closed：`REMOTE_QA_TERMINAL_REOBSERVATION_FORBIDDEN`。
