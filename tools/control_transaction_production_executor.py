@@ -116,6 +116,43 @@ def _iso(value: datetime) -> str:
 
 
 
+def _github_403_diagnostic(exc: HTTPError, *, method: str, path: str) -> str:
+    """Allowlisted permission/rate-limit telemetry; never serialize raw API errors.
+
+    API response bodies, requested URLs, tokens and unsanitized header values
+    are deliberately omitted. GitHub may put sensitive text in any of them.
+    """
+    endpoint = "ACTIONS_RUN_READ" if re.fullmatch(r"/actions/runs/[0-9]+", path) else "OTHER_GITHUB_API"
+    try:
+        raw = exc.read(4096).decode("utf-8", errors="replace")
+        message = str(json.loads(raw).get("message", "")).lower()
+    except (ValueError, AttributeError, TypeError, UnicodeError):
+        message = ""
+    if "resource not accessible by integration" in message:
+        classification = "INTEGRATION_PERMISSION_DENIED"
+    elif "rate limit" in message:
+        classification = "GITHUB_RATE_LIMIT"
+    else:
+        classification = "FORBIDDEN_UNCLASSIFIED"
+
+    def safe_integer_header(name: str) -> str:
+        value = str(exc.headers.get(name, "")).strip() if exc.headers else ""
+        return value if value.isascii() and value.isdecimal() and len(value) <= 12 else "unknown"
+
+    request_id = str(exc.headers.get("X-GitHub-Request-Id", "")) if exc.headers else ""
+    if not re.fullmatch(r"[a-zA-Z0-9:-]{1,80}", request_id):
+        request_id = "unavailable"
+    permissions = str(exc.headers.get("X-Accepted-GitHub-Permissions", "")) if exc.headers else ""
+    safe_permission = "actions:read" if "actions=read" in permissions.lower() else "unavailable"
+    return (
+        f"GITHUB_API_403 method={method if method in {'GET', 'POST', 'PUT', 'PATCH', 'DELETE'} else 'OTHER'} "
+        f"endpoint={endpoint} class={classification} "
+        f"rate_remaining={safe_integer_header('X-RateLimit-Remaining')} "
+        f"retry_after_seconds={safe_integer_header('Retry-After')} "
+        f"request_id={request_id} accepted_permissions={safe_permission}"
+    )
+
+
 def _api(repo: str, method: str, path: str, token: str, payload: object | None = None) -> Any:
     url = f"https://api.github.com/repos/{repo}{path}"
     data = None
@@ -129,8 +166,15 @@ def _api(repo: str, method: str, path: str, token: str, payload: object | None =
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         headers["Content-Type"] = "application/json"
     req = Request(url, data=data, method=method, headers=headers)
-    with urlopen(req, timeout=30) as response:
-        raw = response.read()
+    try:
+        with urlopen(req, timeout=30) as response:
+            raw = response.read()
+    except HTTPError as exc:
+        if exc.code != 403:
+            raise
+        raise ProductionExecutorError(
+            _github_403_diagnostic(exc, method=method, path=path)
+        ) from None
     return json.loads(raw.decode("utf-8")) if raw else None
 
 
