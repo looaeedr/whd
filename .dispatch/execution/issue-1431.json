@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "issue": 1431,
   "lane_id": "chatgpt.flowv2.work1",
@@ -21,7 +21,18 @@
     "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
     "token": "lease:1431:37808168535:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      ".github/workflows/whd-governance-single-authority-gate.yml",
+      "tests/process/test_issue1431_native_delivery_entry_gate.py",
+      "tools/flow_v2_delivery_entry_gate.py"
+    ]
+  },
   "next_action": {
     "args": {},
     "display": "Start Issue #1431 native pre-implementation entry hard gate",
@@ -50,7 +61,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
@@ -58,13 +69,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
   "transaction": {
-    "expected_fingerprint": "e45ac78f40a9add58ac3fe3b9f63bf9f758c54ecf9870f46a35e1435b6a9b028",
-    "id": "gha:37808168535:1431:ACQUIRE:4",
+    "expected_fingerprint": "bff371c6d4d0dc7934946ec50fc80a2eda600a4e2439291b4323e187e69a5e04",
+    "id": "gha:37809260179:1431:RESERVE_PATHS:5",
     "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T16:22:57Z",
+  "updated_at": "2026-10-08T16:31:01Z",
   "version": 2,
   "work_branch": "work/issue-1431-flow-v2-entry-gate"
 }
