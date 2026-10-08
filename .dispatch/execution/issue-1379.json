@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
-    "released_at": null
+    "released_at": "2026-10-08T04:49:31Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 3,
+  "generation": 4,
   "head_sha": "d602638da1d2845af8819c2517a297af4360d1f4",
   "issue": 1379,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-10-08T05:08:40Z",
-    "invocation_identity": "chatgpt.issue1379.continue.20261008",
-    "token": "lease:1379:37729598323:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1406,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,21 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "work/issue-1379",
   "source_sha": "d602638da1d2845af8819c2517a297af4360d1f4",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
+  "target_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc",
   "transaction": {
-    "expected_fingerprint": "f03748e818facfb05fa1dd6e734857b2a7f7c2d039d44c89a8e8a4a288d0f28c",
-    "id": "gha:37729598323:1379:ACQUIRE:2",
+    "expected_fingerprint": "589b5e02514ec500658efd57a8529d0d98d6de10da1f06ac7377d01cf0d3a9d9",
+    "id": "gha:37729598323:1379:FINALIZE:3",
     "invocation_identity": "chatgpt.issue1379.continue.20261008",
-    "kind": "ACQUIRE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T04:53:40Z",
+  "updated_at": "2026-10-08T04:54:33Z",
   "version": 2,
   "work_branch": "work/issue-1379"
 }
