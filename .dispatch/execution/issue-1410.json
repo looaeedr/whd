@@ -7,31 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
-    "released_at": null
+    "released_at": "2026-10-08T07:04:03Z"
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "34231c1c3b9f815c6cbdcdcd40033027e2d82db6",
   "issue": 1410,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-08T07:19:44Z",
-    "invocation_identity": "github:production-x-post-merge:37741149846:pr1411:issue1410",
-    "token": "recovery:1410:37741149846"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": null,
-  "next_action": {
-    "args": {
-      "pr_number": 1411,
-      "recovery_mode": "POST_DELIVERY_RECOVERY"
-    },
-    "display": "Finalize already-merged delivery from trusted recovery proof",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -63,15 +52,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "POST_DELIVERY_RECOVERY_FINALIZATION",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": null,
   "source_branch": "work/issue-1410-terminal-successor-exit-gate",
   "source_sha": "34231c1c3b9f815c6cbdcdcd40033027e2d82db6",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
-  "transaction": null,
-  "updated_at": "2026-10-08T07:04:44Z",
+  "target_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+  "transaction": {
+    "expected_fingerprint": "54ce091bcd7863db9c78661a51c32d9a11e012ff5dc0abd222fa888dad1a98cf",
+    "id": "gha:37753705827:1410:FINALIZE:1",
+    "invocation_identity": "github:production-x-post-merge:37741149846:pr1411:issue1410",
+    "kind": "FINALIZE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T09:07:29Z",
   "version": 2,
   "work_branch": "work/issue-1410-terminal-successor-exit-gate"
 }
