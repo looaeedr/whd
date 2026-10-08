@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 7,
+  "generation": 8,
   "head_sha": "058730b19418d49bed47bef7d7d84751c86a6e14",
   "issue": 1381,
   "lane_id": "chatgpt.flowv2.work1",
@@ -36,19 +36,20 @@
   },
   "next_action": {
     "args": {
-      "post_accept_pr_number": 1413,
-      "post_accept_target_branch": "cleanup/2d-3d-sync",
-      "post_accept_target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "expected_target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
+      "head_sha": "058730b19418d49bed47bef7d7d84751c86a6e14",
+      "pr_number": 1413,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Validate exact PR #1413",
-    "kind": "START_QA"
+    "display": "Merge verified PR #1413",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "058730b19418d49bed47bef7d7d84751c86a6e14",
+    "last_accepted_run": 37747632973
   },
   "recovery_history": [
     {
@@ -60,21 +61,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a9a83b27abf5fe0dfea7e3ba247ad24f2217784f",
   "transaction": {
-    "expected_fingerprint": "ffe9e1549f3ee5550ebfa71734171f1a12170c163327652b81b197aa8ca42148",
-    "id": "gha:37747818236:1381:START_BRANCH:6",
+    "expected_fingerprint": "80aae04808785b58e41e7009fb705700b89ed1fe538631aa91f3b0b9df5b9ed5",
+    "id": "gha:37748104892:1381:CONSUME_QA:7",
     "invocation_identity": "chatgpt.issue1381.takeover.20261008",
-    "kind": "START_BRANCH",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T08:08:42Z",
+  "updated_at": "2026-10-08T08:11:17Z",
   "version": 2,
   "work_branch": "work/issue-1381"
 }
