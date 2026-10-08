@@ -77,7 +77,16 @@ def _build(kind: str):
 
 
 def test_dispatch_control_plane_allowlist_contains_ready_and_acquire_only():
-    assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({"DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF", "RECOVER_POST_DELIVERY"})
+    assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({"DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF", "RECOVER_POST_DELIVERY", "REPAIR_READY_SLOT"})
+
+
+def test_ready_slot_repair_requires_native_trusted_executor_after_control_plane_admission():
+    request = _build("REPAIR_READY_SLOT")
+    assert request["kind"] == "REPAIR_READY_SLOT"
+    assert request["startup_evidence"]["work_root_gate"]["scope"] == "CONTROL_PLANE_ONLY"
+    # This envelope grants no slot mutation by itself: trusted ingress still
+    # requires exact four-field effect + live owning lease + target READY,
+    # empty destination + coord CAS + record fingerprint readback.
 
 
 def test_post_delivery_recovery_is_admitted_only_through_existing_trusted_ingress():
