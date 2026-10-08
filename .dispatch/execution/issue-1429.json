@@ -1,0 +1,77 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
+  "issue": 1429,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {
+      "post_acquire": {
+        "args": {
+          "post_accept_pr_number": 1430,
+          "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
+          "post_accept_target_branch": "cleanup/2d-3d-sync",
+          "workflow": ".github/workflows/whd-product-regression.yml"
+        },
+        "display": "Fresh native QA on existing PR #1430 head before MERGE",
+        "kind": "START_QA"
+      }
+    },
+    "display": "Acquire Issue #1429; preserve PR #1430 delivery",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "historical_acquire_reconstructed": false,
+      "issue": 1429,
+      "kind": "PRE_MERGE_DELIVERY_RECOVERY",
+      "observed_at": "2026-10-08T14:15:52Z",
+      "observed_target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+      "pr_head_ref": "work/issue-1429-flow-v2-compact-context",
+      "pr_head_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
+      "pr_number": 1430,
+      "qa_history_reconstructed": false,
+      "required_check_conclusions": {
+        "Governance Mirror Hard Gate": "success"
+      },
+      "required_checks": [
+        "Governance Mirror Hard Gate"
+      ],
+      "schema": "WHD_FLOW_V2_PRE_MERGE_RECOVERY_PROOF_V1",
+      "target_branch": "cleanup/2d-3d-sync",
+      "trusted_source": "control_transaction_production_executor"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "PRE_MERGE_RECOVERY_READY",
+  "slot_id": "worker.slot.2",
+  "source_branch": "work/issue-1429-flow-v2-compact-context",
+  "source_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+  "transaction": null,
+  "updated_at": "2026-10-08T14:15:52Z",
+  "version": 2,
+  "work_branch": "work/issue-1429-flow-v2-compact-context"
+}

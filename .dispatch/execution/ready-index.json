@@ -15,6 +15,17 @@
     {
       "execution_intent": "EXECUTE_TICKET",
       "generation": 1,
+      "issue": 1429,
+      "next_action_display": "Acquire Issue #1429; preserve PR #1430 delivery",
+      "next_action_kind": "ACQUIRE",
+      "record_fingerprint": "6422c222ac979a6c489c1f62f786df0d238c9ceb038f1d9b22410783c7ab434c",
+      "target_branch": "cleanup/2d-3d-sync",
+      "target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+      "updated_at": "2026-10-08T14:15:52Z"
+    },
+    {
+      "execution_intent": "EXECUTE_TICKET",
+      "generation": 1,
       "issue": 1431,
       "next_action_display": "Acquire Issue #1431",
       "next_action_kind": "ACQUIRE",
@@ -25,5 +36,5 @@
     }
   ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "601e36d79eea3a9208cd4e62aef75c24e98166f4df75393ee9740e08c1f3e5d0"
+  "source_digest": "fe590fe6848509c649b1a9d56f6f90e88ed060a4db548299671db0d01a4266d8"
 }
