@@ -3,9 +3,10 @@
 
 Phase6PartSessionOwner owns activation/save sequencing and compatibility effect
 ordering only. Navigation/workspace identity, project persistence, update
-scheduling, rendering, Settings semantics, manufacturing formulas, geometry and
-DXF truth remain with their existing canonical owners. The Bridge keeps narrow
-compatibility delegates.
+scheduling, rendering and Settings semantics remain with their existing
+canonical owners. Manufacturing formula ownership remains in the existing
+canonical modules; geometry and DXF truth stay outside this owner. The Bridge
+keeps narrow compatibility delegates.
 """
 from __future__ import annotations
 
