@@ -48,7 +48,7 @@ jobs:
               return subprocess.check_output(['git','-C',str(path),*args],text=True).strip()
           if os.environ['GITHUB_REPOSITORY']!='looaeedr/whd': raise SystemExit('REPO_IDENTITY_MISMATCH')
           for p in [root,candidate,coord]:
-              if not git(p,'remote','get-url','origin').endswith('/looaeedr/whd.git'):
+              if git(p,'remote','get-url','origin').removesuffix('.git').rstrip('/')!='https://github.com/looaeedr/whd':
                   raise SystemExit('GIT_ORIGIN_MISMATCH')
           head=git(root,'rev-parse','HEAD')
           if head!=git(root,'ls-remote','origin','refs/heads/cleanup/2d-3d-sync').split()[0]:
