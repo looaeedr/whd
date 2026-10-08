@@ -1,38 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-reconcile-target-after1433-merge-for1431-slot-repair",
+  "request_id": "issue1429-acquire-same-owner-work-head-for1431-repair-20261008",
   "issue": 1429,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1429.slot1431.repair.work2.20261008",
   "expected_coord_head": "a8e46b180cf1d0ae1880b5da1906a7287220dbcd",
   "expected_generation": 2,
-  "effect": {
-    "observed_work_branch": "work/issue-1429-flow-v2-compact-context",
-    "observed_head_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
-    "observed_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
-    "next_action": {
-      "args": {
-        "post_accept_pr_number": 1430,
-        "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-        "post_accept_target_branch": "cleanup/2d-3d-sync",
-        "workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Fresh native QA on existing PR #1430 head before MERGE",
-      "kind": "START_QA"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1429,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
-      "stale_source_branch": "work/issue-1429-flow-v2-compact-context",
-      "stale_source_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd"
-    }
-  },
-  "purpose": "Align native #1429 owner record after merged #1433 target so expired same-owner lease can be legally renewed for native #1431 slot repair",
+  "effect": {},
+  "purpose": "Renew exact #1429 same-owner ACTIVE lease on actual work branch identity; authorize only later native #1431 unclaimed READY slot relocation",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -66,8 +42,8 @@
     "status": "GREEN",
     "issue": 1429,
     "invocation_identity": "chatgpt.issue1429.slot1431.repair.work2.20261008",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+    "branch": "work/issue-1429-flow-v2-compact-context",
+    "head_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
     "required_skills": [
       "flow-v2-execution",
       "root-local-first",
@@ -90,6 +66,6 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-08T15:23:53.396Z"
+    "observed_at": "2026-10-08T15:28:06.105Z"
   }
 }
