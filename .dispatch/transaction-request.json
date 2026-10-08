@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1435-native-acquire-20261008-2113",
+  "request_id": "issue1435-native-acquire-sorted-reservation-20261008-2115",
   "issue": 1435,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work2",
@@ -17,8 +17,8 @@
       "target_branch": "cleanup/2d-3d-sync",
       "base_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
       "write_paths": [
-        "AGENTS.md",
         ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+        "AGENTS.md",
         "docs/governance/flow_v2_pre_merge_recovery.md",
         "tests/process/test_issue1391_dispatch_acquire_control_plane_only.py",
         "tests/process/test_issue1429_pre_merge_recovery.py",
