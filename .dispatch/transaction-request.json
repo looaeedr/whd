@@ -1,19 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-dispatch-ready-20261008-work0-v1",
+  "request_id": "issue1431-acquire-20261008-work0-v1",
   "issue": 1431,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work0",
   "invocation_identity": "chatgpt.issue1431.entry.20261008.work0",
-  "expected_coord_head": "ac2cae0cbe13e38ca551ba5a8f0a02354b5380c8",
+  "expected_coord_head": "337c8c34a2d0eb28a62e748f2271b4b958375ecc",
   "expected_generation": 1,
-  "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user_request:issue1431.entry-gate",
-    "work_branch": "work/issue-1431-flow-v2-entry-gate",
-    "dispatch_transport": "GITHUB_CANONICAL"
-  },
-  "purpose": "Issue 1431 native execution admission before code mutation",
+  "effect": {},
+  "purpose": "ACQUIRE Issue 1431 after trusted DISPATCH_READY",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -81,6 +76,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T12:54:18.433Z"
+    "observed_at": "2026-10-08T12:57:15.482Z"
   }
 }
