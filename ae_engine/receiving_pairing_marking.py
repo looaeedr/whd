@@ -8,13 +8,24 @@ No post-backprojection mirror/rotation and no machining-side semantics exist.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from functools import partial
 import math
 from typing import Mapping
 
 from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import unary_union
 
-from .assembly_marking_geometry import backproject_mapped_skin_world_points
+from .assembly_marking_geometry import (
+    backproject_mapped_skin_world_points,
+    canonical_unit_normal,
+    triangle_unit_normal,
+    vector_sub as _sub,
+    vector_dot as _dot,
+    vector_cross as _cross,
+    vector_norm as _norm,
+    vector_unit,
+)
+from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
 from .receiving_layout import (
     RECEIVING_RUNTIME_SELECTION_KEY,
     derive_bay_lock_state,
@@ -49,7 +60,7 @@ PAIRING_HALF_HEIGHT = 50.0
 BACK_OPENING_GLYPH_WIDTH = 30.0
 BACK_OPENING_GLYPH_HEIGHT = 20.0
 
-_EPS = 1e-7
+_EPS = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance)
 _ROUND = 9
 _OWNER_KEY = "box_body:left_side"
 _SOURCE = "RECEIVING_PAIRING_MARK"
@@ -94,44 +105,21 @@ def pairing_symbol_size(*, inset: float = PAIRING_SYMBOL_INSET) -> float:
     return float(value)
 
 
-def _sub(a, b):
-    return tuple(float(a[i]) - float(b[i]) for i in range(3))
-
-
-def _dot(a, b):
-    return sum(float(a[i]) * float(b[i]) for i in range(3))
-
-
-def _cross(a, b):
-    return (
-        float(a[1]) * float(b[2]) - float(a[2]) * float(b[1]),
-        float(a[2]) * float(b[0]) - float(a[0]) * float(b[2]),
-        float(a[0]) * float(b[1]) - float(a[1]) * float(b[0]),
-    )
-
-
-def _norm(a):
-    return math.sqrt(sum(float(v) * float(v) for v in a))
-
-
 def _unit(a):
-    mag = _norm(a)
-    if mag <= _EPS:
-        raise ValueError("degenerate mapped-skin triangle")
-    return tuple(float(v) / mag for v in a)
+    return vector_unit(a, tolerance=_EPS, error_message="degenerate mapped-skin triangle")
 
 
-def _triangle_normal(world):
-    a, b, c = tuple(world)
-    return _unit(_cross(_sub(b, a), _sub(c, a)))
+_triangle_normal = partial(
+    triangle_unit_normal, tolerance=_EPS,
+    error_message="degenerate mapped-skin triangle",
+)
 
 
 def _canonical_normal(normal):
-    n = _unit(normal)
-    for value in n:
-        if abs(value) > _EPS:
-            return tuple(-v for v in n) if value < 0.0 else n
-    return n
+    return canonical_unit_normal(
+        normal, direction_tolerance=_EPS, norm_tolerance=_EPS,
+        error_message="degenerate mapped-skin triangle",
+    )
 
 
 def _main_face(mapping):
