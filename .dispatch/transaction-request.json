@@ -1,73 +1,27 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-renew-work2-lease-for-newhead-qa-20261009-0651",
+  "request_id": "issue1429-native-consume-newhead-green-gen10-20261009",
   "issue": 1429,
-  "kind": "ACQUIRE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1429.qa-finalize.work2.20261009T0651",
-  "expected_coord_head": "0196fbed70eeab54568173ce0ffeceb123d5c042",
-  "expected_generation": 9,
-  "effect": {},
-  "purpose": "Continue existing exact work2 owner, preserve active 5-file path reservation and native new-head GREEN QA, no branch modification",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
-    "drive_role": "MIRROR_BACKUP_ONLY",
-    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1429,
-    "invocation_identity": "chatgpt.issue1429.qa-finalize.work2.20261009T0651",
-    "branch": "work/issue-1429-flow-v2-compact-context",
-    "head_sha": "4e4bef699216a87922c0644c04923591c689aaf7",
-    "required_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "Python測試實務"
-    ],
-    "completed_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "Python測試實務"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
-    ],
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
-    ],
-    "observed_at": "2026-10-08T22:51:32.099Z",
-    "remote_preflight_run_id": 37855815352,
-    "remote_preflight_comment_id": 6070597797
+  "expected_coord_head": "dae6b253c3859fde4f074a865a36971f252885e2",
+  "expected_generation": 10,
+  "reuse_admission_session": true,
+  "effect": {
+    "run_id": 37855750108,
+    "next_state": "INTEGRATING",
+    "next_action": {
+      "kind": "MERGE",
+      "args": {
+        "pr_number": 1430,
+        "head_sha": "4e4bef699216a87922c0644c04923591c689aaf7",
+        "target_branch": "cleanup/2d-3d-sync",
+        "expected_target_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
+        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
+      },
+      "display": "Merge PR #1430 after trusted exact-head checks"
+    },
+    "semantic_state": "QA_ACCEPTED"
   }
 }
