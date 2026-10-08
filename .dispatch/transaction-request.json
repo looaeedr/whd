@@ -1,12 +1,88 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-native-finalize-merged-pr1430-gen12-20261009",
-  "issue": 1429,
-  "kind": "FINALIZE",
+  "request_id": "issue1439-native-ready-user-tok-auth-fix-20261009",
+  "issue": 1439,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work2",
-  "invocation_identity": "chatgpt.issue1429.qa-finalize.work2.20261009T0651",
-  "expected_coord_head": "78b7922c7907e3a01e30d980ec7f5f0d153d3eee",
-  "expected_generation": 12,
-  "reuse_admission_session": true,
-  "effect": {}
+  "invocation_identity": "chatgpt.issue1439.tok-delivery.work2.20261009",
+  "expected_coord_head": "588b201e5e564e51c843ea77ea0a93e6c6ecc84f",
+  "expected_generation": 1,
+  "effect": {
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "https://github.com/looaeedr/whd/issues/1439",
+    "work_branch": "work/issue-1439-tok-ci-identity",
+    "slot_id": "worker.slot.2"
+  },
+  "purpose": "User-explicit fix TOK/PAT separation of PR Git mutations from native GitHub App control plane; formally dispatch before any content write",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1439,
+    "invocation_identity": "chatgpt.issue1439.tok-delivery.work2.20261009",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+    "required_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "Python測試實務",
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "寫技能",
+      "Python測試實務",
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "observed_at": "2026-10-08T23:01:04.583Z",
+    "remote_preflight_run_id": 37856959566,
+    "remote_preflight_comment_id": 6070739423
+  }
 }
