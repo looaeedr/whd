@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc",
   "issue": 1380,
   "lane_id": null,
@@ -45,9 +45,15 @@
   "source_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc",
   "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc",
-  "transaction": null,
-  "updated_at": "2026-10-08T05:03:07Z",
+  "target_sha": "d5d2dbc678c2f04859e08386309c9fd7e22f474f",
+  "transaction": {
+    "expected_fingerprint": "1dafa441b58f031bc1b46f5e328bed2c1aa99d8db015223e578ad627c143bd1b",
+    "id": "gha:37731547614:1380:RECONCILE:1",
+    "invocation_identity": "chatgpt.issue1380.20261008",
+    "kind": "RECONCILE",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T05:17:37Z",
   "version": 2,
   "work_branch": "work/issue-1380"
 }
