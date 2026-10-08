@@ -1,32 +1,13 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1378-reviewfix-reconcile-6",
+  "request_id": "issue1378-reviewfix-acquire-7",
   "issue": 1378,
-  "kind": "RECONCILE",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1378.reviewfix.20261008",
-  "expected_coord_head": "b62ddb9bc019ce965de3a0b2598cbd2f25405f2c",
-  "expected_generation": 6,
-  "effect": {
-    "observed_work_branch": "work/issue-1378",
-    "observed_head_sha": "bfa1eb18f67cea3e78ae6c2bdb06186a0fcb8c9c",
-    "observed_target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
-    "next_action": {
-      "kind": "START_BRANCH",
-      "args": {},
-      "display": "Deliver reviewed Issue1378 fence characterization"
-    },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
-      "issue": 1378,
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "5ae65da033e736d4fce8dece1c884f6f43ed90d8"
-    }
-  },
+  "expected_coord_head": "52896cc7107651e81f1eb20c5d10d5ef939863e7",
+  "expected_generation": 7,
+  "effect": {},
   "startup_evidence": {
     "schema": "WHD_EXECUTION_ENTRY_EVIDENCE_V1",
     "repository": "looaeedr/whd",
@@ -154,8 +135,8 @@
       "status": "GREEN"
     },
     "purpose": "Complete Issue1378 review correction and trusted terminal tail",
-    "issued_at": "2026-10-08T04:14:40Z",
-    "expires_at": "2026-10-08T04:19:40Z",
+    "issued_at": "2026-10-08T04:16:55Z",
+    "expires_at": "2026-10-08T04:21:55Z",
     "declaration": "WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1\n授權：此工作由使用者明確授權，針對使用者管理的 looaeedr/whd 執行。\n目的：Complete Issue1378 review correction and trusted terminal tail\n範圍：此聲明只記錄 startup provenance/intent；不新增 repository authority，不取代 claim / Guard / Preflight，也不擴張工具權限或未被使用者要求的工作。\n工作根目錄閘門：WHD_WORK_ROOT_HARD_GATE_V2；repository-content 固定使用 executor-local repo workspace + cleanup/2d-3d-sync baseline；Drive/shared-zero 已退役，不得參與施工路由。"
   },
   "preflight_evidence": {
@@ -191,7 +172,7 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-08T04:14:40Z"
+    "observed_at": "2026-10-08T04:16:55Z"
   },
   "startup_transition": {
     "schema": "WHD_EXECUTION_STARTUP_TRANSITION_V1",
@@ -202,9 +183,9 @@
     "issue": 1378,
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
-    "startup_issued_at": "2026-10-08T04:14:40Z",
-    "preflight_observed_at": "2026-10-08T04:14:40Z",
-    "issued_at": "2026-10-08T04:14:40Z",
-    "expires_at": "2026-10-08T04:19:40Z"
+    "startup_issued_at": "2026-10-08T04:16:55Z",
+    "preflight_observed_at": "2026-10-08T04:16:55Z",
+    "issued_at": "2026-10-08T04:16:55Z",
+    "expires_at": "2026-10-08T04:21:55Z"
   }
 }
