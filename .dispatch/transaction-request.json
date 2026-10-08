@@ -1,24 +1,25 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1383-start-qa-pr1416-20261008",
+  "request_id": "issue1383-accept-product-qa-37763726037-20261008",
   "issue": 1383,
-  "kind": "START_QA",
+  "kind": "ACCEPT_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-  "expected_coord_head": "0b02d0157201ad0257a8a04c894d71c4c5d2f09c",
-  "expected_generation": 5,
+  "expected_coord_head": "56b716b102291f405a14cf9d6f6c70373c82d844",
+  "expected_generation": 6,
   "effect": {
     "run_id": 37763726037,
     "run_head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
-    "purpose": "WHD Product Regression exact PR #1416 head",
-    "run_status": "in_progress",
+    "conclusion": "success",
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "POLL_QA",
+      "kind": "MERGE",
       "args": {
-        "run_id": 37763726037,
-        "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b"
+        "pr_number": 1416,
+        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
       },
-      "display": "Poll exact Product Regression run 37763726037"
+      "display": "Merge verified tested PR #1416 after exact required check readback"
     }
   },
   "reuse_admission_session": true
