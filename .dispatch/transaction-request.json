@@ -1,15 +1,78 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1381-reviewfix-merge-8",
-  "issue": 1381,
-  "kind": "MERGE",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1383-ready-20261008-work1-6057689286",
+  "issue": 1383,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1381.takeover.20261008",
-  "expected_coord_head": "9d0e3cbf0bc07bcd7426db9f8f26594ca27a3462",
-  "expected_generation": 8,
-  "effect": {},
-  "session_reuse": {
-    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
-    "mode": "LIVE_LEASE_CONTINUATION"
+  "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
+  "expected_coord_head": "9d92ad3f837d0cac2fbb6a4ff5a0f6bac3d7ef5b",
+  "expected_generation": 1,
+  "effect": {
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "user:continue DM8 #1383 2026-10-08",
+    "work_branch": "work/issue-1383",
+    "parent_issue": 1374,
+    "slot_id": "worker.slot.1",
+    "dispatch_transport": "GITHUB_CANONICAL"
+  },
+  "purpose": "User-directed continuation of DM8 #1383, exact tested executor-local workspace, GitHub Flow v2 admission for neutral geometry consolidation and PR delivery.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1383,
+    "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
+    "required_skills": [
+      "root-local-first",
+      "phase6-corner-3d-model-integrity"
+    ],
+    "completed_skills": [
+      "root-local-first",
+      "phase6-corner-3d-model-integrity"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "基準檔/截角資料庫/README_母規則說明.md",
+      "基準檔/截角資料庫/certified_relief_rules.json",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "基準檔/截角資料庫/README_母規則說明.md",
+      "基準檔/截角資料庫/certified_relief_rules.json",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+    ],
+    "observed_at": "2026-10-08T10:18:29Z"
   }
 }
