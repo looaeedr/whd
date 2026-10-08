@@ -1,0 +1,53 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": null
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+  "issue": 1435,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1435",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "56f098d8abc85b0d96bb147762f3b3df59f4733b4fc5fbf2954da5ccd0d9382f",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:fix missing ExecutionRecord for existing PR #1430 with trusted pre-merge recovery; bootstrap #1435 before authorized delivery",
+      "dispatch_transport": "GITHUB_CANONICAL",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.2",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+  "transaction": null,
+  "updated_at": "2026-10-08T13:10:20Z",
+  "version": 2,
+  "work_branch": "work/issue-1435-trusted-premerge-delivery"
+}
