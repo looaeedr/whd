@@ -25,6 +25,17 @@ jobs:
           echo "WHD_APP_ID in Variables: $ID_VARIABLE_SET"
           echo "WHD_APP_PRIVATE_KEY in accessible Secrets: $KEY_SECRET_SET"
           echo "WHD_APP_PRIVATE_KEY in Variables: $KEY_VARIABLE_SET"
+      - name: Validate private key is valid PEM (no key output)
+        env:
+          CHECK_PRIVATE_KEY: ${{ secrets.WHD_APP_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          if printf '%s' "$CHECK_PRIVATE_KEY" | openssl pkey -check -noout >/dev/null 2>&1; then
+            echo "WHD_APP_PRIVATE_KEY PEM: valid"
+          else
+            echo "WHD_APP_PRIVATE_KEY PEM: INVALID"
+            exit 1
+          fi
       - name: Validate App ID is numeric (no secret output)
         env:
           CHECK_APP_ID: ${{ secrets.WHD_APP_ID }}
