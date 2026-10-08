@@ -1,0 +1,8 @@
+{
+  "schema": "WHD_ISSUE1431_NATIVE_START_BRANCH_TRIGGER_V1",
+  "issue": 1431,
+  "expected_generation": 6,
+  "target_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+  "scope": "EXACT_TESTED_FOUR_FILES",
+  "execution": "GITHUB_RUNNER_ONLY"
+}
