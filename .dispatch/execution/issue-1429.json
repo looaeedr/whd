@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "4e4bef699216a87922c0644c04923591c689aaf7",
   "issue": 1429,
   "lane_id": "chatgpt.flowv2.work2",
@@ -36,14 +36,10 @@
   },
   "next_action": {
     "args": {
-      "expected_target_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
-      "head_sha": "4e4bef699216a87922c0644c04923591c689aaf7",
-      "pr_number": 1430,
-      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
+      "pr_number": 1430
     },
-    "display": "Merge PR #1430 after trusted exact-head checks",
-    "kind": "MERGE"
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -74,21 +70,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.2",
   "source_branch": "work/issue-1429-flow-v2-compact-context",
   "source_sha": "34af66f57b4a043279117b37a2c68054691bd1cc",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
+  "target_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
   "transaction": {
-    "expected_fingerprint": "c49fdd9f30f0868615d1396f1756b5c3283bc645d242f33dd415cda25effb9e9",
-    "id": "gha:37856231187:1429:CONSUME_QA:10",
+    "expected_fingerprint": "9c8a3c09b04e77acad04e7e3bbcd17b7348e1ab8428d8fa52276e0ee9437b65c",
+    "id": "gha:37856409727:1429:MERGE:11",
     "invocation_identity": "chatgpt.issue1429.qa-finalize.work2.20261009T0651",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T22:54:36Z",
+  "updated_at": "2026-10-08T22:56:29Z",
   "version": 2,
   "work_branch": "work/issue-1429-flow-v2-compact-context"
 }
