@@ -80,6 +80,16 @@ def test_dispatch_control_plane_allowlist_contains_ready_and_acquire_only():
     assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({"DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF", "RECOVER_POST_DELIVERY"})
 
 
+def test_post_delivery_recovery_is_admitted_only_through_existing_trusted_ingress():
+    request = _build("RECOVER_POST_DELIVERY")
+    assert request["kind"] == "RECOVER_POST_DELIVERY"
+    assert request["startup_evidence"]["work_root_gate"]["scope"] == "CONTROL_PLANE_ONLY"
+    assert request["startup_transition"]["status"] == "READY_FOR_EXECUTION"
+    # This request only admits the pre-write envelope; the trusted executor
+    # still verifies merged PR closing keyword, required checks, ancestry,
+    # missing same-Issue record and finalization before any DONE assertion.
+
+
 def test_ready_issue_can_be_acquired_with_control_plane_only_github_admission():
     request = _build("ACQUIRE")
     assert request["kind"] == "ACQUIRE"
