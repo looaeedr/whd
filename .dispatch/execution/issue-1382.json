@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "634dde28acab4bc08f747c0cd405166caba7e5e9",
+    "id": 37772588687,
+    "purpose": "Product Regression required GREEN on exact synchronized PR #1419 HEAD after maintainer approval",
+    "status": "completed"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 12,
+  "generation": 13,
   "head_sha": "634dde28acab4bc08f747c0cd405166caba7e5e9",
   "issue": 1382,
   "lane_id": "chatgpt.flowv2.work1",
@@ -33,13 +38,11 @@
   },
   "next_action": {
     "args": {
-      "post_accept_pr_number": 1419,
-      "post_accept_revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "post_accept_target_branch": "cleanup/2d-3d-sync",
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "head_sha": "634dde28acab4bc08f747c0cd405166caba7e5e9",
+      "run_id": 37772588687
     },
-    "display": "Revalidate exact head after target synchronization",
-    "kind": "START_QA"
+    "display": "Accept completed exact HEAD Product Regression on #1382",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -57,21 +60,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_INVALIDATED_BY_TARGET_SYNC",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
-  "state": "INTEGRATING",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "a2c463f9db59442a782ce849a4443796356a268c",
   "transaction": {
-    "expected_fingerprint": "7d88848450b3fb389020f88a03efac93f1d023544c616b8dddfd9b7f94d82ef1",
-    "id": "gha:37773595036:1382:ACQUIRE:11",
+    "expected_fingerprint": "e067c1a6bb6bf953b5fad57963c9eaf917291ddb677dda834fdb193dd2fd366e",
+    "id": "gha:37773816973:1382:START_QA:12",
     "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-    "kind": "ACQUIRE",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T11:59:29Z",
+  "updated_at": "2026-10-08T12:01:13Z",
   "version": 2,
   "work_branch": "work/issue-1382"
 }
