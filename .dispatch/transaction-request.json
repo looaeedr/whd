@@ -1,22 +1,24 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1382-consume-known-green-pr1419-20261008",
+  "request_id": "issue1382-bind-known-product-qa-after-actions403-20261008",
   "issue": 1382,
-  "kind": "CONSUME_QA",
+  "kind": "START_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
   "expected_coord_head": "c6fa78b94b841b4138c92010259ae1110eec7767",
   "expected_generation": 5,
   "effect": {
     "run_id": 37766073513,
-    "next_state": "INTEGRATING",
+    "run_head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
+    "run_status": "completed",
+    "purpose": "WHD Product Regression exact PR #1419 head; confirmed terminal success from GitHub readback",
     "next_action": {
-      "kind": "MERGE",
+      "kind": "POLL_QA",
       "args": {
-        "pr_number": 1419,
-        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
+        "run_id": 37766073513,
+        "head_sha": "f0680ab8b290e45320733a349989a3355c29bc17"
       },
-      "display": "Merge tested DM8-C0 decision PR #1419 after live target sync precheck"
+      "display": "Read verified Product Regression and accept exact #1419 QA"
     }
   },
   "reuse_admission_session": true
