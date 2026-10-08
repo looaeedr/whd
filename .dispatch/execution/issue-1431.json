@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "issue": 1431,
   "lane_id": null,
@@ -36,18 +36,25 @@
       "authority_ref": "user_request:issue1431.entry-gate",
       "dispatch_transport": "GITHUB_CANONICAL",
       "kind": "INGRESS_AUTHORITY"
+    },
+    {
+      "authority_issue": 1429,
+      "from_slot_id": "worker.slot.0",
+      "kind": "READY_SLOT_REPAIR",
+      "observed_at": "2026-10-08T15:31:50Z",
+      "to_slot_id": "worker.slot.1"
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
   "semantic_state": "READY",
-  "slot_id": "worker.slot.0",
+  "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "state": "READY",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "transaction": null,
-  "updated_at": "2026-10-08T12:54:35Z",
+  "updated_at": "2026-10-08T15:31:50Z",
   "version": 2,
   "work_branch": "work/issue-1431-flow-v2-entry-gate"
 }

@@ -14,16 +14,16 @@
     },
     {
       "execution_intent": "EXECUTE_TICKET",
-      "generation": 1,
+      "generation": 2,
       "issue": 1431,
       "next_action_display": "Acquire Issue #1431",
       "next_action_kind": "ACQUIRE",
-      "record_fingerprint": "81089959ea9e53722a4ac62dadc1e6f0bd8e93fd568cd3a9d8624ad934a0895a",
+      "record_fingerprint": "b09131b77a0a5d80ccb89c2142dc2c118bf008b9637f64bb1f6ecb27c1f92af1",
       "target_branch": "cleanup/2d-3d-sync",
       "target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-      "updated_at": "2026-10-08T12:54:35Z"
+      "updated_at": "2026-10-08T15:31:50Z"
     }
   ],
   "schema": "WHD_EXECUTION_READY_INDEX_V1",
-  "source_digest": "7dd357620499d3e8649c22ab4e7bcced61436d989b834a461b8faf26078f8d09"
+  "source_digest": "18aae47c4dff1f9b2a592ebef7b353e1667d0e33f513ec15d71ad783d74257c6"
 }
