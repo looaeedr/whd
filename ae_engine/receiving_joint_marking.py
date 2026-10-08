@@ -10,7 +10,7 @@ piece-level ownership (``box_body:left_side`` / ``box_body:right_side``).
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-import math
+from functools import partial
 from typing import Mapping
 
 from shapely.geometry import LineString, Polygon
@@ -318,45 +318,33 @@ def _fail(
     )
 
 
-def _sub(a, b):
-    return tuple(float(a[i]) - float(b[i]) for i in range(3))
-
-
-def _add(a, b):
-    return tuple(float(a[i]) + float(b[i]) for i in range(3))
-
-
-def _scale(a, k):
-    return tuple(float(a[i]) * float(k) for i in range(3))
-
-
-def _dot(a, b):
-    return sum(float(a[i]) * float(b[i]) for i in range(3))
-
-
-def _cross(a, b):
-    return (
-        float(a[1]) * float(b[2]) - float(a[2]) * float(b[1]),
-        float(a[2]) * float(b[0]) - float(a[0]) * float(b[2]),
-        float(a[0]) * float(b[1]) - float(a[1]) * float(b[0]),
-    )
-
-
-def _norm(a):
-    return math.sqrt(_dot(a, a))
+# DM8-C1: all 3D vector math and triangle normals use the neutral owner.
+from .assembly_marking_geometry import (
+    canonical_unit_normal,
+    triangle_unit_normal,
+    vector_add as _add,
+    vector_sub as _sub,
+    vector_scale as _scale,
+    vector_dot as _dot,
+    vector_cross as _cross,
+    vector_norm as _norm,
+    vector_unit,
+)
 
 
 def _unit(a):
-    tol = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance)
-    length = _norm(a)
-    if length <= tol:
-        raise ValueError("degenerate geometry direction")
-    return tuple(float(v) / length for v in a)
+    return vector_unit(
+        a,
+        tolerance=PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance,
+        error_message="degenerate geometry direction",
+    )
 
 
-def _triangle_normal(triangle):
-    a, b, c = tuple(triangle)
-    return _unit(_cross(_sub(b, a), _sub(c, a)))
+_triangle_normal = partial(
+    triangle_unit_normal,
+    tolerance=PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance,
+    error_message="degenerate geometry direction",
+)
 
 
 def _outward_normal(record):
@@ -384,11 +372,12 @@ def _world_point(x, y, origin, u, v):
 
 
 def _canonical_plane_normal(normal):
-    n = _unit(normal)
-    for value in n:
-        if abs(value) > 1e-9:
-            return tuple(-v for v in n) if value < 0.0 else n
-    return n
+    return canonical_unit_normal(
+        normal,
+        direction_tolerance=PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.polygon_robustness_epsilon,
+        norm_tolerance=PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance,
+        error_message="degenerate geometry direction",
+    )
 
 
 def _mapped_plane_groups(records):

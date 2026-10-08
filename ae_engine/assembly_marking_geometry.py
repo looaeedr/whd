@@ -55,6 +55,51 @@ def _normalize(v, tolerance):
     return tuple(float(value) / mag for value in v)
 
 
+# DM8-C1: these public primitives keep the pre-existing neutral geometry
+# implementations as their single owner.  Receiving policies import these
+# instead of maintaining subtly diverging local copies.
+vector_add = _add
+vector_sub = _sub
+vector_scale = _scale
+vector_dot = _dot
+vector_cross = _cross
+vector_norm = _norm
+
+
+def vector_unit(v, *, tolerance: float, error_message: str = "degenerate vector"):
+    """Normalize a vector with a caller-selected contract tolerance."""
+    magnitude = vector_norm(v)
+    if magnitude <= float(tolerance):
+        raise ValueError(error_message)
+    return tuple(float(value) / magnitude for value in v)
+
+
+def triangle_unit_normal(triangle, *, tolerance: float, error_message: str):
+    """Return an oriented normal; do not infer a caller's physical-side policy."""
+    a, b, c = tuple(triangle)
+    return vector_unit(
+        vector_cross(vector_sub(b, a), vector_sub(c, a)),
+        tolerance=tolerance,
+        error_message=error_message,
+    )
+
+
+def canonical_unit_normal(
+    normal, *, direction_tolerance: float, norm_tolerance: float,
+    error_message: str,
+):
+    """Canonicalize orientation while retaining each policy's prior threshold.
+
+    Joint and pairing have intentionally different sign thresholds; merging
+    them into one epsilon would reverse near-axis manufactured faces.
+    """
+    n = vector_unit(normal, tolerance=norm_tolerance, error_message=error_message)
+    for value in n:
+        if abs(value) > float(direction_tolerance):
+            return tuple(-v for v in n) if value < 0.0 else n
+    return n
+
+
 def _flat_axis_vector(axis):
     table = {
         "+X": (1.0, 0.0),
