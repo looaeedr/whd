@@ -639,7 +639,7 @@ Expected cadence is A=`:00/:20/:40`, B=`:15/:45`. After 120 seconds grace:
 ## Work slot / handoff
 
 
-固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能變更 owner/routing/lease，不得順手改 branch/head/slot/next_action。 routing-only HANDOFF 若由同一 invocation reconciled，且 durable readback 已是 `owner_kind=NONE / owner_id=NONE / lane_id=null / lease=null`，host-exit classifier 固定回 `HANDOFF_COMPLETE`；這是唯一允許 lease-null HANDOFF 正常 return 的窄例外。其他 lease-null nonterminal record仍為 `ACQUIRE_REQUIRED`。`worker.slot.N` identity 永遠固定；下面的自動遞增只決定新工作要綁哪個既有 fixed slot。
+固定 work-slot projection 為 `worker.slot.0/1/2/3`。slot 只是 routing/projection tag，沒有獨立 state database。HANDOFF 只能將 owner/routing/lease 轉移至已確認存在、具名且不同的 target owner；不得順手改 branch/head/slot/next_action。對 interactive `EXECUTE_TICKET`，`owner_kind=NONE` 或 `owner_id=NONE` 一律不是合法 HANDOFF；同一 physical assistant 有執行能力時，必須自行切換至既有 work-slot identity 並繼續 exact `next_action`，不得用 HANDOFF 偽裝角色切換。只有 HANDOFF 已 reconciled 且 durable readback 證明具名 target owner 時，host-exit / dispatch-completion 才可分別判定 `HANDOFF_COMPLETE` / `DISPATCH_COMPLETE_HANDOFF`。歷史無主 HANDOFF 殘留（`owner=NONE` 且 `lease=null`）不構成完成：nonterminal record 的 host-exit 固定 `ACQUIRE_REQUIRED`、`may_return=false`，派工完成判定固定 `DISPATCH_INCOMPLETE`。`worker.slot.N` identity 永遠固定；下面的自動遞增只決定新工作要綁哪個既有 fixed slot。
 
 
 ### DEFAULT_INTERACTIVE_WORK_SLOT_GATE_V1
