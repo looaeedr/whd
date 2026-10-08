@@ -26,6 +26,7 @@ COMPILE_PATHS = (
     "tools/flow_v2_merge_precheck.py",
     "tools/execution_invocation_exit.py",
     "tools/execution_scheduler_view.py",
+    "tools/flow_v2_compact_context.py",
     "tools/execution_entry_contract.py",
     "tools/execution_path_reservation.py",
     "tools/work_root_gate.py",
@@ -42,6 +43,7 @@ COMPILE_PATHS = (
 STATIC_PYTEST_PATHS = (
     "tests/process/test_flow_v2_execution_invocation_exit.py",
     "tests/process/test_flow_v2_execution_scheduler_view.py",
+    "tests/process/test_flow_v2_compact_context.py",
     "tests/process/test_issue1078_scheduler_ready_ingress.py",
     "tests/process/test_issue1078_scheduler_entrypoint_observation.py",
     "tests/process/test_issue1081_a40_host_identity.py",
