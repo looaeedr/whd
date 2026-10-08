@@ -1,20 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-dispatch-ready-20261008-work1-v1",
+  "request_id": "issue1433-acquire-20261008-work1-v1",
   "issue": 1433,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-  "expected_coord_head": "337c8c34a2d0eb28a62e748f2271b4b958375ecc",
+  "expected_coord_head": "a7b5097d190c80bf0bd9839e839b8bff5e3bcdc5",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user:repair #1431 native ready-slot collision",
-    "work_branch": "work/issue-1433-native-ready-slot-repair",
-    "slot_id": "worker.slot.1",
-    "dispatch_transport": "GITHUB_CANONICAL"
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Create #1433 trusted delivery branch after admission"
+    }
   },
-  "purpose": "Issue 1433 trusted native slot repair admission",
+  "purpose": "Acquire issue #1433 to implement trusted READY slot repair",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -82,6 +82,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T13:05:08.293Z"
+    "observed_at": "2026-10-08T13:09:54.860Z"
   }
 }
