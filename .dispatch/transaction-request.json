@@ -1,26 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1382-accept-qa-approved-run37772588687-gen13-20261008",
+  "request_id": "issue1382-merge-pr1419-after-approved-green-gen14-20261008",
   "issue": 1382,
-  "kind": "ACCEPT_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-  "expected_coord_head": "0777cd01b693374c72e9f07d7d5df9e72f9f8e76",
-  "expected_generation": 13,
-  "effect": {
-    "run_id": 37772588687,
-    "run_head_sha": "634dde28acab4bc08f747c0cd405166caba7e5e9",
-    "conclusion": "success",
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1419,
-        "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
-      },
-      "display": "Merge exact new PR #1419 head after accepted required product QA"
-    }
-  },
+  "expected_coord_head": "94fb0b37e69b960edec1a0407b56b6cf0701534c",
+  "expected_generation": 14,
+  "effect": {},
   "reuse_admission_session": true
 }
