@@ -8,11 +8,11 @@
   },
   "closure": {
     "issue_closed": false,
-    "merged_sha": null,
+    "merged_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc",
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 11,
+  "generation": 12,
   "head_sha": "25abb461f165383e71494c183d8c816f21cdb78d",
   "issue": 1378,
   "lane_id": "chatgpt.flowv2.work1",
@@ -32,14 +32,10 @@
   },
   "next_action": {
     "args": {
-      "expected_target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
-      "head_sha": "25abb461f165383e71494c183d8c816f21cdb78d",
-      "pr_number": 1407,
-      "revalidation_workflow": ".github/workflows/whd-product-regression.yml",
-      "target_branch": "cleanup/2d-3d-sync"
+      "pr_number": 1407
     },
-    "display": "Merge exact tested Issue1378 review correction",
-    "kind": "MERGE"
+    "display": "Finalize exact merged Issue",
+    "kind": "FINALIZE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -57,21 +53,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "QA_ACCEPTED",
+  "semantic_state": "MERGED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "f96194a985c3da07ba0e5335110afbec655fc968",
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
+  "target_sha": "9f0dc5064d43851ab72130d892cb18142637e6dc",
   "transaction": {
-    "expected_fingerprint": "8c53ca16def926c7f415b9982dade6c08e1c6d7132c4a7c4a6f702718c9beb71",
-    "id": "gha:37727499242:1378:CONSUME_QA:10",
+    "expected_fingerprint": "3d438041b60b543089ee9e7d55cc058d35476417e832754ab69e354be84e3ad4",
+    "id": "gha:37727649216:1378:MERGE:11",
     "invocation_identity": "chatgpt.issue1378.reviewfix.20261008",
-    "kind": "CONSUME_QA",
+    "kind": "MERGE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T04:27:15Z",
+  "updated_at": "2026-10-08T04:29:37Z",
   "version": 2,
   "work_branch": "work/issue-1378"
 }
