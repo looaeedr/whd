@@ -1,0 +1,64 @@
+name: WHD Issue 1429 Actual Runner Root Attestation
+on:
+  push:
+    branches:
+      - test/issue1431-root-attest
+    paths:
+      - .github/workflows/whd-issue1429-root-attest.yml
+permissions:
+  contents: read
+jobs:
+  actual-root:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          path: prod
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          ref: work/issue-1429-flow-v2-compact-context
+          path: work
+          fetch-depth: 1
+      - name: Observe actual root from GitHub checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          root = Path('prod').resolve(strict=True)
+          work = Path('work').resolve(strict=True)
+          def git(directory,*args):
+              return subprocess.check_output(['git','-C',str(directory),*args],text=True).strip()
+          expected='looaeedr/whd'
+          if os.environ['GITHUB_REPOSITORY']!=expected: raise SystemExit('repository identity mismatch')
+          origin=git(root,'remote','get-url','origin')
+          if not (origin.endswith('/looaeedr/whd') or origin.endswith('/looaeedr/whd.git')):
+              raise SystemExit('origin identity mismatch')
+          head=git(root,'rev-parse','HEAD')
+          live=subprocess.check_output(['git','ls-remote','origin','refs/heads/cleanup/2d-3d-sync'],cwd=root,text=True).split()[0]
+          if live!=head: raise SystemExit('production changed during attestation')
+          workhead=git(work,'rev-parse','HEAD')
+          worklive=subprocess.check_output(['git','ls-remote','origin','refs/heads/work/issue-1429-flow-v2-compact-context'],cwd=work,text=True).split()[0]
+          if workhead!=worklive: raise SystemExit('issue work branch changed during attestation')
+          sys.path.insert(0,str(root))
+          from tools.work_root_gate import build_work_root_gate_evidence,READ_MODE_WORKSPACE
+          gate=json.loads((root/'.agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json').read_text('utf-8'))
+          observed=sorted(x.name for x in root.iterdir())
+          root_evidence=build_work_root_gate_evidence(gate_payload=gate,read_mode=READ_MODE_WORKSPACE,execution_mode='INTERACTIVE',root_entries=observed,workspace_root=str(root),production_head_sha=head)
+          record={'schema':'WHD_ISSUE1429_ACTUAL_RUNNER_ROOT_OBSERVATION_V1','issue':1429,'repository':expected,'observed_at':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),'runner_id':os.environ['GITHUB_RUN_ID'],'production_sha':head,'work_head_sha':workhead,'git_origin':origin,'work_root_gate_evidence':root_evidence,'status':'GREEN','authority':'OBSERVATION_ONLY_NOT_GIT_WRITE_UNLOCK'}
+          target=Path(os.environ['RUNNER_TEMP'])/'issue1429-runner-root-observation.json'
+          target.write_text(json.dumps(record,indent=2,ensure_ascii=False,sort_keys=True)+'\n')
+          print('WHD_ISSUE1429_RUNNER_OBSERVATION_BEGIN')
+          print(target.read_text('utf-8'))
+          print('WHD_ISSUE1429_RUNNER_OBSERVATION_END')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue1429-actual-runner-root-observation
+          path: ${{ runner.temp }}/issue1429-runner-root-observation.json
+          if-no-files-found: error
+          retention-days: 7
