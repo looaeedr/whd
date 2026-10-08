@@ -1,35 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1429-native-reserve-five-paths-gen7-20261009-0636",
+  "request_id": "issue1429-native-sync-target-runner-proven-gen8-20261009-0638",
   "issue": 1429,
-  "kind": "RESERVE_PATHS",
+  "kind": "SYNC_TARGET",
   "lane_id": "chatgpt.flowv2.work2",
   "invocation_identity": "chatgpt.issue1429.sync-target.work2.20261009T0634",
-  "expected_coord_head": "0fa04db8f2209dc504396d469e7926ee95874262",
-  "expected_generation": 7,
-  "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
-    "write_paths": [
-      "docs/governance/flow_v2_compact_context.md",
-      "tests/process/test_flow_v2_compact_context.py",
-      "tools/control_plane_regression.py",
-      "tools/execution_scheduler_view.py",
-      "tools/flow_v2_compact_context.py"
-    ],
-    "delete_paths": [],
-    "next_action": {
-      "args": {
-        "pr_number": 1430,
-        "qa_workflow": ".github/workflows/whd-product-regression.yml",
-        "target_branch": "cleanup/2d-3d-sync",
-        "target_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857"
-      },
-      "display": "Sync live target into work branch and revalidate exact head",
-      "kind": "SYNC_TARGET"
-    }
-  },
-  "purpose": "Reserve exact original Issue1429 five-file delivery scope on current production before trusted SYNC_TARGET and fresh PR CI, using verified real Runner checkout root",
+  "expected_coord_head": "76422d4c71694a327ee7a41216dd699bb038194c",
+  "expected_generation": 8,
+  "effect": {},
+  "purpose": "Sync exact latest production target into existing Issue1429 PR1430 work branch using live same-owner native lease, exact ACTIVE five-file reservation, and real verified GitHub Runner checkout",
   "work_root_gate_evidence": {
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "drive_role": "MIRROR_BACKUP_ONLY",
@@ -151,8 +130,8 @@
   },
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "issue": 1429,
     "status": "GREEN",
+    "issue": 1429,
     "invocation_identity": "chatgpt.issue1429.sync-target.work2.20261009T0634",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "a157cc469822e9d4f2c60f8ffc98160052e5c857",
@@ -178,7 +157,7 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-08T22:36:38.213Z",
+    "observed_at": "2026-10-08T22:38:36.769Z",
     "remote_preflight_run_id": 37854328181,
     "remote_preflight_comment_id": 6070410546
   }
