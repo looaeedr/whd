@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "issue": 1435,
   "lane_id": "chatgpt.flowv2.work2",
@@ -40,9 +40,11 @@
     ]
   },
   "next_action": {
-    "args": {},
-    "display": "Start isolated content branch for #1435",
-    "kind": "START_BRANCH"
+    "args": {
+      "candidate_commit_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f"
+    },
+    "display": "Apply exact tested ten-file commit to authorized delivery branch",
+    "kind": "APPLY_COMMIT"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
@@ -60,7 +62,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "IMPLEMENTING",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
@@ -68,13 +70,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "transaction": {
-    "expected_fingerprint": "41c834824101627f4f0ada1a8b995d75dbc6bdadcdea13a5a909828101fe9003",
-    "id": "gha:37782960020:1435:ACQUIRE:1",
+    "expected_fingerprint": "3c779eff7f7de15d2a04af828be7ecb07287525843ebe3471e70fc9db156fdc8",
+    "id": "gha:37783442121:1435:START_BRANCH:2",
     "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
-    "kind": "ACQUIRE",
+    "kind": "START_BRANCH",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T13:16:41Z",
+  "updated_at": "2026-10-08T13:20:29Z",
   "version": 2,
   "work_branch": "work/issue-1435-trusted-premerge-delivery"
 }
