@@ -19,10 +19,12 @@ jobs:
           ID_SECRET_SET: ${{ secrets.WHD_APP_ID != '' }}
           ID_VARIABLE_SET: ${{ vars.WHD_APP_ID != '' }}
           KEY_SECRET_SET: ${{ secrets.WHD_APP_PRIVATE_KEY != '' }}
+          KEY_VARIABLE_SET: ${{ vars.WHD_APP_PRIVATE_KEY != '' }}
         run: |
           echo "WHD_APP_ID in repository/accessible Secrets: $ID_SECRET_SET"
           echo "WHD_APP_ID in Variables: $ID_VARIABLE_SET"
           echo "WHD_APP_PRIVATE_KEY in accessible Secrets: $KEY_SECRET_SET"
+          echo "WHD_APP_PRIVATE_KEY in Variables: $KEY_VARIABLE_SET"
       - name: Acquire WHD App installation token (no writes)
         id: app-token
         uses: actions/create-github-app-token@v2
