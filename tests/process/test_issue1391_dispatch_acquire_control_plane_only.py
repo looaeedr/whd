@@ -77,7 +77,7 @@ def _build(kind: str):
 
 
 def test_dispatch_control_plane_allowlist_contains_ready_and_acquire_only():
-    assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({"DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF"})
+    assert CONTROL_PLANE_ONLY_FRESH_KINDS == frozenset({"DISPATCH_READY", "ACQUIRE", "RECONCILE", "HANDOFF", "RECOVER_POST_DELIVERY"})
 
 
 def test_ready_issue_can_be_acquired_with_control_plane_only_github_admission():
