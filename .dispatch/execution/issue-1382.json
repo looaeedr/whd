@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "f0680ab8b290e45320733a349989a3355c29bc17",
   "issue": 1382,
   "lane_id": "chatgpt.flowv2.work1",
@@ -35,7 +35,7 @@
     "args": {
       "workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Recheck exact PR #1419 after verified target drift",
+    "display": "Recheck exact PR #1419 after native permissions fix and target drift",
     "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
@@ -60,15 +60,15 @@
   "source_sha": "9d8294392dceb697f6d3e7d08a00df818d478385",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "ddf2377d60c157005fbbd2ca50021b381489d2e6",
+  "target_sha": "a2c463f9db59442a782ce849a4443796356a268c",
   "transaction": {
-    "expected_fingerprint": "137224f4ebc78210a366c156cacdf93f8246db0455649b0196f530dff8d9da23",
-    "id": "gha:37767561091:1382:ACQUIRE:4",
+    "expected_fingerprint": "3b37c9fafd76e4ff407c3204e42e17f0e930606e6885e7b1739d210bec99a88a",
+    "id": "gha:37770797762:1382:RECONCILE:5",
     "invocation_identity": "chatgpt.issue1382.c0.20261008.work1",
-    "kind": "ACQUIRE",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T11:04:34Z",
+  "updated_at": "2026-10-08T11:34:27Z",
   "version": 2,
   "work_branch": "work/issue-1382"
 }
