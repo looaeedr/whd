@@ -37,18 +37,16 @@ scheduler invocation 在 project startup 階段還不知道 exact owning Issue�
 
 Preflight GREEN（包含 trusted bot receipt 被同 lane下一 invocation合法 rebind 的 GREEN）且 required Skill/reference 全部 fresh-read 後，必須丟棄 bootstrap projection，再 fresh-read canonical scheduler state，才進入下面的 Wake。receipt rebind 只重綁 invocation，不改 task/Issue/branch/HEAD/requirements，TTL 固定 40 分鐘；任何 identity drift fail closed。禁止建立永久 bootstrap Issue，也不得把這個 bridge 擴張成第二套 scheduler authority。
 
-### STUCK_UNOWNED_FAMILY_TAKEOVER_BRIDGE_V1
+### ISSUE_COMMENT_10MIN_INTERVENTION_BRIDGE_V1
 
-排程 A/B 判定既有工單「卡住、沒有人做」時，固定 bridge 到 `flow-v2-execution::STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1`。
+排程 A/B 的 foreign Issue 介入資格固定橋接到 `flow-v2-execution::ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1`：
 
-- 不得只因 lease expired、heartbeat stale、entrypoint 沒跑或 owner 沒回報就接手；必須 fresh-read target ExecutionRecord，並核對 canonical 父工單、子工單與 delegated lineage。
-- 父／子／delegated lineage 任一存在 live lease、valid heartbeat、active trusted transaction、active remote QA 或 `ACTIVE_DELEGATED_WORK`，即視為仍有 active work；scheduler 必須退讓，不得 takeover。
-- target 非 terminal 且整個相關 lineage 都無 active writer時，標記 `STUCK_UNOWNED_FAMILY_CONFIRMED` / `TAKEOVER_ELIGIBLE`；此時 A/B scheduler 或任何其他合法 executor 都可 atomic `ACQUIRE/HANDOFF` 接手，不受原 handler/owner 身分限制。
-- takeover 前立即重讀一次完整 lineage；race 中重新出現 active writer 固定 `TAKEOVER_RACE_ACTIVE_WORK`。
-- takeover 成功只是 ownership recovery，**不是停止點**；同一 invocation 必須 fresh-read並立即續跑原 structured `next_action`。
+- native ACQUIRE 完成立即在 owning GitHub Issue 留目前 owner、lane、slot、HEAD、generation 的 `WHD_ISSUE_OWNER_PROGRESS_V1` 接取留言，執行中每 10 分鐘留一次具體的進度、阻礙與下一步；純 HEARTBEAT 不算進度。
+- foreign Issue 的候選判定必須 fresh-read 該工單留言，再由 `tools/execution_scheduler_view.py::build_scheduler_view(issue_comments=..., trusted_comment_authors=...)` 投影。**<=600 秒禁止介入；>600 秒才可進正式 atomic HANDOFF/ACQUIRE**。missing comments、identity mismatch 都不得推論超時。
+- 舊 parent/child lineage、lease、heartbeat、runtime END、QA run 判活一律退出**介入時間判斷**；正常 machine CAS/單寫者/QA fencing 不變。接手成功後立即留言新 `TAKEOVER` owner 並續跑 exact `next_action`，不要求人工二次確認。
 
 ## Wake
-每次 host wake 先以 `tools/scheduler_entrypoint_observation.py` 寫 exact entrypoint NON_AUTHORITY WAKE，再 fresh-read `coord/execution-v2` 與 owner runtime observations。優先 same-lane nonterminal record；若沒有 current，`execution_scheduler_view.py` 必須先跑 `STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1`，有 `TAKEOVER_CANDIDATE` 時立即對 deterministic `selected_issue` 做 HANDOFF 到本 scheduler lane，fresh-read 後 ACQUIRE，並同 invocation 續原 exact `next_action`。只有沒有 takeover candidate 才讀 READY；current/takeover/ready 都空才做 explicit marker discovery。只有 current/takeover/ready/explicit candidate 全空才可回 NO_EXECUTABLE_WORK。正常 return 前必須寫 exact entrypoint EXIT；不能再留下 SEED-only host occurrence。
+每次 host wake 先以 `tools/scheduler_entrypoint_observation.py` 寫 exact entrypoint NON_AUTHORITY WAKE，再 fresh-read `coord/execution-v2` 與 owner runtime observations。優先 same-lane nonterminal record；若沒有 current，`execution_scheduler_view.py` 必須先 fresh-read Issue comments 並套用 `ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1`，有 `TAKEOVER_CANDIDATE` 時立即對 deterministic `selected_issue` 做 HANDOFF 到本 scheduler lane，fresh-read 後 ACQUIRE，並同 invocation 續原 exact `next_action`。只有沒有 takeover candidate 才讀 READY；current/takeover/ready 都空才做 explicit marker discovery。只有 current/takeover/ready/explicit candidate 全空才可回 NO_EXECUTABLE_WORK。正常 return 前必須寫 exact entrypoint EXIT；不能再留下 SEED-only host occurrence。
 
 `RESUME_CURRENT` 若先 ACQUIRE，ACQUIRE 後同一 invocation 必須立即 fresh-read並執行原 exact `next_action`；不得把拿到 lease 當 progress/停止點。`TAKEOVER_CANDIDATE` 必須使用 scheduler view 的 deterministic `selected_issue` 與 `build_takeover_handoff_effect(...)`，先 HANDOFF、fresh-read，再 ACQUIRE，然後立即續 HANDOFF 前保存的 exact `next_action`；HANDOFF/ACQUIRE 都不是停止點。`READY_CANDIDATES` 才是下一順位，使用 deterministic `selected_issue` 立即 ACQUIRE；`INGRESS_REQUIRED` 必須先建立 exact READY，再 fresh-read/ACQUIRE，且 `DISPATCH_READY` 不算 substantive progress。race/conflict後 fresh-read重選。
 

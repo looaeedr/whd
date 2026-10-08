@@ -24,6 +24,12 @@ prompt 必須明寫：A/B scheduler 先找同 lane/Issue/branch/HEAD、40 分鐘
 修改時保留 title/entrypoint/lane owner/cadence，除非使用者明確要求。update後 fresh-read exact automation。單輪 task terminal不代表 recurring automation terminal。
 
 
+### ISSUE_COMMENT_PROGRESS_AND_INTERVENTION_BRIDGE_V1
+
+每個 A/B scheduler 在 native ACQUIRE 成功後**立即**向 owning GitHub Issue 發布具 `WHD_ISSUE_OWNER_PROGRESS_V1` 的接取者留言；執行中每 10 分鐘於同一 Issue 發布有效 `PROGRESS`，含身份、已完成、正在進行、障礙與下一步。這是 Issue-plane action（非 Phase6 preflight request comment），只能在 Preflight/admission/claim 成功且該 Issue COMMENT authority 存在時進行。COMMENT API write 後應 readback server-created timestamp。
+
+`TAKEOVER_CANDIDATE` 必須 fresh-fetch Issue comments 並傳入 `tools/execution_scheduler_view.py::build_scheduler_view(issue_comments=..., trusted_comment_authors=...)`。未讀留言、有效留言 <=600 秒均不得介入；只有 **>600 秒**才產生候選，交易仍用 native CAS。舊的 heartbeat/lease/END/active run/family liveness 不得另設介入時間判斷；不改 A00/A20/A40/B15/B45 cadence、enabled 與 owner identity。每輪 return 不等於取消後續 progress 責任。
+
 ## REPORT_HANDLER_IDENTITY_PREFIX_V1
 
 所有生成或修復的 recurring **scheduler prompt** 都必須保留以下 user-visible **第一行** contract，且 progress / CHECKPOINT / terminal / exit 全部適用：

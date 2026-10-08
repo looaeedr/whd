@@ -19,7 +19,7 @@ from tools.execution_ready_index import (
     validate_ready_index,
 )
 from tools.execution_record import ExecutionRecord, execution_record_fingerprint
-from tools.flow_v2_runtime_observation import derive_liveness_state
+from tools.issue_comment_progress import evaluate_issue_comment_intervention
 from tools.scheduler_ready_ingress import SchedulerDispatchCandidate
 
 
@@ -126,96 +126,9 @@ def _lease_status(
     return "EXPIRED", "ACQUIRE"
 
 
-def _runtime_writer_state(
-    record: ExecutionRecord,
-    *,
-    runtime_observations: Mapping[str, Mapping[str, object] | None],
-    now: datetime,
-) -> tuple[str, str]:
-    """Classify only writer liveness; runtime observation never grants takeover alone."""
-    if record.owner_id in {"NONE", "UNCLAIMED"}:
-        return "INACTIVE", "UNOWNED"
-
-    if record.lease is not None:
-        expires_at = _aware_timestamp(record.lease.expires_at, "lease expires_at")
-        if expires_at > now:
-            return "LIVE", "LIVE_LEASE"
-
-    if record.active_run is not None:
-        return "LIVE", "ACTIVE_TRUSTED_RUN"
-
-    if record.transaction is not None and record.transaction.status != "RECONCILED":
-        return "LIVE", "ACTIVE_TRUSTED_TRANSACTION"
-
-    if record.owner_id not in runtime_observations:
-        return "UNKNOWN", "RUNTIME_OBSERVATION_NOT_READ"
-
-    observation = runtime_observations[record.owner_id]
-    if observation is None:
-        return "UNKNOWN", "RUNTIME_OBSERVATION_MISSING"
-    if observation.get("schema") != "WHD_RUNTIME_OBSERVATION_V2":
-        raise SchedulerViewError(
-            f"runtime observation schema mismatch for owner {record.owner_id}"
-        )
-    if observation.get("authority") != "NON_AUTHORITY":
-        raise SchedulerViewError(
-            f"runtime observation authority mismatch for owner {record.owner_id}"
-        )
-    observed_owner = str(
-        observation.get("owner_id") or observation.get("claim_worker") or ""
-    ).strip()
-
-    observed_issue = observation.get("issue")
-    if observed_issue != record.issue:
-        # The latest validated observation for this runtime source is already
-        # about another Issue. Combined with no live lease/run/transaction on
-        # this record, the old record has no active writer from that runtime.
-        return "INACTIVE", "OWNER_MOVED_TO_OTHER_ISSUE"
-
-    if observed_owner and observed_owner != record.owner_id:
-        return "UNKNOWN", "RUNTIME_OWNER_ROUTING_DRIFT"
-
-    if observation.get("branch") != record.work_branch or observation.get("head_sha") != record.head_sha:
-        return "UNKNOWN", "RUNTIME_IDENTITY_DRIFT"
-
-    state = derive_liveness_state(observation, now=now)
-    if state == "LIVE":
-        return "LIVE", "MATCHING_RUNTIME_LIVE"
-    if state == "ENDED":
-        return "INACTIVE", "MATCHING_RUNTIME_ENDED"
-    if state == "EXPIRED":
-        return "INACTIVE", "MATCHING_RUNTIME_EXPIRED"
-    return "UNKNOWN", "MATCHING_RUNTIME_UNKNOWN"
-
-
-def _issue_family(
-    target: ExecutionRecord,
-    records: tuple[ExecutionRecord, ...],
-) -> tuple[ExecutionRecord, ...]:
-    by_issue = {record.issue: record for record in records}
-    adjacency: dict[int, set[int]] = {record.issue: set() for record in records}
-    for record in records:
-        for related in (record.chain.parent_issue, record.chain.next_issue):
-            if related is None or related not in by_issue:
-                continue
-            adjacency[record.issue].add(related)
-            adjacency[related].add(record.issue)
-
-    seen = {target.issue}
-    pending = [target.issue]
-    while pending:
-        current = pending.pop()
-        for related in adjacency.get(current, ()):
-            if related not in seen:
-                seen.add(related)
-                pending.append(related)
-    return tuple(by_issue[issue] for issue in sorted(seen))
-
-
 @dataclass(frozen=True)
 class _TakeoverCandidate:
     record: ExecutionRecord
-    family_issues: tuple[int, ...]
     reason: str
 
 
@@ -223,9 +136,15 @@ def _takeover_candidates(
     records: tuple[ExecutionRecord, ...],
     *,
     lane_id: str,
-    runtime_observations: Mapping[str, Mapping[str, object] | None],
+    issue_comments: Mapping[int, Iterable[Mapping[str, object]]],
+    trusted_comment_authors: frozenset[str],
     now: datetime,
 ) -> tuple[_TakeoverCandidate, ...]:
+    """Only verified owning-Issue comments determine the intervention timer.
+
+    Runtime heartbeat, lease, END and family state are NOT time classifiers.
+    Flow v2 CAS / single-writer fencing still governs actual ownership transfer.
+    """
     candidates: list[_TakeoverCandidate] = []
     for record in records:
         if (
@@ -235,7 +154,6 @@ def _takeover_candidates(
             or record.lane_id == lane_id
         ):
             continue
-
         action = record.next_action
         if action is None:
             continue
@@ -246,38 +164,20 @@ def _takeover_candidates(
                 f"issue {record.issue} has non-executable next_action: {exc}"
             ) from exc
 
-        target_state, target_reason = _runtime_writer_state(
+        verdict = evaluate_issue_comment_intervention(
             record,
-            runtime_observations=runtime_observations,
+            issue_comments.get(record.issue, ()),
             now=now,
+            trusted_authors=trusted_comment_authors,
         )
-        if target_state != "INACTIVE":
+        if not verdict.eligible:
             continue
-
-        family = _issue_family(record, records)
-        family_blocked = False
-        for related in family:
-            if related.issue == record.issue or related.state == "DONE":
-                continue
-            writer_state, _ = _runtime_writer_state(
-                related,
-                runtime_observations=runtime_observations,
-                now=now,
-            )
-            if writer_state != "INACTIVE":
-                family_blocked = True
-                break
-        if family_blocked:
-            continue
-
         candidates.append(
             _TakeoverCandidate(
                 record=record,
-                family_issues=tuple(item.issue for item in family),
-                reason=f"STUCK_UNOWNED_FAMILY_CONFIRMED:{target_reason}",
+                reason=verdict.reason,
             )
         )
-
     candidates.sort(key=lambda item: item.record.issue)
     return tuple(candidates)
 
@@ -302,6 +202,8 @@ def build_scheduler_view(
     ready_index: ExecutionReadyIndex | None = None,
     dispatch_candidates: Iterable[SchedulerDispatchCandidate] = (),
     runtime_observations: Mapping[str, Mapping[str, object] | None] | None = None,
+    issue_comments: Mapping[int, Iterable[Mapping[str, object]]] | None = None,
+    trusted_comment_authors: Iterable[str] = (),
 ) -> SchedulerView:
     """Build a deterministic, side-effect-free scheduler wake projection.
 
@@ -349,11 +251,13 @@ def build_scheduler_view(
             requires_transaction=required_tx,
         )
 
-    observations = runtime_observations or {}
+    # An absent/unfetched comment feed can NEVER mean an expired worker.
+    # runtime_observations remains for observability compatibility only.
     takeover = _takeover_candidates(
         materialized,
         lane_id=lane_id,
-        runtime_observations=observations,
+        issue_comments=issue_comments or {},
+        trusted_comment_authors=frozenset(trusted_comment_authors),
         now=now_dt,
     )
     if takeover:

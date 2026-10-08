@@ -522,30 +522,21 @@ Repository governance 的唯一 production authority 固定為 `cleanup/2d-3d-sy
 live lease 時其他 invocation 回 busy，不覆寫。`lease=null` 的 same-lane nonterminal record 必須先做 ACQUIRE；expired lease 只允許符合 owner/lane contract 的原子 reacquire。ACQUIRE 成功後同一 invocation 立即續原本 structured next_action，不得把『拿到 lease』當停止點。runtime 物理邊界但 task 未 terminal時用 YIELD 清 lease、保留 exact next_action。**trusted writer 必須先以 `tools/execution_invocation_exit.py::classify_invocation_exit(..., host_boundary=True)` 驗證 `requires_yield=true` 才能接受 YIELD；`ACQUIRE → 無 substantive action → YIELD` 必須 fail closed。** YIELD 不是 task complete；DONE 才是 terminal。
 
 
-### STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1
+### ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1
 
+<!-- ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1 -->
 
-「工單卡住且沒有人做」是合法 recovery condition；一旦 machine 證明成立，**任何合法 WHD executor**（互動工作槽、A/B scheduler 或其他具備 canonical transaction authority 的 executor）都可接手，不必等待原 owner 回來。但 takeover authority 必須由完整 issue-family fresh evidence 產生，不能只靠單一 stale signal。
+**唯一介入時間判定**由 owning GitHub Issue 的最新合格接取／進度留言決定，machine owner=`tools/issue_comment_progress.py::evaluate_issue_comment_intervention`；完整規範：`docs/governance/issue_comment_intervention_policy.md`。
 
+1. trusted Flow v2 `ACQUIRE` 成功後，接取者必須**立即**在**同一工單**建立第一則 `WHD_ISSUE_OWNER_PROGRESS_V1` 留言，寫明 `issue/generation/owner_kind/owner_id/work_branch/head_sha/event=ACQUIRED`、已完成、正在做、障礙、下一步。無 ACQUIRE 不得冒稱已接取。
+2. 執行中的 owner 每 **600 秒（10 分鐘）** 必須向同一 Issue 發布新的合格 `event=PROGRESS` 留言；沒有新完成事項仍須說明真實正在做的具體工作、障礙及下一步。純 HEARTBEAT、WAKE、空白、聊天回覆、monitor snapshot、Actions activity **都不是有效進度留言**。
+3. 後來執行者先 fresh-read **exact owning Issue** 的 GitHub comments（不可只看聊天／cache）。只接受被信任的 GitHub 發文身份，與目前 `ExecutionRecord` 的 exact `issue + generation + owner_kind + owner_id + work_branch + head_sha` 匹配的 `ACQUIRED / PROGRESS / TAKEOVER` 留言；時間用 GitHub server `created_at`，不得信 payload 自報時間。
+4. `now - latest_valid_comment.created_at <= 600s`（**含剛好 600 秒**）→ `NO_INTERVENTION`，其他執行者不得搶單、改 owner、派出替身或接手。`>600s` → **僅**進入正式接手交易候選。缺留言、漏讀、偽造、不可信作者、identity drift、缺可信時間、時間在未來均 **fail closed**，不得拿空 evidence 當逾時。
+5. **RETIRE 舊介入判定**：heartbeat freshness/expiry、lease 期限、420s、600s durable progress、owner EXIT/END、active GitHub Actions run、parent/child lineage liveness 及原 `STUCK_UNOWNED_FAMILY_CONFIRMED` **不得再當介入時間依據或額外的人工確認條件**。它們只保留在合法的 runtime observation／交易衝突保護等本來用途，不能變成第二個介入 eligibility oracle。
+6. `>600s` 不等於取得寫入權。仍需既有 native `HANDOFF/ACQUIRE` 原子 CAS、generation/HEAD、單一寫者及 path/QA/merge 安全防線；race 失敗必須 fresh-read 同一工單，不可 duplicate mutation。
+7. 接手 transaction 成功後，**立即**由新 owner 在同一 Issue 留 `event=TAKEOVER` 新 identity，新的 600 秒從此 GitHub comment 開始計算；`RELEASED/DONE` 留言只作收尾／交接，不可冒充進度續時。任何後來者直接於工單確認，不要求原 owner 或使用者再次人工核准。
 
-固定判定順序：
-
-
-1. fresh-read target Issue 的 canonical ExecutionRecord / lease / owner / slot / lane / `structured next_action` / QA state，以及 execution liveness evidence。target 已 `DONE`/terminal 不可 takeover。
-2. 解析 canonical issue relationship，至少核對 target 的 parent、children，以及由 parent/child delegation 可到達的 delegated lineage；不得只讀 target 一張工單。
-3. 對相關 lineage 每一個 nonterminal node 檢查 live lease、valid heartbeat、active trusted transaction、active remote QA 與 delegated state。任一 node 為 `ACTIVE_DELEGATED_WORK`，或可證明仍有 active writer，結果固定 `FAMILY_ACTIVE_WORK_NO_TAKEOVER`。
-4. `STALE_RUNTIME_SUSPECTED`、單一 heartbeat expiry、舊 checkpoint、owner 沒有聊天回覆、host invocation 已 EXIT，都只能觸發調查，**不能單獨授權 takeover**。liveness=`UNKNOWN` 且仍有未過期 lease / active transaction evidence 時一律 fail closed。
-5. 只有 target 仍 nonterminal/stuck，且 target + 相關 parent/child/delegated lineage 全部 fresh 證明沒有 active writer，才產生 `STUCK_UNOWNED_FAMILY_CONFIRMED`，並令 `takeover_eligibility=TAKEOVER_ELIGIBLE`。closed/DONE family node 不阻塞；expired/null lease 且沒有其他 active evidence 的 stale/unowned node也不阻塞。
-6. `TAKEOVER_ELIGIBLE` 後，新的合法 executor 可透過 atomic `ACQUIRE/HANDOFF` 接手 target；不得因原 owner、原 handler、原 scheduler lane 不同而要求人工等待。HANDOFF 仍只改 owner/routing/lease，保留 target 的 `slot_id / branch / head_sha / structured next_action`；若 stale-writer 仍可能寫入，先套既有 generation fencing + salvage。
-7. takeover mutation 前必須再 fresh-read target + family lineage 並以 CAS 驗證同一證據；若任何 writer 在 race 中恢復 ACTIVE，固定 `TAKEOVER_RACE_ACTIVE_WORK`，不得建立 duplicate writer。
-8. takeover 成功後同一 invocation 立即 fresh-read並續跑 target 原 exact `next_action`；`ACQUIRE/HANDOFF` 本身不是 substantive progress，也不是停止點。
-
-
-這個 gate 只解除「已證明 abandoned/stuck 的 ownership」；不削弱 `ACTIVE_OWNING_ISSUE_STICKINESS_HARD_GATE_V1`、terminal-tail focus lock、path conflict、QA、merge 或 closure gate。
-
-
-<!-- STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1 -->
-
+此規則適用工作槽 0–3、scheduler A/B、其他具有合法 Flow v2 接手能力的 executor。**工單是共享進度與交接入口；ExecutionRecord 仍是唯一機器寫入 authority。**
 
 ## Scheduler A/B
 
@@ -554,14 +545,14 @@ A owner=`scheduler.6ab13fa557fc8191935c671214b865e2`，entrypoints=`00/20/40`。
 B owner=`scheduler.e58ea936e7d0b12bd0d475314709d6f1`，entrypoints=`B15/B45`。
 
 
-每次 wake：先用 `tools/scheduler_entrypoint_observation.py` 對 exact host entrypoint 寫 NON_AUTHORITY WAKE，再 fresh-read `coord/execution-v2` + latest owner runtime observations。decision priority 固定：same-lane nonterminal → `TAKEOVER_CANDIDATE` → READY → explicit ingress。`TAKEOVER_CANDIDATE` 只能由 `STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1` 完整證據產生；命中後先 HANDOFF 到本 lane、fresh-read、ACQUIRE，再同 invocation 續原 exact `next_action`。只有 current/takeover/ready/explicit candidate 全空才是 NO_EXECUTABLE_WORK。active exact QA run只 poll；scheduler只走 GitHub/remote capability，不 fallback local。
+每次 wake：先用 `tools/scheduler_entrypoint_observation.py` 對 exact host entrypoint 寫 NON_AUTHORITY WAKE，再 fresh-read `coord/execution-v2` + latest owner runtime observations。decision priority 固定：same-lane nonterminal → `TAKEOVER_CANDIDATE` → READY → explicit ingress。`TAKEOVER_CANDIDATE` 只能由 `ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1` 的 >600 秒合格留言證據產生；命中後先 HANDOFF 到本 lane、fresh-read、ACQUIRE，再同 invocation 續原 exact `next_action`。只有 current/takeover/ready/explicit candidate 全空才是 NO_EXECUTABLE_WORK。active exact QA run只 poll；scheduler只走 GitHub/remote capability，不 fallback local。
 
 
 ### SCHEDULER_CYCLE_PROGRESS_HARD_GATE_V1
 
 
 - `RESUME_CURRENT`：若 lease 缺失/expired，先 ACQUIRE；**ACQUIRE 成功只是續跑前置，不是本輪 progress，也不是停止點**。同一 invocation 必須立即 fresh-read，繼續執行 ACQUIRE 前保存的 exact `next_action`。
-- `TAKEOVER_CANDIDATE`：`execution_scheduler_view.py` 必須提供 deterministic `selected_issue / takeover_from_owner_id / takeover_reason`；scheduler 只可使用 `build_takeover_handoff_effect(...)` 產生 routing-only HANDOFF effect，HANDOFF 後 fresh-read、ACQUIRE，再立即續原 exact `next_action`。若 race 中 family 恢復 active writer，固定 `TAKEOVER_RACE_ACTIVE_WORK` 並 fresh-read重選。
+- `TAKEOVER_CANDIDATE`：`execution_scheduler_view.py` 必須提供 deterministic `selected_issue / takeover_from_owner_id / takeover_reason`；scheduler 只可使用 `build_takeover_handoff_effect(...)` 產生 routing-only HANDOFF effect，HANDOFF 後 fresh-read、ACQUIRE，再立即續原 exact `next_action`。若 CAS/transaction race 失敗，fresh-read 同一 Issue 留言與 record 再判定；不得直接改 owner。
 - `READY_CANDIDATES`：`execution_scheduler_view.py` 必須提供 deterministic `selected_issue`（fresh ready-index 中最小 Issue）；scheduler 必須對該 Issue 送 ACQUIRE。若 CAS/claim race 輸掉，fresh-read 後重新投影與選擇，不得以「有多張可選」停止。\n- `INGRESS_REQUIRED`：只可來自 `tools/scheduler_ready_ingress.py` 驗證通過的 repository-owner-authored `WHD_SCHEDULER_DISPATCH_REQUEST_V1` marker；依 issue number deterministic 選最小 eligible candidate。Preflight GREEN + required reads 完成後，建立 `execution_intent=SCHEDULER_LANE / authority_kind=USER_EXPLICIT` READY record；fresh-read ready-index 後立即走 ACQUIRE。`DISPATCH_READY` 本身不是 substantive progress/停止點。
 - 本輪只有以下 evidence 可合法離開：`DONE`、`LANE_BUSY`、合法 `BLOCKED`、active remote QA wait，或本 invocation 已有至少一個 reconciled substantive transaction（`START_BRANCH/APPLY_COMMIT/START_QA/ACCEPT_QA/MERGE/HANDOFF/FINALIZE/RECONCILE/BLOCK`）後因 host boundary 執行 YIELD。
 - **terminal-tail exception**：fresh record 若已接受 exact-head QA 且 `next_action.kind=MERGE`，或 `next_action.kind=FINALIZE`，substantive-transaction / host-boundary YIELD 權限立即失效；必須同 invocation drain `MERGE → FINALIZE → DONE`，只有 genuine machine blocker 可中斷。
@@ -648,7 +639,7 @@ Expected cadence is A=`:00/:20/:40`, B=`:15/:45`. After 120 seconds grace:
 - 互動式使用者明確要求執行新 ticket，且未指定任何 `/工作N` / slot 時，**預設就是 `/工作0` / `worker.slot.0`**；這個既有 default 不變，`tools/execution_dispatch_ingress.py` 的 default normalization 仍保留 `worker.slot.0`。
 - 只有在**建立新 READY record 前**，fresh-read canonical ExecutionRecords 發現預設 slot0 已 BOUND 時，才呼叫 `tools/execution_work_slot_view.py::select_first_available_work_slot(...)` 做 overflow，依 `worker.slot.1 → 2 → 3` 找第一個 EMPTY；slot0 EMPTY 時仍使用原本預設 `worker.slot.0`。
 - 新工作明確使用 `/工作0` 時同樣套用上述 overflow；這不是改變 default identity，而是「0 忙時才 +1」的 capacity routing。
-- 0–3 全部 BOUND 時，結果固定為 fail closed / `NO_AVAILABLE_WORK_SLOT`；不得覆蓋現有 occupant、不得 takeover、不得建立 duplicate slot occupancy。 此句只約束「新 READY 工作的 capacity routing」；既有 Issue 若通過 `STUCK_UNOWNED_FAMILY_TAKEOVER_HARD_GATE_V1`，可對該既有 record 執行 recovery takeover，兩者不得混用。
+- 0–3 全部 BOUND 時，結果固定為 fail closed / `NO_AVAILABLE_WORK_SLOT`；不得覆蓋現有 occupant、不得 takeover、不得建立 duplicate slot occupancy。 此句只約束「新 READY 工作的 capacity routing」；既有 Issue 若通過 `ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1`，可對該既有 record 執行 recovery takeover，兩者不得混用。
 - 若 ticket 已有 nonterminal ExecutionRecord，必須 resume 其原 `slot_id`，不得重新跑自動遞增。
 - 裸 `/工作0` query/status 仍只查 slot0；不因 slot0 BOUND 而跳去 slot1。
 - `/工作1`、`/工作2`、`/工作3` 明確指定時保持原 fixed slot，不套用 auto-increment。

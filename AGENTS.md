@@ -60,6 +60,10 @@ machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 3. target 前進時 refresh baseline；碰到 touched path 就 retest，再 delivery。
 4. GitHub baseline read 不等於一般 Issue/PR/Actions 或任意 remote authority；Skill 自動觸發也不會擴張 authority，非 baseline 動作仍走原 authority gate，未授權固定 `REMOTE_CONNECTION_DENIED`。
 5. Google Drive / `.unpushed/{docs|body}/0` / shared-zero 全部退出 CURRENT repository-content routing；不得因其存在、缺失或 drift 改變施工 route。
+## -0.6. ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1
+
+所有 Flow v2 工單接取／介入，CURRENT 唯一介入時間證據是 **GitHub owning Issue** 的合格 `WHD_ISSUE_OWNER_PROGRESS_V1` 留言：ACQUIRE 成功立即留接取者身份；每 10 分鐘留言有效進度；後來者 fresh-read 該 Issue。最後有效留言距現在 **<=600 秒不得介入，>600 秒才可走正式 HANDOFF/ACQUIRE CAS**。留言缺失、identity 不合或未 fresh-read 都不授權介入。舊 heartbeat／lease／END／runtime／family liveness 不能再當介入時鐘；原子單寫者安全驗證維持不變。canonical owner=`.agents/skills/engineering/flow-v2-execution/SKILL.md::ISSUE_COMMENT_10MIN_INTERVENTION_HARD_GATE_V1`，validator=`tools/issue_comment_progress.py`。
+
 ## -0.5. WORKSPACE_ENTRY_HARD_GATE_V1：workspace-only current route
 
 <!-- WORKSPACE_ENTRY_HARD_GATE_V1 -->
