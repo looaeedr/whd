@@ -53,6 +53,21 @@ Machine validation 仍固定經 `tools/root_local_first_gate.py::assert_remote_c
 - `/派工` 不得借用上述 `/接手` 例外先碰本機再回來建立 READY；即使 exact Issue 已知，dispatch control plane 仍須留在 GitHub canonical。
 - machine gate owner=`tools/execution_dispatch_ingress.py::validate_dispatch_transport`；READY request 的 `dispatch_transport` 只接受 `GITHUB_CANONICAL`。
 
+### INTERACTIVE_SELF_SWITCH_NO_NULL_HANDOFF_HARD_GATE_V1
+
+裸 `/派工` / interactive `EXECUTE_TICKET` 的 PM / Implementer / QA 是**同一個 physical runtime 的角色視角**，不是必須存在的子 agent。選定 work-slot 後，只要目前 assistant 具備該 task 所需的 GitHub/repository-content execution capability，就必須把 current invocation 身份對齊對應 `chatgpt.flowv2.workN` / Implementer 視角並繼續 exact native `next_action`；**「沒有子 agent」不是 capability blocker，也不是 HANDOFF authority。**
+
+Machine rules：
+
+- `EXECUTE_TICKET HANDOFF` 不接受 `owner_kind=NONE` 或 `owner_id=NONE`；這不是 handoff，只是把工作丟成無主。
+- HANDOFF target routing identity 必須與目前 owner/lane 不同；同一 runtime 角色切換不得偽裝成 HANDOFF。
+- 沒有具名 target runtime/owner 時，不得宣稱「已交給下一個 runtime」。
+- 真正缺 execution capability 時，應以 durable `BLOCK` 記錄 capability blocker，或只在確實存在具名 target owner 時做 HANDOFF；不得 handoff 到未知/虛構 owner。
+- 同一 assistant 可以自行扮演 work0~3 中已由 native record 授權的角色；不需要產品層另啟子 agent。
+- owner=NONE 的歷史 HANDOFF residue 永遠不構成 `DISPATCH_COMPLETE` / `HANDOFF_COMPLETE`。
+
+Machine owner=`tools/control_transaction.py::_execute_handoff` + `tools/host_return_surface_gate.py::classify_dispatch_completion` + `tools/execution_invocation_exit.py::classify_invocation_exit`。
+
 ### DISPATCH_COMPLETION_HOST_SEAM_HARD_GATE_V1
 
 `/派工` 的成功回報不得再以 `READY`、`ACQUIRE`、`ACTIVE/CLAIMED` 或 `next_action=START_BRANCH` 代替實際 continuation。machine owner=`tools/host_return_surface_gate.py`。
