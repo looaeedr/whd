@@ -70,7 +70,8 @@ machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 
 CURRENT route 固定 `WORKSPACE_DEFAULT`；route machine=`tools/root_local_first_gate.py::select_repository_content_route`：
 
-- 不論 `shared_zero_drift_present` 值為何都固定 `WORKSPACE_DEFAULT`；舊 drift 只作 HISTORICAL evidence。
+- `shared_zero_drift_present=false → WORKSPACE_DEFAULT`
+- `shared_zero_drift_present=true → WORKSPACE_DEFAULT`；兩條路徑刻意保留作為 semantic-doc compatibility marker，實際分支結果相同；舊 drift 只作 HISTORICAL evidence。
 
 Drive mount、Drive mirror、舊 pointer、`.unpushed` 缺失都不是 blocker；`.unpushed/docs/0` / `.unpushed/body/0`、generation/freeze、Drive readback 與 `workspace_canonical_sync.py` 都不得參與 CURRENT routing。
 
