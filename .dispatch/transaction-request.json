@@ -1,29 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-reserve-four-paths-native-gate-gen4",
+  "request_id": "issue1431-acquire-resume-gen4-after-run37808052237",
   "issue": 1431,
-  "kind": "RESERVE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
   "expected_coord_head": "80e69b36e6ea52d99d19fa6c8667f6403121db88",
   "expected_generation": 4,
   "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
-    "write_paths": [
-      ".github/workflows/whd-governance-single-authority-gate.yml",
-      "tools/flow_v2_delivery_entry_gate.py",
-      "tests/process/test_issue1431_native_delivery_entry_gate.py",
-      ".agents/skills/engineering/flow-v2-execution/SKILL.md"
-    ],
-    "delete_paths": [],
     "next_action": {
       "args": {},
       "display": "Start Issue #1431 native pre-implementation entry hard gate",
       "kind": "START_BRANCH"
     }
   },
-  "purpose": "Reserve four exact files for Issue1431 native pre-implementation GitHub PR delivery admission gate",
+  "purpose": "Resume native Issue1431 same work1 expired lease after verified Phase6 Run 37808052237; preserve owner and START_BRANCH continuation",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -64,35 +55,29 @@
       "root-local-first",
       "寫技能",
       "Python測試實務",
-      "phase6-release-packaging",
-      "monitoring-remote-qa",
-      "long-log-context-safe-execution"
+      "phase6-release-packaging"
     ],
     "completed_skills": [
       "flow-v2-execution",
       "root-local-first",
       "寫技能",
       "Python測試實務",
-      "phase6-release-packaging",
-      "monitoring-remote-qa",
-      "long-log-context-safe-execution"
+      "phase6-release-packaging"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json",
-      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+      "release_required_artifacts.json"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json",
-      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+      "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T15:43:07.080Z"
+    "observed_at": "2026-10-08T16:20:59Z"
   }
 }
