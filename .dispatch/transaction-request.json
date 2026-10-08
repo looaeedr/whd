@@ -1,21 +1,20 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1383-ready-20261008-work1-6057689286",
+  "request_id": "issue1383-acquire-20261008-work1-6057689286",
   "issue": 1383,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-  "expected_coord_head": "9d92ad3f837d0cac2fbb6a4ff5a0f6bac3d7ef5b",
+  "expected_coord_head": "a7d40e29eaa9c3b34c57fbb7a304569dc6a0b028",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user:continue DM8 #1383 2026-10-08",
-    "work_branch": "work/issue-1383",
-    "parent_issue": 1374,
-    "slot_id": "worker.slot.1",
-    "dispatch_transport": "GITHUB_CANONICAL"
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {},
+      "display": "Deliver tested DM8-C1 Issue #1383 exact diff as isolated PR"
+    }
   },
-  "purpose": "User-directed continuation of DM8 #1383, exact tested executor-local workspace, GitHub Flow v2 admission for neutral geometry consolidation and PR delivery.",
+  "purpose": "Continue DM8-C1 #1383 with verified executor-local tested commit 05ab97b2; obtain work1 lease and deliver canonical tested PR.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -73,6 +72,6 @@
       "基準檔/截角資料庫/certified_relief_rules.json",
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
     ],
-    "observed_at": "2026-10-08T10:18:29Z"
+    "observed_at": "2026-10-08T10:20:07Z"
   }
 }
