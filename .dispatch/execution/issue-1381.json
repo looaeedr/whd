@@ -1,0 +1,53 @@
+{
+  "active_run": null,
+  "blocker": null,
+  "chain": {
+    "next_action": null,
+    "next_issue": null,
+    "parent_issue": 1374
+  },
+  "closure": {
+    "issue_closed": false,
+    "merged_sha": null,
+    "released_at": null
+  },
+  "execution_intent": "EXECUTE_TICKET",
+  "generation": 1,
+  "head_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+  "issue": 1381,
+  "lane_id": null,
+  "lease": null,
+  "mutation_scope": null,
+  "next_action": {
+    "args": {},
+    "display": "Acquire Issue #1381",
+    "kind": "ACQUIRE"
+  },
+  "owner_id": "NONE",
+  "owner_kind": "UNCLAIMED",
+  "qa": {
+    "accepted_head_sha": null,
+    "last_accepted_run": null
+  },
+  "recovery_history": [
+    {
+      "authority_fingerprint": "1e0c15f9ca8e0f5026d7eb775b05b146c1cc11807b7c6862370a6cde5752f91d",
+      "authority_kind": "USER_EXPLICIT",
+      "authority_ref": "user:/派工 1381",
+      "dispatch_transport": "GITHUB_CANONICAL",
+      "kind": "INGRESS_AUTHORITY"
+    }
+  ],
+  "schema": "WHD_EXECUTION_RECORD_V2",
+  "semantic_state": "READY",
+  "slot_id": "worker.slot.1",
+  "source_branch": "cleanup/2d-3d-sync",
+  "source_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+  "state": "READY",
+  "target_branch": "cleanup/2d-3d-sync",
+  "target_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+  "transaction": null,
+  "updated_at": "2026-10-08T05:53:32Z",
+  "version": 2,
+  "work_branch": "work/issue-1381"
+}
