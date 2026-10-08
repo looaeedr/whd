@@ -25,6 +25,17 @@ jobs:
           echo "WHD_APP_ID in Variables: $ID_VARIABLE_SET"
           echo "WHD_APP_PRIVATE_KEY in accessible Secrets: $KEY_SECRET_SET"
           echo "WHD_APP_PRIVATE_KEY in Variables: $KEY_VARIABLE_SET"
+      - name: Validate App ID is numeric (no secret output)
+        env:
+          CHECK_APP_ID: ${{ secrets.WHD_APP_ID }}
+        shell: bash
+        run: |
+          if [[ "$CHECK_APP_ID" =~ ^[0-9]+$ ]]; then
+            echo "WHD_APP_ID numeric format: valid"
+          else
+            echo "WHD_APP_ID numeric format: INVALID"
+            exit 1
+          fi
       - name: Acquire WHD App installation token (no writes)
         id: app-token
         uses: actions/create-github-app-token@v2
