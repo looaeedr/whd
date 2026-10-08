@@ -56,6 +56,7 @@ from tools.control_transaction_production_executor import (
 )
 
 from tools.control_transaction_runtime import production_provider
+from tools.control_transaction_runtime import RuntimePostEffectConflict
 
 
 # Ingress transport adapters use the public provider boundary. Keeping these
@@ -979,7 +980,10 @@ def main() -> int:
         code = 0
     except ControlTransactionConflict as exc:
         reason = str(exc)
-        if reason.startswith("coord head drift"):
+        post_effect = isinstance(exc, RuntimePostEffectConflict)
+        if post_effect:
+            conflict_class = exc.conflict_class
+        elif reason.startswith("coord head drift"):
             conflict_class = "STALE_COORD_HEAD"
         elif reason.startswith("generation drift"):
             conflict_class = "STALE_GENERATION"
@@ -1002,12 +1006,17 @@ def main() -> int:
             "conflict_class": conflict_class,
             "retryable": True,
             "retry_action": (
-                "POLL_REQUIRED_CHECKS"
+                "FRESH_READ_READBACK_ONLY_OR_EXPLICIT_REPAIR"
+                if post_effect else "POLL_REQUIRED_CHECKS"
                 if conflict_class == "REQUIRED_CHECKS_PENDING"
                 else "FRESH_READ_REBUILD_SAME_SEMANTIC_ACTION"
             ),
             "semantic_effect_applied": False,
         }
+        if post_effect:
+            result["retryable"] = False
+            result["diagnostics"] = exc.diagnostics
+            result["provider_outcome_requires_readback"] = True
         code = 3
     except Exception as exc:
         reason = str(exc)
