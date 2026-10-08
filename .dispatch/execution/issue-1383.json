@@ -1,10 +1,5 @@
 {
-  "active_run": {
-    "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
-    "id": 37763726037,
-    "purpose": "WHD Product Regression exact PR #1416 head",
-    "status": "in_progress"
-  },
+  "active_run": null,
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -17,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
   "issue": 1383,
   "lane_id": "chatgpt.flowv2.work1",
@@ -40,17 +35,17 @@
   },
   "next_action": {
     "args": {
-      "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
-      "run_id": 37763726037
+      "pr_number": 1416,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Poll exact Product Regression run 37763726037",
-    "kind": "POLL_QA"
+    "display": "Merge verified tested PR #1416 after exact required check readback",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
+    "last_accepted_run": 37763726037
   },
   "recovery_history": [
     {
@@ -62,21 +57,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "REMOTE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-  "state": "VERIFYING",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
   "transaction": {
-    "expected_fingerprint": "408e28e058fe077d2dad2bd3e357d96ffa7f191d2d05bd009912b0b7c02f6526",
-    "id": "gha:37763825156:1383:START_QA:5",
+    "expected_fingerprint": "7e123e0cef81510f002c04785d832077c0016fe2c59c85f957887cccbe6892bc",
+    "id": "gha:37764107916:1383:ACCEPT_QA:6",
     "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-    "kind": "START_QA",
+    "kind": "ACCEPT_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T10:30:36Z",
+  "updated_at": "2026-10-08T10:32:53Z",
   "version": 2,
   "work_branch": "work/issue-1383"
 }
