@@ -1458,6 +1458,17 @@ _EXECUTORS = {
 
 
 
+def validate_exact_plan(record: ExecutionRecord, plan: ControlTransactionPlan) -> None:
+    """Public exact identity fence shared by runtime effects and semantic execution."""
+    if not isinstance(record, ExecutionRecord):
+        raise ControlTransactionError("record must be an ExecutionRecord")
+    if not isinstance(plan, ControlTransactionPlan):
+        raise ControlTransactionError("plan must be a ControlTransactionPlan")
+    if plan.kind not in _EXECUTORS:
+        raise ControlTransactionError(f"unsupported transaction kind: {plan.kind}")
+    _assert_plan_matches(record, plan)
+
+
 def execute_transaction(
     record: ExecutionRecord,
     plan: ControlTransactionPlan,
@@ -1478,5 +1489,5 @@ def execute_transaction(
         raise ControlTransactionError("effect must be an object")
     if plan.kind not in _EXECUTORS:
         raise ControlTransactionError(f"unsupported transaction kind: {plan.kind}")
-    _assert_plan_matches(record, plan)
+    validate_exact_plan(record, plan)
     return _EXECUTORS[plan.kind](record, plan, effect)

@@ -359,9 +359,9 @@ def test_unrelated_coord_cas_race_does_not_replay_stale_provider_delete(monkeypa
 
     def fake_load_state(repo, token, coord_branch):
         load_count["value"] += 1
-        if load_count["value"] == 1:
+        if load_count["value"] <= 2:
             return "1" * 40, "2" * 40, {record.issue: record, unrelated.issue: unrelated}
-        if load_count["value"] == 2:
+        if load_count["value"] == 3:
             return "3" * 40, "4" * 40, {record.issue: record, unrelated.issue: fresh_unrelated}
         return "5" * 40, "6" * 40, candidate_after_retry["records"]
 
@@ -411,7 +411,7 @@ def test_same_issue_coord_drift_fails_closed_without_replaying_delete(monkeypatc
 
     def fake_load_state(repo, token, coord_branch):
         load_count["value"] += 1
-        if load_count["value"] == 1:
+        if load_count["value"] <= 2:
             return "1" * 40, "2" * 40, {record.issue: record}
         return "3" * 40, "4" * 40, {record.issue: drifted}
 
