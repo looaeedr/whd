@@ -1,0 +1,167 @@
+name: WHD Issue1431 Native APPLY_COMMIT Delivery
+on:
+  push:
+    branches: [test/issue1431-root-attest]
+    paths: [.dispatch/issue1431-native-apply-trigger.json]
+permissions:
+  contents: read
+concurrency:
+  group: issue1431-native-apply-commit
+  cancel-in-progress: false
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          path: prod
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          ref: coord/execution-v2
+          path: coord
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: candidate
+          fetch-depth: 0
+      - name: Validate native writer and tested four-file diff
+        shell: bash
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH=prod python - <<'PY'
+          import os,sys,json,hashlib,subprocess
+          from pathlib import Path
+          from datetime import datetime,timezone
+          from tools.execution_record import execution_record_from_payload
+          from tools.execution_path_reservation import build_path_reservation_evidence
+          from tools.control_transaction import build_mutation_writer_guard
+          from tools.root_local_first_gate import build_git_unlock_receipt,build_remote_connection_authority
+          prod=Path('prod').resolve(strict=True); coord=Path('coord').resolve(strict=True); cand=Path('candidate').resolve(strict=True)
+          def git(p,*args):
+              return subprocess.check_output(['git','-C',str(p),*args],text=True).strip()
+          source=git(prod,'rev-parse','HEAD')
+          if source!=git(prod,'ls-remote','origin','refs/heads/cleanup/2d-3d-sync').split()[0]:
+              raise SystemExit('PRODUCTION_DRIFT')
+          coordsha=git(coord,'rev-parse','HEAD')
+          if coordsha!=git(coord,'ls-remote','origin','refs/heads/coord/execution-v2').split()[0]:
+              raise SystemExit('COORD_DRIFT')
+          rec=execution_record_from_payload(json.loads((coord/'.dispatch/execution/issue-1431.json').read_text()))
+          invocation='chatgpt.issue1431.native-entry.work1.20261008'
+          if rec.issue!=1431 or rec.generation<7 or rec.state!='ACTIVE': raise SystemExit('NOT_STARTED_NATIVE')
+          if rec.owner_id!='chatgpt.flowv2.work1' or rec.slot_id!='worker.slot.1': raise SystemExit('OWNER_MISMATCH')
+          if rec.lease is None or rec.lease.invocation_identity!=invocation: raise SystemExit('BAD_INVOCATION')
+          if datetime.fromisoformat(rec.lease.expires_at.replace('Z','+00:00'))<=datetime.now(timezone.utc):
+              raise SystemExit('LEASE_EXPIRED')
+          if rec.next_action is None or rec.next_action.kind!='APPLY_COMMIT': raise SystemExit('WRONG_NEXT_ACTION')
+          if rec.target_sha!=source or rec.head_sha!=source: raise SystemExit('BASE_HEAD_MISMATCH')
+          if git(prod,'ls-remote','origin','refs/heads/'+rec.work_branch).split()[0]!=source:
+              raise SystemExit('WORK_HEAD_DRIFT')
+          reservation=build_path_reservation_evidence(rec)
+          paths=reservation['write_paths']
+          if len(paths)!=4: raise SystemExit('NOT_FOUR_FILES')
+          tested='87a6f791b63367cb2ff3b6e7805373d3b6538530'
+          files=[]
+          for p in paths:
+              oldblob=git(cand,'rev-parse',tested+':'+p)
+              newblob=git(cand,'rev-parse','HEAD:'+p)
+              if oldblob!=newblob: raise SystemExit('TESTED_BLOB_CHANGED '+p)
+              mode=git(cand,'ls-tree','HEAD','--',p).split()[0]
+              files.append({'path':p,'mode':mode,'type':'blob','sha':newblob})
+          patch=subprocess.check_output(['git','-C',str(cand),'diff','--binary',source,'HEAD','--',*paths])
+          baseline=subprocess.check_output(['git','-C',str(cand),'diff','--binary',source,tested,'--',*paths])
+          if patch!=baseline: raise SystemExit('FROZEN_DIFF_CHANGED')
+          subprocess.run([sys.executable,'-m','unittest','discover','-s','tests/process',
+              '-p','test_issue1431_native_delivery_entry_gate.py','-v'],cwd=cand,check=True)
+          authority=build_remote_connection_authority(kind='WORKSPACE_DELIVERY',target='GITHUB',user_explicit=True)
+          git_receipt=build_git_unlock_receipt({
+              'applicable':True,'git_write_unlocked':True,'next_action':'EXACT_TESTED_DIFF_ONLY',
+              'execution_mode':'INTERACTIVE',
+              'diff_digest':hashlib.sha256(patch).hexdigest(),
+              'remote_connection_authority':authority,'path_reservation':reservation,
+          })
+          guard=build_mutation_writer_guard(rec,kind='APPLY_COMMIT',invocation_identity=invocation)
+          request={
+              'schema':'WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1',
+              'request_id':'issue1431-native-apply-'+os.environ['RUN_ID'],
+              'issue':1431,'kind':'APPLY_COMMIT','lane_id':'chatgpt.flowv2.work1',
+              'invocation_identity':invocation,'expected_coord_head':coordsha,
+              'expected_generation':rec.generation,'reuse_admission_session':True,
+              'effect':{
+                  'root_local_first_git_write_receipt':git_receipt,
+                  'mutation_writer_guard':guard,
+                  'next_action':{'kind':'START_QA','args':{
+                      'workflow':'.github/workflows/whd-control-plane-regression.yml'
+                  },'display':'Run exact-head QA on tested four-file PR'},
+              },
+          }
+          out=Path(os.environ['RUNNER_TEMP'])
+          (out/'issue1431-apply-pending.json').write_text(json.dumps(request,ensure_ascii=False,indent=2)+'\n')
+          (out/'issue1431-apply-tree.json').write_text(json.dumps({'base_sha':source,
+              'work_branch':rec.work_branch,'files':files},indent=2)+'\n')
+          print('FOUR_TESTED_BLOBS_VALIDATED_FOR_NATIVE_APPLY')
+          PY
+      - name: Acquire WHD app token
+        uses: actions/create-github-app-token@v2
+        id: app
+        with:
+          app-id: ${{ secrets.WHD_APP_ID }}
+          private-key: ${{ secrets.WHD_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Apply exact tested four-file commit then submit native request
+        shell: bash
+        env:
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,json,base64,urllib.request,urllib.parse
+          from pathlib import Path
+          base='https://api.github.com/repos/looaeedr/whd'
+          headers={'Authorization':'Bearer '+os.environ['APP_TOKEN'],
+              'Accept':'application/vnd.github+json','Content-Type':'application/json',
+              'X-GitHub-Api-Version':'2022-11-28'}
+          def api(route,method='GET',data=None):
+              req=urllib.request.Request(base+route,method=method,headers=headers,
+                  data=json.dumps(data).encode() if data is not None else None)
+              with urllib.request.urlopen(req,timeout=40) as f: return json.load(f)
+          temp=Path(os.environ['RUNNER_TEMP'])
+          tree_spec=json.loads((temp/'issue1431-apply-tree.json').read_text())
+          pending=json.loads((temp/'issue1431-apply-pending.json').read_text())
+          old=tree_spec['base_sha']; branch=tree_spec['work_branch']
+          route='/git/ref/heads/'+urllib.parse.quote(branch,safe='')
+          if api(route)['object']['sha']!=old: raise SystemExit('WORK_REF_DRIFT')
+          oldtree=api('/git/commits/'+old)['tree']['sha']
+          tree=api('/git/trees','POST',{'base_tree':oldtree,'tree':tree_spec['files']})
+          commit=api('/git/commits','POST',{'message':'fix(issue1431): native Flow v2 work and PR entry hard gate',
+              'tree':tree['sha'],'parents':[old]})
+          sha=commit['sha']
+          api(route,'PATCH',{'sha':sha,'force':False})
+          if api(route)['object']['sha']!=sha: raise SystemExit('WORK_REF_READBACK_FAILED')
+          pending['effect']['head_sha']=sha
+          raw=(json.dumps(pending,ensure_ascii=False,indent=2)+'\n').encode()
+          rbranch='coord/transaction-requests-work1'
+          dest='/contents/.dispatch/transaction-request.json'
+          prior=api(dest+'?ref='+urllib.parse.quote(rbranch,safe=''))
+          result=api(dest,'PUT',{'branch':rbranch,'sha':prior['sha'],
+              'message':'flow(issue1431): native verified APPLY_COMMIT transaction request',
+              'content':base64.b64encode(raw).decode()})
+          (temp/'issue1431-apply-submit.json').write_text(json.dumps({
+              'work_head':sha,'transaction_request_commit':result['commit']['sha']},indent=2)+'\n')
+          print('NATIVE_APPLY_COMMIT_REQUEST_SUBMITTED '+result['commit']['sha'])
+          PY
+      - name: Preserve native apply audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1431-native-apply-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/issue1431-apply-tree.json
+            ${{ runner.temp }}/issue1431-apply-submit.json
+          if-no-files-found: warn
+          retention-days: 7
