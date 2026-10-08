@@ -1,0 +1,9 @@
+{
+  "schema": "WHD_ISSUE1431_NATIVE_RESERVE_RUNNER_TRIGGER_V1",
+  "issue": 1431,
+  "expected_generation": 5,
+  "production_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
+  "diff_sha256": "738e248e891cdb2f5112d667c830c50eb5888994169b3454b70e5aa303549cae",
+  "mode": "STRICT_ATTEST_BEFORE_TRUSTED_REQUEST",
+  "user_device_use": false
+}
