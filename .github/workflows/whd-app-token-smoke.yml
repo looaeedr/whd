@@ -1,4 +1,5 @@
 name: WHD App Token Smoke Test
+# Credential presence recheck after user configuration
 # Recheck Actions Secrets availability after repository secret configuration
 on:
   push:
