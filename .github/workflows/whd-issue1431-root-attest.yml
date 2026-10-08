@@ -88,6 +88,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: issue1431-runner-root-observation
-          path: /tmp/issue1431-root-observation.json
+          path: ${{ runner.temp }}/issue1431-root-observation.json
           if-no-files-found: error
           retention-days: 7
