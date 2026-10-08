@@ -1861,6 +1861,29 @@ def _independent_post_delivery_finalizers(
     )
 
 
+def _assert_owning_issue_open_for_acquire(repo: str, token: str, issue: int) -> None:
+    """Fail closed before ACQUIRE when GitHub Issue and stale READY disagree.
+
+    The ExecutionRecord and ready-index remain untouched; reconciliation must
+    use a separately authorized trusted transaction, never an implicit delete.
+    """
+    observed = _api(repo, "GET", f"/issues/{issue}", token) or {}
+    if observed.get("pull_request") is not None:
+        raise ProductionExecutorError(
+            f"ACQUIRE_ISSUE_IDENTITY_MISMATCH: issue {issue} resolves to a PR"
+        )
+    if int(observed.get("number") or 0) != issue:
+        raise ProductionExecutorError(
+            f"ACQUIRE_ISSUE_IDENTITY_MISMATCH: issue {issue} readback mismatch"
+        )
+    state = str(observed.get("state") or "").strip().lower()
+    if state != "open":
+        raise ProductionExecutorError(
+            f"ACQUIRE_ISSUE_NOT_OPEN: issue={issue} state={state or 'UNKNOWN'}; "
+            "preserve native record and reconcile GitHub Issue status before retry"
+        )
+
+
 def _execute_one_attempt(
     *,
     repo: str,
@@ -1877,6 +1900,8 @@ def _execute_one_attempt(
     if issue not in records:
         raise ProductionExecutorError(f"native ExecutionRecord missing for issue {issue}")
     record = records[issue]
+    if kind == "ACQUIRE":
+        _assert_owning_issue_open_for_acquire(repo, token, issue)
 
     if (_continuation_fingerprint is not None
         and execution_record_fingerprint(record) != _continuation_fingerprint):
