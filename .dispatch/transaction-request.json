@@ -1,21 +1,35 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1384-native-ready-work3-six-file-tested-20261009",
+  "request_id": "issue1384-acquire-atomic-reserve-six-tested-20261009",
   "issue": 1384,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.issue1384.c2.resume.work3.20261009",
-  "expected_coord_head": "23ae3ce218925e2dec9b01e768a77a9a2fa96ab7",
+  "expected_coord_head": "b2858ce84fb23ceb940d684ec3a89a4e562477b2",
   "expected_generation": 1,
+  "purpose": "ACQUIRE #1384 by work3 and atomic reserve six exact tested paths after verified no colliding active slot; deliver precreated exact-tree candidate under native work branch.",
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "user:繼續 #1384 2026-10-09",
-    "work_branch": "work/issue-1384",
-    "parent_issue": 1374,
-    "slot_id": "worker.slot.3",
-    "dispatch_transport": "GITHUB_CANONICAL"
+    "next_action": {
+      "kind": "START_BRANCH",
+      "args": {
+        "diff_digest": "74ff856e56f2f8f573047b62e150264b1d3daaa39482de2a83a457f226d6bd4e"
+      },
+      "display": "Publish exact tested DM8-C2 six-file scene-seam commit"
+    },
+    "admission_reservation": {
+      "target_branch": "cleanup/2d-3d-sync",
+      "base_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+      "write_paths": [
+        "ae_engine/manufacturing_scene_access.py",
+        "ae_engine/manufacturing_render_data.py",
+        "ae_engine/receiving_joint_marking.py",
+        "ae_engine/receiving_pairing_marking.py",
+        "tests/test_issue1114_receiving_pairing_marking.py",
+        "tests/test_issue1384_scene_access.py"
+      ],
+      "delete_paths": []
+    }
   },
-  "purpose": "Verified 104 record slot scan: free worker.slot.3. Deliver exact six tested DM8-C2 scene seam changes, no user RC/local access.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -79,6 +93,6 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     ],
-    "observed_at": "2026-10-08T23:23:09Z"
+    "observed_at": "2026-10-08T23:25:10Z"
   }
 }
