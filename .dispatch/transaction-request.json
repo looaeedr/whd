@@ -1,15 +1,84 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1380-reviewfix-merge-5",
-  "issue": 1380,
-  "kind": "MERGE",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1381-dispatch-ready-20261008-work1-6053331656",
+  "issue": 1381,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1380.20261008",
-  "expected_coord_head": "2991e92ea14c8605e45ed3d43e0daedcbfc5647e",
-  "expected_generation": 5,
-  "effect": {},
-  "session_reuse": {
-    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
-    "mode": "LIVE_LEASE_CONTINUATION"
+  "invocation_identity": "chatgpt.issue1381.dispatch.20261008.work1",
+  "expected_coord_head": "3622c3e79de8c49960eafdac57ac8e34ceced654",
+  "expected_generation": 1,
+  "effect": {
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "user:/派工 1381",
+    "work_branch": "work/issue-1381",
+    "parent_issue": 1374,
+    "slot_id": "worker.slot.1",
+    "dispatch_transport": "GITHUB_CANONICAL"
+  },
+  "purpose": "依使用者明確指示 /派工 1381，使用 GitHub canonical Flow v2 為 DM8-A3 建立 READY ExecutionRecord 並續行正式 ACQUIRE。",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1381,
+    "invocation_identity": "chatgpt.issue1381.dispatch.20261008.work1",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+    "required_skills": [
+      "flow-v2-execution",
+      "派工",
+      "issue-closure-gate",
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "派工",
+      "issue-closure-gate",
+      "phase6-release-packaging",
+      "diagnosing-bugs",
+      "tdd"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
+    ],
+    "observed_at": "2026-10-08T05:52:42Z"
   }
 }
