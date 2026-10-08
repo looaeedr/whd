@@ -78,5 +78,34 @@
     "No second ExecutionRecord/state machine",
     "No START_BRANCH/APPLY_COMMIT migration",
     "No retry restructuring before A3"
-  ]
+  ],
+  "design_it_twice": {
+    "evaluation_dimensions": [
+      "interface_surface",
+      "error_domain",
+      "test_setup",
+      "diagnosability",
+      "mutation_fence_enforceability",
+      "transport_replaceability",
+      "semantic_owner_uniqueness"
+    ],
+    "options": {
+      "COMMAND_STYLE_SINGLE_ENTRY": {
+        "shape": "execute_runtime_command(kind, record, payload, provider)",
+        "verdict": "REJECTED",
+        "reason": "Kind-first dispatcher tends to merge semantic validation, provider branching and transport errors; readback-only fencing becomes command-specific exceptions and exact-plan visibility weakens."
+      },
+      "TYPED_RUNTIME_OBJECT": {
+        "shape": "ControlTransactionRuntime(provider).<method>(...)",
+        "verdict": "REJECTED",
+        "reason": "Larger method/lifecycle surface invites cached runtime state and a second lifecycle/state owner; transport replacement becomes coupled to object lifetime."
+      },
+      "PLAN_EFFECT_ADAPTER": {
+        "shape": "resolve_runtime_effect(record, plan, mode, provider, supplied_effect) -> RuntimeEffectEnvelope",
+        "verdict": "SELECTED",
+        "reason": "Small stateless boundary keeps exact-plan semantics in control_transaction.py, makes provider/fence tests injectable, keeps error domains explicit and lets A3 reuse one immutable resolved effect across unrelated coord CAS retries."
+      }
+    }
+  },
+  "decision_rationale": "PLAN_EFFECT_ADAPTER is the smallest facade that preserves control_transaction.py as the single semantic/exact-plan owner while centralizing provider effect resolution and the READBACK_ONLY pre-mutation fence without owning retry state."
 }
