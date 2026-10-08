@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Part-session orchestration extracted from the Phase6 Fold Designer bridge.
+"""Application compatibility orchestration for the Phase6 Part Session.
 
-This owner keeps part activation/save sequencing together.  Manufacturing
-formula ownership remains in the existing canonical modules; the Bridge only
-keeps compatibility delegates.
+Phase6PartSessionOwner owns activation/save sequencing and compatibility effect
+ordering only. Navigation/workspace identity, project persistence, update
+scheduling, rendering, Settings semantics, manufacturing formulas, geometry and
+DXF truth remain with their existing canonical owners. The Bridge keeps narrow
+compatibility delegates.
 """
 from __future__ import annotations
 
@@ -11,7 +13,7 @@ from typing import Any
 
 
 class Phase6PartSessionOwner:
-    """Own part activation/save session orchestration for the Phase6 editor."""
+    """Own application-level part activation/save compatibility orchestration."""
 
     def __init__(self):
         self.app = None
