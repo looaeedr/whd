@@ -1,28 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1431-native-start-branch-37809603490",
+  "request_id": "issue1431-native-apply-37810000698",
   "issue": 1431,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-  "expected_coord_head": "a9510e271bd49edce3e0343bdae97281b00b77dc",
-  "expected_generation": 6,
+  "expected_coord_head": "00f8c71c2f41adb7c2317b64a8f1a8706a0722c8",
+  "expected_generation": 7,
   "reuse_admission_session": true,
   "effect": {
-    "work_branch": "work/issue-1431-flow-v2-entry-gate",
-    "head_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
-    "next_action": {
-      "kind": "APPLY_COMMIT",
-      "args": {},
-      "display": "Apply exact tested four-file candidate"
-    },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
       "execution_mode": "INTERACTIVE",
       "source_sha": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
       "diff_digest": "62ed8ed750ad441cb74b6e4e92c55a14a7860f1eda3a14f0e28201d39414e1f9",
       "issue": 1431,
-      "generation": 6,
+      "generation": 7,
       "target_branch": "cleanup/2d-3d-sync",
       "write_paths": [
         ".agents/skills/engineering/flow-v2-execution/SKILL.md",
@@ -31,21 +24,29 @@
         "tools/flow_v2_delivery_entry_gate.py"
       ],
       "delete_paths": [],
-      "record_fingerprint": "7361f2de78b13e68dcda73fb671737a26307d7de3ad560e9b7ee8cecd32bfd46",
+      "record_fingerprint": "1c39d8732f30e782f2929c63753f36507725d632fb56d0e450f4ce01c3066fac",
       "git_write_unlocked": true,
       "write_mode": "EXACT_TESTED_DIFF_ONLY"
     },
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1431,
-      "generation": 6,
-      "record_fingerprint": "7361f2de78b13e68dcda73fb671737a26307d7de3ad560e9b7ee8cecd32bfd46",
+      "generation": 7,
+      "record_fingerprint": "1c39d8732f30e782f2929c63753f36507725d632fb56d0e450f4ce01c3066fac",
       "lease_token": "lease:1431:37808168535:1",
       "invocation_identity": "chatgpt.issue1431.native-entry.work1.20261008",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "work/issue-1431-flow-v2-entry-gate",
-      "expected_work_head": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+      "expected_work_head": "3687c9e3e91898cb6c17f58757b008744da5e0ea",
       "expected_target_head": "3687c9e3e91898cb6c17f58757b008744da5e0ea"
-    }
+    },
+    "next_action": {
+      "kind": "START_QA",
+      "args": {
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      },
+      "display": "Run exact-head QA on tested four-file PR"
+    },
+    "head_sha": "da21ccd9cd08fb98e6bb1e951268d11c5e49c2f8"
   }
 }
