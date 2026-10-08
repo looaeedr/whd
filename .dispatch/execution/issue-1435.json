@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
   "issue": 1435,
   "lane_id": "chatgpt.flowv2.work2",
@@ -41,16 +41,17 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "pr_number": 1437,
+      "revalidation_workflow": ".github/workflows/whd-product-regression.yml"
     },
-    "display": "Validate exact delivered PR head using trusted native QA",
-    "kind": "START_QA"
+    "display": "Merge verified PR #1437 through trusted native Flow v2",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work2",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "2813ab9cb90335f7a94f64baa9d7549267461f1f",
+    "last_accepted_run": 37781642378
   },
   "recovery_history": [
     {
@@ -62,21 +63,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "DELIVERED_AWAITING_NATIVE_QA",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.2",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
   "transaction": {
-    "expected_fingerprint": "867cfcda102a7bb05a25852ad680959d6db5cf0c53a186096b219ebdacc31604",
-    "id": "gha:37789423780:1435:APPLY_COMMIT:4",
+    "expected_fingerprint": "7b0f20b7dbda0cbb5a9ac5b227d88b34f67091a28200d6b119314ddfd5881120",
+    "id": "gha:37789882477:1435:CONSUME_QA:5",
     "invocation_identity": "chatgpt.issue1435.trusted.bootstrap.20261008.work2",
-    "kind": "APPLY_COMMIT",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T14:05:15Z",
+  "updated_at": "2026-10-08T14:08:51Z",
   "version": 2,
   "work_branch": "work/issue-1435-trusted-premerge-delivery"
 }
