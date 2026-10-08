@@ -12,15 +12,11 @@
     "released_at": null
   },
   "execution_intent": "POST_DELIVERY_RECOVERY",
-  "generation": 1,
+  "generation": 2,
   "head_sha": "d602638da1d2845af8819c2517a297af4360d1f4",
   "issue": 1379,
-  "lane_id": "github.flowv2.postmerge",
-  "lease": {
-    "expires_at": "2026-10-08T04:22:16Z",
-    "invocation_identity": "github:production-x-post-merge:37725876793:pr1406:issue1379",
-    "token": "recovery:1379:37725876793"
-  },
+  "lane_id": "chatgpt.flowv2.work1",
+  "lease": null,
   "mutation_scope": null,
   "next_action": {
     "args": {
@@ -30,8 +26,8 @@
     "display": "Finalize already-merged delivery from trusted recovery proof",
     "kind": "FINALIZE"
   },
-  "owner_id": "github.flowv2.postmerge",
-  "owner_kind": "RECOVERY",
+  "owner_id": "chatgpt.flowv2.work1",
+  "owner_kind": "SCHEDULER",
   "qa": {
     "accepted_head_sha": null,
     "last_accepted_run": null
@@ -70,8 +66,14 @@
   "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "30ce5fce90e10b97d299aeb30d40df1d112719ef",
-  "transaction": null,
-  "updated_at": "2026-10-08T04:07:16Z",
+  "transaction": {
+    "expected_fingerprint": "c31c36dccbb4de591893f17735593683e9aee80f67f654d9b2656bb5f081d62b",
+    "id": "gha:37729409760:1379:HANDOFF:1",
+    "invocation_identity": "chatgpt.issue1379.continue.20261008",
+    "kind": "HANDOFF",
+    "status": "RECONCILED"
+  },
+  "updated_at": "2026-10-08T04:51:20Z",
   "version": 2,
   "work_branch": "work/issue-1379"
 }
