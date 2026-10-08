@@ -1,13 +1,13 @@
 {
   "schema": "WHD_REMOTE_PHASE6_PREFLIGHT_PUSH_REQUEST_V1",
-  "request_id": "a20-issue1080-takeover-20261005T1120+08",
+  "request_id": "a20-issue1080-control-only-20261008T1424+08",
   "issue": 1080,
   "lane_id": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "invocation_identity": "a20:issue1080:takeover:20261005T1120+08",
+  "invocation_identity": "a20.20261008T062408Z",
   "executor_source": "scheduler",
   "branch": "cleanup/2d-3d-sync",
-  "head_sha": "0e83ad859db77c5e869f96059bff9946b4af3ede",
-  "task": "Resume A-lane scheduler execution for #1080: validate TAKEOVER_CANDIDATE, reconcile stale ExecutionRecord target to live X if still eligible, routing-only HANDOFF to scheduler A, ACQUIRE, and immediately continue preserved structured next_action START_BRANCH under CURRENT Flow v2.",
+  "head_sha": "8fcd057f191ef50b65b77cf2c5eeaac318347564",
+  "task": "Resume A20 CURRENT scheduler READY Issue #1080 (CONTROL_ONLY smoke). Fresh-check canonical record, ready-index, closed Issue state and live production HEAD; use trusted Flow v2 admission, repair stale identity only via CURRENT trusted bridge if needed, then ACQUIRE and FINALIZE control-only without repository-content mutation. No direct production writes.",
   "changed_files": []
 }
