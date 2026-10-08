@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from dataclasses import replace
 
-from tools.execution_invocation_exit import (InvocationExitError, assert_durable_terminal_exit, classify_invocation_exit)
+from tools.execution_invocation_exit import (InvocationExitError, assert_durable_terminal_exit, build_host_exit_proof, classify_invocation_exit)
 from tools.execution_record import (
     ActionSpec,
     BlockerState,
@@ -80,6 +80,42 @@ def test_done_task_is_terminal_without_yield():
     assert result.decision == "TASK_TERMINAL"
     assert result.may_return is True
     assert result.requires_yield is False
+
+
+@pytest.mark.parametrize("host_boundary", [False, True])
+def test_done_with_other_executable_leaf_forbids_invocation_return(host_boundary):
+    result = classify_invocation_exit(
+        _record("DONE"),
+        invocation_identity=INV,
+        now=NOW,
+        host_boundary=host_boundary,
+        alternative_executable_leaf_count=1,
+    )
+    assert result.decision == "CONTINUE_OTHER_EXECUTABLE_LEAF"
+    assert result.may_return is False
+    assert result.requires_yield is False
+
+
+def test_done_with_other_executable_leaf_cannot_mint_host_exit_proof():
+    with pytest.raises(InvocationExitError, match="CONTINUE_OTHER_EXECUTABLE_LEAF"):
+        build_host_exit_proof(
+            _record("DONE"),
+            invocation_identity=INV,
+            now=NOW,
+            alternative_executable_leaf_count=1,
+        )
+
+
+def test_done_without_other_executable_leaf_stays_terminal_at_host_boundary():
+    result = classify_invocation_exit(
+        _record("DONE"),
+        invocation_identity=INV,
+        now=NOW,
+        host_boundary=True,
+        alternative_executable_leaf_count=0,
+    )
+    assert result.decision == "TASK_TERMINAL"
+    assert result.may_return is True
 
 
 def test_other_live_lease_is_safe_lane_busy_return_not_task_terminal():
