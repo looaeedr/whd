@@ -1,0 +1,32 @@
+name: WHD App Token Smoke Test
+on:
+  push:
+    branches:
+      - test/flow-v2-app-token-smoke
+    paths:
+      - .github/workflows/whd-app-token-smoke.yml
+permissions:
+  contents: read
+jobs:
+  app-token-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Acquire WHD App installation token (no writes)
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.WHD_APP_ID }}
+          private-key: ${{ secrets.WHD_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-actions: read
+          permission-issues: write
+      - name: Verify installation identity and repository read only
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api /repos/"$GH_REPO" --jq '.full_name' >/dev/null
+          echo "APP_TOKEN_SMOKE_GREEN"
