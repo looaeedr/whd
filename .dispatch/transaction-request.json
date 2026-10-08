@@ -1,25 +1,23 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-bind-trusted-exacthead-qa-workflow-gen9",
+  "request_id": "issue1433-consume-exacthead-qa-run37797653682-gen10",
   "issue": 1433,
-  "kind": "RECONCILE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-  "expected_coord_head": "3e0dfcfa85a6d693781d061d9559d0fa70ab819c",
-  "expected_generation": 9,
+  "expected_coord_head": "c87f524e59a496058913875ce63738d254c5937d",
+  "expected_generation": 10,
   "effect": {
-    "observed_work_branch": "work/issue-1433-native-ready-slot-repair",
-    "observed_head_sha": "c06d3a6aa50694ea1278b41ece4bf26a1deda92f",
-    "observed_target_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
+    "run_id": 37797653682,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml",
         "pr_number": 1436
       },
-      "display": "Consume exact-head completed Control Plane QA with trusted workflow readback"
-    },
-    "semantic_state": "IMPLEMENTING"
+      "display": "Merge verified PR #1436 into cleanup production"
+    }
   },
   "reuse_admission_session": true
 }
