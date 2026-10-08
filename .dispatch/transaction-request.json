@@ -1,17 +1,65 @@
 {
-  "schema": "WHD_CONTROL_TRANSACTION_PUSH_REQUEST_V1",
-  "request_id": "issue1128-finalize-delivered-20261004T0717Z",
-  "issue": 1128,
-  "kind": "FINALIZE",
+  "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
+  "request_id": "issue1417-recover-6058964195",
+  "issue": 1417,
+  "kind": "RECOVER_POST_DELIVERY",
   "lane_id": "chatgpt.flowv2.work3",
-  "invocation_identity": "gha:looaeedr/whd:run:37185117737:attempt:1:workflow:looaeedr/whd/.github/workflows/whd-control-transaction-v2-request.yml@refs/heads/coord/transaction-requests-work3:ref:coord/transaction-requests-work3",
-  "expected_coord_head": "cdf42519cfc5f72b1476faf3270100fb8aeca9fe",
-  "expected_generation": 13,
-  "session_reuse": {
-    "schema": "WHD_INVOCATION_ADMISSION_SESSION_REUSE_V1",
-    "mode": "LIVE_LEASE_CONTINUATION"
-  },
+  "invocation_identity": "chatgpt.issue1417.postdelivery.recovery",
+  "expected_coord_head": "1fce55947594c2d8a6b0d3c470811f35385821cc",
+  "expected_generation": 1,
   "effect": {
-    "semantic_state": "TERMINAL_SUCCESS"
+    "pr_number": 1423
+  },
+  "purpose": "Recover formally merged issue #1417 via trusted Flow v2 create-only post-delivery and immediate FINALIZE",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "a2c463f9db59442a782ce849a4443796356a268c",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".git",
+      ".agents",
+      ".github",
+      "AGENTS.md",
+      "tools",
+      "tests",
+      "ae_engine",
+      "gui_modules"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1417,
+    "invocation_identity": "chatgpt.issue1417.postdelivery.recovery",
+    "branch": "work/issue-1417-recovery-preflight-anchor",
+    "head_sha": "0c54f178afb39ffcf29b4117c0be67fd0350df83",
+    "required_skills": [
+      "root-local-first"
+    ],
+    "completed_skills": [
+      "root-local-first"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
+    ],
+    "observed_at": "2026-10-08T11:34:47Z"
   }
 }
