@@ -79,7 +79,7 @@ Machine owner=`tools/control_transaction.py::_execute_handoff` + `tools/host_ret
 - first substantive transaction、合法 `YIELD`、durable `BLOCK/HANDOFF` 或 `DONE` 才能通過 dispatch-completion classifier；若本 physical invocation 要在該處 return，仍必須另外取得 current `WHD_FLOW_V2_HOST_EXIT_PROOF_V1`。
 - user-visible `DISPATCH_COMPLETE` 固定走 `tools/runtime_report_identity.py` 的 machine event；它同時要求 fresh ExecutionRecord、合法 host-exit proof、dispatch completion classifier PASS，以及 `WHD_HOST_RETURN_SEAM_ENFORCEMENT_V1` host-surface attestation。
 - host surface 若不能證明 `return_hook_enforced=true + plain_final_bypass_blocked=true`，固定標 `HOST_RETURN_SEAM_UNENFORCED`；**不得把 repo-level verifier 宣稱成 physical host hard gate**。
-- 普通 `STATUS/PROGRESS/CHECKPOINT` 可以輸出，但不是 completion/exit authority；輸出後 exact `next_action` 可執行時必須繼續。
+- 普通 `STATUS/PROGRESS/CHECKPOINT` 可以輸出，但不是 completion/exit authority；工單接取後同一 invocation 應依 ExecutionRecord 的 structured `next_action` 持續執行，使用者詢問狀況及中間成果都不構成停止點。remote QA active 期間同 invocation 持續輪詢到 terminal，不用 YIELD 離開；terminal GREEN 可消費即續 MERGE → FINALIZE → Issue close/readback → RELEASED。當前工單 RELEASED 後先處理 chain successor，再透過已授權 READY discovery 接取下一張；只有確實無可執行工作或 genuine blocker 才可結束工作循環。禁止停在進度回報。
 
 ### ISSUE_COMMENT_10MIN_INTERVENTION_BRIDGE_V1
 

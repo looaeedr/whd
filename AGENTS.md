@@ -71,7 +71,7 @@ machine owners：`tools/work_root_gate.py`、`tools/root_local_first_gate.py`。
 CURRENT route 固定 `WORKSPACE_DEFAULT`；route machine=`tools/root_local_first_gate.py::select_repository_content_route`：
 
 - `shared_zero_drift_present=false → WORKSPACE_DEFAULT`
-- `shared_zero_drift_present=true → WORKSPACE_DEFAULT`；舊 drift 只作 HISTORICAL evidence，不得切換 route。
+- `shared_zero_drift_present=true → WORKSPACE_DEFAULT`；兩條路徑刻意保留作為 semantic-doc compatibility marker，實際分支結果相同；舊 drift 只作 HISTORICAL evidence。
 
 Drive mount、Drive mirror、舊 pointer、`.unpushed` 缺失都不是 blocker；`.unpushed/docs/0` / `.unpushed/body/0`、generation/freeze、Drive readback 與 `workspace_canonical_sync.py` 都不得參與 CURRENT routing。
 
@@ -108,7 +108,7 @@ Drive mount、Drive mirror、舊 pointer、`.unpushed` 缺失都不是 blocker�
 2. Skill 名稱使用 active canonical identity，中文 Skill 直接使用 canonical 中文 `name`；不得用 retired alias 或自創簡稱冒充。
 3. 只有實際要使用 Skill 時才公告；沒有使用 Skill 的回合不得為了形式虛報。
 4. 若本回合開始時已知會使用多個 Skill，必須在第一行全部列出。若因後續 evidence / scope expansion 才新增一個事前無法知道的 Skill，必須在**第一次實際使用該新增 Skill 之前**另行輸出 `追加使用「<技能名>」技能…`。
-5. announcement 本身不算 Skill execution evidence。後續仍必須真正讀取／載入該 Skill，完成 Preflight、required references、checkpoint、tests 或該 Skill 自己要求的其他證據。
+5. announcement 本身不算 Skill execution evidence。後續仍必須真正讀取／載入該 Skill，完成 Preflight、required references、領域 evidence、tests 或該 Skill 自己要求的其他證據；不得以 execution checkpoint/journal 當額外 gate。
 6. 不得先完成實質工作，再用「使用某 Skill」補述並宣稱符合本 gate；公告順序錯誤即屬本回合流程違規。
 
 > **這是所有 AI / Agent / Subagent 接手本專案後的第一個 startup communication 規則；chat 與 headless 只差輸出 surface，不得因沒有 chat UI 停工。優先級高於本文後續章節。**
@@ -131,6 +131,24 @@ Codex / CLI / headless executor 是正式 execution surface，不是「缺少 Ch
 - executor-local workspace（Codex 常見為 `/workspace/whd`）是普通 content execution surface；baseline `READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ` 已由 workspace policy授權，不得再以 `REMOTE_CONNECTION_DENIED` 阻塞。
 - 使用者已明確要求同一 repository-content task 時，可為該 exact task/scope mint 一次 `WORKSPACE_DELIVERY` GitHub authority；測試後進 push/PR/CI/merge 不得再次要求使用者重複授權。scope 擴張、不同 repository 或額外 remote action 仍必須重新授權。
 - host 真實網路/credential failure 可作 capability evidence，但 governance 不得把「需要 chat UI / AI Library / Drive mount / 第二次同 scope確認」冒充 capability blocker。
+
+### GITHUB_CONNECTOR_FIRST_CONTINUITY_HARD_GATE_V1
+
+<!-- GITHUB_CONNECTOR_FIRST_CONTINUITY_HARD_GATE_V1 -->
+
+WHD GitHub-backed 工作的 GitHub 端操作優先沿用已連接、已授權的 GitHub Connector（Issue、ExecutionRecord、branch、PR、Actions、Preflight request/result、留言與 readback）。隔離 shell/sandbox 的 DNS、network git 或 credential failure **不等於 GitHub Connector 失敗，不得以此直接停止工作**。
+
+1. 先確認 exact task/action 的 `WHD_REMOTE_CONNECTION_AUTHORITY_V1`；Connector 可用性不是新增 remote authority，也不取代 Flow v2 atomic CAS。
+2. shell 直連 GitHub 失敗時，優先用現有 GitHub Connector 繼續同 scope 已授權操作；不得要求重複授權。
+3. Connector 只負責 GitHub transport；repository-content 改動、workspace 測試 GREEN、exact diff、delivery PR、CI、merge、Issue closure 既有硬閘門全部保留。
+4. Connector 某 action 不支援時，標記 `GITHUB_CONNECTOR_ACTION_UNAVAILABLE`，改試其他合法 transport／繼續不受影響的 next_action；只有全部合法路徑都無法執行時才能回 genuine machine blocker，不得以單一 transport failure 讓整張工單停擺。
+5. /派工 不得使用本機 fallback；explicit /接手 的 RC 專用施工路徑維持不變。600 秒 Issue 留言規則與 terminal-tail 不可 YIELD 規則不變。
+
+此 gate 僅規範 transport priority 與 continuity，不建立額外 owner、checkpoint、journal 或狀態機。
+
+### STARTUP_PHASE_ORDER_CLARIFICATION_V1
+
+啟動順序固定：先完成 entry contract 與 root-local-first bootstrap tool read（非 user-visible）；使用 Skill 時，第一個 user-visible／machine-visible startup communication 先公告 canonical Skill identity，再輸出 `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1` declaration；接著執行 Phase6 Preflight、fresh-read 全部 REQUIRED SKILLS/REFERENCES，才開始 substantive work。headless 沒有 chat UI 不得阻塞。明確 `/接手 <issue>` 的 RC → whd-dev → /workspace/whd 施工限制高於普通 workspace default；/派工 禁止 RC fallback。
 
 ### GITHUB_ONLY_REMOTE_PHASE6_PREFLIGHT_V1
 
@@ -196,9 +214,9 @@ Flow v2 CURRENT hard gate 固定為：
 1. 本 invocation 已先完成 `EXECUTION_ENTRY_AUTH_PURPOSE_BRIDGE_V1`，並 user-visible 輸出 canonical `WHD_EXECUTION_ENTRY_AUTHORIZATION_PURPOSE_V1`。
 2. 已對 **exact branch + exact pre-write HEAD + 完整 task + 全部 planned changed files** 執行 canonical Phase6 Knowledge Preflight。GitHub-only runtime 固定使用 `WHD_REMOTE_PHASE6_PREFLIGHT_REQUEST_V1` / `WHD_REMOTE_PHASE6_PREFLIGHT_RESULT_V1`。
 3. remote receipt 必須 `result=GREEN`，且 exact 綁定 issue、worker、branch、head_sha、task hash 與 changed_files；呼叫端再 fresh-read receipt 列出的全部 REQUIRED SKILLS / REQUIRED REFERENCES。
-4. 寫入只能發生在 receipt 綁定的 branch。GitHub contents mutation 必須逐 target 使用 fresh blob SHA 做 CAS。若 branch HEAD 自 receipt HEAD 往後的新增 commits **全部由同一 invocation、且全部只修改 receipt.changed_files 內路徑**，可作為同一 authorized mutation chain 連續施工；任一 foreign/intervening commit、target blob 非預期 drift、branch rewrite 或 owner/invocation 不可證明時立即 fail closed，重新跑 Preflight。
+4. 寫入只能發生在 receipt 綁定的非 production delivery branch；`cleanup/2d-3d-sync` 是治理 authority 與 PR merge target，禁止 direct push。GitHub contents mutation 必須逐 target 使用 fresh blob SHA 做 CAS。若 branch HEAD 自 receipt HEAD 往後的新增 commits **全部由同一 invocation、且全部只修改 receipt.changed_files 內路徑**，可作為同一 authorized mutation chain 連續施工；任一 foreign/intervening commit、target blob 非預期 drift、branch rewrite 或 owner/invocation 不可證明時立即 fail closed，重新跑 Preflight。
 5. mutation scope 不得超出 receipt 的 `changed_files`。途中新增 target 必須回到第 2 步重跑；不得用同一 receipt 擴張 scope。
-6. Skill/governance mutation 只在 authoritative `cleanup/2d-3d-sync` 上走單一治理驗收：`WHD Control Plane Regression` + authority/Registry/semantic-doc consistency tests。**不再建立 main mirror PR、parity transaction 或 ancestry reconciliation。** Control Plane Regression 必須包含 startup hard-gate contract tests。
+6. Skill/governance mutation 先在 workspace 修改及測試，再由 delivery branch → PR → checks → merge 至 authoritative `cleanup/2d-3d-sync`，走單一治理驗收：`WHD Control Plane Regression` + authority/Registry/semantic-doc consistency tests。**不再建立 main mirror PR、parity transaction 或 ancestry reconciliation。** Control Plane Regression 必須包含 startup hard-gate contract tests。
 7. legacy Remote Guard / Claim Activation / Remote Finalization / Turn Exit workflow transports 已自 `.github/workflows` 移除；**不得把已退役 legacy Remote Guard 當 CURRENT Skill write gate，也不得重新新增相容 workflow 檔**。CURRENT write authority 只來自 Flow v2 ExecutionRecord + atomic transaction + root-local-first receipt。
 
 CURRENT machine owners：
@@ -229,12 +247,12 @@ CURRENT machine owners：
 - **功能完成不是 terminal evidence**：QA GREEN、PR 已 merge、功能已生效、watchdog 已停、使用者可見問題已修好，都不得單獨授權「完成／可以停／turn exit」。
 - user-visible completion/terminal claim 與 normal task exit 前，必須以 `tools/execution_invocation_exit.py::assert_durable_terminal_exit(record)` 驗 `WHD_EXECUTION_RECORD_V2`。
 - 唯一 durable terminal tuple：`state=DONE`、`next_action=null`、`lease=null`、`active_run=null`、`owner_kind/owner_id=NONE`、`lane_id=null`、`closure.issue_closed=true`、`closure.released_at!=null`、`mutation_scope` 為 `RELEASED` 或不存在。
-- 任一條未成立即 `DURABLE_TERMINAL_EXIT_BLOCKED`；同一 invocation 必須繼續 exact `next_action` 到 DONE，或留下 genuine machine blocker。**進度回報、功能面成功、merge/QA 成功都不是停止點。**
+- 工單接取後，同一 invocation 應依 ExecutionRecord 的 structured `next_action` 持續執行到 DONE 或 genuine machine blocker；進度回報、使用者詢問狀況或完成中間階段均非停止理由。任一 durable terminal tuple 未成立即 `DURABLE_TERMINAL_EXIT_BLOCKED`。**進度回報、使用者詢問進度、功能面成功、merge/QA 成功都不是停止點。** Remote QA active 期間必須在同一 invocation 依合理 cadence 持續輪詢到 terminal；不得以等待或進度回報觸發 YIELD。只有真實工具／權限／provider 故障才按既有 fail-closed blocker 程序處理。
 - **GREEN consume hard gate**：exact-head QA/CI terminal GREEN 不得作為 turn exit。GREEN 必須先被 `ACCEPT_QA` / `CONSUME_QA` 寫入 canonical record；若 continuation=`MERGE`，立即進 no-yield terminal tail。
-- **terminal tail hard gate**：accepted exact-head QA + `next_action=MERGE`，以及 merged + `next_action=FINALIZE`，都固定由 `classify_invocation_exit` 回 `CONTINUE_TERMINAL_TAIL`；此時 host boundary / substantive progress 不得授權 YIELD。
-- terminal tail 唯一正常終點是 `MERGE → Issue close/readback → FINALIZE → RELEASED/DONE`。`PR_MERGED` 本身仍是 nonterminal；只有 genuine machine blocker 可中斷。
+- **terminal tail hard gate**：accepted exact-head QA + `next_action=MERGE`，以及 merged + `next_action=FINALIZE`，都固定由 `classify_invocation_exit` 回 `CONTINUE_TERMINAL_TAIL`；此時 host boundary / substantive progress 不得授權 YIELD；QA GREEN 可消費時必須立即 consume，再持續 MERGE → Issue close/readback → FINALIZE → RELEASED。
+- 當前工單的 terminal tail 是 `MERGE → Issue close/readback → FINALIZE → RELEASED/DONE`；完成當前工單後必須 fresh-read ExecutionRecord chain successor 並立即執行；未指定 successor 時由已授權的正式 READY discovery/ACQUIRE 入口尋找下一張可執行工單。只有無可執行工作或 genuine blocker 才可結束工作循環；不得因當前工單 RELEASED 停止。`PR_MERGED` 本身仍是 nonterminal；只有 genuine machine blocker 可中斷。
 - static contract：`.agents/contracts/WHD_DURABLE_TERMINAL_EXIT_HARD_GATE_V1.json`。
-- **repository-content physical-cycle completion**：呼叫 `tools.execution_invocation_exit.py::assert_repository_content_cycle_complete(record)` 驗證 trusted DONE/merge/Issue readback。普通 workspace 不要求 source manifest、workspace archive、Drive sync 或 shared-zero lane receipt。
+- **repository-content physical-cycle completion**：呼叫 `tools/execution_invocation_exit.py::assert_repository_content_cycle_complete(record)` 驗證 trusted DONE/merge/Issue readback。普通 workspace 不要求 source manifest、workspace archive、Drive sync 或 shared-zero lane receipt。
 
 ### 0.0.2 超長 Log / Context-Safe Execution 硬閘門
 
@@ -283,7 +301,7 @@ pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能�
 2. 單一板件修改至少跑「驗該板件」；跨 2D/3D/DXF/persistence、multipart/dynamic IDs 時必須跑「完整板件驗收」。
 3. multipart 必須逐 physical piece 驗；不得只驗 aggregate logical `box_body`。
 4. DXF 相關必須 actual export → reopen → compare；Save/Reload 相關必須真的存檔再重建 canonical output。
-5. Remote QA 依 `monitoring-remote-qa`：本 invocation 觀察 exact run/head 一次；terminal 立即消費，active 則 durable YIELD，後續 invocation resume。cleanup 後做 tested-head → cleaned-head drift audit。
+5. Remote QA 依 `monitoring-remote-qa` 與 Flow v2 `next_action`：terminal GREEN 立即消費並續跑 terminal tail；active 必須持續輪詢 exact run/head 直到 terminal，不得以 remote wait 觸發 YIELD；GREEN 直接消費並收尾，RED／取消／逾時依既有 FAIL_QA／blocker gate 處置。cleanup 後做 tested-head → cleaned-head drift audit。
 6. 若缺少 `驗證板件與DXF` 的 final evidence，狀態只能是 **focused GREEN / final acceptance pending**，禁止標記 ACCEPTED、merge 或 release。
 7. `.agents/skills/skill_registry.json` 的 `part-dxf-acceptance` route 是機器可讀防線；命中相關 changed-file / task keyword 時，Preflight 必須自動要求此 Skill，禁止靠 AI 記憶決定要不要跑。
 
@@ -325,7 +343,7 @@ production code
 - 只讀通用 Superpowers，未讀 `.agents/skills/`、踩坑庫或 canonical references。
 - 憑記憶猜哪些 Skill / reference 適用，而不執行 `phase6_skill_preflight.py`。
 - 派工給 Subagent 時未要求該 Subagent 重新完成同一套 Preflight。
-- 宣稱已執行派工 Skill，卻沒有 PM / Worker / QA 角色標記、checkpoint path、journal/state path 與 resume command。
+- 宣稱已執行派工 Skill，卻沒有真實 owning Issue 或合法 WHD_EXECUTION_RECORD_V2 structured next_action；PM/Worker/QA 文字、checkpoint path、journal/state path、resume command 不得作為額外執行硬閘門。
 - evidence 只寫檔名但實際沒有讀取；reference evidence 必須使用 `READ_REFERENCE: <path>`。
 - Preflight 有任何 required Skill / reference 未完成就修改 production / tests / SOP。
 - 因任務「看起來很簡單」而跳過 Preflight。
@@ -856,7 +874,7 @@ handoff/05_NEXT_STEPS.md
 正確流程：
 
 ```text
-1. 讀本 AI_HANDOFF.md
+1. 讀本 AGENTS.md
 2. 按需求閱讀 handoff/ 細節文件
 3. 讀 sheetmetal_geometry.py
 4. 找目前實際使用中的 ae.py / ae_3.py
@@ -922,8 +940,7 @@ git push / GitHub Connector / DNS / remote sync / 遠端同步
 → 必讀 .agents/skills/engineering/monitoring-remote-qa/SKILL.md
 → workflow run 建立後必須持續監控 run / job / step 到終態；不得只觸發後停止。
 
-remote QA / GitHub Actions QA / 同步遠端 QA
-→ 必讀 monitoring-remote-qa
+remote QA 的 exact run/head 持續輪詢、terminal consume 均以以上 monitoring-remote-qa 規則為準，不建立第二份執行狀態機。
 ```
 
 正式出包前必須再次執行：
@@ -962,7 +979,23 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 
 ---
 
-## 0.0.2 2026-09-06 事故硬閘門：Remote Source of Truth、Exact Seam、真派工、Harness 分類
+### 0.0.4 Authoritative View freshness 硬閘門
+
+> **authoritative state 已更新，不代表操作員目前看到的 View 已刷新。兩者是不同 invariant。**
+
+凡 Main GUI / Fold Designer / 2D / 3D 共用 authoritative state 的同步或入口收斂任務，必須同時驗證資料同源與可見 View freshness：
+
+1. authoritative mutation / external sync 必須先完成 commit/apply/invalidate，再由 View 重新讀 authoritative projection / render data。
+2. 若 `corner_data` / 截角資料 View 當下可見，每個新的 authoritative revision 套用成功後**剛好刷新一次**。
+3. hidden View 不得 eager refresh；replayed / stale revision 必須 no-op，不得重刷。
+4. repeated authoritative revisions 必須維持「一個 commit 對應一次 visible refresh」，不得漏刷或雙刷。
+5. 禁止 widget-to-widget 抄值作同步；View refresh / destroy / recreate 不得寫回 manufacturing state、available parts、CornerType、Fold Profile、holes/features 或 persistence payload。
+6. 驗 dual-view parity 不得只比 Final Material / DXF / Save→Reload；還必須有 visible refresh、hidden no-refresh、replayed revision no-op、repeated revisions、View recreate zero-mutation 的證據。
+7. 發現「資料正確但畫面仍舊」時，先查 authoritative commit → invalidate/apply → visible View refresh orchestration，不得另建第二套 geometry/state 當 workaround。
+
+
+
+## 0.0.5 2026-09-06 事故硬閘門：Remote Source of Truth、Exact Seam、真派工、Harness 分類
 
 > 本節來自 2026-09-06 Receiving 工單事故。屬永久 fail-closed 規則；優先級與 0.0.1 派工硬閘門相同。後續 AI 每次讀 AGENTS.md 都必須看到並遵守。
 
@@ -970,7 +1003,7 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - GitHub 專案指定 `cleanup/2d-3d-sync` 時，該 branch 是普通 executor-local workspace 的 production baseline；READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ 可用於 baseline refresh。這不授權 direct production write，也不授權其他 Issue/PR/Actions 操作。
 - 上傳 ZIP 只能是 fixture / archive / 參考輸入；除非使用者明確指定「這個 ZIP 就是本輪施工基準」，否則禁止拿 ZIP 當 production baseline、A/B good version、checkpoint parent 或 regression oracle。
 - 若已在錯誤 tree 做過修改、PASS/FAIL、checkpoint，發現後必須整批宣告 evidence 作廢；禁止挑其中看起來有用的結果續工。
-- 每張工單 checkpoint / journal 必須寫明 repository、branch、parent HEAD SHA；branch HEAD 漂移時先重新 compare / rebase execution plan。
+- 每張工單的 owning Issue／ExecutionRecord 和 delivery evidence 必須可追溯 repository、branch、parent HEAD SHA；branch HEAD 漂移時先重新 compare / rebase execution plan。
 
 ### B. 使用者回報 GUI / live-sync Bug 時，RED 必須逐步重現完全相同操作順序
 - fresh-open target family GREEN 不能證明「3D 已開啟 → live switch 到 target family」GREEN。
@@ -1001,7 +1034,7 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - remote QA 必須保存 `run_id + head_sha` 並追到 terminal state。
 
 ### G. 發現錯誤證據後必須明確撤銷
-- 錯 baseline、錯 seam、harness failure 產生的 PASS/FAIL 必須在 journal / Issue / 回覆中標記 INVALID / REVOKED。
+- 錯 baseline、錯 seam、harness failure 產生的 PASS/FAIL 必須在 owning Issue／ExecutionRecord evidence／回覆中標記 INVALID / REVOKED，不得強制另建 execution journal。
 - Combined Acceptance 只能引用同一 execution tree、正確 seam、terminal harness 的證據。
 
 
@@ -1059,21 +1092,6 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - target drift 命中 touched paths 時必須 refresh/reconcile workspace、重測，再更新 delivery candidate。
 - Drive/shared-zero 不再有 CURRENT delivery route；`/推推` 只可作已測 exact diff 的顯式 delivery alias，不得把施工流程導回 Drive。
 - remote scheduler/control-plane scope 依 Flow v2 自己 authority，不得拿普通 workspace baseline read 擴張 control-plane mutation。
-### 0.0.4 Authoritative View freshness 硬閘門
-
-> **authoritative state 已更新，不代表操作員目前看到的 View 已刷新。兩者是不同 invariant。**
-
-凡 Main GUI / Fold Designer / 2D / 3D 共用 authoritative state 的同步或入口收斂任務，必須同時驗證資料同源與可見 View freshness：
-
-1. authoritative mutation / external sync 必須先完成 commit/apply/invalidate，再由 View 重新讀 authoritative projection / render data。
-2. 若 `corner_data` / 截角資料 View 當下可見，每個新的 authoritative revision 套用成功後**剛好刷新一次**。
-3. hidden View 不得 eager refresh；replayed / stale revision 必須 no-op，不得重刷。
-4. repeated authoritative revisions 必須維持「一個 commit 對應一次 visible refresh」，不得漏刷或雙刷。
-5. 禁止 widget-to-widget 抄值作同步；View refresh / destroy / recreate 不得寫回 manufacturing state、available parts、CornerType、Fold Profile、holes/features 或 persistence payload。
-6. 驗 dual-view parity 不得只比 Final Material / DXF / Save→Reload；還必須有 visible refresh、hidden no-refresh、replayed revision no-op、repeated revisions、View recreate zero-mutation 的證據。
-7. 發現「資料正確但畫面仍舊」時，先查 authoritative commit → invalidate/apply → visible View refresh orchestration，不得另建第二套 geometry/state 當 workaround。
-
-
 ### ISSUE100_LEGACY_2D_ENTRY_RETIREMENT_RULE
 
 退役 UI 入口時，先切斷「使用者可達入口 / navigation authority / identity authority」，不得因名稱看似 legacy 就盲刪仍被新入口共用的 renderer/helper/callback state。若暫留 compatibility state，必須 user-unreachable、non-navigation、non-manufacturing-authority，並以 runtime navigation + capability preservation 驗收。

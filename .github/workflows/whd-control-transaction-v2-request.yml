@@ -16,6 +16,7 @@ on:
 permissions:
   contents: write
   issues: write
+  actions: read
 
 concurrency:
   group: whd-flow-v2-push-${{ github.ref_name }}
