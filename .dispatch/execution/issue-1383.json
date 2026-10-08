@@ -1,5 +1,10 @@
 {
-  "active_run": null,
+  "active_run": {
+    "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
+    "id": 37763726037,
+    "purpose": "WHD Product Regression exact PR #1416 head",
+    "status": "in_progress"
+  },
   "blocker": null,
   "chain": {
     "next_action": null,
@@ -12,7 +17,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
   "issue": 1383,
   "lane_id": "chatgpt.flowv2.work1",
@@ -35,10 +40,11 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-product-regression.yml"
+      "head_sha": "0796a1e043b5b7df898b7eb52f83b4fdf016045b",
+      "run_id": 37763726037
     },
-    "display": "Run canonical product regression on exact #1383 PR head",
-    "kind": "START_QA"
+    "display": "Poll exact Product Regression run 37763726037",
+    "kind": "POLL_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -56,21 +62,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "REMOTE_QA",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
-  "state": "ACTIVE",
+  "state": "VERIFYING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "c187f6b5ec034b820fb7e2fb65d8ce6fdedc75bf",
   "transaction": {
-    "expected_fingerprint": "1afeac01c9f89ae427cec0ff6b30aafde5b96617236e09be01748fb36c539cb4",
-    "id": "gha:37763687197:1383:APPLY_COMMIT:4",
+    "expected_fingerprint": "408e28e058fe077d2dad2bd3e357d96ffa7f191d2d05bd009912b0b7c02f6526",
+    "id": "gha:37763825156:1383:START_QA:5",
     "invocation_identity": "chatgpt.issue1383.workspace.20261008.work1",
-    "kind": "APPLY_COMMIT",
+    "kind": "START_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T10:29:14Z",
+  "updated_at": "2026-10-08T10:30:36Z",
   "version": 2,
   "work_branch": "work/issue-1383"
 }
