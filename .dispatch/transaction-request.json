@@ -1,39 +1,21 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1433-reserve-pr1436-sevenpaths-v1-20261008",
+  "request_id": "issue1433-reacquire-after1435-done-work1-20261008",
   "issue": 1433,
-  "kind": "RESERVE_PATHS",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
-  "expected_coord_head": "41466926a6c85c1ba52b0c8b213240c9321227db",
+  "expected_coord_head": "70341d7f437127690f3f110a5d5ac3777990cf23",
   "expected_generation": 3,
-  "effect": {
-    "target_branch": "cleanup/2d-3d-sync",
-    "base_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
-    "write_paths": [
-      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
-      "AGENTS.md",
-      "tests/process/test_flow_v2_ready_slot_repair.py",
-      "tests/process/test_issue1391_dispatch_acquire_control_plane_only.py",
-      "tools/control_transaction_production_executor.py",
-      "tools/control_transaction_request_builder.py",
-      "tools/control_transaction_request_ingress.py"
-    ],
-    "delete_paths": [],
-    "next_action": {
-      "args": {},
-      "display": "Create #1433 trusted delivery branch after admission",
-      "kind": "START_BRANCH"
-    }
-  },
-  "purpose": "Reserve exact PR #1436 seven-file mutation scope using attested GitHub Actions workspace and current native lease",
+  "effect": {},
+  "purpose": "Renew same-owner expired native lease after Issue #1435 released overlapping reservation",
   "work_root_gate_evidence": {
     "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
     "drive_role": "MIRROR_BACKUP_ONLY",
     "execution_mode": "INTERACTIVE",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+    "production_head_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
     "provider": "executor_local_workspace",
     "read_mode": "WORKSPACE_GIT_BASELINE",
     "repository_content_write_unlocked": null,
@@ -152,7 +134,7 @@
     "issue": 1433,
     "invocation_identity": "chatgpt.issue1433.slotrepair.20261008.work1",
     "branch": "cleanup/2d-3d-sync",
-    "head_sha": "859bb8295ef1ba814a70bb6d0359be6b87fa2873",
+    "head_sha": "d30a81dbafeef0cebd534d4bc177e1bf2ef882dd",
     "required_skills": [
       "flow-v2-execution",
       "root-local-first",
@@ -181,6 +163,6 @@
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
       "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-08T13:42:06.317Z"
+    "observed_at": "2026-10-08T14:19:34.009Z"
   }
 }
