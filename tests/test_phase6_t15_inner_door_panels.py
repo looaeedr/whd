@@ -75,6 +75,19 @@ def test_inner_door_panel_has_real_manufacturing_render_data():
     assert render.metadata["finished_width"] == pytest.approx(689.0)
     assert render.metadata["unfolded_width"] == pytest.approx(723.0)
 
+    # Measure the actual generated CUTTING polygon; do not validate a
+    # manufacturing number only against metadata produced by the same code.
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    cutting_outlines = [
+        item for item in tuple(render.scene.primitives)
+        if isinstance(item, PolylinePrimitive)
+        and str(item.layer).upper() == "CUTTING"
+    ]
+    assert len(cutting_outlines) == 1
+    cutting_x = [float(point.x) for point in cutting_outlines[0].points]
+    assert max(cutting_x) - min(cutting_x) == pytest.approx(723.0)
+
+
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
 def test_receiving_each_outer_door_data_row_has_independent_inner_door_checkbox_state():
