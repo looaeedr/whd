@@ -45,10 +45,18 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
     snapshot = _snapshot()
     panel = resolve_assembly_placement(snapshot, "inner_door:upper:panel")
     manufactured = cabinet_family_policy.derive_inner_door_panels(snapshot)[0]
-    assert manufactured.width == pytest.approx(693.0)
+    # From the two physical side-sheet inner skins, not Box Body outer W.
+    from ae_engine.cabinet_types.receiving import inner_door_body_clear_width
+    assert inner_door_body_clear_width(cell_width=800.0, thickness=2.0) == pytest.approx(796.0)
+    assert manufactured.width == pytest.approx(689.0)
+    assert manufactured.unfolded_width == pytest.approx(723.0)
     assert panel.relationship == "INNER_DOOR_PANEL"
     assert panel.mate_target == "inner_door:upper:frame_opening"
     assert panel.world_offset[0] == pytest.approx(0.0)
+    # The rendered 3D envelope must consume the same formed dimensions.
+    import ae_engine.assembly_placement as placement
+    envelope = placement._inner_door_geometry(snapshot, "upper")
+    assert envelope["panel_width"] == pytest.approx(689.0)
     assert panel.world_offset[2] == pytest.approx(95.0)
 
     top = resolve_assembly_placement(snapshot, "inner_door:upper:top_frame")
@@ -113,9 +121,9 @@ def test_physical_frame_mates_do_not_follow_outer_door_finished_edge(outer_fw, d
 
     panels = cabinet_family_policy.derive_inner_door_panels(modified)
     assert len(panels) == 1
-    assert panels[0].width == pytest.approx(800 - 100 - 2 * door_gap)
+    assert panels[0].width == pytest.approx(800 - 2 * 2 - 100 - 2 * door_gap)
     frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(modified)
-    assert frame_sets[0].spans["top"] == pytest.approx(700.0)
+    assert frame_sets[0].spans["top"] == pytest.approx(696.0)
 
 
 def test_r06_divider_guard_stays_authoritative_and_repeatable():
