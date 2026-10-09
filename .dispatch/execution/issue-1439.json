@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 9,
+  "generation": 10,
   "head_sha": "349bea80ce0ad2bbe64710559271d4377c628cc7",
   "issue": 1439,
   "lane_id": "chatgpt.flowv2.work1",
@@ -39,16 +39,19 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "head_sha": "349bea80ce0ad2bbe64710559271d4377c628cc7",
+      "pr_number": 1440,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Validate exact #1439 PR CI head",
-    "kind": "START_QA"
+    "display": "Merge PR #1440 exact accepted CI head",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "349bea80ce0ad2bbe64710559271d4377c628cc7",
+    "last_accepted_run": 37875581830
   },
   "recovery_history": [
     {
@@ -60,21 +63,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTATION_COMMITTED",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
   "transaction": {
-    "expected_fingerprint": "7a98a725b9eea14b2d97a56527ed71f47df40903f75f6b635b86c3bac4daa104",
-    "id": "gha:37875644596:1439:ACQUIRE:8",
+    "expected_fingerprint": "ebc963de8b9d6b34a3e5bc12094e45801027f00b7862e5e36b397d1efcefa49e",
+    "id": "gha:37875814361:1439:CONSUME_QA:9",
     "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0239",
-    "kind": "ACQUIRE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T02:40:55Z",
+  "updated_at": "2026-10-09T02:42:53Z",
   "version": 2,
   "work_branch": "work/issue-1439-tok-ci-identity"
 }
