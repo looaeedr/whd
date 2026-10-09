@@ -576,10 +576,13 @@ def receiving_settings_ports(self, namespace, set_index):
     adapter = self.receiving_adapter(namespace)
     adapter.select_set(set_index + 1)
 
+    listeners = []
     def commit():
         self.app._phase6_input_snapshot["receiving_layout"] = adapter.layout
         self.sync_receiving_current_bay(namespace)
         self.app.submit_update_intent("geometry", commit=True)
+        for listener in tuple(listeners):
+            listener()
 
     def selected(index):
         adapter.select_bay(index + 1)
@@ -653,6 +656,7 @@ def receiving_settings_ports(self, namespace, set_index):
         "row": lambda: adapter.layout["sets"][set_index],
         "select": selected, "change": change, "share": share, "unlink": unlink,
         "dimensions": dimensions, "alignment": alignment, "brand": brand, "holes": holes,
+        "subscribe": listeners.append,
     }
 
 def open_receiving_layer_preview(self, namespace, layer_index):
@@ -668,7 +672,7 @@ def open_receiving_layer_preview(self, namespace, layer_index):
     except Exception as exc:
         from tkinter import messagebox
         messagebox.showwarning(
-            "3D 預覽失敗",
+            "2D 預覽失敗",
             str(exc),
             parent=getattr(app, "root", None),
         )

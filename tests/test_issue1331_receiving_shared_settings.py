@@ -103,11 +103,12 @@ def test_real_settings_preview_exports_every_piece_and_reload_keeps_each_bay(tmp
         assert composition.open_receiving_layer_preview(namespace, 0)
         root.update_idletasks()
         root.update()
-        assert len(counts) >= 2 and counts[1] > counts[0]
-        assert not figures[-1].axes[0].texts
+        assert counts == [], "設定視窗不得渲染 3D mesh"
         windows = [child for child in app.root.winfo_children() if hasattr(child, "_phase6_receiving_preview_canvas")]
         assert len(windows) == 1
         win = windows[0]
+        assert win._phase6_receiving_preview_canvas.figure.axes[0].name == "rectilinear"
+        figures.append(win._phase6_receiving_preview_canvas.figure)
         canvas_widget = win._phase6_receiving_preview_canvas.get_tk_widget()
         initial_scaling = float(root.tk.call("tk", "scaling"))
         for factor in (1.0, 1.2, 1.4):
@@ -117,13 +118,76 @@ def test_real_settings_preview_exports_every_piece_and_reload_keeps_each_bay(tmp
             assert canvas_widget.winfo_height() >= int(win.winfo_height() * 0.55), factor
             assert canvas_widget.winfo_width() >= int(win.winfo_width() * 0.75), factor
         root.tk.call("tk", "scaling", initial_scaling)
-        ports = composition.receiving_settings_ports(namespace, 0)
+        # Let resize/text-scale work complete before measuring selection, so
+        # prior main-3D initialization is not attributed to the next gesture.
+        settled = tk.BooleanVar(master=root, value=False)
+        root.after(300, lambda: settled.set(True))
+        root.wait_variable(settled)
+        root.update_idletasks()
+        root.update()
+        # True Tk/Matplotlib interaction profile over real resolved Receiving sheets.
+        import time, json
+        import ezdxf
+        import phase6_manufacturing_service as manufacturing_service
+        from gui_modules.application.receiving_settings_preview_2d import physical_drawings
+        panel = win._phase6_receiving_settings_panel
+        view = win._phase6_receiving_preview_2d
+        calls = {"manufacturing_resolve": 0, "dxf_read": 0, "scene_3d_render": 0,
+                 "calculation": 0}
+        def forbidden(name):
+            def fail(*args, **kwargs):
+                calls[name] += 1
+                raise AssertionError("display-only interaction executed " + name)
+            return fail
+        baseline_geometry_draws = view.geometry_draw_count
+        baseline_overlay_draws = view.overlay_count
+        baseline_canvas_draws = view.canvas_draw_count
+        baseline_overlay_blits = view.overlay_blit_count
+        immutable_materials = tuple(data.material.wkb for request in view.requests
+                                    for _, _, data in physical_drawings(request))
+        with monkeypatch.context() as guard:
+            guard.setattr(manufacturing_service, "resolve", forbidden("manufacturing_resolve"))
+            guard.setattr(ezdxf, "readfile", forbidden("dxf_read"))
+            guard.setattr(Phase6FinalSceneRenderer, "render", forbidden("scene_3d_render"))
+            guard.setattr(app, "do_update", forbidden("calculation"))
+            started = time.perf_counter()
+            panel._receiving_select_bay(1)
+            assert not panel._receiving_pending
+            for kind in ("封頭孔", "封尾孔", "背板", "內門層數") * 3:
+                panel._receiving_kind_var.set(kind)
+                panel._receiving_refresh()
+                for bay in (0, 1):
+                    panel._receiving_select_bay(bay)
+                    root.update_idletasks()
+                    root.update()
+            elapsed = time.perf_counter() - started
+        assert all(count == 0 for count in calls.values()), calls
+        assert view.geometry_draw_count == baseline_geometry_draws
+        assert view.canvas_draw_count == baseline_canvas_draws
+        assert tuple(data.material.wkb for request in view.requests
+                     for _, _, data in physical_drawings(request)) == immutable_materials
+        receipt = {**calls, "geometry_draw_delta": view.geometry_draw_count-baseline_geometry_draws,
+                   "overlay_delta": view.overlay_count-baseline_overlay_draws,
+                   "canvas_draw_delta": view.canvas_draw_count-baseline_canvas_draws,
+                   "overlay_blit_delta": view.overlay_blit_count-baseline_overlay_blits,
+                   "wall_seconds": elapsed, "selection_steps": 24}
+        (tmp_path / "receiving-2d-selection-profile.json").write_text(
+            json.dumps(receipt, indent=2), encoding="utf-8")
+        print("RECEIVING_2D_PROFILE=" + json.dumps(receipt))
+        ports = win._phase6_receiving_settings_ports
         ports["select"](0)
         editor_args = {}
         monkeypatch.setattr(host, "_open_unified_hole_editor", lambda *args, **kwargs: editor_args.update(kwargs))
         ports["holes"]("tail", (0, 1))
         editor_args["feature_list_override"].append(CircleFeature(anchor=FeatureAnchor.PANEL_CENTER, offset=Vec2(0, 0), diameter=12))
         editor_args["sync_callback"]()
+        assert view.geometry_draw_count == baseline_geometry_draws + 1
+        root.update_idletasks()
+        assert view.canvas_draw_count == baseline_canvas_draws + 1
+        for request in view.requests:
+            tail = next(part.render_data for part in request.render_data.assembly_parts if part.part_key == "tail")
+            assert any(isinstance(primitive, CirclePrimitive) and primitive.radius == 6
+                       for primitive in tail.scene.primitives)
         shared = ports["row"]()["settings"]["tail_features"]
         assert len(set(shared["refs"].values())) == 1
         for index in (0, 1):
@@ -133,7 +197,7 @@ def test_real_settings_preview_exports_every_piece_and_reload_keeps_each_bay(tmp
             output = tmp_path / f"連{index + 1}_封尾共享編輯.dxf"
             api.save_part_render_data_dxf(tail, output, overwrite=True)
             assert api.verify_saved_part_render_data_dxf(tail, output).ok
-        figures[-1].savefig(tmp_path / "每連設定3D.png")
+        figures[-1].savefig(tmp_path / "每連設定2D.png")
     finally:
         root.destroy()
     assert hashlib.sha256(config.read_bytes()).hexdigest() == before

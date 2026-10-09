@@ -143,44 +143,26 @@ def test_receiving_layer_preview_dialog_is_owned_by_existing_controls_owner():
     assert len(bridge_source.splitlines()) <= 12
 
 
-def test_receiving_preview_owner_renders_complete_clean_3d_and_canonical_lock_holes():
+def test_receiving_preview_owner_renders_2d_canonical_physical_scenes():
+    from gui_modules.application.receiving_settings_preview_2d import ReceivingSettingsPreview2D, physical_drawings
     owner_source = inspect.getsource(controls.open_receiving_layer_preview)
-    assert 'FigureCanvasTkAgg' in owner_source
-    assert 'Phase6FinalSceneRenderer' in owner_source
-    assert 'apply_mpl_dark_theme' in owner_source
-    assert 'Poly3DCollection' not in owner_source
-    assert 'facecolor="#3b82f6"' not in owner_source
+    assert "ReceivingSettingsPreview2D(" in owner_source
+    assert "Phase6FinalSceneRenderer" not in owner_source
+    assert "Poly3DCollection" not in owner_source
     assert '_phase6_mesh_feature_segments' not in owner_source
-    assert 'lock_circles' in owner_source
     assert 'Radiobutton' not in owner_source
-    assert 'on_confirm' not in owner_source
     assert 'win.state("zoomed")' in owner_source
-    assert 'figure.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0)' in owner_source
-    assert 'preview_renderer.configure_3d_only_figure()' in owner_source
-    assert 'group_labels.get(group, group)' not in owner_source
-    assert 'group_labels.get(group, f"零件{ordinal}")' in owner_source
-    assert '"left_side": "左側板"' in owner_source
-    assert '"back": "後側板"' in owner_source
-    assert '"right_side": "右側板"' in owner_source
-    assert '"divider": "中隔"' in owner_source
-    assert '"inner_door": "內門框"' in owner_source
-
-    adapter_source = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(
-        encoding="utf-8"
-    )
-    receiving_source = (
-        ROOT / "gui_modules" / "application" / "fold_designer_composition_receiving.py"
-    ).read_text(encoding="utf-8")
-    assert 'def receiving_layer_preview_payload(' in adapter_source
+    assert "piece.render_data" in inspect.getsource(physical_drawings)
+    assert "data.scene.primitives" in inspect.getsource(ReceivingSettingsPreview2D)
+    # Existing joint holes and assembly input authority are preserved.
     preview_source = inspect.getsource(composition_receiving.receiving_bay_preview_request)
     assert 'build_manufacturing_request(' in preview_source
     assert 'resolve(request).geometry' in preview_source
     assert 'receiving_bay_joint_face_features(' in preview_source
     assert 'receiving_bay_assembly_offsets(' in preview_source
-    assert 'bay_requests' in receiving_source
-    assert 'AppendOnlyAxes' in owner_source
     assert 'last_cutting_mesh' not in inspect.getsource(composition_receiving.receiving_layer_preview_payload)
     assert 'range(49)' not in preview_source
+
 
 def test_programmatic_box_body_notebook_changes_keep_guard_until_tk_idle():
     source = _function_source(NAV, 'refresh_box_body_piece_selector')
