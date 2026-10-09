@@ -1,23 +1,22 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1443-start-tested-branch-20261009-0424",
+  "request_id": "issue1443-apply-exact-tested-tree-20261009-0426",
   "issue": 1443,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-  "expected_coord_head": "6d84d0bcfb41229700366d55c7aca04c2ecbb97e",
-  "expected_generation": 3,
+  "expected_coord_head": "d14786d4f55bd075d9b65f9875552899a586a48f",
+  "expected_generation": 4,
   "reuse_admission_session": true,
   "effect": {
-    "work_branch": "work/issue-1443-ci-gate-shortest-path",
-    "head_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
-    "semantic_state": "IMPLEMENTING",
+    "head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
+    "semantic_state": "IMPLEMENTATION_COMMITTED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "6774546228afc59f3245275e4ca71c2aeebc803e8cab3cade63683be17b26829"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Apply exact RC-tested Issue1443 content"
+      "display": "Validate PR CI exact issue1443 head"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -42,11 +41,11 @@
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1443,
-      "generation": 3,
-      "record_fingerprint": "29c9ec67cc3dc32ee3140d62356e94673f98a9a02a40f99965252a4d3a05ee61",
+      "generation": 4,
+      "record_fingerprint": "aef6fe2a1b7eec01a27f2db85f0b553a5cf985d8c64be507365e25a004f6e6c4",
       "lease_token": "lease:1443:37882666195:1",
       "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "work/issue-1443-ci-gate-shortest-path",
       "expected_work_head": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
       "expected_target_head": "d262c6c2d7fe626851a906762ff975ed13e79ae8"
