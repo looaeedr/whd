@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "68a6a0d1ac7b888746d751a348f3a824d8bdc5d3",
-    "released_at": null
+    "released_at": "2026-10-09T04:37:22Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
   "issue": 1443,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-10-09T04:45:47Z",
-    "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-    "token": "lease:1443:37884115163:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "tests/process/test_issue1380_runtime_boundary.py",
@@ -34,15 +30,9 @@
       "tools/flow_v2_merge_precheck.py"
     ]
   },
-  "next_action": {
-    "args": {
-      "pr_number": 1444
-    },
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
     "last_accepted_run": 37884262121
@@ -57,21 +47,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "68a6a0d1ac7b888746d751a348f3a824d8bdc5d3",
   "transaction": {
-    "expected_fingerprint": "af12fd0d754ff699e5185feee1c840a0e9153c3e4dae9c83db0971c8e418c55d",
-    "id": "gha:37884479788:1443:MERGE:7",
+    "expected_fingerprint": "f3990d1ea6557d05597dfd9e7969f3d61a62c620b50ec79f61598a7008e9bfeb",
+    "id": "gha:37884479788:1443:FINALIZE:8",
     "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T04:35:53Z",
+  "updated_at": "2026-10-09T04:36:54Z",
   "version": 2,
   "work_branch": "work/issue-1443-ci-gate-shortest-path"
 }
