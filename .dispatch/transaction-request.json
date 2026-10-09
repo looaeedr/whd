@@ -1,14 +1,14 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1439-native-work1-renew-existing-lease-20261009-0747",
+  "request_id": "issue1439-rc-work1-renew-20261009-0224",
   "issue": 1439,
   "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1439.delivery-resume.work1.20261009",
-  "expected_coord_head": "6a27feaca01cbd34c5a09fcb6d10144341bff1c9",
-  "expected_generation": 3,
+  "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0224",
+  "expected_coord_head": "c59bd0c2e35a1a00853ffe02d71b94dec032449e",
+  "expected_generation": 4,
   "effect": {},
-  "purpose": "Renew same-owner existing work1 lease for native approved START_BRANCH, preserve active scope and no credential-workflow mutation",
+  "purpose": "Same-owner exact Issue 1439 RC takeover after original lease expiry; resume original native START_BRANCH; preserve reservation; run only existing trusted transaction",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -40,19 +40,23 @@
   "preflight_evidence": {
     "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
     "issue": 1439,
-    "invocation_identity": "chatgpt.issue1439.delivery-resume.work1.20261009",
+    "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0224",
     "status": "GREEN",
     "branch": "cleanup/2d-3d-sync",
     "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
     "required_skills": [
       "flow-v2-execution",
       "root-local-first",
-      "Python測試實務"
+      "Python測試實務",
+      "派工",
+      "issue-closure-gate"
     ],
     "completed_skills": [
       "flow-v2-execution",
       "root-local-first",
-      "Python測試實務"
+      "Python測試實務",
+      "派工",
+      "issue-closure-gate"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
@@ -66,8 +70,8 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-09T00:03:03.198Z",
-    "remote_preflight_run_id": 37862702958,
-    "remote_preflight_comment_id": 6071462231
+    "observed_at": "2026-10-09T02:21:46Z",
+    "remote_preflight_run_id": 37874192815,
+    "remote_preflight_comment_id": 6072947281
   }
 }
