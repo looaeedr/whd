@@ -81,10 +81,30 @@ class GitHubProvider:
             return []
         if path.startswith("/commits/"):
             return {"check_runs": [{"name": "Governance Mirror Hard Gate", "conclusion": "success"}]}
+        if path.startswith("/actions/runs?event=pull_request&head_sha="):
+            # Real PR run/job evidence is part of the native MERGE readback.
+            workflows = [
+                ".github/workflows/whd-control-plane-regression.yml",
+                ".github/workflows/whd-product-regression.yml",
+                ".github/workflows/whd-governance-single-authority-gate.yml",
+            ]
+            return {"total_count": len(workflows), "workflow_runs": [
+                {"id": 6101 + i, "path": name, "event": "pull_request",
+                 "head_branch": WORK, "head_sha": HEAD,
+                 "status": "completed", "conclusion": "success",
+                 "actor": {"login": "looaeedr", "type": "User"}, "run_attempt": 1}
+                for i, name in enumerate(workflows)
+            ]}
+        if path.startswith("/actions/runs/") and path.endswith("/jobs?per_page=100"):
+            run_id = int(path.split("/")[3])
+            assert run_id in {6101, 6102, 6103}
+            return {"total_count": 1, "jobs": [
+                {"run_id": run_id, "status": "completed", "conclusion": "success"}
+            ]}
         if path == "/pulls/1400":
             return {"number": 1400, "state": "closed" if self.merged else "open",
                 "merged": self.merged, "mergeable": True, "merge_commit_sha": MERGED,
-                "body": "Closes #1381", "head": {"sha": HEAD},
+                "body": "Closes #1381", "head": {"sha": HEAD, "ref": WORK},
                 "base": {"ref": TARGET_BRANCH, "sha": TARGET}}
         if path == "/issues/1381":
             return {"number": 1381, "state": "closed" if self.closed else "open",
