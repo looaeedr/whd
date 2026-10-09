@@ -59,6 +59,10 @@ class SettingsCapabilityOwner:
         self._ports = ports
         self._service = None
 
+    @property
+    def cached_service(self):
+        return self._service
+
     def service(self):
         if self._service is None:
             ports = self._ports
