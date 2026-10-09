@@ -259,7 +259,7 @@ def sync_authoritative_derived_parts(
     required = lambda name: self._required(namespace, name)
     snapshot = dict(projected_snapshot if projected_snapshot is not None else getattr(app, "_phase6_input_snapshot", {}) or {})
     workspace = projected_workspace if projected_workspace is not None else getattr(app, "designer_workspace", None)
-    navigation = Phase6WorkspaceNavigationController(workspace) if projected_workspace is not None else self.workspace_navigation()
+    navigation = Phase6WorkspaceNavigationController(workspace) if projected_workspace is not None else self.capabilities.workspace.navigation()
     if workspace is None or not navigation.supports_derived_sync:
         return (), ()
 
@@ -421,18 +421,6 @@ def sync_authoritative_derived_parts(
         tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
     )
 
-def workspace_navigation(self):
-    """Return the identity-preserving narrow Workspace capability controller."""
-    controller = self._capabilities.workspace.navigation()
-    self._workspace_navigation_controller = controller
-    return controller
-
-def registry_diagnostics(self):
-    """Return the cached Registry controller owned by the bounded capability."""
-    controller = self._capabilities.registry.diagnostics()
-    self._registry_diagnostics_controller = controller
-    return controller
-
 def settings_service(self):
     """Construct the Settings service once from explicit committed-state ports."""
     service = self._capabilities.settings.service()
@@ -484,7 +472,7 @@ def apply_settings_profile_projection(
         self.sync_authoritative_derived_parts(namespace)
     self.refresh_assembly_parts_panel_if_topology_changed(namespace)
 
-    navigation = self.workspace_navigation()
+    navigation = self.capabilities.workspace.navigation()
     planned_profiles = materialize(plan.part_profiles)
     for key, profiles in planned_profiles.items():
         navigation.stash_profiles(key, profiles)
