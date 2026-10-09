@@ -1,15 +1,87 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1439-rc-work1-merge-pr1440-20261009-0245",
-  "issue": 1439,
-  "kind": "MERGE",
+  "request_id": "issue1441-ready-followup-20261009-work1-01",
+  "issue": 1441,
+  "kind": "DISPATCH_READY",
   "lane_id": "chatgpt.flowv2.work1",
-  "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0239",
-  "expected_coord_head": "4f7b28ae4e1b3682d8c0a461226a2ece78a88ab5",
-  "expected_generation": 10,
-  "reuse_admission_session": true,
+  "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
+  "expected_coord_head": "2a7289dd429a2007344dd5c6e27cf9f2184ba5fa",
+  "expected_generation": 1,
   "effect": {
-    "pr_number": 1440,
-    "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
+    "authority_kind": "USER_EXPLICIT",
+    "authority_ref": "https://github.com/looaeedr/whd/issues/1441",
+    "work_branch": "work/issue-1441-flowv2-ci-e2e",
+    "slot_id": "worker.slot.1",
+    "dispatch_transport": "GITHUB_CANONICAL"
+  },
+  "purpose": "Explicit user /接手 #1441: permanent end-to-end CI jobs hard gate and TOK-SYNC_TARGET anti-regression, work1 because work0 is occupied by Issue #1331.",
+  "work_root_gate_evidence": {
+    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
+    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
+    "execution_mode": "INTERACTIVE",
+    "scope": "CONTROL_PLANE_ONLY",
+    "read_mode": "GITHUB_REPO_CONTRACT",
+    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
+    "provider": "github_repository_contract",
+    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "production_branch": "cleanup/2d-3d-sync",
+    "production_head_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
+    "drive_role": "MIRROR_BACKUP_ONLY",
+    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
+    "root_entries": [
+      ".agents",
+      ".git",
+      ".github",
+      "AGENTS.md",
+      "ae_engine",
+      "gui_modules",
+      "tests",
+      "tools"
+    ],
+    "shared_zero_required": false,
+    "repository_content_write_unlocked": false,
+    "status": "GREEN"
+  },
+  "preflight_evidence": {
+    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
+    "status": "GREEN",
+    "issue": 1441,
+    "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
+    "branch": "cleanup/2d-3d-sync",
+    "head_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
+    "required_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "Python測試實務",
+      "派工",
+      "issue-closure-gate",
+      "monitoring-remote-qa",
+      "long-log-context-safe-execution"
+    ],
+    "completed_skills": [
+      "flow-v2-execution",
+      "root-local-first",
+      "Python測試實務",
+      "派工",
+      "issue-closure-gate",
+      "monitoring-remote-qa",
+      "long-log-context-safe-execution"
+    ],
+    "required_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+    ],
+    "completed_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+    ],
+    "observed_at": "2026-10-09T03:04:57Z"
   }
 }
