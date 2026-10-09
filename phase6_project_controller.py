@@ -147,6 +147,10 @@ class Phase6ProjectController:
             "assembly_placements": deepcopy(owner.get("assembly_placements") or {}),
             "assembly_relief": deepcopy(assembly_relief or {}),
         })
+        if "custom_parts" in owner:
+            snapshot["custom_parts"] = deepcopy(owner["custom_parts"])
+        else:
+            snapshot.pop("custom_parts", None)
         if "active_mode" in owner:
             snapshot["active_mode"] = owner["active_mode"]
         if owner.get("quantity") is not None:
@@ -206,7 +210,7 @@ class Phase6ProjectController:
         structure_state,
     ) -> dict:
         owner = dict(owner_workspace or {})
-        return {
+        result = {
             "box_body_profile": deepcopy(box_body_profile or []),
             "existing_parts": list(owner.get("existing_parts") or ()),
             "active_part": owner.get("active_part"),
@@ -215,6 +219,10 @@ class Phase6ProjectController:
                 owner.get("box_body_structure") or structure_state or {}
             ),
         }
+
+        if "custom_parts" in owner:
+            result["custom_parts"] = deepcopy(owner["custom_parts"])
+        return result
 
     @staticmethod
     def project_status_projection(*, family: str, mode: str, part_text: str) -> str:

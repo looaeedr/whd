@@ -59,6 +59,7 @@ class Phase6DesignerWorkspace:
             active_part=source.get("active_part") or ws_source.get("active_part"),
             part_profiles=source.get("part_profiles") or ws_source.get("part_profiles"),
             box_body_structure=structure,
+            custom_parts=source.get("custom_parts") or ws_source.get("custom_parts"),
             active_repair="none",
         )
         return cls(
@@ -152,6 +153,21 @@ class Phase6DesignerWorkspace:
         self._selected_part = None
         self._switching = False
 
+    def custom_part(self, key):
+        return self._shared_state.custom_part(key)
+
+    def add_custom_part(self, **values):
+        key = self._shared_state.add_custom_part(**values)
+        self._part_features[key] = []
+        self._dirty = True
+        return key
+
+    def update_custom_part(self, key, **values):
+        changed = self._shared_state.update_custom_part(key, **values)
+        if changed:
+            self._dirty = True
+        return changed
+
     def add_part(
         self,
         key: str,
@@ -181,7 +197,11 @@ class Phase6DesignerWorkspace:
             raise ValueError("箱身是折法主資料，不能刪除")
         if key not in self.available_parts:
             return False
+        custom = self.custom_part(key) is not None
         self._shared_state.set_part_presence(key, False, active_repair="none")
+        if custom:
+            self._part_features.pop(key, None)
+            self._part_face_features.pop(key, None)
         if self._selected_part == key:
             self._selected_part = None
         self._assembly_placements.pop(key, None)
@@ -317,6 +337,8 @@ class Phase6DesignerWorkspace:
             return result
         for stable_id in self.available_parts:
             key = str(stable_id)
+            if self.custom_part(key) is not None:
+                continue
             try:
                 placement = resolver(snapshot, key)
             except ValueError:
@@ -364,7 +386,7 @@ class Phase6DesignerWorkspace:
         """Project the shared owner once, with an optional live editor overlay."""
         result = self._shared_state.snapshot()
         active = result.get("active_part")
-        if active and active != MANDATORY_PART and live_active_profiles is not None:
+        if active and active != MANDATORY_PART and self.custom_part(active) is None and live_active_profiles is not None:
             profiles = deepcopy(result["part_profiles"])
             profiles[str(active)] = deepcopy(dict(live_active_profiles or {}))
             result["part_profiles"] = profiles

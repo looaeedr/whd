@@ -100,6 +100,12 @@ class Phase6WorkspaceNavigationController:
         self._memory = projection.memory
         return projection.resolved_key
 
+    def add_custom_part(self, **values) -> str:
+        return self._workspace.add_custom_part(**values)
+
+    def update_custom_part(self, key: str, **values) -> bool:
+        return self._workspace.update_custom_part(key, **values)
+
     def select_part(self, key: str) -> bool:
         selected = bool(self._workspace.select_part(str(key or "")))
         if selected and is_box_body_physical_piece_key(key):

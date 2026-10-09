@@ -152,6 +152,7 @@ class Phase6WorkspaceController:
             active_part=requested_active,
             part_profiles=profiles,
             box_body_structure=structure,
+            custom_parts=raw.get("custom_parts", self._shared_state.snapshot().get("custom_parts")),
             active_repair="first",
         )
         self._authoritative = True
@@ -217,6 +218,8 @@ class Phase6WorkspaceController:
             "active_part": result["active_part"],
             "part_profiles": result["part_profiles"],
         }
+        if "custom_parts" in result:
+            snapshot["custom_parts"] = result["custom_parts"]
         if getattr(self, "_part_features", None):
             snapshot["part_features"] = self.part_features_snapshot()
         if getattr(self, "_part_face_features", None):

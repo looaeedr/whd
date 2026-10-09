@@ -382,6 +382,9 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
         "door" if door_cell is not None
         else ("base_plate" if base_plate_cell is not None else key)
     )
+    from phase6_custom_parts import is_custom_part
+    if is_custom_part(key):
+        raise ValueError("自訂板件尚未建立正式 Fold／製造幾何，不能輸出 DXF")
     policy = payload_policy(policy_part)
     context = ManufacturingContext(draw_stock=False)
 
