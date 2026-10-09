@@ -161,14 +161,7 @@ def on_assembly_type_selected(self, namespace, *_args):
     return type_id
 
 def on_assembly_diagnostic_changed(self):
-    app = self.app
-    if (
-        str(getattr(app, "_phase6_3d_display_mode", "single") or "single")
-        == "assembly"
-    ):
-        submit = getattr(app, "submit_update_intent", None)
-        if callable(submit):
-            submit("display", commit=True)
+    self._capabilities.assembly_corner.refresh_if_assembly()
     return True
 
 def create_relief_promotion_candidates(self, namespace):
@@ -253,14 +246,7 @@ def update_assembly_diagnostic_status(self, namespace):
     return status_text
 
 def on_assembly_part_visibility_changed(self):
-    app = self.app
-    if (
-        str(getattr(app, "_phase6_3d_display_mode", "single") or "single")
-        == "assembly"
-    ):
-        submit = getattr(app, "submit_update_intent", None)
-        if callable(submit):
-            submit("display", commit=True)
+    self._capabilities.assembly_corner.refresh_if_assembly()
 
 def install_assembly_panel_aliases(self, owner):
     return owner.install_legacy_aliases(self.app)

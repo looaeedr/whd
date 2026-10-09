@@ -285,6 +285,7 @@ class Phase6FoldDesignerComposition:
         self._workspace_shell_owner = None
         self._final_scene_renderer = None
         self._final_scene_adapter = None
+        self._capabilities = _composition_state.build_capability_owners(self)
 
     def corner_transaction_payload(self, namespace):
         return _composition_state.corner_transaction_payload(self, namespace)
