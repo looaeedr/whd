@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1441-reserve-exact5-20261009-work1-01",
+  "request_id": "issue1441-reserve-exact5-freshpreflight-37878804480",
   "issue": 1441,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
@@ -22,10 +22,10 @@
     "next_action": {
       "kind": "START_BRANCH",
       "args": {},
-      "display": "Create tested Issue1441 delivery branch"
+      "display": "Start tested Issue1441 delivery branch"
     }
   },
-  "purpose": "Issue 1441 exact 5-file RC tested diff (1201 Control Plane GREEN) formal monotonic native reservation, preserve other issue owners.",
+  "purpose": "WHD Issue #1441: reserve five RC tested content paths after exactly 1201 Control Plane regressions GREEN.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -65,38 +65,28 @@
       "flow-v2-execution",
       "root-local-first",
       "Python測試實務",
-      "phase6-release-packaging",
       "diagnosing-bugs",
-      "tdd",
-      "monitoring-remote-qa",
-      "long-log-context-safe-execution"
+      "tdd"
     ],
     "completed_skills": [
       "flow-v2-execution",
       "root-local-first",
       "Python測試實務",
-      "phase6-release-packaging",
       "diagnosing-bugs",
-      "tdd",
-      "monitoring-remote-qa",
-      "long-log-context-safe-execution"
+      "tdd"
     ],
     "required_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json",
-      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json",
-      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-09T03:12:00Z"
+    "observed_at": "2026-10-09T03:20:16Z"
   }
 }
