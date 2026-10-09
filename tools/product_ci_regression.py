@@ -30,6 +30,7 @@ PYTEST_PATHS = (
     "tests/test_issue71_divider_relief_components.py",
     "tests/test_issue74_divider_side_front_penetration.py",
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+    "tests/test_receiving_weld_ear_mounting.py",
     "tests/test_issue1050_receiving_mother_plate_marking.py",
     "tests/test_receiving_inner_frame_last_flange_contact.py",
     "tests/test_phase6_t15_inner_door_panels.py",
