@@ -423,6 +423,9 @@ class Phase6FoldDesignerComposition:
     def on_receiving_switch_brand_selected(self, namespace, brand):
         return _composition_receiving.on_receiving_switch_brand_selected(self, namespace, brand)
 
+    def set_receiving_switch_tier_ui(self, namespace, tier):
+        return _composition_receiving.set_receiving_switch_tier_ui(self, namespace, tier)
+
     def add_receiving_layer(self, namespace):
         return _composition_receiving.add_receiving_layer(self, namespace)
 

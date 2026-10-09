@@ -2331,6 +2331,9 @@ def _phase6_install_part_editor_compatibility(self):
         on_switch_brand_selected=lambda brand: _phase6_on_receiving_switch_brand_selected(
             self, brand
         ),
+        on_switch_tier_selected=lambda tier: _phase6_composition(
+            self
+        ).set_receiving_switch_tier_ui(globals(), tier),
         on_add_layer=lambda: _phase6_add_receiving_layer(self),
         on_remove_layer=lambda: _phase6_remove_receiving_layer(self),
     )
@@ -2342,7 +2345,7 @@ def _phase6_install_part_editor_compatibility(self):
     # Receiving 後面板形式 is a normal product choice, not an advanced
     # parameter.  Keep one normal-input projection bound to the existing
     # canonical structure-state callback; no second state owner is created.
-    self.back_panel_mode_control = original.ttk.Frame(receiving_controls.header)
+    self.back_panel_mode_control = original.ttk.Frame(receiving_controls.accessory_host)
     original.ttk.Label(
         self.back_panel_mode_control,
         text="後面板形式",

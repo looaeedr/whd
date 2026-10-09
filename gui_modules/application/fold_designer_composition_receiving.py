@@ -142,6 +142,9 @@ def receiving_adapter(self, namespace, *, reset=False):
     if not self._capabilities.receiving.applicable():
         return None
     required = lambda name: self._required(namespace, name)
+    if reset:
+        # OPEN-05 unresolved: discard all tier UI session values on file reset.
+        self._receiving_switch_tier_ui_by_set = {}
     return self._capabilities.receiving.adapter(
         reset=bool(reset),
         ensure_layout=required("ensure_receiving_layout"),
@@ -336,6 +339,33 @@ def select_back_panel_mode(self, namespace, var):
             self.refresh_corner_data_back_panel_mode_control(namespace)
     return mode
 
+def receiving_switch_tier_ui_model(self, namespace, set_index=None):
+    """Per-Set transient presentation state, never attached to saved snapshots."""
+    from .receiving_switch_tier_ui import ReceivingSwitchTierUiModel
+
+    adapter = self.receiving_adapter(namespace)
+    if adapter is None:
+        raise ValueError("受電箱設定尚未啟用")
+    index = adapter.selection.set_index if set_index is None else int(set_index)
+    selected = adapter.layout["sets"][index]
+    stable_id = str(selected["stable_id"])
+    states = getattr(self, "_receiving_switch_tier_ui_by_set", None)
+    if states is None:
+        states = {}
+        self._receiving_switch_tier_ui_by_set = states
+    if stable_id not in states:
+        states[stable_id] = ReceivingSwitchTierUiModel()
+    return states[stable_id]
+
+
+def set_receiving_switch_tier_ui(self, namespace, tier):
+    """UI only: no dirty flag, manufacturing update, project schema, or export."""
+    model = receiving_switch_tier_ui_model(self, namespace)
+    model.set_switch_tier(tier)
+    self.refresh_receiving_set_bay_control(namespace)
+    return model.snapshot()
+
+
 def receiving_switch_adapter(
     self,
     namespace,
@@ -368,6 +398,12 @@ def refresh_receiving_set_bay_control(self, namespace):
 
     switch = self.receiving_switch_adapter(namespace)
     controls.switch_brand_var.set(switch.brand)
+    from .receiving_switch_tier_ui import (
+        SWITCH_TIER_PLACEHOLDER, switch_tier_nominal_text,
+    )
+    selected_tier = receiving_switch_tier_ui_model(self, namespace).switch_tier
+    controls.switch_tier_var.set(selected_tier or SWITCH_TIER_PLACEHOLDER)
+    controls.switch_tier_nominal_var.set(switch_tier_nominal_text(selected_tier))
     original = required("original")
     required("refresh_receiving_layer_rows")(
         controls,
@@ -405,6 +441,7 @@ def on_receiving_switch_brand_selected(
     if not switch.set_brand(brand):
         return switch.brand
     self.mark_receiving_switch_layout_dirty(namespace, switch)
+    self.refresh_receiving_set_bay_control(namespace)
     return switch.brand
 
 def add_receiving_layer(self, namespace):
@@ -575,6 +612,7 @@ def receiving_settings_ports(self, namespace, set_index):
     )
     adapter = self.receiving_adapter(namespace)
     adapter.select_set(set_index + 1)
+    tier_ui = receiving_switch_tier_ui_model(self, namespace, set_index)
 
     listeners = []
     def commit():
@@ -622,6 +660,14 @@ def receiving_settings_ports(self, namespace, set_index):
     def brand(value):
         adapter.set_brand(value)
         commit()
+        self.refresh_receiving_set_bay_control(namespace)
+
+    def switch_tier(value):
+        tier_ui.set_switch_tier(value)
+        self.refresh_receiving_set_bay_control(namespace)
+
+    def switch_tier_override(position, value):
+        tier_ui.set_brand_override(position, value)
 
     def holes(role, indices=()):
         bay = adapter.current_bay()
@@ -656,6 +702,9 @@ def receiving_settings_ports(self, namespace, set_index):
         "row": lambda: adapter.layout["sets"][set_index],
         "select": selected, "change": change, "share": share, "unlink": unlink,
         "dimensions": dimensions, "alignment": alignment, "brand": brand, "holes": holes,
+        "switch_tier_state": tier_ui.snapshot,
+        "switch_tier": switch_tier,
+        "switch_tier_override": switch_tier_override,
         "subscribe": listeners.append,
     }
 
