@@ -356,12 +356,8 @@ def commit_output_draw_stock(self, namespace):
     )
 
 def export_selected_dxf_from_3d(self):
-    """Route 3D DXF export through the existing project command owner."""
-    app = self.app
-    return Phase6ProjectController.route_selected_dxf_export(
-        getattr(app, "_phase6_export_selected_dxf_callback", None),
-        app.flush_pending_settings,
-    )
+    """Delegate project export to a bounded project capability, not an app bag."""
+    return self._capabilities.project.export_selected_dxf()
 
 def collect_workspace_state(self, namespace):
     """Assemble one application snapshot around the canonical workspace owner."""

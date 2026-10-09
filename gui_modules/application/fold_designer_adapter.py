@@ -263,6 +263,7 @@ class FinalSceneCompositionPorts:
         )
 
 
+from gui_modules.application.fold_designer_capability_owners import build_capability_owners
 from gui_modules.application import fold_designer_composition_state as _composition_state
 from gui_modules.application import fold_designer_composition_settings as _composition_settings
 from gui_modules.application import fold_designer_composition_receiving as _composition_receiving
@@ -285,6 +286,7 @@ class Phase6FoldDesignerComposition:
         self._workspace_shell_owner = None
         self._final_scene_renderer = None
         self._final_scene_adapter = None
+        self._capabilities = build_capability_owners(app)
 
     def corner_transaction_payload(self, namespace):
         return _composition_state.corner_transaction_payload(self, namespace)

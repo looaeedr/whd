@@ -122,13 +122,7 @@ from gui_modules.application.fold_designer_snapshot_projection import (
 )
 
 def receiving_layout_applicable(self):
-    snapshot = getattr(
-        self.app, "_phase6_input_snapshot", {}
-    ) or {}
-    return (
-        cabinet_family_policy.canonical_family_name(snapshot)
-        == "受電箱"
-    )
+    return self._capabilities.receiving.applicable()
 
 def confirm_receiving_destructive(self, stable_ids):
     from tkinter import messagebox
@@ -143,37 +137,18 @@ def confirm_receiving_destructive(self, stable_ids):
         )
     )
 
-def receiving_adapter(
-    self,
-    namespace,
-    *,
-    reset=False,
-):
-    app = self.app
+def receiving_adapter(self, namespace, *, reset=False):
+    """Create a Receiving adapter with only its typed layout/identity ports."""
+    if not self._capabilities.receiving.applicable():
+        return None
     required = lambda name: self._required(namespace, name)
-    if not self.receiving_layout_applicable():
-        return None
-    snapshot = required("ensure_receiving_layout")(
-        getattr(app, "_phase6_input_snapshot", {}) or {}
+    return self._capabilities.receiving.adapter(
+        reset=bool(reset),
+        ensure_layout=required("ensure_receiving_layout"),
+        stable_ids=required("receiving_layout_stable_ids"),
+        adapter_type=required("ReceivingSetBayAdapter"),
+        confirm_destructive=self.confirm_receiving_destructive,
     )
-    layout = snapshot.get("receiving_layout")
-    if not isinstance(layout, Mapping):
-        return None
-    adapter = (
-        None
-        if reset
-        else getattr(app, "_phase6_receiving_set_bay_adapter", None)
-    )
-    if adapter is None:
-        adapter = required("ReceivingSetBayAdapter")(
-            layout,
-            persisted_ids=required("receiving_layout_stable_ids")(
-                layout
-            ),
-            confirm_destructive=self.confirm_receiving_destructive,
-        )
-        app._phase6_receiving_set_bay_adapter = adapter
-    return adapter
 
 def sync_receiving_current_bay(
     self,
