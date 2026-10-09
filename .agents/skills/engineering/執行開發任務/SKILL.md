@@ -11,7 +11,15 @@ whd_schema: WHD_DOC_META_V1
 
 使用使用者指定的 Issue 或明確開發任務，讀取 GitHub Git 與相關產品規格，在合法工作分支或本地 /workspace/whd 修改、測試、提交，再將成果整合至本地 localX。
 
-使用者下達 /接手 時優先透過 Remote Desktop Commander → CoreELEC whd-dev → /workspace/whd 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
+使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
+
+## `/接手` 的遠端 Git 交付授權（產品通道）
+
+`/接手` 對已明確指定、或當輪已確認接手的 **同一張 Issue／工作分支**，包含從施工到 `localX` 的完整交付授權：本機修改、測試、`git commit` → 推送本次工作分支提交到使用者的 `looaeedr/whd` GitHub → 建立／更新 **base=`localX`** 的產品 PR → 驗收該 PR exact HEAD 的 CI → 合併至 `localX` → 回讀實際 PR、Git HEAD 與 Issue，留言、結案，並依前置及衝突檢查續作下一張可執行工單。
+
+**這些遠端推送及 PR／localX 合併不是「發布正式 X」**；已存在有效 `/接手` 指令及明確 Issue 時，不得只因沒有另外一句「授權遠端推送」便自行中斷或重問。只有目標是 `cleanup/2d-3d-sync`（正式 X）的**產品**發布才必須取得使用者當次 `/推推`。
+
+授權嚴格限於 `looaeedr/whd`、指定工作分支及 `localX`；禁止變更正式 X、跨專案推送、擴大變更範圍或對未驗證提交宣稱 CI GREEN。不得捏造已核准的工具操作：若 GitHub／Remote Desktop／自動批准系統在工具層拒絕實際 push／merge，必須回報**哪個實際工具操作**被拒及具體阻塞，不能用技能文字繞過平台權限，亦不得將本地 commit 說成已遠端交付。
 
 保留必要的產品測試、程式碼 review、現場 DXF 驗收，實際交付狀態以 Git HEAD 與 Issue/PR 反讀為準。
 
