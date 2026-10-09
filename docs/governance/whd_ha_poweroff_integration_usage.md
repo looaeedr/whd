@@ -1,6 +1,6 @@
 ---
 whd_doc_role: REFERENCE
-whd_contract: ha-poweroff-flow-v2-integration-usage
+whd_contract: ha-poweroff-integration-usage
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
@@ -32,7 +32,6 @@ WHD owns the evidence and verification layers only. **WHD does not issue the Win
 - HA transport projection: `tools/whd_poweroff_ha_bridge.py`
 - End-to-end evidence verifier: `tools/whd_poweroff_end_to_end_acceptance.py`
 - Durable resume semantics: native `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py`
-- Planned handoff / exact identity: Flow v2 `chain.next_issue + chain.next_action` / structured `next_action`; no legacy claim/checkpoint owner
 
 Do not copy these policies into Node-RED, prompts, or Skills.
 
@@ -71,7 +70,6 @@ For a SAFE request that actually enters the external actuator path, durable sche
 - current `poweroff_request_id`
 - `pre_shutdown_local_head`
 - `remote_head`
-- exact ExecutionRecord issue/generation/fingerprint
 - exact `chain.next_issue + chain.next_action` when a successor exists
 - live scheduler/slot provenance when scheduler-owned
 - exact structured nonblank `next_action` until terminal

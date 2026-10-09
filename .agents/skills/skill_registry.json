@@ -3,35 +3,6 @@
   "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
   "routes": [
     {
-      "id": "flow-v2-execution",
-      "keywords": [
-        "flow-v2-execution",
-        "Flow v2",
-        "ExecutionRecord",
-        "coord/execution-v2",
-        "lease",
-        "YIELD",
-        "structured next_action",
-        "atomic transaction",
-        "execution generation",
-        "coord/monitor-v2",
-        "runtime observability",
-        "WAKE PROGRESS EXIT"
-      ],
-      "file_globs": [
-        ".agents/skills/engineering/flow-v2-execution/**",
-        "tools/execution_*.py",
-        "tools/control_transaction*.py",
-        ".dispatch/execution/**"
-      ],
-      "required_skills": [
-        "flow-v2-execution"
-      ],
-      "required_references": [
-        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-      ]
-    },
-    {
       "id": "root-local-first",
       "keywords": [
         "root-local-first",
@@ -44,9 +15,7 @@
       "required_skills": [
         "root-local-first"
       ],
-      "required_references": [
-        ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json"
-      ]
+      "required_references": []
     },
     {
       "id": "skill-authoring",
@@ -89,12 +58,10 @@
         ".agents/skills/engineering/寫排程/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "寫排程"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
         "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
     },
@@ -111,40 +78,11 @@
       "file_globs": [
         ".agents/skills/engineering/排程模擬/**"
       ],
-      "required_skills": [
-        "flow-v2-execution",
-        "排程模擬"
-      ],
+      "required_skills": [],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
         "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
       ]
-    },
-    {
-      "id": "work-slot-routing",
-      "keywords": [
-        "工作閘門",
-        "預設工作",
-        "工作0",
-        "/工作0",
-        "/工作1",
-        "/工作2",
-        "/工作3",
-        "/工作槽",
-        "工作槽",
-        "工作1",
-        "工作2",
-        "工作3"
-      ],
-      "file_globs": [
-        ".agents/skills/engineering/工作槽/**"
-      ],
-      "required_skills": [
-        "flow-v2-execution",
-        "工作槽"
-      ],
-      "required_references": []
     },
     {
       "id": "deterministic-repo-migration",
@@ -161,7 +99,6 @@
         ".agents/skills/engineering/deterministic-repo-migration/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "root-local-first",
         "deterministic-repo-migration"
       ],
@@ -367,34 +304,12 @@
         ".agents/skills/engineering/派工/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "派工",
         "issue-closure-gate"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
       ]
-    },
-    {
-      "id": "remote-execution-guard",
-      "keywords": [
-        "遠端執行守門",
-        "Remote Guard",
-        "remote execution guard",
-        "WHD_REMOTE_GUARD_REQUEST_V1",
-        "WHD_REMOTE_GUARD_RECEIPT_V1",
-        "remote-execution-guard"
-      ],
-      "file_globs": [],
-      "required_skills": [
-        "flow-v2-execution"
-      ],
-      "required_references": [
-        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-      ],
-      "routing_status": "RETIRED",
-      "replacement_route_id": "flow-v2-execution",
-      "retirement_reason": "Remote Guard operational Skill surface is retired; legacy keywords redirect to Flow v2 without a filesystem shim."
     },
     {
       "id": "issue-closure-gate",
@@ -413,7 +328,6 @@
         ".agents/skills/engineering/issue-closure-gate/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "issue-closure-gate"
       ],
       "required_references": [
@@ -626,25 +540,6 @@
       ]
     },
     {
-      "id": "executable-continuity-controller",
-      "keywords": [
-        "continuity controller",
-        "executable-continuity-controller",
-        "legacy checkpoint resume",
-        "legacy finalization gate"
-      ],
-      "file_globs": [],
-      "required_skills": [
-        "flow-v2-execution"
-      ],
-      "required_references": [
-        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-      ],
-      "routing_status": "RETIRED",
-      "replacement_route_id": "flow-v2-execution",
-      "retirement_reason": "Retired continuity identity is keyword-only compatibility; Flow v2 is the only CURRENT execution/control-plane owner."
-    },
-    {
       "id": "remote-qa-monitoring",
       "keywords": [
         "遠端 QA",
@@ -662,7 +557,6 @@
         ".github/workflows/*qa*.yaml"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "monitoring-remote-qa",
         "long-log-context-safe-execution"
       ],
@@ -730,7 +624,6 @@
         "phase6_project_*.py"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "驗證板件與DXF",
         "monitoring-remote-qa"
       ],
@@ -777,7 +670,6 @@
         ".agents/skills/engineering/執行開發任務/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "執行開發任務"
       ],
       "required_references": []
@@ -1057,7 +949,6 @@
         ".agents/skills/engineering/deterministic-repo-migration/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "root-local-first",
         "deterministic-repo-migration"
       ],
@@ -1085,7 +976,6 @@
         ".agents/skills/engineering/issue-closure-gate/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "issue-closure-gate"
       ],
       "required_references": []
@@ -1112,7 +1002,6 @@
         ".agents/skills/engineering/monitoring-remote-qa/**"
       ],
       "required_skills": [
-        "flow-v2-execution",
         "monitoring-remote-qa"
       ],
       "required_references": []
@@ -1246,26 +1135,6 @@
         "MCP工具操作"
       ],
       "required_references": []
-    },
-    {
-      "id": "force-takeover",
-      "keywords": [
-        "強制接手",
-        "force takeover",
-        "user-directed takeover",
-        "WHD_USER_DIRECTED_TAKEOVER_V1"
-      ],
-      "file_globs": [
-        ".agents/skills/engineering/強制接手/**"
-      ],
-      "required_skills": [
-        "flow-v2-execution",
-        "強制接手"
-      ],
-      "required_references": [
-        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-      ]
     },
     {
       "id": "推推",

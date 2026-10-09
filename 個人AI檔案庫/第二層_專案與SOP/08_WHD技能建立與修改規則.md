@@ -212,15 +212,11 @@ WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`�
 - Audit mode 是 read-only；already-good UI 可以 `keep / 不修改`。成功不是改得多，而是只修改有產品、層級或操作理由的地方。
 - machine guard：`tests/test_ui_design_de_ai_skill_contract.py`。
 
-## 2026-09-30 — Flow v2 多 AI 單一 writer / durable progress CURRENT 規則
 
-<!-- FLOW_V2_MULTI_AI_SINGLE_WRITER_CURRENT_V1 -->
 
-GitHub owning Issue、assignee、comment、label、舊 shared claim 都不提供 CURRENT 施工權。唯一 execution authority 是 `coord/execution-v2` 的 native `WHD_EXECUTION_RECORD_V2`。
 
 - **ONE ISSUE / ONE MUTATION WRITER**：substantive repository work 必須持有 exact Issue 的 live lease 與 ACTIVE `mutation_scope`。新 READY work 用 atomic `ACQUIRE.effect.admission_reservation` 一次取得；不得主動拆成 `ACQUIRE → RESERVE_PATHS`。
 - **STALE PLAN MUST DIE**：每次 interactive Git mutation 綁 `issue + generation + record_fingerprint + lease_token + invocation_identity + next_action + work/target HEAD`。任一 identity 已前進，舊 plan 永久失效並從最新 structured `next_action` replan。
-- **Durable progress owner**：state / branch / HEAD / QA / next_action / blocker / closure 全部由 ExecutionRecord 表達；`coord/monitor-v2` 只做 NON_AUTHORITY observation。
 - **Scope expansion**：只可對既有 ACTIVE scope 走 monotonic `RESERVE_PATHS`；不得先改新檔再補 reservation。
 - **Terminal**：唯一正常完成是 durable DONE tuple（Issue closed、lease/owner cleared、reservation RELEASED）；merge/QA GREEN 本身不是完成。
 - **Legacy history**：`execution_claim_guard.py`、Remote Guard、claim/checkpoint coordination 只可作 migration/audit historical evidence，不得作 CURRENT execution/write authority。
@@ -233,14 +229,12 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 
 - `CURRENT`：該 contract 唯一可作現行 Source of Truth 的 owner。
 - `REFERENCE`：背景／方法／evidence；可輔助，但不得覆蓋 CURRENT。
-- `MIRROR`：預設只作入口相容或導覽，必須指回 canonical owner。純 pointer mirror 必須標記 `POINTER_ONLY`；若檔內明確含 `FLOW_V2_EXECUTION_BRIDGE_V1`，可保留**狹窄的入口專屬 routing / projection / user-visible contract**，但不得定義第二套 execution state、lease、mutation transaction、QA acceptance、merge、finalization 或 closure state machine，且所有這些語意必須明確 defer 到 canonical `flow-v2-execution`。
 - `HISTORICAL`：日期化／已被取代的 evidence；不得參與 current routing，也不得繼續使用「CURRENT／最高優先級／下一個主要任務」等現行語氣。
 
 ### 單一 CURRENT 硬規則
 
 - **同一 contract 只能有一個 `CURRENT` owner。** 兩份文件即使內容暫時相同，只要都自稱 current/最高優先級，就屬 authority conflict。
 - 搬移或升格 canonical owner 時，舊 owner 必須在**同一變更**降級為 `REFERENCE`、`MIRROR` 或 `HISTORICAL`；禁止先留下雙 CURRENT 再靠閱讀順序猜哪份新。
-- 保留舊路徑時優先採 `MIRROR + POINTER_ONLY`；只有 `FLOW_V2_EXECUTION_BRIDGE_V1` 可使用 narrow bridge 例外。Bridge 只能擁有入口專屬 routing/projection，不得複製 canonical state machine；全文 copy 仍視為第二 SSOT。
 - 發現 exact duplicate 但檔名／語意角色不同時，先決定真正 owner；非 owner 要刪除、改 pointer 或明確 historical，不能讓 duplicate SHA 掩蓋 identity 衝突。
 - 新規則推翻舊規則時，舊規則在原位置標 `SUPERSEDED / REVOKED / HISTORICAL`，不得只在另一份文件後面補一段新說法。
 
@@ -270,7 +264,6 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 - Permanent guard：`tests/knowledge/test_active_skill_runtime_contract.py`。
 
 ### CI_SHARDING_SKILL_OWNERSHIP_V1
-CI sharding 的 pytest isolation / deterministic ownership / concurrency budget / timing / tested-vs-orchestration identity 規則由 `Python測試實務` 擁有；remote polling 入口由 `monitoring-remote-qa` bridge 回 Flow v2 `active_run / POLL_QA / ACCEPT_QA|FAIL_QA`，runtime resume/turn-exit 也只服從 Flow v2 ExecutionRecord + `execution_invocation_exit.py`；`executable-continuity-controller` 只保留相容入口/歷史 reference。長 log classifier 語意由 `long-log-context-safe-execution` 擁有。不得再建立第二套 competing execution authority。
 
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
 ## Mutating toolcall crash-recovery canonical invariant
@@ -280,7 +273,6 @@ CI sharding 的 pytest isolation / deterministic ownership / concurrency budget 
 - `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
 - `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
 - **HISTORICAL mapping only**：#702 當時的 `tools/continuity_controller.py`、`tools/execution_claim_guard.py`、`tools/claim_activation_recovery.py` 與 legacy scheduler reconciliation 只保留 crash-boundary / migration evidence，不再是 CURRENT semantic owners。
-- CURRENT generic mutation continuity、readback/reconcile、owner transfer、scheduler resume 與 closure 全部由 `WHD_EXECUTION_RECORD_V2` + `tools/control_transaction.py` + structured `next_action` + `tools/execution_invocation_exit.py` 單一擁有；Entry Skills/prompts只能 bridge，不得把 historical owner重新升格。
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
 

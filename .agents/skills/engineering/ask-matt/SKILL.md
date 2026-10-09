@@ -24,7 +24,6 @@ whd_schema: WHD_DOC_META_V1
    - **執行開發任務** → 每票依 TDD/派工/QA gate 施工。
 4. **小而已明確的 build**：可直接進 **執行開發任務**，但仍服從專案 Preflight/branch/QA 規則。
 
-WHD ticketed work 的 durable execution state 唯一由 **Flow v2 / WHD_EXECUTION_RECORD_V2** 擁有；**派工** 只做 PM / Implementer / QA routing projection。不能因 router 判定「下一步是實作」就繞過 owning Issue、Flow v2 admission/reservation、remote QA 或 durable terminal exit gate。
 
 ## On-ramps
 

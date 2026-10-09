@@ -5,8 +5,6 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V2]** The next legacy finalization command is historical evidence only; CURRENT closure uses `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + `MERGE → FINALIZE → DONE`.
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本 plan 的 `assert-finalizable` / `authorize-finalization` / `verify-finalization-proof` 舊 closure 指令只作 historical ticket evidence；CURRENT completion/closure 唯一服從 `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + Flow v2 `MERGE → FINALIZE → DONE`，不得直接照抄舊指令執行。
 
 
 # Issue #292 T4 — Physical-Part Panel Extraction Implementation Plan
@@ -106,7 +104,6 @@ Build terminal checkpoint bound to:
 - branch `refactor/issue292-gui-phase2-t4-panels-20260916`
 - fresh candidate HEAD
 
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V2]** The next legacy finalization command is historical evidence only; CURRENT closure uses `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + `MERGE → FINALIZE → DONE`.
 Invoke canonical `authorize-finalization`, then `verify-finalization-proof` at the closure boundary. Any missing/stale/mismatched proof fails closed. Only then close #292/completed and remote-read it back.
 
 ## No production integration

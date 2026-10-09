@@ -5,8 +5,6 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V2]** The next legacy finalization command is historical evidence only; CURRENT closure uses `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + `MERGE → FINALIZE → DONE`.
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本 plan 的 `assert-finalizable` / `authorize-finalization` / `verify-finalization-proof` 舊 closure 指令只作 historical ticket evidence；CURRENT completion/closure 唯一服從 `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + Flow v2 `MERGE → FINALIZE → DONE`，不得直接照抄舊指令執行。
 
 
 # Issue #293 T5 — Editors / dialogs / modal workflow implementation plan
@@ -121,7 +119,6 @@ Fresh-read canonical #293 branch/head and Issue state. Build a terminal checkpoi
 - branch `refactor/issue293-gui-phase2-t5-editors-20260917`
 - fresh clean candidate HEAD
 
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V2]** The next legacy finalization command is historical evidence only; CURRENT closure uses `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + `MERGE → FINALIZE → DONE`.
 Use the current canonical production finalization guard authority out-of-tree if the #293 lineage predates that guard version. Invoke `assert-finalizable`, `authorize-finalization`, and `verify-finalization-proof`; fresh-lock owner/guard refs immediately before close. Then close #293 with `state_reason=completed` and remote-read `closed/completed`.
 
 Before remote branch deletion, fresh-fetch all OPEN PRs and protect both `head.ref` and `base.ref` through `tools/branch_cleanup_ref_guard.py`. Keep the canonical accepted #293 branch for #294 lineage.

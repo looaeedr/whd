@@ -12,7 +12,6 @@ Engineering skills used for code, design, QA, specs and delivery.
 
 ## User-invoked navigation
 
-- **[flow-v2-execution](./flow-v2-execution/SKILL.md)**: WHD execution/control-plane 唯一 CURRENT runtime contract；ExecutionRecord、atomic transaction、lease/YIELD、scheduler、handoff、recovery 與 closure 都以此為準。
 - **[root-local-first](./root-local-first/SKILL.md)**: 互動式／預設 repository content work 的 root-first gate；root 測綠與 diff freeze 後才解鎖 Git work branch。
 
 - **[ask-matt](./ask-matt/SKILL.md)**: Router over engineering/productivity flows.
@@ -25,8 +24,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 - **[拆解任務工單](./拆解任務工單/SKILL.md)**: Requirement RED-first，經核准後拆 tracer-bullet tickets。
 - **[執行開發任務](./執行開發任務/SKILL.md)**: 依核准 spec/ticket 實作，遵守 TDD、checkpoint、派工與 QA gate。
 - **[寫技能](./寫技能/SKILL.md)**: 建立、修改、驗證與改善 Skill。
-- **[派工](./派工/SKILL.md)**: Flow v2 dispatch bridge；explicit READY ingress → native ExecutionRecord。
-- **[工作槽](./工作槽/SKILL.md)**: Flow v2 slot projection/routing bridge；固定 /工作0～/工作3，/工作0 為預設互動入口；無獨立 slot state。
+- **[派工](./派工/SKILL.md)**: 直接 GitHub Issue 派工與本地施工。
 - **[wayfinder](./wayfinder/SKILL.md)**: Plan large multi-session work as decision tickets。
 
 ## Model- or user-reachable navigation

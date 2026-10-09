@@ -7,7 +7,6 @@ whd_schema: WHD_DOC_META_V1
 
 # 長流程持續執行 / 停工點踩坑規則
 
-> **[REFERENCE — FLOW V2 CURRENT SEMANTICS ONLY]** 本檔保留大量 pre-Flow-v2 checkpoint / continuity-controller 事故敘述。凡出現 `tools/continuity_controller.py`、`RECOVERING checkpoint`、legacy work-order branch、claim/Guard/finalization 等 imperative wording，除非段落明確標 CURRENT Flow v2，均只作 historical evidence；不得覆蓋 `.agents/skills/engineering/flow-v2-execution/SKILL.md`。
 
 ## SCHEDULED_WAKEUP_STATUS_ONLY_PITFALL
 
@@ -18,16 +17,12 @@ whd_schema: WHD_DOC_META_V1
 - 沒有 concrete RUN 但 owning plan 需要 RUN：分類 `RUN_NOT_CREATED`，立即處理會建立 RUN 的 prerequisite/trigger/fix，禁止等待。
 - `status update != exit`；GREEN/RED 都不是自動停點。
 - 若平台被迫切斷，先留下完整 durable checkpoint，下一次 wake-up 從 exact next action 恢復。
-- 本段是 REFERENCE/pitfall；唯一 scheduled-wakeup execution authority 是 `flow-v2-execution` 的 ExecutionRecord + scheduler view + invocation-exit machine。`executable-continuity-controller` 舊名稱只作 registry retired alias；filesystem Skill shim 已移除。
 
 ## Authority status
 
 本文件只保留歷史事故、操作提醒與相容性回歸背景，角色是 **REFERENCE**，不是 executable authority。
 
-- executable semantic CURRENT：`WHD_EXECUTION_RECORD_V2` + `tools/control_transaction.py` + `tools/execution_invocation_exit.py`。
-- operational CURRENT：`.agents/skills/engineering/flow-v2-execution/SKILL.md`。
 - legacy continuity runtime 已從 CURRENT tree 移除；`executable-continuity-controller` 只保留 retired alias 與 historical provenance，marker/string presence 不是 executable enforcement。
-- 本文件若與 Flow v2 CURRENT authority 衝突，以 Flow v2 為準；不得從舊 checkpoint marker、字串或舊 test 反推 machine state/finalization 行為。
 
 ## 事故模式：把派工完成當成停工點
 
@@ -45,19 +40,14 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 
 以上是 reference guidance；CURRENT durable state、transition、resume 與 finalization 是否可通過，必須由 `WHD_EXECUTION_RECORD_V2`、atomic control transaction 與 `tools/execution_invocation_exit.py` 的實際 behavior 判定。legacy checkpoint 只作 migration evidence。
 
-## Flow v2 可見進度 / recovery projection — CURRENT
 
 過去曾用 `USER_VISIBLE_CHECKPOINT_GATE`、`CHECKPOINT_RESUME_CONTRACT`、`RUNNING / WAITING_REMOTE / RECOVERING` 等文件 marker 補 user-visible recovery。這些 marker 現在只屬歷史事故語彙，**不得再作 CURRENT execution contract**。
 
 CURRENT 規則：
 
 - durable state 唯一來自 `WHD_EXECUTION_RECORD_V2`；visible progress / CHECKPOINT 只是 observation/projection，不能建立 lease、owner、resume、turn-exit 或 closure authority。
-- system/runtime 被切斷後，先 fresh-read ExecutionRecord、generation、lease、structured `next_action`、exact branch/HEAD 與 active_run；無 drift 直接續 exact action。
-- `派工`、`執行開發任務`、`monitoring-remote-qa`、`issue-closure-gate` 都是 `FLOW_V2_EXECUTION_BRIDGE_V1` MIRROR，不得互相指定對方為第二套 checkpoint/state owner。
-- remote QA exact `active_run/run_id/head_sha` 與 `POLL_QA / ACCEPT_QA / CONSUME_QA / FAIL_QA` 都存在同一 ExecutionRecord；已有可消費 terminal GREEN 時走 `CONSUME_QA` fast path。
 - `tests/process/test_checkpoint_resume_contract.py` 與 `tests/process/test_continuous_execution_durable_contract.py` 現在是**反向 anti-regrowth tests**：它們保證 legacy marker 不會被重新塞回 CURRENT/MIRROR entry skills。
 
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 下游事故段若仍出現 legacy checkpoint / continuity-controller / WAITING_REMOTE_QA 名稱，只作 historical evidence；CURRENT machine behavior 以 Flow v2 ExecutionRecord + atomic control transaction + invocation-exit machine 為準。
 
 ## ISSUE188_EXECUTION_WINDOW_RECOVERY_PITFALL
 
@@ -71,7 +61,6 @@ CURRENT 規則：
 - exact tested HEAD / ancestry 未變時，既有 terminal QA 可繼續作 evidence；若 run identity / ancestry 改變才重新分類。
 - **使用者不是續跑 scheduler。** recovery identity 驗完且 next action 可自主執行時，要直接續做，不等使用者再說「繼續」。
 
-這些 recovery 提醒不建立第二套 state machine；legacy `RECOVERING` checkpoint 名稱只作事故語彙。CURRENT recovery 由 ExecutionRecord 的 structured next_action / RECONCILE / generation fencing 表達。
 
 ## ISSUE188_STALE_WAIT_PITFALL
 
@@ -84,12 +73,10 @@ CURRENT 規則：
 - exact run terminal 時立即退出 waiting；非 terminal 但找不到 matching active run 時，以連續 2 次 observation 排除短暫 API 延遲，之後強制進 `RECOVERING_STALE_WAIT`。
 - recovery 必須先 remote refetch、反讀 checkpoint、驗 work/production HEAD 與 exact run identity；無 drift 就接 next exact action，不重跑已完成證據。
 - global active run = 0 只作 supporting evidence；exact `run_id + head_sha` 才是 canonical remote-QA identity。
-- polling cadence 由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` bridge 到 Flow v2 active_run 負責，不是使用者責任；durable state / resume / finalization 由 ExecutionRecord + atomic transaction + invocation-exit 負責。**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
 - `.agents/skills/engineering/monitoring-remote-qa/SKILL.md::STALE_WAIT_WATCHDOG` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 remote-QA/documentation regression guards；它們不取代 executable checkpoint state/finalization authority。
 
 ## WORK_ORDER_LINEAGE_PITFALL — HISTORICAL/SUPERSEDED BRANCH MECHANICS
 
-#185 暴露工單級 lineage 缺陷。下方「工單主分支 / 子票 branch」具體 mechanics 已被 Flow v2 generation + canonical root workspace + mutation_scope/root-local-first 取代；只保留『後續工作不得遺失已接受前序成果』這個事故教訓。
 
 永久規則：
 
@@ -113,10 +100,8 @@ Remote QA 在 `queued / in_progress` 時有 `REMOTE_QA_ACTIVE_LOCK`，所以 30 
 
 - 根因不是缺少 `NON_TERMINAL_CONTINUE` 文字，而是 enforcement scope 只覆蓋 workflow finalization，沒有覆蓋 assistant turn boundary。
 - HISTORICAL fix 曾使用 `tools/continuity_controller.py::assert_turn_exitable`；CURRENT fix 是 `tools/execution_invocation_exit.py::classify_invocation_exit` + durable DONE tuple。
-- CURRENT turn-exit 只依 ExecutionRecord state + structured `next_action` + live lease/active_run/closure；terminal-tail `MERGE/FINALIZE` 固定 `CONTINUE_TERMINAL_TAIL`，只有 genuine machine blocker 可中斷。
 - Remote terminal 後若還有收尾，必須 `WAITING_REMOTE → RUNNING(next_acceptance_action)`，由 global turn-exit gate 無縫接手 remote lock。
 - progress / CHECKPOINT / PASS / integrated / process-incomplete 都只是 observation；只要 machine checkpoint 還有可自主 next action，使用者就不是續跑 scheduler。
-- CURRENT behavior authority：`tests/process/test_flow_v2_execution_invocation_exit.py` 與 Flow v2 transaction regressions；legacy continuity-controller tests只作 migration compatibility。
 
 ## SILENT_ACTIVE_WORK_PITFALL
 
@@ -133,7 +118,6 @@ Scheduled Resume 已能自行工作，但 active work 期間完全靜默。對�
 - 沒有 active work 才可靜默。
 - heartbeat 只是 visibility observation；**進度回報不是停工點**，回報後有自主 next action 就繼續。
 
-CURRENT authority：Flow v2 ExecutionRecord + NON_AUTHORITY runtime observation；`executable-continuity-controller` filesystem bridge 已退休，只保留 alias。
 
 ## TERMINAL_EVIDENCE_DELAYED_REPORT_PITFALL
 
@@ -147,7 +131,6 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - 不得為了讓最終報告更完整而延後已經成立的 PASS / FAIL / COMPLETE 事實。
 - immediate report 只是一個 observation；回報後若仍有可自主 next action，仍必須繼續。
 - 只有 live terminal evidence 可觸發；不得猜測或提前宣告結果。
-- CURRENT authority：terminal fact可立即投影 user-visible progress，但 completion/exit 仍由 Flow v2 durable DONE / invocation-exit machine決定。
 
 ## POLLING_WITHOUT_PROGRESS_PRODUCER_PITFALL
 
@@ -162,7 +145,6 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - no producer / no active run / RUN_NOT_CREATED 時，立即停止假等，去執行 prerequisite / trigger / repair。
 - terminal producer 立即離開 waiting，接下一個真正執行動作。
 - status-only loop 是 continuity regression。
-- CURRENT authority：Flow v2 `active_run` + structured `POLL_QA`; observation不能產生進度或 execution authority。
 
 <!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
 ## #693 Combined Acceptance durable readback
@@ -181,7 +163,6 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - Canonical crash boundaries are: `prepare → authorize → post-effect → readback → pre-reconcile → post-reconcile`.
 - `EFFECT_OBSERVED` means the requested effect is already proven by exact durable/live evidence: **do not replay the mutation**; reconcile the operation and continue from the reconciled state.
 - `AMBIGUOUS` means identity/effect cannot be proven: fail closed and repair evidence/authority; never guess whether a mutation happened.
-- Canonical CURRENT execution continuity is single-source in Flow v2: durable semantic state=`WHD_EXECUTION_RECORD_V2`; atomic transition=`tools/control_transaction.py`; trusted side-effect/reconcile=`tools/control_transaction_production_executor.py`; invocation exit=`tools/execution_invocation_exit.py`; scheduler projection=`tools/execution_scheduler_view.py`。
 - legacy continuity/claim/Claim Activation/Remote Guard runtime 已從 CURRENT tree 移除；歷史 knowledge provenance 不得由 Entry Skill/prompt 重新升格成 competing CURRENT state machine。
 - Amendment-wide fault matrix authority is `docs/governance/issue702_crash_fault_injection_matrix.json`; accepted provenance/readback is recorded separately in `docs/governance/issue702_combined_acceptance_writeback_manifest.json`.
 
