@@ -176,7 +176,7 @@ class BoundedOwnerTests(unittest.TestCase):
         initializer = next(x for x in cls.body
                            if isinstance(x, ast.FunctionDef)
                            and x.name == "__init__")
-        self.assertIn("build_capability_owners(app)", ast.unparse(initializer))
+        self.assertIn("_composition_state.build_capability_owners(self)", ast.unparse(initializer))
         for name in ("state", "receiving", "shell_settings", "assembly_corner"):
             path = APP / f"fold_designer_composition_{name}.py"
             source = path.read_text("utf-8")
@@ -184,7 +184,8 @@ class BoundedOwnerTests(unittest.TestCase):
             self.assertNotIn("from fold_designer_bridge import", source)
         capabilities = (APP / "fold_designer_capability_owners.py").read_text("utf-8")
         self.assertNotIn("import fold_designer_bridge", capabilities)
-        self.assertEqual(capabilities.count("def build_capability_owners("), 1)
+        self.assertEqual(capabilities.count("def build_capability_owners("), 0)
+        self.assertEqual((APP / "fold_designer_composition_state.py").read_text("utf-8").count("def build_capability_owners("), 1)
         cap_tree = ast.parse(capabilities)
         for cls in (node for node in cap_tree.body if isinstance(node, ast.ClassDef)
                     and node.name.endswith("CapabilityOwner")):
