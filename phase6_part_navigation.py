@@ -124,6 +124,10 @@ def operator_part_label(
         return piece_labels[key]
 
     snap = dict(snapshot or {})
+    catalog = snap.get("custom_parts") or dict(snap.get("workspace") or {}).get("custom_parts") or {}
+    descriptor = dict(catalog.get("items") or {}).get(key)
+    if descriptor is not None:
+        return str(descriptor["display_name"])
     model = str(
         snap.get("model")
         or snap.get("baseline_model")

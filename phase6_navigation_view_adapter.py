@@ -137,6 +137,15 @@ def refresh_structure_tree(
     if tree is None:
         return ()
     if bool(getattr(host, "_phase6_structure_tree_guard", False)):
+        if not bool(getattr(host, "_phase6_structure_tree_refresh_pending", False)):
+            host._phase6_structure_tree_refresh_pending = True
+            def retry():
+                host._phase6_structure_tree_refresh_pending = False
+                refresh_structure_tree(
+                    host, project_rows=project_rows, label_for_key=label_for_key,
+                    visibility_var=visibility_var,
+                )
+            tree.after_idle(retry)
         return ()
 
     host._phase6_structure_tree_guard = True
@@ -540,13 +549,18 @@ def refresh_add_part_menu(
     known_parts: Iterable[str],
     label_for_key: Callable[[str], str],
     add_part: Callable[[str], object],
+    add_custom_part: Callable[[], object] | None = None,
 ) -> None:
     """Project missing legacy top-level parts into the add-part menu."""
     menu = host.add_part_menu
     menu.delete(0, tk_end)
     available = tuple(getattr(host, "available_parts", ()) or ())
     missing = [key for key in known_parts if key not in available]
-    if not missing:
+    if callable(add_custom_part):
+        menu.add_command(label="自訂板件…", command=add_custom_part)
+        if missing:
+            menu.add_separator()
+    elif not missing:
         menu.add_command(label="沒有可新增板件", state="disabled")
         return
     for key in missing:
@@ -709,7 +723,12 @@ def finalize_single_part_layout(
     pending_draw = getattr(canvas, "_idle_draw_id", None)
     if pending_draw is not None:
         try:
-            host.root.after_cancel(pending_draw)
+            # Matplotlib registers this Tcl command on its own Tk canvas.
+            # Cancel through that widget so its command registry is repaired.
+            cancel_owner = (canvas.get_tk_widget()
+                            if callable(getattr(canvas, "get_tk_widget", None))
+                            else host.root)
+            cancel_owner.after_cancel(pending_draw)
         except Exception:
             pass
         try:
