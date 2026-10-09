@@ -1,41 +1,41 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1443-acquire-work1-20261009-0410",
+  "request_id": "issue1443-reserve-exact5-20261009-0422",
   "issue": 1443,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-  "expected_coord_head": "fed5e0ecced3a07c5577b3a6717c1955db4f403c",
-  "expected_generation": 1,
+  "expected_coord_head": "22426c7b0c49b6419dbeb7956a8096ab733e81bf",
+  "expected_generation": 2,
   "effect": {
-    "observed_at": "2026-10-09T04:10:46.820Z",
-    "lease": {
-      "token": "lease:1443:work1:20261009:acquire",
-      "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-      "expires_at": "2026-10-09T04:30:46.820Z"
-    },
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work1",
-    "lane_id": "chatgpt.flowv2.work1",
-    "slot_id": "worker.slot.1",
-    "semantic_state": "CLAIMED",
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
+    "write_paths": [
+      "tests/process/test_issue1380_runtime_boundary.py",
+      "tests/process/test_issue1381_no_replay.py",
+      "tests/process/test_issue1441_real_pr_ci_gate.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/flow_v2_merge_precheck.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED",
     "next_action": {
-      "kind": "RESERVE_PATHS",
+      "kind": "START_BRANCH",
       "args": {},
-      "display": "Reserve exact tested #1443 diff after implementation"
+      "display": "Deliver tested exact issue1443 commit"
     }
   },
-  "purpose": "Exact user /派工 #1443, native claim work1 after READY; next real step is repository-content implementation in executor-owned workspace.",
+  "purpose": "Native five-file tested delivery reservation: RC commit fb28b7f25 exact green 1206 control plane, no other issue overlap",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
+    "scope": "REPOSITORY_CONTENT",
+    "read_mode": "WORKSPACE_GIT_BASELINE",
     "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "provider": "executor_local_workspace",
+    "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "workspace_root": "/workspace/whd",
     "production_branch": "cleanup/2d-3d-sync",
     "production_head_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
     "drive_role": "MIRROR_BACKUP_ONLY",
@@ -51,7 +51,7 @@
       "tools"
     ],
     "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
+    "repository_content_write_unlocked": null,
     "status": "GREEN"
   },
   "preflight_evidence": {
@@ -65,8 +65,7 @@
       "flow-v2-execution",
       "root-local-first",
       "Python測試實務",
-      "派工",
-      "issue-closure-gate",
+      "phase6-release-packaging",
       "diagnosing-bugs",
       "tdd"
     ],
@@ -74,8 +73,7 @@
       "flow-v2-execution",
       "root-local-first",
       "Python測試實務",
-      "派工",
-      "issue-closure-gate",
+      "phase6-release-packaging",
       "diagnosing-bugs",
       "tdd"
     ],
@@ -83,14 +81,16 @@
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
     ],
     "completed_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "release_required_artifacts.json"
     ],
-    "observed_at": "2026-10-09T04:10:46.820Z"
+    "observed_at": "2026-10-09T04:21:42Z"
   }
 }
