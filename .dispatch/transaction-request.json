@@ -1,75 +1,33 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1384-work3-renew-work-identity-20261009-0338",
+  "request_id": "issue1384-work3-reconcile-current-after-renew-20261009-0339",
   "issue": 1384,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.issue1384.work3.native-resume.20261009.0338",
-  "expected_coord_head": "b0d81f12804f37b06b5cb4d24fad45f8a2fe29c7",
-  "expected_generation": 3,
-  "effect": {},
-  "purpose": "Renew same owner work3 lease with exact preflight validated on existing work branch and frozen source SHA, preserve six path reservation/START_BRANCH",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
-    "drive_role": "MIRROR_BACKUP_ONLY",
-    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "issue": 1384,
-    "invocation_identity": "chatgpt.issue1384.work3.native-resume.20261009.0338",
-    "status": "GREEN",
-    "branch": "work/issue-1384",
-    "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
-    "required_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "驗證板件與DXF",
-      "monitoring-remote-qa"
-    ],
-    "completed_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "驗證板件與DXF",
-      "monitoring-remote-qa"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
-    ],
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
-    ],
-    "observed_at": "2026-10-09T03:36:40Z",
-    "remote_preflight_run_id": 37880055682,
-    "remote_preflight_comment_id": 6073755450
+  "expected_coord_head": "b98704dfa2b23329e6d2741e13dc00f223c19f38",
+  "expected_generation": 4,
+  "reuse_admission_session": true,
+  "effect": {
+    "observed_work_branch": "work/issue-1384",
+    "observed_head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+    "observed_target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
+    "next_action": {
+      "args": {
+        "diff_digest": "74ff856e56f2f8f573047b62e150264b1d3daaa39482de2a83a457f226d6bd4e"
+      },
+      "display": "Publish exact tested DM8-C2 six-file scene-seam commit",
+      "kind": "START_BRANCH"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1384,
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8"
+    }
   }
 }
