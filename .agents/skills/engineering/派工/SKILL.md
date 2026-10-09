@@ -7,12 +7,16 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # /派工
-依使用者需求建立或讀取既有 Issue，確認 scope、工作分支及責任人。
-能直接完成時直接修改、測試並整合至 localX；不可虛構已派出的代理人或未發生的提交。
-已確定的 /派工 Issue 包含完整產品交付：本機測試與 commit、工作分支推送到使用者公開倉庫 looaeedr/whd、建立 base=localX 的 PR、驗 exact CI、合併 localX、工單留言與 close/readback；不另要求退役專案 remote token、receipt、unlock 或第二次內部批准。
-若使用者下達 /接手，改由 執行開發任務/SKILL.md 以 RC → whd-dev → /workspace/whd 執行，沿用同一公開倉庫與 work branch → localX 的範圍。
-**實際平台安全審查不能被技能繞過**：若公開 push/PR/merge 需要更明確授權或工具拒絕，保留本地 SHA、回報具體拒絕操作，不得改用其他 tool 規避。
-產品施工不得自動將 localX 發布至 X；必須使用者當次 `/推推`。純文檔／治理／技能工作不必派工，也不經 localX，可由本地治理分支直接 PR 合併 X，但必須通過 `tools/change_lane_gate.py` 的白名單硬檢查。
+
+## 硬閘門：`DISPATCH_REMOTE_ONLY`
+
+**`/派工` 絕不能在使用者本機施工。** 其工作位置限於 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION` 的真正雲端／GitHub 端執行器（不得暗接使用者裝置）。禁止 Remote Desktop Commander、RC、CoreELEC、`whd-dev`、`/workspace/whd`、Windows `Z:\新WHD`、任何本機 shell／工作樹，用於本技能的修改、測試、commit、同步或備援。**禁止把 `/派工` 隱性改成 `/接手`。**
+
+在讀取 GitHub 工單並確認依賴、scope、owner 後，**每次實際施工入口**先確認 executor 位置；本機／RC 一律回 `DISPATCH_LOCAL_EXECUTION_DENIED`，不得呼叫使用者裝置。本回合若沒有可執行的 GitHub／雲端施工入口，就記錄 `REMOTE_EXECUTOR_UNAVAILABLE` 和已查到的阻塞，保留工單，不得虛構「已派工」「已施工」，也不能因為 RC 上線便拿它代替。
+
+符合遠端執行條件後，`/派工` 才能以 GitHub Git 為來源，在遠端隔離分支施工、跑驗證、commit，推送到公開倉庫 `looaeedr/whd` 的指定工作分支，建立 base=`localX` 的 PR，追蹤 exact CI，成功後合併 **GitHub 遠端 `localX`**，完成 Issue 留言／close/readback；**這不等於使用者本機 `localX` 已更新**。同一已核准 Issue 不額外要求退役專案 token、receipt、unlock，但外部平台安全審查不能由 Skill 繞過。
+
+只有使用者明確下 `/接手`，才能切到 `執行開發任務/SKILL.md` 並使用 RC → `whd-dev` → `/workspace/whd`；`/派工` 本身不授權此切換。產品不得自動從 `localX` 發布 X；正式 `cleanup/2d-3d-sync` 仍須當次 `/推推`。純治理／技能變更照 `tools/change_lane_gate.py` 的白名單走獨立治理通道，不得藉此把產品或派工送入本機。
 
 ## 發出產品 PR 之後必須續作
 
