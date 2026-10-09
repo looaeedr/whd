@@ -30,3 +30,9 @@ whd_schema: WHD_DOC_META_V1
 - 合併時強制檢查最新 SHA，不允許未測新 commit 或無檢查時合併。
 
 `tools/change_lane_gate.py` + `.github/workflows/whd-change-lane-hard-gate.yml` 是實作 owner；此文件是 policy 規格。若 Ruleset 未將檢查列為 required，CI 只能提供警示／測試失敗，不能聲稱平台層已鎖定。
+
+## 上線後實際檢查
+
+每次僅變更上面白名單文件的獨立治理 PR，`WHD Change Lane Gate` 應回傳 `GOVERNANCE_DIRECT_X / PASS`。
+該工作流程讀的是 PR **base X** 中的可信政策程式，而不是候選分支覆寫後的程式。
+若修改 GUI、幾何、DXF、產品測試或任何未知檔案，必須由機器判斷為 `PRODUCT_LOCALX_ONLY`，不能用治理直送。
