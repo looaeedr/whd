@@ -1,0 +1,49 @@
+name: WHD Change Lane Hard Gate
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  whd-change-lane-gate:
+    name: WHD Change Lane Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout trusted X policy
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted-policy
+          persist-credentials: false
+      - name: Checkout exact candidate commit and Git history
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Enforce non-product X fast lane or verified /推推
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH=trusted-policy python trusted-policy/tools/change_lane_gate.py \
+            --event-file "$GITHUB_EVENT_PATH" \
+            --repo-root candidate
+      - name: Fail closed for unsupported merge-queue invocation
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "::error::Merge queue needs trusted PR identity before enabling merge_group"
+          exit 1
