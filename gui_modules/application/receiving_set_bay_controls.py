@@ -547,6 +547,7 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
                 row=index // 3, column=10 + index % 3, padx=3)
     panel._receiving_select_bay = select
     panel._receiving_kind_var = kind_var
+    panel._receiving_switch_brand_var = brand_var
     panel._receiving_switch_tier_var = switch_tier_var
     panel._receiving_switch_tier_selector = tier_selector
     panel._receiving_switch_tier_nominal_var = switch_tier_nominal_var
