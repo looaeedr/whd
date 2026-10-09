@@ -38,46 +38,48 @@ def test_r06_outer_door_has_authoritative_placement_contract():
     assert placement.world_offset == pytest.approx((0.0, 250.0, 175.0))
 
 
-def test_r06_panel_and_top_left_right_frames_share_outer_door_datum():
+def test_receiving_panel_and_frames_use_physical_box_body_mates():
     from ae_engine.cabinet_types import policy as cabinet_family_policy
     from ae_engine.inner_door_frames import derive_all_inner_door_frames
 
     snapshot = _snapshot()
     panel = resolve_assembly_placement(snapshot, "inner_door:upper:panel")
+    manufactured = cabinet_family_policy.derive_inner_door_panels(snapshot)[0]
+    assert manufactured.width == pytest.approx(693.0)
     assert panel.relationship == "INNER_DOOR_PANEL"
-    assert panel.mate_target == "door_c1_r1"
-    assert panel.placement_kind == "inner_door_panel"
-    assert panel.world_offset == pytest.approx((0.0, 225.0, 95.0))
+    assert panel.mate_target == "inner_door:upper:frame_opening"
+    assert panel.world_offset[0] == pytest.approx(0.0)
+    assert panel.world_offset[2] == pytest.approx(95.0)
 
-    # Top frame remains on the canonical inner-door top datum.  Left/right
-    # frames keep the same X/Z panel datums but their longitudinal center/span
-    # are now owned by the two real terminal faces: top inset and the exact
-    # shared horizontal Divider support skin.
     top = resolve_assembly_placement(snapshot, "inner_door:upper:top_frame")
-    assert top.world_offset == pytest.approx((0.0, 732.0, 95.0))
+    # Final 22-mm flange faces the EndCap's underside at H/2 - T = 798.
+    assert top.mate_target == "head"
+    assert top.world_offset == pytest.approx((0.0, 774.0, 95.0))
 
     vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
         snapshot, "upper"
     )
-    assert vertical is not None
-    frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(snapshot)
+    assert vertical["top_terminal_y"] == pytest.approx(750.0)
+    assert panel.world_offset[1] == pytest.approx(
+        (vertical["top_terminal_y"] + vertical["lower_terminal_y"]) / 2.0
+    )
     frames = {
         row.stable_id: row
-        for row in derive_all_inner_door_frames(frame_sets)
+        for row in derive_all_inner_door_frames(
+            cabinet_family_policy.derive_inner_door_frame_sets(snapshot)
+        )
     }
-    expected_x = {
-        "inner_door:upper:left_frame": -317.5,
-        "inner_door:upper:right_frame": 317.5,
+    expected = {
+        "inner_door:upper:left_frame": (-362.0, "box_body:left_side"),
+        "inner_door:upper:right_frame": (373.0, "box_body:right_side"),
     }
-    for stable_id, x in expected_x.items():
+    for stable_id, (x, mother_plate) in expected.items():
         placement = resolve_assembly_placement(snapshot, stable_id)
         frame = frames[stable_id]
-        assert placement.stable_id == stable_id
-        assert placement.parent_assembly_node == "box_body:door_layout:inner_door"
-        assert placement.relationship == "INNER_DOOR_FRAME"
-        assert placement.world_offset[0] == pytest.approx(x)
-        assert placement.world_offset[1] == pytest.approx(vertical["center_y"])
-        assert placement.world_offset[2] == pytest.approx(95.0)
+        assert placement.mate_target == mother_plate
+        assert placement.world_offset == pytest.approx(
+            (x, vertical["center_y"], 95.0)
+        )
         assert frame.span == pytest.approx(vertical["span"])
         assert placement.world_offset[1] + frame.span / 2.0 == pytest.approx(
             vertical["top_terminal_y"]
@@ -85,6 +87,36 @@ def test_r06_panel_and_top_left_right_frames_share_outer_door_datum():
         assert placement.world_offset[1] - frame.span / 2.0 == pytest.approx(
             vertical["lower_terminal_y"]
         )
+
+
+@pytest.mark.parametrize("outer_fw,door_gap", [(29.0, 2.0), (35.0, 5.0)])
+def test_physical_frame_mates_do_not_follow_outer_door_finished_edge(outer_fw, door_gap):
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+
+    baseline = _snapshot()
+    modified = _snapshot()
+    modified["fw"] = outer_fw
+    modified["door_gap_w"] = door_gap
+
+    # Changing an outer Door's frame width/gap may affect finished Door
+    # sizing but must NEVER move the inner frame's last-22-mm attachment
+    # from the actual Box Body side/head mother-plate skins.
+    for side in ("left", "right", "top"):
+        key = f"inner_door:upper:{side}_frame"
+        before = resolve_assembly_placement(baseline, key)
+        after = resolve_assembly_placement(modified, key)
+        assert after.mate_target == before.mate_target
+        assert after.world_offset[0] == pytest.approx(before.world_offset[0])
+        assert after.world_offset[2] == pytest.approx(before.world_offset[2])
+        if side == "top":
+            assert after.world_offset[1] == pytest.approx(before.world_offset[1])
+
+    panels = cabinet_family_policy.derive_inner_door_panels(modified)
+    assert len(panels) == 1
+    assert panels[0].width == pytest.approx(800 - 100 - 2 * door_gap)
+    frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(modified)
+    assert frame_sets[0].spans["top"] == pytest.approx(700.0)
+
 
 def test_r06_divider_guard_stays_authoritative_and_repeatable():
     stable_id = "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"

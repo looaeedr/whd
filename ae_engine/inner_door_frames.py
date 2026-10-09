@@ -31,6 +31,28 @@ _FRAME_SIGNED_CHAINS = {
 }
 
 
+def inner_door_frame_formed_occupation(thickness: float) -> float:
+    """Outside occupation of the common 46-mm frame web (NOT the mating face).
+
+    The LAST 22-mm signed-fold segment is the physical cabinet mating flange.
+    It lies perpendicular to the shared 46-mm web; never treat 50 mm as an
+    outer-door-relative inset.  At T=2: web 46 + 2*T = 50 mm.
+    """
+    t = float(thickness)
+    if t <= 0.0:
+        raise ValueError("inner-door frame material thickness must be positive")
+    common_webs = (
+        abs(_FRAME_SIGNED_CHAINS[side][-2]) for side in ("top", "left", "right")
+    )
+    webs = tuple(common_webs)
+    if len(set(webs)) != 1:
+        raise ValueError("receiving inner-door frames lost their shared web")
+    if any(abs(_FRAME_SIGNED_CHAINS[side][-1]) != 22.0 for side in ("top", "left", "right")):
+        raise ValueError("receiving frame mating flange is not the approved last 22 mm")
+    return float(webs[0]) + 2.0 * t
+
+
+
 def _stable_inner_door_id(value: object) -> str:
     result = str(value or "").strip()
     if not result:
