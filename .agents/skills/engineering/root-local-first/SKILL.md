@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 
 # root-local-first
 
-此 Skill 僅適用於**使用者明確 `/接手`** 的本機施工路線：GitHub Git 供應來源，Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 工作，測試後依 `localX` 整合規則交付。**`/派工` 不得讀此 Skill 作為本機施工授權**：`/派工` 必須是 GitHub／雲端端執行，不得進入 RC、Desktop Commander、使用者任何本機 shell 或 `/workspace/whd`，也不得在遠端能力缺失時 fallback 本機。不要回退 Google Drive 或 .unpushed 當工作根目錄。
+此 Skill 僅適用於**使用者明確 `/接手`** 的本機施工路線：GitHub Git 供應來源，Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 工作，測試後依 `localX` 整合規則交付。**`/派工` 不得讀此 Skill 作為本機施工授權**：其 BUILD/TEST/COMMIT 必須 GitHub／雲端執行；只在 exact CI 通過後的 `LOCALX_INTEGRATION` 才能由 DC 進 RC 做**本機 `localX` 最終合併／驗證／同步**，不准施工。DC 實際無法連線時才能備援遠端 `localX` 並標示 `LOCALX_SYNC_PENDING`；不能用遠端施工能力不足當成使用本機的藉口。不要回退 Google Drive 或 .unpushed 當工作根目錄。
 
 本 Skill 不得新增啟動授權檢查、claim、lease、工作槽、紀錄或協調交易；程式測試和 Git diff 才是修改成果證據。
 
