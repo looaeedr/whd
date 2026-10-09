@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
   "issue": 1443,
   "lane_id": "chatgpt.flowv2.work1",
@@ -21,11 +21,23 @@
     "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
     "token": "lease:1443:37882666195:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "tests/process/test_issue1380_runtime_boundary.py",
+      "tests/process/test_issue1381_no_replay.py",
+      "tests/process/test_issue1441_real_pr_ci_gate.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/flow_v2_merge_precheck.py"
+    ]
+  },
   "next_action": {
     "args": {},
-    "display": "Reserve exact tested #1443 diff after implementation",
-    "kind": "RESERVE_PATHS"
+    "display": "Deliver tested exact issue1443 commit",
+    "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -43,7 +55,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
@@ -51,13 +63,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
   "transaction": {
-    "expected_fingerprint": "bfc576f8f11e9f2e2002101bf0a9bd954316cfd42ca3eac080bf26389fb1077e",
-    "id": "gha:37882666195:1443:ACQUIRE:1",
+    "expected_fingerprint": "3c3b00e995d2b393a95e2cd3fac5d6c909d482e2c825571faf7cedad0c0ed797",
+    "id": "gha:37883563058:1443:RESERVE_PATHS:2",
     "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T04:12:17Z",
+  "updated_at": "2026-10-09T04:23:06Z",
   "version": 2,
   "work_branch": "work/issue-1443-ci-gate-shortest-path"
 }
