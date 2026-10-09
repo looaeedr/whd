@@ -13,6 +13,8 @@ whd_schema: WHD_DOC_META_V1
 
 - `queued / waiting / pending / in_progress` → **CONTINUE_POLL**。輪詢 exact SHA 的 checks + job；工作仍可執行時不得「CI 跑著就結束」；每 2–3 操作回報，不能用回報代替續作。
 - `completed / success` → 若 PR base 是 `localX`、工作分支及核准條件符合，立即合併、回讀 PR merged/branch SHA、工單 close/readback。**測試 GREEN 不是派工終點**。
+- **`localX` merge + SHA 回讀即觸發 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，不等原工單 close；原工單回寫及結案與下一張搜尋銜接處理。可執行者直接續派並施工；若無候選須回報 `NO_ELIGIBLE_ISSUE` 和實際查核依據，不能把 CI/merge/close 當成停止條件。
+
 - `completed / failure / cancelled / timed_out` → 檢查 logs，修復後重試，不得將其他 commit 的 GREEN 當成同一 HEAD。
 - 沒有檢查結果 → 先核對 PR target 是否被 workflow branches/paths 覆蓋；不准以「無檢查」當成功。
 - 真正不能繼續時提供 exact run/PR/SHA、已確認阻塞及續作動作，不得假稱背景輪詢已安排；未建立排程的聊天執行者不具跨回合自動喚醒能力。
