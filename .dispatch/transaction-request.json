@@ -1,33 +1,55 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1384-work3-reconcile-current-after-renew-20261009-0339",
+  "request_id": "issue1384-native-start-branch-gen5-20261009-0341",
   "issue": 1384,
-  "kind": "RECONCILE",
+  "kind": "START_BRANCH",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.issue1384.work3.native-resume.20261009.0338",
-  "expected_coord_head": "b98704dfa2b23329e6d2741e13dc00f223c19f38",
-  "expected_generation": 4,
+  "expected_coord_head": "15b57cae3869751ba1d4dad5ce07086725bcd354",
+  "expected_generation": 5,
   "reuse_admission_session": true,
   "effect": {
-    "observed_work_branch": "work/issue-1384",
-    "observed_head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
-    "observed_target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
+    "work_branch": "work/issue-1384",
+    "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
     "next_action": {
+      "kind": "APPLY_COMMIT",
       "args": {
-        "diff_digest": "74ff856e56f2f8f573047b62e150264b1d3daaa39482de2a83a457f226d6bd4e"
+        "candidate_commit_sha": "c82322519a5a2ef85a52f0e6ab4ac7a938393683"
       },
-      "display": "Publish exact tested DM8-C2 six-file scene-seam commit",
-      "kind": "START_BRANCH"
+      "display": "Apply exact tested six-file DM8-C2 commit"
     },
-    "stale_record_live_target_reconcile_proof": {
-      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+      "diff_digest": "74ff856e56f2f8f573047b62e150264b1d3daaa39482de2a83a457f226d6bd4e",
       "issue": 1384,
-      "stale_source_branch": "cleanup/2d-3d-sync",
-      "stale_source_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
-      "stale_target_branch": "cleanup/2d-3d-sync",
-      "stale_target_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
-      "live_target_branch": "cleanup/2d-3d-sync",
-      "live_target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8"
+      "generation": 2,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "ae_engine/manufacturing_render_data.py",
+        "ae_engine/manufacturing_scene_access.py",
+        "ae_engine/receiving_joint_marking.py",
+        "ae_engine/receiving_pairing_marking.py",
+        "tests/test_issue1114_receiving_pairing_marking.py",
+        "tests/test_issue1384_scene_access.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "dc1f80741ad61cb8d22da2737008c653dc966b33cf5f9a2c08e4dfa84a3ff303",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1384,
+      "generation": 5,
+      "record_fingerprint": "f6231fea09cc29fe5bc297e66aaca5b534a16fd1af6d02064d9a89c0e424f167",
+      "lease_token": "lease:1384:37880111055:1",
+      "invocation_identity": "chatgpt.issue1384.work3.native-resume.20261009.0338",
+      "expected_next_action": "START_BRANCH",
+      "expected_work_branch": "work/issue-1384",
+      "expected_work_head": "b337e340d823c29552da7013725ef7b27047d2c4",
+      "expected_target_head": "d262c6c2d7fe626851a906762ff975ed13e79ae8"
     }
   }
 }
