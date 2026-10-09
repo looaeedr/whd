@@ -1,20 +1,31 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1443-dispatch-ready-work1-20261009-0408",
+  "request_id": "issue1443-acquire-work1-20261009-0410",
   "issue": 1443,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-  "expected_coord_head": "7240b778c53b7d331985a3d0fe9c1a9a1cd45954",
+  "expected_coord_head": "fed5e0ecced3a07c5577b3a6717c1955db4f403c",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "https://github.com/looaeedr/whd/issues/1443",
-    "work_branch": "work/issue-1443-ci-gate-shortest-path",
+    "observed_at": "2026-10-09T04:10:46.820Z",
+    "lease": {
+      "token": "lease:1443:work1:20261009:acquire",
+      "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
+      "expires_at": "2026-10-09T04:30:46.820Z"
+    },
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work1",
+    "lane_id": "chatgpt.flowv2.work1",
     "slot_id": "worker.slot.1",
-    "dispatch_transport": "GITHUB_CANONICAL"
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {},
+      "display": "Reserve exact tested #1443 diff after implementation"
+    }
   },
-  "purpose": "User /派工 補洞 Issue1443, dispatch governance-only with existing Flow v2 after exact path-filter CI and stale GREEN gap discovered, no RC/local used.",
+  "purpose": "Exact user /派工 #1443, native claim work1 after READY; next real step is repository-content implementation in executor-owned workspace.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
@@ -80,6 +91,6 @@
       ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
     ],
-    "observed_at": "2026-10-09T04:08:32.886Z"
+    "observed_at": "2026-10-09T04:10:46.820Z"
   }
 }
