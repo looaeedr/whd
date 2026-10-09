@@ -558,7 +558,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
         part_key=part.part_key, render_data=part.render_data,
         x_profile=part.x_profile, y_profile=part.y_profile,
         placement=part.placement, offset=tuple(a + b for a, b in zip(part.offset, bay_offset)),
-    ) for part in resolved.parts)
+    ) for part in resolved.parts if part.placement != "standalone")
     result = FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",
@@ -912,7 +912,7 @@ def _common_preview_request(self, namespace):
         part_key=part.part_key, render_data=part.render_data,
         x_profile=part.x_profile, y_profile=part.y_profile,
         placement=part.placement, offset=part.offset,
-    ) for part in geometry.parts)
+    ) for part in geometry.parts if part.placement != "standalone")
     return FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",

@@ -17,7 +17,7 @@ def metadata_fields(parent, descriptor=None):
             widget=ttk.Entry(parent,textvariable=values[key])
         widget.grid(row=i,column=1,sticky="ew",padx=8,pady=6)
     parent.columnconfigure(1,weight=1)
-    ttk.Label(parent,text="包外 17／100；正式 Fold 尚未完成，暫不可製造。",
+    ttk.Label(parent,text="包外 17／100，X 或 Y 單軸折彎；另一軸由你輸入。",
               wraplength=380).grid(row=4,column=0,columnspan=2,sticky="w",padx=8,pady=8)
     parent._custom_values=values
     return values
@@ -44,10 +44,10 @@ def open_custom_part_creation(parent, *, add_part, on_created):
     win.grab_set()
     return win
 
-def build_custom_part_editor(parent, *, descriptor, update_part, on_changed):
+def build_custom_part_editor(parent, *, descriptor, update_part, on_changed, open_holes=None):
     frame=ttk.LabelFrame(parent,text="頂層自訂板件",padding=12)
     values=metadata_fields(frame,descriptor)
-    ttk.Label(frame,text="未建立正式製造幾何；可保存設定，不能輸出此板件 DXF。",
+    ttk.Label(frame,text="獨立板件：可預覽與輸出 DXF；尚未指定箱體安裝位置。",
               wraplength=420).grid(row=5,column=0,columnspan=2,sticky="w",padx=8,pady=8)
     def apply():
         try:
@@ -60,4 +60,7 @@ def build_custom_part_editor(parent, *, descriptor, update_part, on_changed):
         return True
     frame._custom_apply=apply
     ttk.Button(frame,text="套用設定",command=apply).grid(row=6,column=1,sticky="e",padx=8,pady=8)
+    if open_holes is not None:
+        ttk.Button(frame,text="2D 孔位設定",command=open_holes).grid(row=6,column=0,sticky="w",padx=8,pady=8)
+        frame._custom_open_holes=open_holes
     return frame

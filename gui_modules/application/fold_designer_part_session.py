@@ -30,7 +30,10 @@ class Phase6PartSessionOwner:
         if app.designer_workspace.switching:
             return
         key = app.designer_workspace.active_part
-        if not key or getattr(app.designer_workspace, "custom_part", lambda _: None)(key) is not None:
+        if not key:
+            return
+        if app.designer_workspace.custom_part(key) is not None:
+            app.designer_workspace.stash_profiles(key, {axis:bridge.clone_profile(app.state.profiles.get(axis,())) for axis in ("X","Y")})
             return
         try:
             app.bend_ui.save()
@@ -111,6 +114,7 @@ class Phase6PartSessionOwner:
         custom = getattr(app.designer_workspace, "custom_part", lambda _: None)(key)
         custom_frame = getattr(app, "_custom_part_editor", None)
         if custom is not None:
+            before_signature=bridge._phase6_manufacturing_state_signature(app)
             plan = navigation.plan_activation(key, initial=initial, leaving_non_single_view=True)
             if plan.save_outgoing:
                 self.save_current_part()
@@ -129,22 +133,66 @@ class Phase6PartSessionOwner:
                 widget = getattr(app, name, None)
                 if widget is not None and widget.winfo_manager():
                     widget.pack_forget()
+            from phase6_custom_fold_profiles import build_custom_part_profiles, custom_part_spec
+            from ae_engine.custom_fold_manufacturing import custom_fold_feature_context
+            def install_profiles(reset=False):
+                snapshot={**app._phase6_input_snapshot,**app.designer_workspace.snapshot()}
+                profiles=None if reset else app.designer_workspace.profiles_for(key)
+                profiles=profiles or build_custom_part_profiles(snapshot,key)
+                app.designer_workspace.stash_profiles(key,profiles)
+                app.state.profiles.update({axis:bridge.clone_profile(profiles[axis]) for axis in ("X","Y")})
+                app.state.struct_mode="standard"
+                app.state.phase6_fold_ui_profiles=None
+                app.state.phase6_fold_ui_tabs=[app.designer_workspace.custom_part(key)["fold_axis"]]
+                app.state.active_bend=app.state.phase6_fold_ui_tabs[0]
+                app.state.enable_y=True
+                app._phase6_input_snapshot["custom_parts"]=app.designer_workspace.snapshot()["custom_parts"]
+                app._load_part_holes(key)
+            install_profiles()
             canvas = app.renderer.canvas.get_tk_widget()
-            canvas.pack_forget()
+            canvas.pack(fill=bridge.original.tk.BOTH,expand=True)
+            prior_metadata=dict(custom)
             def changed():
-                app.part_var.set(app.designer_workspace.custom_part(key)["display_name"])
+                nonlocal prior_metadata
+                before=prior_metadata
+                current=app.designer_workspace.custom_part(key)
+                geometry_changed=any(current[name]!=before[name] for name in ("fold_axis","transverse_length"))
+                app.part_var.set(current["display_name"])
+                if geometry_changed:
+                    install_profiles(reset=True)
+                app._phase6_input_snapshot["custom_parts"]=app.designer_workspace.snapshot()["custom_parts"]
+                prior_metadata=dict(current)
                 app._refresh_part_buttons()
-                bridge._phase6_publish_live_state(app, force=True)
-            frame = build_custom_part_editor(
-                canvas.master, descriptor=custom,
-                update_part=lambda **values: navigation.update_custom_part(key, **values),
-                on_changed=changed,
-            )
-            frame.pack(fill=bridge.original.tk.BOTH, expand=True)
-            app._custom_part_editor = frame
+                if geometry_changed:
+                    app.submit_update_intent("geometry",commit=True)
+                else:
+                    bridge._phase6_publish_live_state(app,force=True)
+            def holes():
+                host=getattr(app._scene_query_callback,"__self__",None)
+                if host is None or not hasattr(host,"_open_unified_hole_editor"):
+                    raise ValueError("目前未連接既有 Hole Editor")
+                snapshot={**app._phase6_input_snapshot,**app.designer_workspace.snapshot()}
+                features=app.designer_workspace.features_for(key)
+                spec=custom_part_spec(snapshot,key,profiles=app.designer_workspace.profiles_for(key))
+                surface,width,height,guide=custom_fold_feature_context(spec)
+                def commit():
+                    app.designer_workspace.stash_features(key,features)
+                    app._load_part_holes(key)
+                    app.submit_update_intent("geometry",commit=True)
+                win=host._open_unified_hole_editor(key,app.designer_workspace.custom_part(key)["display_name"],
+                    surface,width,height,reference_guide=guide,feature_list_override=features,
+                    sync_callback=commit)
+                return win or getattr(host,"last_unified_hole_editor",None)
+            frame = build_custom_part_editor(canvas.master,descriptor=custom,
+                update_part=lambda **values:navigation.update_custom_part(key,**values),
+                on_changed=changed,open_holes=holes)
+            frame.pack(fill=bridge.original.tk.X,before=canvas)
+            app._custom_part_editor=frame
             app.part_var.set(custom["display_name"])
             app._refresh_part_buttons()
             app.remove_part_button.configure(state="normal")
+            after_signature=bridge._phase6_manufacturing_state_signature(app)
+            app.submit_update_intent("display" if before_signature==after_signature else "geometry",commit=True)
             return
         if custom_frame is not None:
             custom_frame.destroy()
