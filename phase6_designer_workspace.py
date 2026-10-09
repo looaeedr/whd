@@ -408,7 +408,7 @@ class Phase6DesignerWorkspace:
         """Project the shared owner once, with an optional live editor overlay."""
         result = self._shared_state.snapshot()
         active = result.get("active_part")
-        if active and active != MANDATORY_PART and self.custom_part(active) is None and live_active_profiles is not None:
+        if active and active != MANDATORY_PART and live_active_profiles is not None:
             profiles = deepcopy(result["part_profiles"])
             profiles[str(active)] = deepcopy(dict(live_active_profiles or {}))
             result["part_profiles"] = profiles

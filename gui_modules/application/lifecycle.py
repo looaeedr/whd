@@ -754,6 +754,14 @@ def _apply_fold_designer_live_snapshot(self, payload):
             return False
     self._fold_designer_live_sync_guard = True
     try:
+        from phase6_custom_parts import custom_part_only_change
+        if custom_part_only_change(getattr(self,"_phase6_last_fold_designer_live_payload",None),payload):
+            self.workspace_controller.commit_workspace(payload["workspace"])
+            self.project_controller.capture_committed(self._compose_phase6_project_snapshot_from_main_gui())
+            self._phase6_last_fold_designer_revision=revision
+            self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")
+            self._phase6_last_fold_designer_live_payload=deepcopy(payload)
+            return True
         model = normalize_custom_model_name(payload.get("model"))
         baseline_changed = self.baseline_var.get().strip() != model
         if baseline_changed:
@@ -872,6 +880,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
         if origin == "fold_designer":
             self._phase6_last_fold_designer_revision = revision
             self._phase6_last_fold_designer_fingerprint = str(payload.get("fingerprint") or "")
+        self._phase6_last_fold_designer_live_payload=deepcopy(payload)
         return True
     finally:
         self._fold_designer_live_sync_guard = False
