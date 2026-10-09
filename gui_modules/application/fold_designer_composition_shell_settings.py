@@ -422,65 +422,22 @@ def sync_authoritative_derived_parts(
     )
 
 def workspace_navigation(self):
-    """Return the single workspace/navigation application controller."""
-    app = self.app
-    workspace = getattr(app, "designer_workspace", None)
-    controller = self._workspace_navigation_controller
-    if controller is None or getattr(controller, "workspace", None) is not workspace:
-        current = getattr(app, "_phase6_workspace_navigation_controller", None)
-        if (
-            isinstance(current, Phase6WorkspaceNavigationController)
-            and getattr(current, "workspace", None) is workspace
-        ):
-            controller = current
-        else:
-            legacy_memory = getattr(app, "__dict__", {}).get(
-                "_phase6_box_body_active_piece_key"
-            )
-            controller = Phase6WorkspaceNavigationController(
-                workspace,
-                remembered_box_body_child=legacy_memory,
-            )
-        self._workspace_navigation_controller = controller
-        app._phase6_workspace_navigation_controller = controller
+    """Return the identity-preserving narrow Workspace capability controller."""
+    controller = self._capabilities.workspace.navigation()
+    self._workspace_navigation_controller = controller
     return controller
 
 def registry_diagnostics(self):
-    """Return the single Registry diagnostics application controller."""
-    app = self.app
-    controller = self._registry_diagnostics_controller
-    if controller is None:
-        current = getattr(app, "_phase6_registry_diagnostics_controller", None)
-        if isinstance(current, Phase6RegistryDiagnosticsController):
-            controller = current
-        else:
-            controller = Phase6RegistryDiagnosticsController(
-                candidate_id=getattr(app, "_phase6_registry_candidate_id", ""),
-                candidate_record=getattr(
-                    app, "_phase6_registry_candidate_record", {}
-                ),
-                regression_evidence=getattr(
-                    app, "_phase6_registry_regression_evidence", {}
-                ),
-                rule_records=getattr(app, "_phase6_registry_rule_records", {}),
-                promotion_candidates=getattr(
-                    app, "_phase6_last_relief_promotion_candidates", {}
-                ),
-            )
-        self._registry_diagnostics_controller = controller
-        app._phase6_registry_diagnostics_controller = controller
+    """Return the cached Registry controller owned by the bounded capability."""
+    controller = self._capabilities.registry.diagnostics()
+    self._registry_diagnostics_controller = controller
     return controller
 
 def settings_service(self):
-    if self._settings_service is None:
-        app = self.app
-        self._settings_service = Phase6SettingsTransactionService(
-            settings_values=getattr(app, "_settings_values", {}),
-            input_snapshot=getattr(app, "_phase6_input_snapshot", {}),
-            box_whd=getattr(app, "_phase6_box_whd", {}),
-            pending_settings=getattr(app, "_phase6_pending_settings", {}),
-        )
-    return self._settings_service
+    """Construct the Settings service once from explicit committed-state ports."""
+    service = self._capabilities.settings.service()
+    self._settings_service = service
+    return service
 
 def settings_transactions(self):
     if self._settings_transactions is None:

@@ -356,12 +356,8 @@ def commit_output_draw_stock(self, namespace):
     )
 
 def export_selected_dxf_from_3d(self):
-    """Route 3D DXF export through the existing project command owner."""
-    app = self.app
-    return Phase6ProjectController.route_selected_dxf_export(
-        getattr(app, "_phase6_export_selected_dxf_callback", None),
-        app.flush_pending_settings,
-    )
+    """Delegate project export to a bounded project capability, not an app bag."""
+    return self._capabilities.project.export_selected_dxf()
 
 def collect_workspace_state(self, namespace):
     """Assemble one application snapshot around the canonical workspace owner."""
@@ -777,3 +773,87 @@ def stage_setting_update(self, namespace, key, value):
     )
     service.install_debounce_job(job)
     return job
+
+
+def build_capability_owners(self) -> "FoldDesignerCapabilityOwners":
+    """Bind explicit capability ports at the sole Fold Designer composition root."""
+    from gui_modules.application.fold_designer_capability_owners import (
+        FoldDesignerCapabilityOwners,
+        ProjectCapabilityOwner, ProjectCapabilityPorts,
+        SettingsCapabilityOwner, SettingsCapabilityPorts,
+        WorkspaceCapabilityOwner, WorkspaceCapabilityPorts,
+        RegistryCapabilityOwner, RegistryCapabilityPorts,
+        ReceivingCapabilityOwner, ReceivingCapabilityPorts,
+        AssemblyCornerCapabilityOwner, AssemblyCornerCapabilityPorts,
+    )
+
+    app = self.app
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from phase6_project_controller import Phase6ProjectController
+    from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
+    from phase6_settings_service import Phase6SettingsTransactionService
+    from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
+
+    return FoldDesignerCapabilityOwners(
+        project=ProjectCapabilityOwner(ProjectCapabilityPorts(
+            export_callback=lambda: getattr(app, "_phase6_export_selected_dxf_callback", None),
+            flush_pending_settings=lambda: getattr(app, "flush_pending_settings")(),
+            route_export=Phase6ProjectController.route_selected_dxf_export,
+        )),
+        settings=SettingsCapabilityOwner(SettingsCapabilityPorts(
+            settings_values=lambda: getattr(app, "_settings_values", {}),
+            input_snapshot=lambda: getattr(app, "_phase6_input_snapshot", {}),
+            box_whd=lambda: getattr(app, "_phase6_box_whd", {}),
+            pending_settings=lambda: getattr(app, "_phase6_pending_settings", {}),
+            service_factory=Phase6SettingsTransactionService,
+        )),
+        workspace=WorkspaceCapabilityOwner(WorkspaceCapabilityPorts(
+            workspace=lambda: getattr(app, "designer_workspace", None),
+            current_controller=lambda: getattr(
+                app, "_phase6_workspace_navigation_controller", None
+            ),
+            remembered_child=lambda: getattr(app, "__dict__", {}).get(
+                "_phase6_box_body_active_piece_key"
+            ),
+            publish_controller=lambda controller: setattr(
+                app, "_phase6_workspace_navigation_controller", controller
+            ),
+            controller_type=Phase6WorkspaceNavigationController,
+        )),
+        registry=RegistryCapabilityOwner(RegistryCapabilityPorts(
+            current_controller=lambda: getattr(
+                app, "_phase6_registry_diagnostics_controller", None
+            ),
+            diagnostics_seed=lambda: {
+                "candidate_id": getattr(app, "_phase6_registry_candidate_id", ""),
+                "candidate_record": getattr(app, "_phase6_registry_candidate_record", {}),
+                "regression_evidence": getattr(
+                    app, "_phase6_registry_regression_evidence", {}
+                ),
+                "rule_records": getattr(app, "_phase6_registry_rule_records", {}),
+                "promotion_candidates": getattr(
+                    app, "_phase6_last_relief_promotion_candidates", {}
+                ),
+            },
+            publish_controller=lambda controller: setattr(
+                app, "_phase6_registry_diagnostics_controller", controller
+            ),
+            controller_type=Phase6RegistryDiagnosticsController,
+        )),
+        receiving=ReceivingCapabilityOwner(ReceivingCapabilityPorts(
+            input_snapshot=lambda: getattr(app, "_phase6_input_snapshot", {}),
+            current_adapter=lambda: getattr(
+                app, "_phase6_receiving_set_bay_adapter", None
+            ),
+            publish_adapter=lambda adapter: setattr(
+                app, "_phase6_receiving_set_bay_adapter", adapter
+            ),
+            canonical_family_name=cabinet_family_policy.canonical_family_name,
+        )),
+        assembly_corner=AssemblyCornerCapabilityOwner(
+            AssemblyCornerCapabilityPorts(
+                display_mode=lambda: getattr(app, "_phase6_3d_display_mode", "single"),
+                submit_update_intent=lambda: getattr(app, "submit_update_intent", None),
+            )
+        ),
+    )
