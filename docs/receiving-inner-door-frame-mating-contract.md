@@ -31,23 +31,31 @@ whd_schema: WHD_DOC_META_V1
 4. 內門成品尺寸應以修正後的內門框實體開口計算，再沿用外門相同的門縫／折邊製造演算法；**不得**直接拿外門成品寬再扣左右各 50 mm，更不能重複扣除板厚。
 5. 回歸驗證應涵蓋上／左／右的折後接觸、左右框對中隔下端、門縫、3D 視覺與 DXF 打標。不能把舊的「有投影距離也算接觸」測試當作 GREEN。
 
-## 尺寸錯誤更正／禁止冒充製造驗收（2026-10-09）
+## 箱身內側基準與內門尺寸（2026-10-09 修正）
 
-**撤回先前把「727 mm 為正確下料寬」及「165 項測試 GREEN 就證明尺寸正確」寫成事實的敘述。** 那是程式自算、測試照抄同一公式的循環驗證，不是獨立 DXF 驗收。使用者已指出此值不符其製造基準。
+**800 mm 是箱身外寬，先扣左右側板板厚各 T，不能直接拿 800 扣兩支 50 mm 內門框。**
 
-現有 800 mm 箱寬的 DXF 參考曾觀察到 **723 mm**，但尚須核對該 DXF 圖元屬於哪一零件、量測軸、下料或成品狀態，**不可未核實就把 723 mm 或 727 mm 再硬編成公式**。需要從製造基準、實體安裝面及已認證的外門算法取得獨立證據。
+| 尺寸語意 | 製造計算 | 800 寬、T=2 的結果 |
+| --- | --- | --- |
+| 箱身左右側板實體內側淨寬 | `800 - 2×2` | **796 mm** |
+| 左右框折後外包佔用 | `(46+2T)×2` | 100 mm |
+| 左右門縫 | `3.5×2` | 7 mm |
+| 內門成品寬 | `796 - 100 - 7` | **689 mm** |
+| 內門下料寬（既有外門製造公式） | `689 - 2×2 + 19×2` | **723 mm** |
 
-發版條件：真實參考件（含尺寸／板厚／門縫／折邊定義）與程式輸出一致、3D 實體貼合成立、DXF 實際 CUTTING 外框量測吻合，且測試的 expected 不得來自同一待驗公式。在上述條件未成立前，**本文件不認可任何 800 mm 案例的最終下料寬數值**。
+**撤回 693／727 mm：** 先前從箱身外寬 `800` 算門，漏扣兩側板厚合計 4 mm；測試又照抄該錯誤值，導致假 GREEN。此處的 689／723 為使用者確認的 800 mm/T=2/門縫3.5/折邊19 製造算例，測試須直接與此固定值比較實際 CUTTING 輪廓與下料尺寸。
+
+框最後一段 22 mm 折邊仍實際貼箱身，**只修有效門寬／框跨度／3D 門板開口**，不應平移已通過實體接觸驗證的框安裝表皮。其他多柱列／其他板厚案件須另驗證對應內側母板基準，不可盲套此一算例。
 
 ## 程式權責及製造驗收
 
 - `ae_engine/inner_door_frames.py` 保留 signed Fold Chain 並提供 `inner_door_frame_formed_occupation(T)`，一律由共同 46 mm 段求 **46＋2T**。
 - `ae_engine/assembly_geometry_primitives.py`：左框折後 U 朝箱身左側（−X），右框朝右側（+X），上框朝上封頭（+Y）；**不是鏡射或修改製造折彎鏈**。
 - `ae_engine/assembly_placement.py`：以最後 22 mm 折後段的實際座標，貼向箱身左右側板或封頭的**內側實體表皮**。外門座標僅仍提供內門的可調深度方向偏移。
-- `ae_engine/cabinet_types/receiving.py`：目前程式由 `800－2×50－2×3.5` 得到 **693 mm**，**這只是目前實作輸出，不是已經由實體基準／製造圖驗收過的成品規格**。此數值在尺寸基準查明前不得寫成定案。
-- `ae_engine/inner_door_panels.py` 與 `ae_engine/manufacturing_scene_orchestration.py`：**現有 727 mm 下料寬尚未通過使用者的 DXF 尺寸對照，不能宣稱正確。** 目前程式以 `693－2×2＋19＋19＝727` 產生此數字；必須查清楚 50 mm 折後外包尺寸、接合位置、門縫與現有外門下料公式的各自基準，避免板厚重複加扣。不得直接把平板、成品與下料視為同一尺寸。
+- `ae_engine/cabinet_types/receiving.py`：內門板寬及上框跨度由 **箱身外寬先減 2T** 的側板間實體淨寬計算，800/T=2/gap3.5 成品寬 **689 mm**。
+- `ae_engine/inner_door_panels.py` 與 `ae_engine/manufacturing_scene_orchestration.py`：沿用已存在的四側折門製造公式，800/T=2/左右折邊19 下料 **723 mm**；3D 與 DXF 不得再沿用 727。
 - `ae_engine/receiving_joint_marking.py`：以各母板明確的內向法線選取實體皮面，要求末段 22 mm **真實共面、法線相對、區域重疊**；合格才回投至母板 UV 寫入打標。禁止用整塊多折邊側板的 centroid 判斷接合方向。
-- `tests/test_issue1050_receiving_mother_plate_marking.py`、`tests/test_receiving_inner_frame_last_flange_contact.py` 驗證接觸與打標；`tests/test_phase6_t15_inner_door_panels.py` **過去將 693/727 當作既定正確值，是錯誤驗收方法，必須先以權威製造圖或實際實體面推導重新建立預期，再允許綠燈。**
+- 接合及 DXF 驗收保留 `tests/test_issue1050_receiving_mother_plate_marking.py` 與 `tests/test_receiving_inner_frame_last_flange_contact.py`；`tests/test_phase6_t15_inner_door_panels.py`、`tests/test_phase6_t16_receiving_placement.py` 固定檢查 **796／689／723**，防止 693／727 回歸。
 - 舊相容欄位 `INNER_DOOR_INSET_LEFT/RIGHT/TOP=50` **不得再參與新實體 3D/製造定位計算**；保留它們不能解讀為允許重啟外門 50 mm 相對位移。
 - `docs/superpowers/specs/2026-09-06-receiving-inner-door-frame-80.md` 為 HISTORICAL，僅追溯深度偏移，不覆蓋此物理接合契約。
 
