@@ -304,6 +304,18 @@ def resolve_inner_door_panel_placement(snapshot: Mapping[str, object], inner_doo
 def resolve_inner_door_frame_placement(
     snapshot: Mapping[str, object], inner_door_id: str, side: str
 ) -> AssemblyPlacement:
+    """Legacy projected position, NOT verified Box Body mounting geometry.
+
+    Confirmed Receiving manufacturing rule: the LAST 22-mm flange of each
+    top/left/right inner-door frame physically mates to head/left/right Box
+    Body mother plate respectively. The 46-mm shared web + 2*T is the formed
+    outside occupation (50 mm at T=2), NOT a 50-mm outer-door inset.
+    Current X/Y positions below still follow outer-door-derived panel edges;
+    this resolver MUST NOT be treated as proof of flange-to-shell contact.
+    A correct 3D fix has to place the last folded 22-mm skin against the
+    actual mother-plate skin and validate contact before marking.
+    See docs/receiving-inner-door-frame-mating-contract.md.
+    """
     from .cabinet_types import policy as cabinet_family_policy
 
     side = str(side or "").strip().lower()

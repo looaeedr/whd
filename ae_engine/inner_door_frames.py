@@ -15,6 +15,14 @@ from .contracts import FoldProfileSegment
 
 FRAME_SIDES = ("top", "bottom", "left", "right")
 LOWER_TERMINAL_FACE = "LOWER_TERMINAL_FACE"
+
+# Receiving inner-door frame: the LAST 22-mm folded flange mates to the
+# physical Box Body mother plate (top -> head EndCap, left -> left side plate,
+# right -> right side plate). The common 46-mm web is NOT the mating flange.
+# The formed outside occupation is 46 + 2*T (50 mm when T=2); this is a
+# dimension, NOT "move 50 mm inward from the outer door". Preserve the left
+# frame's asymmetric -22/20 entry chain and the final 22-mm mating flange.
+# Installation and MARKING must be validated against the actual folded skins.
 _FRAME_SIGNED_CHAINS = {
     "top": (22.0, 46.0, 22.0),
     "bottom": (22.0, 46.0, 22.0),

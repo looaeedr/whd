@@ -136,6 +136,12 @@ FRESH_ASSEMBLY_INTENT = "WRAP_OVERLAY"
 DEFAULT_DOOR_LAYOUT_SCOPE = "receiving-main"
 DEFAULT_DOOR_LAYOUT_COLUMNS = ((800.0, (1100.0, 500.0)),)
 DEFAULT_INNER_DOOR_ID = "upper"
+# Legacy outer-door-relative panel inset values. They MUST NOT be used as the
+# installation anchor for the inner-door frame: the real attachment is the
+# final 22-mm folded flange against the Box Body side plate / head EndCap.
+# The shared 46-mm web plus 2*T = 50 mm at T=2 is the FRAME FORMED OUTSIDE
+# OCCUPATION, not a shift measured from the outer-door finished edge.
+# See docs/receiving-inner-door-frame-mating-contract.md.
 INNER_DOOR_INSET_LEFT = 50.0
 INNER_DOOR_INSET_RIGHT = 50.0
 INNER_DOOR_INSET_TOP = 50.0
