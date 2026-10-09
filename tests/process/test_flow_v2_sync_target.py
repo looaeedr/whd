@@ -127,6 +127,7 @@ def test_trusted_sync_target_uses_github_merge_and_requires_exact_head_revalidat
         return {"sha": "d" * 40}
 
     monkeypatch.setattr(executor, "_read_branch_head", fake_read_branch_head)
+    monkeypatch.setattr(executor, "_verified_sync_target_user_token", lambda repo: "verified-owner-pat")
     monkeypatch.setattr(executor, "_api", fake_api)
 
     effect = executor._trusted_sync_target_effect(

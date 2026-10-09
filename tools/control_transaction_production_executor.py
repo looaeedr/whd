@@ -1029,6 +1029,46 @@ def _trusted_merge_effect(
 
 
 
+
+def _verified_sync_target_user_token(repo: str) -> str:
+    """Verify user-owned TOK/PAT; never replace native app control-plane authority."""
+    token = os.environ.get("WHD_PR_BRANCH_WRITE_TOKEN", "").strip()
+    if not token:
+        raise ProductionExecutorError("SYNC_TARGET_TOK_MISSING: secrets.TOK is required for branch Git writes")
+    request = Request(
+        "https://api.github.com/user",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "whd-flow-v2-sync-target-identity",
+        },
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            identity = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        # Never log the token, HTTP response body, or caller Authorization header.
+        raise ProductionExecutorError(
+            f"SYNC_TARGET_TOK_IDENTITY_REJECTED: GitHub /user status {exc.code}"
+        ) from None
+    except (OSError, ValueError, TypeError):
+        raise ProductionExecutorError(
+            "SYNC_TARGET_TOK_IDENTITY_UNAVAILABLE: GitHub /user readback failed"
+        ) from None
+    if not isinstance(identity, dict):
+        raise ProductionExecutorError("SYNC_TARGET_TOK_IDENTITY_INVALID")
+    owner = repo.split("/", 1)[0]
+    login = str(identity.get("login") or "")
+    account_type = str(identity.get("type") or "")
+    if account_type != "User" or login.casefold() != owner.casefold():
+        raise ProductionExecutorError(
+            "SYNC_TARGET_TOK_IDENTITY_MISMATCH: expected repository-owner User, not Bot/App"
+        )
+    return token
+
+
+
 def _trusted_sync_target_effect(
     repo: str,
     token: str,
@@ -1081,6 +1121,9 @@ def _trusted_sync_target_effect(
             )
         new_head = live_work
     else:
+        # Fail closed before a content mutation if the user's TOK is missing or
+        # resolves to a GitHub App/Bot. Native CAS reads/writes still use token.
+        write_token = _verified_sync_target_user_token(repo)
         if before_mutation is not None:
             before_mutation("POST", "/merges")
         try:
@@ -1088,7 +1131,7 @@ def _trusted_sync_target_effect(
                 repo,
                 "POST",
                 "/merges",
-                token,
+                write_token,
                 {
                     "base": record.work_branch,
                     "head": target_sha,
@@ -1472,6 +1515,29 @@ def _trusted_consume_qa_effect(
         raise ControlTransactionConflict(
             f"CONSUME_QA requires success: observed {observed_conclusion or 'none'}"
         )
+    # Real PR-triggered CI must have executed jobs. A run record without jobs
+    # cannot be used as QA evidence, even if a status endpoint is misleading.
+    # GitHub always includes "event" for an actual run; legacy synthetic unit
+    # fixtures that do not represent pull_request runs are left unchanged.
+    if str(run.get("event") or "").lower() == "pull_request":
+        jobs_payload = _api(repo, "GET", f"/actions/runs/{run_id}/jobs?per_page=100", token) or {}
+        jobs = jobs_payload.get("jobs")
+        count = jobs_payload.get("total_count")
+        if (
+            not isinstance(jobs, list)
+            or not jobs
+            or isinstance(count, bool)
+            or not isinstance(count, int)
+            or count != len(jobs)
+            or any(
+                not isinstance(job, dict)
+                or job.get("run_id") != run_id
+                or str(job.get("status") or "").lower() != "completed"
+                or str(job.get("conclusion") or "").lower() != "success"
+                for job in jobs
+            )
+        ):
+            raise ControlTransactionConflict("CONSUME_QA_PR_JOBS_NOT_GREEN: missing, empty, incomplete or non-success jobs")
     effect = dict(supplied)
     effect.update(
         {

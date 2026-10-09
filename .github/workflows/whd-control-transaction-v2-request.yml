@@ -56,6 +56,7 @@ jobs:
       - name: 驗 request identity 並原子回寫 ExecutionRecord
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          WHD_PR_BRANCH_WRITE_TOKEN: ${{ secrets.TOK }}
         shell: bash
         run: |
           set -uo pipefail

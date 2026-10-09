@@ -104,6 +104,7 @@ class GitHubProvider:
 
 
 def installed(monkeypatch, current, provider, *, fresh=None):
+    monkeypatch.setattr(executor, "_verified_sync_target_user_token", lambda repo: "verified-test-user-pat")
     monkeypatch.setattr(executor, "_api", provider.api)
     monkeypatch.setattr(executor, "_load_state",
         lambda *args: ("e" * 40, "f" * 40, {1380: fresh or current}))

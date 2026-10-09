@@ -138,6 +138,7 @@ def setup_race(monkeypatch, kind, *, readback=False, drift=None, exhaust=False):
     if kind == "FINALIZE": provider.merged = True
     if kind == "RELEASE_PATHS" and readback: provider.exists = False
     race = CoordRace(current, provider, drift=drift, exhaust=exhaust)
+    monkeypatch.setattr(executor, "_verified_sync_target_user_token", lambda repo: "verified-test-user-pat")
     monkeypatch.setattr(executor, "_api", provider.api)
     monkeypatch.setattr(executor, "_load_state", race.load)
     monkeypatch.setattr(executor, "_write_state", race.write)

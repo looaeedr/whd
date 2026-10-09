@@ -462,6 +462,7 @@ def test_readback_only_fence_blocks_actual_mutation_branches(monkeypatch, kind, 
             "looaeedr/whd", "token", record=_merge_record(),
             invocation_identity=INV, supplied={})
     elif kind == "SYNC_TARGET":
+        monkeypatch.setattr(executor, "_verified_sync_target_user_token", lambda repo: "verified-test-user-pat")
         record = _sync_record()
         monkeypatch.setattr(executor, "_read_branch_head",
             lambda repo, token, branch: LIVE_TARGET if branch == record.target_branch else HEAD)
