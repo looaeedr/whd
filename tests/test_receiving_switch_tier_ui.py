@@ -92,7 +92,7 @@ def test_real_tk_tier_selection_syncs_header_settings_and_overrides_start_collap
     from tkinter import ttk
 
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("900x650+0+0")
     model = ReceivingSwitchTierUiModel()
     set_row = {
         "switch_brand": "士林",
@@ -137,21 +137,26 @@ def test_real_tk_tier_selection_syncs_header_settings_and_overrides_start_collap
             header.switch_tier_nominal_var.set(switch_tier_nominal_text(model.switch_tier))
         sync_header = sync
         settings = controls._build_receiving_settings_editor(root, tk=tk, ttk=ttk, ports=ports)
+        root.update()
         assert header.switch_tier_var.get() == "請選擇"
         assert settings._receiving_switch_tier_var.get() == "請選擇"
         header.switch_tier_var.set("兩層")
         header.switch_tier_selector.event_generate("<<ComboboxSelected>>")
+        root.update()
         settings._receiving_refresh()
         assert settings._receiving_switch_tier_var.get() == "兩層"
         assert "290／790" in header.switch_tier_nominal_var.get()
         settings._receiving_switch_tier_var.set("一層")
         settings._receiving_switch_tier_selector.event_generate("<<ComboboxSelected>>")
+        root.update()
         assert header.switch_tier_var.get() == "一層"
         header.switch_brand_var.set("東元")
         header.switch_brand_selector.event_generate("<<ComboboxSelected>>")
+        root.update()
         assert set_row["switch_brand"] == "東元"
         settings._receiving_switch_tier_var.set("兩層")
         settings._receiving_switch_tier_selector.event_generate("<<ComboboxSelected>>")
+        root.update()
         assert settings._receiving_switch_tier_override_vars["上層"].get() == "沿用本套"
         assert model.snapshot()["positions"][0]["brand_override"] is None
     finally:
