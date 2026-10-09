@@ -7,24 +7,20 @@
     "parent_issue": null
   },
   "closure": {
-    "issue_closed": false,
+    "issue_closed": true,
     "merged_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
-    "released_at": null
+    "released_at": "2026-10-09T03:37:26Z"
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "4c4663c03ab8ce6629a8a96b94e9cc1373512152",
   "issue": 1441,
-  "lane_id": "chatgpt.flowv2.work1",
-  "lease": {
-    "expires_at": "2026-10-09T03:42:49Z",
-    "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-    "token": "lease:1441:37879330500:1"
-  },
+  "lane_id": null,
+  "lease": null,
   "mutation_scope": {
     "base_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
     "delete_paths": [],
-    "reservation_state": "ACTIVE",
+    "reservation_state": "RELEASED",
     "target_branch": "cleanup/2d-3d-sync",
     "write_paths": [
       "tests/process/test_issue1380_runtime_boundary.py",
@@ -34,15 +30,9 @@
       "tools/flow_v2_merge_precheck.py"
     ]
   },
-  "next_action": {
-    "args": {
-      "pr_number": 1442
-    },
-    "display": "Finalize exact merged Issue",
-    "kind": "FINALIZE"
-  },
-  "owner_id": "chatgpt.flowv2.work1",
-  "owner_kind": "SCHEDULER",
+  "next_action": null,
+  "owner_id": "NONE",
+  "owner_kind": "NONE",
   "qa": {
     "accepted_head_sha": "4c4663c03ab8ce6629a8a96b94e9cc1373512152",
     "last_accepted_run": 37879561150
@@ -57,21 +47,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "MERGED",
+  "semantic_state": "TERMINAL_SUCCESS",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
-  "state": "INTEGRATING",
+  "state": "DONE",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
   "transaction": {
-    "expected_fingerprint": "cab0ac54241a13d948ed000f2aacef9400b5c17c7b5635e81e80ab725bb08bf4",
-    "id": "gha:37879876799:1441:MERGE:7",
+    "expected_fingerprint": "40e6c56d37d7eaa64fc66db363bdaf39f0df622111f05958d06841e3ed68448f",
+    "id": "gha:37879876799:1441:FINALIZE:8",
     "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-    "kind": "MERGE",
+    "kind": "FINALIZE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T03:35:39Z",
+  "updated_at": "2026-10-09T03:37:02Z",
   "version": 2,
   "work_branch": "work/issue-1441-flowv2-ci-e2e"
 }
