@@ -89,6 +89,35 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
         )
 
 
+@pytest.mark.parametrize("outer_fw,door_gap", [(29.0, 2.0), (35.0, 5.0)])
+def test_physical_frame_mates_do_not_follow_outer_door_finished_edge(outer_fw, door_gap):
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+
+    baseline = _snapshot()
+    modified = _snapshot()
+    modified["fw"] = outer_fw
+    modified["door_gap_w"] = door_gap
+
+    # Changing an outer Door's frame width/gap may affect finished Door
+    # sizing but must NEVER move the inner frame's last-22-mm attachment
+    # from the actual Box Body side/head mother-plate skins.
+    for side in ("left", "right", "top"):
+        key = f"inner_door:upper:{side}_frame"
+        before = resolve_assembly_placement(baseline, key)
+        after = resolve_assembly_placement(modified, key)
+        assert after.mate_target == before.mate_target
+        assert after.world_offset[0] == pytest.approx(before.world_offset[0])
+        assert after.world_offset[2] == pytest.approx(before.world_offset[2])
+        if side == "top":
+            assert after.world_offset[1] == pytest.approx(before.world_offset[1])
+
+    panels = cabinet_family_policy.derive_inner_door_panels(modified)
+    assert len(panels) == 1
+    assert panels[0].width == pytest.approx(800 - 100 - 2 * door_gap)
+    frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(modified)
+    assert frame_sets[0].spans["top"] == pytest.approx(700.0)
+
+
 def test_r06_divider_guard_stays_authoritative_and_repeatable():
     stable_id = "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"
     first = resolve_assembly_placement(_snapshot(), stable_id)
