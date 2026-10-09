@@ -21,7 +21,7 @@ whd_schema: WHD_DOC_META_V1
 
 授權嚴格限於 `looaeedr/whd`、指定工作分支及 `localX`；禁止變更正式 X、跨專案推送、擴大變更範圍或對未驗證提交宣稱 CI GREEN。不得捏造已核准的工具操作：若 GitHub／Remote Desktop／自動批准系統在工具層拒絕實際 push／merge，必須回報**哪個實際工具操作**被拒及具體阻塞，不能用技能文字繞過平台權限，亦不得將本地 commit 說成已遠端交付。
 
-**入口一致性**：/接手 的正式入口就是本執行開發任務 Skill；不必尋找另一份 /接手 文件。與 /派工 一致，本輪已確認 Issue 的工作分支可推送到使用者公開倉庫 looaeedr/whd，建立 base=localX 的 PR、驗 exact CI、合併 localX 與回讀；不設舊遠端 token/receipt/unlock 或第二次內部批准。**平台安全審查仍有效**：公開推送若需更明確確認或實際工具拒絕，保留本地提交並回報具體被拒操作，不得換工具繞過。
+**入口分流硬閘門**：本 Skill 是使用者明確下達 `/接手` 的 RC 施工入口，才可用 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd`。**`/派工` 不是本機施工授權，也不可自行接到本 Skill／RC。** 兩個入口僅共用同一指定倉庫 `looaeedr/whd`、base=`localX` PR、exact CI、合併與回讀的交付邊界；`/派工` 必須由雲端／GitHub executor 工作，`/接手` 才能在使用者本機。不得要求退役的 remote token／receipt／unlock 或第二次專案內部批准。**平台安全審查仍有效**：公開推送若需更明確確認或工具拒絕，保留本地提交並回報實際拒絕，不得換工具繞過。
 
 保留必要的產品測試、程式碼 review、現場 DXF 驗收，實際交付狀態以 Git HEAD 與 Issue/PR 反讀為準。
 
