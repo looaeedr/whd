@@ -75,6 +75,8 @@ from tools.flow_v2_merge_precheck import (
     REQUIRED_CHECKS_PENDING,
     TARGET_DRIFT,
     evaluate_merge_precheck,
+    REQUIRED_PR_WORKFLOW_PATHS,
+    assert_required_pr_ci_evidence,
 )
 from tools.execution_record import (
     ActionSpec,
@@ -774,6 +776,55 @@ def _merge_precheck_readback(
         required_checks=required_checks,
         check_conclusions=check_conclusions,
     )
+    if result.classification == READY_TO_MERGE:
+        # A successful check-run alone does not prove a PR workflow executed.
+        # Reconcile each mandatory workflow to the exact live PR head and jobs.
+        pr_branch = str((pr.get("head") or {}).get("ref") or "").strip()
+        if not pr_branch:
+            raise ControlTransactionConflict("PR_CI_HEAD_BRANCH_MISSING")
+        payload = _api(
+            repo, "GET",
+            f"/actions/runs?event=pull_request&head_sha={record.head_sha}&per_page=100",
+            token,
+        ) or {}
+        workflow_runs = payload.get("workflow_runs")
+        run_count = payload.get("total_count")
+        if (
+            isinstance(run_count, bool)
+            or not isinstance(run_count, int)
+            or not isinstance(workflow_runs, list)
+            or run_count != len(workflow_runs)
+        ):
+            raise ControlTransactionConflict("PR_CI_RUN_LIST_INCOMPLETE")
+        jobs_by_run = {}
+        for path in REQUIRED_PR_WORKFLOW_PATHS:
+            matches = [
+                run for run in workflow_runs
+                if isinstance(run, dict)
+                and run.get("path") == path
+                and run.get("head_sha") == record.head_sha
+                and run.get("head_branch") == pr_branch
+                and run.get("event") == "pull_request"
+                and isinstance(run.get("id"), int)
+                and not isinstance(run.get("id"), bool)
+            ]
+            if matches:
+                newest = max(matches, key=lambda run: (run["id"], int(run.get("run_attempt") or 1)))
+                jobs_by_run[newest["id"]] = _api(
+                    repo, "GET", f"/actions/runs/{newest['id']}/jobs?per_page=100",
+                    token,
+                ) or {}
+        try:
+            assert_required_pr_ci_evidence(
+                pr_head_sha=record.head_sha,
+                pr_head_branch=pr_branch,
+                required_workflows=REQUIRED_PR_WORKFLOW_PATHS,
+                workflow_runs=workflow_runs,
+                jobs_by_run=jobs_by_run,
+                repo_owner=repo.split("/", 1)[0],
+            )
+        except ValueError as exc:
+            raise ControlTransactionConflict(str(exc)) from None
     return pr, result
 
 
