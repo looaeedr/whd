@@ -203,7 +203,7 @@ def default_inner_doors(
     """Return fresh receiving inner-door authoritative topology/config.
 
     Frame spans are not duplicated here: ``derive_inner_door_frame_sets``
-    recomputes them from Door finished geometry and the confirmed 50 mm insets.
+    recomputes them from the formed 46+2T inner frame and real mother plates.
     """
     from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
 
@@ -233,15 +233,15 @@ def default_inner_doors(
 def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[str, object]:
     """Resolve Receiving vertical-frame span/center from its two physical terminal datums.
 
-    The upper datum comes from the canonical outer Door finished face after the
-    confirmed top inset. The lower datum is the upper-facing physical skin of
-    the exact shared horizontal Divider CORE_PHYSICAL_SEGMENT. No observed gap,
-    renderer bbox, or test fixture delta participates in this contract.
+    The upper datum is the real box opening after the formed 46+2T frame
+    occupation. The lower datum is the physical upper skin of the shared
+    horizontal Divider. No outer Door finished face is involved.
     """
     from ae_engine.assembly_geometry import folded_profile_segment_center_from_full_envelope
-    from ae_engine.assembly_placement import resolve_divider_placement, resolve_outer_door_placement
+    from ae_engine.assembly_placement import resolve_divider_placement
     from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
-    from ae_engine.sheetmetal_part_adapters import calculate_door_finished_size, derive_door_layout_cells, door_layout_part_key
+    from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+    from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
 
     data = dict(snapshot or {})
     wanted = str(inner_door_id or '').strip()
@@ -266,17 +266,12 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
     cell = cells[cell_key]
 
     t = float(data.get('t', 2.0))
-    fw = door_material_frame_width(
-        frame_width=float(data.get('fw', BOX_BODY_DEFAULTS['fw'])), thickness=t
+    # The last 22-mm flange mates the actual head/side, not outer Door.
+    cell_top = (
+        float(data.get('h', max(sum(v) for _w, v in normalized))) / 2.0
+        - sum(normalized[cell.column_index][1][:cell.row_index])
     )
-    outer_w, outer_h = calculate_door_finished_size(
-        w=cell.start_width, h=cell.start_height, t=t, fw=fw,
-        gap_w=float(data.get('door_gap_w', DOOR_DEFAULTS['door_gap_w'])),
-        gap_h=float(data.get('door_gap_h', DOOR_DEFAULTS['door_gap_h'])),
-        frame_edges=cell.edges,
-    )
-    outer = resolve_outer_door_placement(data, door_layout_part_key(cell))
-    top_y = float(outer.world_offset[1]) + float(outer_h) / 2.0 - float(INNER_DOOR_INSET_TOP)
+    top_y = cell_top - inner_door_frame_formed_occupation(t)
 
     dividers = derive_box_body_dividers(
         normalized,
@@ -318,13 +313,14 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
         'lower_terminal_y': float(lower_support_y),
         'center_y': (float(top_y) + float(lower_support_y)) / 2.0,
         'span': float(span),
-        'authority': 'OUTER_DOOR_TOP_INSET__TO__SHARED_DIVIDER_CORE_SUPPORT_SKIN',
+        'authority': 'BOX_BODY_FRAME_FORMED_EDGE__TO__DIVIDER_SUPPORT_SKIN',
     }
 
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
-    """Derive one real flat panel for every enabled outer-door inner-door item."""
+    """Derive real inner-door panels from the framed opening, not outer Door."""
     from ae_engine.inner_door_panels import derive_inner_door_panel
-    from ae_engine.sheetmetal_part_adapters import calculate_door_finished_size, derive_door_layout_cells
+    from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+    from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
 
     data = dict(snapshot or {})
     columns = list(data.get("door_layout_columns") or ())
@@ -333,9 +329,7 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
     t = float(data.get("t", 2.0))
-    fw = door_material_frame_width(
-        frame_width=float(data.get("fw", BOX_BODY_DEFAULTS["fw"])), thickness=t
-    )
+    formed = inner_door_frame_formed_occupation(t)
     gap_w = float(data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]))
     gap_h = float(data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]))
 
@@ -353,12 +347,15 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
             raise ValueError(f"duplicate inner-door panel stable_id: {panel_id}")
         seen.add(panel_id)
         cell = cells[cell_key]
-        outer_w, outer_h = calculate_door_finished_size(
-            w=cell.start_width, h=cell.start_height, t=t, fw=fw,
-            gap_w=gap_w, gap_h=gap_h, frame_edges=cell.edges,
-        )
-        panel_w = float(outer_w) - INNER_DOOR_INSET_LEFT - INNER_DOOR_INSET_RIGHT
-        panel_h = float(outer_h) - INNER_DOOR_INSET_TOP
+        panel_w = float(cell.start_width) - 2.0 * formed - 2.0 * gap_w
+        try:
+            vertical = inner_door_vertical_frame_contract(data, stable_id)
+        except ValueError:
+            # Unresolved Divider during topology editing: panel may remain in
+            # preview, but no fictitious lower frame may be manufactured.
+            panel_h = float(cell.start_height) - formed - 2.0 * gap_h
+        else:
+            panel_h = float(vertical["span"]) - 2.0 * gap_h
         result.append(derive_inner_door_panel(
             stable_id, cell_key=cell_key, width=panel_w, height=panel_h, thickness=t
         ))
@@ -366,17 +363,14 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
 
 
 def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
-    """Derive receiving inner-door frame spans from canonical Door geometry.
+    """Frame span comes from the physical 46+2T formed opening.
 
-    The upper inner door follows its outer-door cell.  Door gaps are consumed by
-    the shared Door finished-size resolver first; the confirmed receiving rule
-    then moves the inner-door boundary another 50 mm inward on left/right/top.
-    The lower boundary is the shared box-body divider, so receiving produces no
-    separate bottom frame.  Returned spans are derived data and are intentionally
-    not required to be persisted in project state.
+    The last 22 mm is the real mating flange. Outer Door finished dimensions
+    and gaps must not determine physical frame widths or placement.
+    The lower shared Divider supplies the bottom support, not another frame.
     """
-    from ae_engine.inner_door_frames import InnerDoorFrameSet
-    from ae_engine.sheetmetal_part_adapters import calculate_door_finished_size, derive_door_layout_cells
+    from ae_engine.inner_door_frames import InnerDoorFrameSet, inner_door_frame_formed_occupation
+    from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
 
     data = dict(snapshot or {})
     columns = list(data.get("door_layout_columns") or ())
@@ -385,11 +379,7 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
     t = float(data.get("t", 2.0))
-    fw = door_material_frame_width(
-        frame_width=float(data.get("fw", BOX_BODY_DEFAULTS["fw"])), thickness=t
-    )
-    gap_w = float(data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]))
-    gap_h = float(data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]))
+    formed = inner_door_frame_formed_occupation(t)
 
     result = []
     for item in list(data.get("inner_doors") or ()):
@@ -400,11 +390,7 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
         if not stable_id or cell_key not in cells:
             continue
         cell = cells[cell_key]
-        outer_w, outer_h = calculate_door_finished_size(
-            w=cell.start_width, h=cell.start_height, t=t, fw=fw,
-            gap_w=gap_w, gap_h=gap_h, frame_edges=cell.edges,
-        )
-        inner_w = float(outer_w) - INNER_DOOR_INSET_LEFT - INNER_DOOR_INSET_RIGHT
+        inner_w = float(cell.start_width) - 2.0 * formed
         if inner_w <= 0:
             raise ValueError("receiving inner-door horizontal insets leave no valid finished width")
         included = tuple(
