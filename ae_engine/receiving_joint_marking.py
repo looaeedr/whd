@@ -345,18 +345,6 @@ def _group_world_polygon(records, *, origin, u, v):
     return unary_union(polygons)
 
 
-def _geometry_centroid(records):
-    points = [
-        tuple(float(v) for v in point)
-        for record in tuple(records or ())
-        for point in tuple(getattr(record, "world", ()) or ())
-    ]
-    if not points:
-        raise ValueError("physical geometry is empty")
-    count = float(len(points))
-    return tuple(sum(point[i] for point in points) / count for i in range(3))
-
-
 def _polygon_world_exterior(polygon, *, origin, u, v):
     if str(getattr(polygon, "geom_type", "")) != "Polygon":
         polygons = [
@@ -508,7 +496,7 @@ def _physical_mating_contact(
             "geometry_owner": str(locator_id),
         },
     )
-    projected_attached = ResolvedPhysicalMatingRegion(
+    attached_region = ResolvedPhysicalMatingRegion(
         part_id=str(attached_id),
         region_id="LAST_22_MM_FRAME_MATING_SKIN",
         region_role="ATTACHED_MATING_FOOTPRINT",
@@ -528,7 +516,7 @@ def _physical_mating_contact(
         locator_part_id=str(locator_id),
         attached_part_id=str(attached_id),
         locator_region=locator_region,
-        attached_region=projected_attached,
+        attached_region=attached_region,
         contact_plane=(locator_origin, locator_outward),
         locator_outward_normal=locator_outward,
         attached_outward_normal=attached_outward,
