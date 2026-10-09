@@ -301,5 +301,3 @@ def test_unknown_provider_outcome_after_actual_mutation_is_nonretryable(monkeypa
     assert caught.value.conflict_class == "POST_EFFECT_PROVIDER_OUTCOME_UNPROVEN"
     assert caught.value.retryable is False
     assert len(provider.mutations) == 1 and race.writes == []
-
-[executed on device: 5bca4a576178 (b0fad557-80aa-4ade-ab0b-d009a426005a)]
