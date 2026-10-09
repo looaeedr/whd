@@ -548,7 +548,7 @@ def test_parameter_lock_is_direct_canvas_overlay_not_layout_row():
     finally:
         _close(tk, root, designer)
 
-def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_holes():
+def test_receiving_preview_uses_real_current_2d_scenes_per_connection_and_lock_holes():
     tk, root, _app, designer = _open_vault_designer()
     try:
         designer.baseline_model_var.set("受電箱")
@@ -615,8 +615,10 @@ def test_receiving_preview_uses_real_current_3d_mesh_per_connection_and_lock_hol
         assert len(preview_windows) == 1
         win = preview_windows[0]
         assert win._phase6_receiving_preview_connection_count == 3
-        assert win._phase6_receiving_preview_mesh_count == 3
-        assert win._phase6_receiving_preview_uses_final_scene_renderer is True
+        assert win._phase6_receiving_preview_mesh_count == 0
+        assert win._phase6_receiving_preview_uses_final_scene_renderer is False
+        assert win._phase6_receiving_preview_canvas.figure.axes[0].name == 'rectilinear'
+        assert len(win._phase6_receiving_preview_2d.requests) == 3
         assert win._phase6_receiving_preview_lock_circle_count == 0
         assert win._phase6_receiving_preview_feature_segment_count == 0
         assert win.title() == "第1套設定"

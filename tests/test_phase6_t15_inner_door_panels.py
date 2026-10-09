@@ -55,10 +55,38 @@ def test_inner_door_panel_has_real_manufacturing_render_data():
     panel = cabinet_family_policy.derive_inner_door_panels(_receiving_snapshot())[0]
     render = build_inner_door_panel_render_data(panel)
     assert render.metadata["stable_id"] == "inner_door:upper:panel"
-    assert render.material.area == pytest.approx(panel.width * panel.height)
+    # A real inner Door is bent, not the old unbent finished-size rectangle.
+    # CUTTING has certified door-corner reliefs and BEND guides.
+    assert render.material.area < panel.unfolded_width * panel.unfolded_height
+    assert render.fold_guides
     blank = measure_unfolded_blanks(render, part_key=panel.stable_id)[0]
-    assert blank.width == pytest.approx(panel.width)
-    assert blank.height == pytest.approx(panel.height)
+    assert blank.width == pytest.approx(panel.unfolded_width)
+    assert blank.height == pytest.approx(panel.unfolded_height)
+    # Independent known receiving 800-mm manufacturing acceptance:
+    # 800 outer W - 2 * 2 side sheets = 796 inner clear width;
+    # 796 - 2 * 50 formed frames - 2 * 3.5 gaps = 689 finished;
+    # 689 - 2 * 2 + 2 * 19 folded Door lips = 723 CUTTING blank.
+    # This must not be copied from the production width resolver.
+    assert panel.thickness == pytest.approx(2.0)
+    assert panel.fold_left == pytest.approx(19.0)
+    assert panel.fold_right == pytest.approx(19.0)
+    assert panel.width == pytest.approx(689.0)
+    assert panel.unfolded_width == pytest.approx(723.0)
+    assert render.metadata["finished_width"] == pytest.approx(689.0)
+    assert render.metadata["unfolded_width"] == pytest.approx(723.0)
+
+    # Measure the actual generated CUTTING polygon; do not validate a
+    # manufacturing number only against metadata produced by the same code.
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    cutting_outlines = [
+        item for item in tuple(render.scene.primitives)
+        if isinstance(item, PolylinePrimitive)
+        and str(item.layer).upper() == "CUTTING"
+    ]
+    assert len(cutting_outlines) == 1
+    cutting_x = [float(point.x) for point in cutting_outlines[0].points]
+    assert max(cutting_x) - min(cutting_x) == pytest.approx(723.0)
+
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")

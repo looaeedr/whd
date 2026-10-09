@@ -225,76 +225,93 @@ def _cell_from_cell_key(snapshot: Mapping[str, object], cell_key: str):
 
 
 def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> dict[str, object]:
+    """Inner-door opening from physical inner frames, never outer Door width.
+
+    The outer Door remains a legitimate *depth* datum for the configurable
+    80-mm inward offset. It is NOT the source of frame X/Y placement, opening
+    width, nor finished inner-door dimensions.
+    """
     from .cabinet_types import policy as cabinet_family_policy
+    from .inner_door_frames import inner_door_frame_formed_occupation
+    from .cabinet_types.receiving import inner_door_body_clear_width
 
     item = _inner_door_item(snapshot, inner_door_id)
     columns, cell = _cell_from_cell_key(snapshot, str(item.get("cell_key") or ""))
     outer_key = door_layout_part_key(cell)
     outer = resolve_outer_door_placement(snapshot, outer_key)
-    insets = cabinet_family_policy.inner_door_insets(snapshot)
-    if insets is None:
-        raise ValueError("cabinet family has no authoritative inner-door inset contract")
-    left = float(insets.get("left", 0.0))
-    right = float(insets.get("right", 0.0))
-    top = float(insets.get("top", 0.0))
-    bottom = float(insets.get("bottom", 0.0))
     t = float(snapshot.get("t", 0.0))
-    fw = cabinet_family_policy.door_material_frame_width(
-        snapshot, frame_width=float(snapshot.get("fw", 0.0)), thickness=t,
-    )
+    frame_occupation = inner_door_frame_formed_occupation(t)
     gap_w = float(snapshot.get("door_gap_w", 3.5))
     gap_h = float(snapshot.get("door_gap_h", 3.5))
-    outer_w, outer_h = calculate_door_finished_size(
-        w=cell.start_width, h=cell.start_height, t=t, fw=fw,
-        gap_w=gap_w, gap_h=gap_h, frame_edges=cell.edges,
+
+    # Use the SAME physical side-sheet inner opening as manufacturing.
+    # Frame skins mate the Box Body, not the nominal 800-mm outer boundary.
+    aperture_width = (
+        inner_door_body_clear_width(cell_width=cell.start_width, thickness=t)
+        - 2.0 * frame_occupation
     )
-    panel_w = float(outer_w) - left - right
-    panel_h = float(outer_h) - top - bottom
-    if panel_w <= 0 or panel_h <= 0:
-        raise ValueError("inner-door insets leave no valid authoritative panel area")
+    panel_w = aperture_width - 2.0 * gap_w
+    if panel_w <= 0:
+        raise ValueError("inner-door framed width/door clearance is not positive")
+    x_center, y_cell_center = _door_cell_center(snapshot, cell, columns)
+    try:
+        vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
+            snapshot, inner_door_id
+        )
+    except ValueError:
+        # During topology editing no shared lower Divider may yet exist.
+        # Keep only a transient panel envelope; physical vertical frame
+        # manufacturing will fail closed until the Divider is resolved.
+        upper_edge = y_cell_center + float(cell.start_height) / 2.0 - frame_occupation
+        lower_edge = y_cell_center - float(cell.start_height) / 2.0
+    else:
+        upper_edge = float(vertical["top_terminal_y"])
+        lower_edge = float(vertical["lower_terminal_y"])
+    panel_h = (upper_edge - lower_edge) - 2.0 * gap_h
+    if panel_h <= 0:
+        raise ValueError("inner-door framed height/door clearance is not positive")
+
     contract = _receiving_coordinate_contract(snapshot)
-    inward_vector = tuple(float(v) for v in contract.get("inward_vector", (0.0, 0.0, 0.0)))
-    if len(inward_vector) != 3:
+    inward = tuple(float(v) for v in contract.get("inward_vector", ()))
+    if len(inward) != 3:
         raise ValueError("authoritative inward vector must have three components")
-    raw_offset = item.get(
+    inward_offset = float(item.get(
         "inward_offset_mm",
-        cabinet_family_policy.default_inner_door_inward_offset_mm(snapshot, default=0.0),
-    )
-    inward_offset_mm = float(raw_offset)
-    if inward_offset_mm < 0:
+        cabinet_family_policy.default_inner_door_inward_offset_mm(snapshot, default=0.0)
+    ))
+    if inward_offset < 0:
         raise ValueError("inner-door inward offset must be >= 0")
-    center_x = (
-        float(outer.world_offset[0]) + (left - right) / 2.0
-        + inward_vector[0] * inward_offset_mm
+    center = (
+        float(x_center) + inward[0] * inward_offset,
+        (upper_edge + lower_edge) / 2.0 + inward[1] * inward_offset,
+        float(outer.world_offset[2]) + inward[2] * inward_offset,
     )
-    center_y = (
-        float(outer.world_offset[1]) + (bottom - top) / 2.0
-        + inward_vector[1] * inward_offset_mm
-    )
-    center_z = float(outer.world_offset[2]) + inward_vector[2] * inward_offset_mm
     return {
         "item": item,
         "outer_key": outer_key,
         "outer": outer,
-        "panel_center": (center_x, center_y, center_z),
+        "panel_center": center,
         "panel_width": panel_w,
         "panel_height": panel_h,
-        "inward_offset_mm": inward_offset_mm,
+        "upper_frame_edge": upper_edge,
+        "lower_frame_edge": lower_edge,
+        "frame_occupation": frame_occupation,
+        "inward_offset_mm": inward_offset,
+        "cell": cell,
     }
 
 
 def resolve_inner_door_panel_placement(snapshot: Mapping[str, object], inner_door_id: str) -> AssemblyPlacement:
     geometry = _inner_door_geometry(snapshot, inner_door_id)
     position = tuple(float(v) for v in geometry["panel_center"])
-    outer_key = str(geometry["outer_key"])
     stable_id = f"inner_door:{str(inner_door_id).strip()}:panel"
     return AssemblyPlacement(
         stable_id=stable_id,
         parent_assembly_node="box_body:door_layout:inner_door",
-        anchor=f"outer_door:{outer_key}",
+        anchor=f"inner_door_frame_opening:{inner_door_id}",
         world_offset=position,
         rotation=(0.0, 0.0, 0.0),
-        mate_target=outer_key,
+        mate_target=f"inner_door:{inner_door_id}:frame_opening",
         relationship="INNER_DOOR_PANEL",
         placement_kind="inner_door_panel",
         semantic_position=position,
@@ -304,7 +321,18 @@ def resolve_inner_door_panel_placement(snapshot: Mapping[str, object], inner_doo
 def resolve_inner_door_frame_placement(
     snapshot: Mapping[str, object], inner_door_id: str, side: str
 ) -> AssemblyPlacement:
+    """Mate the last 22-mm folded flange to the corresponding mother plate.
+
+    The frame's common 46+2T outside occupation is NOT a 50-mm outer Door
+    inset. Frame offset compensates the last signed-fold segment's *actual*
+    folded-envelope coordinate (which differs for the asymmetric left frame).
+    Left U is reversed in place_assembly_points, while top U points +Y;
+    right U points +X. Thus the last flange points OUT of the opening and
+    its physical outside skin mates the Box Body/Head inside skin.
+    """
     from .cabinet_types import policy as cabinet_family_policy
+    from .inner_door_frames import derive_inner_door_frames
+    from .assembly_geometry import folded_profile_segment_center_from_full_envelope
 
     side = str(side or "").strip().lower()
     if side == "bottom":
@@ -312,34 +340,55 @@ def resolve_inner_door_frame_placement(
     if side not in {"top", "left", "right"}:
         raise ValueError(f"unsupported inner-door frame side: {side!r}")
     geometry = _inner_door_geometry(snapshot, inner_door_id)
-    cx, cy, cz = (float(v) for v in geometry["panel_center"])
-    panel_w = float(geometry["panel_width"])
-    panel_h = float(geometry["panel_height"])
+    cx, _cy, cz = (float(v) for v in geometry["panel_center"])
+    t = float(snapshot.get("t", 0.0))
+    w = float(snapshot.get("w", 0.0))
+    h = float(snapshot.get("h", 0.0))
+    if w <= 2.0 * t or h <= 2.0 * t:
+        raise ValueError("frame-to-Box Body placement requires valid W/H/T")
+    part = derive_inner_door_frames(
+        inner_door_id, spans={side: 1.0}, thickness=t,
+        included_sides=(side,),
+    )[0]
+    # Final 22-mm flange is at a constant folded U on each part. Use the
+    # same folded *full-envelope* center as the assembly mesh transform.
+    last_u, _last_depth = folded_profile_segment_center_from_full_envelope(
+        part.fold_profile, len(part.fold_profile) - 1
+    )
+    physical_skin = last_u + t / 2.0
     if side == "top":
-        position = (cx, cy + panel_h / 2.0, cz)
+        # Head EndCap inside skin: physical upper Box Body bound H/2-T.
+        # The top frame's U points +Y, not -Y.
+        head_inner_y = h / 2.0 - t
+        position = (cx, head_inner_y - physical_skin, cz)
+        target = "head"
     else:
         vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
             snapshot, inner_door_id
         )
-        frame_center_y = (
-            float(vertical["center_y"]) if vertical is not None else float(cy)
-        )
+        frame_center_y = float(vertical["center_y"])
+        # Box Body side physical midplanes at ±(W-2T)/2; their inside
+        # skins are another T/2 toward the opening.
+        side_inner = w / 2.0 - 1.5 * t
         if side == "left":
-            position = (cx - panel_w / 2.0, frame_center_y, cz)
+            # Last flange local +U maps to cabinet -X.
+            position = (-side_inner + physical_skin, frame_center_y, cz)
+            target = "box_body:left_side"
         else:
-            position = (cx + panel_w / 2.0, frame_center_y, cz)
+            position = (side_inner - physical_skin, frame_center_y, cz)
+            target = "box_body:right_side"
     stable_id = f"inner_door:{str(inner_door_id).strip()}:{side}_frame"
-    outer_key = str(geometry["outer_key"])
+    world = tuple(float(v) for v in position)
     return AssemblyPlacement(
         stable_id=stable_id,
         parent_assembly_node="box_body:door_layout:inner_door",
-        anchor=f"inner_door_panel:{inner_door_id}:{side}",
-        world_offset=tuple(float(v) for v in position),
+        anchor=f"{target}:inside_skin:last_22_mm_flange",
+        world_offset=world,
         rotation=(0.0, 0.0, 0.0),
-        mate_target=outer_key,
+        mate_target=target,
         relationship="INNER_DOOR_FRAME",
         placement_kind=f"inner_door_frame_{side}",
-        semantic_position=tuple(float(v) for v in position),
+        semantic_position=world,
     )
 
 

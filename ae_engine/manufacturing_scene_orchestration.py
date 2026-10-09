@@ -351,35 +351,67 @@ from .manufacturing_render_data import (
 )
 
 def build_inner_door_panel_render_data(panel) -> PartRenderData:
-    """Build one flat physical inner-door panel from its canonical part."""
+    """Use the existing four-sided Door manufacturing topology for inner doors.
+
+    The panel.width/height are FINISHED faces. The manufacturing blank is
+    finished - 2*T + both fold lengths; at W800/T2/folds19: 693 -> 727.
+    Never export the finished face as an unfolded, unbent CUTTING rectangle.
+    """
     from .inner_door_panels import InnerDoorPanelPart
-    from .sheetmetal_drawing import DrawingScene, PolylinePrimitive
-    from .sheetmetal_geometry import Vec2
+    from .sheetmetal_part_adapters import build_door_result, DoorFrameEdges
+    from .sheetmetal_drawing import DrawingScene, structural_result_to_primitives
 
     if not isinstance(panel, InnerDoorPanelPart):
         raise TypeError("panel must be InnerDoorPanelPart")
-    w = float(panel.width)
-    h = float(panel.height)
+    # The incoming dimensions are already the inner frame opening less gaps.
+    # Do NOT subtract the enclosure's outer frame or door gap again.
+    structural = build_door_result(
+        w=float(panel.width), h=float(panel.height),
+        t=float(panel.thickness), fw=0.0, gap_w=0.0, gap_h=0.0,
+        fold_left=float(panel.fold_left), fold_right=float(panel.fold_right),
+        fold_top=float(panel.fold_top), fold_bottom=float(panel.fold_bottom),
+        frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),
+    )
     scene = DrawingScene()
-    scene.add(PolylinePrimitive(
-        points=(Vec2(0.0, 0.0), Vec2(w, 0.0), Vec2(w, h), Vec2(0.0, h)),
-        layer="CUTTING", closed=True,
-    ))
+    scene.extend(structural_result_to_primitives(structural))
+    if abs(float(structural.width) - panel.unfolded_width) > 1e-7:
+        raise ValueError("inner-door blank width diverges from standard Door manufacturing")
+    if abs(float(structural.height) - panel.unfolded_height) > 1e-7:
+        raise ValueError("inner-door blank height diverges from standard Door manufacturing")
+
+    xcore = panel.unfolded_width - panel.fold_left - panel.fold_right
+    ycore = panel.unfolded_height - panel.fold_bottom - panel.fold_top
     topology = UnfoldedBlankTopology(
         piece_id=str(panel.stable_id),
-        x_segments=(MaterialSegment("X", "inner_door_panel_width", w, "INNER_DOOR_PANEL_FINISHED_AREA"),),
-        y_segments=(MaterialSegment("Y", "inner_door_panel_height", h, "INNER_DOOR_PANEL_FINISHED_AREA"),),
-        source="INNER_DOOR_PANEL_FINISHED_AREA", revision=1,
+        x_segments=(
+            MaterialSegment("X", "inner_door_fold_left", panel.fold_left, "DOOR_FOUR_SIDE_FLANGE"),
+            MaterialSegment("X", "inner_door_face_width", xcore, "DOOR_FOUR_SIDE_FLANGE"),
+            MaterialSegment("X", "inner_door_fold_right", panel.fold_right, "DOOR_FOUR_SIDE_FLANGE"),
+        ),
+        y_segments=(
+            MaterialSegment("Y", "inner_door_fold_bottom", panel.fold_bottom, "DOOR_FOUR_SIDE_FLANGE"),
+            MaterialSegment("Y", "inner_door_face_height", ycore, "DOOR_FOUR_SIDE_FLANGE"),
+            MaterialSegment("Y", "inner_door_fold_top", panel.fold_top, "DOOR_FOUR_SIDE_FLANGE"),
+        ),
+        source="DOOR_FOUR_SIDE_FLANGE", revision=2,
     )
     return PartRenderData(
         scene=scene,
         material=material_polygon_from_final_scene(scene),
-        fold_guides=(),
+        fold_guides=fold_guides_from_final_scene(scene),
         metadata={
             "stable_id": str(panel.stable_id),
             "inner_door_id": str(panel.inner_door_id),
             "cell_key": str(panel.cell_key),
             "thickness": float(panel.thickness),
+            "finished_width": float(panel.width),
+            "finished_height": float(panel.height),
+            "unfolded_width": float(panel.unfolded_width),
+            "unfolded_height": float(panel.unfolded_height),
+            "folds": (
+                float(panel.fold_left), float(panel.fold_right),
+                float(panel.fold_top), float(panel.fold_bottom),
+            ),
         },
         unfolded_topology=topology,
     )

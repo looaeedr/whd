@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    "tests/test_issue1461_receiving_2d_settings.py",
+    "tests/test_issue1331_receiving_shared_settings.py::test_real_settings_preview_exports_every_piece_and_reload_keeps_each_bay",
     "tests/test_issue1460_quantity_model.py",
     "tests/process/test_issue533_c1_anti_regrowth.py",
     "tests/test_dm1_divider_physical_contract.py",
@@ -27,6 +29,11 @@ PYTEST_PATHS = (
     "tests/test_issue71_divider_relief_components.py",
     "tests/test_issue74_divider_side_front_penetration.py",
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+    "tests/test_issue1050_receiving_mother_plate_marking.py",
+    "tests/test_receiving_inner_frame_last_flange_contact.py",
+    "tests/test_phase6_t15_inner_door_panels.py",
+    "tests/test_phase6_t16_receiving_placement.py",
+    "tests/test_phase6_t17_receiving_inner_door_80.py",
     "tests/test_issue1113_receiving_joint_lock_geometry.py",
     "tests/test_issue1114_receiving_pairing_marking.py",
     "tests/test_corner_parameter_lock.py",
