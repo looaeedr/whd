@@ -2,7 +2,7 @@
 """Replaceable AE manufacturing engine package."""
 from .contracts import (
     ManufacturingPolicy, ManufacturingContext, DoorPartSpec, BoxBodyPartSpec,
-    EndCapPartSpec, BasePlatePartSpec, IndicatorBoxPartSpec, PartExportResult, PartSpec,
+    EndCapPartSpec, BasePlatePartSpec, IndicatorBoxPartSpec, CustomFoldPartSpec, PartExportResult, PartSpec,
 )
 from .manufacturing_api import (
     generate_part, resolve_policy, expected_baseline_path_for, door_finished_face_size,
@@ -27,7 +27,7 @@ __all__ = [
     "door_indicator_offset_for_finished_center", "indicator_box_opening_feature",
     "indicator_small_door_spec", "ManufacturingPolicy", "ManufacturingContext",
     "DoorPartSpec", "BoxBodyPartSpec", "EndCapPartSpec", "BasePlatePartSpec",
-    "IndicatorBoxPartSpec", "PartExportResult", "PartSpec",
+    "IndicatorBoxPartSpec", "CustomFoldPartSpec", "PartExportResult", "PartSpec",
     "CabinetTypeRegistration", "registered_cabinet_types", "resolve_cabinet_type",
     "CertifiedReliefStatus", "CertifiedReliefRule", "CertifiedReliefResult",
     "CertifiedCornerPolicyRule", "CertifiedReliefRegistryError", "CertifiedReliefRegistryAmbiguityError",

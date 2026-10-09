@@ -348,6 +348,9 @@ def _indicator_box_export(spec: IndicatorBoxPartSpec, filepath: str, context: Ma
 
 
 def _part_kind(spec: PartSpec) -> str:
+    from .contracts import CustomFoldPartSpec
+    if isinstance(spec, CustomFoldPartSpec):
+        return spec.physical_id
     if isinstance(spec, DoorPartSpec):
         return "door"
     if isinstance(spec, BoxBodyPartSpec):
@@ -362,6 +365,11 @@ def _part_kind(spec: PartSpec) -> str:
 
 
 def _export_to_temp(spec: PartSpec, temp_path: str, context: ManufacturingContext):
+    from .contracts import CustomFoldPartSpec
+    if isinstance(spec, CustomFoldPartSpec):
+        data=build_part_render_data(spec,context)
+        save_part_render_data_dxf(data,temp_path,overwrite=True)
+        return "save_custom_fold_scene", None, None
     if isinstance(spec, DoorPartSpec):
         return _door_export(spec, temp_path, context)
     if isinstance(spec, BoxBodyPartSpec):

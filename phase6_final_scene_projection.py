@@ -449,7 +449,7 @@ def make_assembly_scene_render_data(
 
     cls = render_data_cls or AssemblySceneRenderData
     values = {
-        "assembly_parts": tuple(assembly_parts),
+        "assembly_parts": tuple(part for part in assembly_parts if getattr(part,"placement","offset")!="standalone"),
         "visible_part_keys": (
             None
             if visible_part_keys is None

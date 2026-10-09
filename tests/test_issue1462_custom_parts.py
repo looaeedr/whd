@@ -97,7 +97,7 @@ def test_real_designer_add_rename_save_reload_keeps_top_level_custom(tmp_path,mo
         assert app.designer_workspace.active_part==key
         assert app.structure_tree.parent("part:"+key)==""
         assert app.structure_tree.item("part:"+key,"text")=="加強板"
-        assert app.renderer.canvas.get_tk_widget().winfo_manager()==""
+        assert app.renderer.canvas.get_tk_widget().winfo_manager()
         editor=app._custom_part_editor
         editor._custom_values["display_name"].set("改名加強板")
         editor._custom_values["per_box_count"].set("2")
@@ -105,7 +105,7 @@ def test_real_designer_add_rename_save_reload_keeps_top_level_custom(tmp_path,mo
         root.update_idletasks()
         assert app.structure_tree.item("part:"+key,"text")=="改名加強板"
         assert app.designer_workspace.custom_part(key)["per_box_count"]==2
-        assert app.designer_workspace.profiles_for(key) is None
+        assert app.designer_workspace.profiles_for(key)["Y"][0]["phase6_key"]=="custom_flange"
         with pytest.raises(ValueError,match="正式 Fold"):
             _fold_designer_part_spec_from_payload(main,key,{"w":400,"h":600,"d":200,"t":2,"model":"金庫型"})
         path=tmp_path/"custom-real.p6fold"
@@ -115,7 +115,7 @@ def test_real_designer_add_rename_save_reload_keeps_top_level_custom(tmp_path,mo
         reloaded=Phase6DesignerWorkspace.from_snapshot(loaded)
         assert reloaded.custom_part(key)==app.designer_workspace.custom_part(key)
         assert key in reloaded.available_parts
-        assert key not in loaded.get("part_profiles",{})
+        assert key in loaded.get("part_profiles",{})
         assert main.workspace_controller.workspace_snapshot()["custom_parts"]==reloaded.snapshot()["custom_parts"]
         second_root=tk.Tk();second_root.withdraw()
         try:
@@ -123,7 +123,7 @@ def test_real_designer_add_rename_save_reload_keeps_top_level_custom(tmp_path,mo
             second._apply_phase6_project_snapshot(loaded)
             second_app=second.open_original_fold_designer()
             assert second_app.designer_workspace.custom_part(key)==reloaded.custom_part(key)
-            assert second_app.designer_workspace.profiles_for(key) is None
+            assert second_app.designer_workspace.profiles_for(key)["Y"][0]["phase6_key"]=="custom_flange"
             second_app.activate_part(key)
             assert second_app.structure_tree.parent("part:"+key)==""
             assert second_app._custom_part_editor._custom_values["per_box_count"].get()=="2"

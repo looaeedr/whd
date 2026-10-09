@@ -309,6 +309,11 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
                     values[target] = float(engine_segment_length_to_ui(row))
                     break
 
+    from phase6_custom_parts import is_custom_part
+    if is_custom_part(key):
+        values["custom_parts"] = workspace.snapshot()["custom_parts"]
+        from phase6_custom_fold_profiles import build_custom_part_profiles
+        values["fold_profiles"] = deepcopy(profiles or build_custom_part_profiles(values,key))
     source = getattr(app, "_phase6_input_snapshot", {}) or {}
     for name in (
         "indicator_layer_groups",
@@ -355,6 +360,10 @@ def _profile_inputs_for_part(app: Any, part_key: str) -> tuple[tuple, tuple]:
     else:
         profiles_for = getattr(workspace, "profiles_for", None)
         profiles = _mapping(profiles_for(key, {}) if callable(profiles_for) else {})
+    if key.startswith("custom:") and not profiles:
+        from phase6_custom_fold_profiles import build_custom_part_profiles
+        snapshot={**getattr(app,"_phase6_input_snapshot",{}),**getattr(app,"_settings_values",{}),**workspace.snapshot()}
+        profiles=build_custom_part_profiles(snapshot,key)
     return tuple(profiles.get("X", ()) or ()), tuple(profiles.get("Y", ()) or ())
 
 
@@ -414,7 +423,7 @@ def _domain_inputs_for_part(
         if key not in {"head", "tail"}:
             committed_render_data = render_data
 
-    if callable(part_spec_provider) and key in {"head", "tail"}:
+    if callable(part_spec_provider) and (key in {"head", "tail"} or key.startswith("custom:")):
         spec_payload = dict(scene_values or {})
         spec_payload["_use_committed_relief"] = False
         resolved = part_spec_provider(key, spec_payload)

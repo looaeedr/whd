@@ -126,6 +126,10 @@ def build_part_scene(
     3D).  All manufacturing semantics stay in AE/PartSpec; callers must not
     rebuild baseline geometry, CornerType, holes, or operation ownership.
     """
+    from .contracts import CustomFoldPartSpec
+    if isinstance(spec, CustomFoldPartSpec):
+        from .custom_fold_manufacturing import build_custom_fold_render_data
+        return build_custom_fold_render_data(spec).scene
     ctx = context or ManufacturingContext()
     with _scoped_ae_resource_root(ctx):
         if isinstance(spec, DoorPartSpec):
@@ -873,6 +877,10 @@ def build_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None
 ) -> PartRenderData:
     """Return final manufacturing material + scene through the bounded render owner."""
+    from .contracts import CustomFoldPartSpec
+    if isinstance(spec, CustomFoldPartSpec):
+        from .custom_fold_manufacturing import build_custom_fold_render_data
+        return build_custom_fold_render_data(spec)
     return _manufacturing_render.build_part_render_data(
         spec,
         context,
