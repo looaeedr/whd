@@ -425,6 +425,9 @@ def normalize_part_selection(part_keys, active_part=None):
 
 def _phase6_replace_mapping(self, attr_name, values):
     """Preserve one mutable mapping identity across legacy snapshot refreshes."""
+    source = getattr(self, "_phase6_input_snapshot", {}) or {}
+    if attr_name == "_phase6_box_whd" and source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
+        values = {axis: float(source["receiving_quantity_box"][axis]) for axis in ("w", "h", "d")}
     current = getattr(self, attr_name, None)
     if isinstance(current, MutableMapping):
         current.clear()
@@ -835,6 +838,13 @@ class Phase6FoldDesignerApp(original.MainApp):
         self.do_update()
 
     def _sync_dwd_with_top_whd(self):
+        source = getattr(self, "_phase6_input_snapshot", {}) or {}
+        if source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
+            self.state.profiles_vault["箱身"] = merge_box_body_profile(
+                self.state.profiles_vault.get("箱身", []), source)
+            self._phase6_last_w = float(source["receiving_quantity_box"]["w"])
+            self._phase6_last_d = float(source["receiving_quantity_box"]["d"])
+            return
         profile = self.state.profiles_vault.get("箱身", [])
         w_segments = [seg for seg in profile if seg.get("core") == "W"]
         d_segments = [seg for seg in profile if seg.get("core") == "D"]
@@ -3039,9 +3049,10 @@ def _fix11_export(self):
     # that were edited in the X/Y EndCap editor. Global W/H/D are owned by the
     # bridge, while EndCap fold/FW values are owned by the shared Phase6 snapshot.
     result = _FIX10_EXPORT(self)
-    result["w"] = _ui_len(self._phase6_box_whd["w"])
-    result["h"] = _ui_len(self._phase6_box_whd["h"])
-    result["d"] = _ui_len(self._phase6_box_whd["d"])
+    dimension_number = float if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity" else _ui_len
+    result["w"] = dimension_number(self._phase6_box_whd["w"])
+    result["h"] = dimension_number(self._phase6_box_whd["h"])
+    result["d"] = dimension_number(self._phase6_box_whd["d"])
     for name in ("yl1", "yr1", "ytop1", "ybottom1"):
         if name in self._phase6_input_snapshot:
             result[name] = _ui_len(self._phase6_input_snapshot[name])
@@ -3050,10 +3061,13 @@ def _fix11_export(self):
         profiles = self.designer_workspace.profiles_for(current)
         if profiles:
             endcap_values = read_endcap_xy_profiles(profiles, self._phase6_input_snapshot)
+            if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity":
+                endcap_values["w"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["w"])
+                endcap_values["d"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["d"])
             result.update(endcap_values)
             self._phase6_input_snapshot.update(endcap_values)
-            self._phase6_box_whd["w"] = _ui_len(endcap_values["w"])
-            self._phase6_box_whd["d"] = _ui_len(endcap_values["d"])
+            self._phase6_box_whd["w"] = dimension_number(endcap_values["w"])
+            self._phase6_box_whd["d"] = dimension_number(endcap_values["d"])
     elif current == "box_body":
         # The box body is authoritative for the shared FW when it is the part
         # being edited. Preserve that value for later EndCap sessions.
@@ -3135,6 +3149,8 @@ def _propagate_endcap_derived_cores(self, w, d):
 
 
 def _sync_active_endcap_and_global_whd(self):
+    if self._phase6_input_snapshot.get("active_mode") == "quantity" and self._phase6_input_snapshot.get("receiving_quantity_box"):
+        return
     top_w = original.get_int(self.v_w.get())
     top_d = original.get_int(self.v_d.get())
     last_w = original.get_int(self._phase6_last_w if self._phase6_last_w is not None else top_w)

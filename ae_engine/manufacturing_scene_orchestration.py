@@ -524,10 +524,10 @@ def build_box_body_divider_render_data(
             raise ValueError("封頭尾.dxf shared Ø6.4 mother datum unavailable")
     baseline_hole_count = 0
     if baseline_path is not None:
-        import ezdxf
+        from ae_engine.baseline_source import load_baseline_dxf_source
         from ezdxf import bbox as ezdxf_bbox
 
-        doc = ezdxf.readfile(baseline_path)
+        doc = load_baseline_dxf_source(baseline_path)
         msp = doc.modelspace()
         source_bounds = ezdxf_bbox.extents(msp)
         if source_bounds.has_data:

@@ -220,6 +220,9 @@ def ensure_receiving_layout(snapshot: Mapping[str, object] | None) -> dict[str, 
 
     if not is_receiving_snapshot(result):
         return result
+    if result.get("active_mode") == "quantity":
+        from ae_engine.receiving_quantity_box import project_common_box
+        return project_common_box(result)
     if result.get("receiving_layout") is None:
         from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
 
@@ -582,6 +585,11 @@ def project_receiving_bay_legacy_aliases(
             ) from exc
     # Validation/legacy projection must never mutate the persisted authority.
     result["receiving_layout"] = persisted_layout
+    if result.get("active_mode") == "quantity":
+        from phase6_quantity_model import normalize_quantity_snapshot
+        result = normalize_quantity_snapshot(result)
+        result["surface_features"] = {**dict(result.get("surface_features") or {}),
+                                      **{role: deepcopy(result["part_features"][role]) for role in ("head", "tail")}}
     return result
 
 

@@ -17,6 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    "tests/test_issue1463_receiving_modes.py",
+    "tests/test_issue357_manufacturing_result_contracts.py",
+    "tests/test_issue356_manufacturing_adapter.py",
+    "tests/test_issue371_t7_update_runtime_behavior.py",
     "tests/test_issue1462_custom_parts.py",
     "tests/test_issue1461_receiving_2d_settings.py",
     "tests/test_issue1331_receiving_shared_settings.py::test_real_settings_preview_exports_every_piece_and_reload_keeps_each_bay",

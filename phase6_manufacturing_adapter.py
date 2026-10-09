@@ -8,6 +8,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import replace
 from typing import Any
+from collections.abc import MutableMapping
 import re
 
 from phase6_manufacturing_contracts import (
@@ -428,6 +429,7 @@ def _domain_inputs_for_part(
 def _materialize_committed_endcap_inputs(
     parts: list[ManufacturingPartInput],
     *,
+    scene_values_by_part,
     render_data_provider=None,
 ) -> list[ManufacturingPartInput]:
     """Attach committed Head/Tail fallbacks after all raw providers have run."""
@@ -438,7 +440,10 @@ def _materialize_committed_endcap_inputs(
         if part.part_key not in {"head", "tail"}:
             result.append(part)
             continue
-        committed_payload = thaw_manufacturing_value(part.scene_values)
+        # JSON thawing intentionally produces mappings for dataclasses. The
+        # legacy provider needs the original semantic Feature values, including
+        # anchors; retain detached adapter inputs until both passes finish.
+        committed_payload = deepcopy(scene_values_by_part[part.part_key])
         committed_payload["_use_committed_relief"] = True
         committed = render_data_provider(part.part_key, committed_payload)
         result.append(replace(part, committed_render_data=committed))
@@ -518,10 +523,17 @@ def build_manufacturing_request(
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
     workspace = getattr(app, "designer_workspace", None)
 
+    if snapshot.get("active_mode") == "quantity" and snapshot.get("model") == "受電箱":
+        from ae_engine.receiving_quantity_box import require_valid_quantity_features
+        live = workspace.snapshot() if workspace is not None else {}
+        require_valid_quantity_features({**snapshot, **{key: live[key] for key in ("quantity", "receiving_quantity_box") if key in live}})
+
     part_inputs: list[ManufacturingPartInput] = []
+    scene_values_by_part = {}
     for key in _canonical_part_keys(app):
         x_profile, y_profile = _profile_inputs_for_part(app, key)
         scene_values = _scene_values_for_part(app, key, scene_payload_builder)
+        scene_values_by_part[key] = deepcopy(dict(scene_values))
         render_data, committed_render_data, part_spec, manufacturing_context = (
             _domain_inputs_for_part(
                 app,
@@ -550,6 +562,7 @@ def build_manufacturing_request(
 
     part_inputs = _materialize_committed_endcap_inputs(
         part_inputs,
+        scene_values_by_part=scene_values_by_part,
         render_data_provider=render_data_provider,
     )
 
@@ -639,6 +652,12 @@ def resolve_manufacturing_for_app(
         if isinstance(cache_service, ManufacturingCacheService)
         else _cache_service_for_app(app)
     )
+    from ae_engine.receiving_quantity_box import require_valid_quantity_features
+    source = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
+    workspace = getattr(app, "designer_workspace", None)
+    if source.get("model") == "受電箱" and source.get("active_mode") == "quantity":
+        live = workspace.snapshot() if workspace is not None else {}
+        require_valid_quantity_features({**source, **{key: live[key] for key in ("quantity", "receiving_quantity_box") if key in live}})
     key = build_manufacturing_cache_key(app)
     lookup = service.lookup(key)
     if lookup.result is not None:
@@ -698,8 +717,14 @@ def apply_manufacturing_result(app: Any, result: ManufacturingResolveResult) -> 
     patch = thaw_manufacturing_value(result.mutations.snapshot_patch)
     if not isinstance(patch, dict):
         raise TypeError("snapshot patch must thaw to dict")
-    current_snapshot.update(patch)
-    app._phase6_input_snapshot = current_snapshot
+    current = getattr(app, "_phase6_input_snapshot", None)
+    if isinstance(current, MutableMapping):
+        # Settings transaction/orchestration owners hold this root mapping.
+        # Applying manufacturing effects must preserve their live reference.
+        current.update(patch)
+    else:
+        current_snapshot.update(patch)
+        app._phase6_input_snapshot = current_snapshot
     return result.geometry
 
 

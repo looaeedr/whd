@@ -52,6 +52,8 @@ class Phase6PartSessionOwner:
                 app._sync_dwd_with_top_whd()
             values = bridge.read_box_body_profile(app.state.profiles_vault['箱身'], app._phase6_input_snapshot)
             values['h'] = app._phase6_box_whd['h']
+            if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
+                values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
             bridge._phase6_store_editor_values(app, values, notify=notify)
             app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(app._phase6_endcap_fw_state)
             bridge._phase6_rebuild_linked_endcaps(app)
@@ -78,11 +80,13 @@ class Phase6PartSessionOwner:
                 values.pop('fw', None)
             else:
                 values = {} if flat_x else {'yl1': bridge._ui_len(x['yl1'].get('len')), 'yr1': bridge._ui_len(x['yr1'].get('len'))}
+            if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
+                values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
             bridge._phase6_store_editor_values(app, values, notify=notify)
             if 'w' in values:
-                app._phase6_box_whd['w'] = bridge.original.get_int(values['w'])
+                app._phase6_box_whd['w'] = float(values['w']) if app._phase6_input_snapshot.get('receiving_quantity_box') else bridge.original.get_int(values['w'])
             if 'd' in values:
-                app._phase6_box_whd['d'] = bridge.original.get_int(values['d'])
+                app._phase6_box_whd['d'] = float(values['d']) if app._phase6_input_snapshot.get('receiving_quantity_box') else bridge.original.get_int(values['d'])
             w_text = str(app._phase6_box_whd['w'])
             d_text = str(app._phase6_box_whd['d'])
             if app.v_w.get() != w_text:
