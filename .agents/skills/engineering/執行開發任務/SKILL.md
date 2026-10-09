@@ -20,3 +20,4 @@ whd_schema: WHD_DOC_META_V1
 ## 工作結束前的交付驗證
 
 產品 PR 建立後不表示任務完成。尚在 queued/in_progress/pending 的 CI 只能續查，不可最終回報「已派工」就離開；成功時在同一可執行回合繼續合併 localX、驗證 HEAD、工單留言、結案回讀，失敗時主動查 log 修復並重測。只有不可執行的外部 blocker／回合工具限制才可停止，須明確揭露，不得冒充背景執行；`/推推` 仍是正式 X 發布唯一授權。
+`localX` 成功合併並完成 GitHub SHA 回讀之後立刻 `NEXT_ISSUE_DISCOVERY_REQUIRED`：在原 Issue 結案前／同時查下一張符合依賴、無重複施工、目前 OPEN 的工單，直接切入派工與實作；不能把原 Issue close 當下一張搜尋的先決條件。沒有可執行工單則記錄真實 `NO_ELIGIBLE_ISSUE`。

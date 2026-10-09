@@ -15,6 +15,18 @@ SURFACES = {
 }
 
 class ContinuityContractTests(unittest.TestCase):
+    def test_next_issue_discovery_begins_after_localx_merge_not_close(self):
+        for path in SURFACES:
+            text=(ROOT/path).read_text(encoding="utf-8")
+            with self.subTest(path=path):
+                self.assertIn("NEXT_ISSUE_DISCOVERY_REQUIRED",text)
+                self.assertIn("localX",text)
+                self.assertIn("close",text)
+        dispatch=(ROOT/".agents/skills/engineering/派工/SKILL.md").read_text("utf-8")
+        self.assertIn("不得等 Issue CLOSED 才找下一張",dispatch)
+        self.assertIn("NO_ELIGIBLE_ISSUE",dispatch)
+
+
     def test_every_active_delivery_surface_requires_ci_continuation(self):
         for path, requirements in SURFACES.items():
             text=(ROOT/path).read_text(encoding="utf-8")
