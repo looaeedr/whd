@@ -8,21 +8,25 @@ whd_schema: WHD_DOC_META_V1
 ---
 # /派工
 
-## 硬閘門：`DISPATCH_REMOTE_ONLY`
+## 硬閘門：`DISPATCH_CLOUD_BUILD_DC_LOCALX_ONLY`
 
-**`/派工` 絕不能在使用者本機施工。** 其工作位置限於 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION` 的真正雲端／GitHub 端執行器（不得暗接使用者裝置）。禁止 Remote Desktop Commander、RC、CoreELEC、`whd-dev`、`/workspace/whd`、Windows `Z:\新WHD`、任何本機 shell／工作樹，用於本技能的修改、測試、commit、同步或備援。**禁止把 `/派工` 隱性改成 `/接手`。**
+**`/派工` 絕不能在使用者本機施工。** `DISCOVERY / BUILD / TEST / COMMIT / PUSH / PR / CI` 階段限 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`，雲端執行器不得暗接使用者裝置。此階段 `Remote Desktop Commander / RC / whd-dev / /workspace/whd / Z:\新WHD` 均為 `DISPATCH_LOCAL_EXECUTION_DENIED`；不得以「沒有遠端 executor」為由轉本機，更不能暗自切為 `/接手`。缺雲端施工能力就回報 `REMOTE_EXECUTOR_UNAVAILABLE`。
 
-在讀取 GitHub 工單並確認依賴、scope、owner 後，**每次實際施工入口**先確認 executor 位置；本機／RC 一律回 `DISPATCH_LOCAL_EXECUTION_DENIED`，不得呼叫使用者裝置。本回合若沒有可執行的 GitHub／雲端施工入口，就記錄 `REMOTE_EXECUTOR_UNAVAILABLE` 和已查到的阻塞，保留工單，不得虛構「已派工」「已施工」，也不能因為 RC 上線便拿它代替。
+確認 GitHub Issue／依賴／owner 後由遠端隔離工作分支施工、測試、commit、push 到 `looaeedr/whd`，建立 base=`localX` PR，持續查 exact HEAD CI。**CI SUCCESS 之前禁止用 DC**。
 
-符合遠端執行條件後，`/派工` 才能以 GitHub Git 為來源，在遠端隔離分支施工、跑驗證、commit，推送到公開倉庫 `looaeedr/whd` 的指定工作分支，建立 base=`localX` 的 PR，追蹤 exact CI，成功後合併 **GitHub 遠端 `localX`**，完成 Issue 留言／close/readback；**這不等於使用者本機 `localX` 已更新**。同一已核准 Issue 不額外要求退役專案 token、receipt、unlock，但外部平台安全審查不能由 Skill 繞過。
+### 唯一可使用 DC：`LOCALX_INTEGRATION`
 
-只有使用者明確下 `/接手`，才能切到 `執行開發任務/SKILL.md` 並使用 RC → `whd-dev` → `/workspace/whd`；`/派工` 本身不授權此切換。產品不得自動從 `localX` 發布 X；正式 `cleanup/2d-3d-sync` 仍須當次 `/推推`。純治理／技能變更照 `tools/change_lane_gate.py` 的白名單走獨立治理通道，不得藉此把產品或派工送入本機。
+當 exact PR SHA 的必要 CI 全部 SUCCESS 且可整合時，**才允許**透過 Desktop Commander → CoreELEC `whd-dev:/workspace/whd`，將已驗證的遠端工作分支成果合併至使用者**本機 `localX`**。連線後先查本機工作樹／`localX`／Git refs，保留未發布修改，不得 reset、force、蓋掉髒檔，也不得在這個階段直接改產品程式補測（修正須回遠端工作分支重新測試 CI）。本機整合成功、必要整合測試通過後，非強制同步 GitHub `localX`，回讀本機 HEAD、遠端 SHA、PR 狀態；不能光靠遠端 PR merge 就聲稱本機已整合。
+
+**唯一斷線備援：** DC 實際無法連線或逾時，經記錄 `DC_UNREACHABLE` 與 exact Issue/PR/head SHA／CI 後，才可把工作 PR 合併至**GitHub 遠端 `localX`**；強制註記 `LOCALX_SYNC_PENDING`，不得宣稱本機 `localX` 已同步。後續恢復 DC 才對齊。若 DC 能連卻遇到本機衝突／髒檔／權限拒絕／驗收失敗，不得假稱斷線而改用遠端備援；須回報真正 blocker，不可繞過平台安全審查。
+
+`/接手` 是另一入口，只有使用者明確下達時才允許**在本機施工**。此 `/派工` 的 DC 例外只是最終合併，不是暗中開啟 `/接手`。無論哪條路，產品從 `localX` 到正式 X 仍須當次 `/推推`；治理白名單文件依 `tools/change_lane_gate.py` 另走治理通道。
 
 ## 發出產品 PR 之後必須續作
 
 1. `PR_OPEN / CI_QUEUED / CI_IN_PROGRESS / CI_PENDING` 一律 `CONTINUE_POLL`，**不是可結束的交付狀態**；在當前回合持續輪詢 exact PR SHA 與對應 run，不得把「正在測試」當成派工完成。
-2. `CI_SUCCESS` 且 PR mergeable，應直接把工作 PR 合併至 `localX`；隨即讀回 `localX` HEAD、PR merged、Issue 最新狀態並於工單留言；完成後 close Issue 並再次 readback。整段不必使用者再喊「繼續」。
-   **重要先後次序**：`localX` merge 成功 + GitHub SHA 回讀後，**立刻啟動 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，同步完成原 Issue 留言／close/readback；**不得等 Issue CLOSED 才找下一張**，也不得以 Issue close/readback 為流程終點。
+2. `CI_SUCCESS` 且 PR 可整合，**先由 DC 最終整合到本機 `localX`**、驗證後非強制同步 GitHub `localX`，回讀兩端 HEAD、PR 與 Issue 後留言、close Issue + readback；**只在 DC 真正不可連線時**可備援遠端 GitHub `localX` 並記錄 `LOCALX_SYNC_PENDING`。整段不必使用者再喊「繼續」。
+   **重要先後次序**：本機 `localX` merge＋雙端 SHA 回讀成功（或已標記 DC 斷線、遠端合併及本機待同步）後，**立刻啟動 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，同步完成原 Issue 留言／close/readback；**不得等 Issue CLOSED 才找下一張**，也不得以 Issue close/readback 為流程終點。
    搜尋下一張 OPEN 且前置工單已完成的可執行 Issue；檢查相同工作是否已有 owner/PR，避免重複；可施工就建立真實工作分支、寫入派工留言並繼續執行。找不到則輸出已核查清單與 `NO_ELIGIBLE_ISSUE`，不得假報成功派工。
 
 3. `CI_FAILURE / CANCELLED / TIMED_OUT`：讀取 job/step/log，定位和修復後再次測試；若 run 完全缺席，先修正 workflow branch/path 接線並觸發，不得聲稱已驗收。
