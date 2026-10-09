@@ -1,20 +1,31 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1441-ready-followup-20261009-work1-01",
+  "request_id": "issue1441-acquire-work1-20261009-01",
   "issue": 1441,
-  "kind": "DISPATCH_READY",
+  "kind": "ACQUIRE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-  "expected_coord_head": "2a7289dd429a2007344dd5c6e27cf9f2184ba5fa",
+  "expected_coord_head": "01ec292132f1b1f9fede2b485cc11e8253e4ce42",
   "expected_generation": 1,
   "effect": {
-    "authority_kind": "USER_EXPLICIT",
-    "authority_ref": "https://github.com/looaeedr/whd/issues/1441",
-    "work_branch": "work/issue-1441-flowv2-ci-e2e",
+    "observed_at": "2026-10-09T03:07:52.240Z",
+    "lease": {
+      "token": "lease:1441:work1:20261009:acquire01",
+      "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
+      "expires_at": "2026-10-09T03:22:52.240Z"
+    },
+    "owner_kind": "SCHEDULER",
+    "owner_id": "chatgpt.flowv2.work1",
+    "lane_id": "chatgpt.flowv2.work1",
     "slot_id": "worker.slot.1",
-    "dispatch_transport": "GITHUB_CANONICAL"
+    "semantic_state": "CLAIMED",
+    "next_action": {
+      "kind": "RESERVE_PATHS",
+      "args": {},
+      "display": "Reserve exact tested Issue1441 diff paths"
+    }
   },
-  "purpose": "Explicit user /接手 #1441: permanent end-to-end CI jobs hard gate and TOK-SYNC_TARGET anti-regression, work1 because work0 is occupied by Issue #1331.",
+  "purpose": "Formal explicit same-Issue owner acquire following GitHub-native READY gen1; RC workspace implementation follows, no paths reserved until tested exact diff.",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
