@@ -379,11 +379,11 @@ def _projected_mating_contact(
 ):
     """Resolve a *verified* physical face mate before flat UV registration.
 
-    Mapped folded triangles represent the sheet mid-surfaces. For two opposed,
-    facing sheets of equal thickness T their mid-planes must be separated by
-    exactly T (within the production contact tolerance). Larger separation
-    means an actual gap, and smaller separation means penetration; neither may
-    be relabelled as a mating contact by orthogonal projection.
+    The world mapping here contains the *already thickened physical skins*,
+    not sheet mid-surfaces (see world_skin_with_flat_uv). Opposed mating
+    physical skins must therefore share the same support plane within the
+    production coplanarity tolerance. Any nonzero physical separation beyond
+    that tolerance is a real gap or misassembly, not a permitted projection.
 
     The locator-plane footprint is retained solely as the manufacturing UV
     carrier after this physical precondition has been proved.
@@ -398,8 +398,7 @@ def _projected_mating_contact(
     toward_attached = _unit(_sub(attached_center, locator_center))
     epsilon = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.polygon_robustness_epsilon)
     contact_tolerance = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.coplanar_distance_tolerance)
-    nominal_midplane_separation = float(sheet_thickness)
-    if nominal_midplane_separation <= 0:
+    if float(sheet_thickness) <= 0:
         raise ValueError("physical mating requires positive sheet thickness")
 
     candidates = []
@@ -428,10 +427,10 @@ def _projected_mating_contact(
             separation = abs(
                 _dot(_sub(attached_group[0].world[0], locator_origin), plane_normal)
             )
-            # Real T-thick sheets mate skin-to-skin only if the opposed
-            # mid-surfaces are exactly one thickness apart. Reject both a
-            # positive clearance and sheet penetration before UV registration.
-            if abs(separation - nominal_midplane_separation) > contact_tolerance:
+            # Mapped skins have *already* been offset by +/- T/2.  A face
+            # mate requires actual coplanarity; distant parallel skin faces
+            # must not be made into contacts by footprint projection.
+            if separation > contact_tolerance:
                 continue
             candidates.append(
                 (
@@ -449,7 +448,7 @@ def _projected_mating_contact(
             )
 
     if not candidates:
-        raise ValueError("no physical mother-plate/frame face contact (gap, penetration, or missing overlap)")
+        raise ValueError("no physical mother-plate/frame face contact (noncoplanar or missing overlap)")
     candidates.sort(key=lambda row: row[:3])
     chosen = candidates[0]
     (
@@ -513,7 +512,7 @@ def _projected_mating_contact(
         evidence={
             "contact_mode": "VERIFIED_SKIN_TO_SKIN_CONTACT_UV_REGISTRATION",
             "projection_distance": float(separation),
-            "physical_skin_clearance": float(separation - nominal_midplane_separation),
+            "physical_skin_clearance": float(separation),
             "locator_alignment": float(-neg_alignment),
             "overlap_area": float(overlap.area),
             "locator_mapping_record_count": len(locator_group),
