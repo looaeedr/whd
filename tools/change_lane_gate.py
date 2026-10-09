@@ -1,0 +1,240 @@
+"""Trustworthy PR-file classifier for WHD local governance-to-X fast lane.
+
+Only non-product control documents and their machine checks qualify. Any
+unknown, renamed, or mixed product path must use localX and exact /推推 proof.
+This module is intended to run from a trusted base-branch checkout, never
+from untrusted PR candidate code.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import subprocess
+from urllib.request import Request, urlopen
+
+from tools.localx_publish_gate import (
+    PRODUCTION_X, INTEGRATION_BRANCH, require_publish_approval,
+)
+
+GOVERNANCE_BRANCH_PREFIXES = ("governance/", "docs/", "skills/")
+GOVERNANCE_ROOT_FILES = frozenset({
+    "AGENTS.md",
+    "AI_HANDOFF.md",
+    "release_required_artifacts.json",
+})
+GOVERNANCE_PREFIXES = (
+    ".agents/skills/",
+    ".agents/contracts/",
+    ".github/workflows/",
+    "docs/governance/",
+    "個人AI檔案庫/踩坑庫/",
+    "tests/governance/",
+    "tests/knowledge/",
+)
+GOVERNANCE_EXACT_FILES = frozenset({
+    "tools/change_lane_gate.py",
+    "tools/localx_publish_gate.py",
+    "tools/phase6_skill_preflight.py",
+    "tools/knowledge_governance.py",
+    "tools/change_test_profile.py",
+    "tests/process/test_change_lane_gate.py",
+    "tests/process/test_localx_publish_gate.py",
+    "tests/test_phase6_skill_preflight_gate.py",
+    "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+    "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+})
+
+
+class ChangeLaneDenied(ValueError):
+    """A PR does not satisfy the chosen X publication route."""
+
+
+def _valid_path(raw: str) -> bool:
+    if not isinstance(raw, str) or not raw or "\x00" in raw or "\\" in raw:
+        return False
+    path = PurePosixPath(raw)
+    if (
+        path.is_absolute()
+        or ".." in path.parts
+        or raw != path.as_posix()
+    ):
+        return False
+    if raw.startswith(".") and not raw.startswith((".agents/", ".github/")):
+        return False
+    return True
+
+
+def is_governance_file(path: str) -> bool:
+    """Restrictive allowlist: product, ambiguous and unknown paths are *not* docs."""
+    if not _valid_path(path):
+        return False
+    return (
+        path in GOVERNANCE_ROOT_FILES
+        or path in GOVERNANCE_EXACT_FILES
+        or path.startswith(GOVERNANCE_PREFIXES)
+    )
+
+
+def classify_changes(changed_paths: list[str]) -> str:
+    if not changed_paths:
+        raise ChangeLaneDenied("EMPTY_PR_DIFF")
+    if all(is_governance_file(path) for path in changed_paths):
+        return "GOVERNANCE_DIRECT_X"
+    return "PRODUCT_LOCALX_ONLY"
+
+
+def parse_name_status_zero(blob: bytes) -> list[str]:
+    """Resolve git -z statuses, considering BOTH sides of rename/copy."""
+    fields = blob.split(b"\x00")
+    if fields[-1] != b"":
+        raise ChangeLaneDenied("INVALID_GIT_NAME_STATUS")
+    fields.pop()
+    paths: list[str] = []
+    index = 0
+    while index < len(fields):
+        status = fields[index].decode("ascii", "strict")
+        index += 1
+        if re.fullmatch(r"[AMDTU]", status):
+            n = 1
+        elif re.fullmatch(r"[RC][0-9]{1,3}", status):
+            n = 2
+        else:
+            raise ChangeLaneDenied(f"UNEXPECTED_GIT_STATUS:{status}")
+        if index + n > len(fields):
+            raise ChangeLaneDenied("TRUNCATED_GIT_NAME_STATUS")
+        for encoded in fields[index:index + n]:
+            path = encoded.decode("utf-8", "strict")
+            if not _valid_path(path):
+                raise ChangeLaneDenied(f"INVALID_DIFF_PATH:{path!r}")
+            paths.append(path)
+        index += n
+    return paths
+
+
+def changed_paths_between(repo_root: Path, base_sha: str, head_sha: str) -> list[str]:
+    for value in (base_sha, head_sha):
+        if not re.fullmatch(r"[0-9a-f]{40}", value or ""):
+            raise ChangeLaneDenied("INVALID_COMMIT_SHA")
+    try:
+        proc = subprocess.run(
+            ["git", "diff", "--name-status", "-z", "--find-renames",
+             f"{base_sha}...{head_sha}"],
+            cwd=repo_root, capture_output=True, check=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ChangeLaneDenied("DIFF_READ_FAILED") from exc
+    return parse_name_status_zero(proc.stdout)
+
+
+def _comments(repo: str, number: int, token: str) -> list[dict]:
+    if not token:
+        raise ChangeLaneDenied("MISSING_GITHUB_TOKEN_FOR_PRODUCT_PUBLISH")
+    found: list[dict] = []
+    for page in range(1, 11):
+        url = (
+            f"https://api.github.com/repos/{repo}/issues/{number}/comments"
+            f"?per_page=100&page={page}"
+        )
+        req = Request(url, headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+        })
+        with urlopen(req, timeout=15) as response:
+            entries = json.load(response)
+        if not isinstance(entries, list):
+            raise ChangeLaneDenied("INVALID_COMMENTS_RESPONSE")
+        found.extend(entries)
+        if len(entries) < 100:
+            return found
+    # An approval beyond our capped search could not be verified.
+    raise ChangeLaneDenied("COMMENTS_PAGINATION_LIMIT")
+
+
+def evaluate_pr(
+    *, event: dict, changed_paths: list[str],
+    comments: list[dict] | None = None,
+) -> dict:
+    pr = event.get("pull_request") or {}
+    if not isinstance(pr, dict):
+        raise ChangeLaneDenied("INVALID_PR")
+    base = pr.get("base") or {}
+    head = pr.get("head") or {}
+    base_ref = base.get("ref")
+    head_ref = head.get("ref")
+    base_sha, head_sha = base.get("sha"), head.get("sha")
+    repository = event.get("repository") or {}
+    repo = repository.get("full_name")
+    if (
+        not repo or base_ref != PRODUCTION_X
+        or not isinstance(base_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", base_sha)
+        or not isinstance(head_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", head_sha)
+    ):
+        raise ChangeLaneDenied("INVALID_EXACT_X_PR_IDENTITY")
+    if (base.get("repo") or {}).get("full_name") != repo:
+        raise ChangeLaneDenied("BASE_REPOSITORY_MISMATCH")
+    if (head.get("repo") or {}).get("full_name") != repo:
+        raise ChangeLaneDenied("FORK_NOT_SUPPORTED_FOR_DIRECT_X")
+    lane = classify_changes(changed_paths)
+    if lane == "GOVERNANCE_DIRECT_X":
+        if not isinstance(head_ref, str) or not head_ref.startswith(GOVERNANCE_BRANCH_PREFIXES):
+            raise ChangeLaneDenied("GOVERNANCE_REQUIRES_DEDICATED_BRANCH")
+        return {
+            "status": "PASS", "lane": lane,
+            "reason": "PURE_NON_PRODUCT_GOVERNANCE",
+            "path_count": len(changed_paths),
+            "head_sha": head_sha, "base_sha": base_sha,
+        }
+    if head_ref != INTEGRATION_BRANCH:
+        raise ChangeLaneDenied("PRODUCT_OR_MIXED_REQUIRES_LOCALX")
+    try:
+        require_publish_approval(
+            repo=repo, pr_number=int(pr["number"]),
+            pr={"head": {"ref": head_ref, "sha": head_sha},
+                "base": {"ref": base_ref, "sha": base_sha}},
+            head_sha=head_sha, target_sha=base_sha,
+            comments=comments or [],
+        )
+    except (ValueError, KeyError, TypeError) as exc:
+        raise ChangeLaneDenied(f"PRODUCT_REQUIRES_EXACT_USER_SLASH_PUSH:{exc}") from exc
+    return {
+        "status": "PASS", "lane": lane,
+        "reason": "LOCALX_USER_SLASH_PUSH_VERIFIED",
+        "path_count": len(changed_paths),
+        "head_sha": head_sha, "base_sha": base_sha,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--event-file", type=Path, required=True)
+    parser.add_argument("--repo-root", type=Path, required=True)
+    opts = parser.parse_args()
+    try:
+        event = json.loads(opts.event_file.read_text(encoding="utf-8"))
+        pr = event.get("pull_request") or {}
+        paths = changed_paths_between(
+            opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
+        )
+        lane = classify_changes(paths)
+        comments = None
+        if lane != "GOVERNANCE_DIRECT_X":
+            comments = _comments(
+                event["repository"]["full_name"], int(pr["number"]),
+                os.environ.get("GITHUB_TOKEN", ""),
+            )
+        result = evaluate_pr(event=event, changed_paths=paths, comments=comments)
+    except (ChangeLaneDenied, KeyError, TypeError, ValueError, OSError) as exc:
+        print(json.dumps({
+            "status": "DENY", "reason": str(exc),
+        }, ensure_ascii=False))
+        return 1
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

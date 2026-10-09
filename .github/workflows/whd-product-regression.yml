@@ -10,6 +10,12 @@ on:
       - 'phase6_*.py'
       - 'fold_designer_bridge.py'
       - 'tests/**'
+      # Governance-only test changes must not trigger the product suite.
+      - '!tests/knowledge/**'
+      - '!tests/governance/**'
+      - '!tests/process/test_change_lane_gate.py'
+      - '!tests/process/test_localx_publish_gate.py'
+      - '!tests/test_phase6_skill_preflight_gate.py'
       - 'tools/phase6_bridge_anti_regrowth_guard.py'
       - 'tools/product_ci_regression.py'
       - 'tools/product_ci_green_reuse.py'
