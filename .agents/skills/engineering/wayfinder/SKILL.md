@@ -18,7 +18,7 @@ The destination varies per effort, and naming it is the first act of charting: i
 
 ### REMOTE_AUTHORITY_GATE_V1
 
-WHD 的 issue-map workflow 不得把「GitHub 是 configured tracker」或 `wayfinder` Skill invocation 當成 remote authority。建立/讀取/更新/關閉 map issue、child issue、dependency、assignee 或 comment 前，先用 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗 exact GitHub action。沒有 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 時，使用 project-local Markdown/checkpoint map；不得自動切 GitHub Connector。
+WHD issue-map 只對本輪指定的倉庫與 Issue 進行需要的 GitHub 查閱與已獲授權的 comment/close；依 AGENTS.md 與實際工具權限執行，不用過時 remote token。技能啟用不代表可任意修改其他工單；平台拒絕要明確回報。
 
 
 Parallel/background agents are optional optimizations, not requirements. When unavailable, the same executor works the map as an **inline fallback**, one decision at a time, while keeping issue/checkpoint state durable. Canonical supporting identities are `深度質詢`, `領域建模`, `research`, and `prototype`; retired English aliases are never current invocation targets.

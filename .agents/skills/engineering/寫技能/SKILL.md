@@ -144,7 +144,7 @@ WHD Skill 修改固定：
 
 1. fresh-read canonical entry，解析 executor-local repo workspace 與 production baseline。
 2. 在 workspace 完成 RED→GREEN、required regression/final gate；authoring 不取得 delivery reservation。
-3. 凍結 exact tested diff 與 WHD_TEST_EXECUTION_RECEIPT_V1，綁 source SHA、Issue、exact commands 與 diff digest；通過 GIT_WRITE_UNLOCKED 後只允許 EXACT_TESTED_DIFF_ONLY。
+3. 凍結 exact tested diff，記錄 source SHA、Issue、真實測試命令與 diff digest；只在合法治理或產品工作分支按現行授權交付，無需退役的測試 receipt 或 Git unlock；不可藉換工具繞過平台拒絕。
 4. fresh target compare，依 impact revalidation 沿用 GREEN 或回 workspace 重測。
 5. delivery-only reservation → tested delivery branch → push/PR/required checks → trusted MERGE/FINALIZE → DONE/readback。
 6. 同一 user-authorized scope 的 WORKSPACE_DELIVERY 不得要求第二次授權。

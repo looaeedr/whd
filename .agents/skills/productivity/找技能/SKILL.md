@@ -30,7 +30,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_GATE_V1
 
-找 Skill 預設先查本地已安裝 catalog/registry/可用 plugin directory。GitHub repository search、stars、release/README、raw `SKILL.md` 或任何 GitHub metadata 都是 network remote action；在 WHD 必須先用 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗 `WHD_REMOTE_CONNECTION_AUTHORITY_V1`。沒有 authority 時，GitHub stars/維護資訊標成 `NOT_CHECKED_REMOTE_NOT_AUTHORIZED`，不得為品質驗證偷偷連 GitHub。
+找 Skill 先查本地 catalog/registry 或可用 plugin directory。若需查 GitHub repository、stars、release/README 或 SKILL.md，按本輪任務與實際工具權限查閱，不另要求退役的內部 remote token；不得擅自改變或上傳未指定的倉庫。
 
 
 開始搜尋前先確認本回合**實際可用**的能力：

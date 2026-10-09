@@ -157,7 +157,7 @@ FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh ex
 WHD interactive/default changes enter release only after root-local qualification:
 
 - root workspace first: current source → mutation → classified tests → terminal GREEN → frozen exact diff;
-- Git content plane stays read-only until `GIT_WRITE_UNLOCKED`;
+- Git content writes stay limited to the tested task branch and current /接手 or /派工 scope, respect host tool permissions, and never directly advance production X;
 - after unlock, create a fresh work branch from fresh authoritative target HEAD and re-read parent/base;
 - the work branch may receive `EXACT_TESTED_DIFF_ONLY`; no branch-side hotfixes or cleanup edits that were not root-tested;
 - if target moved across touched/base identity, return to root and `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`;
