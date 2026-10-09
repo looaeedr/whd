@@ -1,26 +1,15 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1441-consume-qa-real-control-plane-20261009-0331",
+  "request_id": "issue1441-merge-pr1442-3-real-ci-green-20261009-0335",
   "issue": 1441,
-  "kind": "CONSUME_QA",
+  "kind": "MERGE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-  "expected_coord_head": "b0b7237cdd42fbe7561a70159e24ed0871f0730b",
-  "expected_generation": 6,
+  "expected_coord_head": "2783cb2d5f939760bf81a6d16ec4332b8c3ac31b",
+  "expected_generation": 7,
   "reuse_admission_session": true,
   "effect": {
-    "run_id": 37879561150,
-    "next_state": "INTEGRATING",
-    "semantic_state": "QA_ACCEPTED",
-    "next_action": {
-      "kind": "MERGE",
-      "args": {
-        "pr_number": 1442,
-        "head_sha": "4c4663c03ab8ce6629a8a96b94e9cc1373512152",
-        "target_branch": "cleanup/2d-3d-sync",
-        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
-      },
-      "display": "Merge PR #1442 after all exact real jobs GREEN"
-    }
+    "pr_number": 1442,
+    "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
   }
 }
