@@ -316,8 +316,27 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
         'authority': 'BOX_BODY_FRAME_FORMED_EDGE__TO__DIVIDER_SUPPORT_SKIN',
     }
 
+def inner_door_body_clear_width(*, cell_width: float, thickness: float) -> float:
+    """Physical Receiving opening between the TWO side-panel inside skins.
+
+    Door layout W is the Box Body *outside* width. The inner-frame final
+    22-mm flange mates the side panels' inside surfaces; before consuming
+    the formed 46+2T frame occupation on either side, remove the two
+    physical side sheet thicknesses. Do not subtract 2T again when deriving
+    the inner door finished face or its unfolded blank.
+
+    The independent sheet-thickness deduction must also be shared by the
+    3D panel envelope and by the upper frame longitudinal span.
+    """
+    width = float(cell_width)
+    t = float(thickness)
+    if t <= 0 or width <= 2.0 * t:
+        raise ValueError("Receiving inner-door box opening must exceed both side sheets")
+    return width - 2.0 * t
+
+
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
-    """Derive real inner-door panels from the framed opening, not outer Door."""
+    """Derive inner-door panels from physical Box Body *inside* width and framed opening."""
     from ae_engine.inner_door_panels import derive_inner_door_panel
     from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
     from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
@@ -347,7 +366,7 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
             raise ValueError(f"duplicate inner-door panel stable_id: {panel_id}")
         seen.add(panel_id)
         cell = cells[cell_key]
-        panel_w = float(cell.start_width) - 2.0 * formed - 2.0 * gap_w
+        panel_w = inner_door_body_clear_width(cell_width=cell.start_width, thickness=t) - 2.0 * formed - 2.0 * gap_w
         try:
             vertical = inner_door_vertical_frame_contract(data, stable_id)
         except ValueError:
@@ -367,7 +386,7 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
 
 
 def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
-    """Frame span comes from the physical 46+2T formed opening.
+    """Frame span comes from side-sheet inside opening minus formed frame occupation.
 
     The last 22 mm is the real mating flange. Outer Door finished dimensions
     and gaps must not determine physical frame widths or placement.
@@ -394,7 +413,7 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
         if not stable_id or cell_key not in cells:
             continue
         cell = cells[cell_key]
-        inner_w = float(cell.start_width) - 2.0 * formed
+        inner_w = inner_door_body_clear_width(cell_width=cell.start_width, thickness=t) - 2.0 * formed
         if inner_w <= 0:
             raise ValueError("receiving inner-door horizontal insets leave no valid finished width")
         included = tuple(
