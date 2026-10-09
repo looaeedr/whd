@@ -233,6 +233,7 @@ def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> 
     """
     from .cabinet_types import policy as cabinet_family_policy
     from .inner_door_frames import inner_door_frame_formed_occupation
+    from .cabinet_types.receiving import inner_door_body_clear_width
 
     item = _inner_door_item(snapshot, inner_door_id)
     columns, cell = _cell_from_cell_key(snapshot, str(item.get("cell_key") or ""))
@@ -243,7 +244,12 @@ def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> 
     gap_w = float(snapshot.get("door_gap_w", 3.5))
     gap_h = float(snapshot.get("door_gap_h", 3.5))
 
-    aperture_width = float(cell.start_width) - 2.0 * frame_occupation
+    # Use the SAME physical side-sheet inner opening as manufacturing.
+    # Frame skins mate the Box Body, not the nominal 800-mm outer boundary.
+    aperture_width = (
+        inner_door_body_clear_width(cell_width=cell.start_width, thickness=t)
+        - 2.0 * frame_occupation
+    )
     panel_w = aperture_width - 2.0 * gap_w
     if panel_w <= 0:
         raise ValueError("inner-door framed width/door clearance is not positive")
