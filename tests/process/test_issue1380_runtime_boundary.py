@@ -80,7 +80,7 @@ class GitHubProvider:
         if path == "/rulesets":
             return []
         if path.startswith("/commits/"):
-            return {"check_runs": [{"name": "Governance Mirror Hard Gate", "conclusion": "success"}]}
+            return {"total_count": 1, "check_runs": [{"id": 777, "name": "Governance Mirror Hard Gate", "conclusion": "success"}]}
         if path.startswith("/actions/runs?event=pull_request&head_sha="):
             # Real PR run/job evidence is part of the native MERGE readback.
             workflows = [
@@ -101,6 +101,9 @@ class GitHubProvider:
             return {"total_count": 1, "jobs": [
                 {"run_id": run_id, "status": "completed", "conclusion": "success"}
             ]}
+        if path == "/pulls/1400/files?per_page=100&page=1":
+            return [{"filename": "tools/control_transaction_production_executor.py"},
+                    {"filename": "tests/process/test_issue1441_real_pr_ci_gate.py"}]
         if path == "/pulls/1400":
             return {"number": 1400, "state": "closed" if self.merged else "open",
                 "merged": self.merged, "mergeable": True, "merge_commit_sha": MERGED,
