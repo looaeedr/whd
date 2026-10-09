@@ -88,5 +88,3 @@ jobs:
           path: /tmp/flow-v2-production-result.json
           if-no-files-found: warn
           retention-days: 7
-
-[executed on device: 5bca4a576178 (b0fad557-80aa-4ade-ab0b-d009a426005a)]
