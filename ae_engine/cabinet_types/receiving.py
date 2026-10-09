@@ -357,7 +357,11 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
         else:
             panel_h = float(vertical["span"]) - 2.0 * gap_h
         result.append(derive_inner_door_panel(
-            stable_id, cell_key=cell_key, width=panel_w, height=panel_h, thickness=t
+            stable_id, cell_key=cell_key, width=panel_w, height=panel_h, thickness=t,
+            fold_left=float(data.get("door_fold_l", DOOR_DEFAULTS["door_fold_l"])),
+            fold_right=float(data.get("door_fold_r", DOOR_DEFAULTS["door_fold_r"])),
+            fold_top=float(data.get("door_fold_t", DOOR_DEFAULTS["door_fold_t"])),
+            fold_bottom=float(data.get("door_fold_b", DOOR_DEFAULTS["door_fold_b"])),
         ))
     return tuple(result)
 
