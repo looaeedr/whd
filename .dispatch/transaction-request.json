@@ -1,23 +1,22 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1439-rc-work1-start-branch-20261009-0231",
+  "request_id": "issue1439-rc-work1-apply-exact-tree-20261009-0235",
   "issue": 1439,
-  "kind": "START_BRANCH",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0224",
-  "expected_coord_head": "53a61a0a18c2ae41484ac51621670cafa51166e0",
-  "expected_generation": 6,
+  "expected_coord_head": "d9946ba10140119311dc339fafa9cb316c9dde13",
+  "expected_generation": 7,
   "reuse_admission_session": true,
   "effect": {
-    "work_branch": "work/issue-1439-tok-ci-identity",
-    "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
-    "semantic_state": "IMPLEMENTING",
+    "head_sha": "349bea80ce0ad2bbe64710559271d4377c628cc7",
+    "semantic_state": "IMPLEMENTATION_COMMITTED",
     "next_action": {
-      "kind": "APPLY_COMMIT",
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "afa4cd2ee247a8daa766a766acf12cc1cc0deee70a16bdfcc59fa0d5f62fa6fa"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Apply exact RC-tested #1439 diff"
+      "display": "Validate exact #1439 PR CI head"
     },
     "root_local_first_git_write_receipt": {
       "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
@@ -45,11 +44,11 @@
     "mutation_writer_guard": {
       "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
       "issue": 1439,
-      "generation": 6,
-      "record_fingerprint": "15ad1fbde58c74c31d4998227981bf6e522f55e0dd7e72314f7cafe1697ac4d8",
+      "generation": 7,
+      "record_fingerprint": "003b6e728868c59dd9a10847281b4f8e7cbec3adbca111d323ebdc1fc3c21c52",
       "lease_token": "lease:1439:37874322859:1",
       "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0224",
-      "expected_next_action": "START_BRANCH",
+      "expected_next_action": "APPLY_COMMIT",
       "expected_work_branch": "work/issue-1439-tok-ci-identity",
       "expected_work_head": "b337e340d823c29552da7013725ef7b27047d2c4",
       "expected_target_head": "b337e340d823c29552da7013725ef7b27047d2c4"
