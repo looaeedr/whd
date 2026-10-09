@@ -13,4 +13,4 @@ whd_schema: WHD_DOC_META_V1
 
 本 Skill 不得新增啟動授權檢查、claim、lease、工作槽、紀錄或協調交易；程式測試和 Git diff 才是修改成果證據。
 
-origin/localX 只允許作備份；將 localX 發布到正式 cleanup/2d-3d-sync 必須使用者當次明確 /推推，驗證 exact PR/SHA 與 tools/localx_publish_gate.py。
+產品工作先整合 localX；origin/localX 只作備份，正式 X 需使用者當次 /推推。純非產品文檔、治理、技能及治理專用測試可從本機最新 X 建獨立 governance/docs/skills 分支，直接 push PR merge 到 X；需通過 tools/change_lane_gate.py 的嚴格白名單，不得夾帶產品檔案。

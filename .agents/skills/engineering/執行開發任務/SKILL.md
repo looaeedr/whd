@@ -15,4 +15,4 @@ whd_schema: WHD_DOC_META_V1
 
 保留必要的產品測試、程式碼 review、現場 DXF 驗收，實際交付狀態以 Git HEAD 與 Issue/PR 反讀為準。
 
-任何時候都不得自動將 localX 合併到正式 cleanup/2d-3d-sync；只有使用者當次明確 /推推 可以授權正式發布。
+產品或混合檔案仍須 localX 與使用者當次 /推推 才可正式發布 X。純非產品文檔、治理、技能及其專用測試，改由 tools/change_lane_gate.py 判定後直接本地治理分支 → X PR/merge，不走一般產品流程。
