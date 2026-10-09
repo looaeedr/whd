@@ -69,6 +69,14 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 - 一次同時改 operator view、Door 單板路徑、出包規則等互不相干區域。
 - 測試只證明「雜訊消失」，卻沒證明原功能仍在。
 
+## DM8-C2 localX 候選 scene access seam（X 發布前不得當作 CURRENT）
+
+- Receiving Joint／Pairing 的 render-data 取得及替換，統一從 ae_engine.manufacturing_scene_access 的 owner_render_data / replace_owner_render_data 進入，不再跨模組使用舊私有函式。
+- 本段對應的 C2/B1/B2 產品變更目前**只在 localX**；正式 X 尚未 /推推 時，不得假設 X 已提供新 API。正式 X 維持已部署 API/owner，待發布回讀後本段才作為 production 施工依據。
+- 這兩個 API 是 scene access seam，並不是新 manufacturing、Joint formula、DXF 或 MARKING 幾何 CURRENT owner；ResolvedManufacturingGeometry／既有 domain owner 仍持有幾何真值。
+- 同時修改 Fold Designer 組合視圖時，應以 Phase6FoldDesignerComposition 唯一 root 組裝 bounded capability ports，不得把完整 app/service bag 注入 scene 或 solver。
+- CURRENT owner 路由以 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md 為準；此技能不建立平行 CURRENT。
+
 ## 3D 完整性聯動
 
 只要本次組合圖修改同時動到截角、Joint、碰撞、material、Fold/placement 或 3D 幾何，必須再套用 `.agents/skills/engineering/phase6-corner-3d-model-integrity/SKILL.md`；operator/debug 分層通過不代表 3D 機械模型已通過。
