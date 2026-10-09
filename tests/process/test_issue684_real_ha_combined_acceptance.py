@@ -11,9 +11,7 @@ BRIDGE = ROOT / "tools" / "whd_poweroff_ha_bridge.py"
 ACCEPTANCE = ROOT / "tools" / "whd_poweroff_end_to_end_acceptance.py"
 
 AUTHORITY_MAP = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "09_WHD_Canonical_Authority_Map.md"
-SCHEDULED_RESUME = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md"
 PITFALLS = ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "06_踩坑記錄與防錯經驗庫.md"
-SCHEDULER_SKILL = ROOT / ".agents" / "skills" / "engineering" / "排程模擬" / "SKILL.md"
 USAGE = ROOT / "docs" / "governance" / "whd_ha_poweroff_integration_usage.md"
 
 
@@ -356,5 +354,3 @@ def test_R11_whd_acceptance_owner_has_no_windows_shutdown_actuator() -> None:
         "powershell.exe",
     )
     assert all(token not in source for token in forbidden)
-
-

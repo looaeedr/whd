@@ -77,7 +77,6 @@ Each ticket is a **child issue** of the map; the tracker's issue id is its ident
 
 Each ticket carries a `wayfinder:<type>` label, one of `research`, `prototype`, `grilling`, `task` (see [Ticket Types](#ticket-types)).
 
-A session may assign a ticket to the dev driving the map as a **planning/UI ownership marker** so collaborators can see who is working the decision map. **In WHD this assignee is never execution authority**: repository work still requires the canonical Flow v2 ExecutionRecord + live lease + mutation scope; tracker assignment/comment/label cannot replace or grant that authority.
 
 Blocking uses the tracker's **native** dependency relationship: essential because it renders the frontier _visually_ in the tracker's own UI, so the human sees what's takeable without opening the map. Only a tracker that lacks native blocking falls back to a body convention. A ticket is **unblocked** when every ticket blocking it is closed; the **frontier** is the open, unblocked, unclaimed children, the edge of the known.
 
@@ -133,7 +132,6 @@ User invokes with a loose idea.
 User invokes with a map (URL or number). A ticket is **optional**: without one, you pick the next decision, not the user.
 
 1. Load the **map**: the low-res view, not every ticket body.
-2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. You may assign it to yourself as the map's planning marker; **if the ticket enters WHD repository execution, acquire Flow v2 authority instead of treating the assignee as a claim**.
 3. Resolve it. **Zoom as needed**: fetch related ticket detail on demand and use the canonical Skills named by `## Notes`. For interview/domain work, use `深度質詢` and `領域建模`; if a dedicated loader is unavailable, follow the canonical Skills inline.
 4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.
 5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals that a ticket (this one or another) sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.

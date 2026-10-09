@@ -5,8 +5,6 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V2]** The next legacy finalization command is historical evidence only; CURRENT closure uses `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + `MERGE → FINALIZE → DONE`.
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 本 plan 的 `assert-finalizable` / `authorize-finalization` / `verify-finalization-proof` 舊 closure 指令只作 historical ticket evidence；CURRENT completion/closure 唯一服從 `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + Flow v2 `MERGE → FINALIZE → DONE`，不得直接照抄舊指令執行。
 
 
 # Issue #295 T7 — implementation plan
@@ -180,11 +178,8 @@ Fresh-read canonical #295 branch/head and Issue state. Build terminal checkpoint
 - fresh clean candidate HEAD.
 
 Use current production finalization guard authority out-of-tree if needed. Invoke:
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V2]** The next legacy finalization command is historical evidence only; CURRENT closure uses `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + `MERGE → FINALIZE → DONE`.
 - `assert-finalizable`;
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V2]** The next legacy finalization command is historical evidence only; CURRENT closure uses `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + `MERGE → FINALIZE → DONE`.
 - `authorize-finalization`;
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V2]** The next legacy finalization command is historical evidence only; CURRENT closure uses `WHD_EXECUTION_RECORD_V2` + `tools/execution_invocation_exit.py` + `MERGE → FINALIZE → DONE`.
 - `verify-finalization-proof`.
 
 Before remote branch deletion, live-fetch every OPEN PR and protect both head/base refs with `tools/branch_cleanup_ref_guard.py`.

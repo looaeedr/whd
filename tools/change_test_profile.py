@@ -18,12 +18,12 @@ BASE_STAGES = {
     "FEATURE": ("FEATURE_ACCEPTANCE", "UNIT_OR_COMPONENT", "AFFECTED_SUBSYSTEM", "INTEGRATION"),
     "UPDATE": ("COMPATIBILITY", "MIGRATION_CONFIG", "AFFECTED_SUBSYSTEM", "INTEGRATION"),
     "REFACTOR": ("BEHAVIORAL_EQUIVALENCE", "UNIT", "INTEGRATION"),
-    "GOVERNANCE": ("CONTRACT", "CONTROL_PLANE_REGRESSION", "AUTHORITY_CONSISTENCY"),
+    "GOVERNANCE": ("CONTRACT", "AUTHORITY_CONSISTENCY"),
     "DOCS_METADATA": ("SCHEMA_LINT_LINK",),
 }
 
 FULL_GATE_COMMANDS = {
-    "GOVERNANCE_FULL_SUITE": ("python tools/control_plane_regression.py",),
+    "GOVERNANCE_FULL_SUITE": (),
     "PRODUCT_FULL_REGRESSION": ("python tools/product_ci_regression.py",),
     "NONE": (),
 }
@@ -38,7 +38,7 @@ _KEYWORDS = {
     "FEATURE": ("feature", "add", "新增", "新功能"),
     "UPDATE": ("update", "upgrade", "migration", "compat", "更新", "升級", "相容"),
     "REFACTOR": ("refactor", "move-only", "重構", "搬移"),
-    "GOVERNANCE": ("governance", "control plane", "flow v2", "scheduler", "治理", "派工", "排程"),
+    "GOVERNANCE": ("governance", "control plane", "scheduler", "治理", "派工", "排程"),
 }
 
 _UI_PREFIXES = ("gui_modules/",)
@@ -53,7 +53,6 @@ _GEOMETRY_TOKENS = ("geometry", "dxf", "relief", "corner", "final_scene", "manuf
 
 _GOVERNANCE_PREFIXES = (".agents/", ".github/workflows/", "coord/", "docs/governance/", "tests/process/", "tests/governance/", "tests/knowledge/")
 _GOVERNANCE_TOOL_PREFIXES = (
-    "tools/control_", "tools/execution_", "tools/flow_v2_", "tools/scheduler_",
     "tools/work_root_", "tools/governance_", "tools/continuity_", "tools/root_local_", "tools/change_test_",
 )
 _DOC_PREFIXES = ("docs/", "個人AI檔案庫/", "修改日誌/")

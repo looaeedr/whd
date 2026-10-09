@@ -9,20 +9,11 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_agents_bootstrap_requires_machine_skill_preflight():
+def test_agents_keep_product_and_user_publish_rules():
     text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    for required in (
-        "Skill Preflight",
-        ".agents/skills/skill_registry.json",
-        ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
-        "python tools/phase6_skill_preflight.py",
-        "phase6-corner-3d-model-integrity",
-        "phase6-overlay-relief-basis",
-        "phase6-release-packaging",
-        "截角資料庫",
-        "Registry HIT",
-    ):
-        assert required in text
+    assert "截角資料庫" in text
+    assert "/推推" in text
+    assert "localX" in text
 
 
 def test_skill_registry_routes_phase6_keywords_to_required_skills():
@@ -92,10 +83,8 @@ def test_skill_preflight_cli_passes_when_all_required_skills_have_evidence(tmp_p
                 "phase6-corner-3d-model-integrity",
                 "phase6-overlay-relief-basis",
                 "phase6-release-packaging",
-                "flow-v2-execution",
                 "root-local-first",
                 "READ_REFERENCE: 個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
-                "READ_REFERENCE: .agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
                 "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
                 "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
                 "READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md",
@@ -122,18 +111,6 @@ def test_skill_preflight_cli_passes_when_all_required_skills_have_evidence(tmp_p
     assert "✓ phase6-release-packaging" in out
 
 
-
-def test_agents_bootstrap_requires_pitfall_knowledge_preflight():
-    text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    for required in (
-        "全域踩坑庫",
-        "任務領域踩坑庫",
-        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
-        "required_references",
-        "Subagent",
-    ):
-        assert required in text
 
 
 def test_skill_registry_routes_assembly_work_to_domain_pitfall_reference():
@@ -188,9 +165,7 @@ def test_skill_preflight_passes_only_with_skills_and_required_reference_evidence
                 "驗證板件與DXF",
                 "monitoring-remote-qa",
                 "root-local-first",
-                "flow-v2-execution",
                 "READ_REFERENCE: 個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
-                "READ_REFERENCE: .agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
                 "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
                 "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
                 "READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",

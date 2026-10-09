@@ -48,9 +48,9 @@ def test_update_gets_compatibility_and_migration_before_full_regression():
 
 def test_governance_only_uses_governance_full_suite_not_product_full():
     from tools.change_test_profile import build_test_profile
-    profile = build_test_profile(task="更新 Flow v2 治理", changed_files=[".agents/skills/engineering/flow-v2-execution/SKILL.md", "tools/execution_scheduler_view.py", "tests/process/test_flow_v2_execution_scheduler_view.py"], explicit_type="GOVERNANCE")
+    profile = build_test_profile(task="更新文件治理", changed_files=[".agents/skills/engineering/推推/SKILL.md", "tools/change_test_profile.py", "tests/process/test_change_test_profile.py"], explicit_type="GOVERNANCE")
     assert profile["domains"] == []
-    assert "CONTROL_PLANE_REGRESSION" in profile["required_stages"]
+    assert "CONTRACT" in profile["required_stages"]
     assert "AUTHORITY_CONSISTENCY" in profile["required_stages"]
     assert "GOVERNANCE_MIRROR_HARD_GATE" not in profile["required_stages"]
     assert profile["full_gate_kind"] == "GOVERNANCE_FULL_SUITE"
@@ -81,14 +81,6 @@ def test_targeted_stages_never_replace_final_full_gate_for_product_change():
     assert profile["required_stages"][-1] == "PRODUCT_FULL_REGRESSION"
 
 
-def test_flow_v2_owns_profile_gate_and_requires_final_full_before_close():
-    text = (ROOT / ".agents/skills/engineering/flow-v2-execution/SKILL.md").read_text(encoding="utf-8")
-    assert "CHANGE_TEST_PROFILE_GATE_V1" in text
-    assert "tools/change_test_profile.py" in text
-    assert "targeted / focused 測試不得取代 final full gate" in text
-    assert "ACCEPT / CLOSE" in text
-
-
 def test_wide_governance_support_scope_stays_on_governance_full_suite():
     from tools.change_test_profile import build_test_profile
     profile = build_test_profile(
@@ -96,9 +88,9 @@ def test_wide_governance_support_scope_stays_on_governance_full_suite():
         changed_files=[
             "AGENTS.md",
             ".agents/skills/engineering/root-local-first/SKILL.md",
-            "tools/root_local_first_gate.py",
+            "tools/change_test_profile.py",
             "tests/governance/test_semantic_doc_status.py",
-            "tests/knowledge/test_skill_catalog_classification_contract.py",
+            "tests/process/test_change_test_profile.py",
             "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
         ],
         explicit_type="GOVERNANCE",

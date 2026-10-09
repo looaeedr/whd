@@ -6,8 +6,8 @@ from tools.product_ci_green_reuse import decide_green_reuse, dependency_impact, 
 def test_governance_candidate_can_reuse_green_across_unrelated_product_target_drift():
     candidate = {
         ".agents/skills/engineering/root-local-first/SKILL.md",
-        "tools/root_local_first_gate.py",
-        "tests/process/test_workspace_entry_drive_independence.py",
+        "tools/change_test_profile.py",
+        "tests/process/test_localx_publish_gate.py",
     }
     target = {
         "gui_modules/application/receiving_set_bay_controls.py",
