@@ -224,15 +224,19 @@ def test_receiving_marks_all_four_receiver_mother_plates_from_canonical_world_ge
         for row in divider_results
     )
 
-    projected = tuple(row for row in emitted if row.locator_part_id != DIVIDER_ID)
+    # Side/head MARKING is legal only when the FINAL 22-mm frame flange
+    # actually touches its mother plate. In particular, a projected but
+    # physically separated frame must never produce manufacturing marks.
+    physical = tuple(row for row in emitted if row.locator_part_id != DIVIDER_ID)
+    assert len(physical) == 3
     assert all(
         row.evidence["contact_evidence"]["contact_mode"]
-        == "PHYSICAL_SKIN_REGISTRATION_PROJECTION"
-        for row in projected
+        == "VERIFIED_LAST_22_MM_PHYSICAL_SKIN"
+        for row in physical
     )
     assert all(
-        float(row.evidence["contact_evidence"]["projection_distance"]) > 0.0
-        for row in projected
+        abs(float(row.evidence["contact_evidence"]["projection_distance"])) <= 1e-6
+        for row in physical
     )
 
     assert len(_rows(_piece(result.geometry, "left_side"))) == 1
