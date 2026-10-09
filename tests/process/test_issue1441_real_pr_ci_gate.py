@@ -45,7 +45,7 @@ def test_three_real_required_pr_runs_with_real_jobs_green():
 @pytest.mark.parametrize("mutation", [
     "missing", "action_required", "queued", "failed", "skipped",
     "stale_head", "different_branch", "wrong_event", "bot_actor",
-    "wrong_user", "no_jobs", "failed_job", "skipped_job",
+    "missing_user_identity", "no_jobs", "failed_job", "skipped_job",
     "pending_job", "job_run_drift", "incomplete_jobs", "missing_jobs",
 ])
 def test_fail_closed_if_any_required_workflow_lacks_real_exact_jobs(mutation):
@@ -69,8 +69,8 @@ def test_fail_closed_if_any_required_workflow_lacks_real_exact_jobs(mutation):
         run["event"] = "push"
     elif mutation == "bot_actor":
         run["actor"] = {"login": "github-actions[bot]", "type": "Bot"}
-    elif mutation == "wrong_user":
-        run["actor"] = {"login": "unauthorized", "type": "User"}
+    elif mutation == "missing_user_identity":
+        run["actor"] = {"login": "", "type": "User"}
     elif mutation == "no_jobs":
         jobs[101] = {"total_count": 0, "jobs": []}
     elif mutation == "failed_job":
@@ -144,6 +144,9 @@ def test_native_merge_readback_checks_live_pr_runs_and_jobs(monkeypatch):
         calls.append(path)
         if path == "/pulls/1442":
             return pr
+        if path == "/pulls/1442/files?per_page=100&page=1":
+            return [{"filename": "tools/control_transaction_production_executor.py"},
+                    {"filename": "tests/process/test_issue1441_real_pr_ci_gate.py"}]
         if path.startswith("/actions/runs?event=pull_request&head_sha="):
             return {"total_count": len(runs), "workflow_runs": runs}
         if path.startswith("/actions/runs/") and path.endswith("/jobs?per_page=100"):
@@ -176,6 +179,9 @@ def test_native_merge_rejects_fake_check_green_if_any_run_has_zero_jobs(monkeypa
     def fake_api(repo, method, path, token, payload=None):
         if path == "/pulls/1442":
             return pr
+        if path == "/pulls/1442/files?per_page=100&page=1":
+            return [{"filename": "tools/control_transaction_production_executor.py"},
+                    {"filename": "tests/process/test_issue1441_real_pr_ci_gate.py"}]
         if path.startswith("/actions/runs?event=pull_request&head_sha="):
             return {"total_count": len(runs), "workflow_runs": runs}
         if path.startswith("/actions/runs/") and path.endswith("/jobs?per_page=100"):
@@ -210,3 +216,72 @@ def test_runner_observation_only_can_never_mint_interactive_git_unlock():
     }
     with pytest.raises(ValueError, match="INTERACTIVE"):
         validate_git_unlock_receipt(fake)
+
+
+def test_pat_authenticated_user_other_than_repo_owner_can_trigger_ci():
+    runs, jobs = sample()
+    runs[0]["actor"] = {"login": "trusted-tok-writer", "type": "User"}
+    assert validate(runs, jobs)
+
+
+def test_path_filter_selects_only_workflows_eligible_for_changed_files():
+    from tools.flow_v2_merge_precheck import select_pr_workflows_for_changed_paths
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    g = ".github/workflows/whd-governance-single-authority-gate.yml"
+    c = ".github/workflows/whd-control-plane-regression.yml"
+    p = ".github/workflows/whd-product-regression.yml"
+    assert select_pr_workflows_for_changed_paths(["ae_engine/geometry.py"], repo_root=root) == (p, g)
+    assert select_pr_workflows_for_changed_paths(["tools/flow_v2_merge_precheck.py"], repo_root=root) == (c, g)
+    assert select_pr_workflows_for_changed_paths(["ae_engine/geometry.py","tools/flow_v2_merge_precheck.py"], repo_root=root) == (c,p,g)
+    assert select_pr_workflows_for_changed_paths(["docs/architecture/overview.md"], repo_root=root) == (g,)
+    assert select_pr_workflows_for_changed_paths([".agents/skills/engineering/foo.md"], repo_root=root) == (c,g)
+
+
+def test_path_filter_no_changed_paths_is_not_a_green_bypass():
+    from tools.flow_v2_merge_precheck import select_pr_workflows_for_changed_paths
+    with pytest.raises(ValueError, match="PR_CI_"):
+        select_pr_workflows_for_changed_paths([])
+
+
+def test_check_runs_latest_failure_must_overrule_old_success(monkeypatch):
+    from tools import control_transaction_production_executor as ex
+    def fake_api(repo, method, path, token, payload=None):
+        assert path == "/commits/" + HEAD + "/check-runs?per_page=100&page=1"
+        return {"total_count": 2, "check_runs": [
+            {"id": 101, "name": "Governance Mirror Hard Gate", "conclusion": "success"},
+            {"id": 102, "name": "Governance Mirror Hard Gate", "conclusion": "failure"},
+        ]}
+    monkeypatch.setattr(ex, "_api", fake_api)
+    result = ex._check_conclusions_for_head("looaeedr/whd","token",HEAD)
+    assert result["Governance Mirror Hard Gate"] == "failure"
+
+
+def test_native_merge_only_reads_relevant_real_workflows_for_product_change(monkeypatch):
+    from types import SimpleNamespace
+    from tools import control_transaction_production_executor as ex
+    runs, jobs = sample()
+    product, governance = runs[1],runs[2]
+    considered = [product, governance]
+    record = SimpleNamespace(head_sha=HEAD,target_branch="cleanup/2d-3d-sync",target_sha="b"*40)
+    pr = {"state":"open","merged":False,"mergeable":True,
+          "head":{"sha":HEAD,"ref":BRANCH},
+          "base":{"sha":"b"*40,"ref":"cleanup/2d-3d-sync"}}
+    fetched=[]
+    def fake_api(repo,method,path,token,payload=None):
+        fetched.append(path)
+        if path == "/pulls/1442":return pr
+        if path == "/pulls/1442/files?per_page=100&page=1":
+            return [{"filename":"ae_engine/geometry.py"}]
+        if path.startswith("/actions/runs?event=pull_request&head_sha="):
+            return {"total_count":2,"workflow_runs":considered}
+        if path.startswith("/actions/runs/") and path.endswith("/jobs?per_page=100"):
+            return jobs[int(path.split("/")[3])]
+        raise AssertionError(path)
+    monkeypatch.setattr(ex,"_api",fake_api)
+    monkeypatch.setattr(ex,"_read_branch_head",lambda *a:"b"*40)
+    monkeypatch.setattr(ex,"_required_checks_for_target",lambda *a:["Governance Mirror Hard Gate"])
+    monkeypatch.setattr(ex,"_check_conclusions_for_head",lambda *a:{"Governance Mirror Hard Gate":"success"})
+    _,result=ex._merge_precheck_readback("looaeedr/whd","token",record=record,pr_number=1442)
+    assert result.classification=="READY_TO_MERGE"
+    assert sum(p.endswith("/jobs?per_page=100") for p in fetched)==2

@@ -77,6 +77,7 @@ from tools.flow_v2_merge_precheck import (
     evaluate_merge_precheck,
     REQUIRED_PR_WORKFLOW_PATHS,
     assert_required_pr_ci_evidence,
+    select_pr_workflows_for_changed_paths,
 )
 from tools.execution_record import (
     ActionSpec,
@@ -494,22 +495,41 @@ def _check_conclusions_for_head(
     token: str,
     head_sha: str,
 ) -> dict[str, str]:
-    payload = _api(
-        repo,
-        "GET",
-        f"/commits/{head_sha}/check-runs?per_page=100",
-        token,
-    ) or {}
-    conclusions: dict[str, str] = {}
-    for row in payload.get("check_runs") or []:
-        name = str(row.get("name") or "").strip()
-        conclusion = str(row.get("conclusion") or "").strip().lower()
-        if not name:
-            continue
-        if conclusion == "success" or name not in conclusions:
-            conclusions[name] = conclusion
-    return conclusions
-
+    """Use latest check run, never allow historical success to mask failure."""
+    latest: dict[str, tuple[int, str]] = {}
+    page = 1
+    seen = 0
+    while page <= 20:
+        payload = _api(
+            repo, "GET",
+            f"/commits/{head_sha}/check-runs?per_page=100&page={page}",
+            token,
+        ) or {}
+        rows = payload.get("check_runs")
+        total = payload.get("total_count")
+        if not isinstance(rows, list) or not isinstance(total, int) or total < 0:
+            raise ControlTransactionConflict("PR_CI_CHECK_RUN_LIST_INCOMPLETE")
+        for row in rows:
+            name = str(row.get("name") or "").strip()
+            if not name:
+                continue
+            check_id = row.get("id")
+            if not isinstance(check_id, int) or isinstance(check_id, bool):
+                raise ControlTransactionConflict("PR_CI_CHECK_RUN_ID_MISSING")
+            conclusion = str(row.get("conclusion") or "").strip().lower()
+            if name not in latest or check_id > latest[name][0]:
+                latest[name] = (check_id, conclusion)
+        seen += len(rows)
+        if seen >= total:
+            if seen != total:
+                raise ControlTransactionConflict("PR_CI_CHECK_RUN_LIST_INCOMPLETE")
+            break
+        if len(rows) != 100:
+            raise ControlTransactionConflict("PR_CI_CHECK_RUN_LIST_INCOMPLETE")
+        page += 1
+    else:
+        raise ControlTransactionConflict("PR_CI_CHECK_RUN_LIST_INCOMPLETE")
+    return {name: conclusion for name, (_, conclusion) in latest.items()}
 
 
 
@@ -734,6 +754,30 @@ def _build_post_delivery_recovery_record(
 
 
 
+def _read_exact_pr_changed_paths(
+    repo: str, token: str, pr_number: int
+) -> tuple[str, ...]:
+    """Read the current PR files completely or fail closed; never guess scope."""
+    paths: list[str] = []
+    for page in range(1, 5):
+        rows = _api(repo, "GET", f"/pulls/{pr_number}/files?per_page=100&page={page}", token)
+        if not isinstance(rows, list):
+            raise ControlTransactionConflict("PR_CI_CHANGED_FILES_INCOMPLETE")
+        for row in rows:
+            if not isinstance(row, dict) or not str(row.get("filename") or "").strip():
+                raise ControlTransactionConflict("PR_CI_CHANGED_FILES_INCOMPLETE")
+            paths.append(str(row["filename"]))
+            if row.get("status") == "renamed" and row.get("previous_filename"):
+                paths.append(str(row["previous_filename"]))
+        if len(rows) < 100:
+            break
+    else:
+        raise ControlTransactionConflict("PR_CI_CHANGED_FILES_OVER_300")
+    if not paths or len(paths) >= 300:
+        raise ControlTransactionConflict("PR_CI_CHANGED_FILES_INCOMPLETE")
+    return tuple(paths)
+
+
 def _merge_precheck_readback(
     repo: str,
     token: str,
@@ -796,8 +840,13 @@ def _merge_precheck_readback(
             or run_count != len(workflow_runs)
         ):
             raise ControlTransactionConflict("PR_CI_RUN_LIST_INCOMPLETE")
+        changed_paths = _read_exact_pr_changed_paths(repo, token, pr_number)
+        try:
+            required_pr_workflows = select_pr_workflows_for_changed_paths(changed_paths)
+        except ValueError as exc:
+            raise ControlTransactionConflict(str(exc)) from None
         jobs_by_run = {}
-        for path in REQUIRED_PR_WORKFLOW_PATHS:
+        for path in required_pr_workflows:
             matches = [
                 run for run in workflow_runs
                 if isinstance(run, dict)
@@ -818,7 +867,7 @@ def _merge_precheck_readback(
             assert_required_pr_ci_evidence(
                 pr_head_sha=record.head_sha,
                 pr_head_branch=pr_branch,
-                required_workflows=REQUIRED_PR_WORKFLOW_PATHS,
+                required_workflows=required_pr_workflows,
                 workflow_runs=workflow_runs,
                 jobs_by_run=jobs_by_run,
                 repo_owner=repo.split("/", 1)[0],
