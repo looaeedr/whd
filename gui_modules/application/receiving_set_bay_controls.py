@@ -7,7 +7,7 @@ Tk widgets only and never owns manufacturing geometry.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Callable, Iterable
 
 
@@ -93,24 +93,12 @@ def open_receiving_layer_preview(
     bay_requests=(),
     bay_request_provider=None,
 ) -> bool:
-    """Render one layer as an interactive 3D multi-connection preview.
-
-    Geometry always comes from the authoritative FinalScene request.  This view
-    owns only presentation: native mouse rotation, zoom controls, and temporary
-    part visibility filters.  It never rebuilds manufacturing holes or offsets.
-    """
+    """Show committed physical DrawingScenes in an interactive 2D settings view."""
     index = int(layer_index)
     count = max(1, int(connection_count))
     label = str(brand)
     if render_request is None:
         raise ValueError("Receiving preview requires a FinalScene render request")
-
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-    from matplotlib.figure import Figure
-    from phase6_final_scene_renderer import Phase6FinalSceneRenderer
-    from whd_theme import apply_mpl_dark_theme
-    from types import SimpleNamespace
-    import math
 
     win = tk.Toplevel(parent)
     win.title(f"第{index + 1}套設定")
@@ -164,266 +152,35 @@ def open_receiving_layer_preview(
         settings_content.bind("<Configure>", resize_settings)
         settings_viewport.bind("<Configure>", resize_settings)
 
-    figure = Figure(figsize=(10.0, 6.2), dpi=100)
-    figure.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0)
-    ax = figure.add_subplot(111, projection="3d")
-    apply_mpl_dark_theme(figure, (ax,))
-    canvas = FigureCanvasTkAgg(figure, master=body)
-    class AppendOnlyAxes:
-        # 本視窗一次清圖後依序加入不同連的 canonical request。
-        # Renderer 的單次清理不應移除前一連的真實板件與孔輪廓。
-        lines = ()
-        collections = ()
-
-        def __getattr__(self, name):
-            return getattr(ax, name)
-
-    preview_renderer = Phase6FinalSceneRenderer(
-        SimpleNamespace(ax3d=AppendOnlyAxes(), canvas=canvas)
-    )
-
-    for method in ("_draw_assembly_box_body_bends", "_draw_scene_bends", "_draw_box_body_structure_bends", "_draw_scene_markings", "_draw_joint_marking_world_rows", "_draw_assembly_scene_markings", "_draw_operator_dimensions", "_draw_joint_diagnostic_overlays"):
-        setattr(preview_renderer, method, lambda *args, **kwargs: None)
-
-    render_data = render_request.render_data
-    source_parts = tuple(
-        part for request in (tuple(bay_requests) or (render_request,))
-        for part in tuple(getattr(request.render_data, "assembly_parts", ()) or ())
-    )
-    all_part_keys = tuple(
-        dict.fromkeys(str(getattr(part, "part_key", "") or "") for part in source_parts)
-    )
-    all_part_keys = tuple(key for key in all_part_keys if key)
-
-    def _visibility_group(part_key):
-        key = str(part_key)
-        if "box_body:divider:" in key:
-            return "divider"
-        if key.endswith("box_body:left_side") or "box_body:left_side:" in key:
-            return "left_side"
-        if key.endswith("box_body:back") or "box_body:back:" in key:
-            return "back"
-        if key.endswith("box_body:right_side") or "box_body:right_side:" in key:
-            return "right_side"
-        if "inner_door:" in key:
-            return "inner_door"
-        if key.startswith("door") or ":door" in key:
-            return "door"
-        if key.startswith("base_plate") or ":base_plate" in key:
-            return "base_plate"
-        if key.startswith("indicator_box") or ":indicator_box" in key:
-            return "indicator_box"
-        if key.startswith("indicator_door") or ":indicator_door" in key:
-            return "indicator_door"
-        if key == "box_body" or key.endswith(":box_body"):
-            return "box_body"
-        if key == "head" or key.endswith(":head"):
-            return "head"
-        if key == "tail" or key.endswith(":tail"):
-            return "tail"
-        return key
-
-    group_members = {}
-    for part_key in all_part_keys:
-        group_members.setdefault(_visibility_group(part_key), []).append(part_key)
-
-    group_labels = {
-        "box_body": "箱身",
-        "head": "封頭",
-        "tail": "封尾",
-        "door": "門",
-        "base_plate": "底板",
-        "indicator_box": "指示燈盒",
-        "indicator_door": "指示燈小門",
-        "left_side": "左側板",
-        "back": "後側板",
-        "right_side": "右側板",
-        "divider": "中隔",
-        "inner_door": "內門框",
-    }
-    selected_part_keys = set(all_part_keys)
-
-    visibility = ttk.LabelFrame(body, text="顯示零件", padding=4)
-    visibility.pack(fill=tk.X, pady=(0, 5))
-    visibility_vars = {}
-
-    lock_rows = tuple(lock_circles or ())
-
-    def _draw_lock_rows():
-        for row in lock_rows:
-            x = float(row["x"])
-            y = float(row["y"])
-            z = float(row["z"])
-            radius = float(row["diameter"]) / 2.0
-            points = tuple(
-                (
-                    x,
-                    y + radius * math.cos(2.0 * math.pi * step / 48.0),
-                    z + radius * math.sin(2.0 * math.pi * step / 48.0),
-                )
-                for step in range(49)
-            )
-            ax.plot(
-                [point[0] for point in points],
-                [point[1] for point in points],
-                [point[2] for point in points],
-                linewidth=2.0,
-                color=Phase6FinalSceneRenderer._COLORS["box_body"][1],
-            )
-
-    bay_centers = []
-
-    def _render_preview(*, reset_view=False):
-        try:
-            elev, azim = float(ax.elev), float(ax.azim)
-        except Exception:
-            elev, azim = 22.0, -56.0
-        if reset_view:
-            elev, azim = 22.0, -56.0
-            preview_renderer.zoom_scale = 1.0
-
-        ax.clear()
-        # 先指定 canonical 高度 Y，再設定三軸比例，避免首次繪圖交換 H/D。
-        ax.view_init(elev=elev, azim=azim, vertical_axis="y")
-        apply_mpl_dark_theme(figure, (ax,))
-        if selected_part_keys:
-            visible = (
-                None
-                if selected_part_keys == set(all_part_keys)
-                else tuple(key for key in all_part_keys if key in selected_part_keys)
-            )
-            data = replace(render_data, visible_part_keys=visible)
-            request = replace(render_request, render_data=data)
-            requests = tuple(bay_request_provider() if bay_request_provider else bay_requests) or (request,)
-            triangles = []
-            bay_centers.clear()
-            for bay_index, bay_request in enumerate(requests):
-                bay_data = bay_request.render_data
-                bay_request = replace(bay_request, render_data=replace(bay_data, visible_part_keys=visible))
-                palette = Phase6FinalSceneRenderer._COLORS
-                if settings_panel is not None:
-                    pending = getattr(settings_panel, "_receiving_pending", ())
-                    matches = getattr(settings_panel, "_receiving_matches", ())
-                    if bay_index in pending:
-                        preview_renderer._COLORS = {key: ("#2563eb", edge) for key, (_, edge) in palette.items()}
-                    elif bay_index in matches:
-                        preview_renderer._COLORS = {key: ("#a9c5e2", edge) for key, (_, edge) in palette.items()}
-                    else:
-                        preview_renderer._COLORS = dict(palette)
-                bay_triangles = tuple(preview_renderer.render(bay_request) or ())
-                triangles.extend(bay_triangles)
-                if bay_triangles:
-                    points = [point for tri in bay_triangles for point in tri]
-                    x0, x1 = min(point[0] for point in points), max(point[0] for point in points)
-                    bay_centers.append(((x0 + x1) / 2, sum(point[1] for point in points) / len(points), sum(point[2] for point in points) / len(points)))
-            if triangles:
-                points = [point for tri in triangles for point in tri]
-                spans = []
-                for coordinate, setter in enumerate((ax.set_xlim, ax.set_ylim, ax.set_zlim)):
-                    lower, upper = min(point[coordinate] for point in points), max(point[coordinate] for point in points)
-                    spans.append(max(upper - lower, 1.0))
-                    margin = max((upper - lower) * 0.06, 1.0)
-                    setter(lower - margin, upper + margin)
-                ax.set_box_aspect(spans)
-            triangles = tuple(triangles)
-            if not triangles:
-                raise ValueError("Receiving preview FinalScene mesh is empty")
-            if abs(float(preview_renderer.zoom_scale or 1.0) - 1.0) > 1e-12:
-                preview_renderer.scale_current_3d_limits(preview_renderer.zoom_scale)
-        else:
-            ax.text2D(
-                0.5, 0.5, "所有零件已隱藏",
-                transform=ax.transAxes, ha="center", va="center",
-            )
-
-        # Header/controls already communicate context.  Keep only physical geometry.
-        for artist in list(getattr(ax, "texts", ())):
-            text_value = str(getattr(artist, "get_text", lambda: "")() or "")
-            if text_value != "所有零件已隱藏":
-                try:
-                    artist.remove()
-                except Exception:
-                    pass
-
-        _draw_lock_rows()
-        ax.view_init(elev=elev, azim=azim, vertical_axis="y")
-        ax.set_axis_off()
-        # Matplotlib 3D normally keeps a square-ish axes box even when the Tk
-        # canvas grows. Reuse the FinalScene rectangular viewport helper so the
-        # model fills the settings window instead of staying in a small box.
-        preview_renderer.configure_3d_only_figure()
-        canvas.draw_idle()
-
-    def _toggle_group(group):
-        enabled = bool(visibility_vars[group].get())
-        for part_key in group_members[group]:
-            if enabled:
-                selected_part_keys.add(part_key)
-            else:
-                selected_part_keys.discard(part_key)
-        _render_preview()
-
-    for ordinal, group in enumerate(group_members, start=1):
-        var = tk.BooleanVar(master=visibility, value=True)
-        visibility_vars[group] = var
-        ttk.Checkbutton(
-            visibility,
-            text=group_labels.get(group, f"零件{ordinal}"),
-            variable=var,
-            command=lambda group=group: _toggle_group(group),
-        ).pack(side=tk.LEFT, padx=(0, 8))
-
-    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-    canvas.mpl_connect("scroll_event", preview_renderer.on_scroll)
-    def pick_bay(event):
-        if settings_panel is None or event.inaxes is not ax or event.x is None:
-            return
-        from mpl_toolkits.mplot3d import proj3d
-        projected = []
-        for center in bay_centers:
-            x, y, _ = proj3d.proj_transform(*center, ax.get_proj())
-            px, py = ax.transData.transform((x, y))
-            projected.append((px - event.x) ** 2 + (py - event.y) ** 2)
-        if projected:
-            settings_panel._receiving_select_bay(min(range(len(projected)), key=projected.__getitem__))
-    canvas.mpl_connect("button_press_event", pick_bay)
-
+    from .receiving_settings_preview_2d import ReceivingSettingsPreview2D, refresh_committed_preview
+    view = ReceivingSettingsPreview2D(body, tk=tk, ttk=ttk,
+        requests=tuple(bay_requests) or (render_request,), panel=settings_panel)
+    if settings_panel is not None:
+        settings_panel._receiving_after_selection = view.update_overlay
+        subscribe = settings_ports.get("subscribe")
+        if subscribe is not None:
+            from .command_router import _Phase6UpdateScheduler
+            scheduler = _Phase6UpdateScheduler(win, executor=lambda reasons:
+                refresh_committed_preview(view, bay_request_provider) if win.winfo_exists() else None)
+            subscribe(lambda: scheduler.submit("geometry", immediate=True) if win.winfo_exists() else None)
+            win._phase6_receiving_preview_scheduler = scheduler
     actions = ttk.Frame(body)
     actions.pack(fill=tk.X, pady=(6, 0))
-
-    def _zoom(direction):
-        old = float(preview_renderer.zoom_scale or 1.0)
-        new = preview_renderer.adjust_zoom_scale(direction)
-        if abs(new - old) > 1e-12:
-            preview_renderer.scale_current_3d_limits(new / old)
-            canvas.draw_idle()
-
-    ttk.Button(actions, text="放大", command=lambda: _zoom("up"), width=7).pack(
-        side=tk.LEFT, padx=(0, 3)
-    )
-    ttk.Button(actions, text="縮小", command=lambda: _zoom("down"), width=7).pack(
-        side=tk.LEFT, padx=(0, 3)
-    )
-    ttk.Button(
-        actions, text="重設視角", command=lambda: _render_preview(reset_view=True), width=9
-    ).pack(side=tk.LEFT)
-    ttk.Label(actions, text="滑鼠拖曳：旋轉｜滾輪：縮放").pack(
-        side=tk.LEFT, padx=(10, 0)
-    )
+    ttk.Button(actions, text="放大", command=lambda: view.zoom(.8)).pack(side=tk.LEFT)
+    ttk.Button(actions, text="縮小", command=lambda: view.zoom(1.25)).pack(side=tk.LEFT)
+    ttk.Button(actions, text="重設視角", command=view.reset_view).pack(side=tk.LEFT)
+    ttk.Label(actions, text="先選修改項目，再選連｜滾輪：縮放｜中鍵拖曳：平移").pack(side=tk.LEFT, padx=8)
     ttk.Button(actions, text="關閉", command=win.destroy).pack(side=tk.RIGHT)
-
-    if settings_panel is not None:
-        settings_panel._receiving_after_selection = _render_preview
-    _render_preview(reset_view=True)
-
-    # Exact GUI acceptance/readback metadata. These are presentation facts only.
-    win._phase6_receiving_preview_canvas = canvas
+    win._phase6_receiving_preview_canvas = view.canvas
+    win._phase6_receiving_preview_2d = view
+    win._phase6_receiving_settings_panel = settings_panel
+    win._phase6_receiving_settings_ports = settings_ports
     win._phase6_receiving_preview_connection_count = count
-    win._phase6_receiving_preview_mesh_count = count
-    win._phase6_receiving_preview_uses_final_scene_renderer = True
-    win._phase6_receiving_preview_lock_circle_count = len(lock_rows)
+    win._phase6_receiving_preview_mesh_count = 0
+    win._phase6_receiving_preview_uses_final_scene_renderer = False
+    win._phase6_receiving_preview_lock_circle_count = 0
     win._phase6_receiving_preview_feature_segment_count = 0
-    win._phase6_receiving_preview_visibility_groups = tuple(group_members)
+    win._phase6_receiving_preview_visibility_groups = tuple(view.visibility)
     win._phase6_receiving_preview_interactive_zoom = True
     return True
 
@@ -510,7 +267,7 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
     selection.pack(fill=tk.X)
     selectors = []
     kind_labels = {"背板": "back_panel_mode", "封頭孔": "head_features", "封尾孔": "tail_features", "內門層數": "inner_door_layers"}
-    kind_var = tk.StringVar(master=panel, value="背板")
+    kind_var = tk.StringVar(master=panel, value="請選修改項目")
     mode_labels = {"全板": "FULL", "半截": "HALF", "背開孔": "BACK_OPENING"}
     value_var = tk.StringVar(master=panel, value="全板")
     fields = {name: tk.StringVar(master=panel) for name in ("width", "height", "depth")}
@@ -519,9 +276,12 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
     joint_widgets = []
 
     def safely(action):
+        from .receiving_settings_preview_2d import CommittedPreviewError
         try:
             action()
             refresh()
+        except CommittedPreviewError as exc:
+            messagebox.showwarning("設定已提交；預覽失敗", str(exc), parent=panel.winfo_toplevel())
         except (ValueError, IndexError) as exc:
             messagebox.showwarning("設定未套用", str(exc), parent=panel.winfo_toplevel())
 
@@ -536,7 +296,21 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
         for key, var in fields.items():
             var.set(str(current["bays"][index][key]))
         rebuild_door_fields(current["bays"][index].get("door_state", {}).get("door_layout_columns", ()))
-        kind = kind_labels[kind_var.get()]
+        kind = kind_labels.get(kind_var.get())
+        panel._receiving_kind = kind
+        enabled = kind is not None
+        for button in selectors + setting_actions:
+            button.configure(state="normal" if enabled else "disabled")
+        if not enabled:
+            pending.clear()
+            panel._receiving_pending = frozenset()
+            panel._receiving_matches = ()
+            value_selector.configure(state="disabled")
+            status.set("請先選擇修改項目，再選要套用的連")
+            callback = getattr(panel, "_receiving_after_selection", None)
+            if callback:
+                callback()
+            return
         value = setting_value(current, index, kind)
         if not load_value and kind == "back_panel_mode":
             value = mode_labels[value_var.get()]
@@ -562,6 +336,8 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
             callback()
 
     def select(index):
+        if kind_var.get() not in kind_labels:
+            return
         active.set(index)
         ports["select"](index)
         if index in pending:
@@ -584,7 +360,7 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
     ttk.Label(common, text="本套開關").pack(side=tk.LEFT)
     brand = ttk.Combobox(common, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS, width=6, state="readonly")
     brand.pack(side=tk.LEFT, padx=4)
-    brand.bind("<<ComboboxSelected>>", lambda event: safely(lambda: ports["brand"](brand_var.get())))
+    ttk.Button(common, text="套用品牌", command=lambda: safely(lambda: ports["brand"](brand_var.get()))).pack(side=tk.LEFT)
     for key, label in (("width", "寬"), ("height", "高"), ("depth", "深")):
         ttk.Label(common, text=label).pack(side=tk.LEFT)
         ttk.Entry(common, textvariable=fields[key], width=8).pack(side=tk.LEFT, padx=3)
@@ -616,7 +392,10 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
     settings.pack(fill=tk.X)
     kind_selector = ttk.Combobox(settings, textvariable=kind_var, values=tuple(kind_labels), state="readonly", width=9)
     kind_selector.pack(side=tk.LEFT)
-    kind_selector.bind("<<ComboboxSelected>>", lambda event: refresh())
+    def select_kind(event=None):
+        pending.clear()
+        refresh()
+    kind_selector.bind("<<ComboboxSelected>>", select_kind)
     value_selector = ttk.Combobox(settings, textvariable=value_var, state="readonly", width=10)
     value_selector.pack(side=tk.LEFT, padx=4)
     value_selector.bind("<<ComboboxSelected>>", lambda event: refresh(load_value=False))
@@ -629,9 +408,14 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
             value = mode_labels[value_var.get()] if kind == "back_panel_mode" else int(value_var.get())
             ports["change"](kind, value, sorted(pending))
 
-    ttk.Button(settings, text="編輯／套用", command=lambda: safely(apply_value)).pack(side=tk.LEFT, padx=3)
-    ttk.Button(settings, text="連動選取的連", command=lambda: safely(lambda: ports["share"](kind_labels[kind_var.get()], sorted(pending)))).pack(side=tk.LEFT, padx=3)
-    ttk.Button(settings, text="解除本連連動", command=lambda: safely(lambda: ports["unlink"](kind_labels[kind_var.get()]))).pack(side=tk.LEFT, padx=3)
+    setting_actions = []
+    for label, action in (
+        ("編輯／套用", apply_value),
+        ("連動選取的連", lambda: ports["share"](kind_labels[kind_var.get()], sorted(pending))),
+        ("解除本連連動", lambda: ports["unlink"](kind_labels[kind_var.get()]))):
+        button = ttk.Button(settings, text=label, command=lambda action=action: safely(action))
+        button.pack(side=tk.LEFT, padx=3)
+        setting_actions.append(button)
     ttk.Label(panel, textvariable=status).pack(anchor=tk.W, pady=(4, 0))
     if row["joints"]:
         joints = ttk.Frame(panel)
@@ -649,8 +433,10 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
             h_selector.grid(row=index // 3, column=(index % 3) * 3 + 2, padx=3)
             joint_widgets.append((index, d_selector, h_selector))
             callback = lambda event, index=index, depth=depth, height=height: safely(lambda: ports["alignment"](index, depth_labels[depth.get()], height_labels[height.get()]))
-            d_selector.bind("<<ComboboxSelected>>", callback)
-            h_selector.bind("<<ComboboxSelected>>", callback)
+            ttk.Button(joints, text="套用接合", command=lambda callback=callback: callback(None)).grid(
+                row=index // 3, column=10 + index % 3, padx=3)
     panel._receiving_select_bay = select
+    panel._receiving_kind_var = kind_var
+    panel._receiving_refresh = refresh
     refresh()
     return panel

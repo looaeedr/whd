@@ -32,16 +32,21 @@ def _class_method_source_any(path: Path, method_name: str) -> str:
     raise AssertionError(f"missing class method: {method_name}")
 
 
-def test_receiving_preview_exposes_zoom_rotation_and_part_visibility_controls():
+def test_receiving_preview_exposes_2d_zoom_pan_and_part_visibility_controls():
+    from gui_modules.application.receiving_settings_preview_2d import ReceivingSettingsPreview2D
+    # Only the settings surface changes renderer; committed manufacturing
+    # requests remain owned by the original composition owner.
     source = inspect.getsource(controls.open_receiving_layer_preview)
-    assert 'mpl_connect("scroll_event", preview_renderer.on_scroll)' in source
+    assert "ReceivingSettingsPreview2D(" in source
+    assert "Phase6FinalSceneRenderer" not in source
     assert 'text="放大"' in source
     assert 'text="縮小"' in source
     assert 'text="重設視角"' in source
-    assert '滑鼠拖曳：旋轉｜滾輪：縮放' in source
-    assert 'ttk.Checkbutton(' in source
-    assert 'visible_part_keys=visible' in source
-    assert 'replace(render_request, render_data=data)' in source
+    view = inspect.getsource(ReceivingSettingsPreview2D)
+    assert 'mpl_connect("scroll_event"' in view
+    assert 'ttk.Checkbutton(' in view
+    assert "data.scene.primitives" in view
+    assert "readfile" not in view and "projection=\"3d\"" not in view
 
 
 def _module_function_source(path: Path, method_name: str) -> str:
