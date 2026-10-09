@@ -477,5 +477,3 @@ def test_readback_only_fence_blocks_actual_mutation_branches(monkeypatch, kind, 
     with pytest.raises(AssertionError, match="readback-only fence blocked provider mutation"):
         invoke()
     assert fence.calls == [(method, path)]
-
-[executed on device: 5bca4a576178 (b0fad557-80aa-4ade-ab0b-d009a426005a)]
