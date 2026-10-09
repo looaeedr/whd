@@ -572,6 +572,9 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
         workspace["assembly_placements"] = deepcopy(workspace_state["assembly_placements"])
     elif "assembly_placements" in snapshot:
         workspace["assembly_placements"] = deepcopy(snapshot["assembly_placements"])
+    for key in ("active_mode", "quantity"):
+        if key in workspace_state:
+            snapshot[key] = deepcopy(workspace_state[key])
     snapshot["workspace"] = workspace
     if "assembly_placements" in workspace:
         snapshot["assembly_placements"] = deepcopy(workspace["assembly_placements"])
@@ -660,6 +663,7 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
         "assembly_placements": snapshot.get("assembly_placements") or ws_source.get("assembly_placements", {}),
         "part_features": snapshot.get("part_features") or ws_source.get("part_features", {}),
         "part_face_features": snapshot.get("part_face_features") or ws_source.get("part_face_features", {}),
+        **{key: deepcopy(snapshot[key]) for key in ("active_mode", "quantity") if key in snapshot},
     })
     self._sync_fold_designer_manual_corner_context(snapshot.get("active_part"))
     self._reload_current_baseline_features()
@@ -719,6 +723,9 @@ def _store_fold_designer_workspace(self, workspace):
         committed_workspace["part_face_features"] = deepcopy(workspace["part_face_features"])
     if "assembly_placements" in workspace:
         committed_workspace["assembly_placements"] = deepcopy(workspace["assembly_placements"])
+    for key in ("active_mode", "quantity"):
+        if key in workspace:
+            committed_workspace[key] = deepcopy(workspace[key])
     self.workspace_controller.commit_workspace(committed_workspace)
 
 def _apply_fold_designer_live_snapshot(self, payload):

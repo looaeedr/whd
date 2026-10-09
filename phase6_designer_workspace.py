@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from phase6_box_body_structure import normalize_box_body_structure_state, legacy_box_body_structure_locked
 from phase6_workspace_state import MANDATORY_PART, SharedWorkspaceState
+from phase6_quantity_model import QuantityModel, normalize_quantity_snapshot
 
 
 class Phase6DesignerWorkspace:
@@ -20,6 +21,8 @@ class Phase6DesignerWorkspace:
         assembly_placements: Mapping[str, object] | None = None,
         dirty: bool = False,
         switching: bool = False,
+        active_mode: str = "quantity",
+        quantity: Mapping[str, object] | None = None,
     ) -> None:
         self._shared_state = shared_state or SharedWorkspaceState(active_repair="none")
         self._selected_part = selected_part
@@ -28,10 +31,20 @@ class Phase6DesignerWorkspace:
         self._assembly_placements = deepcopy(dict(assembly_placements or {}))
         self._dirty = bool(dirty)
         self._switching = bool(switching)
+        self._active_mode = active_mode
+        self._quantity_model = None
+        if active_mode == "quantity":
+            self._quantity_model = (
+                QuantityModel.from_payload(quantity, on_change=self.mark_dirty)
+                if quantity is not None else
+                QuantityModel(head_features=self._part_features.get("head", ()),
+                              tail_features=self._part_features.get("tail", ()),
+                              on_change=self.mark_dirty)
+            )
 
     @classmethod
     def from_snapshot(cls, snapshot: Mapping[str, object] | None) -> "Phase6DesignerWorkspace":
-        source = dict(snapshot or {})
+        source = normalize_quantity_snapshot(snapshot)
         raw_structure = (
             (source.get("workspace") or {}).get("box_body_structure", source.get("box_body_structure"))
             if isinstance(source.get("workspace"), Mapping) else source.get("box_body_structure")
@@ -56,7 +69,13 @@ class Phase6DesignerWorkspace:
             assembly_placements=source.get("assembly_placements") or ws_source.get("assembly_placements"),
             dirty=False,
             switching=False,
+            active_mode=source["active_mode"],
+            quantity=source.get("quantity"),
         )
+
+    @property
+    def quantity_model(self) -> QuantityModel | None:
+        return self._quantity_model
 
     @property
     def available_parts(self) -> tuple[str, ...]:
@@ -178,12 +197,17 @@ class Phase6DesignerWorkspace:
 
     def stash_features(self, key: str, features) -> None:
         key = str(key or "")
+        if self._quantity_model is not None and key in {"head", "tail"}:
+            self._quantity_model.set_features(key, features or ())
+            return
         copied = deepcopy(list(features or ()))
         if self._part_features.get(key) != copied:
             self._part_features[key] = copied
             self._dirty = True
 
     def features_for(self, key: str) -> list[Any]:
+        if self._quantity_model is not None and key in {"head", "tail"}:
+            return self._quantity_model.features_for(key)
         return deepcopy(list(self._part_features.get(str(key or ""), ())))
 
     def stash_face_features(self, key: str, face_features: Mapping[str, object]) -> None:
@@ -203,10 +227,17 @@ class Phase6DesignerWorkspace:
         return self._shared_state.replace_part_profiles(value)
 
     def part_features_snapshot(self) -> dict[str, list[Any]]:
-        return deepcopy(self._part_features)
+        result = deepcopy(self._part_features)
+        if self._quantity_model is not None:
+            for part in ("head", "tail"):
+                result[part] = self._quantity_model.features_for(part)
+        return result
 
     def replace_part_features(self, value: Mapping[str, object] | None) -> dict[str, list[Any]]:
         self._part_features = deepcopy(dict(value or {}))
+        if self._quantity_model is not None:
+            for part in ("head", "tail"):
+                self._quantity_model.set_features(part, self._part_features.get(part, ()))
         return self.part_features_snapshot()
 
     def part_face_features_snapshot(self) -> dict[str, dict[str, list[Any]]]:
@@ -337,14 +368,20 @@ class Phase6DesignerWorkspace:
             profiles = deepcopy(result["part_profiles"])
             profiles[str(active)] = deepcopy(dict(live_active_profiles or {}))
             result["part_profiles"] = profiles
+        result["active_mode"] = self._active_mode
+        if self._quantity_model is not None:
+            result["quantity"] = self._quantity_model.snapshot()
         return result
 
     def snapshot(self) -> dict[str, object]:
         """Return the complete workspace payload used by save/reload adapters."""
         result = self._shared_state.snapshot()
         result.update({
-            "part_features": deepcopy(self._part_features),
+            "part_features": self.part_features_snapshot(),
             "part_face_features": deepcopy(self._part_face_features),
             "assembly_placements": self.assembly_placements_snapshot(),
+            "active_mode": self._active_mode,
         })
+        if self._quantity_model is not None:
+            result["quantity"] = self._quantity_model.snapshot()
         return result
