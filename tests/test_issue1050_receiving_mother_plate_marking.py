@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import ezdxf
+import pytest
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.cabinet_types import receiving
@@ -209,6 +210,47 @@ def test_receiving_marks_all_four_receiver_mother_plates_from_canonical_world_ge
     _snapshot_data, result = _resolved()
 
     emitted = tuple(row for row in result.results if row.status == "EMITTED")
+    if len(emitted) != 5:
+        # Actionable diagnostics for physical mating geometry regressions.
+        # Show actual folded skin plane positions instead of guessing a shift.
+        from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+        from ae_engine.receiving_joint_marking import (
+            _last_frame_flange_skins, _mapped_plane_groups,
+        )
+        snap = _snapshot()
+        world = _phase6_build_joint_world_geometry(
+            _full_receiving_geometry(snap).parts, (800.0, 1600.0, 350.0), 2.0
+        )
+        frames = {
+            row.stable_id: row
+            for row in derive_all_inner_door_frames(
+                cabinet_family_policy.derive_inner_door_frame_sets(snap)
+            )
+        }
+        descriptions = []
+        for locator, frame_id, axis in (
+            ("box_body:left_side", FRAME_IDS[1], 0),
+            ("box_body:right_side", FRAME_IDS[2], 0),
+            ("head", FRAME_IDS[0], 1),
+        ):
+            loc = world["mapped_skin_triangles_by_part"].get(locator, ())
+            frm = _last_frame_flange_skins(
+                frames[frame_id], world["mapped_skin_triangles_by_part"].get(frame_id, ())
+            )
+            mother_planes = sorted({
+                round(float(g[0].world[0][axis]), 4)
+                for g in _mapped_plane_groups(loc)
+            })
+            flange_planes = sorted({
+                round(float(g[0].world[0][axis]), 4)
+                for g in _mapped_plane_groups(frm)
+            })
+            descriptions.append((locator, frame_id, mother_planes, flange_planes))
+        pytest.fail(
+            "Expected five actual physical contact MARKING rows; "
+            f"results={[(x.locator_part_id,x.attached_part_id,x.status,x.diagnostic_code,x.diagnostic_detail) for x in result.results]}; "
+            f"skin_planes={descriptions}"
+        )
     assert len(emitted) == 5
     assert {(row.locator_part_id, row.attached_part_id) for row in emitted} == {
         (DIVIDER_ID, "inner_door:upper:left_frame"),
