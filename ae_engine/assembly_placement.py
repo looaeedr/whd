@@ -225,6 +225,13 @@ def _cell_from_cell_key(snapshot: Mapping[str, object], cell_key: str):
 
 
 def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> dict[str, object]:
+    """Legacy outer-door-relative visual inset, NOT a verified frame mate.
+
+    Do not use this 50-mm projected panel rectangle to certify the frame's
+    contact with the physical Box Body side plates or head EndCap.  The correct
+    physical frame anchor depends on which signed-fold face is actually fixed
+    to each mother plate; this contract is not represented by this resolver.
+    """
     from .cabinet_types import policy as cabinet_family_policy
 
     item = _inner_door_item(snapshot, inner_door_id)
@@ -304,6 +311,15 @@ def resolve_inner_door_panel_placement(snapshot: Mapping[str, object], inner_doo
 def resolve_inner_door_frame_placement(
     snapshot: Mapping[str, object], inner_door_id: str, side: str
 ) -> AssemblyPlacement:
+    """Legacy display placement; physical side/head frame mate is unresolved.
+
+    Top/left/right currently inherit the panel edge. Their returned
+    `mate_target=outer_key` is an outer-door datum, NOT proof that the actual
+    folded frame skin touches side-panel/head sheet metal. Manufacturing
+    contact consumers must validate the physical skins independently.
+    Do not apply arbitrary +/-50-mm translations or overwrite the asymmetric
+    left-frame signed fold chain to conceal this discrepancy.
+    """
     from .cabinet_types import policy as cabinet_family_policy
 
     side = str(side or "").strip().lower()
