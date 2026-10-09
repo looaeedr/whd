@@ -24,28 +24,10 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 ## Machine-readable authority rows
 
 <!-- WHD_AUTHORITY contract=canonical-authority-map role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md -->
-<!-- WHD_AUTHORITY contract=flow-v2-execution role=CURRENT path=.agents/skills/engineering/flow-v2-execution/SKILL.md -->
-<!-- WHD_AUTHORITY contract=flow-v2-record-model role=CURRENT path=tools/execution_record.py -->
-<!-- WHD_AUTHORITY contract=flow-v2-record-store role=CURRENT path=tools/execution_record_store.py -->
-<!-- WHD_AUTHORITY contract=flow-v2-atomic-transaction role=CURRENT path=tools/control_transaction.py -->
-<!-- WHD_AUTHORITY contract=flow-v2-action-contract role=CURRENT path=tools/execution_action_contract.py -->
-<!-- WHD_AUTHORITY contract=flow-v2-scheduler-view role=CURRENT path=tools/execution_scheduler_view.py -->
-<!-- WHD_AUTHORITY contract=flow-v2-invocation-exit role=CURRENT path=tools/execution_invocation_exit.py -->
-<!-- WHD_AUTHORITY contract=flow-v2-authority-policy role=CURRENT path=tools/execution_authority_policy.py -->
-<!-- WHD_AUTHORITY contract=flow-v2-path-reservation role=CURRENT path=tools/execution_path_reservation.py -->
 
-<!-- WHD_AUTHORITY contract=work-root-gate-validation role=CURRENT path=tools/work_root_gate.py -->
-<!-- WHD_AUTHORITY contract=work-root-full-repo-gate role=CURRENT path=tools/work_root_gate.py -->
-<!-- WHD_AUTHORITY contract=workspace-entry-hard-gate role=CURRENT path=.agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json -->
-<!-- WHD_AUTHORITY contract=shared-unpushed-integration role=HISTORICAL path=tools/shared_unpushed_integration.py canonical=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=push-delivery-skill role=CURRENT path=.agents/skills/engineering/推推/SKILL.md -->
-<!-- WHD_AUTHORITY contract=root-local-first-entry-gate role=HISTORICAL path=tools/root_local_first_gate.py canonical=tools/shared_unpushed_integration.py -->
-<!-- WHD_AUTHORITY contract=root-shared-unpushed-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=root-local-first-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=deterministic-repo-migration role=CURRENT path=.agents/skills/engineering/deterministic-repo-migration/SKILL.md -->
-<!-- WHD_AUTHORITY contract=process-test-classification role=CURRENT path=tests/process/WHD_PROCESS_TEST_CLASSIFICATION_V1.json -->
-<!-- WHD_AUTHORITY contract=x-independent-task-chain-governance role=HISTORICAL path=個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md -->
-<!-- WHD_AUTHORITY contract=post-integration-durability-v2 role=CURRENT path=tools/post_integration_durability.py -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=MIRROR path=handoff/00_AI_HANDOFF_README.md canonical=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=knowledge-preflight role=CURRENT path=AGENTS.md -->
@@ -63,19 +45,13 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=manufacturing-layer-classification role=CURRENT path=加工層分類與定義.md -->
 <!-- WHD_AUTHORITY contract=manufacturing-layer-classification role=MIRROR path=標準基準檔格式.md canonical=加工層分類與定義.md -->
 
-<!-- WHD_AUTHORITY contract=continuous-execution-machine role=HISTORICAL path=tools/continuity_controller.py -->
-<!-- WHD_AUTHORITY contract=continuous-execution-machine role=REFERENCE path=個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md -->
 
 <!-- WHD_AUTHORITY contract=workstation-poweroff-safety role=CURRENT path=tools/workstation_poweroff_gate.py -->
 <!-- WHD_AUTHORITY contract=ha-poweroff-projection role=CURRENT path=tools/whd_poweroff_ha_bridge.py -->
 <!-- WHD_AUTHORITY contract=local-durability-machine role=CURRENT path=tools/local_durability_gate.py -->
-<!-- WHD_AUTHORITY contract=interactive-runtime-liveness role=CURRENT path=tools/interactive_runtime_liveness.py -->
 
-<!-- WHD_AUTHORITY contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md -->
 
-<!-- WHD_AUTHORITY contract=remote-qa-monitoring role=MIRROR path=.agents/skills/engineering/monitoring-remote-qa/SKILL.md canonical=.agents/skills/engineering/flow-v2-execution/SKILL.md -->
 
-<!-- WHD_AUTHORITY contract=issue-closure role=MIRROR path=.agents/skills/engineering/issue-closure-gate/SKILL.md canonical=.agents/skills/engineering/flow-v2-execution/SKILL.md -->
 <!-- WHD_AUTHORITY contract=issue-closure role=REFERENCE path=個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md -->
 
 <!-- WHD_AUTHORITY contract=skill-routing role=CURRENT path=.agents/skills/skill_registry.json -->
@@ -84,16 +60,12 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=pitfall-ledger role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md -->
 <!-- WHD_AUTHORITY contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md -->
 
-## Work-root bootstrap authority
+## localX integration and publication authority
 
-- Git production X `cleanup/2d-3d-sync` is the sole CURRENT repository/process authority.
-- repository-content construction and testing happen in each executor's own repo workspace under `EXECUTOR_LOCAL_REPO_WORKSPACE`.
-- normal flow: `production X → executor-local workspace → edit/test → exact tested delivery branch → PR/checks → production X`.
-- machine validator: `tools/work_root_gate.py`.
-- Google Drive is data / mirror / backup only. `/Google Drive/WHD/WHD_MIRROR/CURRENT` may hold recovery material but is not a startup gate, construction root, Skill source, shared-zero fallback, or blocker authority.
-- `.unpushed/{body|docs}/0` and shared-zero routing are HISTORICAL/SUPERSEDED and must not participate in CURRENT routing.
-- Drive unavailable never blocks repository-content work; only absence of an executable repo workspace requires `HANDOFF_TO_WORKSPACE_CAPABLE_RUNTIME`.
-- Flow v2 mutation startup evidence must resolve the executor-local workspace and current production baseline; Drive visibility is not part of that readiness decision.
+- Repository work is made and validated locally on `localX` in `/workspace/whd`.
+- `origin/localX` can be used as backup; it does not grant permission to publish X.
+- Only a current explicit user `/推推` authorizes publication to `cleanup/2d-3d-sync` (X), subject to exact PR and commit verification.
+- No task execution transaction, lease, work-slot, or control-plane preflight is required for local modifications.
 
 ## Permanent routing boundaries
 
@@ -116,7 +88,6 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 - Executable CURRENT owner：`tools/interactive_runtime_liveness.py`。
 - Interactive markers 固定為 `WHD_INTERACTIVE_RUNTIME_LIVENESS_V1` / `WHD_INTERACTIVE_RUNTIME_END_V1`。
 - Heartbeat / END 目前仍維持 #679 parser 的相容欄位 `issue + slot_id + worker + invocation_identity + conversation_identity + claim_blob_sha + branch + head_sha + executor_source=chat`；END identity drift fail closed。
-- **`claim_blob_sha` 在此只屬 liveness compatibility identity，不是 CURRENT execution/write authority。** Flow v2 的施工 authority 固定來自 native ExecutionRecord 的 generation/fingerprint + live lease + mutation_scope；liveness projection 不得反向授權 claim、mutation、merge 或 closure。
 - `conversation_identity=UNAVAILABLE` 不構成有效 interactive liveness evidence；generic `executor_source=chat` 也不能取代 exact provenance。
 - Scheduler 的 `WHD_SCHEDULER_RUNTIME_*` 仍由 `tools/scheduler_runtime_liveness.py` 獨立擁有；兩者不得互相冒充。
 
@@ -156,10 +127,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 ### whd-chatgpt-scheduled-resume / execution control plane
 
 - AI Library MIRROR/reference: `個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md`
-- operational CURRENT owner: `.agents/skills/engineering/flow-v2-execution/SKILL.md`
-- native semantic state: `coord/execution-v2:.dispatch/execution/issue-<N>.json`
 - record/store: `tools/execution_record.py` + `tools/execution_record_store.py`
-- atomic mutation: `tools/control_transaction.py`
 - scheduler/exit: `tools/execution_scheduler_view.py` + `tools/execution_invocation_exit.py`
 - work-slot: `tools/execution_work_slot_view.py`
 - explicit READY ingress: `tools/execution_dispatch_ingress.py`
@@ -177,7 +145,6 @@ Generation fencing：只有 current generation + canonical branch + expected fin
 - domain: `authority_map`
 - accepted chain: `#687/#688/#689/#690/#691/#692 -> #693`
 - integration source head: `64a64d4a0ee8adae81396eaef52c16db97b57d4f`
-> **[FLOW_V2_LEGACY_CHUNK_FENCE_V1]** 下列 #693 parity 文字只記錄當時 acceptance provenance；自 governance single-authority cutover 後已 superseded，不得作 CURRENT main↔cleanup parity / ancestry / mirror requirement。
 - historical retained invariant at #693 acceptance time: production/trusted governance parity was machine-readable and unknown divergence failed closed.
 - this writeback records durable acceptance/readback only; it does not create a second authority or state machine.
 - deployment/readback manifest: `docs/governance/issue693_combined_acceptance_writeback_manifest.json`
@@ -201,21 +168,6 @@ Phase 7 Large Module Decomposition 的 CURRENT routing 結論如下。這些 row
 Accepted provenance：Phase 7 child chain #613/#617/#618/#620/#621/#623/#624/#625；Combined Acceptance owner #626，combined regression run `36277114074` GREEN @ `77429fa487166e0598c2f00e4d5ff1fa2d837219`。
 
 <!-- ISSUE702_MUTATING_TOOLCALL_CRASH_RECOVERY_WRITEBACK_V1 -->
-## Mutating toolcall crash-recovery — HISTORICAL → Flow v2 mapping
-
-#702 的 crash-boundary經驗保留為歷史來源；CURRENT semantics已由 Flow v2 atomic transaction吸收。所有 side effect 綁 generation/fingerprint/head/target並 fresh readback；effect已存在就 RECONCILE，不 replay；identity/outcome不明就 CONFLICT/FAILED。
-
-<!-- WHD_OUTAGE_RECOVERY_REPLAY_SAFETY_V1 -->
-### outage-recovery-replay-safety
-
-CURRENT owner是 Flow v2 ExecutionRecord + atomic transaction + generation fencing。
-- exact active remote run仍是lock。
-- unknown side-effect outcome先RECONCILE，禁止猜測/replay。
-- local-only未持久化狀態不可由remote clean狀態反推。
-- overlapping/late runtime以generation fencing隔離；舊generation只可作donor evidence。
-- planned HANDOFF使用同一native record，不建立平行ownership database。
-
-<!-- ISSUE1123_ASSEMBLY_RELIEF_PERSISTENCE_OWNER_V1 -->
 ## Assembly-relief persisted state / replay contract
 
 - CURRENT persisted-state contract owner：`phase6_assembly_relief_state.py`。

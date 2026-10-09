@@ -28,7 +28,6 @@ whd_schema: WHD_DOC_META_V1
 2. **正常執行只讀摘要 + bounded tail。** 每輪優先讀 process/run/job/step 狀態、iteration、PASS/FAIL/score、elapsed，以及最後固定上限 N 行。N 必須有上限，不能隨 log 成長；預設可從 80 行以下開始。
 3. **FAIL 先定位、再切片。** 先搜尋 `FAILED`、`ERROR`、`Traceback`、`AssertionError`、exit code 或 provider failed-step annotation，只擷取命中點前後有限區段；不足才按 chunk 向外擴。
 4. **分段反讀必須保留 offset/cursor。** 對 line/byte range、resource cursor、`next_read`、artifact offset 等記錄 `last_read_offset`；下一輪從 checkpoint 後續讀，禁止因 context 截斷就從第 1 行重讀。
-5. **遠端 QA 優先結構化狀態，observation cadence 服從 Flow v2。** active 時依合理 cadence持續讀 run → jobs → steps；不要每輪抓完整 log。第一次 terminal observation 後立即走 consume/accept/fail，**同一 invocation 不得再讀第二次相同 run/job/status**。失敗時優先 failed-job/failed-step log、搜尋或 bounded slice。若環境真的有 GitHub CLI，可用 `gh run view <run> --log-failed`；沒有 CLI 就用 connector/API 等價能力，不得假裝工具存在。
 6. **provider 只能整包下載時，先落檔再搜尋。** 不得把整份下載內容直接回傳聊天；先保存 raw file，再以 grep/search/find/offset 取需要的片段。
 7. **執行視窗被切斷 ≠ 工作失敗。** 恢復時先反查 durable `run_id/process_id + branch + HEAD + checkpoint + artifact/raw-log location + last_read_offset + last known state`，再續同一工作；禁止只因聊天中斷就重新跑整套測試。
 8. **terminal 後才做完整 evidence 收斂。** 終態收 pass/fail counts、failed nodeids、invariants、head SHA、cleanup/drift evidence；完整 raw log 可作證據來源，但仍不必整份搬入 context。
@@ -43,7 +42,6 @@ whd_schema: WHD_DOC_META_V1
 |---|---|
 | queued / running | structured status + bounded tail/new chunk；更新 cursor；依合理 cadence持續 polling，直到第一次 terminal observation |
 | failed | 搜 failure marker → bounded error slice → 必要時向外擴；raw log 留 durable storage |
-| terminal success | **第一次 terminal observation 立即 consume/accept/finalize；同一 invocation 不再 poll 同一 run**；收 counts / invariants / HEAD / cleanup evidence，不重播整份 log |
 | Runtime cut | 讀 checkpoint → 驗 branch/HEAD/run → 從 cursor 續讀；不重 trigger |
 
 ## 禁止事項
@@ -55,7 +53,6 @@ whd_schema: WHD_DOC_META_V1
 - non-terminal 長流程等全部跑完才第一次回報；應依 owning monitoring/long-run cadence 回報狀態、iteration、score 或 bounded tail。
 - 把 raw log 當成 production/domain authority；log 只提供 validation/evidence。
 
-`monitoring-remote-qa` 擁有 remote run 的 observation state machine；本 Skill 只擁有**長輸出的 context-safe 讀取與續接策略**。active/terminal status cadence 一律服從 Flow v2：active 持續 polling，terminal 第一次觀測後立即 consume 並停止 status polling。不得建立第二套 polling state machine。
 
 ## CI classifier / retry semantics bridge
 

@@ -54,7 +54,6 @@ def test_ticket_decomposition_is_explicit_and_dispatch_cannot_own_a_second_decom
     route = next(item for item in registry["routes"] if item["id"] == "explicit-skill-拆解任務工單")
     assert route["required_skills"] == ["拆解任務工單"]
     assert {"拆解任務工單", "拆工單", "拆票", "拆成工單"}.issubset(set(route["keywords"]))
-    assert "FLOW_V2_EXECUTION_BRIDGE_V1" in dispatch
     assert "不擁有 execution state machine" in dispatch
     assert "tools/execution_dispatch_ingress.py" in dispatch
     assert "explicit READY ingress" in dispatch

@@ -45,13 +45,11 @@ WHD startup communication 由 `AGENTS.md` 擁有。所有 canonical Skill 必須
 - 真實 network/credential failure 才是 capability blocker；Drive mount、AI Library、chat UI 缺失都不是普通 Skill authoring blocker。
 ### SKILL_PREWRITE_PREFLIGHT_HARD_GATE
 
-修改任何 `.agents/skills/**/SKILL.md` 前，Phase6 Preflight 不是建議而是 **pre-write machine gate**。先以完整 task + planned changed files 取得 evidence，確認 `寫技能` 與 required references 全部完成。普通 route 固定使用 executor-local workspace；Drive/shared-zero 不得參與 routing。Flow v2 lease只負責 owning Issue/liveness；delivery reservation 只在 tested exact diff 準備完成後取得。
 
 - `write/commit` 沒有 changed-file identity → fail closed。
 - target 是 `.agents/skills/**/SKILL.md` 但沒有 Preflight evidence、evidence 缺 `寫技能`、required Skill 或 required reference → fail closed。
 - Issue comment、assignee、legacy execution claim 或 retired Remote Guard **都不是 CURRENT Skill write authority**。
 - task scope / planned changed files 擴大時，先重跑 Preflight；delivery-only reservation 在 tested exact diff 凍結後才擴張；不得拿舊 evidence 掩蓋新增 requirements。
-- canonical knowledge evidence owner=`tools/phase6_skill_preflight.py`；canonical execution/write fencing owner=`flow-v2-execution` + `tools/control_transaction.py` + `tools/control_transaction_request_ingress.py`。不得重新啟用 `tools/execution_claim_guard.py` 作 CURRENT write gate。
 
 ## 2. 能力偵測：先看環境能做什麼
 

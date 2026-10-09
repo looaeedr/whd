@@ -10,12 +10,9 @@
   "required_main_stub_paths": [
     "README.md",
     "AGENTS.md",
-    ".agents/skills/engineering/flow-v2-execution/SKILL.md",
     ".agents/skills/skill_registry.json",
     "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-    "tools/phase6_skill_preflight.py",
-    ".github/workflows/whd-control-plane-regression.yml",
-    ".github/workflows/whd-governance-mirror-gate.yml"
+    "tools/phase6_skill_preflight.py"
   ],
   "forbidden_main_semantics": [
     "CURRENT execution authority",

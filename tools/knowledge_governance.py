@@ -542,33 +542,18 @@ def validate_strict(root: Path) -> tuple[str, ...]:
                 errors.append(str(exc))
                 continue
             joined = "\n".join(body)
-            is_flow_v2_bridge = "FLOW_V2_EXECUTION_BRIDGE_V1" in joined
-            if is_flow_v2_bridge:
-                if metadata.canonical != ".agents/skills/engineering/flow-v2-execution/SKILL.md":
-                    errors.append(
-                        f"{rel}: Flow v2 MIRROR bridge must point to canonical flow-v2-execution Skill"
-                    )
-                if metadata.canonical not in joined:
-                    errors.append(
-                        f"{rel}: Flow v2 MIRROR bridge must name canonical target {metadata.canonical}"
-                    )
-                if "不擁有 execution state machine" not in joined:
-                    errors.append(
-                        f"{rel}: Flow v2 MIRROR bridge must explicitly disclaim state-machine ownership"
-                    )
-            else:
-                if not 3 <= len(body) <= 5:
-                    errors.append(
-                        f"{rel}: MIRROR must use pointer-only 3-5 non-empty body lines; got {len(body)}"
-                    )
-                if metadata.canonical not in joined:
-                    errors.append(
-                        f"{rel}: MIRROR pointer-only body must name canonical target {metadata.canonical}"
-                    )
-                if "不得新增或複製 normative 規則" not in joined:
-                    errors.append(
-                        f"{rel}: MIRROR pointer-only body missing normative-copy prohibition"
-                    )
+            if not 3 <= len(body) <= 5:
+                errors.append(
+                    f"{rel}: MIRROR must use pointer-only 3-5 non-empty body lines; got {len(body)}"
+                )
+            if metadata.canonical not in joined:
+                errors.append(
+                    f"{rel}: MIRROR pointer-only body must name canonical target {metadata.canonical}"
+                )
+            if "不得新增或複製 normative 規則" not in joined:
+                errors.append(
+                    f"{rel}: MIRROR pointer-only body missing normative-copy prohibition"
+                )
 
     for contract, owners in sorted(current_owners.items()):
         if len(owners) > 1:
