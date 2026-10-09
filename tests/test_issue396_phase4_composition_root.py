@@ -91,14 +91,14 @@ def test_issue396_bridge_no_longer_constructs_deep_settings_or_scene_owners():
 
 
 def test_issue396_composition_root_owns_all_deep_construction():
-    source = COMPOSITION.read_text(encoding="utf-8")
-    missing = [
-        token for token in DIRECT_CONSTRUCTION_TOKENS if token not in source
-    ]
-    assert missing == [], (
-        "RED: composition root does not own required construction: "
-        f"{missing}"
-    )
+    root = COMPOSITION.read_text(encoding="utf-8")
+    state = Path("gui_modules/application/fold_designer_composition_state.py").read_text("utf-8")
+    shell = Path("gui_modules/application/fold_designer_composition_shell_settings.py").read_text("utf-8")
+    assert "_composition_state.build_capability_owners(self)" in root
+    assert "service_factory=Phase6SettingsTransactionService" in state
+    assert "Phase6SettingsTransactionController(" in shell
+    for token in ("Phase6FinalSceneRenderer(", "Phase6FinalSceneViewAdapter(", "FinalSceneDependencies("):
+        assert token in root, token
 
 
 def test_c0_bridge_no_longer_constructs_application_controllers():
@@ -113,14 +113,14 @@ def test_c0_bridge_no_longer_constructs_application_controllers():
 
 
 def test_c0_single_composition_root_constructs_application_controllers():
-    source = COMPOSITION.read_text(encoding="utf-8")
-    missing = [
-        token for token in APPLICATION_CONTROLLER_TOKENS if token not in source
-    ]
-    assert missing == [], (
-        "C0 RED: existing Phase6FoldDesignerComposition has not absorbed "
-        f"application controller construction: {missing}"
-    )
+    root = COMPOSITION.read_text(encoding="utf-8")
+    state = Path("gui_modules/application/fold_designer_composition_state.py").read_text("utf-8")
+    caps = Path("gui_modules/application/fold_designer_capability_owners.py").read_text("utf-8")
+    assert "_composition_state.build_capability_owners(self)" in root
+    assert "controller_type=Phase6WorkspaceNavigationController" in state
+    assert "controller_type=Phase6RegistryDiagnosticsController" in state
+    assert "self._ports.controller_type(" in caps
+    assert "def build_capability_owners(app)" not in caps
 
 
 def test_issue396_no_direct_phase6_app_class_wiring_and_facade_does_not_grow():

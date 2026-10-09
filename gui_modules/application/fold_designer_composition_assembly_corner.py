@@ -161,14 +161,7 @@ def on_assembly_type_selected(self, namespace, *_args):
     return type_id
 
 def on_assembly_diagnostic_changed(self):
-    app = self.app
-    if (
-        str(getattr(app, "_phase6_3d_display_mode", "single") or "single")
-        == "assembly"
-    ):
-        submit = getattr(app, "submit_update_intent", None)
-        if callable(submit):
-            submit("display", commit=True)
+    self._capabilities.assembly_corner.refresh_if_assembly()
     return True
 
 def create_relief_promotion_candidates(self, namespace):
@@ -179,7 +172,7 @@ def create_relief_promotion_candidates(self, namespace):
 
     app = self.app
     required = lambda name: self._required(namespace, name)
-    controller = self.registry_diagnostics()
+    controller = self.capabilities.registry.diagnostics()
     candidates = controller.build_promotion_candidates(
         solutions=dict(
             getattr(app, "_phase6_last_relief_solutions", {}) or {}
@@ -235,7 +228,7 @@ def update_assembly_diagnostic_status(self, namespace):
         if enabled_var is not None
         else True
     )
-    size_text, status_text = self.registry_diagnostics().diagnostic_status(
+    size_text, status_text = self.capabilities.registry.diagnostics().diagnostic_status(
         fallback_enabled=fallback_enabled,
         solutions=dict(
             getattr(app, "_phase6_last_relief_solutions", {}) or {}
@@ -253,14 +246,7 @@ def update_assembly_diagnostic_status(self, namespace):
     return status_text
 
 def on_assembly_part_visibility_changed(self):
-    app = self.app
-    if (
-        str(getattr(app, "_phase6_3d_display_mode", "single") or "single")
-        == "assembly"
-    ):
-        submit = getattr(app, "submit_update_intent", None)
-        if callable(submit):
-            submit("display", commit=True)
+    self._capabilities.assembly_corner.refresh_if_assembly()
 
 def install_assembly_panel_aliases(self, owner):
     return owner.install_legacy_aliases(self.app)
@@ -355,7 +341,7 @@ def registry_panel(self, namespace):
         ),
         promote_candidate=lambda: self.registry_promote_form(),
         load_rule_rows=lambda: required("_phase6_registry_load_rule_rows")(app),
-        rule_record=lambda key: self.registry_diagnostics().rule_record(key),
+        rule_record=lambda key: self.capabilities.registry.diagnostics().rule_record(key),
         joint_rows=lambda: required("_phase6_joint_rows")(app),
         add_joint=lambda: required("_phase6_joint_form_add")(app),
         delete_joint=lambda: required("_phase6_joint_form_delete")(app),
@@ -365,7 +351,7 @@ def registry_panel(self, namespace):
         create_promotion_candidates=lambda: required(
             "_phase6_create_relief_promotion_candidates"
         )(app),
-        diagnostic_ids=lambda resolved=None: self.registry_diagnostics().diagnostic_ids(
+        diagnostic_ids=lambda resolved=None: self.capabilities.registry.diagnostics().diagnostic_ids(
             resolved
             or getattr(app, "_phase6_last_resolved_manufacturing_geometry", None)
         ),

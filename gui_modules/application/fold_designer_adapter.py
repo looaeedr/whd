@@ -285,6 +285,7 @@ class Phase6FoldDesignerComposition:
         self._workspace_shell_owner = None
         self._final_scene_renderer = None
         self._final_scene_adapter = None
+        self._capabilities = _composition_state.build_capability_owners(self)
 
     def corner_transaction_payload(self, namespace):
         return _composition_state.corner_transaction_payload(self, namespace)
@@ -610,12 +611,6 @@ class Phase6FoldDesignerComposition:
 
     def sync_authoritative_derived_parts(self, namespace, *, projected_snapshot=None, projected_workspace=None, projected_box_render_data=None):
         return _composition_shell_settings.sync_authoritative_derived_parts(self, namespace, projected_snapshot=projected_snapshot, projected_workspace=projected_workspace, projected_box_render_data=projected_box_render_data)
-
-    def workspace_navigation(self):
-        return _composition_shell_settings.workspace_navigation(self)
-
-    def registry_diagnostics(self):
-        return _composition_shell_settings.registry_diagnostics(self)
 
     def settings_service(self):
         return _composition_shell_settings.settings_service(self)
@@ -944,6 +939,10 @@ class Phase6FoldDesignerComposition:
         return self._final_scene_adapter
 
     @property
+    def capabilities(self):
+        return self._capabilities
+
+    @property
     def assembly_type(self):
         transactions = self._settings_transactions
         if transactions is not None:
@@ -955,15 +954,15 @@ class Phase6FoldDesignerComposition:
 
     @property
     def last_external_revision(self):
-        service = self._settings_service
+        service = self.capabilities.settings.cached_service
         return service.last_external_revision if service is not None else 0
 
     @property
     def last_external_transaction_id(self):
-        service = self._settings_service
+        service = self.capabilities.settings.cached_service
         return service.last_external_transaction_id if service is not None else ""
 
     @property
     def active_transaction_id(self):
-        service = self._settings_service
+        service = self.capabilities.settings.cached_service
         return service.active_transaction_id if service is not None else ""

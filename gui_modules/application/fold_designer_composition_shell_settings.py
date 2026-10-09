@@ -259,7 +259,7 @@ def sync_authoritative_derived_parts(
     required = lambda name: self._required(namespace, name)
     snapshot = dict(projected_snapshot if projected_snapshot is not None else getattr(app, "_phase6_input_snapshot", {}) or {})
     workspace = projected_workspace if projected_workspace is not None else getattr(app, "designer_workspace", None)
-    navigation = Phase6WorkspaceNavigationController(workspace) if projected_workspace is not None else self.workspace_navigation()
+    navigation = Phase6WorkspaceNavigationController(workspace) if projected_workspace is not None else self.capabilities.workspace.navigation()
     if workspace is None or not navigation.supports_derived_sync:
         return (), ()
 
@@ -421,66 +421,11 @@ def sync_authoritative_derived_parts(
         tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
     )
 
-def workspace_navigation(self):
-    """Return the single workspace/navigation application controller."""
-    app = self.app
-    workspace = getattr(app, "designer_workspace", None)
-    controller = self._workspace_navigation_controller
-    if controller is None or getattr(controller, "workspace", None) is not workspace:
-        current = getattr(app, "_phase6_workspace_navigation_controller", None)
-        if (
-            isinstance(current, Phase6WorkspaceNavigationController)
-            and getattr(current, "workspace", None) is workspace
-        ):
-            controller = current
-        else:
-            legacy_memory = getattr(app, "__dict__", {}).get(
-                "_phase6_box_body_active_piece_key"
-            )
-            controller = Phase6WorkspaceNavigationController(
-                workspace,
-                remembered_box_body_child=legacy_memory,
-            )
-        self._workspace_navigation_controller = controller
-        app._phase6_workspace_navigation_controller = controller
-    return controller
-
-def registry_diagnostics(self):
-    """Return the single Registry diagnostics application controller."""
-    app = self.app
-    controller = self._registry_diagnostics_controller
-    if controller is None:
-        current = getattr(app, "_phase6_registry_diagnostics_controller", None)
-        if isinstance(current, Phase6RegistryDiagnosticsController):
-            controller = current
-        else:
-            controller = Phase6RegistryDiagnosticsController(
-                candidate_id=getattr(app, "_phase6_registry_candidate_id", ""),
-                candidate_record=getattr(
-                    app, "_phase6_registry_candidate_record", {}
-                ),
-                regression_evidence=getattr(
-                    app, "_phase6_registry_regression_evidence", {}
-                ),
-                rule_records=getattr(app, "_phase6_registry_rule_records", {}),
-                promotion_candidates=getattr(
-                    app, "_phase6_last_relief_promotion_candidates", {}
-                ),
-            )
-        self._registry_diagnostics_controller = controller
-        app._phase6_registry_diagnostics_controller = controller
-    return controller
-
 def settings_service(self):
-    if self._settings_service is None:
-        app = self.app
-        self._settings_service = Phase6SettingsTransactionService(
-            settings_values=getattr(app, "_settings_values", {}),
-            input_snapshot=getattr(app, "_phase6_input_snapshot", {}),
-            box_whd=getattr(app, "_phase6_box_whd", {}),
-            pending_settings=getattr(app, "_phase6_pending_settings", {}),
-        )
-    return self._settings_service
+    """Construct the Settings service once from explicit committed-state ports."""
+    service = self._capabilities.settings.service()
+    self._settings_service = service
+    return service
 
 def settings_transactions(self):
     if self._settings_transactions is None:
@@ -527,7 +472,7 @@ def apply_settings_profile_projection(
         self.sync_authoritative_derived_parts(namespace)
     self.refresh_assembly_parts_panel_if_topology_changed(namespace)
 
-    navigation = self.workspace_navigation()
+    navigation = self.capabilities.workspace.navigation()
     planned_profiles = materialize(plan.part_profiles)
     for key, profiles in planned_profiles.items():
         navigation.stash_profiles(key, profiles)
