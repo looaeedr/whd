@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
   "issue": 1441,
   "lane_id": "chatgpt.flowv2.work1",
@@ -21,11 +21,23 @@
     "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
     "token": "lease:1441:37877852199:1"
   },
-  "mutation_scope": null,
+  "mutation_scope": {
+    "base_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
+    "delete_paths": [],
+    "reservation_state": "ACTIVE",
+    "target_branch": "cleanup/2d-3d-sync",
+    "write_paths": [
+      "tests/process/test_issue1380_runtime_boundary.py",
+      "tests/process/test_issue1381_no_replay.py",
+      "tests/process/test_issue1441_real_pr_ci_gate.py",
+      "tools/control_transaction_production_executor.py",
+      "tools/flow_v2_merge_precheck.py"
+    ]
+  },
   "next_action": {
     "args": {},
-    "display": "Reserve exact tested Issue1441 diff paths",
-    "kind": "RESERVE_PATHS"
+    "display": "Start tested Issue1441 delivery branch",
+    "kind": "START_BRANCH"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -43,7 +55,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "CLAIMED",
+  "semantic_state": "PATHS_RESERVED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
@@ -51,13 +63,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
   "transaction": {
-    "expected_fingerprint": "ce5f6aa1af81faeeed8f3f4e4e2cf294e2e5f8e6d318085154c9f4089e3739bf",
-    "id": "gha:37877852199:1441:ACQUIRE:1",
+    "expected_fingerprint": "8b182db1736c6b47877508b5444e9a9b45849d22a5233fe22ad76772b9ac6308",
+    "id": "gha:37878843249:1441:RESERVE_PATHS:2",
     "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-    "kind": "ACQUIRE",
+    "kind": "RESERVE_PATHS",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T03:09:15Z",
+  "updated_at": "2026-10-09T03:21:43Z",
   "version": 2,
   "work_branch": "work/issue-1441-flowv2-ci-e2e"
 }
