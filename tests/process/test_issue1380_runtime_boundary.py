@@ -20,7 +20,7 @@ from tools.execution_record import (
 HEAD, TARGET, MERGED, SYNCED = (c * 40 for c in "abcd")
 INV = "issue1380-test"
 TARGET_BRANCH = "cleanup/2d-3d-sync"
-WORK = "work/issue-1380"
+WORK = "localX"
 
 
 def record(kind):
@@ -77,6 +77,13 @@ class GitHubProvider:
                 self.exists = False
                 return None
             raise AssertionError((method, path))
+        if path.startswith("/issues/1400/comments?"):
+            return [{"user": {"login": "looaeedr", "type": "User"},
+                     "body": "\n".join([
+                         "/推推", "WHD_LOCALX_PUBLISH_AUTH_V1", "repo=looaeedr/whd",
+                         "pr=1400", "source=localX", f"head={HEAD}",
+                         "target=cleanup/2d-3d-sync", f"base={TARGET}",
+                     ])}]
         if path == "/rulesets":
             return []
         if path.startswith("/commits/"):

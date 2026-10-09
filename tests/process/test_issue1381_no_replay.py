@@ -20,7 +20,7 @@ from tools.execution_record import (
 HEAD, TARGET, MERGED, SYNCED = (c * 40 for c in "abcd")
 INV = "issue1381-test"
 TARGET_BRANCH = "cleanup/2d-3d-sync"
-WORK = "work/issue-1381"
+WORK = "localX"
 
 
 def record(kind):
@@ -77,6 +77,13 @@ class GitHubProvider:
                 self.exists = False
                 return None
             raise AssertionError((method, path))
+        if path.startswith("/issues/1400/comments?"):
+            return [{"user": {"login": "looaeedr", "type": "User"},
+                     "body": "\n".join([
+                         "/推推", "WHD_LOCALX_PUBLISH_AUTH_V1", "repo=looaeedr/whd",
+                         "pr=1400", "source=localX", f"head={HEAD}",
+                         "target=cleanup/2d-3d-sync", f"base={TARGET}",
+                     ])}]
         if path == "/rulesets":
             return []
         if path.startswith("/commits/"):
@@ -249,7 +256,7 @@ def test_stale_delete_drift_requires_fresh_exact_absence_and_never_deletes_again
     monkeypatch.setattr(executor, "_load_state", load)
     api = provider.api
     def uncertain(repo, method, path, token, payload=None):
-        if race.writes and observation == "UNKNOWN" and method == "GET" and path.startswith("/git/ref/heads/work"):
+        if race.writes and observation == "UNKNOWN" and method == "GET" and path == "/git/ref/heads/" + quote(WORK, safe=""):
             raise HTTPError(path, 503, "unknown", None, None)
         return api(repo, method, path, token, payload)
     monkeypatch.setattr(executor, "_api", uncertain)

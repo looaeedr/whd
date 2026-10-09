@@ -15,6 +15,14 @@ whd_schema: WHD_DOC_META_V1
 
 ## AI 開發交接總覽
 
+## LOCALX_USER_PUBLISH_HARD_GATE_V1（最高優先級的分支發布例外）
+
+- GitHub `cleanup/2d-3d-sync`（X）仍是正式基準；施工從 GitHub Git 取來源。工單先於獨立分支修改及驗證，成果最後整合到使用者本機 `/workspace/whd` 的 **`localX`**。若工作依賴尚未發佈的成果，使用 `origin/localX` 作 Git 來源；不可把舊 X 強制覆蓋 localX。
+- `localX` 可在整合測試通過後正常 push 到 `origin/localX` 作持久化；**同步 origin/localX ≠ 發布正式 X**。不得 force-push、reset 丟失未發佈 commit，或把工單直接 PR/merge 到 X。
+- **只有使用者明確下達本次 `/推推`** 才可開始 `localX → X` 正式發布。GREEN、QA、排程、接手、普通 delivery authority、舊 `/推推 文檔/主體` 規範均不能代替該命令；一次授權只適用 exact PR、localX HEAD SHA、X base SHA。SHA 有任何變動，授權失效；不得重用、推定或自動產生。
+- Trusted GitHub `MERGE` 必須先檢查 `tools/localx_publish_gate.py` 指定的 user command proof，缺失則 fail closed，不可送合併 API；已合併 PR 的 readback/finalize 不得視為新合併授權。GitHub 平台外部手動 merge 或具有直接寫入 X 權限者仍需由 GitHub branch ruleset 另外保護，repository 程式閘門不能冒稱已封鎖平台外入口。
+- 本段優先於下列舊文中的 `delivery branch → PR → X` 自動合併路徑；Flow v2 的 QA、必要 CI 與 FINALIZE 仍用於受授權的正式 `/推推`，不得因此跳過驗收。
+
 ## -2. ENTRY_ROUTER_FIRST_HARD_GATE_V1：先找 canonical 入口，再做任何一般 discovery
 
 <!-- ENTRY_ROUTER_FIRST_HARD_GATE_V1 -->

@@ -180,6 +180,7 @@ def test_current_contracts_do_not_make_codex_path_or_drive_sync_global_startup()
 
 def test_push_skill_is_delivery_alias_and_cannot_restore_drive_routing():
     push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(encoding="utf-8")
-    assert "顯式 delivery alias" in push
+    assert "LOCALX_USER_PUBLISH_HARD_GATE_V1" in push
+    assert "使用者親自下達" in push
     assert "Google Drive 只存 data / mirror / backup" in push
     assert "不得參與 CURRENT routing" in push
