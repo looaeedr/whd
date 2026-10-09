@@ -1,100 +1,54 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1441-renew-work1-20261009-0326",
+  "request_id": "issue1441-apply-test-tree-20261009-0329",
   "issue": 1441,
-  "kind": "ACQUIRE",
+  "kind": "APPLY_COMMIT",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-  "expected_coord_head": "eca34c69999bfa3df087836b5d1e71c8ca19962b",
-  "expected_generation": 4,
+  "expected_coord_head": "dfb9f9a27578270002b4020987a200164556124c",
+  "expected_generation": 5,
+  "reuse_admission_session": true,
   "effect": {
-    "observed_at": "2026-10-09T03:27:01.405Z",
-    "lease": {
-      "token": "lease:1441:work1:renew-after-expiry",
-      "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-      "expires_at": "2026-10-09T03:42:01.405Z"
-    },
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work1",
-    "lane_id": "chatgpt.flowv2.work1",
-    "slot_id": "worker.slot.1",
-    "semantic_state": "IMPLEMENTING",
+    "head_sha": "4c4663c03ab8ce6629a8a96b94e9cc1373512152",
+    "semantic_state": "IMPLEMENTATION_COMMITTED",
     "next_action": {
+      "kind": "START_QA",
       "args": {
-        "diff_digest": "701e85471956626e74fef8b533d44eb57e7c337b940622c331adce4d9cdd3be5"
+        "workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Apply exact RC-tested Issue1441 diff",
-      "kind": "APPLY_COMMIT"
+      "display": "Validate exact #1441 PR CI head"
+    },
+    "root_local_first_git_write_receipt": {
+      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
+      "execution_mode": "INTERACTIVE",
+      "source_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
+      "diff_digest": "701e85471956626e74fef8b533d44eb57e7c337b940622c331adce4d9cdd3be5",
+      "issue": 1441,
+      "generation": 3,
+      "target_branch": "cleanup/2d-3d-sync",
+      "write_paths": [
+        "tests/process/test_issue1380_runtime_boundary.py",
+        "tests/process/test_issue1381_no_replay.py",
+        "tests/process/test_issue1441_real_pr_ci_gate.py",
+        "tools/control_transaction_production_executor.py",
+        "tools/flow_v2_merge_precheck.py"
+      ],
+      "delete_paths": [],
+      "record_fingerprint": "6c1bcb9eb2e3a2800807f780c321a929ddd93d0ed2f62ed4900686abd25745c7",
+      "git_write_unlocked": true,
+      "write_mode": "EXACT_TESTED_DIFF_ONLY"
+    },
+    "mutation_writer_guard": {
+      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
+      "issue": 1441,
+      "generation": 5,
+      "record_fingerprint": "7d992cc24d2b14b075f2b2334b424c1669a6baad04ee52160fbeb5ec85b39d72",
+      "lease_token": "lease:1441:37879330500:1",
+      "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
+      "expected_next_action": "APPLY_COMMIT",
+      "expected_work_branch": "work/issue-1441-flowv2-ci-e2e",
+      "expected_work_head": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
+      "expected_target_head": "80dea3ebf50bce44a001ced641e911f0a365cfbc"
     }
-  },
-  "purpose": "Renew exact same-owner expired work1 lease Issue1441 to complete APPLY_COMMIT of tested five-file diff; no changes to scope, source or next_action.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
-    "drive_role": "MIRROR_BACKUP_ONLY",
-    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1441,
-    "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
-    "required_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "Python測試實務",
-      "phase6-release-packaging",
-      "diagnosing-bugs",
-      "tdd",
-      "git-remote-sync-fallback"
-    ],
-    "completed_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "Python測試實務",
-      "phase6-release-packaging",
-      "diagnosing-bugs",
-      "tdd",
-      "git-remote-sync-fallback"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
-    ],
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
-    ],
-    "observed_at": "2026-10-09T03:25:30Z"
   }
 }
