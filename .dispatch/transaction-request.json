@@ -1,6 +1,6 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1439-rc-work1-expand-scope-20261009-0226",
+  "request_id": "issue1439-rc-work1-sorted-reservation-20261009-0228",
   "issue": 1439,
   "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
@@ -13,12 +13,12 @@
     "write_paths": [
       ".agents/skills/engineering/flow-v2-execution/SKILL.md",
       ".github/workflows/whd-control-transaction-v2-request.yml",
-      "tests/process/test_issue1439_tok_pat_ci_trigger.py",
-      "tools/control_transaction_production_executor.py",
       "tests/process/test_flow_v2_sync_target.py",
       "tests/process/test_issue1378_idempotent_readback_characterization.py",
       "tests/process/test_issue1380_runtime_boundary.py",
-      "tests/process/test_issue1381_no_replay.py"
+      "tests/process/test_issue1381_no_replay.py",
+      "tests/process/test_issue1439_tok_pat_ci_trigger.py",
+      "tools/control_transaction_production_executor.py"
     ],
     "delete_paths": [],
     "semantic_state": "PATHS_RESERVED",
