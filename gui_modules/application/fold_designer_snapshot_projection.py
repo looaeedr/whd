@@ -119,7 +119,13 @@ def _snapshot_workspace_state(self, snapshot):
         )
         if key in current_existing
     ]
+    workspace_state = self.workspace_controller.workspace_snapshot()
+    ordered.extend(key for key in workspace_state["existing_parts"]
+                   if key in current_existing and key not in ordered)
     snapshot["existing_parts"] = ordered
+    custom = workspace_state.get("custom_parts")
+    if custom is not None:
+        snapshot["custom_parts"] = deepcopy(custom)
 
     joint_state = dict(getattr(self, "assembly_joint_state", {}) or {})
     joint_state["existing_parts"] = list(ordered)

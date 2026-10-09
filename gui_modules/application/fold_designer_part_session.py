@@ -30,7 +30,7 @@ class Phase6PartSessionOwner:
         if app.designer_workspace.switching:
             return
         key = app.designer_workspace.active_part
-        if not key:
+        if not key or getattr(app.designer_workspace, "custom_part", lambda _: None)(key) is not None:
             return
         try:
             app.bend_ui.save()
@@ -103,6 +103,48 @@ class Phase6PartSessionOwner:
         navigation = bridge._phase6_workspace_navigation(app)
         if not navigation.has_part(key):
             return
+        from gui_modules.application.custom_part_controls import build_custom_part_editor
+        custom = getattr(app.designer_workspace, "custom_part", lambda _: None)(key)
+        custom_frame = getattr(app, "_custom_part_editor", None)
+        if custom is not None:
+            plan = navigation.plan_activation(key, initial=initial, leaving_non_single_view=True)
+            if plan.save_outgoing:
+                self.save_current_part()
+            pending = getattr(app, "_job", None)
+            if pending:
+                app.root.after_cancel(pending)
+                app._job = None
+            bridge._phase6_clear_navigation_residue(app)
+            bridge._phase6_hide_corner_data_canvas(app)
+            navigation.begin_activation(plan)
+            navigation.finish_activation()
+            app._phase6_3d_display_mode = "single"
+            if custom_frame is not None:
+                custom_frame.destroy()
+            for name in ("input_content_host", "assembly_parts_panel", "corner_data_panel", "settings_center"):
+                widget = getattr(app, name, None)
+                if widget is not None and widget.winfo_manager():
+                    widget.pack_forget()
+            canvas = app.renderer.canvas.get_tk_widget()
+            canvas.pack_forget()
+            def changed():
+                app.part_var.set(app.designer_workspace.custom_part(key)["display_name"])
+                app._refresh_part_buttons()
+                bridge._phase6_publish_live_state(app, force=True)
+            frame = build_custom_part_editor(
+                canvas.master, descriptor=custom,
+                update_part=lambda **values: navigation.update_custom_part(key, **values),
+                on_changed=changed,
+            )
+            frame.pack(fill=bridge.original.tk.BOTH, expand=True)
+            app._custom_part_editor = frame
+            app.part_var.set(custom["display_name"])
+            app._refresh_part_buttons()
+            app.remove_part_button.configure(state="normal")
+            return
+        if custom_frame is not None:
+            custom_frame.destroy()
+            app._custom_part_editor = None
         bridge._phase6_clear_navigation_residue(app)
         bridge._phase6_hide_corner_data_canvas(app)
         if bridge._phase6_is_box_body_physical_piece_key(key):

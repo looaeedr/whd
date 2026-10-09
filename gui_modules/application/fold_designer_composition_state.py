@@ -369,7 +369,7 @@ def collect_workspace_state(self, namespace):
     workspace = app.designer_workspace
     active = workspace.active_part
     live_active_profiles = None
-    if active and active != "box_body":
+    if active and active != "box_body" and workspace.custom_part(active) is None:
         profiles = getattr(app.state, "profiles", {}) or {}
         live_x = profiles.get("X", ()) or ()
         live_y = profiles.get("Y", ()) or ()

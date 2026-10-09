@@ -10,6 +10,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Mapping
 
+from phase6_custom_parts import CustomPartCatalog, is_custom_part
 from phase6_box_body_structure import normalize_box_body_structure_state
 
 
@@ -59,7 +60,7 @@ def _repair_active(active_part, existing_parts, policy: str) -> str | None:
 
 
 class SharedWorkspaceState:
-    """Four-field state contract instantiated independently by each lifecycle owner."""
+    """Shared state contract instantiated independently by each lifecycle owner."""
 
     def __init__(
         self,
@@ -68,12 +69,31 @@ class SharedWorkspaceState:
         active_part=None,
         part_profiles: Mapping[str, object] | None = None,
         box_body_structure=None,
+        custom_parts=None,
         active_repair: str = "first",
     ) -> None:
         self._existing_parts = list(normalize_existing_parts(existing_parts or (MANDATORY_PART,)))
         self._active_part = _repair_active(active_part, self._existing_parts, active_repair)
         self._part_profiles = deepcopy(dict(part_profiles or {}))
         self._box_body_structure = normalize_box_body_structure_state(box_body_structure)
+        self._custom_parts = CustomPartCatalog(custom_parts)
+        custom_keys = {key for key in self._existing_parts if is_custom_part(key)}
+        if custom_keys != set(self._custom_parts.snapshot()["items"]):
+            raise ValueError("自訂板件 presence 與 metadata 不一致")
+
+    def custom_parts_snapshot(self):
+        return self._custom_parts.snapshot()
+
+    def custom_part(self, key):
+        return self._custom_parts.get(key)
+
+    def add_custom_part(self, **values):
+        key = self._custom_parts.add(**values)
+        self.set_part_presence(key, True, active_repair="none")
+        return key
+
+    def update_custom_part(self, key, **values):
+        return self._custom_parts.update(key, **values)
 
     @property
     def existing_parts(self) -> tuple[str, ...]:
@@ -84,7 +104,15 @@ class SharedWorkspaceState:
         return self._active_part
 
     def set_existing_parts(self, values, *, active_repair: str) -> tuple[str, ...]:
-        self._existing_parts = list(normalize_existing_parts(values))
+        normalized = list(normalize_existing_parts(values))
+        for key in normalized:
+            if is_custom_part(key) and self._custom_parts.get(key) is None:
+                raise ValueError("自訂板件缺少 metadata")
+        for key in self._custom_parts.snapshot()["items"]:
+            if key not in normalized:
+                self._custom_parts.remove(key)
+                self._part_profiles.pop(key, None)
+        self._existing_parts = normalized
         self._active_part = _repair_active(self._active_part, self._existing_parts, active_repair)
         return self.existing_parts
 
@@ -156,18 +184,28 @@ class SharedWorkspaceState:
         active_part,
         part_profiles,
         box_body_structure,
+        custom_parts=None,
         active_repair: str,
     ) -> dict:
-        self._existing_parts = list(normalize_existing_parts(existing_parts))
-        self._active_part = _repair_active(active_part, self._existing_parts, active_repair)
-        self._part_profiles = deepcopy(dict(part_profiles or {}))
-        self._box_body_structure = normalize_box_body_structure_state(box_body_structure)
+        candidate = SharedWorkspaceState(
+            existing_parts=existing_parts, active_part=active_part,
+            part_profiles=part_profiles, box_body_structure=box_body_structure,
+            custom_parts=custom_parts, active_repair=active_repair,
+        )
+        self._existing_parts = list(candidate.existing_parts)
+        self._active_part = candidate.active_part
+        self._part_profiles = candidate.part_profiles_snapshot()
+        self._box_body_structure = candidate.box_body_structure_state()
+        self._custom_parts = candidate._custom_parts
         return self.snapshot()
 
     def snapshot(self) -> dict:
-        return {
+        result = {
             "existing_parts": list(self._existing_parts),
             "active_part": self._active_part,
             "part_profiles": self.part_profiles_snapshot(),
             "box_body_structure": self.box_body_structure_state(),
         }
+        if self._custom_parts.has_history:
+            result["custom_parts"] = self.custom_parts_snapshot()
+        return result
