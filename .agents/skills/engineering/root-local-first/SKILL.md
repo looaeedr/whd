@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 
 # root-local-first
 
-施工來源使用 GitHub Git，日常內容修改在使用者指定的 executor-local workspace 完成。使用者指定 /接手 時，使用 Remote Desktop Commander → whd-dev → /workspace/whd；工作分支修改後經測試整合至本地 localX。不要回退 Google Drive 或 .unpushed 當成工作根目錄。
+此 Skill 僅適用於**使用者明確 `/接手`** 的本機施工路線：GitHub Git 供應來源，Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 工作，測試後依 `localX` 整合規則交付。**`/派工` 不得讀此 Skill 作為本機施工授權**：`/派工` 必須是 GitHub／雲端端執行，不得進入 RC、Desktop Commander、使用者任何本機 shell 或 `/workspace/whd`，也不得在遠端能力缺失時 fallback 本機。不要回退 Google Drive 或 .unpushed 當工作根目錄。
 
 本 Skill 不得新增啟動授權檢查、claim、lease、工作槽、紀錄或協調交易；程式測試和 Git diff 才是修改成果證據。
 
