@@ -2,9 +2,10 @@
 """Receiving receiver/mother-plate Joint Placement MARKING.
 
 The manufacturing locator is the *receiving mother plate*, never the attached
-inner-door frame.  The marking primitive is derived from canonical assembly
-geometry, projected through the locator's authoritative world/flat mapping and
-written back to the locator FinalScene.  Composite Box Body side plates retain
+inner-door frame. Markings require demonstrated physical mating first; the
+locator's authoritative world/flat mapping is then used only to register the
+verified contact footprint for manufacturing. A detached frame must not create
+a plausible-looking projected mark. Composite Box Body side plates retain
 piece-level ownership (``box_body:left_side`` / ``box_body:right_side``).
 """
 from __future__ import annotations
@@ -373,15 +374,19 @@ def _polygon_world_exterior(polygon, *, origin, u, v):
 
 
 def _projected_mating_contact(
-    *, locator_id: str, attached_id: str, locator_mapping, attached_mapping
+    *, locator_id: str, attached_id: str, locator_mapping, attached_mapping,
+    sheet_thickness: float,
 ):
-    """Resolve the facing physical skins and their locator-plane mating footprint.
+    """Resolve a *verified* physical face mate before flat UV registration.
 
-    Side/head inner-door frames are intentionally inset from the cabinet shell.
-    Placement marking therefore uses the frame's *actual physical skin footprint*
-    orthogonally registered onto the facing mother-plate skin.  The support plane,
-    orientation, footprint and UV carrier all come from canonical folded/placed
-    geometry; no renderer bbox, screen direction or fixture coordinate is used.
+    Mapped folded triangles represent the sheet mid-surfaces. For two opposed,
+    facing sheets of equal thickness T their mid-planes must be separated by
+    exactly T (within the production contact tolerance). Larger separation
+    means an actual gap, and smaller separation means penetration; neither may
+    be relabelled as a mating contact by orthogonal projection.
+
+    The locator-plane footprint is retained solely as the manufacturing UV
+    carrier after this physical precondition has been proved.
     """
     locator_records = tuple(locator_mapping or ())
     attached_records = tuple(attached_mapping or ())
@@ -392,6 +397,10 @@ def _projected_mating_contact(
     attached_center = _geometry_centroid(attached_records)
     toward_attached = _unit(_sub(attached_center, locator_center))
     epsilon = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.polygon_robustness_epsilon)
+    contact_tolerance = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.coplanar_distance_tolerance)
+    nominal_midplane_separation = float(sheet_thickness)
+    if nominal_midplane_separation <= 0:
+        raise ValueError("physical mating requires positive sheet thickness")
 
     candidates = []
     for locator_group in _mapped_plane_groups(locator_records):
@@ -419,6 +428,11 @@ def _projected_mating_contact(
             separation = abs(
                 _dot(_sub(attached_group[0].world[0], locator_origin), plane_normal)
             )
+            # Real T-thick sheets mate skin-to-skin only if the opposed
+            # mid-surfaces are exactly one thickness apart. Reject both a
+            # positive clearance and sheet penetration before UV registration.
+            if abs(separation - nominal_midplane_separation) > contact_tolerance:
+                continue
             candidates.append(
                 (
                     -float(locator_alignment),
@@ -435,7 +449,7 @@ def _projected_mating_contact(
             )
 
     if not candidates:
-        raise ValueError("no unique facing mother-plate/frame mating footprint")
+        raise ValueError("no physical mother-plate/frame face contact (gap, penetration, or missing overlap)")
     candidates.sort(key=lambda row: row[:3])
     chosen = candidates[0]
     (
@@ -497,8 +511,9 @@ def _projected_mating_contact(
         overlap_world=overlap_world,
         locator_flat_mapping=tuple(locator_group),
         evidence={
-            "contact_mode": "PHYSICAL_SKIN_REGISTRATION_PROJECTION",
+            "contact_mode": "VERIFIED_SKIN_TO_SKIN_CONTACT_UV_REGISTRATION",
             "projection_distance": float(separation),
+            "physical_skin_clearance": float(separation - nominal_midplane_separation),
             "locator_alignment": float(-neg_alignment),
             "overlap_area": float(overlap.area),
             "locator_mapping_record_count": len(locator_group),
@@ -860,6 +875,7 @@ def resolve_receiving_joint_markings(
                             attached_id=frame_id,
                             locator_mapping=world["mapped_skin_triangles_by_part"].get(locator_id, ()),
                             attached_mapping=world["mapped_skin_triangles_by_part"].get(frame_id, ()),
+                            sheet_thickness=float(sheet_thickness),
                         )
                     row = _mark_row(
                         locator_id=locator_id,
