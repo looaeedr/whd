@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - cleanup/2d-3d-sync
+      - localX
     paths:
       - 'ae_engine/**'
       - 'gui_modules/**'
