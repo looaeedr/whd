@@ -12,6 +12,13 @@ from typing import Callable, Iterable
 
 
 from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+from .receiving_switch_tier_ui import (
+    SWITCH_TIER_BRAND_INHERIT,
+    SWITCH_TIER_NOMINAL_MM,
+    SWITCH_TIER_OUTPUT_NOTICE,
+    SWITCH_TIER_PLACEHOLDER,
+    switch_tier_nominal_text,
+)
 
 
 @dataclass(frozen=True)
@@ -20,6 +27,9 @@ class ReceivingSetBayControls:
     header: object
     switch_brand_var: object
     switch_brand_selector: object
+    switch_tier_var: object
+    switch_tier_selector: object
+    switch_tier_nominal_var: object
     layer_host: object
     add_layer_button: object
     remove_layer_button: object
@@ -31,6 +41,7 @@ def build_receiving_set_bay_controls(
     tk,
     ttk,
     on_switch_brand_selected: Callable[[str], object],
+    on_switch_tier_selected: Callable[[str], object],
     on_add_layer: Callable[[], object],
     on_remove_layer: Callable[[], object],
 ) -> ReceivingSetBayControls:
@@ -54,6 +65,24 @@ def build_receiving_set_bay_controls(
         lambda _event: on_switch_brand_selected(str(switch_brand_var.get())),
     )
 
+    ttk.Label(header, text="開關層數").pack(side=tk.LEFT, padx=(8, 2))
+    switch_tier_var = tk.StringVar(master=header, value=SWITCH_TIER_PLACEHOLDER)
+    switch_tier_selector = ttk.Combobox(
+        header, textvariable=switch_tier_var,
+        values=(SWITCH_TIER_PLACEHOLDER, *SWITCH_TIER_NOMINAL_MM),
+        state="readonly", width=8,
+    )
+    switch_tier_selector.pack(side=tk.LEFT)
+    switch_tier_selector.bind(
+        "<<ComboboxSelected>>",
+        lambda _event: on_switch_tier_selected(str(switch_tier_var.get())),
+    )
+    switch_tier_nominal_var = tk.StringVar(
+        master=header, value=switch_tier_nominal_text(None),
+    )
+    ttk.Label(header, textvariable=switch_tier_nominal_var).pack(side=tk.LEFT, padx=(8, 0))
+    ttk.Label(frame, text=SWITCH_TIER_OUTPUT_NOTICE).pack(anchor=tk.W, pady=(0, 2))
+
     layer_host = ttk.Frame(frame)
     layer_host.pack(fill=tk.X)
 
@@ -73,6 +102,9 @@ def build_receiving_set_bay_controls(
         header=header,
         switch_brand_var=switch_brand_var,
         switch_brand_selector=switch_brand_selector,
+        switch_tier_var=switch_tier_var,
+        switch_tier_selector=switch_tier_selector,
+        switch_tier_nominal_var=switch_tier_nominal_var,
         layer_host=layer_host,
         add_layer_button=add_layer_button,
         remove_layer_button=remove_layer_button,
@@ -286,6 +318,7 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
             messagebox.showwarning("設定未套用", str(exc), parent=panel.winfo_toplevel())
 
     def refresh(*, load_value=True):
+        refresh_switch_tier_controls()
         current_row = ports["row"]()
         for joint_index, depth_widget, height_widget in joint_widgets:
             left, right = current_row["bays"][joint_index:joint_index + 2]
@@ -355,12 +388,27 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
         button.grid(row=index // 8, column=index % 8, padx=2, pady=2, sticky="ew")
         selectors.append(button)
     brand_var = tk.StringVar(master=panel, value=row.get("switch_brand", "士林"))
+    tier_snapshot = ports["switch_tier_state"]()
+    switch_tier_var = tk.StringVar(
+        master=panel, value=tier_snapshot["switch_tier"] or SWITCH_TIER_PLACEHOLDER,
+    )
+    switch_tier_nominal_var = tk.StringVar(
+        master=panel, value=switch_tier_nominal_text(tier_snapshot["switch_tier"]),
+    )
     common = ttk.Frame(panel)
     common.pack(fill=tk.X, pady=4)
     ttk.Label(common, text="本套開關").pack(side=tk.LEFT)
     brand = ttk.Combobox(common, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS, width=6, state="readonly")
     brand.pack(side=tk.LEFT, padx=4)
     ttk.Button(common, text="套用品牌", command=lambda: safely(lambda: ports["brand"](brand_var.get()))).pack(side=tk.LEFT)
+    ttk.Label(common, text="開關層數").pack(side=tk.LEFT, padx=(8, 2))
+    tier_selector = ttk.Combobox(
+        common, textvariable=switch_tier_var,
+        values=(SWITCH_TIER_PLACEHOLDER, *SWITCH_TIER_NOMINAL_MM),
+        state="readonly", width=8,
+    )
+    tier_selector.pack(side=tk.LEFT)
+    ttk.Label(common, textvariable=switch_tier_nominal_var).pack(side=tk.LEFT, padx=(8, 0))
     for key, label in (("width", "寬"), ("height", "高"), ("depth", "深")):
         ttk.Label(common, text=label).pack(side=tk.LEFT)
         ttk.Entry(common, textvariable=fields[key], width=8).pack(side=tk.LEFT, padx=3)
@@ -370,6 +418,68 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
             columns = tuple((float(width.get()), tuple(float(value.strip()) for value in heights.get().replace(",", "、").split("、"))) for width, heights in door_fields)
         ports["dimensions"](*(float(fields[key].get()) for key in ("width", "height", "depth")), door_columns=columns)
     ttk.Button(common, text="套用尺寸／門分割", command=lambda: safely(apply_dimensions)).pack(side=tk.LEFT, padx=4)
+
+    # OPEN-04: UI-only optional overrides, collapsed by default. No schema/geometry.
+    override_expanded = False
+    override_toggle = ttk.Button(panel, text="分層廠牌（暫定・OPEN-04）▸")
+    override_toggle.pack(anchor=tk.W, pady=(3, 0))
+    override_host = ttk.Frame(panel)
+    override_vars = {}
+    for position in ("上層", "下層"):
+        ttk.Label(override_host, text=f"{position}廠牌").pack(side=tk.LEFT, padx=(0, 2))
+        value = tk.StringVar(master=panel, value=SWITCH_TIER_BRAND_INHERIT)
+        selector = ttk.Combobox(
+            override_host, textvariable=value,
+            values=(SWITCH_TIER_BRAND_INHERIT, *RECEIVING_SWITCH_BRANDS),
+            state="readonly", width=8,
+        )
+        selector.pack(side=tk.LEFT, padx=(0, 8))
+        selector.bind(
+            "<<ComboboxSelected>>",
+            lambda _event, position=position, value=value: safely(
+                lambda: ports["switch_tier_override"](position, value.get())
+            ),
+        )
+        override_vars[position] = value
+
+    def refresh_switch_tier_controls():
+        nonlocal override_expanded
+        current = ports["switch_tier_state"]()
+        tier = current["switch_tier"]
+        switch_tier_var.set(tier or SWITCH_TIER_PLACEHOLDER)
+        switch_tier_nominal_var.set(switch_tier_nominal_text(tier))
+        chosen = {
+            row["position"]: row["brand_override"]
+            for row in current["positions"]
+        }
+        for position, var in override_vars.items():
+            var.set(chosen.get(position) or SWITCH_TIER_BRAND_INHERIT)
+        override_toggle.configure(state="normal" if tier == "兩層" else "disabled")
+        if tier != "兩層":
+            override_expanded = False
+            override_host.pack_forget()
+            override_toggle.configure(text="分層廠牌（暫定・OPEN-04）▸")
+
+    def change_switch_tier(_event=None):
+        safely(lambda: ports["switch_tier"](switch_tier_var.get()))
+
+    tier_selector.bind("<<ComboboxSelected>>", change_switch_tier)
+
+    def toggle_overrides():
+        nonlocal override_expanded
+        if ports["switch_tier_state"]()["switch_tier"] != "兩層":
+            return
+        override_expanded = not override_expanded
+        if override_expanded:
+            override_host.pack(fill=tk.X, pady=(2, 4))
+        else:
+            override_host.pack_forget()
+        override_toggle.configure(
+            text=f"分層廠牌（暫定・OPEN-04）{'▾' if override_expanded else '▸'}"
+        )
+    override_toggle.configure(command=toggle_overrides)
+    ttk.Label(panel, text=SWITCH_TIER_OUTPUT_NOTICE).pack(anchor=tk.W)
+
     door = ttk.Frame(panel)
     door.pack(fill=tk.X, pady=3)
     def rebuild_door_fields(columns):
@@ -437,6 +547,10 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
                 row=index // 3, column=10 + index % 3, padx=3)
     panel._receiving_select_bay = select
     panel._receiving_kind_var = kind_var
+    panel._receiving_switch_tier_var = switch_tier_var
+    panel._receiving_switch_tier_selector = tier_selector
+    panel._receiving_switch_tier_nominal_var = switch_tier_nominal_var
+    panel._receiving_switch_tier_override_vars = override_vars
     panel._receiving_refresh = refresh
     refresh()
     return panel
