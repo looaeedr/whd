@@ -253,7 +253,7 @@ def registry_validate_formula_form(self):
     )
 
     app = self.app
-    controller = self.registry_diagnostics()
+    controller = self.capabilities.registry.diagnostics()
     try:
         result = controller.validate_formula(
             self.registry_collect_rule_form(),
@@ -297,7 +297,7 @@ def registry_save_candidate_form(self, namespace):
         return None
     try:
         record = self.registry_collect_rule_form()
-        controller = self.registry_diagnostics()
+        controller = self.capabilities.registry.diagnostics()
         item = controller.save_candidate(
             record,
             saver=save_relief_rule_candidate,
@@ -325,7 +325,7 @@ def registry_run_formula_matrix(self, namespace):
     app = self.app
     required = lambda name: self._required(namespace, name)
     try:
-        controller = self.registry_diagnostics()
+        controller = self.capabilities.registry.diagnostics()
         evidence = controller.run_formula_matrix(
             self.registry_collect_rule_form(),
             self.registry_sample_variables(),
@@ -352,7 +352,7 @@ def registry_preview_assembly_3d(self, namespace):
     """Sequence candidate-specific 3D evidence without owning the solver."""
     app = self.app
     required = lambda name: self._required(namespace, name)
-    controller = self.registry_diagnostics()
+    controller = self.capabilities.registry.diagnostics()
     try:
         candidate_id = controller.require_current_candidate(
             self.registry_collect_rule_form()
@@ -384,7 +384,7 @@ def registry_promote_form(self):
     )
 
     app = self.app
-    controller = self.registry_diagnostics()
+    controller = self.capabilities.registry.diagnostics()
     try:
         promoted = controller.promote_candidate(
             self.registry_collect_rule_form(),

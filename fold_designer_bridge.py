@@ -440,7 +440,7 @@ def _designer_workspace(self) -> Phase6DesignerWorkspace:
 
 
 def _phase6_workspace_navigation(self):
-    return _phase6_composition(self).workspace_navigation()
+    return _phase6_composition(self).capabilities.workspace.navigation()
 
 def _phase6_composition(self) -> Phase6FoldDesignerComposition:
     composition = getattr(self, "_phase6_composition_owner", None)
@@ -451,7 +451,7 @@ def _phase6_composition(self) -> Phase6FoldDesignerComposition:
 
 
 def _phase6_settings_service(self):
-    return _phase6_composition(self).settings_service()
+    return _phase6_composition(self).capabilities.settings.service()
 
 def _phase6_settings_transactions(self):
     return _phase6_composition(self).settings_transactions()
@@ -464,7 +464,7 @@ def _phase6_settings_coordinator(self):
     )
 
 def _phase6_registry_diagnostics(self):
-    return _phase6_composition(self).registry_diagnostics()
+    return _phase6_composition(self).capabilities.registry.diagnostics()
 
 def _phase6_sync_registry_diagnostics_compatibility_mirrors(
     self, controller=None
