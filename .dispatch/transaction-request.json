@@ -1,24 +1,44 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1439-rc-work1-renew-20261009-0224",
+  "request_id": "issue1439-rc-work1-expand-scope-20261009-0226",
   "issue": 1439,
-  "kind": "ACQUIRE",
+  "kind": "RESERVE_PATHS",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0224",
-  "expected_coord_head": "c59bd0c2e35a1a00853ffe02d71b94dec032449e",
-  "expected_generation": 4,
-  "effect": {},
-  "purpose": "Same-owner exact Issue 1439 RC takeover after original lease expiry; resume original native START_BRANCH; preserve reservation; run only existing trusted transaction",
+  "expected_coord_head": "9824f41e2a684b8e52aa23c01a09f6cc2f77db73",
+  "expected_generation": 5,
+  "effect": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "base_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+    "write_paths": [
+      ".agents/skills/engineering/flow-v2-execution/SKILL.md",
+      ".github/workflows/whd-control-transaction-v2-request.yml",
+      "tests/process/test_issue1439_tok_pat_ci_trigger.py",
+      "tools/control_transaction_production_executor.py",
+      "tests/process/test_flow_v2_sync_target.py",
+      "tests/process/test_issue1378_idempotent_readback_characterization.py",
+      "tests/process/test_issue1380_runtime_boundary.py",
+      "tests/process/test_issue1381_no_replay.py"
+    ],
+    "delete_paths": [],
+    "semantic_state": "PATHS_RESERVED",
+    "next_action": {
+      "args": {},
+      "display": "Start native Issue1439 TOK/PAT trust-bound implementation",
+      "kind": "START_BRANCH"
+    }
+  },
+  "purpose": "Expand same-owner Issue 1439 native delivery reservation to include four updated legacy SYNC_TARGET test files, without changing authority or bypassing write unlock",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
     "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
+    "scope": "REPOSITORY_CONTENT",
+    "read_mode": "WORKSPACE_GIT_BASELINE",
     "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
+    "provider": "executor_local_workspace",
+    "workspace_policy": "EXECUTOR_LOCAL_REPO_WORKSPACE",
+    "workspace_root": "/workspace/whd",
     "production_branch": "cleanup/2d-3d-sync",
     "production_head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
     "drive_role": "MIRROR_BACKUP_ONLY",
@@ -34,7 +54,7 @@
       "tools"
     ],
     "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
+    "repository_content_write_unlocked": null,
     "status": "GREEN"
   },
   "preflight_evidence": {
