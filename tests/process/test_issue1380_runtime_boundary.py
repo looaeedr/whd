@@ -212,5 +212,3 @@ def test_executor_readback_mode_cannot_publish_a_mutating_transition(monkeypatch
             issue=1380, kind="MERGE", lane_id="chatgpt.flowv2.work1", invocation_identity=INV,
             supplied_effect={"runtime_mode": "READBACK_ONLY"})
     assert provider.mutations == []
-
-[executed on device: 5bca4a576178 (b0fad557-80aa-4ade-ab0b-d009a426005a)]
