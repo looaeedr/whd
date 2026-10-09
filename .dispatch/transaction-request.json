@@ -1,98 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1443-renew-freshphase6-37884023122",
+  "request_id": "issue1443-consume-qa-real-control-plane-20261009-0432",
   "issue": 1443,
-  "kind": "ACQUIRE",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-  "expected_coord_head": "b33ef2664597c45c7069fb7c902173372affc4c7",
-  "expected_generation": 5,
+  "expected_coord_head": "e2ce042c24299aa4ecc872e8d489fa6e7198b9a9",
+  "expected_generation": 6,
+  "reuse_admission_session": true,
   "effect": {
-    "observed_at": "2026-10-09T04:29:22.716Z",
-    "lease": {
-      "token": "lease:1443:work1:renew-0429",
-      "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-      "expires_at": "2026-10-09T04:59:22.716Z"
-    },
-    "owner_kind": "SCHEDULER",
-    "owner_id": "chatgpt.flowv2.work1",
-    "lane_id": "chatgpt.flowv2.work1",
-    "slot_id": "worker.slot.1",
-    "semantic_state": "IMPLEMENTATION_COMMITTED",
+    "run_id": 37884262121,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "pr_number": 1444,
+        "head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
+        "target_branch": "cleanup/2d-3d-sync",
+        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Validate PR CI exact issue1443 head",
-      "kind": "START_QA"
+      "display": "Merge PR #1444 after all exact-head real CI GREEN"
     }
-  },
-  "purpose": "Continue same owner after applied exact RC commit; fresh official preflight GREEN Run37884023122, extend lease before exact PR.",
-  "work_root_gate_evidence": {
-    "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
-    "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
-    "execution_mode": "INTERACTIVE",
-    "scope": "CONTROL_PLANE_ONLY",
-    "read_mode": "GITHUB_REPO_CONTRACT",
-    "source": ".agents/contracts/WHD_WORK_ROOT_HARD_GATE_V2.json",
-    "provider": "github_repository_contract",
-    "workspace_policy": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "workspace_root": "NOT_APPLICABLE_CONTROL_PLANE_ONLY",
-    "production_branch": "cleanup/2d-3d-sync",
-    "production_head_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
-    "drive_role": "MIRROR_BACKUP_ONLY",
-    "drive_mirror_root": "/Google Drive/WHD/WHD_MIRROR/CURRENT",
-    "root_entries": [
-      ".agents",
-      ".git",
-      ".github",
-      "AGENTS.md",
-      "ae_engine",
-      "gui_modules",
-      "tests",
-      "tools"
-    ],
-    "shared_zero_required": false,
-    "repository_content_write_unlocked": false,
-    "status": "GREEN"
-  },
-  "preflight_evidence": {
-    "schema": "WHD_PHASE6_PREFLIGHT_GATE_EVIDENCE_V1",
-    "status": "GREEN",
-    "issue": 1443,
-    "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-    "branch": "cleanup/2d-3d-sync",
-    "head_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
-    "required_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "Python測試實務",
-      "phase6-release-packaging",
-      "diagnosing-bugs",
-      "tdd"
-    ],
-    "completed_skills": [
-      "flow-v2-execution",
-      "root-local-first",
-      "Python測試實務",
-      "phase6-release-packaging",
-      "diagnosing-bugs",
-      "tdd"
-    ],
-    "required_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
-    ],
-    "completed_references": [
-      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-      ".agents/contracts/WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json",
-      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
-      "release_required_artifacts.json"
-    ],
-    "observed_at": "2026-10-09T04:29:04Z"
   }
 }
