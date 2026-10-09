@@ -12,8 +12,8 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 4,
-  "head_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
+  "generation": 5,
+  "head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
   "issue": 1443,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
@@ -36,10 +36,10 @@
   },
   "next_action": {
     "args": {
-      "diff_digest": "6774546228afc59f3245275e4ca71c2aeebc803e8cab3cade63683be17b26829"
+      "workflow": ".github/workflows/whd-control-plane-regression.yml"
     },
-    "display": "Apply exact RC-tested Issue1443 content",
-    "kind": "APPLY_COMMIT"
+    "display": "Validate PR CI exact issue1443 head",
+    "kind": "START_QA"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
@@ -57,7 +57,7 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTING",
+  "semantic_state": "IMPLEMENTATION_COMMITTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
@@ -65,13 +65,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
   "transaction": {
-    "expected_fingerprint": "29c9ec67cc3dc32ee3140d62356e94673f98a9a02a40f99965252a4d3a05ee61",
-    "id": "gha:37883741450:1443:START_BRANCH:3",
+    "expected_fingerprint": "aef6fe2a1b7eec01a27f2db85f0b553a5cf985d8c64be507365e25a004f6e6c4",
+    "id": "gha:37883864875:1443:APPLY_COMMIT:4",
     "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-    "kind": "START_BRANCH",
+    "kind": "APPLY_COMMIT",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T04:25:25Z",
+  "updated_at": "2026-10-09T04:27:09Z",
   "version": 2,
   "work_branch": "work/issue-1443-ci-gate-shortest-path"
 }
