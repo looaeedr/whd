@@ -143,5 +143,3 @@ def test_trusted_sync_target_uses_github_merge_and_requires_exact_head_revalidat
     assert effect["semantic_state"] == "QA_INVALIDATED_BY_TARGET_SYNC"
     assert effect["next_action"]["kind"] == "START_QA"
     assert effect["next_action"]["args"]["post_accept_pr_number"] == 891
-
-[executed on device: 5bca4a576178 (b0fad557-80aa-4ade-ab0b-d009a426005a)]
