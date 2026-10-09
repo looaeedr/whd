@@ -1,14 +1,35 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1384-same-owner-renew-20261009-0331",
+  "request_id": "issue1384-native-reconcile-live-target-20261009-0334",
   "issue": 1384,
-  "kind": "ACQUIRE",
+  "kind": "RECONCILE",
   "lane_id": "chatgpt.flowv2.work3",
   "invocation_identity": "chatgpt.issue1384.dm8c2.work3.20261009.0331",
-  "expected_coord_head": "b0b7237cdd42fbe7561a70159e24ed0871f0730b",
+  "expected_coord_head": "2783cb2d5f939760bf81a6d16ec4332b8c3ac31b",
   "expected_generation": 2,
-  "effect": {},
-  "purpose": "Renew exact same-owner expired #1384 work3 lease; preserve six-path tested reservation, frozen unlocked candidate c823225, START_BRANCH; no replacement owner",
+  "effect": {
+    "observed_work_branch": "work/issue-1384",
+    "observed_head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+    "observed_target_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
+    "next_action": {
+      "args": {
+        "diff_digest": "74ff856e56f2f8f573047b62e150264b1d3daaa39482de2a83a457f226d6bd4e"
+      },
+      "display": "Publish exact tested DM8-C2 six-file scene-seam commit",
+      "kind": "START_BRANCH"
+    },
+    "stale_record_live_target_reconcile_proof": {
+      "schema": "WHD_FLOW_V2_STALE_RECORD_LIVE_TARGET_RECONCILE_PROOF_V1",
+      "issue": 1384,
+      "stale_source_branch": "cleanup/2d-3d-sync",
+      "stale_source_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+      "stale_target_branch": "cleanup/2d-3d-sync",
+      "stale_target_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+      "live_target_branch": "cleanup/2d-3d-sync",
+      "live_target_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc"
+    }
+  },
+  "purpose": "Native RECONCILE stale #1384 source and target identity against live target (ancestry must prove), preserve existing owner/reservation/candidate/next_action, then renew same-owner expired lease",
   "work_root_gate_evidence": {
     "schema": "WHD_WORK_ROOT_GATE_EVIDENCE_V2",
     "gate_schema": "WHD_WORK_ROOT_HARD_GATE_V2",
