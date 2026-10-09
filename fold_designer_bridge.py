@@ -2331,6 +2331,9 @@ def _phase6_install_part_editor_compatibility(self):
         on_switch_brand_selected=lambda brand: _phase6_on_receiving_switch_brand_selected(
             self, brand
         ),
+        on_switch_tier_selected=lambda tier: _phase6_composition(
+            self
+        ).set_receiving_switch_tier_ui(globals(), tier),
         on_add_layer=lambda: _phase6_add_receiving_layer(self),
         on_remove_layer=lambda: _phase6_remove_receiving_layer(self),
     )
