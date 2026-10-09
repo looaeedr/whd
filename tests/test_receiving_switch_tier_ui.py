@@ -136,6 +136,7 @@ def test_real_tk_tier_selection_syncs_header_settings_and_overrides_start_collap
             header.switch_tier_var.set(model.switch_tier or "請選擇")
             header.switch_tier_nominal_var.set(switch_tier_nominal_text(model.switch_tier))
         sync_header = sync
+        header.frame.pack(fill=tk.X)
         settings = controls._build_receiving_settings_editor(root, tk=tk, ttk=ttk, ports=ports)
         root.update()
         assert header.switch_tier_var.get() == "請選擇"
@@ -154,6 +155,19 @@ def test_real_tk_tier_selection_syncs_header_settings_and_overrides_start_collap
         header.switch_brand_selector.event_generate("<<ComboboxSelected>>")
         root.update()
         assert set_row["switch_brand"] == "東元"
+        settings._receiving_switch_brand_var.set("三菱")
+        def buttons(widget):
+            for child in widget.winfo_children():
+                if isinstance(child, ttk.Button):
+                    yield child
+                yield from buttons(child)
+        next(
+            button for button in buttons(settings)
+            if button.cget("text") == "套用品牌"
+        ).invoke()
+        root.update()
+        assert set_row["switch_brand"] == "三菱"
+        assert header.switch_brand_var.get() == "三菱"
         settings._receiving_switch_tier_var.set("兩層")
         settings._receiving_switch_tier_selector.event_generate("<<ComboboxSelected>>")
         root.update()
