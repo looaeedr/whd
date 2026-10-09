@@ -408,17 +408,28 @@ def _physical_mating_contact(
     if not locator_records or not attached_records:
         raise ValueError("mapped physical skins are missing")
 
-    locator_center = _geometry_centroid(locator_records)
-    attached_center = _geometry_centroid(attached_records)
-    toward_attached = _unit(_sub(attached_center, locator_center))
+    # The center of an entire folded side plate includes its front/rear
+    # flanges. The vector from that centroid to a nearby frame can therefore
+    # point OUTWARD even though its true contact is on the INSIDE skin.
+    # Choose the manufacturing mother-plate side explicitly, then check
+    # the actual opposite physical skin and coplanar overlap. Never use
+    # global bboxes, part centroids or projection distance as mate authority.
+    mother_inside_normals = {
+        "box_body:left_side": (1.0, 0.0, 0.0),
+        "box_body:right_side": (-1.0, 0.0, 0.0),
+        "head": (0.0, -1.0, 0.0),
+    }
+    mother_normal = mother_inside_normals.get(str(locator_id))
+    if mother_normal is None:
+        raise ValueError(f"no approved receiving mother-plate inside skin: {locator_id}")
     epsilon = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.polygon_robustness_epsilon)
     plane_tolerance = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.coplanar_distance_tolerance)
 
     candidates = []
     for locator_group in _mapped_plane_groups(locator_records):
         locator_outward = _unit(_outward_normal(locator_group[0]))
-        locator_alignment = _dot(locator_outward, toward_attached)
-        if locator_alignment <= 0.0:
+        locator_alignment = _dot(locator_outward, mother_normal)
+        if locator_alignment < 1.0 - 1e-6:
             continue
         locator_origin = tuple(float(v) for v in locator_group[0].world[0])
         plane_normal = _canonical_plane_normal(_triangle_normal(locator_group[0].world))
@@ -427,7 +438,9 @@ def _physical_mating_contact(
 
         for attached_group in _mapped_plane_groups(attached_records):
             attached_outward = _unit(_outward_normal(attached_group[0]))
-            if _dot(attached_outward, toward_attached) >= 0.0:
+            # Only the outward skin of the last 22-mm flange may mate.
+            # Its physical normal must oppose the mother's inside normal.
+            if _dot(attached_outward, mother_normal) > -1.0 + 1e-6:
                 continue
             attached_plane_normal = _canonical_plane_normal(_triangle_normal(attached_group[0].world))
             parallel = abs(_dot(plane_normal, attached_plane_normal))
