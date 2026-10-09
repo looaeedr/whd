@@ -136,9 +136,15 @@ def place_assembly_points(points, reference_triangles, placement, dimensions, of
             # Authoritative placements already carry their absolute world datum
             # in offset. Do not add a second depth/2, -H/2, or origin rule.
             wx, wy, wz = cx, cy, cz
+        elif placement == "inner_door_frame_left":
+            # The LAST 22-mm flange must face the left side plate.
+            # Unlike the right frame, left's folded-U axis points toward -X.
+            # Keep its original signed -22/20/46/22 fold topology unchanged.
+            wx, wy, wz = -cx, cy, cz
         elif placement == "inner_door_frame_top":
-            # Frame blank longitudinal Y maps to cabinet X.
-            wx, wy, wz = cy, -cx, cz
+            # The LAST 22-mm flange mates the head EndCap above (+Y).
+            # Longitudinal local Y maps to cabinet X; local U points +Y.
+            wx, wy, wz = cy, cx, cz
         elif placement in {"top", "head"}:
             wx, wy, wz = cx, height / 2.0 + cz, cy
         elif placement in {"bottom", "tail"}:
