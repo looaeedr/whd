@@ -1,4 +1,4 @@
-"""Physical-contact guard: registration cannot turn a detached frame into a mate.
+"""Physical-skin guard: registration cannot turn a detached frame into a mate.
 
 These small synthetic planes isolate the geometry contract from Receiving GUI,
 outer-door width and any historical fixture coordinates.
@@ -39,8 +39,8 @@ def _contact(attached_midplane_x: float, *, frame_y: float = 0.0):
     )
 
 
-def test_opposed_physical_skins_mate_when_midplanes_are_one_thickness_apart():
-    result = _contact(2.0)
+def test_opposed_physical_skins_mate_only_when_actual_skin_planes_coincide():
+    result = _contact(0.0)
     assert result.evidence["contact_mode"] == (
         "VERIFIED_SKIN_TO_SKIN_CONTACT_UV_REGISTRATION"
     )
@@ -48,12 +48,12 @@ def test_opposed_physical_skins_mate_when_midplanes_are_one_thickness_apart():
     assert float(result.evidence["overlap_area"]) > 0
 
 
-@pytest.mark.parametrize("midplane_x", [1.0, 3.0, 50.0])
-def test_projection_must_not_certify_penetration_or_a_real_gap(midplane_x):
+@pytest.mark.parametrize("skin_plane_x", [-1.0, 1.0, 3.0, 50.0])
+def test_projection_must_not_certify_non_coplanar_physical_skins(skin_plane_x):
     with pytest.raises(ValueError, match="no physical mother-plate/frame face contact"):
-        _contact(midplane_x)
+        _contact(skin_plane_x)
 
 
 def test_projection_must_not_certify_parallel_non_overlapping_skins():
     with pytest.raises(ValueError, match="no physical mother-plate/frame face contact"):
-        _contact(2.0, frame_y=20.0)
+        _contact(0.0, frame_y=20.0)
