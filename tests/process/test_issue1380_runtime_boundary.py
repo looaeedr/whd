@@ -104,6 +104,7 @@ class GitHubProvider:
 
 
 def installed(monkeypatch, current, provider, *, fresh=None):
+    monkeypatch.setattr(executor, "_verified_sync_target_user_token", lambda repo: "verified-test-user-pat")
     monkeypatch.setattr(executor, "_api", provider.api)
     monkeypatch.setattr(executor, "_load_state",
         lambda *args: ("e" * 40, "f" * 40, {1380: fresh or current}))
@@ -211,3 +212,5 @@ def test_executor_readback_mode_cannot_publish_a_mutating_transition(monkeypatch
             issue=1380, kind="MERGE", lane_id="chatgpt.flowv2.work1", invocation_identity=INV,
             supplied_effect={"runtime_mode": "READBACK_ONLY"})
     assert provider.mutations == []
+
+[executed on device: 5bca4a576178 (b0fad557-80aa-4ade-ab0b-d009a426005a)]
