@@ -31,7 +31,10 @@ from .receiving_layout import (
     derive_bay_lock_state,
     normalize_receiving_layout,
 )
-from .receiving_joint_marking import _owner_render_data, _replace_owner_render_data
+from .manufacturing_scene_access import (
+    owner_render_data,
+    replace_owner_render_data,
+)
 from .sheetmetal_drawing import (
     CirclePrimitive,
     DrawingScene,
@@ -555,7 +558,7 @@ def resolve_receiving_pairing_marking(
             result=diagnostic,
         )
 
-    data = _owner_render_data(geometry, _OWNER_KEY)
+    data = owner_render_data(geometry, _OWNER_KEY)
     if data is None:
         diagnostic = ReceivingPairingMarkDiagnostic(
             set_id=set_id, bay_id=bay_id, physical_piece=_OWNER_KEY, status="BLOCKED",
@@ -569,7 +572,7 @@ def resolve_receiving_pairing_marking(
         )
 
     cleaned = _clean_prior_pairing_marks(data)
-    cleaned_geometry = _replace_owner_render_data(geometry, _OWNER_KEY, cleaned)
+    cleaned_geometry = replace_owner_render_data(geometry, _OWNER_KEY, cleaned)
     mapping = tuple(
         dict(world_geometry or {}).get("mapped_skin_triangles_by_part", {}).get(_OWNER_KEY, ())
         or ()
@@ -592,7 +595,7 @@ def resolve_receiving_pairing_marking(
             "issue": 1116,
         }
         updated = replace(cleaned, scene=scene, metadata=metadata)
-        enriched = _replace_owner_render_data(cleaned_geometry, _OWNER_KEY, updated)
+        enriched = replace_owner_render_data(cleaned_geometry, _OWNER_KEY, updated)
         diagnostic = ReceivingPairingMarkDiagnostic(
             set_id=set_id, bay_id=bay_id, physical_piece=_OWNER_KEY, status="EMITTED",
             diagnostic_code=None, diagnostic_detail="", back_panel_mode=mode,

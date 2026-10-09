@@ -36,6 +36,10 @@ from .inner_door_frames import (
     inner_door_frame_stable_id,
 )
 from .joint_marking_policy import stable_joint_mark_id
+from .manufacturing_scene_access import (
+    owner_render_data,
+    replace_owner_render_data,
+)
 from .sheetmetal_drawing import DrawingScene, LinePrimitive
 
 
@@ -195,13 +199,13 @@ def _clean_render_data(render_data):
             changed = changed or new_render != piece_render
         if not changed:
             return render_data
-        from .manufacturing_api import _exploded_box_body_preview
+        from .manufacturing_render_data import build_exploded_box_body_preview
 
         cleaned = tuple(cleaned)
         return replace(
             render_data,
             pieces=cleaned,
-            preview_render_data=_exploded_box_body_preview(cleaned),
+            preview_render_data=build_exploded_box_body_preview(cleaned),
         )
 
     if not hasattr(render_data, "metadata"):
@@ -223,76 +227,6 @@ def _clean_geometry_prior_joint_markings(
         if not isinstance(item, ResolvedJointMarkingResult)
     )
     return replace(geometry, parts=parts, diagnostics=diagnostics)
-
-
-def _owner_render_data(
-    geometry: ResolvedManufacturingGeometry,
-    owner_key: str,
-):
-    key = str(owner_key)
-    direct = _part_map(geometry).get(key)
-    if direct is not None:
-        return direct.render_data
-    if key.startswith("box_body:"):
-        body = _part_map(geometry).get("box_body")
-        if body is not None:
-            role = key.split(":", 1)[1].strip().lower()
-            for piece in tuple(getattr(body.render_data, "pieces", ()) or ()):
-                if str(getattr(piece, "role", "") or "").strip().lower() == role:
-                    return piece.render_data
-    return None
-
-
-def _replace_owner_render_data(
-    geometry: ResolvedManufacturingGeometry,
-    owner_key: str,
-    render_data,
-) -> ResolvedManufacturingGeometry:
-    key = str(owner_key)
-    if key in _part_map(geometry):
-        return replace(
-            geometry,
-            parts=tuple(
-                replace(part, render_data=render_data)
-                if str(part.part_key) == key
-                else part
-                for part in tuple(geometry.parts or ())
-            ),
-        )
-
-    if not key.startswith("box_body:"):
-        raise KeyError(key)
-    body = _part_map(geometry).get("box_body")
-    if body is None:
-        raise KeyError(key)
-    role = key.split(":", 1)[1].strip().lower()
-    pieces = []
-    found = False
-    for piece in tuple(getattr(body.render_data, "pieces", ()) or ()):
-        if str(getattr(piece, "role", "") or "").strip().lower() == role:
-            pieces.append(replace(piece, render_data=render_data))
-            found = True
-        else:
-            pieces.append(piece)
-    if not found:
-        raise KeyError(key)
-    from .manufacturing_api import _exploded_box_body_preview
-
-    pieces = tuple(pieces)
-    structure = replace(
-        body.render_data,
-        pieces=pieces,
-        preview_render_data=_exploded_box_body_preview(pieces),
-    )
-    return replace(
-        geometry,
-        parts=tuple(
-            replace(part, render_data=structure)
-            if str(part.part_key) == "box_body"
-            else part
-            for part in tuple(geometry.parts or ())
-        ),
-    )
 
 
 def _fail(
@@ -731,7 +665,7 @@ def _emitted_result(*, locator_id, attached_id, row, contact):
 def _write_rows(geometry, rows_by_owner):
     enriched = geometry
     for owner_key, rows in sorted(rows_by_owner.items()):
-        data = _owner_render_data(enriched, owner_key)
+        data = owner_render_data(enriched, owner_key)
         if data is None:
             continue
         scene, metadata = _clean_prior_joint_markings(data)
@@ -752,7 +686,7 @@ def _write_rows(geometry, rows_by_owner):
                 raise ValueError(f"mark outside Final Material: {owner_key}")
             scene.add_line(row["p1"], row["p2"], layer="MARKING")
         metadata["joint_markings"] = tuple(metadata.get("joint_markings") or ()) + ordered
-        enriched = _replace_owner_render_data(
+        enriched = replace_owner_render_data(
             enriched,
             owner_key,
             replace(data, scene=scene, metadata=metadata),
@@ -900,7 +834,7 @@ def resolve_receiving_joint_markings(
                 targets.append(("head", "UPPER_HORIZONTAL", "MOTHER_PLATE"))
 
             for locator_id, boundary_role, mode in targets:
-                if _owner_render_data(geometry, locator_id) is None:
+                if owner_render_data(geometry, locator_id) is None:
                     results.append(
                         _fail(
                             locator_part_id=locator_id,
@@ -935,7 +869,7 @@ def resolve_receiving_joint_markings(
                     )
                     # Fail before writeback when the contact-derived line cannot
                     # land on the true locator mother plate.
-                    owner_data = _owner_render_data(geometry, locator_id)
+                    owner_data = owner_render_data(geometry, locator_id)
                     line = LineString((row["p1"], row["p2"]))
                     if not owner_data.material.covers(line):
                         raise ValueError("contact boundary is outside locator Final Material")
