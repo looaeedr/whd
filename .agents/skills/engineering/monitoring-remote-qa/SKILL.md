@@ -12,7 +12,7 @@ whd_schema: WHD_DOC_META_V1
 ## QA 輪詢與交付閘門
 
 - `queued / waiting / pending / in_progress` → **CONTINUE_POLL**。輪詢 exact SHA 的 checks + job；工作仍可執行時不得「CI 跑著就結束」；每 2–3 操作回報，不能用回報代替續作。
-- `completed / success` → 若 PR base=`localX`、工作分支及 exact SHA 核准條件符合，`/派工` **先進 `LOCALX_INTEGRATION` 透過 DC 整合本機 `localX`**，必要整合驗證後非強制同步遠端 GitHub `localX`、回讀兩端 SHA／PR；**只有 DC 確實無法連線**才直接合併遠端 `localX` 並標記 `DC_UNREACHABLE`／`LOCALX_SYNC_PENDING`，不可聲稱本機已同步。之後工單 close/readback。**測試 GREEN 不是派工終點**。
+- `completed / success` → 若 PR base=`localX`、工作分支及 exact SHA 核准條件符合，`/派工` **先進 `LOCALX_INTEGRATION` 透過 DC 整合本機 `localX`**，必要整合驗證後非強制同步遠端 GitHub `localX`、回讀兩端 SHA／PR；**只有 DC 確實無法連線**才直接合併遠端 `localX` 並標記 `DC_UNREACHABLE`／`LOCALX_SYNC_PENDING`，不可聲稱本機已同步；若 PR 已標示 merged 也必須回讀本機／遠端證據。之後工單 close/readback。**測試 GREEN 不是派工終點**。
 - **`localX` merge + SHA 回讀即觸發 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，不等原工單 close；原工單回寫及結案與下一張搜尋銜接處理。可執行者直接續派並施工；若無候選須回報 `NO_ELIGIBLE_ISSUE` 和實際查核依據，不能把 CI/merge/close 當成停止條件。
 
 - `completed / failure / cancelled / timed_out` → 檢查 logs，修復後重試，不得將其他 commit 的 GREEN 當成同一 HEAD。
