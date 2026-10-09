@@ -147,6 +147,12 @@ class Phase6ProjectController:
             "assembly_placements": deepcopy(owner.get("assembly_placements") or {}),
             "assembly_relief": deepcopy(assembly_relief or {}),
         })
+        if "active_mode" in owner:
+            snapshot["active_mode"] = owner["active_mode"]
+        if owner.get("quantity") is not None:
+            snapshot["quantity"] = deepcopy(owner["quantity"])
+        else:
+            snapshot.pop("quantity", None)
         return {
             "schema": str(schema),
             "saved_at": saved_at or Phase6ProjectController._default_clock(),
