@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 6,
+  "generation": 7,
   "head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
   "issue": 1443,
   "lane_id": "chatgpt.flowv2.work1",
@@ -36,16 +36,19 @@
   },
   "next_action": {
     "args": {
-      "workflow": ".github/workflows/whd-control-plane-regression.yml"
+      "head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
+      "pr_number": 1444,
+      "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml",
+      "target_branch": "cleanup/2d-3d-sync"
     },
-    "display": "Validate PR CI exact issue1443 head",
-    "kind": "START_QA"
+    "display": "Merge PR #1444 after all exact-head real CI GREEN",
+    "kind": "MERGE"
   },
   "owner_id": "chatgpt.flowv2.work1",
   "owner_kind": "SCHEDULER",
   "qa": {
-    "accepted_head_sha": null,
-    "last_accepted_run": null
+    "accepted_head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
+    "last_accepted_run": 37884262121
   },
   "recovery_history": [
     {
@@ -57,21 +60,21 @@
     }
   ],
   "schema": "WHD_EXECUTION_RECORD_V2",
-  "semantic_state": "IMPLEMENTATION_COMMITTED",
+  "semantic_state": "QA_ACCEPTED",
   "slot_id": "worker.slot.1",
   "source_branch": "cleanup/2d-3d-sync",
   "source_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
-  "state": "ACTIVE",
+  "state": "INTEGRATING",
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
   "transaction": {
-    "expected_fingerprint": "e34ed57f0eba881aa3402f1fbab80f11d93ef943dcc897d1ff09ab31fe45a865",
-    "id": "gha:37884115163:1443:ACQUIRE:5",
+    "expected_fingerprint": "e6c5f296ea7cba771091fc5bf4aba4e3cd21c41397ed7c9f52a02f7cd3ba9d2e",
+    "id": "gha:37884336959:1443:CONSUME_QA:6",
     "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-    "kind": "ACQUIRE",
+    "kind": "CONSUME_QA",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T04:30:47Z",
+  "updated_at": "2026-10-09T04:33:32Z",
   "version": 2,
   "work_branch": "work/issue-1443-ci-gate-shortest-path"
 }
