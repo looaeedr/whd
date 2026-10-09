@@ -21,6 +21,9 @@ class Phase6WorkspaceController:
         self._authoritative = False
         self._active_mode = None
         self._quantity_model = None
+        self._receiving_quantity_box = None
+        self._receiving_layout = None
+        self._receiving_mode_session = None
         self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
         self._box_body_profile: list | None = None
         self._assembly_placements: dict[str, dict[str, object]] = {}
@@ -130,6 +133,18 @@ class Phase6WorkspaceController:
     def quantity_model(self):
         return self._quantity_model
 
+    def reset_receiving_mode_session(self):
+        self._receiving_mode_session = None
+
+    def adopt_receiving_mode_session(self, session):
+        self._receiving_mode_session = session
+
+    def receiving_mode_session(self, snapshot):
+        from phase6_receiving_modes import ReceivingModeSession
+        if self._receiving_mode_session is None:
+            self._receiving_mode_session = ReceivingModeSession(snapshot)
+        return self._receiving_mode_session
+
     def commit_workspace(self, workspace: Mapping[str, object]) -> dict:
         raw = dict(workspace or {})
         quantity = None
@@ -141,6 +156,10 @@ class Phase6WorkspaceController:
         elif quantity is not None:
             self._active_mode = "quantity"
             self._quantity_model = quantity
+        if "receiving_layout" in raw or "active_mode" in raw:
+            self._receiving_layout = self._clone(raw.get("receiving_layout"))
+        if "active_mode" in raw or "receiving_quantity_box" in raw:
+            self._receiving_quantity_box = self._clone(raw.get("receiving_quantity_box"))
         existing = raw.get("existing_parts") if "existing_parts" in raw else (
             self._shared_state.existing_parts if self._authoritative else self._fallback_existing_parts
         )
@@ -171,6 +190,9 @@ class Phase6WorkspaceController:
         self._authoritative = False
         self._active_mode = None
         self._quantity_model = None
+        self._receiving_quantity_box = None
+        self._receiving_layout = None
+        self._receiving_mode_session = None
         self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
         self._box_body_profile = None
         self._assembly_placements = {}
@@ -230,6 +252,10 @@ class Phase6WorkspaceController:
             snapshot["active_mode"] = self._active_mode
         if self._quantity_model is not None:
             snapshot["quantity"] = self._quantity_model.snapshot()
+        if self._receiving_layout is not None and self._active_mode != "quantity":
+            snapshot["receiving_layout"] = self._clone(self._receiving_layout)
+        if self._receiving_quantity_box is not None:
+            snapshot["receiving_quantity_box"] = self._clone(self._receiving_quantity_box)
         return snapshot
 
     def legacy_bundle(self) -> dict | None:

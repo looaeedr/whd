@@ -449,6 +449,7 @@ def _apply_existing_parts_from_fold_workspace(self, existing_parts):
 
 def _apply_phase6_project_snapshot(self, snapshot):
     """Restore one all-part .p6fold snapshot into the main GUI state."""
+    self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
     model = normalize_custom_model_name(snapshot.get("model"))
@@ -574,7 +575,7 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
         workspace["assembly_placements"] = deepcopy(snapshot["assembly_placements"])
     if "custom_parts" in workspace_state:
         workspace["custom_parts"] = deepcopy(workspace_state["custom_parts"])
-    for key in ("active_mode", "quantity", "custom_parts"):
+    for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
         if key in workspace_state:
             snapshot[key] = deepcopy(workspace_state[key])
     snapshot["workspace"] = workspace
@@ -666,7 +667,7 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
         "part_features": snapshot.get("part_features") or ws_source.get("part_features", {}),
         "part_face_features": snapshot.get("part_face_features") or ws_source.get("part_face_features", {}),
         "custom_parts": deepcopy(snapshot.get("custom_parts", ws_source.get("custom_parts"))),
-        **{key: deepcopy(snapshot[key]) for key in ("active_mode", "quantity") if key in snapshot},
+        **{key: deepcopy(snapshot[key]) for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout") if key in snapshot},
     })
     self._sync_fold_designer_manual_corner_context(snapshot.get("active_part"))
     self._reload_current_baseline_features()
@@ -726,7 +727,7 @@ def _store_fold_designer_workspace(self, workspace):
         committed_workspace["part_face_features"] = deepcopy(workspace["part_face_features"])
     if "assembly_placements" in workspace:
         committed_workspace["assembly_placements"] = deepcopy(workspace["assembly_placements"])
-    for key in ("active_mode", "quantity", "custom_parts"):
+    for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
         if key in workspace:
             committed_workspace[key] = deepcopy(workspace[key])
     self.workspace_controller.commit_workspace(committed_workspace)

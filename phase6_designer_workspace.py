@@ -23,6 +23,7 @@ class Phase6DesignerWorkspace:
         switching: bool = False,
         active_mode: str = "quantity",
         quantity: Mapping[str, object] | None = None,
+        receiving_quantity_box: Mapping[str, object] | None = None,
     ) -> None:
         self._shared_state = shared_state or SharedWorkspaceState(active_repair="none")
         self._selected_part = selected_part
@@ -32,6 +33,7 @@ class Phase6DesignerWorkspace:
         self._dirty = bool(dirty)
         self._switching = bool(switching)
         self._active_mode = active_mode
+        self._receiving_quantity_box = deepcopy(receiving_quantity_box)
         self._quantity_model = None
         if active_mode == "quantity":
             self._quantity_model = (
@@ -72,7 +74,27 @@ class Phase6DesignerWorkspace:
             switching=False,
             active_mode=source["active_mode"],
             quantity=source.get("quantity"),
+            receiving_quantity_box=source.get("receiving_quantity_box"),
         )
+
+    def replace_receiving_snapshot(self, snapshot):
+        """Replace state in place so existing navigation ports keep their owner."""
+        candidate = type(self).from_snapshot(snapshot)
+        self.__dict__.update(candidate.__dict__)
+        if self._quantity_model is not None:
+            self._quantity_model._on_change = self.mark_dirty
+        self.mark_dirty()
+
+    def set_receiving_common_box(self, box):
+        if self._quantity_model is None:
+            raise ValueError("共用箱體設定僅適用於數量模式")
+        candidate = normalize_quantity_snapshot({
+            "model": "受電箱", "active_mode": self._active_mode,
+            "quantity": self._quantity_model.snapshot(), "receiving_quantity_box": box,
+        })["receiving_quantity_box"]
+        if candidate != self._receiving_quantity_box:
+            self._receiving_quantity_box = candidate
+            self.mark_dirty()
 
     @property
     def quantity_model(self) -> QuantityModel | None:
@@ -393,6 +415,8 @@ class Phase6DesignerWorkspace:
         result["active_mode"] = self._active_mode
         if self._quantity_model is not None:
             result["quantity"] = self._quantity_model.snapshot()
+        if self._receiving_quantity_box is not None:
+            result["receiving_quantity_box"] = deepcopy(self._receiving_quantity_box)
         return result
 
     def snapshot(self) -> dict[str, object]:
@@ -406,4 +430,6 @@ class Phase6DesignerWorkspace:
         })
         if self._quantity_model is not None:
             result["quantity"] = self._quantity_model.snapshot()
+        if self._receiving_quantity_box is not None:
+            result["receiving_quantity_box"] = deepcopy(self._receiving_quantity_box)
         return result

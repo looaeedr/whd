@@ -153,6 +153,10 @@ class Phase6ProjectController:
             snapshot.pop("custom_parts", None)
         if "active_mode" in owner:
             snapshot["active_mode"] = owner["active_mode"]
+        if owner.get("receiving_quantity_box") is not None:
+            snapshot["receiving_quantity_box"] = deepcopy(owner["receiving_quantity_box"])
+        else:
+            snapshot.pop("receiving_quantity_box", None)
         if owner.get("quantity") is not None:
             snapshot["quantity"] = deepcopy(owner["quantity"])
         else:

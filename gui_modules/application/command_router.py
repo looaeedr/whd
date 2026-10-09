@@ -176,6 +176,7 @@ def execute_fold_designer_update_reasons(
         getattr(owner, "_phase6_sync_ready", False)
         and not getattr(owner, "_phase6_initializing", False)
         and not getattr(owner, "_phase6_external_apply_guard", False)
+        and not getattr(owner, "_phase6_defer_input_publish", False)
         and callable(getattr(owner, "_live_sync_callback", None))
     ):
         publish_if_changed()

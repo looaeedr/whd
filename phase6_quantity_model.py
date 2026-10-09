@@ -15,7 +15,7 @@ QUANTITY_MODE = "quantity"
 SET_BAY_MODE = "set_bay"
 _VERSION_KEYS = {"version_id", "piece_count", "head_features", "tail_features"}
 _PAYLOAD_KEYS = {"schema", "versions", "selected_version_id", "next_version_number"}
-_SESSION_KEYS = ("_mode_buffers", "_quantity_session", "_set_bay_session")
+_SESSION_KEYS = ("_mode_buffers", "_quantity_session", "_set_bay_session", "_quantitySession", "_setBaySession")
 _ID_PATTERN = re.compile(r"quantity-v([1-9][0-9]*)\Z")
 
 
@@ -181,8 +181,20 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
     if for_save:
         for key in _SESSION_KEYS:
             result.pop(key, None)
+    if for_save and isinstance(result.get("workspace"), Mapping):
+        workspace = deepcopy(dict(result["workspace"]))
+        for key in _SESSION_KEYS:
+            workspace.pop(key, None)
+        workspace.pop("receiving_layout", None)
+        workspace.pop("receiving_quantity_box", None)
+        workspace.pop("quantity", None)
+        if mode == SET_BAY_MODE:
+            workspace.pop("receiving_quantity_box", None)
+            workspace.pop("quantity", None)
+        result["workspace"] = workspace
     if mode == SET_BAY_MODE:
         result.pop("quantity", None)
+        result.pop("receiving_quantity_box", None)
         return result
     payload = result.get("quantity")
     if payload is None:
@@ -195,6 +207,19 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
     else:
         model = QuantityModel.from_payload(payload)
     result["quantity"] = model.snapshot()
+    if receiving:
+        from ae_engine.receiving_quantity_box import BOX_KEY, normalize_common_box
+        result[BOX_KEY] = normalize_common_box(result.get(BOX_KEY))
+        if for_save:
+            result.pop("receiving_layout", None)
+            result.pop("receiving_switch_layout", None)
+            result.pop("_receiving_runtime_selection", None)
+            for role in ("head", "tail"):
+                result.pop(f"{role}_holes", None)
+            surface = deepcopy(dict(result.get("surface_features") or {}))
+            for role in ("head", "tail"):
+                surface.pop(role, None)
+            result["surface_features"] = surface
     part_features = deepcopy(dict(result.get("part_features") or {}))
     for part in ("head", "tail"):
         if for_save:

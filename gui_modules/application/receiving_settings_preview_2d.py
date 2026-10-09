@@ -47,9 +47,10 @@ def refresh_committed_preview(view, request_provider):
 
 
 class ReceivingSettingsPreview2D:
-    def __init__(self, parent, *, tk, ttk, requests, panel=None):
+    def __init__(self, parent, *, tk, ttk, requests, panel=None, common_box=False):
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
         from matplotlib.figure import Figure
+        self.common_box = bool(common_box)
         self.figure = Figure(figsize=(10, 6.2), dpi=100)
         self.ax = self.figure.add_subplot(111)
         self.figure.subplots_adjust(left=.01, right=.99, bottom=.01, top=.99)
@@ -130,7 +131,7 @@ class ReceivingSettingsPreview2D:
                                     "內門" if role.startswith("inner_door") else
                                     "門" if role.startswith("door") else "板件")
                 text = self.ax.text(bay_index*310+15, -ordinal*270+237,
-                                    f"第{bay_index+1}連｜{label}", color="#d1d5db", fontsize=8)
+                                    f"共用箱體｜{label}" if self.common_box else f"第{bay_index+1}連｜{label}", color="#d1d5db", fontsize=8)
                 self.tiles.append((bay_index, role, key, rect, tuple(artists)+(text,)))
         self.ax.set_aspect("equal", adjustable="box")
         self.ax.autoscale_view()

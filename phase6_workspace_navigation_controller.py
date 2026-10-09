@@ -53,6 +53,10 @@ class Phase6WorkspaceNavigationController:
             str(remembered_box_body_child) if remembered_box_body_child else None
         )
 
+    def replace_receiving_mode(self, snapshot):
+        self._workspace.replace_receiving_snapshot(snapshot)
+        self._memory = NavigationMemory()
+
     @property
     def workspace(self):
         return self._workspace

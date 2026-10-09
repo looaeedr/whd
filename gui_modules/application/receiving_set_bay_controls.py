@@ -92,16 +92,18 @@ def open_receiving_layer_preview(
     settings_ports=None,
     bay_requests=(),
     bay_request_provider=None,
+    common_box=False,
+    preview_error=None,
 ) -> bool:
     """Show committed physical DrawingScenes in an interactive 2D settings view."""
     index = int(layer_index)
     count = max(1, int(connection_count))
     label = str(brand)
-    if render_request is None:
+    if render_request is None and not preview_error:
         raise ValueError("Receiving preview requires a FinalScene render request")
 
     win = tk.Toplevel(parent)
-    win.title(f"第{index + 1}套設定")
+    win.title("共用箱體設定" if common_box else f"第{index + 1}套設定")
     win.transient(parent)
     # Open the settings surface maximized. Keep a portable fallback for Tk builds
     # that do not support the Windows ``zoomed`` state.
@@ -122,7 +124,7 @@ def open_receiving_layer_preview(
     body = ttk.Frame(win, padding=0)
     body.pack(fill=tk.BOTH, expand=True)
     ttk.Label(
-        body, text=f"第{index + 1}套｜{count}連｜開關：{label}"
+        body, text="所有孔型版本共同引用此箱體" if common_box else f"第{index + 1}套｜{count}連｜開關：{label}"
     ).pack(anchor=tk.W, pady=(0, 6))
 
     settings_panel = None
@@ -139,7 +141,7 @@ def open_receiving_layer_preview(
         settings_host.columnconfigure(0, weight=1)
         settings_content = ttk.Frame(settings_viewport)
         settings_window = settings_viewport.create_window((0, 0), window=settings_content, anchor="nw")
-        settings_panel = _build_receiving_settings_editor(settings_content, tk=tk, ttk=ttk, ports=settings_ports)
+        settings_panel = _build_receiving_settings_editor(settings_content, tk=tk, ttk=ttk, ports=settings_ports, common_box=common_box)
 
         def resize_settings(event=None):
             requested = settings_content.winfo_reqwidth()
@@ -154,7 +156,10 @@ def open_receiving_layer_preview(
 
     from .receiving_settings_preview_2d import ReceivingSettingsPreview2D, refresh_committed_preview
     view = ReceivingSettingsPreview2D(body, tk=tk, ttk=ttk,
-        requests=tuple(bay_requests) or (render_request,), panel=settings_panel)
+        requests=tuple(bay_requests) or ((render_request,) if render_request is not None else ()),
+        panel=settings_panel, common_box=common_box)
+    if preview_error:
+        view.invalidate(str(preview_error))
     if settings_panel is not None:
         settings_panel._receiving_after_selection = view.update_overlay
         subscribe = settings_ports.get("subscribe")
@@ -169,7 +174,8 @@ def open_receiving_layer_preview(
     ttk.Button(actions, text="放大", command=lambda: view.zoom(.8)).pack(side=tk.LEFT)
     ttk.Button(actions, text="縮小", command=lambda: view.zoom(1.25)).pack(side=tk.LEFT)
     ttk.Button(actions, text="重設視角", command=view.reset_view).pack(side=tk.LEFT)
-    ttk.Label(actions, text="先選修改項目，再選連｜滾輪：縮放｜中鍵拖曳：平移").pack(side=tk.LEFT, padx=8)
+    ttk.Label(actions, text=("共用設定套用至所有孔型版本｜滾輪：縮放｜中鍵拖曳：平移"
+                             if common_box else "先選修改項目，再選連｜滾輪：縮放｜中鍵拖曳：平移")).pack(side=tk.LEFT, padx=8)
     ttk.Button(actions, text="關閉", command=win.destroy).pack(side=tk.RIGHT)
     win._phase6_receiving_preview_canvas = view.canvas
     win._phase6_receiving_preview_2d = view
@@ -254,11 +260,11 @@ def refresh_receiving_layer_rows(
     host._phase6_receiving_layer_rows = tuple(rows)
 
 
-def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
+def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False):
     """以中文序號選連；選取與待套用狀態只存在此 presentation。"""
     from ae_engine.receiving_shared_settings import setting_value
     from tkinter import messagebox
-    panel = ttk.LabelFrame(parent, text="每連設定", padding=6)
+    panel = ttk.LabelFrame(parent, text="共用箱體設定" if common_box else "每連設定", padding=6)
     panel.pack(fill=tk.X, pady=(0, 6))
     row = ports["row"]()
     active = tk.IntVar(master=panel, value=0)
@@ -267,7 +273,9 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
     selection.pack(fill=tk.X)
     selectors = []
     kind_labels = {"背板": "back_panel_mode", "封頭孔": "head_features", "封尾孔": "tail_features", "內門層數": "inner_door_layers"}
-    kind_var = tk.StringVar(master=panel, value="請選修改項目")
+    if common_box:
+        kind_labels = {label: kind for label, kind in kind_labels.items() if kind not in {"head_features", "tail_features"}}
+    kind_var = tk.StringVar(master=panel, value="背板" if common_box else "請選修改項目")
     mode_labels = {"全板": "FULL", "半截": "HALF", "背開孔": "BACK_OPENING"}
     value_var = tk.StringVar(master=panel, value="全板")
     fields = {name: tk.StringVar(master=panel) for name in ("width", "height", "depth")}
@@ -319,7 +327,7 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
         matches = [i + 1 for i in range(len(current["bays"])) if setting_value(current, i, kind) == value]
         for i, button in enumerate(selectors):
             button.configure(text=f"{'●' if i in pending else '○'} 第{i + 1}連", style="ReceivingPending.TButton" if i in pending else ("ReceivingMatch.TButton" if i + 1 in matches else "TButton"))
-        status.set("目前相同設定：" + "、".join(map(str, matches)) + "連")
+        status.set("設定作用於所有孔型版本" if common_box else "目前相同設定：" + "、".join(map(str, matches)) + "連")
         if kind == "back_panel_mode":
             value_selector.configure(values=tuple(mode_labels), state="readonly")
             value_var.set(next(label for label, mode in mode_labels.items() if mode == value))
@@ -357,7 +365,7 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
     brand_var = tk.StringVar(master=panel, value=row.get("switch_brand", "士林"))
     common = ttk.Frame(panel)
     common.pack(fill=tk.X, pady=4)
-    ttk.Label(common, text="本套開關").pack(side=tk.LEFT)
+    ttk.Label(common, text="開關品牌" if common_box else "本套開關").pack(side=tk.LEFT)
     brand = ttk.Combobox(common, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS, width=6, state="readonly")
     brand.pack(side=tk.LEFT, padx=4)
     ttk.Button(common, text="套用品牌", command=lambda: safely(lambda: ports["brand"](brand_var.get()))).pack(side=tk.LEFT)
@@ -409,10 +417,12 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
             ports["change"](kind, value, sorted(pending))
 
     setting_actions = []
-    for label, action in (
-        ("編輯／套用", apply_value),
-        ("連動選取的連", lambda: ports["share"](kind_labels[kind_var.get()], sorted(pending))),
-        ("解除本連連動", lambda: ports["unlink"](kind_labels[kind_var.get()]))):
+    actions = [("編輯／套用", apply_value)]
+    if not common_box:
+        actions.extend([(
+            "連動選取的連", lambda: ports["share"](kind_labels[kind_var.get()], sorted(pending))),
+            ("解除本連連動", lambda: ports["unlink"](kind_labels[kind_var.get()]))])
+    for label, action in actions:
         button = ttk.Button(settings, text=label, command=lambda action=action: safely(action))
         button.pack(side=tk.LEFT, padx=3)
         setting_actions.append(button)
@@ -435,6 +445,8 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
             callback = lambda event, index=index, depth=depth, height=height: safely(lambda: ports["alignment"](index, depth_labels[depth.get()], height_labels[height.get()]))
             ttk.Button(joints, text="套用接合", command=lambda callback=callback: callback(None)).grid(
                 row=index // 3, column=10 + index % 3, padx=3)
+    if common_box:
+        selection.pack_forget()
     panel._receiving_select_bay = select
     panel._receiving_kind_var = kind_var
     panel._receiving_refresh = refresh
