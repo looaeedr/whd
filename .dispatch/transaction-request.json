@@ -1,54 +1,26 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1441-apply-test-tree-20261009-0329",
+  "request_id": "issue1441-consume-qa-real-control-plane-20261009-0331",
   "issue": 1441,
-  "kind": "APPLY_COMMIT",
+  "kind": "CONSUME_QA",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-  "expected_coord_head": "dfb9f9a27578270002b4020987a200164556124c",
-  "expected_generation": 5,
+  "expected_coord_head": "b0b7237cdd42fbe7561a70159e24ed0871f0730b",
+  "expected_generation": 6,
   "reuse_admission_session": true,
   "effect": {
-    "head_sha": "4c4663c03ab8ce6629a8a96b94e9cc1373512152",
-    "semantic_state": "IMPLEMENTATION_COMMITTED",
+    "run_id": 37879561150,
+    "next_state": "INTEGRATING",
+    "semantic_state": "QA_ACCEPTED",
     "next_action": {
-      "kind": "START_QA",
+      "kind": "MERGE",
       "args": {
-        "workflow": ".github/workflows/whd-control-plane-regression.yml"
+        "pr_number": 1442,
+        "head_sha": "4c4663c03ab8ce6629a8a96b94e9cc1373512152",
+        "target_branch": "cleanup/2d-3d-sync",
+        "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
       },
-      "display": "Validate exact #1441 PR CI head"
-    },
-    "root_local_first_git_write_receipt": {
-      "schema": "ROOT_LOCAL_FIRST_GIT_UNLOCK_RECEIPT_V1",
-      "execution_mode": "INTERACTIVE",
-      "source_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
-      "diff_digest": "701e85471956626e74fef8b533d44eb57e7c337b940622c331adce4d9cdd3be5",
-      "issue": 1441,
-      "generation": 3,
-      "target_branch": "cleanup/2d-3d-sync",
-      "write_paths": [
-        "tests/process/test_issue1380_runtime_boundary.py",
-        "tests/process/test_issue1381_no_replay.py",
-        "tests/process/test_issue1441_real_pr_ci_gate.py",
-        "tools/control_transaction_production_executor.py",
-        "tools/flow_v2_merge_precheck.py"
-      ],
-      "delete_paths": [],
-      "record_fingerprint": "6c1bcb9eb2e3a2800807f780c321a929ddd93d0ed2f62ed4900686abd25745c7",
-      "git_write_unlocked": true,
-      "write_mode": "EXACT_TESTED_DIFF_ONLY"
-    },
-    "mutation_writer_guard": {
-      "schema": "WHD_FLOW_V2_MUTATION_WRITER_GUARD_V1",
-      "issue": 1441,
-      "generation": 5,
-      "record_fingerprint": "7d992cc24d2b14b075f2b2334b424c1669a6baad04ee52160fbeb5ec85b39d72",
-      "lease_token": "lease:1441:37879330500:1",
-      "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-      "expected_next_action": "APPLY_COMMIT",
-      "expected_work_branch": "work/issue-1441-flowv2-ci-e2e",
-      "expected_work_head": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
-      "expected_target_head": "80dea3ebf50bce44a001ced641e911f0a365cfbc"
+      "display": "Merge PR #1442 after all exact real jobs GREEN"
     }
   }
 }
