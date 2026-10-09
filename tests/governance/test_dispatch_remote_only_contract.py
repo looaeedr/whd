@@ -53,7 +53,7 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("衝突", dispatch)
         self.assertIn("不能", dispatch)
         self.assertIn("不得宣稱本機", dispatch)
-        self.assertIn("實際不可連線或逾時", dispatch)
+        self.assertIn("實際無法連線或逾時", dispatch)
 
     def test_slash_takeover_remains_distinct_from_dispatch_dc_exception(self):
         for path in (TAKEOVER, LOCAL):
