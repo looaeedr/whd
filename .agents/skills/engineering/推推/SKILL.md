@@ -9,11 +9,32 @@ whd_schema: WHD_DOC_META_V1
 
 # /推推
 
-`/推推` 是 **顯式 delivery alias**，不是施工流程，也不是第二套 authority。
+## LOCALX_USER_PUBLISH_HARD_GATE_V1 — 正式發布唯一人工指令
 
-CURRENT 唯一路徑：
+`/推推` 是 **使用者親自下達的正式 X 發布授權**，而不只是一般 delivery alias。平常工作從 GitHub 取得來源，在工作分支測試後整合至本機 `/workspace/whd` 的 `localX`；推送 `origin/localX` 是備份，**不可視為 `/推推`**。
 
-`cleanup/2d-3d-sync → executor-local repo workspace → edit/test → exact tested diff → delivery branch → PR/checks → merge/readback`
+使用者尚未明確輸入本次 `/推推` 時，所有排程、Codex、代理人及一般 Flow v2 MERGE 一律禁止把任何 PR 合併至正式 `cleanup/2d-3d-sync`（X）。僅有 GREEN/QA/正式權限/交付請求均不構成該指令。舊 `/推推 文檔` 與 `/推推 主體` 僅作 scope 分類，不放寬本次人工授權。
+
+CURRENT 正式發布路徑：
+
+`GitHub X / origin/localX → 工單分支修改測試 → 本機 localX 整合測試 → origin/localX 備份 → 等待使用者 /推推 → exact localX→X PR → required CI/QA → trusted MERGE → FINALIZE/readback`
+
+Trusted MERGE 需驗 PR head=`localX`、base=`cleanup/2d-3d-sync`、exact `head_sha/base_sha` 並在 GitHub PR 留下使用者身分之獨立核准證據，格式：
+
+```text
+/推推
+WHD_LOCALX_PUBLISH_AUTH_V1
+repo=looaeedr/whd
+pr=<exact PR number>
+source=localX
+head=<exact localX SHA>
+target=cleanup/2d-3d-sync
+base=<exact X SHA>
+```
+
+該 comment 必須以真正 GitHub owner User 帳戶發出，且必須是使用者當次明確 `/推推` 之後的授權動作；Agent/排程不得代替使用者自行決定建立這筆證據。任一 SHA 漂移，必須重新取得使用者授權。這是 GitHub comment/readback transport 的 repo-level gate；它**不能獨立證明 ChatGPT 對話內命令是人親自輸入**，也不能阻擋 GitHub 管理員在平台外直接合併。平台繞過必須另靠 GitHub ruleset 防護。
+
+以下原本一般 delivery 規範僅適用於上述明確 `/推推` 正式發布之後的受控交易，不再授權例行 work branch → X 直送。
 
 ## 0. Authority boundary
 

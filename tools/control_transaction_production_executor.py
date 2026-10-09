@@ -95,6 +95,10 @@ from tools.control_transaction_runtime import (
     PRE_TRANSITION_EXTERNAL_MUTATION_PATHS, RuntimeMode, resolve_runtime_effect,
     RuntimePostEffectConflict,
 )
+from tools.localx_publish_gate import (
+    PRODUCTION_X,
+    require_publish_approval,
+)
 
 
 RESULT_SCHEMA = "WHD_CONTROL_TRANSACTION_PRODUCTION_RESULT_V2"
@@ -1080,6 +1084,27 @@ def _trusted_merge_effect(
             f"unsupported merge precheck classification {precheck.classification}"
         )
 
+    # Only localX may advance formal X, and only after an exact, user-issued
+    # /推推 approval. No scheduler, QA GREEN, or caller-supplied effect can
+    # silently elevate an ordinary work branch to production authority.
+    if record.target_branch == PRODUCTION_X:
+        comments = []
+        for page in range(1, 12):
+            batch = _api(
+                repo, "GET", f"/issues/{pr_number}/comments?per_page=100&page={page}", token
+            )
+            if not isinstance(batch, list) or len(batch) > 100:
+                raise ProductionExecutorError("LOCALX_PUBLISH_COMMENT_READBACK_INVALID")
+            comments.extend(batch)
+            if len(batch) < 100:
+                break
+        else:
+            raise ProductionExecutorError("LOCALX_PUBLISH_COMMENT_PAGINATION_INCOMPLETE")
+        require_publish_approval(
+            repo=repo, pr_number=pr_number, pr=pr,
+            head_sha=record.head_sha, target_sha=record.target_sha,
+            comments=comments,
+        )
 
     if before_mutation is not None:
         before_mutation("PUT", f"/pulls/{pr_number}/merge")

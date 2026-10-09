@@ -452,14 +452,23 @@ def test_readback_only_fence_blocks_actual_mutation_branches(monkeypatch, kind, 
     def provider(repo, verb, endpoint, token, payload=None):
         if verb == "GET" and endpoint == "/issues/1378":
             return {"number": 1378, "state": "open", "state_reason": None}
+        if verb == "GET" and endpoint.startswith("/issues/1408/comments?"):
+            return [{"user": {"login": "looaeedr", "type": "User"}, "body": "\n".join([
+                "/推推", "WHD_LOCALX_PUBLISH_AUTH_V1", "repo=looaeedr/whd",
+                "pr=1408", "source=localX", f"head={HEAD}",
+                "target=cleanup/2d-3d-sync", f"base={TARGET}",
+            ])}]
         return fence(repo, verb, endpoint, token, payload)
 
     monkeypatch.setattr(executor, "_api", provider)
     if kind == "MERGE":
+        record = replace(_merge_record(), work_branch="localX")
         monkeypatch.setattr(executor, "_merge_precheck_readback",
-            lambda *args, **kwargs: ({}, SimpleNamespace(classification="READY_TO_MERGE")))
+            lambda *args, **kwargs: ({"head": {"ref": "localX", "sha": HEAD},
+                                   "base": {"ref": "cleanup/2d-3d-sync", "sha": TARGET}},
+                                   SimpleNamespace(classification="READY_TO_MERGE")))
         invoke = lambda: executor._trusted_merge_effect(
-            "looaeedr/whd", "token", record=_merge_record(),
+            "looaeedr/whd", "token", record=record,
             invocation_identity=INV, supplied={})
     elif kind == "SYNC_TARGET":
         monkeypatch.setattr(executor, "_verified_sync_target_user_token", lambda repo: "verified-test-user-pat")

@@ -10,8 +10,11 @@ whd_schema: WHD_DOC_META_V1
 
 # Flow v2 Execution
 
+## LOCALX_USER_PUBLISH_HARD_GATE_V1（發布最高優先級）
 
+新的日常施工與整合目標為使用者本機 `/workspace/whd` 的 `localX`；工作分支必須測試後先整合 localX，並可備份至 `origin/localX`，不得直接 PR/merge 至正式 `cleanup/2d-3d-sync`（X）。此前 Flow v2 關於 QA 後 `MERGE → FINALIZE` 的普通自動直送 X 敘述，在未收到使用者當次 `/推推` 時均退居 HISTORICAL，不構成 X 發布授權。排程 A/B 不得自行下 `/推推` 或產生 user proof。
 
+`/推推` 後僅針對 exact `localX → X` PR 和 SHA 授權一次，仍須通過原生 QA/CI，再由 `tools/control_transaction_production_executor.py::_trusted_merge_effect` 進入 `tools/localx_publish_gate.py` 之 fail-closed user-auth proof 檢查。沒有證據只能留在 localX；已合併的 PR 仍可 readback/finalize，不能重新取得 X 寫權。外部 GitHub 管理員直合併/直推仍須 GitHub branch ruleset 才能平台層防繞過。
 
 ## PROJECT_STARTUP_HARD_GATE_V1
 

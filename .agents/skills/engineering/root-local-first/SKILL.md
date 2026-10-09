@@ -9,6 +9,12 @@ whd_schema: WHD_DOC_META_V1
 
 # root-local-first / workspace-first V2
 
+## LOCALX_USER_PUBLISH_HARD_GATE_V1 — CURRENT 最高優先級覆寫
+
+工單施工 Git 來源是最新正式 X `cleanup/2d-3d-sync`；依賴未發佈整合成果時改取 `origin/localX`。各工作分支修改、測試後，以 **RC → `/workspace/whd` → 本機 `localX`** 為日常最終整合點；可安全推送 `origin/localX` 備份，不等於合併 X。禁止 reset/force-push 覆蓋未發佈的 `localX`。
+
+以下舊敘述的普通 `delivery branch → PR → production X` 末段，從現在起由 `work branch → localX → origin/localX` 取代，**不得自行進 X**。正式 `localX → X` 僅使用者當次明確 `/推推` 授權後，才允許 PR、必要 CI、原生 QA、trusted MERGE 和 FINALIZE。任何排程／代理程式即使 GREEN，也必須停在 localX。machine gate=`tools/localx_publish_gate.py` 與 trusted production MERGE。GitHub branch ruleset 是額外的平台層防繞過責任；repository gate 不等於平台 branch protection。
+
 ## 0. ENTRY_ROUTER_FIRST_HARD_GATE_V1
 
 任何 WHD repository-content 任務（新任務、續作、修補、測試、治理修改）進場時，**第一個路由不得先做一般 discovery**。每個 invocation 都必須 fresh 依序完成：
