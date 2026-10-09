@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 8,
+  "generation": 9,
   "head_sha": "349bea80ce0ad2bbe64710559271d4377c628cc7",
   "issue": 1439,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
-    "expires_at": "2026-10-09T02:38:57Z",
-    "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0224",
-    "token": "lease:1439:37874322859:1"
+    "expires_at": "2026-10-09T02:55:55Z",
+    "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0239",
+    "token": "lease:1439:37875644596:1"
   },
   "mutation_scope": {
     "base_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
@@ -68,13 +68,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
   "transaction": {
-    "expected_fingerprint": "003b6e728868c59dd9a10847281b4f8e7cbec3adbca111d323ebdc1fc3c21c52",
-    "id": "gha:37875444491:1439:APPLY_COMMIT:7",
-    "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0224",
-    "kind": "APPLY_COMMIT",
+    "expected_fingerprint": "7a98a725b9eea14b2d97a56527ed71f47df40903f75f6b635b86c3bac4daa104",
+    "id": "gha:37875644596:1439:ACQUIRE:8",
+    "invocation_identity": "chatgpt.issue1439.rc-work1.20261009.0239",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T02:38:30Z",
+  "updated_at": "2026-10-09T02:40:55Z",
   "version": 2,
   "work_branch": "work/issue-1439-tok-ci-identity"
 }
