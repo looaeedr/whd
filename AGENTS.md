@@ -15,6 +15,7 @@ whd_schema: WHD_DOC_META_V1
 - GitHub 正式硬閘門必須在 X 的 Ruleset 把 `WHD Change Lane Gate` 設為 required status check，否則只能算 CI 檢查、不能宣稱平台端不可繞過；直接 push X 應由分支 Ruleset 禁止。
 - 禁止遺失使用者本地未發布修改，禁止用 X 覆蓋 localX。保留程式碼 review、製造幾何與產品回歸檢查；無需工單交易硬閘門。
 - 本地工作不需 Google Drive 工作根目錄，也不需調用舊協調分支。
+- 已確定 Issue 的 /接手（執行開發任務）與 /派工均涵蓋工作分支推送至使用者指定公開 looaeedr/whd、PR base=localX、exact CI、合併 localX、回讀；不另要求退役專案內部 remote token、receipt、unlock 或第二次批准。**平台對公開上傳的安全審查仍然有效**，不得換工具繞過；不授權產品發布 X，正式 X 仍需當次 /推推。
 
 ## /派工 產品交付不中斷閘門（執行者責任）
 

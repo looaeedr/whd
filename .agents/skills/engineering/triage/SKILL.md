@@ -14,7 +14,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### REMOTE_AUTHORITY_GATE_V1
 
-WHD 的 tracker 若是 GitHub，`/triage` 本身**不等於** GitHub network authority。任何 list/read/comment/label/close Issue/PR 前先通過 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)`，exact action 必須存在於 `WHD_REMOTE_CONNECTION_AUTHORITY_V1.allowed_actions`。沒有 authority 時可整理本地/使用者提供的 triage 資料，但不得為了補 context 自動查 GitHub；需要遠端資料就回 `REMOTE_CONNECTION_DENIED`。
+WHD GitHub triage 按本輪已指定的 repo/Issue 與實際工具權限查閱，對 comment/label/close 等寫入僅限已確定需處理的工單。不得藉一般 triage 改其他工單；不要求退役 remote token，平台拒絕則如實回報。
 
 只有使用者明確要求該 GitHub/tracker 操作時，才建立 `USER_EXPLICIT_REMOTE` authority；「tracker 設定是 GitHub」「bare #42」「需要確認最新」都不是 authority。
 

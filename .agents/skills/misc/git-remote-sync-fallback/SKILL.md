@@ -15,11 +15,11 @@ whd_schema: WHD_DOC_META_V1
 
 任何 fallback 都必須 **fail closed、非強制、可追溯、遠端二次驗證**。
 
-## REMOTE_AUTHORITY_FIRST_HARD_GATE_V1
+## 現行遠端操作與公開上傳邊界
 
-這個 Skill **不會因為 push/fetch 失敗、DNS 問題或 Connector 可用就取得 GitHub authority**。在任何會碰網路的 `git ls-remote/fetch/pull/push`、GitHub API/Connector、remote HEAD/readback 之前，必須先以 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗證 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 的 exact target/action。沒有 authority 時立即 `REMOTE_CONNECTION_DENIED`；只能做 offline `git status/rev-parse/branch/remote -v` 與 root-local 診斷。
+本 Skill 僅處理已確認 Issue 的 Git 運輸，不新增已退役的專案內部 remote token、receipt 或 unlock。依當輪 /接手 或 /派工 已指定的使用者公開倉庫 looaeedr/whd、工作分支、exact tested diff，推送工作分支、建立 base=localX 的 PR、CI 驗收並合併 localX。正式 X 的產品發布只允許當次 /推推。
 
-`git-remote-sync-fallback` 只是在**既有 remote-authorized window 內**切換 transport，不是新 authority 來源；Skill invocation、read-only intent、DNS failure、authentication failure、connector availability 都不能擴張 scope。
+實際平台安全審查仍然有效：若 Git/Connector/Remote Desktop 因公開上傳要求更精確批准或拒絕，不可換工具規避、偽稱已獲批准、重建不同 commit 冒充原提交；保留本機 SHA、回報原始拒絕操作與使用者可行動的步驟。
 
 ## 固定流程
 
@@ -33,7 +33,7 @@ whd_schema: WHD_DOC_META_V1
    工作樹有未提交內容時，先依專案 Git 備份規則落 commit / backup tag；禁止用遠端同步掩蓋本機 dirty state。
 
 2. **重現並分類傳輸失敗**
-   先驗 remote authority。只有 gate 已允許 `READ/FETCH/COMPARE` 類 action 才可用 `git ls-remote origin`；未授權時不得做任何 network probe。`getent hosts github.com` 也視為 remote network probe，未授權時禁止。
+    先確認操作落在本輪 repo/Issue/工作分支的既有授權與實際工具權限範圍；不再要求已退役的內部遠端批准才能進行讀取或已核准工作分支的正常交付。
    - `Could not resolve host`、DNS/network unreachable、容器網路受限：屬 transport/environment blocker，可考慮 Connector fallback。
    - non-fast-forward、branch protection、權限拒絕、內容衝突：不是 DNS fallback 問題，禁止繞過。
    - 禁止因 push 失敗改用 `--force` / `push --force`。
@@ -74,14 +74,10 @@ whd_schema: WHD_DOC_META_V1
 
 ## Root-local-first before remote content write
 
-For WHD interactive/default repository mutations, transport fallback cannot change the root-local-first order:
-
-- before explicit `WHD_REMOTE_CONNECTION_AUTHORITY_V1`, GitHub/Contents/Connector/network Git is **fully denied**, including `READ / FETCH / COMPARE`; after authority but before `GIT_WRITE_UNLOCKED`, only authority-listed read actions are allowed;
-- root workspace owns mutation, tests and frozen exact diff;
-- after unlock, create/fresh-read a dedicated work branch from current target; Contents API / GitHub Connector writes must target that work branch, never `cleanup/2d-3d-sync` or `main`;
-- only `EXACT_TESTED_DIFF_ONLY` may be transported; connector limitations do not authorize branch-side edits;
-- if branch creation or exact diff transport is impossible, fail closed rather than write target directly;
-
+- 施工、測試和 commit 仍由指定本地工作區擁有；/接手 在 CoreELEC whd-dev:/workspace/whd 執行。
+- 已確認 Issue 的 /接手 或 /派工涵蓋 exact tested work branch → GitHub looaeedr/whd → PR base=localX → CI → merge localX；不增加第二次內部授權。
+- Connector 備援僅同步 exact tested diff，不能把新遠端 SHA 假稱為原始本地 git push。
+- 遇平台安全拒絕、無法保留 commit 身份、目標衝突均 fail closed，不 force、不越過正常審查。
 
 ## Connector target-write hard gate
 
@@ -89,7 +85,7 @@ Before every GitHub Connector write, bind the **intent** to the exact action and
 
 - `create_branch` is for creating a branch. Never substitute `create_file` / `update_file` because the desired branch does not yet exist.
 - `create_file` / `update_file` / `delete_file` are content mutations and must **fail closed** if their `branch` is an authoritative target such as `cleanup/2d-3d-sync` or `main`.
-- Connector `create_file` / `update_file` / `delete_file` / `update_ref` after `GIT_WRITE_UNLOCKED` are limited to the exact dedicated work branch and exact tested diff. They never authorize production-target advancement.
+- Connector create_file/update_file/delete_file/update_ref 僅限本輪指定的工作分支及 exact tested diff，禁止直接修改 X、main、localX；遇平台拒絕必須停下回報。
 
 If a direct target write happens accidentally:
 

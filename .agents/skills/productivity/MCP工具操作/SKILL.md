@@ -13,12 +13,11 @@ whd_schema: WHD_DOC_META_V1
 
 ## 1. Authority 與邊界
 
-### GITHUB_CONNECTOR_REMOTE_AUTHORITY_HARD_GATE_V1
+### GitHub Connector 現行操作邊界
 
-MCP/connector **能力存在不等於 remote authority**。當 exact server/tool 會連到 GitHub-backed WHD repository（包含 read-only repo metadata/code search/Issues/PR/Actions，也包含 mutation）時，呼叫前固定以 `tools/root_local_first_gate.py::assert_remote_connection_allowed(...)` 驗 exact target=`GITHUB` + action。缺 `WHD_REMOTE_CONNECTION_AUTHORITY_V1` 固定 `REMOTE_CONNECTION_DENIED`；不得用「只是 schema inspect/read-only/connector 已登入」繞過。
+WHD GitHub 讀取依本輪任務需要及實際工具權限執行。明確 /接手 或 /派工 的同一 Issue 包含工作分支推送至公開 looaeedr/whd、PR base=localX、exact CI 與 localX 合併；不要求退役的額外 token。正式 X 的產品發布必須當次 /推推。
 
-這條 gate 只限制 GitHub/remote transport，不阻止離線 MCP schema inspection。remote authority 不從 MCP Skill invocation、server discovery 或已連接帳號自動產生。
-
+平台對公開上傳可能有獨立安全審查，遇拒絕不可用其他 MCP 或 Connector 偷渡；保留本地提交、回報具體失敗與可行的授權方式。
 
 執行順序的 authority：
 
@@ -166,7 +165,7 @@ MCP 可能連到 GitHub、filesystem、database、SaaS 或內部服務。對會�
 - `MCP工具操作` 是外部工具操作 Skill，不是 WHD 機械 domain resolver。
 - MCP tool 回傳的尺寸、fixture、測試結果、probe、collision、AI 建議，不會因為透過 MCP 取得就自動成為 product authority。
 - 外部 Skill / server / connector 被發現，也不得自動寫進 WHD Registry 或 Skill tree；若要納入專案，仍走 `找技能` → 使用者明確同意 → `寫技能` 的治理流程。
-- MCP 呼叫若碰到 GitHub-backed WHD repository，仍遵守 `AGENTS.md`、root-local-first、Preflight、`GIT_WRITE_UNLOCKED` 後 Git-phase branch、remote QA、non-force integration 等既有規則。
+- GitHub MCP 呼叫遵循本輪 Issue、AGENTS.md、work branch、exact CI、non-force、/推推 正式 X 邊界與平台安全審查，不要求過時的額外解鎖程序。
 
 ## 8. 自我檢查
 
