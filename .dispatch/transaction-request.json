@@ -1,15 +1,12 @@
 {
   "schema": "WHD_CONTROL_TRANSACTION_PUSH_INTENT_V1",
-  "request_id": "issue1441-merge-pr1442-3-real-ci-green-20261009-0335",
+  "request_id": "issue1441-finalize-merged-pr1442-20261009-0337",
   "issue": 1441,
-  "kind": "MERGE",
+  "kind": "FINALIZE",
   "lane_id": "chatgpt.flowv2.work1",
   "invocation_identity": "chatgpt.issue1441.rc-work1.20261009.0305",
-  "expected_coord_head": "2783cb2d5f939760bf81a6d16ec4332b8c3ac31b",
-  "expected_generation": 7,
+  "expected_coord_head": "b0d81f12804f37b06b5cb4d24fad45f8a2fe29c7",
+  "expected_generation": 8,
   "reuse_admission_session": true,
-  "effect": {
-    "pr_number": 1442,
-    "revalidation_workflow": ".github/workflows/whd-control-plane-regression.yml"
-  }
+  "effect": {}
 }
