@@ -12,7 +12,7 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 2,
+  "generation": 3,
   "head_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
   "issue": 1384,
   "lane_id": "chatgpt.flowv2.work3",
@@ -64,15 +64,15 @@
   "source_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
   "state": "ACTIVE",
   "target_branch": "cleanup/2d-3d-sync",
-  "target_sha": "b337e340d823c29552da7013725ef7b27047d2c4",
+  "target_sha": "80dea3ebf50bce44a001ced641e911f0a365cfbc",
   "transaction": {
-    "expected_fingerprint": "9de50819fd8bd70db794700475c516a114528622d092c36cae173b3931470231",
-    "id": "gha:37859471953:1384:ACQUIRE:1",
-    "invocation_identity": "chatgpt.issue1384.c2.resume.work3.20261009",
-    "kind": "ACQUIRE",
+    "expected_fingerprint": "dc1f80741ad61cb8d22da2737008c653dc966b33cf5f9a2c08e4dfa84a3ff303",
+    "id": "gha:37879888215:1384:RECONCILE:2",
+    "invocation_identity": "chatgpt.issue1384.dm8c2.work3.20261009.0331",
+    "kind": "RECONCILE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-08T23:27:44Z",
+  "updated_at": "2026-10-09T03:35:05Z",
   "version": 2,
   "work_branch": "work/issue-1384"
 }
