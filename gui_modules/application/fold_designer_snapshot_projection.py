@@ -123,6 +123,9 @@ def _snapshot_workspace_state(self, snapshot):
     ordered.extend(key for key in workspace_state["existing_parts"]
                    if key in current_existing and key not in ordered)
     snapshot["existing_parts"] = ordered
+    for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout"):
+        if key in workspace_state:
+            snapshot[key] = deepcopy(workspace_state[key])
     custom = workspace_state.get("custom_parts")
     if custom is not None:
         snapshot["custom_parts"] = deepcopy(custom)

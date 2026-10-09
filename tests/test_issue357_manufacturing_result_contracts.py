@@ -104,7 +104,10 @@ def test_issue357_adapter_apply_reproduces_phase1_legacy_state_without_executing
         _live_sync_callback=lambda payload: calls.append(payload),
     )
 
+    settings_owner_snapshot = app._phase6_input_snapshot
     returned = apply_manufacturing_result(app, result)
+    assert app._phase6_input_snapshot is settings_owner_snapshot
+    assert settings_owner_snapshot["assembly_relief"]["head"]["verified"] is True
 
     assert returned is geometry
     assert app._phase6_last_interference_probe_parts == ("head", "tail")

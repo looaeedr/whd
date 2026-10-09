@@ -225,3 +225,24 @@ def test_issue362_committed_endcap_second_pass_thaws_nested_scene_payload():
     assert head.committed_render_data["profile"][0]["ui_len_add"] == 2.0
     assert "ui_len_add" not in head.scene_values["nested"]["profile"][0]
 
+
+
+def test_committed_endcap_provider_retains_semantic_feature_anchor():
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, Vec2
+    from phase6_manufacturing_adapter import build_manufacturing_request
+    app = _fake_app()
+    feature = CircleFeature(diameter=8, anchor=FeatureAnchor.TOP_RIGHT, offset=Vec2(-20,-20))
+    app.designer_workspace._features["head"] = [feature]
+    seen = []
+    def render_provider(key, payload):
+        if key == "head":
+            seen.append(payload["features"][0])
+            assert isinstance(payload["features"][0], CircleFeature)
+            assert payload["features"][0] == feature
+            if payload["_use_committed_relief"]:
+                payload["features"].clear()
+        return object()
+    request = build_manufacturing_request(app, render_data_provider=render_provider)
+    assert len(seen) == 2
+    assert app.designer_workspace.features_for("head") == [feature]
+    assert next(part for part in request.parts if part.part_key == "head").features

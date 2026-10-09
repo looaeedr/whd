@@ -206,6 +206,10 @@ def _require_verified_baseline_sources_for_manufacturing(self):
 def _export_authoritative_part(self, spec, output_path, context=None):
     """Save the exact cached FinalScene used by 2D/3D without rebuilding it."""
     self._flush_phase6_authoritative_state()
+    owner = getattr(self, "workspace_controller", None)
+    if owner is not None and owner.workspace_snapshot().get("receiving_quantity_box"):
+        from ae_engine.receiving_quantity_box import require_valid_quantity_features
+        require_valid_quantity_features(self._make_original_fold_designer_snapshot())
     self._require_verified_baseline_sources_for_manufacturing()
     ctx = context or self._manufacturing_context(draw_stock=False)
     render_data = self._authoritative_render_data(spec, ctx)

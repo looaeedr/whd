@@ -160,10 +160,10 @@ def _extract_endcap_shared_6p4_mother_rule(path: Path) -> dict[str, object] | No
     """
     from math import hypot
 
-    import ezdxf
+    from ae_engine.baseline_source import load_baseline_dxf_source
     from shapely.geometry import Polygon
 
-    doc = ezdxf.readfile(path)
+    doc = load_baseline_dxf_source(path)
     msp = doc.modelspace()
     outlines = list(msp.query('LWPOLYLINE[layer=="CUTTING"]'))
     if not outlines:

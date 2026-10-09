@@ -130,6 +130,7 @@ def corner_transaction_payload(self, namespace):
     workspace = self.collect_workspace_state(namespace)
     clone = required("clone_profile")
     return {
+        **{key: deepcopy(workspace[key]) for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout") if key in workspace},
         "model": str(app.baseline_model_var.get() or "").strip(),
         "settings": dict(getattr(app, "_settings_values", {})),
         "multi_door_enabled": bool(source.get("multi_door_enabled", False)),
@@ -382,6 +383,8 @@ def collect_workspace_state(self, namespace):
     owner = workspace.export_shared_snapshot(
         live_active_profiles=live_active_profiles
     )
+    if app._phase6_input_snapshot.get("active_mode", "set_bay") == "set_bay" and "receiving_layout" in app._phase6_input_snapshot:
+        owner["receiving_layout"] = deepcopy(app._phase6_input_snapshot["receiving_layout"])
     owner["part_features"] = workspace.part_features_snapshot()
     owner["part_face_features"] = workspace.part_face_features_snapshot()
     owner["assembly_placements"] = workspace.assembly_placements_snapshot()
