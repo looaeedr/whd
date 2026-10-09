@@ -30,6 +30,7 @@ class ReceivingSetBayControls:
     switch_tier_var: object
     switch_tier_selector: object
     switch_tier_nominal_var: object
+    accessory_host: object
     layer_host: object
     add_layer_button: object
     remove_layer_button: object
@@ -81,6 +82,10 @@ def build_receiving_set_bay_controls(
         master=header, value=switch_tier_nominal_text(None),
     )
     ttk.Label(header, textvariable=switch_tier_nominal_var).pack(side=tk.LEFT, padx=(8, 0))
+    # Keep rear-panel controls on their own normal-input row; the header must
+    # not grow wide enough to push the existing rear-panel selector off screen.
+    accessory_host = ttk.Frame(frame)
+    accessory_host.pack(fill=tk.X, pady=(0, 2))
     ttk.Label(frame, text=SWITCH_TIER_OUTPUT_NOTICE).pack(anchor=tk.W, pady=(0, 2))
 
     layer_host = ttk.Frame(frame)
@@ -105,6 +110,7 @@ def build_receiving_set_bay_controls(
         switch_tier_var=switch_tier_var,
         switch_tier_selector=switch_tier_selector,
         switch_tier_nominal_var=switch_tier_nominal_var,
+        accessory_host=accessory_host,
         layer_host=layer_host,
         add_layer_button=add_layer_button,
         remove_layer_button=remove_layer_button,
@@ -290,6 +296,17 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports):
     """以中文序號選連；選取與待套用狀態只存在此 presentation。"""
     from ae_engine.receiving_shared_settings import setting_value
     from tkinter import messagebox
+    if "switch_tier_state" not in ports:
+        # Compatibility for callers still supplying the pre-OPEN-05 settings
+        # ports. A standalone UI placeholder is never persisted or manufactured.
+        from .receiving_switch_tier_ui import ReceivingSwitchTierUiModel
+        legacy_tier_ui = ReceivingSwitchTierUiModel()
+        ports = dict(ports)
+        ports.update({
+            "switch_tier_state": legacy_tier_ui.snapshot,
+            "switch_tier": legacy_tier_ui.set_switch_tier,
+            "switch_tier_override": legacy_tier_ui.set_brand_override,
+        })
     panel = ttk.LabelFrame(parent, text="每連設定", padding=6)
     panel.pack(fill=tk.X, pady=(0, 6))
     row = ports["row"]()
