@@ -12,14 +12,14 @@
     "released_at": null
   },
   "execution_intent": "EXECUTE_TICKET",
-  "generation": 5,
+  "generation": 6,
   "head_sha": "c2fa614b4a03a8be286995ae03cd0ec71be4f5f3",
   "issue": 1443,
   "lane_id": "chatgpt.flowv2.work1",
   "lease": {
-    "expires_at": "2026-10-09T04:27:17Z",
+    "expires_at": "2026-10-09T04:45:47Z",
     "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-    "token": "lease:1443:37882666195:1"
+    "token": "lease:1443:37884115163:1"
   },
   "mutation_scope": {
     "base_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
@@ -65,13 +65,13 @@
   "target_branch": "cleanup/2d-3d-sync",
   "target_sha": "d262c6c2d7fe626851a906762ff975ed13e79ae8",
   "transaction": {
-    "expected_fingerprint": "aef6fe2a1b7eec01a27f2db85f0b553a5cf985d8c64be507365e25a004f6e6c4",
-    "id": "gha:37883864875:1443:APPLY_COMMIT:4",
+    "expected_fingerprint": "e34ed57f0eba881aa3402f1fbab80f11d93ef943dcc897d1ff09ab31fe45a865",
+    "id": "gha:37884115163:1443:ACQUIRE:5",
     "invocation_identity": "chatgpt.issue1443.dispatch.work1.20261009.0408",
-    "kind": "APPLY_COMMIT",
+    "kind": "ACQUIRE",
     "status": "RECONCILED"
   },
-  "updated_at": "2026-10-09T04:27:09Z",
+  "updated_at": "2026-10-09T04:30:47Z",
   "version": 2,
   "work_branch": "work/issue-1443-ci-gate-shortest-path"
 }
