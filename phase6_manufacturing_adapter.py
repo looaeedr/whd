@@ -532,7 +532,7 @@ def build_manufacturing_request(
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
     workspace = getattr(app, "designer_workspace", None)
 
-    if snapshot.get("active_mode") == "quantity" and snapshot.get("model") == "受電箱":
+    if snapshot.get("active_mode") == "quantity":
         from ae_engine.receiving_quantity_box import require_valid_quantity_features
         live = workspace.snapshot() if workspace is not None else {}
         require_valid_quantity_features({**snapshot, **{key: live[key] for key in ("quantity", "receiving_quantity_box") if key in live}})
@@ -664,7 +664,7 @@ def resolve_manufacturing_for_app(
     from ae_engine.receiving_quantity_box import require_valid_quantity_features
     source = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
     workspace = getattr(app, "designer_workspace", None)
-    if source.get("model") == "受電箱" and source.get("active_mode") == "quantity":
+    if source.get("active_mode") == "quantity":
         live = workspace.snapshot() if workspace is not None else {}
         require_valid_quantity_features({**source, **{key: live[key] for key in ("quantity", "receiving_quantity_box") if key in live}})
     key = build_manufacturing_cache_key(app)
