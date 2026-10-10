@@ -25,8 +25,14 @@ def positive_dimension(value, axis):
 def normalize_common_box(value):
     from ae_engine.receiving_shared_settings import validate_setting
     from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
-    if not isinstance(value, Mapping):
-        raise ValueError("受電箱數量模式缺少明確初始化的共用箱體")
+    # Unconfigured quantity projects use the Receiving Family default.
+    # Do not open an initialization dialog or silently copy Set/Bay values.
+    # An explicitly supplied but malformed box still fails closed.
+    if value is None:
+        from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+        value = {axis: int(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d")}
+    elif not isinstance(value, Mapping):
+        raise ValueError("共用箱體資料格式錯誤")
     allowed = {"w", "h", "d", "back_panel_mode", "inner_door_layers",
                "switch_brand", "door_state"}
     if set(value) - allowed:
