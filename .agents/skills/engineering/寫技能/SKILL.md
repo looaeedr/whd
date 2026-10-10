@@ -1,6 +1,6 @@
 ---
 name: 寫技能
-description: 建立、修改、驗證與改善 Agent Skill。當使用者要求「寫技能」「修改技能」「修好這個 SKILL.md」「把流程寫進技能」「優化技能觸發/規則」，或要把既有工作流程沉澱為可重用技能時使用。既有技能修改必須保留可追溯 baseline、遵守專案自己的 AGENTS/Preflight/workspace-only delivery 規則，並用可執行驗證證明修改沒有只停在文字層。
+description: 建立、修改、驗證與改善 Agent Skill。當使用者要求「寫技能」「修改技能」「修好這個 SKILL.md」「把流程寫進技能」「優化技能觸發/規則」，或要把既有工作流程沉澱為可重用技能時使用。既有技能修改必須保留可追溯 baseline、遵守專案現行 AGENTS、治理／產品交付分流與驗證規則，並用可執行驗證證明修改沒有只停在文字層。
 whd_doc_role: CURRENT
 whd_contract: skill-authoring
 whd_canonical: null
@@ -121,7 +121,7 @@ skill-name/
 WHD Skill 修改固定：
 
 1. fresh-read canonical entry，解析 executor-local repo workspace 與 production baseline。
-2. 在 workspace 完成 RED→GREEN、required regression/final gate；authoring 不取得 delivery reservation。
+2. 依實際執行環境及當次授權在合法工作區完成 RED→GREEN、適用回歸與驗證；不啟用退役的 delivery reservation。
 3. 凍結 exact tested diff，記錄 source SHA、Issue、真實測試命令與 diff digest；只在合法治理或產品工作分支按現行授權交付，無需退役的測試 receipt 或 Git unlock；不可藉換工具繞過平台拒絕。
 4. fresh target compare，依 impact revalidation 沿用 GREEN 或回 workspace 重測。
 5. 經現行 `change_lane_gate.py` 分流後，使用合法分支 push／PR／required checks；驗收後合併至對應目標並回讀實際 GitHub 結果。
@@ -135,7 +135,7 @@ Drive/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 
 
 - 綁死不存在的工具或特定產品環境；
 - 要求背景等待，但 runtime 實際不存在；
-- 指示與專案 AGENTS/Preflight 衝突；
+- 指示與專案現行 AGENTS／治理交付分流衝突；
 - trigger description 過寬或過窄；
 - workflow 只有口頭步驟，沒有 durable evidence；
 - 完成條件不可驗證；
@@ -213,7 +213,7 @@ Drive/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 
 
 - 更新直接相關 Skill；
 - 更新專案 AI Library / pitfalls / canonical guidance（若專案有此機制）；
-- 更新 Registry/route，讓未來 Preflight 能找得到；
+- 更新 Registry／route，讓後續合法入口與技能查找能找到；
 - 搜尋衝突舊規則並標記 superseded/revoked 或一起修正；
 - 回讀遠端檔確認真正落盤。
 
