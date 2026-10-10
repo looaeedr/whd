@@ -359,3 +359,26 @@ def test_final_acceptance_hard_gate_is_visible_in_agents_and_skills():
         "focused GREEN / final acceptance pending",
     ):
         assert required in release
+
+def test_current_entry_routing_separates_dispatch_from_takeover():
+    """A generic file cannot grant local RC execution, and /接手 is not /派工."""
+    from tools.phase6_skill_preflight import required_skills_for
+
+    generic = set(required_skills_for(task="一般產品錯誤修正", changed_files=["gui.py"]))
+    assert "root-local-first" not in generic
+    dispatch = set(required_skills_for(task="/派工 #999", changed_files=["gui.py"]))
+    assert "派工" in dispatch
+    assert "root-local-first" not in dispatch
+
+    takeover = set(required_skills_for(task="/接手 #999", changed_files=["gui.py"]))
+    assert "root-local-first" in takeover
+    assert "執行開發任務" in takeover
+    assert "派工" not in takeover
+
+    migration = set(required_skills_for(
+        task="deterministic repo migration",
+        changed_files=[".agents/skills/engineering/deterministic-repo-migration/SKILL.md"],
+    ))
+    assert "deterministic-repo-migration" in migration
+    assert "root-local-first" not in migration
+
