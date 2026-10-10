@@ -124,7 +124,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     mode_var = tk.StringVar(master=win, value="set_bay")
     mode_row = ttk.Frame(win)
-    mode_row.grid(row=0, column=0, columnspan=2, sticky="nw", padx=16, pady=16)
+    mode_row.grid(row=0, column=0, columnspan=2, sticky="nw",
+                  padx=16, pady=(16, 6))
 
     applied = {"set_index": None, "count": 1, "selected": None, "mode": "set_bay"}
 
@@ -133,8 +134,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     canvas.grid(row=1, column=1, sticky="se", padx=24, pady=12)
 
     rows_host = ttk.Frame(win)
-    rows_host.grid(row=2, column=0, columnspan=2, sticky="sw",
-                   padx=16, pady=(6, 16))
+    # The Set/Bay row belongs directly BELOW the two upper-left mode
+    # choices; only the 2D canvas is anchored to the lower-right corner.
+    rows_host.grid(row=1, column=0, sticky="nw",
+                   padx=16, pady=(0, 16))
 
     def warn(exc):
         messagebox.showwarning("多只設定", str(exc), parent=win)
