@@ -8,6 +8,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # /派工
 
+## 全域 DC 預設禁止（施工階段不可觸碰）
+
+本 Skill 首先遵循 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`。**`/派工` 只有 exact HEAD CI SUCCESS 後、base=`localX` 的 `LOCALX_INTEGRATION` 可使用 DC**，用途僅限本機 `localX` 合併、必要整合驗證／同步／回讀；其他階段連 `list_devices`、`ping`、讀檔或查目錄都不准。使用者另行明確指示某次 DC 操作時，只能依當次限定的目的執行。若其他工作確有 DC 需求，先報明原因、裝置／路徑、預定操作及影響，以 `DC_AUTHORIZATION_REQUIRED` 請求核准，未核准不得接觸 DC，也不得轉用本機 shell 繞過。
+
 ## 硬閘門：`DISPATCH_CLOUD_BUILD_DC_LOCALX_ONLY`
 
 **`/派工` 絕不能在使用者本機施工。** `DISCOVERY / BUILD / TEST / COMMIT / PUSH / PR / CI` 階段限 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`，雲端執行器不得暗接使用者裝置。此階段 `Remote Desktop Commander / RC / whd-dev / /workspace/whd / Z:\新WHD` 均為 `DISPATCH_LOCAL_EXECUTION_DENIED`；不得以「沒有遠端 executor」為由轉本機，更不能暗自切為 `/接手`。缺雲端施工能力就回報 `REMOTE_EXECUTOR_UNAVAILABLE`。

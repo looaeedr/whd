@@ -13,6 +13,10 @@ whd_schema: WHD_DOC_META_V1
 
 使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
 
+## 全域 DC 硬閘門
+
+依 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`，只有當前使用者明確下達本次 `/接手`、`/派工` 最後 exact HEAD CI SUCCESS 的 `LOCALX_INTEGRATION`，或使用者另行明確允許特定 DC 目的時才能調用 DC。**單純要求改程式、修改治理、檢查 GitHub、核准 push 或「繼續」均不授予 DC 存取**；不論 `list_devices`、`ping`、讀取檔案或執行命令，未先滿足豁免都禁止。若別的任務確有需求，回報原因、裝置／路徑、操作及影響，標記 `DC_AUTHORIZATION_REQUIRED`，先取得明確核准。任何 CI 或外部工具拒絕都不能繞過。
+
 ## `/接手` 的遠端 Git 交付授權（產品通道）
 
 `/接手` 對已明確指定、或當輪已確認接手的 **同一張 Issue／工作分支**，包含從施工到 `localX` 的完整交付授權：本機修改、測試、`git commit` → 推送本次工作分支提交到使用者的 `looaeedr/whd` GitHub → 建立／更新 **base=`localX`** 的產品 PR → 驗收該 PR exact HEAD 的 CI → 合併至 `localX` → 回讀實際 PR、Git HEAD 與 Issue，留言、結案，並依前置及衝突檢查續作下一張可執行工單。
