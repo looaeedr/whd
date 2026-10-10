@@ -116,8 +116,10 @@ def test_real_gui_quantity_controls_holes_and_manual_save(family, tmp_path, monk
             app.activate_part("head"); root.update()
         controls = app.receiving_mode_controls.quantity_editor
         model = app.designer_workspace.quantity_model
-        assert controls.frame.winfo_manager()
-        assert app.receiving_mode_controls.common_button.winfo_manager()
+        # Receiving operator controls now live in the Assembly multi-settings
+        # window; non-Receiving quantity UI retains its existing inline form.
+        assert bool(controls.frame.winfo_manager()) is (family != "受電箱")
+        assert bool(app.receiving_mode_controls.common_button.winfo_manager()) is (family != "受電箱")
         assert not app.receiving_set_bay_control.winfo_manager()
         import time, json, ezdxf
         from phase6_final_scene_view import Phase6FinalSceneViewAdapter

@@ -397,19 +397,9 @@ def refresh_receiving_set_bay_control(self, namespace):
             namespace, layer_index
         ),
     )
-    if not frame.winfo_manager():
-        before = getattr(getattr(app, "bend_ui", None), "nb", None)
-        options = {
-            "fill": original.tk.X,
-            "pady": (0, 4),
-        }
-        if (
-            before is not None
-            and before.winfo_manager()
-            and before.master is frame.master
-        ):
-            options["before"] = before
-        frame.pack(**options)
+    # Product functions remain available through the Assembly multi-settings
+    # dialog. The original BoxBody controls are hidden, not deleted.
+    frame.pack_forget()
     return True
 
 def on_receiving_switch_brand_selected(
@@ -856,7 +846,7 @@ def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
 
 
 def _switch_mode(self, namespace, target):
-    from .receiving_mode_controls import ask_initial_dimensions
+    from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
     from phase6_receiving_modes import ReceivingModeSession
     from shapely.errors import GEOSException
     from tkinter import messagebox
@@ -870,10 +860,10 @@ def _switch_mode(self, namespace, target):
     dimensions = None
     initializing = session.needs_initialization(target)
     if initializing:
-        dimensions = ask_initial_dimensions(app.root, target)
-        if dimensions is None:
-            self.refresh_receiving_set_bay_control(namespace)
-            return False
+        # Fresh mode data uses Receiving Family defaults (800x1600x350).
+        # There is no operator-facing initialization dialog. Returning to an
+        # existing session still restores that session's original dimensions.
+        dimensions = {key: int(BOX_BODY_DEFAULTS[key]) for key in ("w", "h", "d")}
     source = _current_mode_snapshot(self, namespace)
     planned = deepcopy(session)
     was_dirty = app.designer_workspace.dirty
@@ -1005,5 +995,33 @@ def _refresh_mode_controls(self, namespace):
     options = {"fill": tk.X, "pady": (0, 4)}
     if before.winfo_manager() and before.master is controls.frame.master:
         options["before"] = before
-    controls.frame.pack(**options)
+    # Preserve the original quantity editor for non-Receiving families.
+    # Receiving's operator entry is only the Assembly multi-settings dialog.
+    if applicable:
+        controls.frame.pack_forget()
+    else:
+        controls.frame.pack(**options)
     return True
+
+
+def open_receiving_multi_settings(self, namespace):
+    """Route one Assembly dialog to existing Set/Bay and quantity owners."""
+    if not self.receiving_layout_applicable():
+        return False
+    from .receiving_multi_settings_window import open_multi_settings
+    from .quantity_version_ports import quantity_ports
+    app = self.app
+    ports = quantity_ports(self, namespace)
+    ports["common"] = lambda: _open_common_box(self, namespace)
+    return open_multi_settings(
+        app.root,
+        get_snapshot=lambda: _current_mode_snapshot(self, namespace),
+        get_switch=lambda: self.receiving_switch_adapter(namespace),
+        switch_mode=lambda mode: _switch_mode(self, namespace, mode),
+        set_brand=lambda brand: self.on_receiving_switch_brand_selected(namespace, brand),
+        add_set=lambda: self.add_receiving_layer(namespace),
+        remove_set=lambda: self.remove_receiving_layer(namespace),
+        resize_connections=lambda index, delta: self.resize_receiving_bays(namespace, index, delta),
+        open_set_settings=lambda index: self.open_receiving_layer_preview(namespace, index),
+        quantity_ports=ports,
+    )

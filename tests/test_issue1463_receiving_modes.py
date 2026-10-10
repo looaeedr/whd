@@ -127,10 +127,8 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         composition.settings_transactions().commit_endcap_fw_override("head", 44)
         app.submit_update_intent("geometry", commit=True)
         before = implementation._current_mode_snapshot(composition, namespace)
-        monkeypatch.setattr(controls, "ask_initial_dimensions", lambda *args: None)
-        assert not implementation._switch_mode(composition, namespace, "quantity")
-        assert implementation._current_mode_snapshot(composition, namespace) == before
-        monkeypatch.setattr(controls, "ask_initial_dimensions", lambda *args: {"w":900.5,"h":1700,"d":400.25})
+        # Fresh sessions use Family dimensions without an initialization dialog.
+        assert before["active_mode"] == "set_bay"
         composition.final_scene_set_preview_enabled(False)
         import phase6_manufacturing_service as mode_manufacturing
         before_failed = deepcopy(app.designer_workspace.snapshot())
@@ -159,9 +157,9 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         assert app._phase6_endcap_fw_state["head"]["follow_box"] is True
         assert app._phase6_endcap_fw_state["head"]["value"] == 29
         assert not app.receiving_set_bay_control.winfo_manager()
-        assert app.receiving_mode_controls.common_button.winfo_manager()
-        assert app._phase6_box_whd["w"] == 900.5
-        assert app._phase6_box_whd["d"] == 400.25
+        assert not app.receiving_mode_controls.common_button.winfo_manager()
+        assert app._phase6_box_whd["w"] == 800
+        assert app._phase6_box_whd["d"] == 350
         app.designer_workspace.quantity_model.set_piece_count(7)
         app.designer_workspace.quantity_model.add_version()
         assert implementation._switch_mode(composition, namespace, "set_bay")
@@ -169,7 +167,7 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         assert app.designer_workspace.quantity_model is None
         assert app._phase6_endcap_fw_state["head"]["follow_box"] is False
         assert app._phase6_endcap_fw_state["head"]["value"] == 44
-        assert app.receiving_set_bay_control.winfo_manager()
+        assert not app.receiving_set_bay_control.winfo_manager()
         assert implementation._switch_mode(composition, namespace, "quantity")
         root.update()
         assert app.designer_workspace.quantity_model.total_piece_count == 8
