@@ -101,14 +101,14 @@ def update_common_box(snapshot, changes):
 
 def quantity_feature_errors(snapshot):
     """Re-resolve every version against the existing finished-face authority."""
-    if snapshot.get("active_mode") != "quantity" or snapshot.get("model") != "受電箱":
+    if snapshot.get("active_mode") != "quantity":
         return ()
     from phase6_quantity_model import QuantityModel
     from ae_engine.sheetmetal_features import (
         resolve_endcap_finished_face_guide, feature_surface_from_rect,
         feature_is_within_surface,
     )
-    box = normalize_common_box(snapshot.get(BOX_KEY))
+    box = normalize_common_box(snapshot.get(BOX_KEY)) if snapshot.get("model") == "受電箱" else {axis: positive_dimension(snapshot.get(axis), axis) for axis in ("w", "d")}
     model = QuantityModel.from_payload(snapshot.get("quantity"))
     guide = resolve_endcap_finished_face_guide(box["w"], box["d"], float(snapshot.get("t", 2)))
     surface = feature_surface_from_rect("endcap_finished_face", guide.min_point, guide.max_point)

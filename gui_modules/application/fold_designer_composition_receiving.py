@@ -223,6 +223,8 @@ def sync_receiving_current_bay(
 
 def commit_receiving_current_bay_controls(self, namespace):
     app = self.app
+    if app._phase6_input_snapshot.get("active_mode") == "quantity" and getattr(app, "_phase6_initializing", False):
+        return False
     if getattr(app, "_phase6_receiving_set_bay_guard", False):
         return False
     if app._phase6_input_snapshot.get("active_mode") == "quantity":
@@ -972,20 +974,23 @@ def _refresh_mode_controls(self, namespace):
     app = self.app
     controls = getattr(self, "_receiving_mode_controls", None)
     applicable = self.receiving_layout_applicable()
-    if controls is None and applicable:
+    from .quantity_version_ports import quantity_ports
+    if controls is None:
         controls = build_mode_controls(
             app.receiving_set_bay_control.master,
             on_switch=lambda target: _switch_mode(self, namespace, target),
-            on_common=lambda: _open_common_box(self, namespace),
+            on_common=lambda: _open_common_box(self, namespace) if self.receiving_layout_applicable() else self.settings_panel(namespace).render_context("box_body"),
+            quantity_ports=quantity_ports(self, namespace),
         )
         self._receiving_mode_controls = controls
         app.receiving_mode_controls = controls
     if controls is None:
         return False
-    if not applicable:
-        controls.frame.pack_forget()
-        return False
-    controls.refresh(app._phase6_input_snapshot.get("active_mode", "set_bay"),
+    if applicable:
+        controls.mode_row.pack(fill=tk.X, before=controls.common_button if controls.common_button.winfo_manager() else controls.quantity_editor.frame if controls.quantity_editor.frame.winfo_manager() else None)
+    else:
+        controls.mode_row.pack_forget()
+    controls.refresh(app.designer_workspace.snapshot().get("active_mode", "set_bay"),
                      app.designer_workspace.snapshot().get("quantity"))
     before = app.receiving_set_bay_control if app.receiving_set_bay_control.winfo_manager() else app.bend_ui.nb
     options = {"fill": tk.X, "pady": (0, 4)}

@@ -755,8 +755,23 @@ def _apply_fold_designer_live_snapshot(self, payload):
     self._fold_designer_live_sync_guard = True
     try:
         from phase6_custom_parts import custom_part_only_change
-        if custom_part_only_change(getattr(self,"_phase6_last_fold_designer_live_payload",None),payload):
+        from phase6_quantity_model import quantity_only_change
+        previous_payload = getattr(self, "_phase6_last_fold_designer_live_payload", None)
+        quantity_changed = quantity_only_change(previous_payload, payload)
+        if custom_part_only_change(previous_payload, payload) or quantity_changed:
             self.workspace_controller.commit_workspace(payload["workspace"])
+            if quantity_changed:
+                features = self.workspace_controller.part_features_snapshot()
+                for role in ("head", "tail"):
+                    self.surface_features[role] = deepcopy(features.get(role, []))
+                try:
+                    width, depth = float(self.w_var.get()), float(self.d_var.get())
+                    self.head_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["head"]]
+                    self.tail_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["tail"]]
+                except (TypeError, ValueError, AttributeError):
+                    # Typed surface features remain the canonical owner for
+                    # feature kinds that the legacy hole projection cannot carry.
+                    pass
             self.project_controller.capture_committed(self._compose_phase6_project_snapshot_from_main_gui())
             self._phase6_last_fold_designer_revision=revision
             self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")
@@ -1004,6 +1019,13 @@ def open_original_fold_designer(self, *, target_window=None):
         if path:
             self.project_controller.set_project_path(path)
 
+    def sync_from_designer(payload):
+        # A closed designer may still have a queued callback. Only the current
+        # instance owns live edits; each fresh instance starts its own revision.
+        if designer is None or self.fold_designer_app is not designer:
+            return False
+        return self._apply_fold_designer_live_snapshot(deepcopy(payload))
+
     designer_factory = getattr(self, "_fold_designer_factory", None)
     if designer_factory is None:
         raise RuntimeError("Fold Designer factory is not connected")
@@ -1013,7 +1035,7 @@ def open_original_fold_designer(self, *, target_window=None):
             on_settings_change=None,
             on_save_defaults=self._save_fold_designer_defaults,
             on_corner_change=None,
-            on_live_sync=lambda payload: self._apply_fold_designer_live_snapshot(deepcopy(payload)),
+            on_live_sync=sync_from_designer,
             on_baseline_data_query=self._query_fold_designer_baseline_data,
             on_scene_query=self._query_fold_designer_render_data,
             on_part_spec_query=self._fold_designer_part_spec_from_payload,
@@ -1056,6 +1078,11 @@ def open_original_fold_designer(self, *, target_window=None):
     designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view
     self.fold_designer_window = window
     self.fold_designer_app = designer
+    # Compare the first edit with the exact canonical state used to construct
+    # this designer. Opening still emits no live revision or calculation.
+    self._phase6_last_fold_designer_live_payload = deepcopy(getattr(designer, "_phase6_last_live_state", None))
+    self._phase6_last_fold_designer_revision = 0
+    self._phase6_last_fold_designer_fingerprint = ""
     window.protocol("WM_DELETE_WINDOW", close_designer)
     return designer
 
