@@ -238,3 +238,42 @@ def resolved_manufacturing_nc_capability() -> dict[str, object]:
         'reason': 'production NC sink is not implemented at the ResolvedManufacturingGeometry boundary',
         'canonical_input': 'ResolvedManufacturingGeometry',
     }
+
+
+
+def save_quantity_manufacturing_groups_dxf(
+    groups, output_dir, *, save_part_render_data_dxf, verify_part_dxf, overwrite=False,
+    render_data_transform=None,
+):
+    """Serialize one sheet per validated group through the existing atomic sink."""
+    rows = []
+    keys = set()
+    filenames = set()
+    for group in tuple(groups):
+        key = str(group.key)
+        if not re.fullmatch(r"[0-9a-f]{64}", key) or key in keys:
+            raise ValueError("invalid/duplicate manufacturing group key")
+        keys.add(key)
+        filename = group.filename
+        if filename != f"part_{key}.dxf" or filename in filenames:
+            raise ValueError("invalid/duplicate manufacturing group filename")
+        filenames.add(filename)
+        if isinstance(group.quantity, bool) or not isinstance(group.quantity, int) or group.quantity < 1:
+            raise ValueError("manufacturing group quantity must be positive")
+        render = group.render_data
+        if render_data_transform is not None:
+            render = render_data_transform(group)
+        rows.append((key, filename, render))
+    if not rows:
+        raise ValueError("at least one manufacturing group is required")
+    def save_verified(render, path, *, overwrite):
+        saved = save_part_render_data_dxf(render, path, overwrite=overwrite)
+        result = verify_part_dxf(render, saved)
+        if not result.ok:
+            raise ValueError(f"staged manufacturing DXF verification failed: {result.issues}")
+        return saved
+
+    return _save_resolved_rows_atomic(
+        rows, output_dir, save_part_render_data_dxf=save_verified,
+        overwrite=overwrite,
+    )

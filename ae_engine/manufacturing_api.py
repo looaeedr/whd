@@ -552,3 +552,19 @@ def resolved_quantity_physical_demands(versions, *, per_box_counts=None):
     """Project quantity demand using the canonical physical inventory."""
     from .manufacturing_quantity import resolved_quantity_physical_demands as project
     return project(versions, per_box_counts=per_box_counts)
+
+
+
+def group_quantity_physical_demands(demands, parameters_by_source):
+    from .manufacturing_equivalence import group_quantity_physical_demands as group
+    return group(demands, parameters_by_source)
+
+
+def save_quantity_manufacturing_groups_dxf(
+    groups, output_dir, *, overwrite=False, render_data_transform=None,
+):
+    return _manufacturing_export.save_quantity_manufacturing_groups_dxf(
+        groups, output_dir, save_part_render_data_dxf=save_part_render_data_dxf,
+        verify_part_dxf=verify_saved_part_render_data_dxf,
+        overwrite=overwrite, render_data_transform=render_data_transform,
+    )
