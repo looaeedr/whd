@@ -22,6 +22,12 @@ whd_schema: WHD_DOC_META_V1
 
 `/接手` 是另一入口，只有使用者明確下達時才允許**在本機施工**。此 `/派工` 的 DC 例外只是最終合併，不是暗中開啟 `/接手`。無論哪條路，產品從 `localX` 到正式 X 仍須當次 `/推推`；治理白名單文件依 `tools/change_lane_gate.py` 另走治理通道。
 
+## 工單授權延續與公開交付
+
+依 `AGENTS.md` 的 `ISSUE_SCOPE_AUTHORIZATION_REUSE`，同一 Issue、工作分支、施工範圍、repo 與 base=`localX` 已明確核准後，修復 CI 或必要產品測試產生的新 SHA 不必再次詢問**同一範圍**的 push／PR／CI／localX 整合許可。**每個新 HEAD 仍需範圍 diff 與必要 CI 重驗**，不沿用舊版 GREEN。不得把 #1466 核准沿用 #1467，亦不得擴大到正式 X；使用者明示只准固定 SHA 時照較窄界線執行。
+
+本節**不允許 `/派工` 以 DC 施工**，亦不放寬任何平台公開上傳安全審查。平台實際拒絕就回報 `PUBLIC_UPLOAD_REVIEW_BLOCKED` 與拒絕操作、必要補證，不得更換管道規避或無限重問相同核准。**純治理文件必須優先 GitHub 直送 X，不得未經另外明確授權而使用 DC**。
+
 ## 發出產品 PR 之後必須續作
 
 1. `PR_OPEN / CI_QUEUED / CI_IN_PROGRESS / CI_PENDING` 一律 `CONTINUE_POLL`，**不是可結束的交付狀態**；在當前回合持續輪詢 exact PR SHA 與對應 run，不得把「正在測試」當成派工完成。
