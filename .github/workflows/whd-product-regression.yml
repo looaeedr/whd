@@ -39,12 +39,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      reuse: ${{ steps.green-reuse.outputs.reuse }
+      reuse: ${{ steps.green-reuse.outputs.reuse }}
     steps:
       - name: Checkout exact PR candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -63,17 +63,17 @@ jobs:
       - name: Revalidate prior GREEN after target drift
         id: green-reuse
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           python tools/product_ci_green_reuse.py \
             --repo "$GITHUB_REPOSITORY" \
-            --head-sha "${{ github.event.pull_request.head.sha }" \
-            --base-sha "${{ github.event.pull_request.base.sha }"
+            --head-sha "${{ github.event.pull_request.head.sha }}" \
+            --base-sha "${{ github.event.pull_request.base.sha }}"
 
   test-shard:
-    name: Product Shard (${{ matrix.shard })
+    name: Product Shard (${{ matrix.shard }})
     needs: prepare
     if: needs.prepare.outputs.reuse != 'true'
     strategy:
@@ -86,7 +86,7 @@ jobs:
       - name: Checkout exact PR candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -106,14 +106,14 @@ jobs:
           set -euo pipefail
           python tools/product_ci_regression.py \
             --shard-count 3 \
-            --shard-index "${{ matrix.shard }" \
-            --junit-out "shard-${{ matrix.shard }.xml"
+            --shard-index "${{ matrix.shard }}" \
+            --junit-out "shard-${{ matrix.shard }}.xml"
       - name: Publish shard JUnit for mandatory full acceptance
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: whd-ci-shard-${{ matrix.shard }
-          path: shard-${{ matrix.shard }.xml
+          name: whd-ci-shard-${{ matrix.shard }}
+          path: shard-${{ matrix.shard }}.xml
           if-no-files-found: error
           retention-days: 7
 
@@ -127,9 +127,9 @@ jobs:
       - name: Fail closed on missing preflight or shard GREEN
         shell: bash
         env:
-          PREFLIGHT_RESULT: ${{ needs.prepare.result }
-          REUSE: ${{ needs.prepare.outputs.reuse }
-          SHARDS_RESULT: ${{ needs.test-shard.result }
+          PREFLIGHT_RESULT: ${{ needs.prepare.result }}
+          REUSE: ${{ needs.prepare.outputs.reuse }}
+          SHARDS_RESULT: ${{ needs.test-shard.result }}
         run: |
           set -euo pipefail
           test "$PREFLIGHT_RESULT" = success
@@ -144,7 +144,7 @@ jobs:
         if: needs.prepare.outputs.reuse != 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Set up Python for CPR/AC verifier
         if: needs.prepare.outputs.reuse != 'true'
