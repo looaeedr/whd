@@ -24,6 +24,9 @@ on:
       - 'docs/superpowers/checkpoints/issue532-c0-final-classification.json'
       - '.github/workflows/whd-product-regression.yml'
 
+env:
+  TZ: Asia/Taipei
+
 permissions:
   contents: read
   checks: read
@@ -44,6 +47,21 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Taiwan timezone hard gate for CI and changed Python sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from tools.change_lane_gate import require_taipei_timezone, require_new_code_taipei
+          print("TAIWAN_TIMEZONE_HARD_GATE_PASS " + require_taipei_timezone())
+          print("new_python_lines_checked=" + str(require_new_code_taipei(
+              Path("."),
+              "${{ github.event.pull_request.base.sha }}",
+              "${{ github.event.pull_request.head.sha }}",
+          )))
+          PY
 
       - name: Revalidate prior GREEN after target drift
         id: green-reuse
