@@ -71,7 +71,9 @@ def test_real_quantity_bom_30_plus_20_custom_100_and_read_only(family, back_mode
     import phase6_project_file as project
     from gui_modules.application import receiving_mode_controls
     from gui_modules.application import fold_designer_composition_receiving as modes
-    from phase6_quantity_manufacturing import resolve_quantity_manufacturing_for_app
+    from phase6_quantity_manufacturing import resolve_quantity_manufacturing
+    from phase6_manufacturing_adapter import (build_manufacturing_request,
+        build_scene_payload_for_app, operator_finished_dimensions_for_app)
     from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, Vec2
 
     root = tk.Tk()
@@ -146,7 +148,14 @@ def test_real_quantity_bom_30_plus_20_custom_100_and_read_only(family, back_mode
         monkeypatch.setattr(ezdxf, "readfile", counted("dxf_read", ezdxf.readfile))
         monkeypatch.setattr(Phase6FinalSceneViewAdapter, "build_request", counted("final_scene", Phase6FinalSceneViewAdapter.build_request))
         started = time.perf_counter()
-        batch = resolve_quantity_manufacturing_for_app(app)
+        base = build_manufacturing_request(
+            app,
+            scene_payload_builder=lambda key: build_scene_payload_for_app(app, key),
+            render_data_provider=app._scene_query_callback,
+            part_spec_provider=app._part_spec_query_callback,
+            finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(app, key),
+        )
+        batch = resolve_quantity_manufacturing(base, workspace.snapshot())
         receipt = dict(calls, render=len(renders),
             calculation=app._phase6_update_scheduler._metrics["calculation_flushes"]-calculations,
             wall_seconds=time.perf_counter()-started)
