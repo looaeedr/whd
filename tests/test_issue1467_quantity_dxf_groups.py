@@ -10,6 +10,7 @@ from ae_engine.manufacturing_quantity import PhysicalPartDemand
 from ae_engine.manufacturing_render_data import PartRenderData, material_polygon_from_final_scene
 from ae_engine.sheetmetal_drawing import DrawingScene, TextPrimitive
 from ae_engine.sheetmetal_geometry import Vec2
+from ae_engine.drawing_annotation_layout import annotate_quantity_render_data
 
 
 def render(width=20, height=30, *, hole=None, bend=None, marking=None, check=None):
@@ -131,7 +132,7 @@ def test_saved_group_dxfs_reopen_exact_physical_render_and_serialize_once(tmp_pa
     outputs = api.save_quantity_manufacturing_groups_dxf(result, tmp_path)
     assert len(seen) == len(result) == len(outputs) == len(list(tmp_path.glob("*.dxf")))
     for group in result:
-        assert api.verify_saved_part_render_data_dxf(group.render_data, outputs[group.key]).ok
+        assert api.verify_saved_part_render_data_dxf(annotate_quantity_render_data(group.render_data, group.quantity), outputs[group.key]).ok
     assert not list(tmp_path.glob(".whd-*"))
 
 
@@ -222,7 +223,7 @@ def test_actual_gui_output_uses_all_quantity_versions_and_custom_physical_demand
         head_groups = [g for g in result if any(r.source_part_id == "head" for r in g.members)]
         assert len(head_groups) == 2 and sorted(g.quantity for g in head_groups) == [20, 30]
         for group in result:
-            assert api.verify_saved_part_render_data_dxf(group.render_data, tmp_path / group.filename).ok
+            assert api.verify_saved_part_render_data_dxf(annotate_quantity_render_data(group.render_data, group.quantity), tmp_path / group.filename).ok
         assert ws.snapshot() == before
         assert not errors, errors
     finally:

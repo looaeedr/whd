@@ -423,3 +423,118 @@ def resolve_annotation_collisions(
             + "; ".join(c.detail for c in result.unresolved_collisions)
         )
     return result
+
+
+def _quantity_text_box(text):
+    """Conservative MTEXT footprint, including multiline/attachment semantics."""
+    from shapely.geometry import box
+    lines = str(text.text).replace("\\P", "\n").splitlines() or [""]
+    height = float(text.char_height)
+    width = max(max(map(len, lines)), 1) * height * 0.8
+    total_height = height * (1 + 1.5 * (len(lines) - 1))
+    attachment = int(text.attachment_point)
+    column = (attachment - 1) % 3
+    row = (attachment - 1) // 3
+    x = float(text.insert.x) - (0, width / 2, width)[column]
+    y = float(text.insert.y) - (total_height, total_height / 2, 0)[row]
+    return box(x, y, x + width, y + total_height)
+
+
+def _quantity_obstacles(primitives, clearance):
+    """Read final 2D primitives solely as annotation obstacles."""
+    from shapely.geometry import LineString, Point
+    rows = []
+    for primitive in primitives:
+        if str(primitive.layer).upper() == "STOCK":
+            continue
+        if isinstance(primitive, TextPrimitive):
+            obstacle = _quantity_text_box(primitive)
+        elif isinstance(primitive, CirclePrimitive):
+            obstacle = Point(primitive.center.x, primitive.center.y).buffer(
+                primitive.radius, quad_segs=32).boundary
+        elif isinstance(primitive, LinePrimitive):
+            obstacle = LineString(((primitive.p1.x, primitive.p1.y),
+                                   (primitive.p2.x, primitive.p2.y)))
+        elif isinstance(primitive, PolylinePrimitive):
+            points = [(p.x, p.y) for p in primitive.points]
+            if primitive.closed and points and points[-1] != points[0]:
+                points.append(points[0])
+            if len(points) < 2:
+                raise ValueError("quantity CHECK cannot inspect degenerate polyline")
+            obstacle = LineString(points)
+        else:
+            raise TypeError(f"unsupported quantity CHECK obstacle: {type(primitive).__name__}")
+        rows.append(obstacle.buffer(clearance))
+    return tuple(rows)
+
+
+def _quantity_candidates(material, obstacles, width, height, clearance):
+    """Center first; deterministic boundary-derived and bounded grid fallback."""
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    center = ((minx + maxx) / 2, (miny + maxy) / 2)
+    anchors = [center, (material.centroid.x, material.centroid.y)]
+    point = material.representative_point()
+    anchors.append((point.x, point.y))
+    xs, ys = {p[0] for p in anchors}, {p[1] for p in anchors}
+    boxes = [material.bounds] + [obstacle.bounds for obstacle in obstacles]
+    for x1, y1, x2, y2 in boxes:
+        for x in (x1, x2):
+            xs.update((x - width / 2 - clearance, x + width / 2 + clearance))
+        for y in (y1, y2):
+            ys.update((y - height / 2 - clearance, y + height / 2 + clearance))
+    # This is annotation search only; it never creates manufacturing coordinates.
+    for i in range(1, 32):
+        xs.add(minx + (maxx - minx) * i / 32)
+        ys.add(miny + (maxy - miny) * i / 32)
+    candidates = {(x, y) for x in xs for y in ys
+                  if minx < x < maxx and miny < y < maxy}
+    candidates.update(anchors)
+    return sorted(candidates, key=lambda p:
+                  ((p[0]-center[0])**2 + (p[1]-center[1])**2, p[0], p[1]))
+
+
+def annotate_quantity_render_data(
+    render_data, quantity, *, char_height=30.0, minimum_char_height=3.0,
+    clearance=1.0,
+):
+    """Place exactly one CHECK Q after grouping, retaining all machining objects."""
+    import math
+    import re
+    from shapely.prepared import prep
+    from .sheetmetal_drawing import DrawingScene
+    if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
+        raise ValueError("quantity CHECK requires a positive integer")
+    if (not all(math.isfinite(float(v)) for v in
+                (char_height, minimum_char_height, clearance))
+            or minimum_char_height <= 0 or char_height < minimum_char_height
+            or clearance <= 0):
+        raise ValueError("invalid readable quantity CHECK layout settings")
+    material = render_data.material
+    if material is None or material.is_empty or not material.is_valid:
+        raise ValueError("quantity CHECK requires valid final 2D material")
+    # Replace only old CHECK quantity labels; manufacturing text is immutable.
+    primitives = tuple(p for p in render_data.scene.primitives
+        if not (isinstance(p, TextPrimitive) and str(p.layer).upper() == "CHECK"
+                and re.fullmatch(r"[Qq][0-9]+", str(p.text).strip())))
+    obstacles = _quantity_obstacles(primitives, float(clearance))
+    prepared = prep(material)
+    heights = []
+    height = float(char_height)
+    while height > minimum_char_height:
+        heights.append(height)
+        height /= 2
+    heights.append(float(minimum_char_height))
+    for height in heights:
+        text = TextPrimitive(f"Q{quantity}", Vec2(0, 0), "CHECK", height, 5, 2,
+                             "manufacturing_quantity")
+        region = _quantity_text_box(text)
+        width, text_height = region.bounds[2]-region.bounds[0], region.bounds[3]-region.bounds[1]
+        for x, y in _quantity_candidates(material, obstacles, width, text_height, clearance):
+            candidate = replace(text, insert=Vec2(x, y))
+            footprint = _quantity_text_box(candidate)
+            if not prepared.covers(footprint.buffer(clearance)):
+                continue
+            if any(footprint.intersects(obstacle) for obstacle in obstacles):
+                continue
+            return replace(render_data, scene=DrawingScene([*primitives, candidate]))
+    raise ValueError(f"quantity CHECK Q{quantity}: no legal readable position inside final material")

@@ -263,6 +263,8 @@ def save_quantity_manufacturing_groups_dxf(
         render = group.render_data
         if render_data_transform is not None:
             render = render_data_transform(group)
+        from .drawing_annotation_layout import annotate_quantity_render_data
+        render = annotate_quantity_render_data(render, group.quantity)
         rows.append((key, filename, render))
     if not rows:
         raise ValueError("at least one manufacturing group is required")
@@ -271,6 +273,8 @@ def save_quantity_manufacturing_groups_dxf(
         result = verify_part_dxf(render, saved)
         if not result.ok:
             raise ValueError(f"staged manufacturing DXF verification failed: {result.issues}")
+        from .dxf_serialization import verify_quantity_check_dxf
+        verify_quantity_check_dxf(render.scene, saved)
         return saved
 
     return _save_resolved_rows_atomic(

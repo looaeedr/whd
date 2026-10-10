@@ -187,7 +187,12 @@ def mirror_drawing_scene_y(scene: DrawingScene, height: float) -> DrawingScene:
                 insert=mirror_point_y(primitive.insert, height),
                 layer=primitive.layer,
                 char_height=primitive.char_height,
-                attachment_point=primitive.attachment_point,
+                # CHECK remains upright: reflect its attachment so an external
+                # note stays outside rather than covering the sheet after mirroring.
+                attachment_point=({1: 7, 2: 8, 3: 9, 7: 1, 8: 2, 9: 3}.get(
+                    primitive.attachment_point, primitive.attachment_point)
+                    if str(primitive.layer).upper() == "CHECK"
+                    else primitive.attachment_point),
                 color=primitive.color,
                 semantic_id=primitive.semantic_id,
             ))
