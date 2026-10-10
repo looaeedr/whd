@@ -223,6 +223,7 @@ class ReceivingSettingsPreview2D:
         """Discard stale visual data when the committed source fails to resolve."""
         self.requests = ()
         self.tiles.clear()
+        self._current_roles = []
         self._background = None
         self.ax.clear()
         self.ax.set_axis_off()
