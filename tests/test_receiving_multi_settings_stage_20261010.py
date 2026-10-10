@@ -100,7 +100,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"套／連", "數量", "第1套", "＋連", "1", "－連", "套用"}
+        assert set(texts) == {"NFB", "套／連", "數量", "第1套", "＋連", "1", "－連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas
@@ -110,11 +110,11 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         controls_column = rows_host.master
         # Both the action row and the three-item LIST (not a dropdown) sit
         # directly below upper-left mode choices; 2D stays lower right.
-        assert mode_row.grid_info()["row"] == 0
+        assert mode_row.master.grid_info()["row"] == 0
         assert controls_column.grid_info()["row"] == 1
         assert controls_column.grid_info()["column"] == 0
         assert canvas.grid_info()["row"] == 1
-        assert canvas.grid_info()["column"] == 1
+        assert canvas.grid_info()["column"] == 0
         assert abs(controls_column.winfo_rootx() - mode_row.winfo_rootx()) <= 2
         vertical_gap = controls_column.winfo_rooty() - (
             mode_row.winfo_rooty() + mode_row.winfo_height()
@@ -123,7 +123,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert isinstance(setting_list, tk.Listbox)
         assert setting_list.master is controls_column
         assert setting_list.winfo_ismapped()
-        assert tuple(setting_list.get(0, tk.END)) == ("封頭", "封尾", "內門")
+        assert tuple(setting_list.get(0, tk.END)) == ("封頭尾", "內門")
         assert setting_list.curselection() == ()
         assert len(canvas._receiving_bay_hitboxes) == 1
         assert win._receiving_multi_applied["set_index"] is None
@@ -137,11 +137,6 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert selected_settings == [(0, 0, "head_features")]
         setting_list.selection_clear(0, tk.END)
         setting_list.selection_set(1)
-        setting_list.event_generate("<<ListboxSelect>>")
-        root.update()
-        assert selected_settings[-1] == (0, 0, "tail_features")
-        setting_list.selection_clear(0, tk.END)
-        setting_list.selection_set(2)
         setting_list.event_generate("<<ListboxSelect>>")
         root.update()
         assert selected_settings[-1] == (0, 0, "inner_door_layers")
@@ -215,13 +210,13 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert not rows_host.winfo_children()
         assert not setting_list.winfo_ismapped()
         assert len(canvas._receiving_bay_hitboxes) == 1
-        assert set(_visible_texts(win)) == {"套／連", "數量"}
+        assert set(_visible_texts(win)) == {"NFB", "套／連", "數量"}
         choices[0].invoke()
         root.update()
         assert mode["value"] == "set_bay"
         assert "第1套" in _visible_texts(win)
         assert setting_list.winfo_ismapped()
-        assert tuple(setting_list.get(0, tk.END)) == ("封頭", "封尾", "內門")
+        assert tuple(setting_list.get(0, tk.END)) == ("封頭尾", "內門")
         assert open_multi_settings(
             root, get_snapshot=lambda: {"active_mode": mode["value"]},
             get_switch=lambda: None, switch_mode=switch,
