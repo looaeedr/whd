@@ -546,3 +546,9 @@ def verify_saved_resolved_manufacturing_geometry_batch_dxf(
         coordinate_tolerance=coordinate_tolerance,
         area_tolerance=area_tolerance,
     )
+
+
+def resolved_quantity_physical_demands(versions, *, per_box_counts=None):
+    """Project quantity demand using the canonical physical inventory."""
+    from .manufacturing_quantity import resolved_quantity_physical_demands as project
+    return project(versions, per_box_counts=per_box_counts)
