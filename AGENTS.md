@@ -10,12 +10,32 @@ whd_schema: WHD_DOC_META_V1
 - **舊工單交易、工作槽與 lease 控制系統已退役**；不得要求其憑證、工作槽、Preflight receipt 或其他管控才能執行修改、測試、Git commit。
 - **入口及階段分流**：`/派工` 的**施工、修改、測試、commit、PR 與 CI** 只能在 GitHub／排程／雲端執行器完成，嚴禁使用使用者本機。**唯一例外是 exact SHA CI 已通過後的 `LOCALX_INTEGRATION` 最終階段**：此時 `/派工` 可經 Desktop Commander（DC）連線 CoreELEC `whd-dev:/workspace/whd`，**只做使用者本機 `localX` 合併／必要整合驗證／同步回讀**，不得在該階段暗改產品程式或重做雲端施工。`/接手` 仍須使用者明確指令，才可在 RC 進行整個施工流程。
 - **產品施工通道**：`/派工` 遠端施工提交後建立 GitHub `localX` 目標 PR，確認 exact HEAD 的 CI SUCCESS；**先透過 DC 在本機 `localX` 整合且保留本機未發布修改**，通過整合驗證後以非強制方式同步 GitHub `localX` 並讀回兩端 SHA／PR 狀態。若 **DC 實際無法連線**，才允許 GitHub PR 直接合併遠端 `localX` 備援，需註明 `DC_UNREACHABLE`、`LOCALX_SYNC_PENDING`，不能聲稱本機已合併或同步。DC 可連但本機有衝突、髒檔、權限拒絕、CI RED，**不可冒用斷線備援**。`/接手` 依其明確指令走 RC 全流程。正式 X 的產品發布仍必須當次 `/推推`。
-- **治理直送通道（正式硬閘門）**：僅限 `tools/change_lane_gate.py` 明確白名單內的非產品文件、治理規則、技能、GitHub 工作流程與其專用測試。此類修改**不必**走 localX、`/推推`、工單派工或產品 QA；直接在本機從最新 X 開獨立 `governance/*`、`docs/*` 或 `skills/*` 分支，修改並做對應檢查，推送 GitHub PR 至 X 後直接合併。
+- **治理直送通道（正式硬閘門）**：僅限 `tools/change_lane_gate.py` 明確白名單內的非產品文件、治理規則、技能、GitHub 工作流程與其專用測試。此類修改**不必**走 localX、`/推推`、工單派工或產品 QA；**優先直接使用 GitHub／雲端治理分支** `governance/*`、`docs/*` 或 `skills/*`，從最新 X 修改、檢查、PR 至 X 並合併。**未取得使用者本次對 DC／本機的明確授權，不得為治理修改存取 CoreELEC、whd-dev 或本地 shell**；雲端能力不足時回報阻塞，不得自動轉走 DC。
 - **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得走治理直送；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
 - GitHub 正式硬閘門必須在 X 的 Ruleset 把 `WHD Change Lane Gate` 設為 required status check，否則只能算 CI 檢查、不能宣稱平台端不可繞過；直接 push X 應由分支 Ruleset 禁止。
 - 禁止遺失使用者本地未發布修改，禁止用 X 覆蓋 localX。保留程式碼 review、製造幾何與產品回歸檢查；無需工單交易硬閘門。
 - 本地工作不需 Google Drive 工作根目錄，也不需調用舊協調分支。
 - **兩入口共享交付範圍、不共享施工權限**：已確定 Issue 的 `/派工`、`/接手` 均限定 repo=`looaeedr/whd`、工作分支、PR base=`localX`、exact CI 和回讀。`/派工` 對 DC 的許可**僅限最終 `LOCALX_INTEGRATION`，不代表取得本機施工授權**；`/接手` 才允許使用者 RC 工作區完成施工。無需退役 remote token／unlock；**平台公開上傳安全審查仍有效**，不能繞過。沒有 `/推推` 不得發布正式 X。
+
+## 全域 DC 硬閘門 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`
+
+**預設禁止（DENY）**：所有 ChatGPT／Agent／排程／治理／文件／程式執行器，**在呼叫任何 Remote Desktop Commander（DC）工具之前**先做以下判斷。包含 `list_devices`、`ping`、`who_am_i`、檔案讀寫、工作目錄查詢、process／shell／Git 操作；**不得先連線探測再補問授權**。除以下三種情況外一律 `DC_ACCESS_DENIED_BY_DEFAULT`：
+
+1. **當前使用者明確下達 `/接手`**：僅授權該次指定工單及 RC → `whd-dev:/workspace/whd` 的施工、測試和該工單交付。先前對話的 `/接手` 不得永久沿用；不能把一般「去修修」「繼續」「可以」、文件修改或推送 GitHub 的授權解讀為 `/接手`。
+2. **`/派工` 的最後 `LOCALX_INTEGRATION` 階段**：必須先由真正雲端完成施工，確認對應工作 PR `base=localX`、exact HEAD SHA 的必要 CI 全部 SUCCESS、可整合，才准 DC **只做本機 `localX` 最終合併、必要整合驗證、同步與回讀**；此例外不允許本機 BUILD／TEST／COMMIT／修產品程式，不允許提早讀取 DC 裝置或測試連線。
+3. **使用者對本次特定目的明確指示允許 DC**：必須能辨識當次授權的工作、裝置、操作／路徑範圍；不能將概括的修正命令、先前授權或某個 Skill 裡的建議當作當次 DC 許可。
+
+**其餘所有情境（含治理文件直合 X、GitHub 能力不足、排程卡關、只想看看本機狀態、清理先前事故殘留）一律不用 DC。** 若確實需要，先向使用者說明 **使用 DC 的必要原因、預計使用的裝置／路徑、要讀／改／執行的操作與影響**，標記 `DC_AUTHORIZATION_REQUIRED`，**停止任何 DC 呼叫並等待使用者明確核准**；未核准不得改用其他本機通道繞行。核准僅在被核准的當次目的與範圍有效，不自動延伸到下一張工單或其他工作。
+
+**失敗即封閉**：授權來源不明、`/派工` 所在階段不明、CI 非 exact SUCCESS、PR base 不確定、使用者撤回授權時都視為 DENY。此規則不改動平台工具 ACL；任何外部平台拒絕仍不得繞過。CI 回歸測試可約束倉庫規則不被改鬆，**但不得誤稱 GitHub CI 能直接攔截 ChatGPT 的 DC 工具呼叫**。
+
+## 工單範圍授權延續 `ISSUE_SCOPE_AUTHORIZATION_REUSE`
+
+- **授權以施工範圍為主、SHA 供版本驗證**：使用者已明確核准指定 Issue 的公開交付時，範圍包含 `repo=looaeedr/whd`、指定 Issue、原工作分支、允許修改的功能／檔案範圍、PR 目標 `localX` 與 push／PR／CI／同工單修復／重測／整合 `localX`。執行者須能回讀原授權對話或可驗證的核准證據，不可捏造、不可用另一張 Issue 的核准冒充。**若使用者明示僅限某固定 commit SHA，仍以該較窄的授權為準。**
+- **同一工單同一範圍的修復續作**：CI 失敗、必要測試修復而產生新 commit SHA，原授權仍有效，**不因 SHA 更新就要求重複核准公開上傳**。但每個新 SHA 的 diff 都要重新核對原範圍、以新 exact HEAD 重跑必要測試／CI，不能繼承舊 SHA 的 GREEN；於 PR／Issue 留存版本變更證據。
+- **跨越原範圍須新授權**：跨 Issue（#1466 的許可不等於 #1467）、repo、工作分支、PR 目標，或新增無關功能、使用者明示排除的檔案；不得用「小修正」包裝擴權。**正式產品 `localX → cleanup/2d-3d-sync` 仍只依當次 `/推推` 與 `tools/localx_publish_gate.py` 的 exact PR／SHA 驗證**，本規則不得放寬。
+- **外部平台安全審查不受此規則改寫**：GitHub／RC／自動核准系統若實際拒絕公開 push／merge，保留既有提交，明確回報被拒工具、操作、缺少哪類證據與 `PUBLIC_UPLOAD_REVIEW_BLOCKED`。不得以切換工具或傳輸管道繞過；已具有有效範圍核准時，也不得只是對使用者重播同一句核准問題而不解決證據傳遞。
+- 此條不恢復舊 Flow v2／lease／工作槽等交易控制，也不能把聊天文字聲稱為已通過平台審查。
 
 ## `/派工` 分階段位置硬閘門 `DISPATCH_CLOUD_BUILD_DC_LOCALX_ONLY`
 

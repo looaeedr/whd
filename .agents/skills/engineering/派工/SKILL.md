@@ -8,6 +8,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # /派工
 
+## 全域 DC 預設禁止（施工階段不可觸碰）
+
+本 Skill 首先遵循 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`。**`/派工` 只有 exact HEAD CI SUCCESS 後、base=`localX` 的 `LOCALX_INTEGRATION` 可使用 DC**，用途僅限本機 `localX` 合併、必要整合驗證／同步／回讀；其他階段連 `list_devices`、`ping`、讀檔或查目錄都不准。使用者另行明確指示某次 DC 操作時，只能依當次限定的目的執行。若其他工作確有 DC 需求，先報明原因、裝置／路徑、預定操作及影響，以 `DC_AUTHORIZATION_REQUIRED` 請求核准，未核准不得接觸 DC，也不得轉用本機 shell 繞過。
+
 ## 硬閘門：`DISPATCH_CLOUD_BUILD_DC_LOCALX_ONLY`
 
 **`/派工` 絕不能在使用者本機施工。** `DISCOVERY / BUILD / TEST / COMMIT / PUSH / PR / CI` 階段限 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`，雲端執行器不得暗接使用者裝置。此階段 `Remote Desktop Commander / RC / whd-dev / /workspace/whd / Z:\新WHD` 均為 `DISPATCH_LOCAL_EXECUTION_DENIED`；不得以「沒有遠端 executor」為由轉本機，更不能暗自切為 `/接手`。缺雲端施工能力就回報 `REMOTE_EXECUTOR_UNAVAILABLE`。
@@ -21,6 +25,12 @@ whd_schema: WHD_DOC_META_V1
 **唯一斷線備援：** DC 實際無法連線或逾時，經記錄 `DC_UNREACHABLE` 與 exact Issue/PR/head SHA／CI 後，才可把工作 PR 合併至**GitHub 遠端 `localX`**；強制註記 `LOCALX_SYNC_PENDING`，不得宣稱本機 `localX` 已同步。後續恢復 DC 才對齊。若 DC 能連卻遇到本機衝突／髒檔／權限拒絕／驗收失敗，不得假稱斷線而改用遠端備援；須回報真正 blocker，不可繞過平台安全審查。
 
 `/接手` 是另一入口，只有使用者明確下達時才允許**在本機施工**。此 `/派工` 的 DC 例外只是最終合併，不是暗中開啟 `/接手`。無論哪條路，產品從 `localX` 到正式 X 仍須當次 `/推推`；治理白名單文件依 `tools/change_lane_gate.py` 另走治理通道。
+
+## 工單授權延續與公開交付
+
+依 `AGENTS.md` 的 `ISSUE_SCOPE_AUTHORIZATION_REUSE`，同一 Issue、工作分支、施工範圍、repo 與 base=`localX` 已明確核准後，修復 CI 或必要產品測試產生的新 SHA 不必再次詢問**同一範圍**的 push／PR／CI／localX 整合許可。**每個新 HEAD 仍需範圍 diff 與必要 CI 重驗**，不沿用舊版 GREEN。不得把 #1466 核准沿用 #1467，亦不得擴大到正式 X；使用者明示只准固定 SHA 時照較窄界線執行。
+
+本節**不允許 `/派工` 以 DC 施工**，亦不放寬任何平台公開上傳安全審查。平台實際拒絕就回報 `PUBLIC_UPLOAD_REVIEW_BLOCKED` 與拒絕操作、必要補證，不得更換管道規避或無限重問相同核准。**純治理文件必須優先 GitHub 直送 X，不得未經另外明確授權而使用 DC**。
 
 ## 發出產品 PR 之後必須續作
 
