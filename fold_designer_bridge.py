@@ -2383,7 +2383,8 @@ def _phase6_install_part_editor_compatibility(self):
     self._phase6_assembly_panel_owner = Phase6AssemblyPanel(
         self.left,
         actions=AssemblyPanelActions(
-            on_visibility_changed=lambda: _phase6_on_assembly_part_visibility_changed(self)
+            on_visibility_changed=lambda: _phase6_on_assembly_part_visibility_changed(self),
+            on_multi_settings=lambda: _phase6_open_receiving_multi_settings(self),
         ),
     )
     _phase6_install_assembly_panel_aliases(self, self._phase6_assembly_panel_owner)
@@ -2697,6 +2698,12 @@ def _phase6_show_corner_data(self):
         refresh_content_switch=lambda: _phase6_refresh_content_switch(self),
     )
 
+def _phase6_open_receiving_multi_settings(self):
+    """Bridge entry only; Receiving composition owns mode and editing ports."""
+    from gui_modules.application.fold_designer_composition_receiving import open_receiving_multi_settings
+    return open_receiving_multi_settings(_phase6_composition(self), globals())
+
+
 def _phase6_show_assembly(self, initial=False):
     """Show assembly while Bridge retains save/update/manufacturing authority only."""
     _phase6_clear_navigation_residue(self)
@@ -2716,6 +2723,12 @@ def _phase6_show_assembly(self, initial=False):
             pass
     _phase6_workspace_navigation(self).clear_selection()
     self._phase6_3d_display_mode = "assembly"
+    assembly_owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if assembly_owner is not None:
+        assembly_owner.set_multi_settings_visible(
+            str(getattr(self, "_phase6_input_snapshot", {}).get("model") or
+                getattr(getattr(self, "baseline_model_var", None), "get", lambda: "")()) == "受電箱"
+        )
     _navigation_view_project_assembly_mode(
         self,
         mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode),

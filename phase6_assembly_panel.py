@@ -26,6 +26,7 @@ from phase6_assembly_presentation import (
 @dataclass(frozen=True)
 class AssemblyPanelActions:
     on_visibility_changed: Callable[[], None]
+    on_multi_settings: Callable[[], object] | None = None
 
 
 class Phase6AssemblyPanel:
@@ -37,6 +38,12 @@ class Phase6AssemblyPanel:
         self.actions = actions
 
         self.host = ttk.Frame(parent, padding=6)
+        self.multi_settings_entry = ttk.Frame(self.host)
+        self.multi_settings_button = ttk.Button(
+            self.multi_settings_entry, text="多只設定",
+            command=self.actions.on_multi_settings,
+        )
+        self.multi_settings_button.pack(side=tk.LEFT)
         scroll_host = ttk.Frame(self.host)
         scroll_host.pack(fill=tk.BOTH, expand=True)
 
@@ -100,6 +107,14 @@ class Phase6AssemblyPanel:
 
         self.bind_scroll(self.canvas)
         self.bind_scroll(self.content)
+
+    def set_multi_settings_visible(self, visible: bool) -> None:
+        """One Assembly-only entry; do not mount it inside BoxBody."""
+        if visible and self.actions.on_multi_settings is not None:
+            if not self.multi_settings_entry.winfo_manager():
+                self.multi_settings_entry.pack(fill=tk.X, before=self.canvas.master, pady=(0, 6))
+        else:
+            self.multi_settings_entry.pack_forget()
 
     def _on_content_configure(self, _event=None) -> None:
         try:

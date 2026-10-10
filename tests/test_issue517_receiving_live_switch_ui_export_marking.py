@@ -131,6 +131,7 @@ def test_live_switch_visible_3d_round_trip_vault_receiving_vault_replaces_geomet
         assert designer._phase6_3d_display_mode == "assembly"
         assert str(designer.part_var.get()) == "組合體"
         assert bool(designer.assembly_parts_panel.winfo_ismapped())
+        assert designer._phase6_assembly_panel_owner.multi_settings_button.winfo_ismapped()
         assert not bool(designer.box_body_piece_selector.winfo_ismapped()), (
             "Assembly mode must not re-pack 左側板/後面板/右側板 child tabs"
         )
@@ -169,6 +170,7 @@ def test_live_switch_visible_3d_round_trip_vault_receiving_vault_replaces_geomet
         )
         assert not bool(designer.box_body_piece_selector.winfo_ismapped())
         assert not bool(designer.receiving_set_bay_control.winfo_ismapped())
+        assert not designer._phase6_assembly_panel_owner.multi_settings_button.winfo_ismapped()
     finally:
         _close(tk, root, designer)
 
@@ -187,29 +189,10 @@ def test_structure_tree_selecting_back_panel_exposes_mapped_back_panel_mode_sele
         _pump(root, 5)
 
         assert designer.designer_workspace.active_part == "box_body:back"
-        selectors = _visible_back_panel_selector(designer)
-        assert len(selectors) == 1, (
-            "Selecting 後面板 through the real Structure Tree must expose exactly one "
-            "mapped 後面板形式 selector in the existing visible input region"
-        )
-        selector = selectors[0]
-        assert str(selector.get()) == "全板"
-
-        # This is a normal product choice, not an advanced parameter.  When the
-        # operator selects 後面板 it must live in the same normal input surface
-        # as the Fold editor; parameter unlock must not own its reachability.
-        input_host = designer.input_content_host
-        assert bool(input_host.winfo_ismapped())
-        parent = selector
-        inside_input = False
-        while parent is not None:
-            if parent is input_host:
-                inside_input = True
-                break
-            parent = getattr(parent, "master", None)
-        assert inside_input, (
-            "後面板形式 is mapped, but not inside the operator's normal input region"
-        )
+        # Operator has explicitly moved multi-box settings out of BoxBody.
+        assert not _visible_back_panel_selector(designer)
+        assert not designer.receiving_set_bay_control.winfo_ismapped()
+        assert str(designer.back_panel_mode_var.get()) == "全板"
 
         # The same canonical product choice must also be visible from 截角資料
         # when the operator selects the physical rear panel there. This is a
@@ -452,18 +435,30 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         _pump(root, 8)
         _select_box_body_through_tree(designer, root)
 
-        frame = designer.receiving_set_bay_control
-        assert bool(frame.winfo_ismapped()), "Receiving control frame is still hidden"
-        packed = list(designer.input_content_host.pack_slaves())
-        assert frame in packed and designer.bend_ui.nb in packed
-        assert packed.index(frame) < packed.index(designer.bend_ui.nb), (
-            "Receiving controls must be inserted before the expanding fold notebook"
-        )
-
-        texts = _mapped_widget_texts(frame)
+        # BoxBody must remain focused on sheet-metal inputs only.
+        assert not designer.receiving_set_bay_control.winfo_ismapped()
+        assert not designer.receiving_mode_controls.frame.winfo_manager()
+        # The single receiving operator entry is in Assembly.
+        import fold_designer_bridge as bridge
+        bridge._phase6_show_assembly(designer)
+        _pump(root, 5)
+        owner = designer._phase6_assembly_panel_owner
+        assert owner.multi_settings_button.winfo_ismapped()
+        win = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 3)
+        assert win.title() == "多只設定"
+        # Respect whichever mode owns the active saved session. Select the
+        # Suite section explicitly before asserting its operator rows.
+        win._receiving_multi_notebook.select(0)
+        _pump(root, 5)
+        assert win._receiving_multi_notebook.index(
+            win._receiving_multi_notebook.select()) == 0
+        controls = win._receiving_multi_controls
+        texts = _mapped_widget_texts(controls.frame)
         for expected in ("開關", "－套", "＋套", "第1套", "1連", "－連", "＋連", "設定"):
-            assert expected in texts, f"operator-visible Receiving text missing: {expected!r}; got={texts!r}"
+            assert expected in texts, f"multi-settings missing {expected!r}; got={texts!r}"
         assert not any("Layer" in text or "Connection" in text for text in texts), texts
+        win.destroy()
     finally:
         _close(tk, root, designer)
 

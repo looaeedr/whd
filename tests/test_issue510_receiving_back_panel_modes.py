@@ -328,7 +328,9 @@ def test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_
         assert selector_var.get() == "全板"
         assert tuple(selector.cget("values")) == ("全板", "半截", "背開孔")
         assert str(selector.cget("state")) == "readonly"
-        assert bool(selector.winfo_ismapped())
+        # The legacy BoxBody selector is retained as a state callback only:
+        # its operator entry moved to Assembly -> multi-settings.
+        assert not bool(selector.winfo_ismapped())
 
         parent = selector
         inside_input = False

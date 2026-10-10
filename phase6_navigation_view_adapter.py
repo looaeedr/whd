@@ -516,6 +516,14 @@ def refresh_part_selector(
         elif active in getattr(host, "available_parts", ()):
             host.part_var.set(label_for_key(active, snapshot=snapshot))
 
+    # A Family switch can preserve Assembly mode without re-entering it.
+    # Project the sole Receiving multi-settings entry whenever navigation
+    # refreshes; Vault/Corner Data must not expose that Receiving action.
+    owner = getattr(host, "_phase6_assembly_panel_owner", None)
+    if owner is not None:
+        owner.set_multi_settings_visible(
+            mode == "assembly" and snapshot.get("model") == "受電箱"
+        )
     refresh_button_states()
     refresh_piece_selector()
     refresh_back_panel()

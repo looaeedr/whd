@@ -301,7 +301,8 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
         current = ports["row"]()
         index = active.get()
         for key, var in fields.items():
-            var.set(str(current["bays"][index][key]))
+            value = float(current["bays"][index][key])
+            var.set(str(int(value)) if value.is_integer() else f"{value:g}")
         kind = kind_labels.get(kind_var.get())
         panel._receiving_kind = kind
         enabled = kind is not None
@@ -385,8 +386,16 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
     # UI. This settings panel edits bay W/H/D only; it must not invent a second
     # "first column width / comma-separated heights" editor or parser.
     def apply_dimensions():
-        ports["dimensions"](*(float(fields[key].get())
-                              for key in ("width", "height", "depth")))
+        # Operator input is whole millimetres; preserve historical fractional
+        # source values until the user explicitly edits them.
+        import re
+        dimensions = []
+        for key, label in (("width", "寬"), ("height", "高"), ("depth", "深")):
+            raw = fields[key].get().strip()
+            if re.fullmatch(r"[0-9]+", raw) is None or int(raw) <= 0:
+                raise ValueError(f"{label}必須輸入正整數毫米")
+            dimensions.append(int(raw))
+        ports["dimensions"](*dimensions)
     ttk.Button(common, text="套用尺寸",
                command=lambda: safely(apply_dimensions)).pack(side=tk.LEFT, padx=4)
     settings = ttk.Frame(panel)

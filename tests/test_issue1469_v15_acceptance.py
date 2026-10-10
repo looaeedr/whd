@@ -131,7 +131,7 @@ def test_selectable_family_save_reload_real_output_custom_bom(family, first_coun
         assert ws.snapshot()["custom_parts"]["items"][custom]["per_box_count"] == 2
         if family == "受電箱":
             box = ws.snapshot()["receiving_quantity_box"]
-            assert (box["w"], box["h"], box["d"]) == (900, 1700, 400)
+            assert (box["w"], box["h"], box["d"]) == (800, 1600, 350)
             assert (box["back_panel_mode"], box["inner_door_layers"], box["switch_brand"]) == ("HALF", 2, "東元")
             raw = json.loads(path.read_text())["snapshot"]
             assert "receiving_layout" not in raw and "_mode_buffers" not in raw
@@ -257,15 +257,8 @@ def test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_prof
             assert all(value == 0 for key, value in receipt.items() if key != "wall_seconds"), receipt
             assert modes._current_mode_snapshot(composition, namespace)["receiving_layout"] == layout
         win.destroy()
-        monkeypatch.setattr(receiving_mode_controls, "ask_initial_dimensions", lambda *a: None)
-        assert not modes._switch_mode(composition, namespace, "quantity")
-        assert modes._current_mode_snapshot(composition, namespace) == original
-        monkeypatch.setattr(receiving_mode_controls, "ask_initial_dimensions", lambda *a: dict(w=0, h=1700, d=400))
-        assert not modes._switch_mode(composition, namespace, "quantity")
-        assert modes._current_mode_snapshot(composition, namespace) == original
-        assert errors
-        errors.clear()
-        monkeypatch.setattr(receiving_mode_controls, "ask_initial_dimensions", lambda *a: dict(w=900, h=1700, d=400))
+        # No modal or unconfirmed half-built mode: switch from Family default
+        # dimensions without changing the previous multi-bay session.
         assert modes._switch_mode(composition, namespace, "quantity")
         root.update()
         box = app.designer_workspace.snapshot()["receiving_quantity_box"]
@@ -300,10 +293,7 @@ def test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_prof
         app = main.fold_designer_app
         composition = bridge._phase6_composition(app)
         before = modes._current_mode_snapshot(composition, namespace)
-        monkeypatch.setattr(receiving_mode_controls, "ask_initial_dimensions", lambda *a: None)
-        assert not modes._switch_mode(composition, namespace, "set_bay")
-        assert modes._current_mode_snapshot(composition, namespace) == before
-        monkeypatch.setattr(receiving_mode_controls, "ask_initial_dimensions", lambda *a: dict(w=800, h=1600, d=350))
+        assert before["active_mode"] == "quantity"
         assert modes._switch_mode(composition, namespace, "set_bay")
         root.update()
         fresh = modes._current_mode_snapshot(composition, namespace)
