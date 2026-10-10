@@ -11,6 +11,8 @@ on:
       - '個人AI檔案庫/**/*.MD'
       - '.agents/skills/**/*.md'
       - '.agents/skills/**/*.MD'
+      - '.agents/skills/skill_registry.json'
+      - 'tests/governance/test_dispatch_remote_only_contract.py'
       - 'docs/**/*.md'
       - 'docs/**/*.MD'
       - 'handoff/**/*.md'
