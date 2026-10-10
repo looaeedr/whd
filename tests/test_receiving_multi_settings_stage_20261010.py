@@ -1,5 +1,6 @@
 """GUI contract: only explicitly requested multi-settings elements are visible."""
 import tkinter as tk
+from tkinter import ttk
 from types import SimpleNamespace
 
 import pytest
@@ -107,7 +108,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
 
         def current_buttons():
             return [w for w in rows_host.winfo_children()[0].winfo_children()
-                    if isinstance(w, tk.ttk.Button)]
+                    if isinstance(w, ttk.Button)]
 
         plus, minus, apply = current_buttons()
         plus.invoke()
@@ -142,7 +143,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         # Two choices are mutually exclusive; no quantity-version table or
         # common-box affordance is exposed until explicitly requested.
         choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
-                   if isinstance(w, tk.ttk.Radiobutton)]
+                   if isinstance(w, ttk.Radiobutton)]
         assert len(choices) == 2
         choices[1].invoke()
         root.update()
