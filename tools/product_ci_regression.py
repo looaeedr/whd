@@ -177,7 +177,7 @@ def _merge_shard_junit(paths: list[Path], count: int, output: Path) -> None:
 
 
 def _verify_full_receipt(report: Path) -> None:
-    from tools.whd_v15_acceptance_evidence import verify
+    from whd_v15_acceptance_evidence import verify
     receipt = verify(report)
     print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} "
           f"passed_cases={receipt['passed_cases']}", flush=True)
