@@ -56,6 +56,13 @@ whd_schema: WHD_DOC_META_V1
 - **外部平台安全審查不受此規則改寫**：GitHub／RC／自動核准系統若實際拒絕公開 push／merge，保留既有提交，明確回報被拒工具、操作、缺少哪類證據與 `PUBLIC_UPLOAD_REVIEW_BLOCKED`。不得以切換工具或傳輸管道繞過；已具有有效範圍核准時，也不得只是對使用者重播同一句核准問題而不解決證據傳遞。
 - 此條不恢復舊 Flow v2／lease／工作槽等交易控制，也不能把聊天文字聲稱為已通過平台審查。
 
+## /派工真實啟動證據 `DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
+
+- **/派工不是只登記 Issue/PR。** 在本回合完成 Issue／現有 PR 查核後，先確認有可**實際執行程式修改、測試、commit/PR**的授權雲端執行入口，並真的呼叫啟動／接手動作。僅有 Issue、PR、留言、指派欄位、CI run 或排程設定均**不是**執行者啟動證據；不能因為登記完成就輸出「已派工」或「執行中」。
+- **成功證據必須回讀：** `EXECUTOR_START_CONFIRMED` 需同時有執行者身分、實際雲端執行入口、可追溯的啟動結果／run 或 task ID、對應 Issue、工作分支，以及執行者第一個有內容的施工動作或確認接取的證據。單純自己在 Issue 貼「請接手」不算確認；回報須附實際連結或 ID。若本人在有合法雲端執行環境中直接施工，提供本回合真實執行記錄，而非冒稱另有 Agent。
+- **失敗必須真實結束：** 只有登記成功時標 `DISPATCH_REGISTERED_ONLY`；無法調用實際雲端施工入口時標 `REMOTE_EXECUTOR_UNAVAILABLE`；呼叫遭拒／未得到接取證據時標 `DISPATCH_START_UNCONFIRMED`，列明拒絕或未證實之處、最後可驗證狀態與續作入口，不得稱派工完成、不得假裝背景有人施工。**不要再創第二張 Issue／PR 來掩飾失敗。** 不得因此改走 DC、本機或未授權 `/接手`。
+- **成功接取之後**仍須按現有 CI、`localX` 與 `/推推` 規則續作；這只是防止「登記即完成」的真實性檢查，**不建立舊式 lease／claim／Flow v2 或新的輪詢排程**。
+
 ## `/派工` 分階段位置硬閘門 `DISPATCH_CLOUD_BUILD_DC_LOCALX_ONLY`
 
 - **施工階段**（`DISCOVERY / BUILD / TEST / COMMIT / PUSH / PR / CI`）：限 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION` 的真正雲端執行器（不得暗接使用者裝置）；`RC / DESKTOP_COMMANDER / LOCAL_SHELL / /workspace/whd / Z:\\新WHD` 一律 `DISPATCH_LOCAL_EXECUTION_DENIED`。
