@@ -95,7 +95,7 @@ def open_receiving_layer_preview(
     common_box=False,
     preview_error=None,
 ) -> bool:
-    """Show committed physical DrawingScenes in an interactive 2D settings view."""
+    """Show a front orthographic projection of committed assembled FinalScene."""
     index = int(layer_index)
     count = max(1, int(connection_count))
     label = str(brand)
@@ -280,7 +280,6 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
     value_var = tk.StringVar(master=panel, value="全板")
     fields = {name: tk.StringVar(master=panel) for name in ("width", "height", "depth")}
     status = tk.StringVar(master=panel)
-    door_fields = []
     joint_widgets = []
 
     def safely(action):
@@ -303,7 +302,6 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
         index = active.get()
         for key, var in fields.items():
             var.set(str(current["bays"][index][key]))
-        rebuild_door_fields(current["bays"][index].get("door_state", {}).get("door_layout_columns", ()))
         kind = kind_labels.get(kind_var.get())
         panel._receiving_kind = kind
         enabled = kind is not None
@@ -372,30 +370,14 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
     for key, label in (("width", "寬"), ("height", "高"), ("depth", "深")):
         ttk.Label(common, text=label).pack(side=tk.LEFT)
         ttk.Entry(common, textvariable=fields[key], width=8).pack(side=tk.LEFT, padx=3)
+    # Keep the existing Door Layout editor/controller as the sole door-partition
+    # UI. This settings panel edits bay W/H/D only; it must not invent a second
+    # "first column width / comma-separated heights" editor or parser.
     def apply_dimensions():
-        columns = None
-        if door_fields:
-            columns = tuple((float(width.get()), tuple(float(value.strip()) for value in heights.get().replace(",", "、").split("、"))) for width, heights in door_fields)
-        ports["dimensions"](*(float(fields[key].get()) for key in ("width", "height", "depth")), door_columns=columns)
-    ttk.Button(common, text="套用尺寸／門分割", command=lambda: safely(apply_dimensions)).pack(side=tk.LEFT, padx=4)
-    door = ttk.Frame(panel)
-    door.pack(fill=tk.X, pady=3)
-    def rebuild_door_fields(columns):
-        if len(door_fields) != len(columns):
-            for child in door.winfo_children():
-                child.destroy()
-            door_fields.clear()
-            for index in range(len(columns)):
-                width_var = tk.StringVar(master=panel)
-                height_var = tk.StringVar(master=panel)
-                door_fields.append((width_var, height_var))
-                ttk.Label(door, text=f"門第{index + 1}欄寬").grid(row=index, column=0, sticky="w")
-                ttk.Entry(door, textvariable=width_var, width=8).grid(row=index, column=1, padx=3)
-                ttk.Label(door, text="由上到下高度（以、分隔）").grid(row=index, column=2, sticky="w")
-                ttk.Entry(door, textvariable=height_var, width=26).grid(row=index, column=3, padx=3)
-        for (width_var, height_var), (width, heights) in zip(door_fields, columns):
-            width_var.set(str(width))
-            height_var.set("、".join(map(str, heights)))
+        ports["dimensions"](*(float(fields[key].get())
+                              for key in ("width", "height", "depth")))
+    ttk.Button(common, text="套用尺寸",
+               command=lambda: safely(apply_dimensions)).pack(side=tk.LEFT, padx=4)
     settings = ttk.Frame(panel)
     settings.pack(fill=tk.X)
     kind_selector = ttk.Combobox(settings, textvariable=kind_var, values=tuple(kind_labels), state="readonly", width=9)
