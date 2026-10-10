@@ -5,6 +5,38 @@ from phase6_quantity_model import QuantityModel, quantity_only_change
 from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, Vec2
 
 
+def test_receiving_quantity_holes_without_common_box_fails_cleanly():
+    from types import SimpleNamespace
+    from gui_modules.application.quantity_version_ports import quantity_ports
+    model = QuantityModel()
+    workspace = SimpleNamespace(quantity_model=model,
+        snapshot=lambda: {"active_mode": "quantity", "quantity": model.snapshot()})
+    app = SimpleNamespace(
+        designer_workspace=workspace,
+        _phase6_input_snapshot={"active_mode": "quantity", "model": "受電箱"},
+        _settings_values={}, _phase6_box_whd={"w": 900, "h": 1700, "d": 400},
+        baseline_model_var=SimpleNamespace(get=lambda: "受電箱"),
+    )
+    ports = quantity_ports(SimpleNamespace(app=app), None)
+    with pytest.raises(ValueError, match="共用箱體"):
+        ports["holes"]("head")
+
+
+def test_hole_button_shows_warning_instead_of_uncaught_tk_keyerror(monkeypatch):
+    from gui_modules.application.quantity_version_controls import QuantityVersionControls
+    from tkinter import messagebox
+    warnings = []
+    monkeypatch.setattr(messagebox, "showwarning",
+                        lambda *args, **kwargs: warnings.append((args, kwargs)))
+    def missing_box(_role):
+        raise ValueError("共用箱體尚未初始化")
+    ctrl = QuantityVersionControls(
+        frame=None, versions=None, count_var=None, totals_var=None,
+        ports={"holes": missing_box})
+    assert ctrl.edit_holes("head") is False
+    assert warnings and "共用箱體" in warnings[0][0][1]
+
+
 def circle(x=0):
     return CircleFeature(diameter=8, anchor=FeatureAnchor.PANEL_CENTER, offset=Vec2(x, 0))
 

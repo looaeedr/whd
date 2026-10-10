@@ -12,6 +12,31 @@ from shapely.geometry import box
 from phase6_final_scene_contracts import AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest
 from gui_modules.application.receiving_set_bay_controls import open_receiving_layer_preview
 
+def test_front_elevation_uses_assembled_world_offsets_and_hole_outline():
+    from shapely.geometry import Point
+    from gui_modules.application.receiving_settings_preview_2d import projected_assembly_parts
+    hole_material = box(0, 0, 100, 70).difference(Point(45, 35).buffer(7, resolution=12))
+    scene = DrawingScene()
+    data = PartRenderData(scene=scene, material=hole_material)
+    # Real formed mesh uses profile lengths; absent profiles are only a 1x1
+    # compatibility fallback and cannot represent this 100x70 holed sheet.
+    xp = ({"len": 100, "core": "W"},)
+    yp = ({"len": 70, "core": "H"},)
+    left = AssemblyScenePart("door:left", data, xp, yp, offset=(0, 0, 0))
+    right = AssemblyScenePart("door:right", data, xp, yp, offset=(180, 0, 0))
+    request = FinalSceneViewRequest(
+        AssemblySceneRenderData((left, right)), (), (), "assembly",
+        finished_dimensions=(300, 200, 80))
+    parts = projected_assembly_parts(request)
+    assert len(parts) == 2
+    assert [role for role, _, _ in parts] == ["door", "door"]
+    assert all(len(edges) > 4 for _, _, edges in parts), "holes need to remain in the projection"
+    first_min = min(p[0] for edge in parts[0][2] for p in edge)
+    second_min = min(p[0] for edge in parts[1][2] for p in edge)
+    assert second_min - first_min == pytest.approx(180)
+    assert hole_material.area < 100*70
+
+
 def test_two_dimensional_preview_gates_selection_and_reuses_canonical_artists(monkeypatch):
     from phase6_final_scene_renderer import Phase6FinalSceneRenderer
     renders = []
@@ -44,6 +69,14 @@ def test_two_dimensional_preview_gates_selection_and_reuses_canonical_artists(mo
         assert win._phase6_receiving_preview_canvas.figure.axes[0].name == "rectilinear"
         assert not renders
         panel=win._phase6_receiving_settings_panel
+        def widget_labels(widget):
+            result = [widget.cget("text")] if isinstance(widget, ttk.Label) else []
+            for child in widget.winfo_children():
+                result.extend(widget_labels(child))
+            return result
+        labels = " ".join(widget_labels(panel))
+        assert "門第" not in labels and "由上到下高度" not in labels
+        assert "門分割" not in labels, "Do not add a second Door Layout editor"
         before=deepcopy(row)
         panel._receiving_select_bay(1)
         assert selected == [] and not panel._receiving_pending and row == before

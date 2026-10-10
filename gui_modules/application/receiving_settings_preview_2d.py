@@ -1,37 +1,128 @@
-"""2D presentation of committed Receiving physical DrawingScenes.
+"""2D orthographic *assembly* view of committed Receiving FinalScene geometry.
 
-Tile transforms are display layout only. Selection never asks the geometry
-provider for another request and never constructs a folded mesh.
+The shared formed FinalScene geometry and world placements remain authoritative:
+nothing is flattened into individual manufacturing sheet drawings.
 """
 from __future__ import annotations
 
-from ae_engine.sheetmetal_drawing import CirclePrimitive, LinePrimitive, PolylinePrimitive
 from whd_theme import apply_mpl_dark_theme
 
 _LABELS = {"head": "封頭", "tail": "封尾", "box_body": "箱身", "door": "門",
            "base_plate": "底板", "inner_door": "內門", "indicator_box": "指示燈盒",
            "left_side": "左側板", "right_side": "右側板", "back": "背板",
            "divider": "中隔"}
-_COLORS = {"CUTTING": "#30d158", "BEND": "#0a84ff", "MARKING": "#8e8e93",
-           "BLIND_HOLE": "#ff453a", "DATUM": "#bf5af2"}
+_COLORS = {"head": "#7db6e8", "tail": "#7db6e8", "box_body": "#b6c9d9",
+           "door": "#f7c66f", "inner_door": "#c7a2df", "back": "#88b6b3",
+           "left_side": "#b6c9d9", "right_side": "#b6c9d9",
+           "divider": "#b7d99a"}
 
 
 def _role_group(key):
-    for role in ("inner_door", "indicator_box", "indicator_door", "base_plate", "door"):
+    key = str(key)
+    if key.startswith("box_body:"):
+        key = key.split(":", 1)[1]
+    for role in ("inner_door", "indicator_box", "indicator_door",
+                 "base_plate", "door", "left_side", "right_side",
+                 "back", "divider"):
         if key.startswith(role):
             return role
     return key
 
 
 def physical_drawings(request):
-    """Expand physical box pieces without re-solving their manufacturing data."""
+    """Read-only manufacturing inspection compatibility API.
+
+    Export/verification consumers still inspect each original physical
+    DrawingScene. The actual 2D settings view does NOT use this function;
+    it draws only world-positioned assembled meshes.
+    """
     for part in request.render_data.assembly_parts:
         pieces = tuple(getattr(part.render_data, "pieces", ()) or ())
         if pieces:
             for piece in pieces:
                 yield str(piece.role), str(piece.key), piece.render_data
         else:
-            yield _role_group(str(part.part_key)), str(part.part_key), part.render_data
+            yield _role_group(part.part_key), str(part.part_key), part.render_data
+
+
+def _assembly_world_meshes(request):
+    """Reuse the exact formed-mesh and placement helpers of FinalSceneRenderer.
+
+    Compute once per committed geometry refresh. Hover/selection never remesh.
+    The returned meshes are grouped by original assembled part, not by sheet tile.
+    """
+    from phase6_final_scene_projection import (
+        _phase6_folded_mesh_from_polygon, _phase6_box_body_structure_meshes,
+        _phase6_place_assembly_triangles,
+    )
+    from ae_engine.assembly_geometry import (
+        place_endcap_against_box_body, thicken_triangle_surface,
+    )
+
+    box_body_world = None
+    for part in tuple(getattr(request.render_data, "assembly_parts", ()) or ()):
+        data = part.render_data
+        pieces = tuple(getattr(data, "pieces", ()) or ())
+        if pieces:
+            meshes = tuple(_phase6_box_body_structure_meshes(
+                data, thickness=request.thickness))
+            local = [triangle for _piece, mesh in meshes for triangle in mesh]
+        else:
+            meshes = ()
+            local = _phase6_folded_mesh_from_polygon(
+                data.material, tuple(dict(x) for x in part.x_profile),
+                tuple(dict(y) for y in part.y_profile),
+                fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
+            )
+        placement = str(getattr(part, "placement", "offset") or "offset")
+        offset = getattr(part, "offset", (0, 0, 0))
+        if placement in {"top", "head", "bottom", "tail"} and box_body_world:
+            kwargs = {"sheet_thickness": request.thickness}
+            if getattr(request.render_data, "preserve_endcap_core_origin", False):
+                kwargs["preserve_core_origin"] = True
+            placed = thicken_triangle_surface(
+                place_endcap_against_box_body(
+                    local, placement, box_body_world, offset, **kwargs),
+                request.thickness,
+            )
+        else:
+            placed = _phase6_place_assembly_triangles(
+                local, placement, request.finished_dimensions, offset)
+        if str(part.part_key) == "box_body":
+            box_body_world = tuple(placed)
+        if not placed:
+            continue
+        if not pieces:
+            yield (_role_group(part.part_key), str(part.part_key), tuple(placed))
+            continue
+        cursor = 0
+        for piece, piece_mesh in meshes:
+            count = len(piece_mesh)
+            world_piece = tuple(placed[cursor:cursor + count])
+            cursor += count
+            if world_piece:
+                role = _role_group(piece.role)
+                yield (role, str(piece.key), world_piece)
+
+
+def _projected_outline(triangles):
+    """Project existing canonical 3D feature edges onto world X/height Y."""
+    from phase6_final_scene_projection import _phase6_mesh_feature_segments
+    projected = set()
+    for start, end in _phase6_mesh_feature_segments(triangles):
+        p1 = (round(float(start[0]), 5), round(float(start[1]), 5))
+        p2 = (round(float(end[0]), 5), round(float(end[1]), 5))
+        if p1 != p2:
+            projected.add(tuple(sorted((p1, p2))))
+    return tuple(sorted(projected))
+
+
+def projected_assembly_parts(request):
+    """World-positioned part outlines, including real holes and join edges."""
+    return tuple(
+        (role, key, _projected_outline(triangles))
+        for role, key, triangles in _assembly_world_meshes(request)
+    )
 
 
 class CommittedPreviewError(ValueError):
@@ -83,58 +174,62 @@ class ReceivingSettingsPreview2D:
         self.draw_geometry()
 
     def draw_geometry(self, requests=None):
-        from matplotlib.patches import Circle, Rectangle
+        from matplotlib.collections import LineCollection
+        from matplotlib.patches import Rectangle
         self.status.set("")
         if requests is not None:
             self.requests = tuple(requests)
         self._background = None
-        self._sync_visibility_controls()
         self.ax.clear()
         apply_mpl_dark_theme(self.figure, (self.ax,))
         self.tiles.clear()
-        # One column per Bay; each physical sheet is its own labelled 2D tile.
-        # Use actual material bounds only to fit the immutable drawing on screen.
-        for bay_index, request in enumerate(self.requests):
-            for ordinal, (role, key, data) in enumerate(physical_drawings(request)):
-                x0, y0, x1, y1 = map(float, data.material.bounds)
-                width, height = max(x1-x0, 1), max(y1-y0, 1)
-                scale = min(260 / width, 210 / height)
-                ox, oy = bay_index * 310 + 25 - x0*scale, -ordinal*270 - y0*scale
-                def xy(point):
-                    return ox + point.x*scale, oy + point.y*scale
-                artists = []
-                for primitive in data.scene.primitives:
-                    color = _COLORS.get(primitive.layer)
-                    if color is None:
-                        continue
-                    if isinstance(primitive, PolylinePrimitive):
-                        points = list(primitive.points)
-                        if primitive.closed and points:
-                            points.append(points[0])
-                        if len(points) >= 2:
-                            xs, ys = zip(*(xy(point) for point in points))
-                            artists.extend(self.ax.plot(xs, ys, color=color, linewidth=1))
-                    elif isinstance(primitive, LinePrimitive):
-                        p1, p2 = xy(primitive.p1), xy(primitive.p2)
-                        artists.extend(self.ax.plot((p1[0],p2[0]),(p1[1],p2[1]),
-                            color=color, linewidth=1, linestyle="--" if primitive.layer=="BEND" else "-"))
-                    elif isinstance(primitive, CirclePrimitive):
-                        artist = Circle(xy(primitive.center), primitive.radius*scale,
-                                        fill=False, edgecolor=color, linewidth=1)
-                        self.ax.add_patch(artist)
-                        artists.append(artist)
-                rect = Rectangle((bay_index*310+10, -ordinal*270-15), 290, 245,
-                                 facecolor="none", edgecolor="#41464e", linewidth=1,
-                                 animated=True)
+        self._current_roles = []
+        projected = [projected_assembly_parts(request) for request in self.requests]
+        # Offset whole bays only when needed; never spread out their sheet parts.
+        previous_right = None
+        all_bounds = []
+        for bay_index, parts in enumerate(projected):
+            all_points = [point for _role, _key, edges in parts for edge in edges for point in edge]
+            if not all_points:
+                continue
+            left = min(p[0] for p in all_points)
+            right = max(p[0] for p in all_points)
+            width = max(right - left, 1.0)
+            gap = max(25.0, width * .06)
+            shift = 0 if previous_right is None else max(0, previous_right + gap - left)
+            previous_right = right + shift
+            for role, key, edges in parts:
+                self._current_roles.append(role)
+                if not edges:
+                    continue
+                moved = tuple(((a[0]+shift, a[1]), (b[0]+shift, b[1]))
+                              for a, b in edges)
+                points = [point for edge in moved for point in edge]
+                x0, x1 = min(p[0] for p in points), max(p[0] for p in points)
+                y0, y1 = min(p[1] for p in points), max(p[1] for p in points)
+                edge_artist = LineCollection(moved,
+                    colors=_COLORS.get(role, "#9eb6cd"), linewidths=.95)
+                self.ax.add_collection(edge_artist)
+                # Select/highlight at the actual projected assembly position.
+                pad = max(2.0, min(width*.012, 12.0))
+                rect = Rectangle((x0-pad, y0-pad),
+                    max(x1-x0+2*pad, 12), max(y1-y0+2*pad, 12),
+                    facecolor="none", edgecolor="#41464e", linewidth=1,
+                    animated=True)
                 self.ax.add_patch(rect)
-                label = _LABELS.get(role, "箱身板件" if role=="box_body" else
-                                    "內門" if role.startswith("inner_door") else
-                                    "門" if role.startswith("door") else "板件")
-                text = self.ax.text(bay_index*310+15, -ordinal*270+237,
-                                    f"共用箱體｜{label}" if self.common_box else f"第{bay_index+1}連｜{label}", color="#d1d5db", fontsize=8)
-                self.tiles.append((bay_index, role, key, rect, tuple(artists)+(text,)))
+                self.tiles.append((bay_index, role, key, rect, (edge_artist,)))
+                all_bounds.extend(((x0, y0), (x1, y1)))
+        self._sync_visibility_controls()
         self.ax.set_aspect("equal", adjustable="box")
-        self.ax.autoscale_view()
+        if all_bounds:
+            x0, x1 = min(p[0] for p in all_bounds), max(p[0] for p in all_bounds)
+            y0, y1 = min(p[1] for p in all_bounds), max(p[1] for p in all_bounds)
+            mx, my = max(20, (x1-x0)*.04), max(20, (y1-y0)*.04)
+            self.ax.set_xlim(x0-mx, x1+mx)
+            self.ax.set_ylim(y0-my, y1+my)
+        else:
+            self.ax.set_xlim(0, 1)
+            self.ax.set_ylim(0, 1)
         self.ax.set_axis_off()
         self._home = (self.ax.get_xlim(), self.ax.get_ylim())
         self.geometry_draw_count += 1
@@ -144,6 +239,7 @@ class ReceivingSettingsPreview2D:
         """Discard stale visual data when the committed source fails to resolve."""
         self.requests = ()
         self.tiles.clear()
+        self._current_roles = []
         self._background = None
         self.ax.clear()
         self.ax.set_axis_off()
@@ -153,8 +249,7 @@ class ReceivingSettingsPreview2D:
         self.canvas.draw_idle()
 
     def _sync_visibility_controls(self):
-        roles = tuple(dict.fromkeys(role for request in self.requests
-                                    for role, _, _ in physical_drawings(request)))
+        roles = tuple(dict.fromkeys(self._current_roles))
         for role in roles:
             if role not in self.visibility:
                 var = self._tk.BooleanVar(master=self._filters, value=True)

@@ -48,7 +48,13 @@ def quantity_ports(composition, namespace):
         snapshot = source()
         version_id = model().selected_version_id
         features = model().features_for_version(version_id, role)
-        dimensions = snapshot["receiving_quantity_box"] if snapshot["model"] == "受電箱" else snapshot
+        if snapshot["model"] == "受電箱":
+            # The quantity model must have an explicitly initialized common
+            # box. Never silently borrow Set/Bay dimensions to fabricate one.
+            from ae_engine.receiving_quantity_box import normalize_common_box, BOX_KEY
+            dimensions = normalize_common_box(snapshot.get(BOX_KEY))
+        else:
+            dimensions = snapshot
         width, depth = float(dimensions["w"]), float(dimensions["d"])
         guide = resolve_endcap_finished_face_guide(width, depth, float(snapshot.get("t", 2)))
         surface = feature_surface_from_rect(f"{role}_finished_face", guide.min_point, guide.max_point)

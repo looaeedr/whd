@@ -55,6 +55,15 @@ class QuantityVersionControls:
         self.refresh()
         return result
 
+    def edit_holes(self, role):
+        try:
+            return self.ports["holes"](role)
+        except ValueError as exc:
+            # A Receiving quantity session without a common box needs explicit
+            # initialization; do not leak an uncaught Tk callback traceback.
+            messagebox.showwarning("孔位編輯未開啟", str(exc), parent=self.frame)
+            return False
+
     def commit_count(self, event=None):
         try:
             self.ports["count"](self.count_var.get())
@@ -89,7 +98,7 @@ def build_quantity_controls(parent, ports):
     entry.bind("<FocusOut>", controls.commit_count)
     controls.count_entry = entry
     for role, label in (("head", "封頭孔"), ("tail", "封尾孔")):
-        ttk.Button(row, text=label, command=lambda role=role: ports["holes"](role)).pack(side=tk.LEFT)
+        ttk.Button(row, text=label, command=lambda role=role: controls.edit_holes(role)).pack(side=tk.LEFT)
     ttk.Label(frame, textvariable=totals).pack(anchor="w")
     tree.bind("<<TreeviewSelect>>", controls.select)
     return controls
