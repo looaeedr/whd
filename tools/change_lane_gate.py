@@ -129,6 +129,47 @@ def changed_paths_between(repo_root: Path, base_sha: str, head_sha: str) -> list
     return parse_name_status_zero(proc.stdout)
 
 
+def require_x_only_governance_history(
+    repo_root: Path, x_sha: str, localx_sha: str,
+) -> int:
+    """Check each commit exclusive to X; never pre-merge X into localX.
+
+    Merge commits are checked against their first parent, so product changes
+    introduced by conflict resolution cannot hide behind a governance label.
+    The publish executor must separately verify local and GitHub localX agree,
+    then publish localX to X before any back-sync.
+    """
+    for sha in (x_sha, localx_sha):
+        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise ChangeLaneDenied("INVALID_COMMIT_SHA")
+    try:
+        listing = subprocess.run(
+            ["git", "rev-list", x_sha, f"^{localx_sha}"],
+            cwd=repo_root, capture_output=True, check=True,
+        )
+        unique = listing.stdout.decode("ascii", "strict").split()
+        for commit in unique:
+            if not re.fullmatch(r"[0-9a-f]{40}", commit):
+                raise ChangeLaneDenied("X_AHEAD_HISTORY_UNVERIFIABLE")
+            first_parent = subprocess.run(
+                ["git", "rev-parse", f"{commit}^1"],
+                cwd=repo_root, capture_output=True, check=True,
+            ).stdout.decode("ascii", "strict").strip()
+            changed = subprocess.run(
+                ["git", "diff", "--name-status", "-z", "--find-renames",
+                 first_parent, commit],
+                cwd=repo_root, capture_output=True, check=True,
+            )
+            paths = parse_name_status_zero(changed.stdout)
+            if paths and classify_changes(paths) != "GOVERNANCE_DIRECT_X":
+                raise ChangeLaneDenied(
+                    f"X_AHEAD_NON_GOVERNANCE_BLOCKED:{commit}"
+                )
+    except (OSError, UnicodeError, subprocess.CalledProcessError) as exc:
+        raise ChangeLaneDenied("X_AHEAD_HISTORY_UNVERIFIABLE") from exc
+    return len(unique)
+
+
 def _comments(repo: str, number: int, token: str) -> list[dict]:
     if not token:
         raise ChangeLaneDenied("MISSING_GITHUB_TOKEN_FOR_PRODUCT_PUBLISH")
@@ -227,6 +268,12 @@ def main() -> int:
                 os.environ.get("GITHUB_TOKEN", ""),
             )
         result = evaluate_pr(event=event, changed_paths=paths, comments=comments)
+        if lane != "GOVERNANCE_DIRECT_X":
+            # Trusted X workflow gate: allow X to be ahead of localX only
+            # when *every* X-only commit is pure non-product governance.
+            result["x_only_governance_commit_count"] = require_x_only_governance_history(
+                opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
+            )
     except (ChangeLaneDenied, KeyError, TypeError, ValueError, OSError) as exc:
         print(json.dumps({
             "status": "DENY", "reason": str(exc),
