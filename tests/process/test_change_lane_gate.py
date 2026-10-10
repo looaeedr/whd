@@ -9,6 +9,9 @@ from tools.change_lane_gate import (
     classify_changes,
     evaluate_pr,
     is_governance_file,
+    is_safe_product_ci_scheduling_edit,
+    classify_verified_pr_changes,
+    PROTECTED_PRODUCT_CI_WORKFLOW,
     parse_name_status_zero,
     require_x_only_governance_history,
 )
@@ -77,6 +80,108 @@ class ChangeLaneTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(classify_changes(["AGENTS.md", path]),
                                  "PRODUCT_LOCALX_ONLY")
+
+    def test_ci_scheduling_is_governance_only_when_trusted_diff_proves_safe(self):
+        workflow = PROTECTED_PRODUCT_CI_WORKFLOW
+        original = (
+            "name: WHD Product Regression\n"
+            "on:\n  pull_request:\n    branches: [localX]\n"
+            "jobs:\n  product-regression:\n"
+            "    name: Canonical Product Regression\n"
+            "    runs-on: ubuntu-latest\n    timeout-minutes: 50\n"
+            "    steps:\n      - run: python tools/product_ci_regression.py\n"
+        )
+        adjusted = original.replace("timeout-minutes: 50", "timeout-minutes: 45")
+        adjusted = adjusted.replace("runs-on: ubuntu-latest", "runs-on: ubuntu-24.04")
+        self.assertFalse(is_governance_file(workflow))
+        self.assertEqual(classify_changes([workflow]), "PRODUCT_LOCALX_ONLY")
+        self.assertTrue(is_safe_product_ci_scheduling_edit(original, adjusted))
+        self.assertEqual(classify_changes(
+            [workflow, "AGENTS.md"], verified_ci_scheduling=True,
+        ), "GOVERNANCE_DIRECT_X")
+        proc = [
+            subprocess.CompletedProcess([], 0, original.encode()),
+            subprocess.CompletedProcess([], 0, adjusted.encode()),
+        ]
+        with patch("tools.change_lane_gate.subprocess.run", side_effect=proc):
+            self.assertEqual(classify_verified_pr_changes(
+                Path("."), BASE, HEAD, [workflow, "AGENTS.md"],
+            ), "GOVERNANCE_DIRECT_X")
+
+    def test_ci_scheduling_fast_lane_rejects_acceptance_mutations(self):
+        workflow = PROTECTED_PRODUCT_CI_WORKFLOW
+        original = (
+            "on:\n  pull_request:\n    branches: [localX]\n"
+            "jobs:\n  product-regression:\n"
+            "    name: Canonical Product Regression\n"
+            "    runs-on: ubuntu-latest\n    timeout-minutes: 50\n"
+            "    strategy:\n      max-parallel: 3\n"
+            "    steps:\n      - run: python tools/product_ci_regression.py\n"
+        )
+        unsafe = (
+            original.replace("run: python tools/product_ci_regression.py", "run: echo GREEN"),
+            original.replace("branches: [localX]", "branches: [main]"),
+            original.replace("name: Canonical Product Regression", "name: Always Green"),
+            original.replace("timeout-minutes: 50", "timeout-minutes: 1"),
+            original.replace("max-parallel: 3", "max-parallel: 0"),
+            original.replace("timeout-minutes: 50", "if: always()"),
+            original.replace("    steps:", "    if: false\n    steps:"),
+            original.replace("timeout-minutes: 50", "timeout-minutes: 50\n    if: false"),
+            original.replace("    steps:\n", ""),
+            original.replace("runs-on: ubuntu-latest", "runs-on: windows-latest"),
+            original.replace("      - run:", "      - name: skip tests\n      - run:"),
+            original + "\n    retention-days: 7\n",
+            "",
+        )
+        for changed in unsafe:
+            with self.subTest(changed=changed[-90:]):
+                self.assertFalse(is_safe_product_ci_scheduling_edit(original, changed))
+                proc = [
+                    subprocess.CompletedProcess([], 0, original.encode()),
+                    subprocess.CompletedProcess([], 0, changed.encode()),
+                ]
+                with patch("tools.change_lane_gate.subprocess.run", side_effect=proc):
+                    self.assertEqual(classify_verified_pr_changes(
+                        Path("."), BASE, HEAD, [workflow],
+                    ), "PRODUCT_LOCALX_ONLY")
+        self.assertFalse(is_safe_product_ci_scheduling_edit(original, original))
+
+    def test_acceptance_authority_code_never_becomes_direct_x(self):
+        for file in (
+            "tools/product_ci_regression.py",
+            "tools/product_ci_green_reuse.py",
+            "tools/whd_v15_acceptance_evidence.py",
+            "tests/process/test_product_ci_sharding.py",
+            "tests/test_issue1469_v15_acceptance.py",
+            "docs/superpowers/verification/issue1469-v15-acceptance-matrix.json",
+        ):
+            with self.subTest(file=file):
+                self.assertEqual(classify_changes([file]), "PRODUCT_LOCALX_ONLY")
+                self.assertEqual(
+                    classify_changes([file, "AGENTS.md"], verified_ci_scheduling=True),
+                    "PRODUCT_LOCALX_ONLY",
+                )
+
+    def test_protected_workflow_missing_git_evidence_fails_closed(self):
+        with patch("tools.change_lane_gate.subprocess.run", side_effect=OSError("no git")):
+            self.assertEqual(classify_verified_pr_changes(
+                Path("."), BASE, HEAD, [PROTECTED_PRODUCT_CI_WORKFLOW],
+            ), "PRODUCT_LOCALX_ONLY")
+        with self.assertRaisesRegex(ChangeLaneDenied, "INVALID_COMMIT_SHA"):
+            classify_verified_pr_changes(
+                Path("."), "bad", HEAD, [PROTECTED_PRODUCT_CI_WORKFLOW],
+            )
+
+    def test_protected_acceptance_workflow_requires_localx_and_slash_push(self):
+        with self.assertRaisesRegex(ChangeLaneDenied, "REQUIRES_LOCALX"):
+            evaluate_pr(event=pr_event(), changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW])
+        with self.assertRaisesRegex(ChangeLaneDenied, "EXACT_USER_SLASH_PUSH"):
+            evaluate_pr(event=pr_event(branch="localX"),
+                        changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW])
+        passed = evaluate_pr(event=pr_event(),
+                             changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW],
+                             verified_ci_scheduling=True)
+        self.assertEqual(passed["lane"], "GOVERNANCE_DIRECT_X")
 
     def test_empty_pr_is_rejected(self):
         with self.assertRaisesRegex(ChangeLaneDenied, "EMPTY_PR_DIFF"):
