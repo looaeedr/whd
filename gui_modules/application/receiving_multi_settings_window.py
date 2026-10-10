@@ -179,6 +179,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
+    linked_targets = set()
 
     def show_setting_controls():
         for widget in settings_host.winfo_children():
@@ -190,6 +191,23 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         ports = get_settings_ports(set_index)
         ports["select"](bay_index)
         active_ports["ports"] = ports
+        from ae_engine.receiving_shared_settings import setting_value
+        current_row = ports["row"]()
+        bay_choices = ttk.Frame(settings_host)
+        bay_choices.pack(anchor="w")
+        ttk.Label(bay_choices, text="連動目標").pack(side="left", padx=(0, 5))
+        for other in range(len(current_row["bays"])):
+            if other == bay_index:
+                continue
+            toggle = tk.BooleanVar(master=win, value=other in linked_targets)
+            def select_target(index=other, variable=toggle):
+                if variable.get():
+                    linked_targets.add(index)
+                else:
+                    linked_targets.discard(index)
+            ttk.Checkbutton(bay_choices, text=f"第{other + 1}連",
+                            variable=toggle, command=select_target).pack(side="left")
+        targets = lambda: tuple(sorted(linked_targets | {bay_index}))
         def perform(action):
             try:
                 action()
@@ -202,7 +220,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if role is not None:
                 ttk.Label(row, text="封頭孔" if role == "head" else "封尾孔").pack(side="left")
                 ttk.Button(row, text="編輯／套用",
-                           command=lambda: perform(lambda: ports["holes"](role))).pack(side="left", padx=3)
+                           command=lambda: perform(lambda: ports["holes"](role, targets()))).pack(side="left", padx=3)
             else:
                 from ae_engine.receiving_shared_settings import setting_value
                 current = setting_value(ports["row"](), bay_index, kind)
@@ -213,7 +231,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Button(row, text="編輯／套用",
                            command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
             ttk.Button(row, text="連動選取的連",
-                       command=lambda: perform(lambda: ports["share"](kind, (bay_index,)))).pack(side="left", padx=3)
+                       command=lambda: perform(lambda: ports["share"](kind, targets()))).pack(side="left", padx=3)
             ttk.Button(row, text="解除本連連動",
                        command=lambda: perform(lambda: ports["unlink"](kind))).pack(side="left", padx=3)
         if selected_setting["kind"] == "head_features":
@@ -273,6 +291,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         if bay_index is None:
             bay_index = 0
         kind = setting_kind[label]
+        linked_targets.clear()
         try:
             # Read/choose the ORIGINAL Set/Bay setting owner; do not replace
             # a Hole Editor with a fake feature editor in this window.
@@ -308,6 +327,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             applied.update(mode="set_bay", set_index=index,
                            count=count, selected=0)
             selected_setting.update(set_index=None, bay_index=None, kind=None)
+            linked_targets.clear()
             setting_list.selection_clear(0, tk.END)
             show_setting_controls()
             if select_bay is not None:
@@ -333,6 +353,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         selected_setting.update(
                             set_index=applied["set_index"], bay_index=index
                         )
+                    linked_targets.clear()
                     show_setting_controls()
                     render()
                 except (ValueError, IndexError, RuntimeError) as exc:
