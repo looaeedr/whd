@@ -239,3 +239,17 @@ def test_all_family_invalid_unselected_feature_blocks_before_cache(family):
     app = SimpleNamespace(_phase6_input_snapshot=source, designer_workspace=workspace)
     with pytest.raises(ValueError, match=second):
         resolve_manufacturing_for_app(app)
+
+
+def test_quantity_edit_survives_semantically_equal_stale_relief_fingerprint():
+    from phase6_sync_envelope import plan_live_sync_envelope, stable_fingerprint, materialize_sync_value
+    previous = {"quantity": {"piece_count": 30}, "assembly_relief": {"revision": 1}}
+    current = {"quantity": {"piece_count": 8}, "assembly_relief": {"revision": 1}}
+    plan = plan_live_sync_envelope(
+        current_state=current, previous_state=previous,
+        previous_fingerprint=stable_fingerprint(previous), current_revision=0,
+        active_transaction_id="", host_relief_present=True,
+        host_relief={"revision": 1.0}, force=True)
+    assert plan.should_publish
+    assert materialize_sync_value(plan.payload)["quantity"]["piece_count"] == 8
+    assert materialize_sync_value(plan.delta)["quantity"] == {"piece_count": 8}
