@@ -70,6 +70,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
     counts = [1]
     mode = {"value": "set_bay"}
     selected = []
+    selected_settings = []
     resized = []
 
     def resize(index, delta):
@@ -89,6 +90,8 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
             switch_mode=switch, resize_connections=resize,
             select_bay=lambda set_index, bay_index: selected.append(
                 (set_index, bay_index)),
+            on_setting_selected=lambda set_index, bay_index, kind:
+                selected_settings.append((set_index, bay_index, kind)),
         )
         root.update()
         assert win.title() == "多只設定"
@@ -97,29 +100,80 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"套／連", "數量", "第1套", "＋連", "－連", "套用"}
+        assert set(texts) == {"套／連", "數量", "第1套", "＋連", "1", "－連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas
         rows_host = win._receiving_multi_rows_host
+        mode_row = win._receiving_multi_mode_controls
+        setting_list = win._receiving_multi_setting_list
+        controls_column = rows_host.master
+        # Both the action row and the three-item LIST (not a dropdown) sit
+        # directly below upper-left mode choices; 2D stays lower right.
+        assert mode_row.grid_info()["row"] == 0
+        assert controls_column.grid_info()["row"] == 1
+        assert controls_column.grid_info()["column"] == 0
+        assert canvas.grid_info()["row"] == 1
+        assert canvas.grid_info()["column"] == 1
+        assert abs(controls_column.winfo_rootx() - mode_row.winfo_rootx()) <= 2
+        vertical_gap = controls_column.winfo_rooty() - (
+            mode_row.winfo_rooty() + mode_row.winfo_height()
+        )
+        assert 0 <= vertical_gap <= 32
+        assert isinstance(setting_list, tk.Listbox)
+        assert setting_list.master is controls_column
+        assert setting_list.winfo_ismapped()
+        assert tuple(setting_list.get(0, tk.END)) == ("封頭", "封尾", "內門")
+        assert setting_list.curselection() == ()
         assert len(canvas._receiving_bay_hitboxes) == 1
         assert win._receiving_multi_applied["set_index"] is None
         assert win._receiving_multi_applied["selected"] is None
+        # Selecting existing settings forwards to the ORIGINAL per-bay
+        # domain keys without opening another window or changing geometry.
+        toplevels_before = len(root.winfo_children())
+        setting_list.selection_set(0)
+        setting_list.event_generate("<<ListboxSelect>>")
+        root.update()
+        assert selected_settings == [(0, 0, "head_features")]
+        setting_list.selection_clear(0, tk.END)
+        setting_list.selection_set(1)
+        setting_list.event_generate("<<ListboxSelect>>")
+        root.update()
+        assert selected_settings[-1] == (0, 0, "tail_features")
+        setting_list.selection_clear(0, tk.END)
+        setting_list.selection_set(2)
+        setting_list.event_generate("<<ListboxSelect>>")
+        root.update()
+        assert selected_settings[-1] == (0, 0, "inner_door_layers")
+        assert len(root.winfo_children()) == toplevels_before
+        assert len(canvas._receiving_bay_hitboxes) == 1
+
+        def current_row():
+            return rows_host.winfo_children()[0].winfo_children()
 
         def current_buttons():
-            return [w for w in rows_host.winfo_children()[0].winfo_children()
-                    if isinstance(w, ttk.Button)]
+            return [w for w in current_row() if isinstance(w, ttk.Button)]
 
+        def displayed_count():
+            labels = [w.cget("text") for w in current_row()
+                      if isinstance(w, ttk.Label)]
+            return labels[1]
+
+        assert [w.cget("text") for w in current_row()] == [
+            "第1套", "＋連", "1", "－連", "套用"]
         plus, minus, apply = current_buttons()
         plus.invoke()
+        assert displayed_count() == "2"
         plus, minus, apply = current_buttons()
         plus.invoke()
+        assert displayed_count() == "3"
         assert counts == [3]
         assert len(canvas._receiving_bay_hitboxes) == 1  # apply controls the sketch
         assert win._receiving_multi_apply(0) is True
         assert len(canvas._receiving_bay_hitboxes) == 3
         assert selected == [(0, 0)]
         assert win._receiving_multi_applied["selected"] == 0
+        assert setting_list.curselection() == ()
         hits = canvas._receiving_bay_hitboxes
         assert hits[0][2] == hits[1][0] == hits[0][2]
         assert hits[1][2] == hits[2][0]
@@ -131,10 +185,20 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert selected[-1] == (0, 2)
         assert win._receiving_multi_applied["selected"] == 2
         assert canvas._receiving_selected_bay == 2
+        setting_list.selection_set(0)
+        setting_list.event_generate("<<ListboxSelect>>")
+        root.update()
+        assert selected_settings[-1] == (0, 2, "head_features")
+        x0, y0, x1, y1 = hits[1]
+        canvas.event_generate("<Button-1>", x=int((x0 + x1) / 2),
+                              y=int((y0 + y1) / 2))
+        root.update()
+        assert selected_settings[-1] == (0, 1, "head_features")
 
         plus, minus, apply = current_buttons()
         minus.invoke()
         assert counts == [2]
+        assert displayed_count() == "2"
         assert len(canvas._receiving_bay_hitboxes) == 3
         apply.invoke()
         assert len(canvas._receiving_bay_hitboxes) == 2
@@ -149,12 +213,15 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         root.update()
         assert mode["value"] == "quantity"
         assert not rows_host.winfo_children()
+        assert not setting_list.winfo_ismapped()
         assert len(canvas._receiving_bay_hitboxes) == 1
         assert set(_visible_texts(win)) == {"套／連", "數量"}
         choices[0].invoke()
         root.update()
         assert mode["value"] == "set_bay"
         assert "第1套" in _visible_texts(win)
+        assert setting_list.winfo_ismapped()
+        assert tuple(setting_list.get(0, tk.END)) == ("封頭", "封尾", "內門")
         assert open_multi_settings(
             root, get_snapshot=lambda: {"active_mode": mode["value"]},
             get_switch=lambda: None, switch_mode=switch,
