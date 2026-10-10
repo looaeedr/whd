@@ -6,12 +6,19 @@ on:
       - cleanup/2d-3d-sync
     paths:
       - '*.md'
+      - '*.MD'
       - '個人AI檔案庫/**/*.md'
+      - '個人AI檔案庫/**/*.MD'
       - '.agents/skills/**/*.md'
+      - '.agents/skills/**/*.MD'
       - 'docs/**/*.md'
+      - 'docs/**/*.MD'
       - 'handoff/**/*.md'
+      - 'handoff/**/*.MD'
       - 'UPDATE/**/*.md'
+      - 'UPDATE/**/*.MD'
       - 'tools/knowledge_governance.py'
+      - 'tests/governance/test_knowledge_uppercase_markdown.py'
       - 'docs/superpowers/verification/knowledge_governance_inventory_v1.json'
       - '.github/workflows/knowledge-governance-bootstrap.yml'
 
@@ -46,6 +53,12 @@ jobs:
             --inventory docs/superpowers/verification/knowledge_governance_inventory_v1.json \
             --base "${{ github.event.pull_request.base.sha }}" \
             --head "${{ github.sha }}"
+
+      - name: Reject uppercase Markdown bypass regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests/governance -p 'test_knowledge_uppercase_markdown.py' -v
 
       - name: Enforce remote-only dispatch and explicit local takeover
         shell: bash
