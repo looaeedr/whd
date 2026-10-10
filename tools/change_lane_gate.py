@@ -8,11 +8,14 @@ from untrusted PR candidate code.
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.request import Request, urlopen
 
 from tools.localx_publish_gate import (
@@ -48,6 +51,196 @@ GOVERNANCE_EXACT_FILES = frozenset({
 })
 
 
+# The product regression workflow is *not* blanket governance. A trusted
+# base-X check can exempt a strictly bounded numeric runner/scheduling edit.
+# Canonical selectors/CPR/AC, hooks, triggers, shard sets, conditionals, scripts,
+# dependencies and artifact collection remain product acceptance authority.
+PROTECTED_PRODUCT_CI_WORKFLOW = ".github/workflows/whd-product-regression.yml"
+_SAFE_CI_SCHEDULING_LINE = re.compile(
+    r"^(?P<indent> +)(?P<key>runs-on|timeout-minutes|max-parallel|retention-days): "
+    r"(?P<value>[a-z0-9.-]+)$"
+)
+_SAFE_CI_RANGES = {
+    "timeout-minutes": (10, 90),
+    "max-parallel": (1, 8),
+    "retention-days": (1, 90),
+}
+
+
+def _safe_scheduling_line_pair(before: str, after: str) -> bool:
+    old = _SAFE_CI_SCHEDULING_LINE.fullmatch(before)
+    new = _SAFE_CI_SCHEDULING_LINE.fullmatch(after)
+    if not old or not new:
+        return False
+    if old.group("indent", "key") != new.group("indent", "key"):
+        return False
+    key = old.group("key")
+    values = (old.group("value"), new.group("value"))
+    if key == "runs-on":
+        return all(v in {"ubuntu-latest", "ubuntu-24.04", "ubuntu-22.04"} for v in values)
+    lower, upper = _SAFE_CI_RANGES[key]
+    return all(v.isascii() and v.isdecimal() and lower <= int(v) <= upper for v in values)
+
+
+def is_safe_product_ci_scheduling_edit(before: str, after: str) -> bool:
+    """Fail closed unless every changed line is a numeric/existing-runner tuning.
+
+    No insertion/deletion, YAML control flow, triggers, job names, scripts, matrix
+    membership, artifact names, acceptance rules or test lists can be modified
+    through this direct-X lane. A product CI redesign still uses localX + /推推.
+    """
+    if not before or not after or before == after:
+        return False
+    left, right = before.splitlines(), after.splitlines()
+    changes = 0
+    for op, i, j, k, l in difflib.SequenceMatcher(
+        a=left, b=right, autojunk=False,
+    ).get_opcodes():
+        if op == "equal":
+            continue
+        if op != "replace" or (j - i) != (l - k):
+            return False
+        for old_line, new_line in zip(left[i:j], right[k:l]):
+            if not _safe_scheduling_line_pair(old_line, new_line):
+                return False
+            changes += 1
+    return changes > 0
+
+
+def classify_verified_pr_changes(
+    repo_root: Path, base_sha: str, head_sha: str, paths: list[str],
+) -> str:
+    """Classify using trusted actual blobs when a protected workflow is touched."""
+    if PROTECTED_PRODUCT_CI_WORKFLOW not in paths:
+        return classify_changes(paths)
+    if not all(re.fullmatch(r"[0-9a-f]{40}", x or "") for x in (base_sha, head_sha)):
+        raise ChangeLaneDenied("INVALID_COMMIT_SHA")
+    try:
+        blobs = [
+            subprocess.run(
+                ["git", "show", f"{sha}:{PROTECTED_PRODUCT_CI_WORKFLOW}"],
+                cwd=repo_root, check=True, capture_output=True,
+            ).stdout.decode("utf-8", "strict")
+            for sha in (base_sha, head_sha)
+        ]
+    except (OSError, UnicodeError, subprocess.CalledProcessError):
+        # If an acceptance file was added/removed or the diff is unavailable,
+        # treat the change as product instead of silently granting direct X.
+        return "PRODUCT_LOCALX_ONLY"
+    verified = is_safe_product_ci_scheduling_edit(*blobs)
+    return classify_changes(paths, verified_ci_scheduling=verified)
+
+
+# One-time compatibility for two immutable X-only commits published under the
+# prior CI-path governance policy. Both changes only ADD the Asia/Taipei
+# timezone environment and source-safety gate; neither removes product tests.
+# These exact SHAs were reviewed in merged PR #1516. This is NOT a new PR
+# bypass: evaluate_pr / classify_verified_pr_changes remain fail-closed.
+HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS = frozenset({
+    "06d97ca575ebf9c2973ab3fdaa669787702faac4",
+    "beac45c3b3afc5bb11629fcbcd6e1e51b76c8e09",
+})
+
+
+def is_historical_verified_x_ci_governance(commit: str, paths: list[str]) -> bool:
+    """Only the two original immutable timezone commits may be grandfathered."""
+    return (
+        commit in HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS
+        and PROTECTED_PRODUCT_CI_WORKFLOW in paths
+        and all(
+            p == PROTECTED_PRODUCT_CI_WORKFLOW or is_governance_file(p)
+            for p in paths
+        )
+    )
+
+
+TAIWAN_ZONE = "Asia/Taipei"
+TAIWAN_OFFSET = timedelta(hours=8)
+# New-code source guard only: legacy timestamps must be migrated with targeted
+# product regression, not silently rewritten by a governance-only patch.
+_UNQUALIFIED_CLOCK = re.compile(
+    r"(?:\bdatetime\s*\.\s*(?:now|today|utcnow)\s*\(\s*\)"
+    r"|\.\s*astimezone\s*\(\s*\)"
+    r"|\btime\s*\.\s*localtime\s*\(\s*\))"
+)
+
+
+def require_taipei_timezone(env: dict | None = None) -> str:
+    """Block operators/CI that inherit host-local or UTC wall-clock time."""
+    source = os.environ if env is None else env
+    if source.get("TZ") != TAIWAN_ZONE:
+        raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:TZ_NOT_ASIA_TAIPEI")
+    try:
+        zone = ZoneInfo(TAIWAN_ZONE)
+        for month in (1, 7):
+            if datetime(2026, month, 1, tzinfo=zone).utcoffset() != TAIWAN_OFFSET:
+                raise ChangeLaneDenied(
+                    "TAIWAN_TIMEZONE_HARD_GATE_FAILED:INVALID_TAIPEI_OFFSET"
+                )
+        value = datetime.now(zone)
+        if value.utcoffset() != TAIWAN_OFFSET:
+            raise ChangeLaneDenied(
+                "TAIWAN_TIMEZONE_HARD_GATE_FAILED:ACTIVE_OFFSET_MISMATCH"
+            )
+    except ZoneInfoNotFoundError as exc:
+        raise ChangeLaneDenied(
+            "TAIWAN_TIMEZONE_HARD_GATE_FAILED:TIMEZONE_DATABASE_UNAVAILABLE"
+        ) from exc
+    return value.isoformat(timespec="seconds")
+
+
+def human_timestamp_taipei(value: datetime) -> str:
+    """Convert valid instants for reports; reject timezone-naive input."""
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+        raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:NAIVE_TIMESTAMP")
+    try:
+        result = value.astimezone(ZoneInfo(TAIWAN_ZONE))
+    except ZoneInfoNotFoundError as exc:
+        raise ChangeLaneDenied(
+            "TAIWAN_TIMEZONE_HARD_GATE_FAILED:TIMEZONE_DATABASE_UNAVAILABLE"
+        ) from exc
+    return result.isoformat(timespec="seconds")
+
+
+def require_new_code_taipei(repo_root: Path, base_sha: str, head_sha: str) -> int:
+    """Reject newly added host-local clock calls in PR Python implementation.
+
+    Existing historical code is not changed or blocked until that line is
+    edited. UTC transport fields remain valid with explicit awareness;
+    human-facing formatting is governed by the operator contract.
+    """
+    for sha in (base_sha, head_sha):
+        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:INVALID_SHA")
+    try:
+        patch = subprocess.run(
+            ["git", "diff", "--unified=0", "--no-ext-diff",
+             f"{base_sha}...{head_sha}", "--", "*.py"],
+            cwd=repo_root, capture_output=True, check=True,
+        ).stdout.decode("utf-8", "strict")
+    except (OSError, UnicodeError, subprocess.CalledProcessError) as exc:
+        raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:DIFF_UNREADABLE") from exc
+    path = ""
+    checked = 0
+    for line in patch.splitlines():
+        if line.startswith("+++ b/"):
+            path = line[6:]
+        elif line.startswith("+") and not line.startswith("+++"):
+            # Test fixtures frequently *quote* prohibited syntax; production
+            # code is the enforced part of this migration-safe source guard.
+            if path.startswith(("tests/", "BACKUP/")):
+                continue
+            added = line[1:].strip()
+            if added.startswith("#"):
+                continue
+            checked += 1
+            if _UNQUALIFIED_CLOCK.search(added):
+                raise ChangeLaneDenied(
+                    "TAIWAN_TIMEZONE_HARD_GATE_FAILED:HOST_LOCAL_CLOCK:" + path
+                )
+    return checked
+
+
 class ChangeLaneDenied(ValueError):
     """A PR does not satisfy the chosen X publication route."""
 
@@ -67,10 +260,14 @@ def _valid_path(raw: str) -> bool:
     return True
 
 
-def is_governance_file(path: str) -> bool:
-    """Restrictive allowlist: product, ambiguous and unknown paths are *not* docs."""
+def is_governance_file(
+    path: str, *, verified_ci_scheduling: bool = False,
+) -> bool:
+    """A protected test authority workflow is product unless its actual diff is safe."""
     if not _valid_path(path):
         return False
+    if path == PROTECTED_PRODUCT_CI_WORKFLOW:
+        return verified_ci_scheduling is True
     return (
         path in GOVERNANCE_ROOT_FILES
         or path in GOVERNANCE_EXACT_FILES
@@ -78,10 +275,13 @@ def is_governance_file(path: str) -> bool:
     )
 
 
-def classify_changes(changed_paths: list[str]) -> str:
+def classify_changes(
+    changed_paths: list[str], *, verified_ci_scheduling: bool = False,
+) -> str:
     if not changed_paths:
         raise ChangeLaneDenied("EMPTY_PR_DIFF")
-    if all(is_governance_file(path) for path in changed_paths):
+    if all(is_governance_file(path, verified_ci_scheduling=verified_ci_scheduling)
+           for path in changed_paths):
         return "GOVERNANCE_DIRECT_X"
     return "PRODUCT_LOCALX_ONLY"
 
@@ -161,7 +361,15 @@ def require_x_only_governance_history(
                 cwd=repo_root, capture_output=True, check=True,
             )
             paths = parse_name_status_zero(changed.stdout)
-            if paths and classify_changes(paths) != "GOVERNANCE_DIRECT_X":
+            # Previously accepted X-only CI timezone hardening predates the
+            # stricter CI-workflow classifier. Honor ONLY those immutable
+            # already-published SHAs during X-history readback, never for a
+            # new incoming PR or an arbitrary workflow modification.
+            if paths and not is_historical_verified_x_ci_governance(
+                commit, paths,
+            ) and classify_verified_pr_changes(
+                repo_root, first_parent, commit, paths,
+            ) != "GOVERNANCE_DIRECT_X":
                 raise ChangeLaneDenied(
                     f"X_AHEAD_NON_GOVERNANCE_BLOCKED:{commit}"
                 )
@@ -198,6 +406,7 @@ def _comments(repo: str, number: int, token: str) -> list[dict]:
 def evaluate_pr(
     *, event: dict, changed_paths: list[str],
     comments: list[dict] | None = None,
+    verified_ci_scheduling: bool = False,
 ) -> dict:
     pr = event.get("pull_request") or {}
     if not isinstance(pr, dict):
@@ -219,7 +428,9 @@ def evaluate_pr(
         raise ChangeLaneDenied("BASE_REPOSITORY_MISMATCH")
     if (head.get("repo") or {}).get("full_name") != repo:
         raise ChangeLaneDenied("FORK_NOT_SUPPORTED_FOR_DIRECT_X")
-    lane = classify_changes(changed_paths)
+    lane = classify_changes(
+        changed_paths, verified_ci_scheduling=verified_ci_scheduling,
+    )
     if lane == "GOVERNANCE_DIRECT_X":
         if not isinstance(head_ref, str) or not head_ref.startswith(GOVERNANCE_BRANCH_PREFIXES):
             raise ChangeLaneDenied("GOVERNANCE_REQUIRES_DEDICATED_BRANCH")
@@ -255,19 +466,34 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, required=True)
     opts = parser.parse_args()
     try:
+        # Always enforce zone before evaluating governance/product publishing.
+        require_taipei_timezone()
         event = json.loads(opts.event_file.read_text(encoding="utf-8"))
         pr = event.get("pull_request") or {}
         paths = changed_paths_between(
             opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
         )
-        lane = classify_changes(paths)
+        lane = classify_verified_pr_changes(
+            opts.repo_root, pr["base"]["sha"], pr["head"]["sha"], paths,
+        )
+        checked = require_new_code_taipei(
+            opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
+        )
         comments = None
         if lane != "GOVERNANCE_DIRECT_X":
             comments = _comments(
                 event["repository"]["full_name"], int(pr["number"]),
                 os.environ.get("GITHUB_TOKEN", ""),
             )
-        result = evaluate_pr(event=event, changed_paths=paths, comments=comments)
+        result = evaluate_pr(
+            event=event, changed_paths=paths, comments=comments,
+            verified_ci_scheduling=(
+                PROTECTED_PRODUCT_CI_WORKFLOW in paths
+                and lane == "GOVERNANCE_DIRECT_X"
+            ),
+        )
+        result["timezone"] = TAIWAN_ZONE
+        result["new_python_lines_checked"] = checked
         if lane != "GOVERNANCE_DIRECT_X":
             # Trusted X workflow gate: allow X to be ahead of localX only
             # when *every* X-only commit is pure non-product governance.

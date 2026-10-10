@@ -11,6 +11,7 @@ whd_schema: WHD_DOC_META_V1
 - **入口及階段分流**：`/派工` 的**施工、修改、測試、commit、PR 與 CI** 只能在 GitHub／排程／雲端執行器完成，嚴禁使用使用者本機。**唯一例外是 exact SHA CI 已通過後的 `LOCALX_INTEGRATION` 最終階段**：此時 `/派工` 可經 Desktop Commander（DC）連線 CoreELEC `whd-dev:/workspace/whd`，**只做使用者本機 `localX` 合併／必要整合驗證／同步回讀**，不得在該階段暗改產品程式或重做雲端施工。`/接手` 仍須使用者明確指令，才可在 RC 進行整個施工流程。
 - **產品施工通道**：`/派工` 遠端施工提交後建立 GitHub `localX` 目標 PR，確認 exact HEAD 的 CI SUCCESS；**先透過 DC 在本機 `localX` 整合且保留本機未發布修改**，通過整合驗證後以非強制方式同步 GitHub `localX` 並讀回兩端 SHA／PR 狀態。若 **DC 實際無法連線**，才允許 GitHub PR 直接合併遠端 `localX` 備援，需註明 `DC_UNREACHABLE`、`LOCALX_SYNC_PENDING`，不能聲稱本機已合併或同步。DC 可連但本機有衝突、髒檔、權限拒絕、CI RED，**不可冒用斷線備援**。`/接手` 依其明確指令走 RC 全流程。正式 X 的產品發布仍必須當次 `/推推`。
 - **治理直送通道（正式硬閘門）**：僅限 `tools/change_lane_gate.py` 明確白名單內的非產品文件、治理規則、技能、GitHub 工作流程與其專用測試。此類修改**不必**走 localX、`/推推`、工單派工或產品 QA；**優先直接使用 GitHub／雲端治理分支** `governance/*`、`docs/*` 或 `skills/*`，從最新 X 修改、檢查、PR 至 X 並合併。**未取得使用者本次對 DC／本機的明確授權，不得為治理修改存取 CoreELEC、whd-dev 或本地 shell**；雲端能力不足時回報阻塞，不得自動轉走 DC。
+- **非本體 CI 排程／驗收權威硬分流（`CI_SCHEDULING_ONLY_V1`）**：純 CI 排程數字、既有 Runner 選型可依 `tools/change_lane_gate.py` 的**受信任 base X → PR HEAD 實際 blob 差異**走治理直送，不需本機 `localX`／DC／完整產品回歸。產品驗收主 workflow `.github/workflows/whd-product-regression.yml` **不得僅憑副檔名或 `.github/workflows/` 目錄判定治理**：只有對既有行的 `runs-on`、`timeout-minutes`、`max-parallel`、`retention-days` 且舊值、新值均符合白名單的替換能例外直送。增刪行、修改觸發 paths、matrix shards、jobs/if、測試指令、必跑步驟、CI 名稱、artifact 集合、完整性檢查一律產品通道；`tools/product_ci_regression.py`、`tools/product_ci_green_reuse.py`、`tools/whd_v15_acceptance_evidence.py`、產品測試清單／驗收矩陣與相關測試，永遠不能只靠 CI 調度名義豁免產品回歸與 `/推推`。GitHub X 的 required `WHD Change Lane Gate` 必須由**受信任 X 版本**執行這項判定。未知／缺少 git diff 證據 fail closed，不得自行改走本機。
 - **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得走治理直送；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
 - GitHub 正式硬閘門必須在 X 的 Ruleset 把 `WHD Change Lane Gate` 設為 required status check，否則只能算 CI 檢查、不能宣稱平台端不可繞過；直接 push X 應由分支 Ruleset 禁止。
 - 禁止遺失使用者本地未發布修改，禁止用 X 覆蓋 localX。保留程式碼 review、製造幾何與產品回歸檢查；無需工單交易硬閘門。
@@ -21,9 +22,19 @@ whd_schema: WHD_DOC_META_V1
 
 - **順序不可顛倒**：先查本機 `localX`、GitHub `localX`、正式 `X=cleanup/2d-3d-sync` 的 fresh SHA；先讓本機已驗證的 `localX` 以非強制推送同步至 GitHub `localX`（遠端若超前、分叉，先核查來源／安全整合，不 reset 或強推）。在 GitHub `localX` 與本機 HEAD 回讀一致前，不得建立可宣稱完成的正式發布。
 - **X 超前只能是非本體**：發布前只**檢查** X 相對於 `localX` 獨有的所有 commit（含 merge commit 第一父提交的差異），並以 `tools/change_lane_gate.py` 的治理白名單逐一核對。任何本體／混合／未知路徑、無法證實的歷史均 `X_AHEAD_NON_GOVERNANCE_BLOCKED`，不得假設「一定只有文件」。通過時也**不得在正式發布前**先把 X pull／merge／rebase 進本機或 GitHub `localX`。
+- **X-only 歷史時區 CI 相容例外（只讀）**：僅兩個已在 X 合併且驗收的不可變提交 `06d97ca575ebf9c2973ab3fdaa669787702faac4`、`beac45c3b3afc5bb11629fcbcd6e1e51b76c8e09`（新增 `Asia/Taipei` 環境與來源時間安全檢查）可在 X-only 歷史回讀時視為治理；還須確認其除既定 CI workflow 外的差異全屬治理白名單。**不授權任何新 PR、其他 workflow 變更或任意 SHA 豁免**；產品發布與當次 `/推推` 仍照原硬閘門。
 - **先發布，再回同步**：使用者當次 `/推推`、exact PR head/base SHA、必要 CI 全部符合後，由 GitHub `localX` PR **合併至 X**（保留 X 原有純治理提交，不 force、不覆蓋）。合併完成後取得 X 新 SHA，**才**依序從 X fast-forward 同步**本機 `localX`**，必要驗證後非強制同步**GitHub `localX`**。
 - **三方回讀是完成條件**：確認 `HEAD(本機 localX) == HEAD(GitHub localX) == HEAD(X)` 且 X PR 確實 merged。若 DC 不可用、認證拒絕、衝突、遠端更新、GitHub 操作被拒等導致任何一步失敗，真實回報 `POST_PUBLISH_LOCALX_SYNC_PENDING` 與三個實際 SHA／原因，**不能聲稱三方已同步**；保留提交並於可操作時續接，不藉此反向重發 `/推推` 或改用 force。
 - **通道不變**：純治理／技能／非本體文件直接治理分支 PR 合併 X，不經兩邊 `localX`，也不需要 `/推推`；以上三方回同步僅適用於產品發布，不得反過來把治理變成本體。發布操作遵守既有平台安全審查與 DC 授權範圍。
+
+## 全域台灣時區硬閘門 `TAIWAN_TIMEZONE_HARD_GATE_V1`
+
+- **唯一人類操作時區**：`Asia/Taipei`（UTC+08:00），涵蓋本專案的 Agent、ChatGPT 回報、工單／PR 留言、文件發布時間、測試摘要、排程與提醒、GUI 顯示、日誌檢視、交付檔名及相對日期（今天／明天／週末）的解讀；不得依執行機器、瀏覽器、GitHub Runner 的預設時區自行決定。
+- **時間必須可辨識時區**：人類可讀的完整時間戳採 `YYYY-MM-DD HH:mm:ss +08:00` 或帶 `+08:00` 的 ISO 8601；僅顯示日期時須已先換算到台灣日期。不能輸出無標示時區的日期時間並冒充台灣時間；夏令時間不得套用至台灣。
+- **CI 強制執行**：關鍵 GitHub Actions jobs 必須設 `TZ=Asia/Taipei`，`tools/change_lane_gate.py` 檢查明確的環境設定與 ZoneInfo offset；任一不符即 `TAIWAN_TIMEZONE_HARD_GATE_FAILED`。增修 Python 日期時間產生點時，不得加入無時區的 `datetime.now()`、`datetime.today()`、`datetime.utcnow()`、`datetime.astimezone()` 或使用執行機器本地時間的 `time.localtime()`。新改動由 CI diff guard 驗證；歷史既有日期來源需分批補上精確的產品回歸，不以文字規則冒稱已改好。
+- **排程換算**：需求的日／週／幾點一律先用台灣時間解析；若 GitHub Actions cron 或第三方 API **僅接受 UTC**，則只在傳輸層轉換成等價 UTC（例如台灣 08:00 對應 UTC 00:00），顯示與排程權威仍為 `Asia/Taipei`；不得因 runner 預設 UTC 造成日期跨日錯誤。
+- **外部格式例外不等於使用 UTC 操作**：GitHub 事件 ISO UTC、Unix epoch、Git commit 與 API 明定 UTC 的儲存／簽名／傳輸欄位保留原格式，不擅自改寫證據；在回報、呈現或作本地日界判斷前必須換算台灣時間。保證同一瞬間不因格式轉換而改變。
+- **禁止藉時區門檻擴權**：不修改舊工單交易規則、既有排程啟停、產品幾何與 DC 權限；此硬閘門的治理變更走既有 governance 直送 X 通道。`AGENTS.md` 與 `.agents/contracts/WHD_TAIPEI_TIMEZONE_HARD_GATE_V1.json` 為時間權威，後續 SOP／技能需從此契約繼承。
 
 ## 全域 DC 硬閘門 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`
 
