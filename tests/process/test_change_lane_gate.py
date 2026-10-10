@@ -1,5 +1,8 @@
 """Fast lane is fail-closed for product and mixed repository changes."""
 import unittest
+import subprocess
+from pathlib import Path
+from unittest.mock import patch
 
 from tools.change_lane_gate import (
     ChangeLaneDenied,
@@ -7,6 +10,7 @@ from tools.change_lane_gate import (
     evaluate_pr,
     is_governance_file,
     parse_name_status_zero,
+    require_x_only_governance_history,
 )
 
 
@@ -127,6 +131,45 @@ class ChangeLaneTests(unittest.TestCase):
         )
         self.assertEqual(paths, ["gui.py", "docs/governance/gui.md"])
         self.assertEqual(classify_changes(paths), "PRODUCT_LOCALX_ONLY")
+
+    def test_x_ahead_governance_history_allows_docs_without_presync(self):
+        commit = "c" * 40
+        responses = [
+            subprocess.CompletedProcess([], 0, (commit + "\n").encode()),
+            subprocess.CompletedProcess([], 0, ("d" * 40 + "\n").encode()),
+            subprocess.CompletedProcess([], 0, b"M\0AGENTS.md\0"),
+        ]
+        with patch("tools.change_lane_gate.subprocess.run", side_effect=responses) as run:
+            self.assertEqual(
+                require_x_only_governance_history(Path("."), BASE, HEAD), 1
+            )
+            self.assertEqual(run.call_count, 3)
+            self.assertEqual(run.call_args_list[0].args[0][1], "rev-list")
+
+    def test_x_ahead_product_or_unknown_is_blocked(self):
+        for changed in (b"M\0gui.py\0", b"M\0docs/specs/unknown.md\0"):
+            commit = "c" * 40
+            responses = [
+                subprocess.CompletedProcess([], 0, (commit + "\n").encode()),
+                subprocess.CompletedProcess([], 0, ("d" * 40 + "\n").encode()),
+                subprocess.CompletedProcess([], 0, changed),
+            ]
+            with self.subTest(changed=changed):
+                with patch("tools.change_lane_gate.subprocess.run", side_effect=responses):
+                    with self.assertRaisesRegex(
+                        ChangeLaneDenied, "X_AHEAD_NON_GOVERNANCE_BLOCKED"
+                    ):
+                        require_x_only_governance_history(Path("."), BASE, HEAD)
+
+    def test_x_ahead_unverifiable_history_is_blocked(self):
+        with patch("tools.change_lane_gate.subprocess.run", side_effect=OSError("missing git")):
+            with self.assertRaisesRegex(ChangeLaneDenied, "X_AHEAD_HISTORY_UNVERIFIABLE"):
+                require_x_only_governance_history(Path("."), BASE, HEAD)
+
+    def test_x_already_contained_in_localx_is_no_op(self):
+        with patch("tools.change_lane_gate.subprocess.run",
+                   return_value=subprocess.CompletedProcess([], 0, b"")):
+            self.assertEqual(require_x_only_governance_history(Path("."), BASE, HEAD), 0)
 
     def test_unrecognized_status_or_malformed_path_fails(self):
         for blob in (b"Z\x00AGENTS.md\x00", b"M\x00../AGENTS.md\x00",
