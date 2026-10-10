@@ -1012,7 +1012,31 @@ def open_receiving_multi_settings(self, namespace):
     from .quantity_version_ports import quantity_ports
     app = self.app
     ports = quantity_ports(self, namespace)
-    ports["common"] = lambda: _open_common_box(self, namespace)
+
+    def common_editor_ports():
+        # Reuse the canonical common-box validator and snapshot transaction,
+        # not the legacy Toplevel-based presentation.
+        from ae_engine.receiving_quantity_box import update_common_box, project_common_box
+        listeners = []
+
+        def change(changes):
+            candidate = update_common_box(_current_mode_snapshot(self, namespace), changes)
+            _apply_mode_snapshot(self, namespace, candidate)
+            for listener in tuple(listeners):
+                listener()
+
+        def dimensions(width, height, depth):
+            return change({"w": width, "h": height, "d": depth})
+
+        return {
+            "row": lambda: project_common_box(_current_mode_snapshot(self, namespace))["receiving_layout"]["sets"][0],
+            "select": lambda index: None,
+            "change": lambda kind, value, indices=(): change({kind: value}),
+            "dimensions": dimensions,
+            "brand": lambda value: change({"switch_brand": value}),
+            "subscribe": listeners.append,
+        }
+
     return open_multi_settings(
         app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -1022,6 +1046,7 @@ def open_receiving_multi_settings(self, namespace):
         add_set=lambda: self.add_receiving_layer(namespace),
         remove_set=lambda: self.remove_receiving_layer(namespace),
         resize_connections=lambda index, delta: self.resize_receiving_bays(namespace, index, delta),
-        open_set_settings=lambda index: self.open_receiving_layer_preview(namespace, index),
+        set_editor_ports=lambda index: self.receiving_settings_ports(namespace, index),
+        common_editor_ports=common_editor_ports,
         quantity_ports=ports,
     )
