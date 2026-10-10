@@ -25,6 +25,15 @@ whd_schema: WHD_DOC_META_V1
 - **三方回讀是完成條件**：確認 `HEAD(本機 localX) == HEAD(GitHub localX) == HEAD(X)` 且 X PR 確實 merged。若 DC 不可用、認證拒絕、衝突、遠端更新、GitHub 操作被拒等導致任何一步失敗，真實回報 `POST_PUBLISH_LOCALX_SYNC_PENDING` 與三個實際 SHA／原因，**不能聲稱三方已同步**；保留提交並於可操作時續接，不藉此反向重發 `/推推` 或改用 force。
 - **通道不變**：純治理／技能／非本體文件直接治理分支 PR 合併 X，不經兩邊 `localX`，也不需要 `/推推`；以上三方回同步僅適用於產品發布，不得反過來把治理變成本體。發布操作遵守既有平台安全審查與 DC 授權範圍。
 
+## 全域台灣時區硬閘門 `TAIWAN_TIMEZONE_HARD_GATE_V1`
+
+- **唯一人類操作時區**：`Asia/Taipei`（UTC+08:00），涵蓋本專案的 Agent、ChatGPT 回報、工單／PR 留言、文件發布時間、測試摘要、排程與提醒、GUI 顯示、日誌檢視、交付檔名及相對日期（今天／明天／週末）的解讀；不得依執行機器、瀏覽器、GitHub Runner 的預設時區自行決定。
+- **時間必須可辨識時區**：人類可讀的完整時間戳採 `YYYY-MM-DD HH:mm:ss +08:00` 或帶 `+08:00` 的 ISO 8601；僅顯示日期時須已先換算到台灣日期。不能輸出無標示時區的日期時間並冒充台灣時間；夏令時間不得套用至台灣。
+- **CI 強制執行**：關鍵 GitHub Actions jobs 必須設 `TZ=Asia/Taipei`，`tools/change_lane_gate.py` 檢查明確的環境設定與 ZoneInfo offset；任一不符即 `TAIWAN_TIMEZONE_HARD_GATE_FAILED`。增修 Python 日期時間產生點時，不得加入無時區的 `datetime.now()`、`datetime.today()`、`datetime.utcnow()`、`datetime.astimezone()` 或使用執行機器本地時間的 `time.localtime()`。新改動由 CI diff guard 驗證；歷史既有日期來源需分批補上精確的產品回歸，不以文字規則冒稱已改好。
+- **排程換算**：需求的日／週／幾點一律先用台灣時間解析；若 GitHub Actions cron 或第三方 API **僅接受 UTC**，則只在傳輸層轉換成等價 UTC（例如台灣 08:00 對應 UTC 00:00），顯示與排程權威仍為 `Asia/Taipei`；不得因 runner 預設 UTC 造成日期跨日錯誤。
+- **外部格式例外不等於使用 UTC 操作**：GitHub 事件 ISO UTC、Unix epoch、Git commit 與 API 明定 UTC 的儲存／簽名／傳輸欄位保留原格式，不擅自改寫證據；在回報、呈現或作本地日界判斷前必須換算台灣時間。保證同一瞬間不因格式轉換而改變。
+- **禁止藉時區門檻擴權**：不修改舊工單交易規則、既有排程啟停、產品幾何與 DC 權限；此硬閘門的治理變更走既有 governance 直送 X 通道。`AGENTS.md` 與 `.agents/contracts/WHD_TAIPEI_TIMEZONE_HARD_GATE_V1.json` 為時間權威，後續 SOP／技能需從此契約繼承。
+
 ## 全域 DC 硬閘門 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`
 
 **預設禁止（DENY）**：所有 ChatGPT／Agent／排程／治理／文件／程式執行器，**在呼叫任何 Remote Desktop Commander（DC）工具之前**先做以下判斷。包含 `list_devices`、`ping`、`who_am_i`、檔案讀寫、工作目錄查詢、process／shell／Git 操作；**不得先連線探測再補問授權**。除以下三種情況外一律 `DC_ACCESS_DENIED_BY_DEFAULT`：
