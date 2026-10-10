@@ -75,6 +75,25 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("回讀", dispatch)
         self.assertIn("NEXT_ISSUE_DISCOVERY_REQUIRED", dispatch)
 
+    def test_registry_cannot_convert_dispatch_or_generic_edit_into_local_takeover(self):
+        from tools.phase6_skill_preflight import required_skills_for
+
+        generic = set(required_skills_for(task="一般產品錯誤修正", changed_files=["gui.py"]))
+        self.assertNotIn("root-local-first", generic)
+        dispatch = set(required_skills_for(task="/派工 #999", changed_files=["gui.py"]))
+        self.assertIn("派工", dispatch)
+        self.assertNotIn("root-local-first", dispatch)
+        takeover = set(required_skills_for(task="/接手 #999", changed_files=["gui.py"]))
+        self.assertIn("root-local-first", takeover)
+        self.assertIn("執行開發任務", takeover)
+        self.assertNotIn("派工", takeover)
+        migration = set(required_skills_for(
+            task="deterministic repo migration",
+            changed_files=[".agents/skills/engineering/deterministic-repo-migration/SKILL.md"],
+        ))
+        self.assertIn("deterministic-repo-migration", migration)
+        self.assertNotIn("root-local-first", migration)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
