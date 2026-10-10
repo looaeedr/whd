@@ -135,9 +135,9 @@ class ChangeLaneTests(unittest.TestCase):
     def test_x_ahead_governance_history_allows_docs_without_presync(self):
         commit = "c" * 40
         responses = [
-            subprocess.CompletedProcess([], 0, (commit + "\\n").encode()),
-            subprocess.CompletedProcess([], 0, ("d" * 40 + "\\n").encode()),
-            subprocess.CompletedProcess([], 0, b"M\\0AGENTS.md\\0"),
+            subprocess.CompletedProcess([], 0, (commit + "\n").encode()),
+            subprocess.CompletedProcess([], 0, ("d" * 40 + "\n").encode()),
+            subprocess.CompletedProcess([], 0, b"M\0AGENTS.md\0"),
         ]
         with patch("tools.change_lane_gate.subprocess.run", side_effect=responses) as run:
             self.assertEqual(
@@ -147,11 +147,11 @@ class ChangeLaneTests(unittest.TestCase):
             self.assertEqual(run.call_args_list[0].args[0][1], "rev-list")
 
     def test_x_ahead_product_or_unknown_is_blocked(self):
-        for changed in (b"M\\0gui.py\\0", b"M\\0docs/specs/unknown.md\\0"):
+        for changed in (b"M\0gui.py\0", b"M\0docs/specs/unknown.md\0"):
             commit = "c" * 40
             responses = [
-                subprocess.CompletedProcess([], 0, (commit + "\\n").encode()),
-                subprocess.CompletedProcess([], 0, ("d" * 40 + "\\n").encode()),
+                subprocess.CompletedProcess([], 0, (commit + "\n").encode()),
+                subprocess.CompletedProcess([], 0, ("d" * 40 + "\n").encode()),
                 subprocess.CompletedProcess([], 0, changed),
             ]
             with self.subTest(changed=changed):
