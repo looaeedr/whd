@@ -131,6 +131,7 @@ def test_live_switch_visible_3d_round_trip_vault_receiving_vault_replaces_geomet
         assert designer._phase6_3d_display_mode == "assembly"
         assert str(designer.part_var.get()) == "組合體"
         assert bool(designer.assembly_parts_panel.winfo_ismapped())
+        assert designer._phase6_assembly_panel_owner.multi_settings_button.winfo_ismapped()
         assert not bool(designer.box_body_piece_selector.winfo_ismapped()), (
             "Assembly mode must not re-pack 左側板/後面板/右側板 child tabs"
         )
@@ -169,6 +170,7 @@ def test_live_switch_visible_3d_round_trip_vault_receiving_vault_replaces_geomet
         )
         assert not bool(designer.box_body_piece_selector.winfo_ismapped())
         assert not bool(designer.receiving_set_bay_control.winfo_ismapped())
+        assert not designer._phase6_assembly_panel_owner.multi_settings_button.winfo_ismapped()
     finally:
         _close(tk, root, designer)
 
