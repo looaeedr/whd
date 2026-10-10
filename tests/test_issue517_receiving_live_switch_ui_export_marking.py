@@ -447,17 +447,16 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         win = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 3)
         assert win.title() == "多只設定"
-        # Respect whichever mode owns the active saved session. Select the
-        # Suite section explicitly before asserting its operator rows.
-        win._receiving_multi_notebook.select(0)
-        _pump(root, 5)
-        assert win._receiving_multi_notebook.index(
-            win._receiving_multi_notebook.select()) == 0
-        controls = win._receiving_multi_controls
-        texts = _mapped_widget_texts(controls.frame)
-        for expected in ("開關", "－套", "＋套", "第1套", "1連", "－連", "＋連", "套用"):
-            assert expected in texts, f"multi-settings missing {expected!r}; got={texts!r}"
-        assert not any("Layer" in text or "Connection" in text for text in texts), texts
+        # Only user-specified elements are exposed, no legacy editor or
+        # extra brand/common-box/quantity-version controls.
+        texts = _mapped_widget_texts(win)
+        for expected in ("套／連", "數量", "第1套", "＋連", "－連", "套用"):
+            assert expected in texts, (expected, texts)
+        for unwanted in ("開關", "＋套", "－套", "共用箱體", "套用品牌", "件數"):
+            assert unwanted not in texts, (unwanted, texts)
+        assert win._receiving_multi_mode_var.get() == "set_bay"
+        assert win._receiving_multi_applied["set_index"] is None
+        assert len(win._receiving_multi_canvas._receiving_bay_hitboxes) == 1
         win.destroy()
     finally:
         _close(tk, root, designer)

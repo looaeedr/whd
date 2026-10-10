@@ -1009,44 +1009,20 @@ def open_receiving_multi_settings(self, namespace):
     if not self.receiving_layout_applicable():
         return False
     from .receiving_multi_settings_window import open_multi_settings
-    from .quantity_version_ports import quantity_ports
-    app = self.app
-    ports = quantity_ports(self, namespace)
 
-    def common_editor_ports():
-        # Reuse the canonical common-box validator and snapshot transaction,
-        # not the legacy Toplevel-based presentation.
-        from ae_engine.receiving_quantity_box import update_common_box, project_common_box
-        listeners = []
-
-        def change(changes):
-            candidate = update_common_box(_current_mode_snapshot(self, namespace), changes)
-            _apply_mode_snapshot(self, namespace, candidate)
-            for listener in tuple(listeners):
-                listener()
-
-        def dimensions(width, height, depth):
-            return change({"w": width, "h": height, "d": depth})
-
-        return {
-            "row": lambda: project_common_box(_current_mode_snapshot(self, namespace))["receiving_layout"]["sets"][0],
-            "select": lambda index: None,
-            "change": lambda kind, value, indices=(): change({kind: value}),
-            "dimensions": dimensions,
-            "brand": lambda value: change({"switch_brand": value}),
-            "subscribe": listeners.append,
-        }
+    def select_bay(set_index, bay_index):
+        # Reuse canonical selection; no new data owner or manufacturing draw.
+        adapter = self.receiving_adapter(namespace)
+        adapter.select_set(int(set_index) + 1)
+        adapter.select_bay(int(bay_index) + 1)
 
     return open_multi_settings(
-        app.root,
+        self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
         get_switch=lambda: self.receiving_switch_adapter(namespace),
         switch_mode=lambda mode: _switch_mode(self, namespace, mode),
-        set_brand=lambda brand: self.on_receiving_switch_brand_selected(namespace, brand),
-        add_set=lambda: self.add_receiving_layer(namespace),
-        remove_set=lambda: self.remove_receiving_layer(namespace),
-        resize_connections=lambda index, delta: self.resize_receiving_bays(namespace, index, delta),
-        set_editor_ports=lambda index: self.receiving_settings_ports(namespace, index),
-        common_editor_ports=common_editor_ports,
-        quantity_ports=ports,
+        resize_connections=lambda index, delta: self.resize_receiving_bays(
+            namespace, index, delta
+        ),
+        select_bay=select_bay,
     )
