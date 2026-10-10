@@ -166,6 +166,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             ttk.Label(row, text=f"第{index + 1}套").pack(side="left", padx=(0, 10))
             ttk.Button(row, text="＋連", command=lambda i=index: resize(i, 1)).pack(
                 side="left", padx=(0, 3))
+            # Keep the actual connection count between +連 and -連. The row
+            # is rebuilt from the canonical Switch owner after each edit.
+            ttk.Label(row, text=str(count), width=3, anchor="center").pack(
+                side="left", padx=(0, 3))
             ttk.Button(row, text="－連", command=lambda i=index: resize(i, -1)).pack(
                 side="left", padx=(0, 3))
             ttk.Button(row, text="套用", command=lambda i=index: apply(i)).pack(
