@@ -81,10 +81,11 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 ## localX integration and publication authority
 
-- Repository work is made and validated locally on `localX` in `/workspace/whd`.
-- `origin/localX` can be used as backup; it does not grant permission to publish X.
-- Only a current explicit user `/推推` authorizes publication to `cleanup/2d-3d-sync` (X), subject to exact PR and commit verification.
-- No task execution transaction, lease, work-slot, or control-plane preflight is required for local modifications.
+- **`/派工`** 的產品 BUILD／TEST／COMMIT／PR／CI 在 GitHub／排程／雲端執行器完成，工作 PR 目標 `localX`；exact CI SUCCESS 後才可依 `LOCALX_INTEGRATION` 透過 DC 在本機整合，不得以此階段暗改產品。
+- **`/接手`** 只有當次使用者明確指令才允許 RC → `whd-dev:/workspace/whd` 施工；沒有明確授權不得用 DC 或探測本機。
+- 純非產品治理依 `tools/change_lane_gate.py` 白名單從最新 X 的 GitHub／雲端治理分支直接 PR／CI／merge X，不經 `localX`、不需要 `/推推`，亦不得擅用本機。
+- 產品先安全整合／非強制同步 `localX`，只有使用者**當次 `/推推`** 才可將產品發布至 `cleanup/2d-3d-sync` (X)，須核對 exact PR、SHA、CI 與三方 readback；`origin/localX` 不是 X 發布授權。
+- 舊任務交易、lease、工作槽與 control-plane Preflight receipt 已退役，不是產品或治理修改的施工／交付前置；不影響平台公開操作權限與安全審查。
 
 ## Permanent routing boundaries
 
