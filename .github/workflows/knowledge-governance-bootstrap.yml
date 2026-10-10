@@ -65,6 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s tests/governance -p 'test_dispatch_remote_only_contract.py' -v
+          python -m unittest discover -s tests/governance -p 'test_dispatch_executor_handoff_contract.py' -v
           python -m unittest discover -s tests/governance -p 'test_issue1464_dispatch_takeover_remote_contract.py' -v
           python -m unittest discover -s tests/governance -p 'test_issue_dispatch_ci_continuity_contract.py' -v
           python -m unittest discover -s tests/process -p 'test_change_lane_gate.py' -v

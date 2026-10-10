@@ -18,6 +18,15 @@ whd_schema: WHD_DOC_META_V1
 
 確認 GitHub Issue／依賴／owner 後由遠端隔離工作分支施工、測試、commit、push 到 `looaeedr/whd`，建立 base=`localX` PR，持續查 exact HEAD CI。**CI SUCCESS 之前禁止用 DC**。
 
+## 真實執行者接取：`DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
+
+**完成登記不等於完成派工。** 先核對指定號碼究竟是 Issue 或 PR；若已有 draft PR 與追蹤工單，沿用原 PR／分支／Issue，不另起一套。完成建立／留言後必須在**本回合**走以下路徑：
+
+1. **能力核對與啟動**：辨識實際可用且獲授權的 `GITHUB|SCHEDULER|REMOTE_ACTION` 雲端施工入口（必須能修改、測試與交付程式），呼叫真實的啟動或由同一合法雲端執行者直接施工。GitHub issue/PR 寫入、加 assignee、留言提及另一人、建立 CI、只寫排程 prompt，**都不等於啟動施工**。
+2. **回讀接取證據**：只有可回讀 `EXECUTOR_START_CONFIRMED`（身分、執行入口、task/run ID 或相當證據、Issue、分支、執行者確認接取或首個真實施工動作）才能回報「已派工／已接取／執行中」。接取人應在同一 Issue 留身份及實質進度；**由派工者代貼『請施工』不算接取**。
+3. **失敗即真實回報**：僅寫入 PR／Issue／派工留言而沒有執行者，回報 `DISPATCH_REGISTERED_ONLY` 並在未找到可用雲端入口時明列 `REMOTE_EXECUTOR_UNAVAILABLE`。有入口但啟動失敗／接取未證實則回報 `DISPATCH_START_UNCONFIRMED` 與具體操作／錯誤／證據。**不得標完成，不得宣稱背景有人運作，不得為了補外觀另建 PR 或 Issue，也不得轉用 DC／本機。**
+4. **成功後連續施工**：執行者按原 Issue 規格在合法雲端進行 BUILD→TEST→COMMIT→PR→CI，隨後依 `LOCALX_INTEGRATION` 整合。每次更新以真實 commit/run/Issue 留言為準；回合無法跨時自主續作時不得宣稱能自行喚醒。
+
 ### 唯一可使用 DC：`LOCALX_INTEGRATION`
 
 當 exact PR SHA 的必要 CI 全部 SUCCESS 且可整合時，**才允許**透過 Desktop Commander → CoreELEC `whd-dev:/workspace/whd`，將已驗證的遠端工作分支成果合併至使用者**本機 `localX`**。連線後先查本機工作樹／`localX`／Git refs，保留未發布修改，不得 reset、force、蓋掉髒檔，也不得在這個階段直接改產品程式補測（修正須回遠端工作分支重新測試 CI）。本機整合成功、必要整合測試通過後，非強制同步 GitHub `localX`，回讀本機 HEAD、遠端 SHA、PR 狀態；不能光靠遠端 PR merge 就聲稱本機已整合。
