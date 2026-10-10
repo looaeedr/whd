@@ -94,6 +94,21 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("deterministic-repo-migration", migration)
         self.assertNotIn("root-local-first", migration)
 
+    def test_current_authority_map_and_skill_reference_respect_execution_split(self):
+        authority = (
+            ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+        ).read_text("utf-8")
+        reference = (
+            ROOT / "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+        ).read_text("utf-8")
+        for marker in ("/派工", "/接手", "LOCALX_INTEGRATION", "/推推", "GitHub／雲端"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, authority)
+        self.assertNotIn("Repository work is made and validated locally", authority)
+        self.assertIn("REFERENCE／非執行權威", reference)
+        self.assertIn("HISTORICAL／不可執行", reference)
+        self.assertNotIn("## 已核准規格拆工單 fast path — CURRENT", reference)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
