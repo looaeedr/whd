@@ -124,8 +124,8 @@ WHD Skill 修改固定：
 2. 在 workspace 完成 RED→GREEN、required regression/final gate；authoring 不取得 delivery reservation。
 3. 凍結 exact tested diff，記錄 source SHA、Issue、真實測試命令與 diff digest；只在合法治理或產品工作分支按現行授權交付，無需退役的測試 receipt 或 Git unlock；不可藉換工具繞過平台拒絕。
 4. fresh target compare，依 impact revalidation 沿用 GREEN 或回 workspace 重測。
-5. delivery-only reservation → tested delivery branch → push/PR/required checks → trusted MERGE/FINALIZE → DONE/readback。
-6. 同一 user-authorized scope 的 WORKSPACE_DELIVERY 不得要求第二次授權。
+5. 經現行 `change_lane_gate.py` 分流後，使用合法分支 push／PR／required checks；驗收後合併至對應目標並回讀實際 GitHub 結果。
+6. 同一已核准任務範圍不得因提交 SHA 改變而無故重問相同授權；若跨 repo、路徑或任務範圍則重新核實權限。
 
 Drive/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 前置。不得直接 patch production target；不得自動 ours/theirs 解決實質衝突。
 
@@ -154,7 +154,7 @@ Drive/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 
 2. 執行 test，確認舊 baseline 會 RED；若環境無法執行，要清楚記錄「未能實跑」而不是宣稱 RED 已證明。
 3. 最小修改 Skill。
 4. 執行 targeted test 看到 GREEN。
-5. 再跑與該 Skill 相依的 project gate / preflight / registry / release tests。
+5. 再跑該 Skill 實際適用的現行治理、Registry 與回歸測試；已退役的 Preflight receipt 不是必要門檻。
 6. 遠端 QA 若啟動，依專案監控規則追到 terminal，不停在 trigger/in_progress。
 
 好的 contract test 檢查的是契約。例如：identity、必要 gate、禁止的危險行為、durable evidence、能力 fallback，而不是只 assert 一堆無意義單字。
@@ -231,7 +231,7 @@ Drive/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 
 - [ ] 沒有硬依賴本環境不存在的工具。
 - [ ] 沒有假裝背景 subagent / viewer / package / CI 已存在。
 - [ ] 沒有要求等待不存在的第三方工作。
-- [ ] repo 任務已遵守 `AGENTS.md` / root-local-first workspace-only / Preflight / tested delivery gate。
+- [ ] repo 任務已遵守現行 `AGENTS.md`、GitHub／雲端優先的治理通道、`change_lane_gate.py`、適用測試及交付回讀；未引入退役 Preflight／交易閘門。
 - [ ] baseline snapshot 可追溯。
 - [ ] RED-capable contract 已建立；能執行時已實跑 RED → GREEN。
 - [ ] 使用者明確改名時，frontmatter / tests / Registry / references 已同步。
