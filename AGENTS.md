@@ -22,6 +22,7 @@ whd_schema: WHD_DOC_META_V1
 
 - **順序不可顛倒**：先查本機 `localX`、GitHub `localX`、正式 `X=cleanup/2d-3d-sync` 的 fresh SHA；先讓本機已驗證的 `localX` 以非強制推送同步至 GitHub `localX`（遠端若超前、分叉，先核查來源／安全整合，不 reset 或強推）。在 GitHub `localX` 與本機 HEAD 回讀一致前，不得建立可宣稱完成的正式發布。
 - **X 超前只能是非本體**：發布前只**檢查** X 相對於 `localX` 獨有的所有 commit（含 merge commit 第一父提交的差異），並以 `tools/change_lane_gate.py` 的治理白名單逐一核對。任何本體／混合／未知路徑、無法證實的歷史均 `X_AHEAD_NON_GOVERNANCE_BLOCKED`，不得假設「一定只有文件」。通過時也**不得在正式發布前**先把 X pull／merge／rebase 進本機或 GitHub `localX`。
+- **X-only 歷史時區 CI 相容例外（只讀）**：僅兩個已在 X 合併且驗收的不可變提交 `06d97ca575ebf9c2973ab3fdaa669787702faac4`、`beac45c3b3afc5bb11629fcbcd6e1e51b76c8e09`（新增 `Asia/Taipei` 環境與來源時間安全檢查）可在 X-only 歷史回讀時視為治理；還須確認其除既定 CI workflow 外的差異全屬治理白名單。**不授權任何新 PR、其他 workflow 變更或任意 SHA 豁免**；產品發布與當次 `/推推` 仍照原硬閘門。
 - **先發布，再回同步**：使用者當次 `/推推`、exact PR head/base SHA、必要 CI 全部符合後，由 GitHub `localX` PR **合併至 X**（保留 X 原有純治理提交，不 force、不覆蓋）。合併完成後取得 X 新 SHA，**才**依序從 X fast-forward 同步**本機 `localX`**，必要驗證後非強制同步**GitHub `localX`**。
 - **三方回讀是完成條件**：確認 `HEAD(本機 localX) == HEAD(GitHub localX) == HEAD(X)` 且 X PR 確實 merged。若 DC 不可用、認證拒絕、衝突、遠端更新、GitHub 操作被拒等導致任何一步失敗，真實回報 `POST_PUBLISH_LOCALX_SYNC_PENDING` 與三個實際 SHA／原因，**不能聲稱三方已同步**；保留提交並於可操作時續接，不藉此反向重發 `/推推` 或改用 force。
 - **通道不變**：純治理／技能／非本體文件直接治理分支 PR 合併 X，不經兩邊 `localX`，也不需要 `/推推`；以上三方回同步僅適用於產品發布，不得反過來把治理變成本體。發布操作遵守既有平台安全審查與 DC 授權範圍。

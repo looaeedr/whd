@@ -131,6 +131,29 @@ def classify_verified_pr_changes(
     return classify_changes(paths, verified_ci_scheduling=verified)
 
 
+# One-time compatibility for two immutable X-only commits published under the
+# prior CI-path governance policy. Both changes only ADD the Asia/Taipei
+# timezone environment and source-safety gate; neither removes product tests.
+# These exact SHAs were reviewed in merged PR #1516. This is NOT a new PR
+# bypass: evaluate_pr / classify_verified_pr_changes remain fail-closed.
+HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS = frozenset({
+    "06d97ca575ebf9c2973ab3fdaa669787702faac4",
+    "beac45c3b3afc5bb11629fcbcd6e1e51b76c8e09",
+})
+
+
+def is_historical_verified_x_ci_governance(commit: str, paths: list[str]) -> bool:
+    """Only the two original immutable timezone commits may be grandfathered."""
+    return (
+        commit in HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS
+        and PROTECTED_PRODUCT_CI_WORKFLOW in paths
+        and all(
+            p == PROTECTED_PRODUCT_CI_WORKFLOW or is_governance_file(p)
+            for p in paths
+        )
+    )
+
+
 TAIWAN_ZONE = "Asia/Taipei"
 TAIWAN_OFFSET = timedelta(hours=8)
 # New-code source guard only: legacy timestamps must be migrated with targeted
@@ -338,7 +361,13 @@ def require_x_only_governance_history(
                 cwd=repo_root, capture_output=True, check=True,
             )
             paths = parse_name_status_zero(changed.stdout)
-            if paths and classify_verified_pr_changes(
+            # Previously accepted X-only CI timezone hardening predates the
+            # stricter CI-workflow classifier. Honor ONLY those immutable
+            # already-published SHAs during X-history readback, never for a
+            # new incoming PR or an arbitrary workflow modification.
+            if paths and not is_historical_verified_x_ci_governance(
+                commit, paths,
+            ) and classify_verified_pr_changes(
                 repo_root, first_parent, commit, paths,
             ) != "GOVERNANCE_DIRECT_X":
                 raise ChangeLaneDenied(

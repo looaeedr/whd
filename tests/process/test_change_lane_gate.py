@@ -12,6 +12,8 @@ from tools.change_lane_gate import (
     is_safe_product_ci_scheduling_edit,
     classify_verified_pr_changes,
     PROTECTED_PRODUCT_CI_WORKFLOW,
+    HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS,
+    is_historical_verified_x_ci_governance,
     parse_name_status_zero,
     require_x_only_governance_history,
 )
@@ -265,6 +267,42 @@ class ChangeLaneTests(unittest.TestCase):
                         ChangeLaneDenied, "X_AHEAD_NON_GOVERNANCE_BLOCKED"
                     ):
                         require_x_only_governance_history(Path("."), BASE, HEAD)
+
+    def test_prior_published_taipei_ci_governance_is_history_only(self):
+        workflow = PROTECTED_PRODUCT_CI_WORKFLOW
+        for commit in HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS:
+            with self.subTest(commit=commit):
+                self.assertTrue(is_historical_verified_x_ci_governance(
+                    commit, [workflow, "AGENTS.md"],
+                ))
+                self.assertFalse(is_historical_verified_x_ci_governance(
+                    commit, [workflow, "gui.py"],
+                ))
+                responses = [
+                    subprocess.CompletedProcess([], 0, (commit + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, ("a" * 40 + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, (
+                        "M\0" + workflow + "\0M\0AGENTS.md\0"
+                    ).encode("utf-8")),
+                ]
+                with patch("tools.change_lane_gate.subprocess.run",
+                           side_effect=responses) as run:
+                    self.assertEqual(require_x_only_governance_history(
+                        Path("."), BASE, HEAD,
+                    ), 1)
+                    self.assertEqual(run.call_count, 3)
+        arbitrary = "f" * 40
+        self.assertNotIn(arbitrary, HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS)
+        self.assertFalse(is_historical_verified_x_ci_governance(
+            arbitrary, [workflow],
+        ))
+        self.assertFalse(is_historical_verified_x_ci_governance(
+            "beac45c3b3afc5bb11629fcbcd6e1e51b76c8e09", ["AGENTS.md"],
+        ))
+        # These historical exceptions never grant a new PR direct-X status.
+        self.assertEqual(classify_changes([workflow]), "PRODUCT_LOCALX_ONLY")
+        with self.assertRaisesRegex(ChangeLaneDenied, "REQUIRES_LOCALX"):
+            evaluate_pr(event=pr_event(), changed_paths=[workflow])
 
     def test_x_ahead_unverifiable_history_is_blocked(self):
         with patch("tools.change_lane_gate.subprocess.run", side_effect=OSError("missing git")):
