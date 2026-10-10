@@ -65,7 +65,7 @@ def test_modal_multi_settings_embeds_bay_editor_and_doors_without_preview_window
     class Switch:
         brand = "士林"
         def connection_counts(self):
-            return (len(row["bays"]) for row in state["receiving_layout"]["sets"])
+            return tuple(len(row["bays"]) for row in state["receiving_layout"]["sets"])
     changes = []
     selected = []
     def change_mode(mode):
@@ -149,7 +149,7 @@ def test_modal_multi_settings_embeds_bay_editor_and_doors_without_preview_window
         root.update()
         assert changes == ["quantity", "set_bay"]
         assert len(quantity["versions"]) == 2
-        win.protocol("WM_DELETE_WINDOW")()
+        win._receiving_multi_close()
         root.update()
         assert root.grab_current() is None
     finally:
