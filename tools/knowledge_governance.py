@@ -223,8 +223,8 @@ def is_governed_markdown(path: str | Path) -> bool:
 
 def _iter_governed_markdown(root: Path) -> list[Path]:
     result: list[Path] = []
-    for path in root.rglob("*.md"):
-        if not path.is_file():
+    for path in root.rglob("*"):
+        if not path.is_file() or path.suffix.lower() != ".md":
             continue
         rel = _norm(path.relative_to(root))
         if is_governed_markdown(rel):
