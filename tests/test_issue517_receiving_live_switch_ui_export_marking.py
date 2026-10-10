@@ -447,6 +447,12 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         win = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 3)
         assert win.title() == "多只設定"
+        # Respect whichever mode owns the active saved session. Select the
+        # Suite section explicitly before asserting its operator rows.
+        win._receiving_multi_notebook.select(0)
+        _pump(root, 5)
+        assert win._receiving_multi_notebook.index(
+            win._receiving_multi_notebook.select()) == 0
         controls = win._receiving_multi_controls
         texts = _mapped_widget_texts(controls.frame)
         for expected in ("開關", "－套", "＋套", "第1套", "1連", "－連", "＋連", "設定"):
