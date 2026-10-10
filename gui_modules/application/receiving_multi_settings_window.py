@@ -102,6 +102,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def maximize_and_lock():
         if not win.winfo_exists():
             return
+        win.geometry(
+            f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0"
+        )
         try:
             win.state("zoomed")
         except tk.TclError:
