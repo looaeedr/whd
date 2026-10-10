@@ -76,7 +76,8 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
 
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, select_bay=None,
-                        on_setting_selected=None):
+                        on_setting_selected=None, get_brand=None,
+                        set_brand=None, get_settings_ports=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -124,15 +125,40 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win.rowconfigure(1, weight=1)
 
     mode_var = tk.StringVar(master=win, value="set_bay")
-    mode_row = ttk.Frame(win)
-    mode_row.grid(row=0, column=0, columnspan=2, sticky="nw",
-                  padx=16, pady=(16, 6))
+    top_left = ttk.Frame(win)
+    top_left.grid(row=0, column=0, sticky="nw", padx=16, pady=(16, 6))
+    brand_row = ttk.Frame(top_left)
+    brand_row.pack(anchor="w", pady=(0, 8))
+    ttk.Label(brand_row, text="NFB").pack(side="left", padx=(0, 8))
+    brand_var = tk.StringVar(master=win, value=get_brand() if get_brand else "士林")
+    from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    brand_selector = ttk.Combobox(
+        brand_row, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS,
+        state="readonly", width=10,
+    )
+    brand_selector.pack(side="left")
+    def apply_brand(_event=None):
+        if set_brand is not None:
+            try:
+                set_brand(brand_var.get())
+            except (ValueError, IndexError, RuntimeError) as exc:
+                warn(exc)
+                brand_var.set(get_brand() if get_brand else "士林")
+    brand_selector.bind("<<ComboboxSelected>>", apply_brand)
+    mode_row = ttk.Frame(top_left)
+    mode_row.pack(anchor="w")
 
     applied = {"set_index": None, "count": 1, "selected": None, "mode": "set_bay"}
 
-    canvas = tk.Canvas(win, width=525, height=310, background="#1a2734",
+    right_host = ttk.Frame(win)
+    right_host.grid(row=1, column=1, sticky="nsew", padx=24, pady=12)
+    right_host.columnconfigure(0, weight=1)
+    right_host.rowconfigure(1, weight=1)
+    settings_host = ttk.Frame(right_host)
+    settings_host.grid(row=0, column=0, sticky="new")
+    canvas = tk.Canvas(right_host, width=525, height=310, background="#1a2734",
                        highlightthickness=0)
-    canvas.grid(row=1, column=1, sticky="se", padx=24, pady=12)
+    canvas.grid(row=1, column=0, sticky="se")
 
     rows_host = ttk.Frame(win)
     # The Set/Bay row belongs directly BELOW the two upper-left mode
@@ -147,13 +173,54 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         rows_host, height=3, width=16, selectmode=tk.BROWSE,
         exportselection=False, activestyle="dotbox",
     )
-    for label in ("封頭", "封尾", "內門"):
+    for label in ("封頭尾", "內門"):
         setting_list.insert(tk.END, label)
     setting_list.pack(anchor="w", pady=(6, 0))
-    setting_kind = {"封頭": "head_features",
-                    "封尾": "tail_features",
-                    "內門": "inner_door_layers"}
+    setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
+    active_ports = {"ports": None}
+
+    def show_setting_controls():
+        for widget in settings_host.winfo_children():
+            widget.destroy()
+        if selected_setting["kind"] is None or get_settings_ports is None:
+            return
+        set_index = selected_setting["set_index"]
+        bay_index = selected_setting["bay_index"]
+        ports = get_settings_ports(set_index)
+        ports["select"](bay_index)
+        active_ports["ports"] = ports
+        def perform(action):
+            try:
+                action()
+                show_setting_controls()
+            except (ValueError, IndexError, RuntimeError) as exc:
+                warn(exc)
+        def actions(parent, kind, *, role=None):
+            row = ttk.Frame(parent)
+            row.pack(anchor="w", pady=3)
+            if role is not None:
+                ttk.Label(row, text="封頭孔" if role == "head" else "封尾孔").pack(side="left")
+                ttk.Button(row, text="編輯／套用",
+                           command=lambda: perform(lambda: ports["holes"](role))).pack(side="left", padx=3)
+            else:
+                from ae_engine.receiving_shared_settings import setting_value
+                current = setting_value(ports["row"](), bay_index, kind)
+                value = tk.StringVar(master=win, value=str(current))
+                ttk.Label(row, text="內門層數").pack(side="left")
+                ttk.Combobox(row, textvariable=value, values=("1", "2"),
+                             width=5, state="readonly").pack(side="left", padx=3)
+                ttk.Button(row, text="編輯／套用",
+                           command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
+            ttk.Button(row, text="連動選取的連",
+                       command=lambda: perform(lambda: ports["share"](kind, (bay_index,)))).pack(side="left", padx=3)
+            ttk.Button(row, text="解除本連連動",
+                       command=lambda: perform(lambda: ports["unlink"](kind))).pack(side="left", padx=3)
+        if selected_setting["kind"] == "head_features":
+            actions(settings_host, "head_features", role="head")
+            actions(settings_host, "tail_features", role="tail")
+        else:
+            actions(settings_host, "inner_door_layers")
 
     def warn(exc):
         messagebox.showwarning("多只設定", str(exc), parent=win)
@@ -214,6 +281,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             selected_setting.update(
                 set_index=set_index, bay_index=bay_index, kind=kind
             )
+            show_setting_controls()
         except (ValueError, IndexError, RuntimeError) as exc:
             warn(exc)
 
@@ -241,6 +309,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                            count=count, selected=0)
             selected_setting.update(set_index=None, bay_index=None, kind=None)
             setting_list.selection_clear(0, tk.END)
+            show_setting_controls()
             if select_bay is not None:
                 select_bay(index, 0)
             render()
@@ -264,6 +333,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         selected_setting.update(
                             set_index=applied["set_index"], bay_index=index
                         )
+                    show_setting_controls()
                     render()
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
@@ -283,6 +353,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     set_index=None, bay_index=None, kind=None
                 )
                 setting_list.selection_clear(0, tk.END)
+                show_setting_controls()
             refresh_rows()
             render()
         except (ValueError, IndexError, RuntimeError) as exc:
@@ -300,6 +371,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     render()
 
     # Test hooks are presentation state only, not product data authority.
+    win._receiving_multi_brand_var = brand_var
+    win._receiving_multi_brand_selector = brand_selector
+    win._receiving_multi_settings_host = settings_host
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host
