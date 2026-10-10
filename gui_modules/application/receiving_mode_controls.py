@@ -11,23 +11,21 @@ class ReceivingModeControls:
     mode_var: object
     common_button: object
     versions: object
+    quantity_editor: object = None
+    mode_row: object = None
 
     def refresh(self, mode, quantity):
         self.mode_var.set(mode)
         if mode == "quantity":
-            self.versions.pack(fill=tk.X)
-            self.common_button.pack(fill=tk.X, pady=4, before=self.versions)
-            self.versions.delete(*self.versions.get_children())
-            for index, row in enumerate(quantity["versions"], 1):
-                self.versions.insert("", "end", iid=row["version_id"],
-                                     values=(f"孔型版本 {index}", row["piece_count"]))
-            self.versions.selection_set(quantity["selected_version_id"])
+            self.quantity_editor.frame.pack(fill=tk.X)
+            self.common_button.pack(fill=tk.X, pady=4, before=self.quantity_editor.frame)
+            self.quantity_editor.refresh()
         else:
             self.common_button.pack_forget()
-            self.versions.pack_forget()
+            self.quantity_editor.frame.pack_forget()
 
 
-def build_mode_controls(parent, *, on_switch, on_common):
+def build_mode_controls(parent, *, on_switch, on_common, quantity_ports):
     frame = ttk.Frame(parent)
     mode_var = tk.StringVar(master=frame)
     row = ttk.Frame(frame)
@@ -36,13 +34,10 @@ def build_mode_controls(parent, *, on_switch, on_common):
         ttk.Radiobutton(row, text=label, variable=mode_var, value=value,
                         command=lambda value=value: on_switch(value)).pack(side=tk.LEFT)
     common = ttk.Button(frame, text="共用箱體設定", command=on_common)
-    versions = ttk.Treeview(frame, columns=("version", "count"), show="headings", height=3,
-                           selectmode="none")
-    versions.heading("version", text="孔型版本")
-    versions.heading("count", text="件數")
-    versions.column("version", width=120)
-    versions.column("count", width=70)
-    return ReceivingModeControls(frame, mode_var, common, versions)
+    from .quantity_version_controls import build_quantity_controls
+    editor = build_quantity_controls(frame, quantity_ports)
+    return ReceivingModeControls(frame, mode_var, common, editor.versions, editor, row)
+
 
 
 def ask_initial_dimensions(parent, target):

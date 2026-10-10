@@ -143,6 +143,22 @@ class QuantityModel:
             row["piece_count"] = count
             self._changed()
 
+    def features_for_version(self, version_id, part):
+        if part not in {"head", "tail"}:
+            raise ValueError("孔型版本只覆寫封頭／封尾 Features")
+        row = next((row for row in self._versions if row["version_id"] == version_id), None)
+        if row is None:
+            raise ValueError(f"孔型版本不存在: {version_id}")
+        return deepcopy(row[f"{part}_features"])
+
+    def set_version_features(self, version_id, part, features):
+        self.features_for_version(version_id, part)
+        copied = _features(features)
+        row = next(row for row in self._versions if row["version_id"] == version_id)
+        if row[f"{part}_features"] != copied:
+            row[f"{part}_features"] = copied
+            self._changed()
+
     def features_for(self, part):
         if part not in {"head", "tail"}:
             raise ValueError("孔型版本只覆寫封頭／封尾 Features")
@@ -241,3 +257,34 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
             workspace["part_features"] = features
         result["workspace"] = workspace
     return result
+
+
+def quantity_only_change(previous, current):
+    """Prove all shared cabinet inputs unchanged for a quantity UI transaction."""
+    if not isinstance(previous, Mapping) or not isinstance(current, Mapping):
+        return False
+    old, new = deepcopy(dict(previous)), deepcopy(dict(current))
+    changed = False
+    for payload in (old, new):
+        workspace = payload.get("workspace") or {}
+        if payload.get("active_mode", workspace.get("active_mode")) != QUANTITY_MODE:
+            return False
+        try:
+            QuantityModel.from_payload(payload.get("quantity") or workspace.get("quantity"))
+        except (TypeError, ValueError):
+            return False
+    for before, after in ((old, new), (old.get("workspace") or {}, new.get("workspace") or {})):
+        changed = changed or before.get("quantity") != after.get("quantity")
+        for block in (before, after):
+            block.pop("quantity", None)
+            for name in ("part_features", "surface_features"):
+                mapping = block.get(name)
+                if isinstance(mapping, Mapping):
+                    for role in ("head", "tail"):
+                        mapping.pop(role, None)
+            for role in ("head", "tail"):
+                block.pop(f"{role}_holes", None)
+    for block in (old, new):
+        for key in ("origin", "revision", "fingerprint", "transaction_id", "delta"):
+            block.pop(key, None)
+    return changed and old == new
