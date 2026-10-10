@@ -1016,6 +1016,17 @@ def open_receiving_multi_settings(self, namespace):
         adapter.select_set(int(set_index) + 1)
         adapter.select_bay(int(bay_index) + 1)
 
+    def select_existing_setting(set_index, bay_index, kind):
+        """Bind the list choice to the original per-bay setting value/owner.
+
+        No editor popup, duplicated parser, or manufacturing calculation is
+        initiated merely by selecting a category in the Listbox.
+        """
+        from ae_engine.receiving_shared_settings import setting_value
+        ports = self.receiving_settings_ports(namespace, int(set_index))
+        ports["select"](int(bay_index))
+        return setting_value(ports["row"](), int(bay_index), kind)
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -1025,4 +1036,5 @@ def open_receiving_multi_settings(self, namespace):
             namespace, index, delta
         ),
         select_bay=select_bay,
+        on_setting_selected=select_existing_setting,
     )
