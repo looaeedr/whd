@@ -9,37 +9,16 @@ whd_doc_id: WHD-SOP-SKILL-AUTHORING
 
 > 目的：讓所有後續 AI 在建立或修改 `.agents/skills/**` 時，不再把特定模型、特定 CLI、背景 Subagent、viewer 或 TodoList 當成普遍存在的能力，並維持 Skill 資料夾、frontmatter、路由與引用的一致 identity。
 
-## Authority
+> **REFERENCE／非執行權威。** 本文件保留 Skill identity、能力偵測、域規格與驗證方法的補充說明；執行、施工位置、DC 權限、交付與 CI 以正式 X 的 `AGENTS.md`、`寫技能` CURRENT Skill 與 `tools/change_lane_gate.py` 為準。此處的舊 Phase6 Preflight／WORKSPACE_DELIVERY／claim／lease／工作槽／GIT_WRITE_UNLOCKED 規則已退役，不得當成本次任務前置。舊版來源可查 Git 歷史與 `docs/governance/WHD_20261010_retired_process_provenance.md`。
 
-1. 使用者本輪明確核准規格最高。
-2. `AGENTS.md`、Phase6 Knowledge Preflight、WHD 專案 Skill/Registry/AI Library/Source of Truth 次之。
-3. 通用 skill-writing 慣例只能補充，不能繞過 WHD gate。
+## 現行使用與驗證邊界
 
-## Skill startup communication 硬閘門
+1. 使用者當次明確指示和已核准規格優先；本文件不能創造獨立執行／發布授權。
+2. 純治理 Skill／文件變更由 GitHub／雲端治理分支從最新 X 建立，依受信任 `change_lane_gate.py` 及適用測試、PR／CI／merge/readback 交付；未經當次明確授權禁止 DC／使用者本機。
+3. 產品或混合修改依 `/派工` 的雲端施工或當次明確 `/接手` 的 RC 施工路線，先整合 `localX`；產品正式發布 X 只接受當次 `/推推`。
+4. Skill identity、資料夾、Registry、required domain references 與適用 tests 應一致；可用 runtime 能力必須先核實，測試證據不得倒灌成 domain Source of Truth。
+5. 同一已核准範圍的交付不應反覆詢問相同授權，但任何 GitHub／平台權限拒絕均須遵守，不得更換傳輸繞過。
 
-<!-- SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1 -->
-
-只要本回合實際使用 WHD Skill，startup communication 必須先於 substantive work，但 surface 依 runtime 能力：
-
-- ChatGPT / interactive chat：第一個 user-visible 行／句公告 canonical Skill identity。
-- Codex / CLI / headless：第一個 machine-visible `STDOUT / TASK_EVENT / LOG` 記錄 canonical Skill identity + startup declaration。
-- 沒有 chat UI 不得成為 blocker；不得要求 headless executor 等待不存在的 ChatGPT surface。
-- announcement 不取代 Skill read、Phase6 Preflight、required references、RED/GREEN 或其他 execution evidence。
-- machine contract=`WHD_EXECUTION_STARTUP_COMMUNICATION_V1`。
-
-## 必守規則
-
-- 普通 Skill authoring 使用 executor-local repo workspace + fresh `cleanup/2d-3d-sync` baseline；Codex 常見 `/workspace/whd`。
-- baseline `READ/FETCH/COMPARE/BRANCH_READ/REPO_METADATA_READ` 不需第二份 remote authorization。
-- 使用者已明確要求 exact repository-content task 時，同 invocation + 同 scope 的 tested delivery 可一次 mint `WORKSPACE_DELIVERY`；push/PR/CI/merge 不得重問相同授權。
-- Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 repository-content 修改先在 executor-local repo workspace + fresh cleanup/2d-3d-sync baseline 完成 author/test，再以 exact tested diff delivery。
-- AI Library 只在 runtime 有 ChatGPT surface 時作 enrichment；Codex/headless 缺 connector 固定 `NOT_APPLICABLE_NO_AI_LIBRARY_SURFACE`。
-- 依 `AGENTS.md` 跑 Preflight；changed files 已知後重新帶 `--changed-file` 驗一次。
-- 既有 Skill 修改保留可追溯 baseline snapshot。
-- 客觀流程型 Skill 要有 RED-capable contract，再最小修改到 GREEN。
-- 驗證只能判定對不對，不能反過來成為 production/domain 規則的計算來源。
-- Skill 只能要求目前環境真的具備的能力；缺少可選 surface 時使用可執行替代，不得等待不存在的第三方回報。
-- 修改完成後 remote delivery/readback 若已在使用者授權 scope 內，直接完成；不得把同 scope 重複授權當停止點。
 ## 中文 Skill identity 永久 invariant
 
 對 `.agents/skills/**` 下**資料夾 basename 含中文，且該資料夾包含 `SKILL.md`** 的 Skill：
@@ -123,7 +102,7 @@ WHD canonical discovery Skill：`.agents/skills/productivity/找技能/SKILL.md`
 - 外部 Skill 的 installs、GitHub stars、來源信譽等是推薦 evidence；來源檔的 1K+/100 installs/100 stars 為 heuristic，不是硬式安全閘門。取不到的資料標 unknown，不腦補。
 - **不得自動安裝**外部 Skill。使用者要先看到候選、來源與可驗證品質資訊，再明確選定。
 - **不得自動納入 WHD**。外部 Skill 被找到或已裝到個人環境，都不代表它是 `.agents/skills/**` 的 canonical project Skill。
-- 若使用者明確要求把外部 Skill 加進 WHD，必須轉 `寫技能`，重新走 `AGENTS.md` / root-local-first / Preflight / Git-phase branch / 中文 identity / contract / Registry / AI Library / release durable writeback。
+- 若使用者明確要求把外部 Skill 加進 WHD，必須轉現行 `寫技能`，遵守 `AGENTS.md` 治理／產品分流、中文 identity、contract、Registry、適用測試與合法交付回讀；不得恢復舊 Preflight 或本機路由。
 - 這條邊界同時保護 `修改DXF`：即使 `找技能` 找到外部 DXF 編輯 Skill，也不得因此把它誤掛成 WHD Skill。
 - machine guard：`tests/test_find_skill_contract.py`。
 
@@ -148,7 +127,7 @@ WHD canonical path：`.agents/skills/productivity/MCP工具操作/SKILL.md`。
 - 流程固定為 Discover → Explore → Inspect schema → Execute。不得猜 server、tool、schema 或參數。
 - 「已發現／已呼叫／已成功／已寫入」必須有本回合實際 tool result 支撐。
 - CLI route 保留 `mcp-cli` 的 exit-code contract；原生 connector 則保留自己的 structured error，不硬套 CLI code。
-- MCP 是 transport / external capability，不是 domain authority。任何外部 tool result **不自動升格**為 WHD mechanical/manufacturing Source of Truth，也不能繞過 root-local-first、Preflight、`GIT_WRITE_UNLOCKED` 後 Git-phase branch、remote QA 或其他專案 gate。
+- MCP 是 transport / external capability，不是 domain authority。任何外部 tool result **不自動升格**為 WHD mechanical/manufacturing Source of Truth，也不能繞過現行 `AGENTS.md` 的權限分流、GitHub CI／驗收、產品 `localX` 與 `/推推` 規則。
 - machine guard：`tests/test_second_batch_skills_contract.py`。
 
 ## 2026-09-11 第三批：Python 測試實務
@@ -215,11 +194,15 @@ WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`�
 
 
 
-- **ONE ISSUE / ONE MUTATION WRITER**：substantive repository work 必須持有 exact Issue 的 live lease 與 ACTIVE `mutation_scope`。新 READY work 用 atomic `ACQUIRE.effect.admission_reservation` 一次取得；不得主動拆成 `ACQUIRE → RESERVE_PATHS`。
-- **STALE PLAN MUST DIE**：每次 interactive Git mutation 綁 `issue + generation + record_fingerprint + lease_token + invocation_identity + next_action + work/target HEAD`。任一 identity 已前進，舊 plan 永久失效並從最新 structured `next_action` replan。
-- **Scope expansion**：只可對既有 ACTIVE scope 走 monotonic `RESERVE_PATHS`；不得先改新檔再補 reservation。
-- **Terminal**：唯一正常完成是 durable DONE tuple（Issue closed、lease/owner cleared、reservation RELEASED）；merge/QA GREEN 本身不是完成。
-- **Legacy history**：`execution_claim_guard.py`、Remote Guard、claim/checkpoint coordination 只可作 migration/audit historical evidence，不得作 CURRENT execution/write authority。
+### 舊 Flow v2 工單交易規則（HISTORICAL／不可執行）
+
+以下為原始 legacy 規則存證，不得取代 X 現行分流、DC 授權及 CI／PR 程序：
+
+> - **ONE ISSUE / ONE MUTATION WRITER**：substantive repository work 必須持有 exact Issue 的 live lease 與 ACTIVE `mutation_scope`。新 READY work 用 atomic `ACQUIRE.effect.admission_reservation` 一次取得；不得主動拆成 `ACQUIRE → RESERVE_PATHS`。
+> - **STALE PLAN MUST DIE**：每次 interactive Git mutation 綁 `issue + generation + record_fingerprint + lease_token + invocation_identity + next_action + work/target HEAD`。任一 identity 已前進，舊 plan 永久失效並從最新 structured `next_action` replan。
+> - **Scope expansion**：只可對既有 ACTIVE scope 走 monotonic `RESERVE_PATHS`；不得先改新檔再補 reservation。
+> - **Terminal**：唯一正常完成是 durable DONE tuple（Issue closed、lease/owner cleared、reservation RELEASED）；merge/QA GREEN 本身不是完成。
+> - **Legacy history**：`execution_claim_guard.py`、Remote Guard、claim/checkpoint coordination 只可作 migration/audit historical evidence，不得作 CURRENT execution/write authority。
 
 ## 2026-09-13 — Canonical Authority Roles / Mirror Contract
 
@@ -243,13 +226,13 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 `tests/knowledge/test_knowledge_authority_contract.py` 是 T1 起始的 machine guard；它只判定 authority contract 是否符合，不成為任何製造／幾何／產品規則的 Source of Truth。
 
 
-## Domain route 必須包含 domain authority
+## Domain route 與 domain authority（REFERENCE）
 
-- Phase6 Knowledge Preflight 的 domain route 必須在 `required_references` 直接列出該 domain 的 **current canonical authority**；全域踩坑庫或通用 Skill-authoring 規則只能補充，不能代替 domain Source of Truth。
+- Registry 的 domain route 應在 `required_references` 明確指向該 domain 的 **current canonical authority**；此設定供技能搜尋與 domain grounding，不能恢復已退役 Phase6 Preflight receipt 作為施工／Git 交付前置。
 - dimension semantics route 至少必須載入 canonical `07_Phase6尺寸語意與標準截角母規則.md`。
 - DM7 / Corner Data / physical-part navigation route 必須載入 current navigation rule 與 `dm7_part_navigation_pitfalls.md`；stale child identity 不得靠 generic Skill policy 決定。
 - manufacturing / DXF acceptance route 必須載入 current `04_WHD鈑金展開幾何引擎規範.md`。
-- 缺少 domain authority evidence 時 Preflight 必須 fail closed；不能因 `08_WHD技能建立與修改規則.md` 或全域 06 已讀就 false GREEN。
+- 缺少真正 domain authority 時不得推斷產品規格或宣稱驗證 GREEN；不能僅以此 REFERENCE 文件或全域 06 已讀取替代 CURRENT owner。
 - 每個 domain route 都要有 regression，至少證明「缺 domain evidence → RED；補齊 → GREEN」，並保留既有 domain reference 不被後續 Registry 編輯移除。
 
 
@@ -279,7 +262,7 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 
 ---
 
-## 已核准規格拆工單 fast path — CURRENT
+## 已核准規格拆工單 fast path — REFERENCE（權威屬於 `/拆解任務工單` CURRENT Skill）
 
 當使用者已完成規格確認，接著要求「拆工單／拆票／拆成工單」時，`拆解任務工單` 必須直接走 `APPROVED_REQUIREMENT_FAST_PATH`：approved spec → requirement-to-ticket traceability → machine closure-owner validation → blockers-first owning Issues。
 
