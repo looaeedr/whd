@@ -11,7 +11,7 @@ whd_schema: WHD_DOC_META_V1
 
 把這個 Skill 當成 **pytest 工程實務層**。它處理「測試怎麼寫得隔離、可讀、可重跑」，**不取代** `tdd` 決定要測哪個 seam、RED → GREEN 如何前進，也不取代 `diagnosing-bugs` 建立 repro、最小化與根因診斷的流程。
 
-來源輸入為 `wshobson/agents` 的 `python-testing-patterns`，但 WHD 版以專案自己的 AGENTS / Preflight / Source of Truth / acceptance gate 為最高 authority。
+來源輸入為 `wshobson/agents` 的 `python-testing-patterns`，但 WHD 版以正式 X 現行 `AGENTS.md`、Source of Truth、適用測試與產品／治理驗收規則為最高 authority；已退役的 Phase6 Preflight receipt 不是測試或提交前置。
 
 ## 1. 責任邊界
 

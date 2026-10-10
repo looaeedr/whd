@@ -33,18 +33,13 @@ Out of scope:
 
 <!-- WHD_REPOSITORY_MUTATION_GATE_V1 -->
 
-Current repository-content routing is workspace-first:
+本 Skill **只擁有** deterministic mapping／idempotence／drift-audit 的語意，**不擁有** WHD repository 施工、DC 或 GitHub 發布權限。先依正式 X 的 `AGENTS.md` 判定本次變更類型與使用者當次授權，不能以「workspace-first」或此技能名稱自行擴權。
 
-`EXECUTOR_LOCAL_WORKSPACE → FRESH cleanup/2d-3d-sync BASELINE → DETERMINISTIC MUTATION → TARGETED/FULL TESTS → EXACT TESTED DIFF → DELIVERY BRANCH → PR/CI → MERGE/READBACK`
-
-本 Skill 只擁有 deterministic mapping / idempotence / drift-audit 語意，**不擁有 WHD execution transport 或 repository write authority**。只要任務會改 WHD repository content，固定同時服從：
-
-2. `.agents/skills/engineering/root-local-first/SKILL.md` 的 CURRENT router：普通 Codex/interactive content work 固定 `WORKSPACE_DEFAULT`，在 executor-local repo workspace（Codex 常見 `/workspace/whd`）施工與測試。
-3. 記錄 source SHA、實際測試命令與 exact tested diff；bare validator PASS 或 second-pass zero diff 不等於已完成驗收及交付，但不應要求過時 receipt 重新批准已核准任務。
-4. scheduler/GITHUB_ONLY/REMOTE_ACTION 若需要產生新的 repository-content diff，固定 handoff 到 **workspace-capable runtime**；不得在 GitHub control-plane runtime 未測直接 author/hotfix，也不得要求固定 Google Drive root。
-5. 使用者已明確要求 exact repository-content task 時，同 invocation/task scope 可使用 `WORKSPACE_DELIVERY` 完成 branch/push/PR/CI/QA/merge/finalization；不得到 delivery tail 再重問相同授權。
-6. Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 同一 exact user-authorized task 可沿 WORKSPACE_DELIVERY 完成 delivery/readback。
-
+1. **純治理／非產品遷移**：全部路徑經受信任 X 的 `tools/change_lane_gate.py` 判定為 `GOVERNANCE_DIRECT_X`，才從最新 X 在 GitHub／雲端治理分支完成 deterministic migration、驗證、PR／CI、merge/readback；不需要 `localX` 或 `/推推`。
+2. **產品、未知或混合遷移**：依 `/派工` 在 GitHub／雲端完成施工、測試與 PR（base=`localX`）；僅 exact HEAD CI SUCCESS 後才可依 `LOCALX_INTEGRATION` 規定使用 DC 做本機 `localX` 最終整合。只有使用者當次明確 `/接手` 才能在 RC `whd-dev:/workspace/whd` 進行產品施工。產品從 `localX` 發布正式 X 仍需使用者當次 `/推推`。
+3. **DC 預設禁止**：沒有當次符合 `AGENTS.md` 的 DC 授權，不得探測或使用使用者本機；純治理能力不足不得改走 DC／local shell。
+4. 所有路線都要保留 authority SHA、source/target SHA、實際執行的測試、exact diff、idempotence、drift audit、CI 與合併後回讀；不能拿單一 validator PASS 冒充正式交付。
+5. 舊 `WORKSPACE_DELIVERY`、claim／lease／工作槽、Drive/shared-zero 與 `MERGE/FINALIZE` 交易前置已退役；不得要求這些憑證，不得以此繞過現行平台安全審查。已核准相同工作範圍不應重複要求核准，但範圍變動及新 HEAD 仍須核對。
 
 ## Mandatory execution contract
 
