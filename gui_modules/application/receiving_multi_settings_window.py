@@ -96,9 +96,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         win.destroy()
 
     win.protocol("WM_DELETE_WINDOW", close)
+    win._receiving_multi_close = close
     # Grab after the Toplevel is mapped; this blocks main GUI and Fold GUI.
     def enforce_modal():
-        if win.winfo_exists():
+        if win.winfo_exists() and win.winfo_viewable():
             win.grab_set()
             win.focus_set()
     win.after_idle(enforce_modal)
