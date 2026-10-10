@@ -32,6 +32,9 @@ class Phase6PartSessionOwner:
         key = app.designer_workspace.active_part
         if not key:
             return
+        if app.designer_workspace.custom_part(key) is not None:
+            app.designer_workspace.stash_profiles(key, {axis:bridge.clone_profile(app.state.profiles.get(axis,())) for axis in ("X","Y")})
+            return
         try:
             app.bend_ui.save()
         except Exception:
@@ -52,6 +55,8 @@ class Phase6PartSessionOwner:
                 app._sync_dwd_with_top_whd()
             values = bridge.read_box_body_profile(app.state.profiles_vault['箱身'], app._phase6_input_snapshot)
             values['h'] = app._phase6_box_whd['h']
+            if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
+                values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
             bridge._phase6_store_editor_values(app, values, notify=notify)
             app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(app._phase6_endcap_fw_state)
             bridge._phase6_rebuild_linked_endcaps(app)
@@ -78,11 +83,13 @@ class Phase6PartSessionOwner:
                 values.pop('fw', None)
             else:
                 values = {} if flat_x else {'yl1': bridge._ui_len(x['yl1'].get('len')), 'yr1': bridge._ui_len(x['yr1'].get('len'))}
+            if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
+                values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
             bridge._phase6_store_editor_values(app, values, notify=notify)
             if 'w' in values:
-                app._phase6_box_whd['w'] = bridge.original.get_int(values['w'])
+                app._phase6_box_whd['w'] = float(values['w']) if app._phase6_input_snapshot.get('receiving_quantity_box') else bridge.original.get_int(values['w'])
             if 'd' in values:
-                app._phase6_box_whd['d'] = bridge.original.get_int(values['d'])
+                app._phase6_box_whd['d'] = float(values['d']) if app._phase6_input_snapshot.get('receiving_quantity_box') else bridge.original.get_int(values['d'])
             w_text = str(app._phase6_box_whd['w'])
             d_text = str(app._phase6_box_whd['d'])
             if app.v_w.get() != w_text:
@@ -103,6 +110,93 @@ class Phase6PartSessionOwner:
         navigation = bridge._phase6_workspace_navigation(app)
         if not navigation.has_part(key):
             return
+        from gui_modules.application.custom_part_controls import build_custom_part_editor
+        custom = getattr(app.designer_workspace, "custom_part", lambda _: None)(key)
+        custom_frame = getattr(app, "_custom_part_editor", None)
+        if custom is not None:
+            before_signature=bridge._phase6_manufacturing_state_signature(app)
+            plan = navigation.plan_activation(key, initial=initial, leaving_non_single_view=True)
+            if plan.save_outgoing:
+                self.save_current_part()
+            pending = getattr(app, "_job", None)
+            if pending:
+                app.root.after_cancel(pending)
+                app._job = None
+            bridge._phase6_clear_navigation_residue(app)
+            bridge._phase6_hide_corner_data_canvas(app)
+            navigation.begin_activation(plan)
+            navigation.finish_activation()
+            app._phase6_3d_display_mode = "single"
+            if custom_frame is not None:
+                custom_frame.destroy()
+            for name in ("input_content_host", "assembly_parts_panel", "corner_data_panel", "settings_center"):
+                widget = getattr(app, name, None)
+                if widget is not None and widget.winfo_manager():
+                    widget.pack_forget()
+            from phase6_custom_fold_profiles import build_custom_part_profiles, custom_part_spec
+            from ae_engine.custom_fold_manufacturing import custom_fold_feature_context
+            def install_profiles(reset=False):
+                snapshot={**app._phase6_input_snapshot,**app.designer_workspace.snapshot()}
+                profiles=None if reset else app.designer_workspace.profiles_for(key)
+                profiles=profiles or build_custom_part_profiles(snapshot,key)
+                app.designer_workspace.stash_profiles(key,profiles)
+                app.state.profiles.update({axis:bridge.clone_profile(profiles[axis]) for axis in ("X","Y")})
+                app.state.struct_mode="standard"
+                app.state.phase6_fold_ui_profiles=None
+                app.state.phase6_fold_ui_tabs=[app.designer_workspace.custom_part(key)["fold_axis"]]
+                app.state.active_bend=app.state.phase6_fold_ui_tabs[0]
+                app.state.enable_y=True
+                app._phase6_input_snapshot["custom_parts"]=app.designer_workspace.snapshot()["custom_parts"]
+                app._load_part_holes(key)
+            install_profiles()
+            canvas = app.renderer.canvas.get_tk_widget()
+            canvas.pack(fill=bridge.original.tk.BOTH,expand=True)
+            prior_metadata=dict(custom)
+            def changed():
+                nonlocal prior_metadata
+                before=prior_metadata
+                current=app.designer_workspace.custom_part(key)
+                geometry_changed=any(current[name]!=before[name] for name in ("fold_axis","transverse_length"))
+                app.part_var.set(current["display_name"])
+                if geometry_changed:
+                    install_profiles(reset=True)
+                app._phase6_input_snapshot["custom_parts"]=app.designer_workspace.snapshot()["custom_parts"]
+                prior_metadata=dict(current)
+                app._refresh_part_buttons()
+                if geometry_changed:
+                    app.submit_update_intent("geometry",commit=True)
+                else:
+                    bridge._phase6_publish_live_state(app,force=True)
+            def holes():
+                host=getattr(app._scene_query_callback,"__self__",None)
+                if host is None or not hasattr(host,"_open_unified_hole_editor"):
+                    raise ValueError("目前未連接既有 Hole Editor")
+                snapshot={**app._phase6_input_snapshot,**app.designer_workspace.snapshot()}
+                features=app.designer_workspace.features_for(key)
+                spec=custom_part_spec(snapshot,key,profiles=app.designer_workspace.profiles_for(key))
+                surface,width,height,guide=custom_fold_feature_context(spec)
+                def commit():
+                    app.designer_workspace.stash_features(key,features)
+                    app._load_part_holes(key)
+                    app.submit_update_intent("geometry",commit=True)
+                win=host._open_unified_hole_editor(key,app.designer_workspace.custom_part(key)["display_name"],
+                    surface,width,height,reference_guide=guide,feature_list_override=features,
+                    sync_callback=commit)
+                return win or getattr(host,"last_unified_hole_editor",None)
+            frame = build_custom_part_editor(canvas.master,descriptor=custom,
+                update_part=lambda **values:navigation.update_custom_part(key,**values),
+                on_changed=changed,open_holes=holes)
+            frame.pack(fill=bridge.original.tk.X,before=canvas)
+            app._custom_part_editor=frame
+            app.part_var.set(custom["display_name"])
+            app._refresh_part_buttons()
+            app.remove_part_button.configure(state="normal")
+            after_signature=bridge._phase6_manufacturing_state_signature(app)
+            app.submit_update_intent("display" if before_signature==after_signature else "geometry",commit=True)
+            return
+        if custom_frame is not None:
+            custom_frame.destroy()
+            app._custom_part_editor = None
         bridge._phase6_clear_navigation_residue(app)
         bridge._phase6_hide_corner_data_canvas(app)
         if bridge._phase6_is_box_body_physical_piece_key(key):

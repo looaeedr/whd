@@ -316,6 +316,10 @@ def build_standard_part_profiles(
     part_key: str,
 ) -> dict[str, list[dict]]:
     """Build the existing X/Y profiles for one non-vault panel."""
+    from phase6_custom_parts import is_custom_part
+    if is_custom_part(part_key):
+        from phase6_custom_fold_profiles import build_custom_part_profiles
+        return build_custom_part_profiles(snapshot, part_key)
     dims = dict((snapshot.get("part_dimensions") or {}).get(part_key, {}) or {})
     w = _num(dims.get("width", snapshot.get("w", 500)), 500)
     h = _num(dims.get("height", snapshot.get("h", 600)), 600)

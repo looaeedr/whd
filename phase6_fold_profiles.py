@@ -24,6 +24,12 @@ def _ui_len(value):
     """The user's fold editor displays operator fold lengths as integers."""
     return int(round(abs(_num(value))))
 
+def _common_dimension_len(snapshot, value):
+    """Common Receiving dimensions keep precision; manual fold rows keep their UI contract."""
+    if snapshot.get("active_mode") == "quantity" and snapshot.get("receiving_quantity_box"):
+        return abs(_num(value))
+    return _ui_len(value)
+
 def _has_real_bend(segment: Mapping[str, object]) -> bool:
     """A segment owns the bend on its right boundary when angle is non-zero."""
     return "angle" in segment and abs(_num(segment.get("angle"))) > 1e-9
@@ -51,7 +57,7 @@ def apply_outside_dimension_compensation(profile: Sequence[dict], thickness) -> 
 
 
 
-def _outside_profile_to_material(profile: Sequence[dict], thickness) -> list[dict]:
+def _outside_profile_to_material(profile: Sequence[dict], thickness, *, preserve_core_precision=False, preserve_precision=False) -> list[dict]:
     """Convert operator outside segment lengths to canonical material lengths.
 
     Each real adjacent BEND contributes exactly 1T.  The bend count comes from
@@ -62,7 +68,8 @@ def _outside_profile_to_material(profile: Sequence[dict], thickness) -> list[dic
     rows = apply_outside_dimension_compensation([dict(row) for row in profile], t)
     for seg in rows:
         outside = abs(_num(seg.get("len")))
-        seg["len"] = _ui_len(max(0.0, outside - abs(_num(seg.get("ui_len_add")))))
+        number = _num if preserve_precision or preserve_core_precision and seg.get("core") else _ui_len
+        seg["len"] = number(max(0.0, outside - abs(_num(seg.get("ui_len_add")))))
     return apply_outside_dimension_compensation(rows, t)
 
 def build_box_body_profile(snapshot: Mapping[str, object]) -> list[dict]:
@@ -79,8 +86,8 @@ def build_box_body_profile(snapshot: Mapping[str, object]) -> list[dict]:
         # topology first, then convert every segment by its real adjacent bends.
         lengths = (
             _ui_len(snapshot.get("zl1")), _ui_len(snapshot.get("zl2")),
-            _ui_len(snapshot.get("fw")), _ui_len(snapshot.get("d")),
-            _ui_len(snapshot.get("w")), _ui_len(snapshot.get("d")),
+            _ui_len(snapshot.get("fw")), _common_dimension_len(snapshot, snapshot.get("d")),
+            _common_dimension_len(snapshot, snapshot.get("w")), _common_dimension_len(snapshot, snapshot.get("d")),
             _ui_len(snapshot.get("fw")), _ui_len(snapshot.get("zr2")),
             _ui_len(snapshot.get("zr1")),
         )
@@ -108,7 +115,7 @@ def build_box_body_profile(snapshot: Mapping[str, object]) -> list[dict]:
         result.append(seg)
     result = cabinet_family_policy.transform_box_body_profile(snapshot, result)
     if outside_family:
-        return _outside_profile_to_material(result, t)
+        return _outside_profile_to_material(result, t, preserve_core_precision=bool(snapshot.get("receiving_quantity_box") and snapshot.get("active_mode") == "quantity"))
     return apply_outside_dimension_compensation(result, t)
 
 def _signed_like(original, magnitude):
@@ -155,7 +162,7 @@ def build_endcap_xy_profiles(snapshot: Mapping[str, object], *, part_key: str = 
     outside_add = max(0.0, 2.0 * t)
     x_profile = [
         {"len": _ui_len(snapshot.get("yl1", 15)), "angle": -90, "phase6_key": "yl1"},
-        {"len": _ui_len(x_core), "angle": -90, "phase6_key": "endcap_w_core",
+        {"len": _common_dimension_len(snapshot, x_core), "angle": -90, "phase6_key": "endcap_w_core",
          "core": "W-2T"},
         {"len": _ui_len(snapshot.get("yr1", 15)), "phase6_key": "yr1"},
     ]
@@ -164,7 +171,7 @@ def build_endcap_xy_profiles(snapshot: Mapping[str, object], *, part_key: str = 
         # 下方 CROSS + EXTRA_CUT 的 1.5T 只改角落 CUTTING，不得把
         # 原本 INSERT 型的 yl1 / yr1 折邊寬度加回整張材料外框。
         x_profile = [
-            {"len": _ui_len(w), "phase6_key": "endcap_w_flat", "core": "W-FLAT"}
+            {"len": _common_dimension_len(snapshot, w), "phase6_key": "endcap_w_flat", "core": "W-FLAT"}
         ]
 
     profiles = {
@@ -172,7 +179,7 @@ def build_endcap_xy_profiles(snapshot: Mapping[str, object], *, part_key: str = 
         "Y": (
             [
                 {"len": _ui_len(snapshot.get("ybottom1", 15)), "angle": -90, "phase6_key": "ybottom1"},
-                {"len": _ui_len(y_core), "angle": -90, "phase6_key": "endcap_d_core",
+                {"len": _common_dimension_len(snapshot, y_core), "angle": -90, "phase6_key": "endcap_d_core",
                  "core": "D-T"},
                 {"len": _ui_len(fw), "angle": -90, "phase6_key": "fw"},
                 {"len": _ui_len(snapshot.get("ytop1", 16)), "phase6_key": "ytop1"},
@@ -181,7 +188,7 @@ def build_endcap_xy_profiles(snapshot: Mapping[str, object], *, part_key: str = 
             [
                 {"len": _ui_len(snapshot.get("ytop1", 16)), "angle": -90, "phase6_key": "ytop1"},
                 {"len": _ui_len(fw), "angle": -90, "phase6_key": "fw"},
-                {"len": _ui_len(y_core), "angle": -90, "phase6_key": "endcap_d_core",
+                {"len": _common_dimension_len(snapshot, y_core), "angle": -90, "phase6_key": "endcap_d_core",
                  "core": "D-T"},
                 {"len": _ui_len(snapshot.get("ybottom1", 15)), "phase6_key": "ybottom1"},
             ]
@@ -259,14 +266,14 @@ def read_endcap_xy_profiles(profiles: Mapping[str, Sequence[Mapping[str, object]
     depth_comp_t = cabinet_family_policy.endcap_depth_comp_t(original_snapshot)
     return {
         "w": (
-            _ui_len(original_snapshot.get("w", 0))
-            if flat_x else _ui_len(x["endcap_w_core"].get("len")) + 4.0 * t
+            _common_dimension_len(original_snapshot, original_snapshot.get("w", 0))
+            if flat_x else _common_dimension_len(original_snapshot, x["endcap_w_core"].get("len")) + 4.0 * t
         ),
         # The editor stores canonical EndCap material core. Convert back with
         # the same family compensation used by build_endcap_xy_profiles().
         # Using the vault legacy 3T here for receiving (2T) grew global D by
         # exactly +1T every time Head/Tail was saved during part switching.
-        "d": _ui_len(y["endcap_d_core"].get("len")) + depth_comp_t * t,
+        "d": _common_dimension_len(original_snapshot, y["endcap_d_core"].get("len")) + depth_comp_t * t,
         "fw": (engine_segment_length_to_ui(y["fw"]) if cabinet_family_policy.endcap_fw_profile_uses_material_dimensions(original_snapshot) else _ui_len(y["fw"].get("len"))),
         "yl1": (
             _ui_len(original_snapshot.get("yl1", 15))
@@ -332,11 +339,12 @@ def read_box_body_profile(profile: Sequence[Mapping[str, object]], original: Map
     if len(d_segments) != 2 or len(w_segments) != 1:
         raise ValueError("中央三段必須固定為 D-W-D")
 
-    d_left = engine_segment_length_to_ui(d_segments[0])
-    d_right = engine_segment_length_to_ui(d_segments[1])
+    core_length = lambda seg: _common_dimension_len(original, _num(seg.get("len")) + _num(seg.get("ui_len_add")))
+    d_left = core_length(d_segments[0])
+    d_right = core_length(d_segments[1])
     if d_left != d_right:
         raise ValueError("D-W-D 的兩個 D 必須相同")
-    w_value = engine_segment_length_to_ui(w_segments[0])
+    w_value = core_length(w_segments[0])
 
     material_profile = cabinet_family_policy.box_body_profile_uses_outside_dimensions(original)
     fw_left_seg = by_key.get("fw_left")
@@ -591,7 +599,7 @@ def build_linked_endcap_xy_profiles(snapshot: Mapping[str, object], box_profile:
 
     def build_forward(front_rows):
         rows = clone_profile(front_rows)
-        core_row = {"len": _ui_len(y_core), "phase6_key": "endcap_d_core", "core": "D-T"}
+        core_row = {"len": _common_dimension_len(snapshot, y_core), "phase6_key": "endcap_d_core", "core": "D-T"}
         if d_turn is not None:
             core_row["angle"] = float(_num(d_turn))
         rows.append(core_row)

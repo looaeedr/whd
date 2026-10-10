@@ -425,6 +425,9 @@ def normalize_part_selection(part_keys, active_part=None):
 
 def _phase6_replace_mapping(self, attr_name, values):
     """Preserve one mutable mapping identity across legacy snapshot refreshes."""
+    source = getattr(self, "_phase6_input_snapshot", {}) or {}
+    if attr_name == "_phase6_box_whd" and source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
+        values = {axis: float(source["receiving_quantity_box"][axis]) for axis in ("w", "h", "d")}
     current = getattr(self, attr_name, None)
     if isinstance(current, MutableMapping):
         current.clear()
@@ -835,6 +838,13 @@ class Phase6FoldDesignerApp(original.MainApp):
         self.do_update()
 
     def _sync_dwd_with_top_whd(self):
+        source = getattr(self, "_phase6_input_snapshot", {}) or {}
+        if source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
+            self.state.profiles_vault["箱身"] = merge_box_body_profile(
+                self.state.profiles_vault.get("箱身", []), source)
+            self._phase6_last_w = float(source["receiving_quantity_box"]["w"])
+            self._phase6_last_d = float(source["receiving_quantity_box"]["d"])
+            return
         profile = self.state.profiles_vault.get("箱身", [])
         w_segments = [seg for seg in profile if seg.get("core") == "W"]
         d_segments = [seg for seg in profile if seg.get("core") == "D"]
@@ -2270,7 +2280,7 @@ def _phase6_finish_legacy_host_compatibility(self, snapshot):
 def _phase6_bootstrap_workspace_profiles(self, snapshot):
     stored_profiles = snapshot.get("part_profiles") or {}
     for key in self.designer_workspace.available_parts:
-        if key == "box_body":
+        if key == "box_body" or self.designer_workspace.custom_part(key) is not None:
             continue
         source = stored_profiles.get(key)
         if source:
@@ -2498,7 +2508,7 @@ def _phase6_refresh_structure_tree(self):
         self,
         project_rows=_phase6_structure_tree_rows,
         label_for_key=lambda key, snapshot=None: _phase6_part_label(
-            key, snapshot=snapshot
+            key, snapshot={**(snapshot or {}), **self.designer_workspace.shared_snapshot()}
         ),
         visibility_var=lambda key: _phase6_structure_tree_visibility_var(self, key),
     )
@@ -2575,7 +2585,7 @@ def _fix11_refresh_part_buttons(self):
         self,
         tk_end=original.tk.END,
         operator_selector_keys=_phase6_operator_part_selector_keys,
-        label_for_key=lambda key, snapshot=None: _phase6_part_label(key, snapshot=snapshot),
+        label_for_key=lambda key, snapshot=None: _phase6_part_label(key, snapshot={**(snapshot or {}), **self.designer_workspace.shared_snapshot()}),
         is_box_piece=_phase6_is_box_body_physical_piece_key,
         show_assembly=lambda: _phase6_show_assembly(self),
         show_corner_data=lambda: _phase6_show_corner_data(self),
@@ -2760,6 +2770,7 @@ def _fix11_refresh_add_part_menu(self):
         known_parts=KNOWN_PARTS,
         label_for_key=lambda key: _phase6_part_label(key),
         add_part=lambda key: self.add_part(key),
+        add_custom_part=lambda: self.add_part("__custom__"),
     )
 
 def _phase6_refresh_linked_part_profiles(self, changed_keys):
@@ -2957,6 +2968,19 @@ def _fix11_activate_part(self, key, initial=False):
 
 def _fix11_add_part(self, key):
     key = str(key)
+    if key == "__custom__":
+        from gui_modules.application.custom_part_controls import open_custom_part_creation
+        navigation = _phase6_workspace_navigation(self)
+        def created(physical_id):
+            navigation.select_part(physical_id)
+            self.activate_part(physical_id)
+            self._refresh_part_buttons()
+            self._refresh_add_part_menu()
+            _phase6_publish_live_state(self, force=True)
+        return open_custom_part_creation(
+            self.root, add_part=navigation.add_custom_part,
+            on_created=created,
+        )
     if key not in PART_LABELS:
         raise ValueError(f"不支援的板件: {key}")
     navigation = _phase6_workspace_navigation(self)
@@ -3025,9 +3049,10 @@ def _fix11_export(self):
     # that were edited in the X/Y EndCap editor. Global W/H/D are owned by the
     # bridge, while EndCap fold/FW values are owned by the shared Phase6 snapshot.
     result = _FIX10_EXPORT(self)
-    result["w"] = _ui_len(self._phase6_box_whd["w"])
-    result["h"] = _ui_len(self._phase6_box_whd["h"])
-    result["d"] = _ui_len(self._phase6_box_whd["d"])
+    dimension_number = float if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity" else _ui_len
+    result["w"] = dimension_number(self._phase6_box_whd["w"])
+    result["h"] = dimension_number(self._phase6_box_whd["h"])
+    result["d"] = dimension_number(self._phase6_box_whd["d"])
     for name in ("yl1", "yr1", "ytop1", "ybottom1"):
         if name in self._phase6_input_snapshot:
             result[name] = _ui_len(self._phase6_input_snapshot[name])
@@ -3036,10 +3061,13 @@ def _fix11_export(self):
         profiles = self.designer_workspace.profiles_for(current)
         if profiles:
             endcap_values = read_endcap_xy_profiles(profiles, self._phase6_input_snapshot)
+            if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity":
+                endcap_values["w"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["w"])
+                endcap_values["d"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["d"])
             result.update(endcap_values)
             self._phase6_input_snapshot.update(endcap_values)
-            self._phase6_box_whd["w"] = _ui_len(endcap_values["w"])
-            self._phase6_box_whd["d"] = _ui_len(endcap_values["d"])
+            self._phase6_box_whd["w"] = dimension_number(endcap_values["w"])
+            self._phase6_box_whd["d"] = dimension_number(endcap_values["d"])
     elif current == "box_body":
         # The box body is authoritative for the shared FW when it is the part
         # being edited. Preserve that value for later EndCap sessions.
@@ -3058,6 +3086,8 @@ def _fix11_export(self):
     result["existing_parts"] = list(owner_workspace["existing_parts"])
     result["active_part"] = current
     result["part_profiles"] = deepcopy(owner_workspace["part_profiles"])
+    if "custom_parts" in owner_workspace:
+        result["custom_parts"] = deepcopy(owner_workspace["custom_parts"])
     result["part_features"] = deepcopy(owner_workspace["part_features"])
     result["part_face_features"] = deepcopy(owner_workspace["part_face_features"])
     result["settings"] = dict(self._settings_values)
@@ -3119,6 +3149,8 @@ def _propagate_endcap_derived_cores(self, w, d):
 
 
 def _sync_active_endcap_and_global_whd(self):
+    if self._phase6_input_snapshot.get("active_mode") == "quantity" and self._phase6_input_snapshot.get("receiving_quantity_box"):
+        return
     top_w = original.get_int(self.v_w.get())
     top_d = original.get_int(self.v_d.get())
     last_w = original.get_int(self._phase6_last_w if self._phase6_last_w is not None else top_w)

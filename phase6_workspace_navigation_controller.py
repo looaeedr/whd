@@ -53,6 +53,10 @@ class Phase6WorkspaceNavigationController:
             str(remembered_box_body_child) if remembered_box_body_child else None
         )
 
+    def replace_receiving_mode(self, snapshot):
+        self._workspace.replace_receiving_snapshot(snapshot)
+        self._memory = NavigationMemory()
+
     @property
     def workspace(self):
         return self._workspace
@@ -99,6 +103,12 @@ class Phase6WorkspaceNavigationController:
         )
         self._memory = projection.memory
         return projection.resolved_key
+
+    def add_custom_part(self, **values) -> str:
+        return self._workspace.add_custom_part(**values)
+
+    def update_custom_part(self, key: str, **values) -> bool:
+        return self._workspace.update_custom_part(key, **values)
 
     def select_part(self, key: str) -> bool:
         selected = bool(self._workspace.select_part(str(key or "")))

@@ -41,6 +41,7 @@ from phase6_endcap_semantics import (
     commit_endcap_fw,
     legacy_corner_projection_for_intent,
     normalize_endcap_bottom_wrap_state,
+    normalize_endcap_fw_state,
     resolve_endcap_bottom_wrap,
     selection_from_raw,
     selection_to_raw,
@@ -212,6 +213,21 @@ class Phase6SettingsTransactionController:
         self._box_whd.clear()
         self._box_whd.update(result.box_whd)
         return dict(result.committed)
+    def restore_common_context(self, snapshot):
+        """Restore existing Family setting owners without changing their rules."""
+        source = deepcopy(dict(snapshot))
+        fw = normalize_endcap_fw_state(source)
+        bottom = normalize_endcap_bottom_wrap_state(source)
+        assembly = settings_transitions.normalize_assembly_type(source.get("assembly_type", CornerTypeId.INSERT_OVERLAY))
+        self.replace_corner_state(source.get("corner_state"), source.get("corner_pair_same"))
+        _sync_mapping_in_place(self._endcap_fw_state, fw)
+        _sync_mapping_in_place(self._endcap_bottom_wrap_state, bottom)
+        self._assembly_type = assembly
+        self._input_snapshot["endcap_fw"] = deepcopy(fw)
+        self._input_snapshot["endcap_bottom_wrap"] = deepcopy(bottom)
+        self._input_snapshot["assembly_type"] = assembly_intent_value(assembly)
+        self._orchestration.clear_pending()
+
     def mark_workspace_dirty(self) -> None:
         marker = getattr(self._workspace, "mark_dirty", None)
         if callable(marker):

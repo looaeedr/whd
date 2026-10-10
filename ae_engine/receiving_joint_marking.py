@@ -2,9 +2,9 @@
 """Receiving receiver/mother-plate Joint Placement MARKING.
 
 The manufacturing locator is the *receiving mother plate*, never the attached
-inner-door frame.  The marking primitive is derived from canonical assembly
-geometry, projected through the locator's authoritative world/flat mapping and
-written back to the locator FinalScene.  Composite Box Body side plates retain
+inner-door frame. The last 22-mm folded flange must first demonstrably mate
+the true-thickness mother-plate skin in world space. Only then is the contact
+boundary mapped back to locator UV for FinalScene MARKING.  Composite Box Body side plates retain
 piece-level ownership (``box_body:left_side`` / ``box_body:right_side``).
 """
 from __future__ import annotations
@@ -345,18 +345,6 @@ def _group_world_polygon(records, *, origin, u, v):
     return unary_union(polygons)
 
 
-def _geometry_centroid(records):
-    points = [
-        tuple(float(v) for v in point)
-        for record in tuple(records or ())
-        for point in tuple(getattr(record, "world", ()) or ())
-    ]
-    if not points:
-        raise ValueError("physical geometry is empty")
-    count = float(len(points))
-    return tuple(sum(point[i] for point in points) / count for i in range(3))
-
-
 def _polygon_world_exterior(polygon, *, origin, u, v):
     if str(getattr(polygon, "geom_type", "")) != "Polygon":
         polygons = [
@@ -372,32 +360,64 @@ def _polygon_world_exterior(polygon, *, origin, u, v):
     )
 
 
-def _projected_mating_contact(
+def _last_frame_flange_skins(frame, mapped_skins):
+    """Select only mapped skins belonging to the FINAL 22-mm fold segment.
+
+    The other 46-mm web (and left frame's extra -22/20 folds) are not the
+    Box Body mating face. Flat UV x is a manufacturing segment identity, not
+    a world-space bbox guess; do not mark from any other frame surface.
+    """
+    chain = tuple(float(v) for v in frame.material_lengths)
+    if not chain or abs(chain[-1] - 22.0) > 1e-9:
+        raise ValueError("frame missing approved final 22-mm mating flange")
+    start = sum(chain[:-1])
+    end = start + chain[-1]
+    rows = tuple(
+        skin for skin in tuple(mapped_skins or ())
+        if start + 1e-7 < sum(float(p[0]) for p in skin.flat) / 3.0 < end - 1e-7
+    )
+    if not rows:
+        raise ValueError("final 22-mm frame physical skin mapping missing")
+    return rows
+
+
+def _physical_mating_contact(
     *, locator_id: str, attached_id: str, locator_mapping, attached_mapping
 ):
-    """Resolve the facing physical skins and their locator-plane mating footprint.
+    """Return contact only for coincident, opposed, real physical skins.
 
-    Side/head inner-door frames are intentionally inset from the cabinet shell.
-    Placement marking therefore uses the frame's *actual physical skin footprint*
-    orthogonally registered onto the facing mother-plate skin.  The support plane,
-    orientation, footprint and UV carrier all come from canonical folded/placed
-    geometry; no renderer bbox, screen direction or fixture coordinate is used.
+    Both input mappings already contain sheet skins offset by +/- T/2.
+    A projected overlap at a different support plane is *not* a contact.
+    The footprint uses the mother-plate UV carrier only after coplanarity.
+    The attached mapping must be filtered to the FINAL 22-mm flange.
     """
     locator_records = tuple(locator_mapping or ())
     attached_records = tuple(attached_mapping or ())
     if not locator_records or not attached_records:
         raise ValueError("mapped physical skins are missing")
 
-    locator_center = _geometry_centroid(locator_records)
-    attached_center = _geometry_centroid(attached_records)
-    toward_attached = _unit(_sub(attached_center, locator_center))
+    # The center of an entire folded side plate includes its front/rear
+    # flanges. The vector from that centroid to a nearby frame can therefore
+    # point OUTWARD even though its true contact is on the INSIDE skin.
+    # Choose the manufacturing mother-plate side explicitly, then check
+    # the actual opposite physical skin and coplanar overlap. Never use
+    # global bboxes, part centroids or projection distance as mate authority.
+    mother_inside_normals = {
+        "box_body:left_side": (1.0, 0.0, 0.0),
+        "box_body:right_side": (-1.0, 0.0, 0.0),
+        "head": (0.0, -1.0, 0.0),
+    }
+    mother_normal = mother_inside_normals.get(str(locator_id))
+    if mother_normal is None:
+        raise ValueError(f"no approved receiving mother-plate inside skin: {locator_id}")
     epsilon = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.polygon_robustness_epsilon)
+    plane_tolerance = float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.coplanar_distance_tolerance)
 
     candidates = []
     for locator_group in _mapped_plane_groups(locator_records):
         locator_outward = _unit(_outward_normal(locator_group[0]))
-        locator_alignment = _dot(locator_outward, toward_attached)
-        if locator_alignment <= 0.0:
+        locator_alignment = _dot(locator_outward, mother_normal)
+        if locator_alignment < 1.0 - 1e-6:
             continue
         locator_origin = tuple(float(v) for v in locator_group[0].world[0])
         plane_normal = _canonical_plane_normal(_triangle_normal(locator_group[0].world))
@@ -406,7 +426,9 @@ def _projected_mating_contact(
 
         for attached_group in _mapped_plane_groups(attached_records):
             attached_outward = _unit(_outward_normal(attached_group[0]))
-            if _dot(attached_outward, toward_attached) >= 0.0:
+            # Only the outward skin of the last 22-mm flange may mate.
+            # Its physical normal must oppose the mother's inside normal.
+            if _dot(attached_outward, mother_normal) > -1.0 + 1e-6:
                 continue
             attached_plane_normal = _canonical_plane_normal(_triangle_normal(attached_group[0].world))
             parallel = abs(_dot(plane_normal, attached_plane_normal))
@@ -419,6 +441,10 @@ def _projected_mating_contact(
             separation = abs(
                 _dot(_sub(attached_group[0].world[0], locator_origin), plane_normal)
             )
+            # Orthogonal registration may map a verified contact onto the
+            # locator UV, but can NEVER close a real 3D gap/penetration.
+            if separation > plane_tolerance:
+                continue
             candidates.append(
                 (
                     -float(locator_alignment),
@@ -435,7 +461,7 @@ def _projected_mating_contact(
             )
 
     if not candidates:
-        raise ValueError("no unique facing mother-plate/frame mating footprint")
+        raise ValueError("no real coplanar last-22-mm flange/mother-plate skin contact")
     candidates.sort(key=lambda row: row[:3])
     chosen = candidates[0]
     (
@@ -470,17 +496,17 @@ def _projected_mating_contact(
             "geometry_owner": str(locator_id),
         },
     )
-    projected_attached = ResolvedPhysicalMatingRegion(
+    attached_region = ResolvedPhysicalMatingRegion(
         part_id=str(attached_id),
-        region_id="PROJECTED_FRAME_MATING_SKIN",
+        region_id="LAST_22_MM_FRAME_MATING_SKIN",
         region_role="ATTACHED_MATING_FOOTPRINT",
-        physical_face_kind="PLACEMENT_PROJECTED_MAPPED_SKIN",
+        physical_face_kind="ACTUAL_COPLANAR_MAPPED_SKIN",
         supporting_plane=(locator_origin, attached_outward),
         outward_normal=attached_outward,
         world_polygon=overlap_world,
         flat_mapping=None,
         provenance={
-            "source": "CANONICAL_FRAME_PHYSICAL_SKIN_ORTHOGONAL_REGISTRATION",
+            "source": "VERIFIED_FINAL_22_MM_FLANGE_PHYSICAL_CONTACT",
             "original_plane_separation": float(separation),
             "locator_alignment": float(-neg_alignment),
             "attached_mapping_record_count": len(attached_group),
@@ -490,14 +516,14 @@ def _projected_mating_contact(
         locator_part_id=str(locator_id),
         attached_part_id=str(attached_id),
         locator_region=locator_region,
-        attached_region=projected_attached,
+        attached_region=attached_region,
         contact_plane=(locator_origin, locator_outward),
         locator_outward_normal=locator_outward,
         attached_outward_normal=attached_outward,
         overlap_world=overlap_world,
         locator_flat_mapping=tuple(locator_group),
         evidence={
-            "contact_mode": "PHYSICAL_SKIN_REGISTRATION_PROJECTION",
+            "contact_mode": "VERIFIED_LAST_22_MM_PHYSICAL_SKIN",
             "projection_distance": float(separation),
             "locator_alignment": float(-neg_alignment),
             "overlap_area": float(overlap.area),
@@ -855,11 +881,14 @@ def resolve_receiving_joint_markings(
                             sheet_thickness=float(sheet_thickness),
                         )
                     else:
-                        contact = _projected_mating_contact(
+                        contact = _physical_mating_contact(
                             locator_id=locator_id,
                             attached_id=frame_id,
                             locator_mapping=world["mapped_skin_triangles_by_part"].get(locator_id, ()),
-                            attached_mapping=world["mapped_skin_triangles_by_part"].get(frame_id, ()),
+                            attached_mapping=_last_frame_flange_skins(
+                                frame,
+                                world["mapped_skin_triangles_by_part"].get(frame_id, ()),
+                            ),
                         )
                     row = _mark_row(
                         locator_id=locator_id,

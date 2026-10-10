@@ -17,6 +17,23 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    "tests/test_issue1464_custom_manufacturing.py",
+    "tests/test_issue1465_quantity_ui.py",
+    "tests/test_issue1466_quantity_bom.py",
+    "tests/test_issue1467_quantity_dxf_groups.py",
+    "tests/test_issue1468_quantity_check.py",
+    "tests/test_issue1469_v15_acceptance.py",
+    "tests/test_issue390_settings_contracts.py",
+    "tests/test_issue500_settings_profile_projection.py::test_issue500_requires_frozen_request_and_plan_contracts",
+    "tests/test_issue500_settings_profile_projection.py::test_issue500_pure_projection_is_deterministic_and_carries_required_plan_fields",
+    "tests/test_issue1463_receiving_modes.py",
+    "tests/test_issue357_manufacturing_result_contracts.py",
+    "tests/test_issue356_manufacturing_adapter.py",
+    "tests/test_issue371_t7_update_runtime_behavior.py",
+    "tests/test_issue1462_custom_parts.py",
+    "tests/test_issue1461_receiving_2d_settings.py",
+    "tests/test_issue1331_receiving_shared_settings.py::test_real_settings_preview_exports_every_piece_and_reload_keeps_each_bay",
+    "tests/test_issue1460_quantity_model.py",
     "tests/process/test_issue533_c1_anti_regrowth.py",
     "tests/test_dm1_divider_physical_contract.py",
     "tests/test_dm3_divider_canonical_relief_contract.py",
@@ -26,6 +43,11 @@ PYTEST_PATHS = (
     "tests/test_issue71_divider_relief_components.py",
     "tests/test_issue74_divider_side_front_penetration.py",
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+    "tests/test_issue1050_receiving_mother_plate_marking.py",
+    "tests/test_receiving_inner_frame_last_flange_contact.py",
+    "tests/test_phase6_t15_inner_door_panels.py",
+    "tests/test_phase6_t16_receiving_placement.py",
+    "tests/test_phase6_t17_receiving_inner_door_80.py",
     "tests/test_issue1113_receiving_joint_lock_geometry.py",
     "tests/test_issue1114_receiving_pairing_marking.py",
     "tests/test_corner_parameter_lock.py",
@@ -102,8 +124,10 @@ def _run_bridge_guard() -> None:
             raise RuntimeError("phase6 bridge anti-regrowth guard failed")
 
 
-def _pytest_command() -> list[str]:
+def _pytest_command(junit_path=None) -> list[str]:
     command = [sys.executable, "-m", "pytest", "-q", *PYTEST_PATHS]
+    if junit_path is not None:
+        command.extend(("--junitxml", str(junit_path), "-o", "junit_logging=system-out"))
     # Prefer an isolated virtual display whenever available.  A DISPLAY value
     # alone is not proof that Tk can connect (headless runtimes often inherit
     # a stale :0).
@@ -117,7 +141,13 @@ def run() -> int:
     before = _tracked_invariants()
     _source_authority_scan()
     _run_bridge_guard()
-    rc = subprocess.call(_pytest_command(), cwd=ROOT)
+    with tempfile.TemporaryDirectory(prefix="whd-v15-acceptance-") as tmp:
+        report = Path(tmp) / "product-regression.xml"
+        rc = subprocess.call(_pytest_command(report), cwd=ROOT)
+        if rc == 0:
+            from whd_v15_acceptance_evidence import verify
+            receipt = verify(report)
+            print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} passed_cases={receipt['passed_cases']}")
     after = _tracked_invariants()
     if before != after:
         changed = sorted(set(before) | set(after))

@@ -172,7 +172,7 @@ class Phase6FinalSceneViewAdapter:
                 placement=part.placement,
                 offset=part.offset,
             )
-            for part in resolved.parts
+            for part in resolved.parts if part.placement != "standalone"
         )
 
         corner_text = dependencies.corner_dimension_text

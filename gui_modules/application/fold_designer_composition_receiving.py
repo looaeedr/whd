@@ -199,9 +199,10 @@ def sync_receiving_current_bay(
         existing=workspace.face_features_for("box_body"),
     ))
     original = required("original")
-    app.state.w = original.get_int(projected["w"])
-    app.state.h = original.get_int(projected["h"])
-    app.state.d = original.get_int(projected["d"])
+    number = float if projected.get("active_mode") == "quantity" else original.get_int
+    app.state.w = number(projected["w"])
+    app.state.h = number(projected["h"])
+    app.state.d = number(projected["d"])
     app._phase6_last_w = app.state.w
     app._phase6_last_d = app.state.d
     app._phase6_receiving_set_bay_guard = True
@@ -222,8 +223,19 @@ def sync_receiving_current_bay(
 
 def commit_receiving_current_bay_controls(self, namespace):
     app = self.app
+    if app._phase6_input_snapshot.get("active_mode") == "quantity" and getattr(app, "_phase6_initializing", False):
+        return False
     if getattr(app, "_phase6_receiving_set_bay_guard", False):
         return False
+    if app._phase6_input_snapshot.get("active_mode") == "quantity":
+        from ae_engine.receiving_quantity_box import update_common_box
+        candidate = update_common_box(_current_mode_snapshot(self, namespace),
+                                     {axis: getattr(app, "v_" + axis).get() for axis in ("w", "h", "d")})
+        app._phase6_input_snapshot.update(candidate)
+        app.designer_workspace.set_receiving_common_box(candidate["receiving_quantity_box"])
+        self.receiving_adapter(namespace, reset=True)
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        return True
     adapter = self.receiving_adapter(namespace)
     if adapter is None:
         return False
@@ -361,6 +373,10 @@ def refresh_receiving_set_bay_control(self, namespace):
     frame = getattr(app, "receiving_set_bay_control", None)
     if controls is None or frame is None:
         return False
+    _refresh_mode_controls(self, namespace)
+    if app._phase6_input_snapshot.get("active_mode") == "quantity":
+        frame.pack_forget()
+        return True
     if not required("_phase6_receiving_layout_applicable")(app):
         if frame.winfo_manager():
             frame.pack_forget()
@@ -544,7 +560,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
         part_key=part.part_key, render_data=part.render_data,
         x_profile=part.x_profile, y_profile=part.y_profile,
         placement=part.placement, offset=tuple(a + b for a, b in zip(part.offset, bay_offset)),
-    ) for part in resolved.parts)
+    ) for part in resolved.parts if part.placement != "standalone")
     result = FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",
@@ -576,10 +592,13 @@ def receiving_settings_ports(self, namespace, set_index):
     adapter = self.receiving_adapter(namespace)
     adapter.select_set(set_index + 1)
 
+    listeners = []
     def commit():
         self.app._phase6_input_snapshot["receiving_layout"] = adapter.layout
         self.sync_receiving_current_bay(namespace)
         self.app.submit_update_intent("geometry", commit=True)
+        for listener in tuple(listeners):
+            listener()
 
     def selected(index):
         adapter.select_bay(index + 1)
@@ -653,6 +672,7 @@ def receiving_settings_ports(self, namespace, set_index):
         "row": lambda: adapter.layout["sets"][set_index],
         "select": selected, "change": change, "share": share, "unlink": unlink,
         "dimensions": dimensions, "alignment": alignment, "brand": brand, "holes": holes,
+        "subscribe": listeners.append,
     }
 
 def open_receiving_layer_preview(self, namespace, layer_index):
@@ -668,7 +688,7 @@ def open_receiving_layer_preview(self, namespace, layer_index):
     except Exception as exc:
         from tkinter import messagebox
         messagebox.showwarning(
-            "3D 預覽失敗",
+            "2D 預覽失敗",
             str(exc),
             parent=getattr(app, "root", None),
         )
@@ -763,3 +783,218 @@ def settings_panel(self, namespace):
     self._settings_panel = panel
     app.settings_panel = panel
     return panel
+
+
+def _current_mode_snapshot(self, namespace):
+    source = deepcopy(self.app._phase6_input_snapshot)
+    source.update(deepcopy(self.app._settings_values))
+    source.update(deepcopy(self.app._phase6_box_whd))
+    source.update(deepcopy(self.corner_transaction_payload(namespace)))
+    source["endcap_bottom_wrap"] = deepcopy(self.app._phase6_endcap_bottom_wrap_state)
+    workspace = self.collect_workspace_state(namespace)
+    source.update(deepcopy(workspace))
+    source["workspace"] = deepcopy(workspace)
+    source["model"] = "受電箱"
+    return source
+
+
+def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
+    """Apply validated inputs through the existing workspace/profile owners."""
+    from phase6_fold_profiles import build_box_body_profile, clone_profile
+    app = self.app
+    scheduler = app._phase6_update_scheduler
+    previous_defer_publish = getattr(app, "_phase6_defer_input_publish", False)
+    app._phase6_defer_input_publish = True
+    scheduler.begin()
+    try:
+        navigation = self.capabilities.workspace.navigation()
+        navigation.replace_receiving_mode(source)
+        app._phase6_input_snapshot.clear()
+        app._phase6_input_snapshot.update(deepcopy(source))
+        self.settings_transactions().restore_common_context(source)
+        settings = {key: source.get(key, value) for key, value in app._settings_values.items()}
+        settings.update({axis: source[axis] for axis in ("w", "h", "d")})
+        app._settings_values.clear()
+        app._settings_values.update(settings)
+        app._phase6_box_whd.clear()
+        app._phase6_box_whd.update({axis: source[axis] for axis in ("w", "h", "d")})
+        app.state.profiles_vault["箱身"] = clone_profile(source.get("box_body_profile") or build_box_body_profile(source))
+        app.active_part_key = None
+        self.receiving_adapter(namespace, reset=True)
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        self.refresh_profiles_from_settings(namespace, render=False)
+        app.activate_part(source.get("active_part") or "box_body", initial=True)
+        self.refresh_receiving_set_bay_control(namespace)
+        app.submit_update_intent("geometry", commit=True)
+    finally:
+        previous_executor = scheduler.executor
+        def execute_without_preview(reasons):
+            result = previous_executor(reasons)
+            # Manufacturing is independent of whether the user displays 3D.
+            # This remains inside the sole Scheduler calculation executor.
+            from phase6_manufacturing_adapter import resolve_for_app
+            try:
+                resolve_for_app(app)
+            except ValueError as exc:
+                if require_committed:
+                    raise
+                app.settings_status_var.set(str(exc))
+            return result
+        if not getattr(app, "preview_3d_enabled", True):
+            scheduler.executor = execute_without_preview
+        try:
+            scheduler.end()
+            scheduler.flush_now()
+        finally:
+            scheduler.executor = previous_executor
+            app._phase6_defer_input_publish = previous_defer_publish
+    if require_committed:
+        from phase6_manufacturing_adapter import build_manufacturing_cache_key
+        if build_manufacturing_cache_key(app).fingerprint != getattr(app, "_phase6_last_resolved_manufacturing_signature", None):
+            raise ValueError("新箱體製造幾何未完成，原模式已保留")
+    self.publish_live_state(namespace)
+
+
+def _switch_mode(self, namespace, target):
+    from .receiving_mode_controls import ask_initial_dimensions
+    from phase6_receiving_modes import ReceivingModeSession
+    from shapely.errors import GEOSException
+    from tkinter import messagebox
+    app = self.app
+    source = _current_mode_snapshot(self, namespace)
+    host = getattr(app._scene_query_callback, "__self__", None)
+    owner = getattr(host, "workspace_controller", None)
+    session = owner.receiving_mode_session(source) if owner is not None else getattr(self, "_receiving_mode_session", None)
+    if session is None:
+        session = ReceivingModeSession(source)
+    dimensions = None
+    initializing = session.needs_initialization(target)
+    if initializing:
+        dimensions = ask_initial_dimensions(app.root, target)
+        if dimensions is None:
+            self.refresh_receiving_set_bay_control(namespace)
+            return False
+    source = _current_mode_snapshot(self, namespace)
+    planned = deepcopy(session)
+    was_dirty = app.designer_workspace.dirty
+    applying = False
+    try:
+        changed = planned.switch(target, dimensions=dimensions, current_snapshot=source)
+        if not changed:
+            return False
+        applying = True
+        _apply_mode_snapshot(self, namespace, planned.snapshot(), require_committed=initializing)
+    except (ValueError, RuntimeError, OSError, OverflowError, GEOSException) as exc:
+        if applying:
+            _apply_mode_snapshot(self, namespace, source)
+            if not was_dirty:
+                app.designer_workspace.mark_clean()
+        messagebox.showwarning("模式未切換", str(exc), parent=app.root)
+        self.refresh_receiving_set_bay_control(namespace)
+        return False
+    if owner is not None:
+        owner.adopt_receiving_mode_session(planned)
+    else:
+        self._receiving_mode_session = planned
+    return True
+
+
+def _common_preview_request(self, namespace):
+    """Read committed physical-sheet drawings; the caller is a Scheduler."""
+    from ae_engine.receiving_quantity_box import require_valid_quantity_features
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+    require_valid_quantity_features(_current_mode_snapshot(self, namespace))
+    signature = build_manufacturing_cache_key(self.app).fingerprint
+    if signature != getattr(self.app, "_phase6_last_resolved_manufacturing_signature", None):
+        raise ValueError("共用箱體預覽尚未對應目前已提交設定")
+    geometry = getattr(self.app, "_phase6_last_resolved_manufacturing_geometry", None)
+    if geometry is None:
+        raise ValueError("共用箱體製造結果尚未完成")
+    parts = tuple(AssemblyScenePart(
+        part_key=part.part_key, render_data=part.render_data,
+        x_profile=part.x_profile, y_profile=part.y_profile,
+        placement=part.placement, offset=part.offset,
+    ) for part in geometry.parts if part.placement != "standalone")
+    return FinalSceneViewRequest(
+        render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
+        x_profile=(), y_profile=(), part_key="assembly",
+        finished_dimensions=tuple(self.app._phase6_box_whd[axis] for axis in ("w", "h", "d")),
+        thickness=float(self.app._phase6_input_snapshot.get("t", 2)),
+    )
+
+
+def _open_common_box(self, namespace):
+    from .receiving_set_bay_controls import open_receiving_layer_preview
+    from ae_engine.receiving_quantity_box import update_common_box, project_common_box, BOX_KEY
+    from .command_router import _Phase6UpdateScheduler
+    app = self.app
+    listeners = []
+    def change_common(changes):
+        source = _current_mode_snapshot(self, namespace)
+        candidate = update_common_box(source, changes)
+        _apply_mode_snapshot(self, namespace, candidate)
+        for listener in tuple(listeners):
+            listener()
+    def dimensions(width, height, depth, door_columns=None):
+        changes = {"w": width, "h": height, "d": depth}
+        if door_columns is not None:
+            door = deepcopy(app._phase6_input_snapshot[BOX_KEY].get("door_state", {}))
+            door["door_layout_columns"] = [[w, list(hs)] for w, hs in door_columns]
+            changes["door_state"] = door
+        change_common(changes)
+    ports = {
+        "row": lambda: project_common_box(_current_mode_snapshot(self, namespace))["receiving_layout"]["sets"][0],
+        "select": lambda index: None,
+        "change": lambda kind, value, indices=(): change_common({kind: value}),
+        "dimensions": dimensions,
+        "brand": lambda value: change_common({"switch_brand": value}),
+        "subscribe": listeners.append,
+    }
+    def show(reasons):
+        preview_error = None
+        try:
+            request = _common_preview_request(self, namespace)
+        except ValueError as exc:
+            request, preview_error = None, str(exc)
+        return open_receiving_layer_preview(
+            app.root, tk=tk, ttk=self._required(namespace, "original").ttk,
+            layer_index=0, connection_count=1,
+            brand=app._phase6_input_snapshot[BOX_KEY]["switch_brand"],
+            render_request=request, preview_error=preview_error, settings_ports=ports,
+            bay_request_provider=lambda: (_common_preview_request(self, namespace),),
+            common_box=True,
+        )
+    scheduler = _Phase6UpdateScheduler(app, executor=show)
+    scheduler.submit("display", immediate=True)
+    return True
+
+
+def _refresh_mode_controls(self, namespace):
+    from .receiving_mode_controls import build_mode_controls
+    app = self.app
+    controls = getattr(self, "_receiving_mode_controls", None)
+    applicable = self.receiving_layout_applicable()
+    from .quantity_version_ports import quantity_ports
+    if controls is None:
+        controls = build_mode_controls(
+            app.receiving_set_bay_control.master,
+            on_switch=lambda target: _switch_mode(self, namespace, target),
+            on_common=lambda: _open_common_box(self, namespace) if self.receiving_layout_applicable() else self.settings_panel(namespace).render_context("box_body"),
+            quantity_ports=quantity_ports(self, namespace),
+        )
+        self._receiving_mode_controls = controls
+        app.receiving_mode_controls = controls
+    if controls is None:
+        return False
+    if applicable:
+        controls.mode_row.pack(fill=tk.X, before=controls.common_button if controls.common_button.winfo_manager() else controls.quantity_editor.frame if controls.quantity_editor.frame.winfo_manager() else None)
+    else:
+        controls.mode_row.pack_forget()
+    controls.refresh(app.designer_workspace.snapshot().get("active_mode", "set_bay"),
+                     app.designer_workspace.snapshot().get("quantity"))
+    before = app.receiving_set_bay_control if app.receiving_set_bay_control.winfo_manager() else app.bend_ui.nb
+    options = {"fill": tk.X, "pady": (0, 4)}
+    if before.winfo_manager() and before.master is controls.frame.master:
+        options["before"] = before
+    controls.frame.pack(**options)
+    return True

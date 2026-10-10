@@ -123,6 +123,8 @@ def resolve(request):
             )
         ) in available
     )
+    if any(str(j.subject_part).startswith("custom:") or str(j.target_part).startswith("custom:") for j in joints):
+        raise ValueError("自訂板件尚無已確認 assembly placement，不能建立組裝 joint")
     resolved_joint_graph = ResolvedAssemblyGraph(tuple(sorted(available)), joints)
 
     parts = []
@@ -148,7 +150,10 @@ def resolve(request):
                 part_input,
                 render_data.material,
             )
-        placement, offset = _phase6_assembly_placement_for_part(snapshot, key)
+        if key.startswith("custom:"):
+            placement, offset = "standalone", (0.0,0.0,0.0)
+        else:
+            placement, offset = _phase6_assembly_placement_for_part(snapshot, key)
         parts.append(
             AssemblyScenePart(
                 part_key=key,

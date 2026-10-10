@@ -203,7 +203,18 @@ class IndicatorBoxPartSpec:
     model_name: str | None = None
 
 
-PartSpec: TypeAlias = DoorPartSpec | BoxBodyPartSpec | EndCapPartSpec | BasePlatePartSpec | IndicatorBoxPartSpec
+@dataclass(frozen=True)
+class CustomFoldPartSpec:
+    """A standalone physical strip; no implied assembly placement."""
+    physical_id: str
+    fold_axis: Literal["X", "Y"]
+    fold_profile: tuple[FoldProfileSegment, ...]
+    transverse_length: float
+    thickness: float
+    features: tuple[FeatureLike, ...] = ()
+
+
+PartSpec: TypeAlias = CustomFoldPartSpec | DoorPartSpec | BoxBodyPartSpec | EndCapPartSpec | BasePlatePartSpec | IndicatorBoxPartSpec
 
 
 @dataclass(frozen=True)

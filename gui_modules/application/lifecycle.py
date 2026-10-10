@@ -449,6 +449,7 @@ def _apply_existing_parts_from_fold_workspace(self, existing_parts):
 
 def _apply_phase6_project_snapshot(self, snapshot):
     """Restore one all-part .p6fold snapshot into the main GUI state."""
+    self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
     model = normalize_custom_model_name(snapshot.get("model"))
@@ -572,6 +573,11 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
         workspace["assembly_placements"] = deepcopy(workspace_state["assembly_placements"])
     elif "assembly_placements" in snapshot:
         workspace["assembly_placements"] = deepcopy(snapshot["assembly_placements"])
+    if "custom_parts" in workspace_state:
+        workspace["custom_parts"] = deepcopy(workspace_state["custom_parts"])
+    for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
+        if key in workspace_state:
+            snapshot[key] = deepcopy(workspace_state[key])
     snapshot["workspace"] = workspace
     if "assembly_placements" in workspace:
         snapshot["assembly_placements"] = deepcopy(workspace["assembly_placements"])
@@ -660,6 +666,8 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
         "assembly_placements": snapshot.get("assembly_placements") or ws_source.get("assembly_placements", {}),
         "part_features": snapshot.get("part_features") or ws_source.get("part_features", {}),
         "part_face_features": snapshot.get("part_face_features") or ws_source.get("part_face_features", {}),
+        "custom_parts": deepcopy(snapshot.get("custom_parts", ws_source.get("custom_parts"))),
+        **{key: deepcopy(snapshot[key]) for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout") if key in snapshot},
     })
     self._sync_fold_designer_manual_corner_context(snapshot.get("active_part"))
     self._reload_current_baseline_features()
@@ -719,6 +727,9 @@ def _store_fold_designer_workspace(self, workspace):
         committed_workspace["part_face_features"] = deepcopy(workspace["part_face_features"])
     if "assembly_placements" in workspace:
         committed_workspace["assembly_placements"] = deepcopy(workspace["assembly_placements"])
+    for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
+        if key in workspace:
+            committed_workspace[key] = deepcopy(workspace[key])
     self.workspace_controller.commit_workspace(committed_workspace)
 
 def _apply_fold_designer_live_snapshot(self, payload):
@@ -743,6 +754,29 @@ def _apply_fold_designer_live_snapshot(self, payload):
             return False
     self._fold_designer_live_sync_guard = True
     try:
+        from phase6_custom_parts import custom_part_only_change
+        from phase6_quantity_model import quantity_only_change
+        previous_payload = getattr(self, "_phase6_last_fold_designer_live_payload", None)
+        quantity_changed = quantity_only_change(previous_payload, payload)
+        if custom_part_only_change(previous_payload, payload) or quantity_changed:
+            self.workspace_controller.commit_workspace(payload["workspace"])
+            if quantity_changed:
+                features = self.workspace_controller.part_features_snapshot()
+                for role in ("head", "tail"):
+                    self.surface_features[role] = deepcopy(features.get(role, []))
+                try:
+                    width, depth = float(self.w_var.get()), float(self.d_var.get())
+                    self.head_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["head"]]
+                    self.tail_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["tail"]]
+                except (TypeError, ValueError, AttributeError):
+                    # Typed surface features remain the canonical owner for
+                    # feature kinds that the legacy hole projection cannot carry.
+                    pass
+            self.project_controller.capture_committed(self._compose_phase6_project_snapshot_from_main_gui())
+            self._phase6_last_fold_designer_revision=revision
+            self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")
+            self._phase6_last_fold_designer_live_payload=deepcopy(payload)
+            return True
         model = normalize_custom_model_name(payload.get("model"))
         baseline_changed = self.baseline_var.get().strip() != model
         if baseline_changed:
@@ -861,6 +895,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
         if origin == "fold_designer":
             self._phase6_last_fold_designer_revision = revision
             self._phase6_last_fold_designer_fingerprint = str(payload.get("fingerprint") or "")
+        self._phase6_last_fold_designer_live_payload=deepcopy(payload)
         return True
     finally:
         self._fold_designer_live_sync_guard = False
@@ -984,6 +1019,13 @@ def open_original_fold_designer(self, *, target_window=None):
         if path:
             self.project_controller.set_project_path(path)
 
+    def sync_from_designer(payload):
+        # A closed designer may still have a queued callback. Only the current
+        # instance owns live edits; each fresh instance starts its own revision.
+        if designer is None or self.fold_designer_app is not designer:
+            return False
+        return self._apply_fold_designer_live_snapshot(deepcopy(payload))
+
     designer_factory = getattr(self, "_fold_designer_factory", None)
     if designer_factory is None:
         raise RuntimeError("Fold Designer factory is not connected")
@@ -993,7 +1035,7 @@ def open_original_fold_designer(self, *, target_window=None):
             on_settings_change=None,
             on_save_defaults=self._save_fold_designer_defaults,
             on_corner_change=None,
-            on_live_sync=lambda payload: self._apply_fold_designer_live_snapshot(deepcopy(payload)),
+            on_live_sync=sync_from_designer,
             on_baseline_data_query=self._query_fold_designer_baseline_data,
             on_scene_query=self._query_fold_designer_render_data,
             on_part_spec_query=self._fold_designer_part_spec_from_payload,
@@ -1036,6 +1078,11 @@ def open_original_fold_designer(self, *, target_window=None):
     designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view
     self.fold_designer_window = window
     self.fold_designer_app = designer
+    # Compare the first edit with the exact canonical state used to construct
+    # this designer. Opening still emits no live revision or calculation.
+    self._phase6_last_fold_designer_live_payload = deepcopy(getattr(designer, "_phase6_last_live_state", None))
+    self._phase6_last_fold_designer_revision = 0
+    self._phase6_last_fold_designer_fingerprint = ""
     window.protocol("WM_DELETE_WINDOW", close_designer)
     return designer
 

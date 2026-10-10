@@ -15,12 +15,42 @@ from .contracts import FoldProfileSegment
 
 FRAME_SIDES = ("top", "bottom", "left", "right")
 LOWER_TERMINAL_FACE = "LOWER_TERMINAL_FACE"
+
+# Receiving inner-door frame: the LAST 22-mm folded flange mates to the
+# physical Box Body mother plate (top -> head EndCap, left -> left side plate,
+# right -> right side plate). The common 46-mm web is NOT the mating flange.
+# The formed outside occupation is 46 + 2*T (50 mm when T=2); this is a
+# dimension, NOT "move 50 mm inward from the outer door". Preserve the left
+# frame's asymmetric -22/20 entry chain and the final 22-mm mating flange.
+# Installation and MARKING must be validated against the actual folded skins.
 _FRAME_SIGNED_CHAINS = {
     "top": (22.0, 46.0, 22.0),
     "bottom": (22.0, 46.0, 22.0),
     "right": (22.0, 46.0, 22.0),
     "left": (-22.0, 20.0, 46.0, 22.0),
 }
+
+
+def inner_door_frame_formed_occupation(thickness: float) -> float:
+    """Outside occupation of the common 46-mm frame web (NOT the mating face).
+
+    The LAST 22-mm signed-fold segment is the physical cabinet mating flange.
+    It lies perpendicular to the shared 46-mm web; never treat 50 mm as an
+    outer-door-relative inset.  At T=2: web 46 + 2*T = 50 mm.
+    """
+    t = float(thickness)
+    if t <= 0.0:
+        raise ValueError("inner-door frame material thickness must be positive")
+    common_webs = (
+        abs(_FRAME_SIGNED_CHAINS[side][-2]) for side in ("top", "left", "right")
+    )
+    webs = tuple(common_webs)
+    if len(set(webs)) != 1:
+        raise ValueError("receiving inner-door frames lost their shared web")
+    if any(abs(_FRAME_SIGNED_CHAINS[side][-1]) != 22.0 for side in ("top", "left", "right")):
+        raise ValueError("receiving frame mating flange is not the approved last 22 mm")
+    return float(webs[0]) + 2.0 * t
+
 
 
 def _stable_inner_door_id(value: object) -> str:

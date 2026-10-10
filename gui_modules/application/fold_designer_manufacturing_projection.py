@@ -206,6 +206,10 @@ def _require_verified_baseline_sources_for_manufacturing(self):
 def _export_authoritative_part(self, spec, output_path, context=None):
     """Save the exact cached FinalScene used by 2D/3D without rebuilding it."""
     self._flush_phase6_authoritative_state()
+    owner = getattr(self, "workspace_controller", None)
+    if owner is not None and owner.workspace_snapshot().get("receiving_quantity_box"):
+        from ae_engine.receiving_quantity_box import require_valid_quantity_features
+        require_valid_quantity_features(self._make_original_fold_designer_snapshot())
     self._require_verified_baseline_sources_for_manufacturing()
     ctx = context or self._manufacturing_context(draw_stock=False)
     render_data = self._authoritative_render_data(spec, ctx)
@@ -382,6 +386,10 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
         "door" if door_cell is not None
         else ("base_plate" if base_plate_cell is not None else key)
     )
+    from phase6_custom_parts import is_custom_part
+    if is_custom_part(key):
+        from phase6_custom_fold_profiles import custom_part_spec
+        return custom_part_spec(data, key, features=features, profiles=data.get("fold_profiles")), ManufacturingContext(draw_stock=False)
     policy = payload_policy(policy_part)
     context = ManufacturingContext(draw_stock=False)
 

@@ -86,3 +86,34 @@ def save_scene_dxf(filepath, scene: DrawingScene) -> None:
     setup_dxf_layers(doc)
     add_drawing_scene_to_dxf(doc.modelspace(), scene)
     doc.saveas(filepath)
+
+
+def verify_quantity_check_dxf(scene, filepath):
+    """Independently reopen staged Q contents, layer/style and exact placement."""
+    import math
+    import re
+    expected = [p for p in scene.primitives if isinstance(p, TextPrimitive)
+                and p.semantic_id == "manufacturing_quantity"]
+    if len(expected) != 1:
+        raise ValueError("quantity CHECK scene must contain exactly one Q")
+    text = expected[0]
+    doc = ezdxf.readfile(filepath)
+    rows = []
+    for entity in doc.modelspace():
+        if entity.dxftype() not in {"MTEXT", "TEXT"}:
+            continue
+        value = entity.plain_text() if entity.dxftype() == "MTEXT" else entity.dxf.text
+        if re.fullmatch(r"[Qq][0-9]+", value.strip()):
+            rows.append((entity, value))
+    if len(rows) != 1 or rows[0][1] != text.text:
+        raise ValueError("staged quantity CHECK DXF has missing, duplicate or incorrect Q")
+    entity = rows[0][0]
+    layer = doc.layers.get("CHECK")
+    if (entity.dxftype() != "MTEXT" or entity.dxf.layer != "CHECK"
+            or entity.dxf.color != 2 or entity.dxf.linetype not in {"BYLAYER", "CONTINUOUS"}
+            or layer.dxf.color != 2 or layer.dxf.linetype != "CONTINUOUS"
+            or entity.dxf.attachment_point != 5
+            or not math.isclose(entity.dxf.char_height, text.char_height, abs_tol=1e-6)
+            or not math.isclose(entity.dxf.insert.x, text.insert.x, abs_tol=1e-6)
+            or not math.isclose(entity.dxf.insert.y, text.insert.y, abs_tol=1e-6)):
+        raise ValueError("staged quantity CHECK DXF layer/style/placement differs")

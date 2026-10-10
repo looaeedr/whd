@@ -231,7 +231,8 @@ def _materialize_project_snapshot(snapshot):
                 view = {**result, **bay["door_state"], "w": bay["width"], "h": bay["height"], "d": bay["depth"]}
                 normalized = _normalize_authoritative_door_state(view)
                 bay["door_state"] = {key: deepcopy(normalized[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in normalized}
-    return result
+    from phase6_quantity_model import normalize_quantity_snapshot
+    return normalize_quantity_snapshot(result)
 
 
 def write_project(path, payload):
@@ -248,7 +249,8 @@ def write_project(path, payload):
         raise ValueError("phase6-fold-project-v2 requires ReceivingLayout")
     else:
         materialized["schema"] = PROJECT_SCHEMA_V1
-    materialized["snapshot"] = snapshot
+    from phase6_quantity_model import normalize_quantity_snapshot
+    materialized["snapshot"] = normalize_quantity_snapshot(snapshot, for_save=True)
     # Final geometry is a derived diagnostic/render cache, never project truth.
     # Persist only authoritative state; Reload must deterministically re-solve it.
     materialized["final_geometry"] = {}

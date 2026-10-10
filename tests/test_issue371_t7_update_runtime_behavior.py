@@ -209,3 +209,20 @@ def test_issue372_main_root_destroy_cancels_pending_scheduler_job():
     assert scheduler.dirty == set()
     assert scheduler._after_job is None
     assert events == []
+
+
+def test_deferred_input_publish_keeps_final_manufacturing_publication_enabled():
+    events = []
+    owner = _owner(events)
+    owner._phase6_defer_input_publish = True
+    owner._live_sync_callback = lambda payload: events.append(payload)
+    def full_update():
+        events.append("full")
+        owner._live_sync_callback("committed manufacturing")
+    command_router.execute_fold_designer_update_reasons(
+        owner, {"geometry"}, full_update=full_update,
+        render_committed=lambda: events.append("view"),
+        publish_if_changed=lambda: events.append("intermediate inputs"),
+    )
+    assert events == ["full", "committed manufacturing"]
+    assert not getattr(owner, "_phase6_live_sync_guard", False)

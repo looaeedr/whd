@@ -168,7 +168,11 @@ def plan_live_sync_envelope(
 
     previous = deepcopy(dict(previous_state or {}))
     if force_host_relief_sync:
-        previous = deepcopy(state)
+        # Repair the host relief baseline without discarding concurrent edits.
+        # A stale relief fingerprint can differ while its values compare equal;
+        # replacing the whole previous state would then erase the edit delta.
+        if not previous:
+            previous = deepcopy(state)
         previous["assembly_relief"] = host_relief
 
     delta = mapping_delta(previous, state)
