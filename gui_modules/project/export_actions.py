@@ -136,6 +136,36 @@ def _export_selected_resolved_parts(self, folder, flags):
     if not callable(resolver):
         return None
 
+    workspace = getattr(designer, "designer_workspace", None)
+    if workspace is not None and workspace.snapshot().get("active_mode") == "quantity":
+        from phase6_manufacturing_adapter import (
+            build_manufacturing_request, build_scene_payload_for_app,
+            operator_finished_dimensions_for_app,
+        )
+        from phase6_quantity_manufacturing import (
+            resolve_quantity_manufacturing, quantity_manufacturing_groups,
+        )
+        request = build_manufacturing_request(
+            designer,
+            scene_payload_builder=lambda key: build_scene_payload_for_app(designer, key),
+            render_data_provider=designer._scene_query_callback,
+            part_spec_provider=designer._part_spec_query_callback,
+            finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(designer, key),
+        )
+        batch = resolve_quantity_manufacturing(request, workspace.snapshot())
+        selected_demands = tuple(
+            row for row in batch.demands
+            if row.source_part_id.startswith("custom:")
+            or bool(flags.get(_resolved_export_intention_key(row.source_part_id), False))
+        )
+        if not selected_demands:
+            return ([], ["canonical quantity export: no selected physical parts"])
+        groups = quantity_manufacturing_groups(batch, demands=selected_demands)
+        outputs = manufacturing_api.save_quantity_manufacturing_groups_dxf(
+            groups, folder, overwrite=True,
+        )
+        return ([os.path.basename(path) for path in outputs.values()], [])
+
     resolved = resolver()
     selected = _selected_resolved_geometry(resolved, flags)
     if not tuple(getattr(selected, "parts", ()) or ()):

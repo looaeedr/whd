@@ -20,6 +20,7 @@ PYTEST_PATHS = (
     "tests/test_issue1464_custom_manufacturing.py",
     "tests/test_issue1465_quantity_ui.py",
     "tests/test_issue1466_quantity_bom.py",
+    "tests/test_issue1467_quantity_dxf_groups.py",
     "tests/test_issue1463_receiving_modes.py",
     "tests/test_issue357_manufacturing_result_contracts.py",
     "tests/test_issue356_manufacturing_adapter.py",
