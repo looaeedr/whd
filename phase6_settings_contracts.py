@@ -10,7 +10,7 @@ from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 import hashlib
 import json
-from numbers import Real
+from numbers import Integral, Real
 from typing import Any
 
 
@@ -73,6 +73,8 @@ def freeze_settings_value(value: Any) -> Any:
         return value
     if isinstance(value, Enum):
         return freeze_settings_value(value.value)
+    if isinstance(value, Integral):
+        return int(value)
     if isinstance(value, Real):
         return round(float(value), 12)
     if callable(value):
@@ -119,6 +121,10 @@ def _thaw_json_value(value: Any) -> Any:
         return {key: _thaw_json_value(item) for key, item in value.items()}
     if isinstance(value, tuple):
         return [_thaw_json_value(item) for item in value]
+    # Fingerprints retain the existing numeric equivalence (1 == 1.0),
+    # while frozen application data keeps integer IDs/counts lossless.
+    if isinstance(value, int) and not isinstance(value, bool):
+        return round(float(value), 12)
     if value is None or isinstance(value, (bool, str, int, float)):
         return value
     if is_dataclass(value):

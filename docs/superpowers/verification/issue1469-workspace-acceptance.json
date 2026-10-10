@@ -1,0 +1,380 @@
+{
+  "schema": "WHD_V15_WORKSPACE_ACCEPTANCE_V1",
+  "issue": 1469,
+  "parent_issue": 1459,
+  "state": "WORKSPACE_ACCEPTED_REMOTE_CI_PENDING",
+  "native_base": "81eb34389be192285ee75e9da06c24efc21785d0",
+  "localX_dependency_merge": "068d51470b51e2ec7267f1f70632707dcf33234c",
+  "requirements": 52,
+  "x64": {
+    "schema": "WHD_V15_ACCEPTANCE_RESULT_V1",
+    "result": "GREEN",
+    "passed_cases": 355,
+    "gui_profiles": [
+      {
+        "case": "test_real_gui_quantity_controls_holes_and_manual_save[\\u91d1\\u5eab\\u578b]",
+        "metric": "QUANTITY_UI_STRESS",
+        "values": {
+          "resolve": 2,
+          "build": 4,
+          "render": 2,
+          "dxf_read": 0,
+          "final_scene": 2,
+          "calculation_flushes": 2,
+          "wall_seconds": 0.9249090800003614
+        }
+      },
+      {
+        "case": "test_real_gui_quantity_controls_holes_and_manual_save[\\u53d7\\u96fb\\u7bb1]",
+        "metric": "QUANTITY_UI_STRESS",
+        "values": {
+          "resolve": 2,
+          "build": 10,
+          "render": 2,
+          "dxf_read": 0,
+          "final_scene": 2,
+          "calculation_flushes": 2,
+          "wall_seconds": 3.3363164109978243
+        }
+      },
+      {
+        "case": "test_real_quantity_bom_30_plus_20_custom_100_and_read_only[\\u91d1\\u5eab\\u578b-FULL-1]",
+        "metric": "QUANTITY_BOM_PERFORMANCE",
+        "values": {
+          "manufacturing": 2,
+          "build": 4,
+          "dxf_read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "wall_seconds": 0.42905511199933244
+        }
+      },
+      {
+        "case": "test_real_quantity_bom_30_plus_20_custom_100_and_read_only[\\u53d7\\u96fb\\u7bb1-FULL-1]",
+        "metric": "QUANTITY_BOM_PERFORMANCE",
+        "values": {
+          "manufacturing": 2,
+          "build": 12,
+          "dxf_read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "wall_seconds": 1.8861955460015452
+        }
+      },
+      {
+        "case": "test_real_quantity_bom_30_plus_20_custom_100_and_read_only[\\u53d7\\u96fb\\u7bb1-FULL-2]",
+        "metric": "QUANTITY_BOM_PERFORMANCE",
+        "values": {
+          "manufacturing": 2,
+          "build": 12,
+          "dxf_read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "wall_seconds": 2.0009063290053746
+        }
+      },
+      {
+        "case": "test_real_quantity_bom_30_plus_20_custom_100_and_read_only[\\u53d7\\u96fb\\u7bb1-HALF-1]",
+        "metric": "QUANTITY_BOM_PERFORMANCE",
+        "values": {
+          "manufacturing": 2,
+          "build": 12,
+          "dxf_read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "wall_seconds": 1.9643755720026093
+        }
+      },
+      {
+        "case": "test_real_quantity_bom_30_plus_20_custom_100_and_read_only[\\u53d7\\u96fb\\u7bb1-HALF-2]",
+        "metric": "QUANTITY_BOM_PERFORMANCE",
+        "values": {
+          "manufacturing": 2,
+          "build": 12,
+          "dxf_read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "wall_seconds": 2.144877766004356
+        }
+      },
+      {
+        "case": "test_real_quantity_bom_30_plus_20_custom_100_and_read_only[\\u53d7\\u96fb\\u7bb1-BACK_OPENING-1]",
+        "metric": "QUANTITY_BOM_PERFORMANCE",
+        "values": {
+          "manufacturing": 2,
+          "build": 12,
+          "dxf_read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "wall_seconds": 2.047469432000071
+        }
+      },
+      {
+        "case": "test_real_quantity_bom_30_plus_20_custom_100_and_read_only[\\u53d7\\u96fb\\u7bb1-BACK_OPENING-2]",
+        "metric": "QUANTITY_BOM_PERFORMANCE",
+        "values": {
+          "manufacturing": 2,
+          "build": 12,
+          "dxf_read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "wall_seconds": 1.9878902849959559
+        }
+      },
+      {
+        "case": "test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "metric": "V15_ACTUAL_MULTIBAY_2D_PROFILE",
+        "values": {
+          "resolve": 0,
+          "build": 0,
+          "read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "geometry_draw": 0,
+          "wall_seconds": 0.9946438980041421
+        }
+      },
+      {
+        "case": "test_real_gui_cancel_switch_common_edit_and_active_only_save",
+        "metric": "RECEIVING_COMMON_BOX_PROFILE",
+        "values": {
+          "edits": [
+            {
+              "manufacturing_resolve": 1,
+              "dxf_read": 0,
+              "render": 0,
+              "live_publish": 1,
+              "calculation": 1,
+              "wall_seconds": 1.308445713002584
+            },
+            {
+              "manufacturing_resolve": 1,
+              "dxf_read": 0,
+              "render": 1,
+              "live_publish": 1,
+              "calculation": 1,
+              "wall_seconds": 1.9609889800049132
+            },
+            {
+              "manufacturing_resolve": 1,
+              "dxf_read": 0,
+              "render": 1,
+              "live_publish": 1,
+              "calculation": 1,
+              "wall_seconds": 1.6733402730023954
+            },
+            {
+              "manufacturing_resolve": 1,
+              "dxf_read": 0,
+              "render": 1,
+              "live_publish": 1,
+              "calculation": 1,
+              "wall_seconds": 1.877710870001465
+            }
+          ],
+          "display": {
+            "manufacturing_resolve": 0,
+            "dxf_read": 0,
+            "render": 0,
+            "live_publish": 0,
+            "geometry_draw": 0,
+            "wall_seconds": 0.2480399900014163
+          }
+        }
+      }
+    ],
+    "junit_sha256": "9731fbdfa1c7727510fc0314f445aa3139b19f4f8eeead97fc3ccb5edf3226e6",
+    "source_sha256": {
+      "docs/specs/WHD_Spec_v1_5.md": "7b2f69e684cffa62a2dbb06aa944aff629bc2dcbae54694465ccd7a1d7663697",
+      "docs/superpowers/verification/issue1469-child-delivery-readback.json": "76c1f46e9b960e5ce18e26d662dbe141928d2ab238afba763cbed0a90b3a8ce1",
+      "docs/superpowers/verification/issue1469-v15-acceptance-matrix.json": "7eedfcd8e17fbbe089fe521b790340ae8ffb79740d769a16111c1124bb9cf68d",
+      "phase6_settings_contracts.py": "d3fca6fa4b2840d3693b2ee9eebee1ec15949ef2623d314c42be13da2d370abd",
+      "tests/test_issue1460_quantity_model.py": "94a478ea6806c521f97791191950fb8b2a834a58593f6f9ae341d43bc4055e36",
+      "tests/test_issue1461_receiving_2d_settings.py": "08fd4c7d1e12a970df6cd67ea4104d00d5bafc8c3fd16713651c2d41d277a1c9",
+      "tests/test_issue1462_custom_parts.py": "bfeb6c26a079879c2950e8ca977aae49ef28bad6b477faa5713161defd81c0f6",
+      "tests/test_issue1463_receiving_modes.py": "8643b9a002f75130b9e4c808b0b6f86fb7deec04a5e56318b302d53bb4c97442",
+      "tests/test_issue1464_custom_manufacturing.py": "d713a52746b22e6a1e978b472bfa4ce34ece628aaafb13877deebf29ad204e6f",
+      "tests/test_issue1465_quantity_ui.py": "6abd5e91d8a3a3ed5be5496aa5c195a364a3cc099bac888974e9190c0a9489a9",
+      "tests/test_issue1466_quantity_bom.py": "1dbf07438cf64f4ff5fc5368b0a872750cc9227f0f17e01c8e53ecf059720f04",
+      "tests/test_issue1467_quantity_dxf_groups.py": "5152d99c43c2d15205eb3a59e3b78827356a8370fce76908501a602dd6cce13d",
+      "tests/test_issue1468_quantity_check.py": "1ec3191b618b468dab8d65cb68de7d335bb9c32d6df87ba721c19b48f0a11015",
+      "tests/test_issue1469_v15_acceptance.py": "de2b9753506c431473f1c8879b7e4ef57208d7924a1fd3e1a157fdabf33765a3",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md": "2b28460d94515e306c365793d55781f2786a78662b98e1e68b31f90b42a16c4f",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md": "c8cdcb0fd7d42c1ce1f6ed2ebf69c2368a65d4437929082aa532d77868e3b1a5"
+    },
+    "requirements_count": 52,
+    "wall_seconds": 253.87
+  },
+  "native": {
+    "focused": {
+      "path": "work/1469-native-final-focused.xml",
+      "sha256": "a211d0bbc9e70e7b41efd0da7f49b86b7a7bde2a6200188bc7b95198aba294aa",
+      "passed": 14,
+      "profiles": [
+        {
+          "resolve": 0,
+          "build": 0,
+          "read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "geometry_draw": 0,
+          "wall_seconds": 20.414696829975583
+        }
+      ],
+      "wall_seconds": 846.98,
+      "note": "14 focused cases, including the initial plain 2x3 legacy scenario."
+    },
+    "edited_multibay": {
+      "path": "work/1469-native-edited-multibay.xml",
+      "sha256": "8c2510bdb01d5220aadb413430d66e98964f650607fe45271b19c766594ee628",
+      "passed": 1,
+      "profiles": [
+        {
+          "resolve": 0,
+          "build": 0,
+          "read": 0,
+          "final_scene": 0,
+          "render": 0,
+          "calculation": 0,
+          "geometry_draw": 0,
+          "wall_seconds": 20.819503580976743
+        }
+      ],
+      "wall_seconds": 271.65,
+      "note": "Revalidated the strengthened final-source 2x3 case with different Bay dimensions, brand, back-panel mode, head/tail Features and Joint alignment."
+    },
+    "warnings": "Native Xvfb reports existing missing DejaVu Sans CJK glyphs; CAD Q labels and geometry/parser verification pass."
+  },
+  "gate_negative_checks": [
+    {
+      "case": "missing_parameter",
+      "result": "EXPECTED_REJECTION",
+      "reason": "JUnit is not the full canonical parameterized collection"
+    },
+    {
+      "case": "skip",
+      "result": "EXPECTED_REJECTION",
+      "reason": "fresh JUnit must contain successful cases only"
+    },
+    {
+      "case": "failure",
+      "result": "EXPECTED_REJECTION",
+      "reason": "fresh JUnit must contain successful cases only"
+    },
+    {
+      "case": "missing_profile",
+      "result": "EXPECTED_REJECTION",
+      "reason": "missing or nonzero actual GUI overlay-only profile"
+    },
+    {
+      "case": "nonzero_profile",
+      "result": "EXPECTED_REJECTION",
+      "reason": "missing or nonzero actual GUI overlay-only profile"
+    },
+    {
+      "case": "missing_cpr_ac_row",
+      "result": "EXPECTED_REJECTION",
+      "reason": "CPR/AC mapping is incomplete or duplicated"
+    },
+    {
+      "case": "duplicate_current_owner",
+      "result": "EXPECTED_REJECTION",
+      "reason": "duplicate CURRENT authority contract"
+    }
+  ],
+  "production_owner_scan": {
+    "schema": "WHD_V15_PRODUCTION_OWNER_SCAN_V1",
+    "result": "GREEN",
+    "scope": "top-level, ae_engine, gui_modules tracked production Python",
+    "symbols": {
+      "QuantityModel": [
+        {
+          "path": "phase6_quantity_model.py",
+          "line": 39,
+          "role": "OWNER"
+        }
+      ],
+      "CustomPartCatalog": [
+        {
+          "path": "phase6_custom_parts.py",
+          "line": 51,
+          "role": "OWNER"
+        }
+      ],
+      "ReceivingModeSession": [
+        {
+          "path": "phase6_receiving_modes.py",
+          "line": 55,
+          "role": "OWNER"
+        }
+      ],
+      "annotate_quantity_render_data": [
+        {
+          "path": "ae_engine/drawing_annotation_layout.py",
+          "line": 496,
+          "role": "OWNER"
+        }
+      ],
+      "resolved_quantity_physical_demands": [
+        {
+          "path": "ae_engine/manufacturing_api.py",
+          "line": 551,
+          "role": "THIN_FACADE"
+        },
+        {
+          "path": "ae_engine/manufacturing_quantity.py",
+          "line": 34,
+          "role": "OWNER"
+        }
+      ],
+      "manufacturing_equivalence_payload": [
+        {
+          "path": "ae_engine/manufacturing_equivalence.py",
+          "line": 94,
+          "role": "OWNER"
+        }
+      ],
+      "group_quantity_physical_demands": [
+        {
+          "path": "ae_engine/manufacturing_api.py",
+          "line": 558,
+          "role": "THIN_FACADE"
+        },
+        {
+          "path": "ae_engine/manufacturing_equivalence.py",
+          "line": 120,
+          "role": "OWNER"
+        }
+      ]
+    }
+  },
+  "bridge": {
+    "result": "GREEN",
+    "loc": 3327,
+    "facades": 45,
+    "reverse_imports": 0,
+    "new_full_app_interfaces": 0
+  },
+  "library_writeback": {
+    "authority_map": "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+    "pitfall_ledger": "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+    "native_readback": "CONFIRMED",
+    "role": "REFERENCE evidence; CURRENT manufacturing owners remain in authority map"
+  },
+  "boundaries": [
+    "Only selectable 金庫型／受電箱／自訂 families are claimed as actual GUI coverage.",
+    "inner_door_layers is #1331 switch-configuration metadata; no invented physical second door.",
+    "Untracked 基準檔/NFB/ is excluded from this delivery.",
+    "Native focused baseline and strengthened delta are separate successful executions; 14 unique focused cases plus one revalidation.",
+    "Closure still requires exact remote HEAD Product Regression SUCCESS, PR merged to localX, fresh readback, and durable library availability. Formal X publication is not authorized."
+  ]
+}

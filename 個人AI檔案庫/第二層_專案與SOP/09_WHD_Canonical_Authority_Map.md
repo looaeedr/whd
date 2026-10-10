@@ -60,6 +60,25 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=pitfall-ledger role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md -->
 <!-- WHD_AUTHORITY contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md -->
 
+<!-- WHD_AUTHORITY contract=quantity-version-state role=CURRENT path=phase6_quantity_model.py -->
+<!-- WHD_AUTHORITY contract=receiving-mode-session role=CURRENT path=phase6_receiving_modes.py -->
+<!-- WHD_AUTHORITY contract=receiving-quantity-common-box role=CURRENT path=ae_engine/receiving_quantity_box.py -->
+<!-- WHD_AUTHORITY contract=custom-part-identity role=CURRENT path=phase6_custom_parts.py -->
+<!-- WHD_AUTHORITY contract=quantity-physical-bom role=CURRENT path=ae_engine/manufacturing_quantity.py -->
+<!-- WHD_AUTHORITY contract=manufacturing-equivalence role=CURRENT path=ae_engine/manufacturing_equivalence.py -->
+<!-- WHD_AUTHORITY contract=quantity-check-annotation role=CURRENT path=ae_engine/drawing_annotation_layout.py -->
+
+### 數量製造與獨立模式的 owner 邊界
+
+- `QuantityModel` 是版本 stable ID、件數與 head/tail Features 的唯一 owner；GUI 必須經既有 quantity ports 提交，孔位沿用 unified Hole Editor。其他板件外形和共同尺寸不屬於單一版本。
+- `ReceivingModeSession` 只在本次 Session 暫存另一模式。持久化仍由既有 project snapshot/file owner 保存 active mode；缺另一模式暫存時，兩個方向都必須確認獨立 W/H/D。
+- `receiving_quantity_box` 將明確確認的共同尺寸及正式共同設定投影為單箱體／單 Bay。`inner_door_layers` 沿用 Receiving shared settings 的開關配置設定；實際物理內門仍由 Receiving Family 的 `inner_doors` 與門分割 authority 產生，不能按層數發明板件。
+- `CustomPartCatalog` 保持頂層自訂板件 identity、折法方向、另一方向尺寸及每箱片數；沒有正式 placement 時維持 standalone，不推測安裝位置。
+- quantity request adapter 只覆寫版本 head/tail Features；`manufacturing_quantity` 計量正式 resolver 的實際 physical sheets；`manufacturing_equivalence` 依完整加工資料及製造參數分群。件數和 CHECK Q 不參與加工判等。
+- `drawing_annotation_layout` 只配置 CHECK Q，工藝幾何仍用原 DrawingScene；`dxf_serialization` parser reopen 驗證後，`manufacturing_export` 才執行既有原子提交。
+- Settings freeze/materialize 必須保留整數 identity／件數，numeric fingerprint 的等價比較不得破壞這些原始資料型別。
+- CPR／AC 對照及當次驗收結果位於 `docs/superpowers/verification/issue1469-v15-acceptance-matrix.*` 與 CI／checkpoint；它們是 REFERENCE 證據，不是第二套製造定義。
+
 ## localX integration and publication authority
 
 - Repository work is made and validated locally on `localX` in `/workspace/whd`.

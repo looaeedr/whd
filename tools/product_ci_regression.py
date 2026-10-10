@@ -22,6 +22,10 @@ PYTEST_PATHS = (
     "tests/test_issue1466_quantity_bom.py",
     "tests/test_issue1467_quantity_dxf_groups.py",
     "tests/test_issue1468_quantity_check.py",
+    "tests/test_issue1469_v15_acceptance.py",
+    "tests/test_issue390_settings_contracts.py",
+    "tests/test_issue500_settings_profile_projection.py::test_issue500_requires_frozen_request_and_plan_contracts",
+    "tests/test_issue500_settings_profile_projection.py::test_issue500_pure_projection_is_deterministic_and_carries_required_plan_fields",
     "tests/test_issue1463_receiving_modes.py",
     "tests/test_issue357_manufacturing_result_contracts.py",
     "tests/test_issue356_manufacturing_adapter.py",
@@ -120,8 +124,10 @@ def _run_bridge_guard() -> None:
             raise RuntimeError("phase6 bridge anti-regrowth guard failed")
 
 
-def _pytest_command() -> list[str]:
+def _pytest_command(junit_path=None) -> list[str]:
     command = [sys.executable, "-m", "pytest", "-q", *PYTEST_PATHS]
+    if junit_path is not None:
+        command.extend(("--junitxml", str(junit_path), "-o", "junit_logging=system-out"))
     # Prefer an isolated virtual display whenever available.  A DISPLAY value
     # alone is not proof that Tk can connect (headless runtimes often inherit
     # a stale :0).
@@ -135,7 +141,13 @@ def run() -> int:
     before = _tracked_invariants()
     _source_authority_scan()
     _run_bridge_guard()
-    rc = subprocess.call(_pytest_command(), cwd=ROOT)
+    with tempfile.TemporaryDirectory(prefix="whd-v15-acceptance-") as tmp:
+        report = Path(tmp) / "product-regression.xml"
+        rc = subprocess.call(_pytest_command(report), cwd=ROOT)
+        if rc == 0:
+            from whd_v15_acceptance_evidence import verify
+            receipt = verify(report)
+            print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} passed_cases={receipt['passed_cases']}")
     after = _tracked_invariants()
     if before != after:
         changed = sorted(set(before) | set(after))

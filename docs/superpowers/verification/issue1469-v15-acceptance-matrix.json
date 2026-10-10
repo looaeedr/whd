@@ -1,0 +1,463 @@
+{
+  "schema": "WHD_V15_ACCEPTANCE_MATRIX_V1",
+  "spec": "docs/specs/WHD_Spec_v1_5.md",
+  "spec_sha256": "7b2f69e684cffa62a2dbb06aa944aff629bc2dcbae54694465ccd7a1d7663697",
+  "boundaries": [
+    "GUI families are actual selectable 金庫型／受電箱／自訂; RO and 未知 are generic contract probes, not selectable family coverage.",
+    "#1331 defines inner_door_layers as switch-configuration metadata; actual switch patterns are deferred. It never multiplies physical door sheets.",
+    "All coverage rows need fresh successful JUnit cases; this mapping alone is not a GREEN receipt.",
+    "Acceptance and dependency receipts are evidence, never a second geometry/manufacturing authority.",
+    "localX integration does not authorize formal X publication."
+  ],
+  "rows": [
+    {
+      "id": "CPR-01",
+      "requirement": "受電箱設定操作要減少卡頓；先選要修改的項目，才啟用高亮選取與編輯。 |",
+      "owner_issue": 1461,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "CPR-02",
+      "requirement": "全部箱型都能新增自由命名的自訂板件；它與**箱身、封頭、封尾同一頂層**，不在箱身或套／連下面。 |",
+      "owner_issue": 1462,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1462_custom_parts.py::test_real_designer_add_rename_save_reload_keeps_top_level_custom"
+      ]
+    },
+    {
+      "id": "CPR-03",
+      "requirement": "自訂板件預設**包外 17／100**；**X、Y 擇一作為折法方向，另一方向的尺寸由使用者輸入**。不自行猜測板件在組合體中的安裝位置。 |",
+      "owner_issue": 1464,
+      "tests": [
+        "tests/test_issue1464_custom_manufacturing.py::test_outside_mapping_axis_precision_real_scene_mesh_dxf",
+        "tests/test_issue1464_custom_manufacturing.py::test_no_unknown_key_fallback_no_guessed_assembly_and_real_resolver"
+      ]
+    },
+    {
+      "id": "CPR-04",
+      "requirement": "全部箱型（含受電箱）提供**數量模式**及設定入口；它由一個共同箱體設計製作多種封頭／封尾**孔型版本**，每版本有自己的製造**件數**。介面不得把版本數誤標為總件數。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save"
+      ]
+    },
+    {
+      "id": "CPR-05",
+      "requirement": "**受電箱「套／連模式」與「數量模式」是兩套獨立操作，必須二擇一，不能同時啟用或將數量算進套／連。**其他箱型使用數量功能。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "CPR-06",
+      "requirement": "按「＋孔型版本」時從**目前選取版本**複製封頭／封尾 Features；新版本立即獨立、不共用可變物件，且新增後自動成為目前選取版本。這是原「複製前一個」的正式操作語意。 |",
+      "owner_issue": 1460,
+      "tests": [
+        "tests/test_issue1460_quantity_model.py::test_insert_after_selection_deep_copy_and_delete_selection",
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save"
+      ]
+    },
+    {
+      "id": "CPR-07",
+      "requirement": "**僅**受電箱原本「套／連」設定視窗內的 **3D 圖改成 2D 平面圖**；新增的「數量設定」也使用 2D。**其他主畫面 3D、板件功能與其他設定不在本次 2D 替換範圍。** |",
+      "owner_issue": 1461,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "tests/test_issue1461_receiving_2d_settings.py::test_two_dimensional_preview_gates_selection_and_reuses_canonical_artists"
+      ]
+    },
+    {
+      "id": "CPR-08",
+      "requirement": "模式切換保留另一模式的設定，**但只在目前程式執行期間記憶體暫存**，切回可恢復；不自動將兩模式永久存入同一專案。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "CPR-09",
+      "requirement": "**手動存檔只保存當下啟用的模式**；想保留另一模式，須切換過去自行另存專案；關閉後未另存的模式暫存不恢復。DXF 只依目前啟用模式製造。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "tests/test_issue1460_quantity_model.py::test_project_persists_active_quantity_only"
+      ]
+    },
+    {
+      "id": "CPR-10",
+      "requirement": "**真正相同的料件合併成 1 份 DXF**，製造數量為該群料件的總數；不同開孔或其他影響加工的差異不得合併。 |",
+      "owner_issue": 1467,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1467_quantity_dxf_groups.py::test_same_outline_and_hole_count_cannot_hide_machining_differences"
+      ]
+    },
+    {
+      "id": "CPR-11",
+      "requirement": "每份合併的料件 DXF 要有**大寫 `Q` 加數字**，例如 `Q5`／`Q10`，在 **`CHECK` 圖層**，位置優先為料件中心。**禁止小寫 `q`**；不能寫入 `CUTTING` 或製造打標 `MARKING`。 |",
+      "owner_issue": 1468,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1468_quantity_check.py::test_uppercase_single_q_at_formal_center_and_parser_reopen"
+      ]
+    },
+    {
+      "id": "CPR-12",
+      "requirement": "`Q{加工片數}` 文字與孔洞／加工圖元衝突時**自動避讓**到可清楚閱讀位置，以中心優先；此動作只改檢查文字，不改切割、開孔、折線或打標幾何。 |",
+      "owner_issue": 1468,
+      "tests": [
+        "tests/test_issue1468_quantity_check.py::test_center_collision_deterministically_avoids_final_primitives",
+        "tests/test_issue1468_quantity_check.py::test_no_readable_space_fails_before_io_and_preserves_existing_bytes"
+      ]
+    },
+    {
+      "id": "CPR-13",
+      "requirement": "**受電箱數量模式**只處理**一個獨立單箱體／單 Bay 製造基準**；不採用、不轉換、不繼承切換前套／連的任意多套／多連組合；數量模式不提供多連製造。本模式可在記憶體切回原套／連模式而完整恢復其資料。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "CPR-14",
+      "requirement": "**每個孔型版本代表一組相同封頭／封尾 Features 的製作需求**，並有「該版本件數」正整數欄位，初始值 1；**總件數＝所有版本件數加總**，不是版本筆數。 |",
+      "owner_issue": 1460,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1460_quantity_model.py::test_counts_and_last_version_protection"
+      ]
+    },
+    {
+      "id": "CPR-15",
+      "requirement": "所有實際出現於單箱體正式 BOM 的物理板件，按其**每箱片數 × 該版本件數**累計；包括箱身各分件、背板、門、底板、其他既有板件與頂層自訂板件。自訂板件另有「每箱片數」正整數設定（建立預設 1；未納入箱體者不得虛構數量）。 |",
+      "owner_issue": 1466,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1466_quantity_bom.py::test_real_quantity_bom_30_plus_20_custom_100_and_read_only"
+      ]
+    },
+    {
+      "id": "CPR-16",
+      "requirement": "同一數量模式內各孔型版本**只允許封頭／封尾開孔／Feature 差異**。箱身、封頭／封尾外形與折法、W/H/D/T、Corner／Relief、組裝結構及其餘板件均引用共同箱體；若要不同外形或結構，必須建立另一個產品／專案，而非另增孔型版本。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1465_quantity_ui.py::test_quantity_classifier_rejects_shared_edits",
+        "tests/test_issue1463_receiving_modes.py::test_common_edits_share_all_versions_and_validate_unselected_anchor"
+      ]
+    },
+    {
+      "id": "CPR-17",
+      "requirement": "「＋」複製**目前選取版本**，新項**插在來源版本之後**並自動選取；「－」刪除目前選取版本，**每次刪除皆要求確認並可取消**；至少保留一個版本，stable ID 不得復用。合法件數修改**提交至當前編輯狀態即時更新**總件數／DXF Q 預覽，但**不等於 `.p6fold` 已存檔**。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save",
+        "tests/test_issue1460_quantity_model.py::test_insert_after_selection_deep_copy_and_delete_selection"
+      ]
+    },
+    {
+      "id": "CPR-18",
+      "requirement": "受電箱**首次建立數量模式單箱體**時，開啟 W／H／D 尺寸確認視窗；可預填受電箱 Family 正式預設 W800／H1600／D350 mm，但只有使用者明確確認有效尺寸才建立獨立單 Bay 基準與首筆孔型版本。不得從舊套／連任一 Bay／Joint 推論。切回 Session 既有數量模式或載入已存的數量模式專案直接恢復其尺寸。取消／非法輸入不得切換或改動原模式。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "tests/test_issue1463_receiving_modes.py::test_invalid_first_dimensions_leave_mode_and_every_buffer_unchanged"
+      ]
+    },
+    {
+      "id": "CPR-19",
+      "requirement": "**反向首次切換**：若載入的受電箱專案只有**數量模式**，而本次程式執行尚無套／連 Session buffer，首次切入套／連模式只能由明確確認的 W／H／D **新建獨立一套、一連**（1 Set × 1 Bay、0 Joint）；可預填受電箱 Family 正式預設 W800／H1600／D350 mm，禁止默默複製數量模式箱體／Features 或用已不存在的歷史 Bay 代替。取消／非法尺寸不切換、不修改數量模式。已存套／連專案或本次 Session 已有合法套／連暫存時直接恢復，不重建。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "tests/test_issue1463_receiving_modes.py::test_quantity_only_reload_requires_reverse_confirmation_and_saves_no_inactive_mode"
+      ]
+    },
+    {
+      "id": "CPR-20",
+      "requirement": "受電箱數量模式需有**共用箱體設定**（所有孔型版本共同引用），至少提供 W／H／D、背板形式、內門層數，以及既有單箱體會影響 BOM／製造的合法共同設定入口（含開關品牌等適用項）。新建時背板形式 `FULL`、內門層數 `1`、品牌 `士林` 依現有正式預設初始化；其他設定遵守相應 Family authority／正規化，不從切換前任一 Bay 複製。W/H/D 在首次確認後仍可修改；共同變更作用於**所有版本**並重新驗證 Features／BOM，不能形成逐版本外形差異。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1463_receiving_modes.py::test_real_gui_cancel_switch_common_edit_and_active_only_save",
+        "tests/test_issue1463_receiving_modes.py::test_common_edits_share_all_versions_and_validate_unselected_anchor"
+      ]
+    },
+    {
+      "id": "AC-01",
+      "requirement": "受電箱在套／連視窗選取與高亮。 | 只有 2D overlay 更新；等價 state 全量 geometry calc=0／DXF reread=0。 |",
+      "owner_issue": 1461,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "AC-02",
+      "requirement": "先不選修改項目就點 2D 孔位。 | 不進入編輯選取／不提交正式資料。 |",
+      "owner_issue": 1461,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "tests/test_issue1461_receiving_2d_settings.py::test_two_dimensional_preview_gates_selection_and_reuses_canonical_artists"
+      ]
+    },
+    {
+      "id": "AC-03",
+      "requirement": "受電箱由套／連切數量、再切回套／連。 | 前一模式在本次程式執行內完整回復，兩模式不混用。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "AC-04",
+      "requirement": "切到數量模式 Save→重啟→Reload。 | 只還原數量模式；未另存套／連暫存不還原。另將套／連另存則可獨立恢復。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "AC-05",
+      "requirement": "選版本 1 後連按 `＋` 新增兩版，修改第二版封頭 Feature 與第三版件數。 | 每次複製**當前選取版本**、新項插於來源後並自動選取、Feature deep copy 不連動；各版件數獨立，總件數精確反映加總。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save",
+        "tests/test_issue1460_quantity_model.py::test_insert_after_selection_deep_copy_and_delete_selection"
+      ]
+    },
+    {
+      "id": "AC-06",
+      "requirement": "新增自訂板件、選 X 或 Y、輸入另一方向尺寸。 | 頂層身份穩定、合法 Fold Profile 和尺寸正確，可存檔及生成真 2D／3D／DXF。 |",
+      "owner_issue": 1464,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1464_custom_manufacturing.py::test_outside_mapping_axis_precision_real_scene_mesh_dxf"
+      ]
+    },
+    {
+      "id": "AC-07",
+      "requirement": "同一箱身 5 件，封頭 A 3 件、B 2 件。 | 箱身 1 份 `Q5`，封頭 A 1 份 `Q3`、B 1 份 `Q2`；封尾依實際等價分組。 |",
+      "owner_issue": 1467,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom"
+      ]
+    },
+    {
+      "id": "AC-08",
+      "requirement": "相同外框但孔位／折彎／材質不同。 | 不合併為同一 DXF。 |",
+      "owner_issue": 1467,
+      "tests": [
+        "tests/test_issue1467_quantity_dxf_groups.py::test_same_outline_and_hole_count_cannot_hide_machining_differences"
+      ]
+    },
+    {
+      "id": "AC-09",
+      "requirement": "正中心有孔、切割線、既有檢查註記。 | 大寫 Q 自動避讓、CHECK 層；切割與工藝幾何未變。 |",
+      "owner_issue": 1468,
+      "tests": [
+        "tests/test_issue1468_quantity_check.py::test_center_collision_deterministically_avoids_final_primitives"
+      ]
+    },
+    {
+      "id": "AC-10",
+      "requirement": "DXF 輸出後用 CAD parser reopen。 | 每群只有一份檔；Q 大寫且數值與實際群件數一致，沒有小寫 q 與重複 Q。 |",
+      "owner_issue": 1468,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1468_quantity_check.py::test_staged_q_corruption_never_replaces_existing_dxf"
+      ]
+    },
+    {
+      "id": "AC-11",
+      "requirement": "舊 `.p6fold` 金庫型與受電箱專案開啟。 | 原箱身、封頭尾 Feature、套／連關係與畫面操作無損；非受電箱舊檔有效視為一版、件數 1，受電箱維持套／連。 |",
+      "owner_issue": 1460,
+      "tests": [
+        "tests/test_issue1460_quantity_model.py::test_legacy_project_becomes_one_version_without_losing_holes",
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "AC-12",
+      "requirement": "快速切換設定、取消／套用後立即 Save 與 DXF。 | 只有已提交 active state 進入製造；無 stale geometry、暫存洩漏。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1463_receiving_modes.py::test_real_gui_cancel_switch_common_edit_and_active_only_save",
+        "tests/test_issue1463_receiving_modes.py::test_invalid_unselected_feature_blocks_before_manufacturing_cache_lookup"
+      ]
+    },
+    {
+      "id": "AC-13",
+      "requirement": "**非受電箱**孔型版本 1／2／3 的封頭／封尾 Feature 互不相同，Save→關閉→Reload。 | active mode 與每個孔型版本的 stable ID、獨立孔位、anchor、2D 與 DXF 一致；無引用互相覆寫。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save",
+        "tests/test_issue1460_quantity_model.py::test_three_distinct_versions_save_reload_and_unsaved_count"
+      ]
+    },
+    {
+      "id": "AC-14",
+      "requirement": "舊版**非受電箱** `.p6fold` 沒有任何孔型版本／件數欄位。 | 載入時以相容投影視為**一個孔型版本、該版本件數 1**；不應臆造 2+ 項，舊 Feature 完整保留。 |",
+      "owner_issue": 1460,
+      "tests": [
+        "tests/test_issue1460_quantity_model.py::test_legacy_project_becomes_one_version_without_losing_holes"
+      ]
+    },
+    {
+      "id": "AC-15",
+      "requirement": "舊版**受電箱** `.p6fold` 沒有孔型版本／件數欄位。 | 仍載入既有**套／連模式**且配置無損；不得被非受電箱 N=1 相容規則擅自改成數量模式。人工切入數量模式時必須先**明確確認 W/H/D**，之後才建立**獨立單箱體**一筆孔型版本、件數 1，不能帶入前一模式的 Bay 尺寸或 Joint。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "AC-16",
+      "requirement": "受電箱已編輯 2 套／3 連，切到數量模式並修改孔位，再切回。 | 作用中模式與記憶體暫存互不污染；所有未另存數量資料重啟後不復原；各自 Save As 的專案獨立。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "AC-17",
+      "requirement": "10 個相同箱體的背板、門、底板及頂層自訂板件都存在；另有多片箱身。 | 按正式 BOM 每箱片數 × 版本件數逐個計算真實 physical part 的 `Q`；自訂板件每箱片數設定可 Save→Reload、不得遺漏。 |",
+      "owner_issue": 1466,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1466_quantity_bom.py::test_real_quantity_bom_30_plus_20_custom_100_and_read_only"
+      ]
+    },
+    {
+      "id": "AC-18",
+      "requirement": "修改共用 W/H/D，孔型版本 1／2 有不同 Anchor／offset 孔位。 | 重新以新 reference guide 解析，每項孔位正確；超界孔明確報錯、不暗移、不輸出不合法 DXF。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1463_receiving_modes.py::test_common_edits_share_all_versions_and_validate_unselected_anchor",
+        "tests/test_issue1463_receiving_modes.py::test_real_gui_cancel_switch_common_edit_and_active_only_save"
+      ]
+    },
+    {
+      "id": "AC-19",
+      "requirement": "選中間版本進行 `＋`、`－`；分別驗證**已存檔**版本和**有未存檔差異**的版本，並測試刪除時按取消。 | 複製／刪除只作用於目前選取；新增插入來源緊後方且選取新項；**不論是否已存檔，每次刪除都需確認且可取消**；刪除後先選下方鄰項、無下方則選上方；stable ID 不重用；最少保留 1 版。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save"
+      ]
+    },
+    {
+      "id": "AC-20",
+      "requirement": "兩個孔型版本分別件數 6 和 4。 | 兩版總件數 10，共用箱身需求合併為 `Q10`，封頭不同孔型分開為 `Q6`／`Q4`，相同封尾也為 `Q10`；不硬產生 10 張同形 DXF。 |",
+      "owner_issue": 1468,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom"
+      ]
+    },
+    {
+      "id": "AC-21",
+      "requirement": "受電箱已編輯 2 套各 3 連，切數量模式後輸出，再切回原模式。 | 數量模式只用獨立單箱體；沒有多連 Joint／沒有 6 倍錯算；切回原套連時資料完全還原，兩模式分別另存互不滲漏。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "AC-22",
+      "requirement": "2 個孔型版本件數 30／20；選中版本 1 再 `＋`；把件數改為 7、輸入 0／負數／小數、刪至僅 1 版。 | UI 明示**版本數**與**總件數**；`＋` 新項件數預設 1 且插在選取版本之後並自動選取，件數必須正整數；不可刪至 0 版；輸出 Q 隨合法件數變更。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save"
+      ]
+    },
+    {
+      "id": "AC-23",
+      "requirement": "2 版本件數合計 50、自訂加強板每箱 2 片；Save→Reload→DXF。 | 自訂板件保持頂層與 BOM 身份，若幾何完全相同則加強板只輸出一張 DXF、`CHECK` 大寫 `Q100`；其他板件按真實每箱片數獨立統計。 |",
+      "owner_issue": 1466,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom"
+      ]
+    },
+    {
+      "id": "AC-24",
+      "requirement": "試圖在孔型版本 2 獨自修改封頭外形／折法／W/H/D，與修改版本 2 封頭 Features 對照。 | 前者不得產生逐版本獨立板形；共用箱體外形只能一次共同提交，後者只覆寫版本 2 的 Feature；Save→Reload 保持一致。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1465_quantity_ui.py::test_quantity_classifier_rejects_shared_edits",
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save"
+      ]
+    },
+    {
+      "id": "AC-25",
+      "requirement": "由只有 2 套／3 連 Receiving layout 的舊專案首次切入數量模式，打開尺寸確認後取消、輸入 0／空白／非法 W/H/D、再輸入 W=900／H=1700／D=400 並確認。 | 取消／非法輸入不切換、不建立版本、不修改舊套／連；合法明確確認後建立**單一**獨立箱體與一筆件數 1 的孔型版本。尺寸採確認的 900／1700／400，不能偷偷用 2 套任一 Bay 或 Family 預設。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "tests/test_issue1463_receiving_modes.py::test_invalid_first_dimensions_leave_mode_and_every_buffer_unchanged"
+      ]
+    },
+    {
+      "id": "AC-26",
+      "requirement": "先確認一個非預設 W/H/D 的數量模式，切回套／連又切回數量模式；另存數量模式，關閉後開啟該檔。 | 同 Session 切回無須再次輸入、W/H/D 與 Feature／件數完整恢復；已存檔 Reload 精確讀回所保存尺寸，不再被預填預設覆蓋；未另存模式的資料在重啟後不恢復。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom"
+      ]
+    },
+    {
+      "id": "AC-27",
+      "requirement": "某孔型版本原件數 4，編輯為 7 並確定但尚未手動 Save；刪除另一版本時取消、再確認。 | 件數 7 **立即生效於目前編輯狀態**的總件數與 Q 預覽，但讀取未更新的舊磁碟檔仍為 4；刪除操作每次先確認，取消時編輯狀態完全不變，確認刪除後只有 Save 才持久化。 |",
+      "owner_issue": 1465,
+      "tests": [
+        "tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save"
+      ]
+    },
+    {
+      "id": "AC-28",
+      "requirement": "由**僅保存數量模式**的受電箱 `.p6fold` 重新開啟，本次 Session 完全沒有套／連暫存，第一次要求切入套／連並明確確認 W900／H1700／D400。 | 先告知將新建獨立 1 套／1 連；確認前不變更 active mode；確認後建立**恰好 1 Set × 1 Bay、0 Joint**、尺寸正確，無數量版本孔位／件數洩漏；保存套／連再 Reload 得到同一基準。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    },
+    {
+      "id": "AC-29",
+      "requirement": "同 AC-28，但依序取消／關閉視窗、輸入 0／空白／負值／非法 W/H/D，再輸入有效尺寸確認。 | 取消與非法尺寸完全維持原數量模式的共用設定、所有版本／件數及未存檔編輯狀態，絕不產生偷存的 Set/Bay；有效確認後才完成切換。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile",
+        "tests/test_issue1463_receiving_modes.py::test_invalid_first_dimensions_leave_mode_and_every_buffer_unchanged"
+      ]
+    },
+    {
+      "id": "AC-30",
+      "requirement": "首次建立受電箱數量模式後進入 `[共用箱體設定]`，查看背板／內門／品牌預設；建立兩個版本再把背板改為半截、內門由 1 改 2、品牌改為合法選項。 | 初始背板 `FULL`、內門 1 層、品牌士林均來自現有預設；設定入口不依賴版本選取；合法變更對**兩個版本共用**，各版只有 head/tail Features／件數獨立。正式 BOM／Q 與 Save→Reload 正確且不遺失共同設定。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom",
+        "tests/test_issue1463_receiving_modes.py::test_real_gui_cancel_switch_common_edit_and_active_only_save"
+      ]
+    },
+    {
+      "id": "AC-31",
+      "requirement": "數量模式已建立兩個孔型版本後，在 `[共用箱體設定]` 改 W/H/D，再取消另一筆非法更改；其中一個版本含邊緣 Anchor／offset 開孔。 | 新尺寸合法確認後唯一共用箱體更新，兩個版本的 feature guide 均重新計算、UI／BOM／DXF 一致；違法尺寸及超界 Feature 不生成錯誤 DXF；取消不變更任何版本和已提交共同尺寸；未按 Save 的改動不寫入磁碟。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1463_receiving_modes.py::test_common_edits_share_all_versions_and_validate_unselected_anchor",
+        "tests/test_issue1463_receiving_modes.py::test_real_gui_cancel_switch_common_edit_and_active_only_save"
+      ]
+    },
+    {
+      "id": "AC-32",
+      "requirement": "同一 Session 已有合法**多套／多連**的套／連暫存，切數量模式後再切回套／連；與關閉後只讀入已保存數量模式而無套／連暫存的情境對照。 | 同 Session 必須原樣恢復原多套多連（含尺寸、品牌、背板、內門、Features／Joint），**不得誤重建 1×1**；重啟後無套／連暫存則僅能經 AC-28 首次初始化。兩種來源不得混淆。 |",
+      "owner_issue": 1463,
+      "tests": [
+        "tests/test_issue1469_v15_acceptance.py::test_real_legacy_multibay_session_restore_reverse_initialization_and_2d_profile"
+      ]
+    }
+  ]
+}

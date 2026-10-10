@@ -1,0 +1,152 @@
+{
+  "schema": "WHD_V15_CHILD_DELIVERY_READBACK_V1",
+  "repository": "looaeedr/whd",
+  "integration_target": "localX",
+  "formal_x_authorized": false,
+  "children": [
+    {
+      "issue": 1460,
+      "pr": 1473,
+      "base": "localX",
+      "head": "92f608b52e54ecc325c4a5af0fa53cbd457d3882",
+      "merged": true,
+      "merge_sha": "02d55f3f785c864ea1d3968ad992ba7821a674da",
+      "ci": [
+        {
+          "run": 37928181585,
+          "queried_head": "92f608b52e54ecc325c4a5af0fa53cbd457d3882",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "issue": 1461,
+      "pr": 1477,
+      "base": "localX",
+      "head": "0f2dde260b4d9880ef57c9a5b7fa71a53bfb4a68",
+      "merged": true,
+      "merge_sha": "6aa9cfeee489f60c5ca61315e4d965cd1564c438",
+      "ci": [
+        {
+          "run": 37936832106,
+          "queried_head": "0f2dde260b4d9880ef57c9a5b7fa71a53bfb4a68",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "issue": 1462,
+      "pr": 1478,
+      "base": "localX",
+      "head": "b719a8544168da30171c90c7cd573a6c16623496",
+      "merged": true,
+      "merge_sha": "c2d6ce836c6cf4bc5f46f4a1f7efde121bdef23b",
+      "ci": [
+        {
+          "run": 37941106576,
+          "queried_head": "b719a8544168da30171c90c7cd573a6c16623496",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "issue": 1463,
+      "pr": 1481,
+      "base": "localX",
+      "head": "ce8f2bb3fb2f2009153c727a6403ea5533c2744d",
+      "merged": true,
+      "merge_sha": "ce5942ecc6fa7e63046d0e5bb26a45b88f54461e",
+      "ci": [
+        {
+          "run": 37974824473,
+          "queried_head": "ce8f2bb3fb2f2009153c727a6403ea5533c2744d",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "issue": 1464,
+      "pr": 1482,
+      "base": "localX",
+      "head": "abb5dd8612050568458ab7831c232e79af485cc6",
+      "merged": true,
+      "merge_sha": "ffe87ae8db4e08ebcbc44547b7a6bb5e700071f2",
+      "ci": [
+        {
+          "run": 38002787911,
+          "queried_head": "abb5dd8612050568458ab7831c232e79af485cc6",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "issue": 1465,
+      "pr": 1486,
+      "base": "localX",
+      "head": "a643bf5d1f43c43cc60b1c6f428f0bc5110a9df9",
+      "merged": true,
+      "merge_sha": "39ebd709e991afcc8c60a510c5846a03a6669c3b",
+      "ci": [
+        {
+          "run": 38010421658,
+          "queried_head": "a643bf5d1f43c43cc60b1c6f428f0bc5110a9df9",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "issue": 1466,
+      "pr": 1487,
+      "base": "localX",
+      "head": "4ea30175cfccbfbf1324bec4167c3da4eb30f5bf",
+      "merged": true,
+      "merge_sha": "6d221b062eec1a941e878ef9f1f186d64e3a3fff",
+      "ci": [
+        {
+          "run": 38019570565,
+          "queried_head": "4ea30175cfccbfbf1324bec4167c3da4eb30f5bf",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "issue": 1467,
+      "pr": 1488,
+      "base": "localX",
+      "head": "4ee4babd88fbd2ee86ccf0cc609abdb6c1b6ae62",
+      "merged": true,
+      "merge_sha": "05f7454cbb41861e1fa6dde93746a97e158d1709",
+      "ci": [
+        {
+          "run": 38022506627,
+          "queried_head": "4ee4babd88fbd2ee86ccf0cc609abdb6c1b6ae62",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "issue": 1468,
+      "pr": 1505,
+      "base": "localX",
+      "head": "8d10107ee88585db376c11bdfa4505105f604fcc",
+      "merged": true,
+      "merge_sha": "068d51470b51e2ec7267f1f70632707dcf33234c",
+      "ci": [
+        {
+          "run": 38023704162,
+          "queried_head": "8d10107ee88585db376c11bdfa4505105f604fcc",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}
