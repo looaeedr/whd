@@ -928,6 +928,15 @@ def _open_common_box(self, namespace):
     from ae_engine.receiving_quantity_box import update_common_box, project_common_box, BOX_KEY
     from .command_router import _Phase6UpdateScheduler
     app = self.app
+    from ae_engine.receiving_quantity_box import normalize_common_box
+    # Do not construct a common box from unrelated Set/Bay values: the owner
+    # requires explicit quantity-mode initialization before any edit.
+    try:
+        box = normalize_common_box(_current_mode_snapshot(self, namespace).get(BOX_KEY))
+    except ValueError as exc:
+        from tkinter import messagebox
+        messagebox.showwarning("共用箱體尚未初始化", str(exc), parent=app.root)
+        return False
     listeners = []
     def change_common(changes):
         source = _current_mode_snapshot(self, namespace)
@@ -938,7 +947,7 @@ def _open_common_box(self, namespace):
     def dimensions(width, height, depth, door_columns=None):
         changes = {"w": width, "h": height, "d": depth}
         if door_columns is not None:
-            door = deepcopy(app._phase6_input_snapshot[BOX_KEY].get("door_state", {}))
+            door = deepcopy(box.get("door_state", {}))
             door["door_layout_columns"] = [[w, list(hs)] for w, hs in door_columns]
             changes["door_state"] = door
         change_common(changes)
@@ -959,7 +968,7 @@ def _open_common_box(self, namespace):
         return open_receiving_layer_preview(
             app.root, tk=tk, ttk=self._required(namespace, "original").ttk,
             layer_index=0, connection_count=1,
-            brand=app._phase6_input_snapshot[BOX_KEY]["switch_brand"],
+            brand=box["switch_brand"],
             render_request=request, preview_error=preview_error, settings_ports=ports,
             bay_request_provider=lambda: (_common_preview_request(self, namespace),),
             common_box=True,
