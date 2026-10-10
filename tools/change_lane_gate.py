@@ -13,6 +13,8 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.request import Request, urlopen
 
 from tools.localx_publish_gate import (
@@ -46,6 +48,93 @@ GOVERNANCE_EXACT_FILES = frozenset({
     "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
     "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
 })
+
+
+TAIWAN_ZONE = "Asia/Taipei"
+TAIWAN_OFFSET = timedelta(hours=8)
+# New-code source guard only: legacy timestamps must be migrated with targeted
+# product regression, not silently rewritten by a governance-only patch.
+_UNQUALIFIED_CLOCK = re.compile(
+    r"(?:\bdatetime\s*\.\s*(?:now|today|utcnow)\s*\(\s*\)"
+    r"|\.\s*astimezone\s*\(\s*\)"
+    r"|\btime\s*\.\s*localtime\s*\(\s*\))"
+)
+
+
+def require_taipei_timezone(env: dict | None = None) -> str:
+    """Block operators/CI that inherit host-local or UTC wall-clock time."""
+    source = os.environ if env is None else env
+    if source.get("TZ") != TAIWAN_ZONE:
+        raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:TZ_NOT_ASIA_TAIPEI")
+    try:
+        zone = ZoneInfo(TAIWAN_ZONE)
+        for month in (1, 7):
+            if datetime(2026, month, 1, tzinfo=zone).utcoffset() != TAIWAN_OFFSET:
+                raise ChangeLaneDenied(
+                    "TAIWAN_TIMEZONE_HARD_GATE_FAILED:INVALID_TAIPEI_OFFSET"
+                )
+        value = datetime.now(zone)
+        if value.utcoffset() != TAIWAN_OFFSET:
+            raise ChangeLaneDenied(
+                "TAIWAN_TIMEZONE_HARD_GATE_FAILED:ACTIVE_OFFSET_MISMATCH"
+            )
+    except ZoneInfoNotFoundError as exc:
+        raise ChangeLaneDenied(
+            "TAIWAN_TIMEZONE_HARD_GATE_FAILED:TIMEZONE_DATABASE_UNAVAILABLE"
+        ) from exc
+    return value.isoformat(timespec="seconds")
+
+
+def human_timestamp_taipei(value: datetime) -> str:
+    """Convert valid instants for reports; reject timezone-naive input."""
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+        raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:NAIVE_TIMESTAMP")
+    try:
+        result = value.astimezone(ZoneInfo(TAIWAN_ZONE))
+    except ZoneInfoNotFoundError as exc:
+        raise ChangeLaneDenied(
+            "TAIWAN_TIMEZONE_HARD_GATE_FAILED:TIMEZONE_DATABASE_UNAVAILABLE"
+        ) from exc
+    return result.isoformat(timespec="seconds")
+
+
+def require_new_code_taipei(repo_root: Path, base_sha: str, head_sha: str) -> int:
+    """Reject newly added host-local clock calls in PR Python implementation.
+
+    Existing historical code is not changed or blocked until that line is
+    edited. UTC transport fields remain valid with explicit awareness;
+    human-facing formatting is governed by the operator contract.
+    """
+    for sha in (base_sha, head_sha):
+        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:INVALID_SHA")
+    try:
+        patch = subprocess.run(
+            ["git", "diff", "--unified=0", "--no-ext-diff",
+             f"{base_sha}...{head_sha}", "--", "*.py"],
+            cwd=repo_root, capture_output=True, check=True,
+        ).stdout.decode("utf-8", "strict")
+    except (OSError, UnicodeError, subprocess.CalledProcessError) as exc:
+        raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:DIFF_UNREADABLE") from exc
+    path = ""
+    checked = 0
+    for line in patch.splitlines():
+        if line.startswith("+++ b/"):
+            path = line[6:]
+        elif line.startswith("+") and not line.startswith("+++"):
+            # Test fixtures frequently *quote* prohibited syntax; production
+            # code is the enforced part of this migration-safe source guard.
+            if path.startswith(("tests/", "BACKUP/")):
+                continue
+            added = line[1:].strip()
+            if added.startswith("#"):
+                continue
+            checked += 1
+            if _UNQUALIFIED_CLOCK.search(added):
+                raise ChangeLaneDenied(
+                    "TAIWAN_TIMEZONE_HARD_GATE_FAILED:HOST_LOCAL_CLOCK:" + path
+                )
+    return checked
 
 
 class ChangeLaneDenied(ValueError):
@@ -255,12 +344,17 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, required=True)
     opts = parser.parse_args()
     try:
+        # Always enforce zone before evaluating governance/product publishing.
+        require_taipei_timezone()
         event = json.loads(opts.event_file.read_text(encoding="utf-8"))
         pr = event.get("pull_request") or {}
         paths = changed_paths_between(
             opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
         )
         lane = classify_changes(paths)
+        checked = require_new_code_taipei(
+            opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
+        )
         comments = None
         if lane != "GOVERNANCE_DIRECT_X":
             comments = _comments(
@@ -268,6 +362,8 @@ def main() -> int:
                 os.environ.get("GITHUB_TOKEN", ""),
             )
         result = evaluate_pr(event=event, changed_paths=paths, comments=comments)
+        result["timezone"] = TAIWAN_ZONE
+        result["new_python_lines_checked"] = checked
         if lane != "GOVERNANCE_DIRECT_X":
             # Trusted X workflow gate: allow X to be ahead of localX only
             # when *every* X-only commit is pure non-product governance.

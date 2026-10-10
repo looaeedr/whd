@@ -1,0 +1,34 @@
+{
+  "schema": "WHD_TAIPEI_TIMEZONE_HARD_GATE_V1",
+  "status": "ACTIVE",
+  "authority": "AGENTS.md#TAIWAN_TIMEZONE_HARD_GATE_V1",
+  "timezone": "Asia/Taipei",
+  "utc_offset": "+08:00",
+  "display_locale": "zh-TW",
+  "applies_to": [
+    "ChatGPT_and_Agent_status",
+    "GitHub_issue_and_PR_human_text",
+    "CI_operator_reports",
+    "scheduling_and_recurrence",
+    "release_artifact_naming",
+    "human_readable_runtime_diagnostics"
+  ],
+  "hard_requirements": [
+    "Explicitly anchor all human-facing wall-clock timestamps to Asia/Taipei; use RFC3339 offset +08:00 or label Asia/Taipei",
+    "Resolve today/tomorrow/date boundaries and recurring clock hours in Asia/Taipei",
+    "Require CI process TZ=Asia/Taipei and fail closed on mismatch",
+    "Do not introduce timezone-naive datetime.now/today/utcnow or localtime without explicit timezone",
+    "Convert API UTC timestamps to Asia/Taipei before rendering for humans"
+  ],
+  "exceptions": [
+    "GitHub/API event timestamps, Unix epoch, UTC transport, and Git storage remain their defined canonical wire formats; convert at human-facing boundaries without rewriting evidence",
+    "External API-required UTC-only cron/runners may encode the Taiwan clock as calculated UTC, but all authoring, documentation and displayed schedule values must be Asia/Taipei"
+  ],
+  "fail_closed_reason": "TAIWAN_TIMEZONE_HARD_GATE_FAILED",
+  "no_implied_behavior": [
+    "Do not rewrite historical stored timestamps",
+    "Do not adjust geometry or product manufacturing calculations",
+    "Do not silently re-time existing external scheduled tasks; migrate only with explicit task-level validation"
+  ],
+  "version": 1
+}
