@@ -41,34 +41,11 @@ def build_mode_controls(parent, *, on_switch, on_common, quantity_ports):
 
 
 def ask_initial_dimensions(parent, target):
-    """Closing or cancelling returns None without invoking any commit callback."""
-    win = tk.Toplevel(parent)
-    win.title("初始化數量模式" if target == "quantity" else "初始化套／連模式")
-    win.transient(parent)
-    explanation = ("建立獨立單箱體與首筆孔型版本" if target == "quantity"
-                   else "建立獨立 1 套 × 1 連、0 Joint")
-    ttk.Label(win, text=explanation + "\n請確認 W/H/D（初值來自受電箱 Family 預設）").pack(padx=12, pady=10)
-    form = ttk.Frame(win, padding=12)
-    form.pack()
-    values = {}
-    for row, axis in enumerate(("w", "h", "d")):
-        ttk.Label(form, text=axis.upper()).grid(row=row, column=0, sticky="w")
-        values[axis] = tk.StringVar(master=win, value=str(BOX_BODY_DEFAULTS[axis]))
-        ttk.Entry(form, textvariable=values[axis], width=12).grid(row=row, column=1, padx=6, pady=3)
-    result = []
-    def confirm():
-        from ae_engine.receiving_quantity_box import positive_dimension
-        try:
-            dimensions = {axis: positive_dimension(var.get(), axis) for axis, var in values.items()}
-        except ValueError as exc:
-            messagebox.showwarning("尺寸未確認", str(exc), parent=win)
-            return
-        result.append(dimensions)
-        win.destroy()
-    buttons = ttk.Frame(win, padding=10)
-    buttons.pack(fill=tk.X)
-    ttk.Button(buttons, text="取消", command=win.destroy).pack(side=tk.RIGHT)
-    ttk.Button(buttons, text="確認", command=confirm).pack(side=tk.RIGHT, padx=6)
-    win.grab_set()
-    parent.wait_window(win)
-    return result[0] if result else None
+    """Legacy compatibility only: return Family defaults, never open a dialog.
+
+    Fresh Receiving Set/Bay or Quantity sessions must use one deterministic
+    800 x 1600 x 350 default. No UI initialization/confirmation is allowed.
+    """
+    if target not in {"quantity", "set_bay"}:
+        raise ValueError("不合法的受電箱操作模式")
+    return {key: int(BOX_BODY_DEFAULTS[key]) for key in ("w", "h", "d")}
