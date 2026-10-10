@@ -75,7 +75,8 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
 
 
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
-                        resize_connections, select_bay=None):
+                        resize_connections, select_bay=None,
+                        on_setting_selected=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -138,6 +139,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # choices; only the 2D canvas is anchored to the lower-right corner.
     rows_host.grid(row=1, column=0, sticky="nw",
                    padx=16, pady=(0, 16))
+    # The retained per-bay setting categories live directly below the
+    # Set/Bay controls. Selection has no implicit edit or popup side effect.
+    actions_host = ttk.Frame(rows_host)
+    actions_host.pack(anchor="w")
+    setting_list = tk.Listbox(
+        rows_host, height=3, width=16, selectmode=tk.BROWSE,
+        exportselection=False, activestyle="dotbox",
+    )
+    for label in ("封頭", "封尾", "內門"):
+        setting_list.insert(tk.END, label)
+    setting_list.pack(anchor="w", pady=(6, 0))
+    setting_kind = {"封頭": "head_features",
+                    "封尾": "tail_features",
+                    "內門": "inner_door_layers"}
+    selected_setting = {"set_index": None, "bay_index": None, "kind": None}
 
     def warn(exc):
         messagebox.showwarning("多只設定", str(exc), parent=win)
@@ -155,13 +171,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         paint_connected_bays(canvas, count, selected)
 
     def refresh_rows():
-        for widget in rows_host.winfo_children():
+        for widget in actions_host.winfo_children():
             widget.destroy()
         if mode_var.get() != "set_bay":
+            setting_list.pack_forget()
             return
+        if not setting_list.winfo_manager():
+            setting_list.pack(anchor="w", pady=(6, 0))
         for index, raw_count in enumerate(tuple(get_switch().connection_counts())):
             count = max(1, int(raw_count))
-            row = ttk.Frame(rows_host)
+            row = ttk.Frame(actions_host)
             row.pack(anchor="w", pady=2)
             ttk.Label(row, text=f"第{index + 1}套").pack(side="left", padx=(0, 10))
             ttk.Button(row, text="＋連", command=lambda i=index: resize(i, 1)).pack(
@@ -174,6 +193,31 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 side="left", padx=(0, 3))
             ttk.Button(row, text="套用", command=lambda i=index: apply(i)).pack(
                 side="left")
+
+    def select_setting(_event=None):
+        indices = setting_list.curselection()
+        if not indices or mode_var.get() != "set_bay":
+            return
+        label = str(setting_list.get(indices[0]))
+        set_index = applied["set_index"]
+        if set_index is None:
+            set_index = 0
+        bay_index = applied["selected"]
+        if bay_index is None:
+            bay_index = 0
+        kind = setting_kind[label]
+        try:
+            # Read/choose the ORIGINAL Set/Bay setting owner; do not replace
+            # a Hole Editor with a fake feature editor in this window.
+            if on_setting_selected is not None:
+                on_setting_selected(set_index, bay_index, kind)
+            selected_setting.update(
+                set_index=set_index, bay_index=bay_index, kind=kind
+            )
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
+    setting_list.bind("<<ListboxSelect>>", select_setting)
 
     def resize(index, delta):
         try:
@@ -195,6 +239,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             count = max(1, int(counts[index]))
             applied.update(mode="set_bay", set_index=index,
                            count=count, selected=0)
+            selected_setting.update(set_index=None, bay_index=None, kind=None)
+            setting_list.selection_clear(0, tk.END)
             if select_bay is not None:
                 select_bay(index, 0)
             render()
@@ -211,6 +257,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     if select_bay is not None:
                         select_bay(applied["set_index"], index)
                     applied["selected"] = index
+                    if selected_setting["kind"] is not None:
+                        if on_setting_selected is not None:
+                            on_setting_selected(applied["set_index"], index,
+                                                selected_setting["kind"])
+                        selected_setting.update(
+                            set_index=applied["set_index"], bay_index=index
+                        )
                     render()
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
@@ -226,6 +279,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             applied["mode"] = target
             if target == "quantity":
                 applied.update(set_index=None, selected=None, count=1)
+                selected_setting.update(
+                    set_index=None, bay_index=None, kind=None
+                )
+                setting_list.selection_clear(0, tk.END)
             refresh_rows()
             render()
         except (ValueError, IndexError, RuntimeError) as exc:
@@ -245,7 +302,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # Test hooks are presentation state only, not product data authority.
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
-    win._receiving_multi_rows_host = rows_host
+    win._receiving_multi_rows_host = actions_host
+    win._receiving_multi_setting_list = setting_list
+    win._receiving_multi_selected_setting = selected_setting
     win._receiving_multi_canvas = canvas
     win._receiving_multi_applied = applied
     win._receiving_multi_refresh = refresh_rows
