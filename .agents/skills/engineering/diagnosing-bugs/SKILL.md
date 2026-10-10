@@ -165,22 +165,13 @@ When the user corrects the diagnosis, clarifies a product rule, or identifies a 
 - Keep transient run IDs, temporary measurements, and one-off progress out of durable knowledge unless they establish a reusable rule.
 - Re-read the remote file after writing so the update is proven durable.
 
-## Root-local-first write gate
+## WHD bug-fix execution and delivery boundary
 
-For WHD bug-fix work, repository-content routing follows CURRENT `root-local-first`:
+本 Skill 只提供診斷與 RED→GREEN 方法，**不會授權 DC／本機施工**。每次修復依正式 X `AGENTS.md` 判斷：
 
-1. Resolve the executor-local repo workspace and fresh `cleanup/2d-3d-sync` baseline.
-2. Reproduce RED in that workspace; modify production/tests/docs there.
-3. Classify tests through `WHD_CHANGE_TEST_PROFILE_V1`; finish targeted + required full gate in the same workspace.
-4. Capture the exact tested diff and fresh-read target/touched paths.
-5. Normal route=`WORKSPACE_DEFAULT`: create a tested delivery branch, push, PR, required checks, merge/readback. The user's explicit exact repository-content task may mint one same-scope `WORKSPACE_DELIVERY` authority through QA/finalization.
-6. Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 同一 exact user-authorized task 可沿 WORKSPACE_DELIVERY 完成 delivery/readback。
-7. Remote QA is post-push verification; failure returns to the same authoring route for correction/retest.
+1. `/派工`：由 GitHub／排程／雲端執行器完成 BUILD／TEST／COMMIT／PR／CI，PR base=`localX`；只有 exact HEAD CI SUCCESS 後的 `LOCALX_INTEGRATION` 可依規定透過 DC 做本機 `localX` 最終合併／必要驗證／同步，不可用來修改產品；DC 真正無法連線的備援必須註明 `LOCALX_SYNC_PENDING`。
+2. `/接手`：僅使用者當次明確指示，才允許 RC → `whd-dev:/workspace/whd` 的產品施工、測試與交付。
+3. 純非產品治理／技能／治理專用測試：依受信任 `tools/change_lane_gate.py` 分流，優先 GitHub／雲端治理分支直接 PR／CI 合併 X；未經當次明確授權不得使用 DC 或使用者本機。產品、未知或混合變更走 `localX`，正式 X 的產品發布仍需當次 `/推推`。
+4. 每次記錄診斷重現證據、規格來源、source/tested SHA、exact diff、適用測試及最終回讀。CI 失敗必須回到合法施工路線修復並重新驗證新 SHA；target/touched-path drift 應重驗。
+5. 舊 `WORKSPACE_DELIVERY`、Drive/shared-zero、claim／lease／工作槽及 `FINALIZE` 交易要求已退役，不能當作啟動或交付前置；更不能以此放寬平台安全審查。不得直接 patch 正式 X 或 `main`。
 
-Hard rules:
-- Never patch `cleanup/2d-3d-sync` / `main` directly.
-- Missing Drive mount is not a blocker for `WORKSPACE_DEFAULT`.
-- Do not invent shared-0 drift merely because the old workflow mentioned Drive.
-- Retired shared-zero data never changes the CURRENT workspace route.
-- Target drift across touched paths requires fresh baseline + retest before delivery.
-- Small/docs-only bug corrections use the same workspace-first router.
