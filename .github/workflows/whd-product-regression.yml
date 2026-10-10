@@ -24,59 +24,75 @@ on:
       - 'docs/superpowers/checkpoints/issue532-c0-final-classification.json'
       - '.github/workflows/whd-product-regression.yml'
 
+env:
+  TZ: Asia/Taipei
+
 permissions:
   contents: read
   checks: read
   pull-requests: read
 
+
 jobs:
-  product-regression:
-    name: Canonical Product Regression
+  prepare:
+    name: Product Regression Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      reuse: ${{ steps.green-reuse.outputs.reuse }
+    steps:
+      - name: Checkout exact PR candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify Asia/Taipei CI timezone
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$TZ" = 'Asia/Taipei'
+          python - <<'PY'
+          import os
+          assert os.environ["TZ"] == "Asia/Taipei"
+          print("TAIWAN_TIMEZONE_HARD_GATE_PASS")
+          PY
+      - name: Revalidate prior GREEN after target drift
+        id: green-reuse
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/product_ci_green_reuse.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --head-sha "${{ github.event.pull_request.head.sha }" \
+            --base-sha "${{ github.event.pull_request.base.sha }"
+
+  test-shard:
+    name: Product Shard (${{ matrix.shard })
+    needs: prepare
+    if: needs.prepare.outputs.reuse != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
       - name: Checkout exact PR candidate
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }
           fetch-depth: 0
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Revalidate prior GREEN after target drift
-        id: green-reuse
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          python tools/product_ci_green_reuse.py \
-            --repo "${GITHUB_REPOSITORY}" \
-            --head-sha "${{ github.event.pull_request.head.sha }}" \
-            --base-sha "${{ github.event.pull_request.base.sha }}"
-
-      - name: Record reused GREEN evidence
-        if: steps.green-reuse.outputs.reuse == 'true'
-        shell: bash
-        run: |
-          {
-            echo "## Canonical Product Regression"
-            echo
-            echo "**GREEN_REUSED_NO_RETEST**"
-            echo
-            echo 'Prior exact candidate GREEN was revalidated against the new production X base.'
-            echo 'Candidate patch identity is unchanged, target drift is path-disjoint, and no dependency/test-contract impact was detected.'
-            echo
-            echo 'Evidence:'
-            echo '~~~json'
-            echo '${{ steps.green-reuse.outputs.evidence }}'
-            echo '~~~'
-          } >> "${GITHUB_STEP_SUMMARY}"
-
       - name: Install product test dependencies
-        if: steps.green-reuse.outputs.reuse != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -84,8 +100,86 @@ jobs:
           sudo apt-get install -y -qq xvfb
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib ezdxf
-
-      - name: Run canonical root/CI product regression
-        if: steps.green-reuse.outputs.reuse != 'true'
+      - name: Run exact canonical regression shard
         shell: bash
-        run: python tools/product_ci_regression.py
+        run: |
+          set -euo pipefail
+          python tools/product_ci_regression.py \
+            --shard-count 3 \
+            --shard-index "${{ matrix.shard }" \
+            --junit-out "shard-${{ matrix.shard }.xml"
+      - name: Publish shard JUnit for mandatory full acceptance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-ci-shard-${{ matrix.shard }
+          path: shard-${{ matrix.shard }.xml
+          if-no-files-found: error
+          retention-days: 7
+
+  product-regression:
+    name: Canonical Product Regression
+    needs: [prepare, test-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fail closed on missing preflight or shard GREEN
+        shell: bash
+        env:
+          PREFLIGHT_RESULT: ${{ needs.prepare.result }
+          REUSE: ${{ needs.prepare.outputs.reuse }
+          SHARDS_RESULT: ${{ needs.test-shard.result }
+        run: |
+          set -euo pipefail
+          test "$PREFLIGHT_RESULT" = success
+          if [ "$REUSE" = true ]; then
+            test "$SHARDS_RESULT" = skipped
+            echo 'GREEN_REUSED_NO_RETEST — target drift evidence validated'
+          else
+            test "$SHARDS_RESULT" = success
+            echo 'ALL_THREE_SHARDS_GREEN — verifying combined canonical CPR/AC'
+          fi
+      - name: Checkout exact PR candidate for acceptance verification
+        if: needs.prepare.outputs.reuse != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }
+          fetch-depth: 0
+      - name: Set up Python for CPR/AC verifier
+        if: needs.prepare.outputs.reuse != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install collection and acceptance dependencies
+        if: needs.prepare.outputs.reuse != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Fetch every successful shard JUnit
+        if: needs.prepare.outputs.reuse != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: whd-ci-shard-*
+          path: junit
+          merge-multiple: true
+      - name: Merge and verify every canonical case and all 52 CPR/AC rows
+        if: needs.prepare.outputs.reuse != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/product_ci_regression.py \
+            --shard-count 3 \
+            --merge-junit junit/shard-0.xml \
+            --merge-junit junit/shard-1.xml \
+            --merge-junit junit/shard-2.xml \
+            --junit-out combined-canonical-regression.xml
+      - name: Publish fully verified canonical JUnit
+        if: needs.prepare.outputs.reuse != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-canonical-complete-junit
+          path: combined-canonical-regression.xml
+          if-no-files-found: error
+          retention-days: 7
