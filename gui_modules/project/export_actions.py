@@ -137,7 +137,12 @@ def _export_selected_resolved_parts(self, folder, flags):
         return None
 
     workspace = getattr(designer, "designer_workspace", None)
-    if workspace is not None and workspace.snapshot().get("active_mode") == "quantity":
+    from phase6_quantity_model import normalize_quantity_snapshot
+    # Family switches may retain a workspace quantity seed. The canonical
+    # input's existing migration rule owns legacy Receiving mode selection.
+    mode_source = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+    active_mode = normalize_quantity_snapshot(mode_source)["active_mode"]
+    if workspace is not None and active_mode == "quantity":
         from phase6_manufacturing_adapter import (
             build_manufacturing_request, build_scene_payload_for_app,
             operator_finished_dimensions_for_app,
