@@ -109,6 +109,26 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("HISTORICAL／不可執行", reference)
         self.assertNotIn("## 已核准規格拆工單 fast path — CURRENT", reference)
 
+    def test_retired_scheduler_simulation_is_not_an_active_skill_route(self):
+        import json
+        from tools.phase6_skill_preflight import required_skills_for
+
+        registry = json.loads(
+            (ROOT / ".agents/skills/skill_registry.json").read_text("utf-8")
+        )
+        self.assertFalse(any(r["id"] == "scheduler-simulation" for r in registry["routes"]))
+        matches = [r for r in registry["routes"] if r["id"] == "scheduler-command-reference"]
+        self.assertEqual(len(matches), 1)
+        route = matches[0]
+        self.assertEqual(route["file_globs"], [])
+        self.assertEqual(route["required_skills"], [])
+        self.assertEqual(route["keywords"], ["/排程A", "/排程B", "排程A", "排程B"])
+        for task in ("/排程A", "/排程B"):
+            selected = set(required_skills_for(task=task))
+            self.assertNotIn("排程模擬", selected)
+            self.assertNotIn("寫排程", selected)
+            self.assertNotIn("root-local-first", selected)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
