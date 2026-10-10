@@ -18,8 +18,12 @@ def test_front_elevation_uses_assembled_world_offsets_and_hole_outline():
     hole_material = box(0, 0, 100, 70).difference(Point(45, 35).buffer(7, resolution=12))
     scene = DrawingScene()
     data = PartRenderData(scene=scene, material=hole_material)
-    left = AssemblyScenePart("door:left", data, (), (), offset=(0, 0, 0))
-    right = AssemblyScenePart("door:right", data, (), (), offset=(180, 0, 0))
+    # Real formed mesh uses profile lengths; absent profiles are only a 1x1
+    # compatibility fallback and cannot represent this 100x70 holed sheet.
+    xp = ({"len": 100, "core": "W"},)
+    yp = ({"len": 70, "core": "H"},)
+    left = AssemblyScenePart("door:left", data, xp, yp, offset=(0, 0, 0))
+    right = AssemblyScenePart("door:right", data, xp, yp, offset=(180, 0, 0))
     request = FinalSceneViewRequest(
         AssemblySceneRenderData((left, right)), (), (), "assembly",
         finished_dimensions=(300, 200, 80))
