@@ -455,7 +455,7 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
             win._receiving_multi_notebook.select()) == 0
         controls = win._receiving_multi_controls
         texts = _mapped_widget_texts(controls.frame)
-        for expected in ("開關", "－套", "＋套", "第1套", "1連", "－連", "＋連", "設定"):
+        for expected in ("開關", "－套", "＋套", "第1套", "1連", "－連", "＋連", "套用"):
             assert expected in texts, f"multi-settings missing {expected!r}; got={texts!r}"
         assert not any("Layer" in text or "Connection" in text for text in texts), texts
         win.destroy()
