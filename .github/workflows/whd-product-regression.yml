@@ -50,16 +50,33 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verify Asia/Taipei CI timezone
+      - name: Checkout trusted production timezone policy
+        uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          path: trusted-timezone-policy
+          persist-credentials: false
+      - name: Load trusted production timezone guard for pre-publish candidate
         shell: bash
         run: |
           set -euo pipefail
-          test "$TZ" = 'Asia/Taipei'
+          test -s trusted-timezone-policy/tools/change_lane_gate.py
+          cp trusted-timezone-policy/tools/change_lane_gate.py tools/change_lane_gate.py
+      - name: Taiwan timezone hard gate for CI and changed Python sources
+        shell: bash
+        run: |
+          set -euo pipefail
           python - <<'PY'
-          import os
-          assert os.environ["TZ"] == "Asia/Taipei"
-          print("TAIWAN_TIMEZONE_HARD_GATE_PASS")
+          from pathlib import Path
+          from tools.change_lane_gate import require_taipei_timezone, require_new_code_taipei
+          print("TAIWAN_TIMEZONE_HARD_GATE_PASS " + require_taipei_timezone())
+          print("new_python_lines_checked=" + str(require_new_code_taipei(
+              Path("."),
+              "${{ github.event.pull_request.base.sha }}",
+              "${{ github.event.pull_request.head.sha }}",
+          )))
           PY
+
       - name: Revalidate prior GREEN after target drift
         id: green-reuse
         env:
