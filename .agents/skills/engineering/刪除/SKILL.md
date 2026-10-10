@@ -14,7 +14,7 @@ whd_schema: WHD_DOC_META_V1
 ## 0. Authority 與遠端邊界
 
 1. 使用者本輪明確指示最高。
-2. Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 同一 exact user-authorized task 可沿 WORKSPACE_DELIVERY 完成 delivery/readback。
+2. Repository 刪除遵循現行 `AGENTS.md` 的治理／產品通道與當次授權；舊 Drive/shared-zero、`WORKSPACE_DELIVERY` 交易前置已退役，不得當成刪除或交付門檻。
 3. Google Drive / Library / connector 只是 transport；transport 顯示「不支援 delete」時，不得把 move/archive 冒充 delete。
 4. 任何 destructive action 前先 fresh-read exact target identity：canonical path、file/folder kind、provider id、parent、必要時 hash/size/modified time。
 
@@ -69,10 +69,10 @@ TARGET_PATH_RESOLVED
 
 1. 在 executor-local repo workspace 以 fresh `cleanup/2d-3d-sync` baseline 確認 exact tracked path / identity。
 2. 在 workspace 建立 exact delete diff，執行適用 tests / validators，並 fresh-read target/touched-path drift。
-3. 普通 route=`WORKSPACE_DEFAULT`：tested exact delete diff → delivery branch → push/PR/CI → merge/readback → FINALIZE。
-4. 使用者已明確要求 exact repository-content delete task 時，可沿同 scope `WORKSPACE_DELIVERY` 完成 remote QA 與 owning-Issue finalization，不得到 push/PR/close 再重問相同授權。
-5. Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 同一 exact user-authorized task 可沿 WORKSPACE_DELIVERY 完成 delivery/readback。
-6. production target仍禁止直接 patch；target advancement只走正常 PR/merge/readback。
+3. 依 `tools/change_lane_gate.py` 對 exact diff 分流：純治理刪除從最新 X 經 GitHub／雲端治理分支、適用測試、PR／CI、merge/readback 交付；產品／未知／混合刪除走 `localX`，發布正式 X 仍需當次 `/推推`。不啟用舊 `FINALIZE` 交易。
+4. 同一已授權任務範圍內不得只因 SHA 變動而重問相同交付授權，但新 SHA 仍需 exact diff、適用驗證與回讀；任何外部平台拒絕不得繞過。
+5. 未經使用者本次明確授權，不得為治理刪除操作 DC、CoreELEC、whd-dev 或使用者本機 shell；雲端能力不足時如實回報阻塞。
+6. 正式 X 禁止直接 patch；target advancement 依現行分流走 PR／適用檢查／merge／readback。
 
 **Missing Drive mount / missing shared-0 不是普通 tracked-path刪除的 blocker。** 不得因歷史 shared-0 流程把 Codex 拉回固定 `/Google Drive/WHD`。
 

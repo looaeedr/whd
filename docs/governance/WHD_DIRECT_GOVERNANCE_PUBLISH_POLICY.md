@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 兩條互斥通道
 
-1. **治理直送 `GOVERNANCE_DIRECT_X`**：非產品文件、治理規格、技能、GitHub 工作流程及治理專用測試，必須 **每一個** changed path 命中 `tools/change_lane_gate.py` 的明確白名單。從當前 X 在本地建 `governance/*`、`docs/*` 或 `skills/*` 分支施工、執行針對性測試、push、建立 X PR、檢查完成後 merge；不用 localX、`/推推` 或工單交易。
+1. **治理直送 `GOVERNANCE_DIRECT_X`**：非產品文件、治理規格、技能、GitHub 工作流程及治理專用測試，必須 **每一個** changed path 命中 `tools/change_lane_gate.py` 的明確白名單。從當前 X 優先在 GitHub／雲端 `governance/*`、`docs/*` 或 `skills/*` 分支修改，執行適用檢查後提交 X PR，CI 通過才 merge/readback；不用 localX、`/推推` 或已退役工單交易。未經使用者當次明確授權，不得使用 DC、CoreELEC、whd-dev 或使用者本機 shell；雲端能力不足時回報實際阻塞，不得自行轉用本機。
 2. **產品通道 `PRODUCT_LOCALX_ONLY`**：產品程式、GUI、幾何、製造資料、DXF、產品測試、未分類檔案，或同時包含產品與文件的修改，先測試並整合 localX，等待使用者當次明確 `/推推`，由 exact SHA/PR GitHub owner comment 核准後才能合併 X。
 
 ## Fail-closed 不可繞過規則
