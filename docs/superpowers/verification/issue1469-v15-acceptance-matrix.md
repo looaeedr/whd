@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: whd-v15-combined-acceptance-matrix
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # WHD v1.5 CPR／AC 整合驗收對照（#1469）
 
 本表連結既有單一 owner 與真 GUI／CAD parser 測試；表格存在不代表驗收通過。
