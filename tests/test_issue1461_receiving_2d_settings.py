@@ -49,8 +49,12 @@ def test_two_dimensional_preview_gates_selection_and_reuses_canonical_artists(mo
     scene.add_polyline([(0,0),(800,0),(800,350),(0,350)], layer="CUTTING", closed=True)
     scene.add_circle((100,100), 4, layer="CUTTING")
     data = PartRenderData(scene=scene, material=box(0,0,800,350))
-    part = AssemblyScenePart("head", data, (), ())
+    xp = ({"len": 800, "core": "W"},)
+    yp = ({"len": 350, "core": "D"},)
+    part = AssemblyScenePart("head", data, xp, yp)
+    next_part = AssemblyScenePart("head", data, xp, yp, offset=(800, 0, 0))
     request = FinalSceneViewRequest(AssemblySceneRenderData((part,)), (), (), "assembly", finished_dimensions=(800,1600,350))
+    next_request = FinalSceneViewRequest(AssemblySceneRenderData((next_part,)), (), (), "assembly", finished_dimensions=(800,1600,350))
     row = resize_receiving_bays(new_receiving_layout(width=800,height=1600,depth=350),set_index=0,bay_count=2)["sets"][0]
     selected, providers, commits = [], [], []
     ports = {"row":lambda:deepcopy(row), "select":selected.append,
@@ -62,8 +66,8 @@ def test_two_dimensional_preview_gates_selection_and_reuses_canonical_artists(mo
     root.withdraw()
     try:
         assert open_receiving_layer_preview(root,tk=tk,ttk=ttk,layer_index=0,connection_count=2,
-            brand="士林",render_request=request,bay_requests=(request,request),
-            settings_ports=ports,bay_request_provider=lambda:providers.append(1) or (request,request))
+            brand="士林",render_request=request,bay_requests=(request,next_request),
+            settings_ports=ports,bay_request_provider=lambda:providers.append(1) or (request,next_request))
         root.update()
         win=next(c for c in root.winfo_children() if hasattr(c,"_phase6_receiving_preview_canvas"))
         assert win._phase6_receiving_preview_canvas.figure.axes[0].name == "rectilinear"
@@ -78,8 +82,20 @@ def test_two_dimensional_preview_gates_selection_and_reuses_canonical_artists(mo
         assert "門第" not in labels and "由上到下高度" not in labels
         assert "門分割" not in labels, "Do not add a second Door Layout editor"
         before=deepcopy(row)
+        view = win._phase6_receiving_preview_2d
+        # World-positioned adjacent bays must touch exactly: no tile gap.
+        first, second = view._bay_overlays[0], view._bay_overlays[1]
+        assert first.get_x() + first.get_width() == pytest.approx(second.get_x(), abs=1e-4)
+        assert len(view.ax.collections) <= len(view.visibility), "Line artists are batched by role"
+        # Select the newly added bay before any edit kind is chosen.
         panel._receiving_select_bay(1)
-        assert selected == [] and not panel._receiving_pending and row == before
+        assert selected == [1] and panel._receiving_active == 1
+        assert not panel._receiving_pending and row == before
+        from matplotlib.colors import to_rgba
+        assert second.get_edgecolor() == pytest.approx(to_rgba("#facc15"))
+        assert view._hit(SimpleNamespace(inaxes=view.ax,
+            xdata=second.get_x()+second.get_width()/2,
+            ydata=second.get_y()+second.get_height()/2)) == 1
         panel._receiving_kind_var.set("封頭孔")
         panel._receiving_refresh()
         artists=tuple(win._phase6_receiving_preview_canvas.figure.axes[0].get_children())
@@ -89,7 +105,6 @@ def test_two_dimensional_preview_gates_selection_and_reuses_canonical_artists(mo
         assert providers == [] and commits == [] and not renders
         assert tuple(win._phase6_receiving_preview_canvas.figure.axes[0].get_children()) == artists
         assert scene.primitives[1].radius == 4
-        view = win._phase6_receiving_preview_2d
         rect = view.tiles[0][3]
         event = SimpleNamespace(inaxes=view.ax, xdata=rect.get_x()+30,
                                 ydata=rect.get_y()+30)

@@ -158,6 +158,7 @@ class ReceivingSettingsPreview2D:
         self.panel = panel
         self.requests = tuple(requests)
         self.tiles = []
+        self._bay_overlays = {}
         self.hover = None
         self.geometry_draw_count = 0
         self.canvas_draw_count = 0
@@ -174,6 +175,14 @@ class ReceivingSettingsPreview2D:
         self.draw_geometry()
 
     def draw_geometry(self, requests=None):
+        """Render the already-connected bays in canonical assembly coordinates.
+
+        Each bay request *already* contains the 3D assembly Joint offsets.
+        Never apply a second render-only gap: adjacent bays must share edges.
+        Combine line collections by visible role to reduce Tk/Matplotlib artists.
+        Selection overlays are one rectangle per BAY, not one per sheet piece.
+        """
+        from collections import defaultdict
         from matplotlib.collections import LineCollection
         from matplotlib.patches import Rectangle
         self.status.set("")
@@ -183,42 +192,46 @@ class ReceivingSettingsPreview2D:
         self.ax.clear()
         apply_mpl_dark_theme(self.figure, (self.ax,))
         self.tiles.clear()
+        self._bay_overlays.clear()
         self._current_roles = []
-        projected = [projected_assembly_parts(request) for request in self.requests]
-        # Offset whole bays only when needed; never spread out their sheet parts.
-        previous_right = None
+        segments_by_role = defaultdict(list)
         all_bounds = []
-        for bay_index, parts in enumerate(projected):
-            all_points = [point for _role, _key, edges in parts for edge in edges for point in edge]
-            if not all_points:
-                continue
-            left = min(p[0] for p in all_points)
-            right = max(p[0] for p in all_points)
-            width = max(right - left, 1.0)
-            gap = max(25.0, width * .06)
-            shift = 0 if previous_right is None else max(0, previous_right + gap - left)
-            previous_right = right + shift
+        for bay_index, request in enumerate(self.requests):
+            parts = projected_assembly_parts(request)
+            bay_points = []
             for role, key, edges in parts:
                 self._current_roles.append(role)
                 if not edges:
                     continue
-                moved = tuple(((a[0]+shift, a[1]), (b[0]+shift, b[1]))
-                              for a, b in edges)
-                points = [point for edge in moved for point in edge]
+                # Preserve world X/Y verbatim: the old working 3D placement
+                # already guarantees shared boundaries between successive bays.
+                points = [point for edge in edges for point in edge]
                 x0, x1 = min(p[0] for p in points), max(p[0] for p in points)
                 y0, y1 = min(p[1] for p in points), max(p[1] for p in points)
-                edge_artist = LineCollection(moved,
-                    colors=_COLORS.get(role, "#9eb6cd"), linewidths=.95)
-                self.ax.add_collection(edge_artist)
-                # Select/highlight at the actual projected assembly position.
-                pad = max(2.0, min(width*.012, 12.0))
-                rect = Rectangle((x0-pad, y0-pad),
-                    max(x1-x0+2*pad, 12), max(y1-y0+2*pad, 12),
-                    facecolor="none", edgecolor="#41464e", linewidth=1,
-                    animated=True)
-                self.ax.add_patch(rect)
-                self.tiles.append((bay_index, role, key, rect, (edge_artist,)))
+                segments_by_role[role].extend(edges)
+                # This lightweight, detached rectangle retains compatibility
+                # for tile hit bounds without adding a patch for every part.
+                rect = Rectangle((x0, y0), max(x1-x0, 1), max(y1-y0, 1))
+                self.tiles.append((bay_index, role, key, rect, ()))
+                bay_points.extend(points)
+            if bay_points:
+                x0, x1 = min(p[0] for p in bay_points), max(p[0] for p in bay_points)
+                y0, y1 = min(p[1] for p in bay_points), max(p[1] for p in bay_points)
+                # One animated overlay per bay, independent of the edit kind.
+                overlay = Rectangle((x0, y0), max(x1-x0, 1), max(y1-y0, 1),
+                    facecolor="none", edgecolor="#41464e", linewidth=2,
+                    animated=True, zorder=10)
+                self.ax.add_patch(overlay)
+                self._bay_overlays[bay_index] = overlay
                 all_bounds.extend(((x0, y0), (x1, y1)))
+        artists_by_role = {}
+        for role, segments in segments_by_role.items():
+            artist = LineCollection(segments, colors=_COLORS.get(role, "#9eb6cd"),
+                                    linewidths=.95)
+            self.ax.add_collection(artist)
+            artists_by_role[role] = artist
+        self.tiles = [(bay, role, key, rect, (artists_by_role[role],))
+                      for bay, role, key, rect, _ in self.tiles]
         self._sync_visibility_controls()
         self.ax.set_aspect("equal", adjustable="box")
         if all_bounds:
@@ -239,6 +252,7 @@ class ReceivingSettingsPreview2D:
         """Discard stale visual data when the committed source fails to resolve."""
         self.requests = ()
         self.tiles.clear()
+        self._bay_overlays.clear()
         self._current_roles = []
         self._background = None
         self.ax.clear()
@@ -269,6 +283,9 @@ class ReceivingSettingsPreview2D:
             rect.set_visible(visible)
             for artist in artists:
                 artist.set_visible(visible)
+        for bay, overlay in self._bay_overlays.items():
+            overlay.set_visible(any(self.visibility[role].get()
+                for i, role, _key, _rect, _artists in self.tiles if i == bay))
         self.update_overlay()
 
     def _enabled_role(self, role):
@@ -281,13 +298,18 @@ class ReceivingSettingsPreview2D:
     def update_overlay(self):
         pending = getattr(self.panel, "_receiving_pending", ())
         matches = getattr(self.panel, "_receiving_matches", ())
-        for bay, role, key, rect, _artists in self.tiles:
-            enabled = self._enabled_role(role)
-            rect.set_facecolor("#2563eb" if enabled and bay in pending else
-                               "#334155" if enabled and bay in matches else "none")
-            rect.set_alpha(.25 if enabled and bay in pending else .18 if enabled and bay in matches else 1)
-            rect.set_edgecolor("#facc15" if enabled and bay==self.hover else
-                               "#60a5fa" if enabled and bay in pending else "#41464e")
+        active = getattr(self.panel, "_receiving_active", None)
+        for bay, rect in self._bay_overlays.items():
+            is_pending = bay in pending
+            is_active = bay == active
+            is_match = bay in matches
+            rect.set_facecolor("#2563eb" if is_pending else
+                               "#334155" if is_match else "none")
+            rect.set_alpha(.25 if is_pending else .18 if is_match else 1)
+            rect.set_edgecolor("#facc15" if is_active else
+                               "#60a5fa" if is_pending else "#7c8fa6"
+                               if is_match else "#41464e")
+            rect.set_linewidth(2.8 if is_active else 1.4)
         self.overlay_count += 1
         self._paint_overlay()
 
@@ -301,7 +323,7 @@ class ReceivingSettingsPreview2D:
             self.canvas.draw_idle()
             return
         self.canvas.restore_region(self._background)
-        for _bay, _role, _key, rect, _artists in self.tiles:
+        for rect in self._bay_overlays.values():
             if rect.get_visible():
                 self.ax.draw_artist(rect)
         self.canvas.blit(self.ax.bbox)
@@ -310,8 +332,8 @@ class ReceivingSettingsPreview2D:
     def _hit(self, event):
         if event.inaxes is not self.ax or event.xdata is None or event.ydata is None:
             return None
-        for bay, role, _key, rect, _artists in self.tiles:
-            if rect.get_visible() and self._enabled_role(role) and rect.get_bbox().contains(event.xdata,event.ydata):
+        for bay, rect in self._bay_overlays.items():
+            if rect.get_visible() and rect.get_bbox().contains(event.xdata, event.ydata):
                 return bay
         return None
 
