@@ -97,23 +97,46 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"套／連", "數量", "第1套", "＋連", "－連", "套用"}
+        assert set(texts) == {"套／連", "數量", "第1套", "＋連", "1", "－連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas
         rows_host = win._receiving_multi_rows_host
+        mode_row = win._receiving_multi_mode_controls
+        # Set/Bay controls belong directly below upper-left mode choices.
+        assert mode_row.grid_info()["row"] == 0
+        assert rows_host.grid_info()["row"] == 1
+        assert rows_host.grid_info()["column"] == 0
+        assert canvas.grid_info()["row"] == 1
+        assert canvas.grid_info()["column"] == 1
+        assert abs(rows_host.winfo_rootx() - mode_row.winfo_rootx()) <= 2
+        vertical_gap = rows_host.winfo_rooty() - (
+            mode_row.winfo_rooty() + mode_row.winfo_height()
+        )
+        assert 0 <= vertical_gap <= 32
         assert len(canvas._receiving_bay_hitboxes) == 1
         assert win._receiving_multi_applied["set_index"] is None
         assert win._receiving_multi_applied["selected"] is None
 
-        def current_buttons():
-            return [w for w in rows_host.winfo_children()[0].winfo_children()
-                    if isinstance(w, ttk.Button)]
+        def current_row():
+            return rows_host.winfo_children()[0].winfo_children()
 
+        def current_buttons():
+            return [w for w in current_row() if isinstance(w, ttk.Button)]
+
+        def displayed_count():
+            labels = [w.cget("text") for w in current_row()
+                      if isinstance(w, ttk.Label)]
+            return labels[1]
+
+        assert [w.cget("text") for w in current_row()] == [
+            "第1套", "＋連", "1", "－連", "套用"]
         plus, minus, apply = current_buttons()
         plus.invoke()
+        assert displayed_count() == "2"
         plus, minus, apply = current_buttons()
         plus.invoke()
+        assert displayed_count() == "3"
         assert counts == [3]
         assert len(canvas._receiving_bay_hitboxes) == 1  # apply controls the sketch
         assert win._receiving_multi_apply(0) is True
@@ -135,6 +158,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         plus, minus, apply = current_buttons()
         minus.invoke()
         assert counts == [2]
+        assert displayed_count() == "2"
         assert len(canvas._receiving_bay_hitboxes) == 3
         apply.invoke()
         assert len(canvas._receiving_bay_hitboxes) == 2
