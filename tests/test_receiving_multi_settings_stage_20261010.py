@@ -1,22 +1,23 @@
-"""One modal multi-settings surface, inline set editing and Family box defaults."""
+"""GUI contract: only explicitly requested multi-settings elements are visible."""
 import tkinter as tk
+from tkinter import ttk
+from types import SimpleNamespace
 
 import pytest
 
-from ae_engine.receiving_layout import new_receiving_layout
 from ae_engine.receiving_quantity_box import normalize_common_box, project_common_box
 from gui_modules.application.receiving_multi_settings_window import (
     default_preview_dimensions, display_dimension, open_multi_settings,
-    paint_one_cabinet,
+    paint_connected_bays,
 )
 from phase6_assembly_panel import Phase6AssemblyPanel, AssemblyPanelActions
 
 
-def test_missing_quantity_box_uses_family_dimensions_without_initialization():
+def test_family_dimensions_without_initialization_dialog():
     box = normalize_common_box(None)
     assert (box["w"], box["h"], box["d"]) == (800, 1600, 350)
-    assert (project_common_box({"active_mode": "quantity"})["w"],
-            project_common_box({"active_mode": "quantity"})["h"]) == (800, 1600)
+    sample = project_common_box({"active_mode": "quantity"})
+    assert (sample["w"], sample["h"]) == (800, 1600)
     with pytest.raises(ValueError):
         normalize_common_box("not-a-box")
     assert default_preview_dimensions({"active_mode": "quantity"}) == (800, 1600, 350)
@@ -48,107 +49,117 @@ def test_assembly_button_is_hidden_until_receiving_assembly():
         root.destroy()
 
 
-def test_modal_multi_settings_embeds_bay_editor_and_doors_without_preview_window():
+def _visible_texts(widget):
+    result = []
+    for child in widget.winfo_children():
+        try:
+            if child.winfo_ismapped():
+                text = child.cget("text")
+                if text:
+                    result.append(str(text))
+        except tk.TclError:
+            pass
+        result.extend(_visible_texts(child))
+    return tuple(result)
+
+
+def test_modal_fullscreen_strict_controls_apply_and_highlight():
     root = tk.Tk()
-    root.geometry("950x750+0+0")
-    root.update_idletasks()
-    state = {"active_mode": "set_bay", "receiving_layout": new_receiving_layout(
-        width=800, height=1600, depth=350,
-    )}
-    quantity = {
-        "schema": "phase6-quantity-v1",
-        "versions": [{"version_id": "quantity-v1", "piece_count": 1,
-                      "head_features": [], "tail_features": []}],
-        "selected_version_id": "quantity-v1",
-        "next_version_number": 2,
-    }
-    class Switch:
-        brand = "士林"
-        def connection_counts(self):
-            return tuple(len(row["bays"]) for row in state["receiving_layout"]["sets"])
-    changes = []
+    root.geometry("800x600+0+0")
+    root.update()
+    counts = [1]
+    mode = {"value": "set_bay"}
     selected = []
-    def change_mode(mode):
-        state["active_mode"] = mode
-        changes.append(mode)
+    resized = []
+
+    def resize(index, delta):
+        resized.append((index, delta))
+        counts[index] = max(1, counts[index] + delta)
         return True
-    def payload():
-        return quantity if state["active_mode"] == "quantity" else None
-    def add():
-        quantity["versions"].append({
-            "version_id": "quantity-v2", "piece_count": 1,
-            "head_features": [], "tail_features": []})
-        quantity["selected_version_id"] = "quantity-v2"
-    ports = {
-        "snapshot": payload, "add": add, "select": lambda v: None,
-        "delete": lambda v: None, "count": lambda v: None,
-        "holes": lambda role: None,
-    }
-    def set_ports(index):
-        row = state["receiving_layout"]["sets"][index]
-        return {
-            "row": lambda: row, "select": lambda bay: selected.append(bay),
-            "change": lambda *args: None, "share": lambda *args: None,
-            "unlink": lambda *args: None,
-            "dimensions": lambda *args: None,
-            "alignment": lambda *args: None, "holes": lambda *args: None,
-            "brand": lambda *args: None, "subscribe": lambda fn: None,
-        }
+
+    def switch(target):
+        mode["value"] = target
+        return True
+
     try:
         win = open_multi_settings(
-            root, get_snapshot=lambda: state, get_switch=Switch,
-            switch_mode=change_mode, set_brand=lambda brand: None,
-            add_set=lambda: None, remove_set=lambda: None,
-            resize_connections=lambda index, delta: None,
-            quantity_ports=ports,
-            set_editor_ports=set_ports,
-            common_editor_ports=lambda: {
-                **set_ports(0),
-                "row": lambda: project_common_box({
-                    "active_mode": "quantity"})["receiving_layout"]["sets"][0],
-            },
+            root, get_snapshot=lambda: {"active_mode": mode["value"]},
+            get_switch=lambda: SimpleNamespace(
+                connection_counts=lambda: tuple(counts)),
+            switch_mode=switch, resize_connections=resize,
+            select_bay=lambda set_index, bay_index: selected.append(
+                (set_index, bay_index)),
         )
         root.update()
         assert win.title() == "多只設定"
-        assert win.grab_current() is win  # Main GUI is blocked until close.
+        assert win.grab_current() is win
+        assert win.winfo_width() >= win.winfo_screenwidth() - 2
+        assert win.winfo_height() >= win.winfo_screenheight() - 2
+        assert win._receiving_multi_mode_var.get() == "set_bay"
+        texts = _visible_texts(win)
+        assert set(texts) == {"套／連", "數量", "第1套", "＋連", "－連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
-        assert not win._receiving_multi_editor_host.winfo_children() or not any(
-            isinstance(w, tk.Canvas) for w in win._receiving_multi_editor_host.winfo_children()
-        )
-        # Row action is '套用', NOT a nested settings Toplevel.
-        row = win._receiving_multi_controls.layer_host._phase6_receiving_layer_rows[0]
-        assert row["preview_button"].cget("text") == "套用"
-        before = len(root.winfo_children())
-        row["preview_button"].invoke()
-        root.update()
-        assert len(root.winfo_children()) == before
-        panel = win._receiving_multi_current["panel"]
-        sketch = win._receiving_multi_current["canvas"]
-        assert panel is not None
-        assert sketch is not None
-        assert len(sketch.find_all()) >= 6
-        door_labels = [
-            sketch.itemcget(item, "text")
-            for item in sketch.find_all() if sketch.type(item) == "text"
-        ]
-        assert "上門" in door_labels and "下門" in door_labels
-        assert panel._receiving_active == 0
-        assert len(win._receiving_multi_controls.layer_host.winfo_children()) == 1
+        assert not hasattr(win, "_receiving_multi_notebook")
+        canvas = win._receiving_multi_canvas
+        rows_host = win._receiving_multi_rows_host
+        assert len(canvas._receiving_bay_hitboxes) == 1
+        assert win._receiving_multi_applied["set_index"] is None
+        assert win._receiving_multi_applied["selected"] is None
 
-        assert open_multi_settings(root, get_snapshot=lambda: state, get_switch=Switch,
-            switch_mode=change_mode, set_brand=lambda brand: None,
-            add_set=lambda: None, remove_set=lambda: None,
-            resize_connections=lambda i,d: None,
-            quantity_ports=ports, set_editor_ports=set_ports) is win
-        win._receiving_multi_notebook.select(1)
+        def current_buttons():
+            return [w for w in rows_host.winfo_children()[0].winfo_children()
+                    if isinstance(w, ttk.Button)]
+
+        plus, minus, apply = current_buttons()
+        plus.invoke()
+        plus, minus, apply = current_buttons()
+        plus.invoke()
+        assert counts == [3]
+        assert len(canvas._receiving_bay_hitboxes) == 1  # apply controls the sketch
+        assert win._receiving_multi_apply(0) is True
+        assert len(canvas._receiving_bay_hitboxes) == 3
+        assert selected == [(0, 0)]
+        assert win._receiving_multi_applied["selected"] == 0
+        hits = canvas._receiving_bay_hitboxes
+        assert hits[0][2] == hits[1][0] == hits[0][2]
+        assert hits[1][2] == hits[2][0]
+
+        x0, y0, x1, y1 = hits[2]
+        canvas.event_generate("<Button-1>", x=int((x0 + x1) / 2),
+                              y=int((y0 + y1) / 2))
         root.update()
-        assert changes == ["quantity"]
-        win._receiving_multi_quantity.add()
-        assert len(quantity["versions"]) == 2
-        win._receiving_multi_notebook.select(0)
+        assert selected[-1] == (0, 2)
+        assert win._receiving_multi_applied["selected"] == 2
+        assert canvas._receiving_selected_bay == 2
+
+        plus, minus, apply = current_buttons()
+        minus.invoke()
+        assert counts == [2]
+        assert len(canvas._receiving_bay_hitboxes) == 3
+        apply.invoke()
+        assert len(canvas._receiving_bay_hitboxes) == 2
+        assert win._receiving_multi_applied["selected"] == 0
+
+        # Two choices are mutually exclusive; no quantity-version table or
+        # common-box affordance is exposed until explicitly requested.
+        choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
+                   if isinstance(w, ttk.Radiobutton)]
+        assert len(choices) == 2
+        choices[1].invoke()
         root.update()
-        assert changes == ["quantity", "set_bay"]
-        assert len(quantity["versions"]) == 2
+        assert mode["value"] == "quantity"
+        assert not rows_host.winfo_children()
+        assert len(canvas._receiving_bay_hitboxes) == 1
+        assert set(_visible_texts(win)) == {"套／連", "數量"}
+        choices[0].invoke()
+        root.update()
+        assert mode["value"] == "set_bay"
+        assert "第1套" in _visible_texts(win)
+        assert open_multi_settings(
+            root, get_snapshot=lambda: {"active_mode": mode["value"]},
+            get_switch=lambda: None, switch_mode=switch,
+            resize_connections=resize,
+        ) is win
         win._receiving_multi_close()
         root.update()
         assert root.grab_current() is None
@@ -156,14 +167,19 @@ def test_modal_multi_settings_embeds_bay_editor_and_doors_without_preview_window
         root.destroy()
 
 
-def test_single_sketch_has_basic_upper_and_lower_doors():
+def test_two_doors_in_every_touching_bay_and_one_selection():
     root = tk.Tk()
     root.withdraw()
     try:
-        canvas = tk.Canvas(root, width=340, height=285)
-        assert paint_one_cabinet(canvas, (800, 1600, 350)) == 2
-        labels = [canvas.itemcget(i, "text") for i in canvas.find_all()
-                  if canvas.type(i) == "text"]
-        assert "上門" in labels and "下門" in labels
+        canvas = tk.Canvas(root, width=500, height=300)
+        assert paint_connected_bays(canvas, 4, selected=2) == 4
+        assert len(canvas._receiving_bay_hitboxes) == 4
+        assert canvas._receiving_selected_bay == 2
+        bounds = canvas._receiving_bay_hitboxes
+        assert all(bounds[i][2] == bounds[i+1][0] for i in range(3))
+        # 4 pieces per bay: body, upper door, lower door, door divider.
+        assert len(canvas.find_all()) == 16
+        body = canvas.find_all()[8]
+        assert canvas.itemcget(body, "outline") == "#42bdf4"
     finally:
         root.destroy()
