@@ -1027,6 +1027,20 @@ def open_receiving_multi_settings(self, namespace):
         ports["select"](int(bay_index))
         return setting_value(ports["row"](), int(bay_index), kind)
 
+    def set_global_brand(value):
+        # One operator NFB choice applies to every Set; preserve active selection.
+        adapter = self.receiving_adapter(namespace)
+        original = adapter.selection.set_index
+        try:
+            for index in range(len(adapter.layout["sets"])):
+                adapter.select_set(index + 1)
+                adapter.set_brand(value)
+        finally:
+            adapter.select_set(original + 1)
+        self.mark_receiving_switch_layout_dirty(
+            namespace, self.receiving_switch_adapter(namespace)
+        )
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -1037,4 +1051,7 @@ def open_receiving_multi_settings(self, namespace):
         ),
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
+        get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
+        set_brand=set_global_brand,
+        get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
     )
