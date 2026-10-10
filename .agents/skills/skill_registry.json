@@ -10,7 +10,7 @@
         "根目錄修改"
       ],
       "file_globs": [
-        "**"
+        ".agents/skills/engineering/root-local-first/**"
       ],
       "required_skills": [
         "root-local-first"
@@ -99,7 +99,6 @@
         ".agents/skills/engineering/deterministic-repo-migration/**"
       ],
       "required_skills": [
-        "root-local-first",
         "deterministic-repo-migration"
       ],
       "required_references": [
@@ -295,10 +294,7 @@
         "角色切換",
         "轉移至：實作者",
         "當前角色：總控審查",
-        "PM → Implementer → QA",
-        "/接手",
-        "接手 #",
-        "接手工單"
+        "PM → Implementer → QA"
       ],
       "file_globs": [
         ".agents/skills/engineering/派工/**"
@@ -310,6 +306,20 @@
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
       ]
+    },
+    {
+      "id": "explicit-takeover-workflow",
+      "keywords": [
+        "/接手",
+        "接手 #",
+        "接手工單"
+      ],
+      "file_globs": [],
+      "required_skills": [
+        "root-local-first",
+        "執行開發任務"
+      ],
+      "required_references": []
     },
     {
       "id": "issue-closure-gate",
@@ -949,7 +959,6 @@
         ".agents/skills/engineering/deterministic-repo-migration/**"
       ],
       "required_skills": [
-        "root-local-first",
         "deterministic-repo-migration"
       ],
       "required_references": []
