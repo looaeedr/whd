@@ -5,7 +5,7 @@ from phase6_quantity_model import QuantityModel, quantity_only_change
 from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, Vec2
 
 
-def test_receiving_quantity_holes_without_common_box_fails_cleanly():
+def test_receiving_quantity_holes_without_common_box_uses_default_without_initialization():
     from types import SimpleNamespace
     from gui_modules.application.quantity_version_ports import quantity_ports
     model = QuantityModel()
@@ -16,9 +16,12 @@ def test_receiving_quantity_holes_without_common_box_fails_cleanly():
         _phase6_input_snapshot={"active_mode": "quantity", "model": "受電箱"},
         _settings_values={}, _phase6_box_whd={"w": 900, "h": 1700, "d": 400},
         baseline_model_var=SimpleNamespace(get=lambda: "受電箱"),
+        _scene_query_callback=lambda *args: None,
     )
     ports = quantity_ports(SimpleNamespace(app=app), None)
-    with pytest.raises(ValueError, match="共用箱體"):
+    # Missing common box falls back to 800x1600x350. This fixture has no
+    # attached editor, so the *editor* check (not initialization) must fail.
+    with pytest.raises(ValueError, match="Hole Editor"):
         ports["holes"]("head")
 
 
