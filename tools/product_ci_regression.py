@@ -6,17 +6,20 @@ CI call this same command; workflow YAML must not duplicate the pytest list.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    "tests/process/test_product_ci_sharding.py",
     "tests/test_issue1464_custom_manufacturing.py",
     "tests/test_issue1465_quantity_ui.py",
     "tests/test_issue1466_quantity_bom.py",
@@ -124,30 +127,77 @@ def _run_bridge_guard() -> None:
             raise RuntimeError("phase6 bridge anti-regrowth guard failed")
 
 
-def _pytest_command(junit_path=None) -> list[str]:
-    command = [sys.executable, "-m", "pytest", "-q", *PYTEST_PATHS]
+
+def shard_paths(index: int, count: int) -> tuple[str, ...]:
+    """Partition the exact canonical case selectors, never sample or drop any."""
+    if count < 1 or count > len(PYTEST_PATHS) or not 0 <= index < count:
+        raise ValueError(f"invalid regression shard {index}/{count}")
+    return PYTEST_PATHS[index::count]
+
+
+def _pytest_command(junit_path=None, paths=None) -> list[str]:
+    selected = tuple(PYTEST_PATHS if paths is None else paths)
+    if not selected:
+        raise ValueError("product regression shard cannot be empty")
+    command = [sys.executable, "-m", "pytest", "-q", "--disable-warnings",
+               "--durations=15", *selected]
     if junit_path is not None:
         command.extend(("--junitxml", str(junit_path), "-o", "junit_logging=system-out"))
-    # Prefer an isolated virtual display whenever available.  A DISPLAY value
-    # alone is not proof that Tk can connect (headless runtimes often inherit
-    # a stale :0).
+    # Each shard has its own isolated GitHub runner, filesystem and display.
+    # A stale DISPLAY value alone does not prove Tk is usable.
     xvfb = shutil.which("xvfb-run")
-    if xvfb:
-        return [xvfb, "-a", *command]
-    return command
+    return [xvfb, "-a", *command] if xvfb else command
 
 
-def run() -> int:
+def _merge_shard_junit(paths: list[Path], count: int, output: Path) -> None:
+    """Join all disjoint shard artifacts before FULL canonical CPR/AC verification."""
+    if count < 2 or len(paths) != count:
+        raise ValueError("all expected shard reports are mandatory")
+    expected = {f"shard-{i}.xml" for i in range(count)}
+    if {path.name for path in paths} != expected:
+        raise ValueError("duplicate, missing or unexpected shard report")
+    combined = ET.Element("testsuites")
+    for path in sorted(paths, key=lambda p: int(p.stem.split("-")[-1])):
+        root = ET.parse(path).getroot()
+        cases = root.findall(".//testcase")
+        if not cases:
+            raise ValueError(f"empty shard JUnit: {path}")
+        for case in cases:
+            if any(case.find(status) is not None
+                   for status in ("failure", "error", "skipped")):
+                raise ValueError(f"non-green shard JUnit: {path}")
+        suite = ET.SubElement(combined, "testsuite", {
+            "name": path.stem,
+            "tests": str(len(cases)),
+        })
+        for case in cases:
+            suite.append(case)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    ET.ElementTree(combined).write(output, encoding="utf-8", xml_declaration=True)
+
+
+def _verify_full_receipt(report: Path) -> None:
+    from tools.whd_v15_acceptance_evidence import verify
+    receipt = verify(report)
+    print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} "
+          f"passed_cases={receipt['passed_cases']}", flush=True)
+
+
+def run(index: int = 0, count: int = 1, junit_out: Path | None = None) -> int:
+    selected = shard_paths(index, count)
     before = _tracked_invariants()
     _source_authority_scan()
     _run_bridge_guard()
     with tempfile.TemporaryDirectory(prefix="whd-v15-acceptance-") as tmp:
-        report = Path(tmp) / "product-regression.xml"
-        rc = subprocess.call(_pytest_command(report), cwd=ROOT)
+        report = junit_out or (Path(tmp) / "product-regression.xml")
+        report.parent.mkdir(parents=True, exist_ok=True)
+        rc = subprocess.call(_pytest_command(report, selected), cwd=ROOT)
         if rc == 0:
-            from whd_v15_acceptance_evidence import verify
-            receipt = verify(report)
-            print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} passed_cases={receipt['passed_cases']}")
+            if count == 1:
+                _verify_full_receipt(report)
+            else:
+                print(f"WHD_SHARD_GREEN shard={index}/{count} "
+                      f"selectors={len(selected)}", flush=True)
     after = _tracked_invariants()
     if before != after:
         changed = sorted(set(before) | set(after))
@@ -157,7 +207,22 @@ def run() -> int:
 
 
 def main() -> int:
-    return run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--shard-count", type=int, default=1)
+    parser.add_argument("--junit-out", type=Path)
+    parser.add_argument("--merge-junit", action="append", type=Path, default=[])
+    args = parser.parse_args()
+    if args.merge_junit:
+        if args.junit_out is None:
+            parser.error("--merge-junit requires --junit-out")
+        if args.shard_index != 0:
+            parser.error("--merge-junit cannot select a shard")
+        _merge_shard_junit(args.merge_junit, args.shard_count, args.junit_out)
+        _verify_full_receipt(args.junit_out)
+        return 0
+    return run(index=args.shard_index, count=args.shard_count,
+               junit_out=args.junit_out)
 
 
 if __name__ == "__main__":
