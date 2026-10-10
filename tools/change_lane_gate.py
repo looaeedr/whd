@@ -55,9 +55,9 @@ TAIWAN_OFFSET = timedelta(hours=8)
 # New-code source guard only: legacy timestamps must be migrated with targeted
 # product regression, not silently rewritten by a governance-only patch.
 _UNQUALIFIED_CLOCK = re.compile(
-    r"(?:\\bdatetime\\s*\\.\\s*(?:now|today|utcnow)\\s*\\(\\s*\\)"
-    r"|\\.\\s*astimezone\\s*\\(\\s*\\)"
-    r"|\\btime\\s*\\.\\s*localtime\\s*\\(\\s*\\))"
+    r"(?:\bdatetime\s*\.\s*(?:now|today|utcnow)\s*\(\s*\)"
+    r"|\.\s*astimezone\s*\(\s*\)"
+    r"|\btime\s*\.\s*localtime\s*\(\s*\))"
 )
 
 
