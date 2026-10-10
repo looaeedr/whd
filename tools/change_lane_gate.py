@@ -8,6 +8,7 @@ from untrusted PR candidate code.
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -48,6 +49,86 @@ GOVERNANCE_EXACT_FILES = frozenset({
     "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
     "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
 })
+
+
+# The product regression workflow is *not* blanket governance. A trusted
+# base-X check can exempt a strictly bounded numeric runner/scheduling edit.
+# Canonical selectors/CPR/AC, hooks, triggers, shard sets, conditionals, scripts,
+# dependencies and artifact collection remain product acceptance authority.
+PROTECTED_PRODUCT_CI_WORKFLOW = ".github/workflows/whd-product-regression.yml"
+_SAFE_CI_SCHEDULING_LINE = re.compile(
+    r"^(?P<indent> +)(?P<key>runs-on|timeout-minutes|max-parallel|retention-days): "
+    r"(?P<value>[a-z0-9.-]+)$"
+)
+_SAFE_CI_RANGES = {
+    "timeout-minutes": (10, 90),
+    "max-parallel": (1, 8),
+    "retention-days": (1, 90),
+}
+
+
+def _safe_scheduling_line_pair(before: str, after: str) -> bool:
+    old = _SAFE_CI_SCHEDULING_LINE.fullmatch(before)
+    new = _SAFE_CI_SCHEDULING_LINE.fullmatch(after)
+    if not old or not new:
+        return False
+    if old.group("indent", "key") != new.group("indent", "key"):
+        return False
+    key = old.group("key")
+    values = (old.group("value"), new.group("value"))
+    if key == "runs-on":
+        return all(v in {"ubuntu-latest", "ubuntu-24.04", "ubuntu-22.04"} for v in values)
+    lower, upper = _SAFE_CI_RANGES[key]
+    return all(v.isascii() and v.isdecimal() and lower <= int(v) <= upper for v in values)
+
+
+def is_safe_product_ci_scheduling_edit(before: str, after: str) -> bool:
+    """Fail closed unless every changed line is a numeric/existing-runner tuning.
+
+    No insertion/deletion, YAML control flow, triggers, job names, scripts, matrix
+    membership, artifact names, acceptance rules or test lists can be modified
+    through this direct-X lane. A product CI redesign still uses localX + /推推.
+    """
+    if not before or not after or before == after:
+        return False
+    left, right = before.splitlines(), after.splitlines()
+    changes = 0
+    for op, i, j, k, l in difflib.SequenceMatcher(
+        a=left, b=right, autojunk=False,
+    ).get_opcodes():
+        if op == "equal":
+            continue
+        if op != "replace" or (j - i) != (l - k):
+            return False
+        for old_line, new_line in zip(left[i:j], right[k:l]):
+            if not _safe_scheduling_line_pair(old_line, new_line):
+                return False
+            changes += 1
+    return changes > 0
+
+
+def classify_verified_pr_changes(
+    repo_root: Path, base_sha: str, head_sha: str, paths: list[str],
+) -> str:
+    """Classify using trusted actual blobs when a protected workflow is touched."""
+    if PROTECTED_PRODUCT_CI_WORKFLOW not in paths:
+        return classify_changes(paths)
+    if not all(re.fullmatch(r"[0-9a-f]{40}", x or "") for x in (base_sha, head_sha)):
+        raise ChangeLaneDenied("INVALID_COMMIT_SHA")
+    try:
+        blobs = [
+            subprocess.run(
+                ["git", "show", f"{sha}:{PROTECTED_PRODUCT_CI_WORKFLOW}"],
+                cwd=repo_root, check=True, capture_output=True,
+            ).stdout.decode("utf-8", "strict")
+            for sha in (base_sha, head_sha)
+        ]
+    except (OSError, UnicodeError, subprocess.CalledProcessError):
+        # If an acceptance file was added/removed or the diff is unavailable,
+        # treat the change as product instead of silently granting direct X.
+        return "PRODUCT_LOCALX_ONLY"
+    verified = is_safe_product_ci_scheduling_edit(*blobs)
+    return classify_changes(paths, verified_ci_scheduling=verified)
 
 
 TAIWAN_ZONE = "Asia/Taipei"
@@ -156,10 +237,14 @@ def _valid_path(raw: str) -> bool:
     return True
 
 
-def is_governance_file(path: str) -> bool:
-    """Restrictive allowlist: product, ambiguous and unknown paths are *not* docs."""
+def is_governance_file(
+    path: str, *, verified_ci_scheduling: bool = False,
+) -> bool:
+    """A protected test authority workflow is product unless its actual diff is safe."""
     if not _valid_path(path):
         return False
+    if path == PROTECTED_PRODUCT_CI_WORKFLOW:
+        return verified_ci_scheduling is True
     return (
         path in GOVERNANCE_ROOT_FILES
         or path in GOVERNANCE_EXACT_FILES
@@ -167,10 +252,13 @@ def is_governance_file(path: str) -> bool:
     )
 
 
-def classify_changes(changed_paths: list[str]) -> str:
+def classify_changes(
+    changed_paths: list[str], *, verified_ci_scheduling: bool = False,
+) -> str:
     if not changed_paths:
         raise ChangeLaneDenied("EMPTY_PR_DIFF")
-    if all(is_governance_file(path) for path in changed_paths):
+    if all(is_governance_file(path, verified_ci_scheduling=verified_ci_scheduling)
+           for path in changed_paths):
         return "GOVERNANCE_DIRECT_X"
     return "PRODUCT_LOCALX_ONLY"
 
@@ -250,7 +338,9 @@ def require_x_only_governance_history(
                 cwd=repo_root, capture_output=True, check=True,
             )
             paths = parse_name_status_zero(changed.stdout)
-            if paths and classify_changes(paths) != "GOVERNANCE_DIRECT_X":
+            if paths and classify_verified_pr_changes(
+                repo_root, first_parent, commit, paths,
+            ) != "GOVERNANCE_DIRECT_X":
                 raise ChangeLaneDenied(
                     f"X_AHEAD_NON_GOVERNANCE_BLOCKED:{commit}"
                 )
@@ -287,6 +377,7 @@ def _comments(repo: str, number: int, token: str) -> list[dict]:
 def evaluate_pr(
     *, event: dict, changed_paths: list[str],
     comments: list[dict] | None = None,
+    verified_ci_scheduling: bool = False,
 ) -> dict:
     pr = event.get("pull_request") or {}
     if not isinstance(pr, dict):
@@ -308,7 +399,9 @@ def evaluate_pr(
         raise ChangeLaneDenied("BASE_REPOSITORY_MISMATCH")
     if (head.get("repo") or {}).get("full_name") != repo:
         raise ChangeLaneDenied("FORK_NOT_SUPPORTED_FOR_DIRECT_X")
-    lane = classify_changes(changed_paths)
+    lane = classify_changes(
+        changed_paths, verified_ci_scheduling=verified_ci_scheduling,
+    )
     if lane == "GOVERNANCE_DIRECT_X":
         if not isinstance(head_ref, str) or not head_ref.startswith(GOVERNANCE_BRANCH_PREFIXES):
             raise ChangeLaneDenied("GOVERNANCE_REQUIRES_DEDICATED_BRANCH")
@@ -351,7 +444,9 @@ def main() -> int:
         paths = changed_paths_between(
             opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
         )
-        lane = classify_changes(paths)
+        lane = classify_verified_pr_changes(
+            opts.repo_root, pr["base"]["sha"], pr["head"]["sha"], paths,
+        )
         checked = require_new_code_taipei(
             opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
         )
@@ -361,7 +456,13 @@ def main() -> int:
                 event["repository"]["full_name"], int(pr["number"]),
                 os.environ.get("GITHUB_TOKEN", ""),
             )
-        result = evaluate_pr(event=event, changed_paths=paths, comments=comments)
+        result = evaluate_pr(
+            event=event, changed_paths=paths, comments=comments,
+            verified_ci_scheduling=(
+                PROTECTED_PRODUCT_CI_WORKFLOW in paths
+                and lane == "GOVERNANCE_DIRECT_X"
+            ),
+        )
         result["timezone"] = TAIWAN_ZONE
         result["new_python_lines_checked"] = checked
         if lane != "GOVERNANCE_DIRECT_X":
