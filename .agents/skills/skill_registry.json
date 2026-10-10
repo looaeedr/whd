@@ -66,23 +66,20 @@
       ]
     },
     {
-      "id": "scheduler-simulation",
+      "id": "scheduler-command-reference",
       "keywords": [
         "/排程A",
         "/排程B",
         "排程A",
-        "排程B",
-        "排程模擬",
-        "same-lane resume"
+        "排程B"
       ],
-      "file_globs": [
-        ".agents/skills/engineering/排程模擬/**"
-      ],
+      "file_globs": [],
       "required_skills": [],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
         "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
-      ]
+      ],
+      "description": "REFERENCE_ONLY_NO_EXECUTION_AUTHORITY; /排程A and /排程B are scheduler commands, not a retired 排程模擬 Skill or permission to change recurring schedules."
     },
     {
       "id": "deterministic-repo-migration",
