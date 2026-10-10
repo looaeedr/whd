@@ -305,14 +305,20 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
         kind = kind_labels.get(kind_var.get())
         panel._receiving_kind = kind
         enabled = kind is not None
-        for button in selectors + setting_actions:
+        # Bay navigation is independent from picking an edit kind.
+        # Only edit actions are gated; the operator may always switch bays.
+        for button in setting_actions:
             button.configure(state="normal" if enabled else "disabled")
+        panel._receiving_active = index
         if not enabled:
             pending.clear()
             panel._receiving_pending = frozenset()
             panel._receiving_matches = ()
+            for i, button in enumerate(selectors):
+                button.configure(text=f"{'▶' if i == index else '○'} 第{i + 1}連",
+                                 style="ReceivingActive.TButton" if i == index else "TButton")
             value_selector.configure(state="disabled")
-            status.set("請先選擇修改項目，再選要套用的連")
+            status.set(f"目前第{index + 1}連｜選擇修改項目後可連動其他連")
             callback = getattr(panel, "_receiving_after_selection", None)
             if callback:
                 callback()
@@ -324,7 +330,11 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
             value = int(value_var.get())
         matches = [i + 1 for i in range(len(current["bays"])) if setting_value(current, i, kind) == value]
         for i, button in enumerate(selectors):
-            button.configure(text=f"{'●' if i in pending else '○'} 第{i + 1}連", style="ReceivingPending.TButton" if i in pending else ("ReceivingMatch.TButton" if i + 1 in matches else "TButton"))
+            label = "▶" if i == index else "●" if i in pending else "○"
+            style_name = ("ReceivingActive.TButton" if i == index else
+                          "ReceivingPending.TButton" if i in pending else
+                          "ReceivingMatch.TButton" if i + 1 in matches else "TButton")
+            button.configure(text=f"{label} 第{i + 1}連", style=style_name)
         status.set("設定作用於所有孔型版本" if common_box else "目前相同設定：" + "、".join(map(str, matches)) + "連")
         if kind == "back_panel_mode":
             value_selector.configure(values=tuple(mode_labels), state="readonly")
@@ -342,18 +352,19 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
             callback()
 
     def select(index):
-        if kind_var.get() not in kind_labels:
-            return
+        # Navigation never depends on the selected edit operation.
         active.set(index)
         ports["select"](index)
-        if index in pending:
-            pending.remove(index)
-        else:
-            pending.add(index)
-        refresh(load_value=False)
+        if kind_var.get() in kind_labels:
+            if index in pending:
+                pending.remove(index)
+            else:
+                pending.add(index)
+        refresh(load_value=kind_var.get() not in kind_labels)
 
     style = ttk.Style(panel)
     selected_color = style.lookup("Treeview", "background", ("selected",)) or "#2563eb"
+    style.configure("ReceivingActive.TButton", foreground="#facc15")
     style.configure("ReceivingPending.TButton", foreground=selected_color)
     style.configure("ReceivingMatch.TButton", foreground="#7c8fa6")
     for index in range(len(row["bays"])):
