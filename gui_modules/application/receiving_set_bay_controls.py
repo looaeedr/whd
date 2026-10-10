@@ -198,6 +198,7 @@ def refresh_receiving_layer_rows(
     connection_counts: Iterable[int],
     on_resize_connections: Callable[[int, int], object],
     on_preview: Callable[[int], object],
+    preview_button_label: str = "設定",
 ) -> None:
     """Render one stable operator row per layer without rebuilding unchanged Tk rows."""
     host = controls.layer_host
@@ -251,6 +252,7 @@ def refresh_receiving_layer_rows(
             command=lambda layer_index=layer_index: on_resize_connections(layer_index, 1)
         )
         row["preview_button"].configure(
+            text=preview_button_label,
             command=lambda layer_index=layer_index: on_preview(layer_index)
         )
 
