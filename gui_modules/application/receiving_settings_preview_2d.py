@@ -5,8 +5,6 @@ nothing is flattened into individual manufacturing sheet drawings.
 """
 from __future__ import annotations
 
-from collections import defaultdict
-from math import sqrt
 from whd_theme import apply_mpl_dark_theme
 
 _LABELS = {"head": "封頭", "tail": "封尾", "box_body": "箱身", "door": "門",
@@ -92,37 +90,12 @@ def _assembly_world_meshes(request):
 
 
 def _projected_outline(triangles):
-    """Orthographic front elevation (world X / height Y), no sheet layout.
-
-    Preserve silhouette, free boundaries and formed creases; omit triangulation
-    diagonals shared by coplanar faces. Identical depth projections are deduped.
-    """
-    edges = defaultdict(list)
-    for triangle in triangles:
-        if len(triangle) != 3:
-            continue
-        a, b, c = (tuple(float(n) for n in point) for point in triangle)
-        ab = tuple(b[i] - a[i] for i in range(3))
-        ac = tuple(c[i] - a[i] for i in range(3))
-        normal = (ab[1]*ac[2]-ab[2]*ac[1],
-                  ab[2]*ac[0]-ab[0]*ac[2],
-                  ab[0]*ac[1]-ab[1]*ac[0])
-        size = sqrt(sum(v*v for v in normal))
-        if size <= 1e-9:
-            continue
-        normal = tuple(v / size for v in normal)
-        for start, end in ((a, b), (b, c), (c, a)):
-            pa, pb = tuple(round(x, 5) for x in start), tuple(round(x, 5) for x in end)
-            if pa != pb:
-                edges[tuple(sorted((pa, pb)))].append(normal)
+    """Project existing canonical 3D feature edges onto world X/height Y."""
+    from phase6_final_scene_projection import _phase6_mesh_feature_segments
     projected = set()
-    for (start, end), normals in edges.items():
-        if len(normals) > 1 and all(
-            abs(sum(normals[0][i]*n[i] for i in range(3))) > .9999
-            for n in normals[1:]
-        ):
-            continue
-        p1, p2 = (start[0], start[1]), (end[0], end[1])
+    for start, end in _phase6_mesh_feature_segments(triangles):
+        p1 = (round(float(start[0]), 5), round(float(start[1]), 5))
+        p2 = (round(float(end[0]), 5), round(float(end[1]), 5))
         if p1 != p2:
             projected.add(tuple(sorted((p1, p2))))
     return tuple(sorted(projected))
