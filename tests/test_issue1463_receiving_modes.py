@@ -157,7 +157,7 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         assert app._phase6_endcap_fw_state["head"]["follow_box"] is True
         assert app._phase6_endcap_fw_state["head"]["value"] == 29
         assert not app.receiving_set_bay_control.winfo_manager()
-        assert not app.receiving_mode_controls.common_button.winfo_manager()
+        assert not app.receiving_mode_controls.frame.winfo_manager()
         assert app._phase6_box_whd["w"] == 800
         assert app._phase6_box_whd["d"] == 350
         app.designer_workspace.quantity_model.set_piece_count(7)
