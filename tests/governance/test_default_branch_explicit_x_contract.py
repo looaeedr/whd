@@ -23,6 +23,19 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
             with self.subTest(op=op):
                 self.assertIn(op, doc["main_automatic_mutations_forbidden"])
 
+    def test_20260928_main_sync_manifest_is_history_not_a_live_requirement(self):
+        path = ROOT / "docs/governance/main_cleanup_governance_sync_20260928.json"
+        record = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(record["schema"], "WHD_MAIN_CLEANUP_GOVERNANCE_SYNC_V1")
+        self.assertEqual(record["target_ref"], "main")
+        self.assertEqual(record["status"], "HISTORICAL")
+        self.assertIs(record["execution_authority"], False)
+        self.assertEqual(
+            record["current_main_policy"], "MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY"
+        )
+        self.assertIn("Do not run mirroring", record["usage_note"])
+        self.assertIn("invariant", record)  # Retained only as historical evidence.
+
     def test_canonical_reads_fail_closed_when_ref_unspecified(self):
         doc = json.loads(CONTRACT.read_text(encoding="utf-8"))
         self.assertEqual(doc["canonical_read_ref"], doc["production_branch"])
