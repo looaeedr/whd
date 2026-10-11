@@ -1243,6 +1243,12 @@ def open_receiving_multi_settings(self, namespace):
         import tkinter as tk
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
         from .receiving_nfb_source_preview import NfbDxfSourcePreviewPanel
+        from ae_engine.receiving_nfb_ui1a_edits import (
+            NfbUi1aEditSession, editable_nfb_draft, insert_nfb_slot,
+            delete_nfb_slot, move_nfb_slot, replace_nfb_slot_model,
+            set_nfb_manual_x, set_nfb_layer_rotation,
+            set_nfb_slot_rotation, effective_nfb_rotation,
+        )
         from ae_engine.receiving_nfb_ui1a import (
             INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
             reconcile_set_brand, set_nfb_draft_layer_count,
@@ -1297,10 +1303,23 @@ def open_receiving_multi_settings(self, namespace):
         warning = tk.StringVar(master=modal, value="")
         # UI-1A transient state; NOT persisted to .p6fold and NOT a second
         # ReceivingLayout owner. Existing candidate saving below stays intact.
-        draft_state = {"draft": new_nfb_ui1a_draft(
+        # All existing #1491 controls still set draft_state["draft"], but
+        # this single transient session captures every edit for #1493 Undo.
+        # It does not persist a second Hole Editor/project authority.
+        class _NfbDraftState(dict):
+            session = None
+            def __setitem__(self,key,value):
+                if key=="draft" and self.session is not None:
+                    self.session.apply("NFB_UI1A_EDIT",lambda _before:value)
+                    value=self.session.current
+                dict.__setitem__(self,key,value)
+        draft_state = _NfbDraftState({"draft": new_nfb_ui1a_draft(
             set_brand=self.receiving_switch_adapter(namespace).brand,
             layer_count=nfb_physical_layers.get(), model_layers=initial["models"],
-        )}
+        )})
+        edit_session = NfbUi1aEditSession(draft_state["draft"])
+        draft_state.session = edit_session
+        dict.__setitem__(draft_state,"draft",edit_session.current)
         source_state = {"files": [(), ()], "signature": [None, None]}
         draft_summary = tk.StringVar(master=modal, value="")
         initial_nfb_draft = deepcopy(draft_state["draft"])
@@ -1451,25 +1470,28 @@ def open_receiving_multi_settings(self, namespace):
                 warning.set("CSV 已變動，請重新選擇")
                 refresh_source(force=True)
                 return
-            draft_state["draft"] = add_nfb_draft_slot(
-                draft_state["draft"], index, filename=filename,
-                source_brand=expected_brand,
+            added = insert_nfb_slot(
+                draft_state["draft"], index,
+                len(draft_state["draft"]["layers"][index]["slots"]),
+                filename=filename, brand=expected_brand,
             )
-            # Newly added physical unit inherits the layer brand; when list
-            # was displaying a selected slot override, do not silently give
-            # that override to a different new slot.
-            if expected_brand != effective_nfb_layer_brand(draft_state["draft"],index):
-                draft_state["draft"] = set_nfb_slot_brand(
-                    draft_state["draft"], index,
-                    len(draft_state["draft"]["layers"][index]["slots"])-1,
+            # Source brand override and the physical insert are ONE undo step.
+            if expected_brand != effective_nfb_layer_brand(added,index):
+                added = set_nfb_slot_brand(
+                    added, index,
+                    len(added["layers"][index]["slots"])-1,
                     mode=OVERRIDE, value=expected_brand,
                 )
+            draft_state["draft"] = added
             sync_chosen()
             repaint(index)
             warning.set("")
 
         def add_empty_slot(index):
-            draft_state["draft"] = add_nfb_draft_slot(draft_state["draft"], index)
+            draft_state["draft"] = insert_nfb_slot(
+                draft_state["draft"],index,
+                len(draft_state["draft"]["layers"][index]["slots"]),
+            )
             sync_chosen()
             repaint(index)
 
@@ -1481,7 +1503,7 @@ def open_receiving_multi_settings(self, namespace):
                 return
             brand = view_source_catalog(index)
             filename = source_state["files"][index][choice[0]]
-            draft_state["draft"] = select_nfb_slot_model(
+            draft_state["draft"] = replace_nfb_slot_model(
                 draft_state["draft"],index,selected[0],filename,
                 catalog={brand:model_filenames(brand)},
             )
@@ -1493,7 +1515,7 @@ def open_receiving_multi_settings(self, namespace):
             selected = layer_rows[index]["assigned"].curselection()
             if not selected:
                 return
-            draft_state["draft"] = remove_nfb_draft_slot(
+            draft_state["draft"] = delete_nfb_slot(
                 draft_state["draft"], index, selected[0],
             )
             sync_chosen()
@@ -1514,6 +1536,96 @@ def open_receiving_multi_settings(self, namespace):
                 brand = effective_nfb_slot_brand(draft_state["draft"],index,selected[0])
                 nfb_preview_panel["panel"].show(brand,slot["filename"])
                 nfb_source_viewed["value"] = True
+
+        def reposition_nfb_slot(index,direction):
+            selected=layer_rows[index]["assigned"].curselection()
+            if not selected:
+                warning.set("請先選取要換序的 NFB 顆位")
+                return
+            old=selected[0]
+            dest=old+direction
+            count=len(draft_state["draft"]["layers"][index]["slots"])
+            if not 0<=dest<count:return
+            try:
+                draft_state["draft"]=move_nfb_slot(draft_state["draft"],index,old,dest)
+                sync_chosen()
+                repaint(index)
+                layer_rows[index]["assigned"].selection_clear(0,tk.END)
+                layer_rows[index]["assigned"].selection_set(dest)
+                warning.set("已調整順序：本層 X 位移重設，其他層不變")
+            except (ValueError,IndexError) as exc:
+                warning.set(str(exc))
+
+        def undo_nfb_draft():
+            try:
+                edit_session.undo()
+                dict.__setitem__(draft_state,"draft",edit_session.current)
+                sync_chosen()
+                nfb_physical_layers.set(edit_session.current["layer_count"])
+                for i,row in enumerate(layer_rows):
+                    brand=edit_session.current["layers"][i]["brand"]
+                    row["layer_brand_var"].set(
+                        "繼承本套" if brand["mode"]==INHERIT else brand["value"]
+                    )
+                    row["layer_rotation_var"].set(
+                        str(edit_session.current["layers"][i]["rotation_deg"])
+                    )
+                    repaint(i)
+                change_layers_visibility_only()
+                refresh_source(force=True)
+                warning.set("已復原 NFB 草稿上一筆交易")
+            except ValueError as exc:
+                warning.set(str(exc))
+
+        def change_layers_visibility_only():
+            if nfb_physical_layers.get()==1:
+                layer_rows[1]["section"].pack_forget()
+            elif not layer_rows[1]["section"].winfo_manager():
+                layer_rows[1]["section"].pack(
+                    fill="x",pady=(4,6),after=layer_rows[0]["section"],
+                )
+
+        def set_rotation_in_draft(index,*,unit=False):
+            row=layer_rows[index]
+            try:
+                if unit:
+                    selected=row["assigned"].curselection()
+                    if not selected:
+                        raise ValueError("請先選擇要旋轉的 NFB 顆位")
+                    text=row["unit_rotation_var"].get()
+                    draft_state["draft"]=set_nfb_slot_rotation(
+                        draft_state["draft"],index,selected[0],
+                        mode=INHERIT if text=="跟隨本層" else OVERRIDE,
+                        value=None if text=="跟隨本層" else int(text),
+                    )
+                else:
+                    draft_state["draft"]=set_nfb_layer_rotation(
+                        draft_state["draft"],index,int(row["layer_rotation_var"].get()),
+                    )
+                warning.set("角度僅保存草稿；來源主孔中心未認證，不能當製造旋轉")
+                paint_draft_preview()
+            except (ValueError,IndexError) as exc:
+                warning.set(str(exc))
+
+        def set_x_in_draft(index):
+            row=layer_rows[index]
+            selected=row["assigned"].curselection()
+            if not selected:
+                warning.set("請先選擇要編輯 X 位移的 NFB 顆位")
+                return
+            typed=row["manual_x_var"].get().strip()
+            try:
+                value=None if not typed else float(typed)
+                draft_state["draft"]=set_nfb_manual_x(
+                    draft_state["draft"],index,selected[0],value,
+                )
+                warning.set(
+                    "X 位移保留為未驗證草稿，不是絕對製造座標"
+                    if value is not None else "本顆位移已清除"
+                )
+                paint_draft_preview()
+            except ValueError as exc:
+                warning.set(str(exc))
 
         editor_body = ttk.Frame(frame)
         editor_body.pack(fill="both", expand=True, pady=(4, 6))
@@ -1555,6 +1667,10 @@ def open_receiving_multi_settings(self, namespace):
                        command=lambda idx=idx: add_empty_slot(idx)).pack(pady=3)
             ttk.Button(buttons_area, text="替換所選",
                        command=lambda idx=idx: replace_selected_slot(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="↑ 前移",
+                       command=lambda idx=idx: reposition_nfb_slot(idx,-1)).pack(pady=2)
+            ttk.Button(buttons_area, text="↓ 後移",
+                       command=lambda idx=idx: reposition_nfb_slot(idx,1)).pack(pady=2)
             assigned = tk.Listbox(section, selectmode=tk.BROWSE,
                                   exportselection=False, height=6)
             assigned.grid(row=1, column=2, sticky="nsew", padx=5)
@@ -1581,11 +1697,40 @@ def open_receiving_multi_settings(self, namespace):
                 width=12, state="readonly",
             )
             slot_brand_select.pack(side="left", padx=3)
+            rotation_row=ttk.Frame(section)
+            rotation_row.grid(row=4,column=0,columnspan=3,sticky="w",pady=(2,4))
+            ttk.Label(rotation_row,text="本層角度").pack(side="left")
+            layer_rotation_var=tk.StringVar(master=modal,value="0")
+            layer_rotation_select=ttk.Combobox(
+                rotation_row,textvariable=layer_rotation_var,
+                values=("0","90","180","270"),width=5,state="readonly",
+            )
+            layer_rotation_select.pack(side="left",padx=(4,10))
+            ttk.Label(rotation_row,text="所選顆角度").pack(side="left")
+            unit_rotation_var=tk.StringVar(master=modal,value="跟隨本層")
+            unit_rotation_select=ttk.Combobox(
+                rotation_row,textvariable=unit_rotation_var,
+                values=("跟隨本層","0","90","180","270"),
+                width=9,state="readonly",
+            )
+            unit_rotation_select.pack(side="left",padx=(4,10))
+            ttk.Label(rotation_row,text="X 位移 mm").pack(side="left")
+            manual_x_var=tk.StringVar(master=modal,value="")
+            ttk.Entry(rotation_row,textvariable=manual_x_var,width=8).pack(
+                side="left",padx=(4,3),
+            )
+            ttk.Button(
+                rotation_row,text="設定",
+                command=lambda idx=idx:set_x_in_draft(idx),
+            ).pack(side="left")
             layer_rows.append({
                 "section": section, "available": available,
                 "assigned": assigned, "count": count_text,
                 "layer_brand_var": layer_brand_var,
                 "slot_brand_var": slot_brand_var,
+                "layer_rotation_var": layer_rotation_var,
+                "unit_rotation_var": unit_rotation_var,
+                "manual_x_var": manual_x_var,
             })
 
             def layer_brand_changed(_event=None, idx=idx):
@@ -1613,6 +1758,14 @@ def open_receiving_multi_settings(self, namespace):
 
             layer_brand_select.bind("<<ComboboxSelected>>",layer_brand_changed)
             slot_brand_select.bind("<<ComboboxSelected>>",slot_brand_changed)
+            layer_rotation_select.bind(
+                "<<ComboboxSelected>>",
+                lambda _event,i=idx:set_rotation_in_draft(i),
+            )
+            unit_rotation_select.bind(
+                "<<ComboboxSelected>>",
+                lambda _event,i=idx:set_rotation_in_draft(i,unit=True),
+            )
             def selected_slot_changed(_event=None, idx=idx):
                 selected = layer_rows[idx]["assigned"].curselection()
                 slots = draft_state["draft"]["layers"][idx]["slots"]
@@ -1621,8 +1774,20 @@ def open_receiving_multi_settings(self, namespace):
                     layer_rows[idx]["slot_brand_var"].set(
                         "繼承本層" if unit["mode"] == INHERIT else unit["value"]
                     )
+                    rotation=slots[selected[0]].get(
+                        "rotation",{"mode":INHERIT,"value":None},
+                    )
+                    layer_rows[idx]["unit_rotation_var"].set(
+                        "跟隨本層" if rotation["mode"]==INHERIT else str(rotation["value"])
+                    )
+                    manual=slots[selected[0]].get("manual_x_mm")
+                    layer_rows[idx]["manual_x_var"].set(
+                        "" if manual is None else f"{manual:g}"
+                    )
                 else:
                     layer_rows[idx]["slot_brand_var"].set("繼承本層")
+                    layer_rows[idx]["unit_rotation_var"].set("跟隨本層")
+                    layer_rows[idx]["manual_x_var"].set("")
                 refresh_source(force=True)
 
             assigned.bind("<<ListboxSelect>>", lambda event, i=idx: (
@@ -1656,6 +1821,7 @@ def open_receiving_multi_settings(self, namespace):
         modal.after(1800, poll_source)
         modal._receiving_inner_switch_state = {
             "chosen": chosen, "layers": layers,
+            "edit_session": edit_session,
             "nfb_physical_layers": nfb_physical_layers,
             "rows": layer_rows, "warning": warning,
             "nfb_draft": draft_state, "nfb_draft_status": draft_summary,
@@ -1677,9 +1843,15 @@ def open_receiving_multi_settings(self, namespace):
                 for row in active:
                     if row["brand"]["mode"] == OVERRIDE:
                         raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
+                    if row["rotation_deg"]!=0:
+                        raise ValueError("NFB 草稿角度不能被舊版內門層數格式丟失")
                     for slot in row["slots"]:
                         if slot["filename"] is None or slot["brand"]["mode"] == OVERRIDE:
                             raise ValueError("空槽或單顆品牌覆寫仍是 NFB 草稿，不能丟失後儲存")
+                        if (slot["rotation"]["mode"]==OVERRIDE
+                                or slot["manual_x_state"]!="NONE"
+                                or slot["manual_x_mm"] is not None):
+                            raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
                         if slot["source_brand"] != draft_state["draft"]["set_brand"]:
                             raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
                 latest_files = set(model_filenames(
@@ -1713,6 +1885,7 @@ def open_receiving_multi_settings(self, namespace):
         ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
             side="left", padx=5,
         )
+        ttk.Button(buttons, text="復原上一步", command=undo_nfb_draft).pack(side="left",padx=5)
         ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
         # Restore the parent multi-settings grab after this editor closes.
         parent_modal = getattr(
@@ -1734,6 +1907,7 @@ def open_receiving_multi_settings(self, namespace):
                     and parent_modal.grab_current() is None):
                 parent_modal.grab_set()
         modal.protocol("WM_DELETE_WINDOW", close_editor)
+        modal.bind("<Escape>",lambda _event:close_editor())
         for widget in buttons.winfo_children():
             if widget.cget("text") == "取消":
                 widget.configure(command=close_editor)
