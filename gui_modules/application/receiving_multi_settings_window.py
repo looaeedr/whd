@@ -999,6 +999,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager._receiving_manager_canvas = diagram
         manager._receiving_manager_buttons = tuple(actions_map)
         manager._receiving_manager_page_var = page_var
+        manager._receiving_manager_tabs = tabs
         manager._receiving_manager_role_var = role_var
         refresh_manager_controls()
         manager.lift()
