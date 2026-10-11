@@ -198,6 +198,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
                         get_applied_version_labels=None,
+                        get_real_cut_preview_request=None,
                         on_close=None, on_brand_close=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
@@ -214,6 +215,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_changed = {"value": False}
 
     def close():
+        close_real_preview()
         close_manager()
         if win.grab_current() is win:
             win.grab_release()
@@ -442,6 +444,76 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             message += "（左圖僅顯示目前連位）"
         preview_state["status"].set(message)
 
+    real_preview = {"win": None, "view": None, "status": None,
+                    "role": None, "generation": 0}
+
+    def close_real_preview():
+        real_preview["generation"] += 1
+        popup = real_preview["win"]
+        real_preview.update(win=None, view=None, status=None, role=None)
+        if popup is not None and popup.winfo_exists():
+            popup.destroy()
+
+    def show_real_preview(role):
+        """Movable nonmodal full FinalScene view, never a fake thumbnail."""
+        if get_real_cut_preview_request is None:
+            return None
+        popup = real_preview["win"]
+        if popup is None or not popup.winfo_exists():
+            popup = tk.Toplevel(win)
+            popup.title("截角實體資料｜真實2D")
+            popup.geometry("960x720")
+            popup.minsize(460, 320)
+            # Deliberately no transient/grab: operator can switch parent,
+            # manager, quantity tabs and floating preview without closing.
+            body = ttk.Frame(popup, padding=6)
+            body.pack(fill="both", expand=True)
+            status = tk.StringVar(master=popup, value="準備顯示實際幾何資料")
+            ttk.Label(body, textvariable=status).pack(anchor="w")
+            from .receiving_settings_preview_2d import ReceivingSettingsPreview2D
+            view = ReceivingSettingsPreview2D(
+                body, tk=tk, ttk=ttk, requests=(),
+            )
+            actions = ttk.Frame(body)
+            actions.pack(fill="x")
+            ttk.Button(actions, text="放大", command=lambda: view.zoom(.8)).pack(side="left")
+            ttk.Button(actions, text="縮小", command=lambda: view.zoom(1.25)).pack(side="left")
+            ttk.Button(actions, text="重設視角", command=view.reset_view).pack(side="left")
+            ttk.Button(actions, text="關閉", command=close_real_preview).pack(side="right")
+            popup.protocol("WM_DELETE_WINDOW", close_real_preview)
+            real_preview.update(win=popup, view=view, status=status)
+        else:
+            popup.lift()
+        real_preview["role"] = role
+        real_preview["generation"] += 1
+        generation = real_preview["generation"]
+        selected_id = candidate_selected[role]
+        si = applied["set_index"] if applied["set_index"] is not None else 0
+        bi = selected_setting["bay_index"]
+        if bi is None or selected_setting["set_index"] != si:
+            bi = applied["selected"] if applied["selected"] is not None else 0
+        label = "即時" if selected_id is None else version_label(selected_id)
+        popup.title(f"{role.replace('inner-door', '內門').replace('head', '封頭').replace('tail', '封尾')}｜{label}｜真實截角2D")
+        real_preview["status"].set("正在取得既有 FinalScene 真實幾何…")
+        def refresh_exact():
+            if (real_preview["generation"] != generation or
+                    not popup.winfo_exists()):
+                return
+            try:
+                request = get_real_cut_preview_request(role, selected_id, si, bi)
+                if request is None:
+                    raise ValueError("此版本缺少可驗證的實體幾何來源")
+                real_preview["view"].draw_geometry((request,))
+                popup._receiving_real_preview_request = request
+                real_preview["status"].set(
+                    f"第{si+1}套／第{bi+1}連｜{label}｜實際 FinalScene 投影；滾輪縮放／中鍵平移"
+                )
+            except Exception as exc:
+                real_preview["view"].invalidate(str(exc))
+                real_preview["status"].set("真實幾何不可用：" + str(exc))
+        popup.after_idle(refresh_exact)
+        return popup
+
     def editor_saved(role, version_id, *, keep_live=False):
         # Saving while "即時" creates a candidate but MUST NOT select it:
         # selecting v1 here would make the next Edit overwrite v1 instead of
@@ -544,10 +616,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     or "apply_live" in source() else "disabled"
                 )
                 refresh_manager_controls()
-                if role == "inner-door":
-                    refresh_inner_preview()
-                elif role in ("head", "tail"):
-                    refresh_endcap_previews(role)
+                show_real_preview(role)
 
             selector.bind("<<ComboboxSelected>>", choose)
 
@@ -578,10 +647,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             applied["set_index"], tuple(applied["selected_bays"]),
                         )
                     render()
-                    if role == "inner-door":
-                        refresh_inner_preview()
-                    elif role in ("head", "tail"):
-                        refresh_endcap_previews(role)
+                    if real_preview["role"] == role:
+                        show_real_preview(role)
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
 
@@ -600,33 +667,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Button(
                     settings_host, text="版本管理", command=open_manager,
                 ).pack(anchor="e", pady=(5, 0))
-                # Head and tail are independent. Show both real-Bay
-                # and selected-candidate outlines using Hole Editor features.
-                for endcap_role, heading in (("head", "封頭"), ("tail", "封尾")):
-                    holder = ttk.Frame(settings_host)
-                    holder.pack(anchor="w", fill="x", pady=(6, 1))
-                    ttk.Label(holder, text=heading + " 配置比較").pack(
-                        anchor="w", pady=(0, 2),
-                    )
-                    canvases = ttk.Frame(holder)
-                    canvases.pack(anchor="w", fill="x")
-                    current_canvas = tk.Canvas(
-                        canvases, width=220, height=134,
-                        background="#1a2734", highlightthickness=0,
-                    )
-                    current_canvas.pack(side="left", padx=(0, 7))
-                    candidate_canvas = tk.Canvas(
-                        canvases, width=220, height=134,
-                        background="#1a2734", highlightthickness=0,
-                    )
-                    candidate_canvas.pack(side="left")
-                    status = tk.StringVar(master=win)
-                    ttk.Label(holder, textvariable=status).pack(anchor="w")
-                    endcap_preview_state[endcap_role] = {
-                        "applied": current_canvas, "candidate": candidate_canvas,
-                        "status": status,
-                    }
-                refresh_endcap_previews()
         else:
             actions(settings_host, "inner_door_layers")
             if get_inner_candidate_ports is not None:
@@ -635,25 +675,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
-                # Small factual thumbnails: Bay-applied versus only-selected
-                # candidate. No inferred hole geometry, 3D or manufacturing.
-                thumbnails = ttk.Frame(settings_host)
-                thumbnails.pack(anchor="w", fill="x", pady=(7, 2))
-                preview_state["applied"] = tk.Canvas(
-                    thumbnails, width=256, height=158,
-                    background="#1a2734", highlightthickness=0,
-                )
-                preview_state["applied"].pack(side="left", padx=(0, 8))
-                preview_state["candidate"] = tk.Canvas(
-                    thumbnails, width=256, height=158,
-                    background="#1a2734", highlightthickness=0,
-                )
-                preview_state["candidate"].pack(side="left")
-                preview_state["status"] = tk.StringVar(master=win)
-                ttk.Label(
-                    settings_host, textvariable=preview_state["status"],
-                ).pack(anchor="w")
-                refresh_inner_preview()
             if get_nfb_transaction_ports is not None:
                 transactions = get_nfb_transaction_ports()
                 state = transactions["state"](set_index, bay_index, targets())
@@ -1249,6 +1270,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_set_buttons = (minus_set, plus_set)
     win._receiving_multi_candidate_selected = candidate_selected
     win._receiving_multi_candidate_combos = candidate_combos
+    win._receiving_multi_real_preview = real_preview
+    win._receiving_multi_show_real_preview = show_real_preview
+    win._receiving_multi_close_real_preview = close_real_preview
     win._receiving_multi_inner_preview = preview_state
     win._receiving_multi_endcap_preview = endcap_preview_state
     win._receiving_multi_refresh_endcap_previews = refresh_endcap_previews
