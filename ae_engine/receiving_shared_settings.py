@@ -26,7 +26,7 @@ def validate_setting(kind, value):
     elif kind == "inner_door_models":
         if (not isinstance(value, (list, tuple)) or len(value) != 2
                 or any(not isinstance(model, str) or (model and (
-                    not model.lower().endswith(".dxf") or "/" in model or "\\\\" in model
+                    not model.lower().endswith(".dxf") or model.lower() == ".dxf"\n                    or "/" in model or chr(92) in model
                 )) for model in value)):
             raise ValueError("內門開關型號必須為兩個合法 DXF 檔名或空白")
         value = list(value)
