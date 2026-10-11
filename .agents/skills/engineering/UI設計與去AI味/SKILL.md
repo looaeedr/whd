@@ -18,7 +18,7 @@ whd_schema: WHD_DOC_META_V1
 Authority 依序是：
 
 1. 使用者本輪明確指示與已核准規格。
-2. WHD `AGENTS.md`、Phase6 Preflight、project Skills / Registry / AI Library / Source of Truth。
+2. WHD 正式 X 的 `AGENTS.md`、現行 project Skills／Registry／Source of Truth 與適用驗收規則；已退役的 Phase6 Preflight receipt 不得作為 UI 修改或 Git 交付前置。AI Library 只能提供參考，不取代現行權威。
 3. 現有 UI behavior contract 與已核准 design tokens / brand rules（若存在）。
 4. 外部 UI Skill 的通用設計方法。
 
