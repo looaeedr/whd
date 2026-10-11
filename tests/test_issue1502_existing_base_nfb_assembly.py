@@ -9,7 +9,7 @@ import pytest
 
 from ae_engine.cabinet_types.receiving import apply_family_defaults
 from ae_engine.contracts import BasePlatePartSpec
-from ae_engine.manufacturing_api import save_part_render_data_dxf
+from ae_engine.manufacturing_api import (save_part_render_data_dxf, save_resolved_manufacturing_geometry_dxf, save_resolved_manufacturing_geometry_batch_dxf)
 from ae_engine.receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
 from ae_engine.receiving_nfb_manufacturing_release import (
     NfbValidatedInnerDoorRender, VALIDATED,
@@ -210,3 +210,49 @@ def test_two_real_NFB_heights_cannot_share_one_assumed_ear_group(tmp_path):
             source_path=path,profile=profile,
             lower_reference_handle=lower,
         )
+
+
+@pytest.mark.parametrize("pattern", (
+    "LEFT_FLAT_SIDE", "CENTER_DOUBLE_SIDE_FOLD", "RIGHT_FLAT_SIDE",
+))
+def test_proven_base_cutting_partial_dxf_is_independent_of_ear_weld_z(tmp_path, pattern):
+    built = _build(tmp_path, base=_upper_base(pattern))
+    assert built.manufacturing_ready is False
+    assert built.render_data.metadata["receiving_base_ear_weld_z_verified"] is False
+    resolved = SimpleNamespace(parts=(SimpleNamespace(
+        part_key="base_plate", render_data=built.render_data,
+    ),))
+    # A complete-cabinet release remains blocked.
+    blocked_root = tmp_path / "whole-assembly"
+    with pytest.raises(ValueError, match="NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT"):
+        save_resolved_manufacturing_geometry_dxf(resolved, blocked_root)
+    assert not blocked_root.exists()
+    # One verified physical plate may export its own CUTTING DXF.
+    root = tmp_path / "part-only"
+    exported = save_resolved_manufacturing_geometry_dxf(
+        resolved, root, part_only=True,
+    )
+    assert set(exported) == {"base_plate"}
+    dxf = ezdxf.readfile(exported["base_plate"]).modelspace()
+    screws = [e for e in dxf if e.dxftype() == "CIRCLE"
+              and e.dxf.layer == "CUTTING"]
+    assert len(screws) >= 8
+    assert built.render_data.metadata["nfb_base_mfg2_release_approved"] is False
+
+
+def test_part_only_batch_rejects_unproved_nfb_before_any_output(tmp_path):
+    built = _build(tmp_path)
+    from dataclasses import replace as dataclass_replace
+    data = dataclass_replace(built.render_data, metadata={
+        **dict(built.render_data.metadata),
+        "nfb_source_sha256": "0" * 64,
+        "nfb_physical_hole_ids": ("different-owner",),
+    })
+    batch = (("setA__bay1", SimpleNamespace(parts=(
+        SimpleNamespace(part_key="base_plate", render_data=data),))),)
+    root = tmp_path / "wrong-owner"
+    with pytest.raises(ValueError, match="NFB_BASE_PART_SOURCE_HOLE_MAPPING_UNVERIFIED"):
+        save_resolved_manufacturing_geometry_batch_dxf(
+            batch, root, part_only=True,
+        )
+    assert not root.exists()
