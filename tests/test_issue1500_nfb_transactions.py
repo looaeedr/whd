@@ -235,3 +235,38 @@ def test_real_mfg1_submit_preserves_unresolved_mfg2_warning_and_no_export_grant(
     )
     with pytest.raises(ValueError,match="dependencies unresolved"):
         readiness.filter_export_part_ids((scope.inner_door_part_id,))
+
+
+
+def test_copy_submitted_source_into_independently_verified_target_unit_id():
+    base=layout()
+    old=config(owner="nfb:0:slot1",x=0)
+    old["holes"][0]["unit_id"]="physical-source-unit"
+    source=do_submit(base,configs={0:old}).layout
+    target=config(owner="nfb:1:slot1",x=100)
+    target["holes"][0]["unit_id"]="physical-target-unit"
+    warnings=[]
+    result=copy_submitted_nfb_bay(
+        source,set_index=0,source_bay_index=0,target_bay_index=1,
+        version_id="v1",target_config=target,
+        evidence=evidence(source,1,x=100),
+        confirm=lambda preview:warnings.append(preview) or True,
+    )
+    assert result.changed
+    assert warnings[0].action=="COPY_SUBMIT"
+    committed=result.layout["sets"][0]["bays"][1]["nfb_config"]["holes"][0]
+    original=result.layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert committed["unit_id"]=="physical-target-unit"
+    assert original["unit_id"]=="physical-source-unit"
+    assert committed["physical_hole_id"]!=original["physical_hole_id"]
+    assert committed["manual_x_mm"]==100
+    assert original["manual_x_mm"]==0
+    assert committed["rotation_deg"]==original["rotation_deg"]==90
+    assert committed["operator_offset_mm"]==original["operator_offset_mm"]
+    assert undo_nfb_transaction(result.layout,result.receipt)==source
+    canceled=copy_submitted_nfb_bay(
+        source,set_index=0,source_bay_index=0,target_bay_index=1,
+        version_id="v1",target_config=target,
+        evidence=evidence(source,1,x=100),confirm=lambda _:False,
+    )
+    assert not canceled.changed and canceled.layout==source
