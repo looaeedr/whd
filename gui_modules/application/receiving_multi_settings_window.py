@@ -374,6 +374,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
             def choose(_event=None):
                 candidate_selected[role] = ids.get(variable.get())
+                apply_button.configure(
+                    state="normal" if candidate_selected[role] else "disabled"
+                )
                 refresh_manager_controls()
 
             selector.bind("<<ComboboxSelected>>", choose)
@@ -399,8 +402,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     warn(exc)
 
             ttk.Button(row, text="編輯", command=edit_role).pack(side="left", padx=(0, 3))
-            ttk.Button(row, text="套用", command=apply_role,
-                       state="normal" if candidate_selected[role] else "disabled").pack(side="left")
+            apply_button = ttk.Button(
+                row, text="套用", command=apply_role,
+                state="normal" if candidate_selected[role] else "disabled",
+            )
+            apply_button.pack(side="left")
 
         if selected_setting["kind"] == "head_features":
             actions(settings_host, "head_features", role="head")
@@ -538,6 +544,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def refresh_rows():
         if mode_var.get() != "set_bay":
+            set_actions.pack_forget()
             for entry in bay_rows:
                 entry["frame"].destroy()
             bay_rows.clear()
@@ -548,6 +555,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if not setting_list.winfo_manager():
                 setting_list.pack(anchor="w", pady=(6, 0))
             return
+        if not set_actions.winfo_manager():
+            set_actions.pack(anchor="w", pady=(5, 0))
         if tuple(setting_list.get(0, tk.END)) != ("封頭尾", "內門"):
             setting_list.delete(0, tk.END)
             setting_list.insert(tk.END, "封頭尾", "內門")
@@ -563,14 +572,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             row.pack(anchor="w", pady=2)
             ttk.Label(row, text=f"第{index + 1}套").pack(
                 side="left", padx=(0, 10))
-            plus = ttk.Button(row, text="＋連",
-                              command=lambda i=index: resize(i, 1))
-            plus.pack(side="left", padx=(0, 3))
-            count_label = ttk.Label(row, width=3, anchor="center")
-            count_label.pack(side="left", padx=(0, 3))
             minus = ttk.Button(row, text="－連",
                                command=lambda i=index: resize(i, -1))
             minus.pack(side="left", padx=(0, 3))
+            count_label = ttk.Label(row, width=3, anchor="center")
+            count_label.pack(side="left", padx=(0, 3))
+            plus = ttk.Button(row, text="＋連",
+                              command=lambda i=index: resize(i, 1))
+            plus.pack(side="left", padx=(0, 3))
             apply_button = ttk.Button(row, text="套用",
                                       command=lambda i=index: apply(i))
             apply_button.pack(side="left")
@@ -603,6 +612,29 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             warn(exc)
 
     setting_list.bind("<<ListboxSelect>>", select_setting)
+
+    def adjust_sets(delta):
+        if resize_sets is None or mode_var.get() != "set_bay":
+            return False
+        try:
+            if not ensure_set_mode():
+                return False
+            result = resize_sets(delta)
+            if result:
+                topology_changed["value"] = True
+                counts = tuple(get_switch().connection_counts())
+                if (applied["set_index"] is not None
+                        and applied["set_index"] >= len(counts)):
+                    applied.update(set_index=None, selected=None,
+                                   selected_bays=(), count=1)
+                    selected_setting.update(set_index=None, bay_index=None, kind=None)
+                    setting_list.selection_clear(0, tk.END)
+                    show_setting_controls()
+                    render()
+                refresh_rows()
+            return result
+        except (ValueError, IndexError, RuntimeError) as exc:
+            return warn(exc)
 
     def resize(index, delta):
         try:
@@ -697,6 +729,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # Test hooks are presentation state only, not product data authority.
     win._receiving_multi_brand_var = brand_var
     win._receiving_multi_brand_selector = brand_selector
+    win._receiving_multi_set_buttons = (minus_set, plus_set)
+    win._receiving_multi_candidate_selected = candidate_selected
+    win._receiving_multi_candidate_combos = candidate_combos
+    win._receiving_multi_manager_state = manager_state
     win._receiving_multi_settings_host = settings_host
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
