@@ -81,6 +81,7 @@ def test_shihlin_upper_native_color30_cutting_lines_are_closed_without_new_edges
     assert all(item.source_color_aci==30 for item in result.base_cutting_circles)
     assert {x.source_handle for x in result.base_marking_entities}==set(marks)
     assert all(item.source_color_aci==212 for item in result.base_marking_entities)
+    assert all(item.source_closed is True for item in result.base_marking_entities)
     assert lower_mark in result.lower_deferred_handles
     assert lower_mark not in {m.source_handle for m in result.base_marking_entities}
     assert source.read_bytes()==before
@@ -104,6 +105,7 @@ def test_marking_can_remain_open_without_becoming_cutting(tmp_path):
         source,profile=profile,lower_reference_handle=lower,
     )
     assert len(item.base_marking_entities)==4
+    assert all(mark.source_closed is False for mark in item.base_marking_entities)
     assert len(item.base_cutting_circles)==4
     assert len(item.base_cutting_closed_loops)==1
 
