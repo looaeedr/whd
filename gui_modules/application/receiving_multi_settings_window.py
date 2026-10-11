@@ -177,6 +177,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         select_bay=None,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_settings_ports=None,
+                        get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
                         on_close=None, on_brand_close=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
@@ -623,6 +624,84 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, textvariable=preview_state["status"],
                 ).pack(anchor="w")
                 refresh_inner_preview()
+            if get_nfb_transaction_ports is not None:
+                transactions = get_nfb_transaction_ports()
+                state = transactions["state"](set_index, bay_index)
+                nfb_row = ttk.Frame(settings_host)
+                nfb_row.pack(anchor="w", pady=(7, 2))
+
+                def refresh_after_transaction():
+                    # Re-read the ONE adapter authority after a commit/reset/
+                    # undo. Do not leave stale buttons or an older preview.
+                    if win.winfo_exists():
+                        win.after_idle(show_setting_controls)
+
+                def confirm_nfb_transaction(preview):
+                    action = {
+                        "SUBMIT": "正式提交 NFB 開孔配置",
+                        "COPY_SUBMIT": "複製 NFB 至未配置連",
+                        "COPY_OVERWRITE": "覆寫已提交的 NFB 配置",
+                        "RESTORE_UNCONFIGURED": "還原 NFB 為未配置",
+                    }.get(preview.action, "變更 NFB 配置")
+                    impacted = "、".join(preview.impacted_parts) or "目前選取的連"
+                    held = ("\n仍待加工資料的板件：" + "、".join(preview.held_parts)
+                            if preview.held_parts else "")
+                    return bool(messagebox.askyesno(
+                        "確認 NFB 交易",
+                        f"{action}\n受影響：{impacted}{held}\n"
+                        "確定後會更新專案內的 NFBConfig；取消不會更動設定。",
+                        parent=win,
+                    ))
+
+                def nfb_reset():
+                    try:
+                        if not state["can_restore"]:
+                            raise ValueError("目前連尚未正式提交 NFBConfig")
+                        if transactions["restore"](
+                            set_index, targets(), confirm_nfb_transaction,
+                        ):
+                            refresh_after_transaction()
+                    except (ValueError, IndexError, RuntimeError) as exc:
+                        warn(exc)
+
+                def nfb_undo():
+                    try:
+                        transactions["undo"]()
+                        refresh_after_transaction()
+                    except (ValueError, IndexError, RuntimeError) as exc:
+                        warn(exc)
+
+                # Candidate Apply above only chooses filename/layers. The
+                # separate MFG-1 Submit/Copy buttons MUST remain disabled
+                # until actual source+X/Y readiness can be supplied.
+                ttk.Button(
+                    nfb_row, text="確認套用（NFB）",
+                    state="normal" if state["can_submit"] else "disabled",
+                    command=lambda: warn(ValueError(
+                        "尚未取得原始 DXF、實體定位與製造守衛證據，不能提交"
+                    )),
+                ).pack(side="left", padx=(0, 4))
+                ttk.Button(
+                    nfb_row, text="複製至其他連",
+                    state="normal" if state["can_copy"] else "disabled",
+                    command=lambda: warn(ValueError(
+                        "尚未確認目標連的獨立 X 基準，不能複製提交"
+                    )),
+                ).pack(side="left", padx=(0, 4))
+                ttk.Button(
+                    nfb_row, text="還原為未配置",
+                    state="normal" if state["can_restore"] else "disabled",
+                    command=nfb_reset,
+                ).pack(side="left", padx=(0, 4))
+                ttk.Button(
+                    nfb_row, text="復原",
+                    state="normal" if state["can_undo"] else "disabled",
+                    command=nfb_undo,
+                ).pack(side="left")
+                if state["reason"]:
+                    ttk.Label(
+                        settings_host, text=state["reason"], wraplength=570,
+                    ).pack(anchor="w")
             # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
