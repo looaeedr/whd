@@ -33,12 +33,18 @@ whd_schema: WHD_DOC_META_V1
 
 ## `/推推` 發布先行、X 回同步硬閘門 `LOCALX_PUBLISH_THEN_X_BACKSYNC`
 
-- **順序不可顛倒**：先查本機 `localX`、GitHub `localX`、正式 `X=cleanup/2d-3d-sync` 的 fresh SHA；先讓本機已驗證的 `localX` 以非強制推送同步至 GitHub `localX`（遠端若超前、分叉，先核查來源／安全整合，不 reset 或強推）。在 GitHub `localX` 與本機 HEAD 回讀一致前，不得建立可宣稱完成的正式發布。
+- **預設本機優先，GitHub-only 須當次明確授權**：一般 `/推推` 先查本機 `localX`、GitHub `localX`、正式 X 的 fresh SHA／未發布修改，將本機驗證版本以非強制方式同步 GitHub `localX`，讀回一致後再發布；遠端超前或分叉須安全整合，不 reset、不強推。**只有使用者當次明確指定 `GitHub-only` 發布、範圍包含現有遠端 `localX` 內容且接受「本機同步待辦」時**，才允許不讀／不改本機，直接以已完成遠端 `localX` 整合及 exact HEAD 為來源建立 X PR；本機 HEAD 只能標 UNKNOWN／`LOCAL_SYNC_PENDING`，不可虛稱三方已對齊。一般「/推推」「繼續」不得冒充 GitHub-only 授權。
 - **X 超前只能是非本體**：發布前只**檢查** X 相對於 `localX` 獨有的所有 commit（含 merge commit 第一父提交的差異），並以 `tools/change_lane_gate.py` 的治理白名單逐一核對。任何本體／混合／未知路徑、無法證實的歷史均 `X_AHEAD_NON_GOVERNANCE_BLOCKED`，不得假設「一定只有文件」。通過時也**不得在正式發布前**先把 X pull／merge／rebase 進本機或 GitHub `localX`。
 - **X-only 歷史時區 CI 相容例外（只讀）**：僅兩個已在 X 合併且驗收的不可變提交 `06d97ca575ebf9c2973ab3fdaa669787702faac4`、`beac45c3b3afc5bb11629fcbcd6e1e51b76c8e09`（新增 `Asia/Taipei` 環境與來源時間安全檢查）可在 X-only 歷史回讀時視為治理；還須確認其除既定 CI workflow 外的差異全屬治理白名單。**不授權任何新 PR、其他 workflow 變更或任意 SHA 豁免**；產品發布與當次 `/推推` 仍照原硬閘門。
-- **先發布，再回同步**：使用者當次 `/推推`、exact PR head/base SHA、必要 CI 全部符合後，由 GitHub `localX` PR **合併至 X**（保留 X 原有純治理提交，不 force、不覆蓋）。合併完成後取得 X 新 SHA，**才**依序從 X fast-forward 同步**本機 `localX`**，必要驗證後非強制同步**GitHub `localX`**。
-- **三方回讀是完成條件**：確認 `HEAD(本機 localX) == HEAD(GitHub localX) == HEAD(X)` 且 X PR 確實 merged。若 DC 不可用、認證拒絕、衝突、遠端更新、GitHub 操作被拒等導致任何一步失敗，真實回報 `POST_PUBLISH_LOCALX_SYNC_PENDING` 與三個實際 SHA／原因，**不能聲稱三方已同步**；保留提交並於可操作時續接，不藉此反向重發 `/推推` 或改用 force。
+- **先發布，再回同步**：使用者當次 `/推推`、exact PR head/base SHA、GitHub owner comment、必要 CI、X-only 治理歷史與無衝突都符合後，由 GitHub `localX` PR **合併至 X**（不 force、不覆蓋）。預設發布後先從 X fast-forward 同步**本機 `localX`**，必要驗證後非強制同步 GitHub `localX`；**當次明確 GitHub-only** 則僅可在 GitHub `localX` 為發布後 X 的祖先時，以 `expected_sha` 限定、非強制 fast-forward 遠端 `localX` 至 X，留下本機 `LOCAL_SYNC_PENDING`，不探測 DC／RC／本機。
+- **三方回讀與狀態分流**：只有實際確認 `HEAD(本機 localX) == HEAD(GitHub localX) == HEAD(X)` 且 PR merged 才能回報 `PUBLISHED_AND_SYNCED`。當次明確 GitHub-only 發布，若 X PR merged 且遠端 `localX` 已非強制對齊，**只能**回報 `GITHUB_ONLY_PUBLISHED + LOCAL_SYNC_PENDING`，本機 SHA 未查為 UNKNOWN；不可宣稱三方同步。若 DC 不可用、認證拒絕、衝突或 GitHub 更新導致任一步失敗，回報 `POST_PUBLISH_LOCALX_SYNC_PENDING`、已知 SHA／真正原因；不重複索取 `/推推`，不得 force 或覆蓋未發布資料。
 - **通道不變**：純治理／技能／非本體文件直接治理分支 PR 合併 X，不經兩邊 `localX`，也不需要 `/推推`；以上三方回同步僅適用於產品發布，不得反過來把治理變成本體。發布操作遵守既有平台安全審查與 DC 授權範圍。
+
+## 當次明確 GitHub-only 產品發布例外 `GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1`
+
+此例外**僅改變指定當次產品發布的整合位置與同步回報，不是另一條無授權發布捷徑**：使用者須明確指向 GitHub-only 的 `localX → X` 發布、包含的新產品功能／範圍、以及本機同步待辦。先確認遠端 `localX` 已整合相應產品 PR、當下 head/base SHA、必跑 CI（含正式 X PR 自身）、GitHub owner exact `/推推` 留言及 X-only 治理歷史；任一 HEAD 或產品範圍中途變更，必須按新版本重新驗證與取得覆蓋新範圍的當次明確授權，不能沿用舊 SHA 紀錄。
+
+發布後僅在確定 fast-forward 時更新**遠端** `localX`；本機標 `LOCAL_SYNC_PENDING` 並留待使用者另行授權的安全同步，不使用 DC、RC、本機 shell，不 reset／強推。**未取得 GitHub-only 明確授權時，`LOCALX_PUBLISH_THEN_X_BACKSYNC` 仍採本機優先。**
 
 ## 全域台灣時區硬閘門 `TAIWAN_TIMEZONE_HARD_GATE_V1`
 
