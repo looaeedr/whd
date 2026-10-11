@@ -38,11 +38,12 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
                 self.assertIn("localX", text)
         dispatch = DISPATCH.read_text("utf-8")
         self.assertIn("CI SUCCESS 之前禁止用 DC", dispatch)
-        self.assertIn("只在", dispatch)
+        self.assertIn("只有 exact HEAD CI SUCCESS 後", dispatch)
+        self.assertIn("GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1", dispatch)
         self.assertIn("不得在這個階段直接改產品程式", dispatch)
         self.assertIn("非強制同步 GitHub", dispatch)
 
-    def test_dc_unreachable_is_the_only_remote_merge_fallback(self):
+    def test_dc_unreachable_fallback_is_distinct_from_authorized_github_only(self):
         for path in (AGENTS, DISPATCH, QA):
             text = path.read_text("utf-8")
             for marker in ("DC_UNREACHABLE", "LOCALX_SYNC_PENDING"):
@@ -54,6 +55,10 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("不能", dispatch)
         self.assertIn("不得宣稱本機", dispatch)
         self.assertIn("實際無法連線或逾時", dispatch)
+        self.assertIn("DC 斷線備援", dispatch)
+        self.assertIn("對本工單明確授權遠端 GitHub", dispatch)
+        self.assertIn("GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING", dispatch)
+        self.assertIn("不可替使用者虛構遠端合併授權", dispatch)
 
     def test_slash_takeover_remains_distinct_from_dispatch_dc_exception(self):
         for path in (TAKEOVER, LOCAL):
