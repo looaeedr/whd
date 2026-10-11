@@ -209,7 +209,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     win = tk.Toplevel(parent)
     win.title("多只設定")
-    win.transient(parent)
+    # Nonmodal operator surface; transient/grab hid it behind child windows.
     parent._receiving_multi_settings_window = win
     topology_changed = {"value": False}
     brand_changed = {"value": False}
@@ -249,7 +249,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0"
                 )
         if win.winfo_viewable():
-            win.grab_set()
+            win.lift()
             win.focus_set()
 
     win.after_idle(maximize_and_lock)
@@ -809,8 +809,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager.destroy()
         manager_widgets.update(frame=None, label=None, buttons=(),
                                buttons_frame=None, quantity_frame=None, canvas=None)
-        if win.winfo_exists() and win.grab_current() is None:
-            win.grab_set()
+        if win.winfo_exists():
+            win.lift()
             win.focus_set()
 
     def refresh_manager_controls():
@@ -876,7 +876,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager_state["page"] = "candidates"
         manager = tk.Toplevel(win)
         manager.title("內門版本管理" if family == "inner" else "版本管理")
-        manager.transient(win)
+        # Managed child stays nonmodal so the parent and floating true view
+        # remain usable without closing each other first.
         manager.geometry("960x720")
         manager.minsize(570, 350)
         manager_window["win"] = manager
@@ -978,9 +979,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager._receiving_manager_page_var = page_var
         manager._receiving_manager_role_var = role_var
         refresh_manager_controls()
-        if win.grab_current() is win:
-            win.grab_release()
-        manager.grab_set()
+        manager.lift()
         manager.focus_set()
         return manager
 
@@ -1236,8 +1235,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     warn(exc)
                 return
 
+    mode_transition = {"busy": False}
+
     def change_mode():
         target = mode_var.get()
+        if mode_transition["busy"]:
+            mode_var.set(applied["mode"])
+            return
+        if target == applied["mode"]:
+            return
+        mode_transition["busy"] = True
         try:
             if get_snapshot().get("active_mode", "set_bay") != target:
                 if not switch_mode(target):
@@ -1253,6 +1260,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         except (ValueError, IndexError, RuntimeError) as exc:
             mode_var.set(applied["mode"])
             warn(exc)
+        finally:
+            mode_transition["busy"] = False
 
     for text, value in (("套／連", "set_bay"), ("數量", "quantity")):
         ttk.Radiobutton(mode_row, text=text, value=value,
