@@ -155,3 +155,20 @@ def test_current_skill_authority_rows_match_frontmatter() -> None:
         metadata = parse_doc_metadata(read(path), path=path)
         assert metadata.role == "CURRENT", path
         assert metadata.contract == fields["contract"], path
+
+
+def test_dm7_current_skill_does_not_restore_retired_preflight_gate() -> None:
+    path = ".agents/skills/engineering/截角資料入口收斂/SKILL.md"
+    skill = read(path)
+    metadata = parse_doc_metadata(skill, path=path)
+    assert metadata.role == "CURRENT"
+    assert metadata.contract == "dm7-part-navigation"
+    assert "## 現行施工入口與來源查核" in skill
+    assert "由 GitHub／排程／雲端執行器施工" in skill
+    assert "只有使用者當次明確 `/接手`" in skill
+    assert "不得要求已退役的 preflight 重跑" in skill
+    assert "先跑 `tools/phase6_skill_preflight.py" not in skill
+    assert "並留下 `READ_REFERENCE:` evidence" not in skill
+    assert "再以全部 changed files 重跑 preflight" not in skill
+    assert "## DM7 canonical navigation authority" in skill
+    assert "STALE_PHYSICAL_CHILD" in skill
