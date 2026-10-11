@@ -59,3 +59,7 @@ whd_schema: WHD_DOC_META_V1
 `CLASSIFICATION_NOT_RUN != HANG/TIMEOUT`：classifier 尚未執行、沒有 terminal classifier record，不能推論成 hang 或 timeout。先確認 child process / job / step terminal state，再依 exact log evidence 分類。
 
 `FLAKY_WARNING`：首次 unexpected RED、同一 exact scope retry GREEN，仍必須保留 `[FLAKY-WARNING]` 與 first-run evidence；retry GREEN 不得抹除第一次異常，也不得自動升格成 deterministic PASS 證據。
+
+## 對話上下文風險銜接
+
+長 Log 的 cursor checkpoint 與對話風險不是同一件事。依正式 X `AGENTS.md` 的 `WHD_CONTEXT_RISK_CHECKPOINT_V1`，只在既有終態／工單切換／可觀察的上下文遺漏時，將 `run_id`、`head_sha`、`last_read_offset/cursor` 和下一個精確動作**引用**至同一 Issue 的簡短交接；原始證據仍留在 GitHub Actions/artifact。不要因風險提示重拉整份日誌、重跑測試、建立輪詢排程或聲稱有精確 Token 餘額；未獲授權不得轉走 DC／本機。
