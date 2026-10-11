@@ -89,6 +89,28 @@ whd_schema: WHD_DOC_META_V1
 - `logs/` 有 62 個 `.md`、123 個 `.txt`；`.scratch/` 有 54 份 `.md`。抽檢 `logs/box_body_single_source/T*.state.md`、`logs/preflight/*`、`.scratch/dm*/checkpoint.md`、`.scratch/*/phase6_preflight_evidence.md` 均是日期化執行證據，**沒有理由把其中 READ_SKILL／Preflight 憑證重新升格成 CURRENT 前置**。
 - 本節不對過去合法驗收的結果重新判決、不自動刪除，也不創建新的必經 Gate；真正需要刪改原件時，先查引用者與 path classifier，避免破壞追溯或產品守衛。
 
+## 第三輪深入清查：日誌、備份、技能附屬文件（2026-10-11）
+
+以下**僅將 GitHub 正式 X 的角色／用途逐件核對結果記錄到治理報告**，不重寫保留日期與 SHA 的原始材料。先前「logs／scratch 抽樣」的紀錄為第一輪狀態，已由本節的新一輪完整 metadata 查核取代。
+
+| 位置 | 完整清單數量 | 此輪逐檔角色核對 | 正確判讀 |
+| --- | ---: | --- | --- |
+| `logs/` | **62 Markdown + 123 TXT = 185** | 62/62 Markdown 均沒有 `whd_doc_role` metadata；123 TXT 保留原始證據，不宣稱逐行審完 | 歷史 preflight、QA、回歸與工作紀錄，沒有 CURRENT 權威 |
+| `.scratch/` | **54 Markdown** | 54/54 未標角色 | 研究／工單／測試 checkpoint／歷史草稿，不能因 `Status: GREEN` 便重新啟動舊流程 |
+| `BACKUP/` | **13 Markdown** | 13/13 未標角色 | 原始備份不可與同名正式文件混用；不刪改 |
+| `修改日誌/` | **23 Markdown** | 23/23 未標角色 | 按日期的修改紀錄不是今天的 runtime／交付權威 |
+| 根目錄 | **24 Markdown／TXT 類** | 22 份有 `CURRENT`／`REFERENCE`／`MIRROR`／`HISTORICAL` metadata；`bug.txt`、`requirements.txt` 無（非角色文件） | 真 CURRENT 是 `AGENTS.md`、`加工層分類與定義.md`，其餘遵原本宣告的角色 |
+| `.agents/skills/**` 附屬 Markdown（排除 59 份 `SKILL.md`） | **29** | 28 REFERENCE、1 HISTORICAL；無未標角色或 CURRENT 附屬副本 | SKILL 附屬說明不能覆蓋 canonical Skill 的規則 |
+| `個人AI檔案庫/踩坑庫/` | **15 Markdown** | 15 REFERENCE；無 CURRENT | 事故／防錯參考，不是新執行授權 |
+
+### 舊備份的確定衝突：退役 Preflight 被當成強制入口
+
+- `BACKUP/20260903-210301-AGENTS.md`、`BACKUP/20260903-210816-DEEP-AGENTS.md` 保存歷史標題「啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事」；此要求與現在正式 X `AGENTS.md` 的**已退役**規則不同。歷史 backup 只當原文證據，不得被任一 Agent 當正式 startup instructions。
+- `BACKUP/20260903-205244-DELIVERY_README.md` 等保留「[CURRENT] 2026-09-02」**當時**的聲明；即使原文沒有改成 `HISTORICAL`，其所在 `BACKUP/` 也不能作當前 CURRENT owner。
+- 已核對目前正式 X 的 `tools/knowledge_governance.py`：`SKIP_PARTS` 包含 `.scratch`、`BACKUP`；`is_governed_markdown()` 不把 `logs/`、`修改日誌/` 當作受管制的 CURRENT Markdown 權威路徑。因此**已存在權威邊界**，本次不新增另一套 gate、不改老備份或生硬補 YAML。
+- 必須區分兩種掃描：`_iter_reference_texts()` 可以讀取未排除的普通文字供分析，**「被索引到」不等於具有正式權威**。不能因搜尋命中舊文字而執行已退役工單交易／Preflight。
+- 上述路徑的數量統計只是 metadata／開頭身分核對，**不代表全部 239 份 logs／scratch 正文逐行語意審核完成**。真正現行行為仍需核對產品 code、CURRENT spec 與驗證證據。
+
 ## 清查判定
 
 - **已執行**：全樹文件清單、權威索引角色統計、重要 CURRENT／REFERENCE／MIRROR 的優先核對、59 份 Skill metadata 與退役流程關鍵字查核、確認一處治理文字錯誤並提出修正。
