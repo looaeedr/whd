@@ -1865,6 +1865,28 @@ def open_receiving_multi_settings(self, namespace):
                           " 與孔位碰撞全部須通過才會準備提交。",
                 wraplength=490,
             ).pack(anchor="w",pady=(0,9))
+            # Explicit file chooser; a numbered copy still requires real SHA
+            # and Color150 matching in the canonical #1497 verifier.
+            source_choice={"path":None}
+            source_caption=tk.StringVar(
+                master=popup,
+                value="來源：基準檔/開孔/NFB（缺檔可選原始 DXF）",
+            )
+            def choose_original_dxf():
+                from tkinter import filedialog
+                picked=filedialog.askopenfilename(
+                    parent=popup,title="選擇原始 NFB DXF",
+                    filetypes=(("DXF","*.dxf"),("所有檔案","*.*")),
+                )
+                if picked:
+                    source_choice["path"]=picked
+                    source_caption.set("已指定原始 DXF："+picked)
+            ttk.Button(
+                body,text="選取原始 DXF",command=choose_original_dxf,
+            ).pack(anchor="w")
+            ttk.Label(body,textvariable=source_caption,wraplength=500).pack(
+                anchor="w",pady=(2,7),
+            )
             world_values={}
             for layer_i,slot_i,slot in active:
                 line=ttk.Frame(body)
@@ -1906,6 +1928,7 @@ def open_receiving_multi_settings(self, namespace):
                         version_id=version_id,
                         projected_snapshot=_current_mode_snapshot(self,namespace),
                         world_x_by_unit=coords,
+                        selected_source_path=source_choice["path"],
                     )
                     nfb_transaction_ports()["stage_verified"](bundle)
                     outcome.set("已完成真實來源／內門實體驗證，仍須回主視窗按「確認套用（NFB）」")
