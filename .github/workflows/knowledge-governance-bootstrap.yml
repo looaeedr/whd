@@ -15,7 +15,7 @@ on:
       - '.agents/contracts/WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1.json'
       - 'tests/governance/test_default_branch_explicit_x_contract.py'
       - 'tests/governance/test_dispatch_remote_only_contract.py'
-      - 'tests/governance/test_context_risk_handoff_contract.py'
+      - 'tests/governance/test_context_loss_prevention_contract.py'
       - 'docs/**/*.md'
       - 'docs/**/*.MD'
       - 'handoff/**/*.md'
@@ -77,7 +77,7 @@ jobs:
           set -euo pipefail
           python -m unittest discover -s tests/governance -p 'test_dispatch_remote_only_contract.py' -v
           python -m unittest discover -s tests/governance -p 'test_dispatch_executor_handoff_contract.py' -v
-          python -m unittest discover -s tests/governance -p 'test_context_risk_handoff_contract.py' -v
+          python -m unittest discover -s tests/governance -p 'test_context_loss_prevention_contract.py' -v
           python -m unittest discover -s tests/governance -p 'test_issue1464_dispatch_takeover_remote_contract.py' -v
           python -m unittest discover -s tests/governance -p 'test_issue_dispatch_ci_continuity_contract.py' -v
           python -m unittest discover -s tests/process -p 'test_change_lane_gate.py' -v
