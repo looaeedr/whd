@@ -121,3 +121,124 @@ def test_uploaded_w800_three_dxf_measures_local_centers_from_its_side_lines():
     assert row['x_status'] == 'PREVIEW_ONLY'
     assert row['blank_to_finished_face_x'] is None
     assert row['finished_face_to_box_world_x'] is None
+
+
+def _w800_three_dxf_fixture():
+    return json.loads(
+        (ROOT / "tests/fixtures/receiving_nfb_w800_three_source.json")
+        .read_text(encoding="utf-8")
+    )
+
+
+def _receiving_w800_t2_snapshot(*, left_neighbor_width=None):
+    """Physical Receiving inner-door state; no independent NFB placement."""
+    from ae_engine.cabinet_types.receiving import apply_family_defaults
+
+    data = apply_family_defaults({
+        "model": "受電箱", "w": 800.0, "h": 1600.0, "d": 350.0,
+        "t": 2.0, "fw": 29.0, "door_gap_w": 3.5, "door_gap_h": 3.5,
+    })
+    if left_neighbor_width is None:
+        data["door_layout_columns"] = [[800.0, [1100.0, 500.0]]]
+        cell_key = "0:0"
+    else:
+        data["w"] = left_neighbor_width + 800.0
+        data["door_layout_columns"] = [
+            [left_neighbor_width, [1100.0, 500.0]],
+            [800.0, [1100.0, 500.0]],
+        ]
+        cell_key = "1:0"
+    data["multi_door_enabled"] = True
+    data["door_layout_scope"] = "receiving-main"
+    data["inner_doors"] = [{
+        "stable_id": "upper", "cell_key": cell_key,
+        "included_frame_sides": ["top", "left", "right"],
+    }]
+    return data
+
+
+def test_w800_three_a1_is_dxf_side_line_not_certified_cutting_left():
+    """A 723-mm open source side pair cannot certify the manufactured CUTTING."""
+    source = _w800_three_dxf_fixture()
+    entities = {item["handle"]: item for item in source["entities"]}
+    left = entities[source["blank_left_handle"]]
+    right = entities[source["blank_right_handle"]]
+    assert (source["blank_left_handle"], source["blank_right_handle"]) == ("A1", "A0")
+    assert left["type"] == right["type"] == "LINE"
+    assert left["layer"] == right["layer"] == "0"
+    assert left["color"] == right["color"] == 7
+    assert right["start"][0] - left["start"][0] == pytest.approx(723)
+    assert source["source_semantics"] == (
+        "USER_SUPPLIED_PLACEMENT_EVIDENCE_NOT_CLOSED_MANUFACTURING_DXF"
+    )
+    obs = evidence()["w800_t2_three_hole_observation"]
+    assert obs["source_dxf_sha256"] == source["source_sha256"]
+    assert obs["source_outline_is_723_cutting_left_verified"] is False
+    assert obs["certified_x_revision"] is None
+    assert obs["not_exportable_as_manufacturing_x"] is True
+
+
+@pytest.mark.parametrize(
+    "left_neighbor_width,expected_center_world_x",
+    [(None, 0.0), (400.0, 200.0)],
+)
+def test_w800_three_shadow_roundtrip_reuses_real_inner_door_placement(
+    left_neighbor_width, expected_center_world_x,
+):
+    """Candidate only: use canonical part placement, not a separate NFB offset."""
+    from ae_engine.cabinet_types import policy
+    from ae_engine.assembly_placement import resolve_inner_door_panel_placement
+    from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+
+    state = _receiving_w800_t2_snapshot(left_neighbor_width=left_neighbor_width)
+    panel = policy.derive_inner_door_panels(state)[0]
+    placement = resolve_inner_door_panel_placement(state, "upper")
+    render = build_inner_door_panel_render_data(panel)
+    cutting = [p for p in render.scene.primitives
+               if isinstance(p, PolylinePrimitive)
+               and p.layer.upper() == "CUTTING" and p.closed]
+    assert len(cutting) == 1
+    cutting_x = [float(pt.x) for pt in cutting[0].points]
+    assert max(cutting_x) - min(cutting_x) == pytest.approx(723.0)
+    assert panel.stable_id == placement.stable_id == "inner_door:upper:panel"
+    assert panel.width == pytest.approx(689.0)
+    assert panel.unfolded_width == pytest.approx(723.0)
+    assert placement.anchor == "inner_door_frame_opening:upper"
+    assert placement.world_offset[0] == pytest.approx(expected_center_world_x)
+
+    source = _w800_three_dxf_fixture()
+    by_handle = {item["handle"]: item for item in source["entities"]}
+    left_x = by_handle[source["blank_left_handle"]]["start"][0]
+    right_x = by_handle[source["blank_right_handle"]]["start"][0]
+    centers = []
+    for handles in source["aperture_side_handles"]:
+        sides = [by_handle[h]["start"][0] for h in handles]
+        centers.append((min(sides) + max(sides)) / 2)
+    assert right_x - left_x == pytest.approx(panel.unfolded_width)
+
+    # NON-MANUFACTURING witness only. The source CUTTING identity, developed
+    # face projection and owner-approved X orientation remain unverified.
+    # Never persist these conditional world values to the capability registry.
+    half = panel.unfolded_width / 2
+    candidate_world = [
+        placement.world_offset[0] + (center - left_x - half)
+        for center in centers
+    ]
+    assert candidate_world == pytest.approx([
+        expected_center_world_x - 180, expected_center_world_x,
+        expected_center_world_x + 180,
+    ])
+    reverse_source = [
+        (world - placement.world_offset[0]) + half + left_x
+        for world in candidate_world
+    ]
+    assert reverse_source == pytest.approx(centers)
+    obs = evidence()["w800_t2_three_hole_observation"]
+    assert obs["box_world_centers_mm"] is None
+    assert obs["certified_x_revision"] is None
+    row = next(item for item in evidence()["records"]
+               if (item["box_outer_width_mm"], item["nfb_count"]) == (800, 3))
+    assert row["x_status"] == "PREVIEW_ONLY"
+    assert row["blank_to_finished_face_x"] is None
+    assert row["finished_face_to_box_world_x"] is None

@@ -36,3 +36,15 @@ RC 唯讀原圖 SHA256 `e65e77ffa676defc0c16eeed6f1eb808f41cdbe8bc100f0ab8f4e5d0
 4. #1497／#1498 只可將取得上述核准的組別送能力註冊；Y 與 NFB 主孔型證據另由 #1495／#1496 提供，X 證據不代表整個 MFG-1 已通過。
 
 **#1494 保持 OPEN。** 本次 partial evidence 不聲稱 AC-49／SWT-AC-30 的原圖同一性與箱體映射已通過，不允許正式 NFB 開孔、不改內門或其他產品幾何、不發布正式 X。
+
+## 補充：沿用實體內門裝配的 X 投影檢查（shadow，不是製造核准）
+
+測試使用既有 ae_engine.assembly_placement.resolve_inner_door_panel_placement() 與 ae_engine.cabinet_types.policy.derive_inner_door_panels()，沒有為 NFB 建立平行的箱體 X 起點。W800／T2／折邊 19／門縫 3.5 對應 inner_door:upper:panel，成品寬 689、正式生成封閉 CUTTING 下料寬 723，裝配 anchor 為 inner_door_frame_opening:upper。
+
+來源 800x3.dxf 的 LINE A1（X=5292.99589）及 A0（X=6015.99589）水平相距 723；這僅證實圖面幾何寬度。原圖圖層 0／ACI 7，不是已分類及閉合的正式 CUTTING 輪廓；相同寬度不等於 A1 已認證為 CUTTING 左緣。
+
+以下**只是一組條件式可逆影子公式，不是製造公式**：令 S=來源 DXF x，L=A1 x，B=內門 unfolded_width=723，P=既有 resolve_inner_door_panel_placement().world_offset.x。只有在 A1 的正式下料身份、來源與展開 X 同向、孔位位於合法核心面、折後映射保留本投影都獲正式證實後，候選 X_shadow = P + (S-L-B/2)，逆算 S=(X_shadow-P)+B/2+L。
+
+回歸獨立驗證：單柱 W800 時 P=0，左側另有 W400 柱時 P=200；三孔影子 X 分別為 [-180,0,180] 與 [20,200,380]，逆算回到真原圖 handle 中心。這些影子世界值**不可**寫入正式證據 JSON 的 box_world_centers_mm；測試永遠確保 certified_x_revision=null、box_world_centers_mm=null、逐組 x_status=PREVIEW_ONLY。
+
+**待補實證／核准：** 真實來源 A1 → 程式生成 CUTTING 左邊的同一性、內門下料 UV → 成品核心面 → 既有箱體裝配 X 的方向與正反映射，以及實際 NFB 主開孔型號幾何，全部須由實體 owner 核准 rule/revision。#1494 在此之前只有證據與 shadow 回歸，不能將此輸出視為 #1497/#1498 可製造能力。
