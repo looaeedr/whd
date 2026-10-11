@@ -129,6 +129,21 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
             self.assertNotIn("寫排程", selected)
             self.assertNotIn("root-local-first", selected)
 
+    def test_git_fallback_and_ui_skill_keep_current_execution_authority(self):
+        fallback = (
+            ROOT / ".agents/skills/misc/git-remote-sync-fallback/SKILL.md"
+        ).read_text("utf-8")
+        ui = (
+            ROOT / ".agents/skills/engineering/UI設計與去AI味/SKILL.md"
+        ).read_text("utf-8")
+        for marker in ("/派工", "/接手", "LOCALX_INTEGRATION", "/推推", "GitHub／雲端"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, fallback)
+        self.assertIn("不自行授權施工或 DC 存取", fallback)
+        self.assertNotIn("施工、測試和 commit 仍由指定本地工作區擁有", fallback)
+        self.assertNotIn("AGENTS.md`、Phase6 Preflight、project Skills", ui)
+        self.assertIn("已退役的 Phase6 Preflight receipt", ui)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
