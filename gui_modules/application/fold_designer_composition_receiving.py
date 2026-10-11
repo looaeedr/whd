@@ -612,13 +612,20 @@ def receiving_settings_ports(self, namespace, set_index):
     def selected(index):
         adapter.select_bay(index + 1)
 
-    def change(kind, value, indices=()):
+    def change(kind, value, indices=None):
+        # No explicitly highlighted Bay means no edit. Omitted indices keeps
+        # compatibility for the direct one-Bay editor, not the multi GUI.
+        targets = ((adapter.selection.bay_index,) if indices is None
+                   else tuple(indices))
+        if not targets:
+            return False
         current = adapter.selection.bay_index
-        for index in tuple(indices) or (current,):
+        for index in targets:
             adapter.select_bay(index + 1)
             adapter.update_setting(kind, value)
         adapter.select_bay(current + 1)
         commit()
+        return True
 
     def share(kind, indices):
         adapter.share_setting(kind, indices)
@@ -648,7 +655,9 @@ def receiving_settings_ports(self, namespace, set_index):
         adapter.set_brand(value)
         commit()
 
-    def holes(role, indices=()):
+    def holes(role, indices=None):
+        if indices is not None and not tuple(indices):
+            return False
         bay = adapter.current_bay()
         width, depth = float(bay["width"]), float(bay["depth"])
         thickness = float(self.app._phase6_input_snapshot.get("t", 2))
@@ -662,7 +671,7 @@ def receiving_settings_ports(self, namespace, set_index):
         def save_features():
             kind = f"{role}_features"
             current = adapter.selection.bay_index
-            targets = tuple(indices) or (current,)
+            targets = (current,) if indices is None else tuple(indices)
             if len(targets) > 1:
                 adapter.select_bay(targets[0] + 1)
                 adapter.share_setting(kind, targets)
