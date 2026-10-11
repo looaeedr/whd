@@ -437,8 +437,10 @@ class Phase6FoldDesignerComposition:
     def confirm_receiving_opening(self, namespace, layer_index, connection_index, brand):
         return _composition_receiving.confirm_receiving_opening(self, namespace, layer_index, connection_index, brand)
 
-    def receiving_bay_preview_request(self, namespace, set_index, bay_index):
-        return _composition_receiving.receiving_bay_preview_request(self, namespace, set_index, bay_index)
+    def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
+        return _composition_receiving.receiving_bay_preview_request(
+            self, namespace, set_index, bay_index, preview_layout=preview_layout
+        )
 
     def receiving_layer_preview_payload(self, namespace, layer_index):
         return _composition_receiving.receiving_layer_preview_payload(self, namespace, layer_index)

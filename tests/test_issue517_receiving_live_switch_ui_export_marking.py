@@ -447,6 +447,13 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         win = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 3)
         assert win.title() == "多只設定"
+        # The dialog reflects the current canonical mode. Select Set/Bay
+        # explicitly before asserting its controls, rather than relying on a
+        # mismatched display that switches modes on the first connection edit.
+        mode_buttons = win._receiving_multi_mode_controls.winfo_children()
+        next(button for button in mode_buttons
+             if button.cget("value") == "set_bay").invoke()
+        _pump(root, 3)
         # Only user-specified elements are exposed, no legacy editor or
         # extra brand/common-box/quantity-version controls.
         texts = _mapped_widget_texts(win)
@@ -638,5 +645,77 @@ def test_receiving_preview_uses_real_current_2d_scenes_per_connection_and_lock_h
             for child in win.winfo_children()
         }
         win.destroy()
+    finally:
+        _close(tk, root, designer)
+
+
+def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
+    import time
+    import fold_designer_bridge as bridge
+    from gui_modules.application.fold_designer_composition_receiving import _current_mode_snapshot
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set('受電箱')
+        _pump(root, 8)
+        composition = bridge._phase6_composition(designer)
+        current = _current_mode_snapshot(composition, vars(bridge))['active_mode']
+        win = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 4)
+        assert win._receiving_multi_mode_var.get() == current
+        assert win._receiving_multi_applied['mode'] == current
+        if current != 'set_bay':
+            radios = win._receiving_multi_mode_controls.winfo_children()
+            next(button for button in radios if button.cget('value') == 'set_bay').invoke()
+            _pump(root, 4)
+        row = win._receiving_multi_rows_host.winfo_children()[0]
+        plus = next(button for button in row.winfo_children()
+                    if button.winfo_class() == 'TButton' and button.cget('text') == '＋連')
+        counts = []
+        durations = []
+        for _ in range(2):
+            started = time.perf_counter()
+            plus.invoke()
+            _pump(root, 4)
+            durations.append(time.perf_counter() - started)
+            counts.append(composition.receiving_switch_adapter(vars(bridge)).connection_counts()[0])
+        assert counts == [2, 3]
+        assert max(durations) < 1.0, durations
+        win._receiving_multi_close()
+    finally:
+        _close(tk, root, designer)
+
+
+def test_primary_selected_version_popup_draws_real_geometry_without_live_mutation():
+    from copy import deepcopy
+    import fold_designer_bridge as bridge
+    from ae_engine.receiving_hole_candidates import create_candidate
+    from gui_modules.application.fold_designer_composition_receiving import _switch_mode
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set('受電箱')
+        _pump(root, 8)
+        composition = bridge._phase6_composition(designer)
+        _switch_mode(composition, vars(bridge), 'set_bay')
+        designer._phase6_input_snapshot['receiving_hole_candidates'], _version = create_candidate(None, 'head', [])
+        win = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 4)
+        assert win._receiving_multi_apply(0)
+        listing = win._receiving_multi_setting_list
+        listing.selection_set(0)
+        listing.event_generate('<<ListboxSelect>>')
+        _pump(root, 2)
+        before = deepcopy(designer._phase6_input_snapshot)
+        chooser = win._receiving_multi_candidate_combos['head']
+        chooser.set('版本一')
+        chooser.event_generate('<<ComboboxSelected>>')
+        _pump(root, 4)
+        preview = win._receiving_multi_real_preview
+        assert preview['view'].tiles, preview['status'].get()
+        widget = preview['view'].canvas.get_tk_widget()
+        assert widget.winfo_ismapped() and widget.winfo_width() > 100
+        assert preview['view'].ax.collections
+        assert designer._phase6_input_snapshot == before
+        win._receiving_multi_close_real_preview()
+        win._receiving_multi_close()
     finally:
         _close(tk, root, designer)

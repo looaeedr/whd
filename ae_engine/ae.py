@@ -773,8 +773,55 @@ def _make_base_plate_geometry(W_val, H_val, T_val, shrink_top, shrink_bottom, sh
     return list(result.outline), list(result.bends), result.topology
 
 
+def _receiving_base_weld_ear_mount_slots(scene, *, result, pattern, box_w, t):
+    """Four existing Base Plate mounting holes match the physical welded ears.
+
+    The original sample has 11-mm wide ×25-mm long rounded slots, their
+    centers 20 mm in from both blank X edges. The MIDDLE sample's UNFOLDED
+    hole X pitch is 732, but after side bends the assembled pitch is 670.
+    The LEFT/RIGHT samples are 670 both before and after folding.
+    This draws ear mounting holes, NOT an NFB's four small screw holes.
+    """
+    from math import cos, sin, pi
+    from .receiving_weld_ear_policy import resolve_receiving_large_weld_ear_fit
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+
+    center_pattern = pattern == RECEIVING_BASE_PATTERN_CENTER
+    y_pitch = 140.0 if center_pattern else 210.0
+    fit = resolve_receiving_large_weld_ear_fit(
+        box_outer_width_mm=box_w, box_side_thickness_mm=t,
+        fixing_hole_pitch_x_mm=670.0, fixing_hole_pitch_y_mm=y_pitch,
+    )
+    unfolded_x_pitch = 732.0 if center_pattern else fit.fixing_hole_pitch_x_mm
+    if abs((result.width - 40.) - unfolded_x_pitch) > 1e-6:
+        raise ValueError("Receiving base pattern does not match native 20-mm ear-hole edge inset")
+    cx=(20.0,result.width-20.0)
+    cy=(result.height/2.0-y_pitch/2.0,
+        result.height/2.0+y_pitch/2.0)
+    r, half_straight=5.5,7.0
+    def slot_path(x,y):
+        # Native horizontal oval: ARC radius=5.5, straight cap distance=14.
+        # Existing DrawingScene supports closed polylines; fine sampling
+        # keeps the maximum radial approximation error below 0.01 mm.
+        points=[]
+        points.append((x-half_straight,y-r))
+        points.append((x+half_straight,y-r))
+        for step in range(1,65):
+            theta=-pi/2.+pi*step/64.
+            points.append((x+half_straight+r*cos(theta),y+r*sin(theta)))
+        points.append((x-half_straight,y+r))
+        for step in range(1,64):
+            theta=pi/2.+pi*step/64.
+            points.append((x-half_straight+r*cos(theta),y+r*sin(theta)))
+        return tuple(points)
+    for x in cx:
+        for y in cy:
+            scene.add_polyline(slot_path(x,y), layer="CUTTING", closed=True)
+    return fit
+
+
 def _build_base_plate_scene(*, w, h, t, st, sb, sl, sr, bend, draw_stock=False, user_features=None,
-                            structural_result=None):
+                            structural_result=None, receiving_bend_pattern=None):
     """Build complete Base Plate DrawingScene without DXF serialization."""
     result = structural_result or build_base_plate_result(
         w=w, h=h, t=t, shrink_top=st, shrink_bottom=sb,
@@ -785,16 +832,25 @@ def _build_base_plate_scene(*, w, h, t, st, sb, sl, sr, bend, draw_stock=False, 
         scene.add(build_stock_outline(result.width, result.height))
     scene.extend(structural_result_to_primitives(result))
     _append_surface_user_features(scene, result, user_features, "base_plate")
-    scene.extend(resolved_features_to_primitives(
-        resolve_base_plate_mounting_holes(result.width, result.height, bend=bend)
-    ))
-    scene.add(build_base_plate_datum(
-        w=w, h=h, shrink_left=sl, shrink_bottom=sb, bend=bend,
-    ))
-    scene.extend(build_base_plate_check(
-        total_width=result.width, total_height=result.height, bend=bend,
-        shrink_top=st, shrink_bottom=sb, shrink_left=sl, shrink_right=sr,
-    ))
+    if receiving_bend_pattern is not None:
+        # The family base sample uses welded-ear OVAL slots (not the old
+        # universal four Ø10 mounting circles). Preserve this physical
+        # separation from the NFB's independent four small screw holes.
+        _receiving_base_weld_ear_mount_slots(
+            scene, result=result, pattern=receiving_bend_pattern,
+            box_w=w, t=t,
+        )
+    else:
+        scene.extend(resolved_features_to_primitives(
+            resolve_base_plate_mounting_holes(result.width, result.height, bend=bend)
+        ))
+        scene.add(build_base_plate_datum(
+            w=w, h=h, shrink_left=sl, shrink_bottom=sb, bend=bend,
+        ))
+        scene.extend(build_base_plate_check(
+            total_width=result.width, total_height=result.height, bend=bend,
+            shrink_top=st, shrink_bottom=sb, shrink_left=sl, shrink_right=sr,
+        ))
     return scene
 
 
