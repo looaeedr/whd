@@ -1688,10 +1688,16 @@ def open_receiving_multi_settings(self, namespace):
         nfb_preview_panel["panel"] = NfbDxfSourcePreviewPanel(editor_body)
         nfb_preview_panel["panel"].frame.pack_forget()
 
+        def sync_visible_layers():
+            nfb_physical_layers.set(layers.get())
+            change_layers()
+
         for count in (1, 2):
             ttk.Radiobutton(
                 controls, text=str(count), value=count, variable=layers,
-                command=lambda: paint_draft_preview(),
+                # The retired physical-layer selector follows the visible
+                # inner-door layer choice so a two-layer save remains valid.
+                command=lambda: sync_visible_layers(),
             ).pack(side="left", padx=8)
             ttk.Radiobutton(
                 physical_row, text=str(count), value=count,
