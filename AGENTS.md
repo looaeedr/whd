@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 - **舊工單交易、工作槽與 lease 控制系統已退役**；不得要求其憑證、工作槽、Preflight receipt 或其他管控才能執行修改、測試、Git commit。
 - **入口及階段分流**：`/派工` 的**施工、修改、測試、commit、PR 與 CI** 只能在 GitHub／排程／雲端執行器完成，嚴禁使用使用者本機。**唯一例外是 exact SHA CI 已通過後的 `LOCALX_INTEGRATION` 最終階段**：此時 `/派工` 可經 Desktop Commander（DC）連線 CoreELEC `whd-dev:/workspace/whd`，**只做使用者本機 `localX` 合併／必要整合驗證／同步回讀**，不得在該階段暗改產品程式或重做雲端施工。`/接手` 仍須使用者明確指令，才可在 RC 進行整個施工流程。
 - **產品施工通道**：`/派工` 遠端施工提交後建立 GitHub `localX` 目標 PR，確認 exact HEAD 的 CI SUCCESS；**先透過 DC 在本機 `localX` 整合且保留本機未發布修改**，通過整合驗證後以非強制方式同步 GitHub `localX` 並讀回兩端 SHA／PR 狀態。若 **DC 實際無法連線**，才允許 GitHub PR 直接合併遠端 `localX` 備援，需註明 `DC_UNREACHABLE`、`LOCALX_SYNC_PENDING`，不能聲稱本機已合併或同步。DC 可連但本機有衝突、髒檔、權限拒絕、CI RED，**不可冒用斷線備援**。`/接手` 依其明確指令走 RC 全流程。正式 X 的產品發布仍必須當次 `/推推`。
-- **治理直送通道（正式硬閘門）**：僅限 `tools/change_lane_gate.py` 明確白名單內的非產品文件、治理規則、技能、GitHub 工作流程與其專用測試。此類修改**不必**走 localX、`/推推`、工單派工或產品 QA；**優先直接使用 GitHub／雲端治理分支** `governance/*`、`docs/*` 或 `skills/*`，從最新 X 修改、檢查、PR 至 X 並合併。**未取得使用者本次對 DC／本機的明確授權，不得為治理修改存取 CoreELEC、whd-dev 或本地 shell**；雲端能力不足時回報阻塞，不得自動轉走 DC。
+- **治理直送通道（正式硬閘門 `NON_PRODUCT_GOVERNANCE_DIRECT_X`）**：僅限 `tools/change_lane_gate.py` 明確白名單內的非產品文件、治理規則、技能、GitHub 工作流程與其專用測試。此類修改**不必**走 localX、`/推推`、工單派工或產品 QA；**優先直接使用 GitHub／雲端治理分支** `governance/*`、`docs/*` 或 `skills/*`，從最新 X 修改、檢查、PR 至 X 並合併。**未取得使用者本次對 DC／本機的明確授權，不得為治理修改存取 CoreELEC、whd-dev 或本地 shell**；雲端能力不足時回報阻塞，不得自動轉走 DC。
 - **非本體 CI 排程／驗收權威硬分流（`CI_SCHEDULING_ONLY_V1`）**：純 CI 排程數字、既有 Runner 選型可依 `tools/change_lane_gate.py` 的**受信任 base X → PR HEAD 實際 blob 差異**走治理直送，不需本機 `localX`／DC／完整產品回歸。產品驗收主 workflow `.github/workflows/whd-product-regression.yml` **不得僅憑副檔名或 `.github/workflows/` 目錄判定治理**：只有對既有行的 `runs-on`、`timeout-minutes`、`max-parallel`、`retention-days` 且舊值、新值均符合白名單的替換能例外直送。增刪行、修改觸發 paths、matrix shards、jobs/if、測試指令、必跑步驟、CI 名稱、artifact 集合、完整性檢查一律產品通道；`tools/product_ci_regression.py`、`tools/product_ci_green_reuse.py`、`tools/whd_v15_acceptance_evidence.py`、產品測試清單／驗收矩陣與相關測試，永遠不能只靠 CI 調度名義豁免產品回歸與 `/推推`。GitHub X 的 required `WHD Change Lane Gate` 必須由**受信任 X 版本**執行這項判定。未知／缺少 git diff 證據 fail closed，不得自行改走本機。
 - **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得走治理直送；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
 - GitHub 正式硬閘門必須在 X 的 Ruleset 把 `WHD Change Lane Gate` 設為 required status check，否則只能算 CI 檢查、不能宣稱平台端不可繞過；直接 push X 應由分支 Ruleset 禁止。
@@ -56,10 +56,17 @@ whd_schema: WHD_DOC_META_V1
 - **外部平台安全審查不受此規則改寫**：GitHub／RC／自動核准系統若實際拒絕公開 push／merge，保留既有提交，明確回報被拒工具、操作、缺少哪類證據與 `PUBLIC_UPLOAD_REVIEW_BLOCKED`。不得以切換工具或傳輸管道繞過；已具有有效範圍核准時，也不得只是對使用者重播同一句核准問題而不解決證據傳遞。
 - 此條不恢復舊 Flow v2／lease／工作槽等交易控制，也不能把聊天文字聲稱為已通過平台審查。
 
+## /派工本體優先施工 `DISPATCH_SELF_EXECUTION_FIRST`
+
+- **本體直接施工優先。** 只要當次已有合法 GitHub 讀寫、建立 commit／PR 的能力與可觸發的雲端 CI，當前 AI 本體就應沿用指定 Issue、既有 PR 與工作分支直接執行實質修改、補測試、提交和 CI；**不得先搜尋 Codex、雲端程式代理外掛或子代理**，也不得因缺少另一位 executor 而停工。GitHub 工具可施工不代表本體能自行在雲端執行 shell；可由 GitHub Actions 執行可用測試，不得假稱本體已在 GitHub Runner 上測過。
+- **兩種接取證據分開。** 本體施工時記錄身分 `本體直接接取`、`execution_location=GITHUB`、Issue／原工作分支／PR，以及第一筆真正的修改 commit SHA；有 CI 時再記錄 exact SHA 的 Actions run ID／測試結果。不要求不存在的外部 task ID。**只有文字留言、空提交或搜尋外掛不是施工成功**。外部代理施工才需要對方的實際啟動回執／接取證據。
+- **能力不足才找外援。** 先具體指出缺少哪些 GitHub 寫入、提交、合法雲端驗證／CI 等能力，確實無法由本體施工才尋找或啟動外部代理；僅搜尋外掛不算派工。無可行途徑時正確標 `DISPATCH_REGISTERED_ONLY`／`REMOTE_EXECUTOR_UNAVAILABLE`，不可假稱已接取或背景運作。
+- **原權限不變。** `/派工` 的 BUILD／TEST／COMMIT 不得改用使用者本機、RC 或 DC；必要 exact SHA CI、`LOCALX_INTEGRATION` 與產品正式發布 `/推推` 均不豁免。本條只改執行者優先順序；**修改治理文件／技能本身仍依治理直送 X，不走產品派工或 localX。**
+
 ## /派工真實啟動證據 `DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
 
-- **/派工不是只登記 Issue/PR。** 在本回合完成 Issue／現有 PR 查核後，先確認有可**實際執行程式修改、測試、commit/PR**的授權雲端執行入口，並真的呼叫啟動／接手動作。僅有 Issue、PR、留言、指派欄位、CI run 或排程設定均**不是**執行者啟動證據；不能因為登記完成就輸出「已派工」或「執行中」。
-- **成功證據必須回讀：** `EXECUTOR_START_CONFIRMED` 需同時有執行者身分、實際雲端執行入口、可追溯的啟動結果／run 或 task ID、對應 Issue、工作分支，以及執行者第一個有內容的施工動作或確認接取的證據。單純自己在 Issue 貼「請接手」不算確認；回報須附實際連結或 ID。若本人在有合法雲端執行環境中直接施工，提供本回合真實執行記錄，而非冒稱另有 Agent。
+- **/派工不是只登記 Issue/PR。** 先依 `DISPATCH_SELF_EXECUTION_FIRST` 由本體使用現有 GitHub／雲端 CI 能力直接施工；只有本體缺少實際能力才尋找、啟動外部雲端代理。Issue、PR、留言、指派欄位、未對應實質施工的 CI run、外掛搜尋都不是開工證據，不能宣稱已派工或執行中。
+- **成功證據必須回讀：** `EXECUTOR_START_CONFIRMED` 必須有可核對的 Issue、原工作分支、執行者身分與真實施工動作。**本體施工**以實質 commit SHA、PR、exact GitHub Actions run／測試結果為憑，不要求外部 task ID；**委派外部代理**才需真實啟動回執／task ID 及代理接取。單純留言或宣稱已接取不算施工，不得冒稱另有 Agent。
 - **失敗必須真實結束：** 只有登記成功時標 `DISPATCH_REGISTERED_ONLY`；無法調用實際雲端施工入口時標 `REMOTE_EXECUTOR_UNAVAILABLE`；呼叫遭拒／未得到接取證據時標 `DISPATCH_START_UNCONFIRMED`，列明拒絕或未證實之處、最後可驗證狀態與續作入口，不得稱派工完成、不得假裝背景有人施工。**不要再創第二張 Issue／PR 來掩飾失敗。** 不得因此改走 DC、本機或未授權 `/接手`。
 - **成功接取之後**仍須按現有 CI、`localX` 與 `/推推` 規則續作；這只是防止「登記即完成」的真實性檢查，**不建立舊式 lease／claim／Flow v2 或新的輪詢排程**。
 
