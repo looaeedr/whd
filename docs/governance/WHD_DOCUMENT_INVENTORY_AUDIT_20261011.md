@@ -12,7 +12,7 @@ whd_schema: WHD_DOC_META_V1
 ## 已盤點的來源、範圍與界線
 
 - 倉庫：`looaeedr/whd`，正式 X：`cleanup/2d-3d-sync`，本次快照 SHA：`d7a0d4392058be168d9e1fbd13332905af575e47`。
-- 透過 GitHub root Contents 與各個頂層樹的 `git/trees/<sha>?recursive=1` 逐一列舉；**2,341 個檔案，其中 888 個以 `.md`／`.rst`／`.txt` 結尾**，各子樹均未標記 `truncated`。
+- 透過 GitHub root Contents 與各個頂層樹的 `git/trees/<sha>?recursive=1` 逐一列舉；**原快照 2,341 個檔案，其中 888 個以 `.md`／`.rst`／`.txt` 結尾**，各子樹均未標記 `truncated`。**此數是建檔前的快照，不是永遠固定的當前 X 檔案數**；清查報告經 #1623 建立、#1624 更新後，正式 X 同類文件為 **889**（新增的正是本份治理清查報告）。不得混用快照計數與更新後的 live tree 計數。
 - `AGENTS.md`、現行治理索引、根目錄導覽、AI Library 核心／SOP、59 份 `SKILL.md` 及高優先設計／驗收規則已做內容或 metadata 層級核對；**888 個文件的路徑全數納入清單，但尚不能宣稱每份正文都完成逐行語意驗收**。
 - `main` 為不管理的歷史分支，不清理、不同步；不使用 Google Drive／DC／RC 代替 GitHub 此次盤點。
 
@@ -58,6 +58,67 @@ whd_schema: WHD_DOC_META_V1
 
 - 本次回讀顯示 GitHub `localX` 較正式 X **超前 52 commits，X 並未超前**；檔案 diff 中四份文檔有差異：新增 `docs/manufacturing/receiving-large-weld-ear.md`，修訂 AI Library 的 `03_常用Prompt指令庫.md`、`05_CAD批次拆圖與特徵萃取規範.md`、`07_WHD技能發現與掃描深模組規則.md`。
 - 這些內容已進入 `localX`，**不代表已發布 X**；尤其焊接耳朵製造政策為產品域，正式 X 仍需使用者當次 `/推推`。不可利用本次治理通道搬運上述產品差異。
+
+## 第二輪深入清查：歷史計畫、驗收、checkpoint、logs（2026-10-11）
+
+> 本節以正式 X 讀取的 Git 樹與個別檔案 frontmatter、GitHub Issue 結案回讀為依據；**是角色與歷史證據風險稽核，不表示這些檔案的製造語意已獲產品驗收。** 舊計畫的保留理由是追溯用，不重啟退役派工／Preflight。
+
+| 目錄 | 路徑數 | HISTORICAL | REFERENCE | CURRENT | 未標角色 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `docs/superpowers/plans/` | 96 | 82 | 10 | 4 | 0 |
+| `docs/superpowers/verification/` | 91 | 81 | 3 | 3 | 4 份原始 `.txt` |
+| `docs/superpowers/checkpoints/` | 172 | 44 | 22 | 0 | **73 份 `.md`、33 份原始 `.txt`** |
+| `logs/` | 185 | 未完成全檔角色統計 | 未完成 | 未完成 | 62 份 `.md`、123 份 `.txt`，抽檢的歷史紀錄無 metadata |
+| `.scratch/` | 54 | 未完成全檔角色統計 | 未完成 | 未完成 | 54 份 `.md`，抽檢的 checkpoint／journal 無 metadata |
+
+前三個 `docs/superpowers` 子目錄已**逐件取原文前言／角色資訊**；`logs`／`.scratch` 本節只完成路徑盤點及跨頭尾的抽樣內容檢查，不能把抽樣結果冒充全篇驗收。
+
+### 已結案但仍標 CURRENT 的七份計畫／驗收證據
+
+- `docs/superpowers/plans/2026-09-15-issue280-permanent-test-reconciliation-and-move.md`（Issue [#280](https://github.com/looaeedr/whd/issues/280) 已於 2026-09-15 結案）。
+- `docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md`、`2026-09-16-issue305-t1-shard-manifest.md`、`2026-09-16-issue306-t2-non-gui-sharding.md`（Issue [#304](https://github.com/looaeedr/whd/issues/304)／[#305](https://github.com/looaeedr/whd/issues/305)／[#306](https://github.com/looaeedr/whd/issues/306) 均已於 2026-09-16 結案；母票 [#303](https://github.com/looaeedr/whd/issues/303) 於 2026-09-17 結案）。
+- `docs/superpowers/verification/2026-09-16-issue304-t0-baseline.md`、`2026-09-16-issue305-t1-shard-manifest.md`、`2026-09-16-issue306-t2-non-xvfb-sharding.md`。
+
+這七份檔案的 CURRENT metadata 與「日期化歷史實作指令／一次性驗收數據」同時存在，形成**角色語意待確認**問題：舊分支起點、RUN、原收集節點數（如 T0 的 2153）不是今天的授權或目前測試數。**不能僅因工單已關閉就斷言其整份領域契約失效**，CI 分片權威仍須跟現在的 `tools/test_shard_execution.py`、現行 workflow 和已核准 CURRENT design 核對；調整原文件需走產品通道 `localX`／必要 CI，不能以本治理報告或治理白名單修改。
+
+### Checkpoint 歷史保留與未標記文件
+
+- `docs/superpowers/checkpoints/` 的 **73 份無角色 Markdown**，包括 `issue334-t1-green-candidate.md`、`issue531-b6-controller-aggregate.md`、`phase4-t0-deep-owner-census.md` 等，保留當時綠燈、批次審核與固定 SHA。**不能根據檔名、日期、單一 GREEN 就視為當前可執行工作**；查閱時先交叉核對現行 Issue／PR／最新 source。
+- 另 **33 份原始 `.txt`** 沒有 metadata；原始測試／Preflight 證據不可機械插入 YAML 或改寫內容，應由索引／清查報告說明歷史用途。
+- `docs/superpowers/verification/issue678-poweroff-red/approved/` 有四份無 metadata 的原始 `.txt`，同樣保留位元內容與測試追溯，不自行修改。
+- `logs/` 有 62 個 `.md`、123 個 `.txt`；`.scratch/` 有 54 份 `.md`。抽檢 `logs/box_body_single_source/T*.state.md`、`logs/preflight/*`、`.scratch/dm*/checkpoint.md`、`.scratch/*/phase6_preflight_evidence.md` 均是日期化執行證據，**沒有理由把其中 READ_SKILL／Preflight 憑證重新升格成 CURRENT 前置**。
+- 本節不對過去合法驗收的結果重新判決、不自動刪除，也不創建新的必經 Gate；真正需要刪改原件時，先查引用者與 path classifier，避免破壞追溯或產品守衛。
+
+## 第三輪深入清查：日誌、備份、技能附屬文件（2026-10-11）
+
+以下**僅將 GitHub 正式 X 的角色／用途逐件核對結果記錄到治理報告**，不重寫保留日期與 SHA 的原始材料。先前「logs／scratch 抽樣」的紀錄為第一輪狀態，已由本節的新一輪完整 metadata 查核取代。
+
+| 位置 | 完整清單數量 | 此輪逐檔角色核對 | 正確判讀 |
+| --- | ---: | --- | --- |
+| `logs/` | **62 Markdown + 123 TXT = 185** | 62/62 Markdown 均沒有 `whd_doc_role` metadata；123 TXT 保留原始證據，不宣稱逐行審完 | 歷史 preflight、QA、回歸與工作紀錄，沒有 CURRENT 權威 |
+| `.scratch/` | **54 Markdown** | 54/54 未標角色 | 研究／工單／測試 checkpoint／歷史草稿，不能因 `Status: GREEN` 便重新啟動舊流程 |
+| `BACKUP/` | **13 Markdown** | 13/13 未標角色 | 原始備份不可與同名正式文件混用；不刪改 |
+| `修改日誌/` | **23 Markdown** | 23/23 未標角色 | 按日期的修改紀錄不是今天的 runtime／交付權威 |
+| 根目錄 | **24 Markdown／TXT 類** | 22 份有 `CURRENT`／`REFERENCE`／`MIRROR`／`HISTORICAL` metadata；`bug.txt`、`requirements.txt` 無（非角色文件） | 真 CURRENT 是 `AGENTS.md`、`加工層分類與定義.md`，其餘遵原本宣告的角色 |
+| `.agents/skills/**` 附屬 Markdown（排除 59 份 `SKILL.md`） | **29** | 28 REFERENCE、1 HISTORICAL；無未標角色或 CURRENT 附屬副本 | SKILL 附屬說明不能覆蓋 canonical Skill 的規則 |
+| `個人AI檔案庫/踩坑庫/` | **15 Markdown** | 15 REFERENCE；無 CURRENT | 事故／防錯參考，不是新執行授權 |
+
+### 舊備份的確定衝突：退役 Preflight 被當成強制入口
+
+- `BACKUP/20260903-210301-AGENTS.md`、`BACKUP/20260903-210816-DEEP-AGENTS.md` 保存歷史標題「啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事」；此要求與現在正式 X `AGENTS.md` 的**已退役**規則不同。歷史 backup 只當原文證據，不得被任一 Agent 當正式 startup instructions。
+- `BACKUP/20260903-205244-DELIVERY_README.md` 等保留「[CURRENT] 2026-09-02」**當時**的聲明；即使原文沒有改成 `HISTORICAL`，其所在 `BACKUP/` 也不能作當前 CURRENT owner。
+- 已核對目前正式 X 的 `tools/knowledge_governance.py`：`SKIP_PARTS` 包含 `.scratch`、`BACKUP`；`is_governed_markdown()` 不把 `logs/`、`修改日誌/` 當作受管制的 CURRENT Markdown 權威路徑。因此**已存在權威邊界**，本次不新增另一套 gate、不改老備份或生硬補 YAML。
+- 必須區分兩種掃描：`_iter_reference_texts()` 可以讀取未排除的普通文字供分析，**「被索引到」不等於具有正式權威**。不能因搜尋命中舊文字而執行已退役工單交易／Preflight。
+- 上述路徑的數量統計只是 metadata／開頭身分核對，**不代表全部 239 份 logs／scratch 正文逐行語意審核完成**。真正現行行為仍需核對產品 code、CURRENT spec 與驗證證據。
+
+## 第四輪正文引用審查（2026-10-11）
+
+- 以正式 X Git tree `5d95ae2173d82bdc8ac03ecae381e355a0ca185a` 的實際 Blob 路徑核對 12 份主要 CURRENT 規格／AGENTS、**59 份** `SKILL.md` 與 **17 份** AI 專案 SOP 內 backtick 標示的 repo-root 檔案引用。主要 CURRENT 規格與 active Skill 的**既存型態 repo-root 引用**未發現確定的失效路徑；此掃描不是對未加 backtick、Markdown 相對連結或所有語意的完整證明。
+- `.agents/skills/engineering/setup-matt-pocock-skills/SKILL.md` 所述 `docs/agents/issue-tracker.md` 等是該 Setup Skill **預計建立**的輸出，當前不存在是設計情境，不是壞掉的現行依賴，故**不亂補空檔**。
+- `個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md` 的 `tests/test_check_zh_tw_report.py`／`tests/test_skill_sources_zh_tw.py` 指向同目錄支援，真實來源在 `.agents/skills/engineering/掃描深模組/tests/`，不是 root `tests/`；`tests/knowledge/test_skill_catalog_classification_contract.py` 則在正式 X Git 樹不存在，後續須在產品通道核對替代測試身分，**不可用相近檔名冒名替代**。
+- `個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md` 仍保存多項已退役 claim／scheduler helper 與失效程式路徑，屬日期化歷史事故。不可憑 REFERENCE 文件提到 `tools/stale_claim_takeover.py` 就重建 Flow v2；歷史可追溯性需要保留。
+- **已實修**：同在治理白名單的 `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`，原先把已不存在的 `tests/knowledge/test_knowledge_authority_contract.py`、`tests/knowledge/test_active_skill_runtime_contract.py` 宣稱為實際 machine guard。本輪保留歷史檔名供查核、明確標不存在；正確核對目前存在的 `tests/knowledge/test_current_history_authority_contract.py`、`tests/knowledge/test_knowledge_authority_classification.py`、`tests/knowledge/test_skill_registry_coverage_contract.py` 和 `tests/knowledge/test_skill_registry_domain_reference_contract.py`；**不把 Registry coverage 冒稱 runtime fallback 全覆蓋**。修改走同一治理 PR #1627，適用 X trusted Change Lane Gate。
+- **產品文檔正文最小修正**：另由 `localX` 基準開立 [PR #1629](https://github.com/looaeedr/whd/pull/1629)，對前述七份結案計畫／驗收文檔保留 CURRENT 元資料與所有原始 run/SHA，僅加時效說明；新增既有產品回歸測試以觸發真正的 exact-HEAD Product Regression。此 PR **尚待 CI／合法 localX 整合**，不等於已進 X，未獲 `/推推` 不可正式發布。
 
 ## 清查判定
 

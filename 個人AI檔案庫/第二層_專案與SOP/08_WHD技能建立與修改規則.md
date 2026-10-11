@@ -223,7 +223,7 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 
 ### 永久驗證
 
-`tests/knowledge/test_knowledge_authority_contract.py` 是 T1 起始的 machine guard；它只判定 authority contract 是否符合，不成為任何製造／幾何／產品規則的 Source of Truth。
+**2026-10-11 實體路徑回讀**：T1 當時所稱 `tests/knowledge/test_knowledge_authority_contract.py` 已不在目前正式 X 的 Git 樹中，不能當成今天可執行的測試入口。現行 CURRENT／MIRROR 的角色核對使用 `tests/knowledge/test_current_history_authority_contract.py`，authority 分類則使用 `tests/knowledge/test_knowledge_authority_classification.py`；真正的 metadata／CURRENT owner 驗證仍依 `tools/knowledge_governance.py` 與相關 CI。這些測試只判定 authority contract 是否符合，不成為製造／幾何／產品規則的 Source of Truth。
 
 
 ## Domain route 與 domain authority（REFERENCE）
@@ -244,7 +244,7 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 - Skill-to-Skill routing 必須使用 current **canonical identity**；retired/legacy identity 只能存在於 history/migration，不得作 active invocation target。
 - `reference`、`upstream-beta`、`tool-specific`、`retired` 可在明確情境讀取，但不得和 canonical owner 競爭 routing。
 - Runtime repair 不得為了讓測試通過而把不存在能力包裝成假工具；驗證只判定契約，不能反過來創造 capability。
-- Permanent guard：`tests/knowledge/test_active_skill_runtime_contract.py`。
+- **2026-10-11 路徑驗證**：歷史規劃的 `tests/knowledge/test_active_skill_runtime_contract.py` 目前**不存在**，不可聲稱該獨立 guard 已上線。現有 `tests/knowledge/test_skill_registry_coverage_contract.py` 驗證 Registry 的 active canonical skill 覆蓋／路由，`tests/knowledge/test_skill_registry_domain_reference_contract.py` 驗證 domain 參考；**這不等於已經覆蓋所有 runtime capability fallback**。有新增 runtime 契約時須以真實存在的測試及 Actions 結果證明，不能依本段文字冒稱 GREEN。
 
 ### CI_SHARDING_SKILL_OWNERSHIP_V1
 
