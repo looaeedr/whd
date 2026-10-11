@@ -118,7 +118,15 @@ whd_schema: WHD_DOC_META_V1
 - `個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md` 的 `tests/test_check_zh_tw_report.py`／`tests/test_skill_sources_zh_tw.py` 指向同目錄支援，真實來源在 `.agents/skills/engineering/掃描深模組/tests/`，不是 root `tests/`；`tests/knowledge/test_skill_catalog_classification_contract.py` 則在正式 X Git 樹不存在，後續須在產品通道核對替代測試身分，**不可用相近檔名冒名替代**。
 - `個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md` 仍保存多項已退役 claim／scheduler helper 與失效程式路徑，屬日期化歷史事故。不可憑 REFERENCE 文件提到 `tools/stale_claim_takeover.py` 就重建 Flow v2；歷史可追溯性需要保留。
 - **已實修**：同在治理白名單的 `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`，原先把已不存在的 `tests/knowledge/test_knowledge_authority_contract.py`、`tests/knowledge/test_active_skill_runtime_contract.py` 宣稱為實際 machine guard。本輪保留歷史檔名供查核、明確標不存在；正確核對目前存在的 `tests/knowledge/test_current_history_authority_contract.py`、`tests/knowledge/test_knowledge_authority_classification.py`、`tests/knowledge/test_skill_registry_coverage_contract.py` 和 `tests/knowledge/test_skill_registry_domain_reference_contract.py`；**不把 Registry coverage 冒稱 runtime fallback 全覆蓋**。修改走同一治理 PR #1627，適用 X trusted Change Lane Gate。
-- **產品文檔正文最小修正**：另由 `localX` 基準開立 [PR #1629](https://github.com/looaeedr/whd/pull/1629)，對前述七份結案計畫／驗收文檔保留 CURRENT 元資料與所有原始 run/SHA，僅加時效說明；新增既有產品回歸測試以觸發真正的 exact-HEAD Product Regression。此 PR **尚待 CI／合法 localX 整合**，不等於已進 X，未獲 `/推推` 不可正式發布。
+- **產品文檔正文最小修正**：另由 `localX` 基準開立 [PR #1629](https://github.com/looaeedr/whd/pull/1629)，對前述七份結案計畫／驗收文檔保留 CURRENT 元資料與所有原始 run/SHA，僅加時效說明；新增既有產品回歸測試以觸發真正的 exact-HEAD Product Regression。**2026-10-11 最新狀態回讀**：此 PR latest HEAD `aab737a83fa8d72ccde07a2f7e9d56f6683a1ac2` 的 Product Regression [#38139520828](https://github.com/looaeedr/whd/actions/runs/38139520828) 已 `completed/success`，但 GitHub PR 仍 OPEN，尚未合法整合至本機／GitHub `localX`，因此**未進正式 X**；未獲當次 `/推推` 不能發布。
+
+## 第五輪正文指令殘留修正追蹤（2026-10-11）
+
+- **已合併正式 X [PR #1634](https://github.com/looaeedr/whd/pull/1634)**，merge SHA `993bd292908bbc1d7ecd0cac3aca2f8f5f9618c8`：`個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md`、`issue_closure_completion_pitfalls.md`、`root_local_first_entry_gate_pitfall.md` 已將舊 continuity／finalization／root-local-first machine ownership 直接在原文正名為歷史，並有 `tests/knowledge/test_current_history_authority_contract.py` regression 保護；保留事故原件與 PR／CI provenance。
+- **已合併正式 X [PR #1638](https://github.com/looaeedr/whd/pull/1638)**，merge SHA `c71cb1595614e2693b563945e821b30d4e8b6b36`：`deterministic_repo_migration_pitfalls.md` 的舊 `WORKSPACE_DEFAULT` 命令歸入歷史；`preflight_keyword_boundary_pitfall.md` 區分仍有用途的 matcher 相容性與退役的強制 Preflight receipt。兩項治理 CI 均全綠並有 X readback。
+- **本輪治理候選**：`issue_closure_completion_pitfalls.md` 內殘留 `Canonical Skill`／`Machine guards`／`Registry route` 小標題，以及 `continuous_execution_pitfalls.md` 三處 `永久規則：`，雖位於 HISTORICAL 段仍易被檢索摘要誤判為現行。擬以最小文字修正標明「當時」並新增防回歸測試；實際發布須以新 PR 的可信 CI／合併回讀確認，**此報告本身不是已交付宣告**。
+- **產品域仍待整合**：#1629 的 7 份歷史 CI 計畫／驗收、`06_踩坑記錄與防錯經驗庫.md`／`07_WHD技能發現與掃描深模組規則.md` 已做原位修正，latest HEAD exact CI GREEN 但 PR OPEN。其分類為產品通道而非本治理白名單，不能偷渡正式 X，也不能把 GitHub OPEN/CI GREEN 說成已同步本機。
+- 未變更產品 DXF、加工層顏色、CUTTING／MARKING owner、`main` 或本機。保留跨域產品判斷給 `localX` 的真實回歸與工程來源。
 
 ## 清查判定
 
