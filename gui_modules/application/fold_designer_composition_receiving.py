@@ -1269,12 +1269,15 @@ def open_receiving_multi_settings(self, namespace):
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
                         else version_label(version_id))).pack(anchor="w")
+        # Legacy inner-door candidate layers and NFB physical layers are
+        # DIFFERENT concepts. The #1491 draft must not rewrite either owner.
         layers = tk.IntVar(master=modal, value=initial["layers"])
+        nfb_physical_layers = tk.IntVar(master=modal, value=initial["layers"])
         summary_row = ttk.Frame(frame)
         summary_row.pack(fill="x", pady=(4, 6))
         controls = ttk.Frame(summary_row)
         controls.pack(side="left", anchor="n")
-        ttk.Label(controls, text="NFB 物理層").pack(side="left")
+        ttk.Label(controls, text="內門版本層數").pack(side="left")
         preview_box = ttk.Frame(summary_row)
         preview_box.pack(side="right", anchor="ne")
         thumbnail = tk.Canvas(
@@ -1284,6 +1287,9 @@ def open_receiving_multi_settings(self, namespace):
         thumbnail.pack(anchor="e")
         preview_status = tk.StringVar(master=modal)
         ttk.Label(preview_box, textvariable=preview_status).pack(anchor="e")
+        physical_row = ttk.Frame(frame)
+        physical_row.pack(fill="x", pady=(2, 4))
+        ttk.Label(physical_row, text="NFB 物理層（未提交草稿）").pack(side="left")
         chosen = [list(switch_filenames_in_layer(slot))
                   for slot in initial["models"]]
         layer_rows = []
@@ -1292,7 +1298,7 @@ def open_receiving_multi_settings(self, namespace):
         # ReceivingLayout owner. Existing candidate saving below stays intact.
         draft_state = {"draft": new_nfb_ui1a_draft(
             set_brand=self.receiving_switch_adapter(namespace).brand,
-            layer_count=initial["layers"], model_layers=initial["models"],
+            layer_count=nfb_physical_layers.get(), model_layers=initial["models"],
         )}
         source_state = {"files": [(), ()], "signature": [None, None]}
         draft_summary = tk.StringVar(master=modal, value="")
@@ -1493,8 +1499,13 @@ def open_receiving_multi_settings(self, namespace):
         for count in (1, 2):
             ttk.Radiobutton(
                 controls, text=str(count), value=count, variable=layers,
-                command=lambda: change_layers(),
+                command=lambda: paint_draft_preview(),
             ).pack(side="left", padx=8)
+            ttk.Radiobutton(
+                physical_row, text=str(count), value=count,
+                variable=nfb_physical_layers,
+                command=lambda: change_layers(),
+            ).pack(side="left", padx=7)
 
         for idx in range(2):
             section = ttk.LabelFrame(frame, text=f"第 {idx+1} 層開關")
@@ -1595,12 +1606,12 @@ def open_receiving_multi_settings(self, namespace):
         def change_layers():
             try:
                 draft_state["draft"] = set_nfb_draft_layer_count(
-                    draft_state["draft"], layers.get(),
+                    draft_state["draft"], nfb_physical_layers.get(),
                 )
             except ValueError as exc:
-                layers.set(draft_state["draft"]["layer_count"])
+                nfb_physical_layers.set(draft_state["draft"]["layer_count"])
                 warning.set(str(exc))
-            if layers.get() == 1:
+            if nfb_physical_layers.get() == 1:
                 layer_rows[1]["section"].pack_forget()
             elif not layer_rows[1]["section"].winfo_manager():
                 layer_rows[1]["section"].pack(
@@ -1617,6 +1628,7 @@ def open_receiving_multi_settings(self, namespace):
         modal.after(1800, poll_source)
         modal._receiving_inner_switch_state = {
             "chosen": chosen, "layers": layers,
+            "nfb_physical_layers": nfb_physical_layers,
             "rows": layer_rows, "warning": warning,
             "nfb_draft": draft_state, "nfb_draft_status": draft_summary,
         }
@@ -1626,10 +1638,13 @@ def open_receiving_multi_settings(self, namespace):
 
         def confirm():
             try:
-                # #1491 is transient UI-1A only. Existing candidate-version
-                # serializer has no stable empty slot/brand override fields.
-                # Refuse a lossy save until #1493 owns physical-slot editing.
-                active = draft_state["draft"]["layers"][:layers.get()]
+                # #1491 is transient UI-1A only. Distinct NFB physical layer
+                # count cannot be flattened into legacy inner-door layers.
+                if nfb_physical_layers.get() != layers.get():
+                    raise ValueError("NFB 物理層與內門版本層數不同，不能覆寫成舊候選")
+                # Existing candidate serializer also lacks physical empty
+                # slots and brand overrides. Fail rather than lose user data.
+                active = draft_state["draft"]["layers"][:nfb_physical_layers.get()]
                 for row in active:
                     if row["brand"]["mode"] == OVERRIDE:
                         raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
