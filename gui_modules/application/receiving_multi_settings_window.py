@@ -728,6 +728,18 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     ttk.Label(
                         settings_host, text=state["reason"], wraplength=570,
                     ).pack(anchor="w")
+                # Read-only current physical-part status; never acts as an
+                # export enable/override control or a second Hole Editor.
+                from .receiving_nfb_manifest_view import nfb_manifest_display_lines
+                live_manifest = transactions["manifest"](set_index,bay_index)
+                manifest_frame=ttk.LabelFrame(
+                    settings_host,text="NFB 板件就緒／部分製造清單（動態核對）",
+                )
+                manifest_frame.pack(fill="x",anchor="w",pady=(7,2))
+                for label_line in nfb_manifest_display_lines(live_manifest):
+                    ttk.Label(
+                        manifest_frame,text=label_line,wraplength=565,
+                    ).pack(fill="x",anchor="w",padx=6,pady=1)
             # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
