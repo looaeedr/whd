@@ -366,7 +366,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Combobox(row, textvariable=value, values=("1", "2"),
                              width=5, state="readonly").pack(side="left", padx=3)
                 ttk.Button(row, text="編輯",
-                           command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
+                           command=lambda: perform(lambda: ports["change"](
+                               kind, int(value.get()), targets(),
+                           ))).pack(side="left", padx=3)
                 return
             ttk.Label(row, text="封頭孔" if role == "head" else "封尾孔").pack(
                 side="left", padx=(0, 5)
@@ -440,7 +442,25 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理", command=open_manager,
                 ).pack(anchor="e", pady=(5, 0))
         else:
+            # Restore the original per-Bay inner-door actions in the right
+            # function area; 2D highlight is the only multi-Bay selector.
+            # These are the existing Receiving settings ports, not a new
+            # inner-door geometry or NFB switch-layer authority.
             actions(settings_host, "inner_door_layers")
+            row = ttk.Frame(settings_host)
+            row.pack(anchor="w", pady=3)
+            ttk.Button(
+                row, text="連動選取的連",
+                command=lambda: perform(lambda: ports["share"](
+                    "inner_door_layers", targets(),
+                )),
+            ).pack(side="left", padx=(0, 5))
+            ttk.Button(
+                row, text="解除本連連動",
+                command=lambda: perform(lambda: ports["unlink"](
+                    "inner_door_layers",
+                )),
+            ).pack(side="left")
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
 
