@@ -31,6 +31,9 @@ from .receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
 from .receiving_nfb_manufacturing_release import (
     NfbValidatedInnerDoorRender, VALIDATED,
 )
+from .receiving_nfb_middle_3d_witness import (
+    witness_middle_plate_uv_on_folded_assembly,
+)
 from .receiving_nfb_dxf_source import (
     inspect_nfb_dxf_source, place_upper_color150_opening_outline,
     resolve_upper_color150_reference,
@@ -217,6 +220,13 @@ def shadow_nfb_middle_plate_color150(
     # A candidate that overlaps any of them must not silently duplicate CUTTING.
     if baseline.material is None or not baseline.material.covers(hole.buffer(epsilon)):
         raise ValueError("NFB middle aperture collides with existing real CUTTING/material")
+    # Verify the *same* flat UV against the canonical physically folded 3D
+    # material before drawing. This proves the candidate's assembled XYZ
+    # and WORLD X consistency, but NOT the final NFB depth datum.
+    witness = witness_middle_plate_uv_on_folded_assembly(
+        snapshot, divider, baseline,
+        uv_xy=(uv_x, uv_y), expected_world_x_mm=float(world_x_mm),
+    )
     scene = DrawingScene(primitives=list(baseline.scene.primitives))
     scene.add_polyline(outline, layer="CUTTING", closed=True, color=150)
     trial = replace(
@@ -233,6 +243,8 @@ def shadow_nfb_middle_plate_color150(
             "nfb_middle_world_x_mm": float(world_x_mm),
             "nfb_middle_unfold_datum_revision": physical_datum.revision,
             "nfb_middle_uv_center": (uv_x, uv_y),
+            "nfb_middle_assembled_world_xyz": witness.world_xyz,
+            "nfb_middle_3d_witness_status": witness.status,
         },
     )
     if abs(float(trial.material.area) -
