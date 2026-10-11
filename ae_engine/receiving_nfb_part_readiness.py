@@ -165,15 +165,19 @@ def derive_nfb_part_readiness(
         scope.inner_door_part_id, READY if inner_valid else BLOCKED,
         () if inner_valid else ("INNER_DOOR_SOURCE_OR_CUTTING_NOT_VERIFIED",),
     )]
+    # Color150 in the verified upper NFB source is the INNER-DOOR opening.
+    # It does not prove that an additional physical NFB "middle plate"
+    # exists. Preserve the historic guard when the current physical scope
+    # explicitly includes a real middle part, but never invent one merely
+    # from a source color or an illustrative base-plate drawing.
     if colors is None:
-        base_needed, middle_needed = True, True
+        base_needed = True
+        middle_needed = bool(scope.middle_plate_part_ids)
     else:
         base_needed = colors[30] > 0 or colors[212] > 0
-        middle_needed = colors[150] > 0
+        middle_needed = bool(scope.middle_plate_part_ids) and colors[150] > 0
     if base_needed and not scope.base_plate_part_ids:
         reasons.append("BASE_PLATE_PHYSICAL_ID_UNRESOLVED")
-    if middle_needed and not scope.middle_plate_part_ids:
-        reasons.append("MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED")
     for part in scope.base_plate_part_ids:
         rows.append(NfbPartDecision(
             part, BLOCKED if base_needed else UNAFFECTED,
