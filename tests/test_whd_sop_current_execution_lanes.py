@@ -87,7 +87,16 @@ def test_previous_audit_reference_files_do_not_override_current():
 
 
 def test_previous_audit_spec_status_and_checkpoint_provenance():
-    assert "定稿當時" in read("docs/specs/WHD_Spec_v1_5.md")
+    # The approved v1.5 source is hash-pinned by the 52-row acceptance matrix.
+    # Keep it byte-for-byte unchanged; the progress note is separate REFERENCE.
+    import hashlib
+    import json
+    matrix = json.loads(read("docs/superpowers/verification/issue1469-v15-acceptance-matrix.json"))
+    source = ROOT / matrix["spec"]
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == matrix["spec_sha256"]
+    status = read("docs/specs/WHD_Spec_v1_5_status_readback_20261011.md")
+    assert "whd_doc_role: REFERENCE" in status[:150]
+    assert "定稿當時" in status
     bridge = read("docs/specs/WHD_Fold_Designer_Bridge_Ownership_Phase6_Residual_Reduction_Spec_v1.4_2026-09-23.md")
     assert "whd_doc_role: REFERENCE" in bridge[:200]
     assert "USER_ACCEPTED_FOR_EXECUTION" in bridge
