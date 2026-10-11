@@ -397,6 +397,60 @@ def is_historical_reverted_sop_history(
     return True
 
 
+
+def is_previously_merged_localx_product_history(
+    repo_root: Path, *, commit: str, paths: list[str], localx_sha: str,
+) -> bool:
+    """Validate an X-only merge copied unchanged from an already-known localX.
+
+    Only two-parent merges qualify. Their second parent must be an ancestor
+    of current localX, and EVERY file changed relative to X's first parent
+    must have the exact blob from that historical localX parent. Any manual
+    merge resolution, unknown source, or malformed history fails closed.
+    This is strictly a readback rule for historical X-only commits; it does
+    not authorize an incoming PR to bypass the explicit /推推 gate.
+    """
+    if not paths:
+        return False
+    proc = subprocess.run(
+        ["git", "rev-list", "--parents", "-n", "1", commit],
+        cwd=repo_root, capture_output=True, check=True,
+    )
+    lineage = proc.stdout.decode("ascii", "strict").strip().split()
+    if len(lineage) != 3 or lineage[0] != commit:
+        return False
+    second_parent = lineage[2]
+    if not re.fullmatch(r"[0-9a-f]{40}", second_parent):
+        return False
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", second_parent, localx_sha],
+        cwd=repo_root, capture_output=True,
+    )
+    if ancestor.returncode == 1:
+        return False
+    if ancestor.returncode != 0:
+        raise ChangeLaneDenied("X_AHEAD_HISTORY_UNVERIFIABLE")
+    for path in paths:
+        if not _valid_path(path):
+            return False
+        merged = subprocess.run(
+            ["git", "rev-parse", "--verify", f"{commit}:{path}"],
+            cwd=repo_root, capture_output=True,
+        )
+        source = subprocess.run(
+            ["git", "rev-parse", "--verify", f"{second_parent}:{path}"],
+            cwd=repo_root, capture_output=True,
+        )
+        if merged.returncode != 0 or source.returncode != 0:
+            return False
+        merged_blob = merged.stdout.decode("ascii", "strict").strip()
+        source_blob = source.stdout.decode("ascii", "strict").strip()
+        if (not re.fullmatch(r"[0-9a-f]{40}", merged_blob)
+                or merged_blob != source_blob):
+            return False
+    return True
+
+
 def require_x_only_governance_history(
     repo_root: Path, x_sha: str, localx_sha: str,
 ) -> int:
@@ -439,7 +493,10 @@ def require_x_only_governance_history(
                 x_sha=x_sha, localx_sha=localx_sha,
             ) and classify_verified_pr_changes(
                 repo_root, first_parent, commit, paths,
-            ) != "GOVERNANCE_DIRECT_X":
+            ) != "GOVERNANCE_DIRECT_X" and not is_previously_merged_localx_product_history(
+                repo_root, commit=commit, paths=paths,
+                localx_sha=localx_sha,
+            ):
                 raise ChangeLaneDenied(
                     f"X_AHEAD_NON_GOVERNANCE_BLOCKED:{commit}"
                 )
