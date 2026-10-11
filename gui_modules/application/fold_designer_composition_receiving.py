@@ -1077,6 +1077,126 @@ def open_receiving_multi_settings(self, namespace):
             result.append(extract_original_door_marks(scene))
         return tuple(result)
 
+    def resize_sets(delta):
+        switch = self.receiving_switch_adapter(namespace)
+        if delta > 0:
+            switch.add_layer()
+        elif delta < 0 and not switch.remove_layer():
+            return False
+        elif delta == 0:
+            return False
+        self.mark_receiving_switch_layout_dirty(namespace, switch)
+        return True
+
+    # Candidate versions are project-wide and separate from QuantityModel and
+    # per-Bay shared settings.  Only Apply copies a candidate into highlighted
+    # receiving_layout Bays.
+    from ae_engine.receiving_hole_candidates import (
+        candidates_for, candidate_features, create_candidate, update_candidate,
+        delete_candidate, duplicate_candidate,
+    )
+    from ae_engine.sheetmetal_features import (
+        resolve_endcap_finished_face_guide, feature_surface_from_rect, RectGuide, Vec2,
+    )
+
+    def candidate_adapter():
+        return self.receiving_adapter(namespace)
+
+    def persist_candidates(library):
+        adapter = candidate_adapter()
+        adapter.set_hole_candidates(library)
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+
+    def edit_candidate(role, version_id, after_saved):
+        adapter = candidate_adapter()
+        original = adapter.hole_candidates()
+        # An editor opens on the active Bay's finished face as a coordinate
+        # guide, but its candidate data has no Bay assignment until Apply.
+        bay = adapter.current_bay()
+        width, depth = float(bay["width"]), float(bay["depth"])
+        t = float(self.app._phase6_input_snapshot.get("t", 2))
+        guide = resolve_endcap_finished_face_guide(width, depth, t)
+        surface = feature_surface_from_rect(
+            f"{role}_finished_face", guide.min_point, guide.max_point,
+        )
+        draft = [] if version_id is None else candidate_features(original, role, version_id)
+        host = getattr(self.app._scene_query_callback, "__self__", None)
+        if host is None or not hasattr(host, "_open_unified_hole_editor"):
+            raise ValueError("目前未連接既有 Hole Editor")
+
+        def confirmed():
+            # The Hole Editor's preview-sync fires on BOTH Confirm and Cancel.
+            # Persist ONLY from its new Confirm-only transaction callback.
+            latest = candidate_adapter().hole_candidates()
+            if version_id is None:
+                saved, selected = create_candidate(latest, role, draft)
+            else:
+                saved = update_candidate(latest, role, version_id, draft)
+                selected = version_id
+            persist_candidates(saved)
+            after_saved(selected)
+
+        return host._open_unified_hole_editor(
+            role, "封頭" if role == "head" else "封尾",
+            surface, width, depth,
+            feature_list_override=draft,
+            sync_callback=lambda: None,
+            on_confirm=confirmed,
+            reference_guide=RectGuide(
+                Vec2(0, 0), Vec2(width, depth), "finished_boundary"
+            ),
+        )
+
+    def copy_candidate(role, version_id, destination):
+        library, created = duplicate_candidate(
+            candidate_adapter().hole_candidates(), role, version_id, destination
+        )
+        persist_candidates(library)
+        return created
+
+    def remove_candidate(role, version_id):
+        library = delete_candidate(
+            candidate_adapter().hole_candidates(), role, version_id
+        )
+        persist_candidates(library)
+
+    def apply_candidate(role, version_id, set_index, highlighted):
+        if version_id is None or not highlighted:
+            raise ValueError("請選擇候選版本及簡易圖高亮的連")
+        adapter = candidate_adapter()
+        sets = adapter.layout["sets"]
+        if type(set_index) is not int or not 0 <= set_index < len(sets):
+            raise ValueError("請先選擇要套用的套")
+        targets = tuple(sorted(set(highlighted)))
+        if any(type(i) is not int or not 0 <= i < len(sets[set_index]["bays"]) for i in targets):
+            raise ValueError("簡易圖高亮的連已無效")
+        features = candidate_features(adapter.hole_candidates(), role, version_id)
+        original_set, original_bay = adapter.selection.set_index, adapter.selection.bay_index
+        kind = f"{role}_features"
+        try:
+            adapter.select_set(set_index + 1)
+            for bay_index in targets:
+                adapter.select_bay(bay_index + 1)
+                # Break legacy shared refs so ONLY highlighted Bays change.
+                adapter.unlink_setting(kind)
+                adapter.update_setting(kind, features)
+        finally:
+            adapter.select_set(original_set + 1)
+            adapter.select_bay(original_bay + 1)
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        self.app.submit_update_intent("geometry", commit=True)
+        return True
+
+    def candidate_ports():
+        return {
+            "versions": lambda role: candidates_for(candidate_adapter().hole_candidates(), role),
+            "edit": edit_candidate,
+            "copy": copy_candidate,
+            "delete": remove_candidate,
+            "apply": apply_candidate,
+        }
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -1085,6 +1205,8 @@ def open_receiving_multi_settings(self, namespace):
         resize_connections=lambda index, delta: self.resize_receiving_bays(
             namespace, index, delta, refresh_controls=False
         ),
+        resize_sets=resize_sets,
+        get_candidate_ports=candidate_ports,
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
