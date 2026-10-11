@@ -105,6 +105,11 @@ def export_verified_receiving_nfb_inner_door(
     profile = matching[0]
     if profile.source_sha256 != bundle.source_inventory.source_sha256:
         raise ValueError("NFB DXF SHA 與已驗證來源不一致")
+    proof_metadata = getattr(bundle.verified_door.render_data, "metadata", {})
+    if (proof_metadata.get("nfb_source_handle")
+            != profile.source_sha256 + ":" + profile.upper_handle
+            or proof_metadata.get("nfb_profile_revision") != profile.revision):
+        raise ValueError("NFB Color150 來源 handle／revision 已改變，須重新驗證")
 
     try:
         saved_holes = bay["nfb_config"]["holes"]
