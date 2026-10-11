@@ -116,8 +116,8 @@ def test_stale_scope_or_brand_mismatch_fails_before_verification(tmp_path,monkey
 
 def test_different_models_cannot_reuse_shihlin_profile(tmp_path,monkeypatch):
     kwargs,unit,emitted=_setup(tmp_path,monkeypatch)
-    draft=add_nfb_draft_slot(kwargs["draft"],0,
-                             filename="not-the-400.dxf",source_brand="士林")
+    draft=editable_nfb_draft(add_nfb_draft_slot(kwargs["draft"],0,
+                             filename="not-the-400.dxf",source_brand="士林"))
     second=draft["layers"][0]["slots"][1]["unit_id"]
     with pytest.raises(ValueError,match="not supported"):
         verify_nfb_ui1a_for_submit(**{**kwargs,"draft":draft,
