@@ -1243,6 +1243,12 @@ def open_receiving_multi_settings(self, namespace):
         import tkinter as tk
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
         from .receiving_nfb_source_preview import NfbDxfSourcePreviewPanel
+        from ae_engine.receiving_nfb_ui1a_edits import (
+            NfbUi1aEditSession, editable_nfb_draft, insert_nfb_slot,
+            delete_nfb_slot, move_nfb_slot, replace_nfb_slot_model,
+            set_nfb_manual_x, set_nfb_layer_rotation,
+            set_nfb_slot_rotation, effective_nfb_rotation,
+        )
         from ae_engine.receiving_nfb_ui1a import (
             INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
             reconcile_set_brand, set_nfb_draft_layer_count,
@@ -1297,10 +1303,23 @@ def open_receiving_multi_settings(self, namespace):
         warning = tk.StringVar(master=modal, value="")
         # UI-1A transient state; NOT persisted to .p6fold and NOT a second
         # ReceivingLayout owner. Existing candidate saving below stays intact.
-        draft_state = {"draft": new_nfb_ui1a_draft(
+        # All existing #1491 controls still set draft_state["draft"], but
+        # this single transient session captures every edit for #1493 Undo.
+        # It does not persist a second Hole Editor/project authority.
+        class _NfbDraftState(dict):
+            session = None
+            def __setitem__(self,key,value):
+                if key=="draft" and self.session is not None:
+                    self.session.apply("NFB_UI1A_EDIT",lambda _before:value)
+                    value=self.session.current
+                dict.__setitem__(self,key,value)
+        draft_state = _NfbDraftState({"draft": new_nfb_ui1a_draft(
             set_brand=self.receiving_switch_adapter(namespace).brand,
             layer_count=nfb_physical_layers.get(), model_layers=initial["models"],
-        )}
+        )})
+        edit_session = NfbUi1aEditSession(draft_state["draft"])
+        draft_state.session = edit_session
+        dict.__setitem__(draft_state,"draft",edit_session.current)
         source_state = {"files": [(), ()], "signature": [None, None]}
         draft_summary = tk.StringVar(master=modal, value="")
         initial_nfb_draft = deepcopy(draft_state["draft"])
@@ -1451,9 +1470,10 @@ def open_receiving_multi_settings(self, namespace):
                 warning.set("CSV 已變動，請重新選擇")
                 refresh_source(force=True)
                 return
-            draft_state["draft"] = add_nfb_draft_slot(
-                draft_state["draft"], index, filename=filename,
-                source_brand=expected_brand,
+            draft_state["draft"] = insert_nfb_slot(
+                draft_state["draft"], index,
+                len(draft_state["draft"]["layers"][index]["slots"]),
+                filename=filename, brand=expected_brand,
             )
             # Newly added physical unit inherits the layer brand; when list
             # was displaying a selected slot override, do not silently give
@@ -1469,7 +1489,10 @@ def open_receiving_multi_settings(self, namespace):
             warning.set("")
 
         def add_empty_slot(index):
-            draft_state["draft"] = add_nfb_draft_slot(draft_state["draft"], index)
+            draft_state["draft"] = insert_nfb_slot(
+                draft_state["draft"],index,
+                len(draft_state["draft"]["layers"][index]["slots"]),
+            )
             sync_chosen()
             repaint(index)
 
@@ -1481,7 +1504,7 @@ def open_receiving_multi_settings(self, namespace):
                 return
             brand = view_source_catalog(index)
             filename = source_state["files"][index][choice[0]]
-            draft_state["draft"] = select_nfb_slot_model(
+            draft_state["draft"] = replace_nfb_slot_model(
                 draft_state["draft"],index,selected[0],filename,
                 catalog={brand:model_filenames(brand)},
             )
@@ -1493,7 +1516,7 @@ def open_receiving_multi_settings(self, namespace):
             selected = layer_rows[index]["assigned"].curselection()
             if not selected:
                 return
-            draft_state["draft"] = remove_nfb_draft_slot(
+            draft_state["draft"] = delete_nfb_slot(
                 draft_state["draft"], index, selected[0],
             )
             sync_chosen()
@@ -1656,6 +1679,7 @@ def open_receiving_multi_settings(self, namespace):
         modal.after(1800, poll_source)
         modal._receiving_inner_switch_state = {
             "chosen": chosen, "layers": layers,
+            "edit_session": edit_session,
             "nfb_physical_layers": nfb_physical_layers,
             "rows": layer_rows, "warning": warning,
             "nfb_draft": draft_state, "nfb_draft_status": draft_summary,
