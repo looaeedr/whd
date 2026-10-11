@@ -1550,6 +1550,46 @@ def open_receiving_multi_settings(self, namespace):
             "validate_quantity": inner_validate_quantity,
         }
 
+    def nfb_transaction_ports():
+        """UI exposes actual Receiving transaction authority, never a fake READY."""
+        def state(set_index, bay_index):
+            adapter = candidate_adapter()
+            row = adapter.layout["sets"][set_index]["bays"][bay_index]
+            submitted = row.get("nfb_config_submitted") is True
+            return {
+                "submitted": submitted,
+                # No #1498 source+physical X/Y evidence is provided by the
+                # candidate selector (only filename/layers). Fail closed.
+                "can_submit": False,
+                "can_copy": False,
+                "can_restore": submitted,
+                "can_undo": adapter.nfb_can_undo,
+                "reason": "請先在 NFB 孔位配置確認實體 X/Y 與來源；僅候選版本不能直接提交製造",
+            }
+
+        def flush():
+            adapter = candidate_adapter()
+            self.mark_receiving_switch_layout_dirty(namespace, adapter)
+            self.sync_receiving_current_bay(namespace, refresh_controls=False)
+            self.app.submit_update_intent("geometry", commit=True)
+
+        def restore(set_index, bay_indices, confirm):
+            adapter = candidate_adapter()
+            result = adapter.restore_nfb_unconfigured(
+                set_index=set_index, bay_indices=bay_indices, confirm=confirm,
+            )
+            if result.changed:
+                flush()
+            return result.changed
+
+        def undo():
+            adapter = candidate_adapter()
+            receipt = adapter.undo_last_nfb_transaction()
+            flush()
+            return receipt
+
+        return {"state": state, "restore": restore, "undo": undo}
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -1561,6 +1601,7 @@ def open_receiving_multi_settings(self, namespace):
         resize_sets=resize_sets,
         get_candidate_ports=candidate_ports,
         get_inner_candidate_ports=inner_candidate_ports,
+        get_nfb_transaction_ports=nfb_transaction_ports,
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
