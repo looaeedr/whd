@@ -21,6 +21,7 @@ from typing import Mapping
 
 from shapely.geometry import Polygon
 
+from .assembly_geometry import place_assembly_points
 from .assembly_placement import resolve_divider_placement
 from .door_dividers import BoxBodyDividerPart
 from .manufacturing_api import material_polygon_from_final_scene
@@ -113,6 +114,23 @@ def shadow_nfb_middle_plate_color150(
             or not placement.placement_kind.startswith("divider_horizontal")
             or tuple(placement.rotation) != (0.0, 0.0, 0.0)):
         raise ValueError("NFB middle plate actual placement contract mismatch")
+    # Verify the proposed flat-span orientation against the SAME physical
+    # folded-mesh placement transform used by 3D/assembly. Both ordinary and
+    # inward horizontal divider placements must preserve native UV +Y -> X.
+    # A wrong sign is not a harmless visual mirror: the hole would be cut on
+    # the opposite side of the actual middle sheet.
+    span = float(divider.span)
+    endpoints = place_assembly_points(
+        ((0., 0., 0.), (0., span, 0.)),
+        (((0., 0., 0.), (0., span, 0.), (1., 0., 0.)),),
+        placement.placement_kind,
+        (float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
+        offset=placement.world_offset,
+    )
+    if (len(endpoints) != 2
+            or abs((endpoints[1][0] - endpoints[0][0])
+                   - span * physical_datum.span_world_x_sign) > 1e-6):
+        raise ValueError("NFB middle flat span orientation contradicts physical assembly")
     core = divider.physical_geometry_contract["core_physical_segment"]
     band = tuple(core.get("flat_band") or ())
     if len(band) != 2 or not (float(band[0]) < float(band[1])):
