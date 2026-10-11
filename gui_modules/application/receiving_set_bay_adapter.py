@@ -270,6 +270,62 @@ class ReceivingSetBayAdapter:
         )
         return len(plan)
 
+    def apply_inner_door_candidate_to_bays(self, config, set_index, bay_indices):
+        """Apply one isolated inner-door candidate only to real highlighted Bays."""
+        from ae_engine.receiving_inner_door_candidates import validate_door_config
+        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
+        source = validate_door_config(config)
+        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
+            raise ValueError("選取的套不存在")
+        selected = tuple(sorted(set(bay_indices)))
+        count = len(self._layout["sets"][set_index]["bays"])
+        if not selected or any(type(i) is not int or not 0 <= i < count
+                               for i in selected):
+            raise ValueError("請在簡易圖高亮有效的連")
+        candidate = self._layout
+        for bi in selected:
+            for kind, value in (("inner_door_layers", source["layers"]),
+                                ("inner_door_models", source["models"])):
+                candidate = unlink_setting(
+                    candidate, set_index=set_index, bay_index=bi, kind=kind,
+                )
+                candidate = edit_setting(
+                    candidate, set_index=set_index, bay_index=bi,
+                    kind=kind, value=value,
+                )
+        self._layout = candidate
+        self._session_dirty_ids.update(
+            str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
+            for bi in selected
+        )
+        return selected
+
+    def apply_inner_door_quantity_configuration(
+            self, library, quantities, assigned, *, expected_counts=None):
+        """Validate every Set/Bay first, then replace both inner-door settings."""
+        from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
+        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
+        plan = validate_inner_door_allocation(
+            self._layout, library, quantities, assigned,
+            expected_counts=expected_counts,
+        )
+        candidate = self._layout
+        for si, bi, config in plan:
+            for kind, value in (("inner_door_layers", config["layers"]),
+                                ("inner_door_models", config["models"])):
+                candidate = unlink_setting(
+                    candidate, set_index=si, bay_index=bi, kind=kind,
+                )
+                candidate = edit_setting(
+                    candidate, set_index=si, bay_index=bi, kind=kind, value=value,
+                )
+        self._layout = candidate
+        self._session_dirty_ids.update(
+            str(candidate["sets"][si]["bays"][bi]["stable_id"])
+            for si, bi, _ in plan
+        )
+        return len(plan)
+
     def set_global_brand(self, brand):
         """Update every Set NFB once, keeping active Set/Bay identity intact."""
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS

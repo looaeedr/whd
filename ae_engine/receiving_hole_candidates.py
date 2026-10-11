@@ -20,7 +20,7 @@ def role_key(role):
 
 
 def version_label(version_id):
-    match = re.fullmatch(r"(head|tail)-v([1-9][0-9]*)", str(version_id))
+    match = re.fullmatch(r"(head|tail|inner-door)-v([1-9][0-9]*)", str(version_id))
     if match is None:
         raise ValueError("候選版本 ID 不合法")
     n = int(match.group(2))
