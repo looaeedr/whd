@@ -265,6 +265,10 @@ class ReceivingSetBayAdapter:
             expected_counts=expected_counts,
         )
         kind = role_key(role) + "_features"
+        version_kind = role + "_version_id"
+        from ae_engine.receiving_shared_settings import validate_setting
+        for si, bi, _features in plan:
+            validate_setting(version_kind, assigned[(si, bi)])
         candidate = self._layout
         for set_index, bay_index, features in plan:
             candidate = unlink_setting(
@@ -273,6 +277,14 @@ class ReceivingSetBayAdapter:
             candidate = edit_setting(
                 candidate, set_index=set_index, bay_index=bay_index,
                 kind=kind, value=features
+            )
+            candidate = unlink_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=version_kind,
+            )
+            candidate = edit_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=version_kind, value=assigned[(set_index, bay_index)],
             )
         self._layout = candidate
         self._session_dirty_ids.update(
@@ -353,10 +365,16 @@ class ReceivingSetBayAdapter:
             self._layout, library, quantities, assigned,
             expected_counts=expected_counts,
         )
+        from ae_engine.receiving_shared_settings import validate_setting
+        for si, bi, _config in plan:
+            validate_setting("inner_door_version_id", assigned[(si, bi)])
         candidate = self._layout
         for si, bi, config in plan:
-            for kind, value in (("inner_door_layers", config["layers"]),
-                                ("inner_door_models", config["models"])):
+            for kind, value in (
+                ("inner_door_layers", config["layers"]),
+                ("inner_door_models", config["models"]),
+                ("inner_door_version_id", assigned[(si, bi)]),
+            ):
                 candidate = unlink_setting(
                     candidate, set_index=si, bay_index=bi, kind=kind,
                 )
