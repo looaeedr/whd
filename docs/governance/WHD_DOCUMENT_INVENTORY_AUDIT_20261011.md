@@ -35,7 +35,7 @@ whd_schema: WHD_DOC_META_V1
 1. `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` 的 `WHD_AUTHORITY` 標記共 **36 筆**：29 CURRENT、4 MIRROR、2 REFERENCE、1 HISTORICAL；已列出的 contract **沒有重複 CURRENT**。四筆 MIRROR 的 `path=...` 後面另有 `canonical=...` 註記，解析時不可把兩者串接成一個不存在的檔名。
 2. `README.md`、`AI_HANDOFF.md`、`CONTEXT.md`、`DELIVERY_README.md`、`目前主要任務.md`、`handoff/00_AI_HANDOFF_README.md` 等已將歷史或 MIRROR 屬性寫明；本文不再以過時操作段落推翻 `AGENTS.md`。
 3. 59 份 Skill 的關鍵字命中須區分「禁止恢復 Flow v2／Phase6 Preflight／lease」與真正的強制入口；不得只憑含字串就刪改原文。工作入口以 `/派工` 雲端施工、exact CI 後有限 `LOCALX_INTEGRATION`，與當次明確 `/接手` RC 施工區分。
-4. `docs/superpowers/README.md` 是 REFERENCE 歷史索引，**但** `docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md` 與 `2026-09-16-ci-test-sharding-parallelization-design.md` 等契約仍具 CURRENT 身份；不可把整個 `superpowers` 目錄一刀切當作失效文檔。
+4. `docs/superpowers/README.md` 是 REFERENCE 歷史索引。已逐份核對 `docs/superpowers/specs/` **74 份** `.md` 的 metadata：**65 HISTORICAL、6 REFERENCE、3 CURRENT**；其中 CURRENT 是 `2026-09-21-joint-placement-marking-design.md`、`2026-09-16-ci-test-sharding-parallelization-design.md`、`2026-09-16-ci-test-sharding-parallelization-revision-notes.md`。因此不可把整個 `superpowers` 目錄一刀切當作失效文檔。
 5. `docs/specs/WHD_Spec_v1_5.md` 的定稿日狀態屬歷史文字，`docs/specs/WHD_Spec_v1_5_status_readback_20261011.md` 已明確釐清；原規格受 SHA 驗收矩陣保護，不能為修措辭而改寫原文。
 
 ## 確認的待處置風險與本輪修正
@@ -47,7 +47,10 @@ whd_schema: WHD_DOC_META_V1
 
 ### B. 製造基準檔重複且落後（**不可治理直送覆寫**）
 
-- `基準檔/標準基準檔格式.md` 仍保留舊加工層表，沒有 `WHD_DOC_META_V1` metadata，且沒有現行 `加工層分類與定義.md` 的底板／中板 CUTTING Color **30／150**、MARKING Color **212／213** 的新子類規則。
+- `基準檔/` 實際有 **四份** `標準基準檔格式.md` 舊表，全部缺少 `WHD_DOC_META_V1` metadata，且沒有現行 `加工層分類與定義.md` 的底板／中板 CUTTING Color **30／150**、MARKING Color **212／213** 的新子類規則。四份不能因名稱相同就當作可以直接刪除的無用重複：
+  - exact Git Blob `eee31499f5034ecbcf136588d3564e6a77da6b85`：`基準檔/標準基準檔格式.md`、`基準檔/開孔/標準基準檔格式.md`。
+  - exact Git Blob `ebd2c810cc96bb3a995c563ea6aec49b9aa26e2d`：`基準檔/指示燈/標準基準檔格式.md`、`基準檔/金庫型/標準基準檔格式.md`。
+- `基準檔/CONTEXT.md` 與 `基準檔/截角資料庫/README_母規則說明.md` 同樣缺少角色 metadata；在核對實際製造、截角計算與程序讀取者前，不能機械補 CURRENT 或將它們替換成單純 pointer。
 - 現行加工層 CURRENT owner 為根目錄 `加工層分類與定義.md`；`標準基準檔格式.md` 根目錄只是 MIRROR pointer，**與 `基準檔/標準基準檔格式.md` 不是同一個檔案**。
 - 不臆斷 `基準檔/` 檔案是否被程式讀取或有加工端相依；先核對呼叫點、規格和回歸，再依 `PRODUCT_LOCALX_ONLY` 更新、降級為非權威參考或維持必要相容性。嚴禁在本次治理 PR 直接刪除或覆蓋該檔。
 
