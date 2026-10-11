@@ -1626,6 +1626,10 @@ def open_receiving_multi_settings(self, namespace):
                        command=lambda idx=idx: add_empty_slot(idx)).pack(pady=3)
             ttk.Button(buttons_area, text="替換所選",
                        command=lambda idx=idx: replace_selected_slot(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="↑ 前移",
+                       command=lambda idx=idx: reposition_nfb_slot(idx,-1)).pack(pady=2)
+            ttk.Button(buttons_area, text="↓ 後移",
+                       command=lambda idx=idx: reposition_nfb_slot(idx,1)).pack(pady=2)
             assigned = tk.Listbox(section, selectmode=tk.BROWSE,
                                   exportselection=False, height=6)
             assigned.grid(row=1, column=2, sticky="nsew", padx=5)
@@ -1785,6 +1789,7 @@ def open_receiving_multi_settings(self, namespace):
         ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
             side="left", padx=5,
         )
+        ttk.Button(buttons, text="復原上一步", command=undo_nfb_draft).pack(side="left",padx=5)
         ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
         # Restore the parent multi-settings grab after this editor closes.
         parent_modal = getattr(
@@ -1806,6 +1811,7 @@ def open_receiving_multi_settings(self, namespace):
                     and parent_modal.grab_current() is None):
                 parent_modal.grab_set()
         modal.protocol("WM_DELETE_WINDOW", close_editor)
+        modal.bind("<Escape>",lambda _event:close_editor())
         for widget in buttons.winfo_children():
             if widget.cget("text") == "取消":
                 widget.configure(command=close_editor)
