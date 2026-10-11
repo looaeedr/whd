@@ -29,7 +29,63 @@ def default_preview_dimensions(snapshot):
     return tuple(float(box[axis]) for axis in ("w", "h", "d"))
 
 
-def paint_connected_bays(canvas, count, selected=None):
+def extract_original_door_marks(scene):
+    """Project only identified original Door nameplate holes and handle contour.
+
+    No fallback coordinates: when the original baseline does not identify the
+    features unambiguously, the lightweight sketch draws none.
+    Normalized vectors are presentation-only, never manufacturing geometry.
+    """
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+
+    empty = {"nameplate": (), "handle": ()}
+    if scene is None:
+        return empty
+    outlines = [
+        p for p in scene.primitives
+        if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING"
+        and p.closed and len(p.points) >= 3
+    ]
+    if not outlines:
+        return empty
+
+    def bounds(polyline):
+        xs = [float(pt.x) for pt in polyline.points]
+        ys = [float(pt.y) for pt in polyline.points]
+        return min(xs), min(ys), max(xs), max(ys)
+
+    outer = max(outlines, key=lambda item:
+                (bounds(item)[2] - bounds(item)[0]) *
+                (bounds(item)[3] - bounds(item)[1]))
+    x0, y0, x1, y1 = bounds(outer)
+    if x1 <= x0 or y1 <= y0:
+        return empty
+
+    def xy(point):
+        return ((float(point.x) - x0) / (x1 - x0),
+                1.0 - (float(point.y) - y0) / (y1 - y0))
+
+    # Only the stable feature identity from the original Door baseline
+    # identifies nameplate circles; do not guess from radius or position.
+    nameplate = tuple(
+        (*xy(p.center), float(p.radius) / (x1 - x0),
+         float(p.radius) / (y1 - y0))
+        for p in scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and p.layer == "CUTTING" and p.source_type == "nameplate_mount"
+    )
+    # The certified Door baseline has exactly one extra interior CUTTING
+    # contour for the handle. Multiple candidates are ambiguous: draw none.
+    interior = [
+        p for p in outlines if p is not outer
+        and bounds(p)[0] > x0 and bounds(p)[1] > y0
+        and bounds(p)[2] < x1 and bounds(p)[3] < y1
+    ]
+    handle = tuple(xy(pt) for pt in interior[0].points) if len(interior) == 1 else ()
+    return {"nameplate": nameplate, "handle": handle}
+
+
+def paint_connected_bays(canvas, count, selected=None, door_marks=None):
     """Cheap front-elevation sketch: touching bays with basic upper/lower doors.
 
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
@@ -64,6 +120,36 @@ def paint_connected_bays(canvas, count, selected=None):
                                 top + bay_h - inset, outline="#c3d1dc", width=1)
         canvas.create_line(x0 + inset, split, x1 - inset, split,
                            fill="#e0c487", width=1)
+        marks = (door_marks or ())
+        this_bay = marks[index] if index < len(marks) else ()
+        door_faces = (
+            (x0 + inset, top + inset, x1 - inset, split - 2),
+            (x0 + inset, split + 2, x1 - inset, top + bay_h - inset),
+        )
+        for row_index, face in enumerate(door_faces):
+            if row_index >= len(this_bay):
+                continue
+            entry = this_bay[row_index]
+            if not entry:
+                continue
+            fx0, fy0, fx1, fy1 = face
+            dw, dh = fx1 - fx0, fy1 - fy0
+            if dw <= 0 or dh <= 0:
+                continue
+            handle = entry.get("handle") or ()
+            if len(handle) >= 3:
+                coords = [
+                    coordinate
+                    for px, py in handle
+                    for coordinate in (fx0 + px * dw, fy0 + py * dh)
+                ]
+                canvas.create_polygon(*coords, fill="", outline="#f7c66f", width=1)
+            for cx, cy, rx, ry in entry.get("nameplate") or ():
+                # Minimum is a screen visibility rule, not a hole dimension.
+                px, py = fx0 + cx * dw, fy0 + cy * dh
+                sx, sy = max(1.0, rx * dw), max(1.0, ry * dh)
+                canvas.create_oval(px - sx, py - sy, px + sx, py + sy,
+                                  outline="#f7c66f", width=1)
         hitboxes.append((x0, top, x1, top + bay_h))
     canvas._receiving_bay_hitboxes = tuple(hitboxes)
     return count
@@ -76,7 +162,9 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
 
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, select_bay=None,
-                        on_setting_selected=None):
+                        on_setting_selected=None, get_brand=None,
+                        set_brand=None, get_settings_ports=None,
+                        get_original_door_marks=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -124,15 +212,40 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win.rowconfigure(1, weight=1)
 
     mode_var = tk.StringVar(master=win, value="set_bay")
-    mode_row = ttk.Frame(win)
-    mode_row.grid(row=0, column=0, columnspan=2, sticky="nw",
-                  padx=16, pady=(16, 6))
+    top_left = ttk.Frame(win)
+    top_left.grid(row=0, column=0, sticky="nw", padx=16, pady=(16, 6))
+    brand_row = ttk.Frame(top_left)
+    brand_row.pack(anchor="w", pady=(0, 8))
+    ttk.Label(brand_row, text="NFB").pack(side="left", padx=(0, 8))
+    brand_var = tk.StringVar(master=win, value=get_brand() if get_brand else "士林")
+    from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    brand_selector = ttk.Combobox(
+        brand_row, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS,
+        state="readonly", width=10,
+    )
+    brand_selector.pack(side="left")
+    def apply_brand(_event=None):
+        if set_brand is not None:
+            try:
+                set_brand(brand_var.get())
+            except (ValueError, IndexError, RuntimeError) as exc:
+                warn(exc)
+                brand_var.set(get_brand() if get_brand else "士林")
+    brand_selector.bind("<<ComboboxSelected>>", apply_brand)
+    mode_row = ttk.Frame(top_left)
+    mode_row.pack(anchor="w")
 
     applied = {"set_index": None, "count": 1, "selected": None, "mode": "set_bay"}
 
-    canvas = tk.Canvas(win, width=525, height=310, background="#1a2734",
+    right_host = ttk.Frame(win)
+    right_host.grid(row=1, column=1, sticky="nsew", padx=24, pady=12)
+    right_host.columnconfigure(0, weight=1)
+    right_host.rowconfigure(1, weight=1)
+    settings_host = ttk.Frame(right_host)
+    settings_host.grid(row=0, column=0, sticky="new")
+    canvas = tk.Canvas(right_host, width=525, height=310, background="#1a2734",
                        highlightthickness=0)
-    canvas.grid(row=1, column=1, sticky="se", padx=24, pady=12)
+    canvas.grid(row=1, column=0, sticky="se")
 
     rows_host = ttk.Frame(win)
     # The Set/Bay row belongs directly BELOW the two upper-left mode
@@ -147,13 +260,72 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         rows_host, height=3, width=16, selectmode=tk.BROWSE,
         exportselection=False, activestyle="dotbox",
     )
-    for label in ("封頭", "封尾", "內門"):
+    for label in ("封頭尾", "內門"):
         setting_list.insert(tk.END, label)
     setting_list.pack(anchor="w", pady=(6, 0))
-    setting_kind = {"封頭": "head_features",
-                    "封尾": "tail_features",
-                    "內門": "inner_door_layers"}
+    setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
+    active_ports = {"ports": None}
+    linked_targets = set()
+
+    def show_setting_controls():
+        for widget in settings_host.winfo_children():
+            widget.destroy()
+        if selected_setting["kind"] is None or get_settings_ports is None:
+            return
+        set_index = selected_setting["set_index"]
+        bay_index = selected_setting["bay_index"]
+        ports = get_settings_ports(set_index)
+        ports["select"](bay_index)
+        active_ports["ports"] = ports
+        from ae_engine.receiving_shared_settings import setting_value
+        current_row = ports["row"]()
+        bay_choices = ttk.Frame(settings_host)
+        bay_choices.pack(anchor="w")
+        ttk.Label(bay_choices, text="連動目標").pack(side="left", padx=(0, 5))
+        for other in range(len(current_row["bays"])):
+            if other == bay_index:
+                continue
+            toggle = tk.BooleanVar(master=win, value=other in linked_targets)
+            def select_target(index=other, variable=toggle):
+                if variable.get():
+                    linked_targets.add(index)
+                else:
+                    linked_targets.discard(index)
+            ttk.Checkbutton(bay_choices, text=f"第{other + 1}連",
+                            variable=toggle, command=select_target).pack(side="left")
+        targets = lambda: tuple(sorted(linked_targets | {bay_index}))
+        def perform(action):
+            try:
+                action()
+                show_setting_controls()
+            except (ValueError, IndexError, RuntimeError) as exc:
+                warn(exc)
+        def actions(parent, kind, *, role=None):
+            row = ttk.Frame(parent)
+            row.pack(anchor="w", pady=3)
+            if role is not None:
+                ttk.Label(row, text="封頭孔" if role == "head" else "封尾孔").pack(side="left")
+                ttk.Button(row, text="編輯／套用",
+                           command=lambda: perform(lambda: ports["holes"](role, targets()))).pack(side="left", padx=3)
+            else:
+                from ae_engine.receiving_shared_settings import setting_value
+                current = setting_value(ports["row"](), bay_index, kind)
+                value = tk.StringVar(master=win, value=str(current))
+                ttk.Label(row, text="內門層數").pack(side="left")
+                ttk.Combobox(row, textvariable=value, values=("1", "2"),
+                             width=5, state="readonly").pack(side="left", padx=3)
+                ttk.Button(row, text="編輯／套用",
+                           command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
+            ttk.Button(row, text="連動選取的連",
+                       command=lambda: perform(lambda: ports["share"](kind, targets()))).pack(side="left", padx=3)
+            ttk.Button(row, text="解除本連連動",
+                       command=lambda: perform(lambda: ports["unlink"](kind))).pack(side="left", padx=3)
+        if selected_setting["kind"] == "head_features":
+            actions(settings_host, "head_features", role="head")
+            actions(settings_host, "tail_features", role="tail")
+        else:
+            actions(settings_host, "inner_door_layers")
 
     def warn(exc):
         messagebox.showwarning("多只設定", str(exc), parent=win)
@@ -165,10 +337,27 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 return False
         return True
 
+    mark_cache = {"key": None, "values": ()}
+
     def render():
         count = applied["count"] if applied["mode"] == "set_bay" else 1
         selected = applied["selected"] if applied["mode"] == "set_bay" else None
-        paint_connected_bays(canvas, count, selected)
+        marks = ()
+        if applied["mode"] == "set_bay" and get_original_door_marks is not None:
+            set_index = applied["set_index"]
+            if set_index is None:
+                set_index = 0
+            key = (set_index, count)
+            if mark_cache["key"] != key:
+                # The baseline is requested once per applied Set/connection
+                # count, not on every canvas resize or selection redraw.
+                mark_cache["values"] = tuple(
+                    get_original_door_marks(set_index, bay_index)
+                    for bay_index in range(count)
+                )
+                mark_cache["key"] = key
+            marks = mark_cache["values"]
+        paint_connected_bays(canvas, count, selected, marks)
 
     def refresh_rows():
         for widget in actions_host.winfo_children():
@@ -206,6 +395,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         if bay_index is None:
             bay_index = 0
         kind = setting_kind[label]
+        linked_targets.clear()
         try:
             # Read/choose the ORIGINAL Set/Bay setting owner; do not replace
             # a Hole Editor with a fake feature editor in this window.
@@ -214,6 +404,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             selected_setting.update(
                 set_index=set_index, bay_index=bay_index, kind=kind
             )
+            show_setting_controls()
         except (ValueError, IndexError, RuntimeError) as exc:
             warn(exc)
 
@@ -240,7 +431,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             applied.update(mode="set_bay", set_index=index,
                            count=count, selected=0)
             selected_setting.update(set_index=None, bay_index=None, kind=None)
+            linked_targets.clear()
             setting_list.selection_clear(0, tk.END)
+            show_setting_controls()
             if select_bay is not None:
                 select_bay(index, 0)
             render()
@@ -264,6 +457,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         selected_setting.update(
                             set_index=applied["set_index"], bay_index=index
                         )
+                    linked_targets.clear()
+                    show_setting_controls()
                     render()
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
@@ -283,6 +478,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     set_index=None, bay_index=None, kind=None
                 )
                 setting_list.selection_clear(0, tk.END)
+                show_setting_controls()
             refresh_rows()
             render()
         except (ValueError, IndexError, RuntimeError) as exc:
@@ -300,6 +496,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     render()
 
     # Test hooks are presentation state only, not product data authority.
+    win._receiving_multi_brand_var = brand_var
+    win._receiving_multi_brand_selector = brand_selector
+    win._receiving_multi_settings_host = settings_host
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host

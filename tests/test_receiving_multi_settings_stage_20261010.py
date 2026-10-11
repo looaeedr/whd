@@ -8,7 +8,7 @@ import pytest
 from ae_engine.receiving_quantity_box import normalize_common_box, project_common_box
 from gui_modules.application.receiving_multi_settings_window import (
     default_preview_dimensions, display_dimension, open_multi_settings,
-    paint_connected_bays,
+    paint_connected_bays, extract_original_door_marks,
 )
 from phase6_assembly_panel import Phase6AssemblyPanel, AssemblyPanelActions
 
@@ -23,6 +23,28 @@ def test_family_dimensions_without_initialization_dialog():
     assert default_preview_dimensions({"active_mode": "quantity"}) == (800, 1600, 350)
     assert display_dimension(800.0) == "800"
     assert display_dimension(800.5) == "800.5"
+
+
+def test_sketch_uses_only_identified_original_door_marks():
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    drawing = DrawingScene()
+    assert extract_original_door_marks(None) == {"nameplate": (), "handle": ()}
+    drawing.add_polyline(((0, 0), (100, 0), (100, 200), (0, 200)),
+                         layer="CUTTING", closed=True)
+    drawing.add_polyline(((10, 70), (14, 70), (14, 110), (10, 110)),
+                         layer="CUTTING", closed=True)
+    drawing.add_circle((50, 175), 1.6, layer="CUTTING",
+                       source_type="nameplate_mount",
+                       source_id="door:nameplate_mount:1")
+    drawing.add_circle((91, 40), 4, layer="CUTTING")
+    marks = extract_original_door_marks(drawing)
+    assert len(marks["handle"]) == 4
+    assert marks["handle"][0] == (0.1, 0.65)
+    assert marks["nameplate"] == ((0.5, 0.125, 0.016, 0.008),)
+    drawing.add_polyline(((20, 40), (25, 40), (25, 60), (20, 60)),
+                         layer="CUTTING", closed=True)
+    assert extract_original_door_marks(drawing)["handle"] == ()
 
 
 def test_assembly_button_is_hidden_until_receiving_assembly():
@@ -72,6 +94,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
     selected = []
     selected_settings = []
     resized = []
+    brand_calls = []
 
     def resize(index, delta):
         resized.append((index, delta))
@@ -92,15 +115,27 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
                 (set_index, bay_index)),
             on_setting_selected=lambda set_index, bay_index, kind:
                 selected_settings.append((set_index, bay_index, kind)),
+            get_brand=lambda: "士林",
+            set_brand=lambda brand: brand_calls.append(brand),
         )
         root.update()
+        brand_picker = win._receiving_multi_brand_selector
+        assert tuple(brand_picker.cget("values")) == (
+            "士林", "東元", "三菱", "伍菱", "順山"
+        )
+        assert win._receiving_multi_brand_var.get() == "士林"
+        win._receiving_multi_brand_var.set("東元")
+        brand_picker.event_generate("<<ComboboxSelected>>")
+        root.update()
+        assert brand_calls == ["東元"]
+        assert brand_picker.master.master is win._receiving_multi_mode_controls.master
         assert win.title() == "多只設定"
         assert win.grab_current() is win
         assert win.winfo_width() >= win.winfo_screenwidth() - 2
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"套／連", "數量", "第1套", "＋連", "1", "－連", "套用"}
+        assert set(texts) == {"NFB", "套／連", "數量", "第1套", "＋連", "1", "－連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas
@@ -110,11 +145,11 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         controls_column = rows_host.master
         # Both the action row and the three-item LIST (not a dropdown) sit
         # directly below upper-left mode choices; 2D stays lower right.
-        assert mode_row.grid_info()["row"] == 0
+        assert mode_row.master.grid_info()["row"] == 0
         assert controls_column.grid_info()["row"] == 1
         assert controls_column.grid_info()["column"] == 0
         assert canvas.grid_info()["row"] == 1
-        assert canvas.grid_info()["column"] == 1
+        assert canvas.grid_info()["column"] == 0
         assert abs(controls_column.winfo_rootx() - mode_row.winfo_rootx()) <= 2
         vertical_gap = controls_column.winfo_rooty() - (
             mode_row.winfo_rooty() + mode_row.winfo_height()
@@ -123,7 +158,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert isinstance(setting_list, tk.Listbox)
         assert setting_list.master is controls_column
         assert setting_list.winfo_ismapped()
-        assert tuple(setting_list.get(0, tk.END)) == ("封頭", "封尾", "內門")
+        assert tuple(setting_list.get(0, tk.END)) == ("封頭尾", "內門")
         assert setting_list.curselection() == ()
         assert len(canvas._receiving_bay_hitboxes) == 1
         assert win._receiving_multi_applied["set_index"] is None
@@ -137,11 +172,6 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert selected_settings == [(0, 0, "head_features")]
         setting_list.selection_clear(0, tk.END)
         setting_list.selection_set(1)
-        setting_list.event_generate("<<ListboxSelect>>")
-        root.update()
-        assert selected_settings[-1] == (0, 0, "tail_features")
-        setting_list.selection_clear(0, tk.END)
-        setting_list.selection_set(2)
         setting_list.event_generate("<<ListboxSelect>>")
         root.update()
         assert selected_settings[-1] == (0, 0, "inner_door_layers")
@@ -215,13 +245,13 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert not rows_host.winfo_children()
         assert not setting_list.winfo_ismapped()
         assert len(canvas._receiving_bay_hitboxes) == 1
-        assert set(_visible_texts(win)) == {"套／連", "數量"}
+        assert set(_visible_texts(win)) == {"NFB", "套／連", "數量"}
         choices[0].invoke()
         root.update()
         assert mode["value"] == "set_bay"
         assert "第1套" in _visible_texts(win)
         assert setting_list.winfo_ismapped()
-        assert tuple(setting_list.get(0, tk.END)) == ("封頭", "封尾", "內門")
+        assert tuple(setting_list.get(0, tk.END)) == ("封頭尾", "內門")
         assert open_multi_settings(
             root, get_snapshot=lambda: {"active_mode": mode["value"]},
             get_switch=lambda: None, switch_mode=switch,
