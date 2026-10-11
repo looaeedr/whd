@@ -153,7 +153,9 @@ def _visible_texts(widget):
     result = []
     for child in widget.winfo_children():
         try:
-            if child.winfo_ismapped():
+            # Tk accepts abbreviated option names: Combobox cget("text")
+            # can resolve to its textvariable (PY_VAR...), not visible text.
+            if child.winfo_ismapped() and "text" in child.keys():
                 text = child.cget("text")
                 if text:
                     result.append(str(text))
