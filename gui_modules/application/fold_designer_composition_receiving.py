@@ -1319,6 +1319,21 @@ def open_receiving_multi_settings(self, namespace):
             side="left", padx=5,
         )
         ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
+        # Restore the parent multi-settings grab after this editor closes.
+        parent_modal = getattr(
+            self.app.root, "_receiving_multi_settings_window", None
+        )
+        def close_editor():
+            if modal.grab_current() is modal:
+                modal.grab_release()
+            modal.destroy()
+            if (parent_modal is not None and parent_modal.winfo_exists()
+                    and parent_modal.grab_current() is None):
+                parent_modal.grab_set()
+        modal.protocol("WM_DELETE_WINDOW", close_editor)
+        for widget in buttons.winfo_children():
+            if widget.cget("text") == "取消":
+                widget.configure(command=close_editor)
         modal.grab_set()
         return modal
 
