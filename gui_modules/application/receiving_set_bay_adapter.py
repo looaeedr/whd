@@ -212,6 +212,15 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的開關品牌")
         self._layout["sets"][self.selection.set_index]["switch_brand"] = brand
 
+    def hole_candidates(self):
+        """One candidate library for this project, not a Set/Bay owner."""
+        from ae_engine.receiving_hole_candidates import normalize_candidates
+        return normalize_candidates(self._layout.get("hole_candidates"))
+
+    def set_hole_candidates(self, candidates):
+        from ae_engine.receiving_hole_candidates import normalize_candidates
+        self._layout["hole_candidates"] = normalize_candidates(candidates)
+
     def set_global_brand(self, brand):
         """Update every Set NFB once, keeping active Set/Bay identity intact."""
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
