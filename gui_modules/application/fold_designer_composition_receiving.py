@@ -1015,6 +1015,7 @@ def open_receiving_multi_settings(self, namespace):
     # Verified source/panel evidence is per currently edited Set/Bay, ephemeral.
     # Nothing here is saved to the project or allowed to bypass #1500.
     pending_verified_nfb = {}
+    committed_nfb_evidence = {}  # session-only proof, NEVER persisted or blanket approved
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
@@ -2184,6 +2185,73 @@ def open_receiving_multi_settings(self, namespace):
                 )
             return options[0]
 
+        def physical_manifest(set_index,bay_index):
+            """Read-only live status from current saved NFB + original source."""
+            from ae_engine.receiving_nfb_export_manifest import (
+                NfbActualPart,INNER_DOOR,BASE_PLATE,MIDDLE_PLATE,
+                derive_nfb_partial_export_manifest,
+            )
+            adapter=candidate_adapter()
+            owner=adapter.layout["sets"][set_index]
+            bay=owner["bays"][bay_index]
+            if bay.get("nfb_config_submitted") is not True:
+                return {
+                    "status":"LEGACY","reason":"未配置 NFB：保留原有開孔流程",
+                    "actual_export_count":None,"rows":(),
+                    "unresolved_dependencies":(),
+                }
+            bundle=committed_nfb_evidence.get((set_index,bay_index))
+            if bundle is None:
+                return {
+                    "status":"BLOCKED","reason":"已提交，但尚未重新核對原始 DXF／物理孔位",
+                    "actual_export_count":0,"rows":(),
+                    "unresolved_dependencies":("SOURCE_REVALIDATION_REQUIRED",),
+                }
+            try:
+                current=nfb_physical_bay_snapshot(set_index,bay_index)
+                # Report-only geometry fingerprint; manufacturing remains
+                # gated again by #1497/#1498 and the part-export writer.
+                geometry_keys=(
+                    "w","h","d","t","inner_doors","door_layout_columns",
+                    "box_body_profile","multi_door_enabled",
+                )
+                if any(current.get(k)!=bundle.snapshot_at_verification.get(k)
+                       for k in geometry_keys):
+                    raise ValueError("內門幾何已變更，來源驗證必須重新執行")
+                scope=bundle.scope
+                physical=[
+                    NfbActualPart(scope.inner_door_part_id,INNER_DOOR),
+                    *(NfbActualPart(p,BASE_PLATE)
+                      for p in scope.base_plate_part_ids),
+                    *(NfbActualPart(p,MIDDLE_PLATE)
+                      for p in scope.middle_plate_part_ids),
+                ]
+                manifest=derive_nfb_partial_export_manifest(
+                    scope=scope,actual_parts=physical,
+                    saved_bay=bay,set_brand=owner["switch_brand"],
+                    source_inventory=bundle.source_inventory,
+                    verified_inner_door=bundle.verified_door,
+                    source_path=bundle.source_path,
+                )
+                details=manifest.report()
+                details["status"]=(
+                    "WHOLE_READY" if manifest.whole_ready else "PARTIAL_ONLY"
+                )
+                details["reason"]=(
+                    "可匯出僅限以下已通過的實體板件；PAD／EAR 仍延期"
+                    if manifest.authorized_part_ids else
+                    "尚無可放行 NFB 加工板件"
+                )
+                # This is a view, NOT the exporter authority itself.
+                return details
+            except (ValueError,TypeError,KeyError,IndexError,OSError) as exc:
+                committed_nfb_evidence.pop((set_index,bay_index),None)
+                return {
+                    "status":"BLOCKED","reason":"NFB 證據已過期："+str(exc),
+                    "actual_export_count":0,"rows":(),
+                    "unresolved_dependencies":("SOURCE_REVALIDATION_REQUIRED",),
+                }
+
         def state(set_index, bay_index, selected_bays=()):
             adapter = candidate_adapter()
             row = adapter.layout["sets"][set_index]["bays"][bay_index]
@@ -2222,6 +2290,7 @@ def open_receiving_multi_settings(self, namespace):
             )
             if result.changed:
                 pending_verified_nfb.pop((set_index,bi),None)
+                committed_nfb_evidence[(set_index,bi)]=bundle
                 flush()
             return result.changed
 
@@ -2239,6 +2308,9 @@ def open_receiving_multi_settings(self, namespace):
                 pending_verified_nfb.pop(
                     (target_bundle.set_index,target_bundle.bay_index),None
                 )
+                committed_nfb_evidence[
+                    (target_bundle.set_index,target_bundle.bay_index)
+                ]=target_bundle
                 flush()
             return result.changed
 
@@ -2254,17 +2326,22 @@ def open_receiving_multi_settings(self, namespace):
                 set_index=set_index, bay_indices=bay_indices, confirm=confirm,
             )
             if result.changed:
+                for bi in bay_indices:
+                    committed_nfb_evidence.pop((set_index,bi),None)
+                    pending_verified_nfb.pop((set_index,bi),None)
                 flush()
             return result.changed
 
         def undo():
             adapter = candidate_adapter()
             receipt = adapter.undo_last_nfb_transaction()
+            committed_nfb_evidence.clear()  # Undo invalidates old physical evidence
+            pending_verified_nfb.clear()
             flush()
             return receipt
 
         return {"state": state, "stage_verified": stage_verified,
-                "submit": submit, "copy": copy,
+                "submit": submit, "copy": copy, "manifest": physical_manifest,
                 "restore": restore, "undo": undo}
 
     return open_multi_settings(
