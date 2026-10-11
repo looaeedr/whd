@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from tools.knowledge_governance import parse_doc_metadata
@@ -18,7 +19,7 @@ ROLE_MARKERS = {
     "AI_HANDOFF.md": "<!-- WHD_DOC_ROLE role=REFERENCE contract=handoff-ledger -->",
     "AGENTS.md": "<!-- WHD_DOC_ROLE role=CURRENT contract=agent-startup-process -->",
     "handoff/00_AI_HANDOFF_README.md": "<!-- WHD_DOC_ROLE role=MIRROR contract=agent-startup-process POINTER_ONLY -->",
-    "handoff/01_ARCHITECTURE.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=architecture-snapshot -->",
+    "handoff/01_ARCHITECTURE.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=manufacturing-architecture -->",
     "handoff/05_NEXT_STEPS.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=roadmap-snapshot -->",
     "目前主要任務.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=task-roadmap-snapshot -->",
     "docs/superpowers/CURRENT_API_INVENTORY_20260818.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=api-inventory-snapshot snapshot=2026-08-18 -->",
@@ -30,7 +31,8 @@ ROLE_MARKERS = {
 
 def test_t7_documents_have_machine_readable_roles() -> None:
     # The current owner is WHD_DOC_META_V1 YAML; legacy HTML markers are optional.
-    # Keep the older expected-role list as an independent regression oracle.
+    # Preserve role expectations, but follow the canonical YAML contract for the
+    # historical architecture snapshot rather than its old HTML label.
     for path, marker in ROLE_MARKERS.items():
         metadata = parse_doc_metadata(read(path), path=path)
         assert f"role={metadata.role} contract={metadata.contract}" in marker, path
@@ -152,6 +154,20 @@ def test_current_skill_authority_rows_match_frontmatter() -> None:
         path = fields.get("path", "")
         if not path.startswith(".agents/skills/"):
             continue
+        if path.endswith(".json"):
+            # The registry/catalog are machine-readable CURRENT owners, but
+            # JSON must not be parsed as Markdown YAML frontmatter.
+            expected_lists = {
+                ".agents/skills/skill_registry.json": "routes",
+                ".agents/skills/skill_catalog.json": "ordered_rules",
+            }
+            assert path in expected_lists, path
+            payload = json.loads(read(path))
+            assert payload["schema_version"] == 1, path
+            rows = payload[expected_lists[path]]
+            assert isinstance(rows, list) and rows, path
+            continue
+        assert path.endswith("/SKILL.md"), path
         metadata = parse_doc_metadata(read(path), path=path)
         assert metadata.role == "CURRENT", path
         assert metadata.contract == fields["contract"], path
@@ -166,7 +182,7 @@ def test_dm7_current_skill_does_not_restore_retired_preflight_gate() -> None:
     assert "## 現行施工入口與來源查核" in skill
     assert "由 GitHub／排程／雲端執行器施工" in skill
     assert "只有使用者當次明確 `/接手`" in skill
-    assert "不得要求已退役的 preflight 重跑" in skill
+    assert "**不得**要求已退役的 preflight 重跑" in skill
     assert "先跑 `tools/phase6_skill_preflight.py" not in skill
     assert "並留下 `READ_REFERENCE:` evidence" not in skill
     assert "再以全部 changed files 重跑 preflight" not in skill
