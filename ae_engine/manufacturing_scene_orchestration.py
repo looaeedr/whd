@@ -852,6 +852,41 @@ def _replace_receiving_bottom_relief_from_registry(render_data, spec: EndCapPart
 
 def _unfolded_topology_for_spec(spec: PartSpec, *, piece_id: str = "") -> UnfoldedBlankTopology | None:
     """Build blank envelope only from authoritative PartSpec/Fold Profile semantics."""
+    if isinstance(spec, BasePlatePartSpec) and spec.receiving_bend_pattern is not None:
+        from .sheetmetal_part_adapters import (
+            RECEIVING_BASE_PATTERN_CENTER, build_receiving_base_plate_result,
+        )
+        actual=build_receiving_base_plate_result(
+            w=spec.width,h=spec.height,t=spec.thickness,
+            shrink_top=spec.shrink_top,shrink_bottom=spec.shrink_bottom,
+            shrink_left=spec.shrink_left,shrink_right=spec.shrink_right,
+            bend=spec.bend,pattern=spec.receiving_bend_pattern,
+        )
+        if spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_CENTER:
+            return UnfoldedBlankTopology(
+                piece_id=str(spec.physical_id or piece_id or "base_plate"),
+                x_segments=(
+                    MaterialSegment("X","ear_side_return_left",71.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","base_face",actual.width-142.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","ear_side_return_right",71.0,"RECEIVING_BASE_BEND"),
+                ),
+                y_segments=(
+                    MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_core",actual.height-40.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_top_fold20",20.0,"RECEIVING_BASE_BEND"),
+                ),
+                source="RECEIVING_BASE_BEND",revision=1,
+            )
+        return UnfoldedBlankTopology(
+            piece_id=str(spec.physical_id or piece_id or "base_plate"),
+            x_segments=(MaterialSegment("X","flat_side_span",actual.width,"RECEIVING_BASE_BEND"),),
+            y_segments=(
+                MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_core",actual.height-40.0,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_top_fold20",20.0,"RECEIVING_BASE_BEND"),
+            ),
+            source="RECEIVING_BASE_BEND",revision=1,
+        )
     if isinstance(spec, EndCapPartSpec):
         resolved = resolve_endcap_request(spec)
         x_rows = tuple(resolved.fold_profile_x or ())
