@@ -26,4 +26,21 @@ class RemoteContractTests(unittest.TestCase):
                'tests/governance/test_issue1464_dispatch_takeover_remote_contract.py']
         self.assertEqual(classify_changes(paths),'GOVERNANCE_DIRECT_X')
         self.assertEqual(classify_changes(paths+['gui.py']),'PRODUCT_LOCALX_ONLY')
+    def test_reference_pitfalls_do_not_reactivate_retired_execution(self):
+        git_pitfall=(ROOT/'個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md').read_text('utf-8')
+        root_pitfall=(ROOT/'個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md').read_text('utf-8')
+        continuity=(ROOT/'個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md').read_text('utf-8')
+        closure=(ROOT/'個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md').read_text('utf-8')
+        for doc in (git_pitfall,root_pitfall,continuity,closure):
+            self.assertIn("whd_doc_role: REFERENCE", doc[:200])
+            self.assertIn("AGENTS.md", doc)
+        self.assertNotIn("所有 repository-content 修改先走 CURRENT root-local-first router",git_pitfall)
+        self.assertIn("Contents API 永遠不得直接寫 authoritative production target",git_pitfall)
+        self.assertNotIn("## CURRENT workspace-first 覆寫規則",root_pitfall)
+        self.assertIn("HISTORICAL/SUPERSEDED",root_pitfall)
+        self.assertNotIn("CURRENT durable state、transition、resume",continuity)
+        self.assertIn("當時 V2 規則（HISTORICAL",continuity)
+        self.assertNotIn("都必須讓 Preflight 命中此 Skill",closure)
+        self.assertIn("現在不再要求 Preflight receipt",closure)
+
 if __name__=='__main__':unittest.main()
