@@ -420,5 +420,23 @@ class ChangeLaneTests(unittest.TestCase):
                     parse_name_status_zero(blob)
 
 
+    def test_policy_distinguishes_localx_work_pr_from_x_publish_pr(self):
+        policy = (
+            Path(__file__).resolve().parents[2]
+            / "docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("以正式 X 為 base 的產品／混合發布 PR", policy)
+        self.assertIn("以 `localX` 為 base 的一般產品工作 PR", policy)
+        self.assertIn("不需每張另下 `/推推`", policy)
+        # These assertions only protect the documentation scope. The trusted
+        # X-target gate below still requires an exact owner publish approval.
+        with self.assertRaisesRegex(ChangeLaneDenied, "PRODUCT_REQUIRES_EXACT_USER_SLASH_PUSH"):
+            evaluate_pr(
+                event=pr_event(branch="localX"),
+                changed_paths=["gui.py"],
+                comments=[],
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
