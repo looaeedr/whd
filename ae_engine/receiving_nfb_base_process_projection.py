@@ -250,3 +250,43 @@ def project_verified_nfb_base_process(
         cutting=tuple(cutting.primitives),
         marking=tuple(marking.primitives),
     )
+
+
+
+def project_one_original_nfb_into_actual_base(
+    *,
+    snapshot: Mapping[str, object],
+    inner_door_id: str,
+    verified_inner_door: NfbValidatedInnerDoorRender,
+    source_path,
+    profile,
+    lower_reference_handle: str,
+    target: NfbActualBaseWorkFace,
+) -> NfbProjectedBaseProcess:
+    """ONE original SHA and ONE verified door for both native source groups.
+
+    This is the callable MFG-2 preparation boundary for a real base face.
+    Both upper process contours and lower four NFB fixing circles are
+    extracted from the same original operator-indexed DXF in one operation,
+    then projected together. Source-only/geometry-only results are NOT a
+    finished factory base plate or an authorization to export DXF.
+    """
+    from .receiving_nfb_upper_base_source import inspect_nfb_upper_base_native_process
+    from .receiving_nfb_lower_fixing_source import inspect_nfb_lower_four_fixing_circles
+    if (verified_inner_door.source_sha256 != profile.source_sha256
+            or verified_inner_door.indexed_model_key !=
+                (profile.brand, profile.indexed_filename)):
+        raise ValueError("NFB source and verified inner door do not match")
+    upper = inspect_nfb_upper_base_native_process(
+        source_path, profile=profile,
+        lower_reference_handle=lower_reference_handle,
+    )
+    lower = inspect_nfb_lower_four_fixing_circles(
+        source_path, profile=profile,
+        lower_reference_handle=lower_reference_handle,
+    )
+    return project_verified_nfb_base_process(
+        snapshot=snapshot, inner_door_id=inner_door_id,
+        verified_inner_door=verified_inner_door,
+        native_source=upper, lower_fixing=lower, target=target,
+    )
