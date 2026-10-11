@@ -63,7 +63,7 @@ def make_scrollable_frame(parent, *, tk, ttk, width=520, height=340):
         natural = max(1, content.winfo_reqwidth())
         usable = max(1, viewport.winfo_width())
         desired = max(natural, usable)
-        if float(viewport.itemcget(window_item, "width")) != float(desired):
+        if float(viewport.itemcget(window_item, "width") or 0) != float(desired):
             viewport.itemconfigure(window_item, width=desired)
         viewport.configure(scrollregion=viewport.bbox("all"))
         bind_tree(content)
