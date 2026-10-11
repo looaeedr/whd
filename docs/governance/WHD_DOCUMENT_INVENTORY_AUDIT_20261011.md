@@ -111,6 +111,15 @@ whd_schema: WHD_DOC_META_V1
 - 必須區分兩種掃描：`_iter_reference_texts()` 可以讀取未排除的普通文字供分析，**「被索引到」不等於具有正式權威**。不能因搜尋命中舊文字而執行已退役工單交易／Preflight。
 - 上述路徑的數量統計只是 metadata／開頭身分核對，**不代表全部 239 份 logs／scratch 正文逐行語意審核完成**。真正現行行為仍需核對產品 code、CURRENT spec 與驗證證據。
 
+## 第四輪正文引用審查（2026-10-11）
+
+- 以正式 X Git tree `5d95ae2173d82bdc8ac03ecae381e355a0ca185a` 的實際 Blob 路徑核對 12 份主要 CURRENT 規格／AGENTS、**59 份** `SKILL.md` 與 **17 份** AI 專案 SOP 內 backtick 標示的 repo-root 檔案引用。主要 CURRENT 規格與 active Skill 的**既存型態 repo-root 引用**未發現確定的失效路徑；此掃描不是對未加 backtick、Markdown 相對連結或所有語意的完整證明。
+- `.agents/skills/engineering/setup-matt-pocock-skills/SKILL.md` 所述 `docs/agents/issue-tracker.md` 等是該 Setup Skill **預計建立**的輸出，當前不存在是設計情境，不是壞掉的現行依賴，故**不亂補空檔**。
+- `個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md` 的 `tests/test_check_zh_tw_report.py`／`tests/test_skill_sources_zh_tw.py` 指向同目錄支援，真實來源在 `.agents/skills/engineering/掃描深模組/tests/`，不是 root `tests/`；`tests/knowledge/test_skill_catalog_classification_contract.py` 則在正式 X Git 樹不存在，後續須在產品通道核對替代測試身分，**不可用相近檔名冒名替代**。
+- `個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md` 仍保存多項已退役 claim／scheduler helper 與失效程式路徑，屬日期化歷史事故。不可憑 REFERENCE 文件提到 `tools/stale_claim_takeover.py` 就重建 Flow v2；歷史可追溯性需要保留。
+- **已實修**：同在治理白名單的 `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`，原先把已不存在的 `tests/knowledge/test_knowledge_authority_contract.py`、`tests/knowledge/test_active_skill_runtime_contract.py` 宣稱為實際 machine guard。本輪保留歷史檔名供查核、明確標不存在；正確核對目前存在的 `tests/knowledge/test_current_history_authority_contract.py`、`tests/knowledge/test_knowledge_authority_classification.py`、`tests/knowledge/test_skill_registry_coverage_contract.py` 和 `tests/knowledge/test_skill_registry_domain_reference_contract.py`；**不把 Registry coverage 冒稱 runtime fallback 全覆蓋**。修改走同一治理 PR #1627，適用 X trusted Change Lane Gate。
+- **產品文檔正文最小修正**：另由 `localX` 基準開立 [PR #1629](https://github.com/looaeedr/whd/pull/1629)，對前述七份結案計畫／驗收文檔保留 CURRENT 元資料與所有原始 run/SHA，僅加時效說明；新增既有產品回歸測試以觸發真正的 exact-HEAD Product Regression。此 PR **尚待 CI／合法 localX 整合**，不等於已進 X，未獲 `/推推` 不可正式發布。
+
 ## 清查判定
 
 - **已執行**：全樹文件清單、權威索引角色統計、重要 CURRENT／REFERENCE／MIRROR 的優先核對、59 份 Skill metadata 與退役流程關鍵字查核、確認一處治理文字錯誤並提出修正。
