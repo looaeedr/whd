@@ -11,6 +11,7 @@ from ae_engine.receiving_nfb_cutting_preflight import (
     NfbExistingCuttingClaim,
     NfbUpperOpeningRequest,
     preflight_nfb_inner_door_opening,
+    preflight_nfb_inner_door_batch,
 )
 
 
@@ -173,3 +174,54 @@ def test_preflight_never_changes_existing_inner_door_finalscene_or_dxf():
     y = [point.y for point in cutouts[0].points]
     assert max(x) - min(x) == pytest.approx(723)
     assert max(y) - min(y) == pytest.approx(1075)
+
+
+def test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap():
+    panel = _panel()
+    one = _source(
+        uv_center_x=220, uv_center_y=563.5,
+        x_rule_revision="SHADOW",
+    )
+    two = replace(
+        one, physical_hole_id="nfb:upper:layer:1:unit:2",
+        uv_center_x=500,
+    )
+    batch = preflight_nfb_inner_door_batch(panel, (one, two))
+    assert batch.status == PREVIEW_ONLY
+    assert len(batch.items) == 2
+    assert batch.manufacturing_ready is False
+    assert len(batch.items[0].preview_outline_uv_xy) == 4
+    assert len(batch.items[1].preview_outline_uv_xy) == 4
+    repeated = replace(two, physical_hole_id=one.physical_hole_id)
+    denied = preflight_nfb_inner_door_batch(panel, (one, repeated))
+    assert denied.status == BLOCKED
+    assert "DUPLICATE_NEW_NFB_PHYSICAL_HOLE_OWNER" in denied.diagnostics
+    colliding = replace(two, uv_center_x=220)
+    denied_overlap = preflight_nfb_inner_door_batch(panel, (one, colliding))
+    assert denied_overlap.status == BLOCKED
+    assert "NEW_NFB_CUTTING_FOOTPRINT_COLLISION" in denied_overlap.diagnostics
+
+
+def test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole():
+    panel = _panel()
+    original = _source(
+        uv_center_x=361.5, uv_center_y=563.5,
+        x_rule_revision="SHADOW",
+    )
+    other = replace(
+        original, physical_hole_id="nfb:upper:layer:2:unit:1",
+        uv_center_x=560, uv_center_y=823.5,
+    )
+    initial = preflight_nfb_inner_door_batch(panel, (original, other))
+    assert initial.status == PREVIEW_ONLY
+    # Replacing only 'other' with an out-of-core placement must NOT
+    # move 'original' or apply half of the batch.
+    illegal = replace(other, uv_center_y=1040)
+    denied = preflight_nfb_inner_door_batch(panel, (original, illegal))
+    assert denied.status == BLOCKED
+    assert "OPENING_OUTSIDE_FINISHED_DOOR_CORE" in denied.diagnostics
+    assert denied.items[0].preview_outline_uv_xy == initial.items[0].preview_outline_uv_xy
+    assert denied.manufacturing_ready is False
+    assert preflight_nfb_inner_door_batch(panel, ()).diagnostics == (
+        "NO_NEW_NFB_CUTTING",
+    )
