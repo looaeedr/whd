@@ -225,6 +225,19 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("APPROVED_REQUIREMENT_FAST_PATH", docs["scanner"])
         self.assertNotIn("的 RED-first、AI Library、Issue、remote QA 流程", docs["scanner"])
 
+    def test_release_packaging_does_not_override_cloud_dispatch_execution(self):
+        skill = (
+            ROOT / ".agents/skills/engineering/phase6-release-packaging/SKILL.md"
+        ).read_text(encoding="utf-8")
+        for marker in ("/派工", "/接手", "LOCALX_INTEGRATION", "/推推",
+                       "GitHub／排程／雲端", "pristine", "exact HEAD CI"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, skill)
+        self.assertNotIn("WHD interactive/default changes enter release only after root-local qualification", skill)
+        self.assertNotIn("after unlock, create a fresh work branch", skill)
+        self.assertNotIn("A work branch is still mandatory in Git phase, but it does not precede root development/testing", skill)
+        self.assertIn("不得為治理修改探測使用者本機", skill)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
