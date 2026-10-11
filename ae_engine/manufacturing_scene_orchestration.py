@@ -358,7 +358,7 @@ def build_inner_door_panel_render_data(panel) -> PartRenderData:
     """Use the existing four-sided Door manufacturing topology for inner doors.
 
     The panel.width/height are FINISHED faces. The manufacturing blank is
-    finished - 2*T + both fold lengths; at W800/T2/folds19: 693 -> 727.
+    finished - 2*T + both fold lengths; at W800/T2/folds19: 689 -> 723.
     Never export the finished face as an unfolded, unbent CUTTING rectangle.
     """
     from .inner_door_panels import InnerDoorPanelPart

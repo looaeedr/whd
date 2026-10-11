@@ -233,7 +233,9 @@ def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> 
     """
     from .cabinet_types import policy as cabinet_family_policy
     from .inner_door_frames import inner_door_frame_formed_occupation
-    from .cabinet_types.receiving import inner_door_body_clear_width
+    from .cabinet_types.receiving import (
+        inner_door_body_clear_width, inner_door_panel_vertical_contract,
+    )
 
     item = _inner_door_item(snapshot, inner_door_id)
     columns, cell = _cell_from_cell_key(snapshot, str(item.get("cell_key") or ""))
@@ -254,20 +256,21 @@ def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> 
     if panel_w <= 0:
         raise ValueError("inner-door framed width/door clearance is not positive")
     x_center, y_cell_center = _door_cell_center(snapshot, cell, columns)
-    try:
-        vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
-            snapshot, inner_door_id
-        )
-    except ValueError:
-        # During topology editing no shared lower Divider may yet exist.
-        # Keep only a transient panel envelope; physical vertical frame
-        # manufacturing will fail closed until the Divider is resolved.
-        upper_edge = y_cell_center + float(cell.start_height) / 2.0 - frame_occupation
-        lower_edge = y_cell_center - float(cell.start_height) / 2.0
-    else:
-        upper_edge = float(vertical["top_terminal_y"])
-        lower_edge = float(vertical["lower_terminal_y"])
-    panel_h = (upper_edge - lower_edge) - 2.0 * gap_h
+    vertical_panel = inner_door_panel_vertical_contract(
+        cell_height=cell.start_height, thickness=t, gap_h=gap_h,
+    )
+    # Use the SAME vertical deductions as the manufactured panel.  The
+    # physical Divider terminal is authoritative for SIDE FRAME mating, not
+    # for the panel's finished height or centered 3D placement.
+    upper_edge = (
+        y_cell_center + float(cell.start_height) / 2.0
+        - vertical_panel["top_occupation"]
+    )
+    lower_edge = (
+        y_cell_center - float(cell.start_height) / 2.0
+        + vertical_panel["bottom_occupation"]
+    )
+    panel_h = vertical_panel["finished_height"]
     if panel_h <= 0:
         raise ValueError("inner-door framed height/door clearance is not positive")
 

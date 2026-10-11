@@ -118,8 +118,8 @@ def test_closed_reference_improves_source_provenance_without_releasing_x():
     assert row["finished_face_to_box_world_x"] is None
 
 
-def test_closed_reference_height_is_not_identical_to_current_whd_manufacturing_blank():
-    """Never upgrade an equal X span into a whole-outline identity."""
+def test_closed_reference_bbox_matches_corrected_whd_inner_door_blank():
+    """W800/T2 blank X/Y spans match, without certifying full cutout identity."""
     from ae_engine.cabinet_types.receiving import apply_family_defaults
     from ae_engine.cabinet_types import policy
     from ae_engine.manufacturing_api import build_inner_door_panel_render_data
@@ -151,14 +151,14 @@ def test_closed_reference_height_is_not_identical_to_current_whd_manufacturing_b
     raw_ys = [point[1] for point in raw_outline]
     assert max(xs) - min(xs) == pytest.approx(max(raw_xs) - min(raw_xs))
     assert max(xs) - min(xs) == pytest.approx(723.0)
-    assert max(ys) - min(ys) == pytest.approx(1063.5)
+    assert max(ys) - min(ys) == pytest.approx(1075.0)
     assert max(raw_ys) - min(raw_ys) == pytest.approx(1075.0)
-    assert (max(raw_ys) - min(raw_ys)) - (max(ys) - min(ys)) == pytest.approx(11.5)
+    assert (max(raw_ys) - min(raw_ys)) - (max(ys) - min(ys)) == pytest.approx(0.0)
 
     witness = load("docs/receiving-nfb-x-evidence.json")[
         "w800_t2_three_hole_observation"
     ]["closed_cutting_reference"]
-    assert witness["canonical_whd_blank_height_mm"] == pytest.approx(1063.5)
+    assert witness["canonical_whd_blank_height_mm"] == pytest.approx(1075.0)
     assert witness["reference_blank_height_mm"] == pytest.approx(1075)
-    assert witness["height_mismatch_mm"] == pytest.approx(11.5)
+    assert witness["height_mismatch_mm"] == pytest.approx(0.0)
     assert witness["wHD_manufacturing_cutting_identity_approved"] is False
