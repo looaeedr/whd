@@ -129,6 +129,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
     resized = []
     brand_calls = []
     deferred_refresh = []
+    brand_commit = []
 
     def resize(index, delta):
         resized.append((index, delta))
@@ -150,8 +151,9 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
             on_setting_selected=lambda set_index, bay_index, kind:
                 selected_settings.append((set_index, bay_index, kind)),
             get_brand=lambda: "士林",
-            set_brand=lambda brand: brand_calls.append(brand),
+            set_brand=lambda brand: brand_calls.append(brand) or True,
             on_close=lambda: deferred_refresh.append(tuple(counts)),
+            on_brand_close=lambda: brand_commit.append(brand_calls[-1]),
         )
         root.update()
         brand_picker = win._receiving_multi_brand_selector
@@ -163,6 +165,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         brand_picker.event_generate("<<ComboboxSelected>>")
         root.update()
         assert brand_calls == ["東元"]
+        assert brand_commit == []  # no synchronous 3D/geometry redraw
         assert brand_picker.master.master is win._receiving_multi_mode_controls.master
         assert win.title() == "多只設定"
         assert win.grab_current() is win
@@ -317,6 +320,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         root.update()
         assert root.grab_current() is None
         assert deferred_refresh == [(2,)]
+        assert brand_commit == ["東元"]
     finally:
         root.destroy()
 
@@ -348,13 +352,27 @@ def test_embedded_head_tail_versions_reuse_original_quantity_owner():
             switch_mode=lambda target: mode.__setitem__("value", target) or True,
             resize_connections=lambda *_args: True,
             get_quantity_ports=ports,
+            get_settings_ports=lambda _set: {
+                "select": lambda _bay: None,
+                "holes": lambda _role, _bays: None,
+            },
         )
         root.update()
-        choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
-                   if isinstance(w, ttk.Radiobutton)]
-        choices[1].invoke()
+        listing = win._receiving_multi_setting_list
+        listing.selection_set(0)
+        listing.event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "孔型版本一／二" in _visible_texts(win._receiving_multi_settings_host)
+        launcher = next(
+            widget for widget in win._receiving_multi_settings_host.winfo_children()
+            if isinstance(widget, ttk.Button)
+            and widget.cget("text") == "孔型版本一／二"
+        )
+        launcher.invoke()
         root.update()
         assert mode["value"] == "quantity"
+        choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
+                   if isinstance(w, ttk.Radiobutton)]
         listing = win._receiving_multi_setting_list
         assert tuple(listing.get(0, tk.END)) == ("封頭尾",)
         assert win._receiving_multi_quantity_editor["controls"] is None
@@ -392,7 +410,7 @@ def test_embedded_head_tail_versions_reuse_original_quantity_owner():
         root.destroy()
 
 
-def test_sketch_multi_highlights_drive_existing_endcap_share_actions():
+def test_sketch_multi_highlights_drive_existing_endcap_edits_without_link_buttons():
     root = tk.Tk()
     root.withdraw()
     calls = []
@@ -433,6 +451,8 @@ def test_sketch_multi_highlights_drive_existing_endcap_share_actions():
         labels = _visible_texts(panel)
         assert "連動目標" not in labels
         assert "編輯／套用" not in labels
+        assert "連動選取的連" not in labels
+        assert "解除本連連動" not in labels
         assert labels.count("編輯") == 2
         assert all(not isinstance(widget, ttk.Checkbutton)
                    for frame in panel.winfo_children()
@@ -443,12 +463,7 @@ def test_sketch_multi_highlights_drive_existing_endcap_share_actions():
         assert len(edits) == 1
         edits[0].invoke()
         assert ("edit", "head", (0, 1, 2)) in calls
-        first = panel.winfo_children()[0]
-        shares = [child for child in first.winfo_children()
-                  if isinstance(child, ttk.Button)
-                  and child.cget("text") == "連動選取的連"]
-        shares[0].invoke()
-        assert ("share", "head_features", (0, 1, 2)) in calls
+        assert not any(item[0] in {"share", "unlink"} for item in calls)
         win._receiving_multi_close()
     finally:
         root.destroy()
