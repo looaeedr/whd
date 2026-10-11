@@ -29,7 +29,63 @@ def default_preview_dimensions(snapshot):
     return tuple(float(box[axis]) for axis in ("w", "h", "d"))
 
 
-def paint_connected_bays(canvas, count, selected=None):
+def extract_original_door_marks(scene):
+    """Project only identified original Door nameplate holes and handle contour.
+
+    No fallback coordinates: when the original baseline does not identify the
+    features unambiguously, the lightweight sketch draws none.
+    Normalized vectors are presentation-only, never manufacturing geometry.
+    """
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+
+    empty = {"nameplate": (), "handle": ()}
+    if scene is None:
+        return empty
+    outlines = [
+        p for p in scene.primitives
+        if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING"
+        and p.closed and len(p.points) >= 3
+    ]
+    if not outlines:
+        return empty
+
+    def bounds(polyline):
+        xs = [float(pt.x) for pt in polyline.points]
+        ys = [float(pt.y) for pt in polyline.points]
+        return min(xs), min(ys), max(xs), max(ys)
+
+    outer = max(outlines, key=lambda item:
+                (bounds(item)[2] - bounds(item)[0]) *
+                (bounds(item)[3] - bounds(item)[1]))
+    x0, y0, x1, y1 = bounds(outer)
+    if x1 <= x0 or y1 <= y0:
+        return empty
+
+    def xy(point):
+        return ((float(point.x) - x0) / (x1 - x0),
+                1.0 - (float(point.y) - y0) / (y1 - y0))
+
+    # Only the stable feature identity from the original Door baseline
+    # identifies nameplate circles; do not guess from radius or position.
+    nameplate = tuple(
+        (*xy(p.center), float(p.radius) / (x1 - x0),
+         float(p.radius) / (y1 - y0))
+        for p in scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and p.layer == "CUTTING" and p.source_type == "nameplate_mount"
+    )
+    # The certified Door baseline has exactly one extra interior CUTTING
+    # contour for the handle. Multiple candidates are ambiguous: draw none.
+    interior = [
+        p for p in outlines if p is not outer
+        and bounds(p)[0] > x0 and bounds(p)[1] > y0
+        and bounds(p)[2] < x1 and bounds(p)[3] < y1
+    ]
+    handle = tuple(xy(pt) for pt in interior[0].points) if len(interior) == 1 else ()
+    return {"nameplate": nameplate, "handle": handle}
+
+
+def paint_connected_bays(canvas, count, selected=None, door_marks=None):
     """Cheap front-elevation sketch: touching bays with basic upper/lower doors.
 
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
@@ -64,6 +120,36 @@ def paint_connected_bays(canvas, count, selected=None):
                                 top + bay_h - inset, outline="#c3d1dc", width=1)
         canvas.create_line(x0 + inset, split, x1 - inset, split,
                            fill="#e0c487", width=1)
+        marks = (door_marks or ())
+        this_bay = marks[index] if index < len(marks) else ()
+        door_faces = (
+            (x0 + inset, top + inset, x1 - inset, split - 2),
+            (x0 + inset, split + 2, x1 - inset, top + bay_h - inset),
+        )
+        for row_index, face in enumerate(door_faces):
+            if row_index >= len(this_bay):
+                continue
+            entry = this_bay[row_index]
+            if not entry:
+                continue
+            fx0, fy0, fx1, fy1 = face
+            dw, dh = fx1 - fx0, fy1 - fy0
+            if dw <= 0 or dh <= 0:
+                continue
+            handle = entry.get("handle") or ()
+            if len(handle) >= 3:
+                coords = [
+                    coordinate
+                    for px, py in handle
+                    for coordinate in (fx0 + px * dw, fy0 + py * dh)
+                ]
+                canvas.create_polygon(*coords, fill="", outline="#f7c66f", width=1)
+            for cx, cy, rx, ry in entry.get("nameplate") or ():
+                # Minimum is a screen visibility rule, not a hole dimension.
+                px, py = fx0 + cx * dw, fy0 + cy * dh
+                sx, sy = max(1.0, rx * dw), max(1.0, ry * dh)
+                canvas.create_oval(px - sx, py - sy, px + sx, py + sy,
+                                  outline="#f7c66f", width=1)
         hitboxes.append((x0, top, x1, top + bay_h))
     canvas._receiving_bay_hitboxes = tuple(hitboxes)
     return count
@@ -77,7 +163,8 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, select_bay=None,
                         on_setting_selected=None, get_brand=None,
-                        set_brand=None, get_settings_ports=None):
+                        set_brand=None, get_settings_ports=None,
+                        get_original_door_marks=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -250,10 +337,27 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 return False
         return True
 
+    mark_cache = {"key": None, "values": ()}
+
     def render():
         count = applied["count"] if applied["mode"] == "set_bay" else 1
         selected = applied["selected"] if applied["mode"] == "set_bay" else None
-        paint_connected_bays(canvas, count, selected)
+        marks = ()
+        if applied["mode"] == "set_bay" and get_original_door_marks is not None:
+            set_index = applied["set_index"]
+            if set_index is None:
+                set_index = 0
+            key = (set_index, count)
+            if mark_cache["key"] != key:
+                # The baseline is requested once per applied Set/connection
+                # count, not on every canvas resize or selection redraw.
+                mark_cache["values"] = tuple(
+                    get_original_door_marks(set_index, bay_index)
+                    for bay_index in range(count)
+                )
+                mark_cache["key"] = key
+            marks = mark_cache["values"]
+        paint_connected_bays(canvas, count, selected, marks)
 
     def refresh_rows():
         for widget in actions_host.winfo_children():
