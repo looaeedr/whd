@@ -1,0 +1,275 @@
+{
+  "schema": "receiving-nfb-x-evidence-v1",
+  "issue": 1494,
+  "purpose": "EVIDENCE_ONLY_NOT_MANUFACTURING_CAPABILITY_REGISTRY",
+  "revision": "v1.4-evidence-1",
+  "references": [
+    {
+      "path": "docs/specs/WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "sha256": "f4441937f43bf70de1224cf74926b8cfe031dc6eef6f18f165bd6bf6a8a2e5e1",
+      "sections": [
+        "2.4",
+        "2.4.1",
+        "SWT-AC-27",
+        "SWT-AC-30"
+      ]
+    },
+    {
+      "path": "docs/specs/WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "sha256": "2fcf48521b913435b01639b9fa1b3ef7789ec93724033e332cedd4c85e1d0eef",
+      "sections": [
+        "4.4.3",
+        "NFB-AC-48",
+        "NFB-AC-49"
+      ]
+    }
+  ],
+  "unsupported_combination_policy": "PREVIEW_ONLY_NO_DEFAULT_CENTER",
+  "records": [
+    {
+      "rule_id": "RECEIVING-NFB-OPEN-X-600-1",
+      "revision": "v1.4-evidence-1",
+      "gate": "OPEN-X-ONE",
+      "box_outer_width_mm": 600,
+      "nfb_count": 1,
+      "nominal_adjacent_center_distances_mm": null,
+      "nominal_source": null,
+      "x_status": "PREVIEW_ONLY",
+      "certified_x_revision": null,
+      "actual_inner_door_part_id": null,
+      "source_dxf_sha256": null,
+      "source_outline_handles": [],
+      "source_main_hole_handles": [],
+      "x_direction": null,
+      "blank_x_origin": null,
+      "finished_face_x_origin": null,
+      "box_world_x_origin": null,
+      "blank_to_finished_face_x": null,
+      "finished_face_to_box_world_x": null,
+      "missing_evidence": [
+        "OWNER_APPROVED_X_RULE_REVISION",
+        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
+        "PHYSICAL_PART_ID_AND_X_DIRECTION",
+        "BLANK_ORIGIN_IDENTITY",
+        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+      ]
+    },
+    {
+      "rule_id": "RECEIVING-NFB-OPEN-X-750-1",
+      "revision": "v1.4-evidence-1",
+      "gate": "OPEN-X-ONE",
+      "box_outer_width_mm": 750,
+      "nfb_count": 1,
+      "nominal_adjacent_center_distances_mm": null,
+      "nominal_source": null,
+      "x_status": "PREVIEW_ONLY",
+      "certified_x_revision": null,
+      "actual_inner_door_part_id": null,
+      "source_dxf_sha256": null,
+      "source_outline_handles": [],
+      "source_main_hole_handles": [],
+      "x_direction": null,
+      "blank_x_origin": null,
+      "finished_face_x_origin": null,
+      "box_world_x_origin": null,
+      "blank_to_finished_face_x": null,
+      "finished_face_to_box_world_x": null,
+      "missing_evidence": [
+        "OWNER_APPROVED_X_RULE_REVISION",
+        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
+        "PHYSICAL_PART_ID_AND_X_DIRECTION",
+        "BLANK_ORIGIN_IDENTITY",
+        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+      ]
+    },
+    {
+      "rule_id": "RECEIVING-NFB-OPEN-X-800-1",
+      "revision": "v1.4-evidence-1",
+      "gate": "OPEN-X-ONE",
+      "box_outer_width_mm": 800,
+      "nfb_count": 1,
+      "nominal_adjacent_center_distances_mm": null,
+      "nominal_source": null,
+      "x_status": "PREVIEW_ONLY",
+      "certified_x_revision": null,
+      "actual_inner_door_part_id": null,
+      "source_dxf_sha256": null,
+      "source_outline_handles": [],
+      "source_main_hole_handles": [],
+      "x_direction": null,
+      "blank_x_origin": null,
+      "finished_face_x_origin": null,
+      "box_world_x_origin": null,
+      "blank_to_finished_face_x": null,
+      "finished_face_to_box_world_x": null,
+      "missing_evidence": [
+        "OWNER_APPROVED_X_RULE_REVISION",
+        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
+        "PHYSICAL_PART_ID_AND_X_DIRECTION",
+        "BLANK_ORIGIN_IDENTITY",
+        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+      ]
+    },
+    {
+      "rule_id": "RECEIVING-NFB-OPEN-X-600-2",
+      "revision": "v1.4-evidence-1",
+      "gate": "OPEN-X-ROW",
+      "box_outer_width_mm": 600,
+      "nfb_count": 2,
+      "nominal_adjacent_center_distances_mm": [
+        180.0
+      ],
+      "nominal_source": {
+        "reference_index": 0,
+        "section": "2.4"
+      },
+      "x_status": "PREVIEW_ONLY",
+      "certified_x_revision": null,
+      "actual_inner_door_part_id": null,
+      "source_dxf_sha256": null,
+      "source_outline_handles": [],
+      "source_main_hole_handles": [],
+      "x_direction": null,
+      "blank_x_origin": null,
+      "finished_face_x_origin": null,
+      "box_world_x_origin": null,
+      "blank_to_finished_face_x": null,
+      "finished_face_to_box_world_x": null,
+      "missing_evidence": [
+        "OWNER_APPROVED_X_RULE_REVISION",
+        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
+        "PHYSICAL_PART_ID_AND_X_DIRECTION",
+        "BLANK_ORIGIN_IDENTITY",
+        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+      ]
+    },
+    {
+      "rule_id": "RECEIVING-NFB-OPEN-X-750-2",
+      "revision": "v1.4-evidence-1",
+      "gate": "OPEN-X-ROW",
+      "box_outer_width_mm": 750,
+      "nfb_count": 2,
+      "nominal_adjacent_center_distances_mm": [
+        310.0
+      ],
+      "nominal_source": {
+        "reference_index": 0,
+        "section": "2.4"
+      },
+      "x_status": "PREVIEW_ONLY",
+      "certified_x_revision": null,
+      "actual_inner_door_part_id": null,
+      "source_dxf_sha256": null,
+      "source_outline_handles": [],
+      "source_main_hole_handles": [],
+      "x_direction": null,
+      "blank_x_origin": null,
+      "finished_face_x_origin": null,
+      "box_world_x_origin": null,
+      "blank_to_finished_face_x": null,
+      "finished_face_to_box_world_x": null,
+      "missing_evidence": [
+        "OWNER_APPROVED_X_RULE_REVISION",
+        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
+        "PHYSICAL_PART_ID_AND_X_DIRECTION",
+        "BLANK_ORIGIN_IDENTITY",
+        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+      ]
+    },
+    {
+      "rule_id": "RECEIVING-NFB-OPEN-X-800-2",
+      "revision": "v1.4-evidence-1",
+      "gate": "OPEN-X-ROW",
+      "box_outer_width_mm": 800,
+      "nfb_count": 2,
+      "nominal_adjacent_center_distances_mm": [
+        325.0
+      ],
+      "nominal_source": {
+        "reference_index": 0,
+        "section": "2.4"
+      },
+      "x_status": "PREVIEW_ONLY",
+      "certified_x_revision": null,
+      "actual_inner_door_part_id": null,
+      "source_dxf_sha256": null,
+      "source_outline_handles": [],
+      "source_main_hole_handles": [],
+      "x_direction": null,
+      "blank_x_origin": null,
+      "finished_face_x_origin": null,
+      "box_world_x_origin": null,
+      "blank_to_finished_face_x": null,
+      "finished_face_to_box_world_x": null,
+      "missing_evidence": [
+        "OWNER_APPROVED_X_RULE_REVISION",
+        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
+        "PHYSICAL_PART_ID_AND_X_DIRECTION",
+        "BLANK_ORIGIN_IDENTITY",
+        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+      ]
+    },
+    {
+      "rule_id": "RECEIVING-NFB-OPEN-X-800-3",
+      "revision": "v1.4-evidence-1",
+      "gate": "OPEN-X-ROW",
+      "box_outer_width_mm": 800,
+      "nfb_count": 3,
+      "nominal_adjacent_center_distances_mm": [
+        180.0,
+        180.0
+      ],
+      "nominal_source": {
+        "reference_index": 0,
+        "section": "2.4"
+      },
+      "x_status": "PREVIEW_ONLY",
+      "certified_x_revision": null,
+      "actual_inner_door_part_id": null,
+      "source_dxf_sha256": null,
+      "source_outline_handles": [],
+      "source_main_hole_handles": [],
+      "x_direction": null,
+      "blank_x_origin": null,
+      "finished_face_x_origin": null,
+      "box_world_x_origin": null,
+      "blank_to_finished_face_x": null,
+      "finished_face_to_box_world_x": null,
+      "missing_evidence": [
+        "OWNER_APPROVED_X_RULE_REVISION",
+        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
+        "PHYSICAL_PART_ID_AND_X_DIRECTION",
+        "BLANK_ORIGIN_IDENTITY",
+        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+      ]
+    }
+  ],
+  "w800_t2_three_hole_observation": {
+    "scope": {
+      "box_outer_width_mm": 800.0,
+      "thickness_mm": 2.0,
+      "nfb_count": 3
+    },
+    "status": "SPEC_OBSERVATION_NOT_DXF_CERTIFICATION",
+    "approved_dimensions_mm": {
+      "body_inner_clear_width": 796.0,
+      "finished_door_width": 689.0,
+      "cutting_blank_width": 723.0
+    },
+    "reported_centers_from_drawing_left_mm": [
+      181.5,
+      361.5,
+      541.5
+    ],
+    "relative_distances_mm": [
+      180.0,
+      180.0
+    ],
+    "mathematical_midpoint_mm": 361.5,
+    "source_outline_is_723_cutting_left_verified": false,
+    "box_world_centers_mm": null,
+    "certified_x_revision": null,
+    "source_contract": "docs/receiving-inner-door-frame-mating-contract.md",
+    "not_exportable_as_manufacturing_x": true
+  }
+}
