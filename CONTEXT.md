@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Phase6 領域詞彙
 
+> **REFERENCE／語意沿革**：以下 `[CURRENT]` 是當時（2026-09-02）的段落標記，不授予本文件現在的 CURRENT 權威；現行產品語意以正式 X 的 `個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md`、對應 Family／Registry 與 product tests 為準。原語意記錄保留作對照。
+
 ## [CURRENT] 2026-09-02 Runtime semantic guard
 
 - `OVERLAY = 貼外`。
