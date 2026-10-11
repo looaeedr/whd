@@ -24,10 +24,10 @@ def layout():
     return resize_receiving_bays(source,set_index=0,bay_count=2)
 
 
-def config(*,x=0,owner="nfb:source:slot1",state="CONFIRMED",offset=5):
+def config(*,x=0,owner="nfb:0:slot1",state="CONFIRMED",offset=5,filename="400_140X257_107.dxf"):
     return {"holes":[{
         "physical_hole_id":owner,
-        "model_filename":"400_140X257_107.dxf",
+        "model_filename":filename,
         "manual_x_state":state,
         "manual_x_mm":x,
         "datum_revision":"w800t2",
@@ -56,7 +56,7 @@ def evidence(row,bi,*,status="ready",inventory=None):
             "nfb_trial_status":VALIDATED,"nfb_trial_export_approved":True,
         }),
         part_id=PART,indexed_model_key=("士林","400_140X257_107.dxf"),
-        source_sha256=SHA,physical_hole_ids=("nfb:source:slot1",),
+        source_sha256=SHA,physical_hole_ids=(f"nfb:{bi}:slot1",),
     )
     return scope,src,door
 
@@ -103,6 +103,8 @@ def test_invalid_source_x_scope_or_one_bay_collision_atomic():
     for cfg,src,scope in [
         ({0:config(state="RECONFIRM_REQUIRED")}, {0:evidence(row,0)},(0,)),
         ({0:config(x=None)}, {0:evidence(row,0)},(0,)),
+        ({0:config(filename="wrong.dxf")}, {0:evidence(row,0)},(0,)),
+        ({0:config(owner="nfb:wrong:slot1")}, {0:evidence(row,0)},(0,)),
         ({0:config()}, {0:evidence(row,1)},(0,)),
         ({0:config()}, {0:evidence(row,0,status="blocked")},(0,)),
         ({0:config(),1:config(state="NONE",owner="nfb:1:slot1")},
@@ -122,6 +124,12 @@ def test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation():
             evidence=evidence(row,1),confirm=lambda p: True,
         )
     first=do_submit(row).layout
+    with pytest.raises(ValueError,match="offset"):
+        copy_submitted_nfb_bay(
+            first,set_index=0,source_bay_index=0,target_bay_index=1,
+            version_id="v1",target_config=config(owner="nfb:1:slot1",offset=999),
+            evidence=evidence(first,1),confirm=lambda p:True,
+        )
     with pytest.raises(ValueError,match="independent"):
         copy_submitted_nfb_bay(
             first,set_index=0,source_bay_index=0,target_bay_index=1,
