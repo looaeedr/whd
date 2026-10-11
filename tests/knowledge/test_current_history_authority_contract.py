@@ -204,3 +204,19 @@ def test_registered_mirrors_match_canonical_metadata() -> None:
         target_meta = parse_doc_metadata(read(target), path=target)
         assert target_meta.role == "CURRENT", (path, target)
         assert metadata.contract == target_meta.contract, (path, target)
+
+
+def test_governance_and_spec_authorities_are_registered() -> None:
+    """Stable active policies and compatibility mirror must remain discoverable."""
+    text = read(AUTHORITY_MAP_REL)
+    rows = (
+        ("grounded-spec-authoring", "CURRENT", ".agents/skills/engineering/寫成規格書/SKILL.md"),
+        ("grounded-spec-authoring", "MIRROR", "docs/governance/WHD_規格書Skill前置與Grounding規則.md"),
+        ("direct-governance-publish", "CURRENT", "docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md"),
+    )
+    for contract, role, path in rows:
+        exact = f"WHD_AUTHORITY contract={contract} role={role} path={path}"
+        assert text.count(exact) == 1, exact
+        meta = parse_doc_metadata(read(path), path=path)
+        assert meta.contract == contract, path
+        assert meta.role == role, path
