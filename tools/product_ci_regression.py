@@ -27,6 +27,7 @@ PYTEST_PATHS = (
     "tests/test_issue1468_quantity_check.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+    "tests/test_issue1496_index_color_evidence.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
     # These were missing from the canonical product run: a GREEN alone did not
     # exercise the new production geometry. Optional customer DXF replays are
