@@ -144,6 +144,19 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertNotIn("AGENTS.md`、Phase6 Preflight、project Skills", ui)
         self.assertIn("已退役的 Phase6 Preflight receipt", ui)
 
+    def test_navigation_docs_do_not_reintroduce_local_dispatch_or_preflight(self):
+        nav = (
+            ROOT / ".agents/skills/engineering/README.md"
+        ).read_text("utf-8")
+        handoff = (ROOT / "AI_HANDOFF.md").read_text("utf-8")
+        for marker in ("/派工", "/接手", "LOCALX_INTEGRATION", "禁止本機施工"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, nav)
+        self.assertNotIn("派工與本地施工", nav)
+        self.assertNotIn("預設 repository content work", nav)
+        self.assertIn("APPROVED_REQUIREMENT_FAST_PATH", nav)
+        self.assertIn("舊 Phase6 Preflight receipt 已退役", handoff)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
