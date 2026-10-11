@@ -19,66 +19,39 @@ def validate_quantity_allocation(layout, library, role, quantities, assigned, *,
     (zero-based Set, Bay) to a candidate ID. All Sets count, not highlights.
     """
     role_key(role)
-    if not isinstance(layout, Mapping) or not isinstance(layout.get("sets"), (list, tuple)):
-        raise ValueError("受電箱套／連資料不合法")
-    counts = tuple(len(row["bays"]) for row in layout["sets"])
-    if not counts or any(count < 1 for count in counts):
-        raise ValueError("受電箱沒有可配置的連")
-    if expected_counts is not None and tuple(expected_counts) != counts:
-        raise ValueError("總連數已變動，請重新確認數量配置")
-    if not isinstance(quantities, Mapping) or not quantities:
-        raise ValueError("請先加入候選版本與數量")
-    if not isinstance(assigned, Mapping):
-        raise ValueError("配置對應必須是連位與候選版本的映射")
-    ids = {row["id"] for row in candidates_for(library, role)}
-    if not ids:
-        raise ValueError("沒有可配置的候選版本")
-    required = sum(counts)
-    if any(version_id not in ids or type(qty) is not int or qty <= 0
-           for version_id, qty in quantities.items()):
-        raise ValueError("版本或配置數量不合法")
-    if sum(quantities.values()) != required:
-        raise ValueError(f"配置數量必須等於總連數 {required}")
-    if len(assigned) != required:
-        raise ValueError("每一連均須指定版本，不得重複或遺漏")
-    targets = {(si, bi) for si, count in enumerate(counts)
-               for bi in range(count)}
-    if set(assigned) != targets:
-        raise ValueError("配置連位與目前套／連不一致")
-    used = dict.fromkeys(quantities, 0)
-    for version_id in assigned.values():
-        if version_id not in used:
-            raise ValueError("配置中含未選擇的候選版本")
-        used[version_id] += 1
-    if any(used[key] != count for key, count in quantities.items()):
-        raise ValueError("實際配置的版本數量不符合設定")
+    from ae_engine.receiving_assignment_core import validate_positions
+    positions = validate_positions(
+        layout, (row["id"] for row in candidates_for(library, role)),
+        quantities, assigned, expected_counts=expected_counts,
+    )
     snapshots = {key: candidate_features(library, role, key) for key in quantities}
     return tuple(
         (si, bi, deepcopy(snapshots[assigned[(si, bi)]]))
-        for si, count in enumerate(counts)
-        for bi in range(count)
+        for si, bi in positions
     )
 
 
 class AllocationDraft:
     """Per-side quantity and 2D draft, never written to candidate library."""
 
-    def __init__(self, counts):
+    def __init__(self, counts, *, roles=("head", "tail"), validate_role=role_key):
         self.counts = tuple(counts)
-        self.quantities = {"head": {}, "tail": {}}
-        self.assigned = {"head": {}, "tail": {}}
-        self.step = {"head": 1, "tail": 1}
-        self.active_version = {"head": None, "tail": None}
+        self.roles = tuple(roles)
+        self.validate_role = validate_role
+        self.quantities = {role: {} for role in self.roles}
+        self.assigned = {role: {} for role in self.roles}
+        self.step = {role: 1 for role in self.roles}
+        self.active_version = {role: None for role in self.roles}
 
     def reconcile(self, counts, available):
         """Invalidate assignments when topology or candidates have changed."""
         latest = tuple(counts)
         if latest != self.counts:
             self.counts = latest
-            for role in ("head", "tail"):
+            for role in self.roles:
                 self.assigned[role].clear()
                 self.step[role] = 1
-        for role in ("head", "tail"):
+        for role in self.roles:
             ids = set(available[role])
             if any(key not in ids for key in self.quantities[role]):
                 self.quantities[role] = {
@@ -91,7 +64,7 @@ class AllocationDraft:
                 self.active_version[role] = next(iter(self.quantities[role]), None)
 
     def add_version(self, role, version_id):
-        role_key(role)
+        self.validate_role(role)
         if version_id in self.quantities[role]:
             raise ValueError("同一候選版本不能重複配置")
         self.quantities[role][version_id] = 0
@@ -100,7 +73,7 @@ class AllocationDraft:
         self.active_version[role] = version_id
 
     def set_quantity(self, role, version_id, count):
-        role_key(role)
+        self.validate_role(role)
         if version_id not in self.quantities[role] or type(count) is not int or count < 0:
             raise ValueError("數量不合法")
         if self.quantities[role][version_id] != count:
@@ -109,7 +82,7 @@ class AllocationDraft:
             self.step[role] = 1
 
     def remove_version(self, role, version_id):
-        role_key(role)
+        self.validate_role(role)
         if version_id not in self.quantities[role]:
             raise ValueError("候選版本不存在")
         del self.quantities[role][version_id]
@@ -119,7 +92,7 @@ class AllocationDraft:
 
     def assign(self, role, set_index, bay_index):
         """Toggle or replace a 2D Bay in the draft, never product data."""
-        role_key(role)
+        self.validate_role(role)
         if (type(set_index) is not int or type(bay_index) is not int or
                 not 0 <= set_index < len(self.counts) or
                 not 0 <= bay_index < self.counts[set_index]):
