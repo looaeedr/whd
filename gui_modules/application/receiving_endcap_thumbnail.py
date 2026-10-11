@@ -93,7 +93,8 @@ def endcap_preview_geometry(features, width, depth):
 
 def paint_endcap_thumbnail(canvas, features, width, depth, *, title="封頭尾"):
     """Paint source feature outlines into a scaled finished-face rectangle."""
-    shapes, unsupported = endcap_preview_geometry(features, width, depth)
+    shapes, unsupported = (((), 0) if features is None else
+                           endcap_preview_geometry(features, width, depth))
     w, d = float(width), float(depth)
     canvas.delete("all")
     cw = max(170, int(canvas.cget("width")), int(canvas.winfo_width()))
@@ -109,6 +110,10 @@ def paint_endcap_thumbnail(canvas, features, width, depth, *, title="封頭尾")
                             fill="#24384b", outline="#a3b4c7", width=1)
     def xy(x, y):
         return x0 + float(x)*scale, y0 + (d-float(y))*scale
+    if features is None:
+        canvas.create_text(cw / 2, top + (bottom-top)/2,
+                           text="尚未選擇候選版本", fill="#a3b4c7",
+                           font=("TkDefaultFont", 9))
     for kind, layer, data in shapes:
         color = PALETTE.get(layer.upper(), "#c7d2fe")
         if kind == "circle":
@@ -127,7 +132,8 @@ def paint_endcap_thumbnail(canvas, features, width, depth, *, title="封頭尾")
                 canvas.create_line(*flat, fill=color, width=1.5,
                                    tags=("feature",))
     counts = Counter(layer.upper() for _kind, layer, _data in shapes)
-    footer = f"已繪 {len(shapes)} 筆線圖"
+    footer = ("尚未選擇版本" if features is None else
+              f"已繪 {len(shapes)} 筆線圖")
     if unsupported:
         footer += f"｜{unsupported} 筆無法預覽"
     canvas.create_text(10, ch - 24, text=footer, anchor="w",
@@ -136,6 +142,6 @@ def paint_endcap_thumbnail(canvas, features, width, depth, *, title="封頭尾")
                        anchor="w", fill="#9fb0bf", font=("TkDefaultFont", 8))
     canvas._receiving_endcap_preview = {
         "shapes": shapes, "unsupported": unsupported,
-        "counts": dict(counts), "source_count": len(features),
+        "counts": dict(counts), "source_count": None if features is None else len(features),
     }
     return canvas._receiving_endcap_preview
