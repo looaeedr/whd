@@ -2118,7 +2118,7 @@ def open_receiving_multi_settings(self, namespace):
         """Single Receiving authority, with real source-verified transient stage."""
         from ae_engine.receiving_nfb_ui1b_bridge import (
             NfbVerifiedDraftSubmission, assert_live_verified_nfb,
-            submit_live_verified_nfb,
+            submit_live_verified_nfb, copy_live_verified_nfb,
         )
 
         def stage_verified(bundle):
@@ -2149,15 +2149,55 @@ def open_receiving_multi_settings(self, namespace):
                 return None,"已配置 NFB 驗證過期，必須重新檢查："+str(exc)
             return bundle,""
 
-        def state(set_index, bay_index):
+        def copy_pair(set_index, selected_bays):
+            """Select one committed source and one separately verified target.
+
+            The highlighter, not a second selection popup, chooses exactly
+            two Bays. The source may be active or the destination may be
+            active. If both directions could apply, fail closed.
+            """
+            indices=tuple(selected_bays)
+            if (len(indices)!=2 or len(indices)!=len(set(indices))):
+                raise ValueError("NFB 複製請在同一套高亮來源連及目標連（恰好兩連）")
+            layout=candidate_adapter().layout
+            try:
+                bays=layout["sets"][set_index]["bays"]
+                selected={i:bays[i] for i in indices}
+            except (IndexError,KeyError,TypeError) as exc:
+                raise ValueError("NFB 複製的連位已不存在") from exc
+            options=[]
+            for source_bi in indices:
+                if selected[source_bi].get("nfb_config_submitted") is not True:
+                    continue
+                for target_bi in indices:
+                    if target_bi==source_bi:
+                        continue
+                    if (set_index,target_bi) not in pending_verified_nfb:
+                        continue
+                    bundle,reason=eligible_bundle(set_index,target_bi)
+                    if bundle is not None and bundle.can_submit:
+                        options.append((source_bi,bundle))
+            if len(options)!=1:
+                raise ValueError(
+                    "請先從已提交來源連複製，並在另一目標連核對獨立世界 X／真 DXF；"
+                    "不可使用未配置來源或不明確的複製方向"
+                )
+            return options[0]
+
+        def state(set_index, bay_index, selected_bays=()):
             adapter = candidate_adapter()
             row = adapter.layout["sets"][set_index]["bays"][bay_index]
             submitted = row.get("nfb_config_submitted") is True
             bundle,reason=eligible_bundle(set_index,bay_index)
+            try:
+                copy_pair(set_index,selected_bays)
+                can_copy=True
+            except (ValueError,IndexError,KeyError):
+                can_copy=False
             return {
                 "submitted": submitted,
                 "can_submit": bundle is not None and bundle.can_submit,
-                "can_copy": False,  # separate target-proof/source-Bay required
+                "can_copy": can_copy,
                 "can_restore": submitted,
                 "can_undo": adapter.nfb_can_undo,
                 "reason": reason or "當前 NFB 已核對來源／世界 X／實體內門，可確認套用",
@@ -2183,6 +2223,23 @@ def open_receiving_multi_settings(self, namespace):
                 flush()
             return result.changed
 
+        def copy(set_index,bay_indices,confirm):
+            source_bi,target_bundle=copy_pair(set_index,bay_indices)
+            result=copy_live_verified_nfb(
+                candidate_adapter(),source_bay_index=source_bi,
+                target_bundle=target_bundle,
+                current_snapshot=nfb_physical_bay_snapshot(
+                    target_bundle.set_index,target_bundle.bay_index,
+                ),
+                confirm=confirm,
+            )
+            if result.changed:
+                pending_verified_nfb.pop(
+                    (target_bundle.set_index,target_bundle.bay_index),None
+                )
+                flush()
+            return result.changed
+
         def flush():
             adapter = candidate_adapter()
             self.mark_receiving_switch_layout_dirty(namespace, adapter)
@@ -2205,7 +2262,8 @@ def open_receiving_multi_settings(self, namespace):
             return receipt
 
         return {"state": state, "stage_verified": stage_verified,
-                "submit": submit, "restore": restore, "undo": undo}
+                "submit": submit, "copy": copy,
+                "restore": restore, "undo": undo}
 
     return open_multi_settings(
         self.app.root,
