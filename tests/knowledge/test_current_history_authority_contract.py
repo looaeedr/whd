@@ -220,3 +220,31 @@ def test_governance_and_spec_authorities_are_registered() -> None:
         meta = parse_doc_metadata(read(path), path=path)
         assert meta.contract == contract, path
         assert meta.role == role, path
+
+
+def test_github_only_publish_is_explicit_scoped_exception_not_default() -> None:
+    agents = read("AGENTS.md")
+    skill = read(".agents/skills/engineering/推推/SKILL.md")
+    policy = read("docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md")
+    for name, text in (("AGENTS", agents), ("publish skill", skill), ("governance policy", policy)):
+        assert "GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1" in text, name
+        assert "LOCAL_SYNC_PENDING" in text, name
+        assert "GitHub-only" in text, name
+        assert "本機" in text, name
+    assert "必要 CI" in agents
+    assert "owner" in skill
+    assert "不豁免產品測試" in policy
+    assert "當次明確" in agents and "當次明確" in skill and "當次明確" in policy
+    assert "不 reset" in agents
+    assert "非強制 fast-forward" in skill and "非強制 fast-forward" in policy
+    assert "PUBLISHED_AND_SYNCED" in agents and "PUBLISHED_AND_SYNCED" in skill
+
+
+def test_beta_skill_navigation_does_not_resurrect_retired_preflight() -> None:
+    text = read(".agents/skills/in-progress/README.md")
+    assert "upstream-beta" in text
+    assert "skill_catalog.json" in text
+    assert "Phase6 Preflight receipt" in text
+    assert "not** a promotion prerequisite" in text
+    assert "Skill governance, Preflight and regression checks" not in text
+    assert "no local-machine permission" in text
