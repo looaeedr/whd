@@ -976,7 +976,6 @@ def _refresh_mode_controls(self, namespace):
     app = self.app
     controls = getattr(self, "_receiving_mode_controls", None)
     applicable = self.receiving_layout_applicable()
-    from .quantity_version_ports import quantity_ports
     if controls is None:
         controls = build_mode_controls(
             app.receiving_set_bay_control.master,
@@ -1091,7 +1090,6 @@ def open_receiving_multi_settings(self, namespace):
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
-        get_quantity_ports=lambda: quantity_ports(self, namespace),
         get_original_door_marks=existing_door_marks,
         on_brand_close=finalize_global_brand,
         on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
