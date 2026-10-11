@@ -10,9 +10,9 @@
         57,
         96
       ],
-      "source_alias_status": "SOURCE_ALIAS_UNCERTIFIED",
-      "revision": "NFB-1497-SHIHLIN400-SOURCE-OBSERVATION-V1"
+      "source_alias_status": "SOURCE_ALIAS_SHA256_IDENTICAL",
+      "revision": "NFB-1497-SHIHLIN400-SOURCE-BYTE-IDENTITY-V2"
     }
   ],
-  "note": "Only user-provided 400_140X257_107(1).dxf was fingerprinted. The index names 400_140X257_107.dxf; filename alias is not a certified equivalence. This record enables only source-matched CUTTING trial; never production approval."
+  "note": "Independent Library copies named 400_140X257_107.dxf and 400_140X257_107(1).dxf were both inspected on 2026-10-11: exact same 123089-byte file and SHA256 8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3. Modelspace Color150 handle 585 is a closed 57x96 rectangle. Filename alias is byte-identical for these observed files; per-case actual world X/Y/part fit still requires real MFG-1 validation, and MFG-2 remains independently gated."
 }
