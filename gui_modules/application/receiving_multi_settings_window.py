@@ -328,7 +328,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def refresh_endcap_previews(role=None):
         """Compare original physical Bay with selected head/tail version."""
         roles = (role,) if role is not None else ("head", "tail")
-        if active_ports["ports"] is None or get_candidate_ports is None:
+        if (active_ports["ports"] is None or get_candidate_ports is None
+                or not callable(active_ports["ports"].get("row"))):
+            # Preserve lean legacy/testing ports without opening a new data owner.
             return
         from ae_engine.receiving_shared_settings import setting_value
         bay_index = selected_setting["bay_index"]
