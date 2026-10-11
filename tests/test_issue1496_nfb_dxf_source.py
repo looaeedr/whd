@@ -198,18 +198,20 @@ def test_confirmed_upper_color150_rectangle_center_not_circle_or_lower_spacer(tm
             reference=ref, target_center_xy=(0, 0), rotation_deg=0,
             consumer=consumer,
         )
-        assert rectangle == pytest.approx((
+        for actual, expected in zip(rectangle, (
             (-28.5, -48.0), (28.5, -48.0),
             (28.5, 48.0), (-28.5, 48.0),
-        ))
+        )):
+            assert actual == pytest.approx(expected)
         quarter = place_upper_color150_opening_outline(
             reference=ref, target_center_xy=(200, 300), rotation_deg=90,
             consumer=consumer,
         )
-        assert quarter == pytest.approx((
+        for actual, expected in zip(quarter, (
             (248.0, 271.5), (248.0, 328.5),
             (152.0, 328.5), (152.0, 271.5),
-        ))
+        )):
+            assert actual == pytest.approx(expected)
     with pytest.raises(ValueError, match="middle plate or inner door"):
         place_upper_color150_opening_outline(
             reference=ref, target_center_xy=(0, 0),
