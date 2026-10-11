@@ -329,6 +329,74 @@ def changed_paths_between(repo_root: Path, base_sha: str, head_sha: str) -> list
     return parse_name_status_zero(proc.stdout)
 
 
+
+# Exactly four historical domain SOP changes and their four explicit restores.
+# They touched protected (non-governance-lane) documents, so their histories
+# must NOT become a general exception.  Before accepting one in X-only HISTORY
+# ONLY, prove that both X and its merge base with localX still have the exact
+# original blob.  Any new SOP edit, unreverted X head, or changed localX base
+# remains blocked.  This exception does not change classify_changes/evaluate_pr.
+HISTORICAL_REVERTED_SOP_COMMITS = {
+    "16b3fabe90f0cf9494db24edd8ba4d369810988f": (
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        "469845c4e9464ff53557fc1b056f02bad61f21f0",
+    ),
+    "01fc00d1564b8039925ba581e829da795de0ec53": (
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        "469845c4e9464ff53557fc1b056f02bad61f21f0",
+    ),
+    "0420fe89151b5dd3cb18a81d5416fde102e02663": (
+        "個人AI檔案庫/第二層_專案與SOP/12_WHD規格書Skill前置與Grounding規則.md",
+        "52c244063934af4c63bb2dd49ff7e67c02e19181",
+    ),
+    "d00ebc9aab0e86decf8c3d2b3500675270dc4253": (
+        "個人AI檔案庫/第二層_專案與SOP/12_WHD規格書Skill前置與Grounding規則.md",
+        "52c244063934af4c63bb2dd49ff7e67c02e19181",
+    ),
+    "a81cb188f2a44a31ea2cbc4a59c150bc6ef14504": (
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md",
+        "b356b5ccccf3170f965c59073ceb2f5ab1ba6b4a",
+    ),
+    "c40491d226ad4e5b328998b00874e7e079e42ac1": (
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md",
+        "b356b5ccccf3170f965c59073ceb2f5ab1ba6b4a",
+    ),
+    "ca8a355c431152660fbffc3ae3a5c9173f778b34": (
+        "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
+        "1d9c27ea6aca4ceed8a2dd456aee8d682f0578e1",
+    ),
+    "30780896c7e81a32308be436b02fea84111e4521": (
+        "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
+        "1d9c27ea6aca4ceed8a2dd456aee8d682f0578e1",
+    ),
+}
+
+
+def is_historical_reverted_sop_history(
+    repo_root: Path, *, commit: str, paths: list[str],
+    x_sha: str, localx_sha: str,
+) -> bool:
+    """Permit immutable, proven-net-zero SOP history, never new SOP changes."""
+    expected = HISTORICAL_REVERTED_SOP_COMMITS.get(commit)
+    if expected is None or paths != [expected[0]]:
+        return False
+    path, original_blob = expected
+    merge_base = subprocess.run(
+        ["git", "merge-base", x_sha, localx_sha], cwd=repo_root,
+        capture_output=True, check=True,
+    ).stdout.decode("ascii", "strict").strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", merge_base):
+        return False
+    for rev in (x_sha, merge_base):
+        blob = subprocess.run(
+            ["git", "rev-parse", f"{rev}:{path}"], cwd=repo_root,
+            capture_output=True, check=True,
+        ).stdout.decode("ascii", "strict").strip()
+        if blob != original_blob:
+            return False
+    return True
+
+
 def require_x_only_governance_history(
     repo_root: Path, x_sha: str, localx_sha: str,
 ) -> int:
@@ -361,12 +429,14 @@ def require_x_only_governance_history(
                 cwd=repo_root, capture_output=True, check=True,
             )
             paths = parse_name_status_zero(changed.stdout)
-            # Previously accepted X-only CI timezone hardening predates the
-            # stricter CI-workflow classifier. Honor ONLY those immutable
-            # already-published SHAs during X-history readback, never for a
-            # new incoming PR or an arbitrary workflow modification.
+            # Previously accepted X-only CI timezone hardening and proven
+            # net-zero domain SOP restore history are immutable, history-only
+            # exceptions. New PRs still cannot modify protected product SOPs.
             if paths and not is_historical_verified_x_ci_governance(
                 commit, paths,
+            ) and not is_historical_reverted_sop_history(
+                repo_root, commit=commit, paths=paths,
+                x_sha=x_sha, localx_sha=localx_sha,
             ) and classify_verified_pr_changes(
                 repo_root, first_parent, commit, paths,
             ) != "GOVERNANCE_DIRECT_X":

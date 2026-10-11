@@ -13,6 +13,8 @@ from tools.change_lane_gate import (
     classify_verified_pr_changes,
     PROTECTED_PRODUCT_CI_WORKFLOW,
     HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS,
+    HISTORICAL_REVERTED_SOP_COMMITS,
+    is_historical_reverted_sop_history,
     is_historical_verified_x_ci_governance,
     parse_name_status_zero,
     require_x_only_governance_history,
@@ -267,6 +269,48 @@ class ChangeLaneTests(unittest.TestCase):
                         ChangeLaneDenied, "X_AHEAD_NON_GOVERNANCE_BLOCKED"
                     ):
                         require_x_only_governance_history(Path("."), BASE, HEAD)
+
+    def test_reverted_domain_sop_exception_is_exact_and_history_only(self):
+        # Eight immutable X-only commits revert four protected SOP files to
+        # their merge-base blob. Unknown SHAs, paths and changed blobs deny.
+        self.assertEqual(len(HISTORICAL_REVERTED_SOP_COMMITS), 8)
+        for sha, (path, original_blob) in HISTORICAL_REVERTED_SOP_COMMITS.items():
+            with self.subTest(commit=sha):
+                self.assertEqual(classify_changes([path]), "PRODUCT_LOCALX_ONLY")
+                merge_base = "c" * 40
+                good = [
+                    subprocess.CompletedProcess([], 0, (merge_base + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, (original_blob + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, (original_blob + "\n").encode()),
+                ]
+                with patch("tools.change_lane_gate.subprocess.run",
+                           side_effect=good) as run:
+                    self.assertTrue(is_historical_reverted_sop_history(
+                        Path("."), commit=sha, paths=[path],
+                        x_sha=BASE, localx_sha=HEAD,
+                    ))
+                    self.assertEqual(run.call_count, 3)
+                bad = [
+                    subprocess.CompletedProcess([], 0, (merge_base + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, (original_blob + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, ("f" * 40 + "\n").encode()),
+                ]
+                with patch("tools.change_lane_gate.subprocess.run",
+                           side_effect=bad):
+                    self.assertFalse(is_historical_reverted_sop_history(
+                        Path("."), commit=sha, paths=[path],
+                        x_sha=BASE, localx_sha=HEAD,
+                    ))
+                with patch("tools.change_lane_gate.subprocess.run") as run:
+                    self.assertFalse(is_historical_reverted_sop_history(
+                        Path("."), commit=sha, paths=[path, "gui.py"],
+                        x_sha=BASE, localx_sha=HEAD,
+                    ))
+                    self.assertFalse(is_historical_reverted_sop_history(
+                        Path("."), commit="f" * 40, paths=[path],
+                        x_sha=BASE, localx_sha=HEAD,
+                    ))
+                    run.assert_not_called()
 
     def test_prior_published_taipei_ci_governance_is_history_only(self):
         workflow = PROTECTED_PRODUCT_CI_WORKFLOW
