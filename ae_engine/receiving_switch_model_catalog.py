@@ -9,7 +9,11 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-INDEX_PATH = Path(__file__).resolve().parents[1] / "開關索引.csv"
+# A single relative source location under the checked-out WHD project.
+# Resolve from this module, never the shell working directory or device drive.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+INDEX_RELATIVE_PATH = Path("基準檔") / "開孔" / "NFB" / "開關索引.csv"
+INDEX_PATH = PROJECT_ROOT / INDEX_RELATIVE_PATH
 HEADER = ("圖塊名稱", "士林", "深", "東元", "深", "伍菱", "深")
 BRANDS = ("士林", "東元", "伍菱")
 UNMAPPED = "無對應檔案"
