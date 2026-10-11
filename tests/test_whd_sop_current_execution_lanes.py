@@ -65,3 +65,36 @@ def test_pitfall_ledger_retains_provenance_without_reactivating_old_transactions
     assert "\nCURRENT 永遠 WORKSPACE_DEFAULT；歷史 drift" not in pit
     assert "CURRENT 防錯規則**：owner-authored marker" not in pit
     assert "ISSUE1469_V15_INTEGRATION_PITFALL" in pit
+
+def test_previous_audit_legacy_root_documents_have_reference_metadata():
+    for path in ("GUI.MD", "說明.MD"):
+        doc = read(path)
+        assert doc.startswith("---\\nwhd_doc_role: REFERENCE\\n".replace("\\\\n", "\\n"))
+        assert "whd_schema: WHD_DOC_META_V1" in doc
+        assert "早期" in doc
+    assert "FW可選" in read("GUI.MD")
+    assert "def calculate_z_length" in read("說明.MD")
+
+
+def test_previous_audit_reference_files_do_not_override_current():
+    for path in ("CONTEXT.md", "DELIVERY_README.md",
+                 "PHASE6_組合尺寸截角與JointGraph_整合最高優先規格_20260831.md"):
+        content = read(path)
+        assert "whd_doc_role: REFERENCE" in content
+        assert "REFERENCE" in content.split("---", 2)[2][:700]
+        assert "CURRENT" in content.split("---", 2)[2][:950]
+    assert "Phase6 Preflight receipt 已退役" in read("DELIVERY_README.md")
+
+
+def test_previous_audit_spec_status_and_checkpoint_provenance():
+    assert "定稿當時" in read("docs/specs/WHD_Spec_v1_5.md")
+    bridge = read("docs/specs/WHD_Fold_Designer_Bridge_Ownership_Phase6_Residual_Reduction_Spec_v1.4_2026-09-23.md")
+    assert "whd_doc_role: REFERENCE" in bridge[:200]
+    assert "USER_ACCEPTED_FOR_EXECUTION" in bridge
+    assert "不是目前尚待核准" in bridge
+    ci = read("docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md")
+    assert "whd_doc_role: CURRENT" in ci[:150]
+    assert "2026-10-11 實作回讀" in ci
+    checkpoint = read("docs/superpowers/checkpoints/phase4-t7-composition-root.md")
+    assert checkpoint.startswith("---\\nwhd_doc_role: HISTORICAL\\n".replace("\\\\n", "\\n"))
+    assert "Final tested HEAD:" in checkpoint
