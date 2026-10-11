@@ -319,8 +319,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                        "canvas": None}
     quantity_ui = None
 
-    def editor_saved(role, version_id):
-        candidate_selected[role] = version_id
+    def editor_saved(role, version_id, *, keep_live=False):
+        # Saving while "即時" creates a candidate but MUST NOT select it:
+        # selecting v1 here would make the next Edit overwrite v1 instead of
+        # creating v2. Existing-version edits retain their selected version.
+        if not keep_live:
+            candidate_selected[role] = version_id
         if win.winfo_exists():
             win.after_idle(show_setting_controls)
             win.after_idle(refresh_manager_controls)
@@ -401,9 +405,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
             def edit_role():
                 try:
+                    selected_before = candidate_selected[role]
                     library["edit"](
-                        role, candidate_selected[role],
-                        lambda created, role=role: editor_saved(role, created),
+                        role, selected_before,
+                        lambda created, role=role, live=(selected_before is None):
+                            editor_saved(role, created, keep_live=live),
                     )
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
@@ -544,11 +550,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         title = ttk.Label(body, text="")
         title.pack(anchor="nw", pady=(10, 0))
         buttons = ttk.Frame(body)
-        # Creating a version must not depend on choosing an existing version.
-        # Editing an existing version intentionally keeps its original ID.
-        ttk.Button(
-            buttons, text="新增版本", command=lambda: create_new_version(),
-        ).pack(side="left", padx=(0, 6))
         actions_map = []
         for label, action in (("複製為新版本", "same"),
                               ("複製到另一側", "other"),
@@ -612,19 +613,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager.grab_set()
         manager.focus_set()
         return manager
-
-    def create_new_version():
-        """Open a fresh candidate editor, never overwrite the selected ID."""
-        if get_candidate_ports is None:
-            return
-        role = manager_state["role"]
-        try:
-            get_candidate_ports()["edit"](
-                role, None,
-                lambda created, role=role: editor_saved(role, created),
-            )
-        except (ValueError, IndexError, RuntimeError) as exc:
-            warn(exc)
 
     def manage_action(action):
         role = manager_state["role"]
