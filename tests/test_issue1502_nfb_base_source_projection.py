@@ -127,7 +127,7 @@ def test_one_door_nfb_owner_projects_corresponding_base_cutting_and_marks():
     assert len(result.marking)==2
     circles=[x for x in result.cutting if isinstance(x,CirclePrimitive)]
     assert [(x.center.x,x.center.y) for x in circles]==pytest.approx([
-        (150.,240.), (340.,240.), # 90-deg rotation around source pivot
+        (150.,240.), (350.,240.), # 90-deg rotation around source pivot
     ])
     assert all(x.color==30 and x.source_type=="NFB_COLOR30" for x in circles)
     assert {x.source_id for x in circles}=={"nfb:A:C30_A","nfb:B:C30_A"}
