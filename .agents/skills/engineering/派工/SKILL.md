@@ -25,7 +25,7 @@ whd_schema: WHD_DOC_META_V1
 1. **沿用既有工作**：核對 Issue／PR／head/base，直接改程式與測試，提交原工作分支並回讀 SHA；GitHub Actions 執行適用測試。GitHub 寫檔、空 commit、文字留言、單獨搜尋外掛都不是已通過測試的證據。
 2. **本人實質接取**：工單記錄 `本體直接接取`、`execution_location=GITHUB`、Issue、分支與 PR，後續補首筆實際施工 commit SHA、exact SHA 測試 run ID／結果。只有真實施工動作才能標 `EXECUTOR_START_CONFIRMED`；不得自己留言就聲稱接取完成。
 3. **無能力才找外部代理**：先具體核對欠缺 GitHub 寫入／提交／合法雲端測試能力，確定本體無法進行才搜尋 Codex 或其他已可用代理。搜尋不能取代啟動證據；不可用時回報 `DISPATCH_REGISTERED_ONLY`／`REMOTE_EXECUTOR_UNAVAILABLE`，不宣稱背景有人施工。
-4. **治理直送獨立**：本 Skill／`AGENTS.md`／治理測試等非產品本體修改，照治理通道直接由 GitHub PR 合併 X，不走 `localX`、一般產品派工或 `/推推`。產品施工仍遵守原 CI、`LOCALX_INTEGRATION`、本機 DC 禁令與正式 X 發布權限。
+4. **治理直送獨立 `NON_PRODUCT_GOVERNANCE_DIRECT_X`**：本 Skill／`AGENTS.md`／治理測試等非產品本體修改，照治理通道直接由 GitHub PR 合併 X，不走 `localX`、一般產品派工或 `/推推`。產品施工仍遵守原 CI、`LOCALX_INTEGRATION`、本機 DC 禁令與正式 X 發布權限。
 
 ## 真實執行者接取：`DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
 
