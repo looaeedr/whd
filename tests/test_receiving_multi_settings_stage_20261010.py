@@ -531,7 +531,7 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         assert "複製為新版本" not in _visible_texts(host)
         combo = win._receiving_multi_candidate_combos["head"]
         assert isinstance(combo, ttk.Combobox)
-        assert combo.cget("state") == "readonly"
+        assert str(combo.cget("state")) == "readonly"
         assert tuple(combo.cget("values")) == ("即時",)
         head_row = host.winfo_children()[0]
         head_edit = [w for w in head_row.winfo_children()
