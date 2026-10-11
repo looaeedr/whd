@@ -26,7 +26,7 @@ def test_mode_toggle_and_manager_stay_operable_without_forced_window_exit():
             },
         )
         root.update()
-        assert win.grab_current() is None
+        assert win.grab_current() is win
         buttons = {
             b.cget("text"): b for b in
             win._receiving_multi_mode_controls.winfo_children()
