@@ -238,3 +238,13 @@ def test_github_only_publish_is_explicit_scoped_exception_not_default() -> None:
     assert "不 reset" in agents
     assert "非強制 fast-forward" in skill and "非強制 fast-forward" in policy
     assert "PUBLISHED_AND_SYNCED" in agents and "PUBLISHED_AND_SYNCED" in skill
+
+
+def test_beta_skill_navigation_does_not_resurrect_retired_preflight() -> None:
+    text = read(".agents/skills/in-progress/README.md")
+    assert "upstream-beta" in text
+    assert "skill_catalog.json" in text
+    assert "Phase6 Preflight receipt" in text
+    assert "not** a promotion prerequisite" in text
+    assert "Skill governance, Preflight and regression checks" not in text
+    assert "no local-machine permission" in text
