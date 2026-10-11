@@ -173,7 +173,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_settings_ports=None,
                         get_original_door_marks=None,
-                        get_quantity_ports=None):
+                        get_quantity_ports=None, on_close=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -185,12 +185,17 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win.title("多只設定")
     win.transient(parent)
     parent._receiving_multi_settings_window = win
+    topology_changed = {"value": False}
 
     def close():
         if win.grab_current() is win:
             win.grab_release()
         parent._receiving_multi_settings_window = None
         win.destroy()
+        # Reconcile the original (hidden) controls only once on exit,
+        # never from inside the +連 button's Tk callback.
+        if topology_changed["value"] and on_close is not None:
+            on_close()
 
     win.protocol("WM_DELETE_WINDOW", close)
     win._receiving_multi_close = close
@@ -452,7 +457,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if not ensure_set_mode():
                 return False
             result = resize_connections(index, delta)
-            refresh_rows()
+            if result:
+                topology_changed["value"] = True
+                refresh_rows()
             # Intentionally do not redraw: only 套用 projects the current
             # number of bays into the 2D diagram.
             return result
