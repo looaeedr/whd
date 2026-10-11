@@ -15,6 +15,7 @@ from ae_engine.receiving_nfb_dxf_source import (
     rotate_point_around_source_pivot,
     resolve_upper_color150_reference,
     place_upper_nfb_point_from_color150,
+    place_upper_color150_opening_outline,
 )
 
 
@@ -192,6 +193,28 @@ def test_confirmed_upper_color150_rectangle_center_not_circle_or_lower_spacer(tm
         (157, 296), reference=ref, target_center_xy=(0, 0),
         rotation_deg=90,
     ) == pytest.approx((-48, 28.5))
+    for consumer in ("MIDDLE_PLATE", "INNER_DOOR"):
+        rectangle = place_upper_color150_opening_outline(
+            reference=ref, target_center_xy=(0, 0), rotation_deg=0,
+            consumer=consumer,
+        )
+        assert rectangle == pytest.approx((
+            (-28.5, -48.0), (28.5, -48.0),
+            (28.5, 48.0), (-28.5, 48.0),
+        ))
+        quarter = place_upper_color150_opening_outline(
+            reference=ref, target_center_xy=(200, 300), rotation_deg=90,
+            consumer=consumer,
+        )
+        assert quarter == pytest.approx((
+            (248.0, 271.5), (248.0, 328.5),
+            (152.0, 328.5), (152.0, 271.5),
+        ))
+    with pytest.raises(ValueError, match="middle plate or inner door"):
+        place_upper_color150_opening_outline(
+            reference=ref, target_center_xy=(0, 0),
+            consumer="BOTTOM_SPACER",
+        )
     # Selecting the lower region (or both) must not silently contaminate upper.
     with pytest.raises(ValueError, match="one explicit"):
         resolve_upper_color150_reference(
