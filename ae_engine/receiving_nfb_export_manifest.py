@@ -19,6 +19,7 @@ from .receiving_nfb_part_readiness import (
 from .receiving_nfb_dxf_source import NfbSourceInventory
 from .receiving_nfb_manufacturing_release import NfbValidatedInnerDoorRender
 from .receiving_nfb_persistence import normalize_nfb_saved_fields
+from .receiving_nfb_transactions import _verify_hole_locations
 
 INNER_DOOR="INNER_DOOR"
 BASE_PLATE="BASE_PLATE"
@@ -112,6 +113,8 @@ class NfbPartialExportManifest:
             "actual_export_count":self.actual_export_count,
             "held_actual_count":self.held_actual_count,
             "unresolved_dependencies":list(self.unresolved_dependencies),
+            "assembly_status":"NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY",
+            "deferred_assembly":["PAD","EAR_ATTACHMENT"] if self.nfb_config_submitted else [],
             "rows":[{
                 "part_id":r.part_id,"role":r.role,"status":r.status,
                 "actual_count":r.actual_count,"may_export":r.may_export,
@@ -123,6 +126,7 @@ class NfbPartialExportManifest:
 def derive_nfb_partial_export_manifest(
     *,scope:NfbPhysicalScope,actual_parts:Sequence[NfbActualPart],
     saved_bay:Mapping[str,object],
+    set_brand:str|None=None,
     source_inventory:NfbSourceInventory|None=None,
     verified_inner_door:NfbValidatedInnerDoorRender|None=None,
     source_path:str|Path|None=None,
@@ -139,6 +143,8 @@ def derive_nfb_partial_export_manifest(
     submitted=raw is True
     if submitted:
         normalize_nfb_saved_fields(saved_bay)
+        if not isinstance(set_brand,str) or not set_brand.strip():
+            raise ValueError("NFB manifest needs the current Receiving Set brand")
     if saved_bay.get("stable_id")!=scope.bay_id:
         raise ValueError("NFB manifest Bay stable ID mismatch")
     if scope.submitted is not submitted:
@@ -168,11 +174,25 @@ def derive_nfb_partial_export_manifest(
                           ==source_inventory.source_sha256)
         except (OSError,ValueError):
             source_fresh=False
-    # Source inventory and rendered hole proof are never accepted from stale
-    # bytes or a cached in-memory approval. Fail only NFB-affected pieces.
+    # Reconcile the *CURRENT SAVED* NFBConfig with the original manufactured
+    # world-X, Y/layer, rotation, ID and model. A previously valid render
+    # cannot approve a later edited config with identical DXF bytes.
+    config_matching=False
+    if source_fresh and isinstance(verified_inner_door,NfbValidatedInnerDoorRender):
+        try:
+            holes=saved_bay["nfb_config"]["holes"]
+            profile_key=verified_inner_door.indexed_model_key
+            if (profile_key[0]!=set_brand or
+                    {h["model_filename"] for h in holes}!={profile_key[1]}):
+                raise ValueError("NFB submitted brand/model differs from source")
+            _verify_hole_locations(saved_bay["nfb_config"],verified_inner_door)
+            config_matching=True
+        except (ValueError,KeyError,TypeError,IndexError):
+            config_matching=False
     readiness=derive_nfb_part_readiness(
         scope,source_inventory=source_inventory if source_fresh else None,
-        verified_inner_door=verified_inner_door if source_fresh else None,
+        verified_inner_door=(verified_inner_door
+                             if source_fresh and config_matching else None),
     )
     declared={
         INNER_DOOR:{scope.inner_door_part_id},
@@ -201,6 +221,8 @@ def derive_nfb_partial_export_manifest(
                   for pid in values if pid not in observed_ids)
     unresolved=tuple(dict.fromkeys((
         *((("ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED",) if not source_fresh else ())),
+        *((("SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING",)
+           if source_fresh and not config_matching else ())),
         *readiness.scope_reasons,
         *(("REQUIRED_PART_NOT_IN_SCENE:"+pid) for pid in missing),
     )))
