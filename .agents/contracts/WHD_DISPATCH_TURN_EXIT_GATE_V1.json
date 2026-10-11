@@ -96,6 +96,41 @@
     "No stale HEAD success reuse",
     "No X product publish without /推推",
     "No DC before exact CI success and LOCALX_INTEGRATION",
-    "No new recurring schedule or workflow_run coding agent"
-  ]
+    "No new recurring schedule or workflow_run coding agent",
+    "No GitHub-only merge merely from no-DC wording without explicit same-issue remote localX integration approval"
+  ],
+  "integration_routes": {
+    "DC_LOCALX_FIRST": {
+      "requires": [
+        "exact_ci_success",
+        "pr_base_localX",
+        "local_machine_integration_authorized_by_existing_gate"
+      ],
+      "on_success": "LOCALX_SYNCED"
+    },
+    "DC_UNREACHABLE_FALLBACK": {
+      "requires": [
+        "exact_ci_success",
+        "pr_base_localX",
+        "verified_dc_connection_failure"
+      ],
+      "on_success": "DC_UNREACHABLE + LOCALX_SYNC_PENDING"
+    },
+    "GITHUB_ONLY_EXPLICIT_SCOPE": {
+      "requires": [
+        "exact_ci_success",
+        "pr_base_localX",
+        "user_explicit_remote_localX_merge_authorization_for_same_issue_pr",
+        "user_no_dc_scope",
+        "mergeable_pr",
+        "expected_head_sha"
+      ],
+      "on_success": "GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING",
+      "forbids": [
+        "fabricated_dc_disconnection",
+        "assuming_local_localX_head",
+        "silently_using_pr_body_as_user_authorization"
+      ]
+    }
+  }
 }
