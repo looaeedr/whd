@@ -90,7 +90,7 @@ def test_receiving_original_base_part_now_uses_three_real_shaped_bend_patterns(
 def test_center_corrected_thickness_chain_produces_772_not_774():
     geom=build_part_render_data(_spec(RECEIVING_BASE_PATTERN_CENTER))
     xsegs=geom.unfolded_topology.x_segments
-    assert [(x.semantic_key,x.length) for x in xsegs] == [
+    assert [(x.name,x.length) for x in xsegs] == [
         ("ear_side_return_left",71.),
         ("base_face",630.),
         ("ear_side_return_right",71.),
