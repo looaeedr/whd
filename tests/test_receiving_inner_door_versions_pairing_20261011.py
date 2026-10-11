@@ -83,7 +83,7 @@ def test_true_set_bay_pairing_across_two_sets_and_independent_endcaps():
     assert other["bay_id"] != paired[0]["bay_id"]
     assert other["inner_door"]["models"] == ["", ""]
     projected = project_receiving_bay_legacy_aliases(
-        {"cabinet_type": "receiving", "receiving_layout": adapter.layout},
+        {"cabinet_type": "受電箱", "receiving_layout": adapter.layout},
         set_index=0, bay_index=0,
         validate_common=False,
     )
@@ -145,7 +145,7 @@ def test_inner_versions_persist_in_project_without_mutating_endcap_versions():
         None, {"layers": 2, "models": ["A.dxf", "B.dxf"]}
     )
     snapshot = {
-        "cabinet_type": "receiving", "active_mode": "set_bay",
+        "cabinet_type": "受電箱", "active_mode": "set_bay",
         "receiving_layout": fixture().layout,
         KEY: inner,
     }
