@@ -136,5 +136,28 @@
   "source_main_cutting_pivot_certified": false,
   "source_nfb_model_certified": false,
   "ready_for_1497_manufacturing": false,
-  "note": "Observed directly from one user-uploaded original on 2026-10-11; region labels are provisional source-space semantics only. This fixture does not contain the proprietary DXF bytes or certify any NFB main hole, model or manufacturing operation."
+  "note": "Upper Color150 rectangle handle 585 CENTER is user-confirmed common positioning reference for middle-board and inner-door opening. The lower region is intentionally excluded from this operation. The witness does NOT certify per-model hole catalog, transform into either finished part, or CUTTING readiness.",
+  "user_confirmed_upper_reference": {
+    "source_region": "upper_opening_candidate",
+    "reference_handle": "585",
+    "reference_color_aci": 150,
+    "role": "MIDDLE_PLATE_OPENING_AND_INNER_DOOR_OPENING",
+    "owner_parts": [
+      "MIDDLE_PLATE",
+      "INNER_DOOR"
+    ],
+    "center_xy_mm": [
+      3771.967234,
+      2608.809181
+    ],
+    "rectangle_size_mm": [
+      57,
+      96
+    ],
+    "center_rule": "CENTER_OF_EXPLICIT_UPPER_COLOR150_CLOSED_RECTANGLE",
+    "user_confirmation": "2026-10-11: lower region ignored; Color150 middle plate and inner door share this positioning reference",
+    "lower_region_policy": "IGNORE_FOR_THIS_OPERATION",
+    "source_reference_confirmed": true,
+    "output_manufacturing_ready": false
+  }
 }
