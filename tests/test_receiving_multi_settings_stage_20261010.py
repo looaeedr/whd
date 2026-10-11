@@ -319,6 +319,9 @@ def test_embedded_head_tail_versions_reuse_original_quantity_owner():
         controls = win._receiving_multi_quantity_editor["controls"]
         assert controls is not None
         assert controls.versions.master.master is win._receiving_multi_settings_host
+        assert _visible_texts(win._receiving_multi_settings_host).count("編輯") == 2
+        assert "封頭孔" in _visible_texts(win._receiving_multi_settings_host)
+        assert "封尾孔" in _visible_texts(win._receiving_multi_settings_host)
         assert [controls.versions.item(child)["values"][0]
                 for child in controls.versions.get_children()] == ["孔型版本 1"]
         controls.add()
