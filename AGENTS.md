@@ -69,17 +69,17 @@ whd_schema: WHD_DOC_META_V1
 
 **失敗即封閉**：授權來源不明、`/派工` 所在階段不明、CI 非 exact SUCCESS、PR base 不確定、使用者撤回授權時都視為 DENY。此規則不改動平台工具 ACL；任何外部平台拒絕仍不得繞過。CI 回歸測試可約束倉庫規則不被改鬆，**但不得誤稱 GitHub CI 能直接攔截 ChatGPT 的 DC 工具呼叫**。
 
-## 一般對話 BUG 修復授權延續 \`CONVERSATIONAL_BUGFIX_LOCALX_CONTINUITY_V1\`
+## 一般對話 BUG 修復授權延續 `CONVERSATIONAL_BUGFIX_LOCALX_CONTINUITY_V1`
 
-- **已明確要求執行**的 BUG 修復（不必輸入斜線指令）授權同一任務的工作區施工、必要測試、提交、PR／CI，以及在 exact HEAD CI 成功後的 **本機 \`localX\` 最終整合**。不得把「這個 BUG 怎麼回事？」等純討論解釋成執行授權；對話裡的明確否定、GitHub-only 指示、範圍限制仍優先。
-- 必須核對當次可信對話中的修復指令、repo、功能範圍、工作分支／PR 及 exact HEAD；實際 DC 呼叫只允許在 \`LOCALX_INTEGRATION\` 階段、安全保留本機未發布修改、必要合併檢查與非強制 GitHub \`localX\` 同步。不准藉此提早於本機 BUILD／TEST／COMMIT、修改無關檔案或走到正式 X。原範圍沒變就不重問 DC 授權。
-- machine decision：\`tools/localx_publish_gate.py::require_conversational_bugfix_localx_integration\`。輸入必須來自執行者**已驗證真實來源**的對話授權與 GitHub CI／PR readback；caller 提供的文字／JSON 不能自行證明對話真實性，GitHub CI 更不能代替 ChatGPT 驗證對話。來源不明、CI 不是 exact SUCCESS、scope drift、拒絕本機或 DC 不可用時 fail closed，記錄實際 blocker；不得以重複授權問題假裝為 blocker 或偷走 GitHub-only。
+- **已明確要求執行**的 BUG 修復（不必輸入斜線指令）授權同一任務的工作區施工、必要測試、提交、PR／CI，以及在 exact HEAD CI 成功後的 **本機 `localX` 最終整合**。不得把「這個 BUG 怎麼回事？」等純討論解釋成執行授權；對話裡的明確否定、GitHub-only 指示、範圍限制仍優先。
+- 必須核對當次可信對話中的修復指令、repo、功能範圍、工作分支／PR 及 exact HEAD；實際 DC 呼叫只允許在 `LOCALX_INTEGRATION` 階段、安全保留本機未發布修改、必要合併檢查與非強制 GitHub `localX` 同步。不准藉此提早於本機 BUILD／TEST／COMMIT、修改無關檔案或走到正式 X。原範圍沒變就不重問 DC 授權。
+- machine decision：`tools/localx_publish_gate.py::require_conversational_bugfix_localx_integration`。輸入必須來自執行者**已驗證真實來源**的對話授權與 GitHub CI／PR readback；caller 提供的文字／JSON 不能自行證明對話真實性，GitHub CI 更不能代替 ChatGPT 驗證對話。來源不明、CI 不是 exact SUCCESS、scope drift、拒絕本機或 DC 不可用時 fail closed，記錄實際 blocker；不得以重複授權問題假裝為 blocker 或偷走 GitHub-only。
 
-## 合併後測試證據沿用硬閘門 \`MERGE_TEST_REUSE_HARD_GATE\`
+## 合併後測試證據沿用硬閘門 `MERGE_TEST_REUSE_HARD_GATE`
 
-- 工作區與 exact HEAD 必要測試／CI 通過後，**合併不是自動重跑 GUI／完整回歸的理由**。先回讀 trusted test receipt 和合併後實際 Git tree；\`tools/change_test_profile.py::evaluate_merge_test_reuse\` 對已測試 commit 與整合 commit 做 read-only tree 比對。tested tree 與 integrated tree 完全相同（即使 commit SHA 不同）且所需測試完整通過 → \`REUSE_VERIFIED\`，直接保留 GREEN 並執行 Git SHA／merge/readback，不得重啟已完成的 GUI 測試。
-- 兩個 tree 不同 → 先列出 \`git diff\` 實際異動路徑、衝突與依賴影響，僅補跑未被原證據覆蓋的目標 GUI／模組／整合測試；影響不可界定才跑完整回歸。缺少可核驗測試收據、測試未完成、CI 非 SUCCESS 或 Git tree 無法回讀 → \`EVIDENCE_INCOMPLETE\`，**不得冒稱免測通過**。
-- 已在執行的本機測試應先核對是否真屬重複且可安全停止；不得為求速度殺掉未知程序、取消必要測試或破壞本機檔案。安全同步 GitHub \`localX\` 與正式 \`/推推\` 權限邊界均不變。此決策器**不代替** GitHub CI 簽章及真實外部驗收，執行者須從可信來源驗證輸入後才能採信。
+- 工作區與 exact HEAD 必要測試／CI 通過後，**合併不是自動重跑 GUI／完整回歸的理由**。先回讀 trusted test receipt 和合併後實際 Git tree；`tools/change_test_profile.py::evaluate_merge_test_reuse` 對已測試 commit 與整合 commit 做 read-only tree 比對。tested tree 與 integrated tree 完全相同（即使 commit SHA 不同）且所需測試完整通過 → `REUSE_VERIFIED`，直接保留 GREEN 並執行 Git SHA／merge/readback，不得重啟已完成的 GUI 測試。
+- 兩個 tree 不同 → 先列出 `git diff` 實際異動路徑、衝突與依賴影響，僅補跑未被原證據覆蓋的目標 GUI／模組／整合測試；影響不可界定才跑完整回歸。缺少可核驗測試收據、測試未完成、CI 非 SUCCESS 或 Git tree 無法回讀 → `EVIDENCE_INCOMPLETE`，**不得冒稱免測通過**。
+- 已在執行的本機測試應先核對是否真屬重複且可安全停止；不得為求速度殺掉未知程序、取消必要測試或破壞本機檔案。安全同步 GitHub `localX` 與正式 `/推推` 權限邊界均不變。此決策器**不代替** GitHub CI 簽章及真實外部驗收，執行者須從可信來源驗證輸入後才能採信。
 
 ## /派工跨工單自動收尾 `DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1`
 
