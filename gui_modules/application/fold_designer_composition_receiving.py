@@ -1016,6 +1016,15 @@ def open_receiving_multi_settings(self, namespace):
     # Nothing here is saved to the project or allowed to bypass #1500.
     pending_verified_nfb = {}
 
+    def nfb_physical_bay_snapshot(set_index,bay_index):
+        """Real selected Bay authority, not the unprojected root UI snapshot."""
+        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+        source=_current_mode_snapshot(self,namespace)
+        source["receiving_layout"]=candidate_adapter().layout
+        return project_receiving_bay_legacy_aliases(
+            source,set_index=set_index,bay_index=bay_index,
+        )
+
     def select_bay(set_index, bay_index):
         # Reuse canonical selection; no new data owner or manufacturing draw.
         adapter = self.receiving_adapter(namespace)
@@ -1926,7 +1935,9 @@ def open_receiving_multi_settings(self, namespace):
                         set_index=selected.set_index,
                         bay_index=selected.bay_index,
                         version_id=version_id,
-                        projected_snapshot=_current_mode_snapshot(self,namespace),
+                        projected_snapshot=nfb_physical_bay_snapshot(
+                            selected.set_index,selected.bay_index,
+                        ),
                         world_x_by_unit=coords,
                         selected_source_path=source_choice["path"],
                     )
@@ -2115,7 +2126,9 @@ def open_receiving_multi_settings(self, namespace):
                 raise TypeError("NFB 必須提供真實來源與內門物理位置驗證")
             adapter=candidate_adapter()
             assert_live_verified_nfb(
-                adapter,bundle,current_snapshot=_current_mode_snapshot(self,namespace),
+                adapter,bundle,current_snapshot=nfb_physical_bay_snapshot(
+                    bundle.set_index,bundle.bay_index,
+                ),
             )
             pending_verified_nfb[(bundle.set_index,bundle.bay_index)]=bundle
             return True
@@ -2127,7 +2140,9 @@ def open_receiving_multi_settings(self, namespace):
             try:
                 assert_live_verified_nfb(
                     candidate_adapter(),bundle,
-                    current_snapshot=_current_mode_snapshot(self,namespace),
+                    current_snapshot=nfb_physical_bay_snapshot(
+                    bundle.set_index,bundle.bay_index,
+                ),
                 )
             except (ValueError,TypeError,KeyError,IndexError,OSError) as exc:
                 pending_verified_nfb.pop((set_index,bay_index),None)
@@ -2158,7 +2173,9 @@ def open_receiving_multi_settings(self, namespace):
                 raise ValueError(reason)
             result=submit_live_verified_nfb(
                 candidate_adapter(),bundle,
-                current_snapshot=_current_mode_snapshot(self,namespace),
+                current_snapshot=nfb_physical_bay_snapshot(
+                    bundle.set_index,bundle.bay_index,
+                ),
                 confirm=confirm,
             )
             if result.changed:
