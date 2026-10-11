@@ -1310,7 +1310,6 @@ def open_receiving_multi_settings(self, namespace):
             initial = inner_config(inner_library(), version_id)
         modal = tk.Toplevel(self.app.root)
         modal.title("內門版本編輯")
-        from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
         from .receiving_scroll_view import make_scrollable_frame
         modal.geometry("1130x850")
         modal_scroll, modal_content, modal_viewport = make_scrollable_frame(
@@ -1331,15 +1330,12 @@ def open_receiving_multi_settings(self, namespace):
         controls = ttk.Frame(summary_row)
         controls.pack(side="left", anchor="n")
         ttk.Label(controls, text="內門版本層數").pack(side="left")
-        preview_box = ttk.Frame(summary_row)
-        preview_box.pack(side="right", anchor="ne")
-        thumbnail = tk.Canvas(
-            preview_box, width=335, height=158,
-            background="#1a2734", highlightthickness=0,
-        )
-        thumbnail.pack(anchor="e")
+        # No fake inventory thumbnail: true real geometry is shown from the
+        # selected version in the separate movable FinalScene window.
         preview_status = tk.StringVar(master=modal)
-        ttk.Label(preview_box, textvariable=preview_status).pack(anchor="e")
+        ttk.Label(summary_row, textvariable=preview_status).pack(
+            side="right", anchor="ne",
+        )
         physical_row = ttk.Frame(frame)
         physical_row.pack(fill="x", pady=(2, 4))
         ttk.Label(physical_row, text="NFB 物理層（未提交草稿）").pack(side="left")
@@ -1396,7 +1392,6 @@ def open_receiving_multi_settings(self, namespace):
                     pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
                 ],
             }
-            paint_inner_door_thumbnail(thumbnail, config, title="版本配置即時縮圖")
             before = {
                 "layers": initial["layers"],
                 "models": [
@@ -1873,7 +1868,6 @@ def open_receiving_multi_settings(self, namespace):
             "nfb_draft": draft_state, "nfb_draft_status": draft_summary,
         }
         modal._receiving_inner_refresh_switch_models = refresh_source
-        modal._receiving_inner_preview_canvas = thumbnail
         modal._receiving_inner_preview_status = preview_status
         modal._receiving_inner_nfb_dxf_panel = nfb_preview_panel["panel"]
 
