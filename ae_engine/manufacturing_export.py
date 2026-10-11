@@ -153,17 +153,26 @@ def _atomic_commit_staged_dxfs(
         shutil.rmtree(backup_dir, ignore_errors=True)
 
 
-def _require_released_nfb_base_for_batch_export(rows) -> None:
-    """Reject unreleased #1502 NFB Base Plate at the final production batch sink.
+def _validate_nfb_base_part_scope(rows, *, part_only: bool) -> set[str]:
+    """Separately admit verified physical plate CUTTING; never whole assembly.
 
-    The direct per-part DXF serializer remains available for non-production
-    geometry/DXF roundtrip tests; it does not establish MFG-2 release.
-    A caller-supplied True flag alone is not a certified EAR-Z/CHECK-Q proof.
+    A part-only DXF is independently checked after serialization before the
+    atomic batch commit. Source metadata/boolean flags alone are insufficient.
     """
-    for _, _, render_data in rows:
+    approved = set()
+    for output_key, _, render_data in rows:
         metadata = getattr(render_data, 'metadata', None)
-        if isinstance(metadata, Mapping) and 'nfb_base_process_status' in metadata:
+        if not isinstance(metadata, Mapping) or 'nfb_base_process_status' not in metadata:
+            continue
+        if not part_only:
             raise ValueError('NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT')
+        from .receiving_nfb_base_process_projection import validate_nfb_base_part_cutting
+        physical_id = str(metadata.get('stable_id') or '')
+        if str(output_key) not in (physical_id,) and not str(output_key).endswith(':' + physical_id):
+            raise ValueError('NFB_BASE_PART_OUTPUT_OWNER_MISMATCH')
+        validate_nfb_base_part_cutting(render_data, physical_part_id=physical_id)
+        approved.add(str(output_key))
+    return approved
 
 
 def _save_resolved_rows_atomic(
@@ -172,10 +181,11 @@ def _save_resolved_rows_atomic(
     *,
     save_part_render_data_dxf,
     overwrite: bool,
+    part_only: bool = False,
 ) -> dict[str, str]:
-    # Validate the ENTIRE batch before opening any file or making the output dir.
+    # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
-    _require_released_nfb_base_for_batch_export(rows)
+    verified_nfb_parts = _validate_nfb_base_part_scope(rows, part_only=part_only)
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
     stage_dir = Path(tempfile.mkdtemp(prefix='.whd-dxf-stage-', dir=str(root)))
@@ -188,6 +198,11 @@ def _save_resolved_rows_atomic(
             filenames.add(filename)
             stage_path = stage_dir / filename
             save_part_render_data_dxf(render_data, stage_path, overwrite=True)
+            if str(output_key) in verified_nfb_parts:
+                from .manufacturing_verification import verify_saved_part_render_data_dxf
+                verified = verify_saved_part_render_data_dxf(render_data, stage_path)
+                if not verified.ok:
+                    raise ValueError("NFB_BASE_PART_STAGED_DXF_ROUNDTRIP_FAILED")
             staged[str(output_key)] = stage_path
         return _atomic_commit_staged_dxfs(staged, root, overwrite=overwrite)
     finally:
@@ -202,6 +217,7 @@ def save_resolved_manufacturing_geometry_dxf(
     box_body_physical_piece_roles,
     overwrite: bool = False,
     instance_namespace: str | None = None,
+    part_only: bool = False,
 ) -> dict[str, str]:
     rows = []
     for part_id, render_data in resolved_physical_render_parts(resolved_geometry):
@@ -216,6 +232,7 @@ def save_resolved_manufacturing_geometry_dxf(
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         overwrite=overwrite,
+        part_only=part_only,
     )
 
 
@@ -226,6 +243,7 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     save_part_render_data_dxf,
     box_body_physical_piece_roles,
     overwrite: bool = False,
+    part_only: bool = False,
 ) -> dict[str, str]:
     """Atomically export multiple stable manufacturing instances into one inventory."""
     rows = []
@@ -247,6 +265,7 @@ def save_resolved_manufacturing_geometry_batch_dxf(
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         overwrite=overwrite,
+        part_only=part_only,
     )
 
 
