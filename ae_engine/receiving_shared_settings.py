@@ -11,6 +11,10 @@ SETTING_DEFAULTS = {
     # Two independent layers; each slot accepts a legacy single filename or
     # multiple switch instances (including repeated identical DXF filenames).
     "inner_door_models": ["", ""],
+    # Per-Bay display provenance. None=never applied, ""=explicit 即時.
+    "head_version_id": None,
+    "tail_version_id": None,
+    "inner_door_version_id": None,
 }
 
 
@@ -52,6 +56,18 @@ def validate_setting(kind, value):
         value = str(value).upper()
         if value not in {"FULL", "HALF", "BACK_OPENING"}:
             raise ValueError("不支援的背板型式")
+    elif kind.endswith("_version_id"):
+        import re
+        role = {
+            "head_version_id": "head",
+            "tail_version_id": "tail",
+            "inner_door_version_id": "inner-door",
+        }[kind]
+        if value is not None and value != "" and (
+            not isinstance(value, str)
+            or re.fullmatch(rf"{re.escape(role)}-v[1-9][0-9]*", value) is None
+        ):
+            raise ValueError("不合法的已套用版本編號")
     elif kind == "inner_door_layers":
         if value not in (1, 2) or isinstance(value, bool):
             raise ValueError("內門層數必須為 1 或 2")
