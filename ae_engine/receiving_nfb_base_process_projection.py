@@ -491,6 +491,19 @@ def build_existing_receiving_base_with_verified_nfb(
         source_path=source_path,profile=profile,
         lower_reference_handle=lower_reference_handle,target=target,
     )
-    return compose_projected_nfb_on_actual_base(
+    composed=compose_projected_nfb_on_actual_base(
         target=target,projection=projection,
+    )
+    # Carry the SAME approved installation center into downstream 2D/3D/
+    # DXF acceptance evidence. This is a world-XY mating datum, not a
+    # claim that the ear's brand-dependent Z/weld face is approved.
+    from dataclasses import replace
+    metadata=dict(composed.render_data.metadata)
+    metadata["receiving_base_ear_mount_center_world_xy_mm"]=group_world_center
+    metadata["receiving_base_nfb_row_center_world_xy_mm"]=group_world_center
+    metadata["receiving_base_upper_cell_key"]=f"{column}:{row}"
+    metadata["receiving_base_ear_weld_z_verified"]=False
+    return replace(
+        composed,
+        render_data=replace(composed.render_data,metadata=metadata),
     )
