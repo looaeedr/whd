@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 > Current authority pointers：
 - `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` — contract/role ownership map。
 - `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md` — 現行 `ae_engine` 製造架構、公開 API 與 Certified Registry boundary。
-- `AGENTS.md` — Agent 啟動、Preflight、派工與驗收流程入口。
+- `AGENTS.md` — 正式 X 現行 `/派工`、`/接手`、治理直送與產品 `/推推` 的權限／驗收入口；舊 Phase6 Preflight receipt 已退役。
 
 # WHD 板金展開自動化系統 — AI 接手總覽
 
