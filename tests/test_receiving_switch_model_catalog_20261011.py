@@ -6,15 +6,19 @@ from pathlib import Path
 import pytest
 
 from ae_engine.receiving_switch_model_catalog import (
-    INDEX_PATH, BRANDS, display_model, model_choices, model_filenames,
+    PROJECT_ROOT, INDEX_PATH, INDEX_RELATIVE_PATH,
+    BRANDS, display_model, model_choices, model_filenames,
 )
+from ae_engine.receiving_nfb_index_sources import unique_nfb_dxfs_from_switch_index
 from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays
 from ae_engine.receiving_shared_settings import edit_setting, setting_value, validate_setting
 
 
 def test_user_csv_is_single_authority_and_shows_eight_unique_models_per_brand():
-    assert INDEX_PATH.name == "開關索引.csv"
+    assert INDEX_RELATIVE_PATH.parts == ("基準檔", "開孔", "NFB", "開關索引.csv")
+    assert INDEX_PATH == PROJECT_ROOT / INDEX_RELATIVE_PATH
     assert INDEX_PATH.is_file()
+    assert not (PROJECT_ROOT / "開關索引.csv").exists()
     assert model_choices("士林") == (
         "BH_25X95", "BH_25X95_02", "100_75X130_68",
         "125_90X155_72", "250_105X165_72", "400_140X257_107",
@@ -30,6 +34,22 @@ def test_user_csv_is_single_authority_and_shows_eight_unique_models_per_brand():
     assert display_model("Model.DXF") == "Model"
     with pytest.raises(ValueError):
         display_model("Model.txt")
+
+
+def test_nfb_dxf_source_index_uses_same_relocated_csv():
+    catalog = unique_nfb_dxfs_from_switch_index(INDEX_PATH)
+    assert catalog.index_path == "開關索引.csv"
+    assert catalog.records_read == 42
+    assert len(catalog.sources) == 24
+    assert not catalog.diagnostics
+
+
+def test_model_catalog_path_not_dependent_on_working_directory(monkeypatch, tmp_path):
+    before = model_choices("士林")
+    monkeypatch.chdir(tmp_path)
+    assert model_choices("士林") == before
+    assert INDEX_PATH.is_relative_to(PROJECT_ROOT)
+    assert INDEX_PATH.relative_to(PROJECT_ROOT) == INDEX_RELATIVE_PATH
 
 
 def test_editing_same_csv_refreshes_list_without_import_or_restart(tmp_path):
