@@ -1171,18 +1171,9 @@ def open_receiving_multi_settings(self, namespace):
         if any(type(i) is not int or not 0 <= i < len(sets[set_index]["bays"]) for i in targets):
             raise ValueError("簡易圖高亮的連已無效")
         features = candidate_features(adapter.hole_candidates(), role, version_id)
-        original_set, original_bay = adapter.selection.set_index, adapter.selection.bay_index
-        kind = f"{role}_features"
-        try:
-            adapter.select_set(set_index + 1)
-            for bay_index in targets:
-                adapter.select_bay(bay_index + 1)
-                # Break legacy shared refs so ONLY highlighted Bays change.
-                adapter.unlink_setting(kind)
-                adapter.update_setting(kind, features)
-        finally:
-            adapter.select_set(original_set + 1)
-            adapter.select_bay(original_bay + 1)
+        # One validated all-or-nothing update; retains the active editor
+        # selection and avoids the old per-Bay UI/geometry churn.
+        adapter.apply_candidate_to_bays(role, set_index, targets, features)
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
         self.app.submit_update_intent("geometry", commit=True)
