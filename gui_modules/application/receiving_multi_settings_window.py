@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from ae_engine.receiving_hole_candidates import version_label
 from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
+from .receiving_endcap_thumbnail import paint_endcap_thumbnail
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
@@ -322,6 +323,60 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                        "canvas": None}
     quantity_ui = None
     preview_state = {"applied": None, "candidate": None, "status": None}
+    endcap_preview_state = {}
+
+    def refresh_endcap_previews(role=None):
+        """Compare original physical Bay with selected head/tail version."""
+        roles = (role,) if role is not None else ("head", "tail")
+        if active_ports["ports"] is None or get_candidate_ports is None:
+            return
+        from ae_engine.receiving_shared_settings import setting_value
+        bay_index = selected_setting["bay_index"]
+        row = active_ports["ports"]["row"]()
+        bay = row["bays"][bay_index]
+        width, depth = bay["width"], bay["depth"]
+        for name in roles:
+            widgets = endcap_preview_state.get(name)
+            if not widgets or not widgets["applied"].winfo_exists():
+                continue
+            applied_features = setting_value(row, bay_index, name + "_features")
+            version_id = candidate_selected[name]
+            candidate_features = None
+            if version_id is not None:
+                for item in get_candidate_ports()["versions"](name):
+                    if item["id"] == version_id:
+                        candidate_features = item["features"]
+                        break
+            try:
+                paint_endcap_thumbnail(
+                    widgets["applied"], applied_features, width, depth,
+                    title=f"目前：第{selected_setting[\'set_index\']+1}套／第{bay_index+1}連",
+                )
+                paint_endcap_thumbnail(
+                    widgets["candidate"], candidate_features, width, depth,
+                    title=(f"候選：{version_label(version_id)}"
+                           if candidate_features is not None else "候選：即時"),
+                )
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                for c in (widgets["applied"], widgets["candidate"]):
+                    c.delete("all")
+                    c.create_text(10, 20, anchor="w", text="預覽資料無法解析",
+                                  fill="#efb4a3")
+                widgets["status"].set(str(exc))
+                continue
+            if candidate_features is None:
+                message = "選擇版本後比較目前配置"
+            elif candidate_features == applied_features:
+                message = "候選內容與目前這一連相同"
+            else:
+                message = "候選內容尚未套用至目前這一連"
+            current_meta = widgets["applied"]._receiving_endcap_preview
+            candidate_meta = widgets["candidate"]._receiving_endcap_preview
+            if current_meta["unsupported"] or candidate_meta["unsupported"]:
+                message += "｜部分孔位格式無法畫出，請用孔位編輯器確認"
+            if len(applied["selected_bays"]) > 1:
+                message += "（左圖只顯示目前連位）"
+            widgets["status"].set(message)
 
     def refresh_inner_preview():
         """Show real Bay data versus currently selected candidate, not geometry."""
@@ -376,6 +431,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def show_setting_controls():
         preview_state.update(applied=None, candidate=None, status=None)
+        endcap_preview_state.clear()
         for widget in settings_host.winfo_children():
             widget.destroy()
         active_ports["ports"] = None
@@ -465,6 +521,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 refresh_manager_controls()
                 if role == "inner-door":
                     refresh_inner_preview()
+                elif role in ("head", "tail"):
+                    refresh_endcap_previews(role)
 
             selector.bind("<<ComboboxSelected>>", choose)
 
@@ -489,6 +547,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     )
                     if role == "inner-door":
                         refresh_inner_preview()
+                    elif role in ("head", "tail"):
+                        refresh_endcap_previews(role)
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
 
@@ -506,6 +566,33 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Button(
                     settings_host, text="版本管理", command=open_manager,
                 ).pack(anchor="e", pady=(5, 0))
+                # Head and tail are independent. Show both real-Bay
+                # and selected-candidate outlines using Hole Editor features.
+                for endcap_role, heading in (("head", "封頭"), ("tail", "封尾")):
+                    holder = ttk.Frame(settings_host)
+                    holder.pack(anchor="w", fill="x", pady=(6, 1))
+                    ttk.Label(holder, text=heading + " 配置比較").pack(
+                        anchor="w", pady=(0, 2),
+                    )
+                    canvases = ttk.Frame(holder)
+                    canvases.pack(anchor="w", fill="x")
+                    current_canvas = tk.Canvas(
+                        canvases, width=220, height=134,
+                        background="#1a2734", highlightthickness=0,
+                    )
+                    current_canvas.pack(side="left", padx=(0, 7))
+                    candidate_canvas = tk.Canvas(
+                        canvases, width=220, height=134,
+                        background="#1a2734", highlightthickness=0,
+                    )
+                    candidate_canvas.pack(side="left")
+                    status = tk.StringVar(master=win)
+                    ttk.Label(holder, textvariable=status).pack(anchor="w")
+                    endcap_preview_state[endcap_role] = {
+                        "applied": current_canvas, "candidate": candidate_canvas,
+                        "status": status,
+                    }
+                refresh_endcap_previews()
         else:
             actions(settings_host, "inner_door_layers")
             if get_inner_candidate_ports is not None:
@@ -1002,6 +1089,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_candidate_selected = candidate_selected
     win._receiving_multi_candidate_combos = candidate_combos
     win._receiving_multi_inner_preview = preview_state
+    win._receiving_multi_endcap_preview = endcap_preview_state
+    win._receiving_multi_refresh_endcap_previews = refresh_endcap_previews
     win._receiving_multi_refresh_inner_preview = refresh_inner_preview
     win._receiving_multi_manager_state = manager_state
     win._receiving_multi_manager_window = manager_window
