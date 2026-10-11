@@ -156,7 +156,7 @@ decision settle 時同步使用 `.agents/skills/engineering/領域建模/SKILL.m
 - breakdown 明確指定 **AI Library Writeback owner**。
 - breakdown 明確指定 **Combined Acceptance owner**，負責 cross-ticket regression、source scan、config invariant、remote QA、workflow cleanup、drift audit、integration evidence。
 - HTML、聊天 candidate number、branch、checkpoint、`.scratch/**` 都不能替代 owning Issue。
-- 轉入 `.agents/skills/engineering/拆解任務工單/SKILL.md` / `.agents/skills/engineering/派工/SKILL.md` 的 RED-first、AI Library、Issue、remote QA 流程；本 Skill 不直接跳 production write。
+- 轉入 `.agents/skills/engineering/拆解任務工單/SKILL.md` / `.agents/skills/engineering/派工/SKILL.md` 的現行流程：已核准規格走 `APPROVED_REQUIREMENT_FAST_PATH`，未核准需求才做必要的 RED/discovery；保留 owning Issue、真正雲端執行者接取證據、產品 CI／`localX`／當次 `/推推` 的邊界。本 Skill 不提供施工權限，也不直接改正式 X。
 
 ## 6. 模組接縫語意 authority（DM6 durable contract）
 
