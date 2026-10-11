@@ -50,23 +50,34 @@ def test_candidate_copy_and_snapshot_boundaries():
     assert candidate_features(lib, "head", head) == [{"dimension": [1, 2]}]
 
 
-def test_candidate_library_survives_receiving_layout_normalize_set_resize():
-    layout = new_receiving_layout(width=800, height=1100, depth=400)
-    adapter = ReceivingSetBayAdapter(layout)
-    assert "hole_candidates" not in adapter.layout
-    lib, head = create_candidate(adapter.hole_candidates(), "head", [{"tag": "H"}])
-    lib, tail = create_candidate(lib, "tail", [{"tag": "T"}])
-    adapter.set_hole_candidates(lib)
-    adapter.set_bay_count(3)
-    adapter.set_set_count(2)
-    saved = normalize_receiving_layout(adapter.layout)
-    assert saved["hole_candidates"] == lib
-    assert len(saved["sets"]) == 2
-    assert len(saved["sets"][0]["bays"]) == 3
-    restored = ReceivingSetBayAdapter(saved)
-    assert candidate_features(restored.hole_candidates(), "head", head) == [{"tag": "H"}]
-    assert candidate_features(restored.hole_candidates(), "tail", tail) == [{"tag": "T"}]
-    assert "hole_candidates" not in normalize_receiving_layout(layout)
+def test_project_level_candidates_survive_mode_switch_and_both_save_modes():
+    from phase6_receiving_modes import ReceivingModeSession, fresh_receiving_mode
+    from phase6_quantity_model import normalize_quantity_snapshot
+
+    library, head = create_candidate(None, "head", [{"tag": "H"}])
+    library, tail = create_candidate(library, "tail", [{"tag": "T"}])
+    initial = fresh_receiving_mode(
+        "set_bay", {"w": 900, "h": 1700, "d": 400}
+    )
+    initial["receiving_hole_candidates"] = library
+    session = ReceivingModeSession(initial)
+    assert normalize_quantity_snapshot(
+        initial, for_save=True
+    )["receiving_hole_candidates"] == library
+    assert session.switch(
+        "quantity", dimensions={"w": 900, "h": 1700, "d": 400}
+    )
+    quantity = session.snapshot()
+    assert quantity["receiving_hole_candidates"] == library
+    assert normalize_quantity_snapshot(
+        quantity, for_save=True
+    )["receiving_hole_candidates"] == library
+    assert session.switch("set_bay", current_snapshot=quantity)
+    restored = session.snapshot()
+    assert restored["receiving_hole_candidates"] == library
+    assert "hole_candidates" not in restored["receiving_layout"]
+    assert candidate_features(restored["receiving_hole_candidates"], "head", head) == [{"tag": "H"}]
+    assert candidate_features(restored["receiving_hole_candidates"], "tail", tail) == [{"tag": "T"}]
 
 
 def test_candidate_validation_fails_closed():
