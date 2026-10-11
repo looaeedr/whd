@@ -1220,8 +1220,8 @@ def open_receiving_multi_settings(self, namespace):
     )
     from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
     from ae_engine.receiving_hole_candidates import version_label
-    from ae_engine.receiving_shared_settings import setting_value
-    from ae_engine.receiving_switch_model_catalog import model_filenames, display_model
+    from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer
+    from ae_engine.receiving_switch_model_catalog import model_filenames, display_model, INDEX_PATH
 
     def inner_library():
         return normalize_inner_candidates(
@@ -1252,12 +1252,10 @@ def open_receiving_multi_settings(self, namespace):
             }
         else:
             initial = inner_config(inner_library(), version_id)
-        brand = self.receiving_switch_adapter(namespace).brand
-        filenames = model_filenames(brand)
         modal = tk.Toplevel(self.app.root)
         modal.title("內門版本編輯")
         modal.transient(self.app.root)
-        modal.geometry("650x520")
+        modal.geometry("780x680")
         frame = ttk.Frame(modal, padding=14)
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
@@ -1266,41 +1264,146 @@ def open_receiving_multi_settings(self, namespace):
         controls = ttk.Frame(frame)
         controls.pack(anchor="w", pady=(8, 6))
         ttk.Label(controls, text="開關層數").pack(side="left")
+        chosen = [list(switch_filenames_in_layer(slot))
+                  for slot in initial["models"]]
+        layer_rows = []
+        warning = tk.StringVar(master=modal, value="")
+        source_state = {"files": (), "signature": None}
+
+        def repaint(index):
+            entry = layer_rows[index]
+            selected = entry["assigned"].curselection()
+            entry["assigned"].delete(0, tk.END)
+            for name in chosen[index]:
+                entry["assigned"].insert(tk.END, display_model(name))
+            if selected and selected[0] < len(chosen[index]):
+                entry["assigned"].selection_set(selected[0])
+            entry["count"].set(f"已配置 {len(chosen[index])} 顆")
+
+        def refresh_source(*, force=False):
+            if not modal.winfo_exists():
+                return
+            brand = self.receiving_switch_adapter(namespace).brand
+            try:
+                stat = INDEX_PATH.stat()
+                signature = (brand, stat.st_mtime_ns, stat.st_size)
+            except OSError:
+                signature = (brand, None, None)
+            if not force and signature == source_state["signature"]:
+                return
+            source_state["signature"] = signature
+            try:
+                source_state["files"] = model_filenames(brand)
+                warning.set("")
+            except (ValueError, OSError, UnicodeError) as exc:
+                source_state["files"] = ()
+                warning.set("開關索引.csv 讀取失敗：" + str(exc))
+            for entry in layer_rows:
+                entry["available"].delete(0, tk.END)
+                for name in source_state["files"]:
+                    entry["available"].insert(tk.END, display_model(name))
+
+        def poll_source():
+            if not modal.winfo_exists():
+                return
+            refresh_source()
+            modal.after(1800, poll_source)
+
+        def add_switch(index):
+            selected = layer_rows[index]["available"].curselection()
+            if not selected:
+                warning.set("請先選擇 CSV 開關型號")
+                return
+            filename = source_state["files"][selected[0]]
+            if filename not in model_filenames(
+                    self.receiving_switch_adapter(namespace).brand):
+                warning.set("CSV 已變動，請重新選擇")
+                refresh_source(force=True)
+                return
+            chosen[index].append(filename)
+            repaint(index)
+            warning.set("")
+
+        def remove_switch(index):
+            selected = layer_rows[index]["assigned"].curselection()
+            if not selected:
+                return
+            chosen[index].pop(selected[0])
+            repaint(index)
+
         for count in (1, 2):
             ttk.Radiobutton(
                 controls, text=str(count), value=count, variable=layers,
+                command=lambda: change_layers(),
             ).pack(side="left", padx=8)
-        boxes = []
+
         for idx in range(2):
-            ttk.Label(frame, text=f"第 {idx+1} 層開關型號").pack(anchor="w")
-            listing = tk.Listbox(
-                frame, exportselection=False, height=6, width=38,
-            )
-            listing.pack(anchor="w", fill="x", pady=(1, 7))
-            for filename in filenames:
-                listing.insert(tk.END, display_model(filename))
-            if initial["models"][idx] in filenames:
-                listing.selection_set(filenames.index(initial["models"][idx]))
-                listing.see(filenames.index(initial["models"][idx]))
-            boxes.append(listing)
-        warning = tk.StringVar(master=modal, value="")
-        ttk.Label(frame, textvariable=warning).pack(anchor="w")
-        def confirm():
-            chosen = list(initial["models"])
-            for idx, listing in enumerate(boxes):
-                index = listing.curselection()
-                if index:
-                    chosen[idx] = filenames[index[0]]
+            section = ttk.LabelFrame(frame, text=f"第 {idx+1} 層開關")
+            section.pack(fill="x", pady=(4, 6))
+            section.columnconfigure(0, weight=1)
+            section.columnconfigure(2, weight=1)
+            ttk.Label(section, text="CSV 型號").grid(
+                row=0, column=0, sticky="w", padx=5)
+            ttk.Label(section, text="本層開關（可重複）").grid(
+                row=0, column=2, sticky="w", padx=5)
+            available = tk.Listbox(section, selectmode=tk.BROWSE,
+                                   exportselection=False, height=6)
+            available.grid(row=1, column=0, sticky="nsew", padx=5)
+            buttons_area = ttk.Frame(section)
+            buttons_area.grid(row=1, column=1, padx=7)
+            ttk.Button(buttons_area, text="－移除",
+                       command=lambda idx=idx: remove_switch(idx)).pack(
+                pady=3)
+            ttk.Button(buttons_area, text="＋加入",
+                       command=lambda idx=idx: add_switch(idx)).pack(
+                pady=3)
+            assigned = tk.Listbox(section, selectmode=tk.BROWSE,
+                                  exportselection=False, height=6)
+            assigned.grid(row=1, column=2, sticky="nsew", padx=5)
+            count_text = tk.StringVar(master=modal)
+            ttk.Label(section, textvariable=count_text).grid(
+                row=2, column=2, sticky="w", padx=(5, 0), pady=(0, 3))
+            layer_rows.append({
+                "section": section, "available": available,
+                "assigned": assigned, "count": count_text,
+            })
+            repaint(idx)
+
+        def change_layers():
             if layers.get() == 1:
-                chosen[1] = ""
-            try:
-                latest_files = model_filenames(
-                    self.receiving_switch_adapter(namespace).brand
+                layer_rows[1]["section"].pack_forget()
+            elif not layer_rows[1]["section"].winfo_manager():
+                layer_rows[1]["section"].pack(
+                    fill="x", pady=(4, 6),
+                    after=layer_rows[0]["section"],
                 )
-                if any(name and name not in latest_files for name in
-                       chosen[:layers.get()]):
+
+        change_layers()
+        ttk.Label(frame, textvariable=warning).pack(anchor="w")
+        refresh_source(force=True)
+        modal.after(1800, poll_source)
+        modal._receiving_inner_switch_state = {
+            "chosen": chosen, "layers": layers,
+            "rows": layer_rows, "warning": warning,
+        }
+        modal._receiving_inner_refresh_switch_models = refresh_source
+
+        def confirm():
+            try:
+                latest_files = set(model_filenames(
+                    self.receiving_switch_adapter(namespace).brand
+                ))
+                relevant = chosen[:layers.get()]
+                if any(filename not in latest_files
+                       for layer_items in relevant for filename in layer_items):
                     raise ValueError("開關索引.csv 已變動或來源型號失效")
-                config = {"layers": layers.get(), "models": chosen}
+                config = {
+                    "layers": layers.get(),
+                    "models": [
+                        pack_switch_layer(chosen[0]),
+                        pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                    ],
+                }
                 if version_id is None:
                     saved, vid = create_inner_candidate(inner_library(), config)
                 else:
@@ -1311,7 +1414,7 @@ def open_receiving_multi_settings(self, namespace):
                 persist_inner(saved)
                 after_saved(vid)
                 close_editor()
-            except (ValueError, OSError) as exc:
+            except (ValueError, OSError, UnicodeError) as exc:
                 warning.set(str(exc))
         buttons = ttk.Frame(frame)
         buttons.pack(anchor="e", pady=(10, 0))
@@ -1353,11 +1456,12 @@ def open_receiving_multi_settings(self, namespace):
         allowed = set(model_filenames(
             self.receiving_switch_adapter(namespace).brand
         ))
-        for name in config["models"][:config["layers"]]:
-            if name and name not in allowed:
-                raise ValueError(
-                    "內門版本型號已不在開關索引.csv，請重新編輯選擇：" + name
-                )
+        for layer_slot in config["models"][:config["layers"]]:
+            for name in switch_filenames_in_layer(layer_slot):
+                if name not in allowed:
+                    raise ValueError(
+                        "內門版本型號已不在開關索引.csv，請重新編輯選擇：" + name
+                    )
 
     def inner_apply(role, version_id, set_index, highlighted):
         if role != INNER_ROLE or version_id is None or not highlighted:
