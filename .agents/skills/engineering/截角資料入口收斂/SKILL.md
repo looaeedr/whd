@@ -13,12 +13,13 @@ whd_schema: WHD_DOC_META_V1
 
 把舊主視窗獨立 2D Notebook 入口收斂進 Fold Designer，但**不能**因此建立第二份 2D 狀態、第二個 manufacturing solver 或弱化既有展開圖功能。
 
-## 執行前硬閘門
+## 現行施工入口與來源查核
 
-1. 先跑 `tools/phase6_skill_preflight.py --task <完整任務>`。
-2. 讀完所有 REQUIRED SKILLS / REQUIRED REFERENCES 並留下 `READ_REFERENCE:` evidence。
-3. 修改檔案名確定後，再以全部 changed files 重跑 preflight。
-4. 每次施工從最新 production target 開新分支，不直接改 target。
+1. **查證權威**：明確讀取正式 X `cleanup/2d-3d-sync` 的 `AGENTS.md`、適用 CURRENT Skill／domain owner、實際 production code 與相關測試；此步是實質來源查核，**不是**舊 Phase6 Knowledge Preflight receipt／READ_REFERENCE 交易。
+2. **`/派工` 產品路線**：由 GitHub／排程／雲端執行器施工、測試、commit、PR（base=`localX`）及 exact SHA CI；僅最終 `LOCALX_INTEGRATION` 階段可依 `AGENTS.md` 授權使用 DC 合併／驗證／同步，不能在使用者本機暗中施工。
+3. **`/接手` 產品路線**：只有使用者當次明確 `/接手` 才可使用 RC 的 `whd-dev:/workspace/whd` 施工。兩條產品路線發布正式 X 都需要使用者當次 `/推推`。
+4. **非產品治理路線**：僅受信任 `tools/change_lane_gate.py` 將所有 changed paths 判定為治理白名單時，可經 GitHub／雲端治理 PR 與 CI 直接合併 X，不得由此 Skill 授予 DC 權限。
+5. **驗收**：修改路徑確定後核對實際 diff、適用 DM7／GUI／DXF 測試與 PR／CI 證據；**不得**要求已退役的 preflight 重跑、`READ_REFERENCE`、claim／lease 或舊 Git 寫入解鎖憑證作為修改或交付前置。
 
 ## SSOT 契約
 
@@ -128,7 +129,7 @@ T7 前不得提前移除 legacy 入口。最終 dead-code gate：
 
 ## 永久防錯
 
-- `READ SKILL != EXECUTE SKILL`；沒有實際 preflight/evidence/角色轉移/checkpoint/QA，不得宣稱已派工或已完成。
+- `READ SKILL != EXECUTE SKILL`；必須有真正執行者、來源與 diff、適用測試、PR／CI 及整合／回讀證據，才可按完成範圍回報；舊 preflight receipt、角色轉移交易和 checkpoint 不是前置。
 - Validation 只能判定對錯，不能成為 production 計算來源。
 - 新發現的規則/踩坑同步 Skill、AI knowledge/library、durable agent-readable docs；禁止只留在聊天。
 - authoritative state 與 View freshness 是兩個不同 invariant；驗資料同源時也要另外驗 visible View refresh。
