@@ -1241,6 +1241,14 @@ def open_receiving_multi_settings(self, namespace):
             raise ValueError("內門版本權責錯誤")
         from tkinter import ttk, messagebox
         import tkinter as tk
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        from ae_engine.receiving_nfb_ui1a import (
+            INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
+            reconcile_set_brand, set_nfb_draft_layer_count,
+            set_nfb_layer_brand, set_nfb_slot_brand, add_nfb_draft_slot,
+            select_nfb_slot_model, remove_nfb_draft_slot,
+            effective_nfb_layer_brand, effective_nfb_slot_brand, nfb_ui1a_preview,
+        )
 
         if version_id is None:
             adapter = candidate_adapter()
@@ -1261,12 +1269,15 @@ def open_receiving_multi_settings(self, namespace):
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
                         else version_label(version_id))).pack(anchor="w")
+        # Legacy inner-door candidate layers and NFB physical layers are
+        # DIFFERENT concepts. The #1491 draft must not rewrite either owner.
         layers = tk.IntVar(master=modal, value=initial["layers"])
+        nfb_physical_layers = tk.IntVar(master=modal, value=initial["layers"])
         summary_row = ttk.Frame(frame)
         summary_row.pack(fill="x", pady=(4, 6))
         controls = ttk.Frame(summary_row)
         controls.pack(side="left", anchor="n")
-        ttk.Label(controls, text="開關層數").pack(side="left")
+        ttk.Label(controls, text="內門版本層數").pack(side="left")
         preview_box = ttk.Frame(summary_row)
         preview_box.pack(side="right", anchor="ne")
         thumbnail = tk.Canvas(
@@ -1276,11 +1287,37 @@ def open_receiving_multi_settings(self, namespace):
         thumbnail.pack(anchor="e")
         preview_status = tk.StringVar(master=modal)
         ttk.Label(preview_box, textvariable=preview_status).pack(anchor="e")
+        physical_row = ttk.Frame(frame)
+        physical_row.pack(fill="x", pady=(2, 4))
+        ttk.Label(physical_row, text="NFB 物理層（未提交草稿）").pack(side="left")
         chosen = [list(switch_filenames_in_layer(slot))
                   for slot in initial["models"]]
         layer_rows = []
         warning = tk.StringVar(master=modal, value="")
-        source_state = {"files": (), "signature": None}
+        # UI-1A transient state; NOT persisted to .p6fold and NOT a second
+        # ReceivingLayout owner. Existing candidate saving below stays intact.
+        draft_state = {"draft": new_nfb_ui1a_draft(
+            set_brand=self.receiving_switch_adapter(namespace).brand,
+            layer_count=nfb_physical_layers.get(), model_layers=initial["models"],
+        )}
+        source_state = {"files": [(), ()], "signature": [None, None]}
+        draft_summary = tk.StringVar(master=modal, value="")
+
+        def sync_chosen():
+            for layer in range(2):
+                chosen[layer][:] = [
+                    slot["filename"] for slot in
+                    draft_state["draft"]["layers"][layer]["slots"]
+                    if slot["filename"] is not None
+                ]
+
+        def view_source_catalog(index):
+            d = draft_state["draft"]
+            row = layer_rows[index]
+            sel = row["assigned"].curselection()
+            if sel and sel[0] < len(d["layers"][index]["slots"]):
+                return effective_nfb_slot_brand(d, index, sel[0])
+            return effective_nfb_layer_brand(d, index)
 
         def paint_draft_preview():
             config = {
@@ -1302,40 +1339,96 @@ def open_receiving_multi_settings(self, namespace):
             preview_status.set(
                 "尚未儲存的變更" if config != before else "與已載入版本相同"
             )
+            try:
+                adapter = candidate_adapter()
+                selection = adapter.selection
+                width = adapter.layout["sets"][selection.set_index]["bays"][
+                    selection.bay_index]["width"]
+                snapshot = _current_mode_snapshot(self, namespace)
+                columns = snapshot.get("door_layout_columns") or ()
+                from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+                cells = derive_door_layout_cells(columns) if columns else ()
+                upper = [c for c in cells if c.row_index == 0]
+                height = float(upper[0].start_height) if len(upper) == 1 else -1.0
+                projection = nfb_ui1a_preview(
+                    draft_state["draft"], bay_width_mm=width,
+                    upper_cell_height_mm=height,
+                )
+                segments = []
+                for entry in projection["layers"]:
+                    pitch = entry["adjacent_x_mm"]
+                    x_label = ("相鄰 " + "／".join(str(int(p)) for p in pitch) + " mm"
+                               if pitch is not None else "X 基準未定")
+                    y = entry["nominal_y_from_top_mm"]
+                    y_label = (f"名義 Y {y:g} mm" if y is not None else "Y 未定")
+                    stale = sum(x["status"] == NEEDS_RESELECTION
+                                for x in entry["slots"])
+                    segments.append(
+                        f"第{entry['layer_index']+1}層 {x_label}、{y_label}"
+                        + (f"｜{stale} 顆待重選" if stale else "")
+                    )
+                draft_summary.set("｜".join(segments) + "｜僅預覽、不提交製造")
+            except (ValueError,TypeError,KeyError) as exc:
+                draft_summary.set(f"NFB 名義幾何未定：{exc}｜僅預覽")
+
 
         def repaint(index):
             entry = layer_rows[index]
             selected = entry["assigned"].curselection()
             entry["assigned"].delete(0, tk.END)
-            for name in chosen[index]:
-                entry["assigned"].insert(tk.END, display_model(name))
-            if selected and selected[0] < len(chosen[index]):
+            slots = draft_state["draft"]["layers"][index]["slots"]
+            for slot in slots:
+                entry["assigned"].insert(
+                    tk.END,
+                    (display_model(slot["filename"]) if slot["filename"] else "（空槽）")
+                )
+            if selected and selected[0] < len(slots):
                 entry["assigned"].selection_set(selected[0])
-            entry["count"].set(f"已配置 {len(chosen[index])} 顆")
+            entry["count"].set(
+                f"實體 {len(slots)} 槽／開關 {sum(bool(s['filename']) for s in slots)} 顆"
+            )
+            if "slot_brand_var" in entry:
+                selected_now = entry["assigned"].curselection()
+                if selected_now:
+                    brand_state = slots[selected_now[0]]["brand"]
+                    entry["slot_brand_var"].set(
+                        "繼承本層" if brand_state["mode"] == INHERIT
+                        else brand_state["value"]
+                    )
+                else:
+                    entry["slot_brand_var"].set("繼承本層")
             paint_draft_preview()
 
         def refresh_source(*, force=False):
             if not modal.winfo_exists():
                 return
-            brand = self.receiving_switch_adapter(namespace).brand
+            current_owner = self.receiving_switch_adapter(namespace).brand
+            if current_owner != draft_state["draft"]["set_brand"]:
+                draft_state["draft"] = reconcile_set_brand(
+                    draft_state["draft"], current_owner,
+                )
             try:
                 stat = INDEX_PATH.stat()
-                signature = (brand, stat.st_mtime_ns, stat.st_size)
+                stamp = (stat.st_mtime_ns, stat.st_size)
             except OSError:
-                signature = (brand, None, None)
-            if not force and signature == source_state["signature"]:
-                return
-            source_state["signature"] = signature
-            try:
-                source_state["files"] = model_filenames(brand)
-                warning.set("")
-            except (ValueError, OSError, UnicodeError) as exc:
-                source_state["files"] = ()
-                warning.set("開關索引.csv 讀取失敗：" + str(exc))
-            for entry in layer_rows:
+                stamp = (None, None)
+            for index, entry in enumerate(layer_rows):
+                if index >= draft_state["draft"]["layer_count"]:
+                    continue
+                brand = view_source_catalog(index)
+                signature = (brand, *stamp)
+                if not force and signature == source_state["signature"][index]:
+                    continue
+                source_state["signature"][index] = signature
+                try:
+                    files = model_filenames(brand)
+                except (ValueError,OSError,UnicodeError) as exc:
+                    files = ()
+                    warning.set("開關索引.csv 讀取失敗：" + str(exc))
+                source_state["files"][index] = files
                 entry["available"].delete(0, tk.END)
-                for name in source_state["files"]:
-                    entry["available"].insert(tk.END, display_model(name))
+                for filename in files:
+                    entry["available"].insert(tk.END, display_model(filename))
 
         def poll_source():
             if not modal.winfo_exists():
@@ -1348,13 +1441,47 @@ def open_receiving_multi_settings(self, namespace):
             if not selected:
                 warning.set("請先選擇 CSV 開關型號")
                 return
-            filename = source_state["files"][selected[0]]
-            if filename not in model_filenames(
-                    self.receiving_switch_adapter(namespace).brand):
+            filename = source_state["files"][index][selected[0]]
+            expected_brand = view_source_catalog(index)
+            if filename not in model_filenames(expected_brand):
                 warning.set("CSV 已變動，請重新選擇")
                 refresh_source(force=True)
                 return
-            chosen[index].append(filename)
+            draft_state["draft"] = add_nfb_draft_slot(
+                draft_state["draft"], index, filename=filename,
+                source_brand=expected_brand,
+            )
+            # Newly added physical unit inherits the layer brand; when list
+            # was displaying a selected slot override, do not silently give
+            # that override to a different new slot.
+            if expected_brand != effective_nfb_layer_brand(draft_state["draft"],index):
+                draft_state["draft"] = set_nfb_slot_brand(
+                    draft_state["draft"], index,
+                    len(draft_state["draft"]["layers"][index]["slots"])-1,
+                    mode=OVERRIDE, value=expected_brand,
+                )
+            sync_chosen()
+            repaint(index)
+            warning.set("")
+
+        def add_empty_slot(index):
+            draft_state["draft"] = add_nfb_draft_slot(draft_state["draft"], index)
+            sync_chosen()
+            repaint(index)
+
+        def replace_selected_slot(index):
+            selected = layer_rows[index]["assigned"].curselection()
+            choice = layer_rows[index]["available"].curselection()
+            if not selected or not choice:
+                warning.set("請選擇原槽與新的 CSV 型號")
+                return
+            brand = view_source_catalog(index)
+            filename = source_state["files"][index][choice[0]]
+            draft_state["draft"] = select_nfb_slot_model(
+                draft_state["draft"],index,selected[0],filename,
+                catalog={brand:model_filenames(brand)},
+            )
+            sync_chosen()
             repaint(index)
             warning.set("")
 
@@ -1362,14 +1489,23 @@ def open_receiving_multi_settings(self, namespace):
             selected = layer_rows[index]["assigned"].curselection()
             if not selected:
                 return
-            chosen[index].pop(selected[0])
+            draft_state["draft"] = remove_nfb_draft_slot(
+                draft_state["draft"], index, selected[0],
+            )
+            sync_chosen()
             repaint(index)
+            refresh_source(force=True)
 
         for count in (1, 2):
             ttk.Radiobutton(
                 controls, text=str(count), value=count, variable=layers,
-                command=lambda: change_layers(),
+                command=lambda: paint_draft_preview(),
             ).pack(side="left", padx=8)
+            ttk.Radiobutton(
+                physical_row, text=str(count), value=count,
+                variable=nfb_physical_layers,
+                command=lambda: change_layers(),
+            ).pack(side="left", padx=7)
 
         for idx in range(2):
             section = ttk.LabelFrame(frame, text=f"第 {idx+1} 層開關")
@@ -1389,22 +1525,93 @@ def open_receiving_multi_settings(self, namespace):
                        command=lambda idx=idx: remove_switch(idx)).pack(
                 pady=3)
             ttk.Button(buttons_area, text="＋加入",
-                       command=lambda idx=idx: add_switch(idx)).pack(
-                pady=3)
+                       command=lambda idx=idx: add_switch(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="＋空槽",
+                       command=lambda idx=idx: add_empty_slot(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="替換所選",
+                       command=lambda idx=idx: replace_selected_slot(idx)).pack(pady=3)
             assigned = tk.Listbox(section, selectmode=tk.BROWSE,
                                   exportselection=False, height=6)
             assigned.grid(row=1, column=2, sticky="nsew", padx=5)
             count_text = tk.StringVar(master=modal)
             ttk.Label(section, textvariable=count_text).grid(
                 row=2, column=2, sticky="w", padx=(5, 0), pady=(0, 3))
+            # Set.switch_brand is the ONLY Set owner; these two selectors
+            # are explicit layer/unit override controls on a transient draft.
+            brand_row = ttk.Frame(section)
+            brand_row.grid(row=3, column=0, columnspan=3, sticky="w", pady=(2, 4))
+            ttk.Label(brand_row, text="本層品牌").pack(side="left")
+            brand_choices = ("繼承本套", *RECEIVING_SWITCH_BRANDS)
+            layer_brand_var = tk.StringVar(master=modal, value="繼承本套")
+            layer_brand_select = ttk.Combobox(
+                brand_row, textvariable=layer_brand_var, values=brand_choices,
+                width=12, state="readonly",
+            )
+            layer_brand_select.pack(side="left", padx=(3, 12))
+            ttk.Label(brand_row, text="所選顆品牌").pack(side="left")
+            slot_brand_var = tk.StringVar(master=modal, value="繼承本層")
+            slot_brand_select = ttk.Combobox(
+                brand_row, textvariable=slot_brand_var,
+                values=("繼承本層", *RECEIVING_SWITCH_BRANDS),
+                width=12, state="readonly",
+            )
+            slot_brand_select.pack(side="left", padx=3)
             layer_rows.append({
                 "section": section, "available": available,
                 "assigned": assigned, "count": count_text,
+                "layer_brand_var": layer_brand_var,
+                "slot_brand_var": slot_brand_var,
             })
+
+            def layer_brand_changed(_event=None, idx=idx):
+                value = layer_rows[idx]["layer_brand_var"].get()
+                draft_state["draft"] = set_nfb_layer_brand(
+                    draft_state["draft"],idx,mode=INHERIT if value=="繼承本套" else OVERRIDE,
+                    value=None if value=="繼承本套" else value,
+                )
+                refresh_source(force=True)
+                repaint(idx)
+
+            def slot_brand_changed(_event=None, idx=idx):
+                selected = layer_rows[idx]["assigned"].curselection()
+                if not selected:
+                    warning.set("請先選取一個實際 NFB 顆位或空槽")
+                    return
+                value = layer_rows[idx]["slot_brand_var"].get()
+                draft_state["draft"] = set_nfb_slot_brand(
+                    draft_state["draft"],idx,selected[0],
+                    mode=INHERIT if value=="繼承本層" else OVERRIDE,
+                    value=None if value=="繼承本層" else value,
+                )
+                refresh_source(force=True)
+                repaint(idx)
+
+            layer_brand_select.bind("<<ComboboxSelected>>",layer_brand_changed)
+            slot_brand_select.bind("<<ComboboxSelected>>",slot_brand_changed)
+            def selected_slot_changed(_event=None, idx=idx):
+                selected = layer_rows[idx]["assigned"].curselection()
+                slots = draft_state["draft"]["layers"][idx]["slots"]
+                if selected and selected[0] < len(slots):
+                    unit = slots[selected[0]]["brand"]
+                    layer_rows[idx]["slot_brand_var"].set(
+                        "繼承本層" if unit["mode"] == INHERIT else unit["value"]
+                    )
+                else:
+                    layer_rows[idx]["slot_brand_var"].set("繼承本層")
+                refresh_source(force=True)
+
+            assigned.bind("<<ListboxSelect>>", selected_slot_changed)
             repaint(idx)
 
         def change_layers():
-            if layers.get() == 1:
+            try:
+                draft_state["draft"] = set_nfb_draft_layer_count(
+                    draft_state["draft"], nfb_physical_layers.get(),
+                )
+            except ValueError as exc:
+                nfb_physical_layers.set(draft_state["draft"]["layer_count"])
+                warning.set(str(exc))
+            if nfb_physical_layers.get() == 1:
                 layer_rows[1]["section"].pack_forget()
             elif not layer_rows[1]["section"].winfo_manager():
                 layer_rows[1]["section"].pack(
@@ -1412,14 +1619,18 @@ def open_receiving_multi_settings(self, namespace):
                     after=layer_rows[0]["section"],
                 )
             paint_draft_preview()
+            refresh_source(force=True)
 
         change_layers()
+        ttk.Label(frame, textvariable=draft_summary, wraplength=770).pack(anchor="w")
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
         refresh_source(force=True)
         modal.after(1800, poll_source)
         modal._receiving_inner_switch_state = {
             "chosen": chosen, "layers": layers,
+            "nfb_physical_layers": nfb_physical_layers,
             "rows": layer_rows, "warning": warning,
+            "nfb_draft": draft_state, "nfb_draft_status": draft_summary,
         }
         modal._receiving_inner_refresh_switch_models = refresh_source
         modal._receiving_inner_preview_canvas = thumbnail
@@ -1427,6 +1638,21 @@ def open_receiving_multi_settings(self, namespace):
 
         def confirm():
             try:
+                # #1491 is transient UI-1A only. Distinct NFB physical layer
+                # count cannot be flattened into legacy inner-door layers.
+                if nfb_physical_layers.get() != layers.get():
+                    raise ValueError("NFB 物理層與內門版本層數不同，不能覆寫成舊候選")
+                # Existing candidate serializer also lacks physical empty
+                # slots and brand overrides. Fail rather than lose user data.
+                active = draft_state["draft"]["layers"][:nfb_physical_layers.get()]
+                for row in active:
+                    if row["brand"]["mode"] == OVERRIDE:
+                        raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
+                    for slot in row["slots"]:
+                        if slot["filename"] is None or slot["brand"]["mode"] == OVERRIDE:
+                            raise ValueError("空槽或單顆品牌覆寫仍是 NFB 草稿，不能丟失後儲存")
+                        if slot["source_brand"] != draft_state["draft"]["set_brand"]:
+                            raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
                 latest_files = set(model_filenames(
                     self.receiving_switch_adapter(namespace).brand
                 ))
