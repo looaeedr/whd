@@ -132,7 +132,7 @@ def test_W800_world_x_reversible_and_rotation_changes_exact_equivalence(tmp_path
 
 
 @pytest.mark.parametrize("change",(
-    "wrong_part","vertical","axis_missing","bad_sign","outside_width",
+    "wrong_part","vertical","axis_missing","bad_sign","opposite_sign","outside_width",
     "wrong_sha","wrong_lower","wrong_handle","core_overflow",
 ))
 def test_missing_physical_or_source_identity_stops_before_cutting(tmp_path,change):
@@ -145,6 +145,8 @@ def test_missing_physical_or_source_identity_stops_before_cutting(tmp_path,chang
         kwargs["physical_datum"]=replace(kwargs["physical_datum"],revision="")
     elif change=="bad_sign":
         kwargs["physical_datum"]=replace(kwargs["physical_datum"],span_world_x_sign=0)
+    elif change=="opposite_sign":
+        kwargs["physical_datum"]=replace(kwargs["physical_datum"],span_world_x_sign=-1)
     elif change=="outside_width":
         kwargs["world_x_mm"]=500.
     elif change=="wrong_sha":
@@ -167,3 +169,32 @@ def test_original_customer_DXF_is_never_modified_by_middle_shadow(tmp_path):
     assert before==kwargs["source_path"].read_bytes()
     assert trial.source_sha256==sha256(before).hexdigest()
     assert trial.render_data.metadata["nfb_source_handle"]==kwargs["profile"].upper_handle
+
+
+def test_optional_actual_shihlin_400_native_source_replay_keeps_lower_deferred(tmp_path):
+    """Replay original bytes only if supplied, never commit a customer DXF."""
+    import os
+    source_value=os.environ.get("WHD_NFB_ORIGINAL_DXF")
+    if not source_value:
+        pytest.skip("customer original DXF not available in GitHub CI")
+    from pathlib import Path
+    path=Path(source_value)
+    if path.name!="400_140X257_107.dxf":
+        pytest.skip("only exact indexed Shihlin 400 original qualifies")
+    real_sha="8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3"
+    assert sha256(path.read_bytes()).hexdigest()==real_sha
+    snapshot,part,baseline,datum=_part()
+    profile=NfbUpperSourceProfile(
+        "士林",path.name,real_sha,"585",(57.,96.),
+        "SOURCE_ALIAS_SHA256_IDENTICAL","NFB-1497-SHIHLIN400-SOURCE-BYTE-IDENTITY-V2",
+    )
+    trial=shadow_nfb_middle_plate_color150(
+        snapshot,part,baseline,source_path=path,profile=profile,
+        lower_reference_handle="597",world_x_mm=0.,
+        physical_datum=datum,
+    )
+    assert trial.source_sha256==real_sha
+    assert trial.source_handle=="585"
+    assert trial.render_data.material.area==pytest.approx(baseline.material.area-57*96)
+    assert trial.status==MIDDLE_SHADOW and not trial.manufacturing_ready
+    assert trial.original_region=="UPPER_SOURCE"
