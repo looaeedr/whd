@@ -23,10 +23,14 @@ from shapely.geometry import Polygon
 
 from .assembly_geometry import place_assembly_points
 from .assembly_placement import resolve_divider_placement
+from .cabinet_types import policy as cabinet_family_policy
 from .door_dividers import BoxBodyDividerPart
 from .manufacturing_api import material_polygon_from_final_scene
 from .manufacturing_render_data import PartRenderData
 from .receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
+from .receiving_nfb_manufacturing_release import (
+    NfbValidatedInnerDoorRender, VALIDATED,
+)
 from .receiving_nfb_dxf_source import (
     inspect_nfb_dxf_source, place_upper_color150_opening_outline,
     resolve_upper_color150_reference,
@@ -75,9 +79,9 @@ def shadow_nfb_middle_plate_color150(
     *, source_path: str | Path,
     profile: NfbUpperSourceProfile,
     lower_reference_handle: str,
-    world_x_mm: float,
+    verified_inner_door: NfbValidatedInnerDoorRender,
+    physical_hole_id: str,
     physical_datum: NfbMiddlePlateUnfoldDatum,
-    rotation_deg: int = 0,
 ) -> NfbMiddlePlateShadow:
     """Transfer only the native upper Color150 main aperture into a real
     horizontal divider FinalScene. NOT a permission to manufacture.
@@ -94,10 +98,26 @@ def shadow_nfb_middle_plate_color150(
             or not isinstance(physical_datum.revision, str)
             or not physical_datum.revision.strip()):
         raise ValueError("NFB middle plate physical UV axis/datum is unresolved")
-    if (type(world_x_mm) not in (int, float) or not isfinite(float(world_x_mm))
-            or type(physical_datum.core_depth_uv_x_mm) not in (int, float)
+    if (type(physical_datum.core_depth_uv_x_mm) not in (int, float)
             or not isfinite(float(physical_datum.core_depth_uv_x_mm))):
-        raise ValueError("NFB middle plate WORLD-X/core UV must be finite physical coordinates")
+        raise ValueError("NFB middle plate core UV must be finite physical coordinate")
+    # Reuse existing #1497 verified NFBConfig; never ask for a second X.
+    if (not isinstance(verified_inner_door, NfbValidatedInnerDoorRender)
+            or not verified_inner_door.manufacturing_ready
+            or not isinstance(physical_hole_id, str) or not physical_hole_id):
+        raise ValueError("NFB middle plate needs an existing verified inner-door hole")
+    hole_rows = tuple(row for row in verified_inner_door.verified_hole_locations
+                      if row[0] == physical_hole_id)
+    if len(hole_rows) != 1 or verified_inner_door.physical_hole_ids.count(physical_hole_id) != 1:
+        raise ValueError("NFB middle plate physical hole identity is missing/ambiguous")
+    _id, world_x_mm, _layers, _slot, rotation_deg = hole_rows[0]
+    if type(world_x_mm) not in (int, float) or not isfinite(float(world_x_mm)):
+        raise ValueError("NFB existing verified hole position is invalid")
+    inner = tuple(p for p in cabinet_family_policy.derive_inner_door_panels(snapshot)
+                  if p.stable_id == verified_inner_door.part_id)
+    if (len(inner) != 1 or inner[0].cell_key not in divider.adjacent_cells
+            or not str(inner[0].cell_key).endswith(":0")):
+        raise ValueError("NFB middle plate and verified inner door do not share an upper cell")
     meta = dict(baseline.metadata or {})
     topology = baseline.unfolded_topology
     if (topology is None or topology.piece_id != divider.stable_id
@@ -155,8 +175,17 @@ def shadow_nfb_middle_plate_color150(
         ),
     )
     if (ref.size_mm != tuple(profile.upper_size_mm)
-            or ref.source_sha256 != regions.source_sha256):
-        raise ValueError("NFB main Color150 source has changed")
+            or ref.source_sha256 != regions.source_sha256
+            or verified_inner_door.source_sha256 != regions.source_sha256
+            or verified_inner_door.indexed_model_key
+               != (profile.brand, profile.indexed_filename)):
+        raise ValueError("NFB middle/inner original Color150 identity differs")
+    proof_meta = getattr(verified_inner_door.render_data, "metadata", {})
+    if (proof_meta.get("nfb_trial_status") != VALIDATED
+            or proof_meta.get("nfb_trial_export_approved") is not True
+            or proof_meta.get("nfb_source_handle") != ref.source_entity_id
+            or proof_meta.get("nfb_profile_revision") != profile.revision):
+        raise ValueError("NFB middle Color150 differs from verified inner-door source proof")
 
     # The physical horizontal divider's unfolded strip X is folded depth;
     # unfolded strip Y is the TRUE column span. World X=column center maps
