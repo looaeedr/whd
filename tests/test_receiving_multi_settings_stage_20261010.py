@@ -72,6 +72,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
     selected = []
     selected_settings = []
     resized = []
+    brand_calls = []
 
     def resize(index, delta):
         resized.append((index, delta))
@@ -92,8 +93,20 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
                 (set_index, bay_index)),
             on_setting_selected=lambda set_index, bay_index, kind:
                 selected_settings.append((set_index, bay_index, kind)),
+            get_brand=lambda: "士林",
+            set_brand=lambda brand: brand_calls.append(brand),
         )
         root.update()
+        brand_picker = win._receiving_multi_brand_selector
+        assert tuple(brand_picker.cget("values")) == (
+            "士林", "東元", "三菱", "伍菱", "順山"
+        )
+        assert win._receiving_multi_brand_var.get() == "士林"
+        win._receiving_multi_brand_var.set("東元")
+        brand_picker.event_generate("<<ComboboxSelected>>")
+        root.update()
+        assert brand_calls == ["東元"]
+        assert brand_picker.master.master is win._receiving_multi_mode_controls.master
         assert win.title() == "多只設定"
         assert win.grab_current() is win
         assert win.winfo_width() >= win.winfo_screenwidth() - 2
