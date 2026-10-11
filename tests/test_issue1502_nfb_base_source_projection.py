@@ -16,6 +16,9 @@ from ae_engine.receiving_nfb_base_process_projection import (
 from ae_engine.receiving_nfb_manufacturing_release import (
     NfbValidatedInnerDoorRender, VALIDATED,
 )
+from ae_engine.receiving_nfb_lower_fixing_source import (
+    NfbVerifiedLowerFixingGroup, NfbLowerFixingCircle,
+)
 from ae_engine.receiving_nfb_upper_base_source import (
     NfbUpperBaseSourceProcess, NfbNativeBaseCircle,
     NfbNativeBaseClosedLoop, NfbNativeBaseMark,
@@ -80,6 +83,20 @@ def _source():
     )
 
 
+def _lower_fixing():
+    return NfbVerifiedLowerFixingGroup(
+        source_sha256=SHA, indexed_filename=MODEL,
+        source_lower_reference_handle="597",
+        screw_group_center_xy_mm=(100.,50.),
+        circles=(
+            NfbLowerFixingCircle("F1",(96.,40.),1.),
+            NfbLowerFixingCircle("F2",(104.,40.),1.),
+            NfbLowerFixingCircle("F3",(96.,60.),1.),
+            NfbLowerFixingCircle("F4",(104.,60.),1.),
+        ),
+    )
+
+
 def _base(*, actual_part_id="receiving:upper:base", ear_at=None):
     scene = DrawingScene()
     scene.add_polyline(
@@ -109,11 +126,13 @@ def _base(*, actual_part_id="receiving:upper:base", ear_at=None):
     )
 
 
-def _project(*, proof=None, src=None, base=None):
+def _project(*, proof=None, src=None, base=None, fixing=None):
     return project_verified_nfb_base_process(
         snapshot=_snapshot(), inner_door_id="upper",
         verified_inner_door=proof or _verified(),
-        native_source=src or _source(), target=base or _base(),
+        native_source=src or _source(),
+        lower_fixing=fixing or _lower_fixing(),
+        target=base or _base(),
     )
 
 
@@ -123,9 +142,10 @@ def test_one_door_nfb_owner_projects_corresponding_base_cutting_and_marks():
     assert result.owner_hole_ids == ("nfb:A","nfb:B")
     assert result.source_sha256==SHA
     assert result.physical_part_id=="receiving:upper:base"
-    assert len(result.cutting)==4  # each NFB: circle + closed native contour
+    assert len(result.cutting)==12  # each NFB: 4 native screws + upper circle + contour
     assert len(result.marking)==2
-    circles=[x for x in result.cutting if isinstance(x,CirclePrimitive)]
+    circles=[x for x in result.cutting if isinstance(x,CirclePrimitive)
+             and x.source_type=="NFB_COLOR30"]
     assert [(x.center.x,x.center.y) for x in circles]==pytest.approx([
         (150.,240.), (350.,240.), # 90-deg rotation around source pivot
     ])
@@ -142,15 +162,17 @@ def test_both_ear_mount_and_nfb_screw_holes_remain_distinct_and_original_untouch
     before=tuple(base.actual_render.scene.primitives)
     result=_project(base=base)
     assert tuple(base.actual_render.scene.primitives)==before
-    assert len(result.cutting)==4
+    assert len(result.cutting)==12
     assert all(getattr(x,"source_type",None)!="EAR_MOUNT" for x in result.cutting)
     # All NFB features derive from the door, not the ear/box dimensions.
     altered=_verified(locations=(
         ("nfb:A",-60.,1,0,0),("nfb:B",60.,1,0,90),
     ))
     moved=_project(proof=altered,base=base)
-    original_center=next(x.center.x for x in result.cutting if isinstance(x,CirclePrimitive))
-    moved_center=next(x.center.x for x in moved.cutting if isinstance(x,CirclePrimitive))
+    original_center=next(x.center.x for x in result.cutting if isinstance(x,CirclePrimitive)
+                         and x.source_type=="NFB_LOWER_NATIVE_FIXING_CIRCLE")
+    moved_center=next(x.center.x for x in moved.cutting if isinstance(x,CirclePrimitive)
+                       and x.source_type=="NFB_LOWER_NATIVE_FIXING_CIRCLE")
     assert moved_center-original_center==pytest.approx(30.)
     assert tuple(base.actual_render.scene.primitives)==before
 
@@ -166,6 +188,8 @@ def test_wrong_real_part_or_source_must_not_generate_unverified_base_cutting():
             _project(base=bad)
     with pytest.raises(ValueError,match="source differs"):
         _project(src=replace(_source(),source_sha256="0"*64))
+    with pytest.raises(ValueError,match="native lower screw group"):
+        _project(fixing=replace(_lower_fixing(),source_sha256="0"*64))
     with pytest.raises(ValueError,match="CUTTING must be verified"):
         _project(proof=replace(_verified(),manufacturing_ready=False))
     with pytest.raises(ValueError,match="identity incomplete"):
@@ -190,3 +214,7 @@ def test_no_lower_group_no_phantom_middle_no_dxf_release():
     assert not any("LOWER_SOURCE_NOT_CONSUMED" in x for x in handles)
     assert all(isinstance(x,(CirclePrimitive,PolylinePrimitive))
                for x in projection.cutting)
+    screws=[x for x in projection.cutting if getattr(x,"source_type",None)
+            =="NFB_LOWER_NATIVE_FIXING_CIRCLE"]
+    assert len(screws)==8
+    assert {x.source_id.split(":")[-1] for x in screws}=={"F1","F2","F3","F4"}
