@@ -135,3 +135,23 @@ def test_retired_execution_references_are_not_current_map_owners() -> None:
     ):
         assert active_owner in authority
     assert "退役 scheduled-resume / execution control plane" in authority
+
+
+def test_current_skill_authority_rows_match_frontmatter() -> None:
+    """Map must not advertise a different contract from a CURRENT skill."""
+    for line in read(AUTHORITY_MAP_REL).splitlines():
+        if not line.startswith("<!-- WHD_AUTHORITY "):
+            continue
+        fields = dict(
+            item.split("=", 1)
+            for item in line.removeprefix("<!-- WHD_AUTHORITY ").removesuffix(" -->").split()
+            if "=" in item
+        )
+        if fields.get("role") != "CURRENT":
+            continue
+        path = fields.get("path", "")
+        if not path.startswith(".agents/skills/"):
+            continue
+        metadata = parse_doc_metadata(read(path), path=path)
+        assert metadata.role == "CURRENT", path
+        assert metadata.contract == fields["contract"], path
