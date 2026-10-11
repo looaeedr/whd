@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # PHASE6 組合、尺寸、標準截角與 AssemblyJoint Graph 整合最高優先規格
 
+> **REFERENCE／2026-08-31 歷史整合快照**：標題、原定狀態與原文中的「最高優先」「單一 Source of Truth」描述的是當時三份來源的整合與衝突裁決，**不具備覆蓋目前 CURRENT 製造或裝配規格的權威**。正式現行依 `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` 所指向的 CURRENT owner 與 production registry。為保存機械語意及其演進，以下歷史公式與原始編排完整保留。
+
 > **版本日期：2026-08-31**  
 > **狀態：整合修正版／最高優先級機械語意規格**  
 > **適用範圍：PHASE6 全 Cabinet Family、所有箱身結構、封頭、封尾，以及未來新增板件與組合方式**  
