@@ -204,6 +204,27 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertTrue(callable(phase6_skill_preflight.required_skills_for))
         self.assertTrue(callable(phase6_skill_preflight.required_references_for))
 
+    def test_skill_discovery_and_questioning_respect_current_x_lanes(self):
+        paths = {
+            "questioning": ".agents/skills/engineering/拷問邊建立文件/SKILL.md",
+            "discovery": ".agents/skills/productivity/找技能/SKILL.md",
+            "mcp": ".agents/skills/productivity/MCP工具操作/SKILL.md",
+            "scanner": ".agents/skills/engineering/掃描深模組/SKILL.md",
+        }
+        docs = {name: (ROOT / path).read_text("utf-8")
+                for name, path in paths.items()}
+        for name in ("questioning", "discovery", "mcp"):
+            with self.subTest(skill=name):
+                self.assertIn("/派工", docs[name])
+                self.assertIn("/接手", docs[name])
+                self.assertIn("GitHub／雲端", docs[name])
+        self.assertNotIn("先遵守 `AGENTS.md` / root-local-first / Knowledge Preflight", docs["questioning"])
+        self.assertNotIn("Phase6 **Preflight**、root-local-first、Git-phase branch", docs["discovery"])
+        self.assertNotIn("若任務本身另有專案級 root-local-first", docs["mcp"])
+        self.assertIn("ref=cleanup/2d-3d-sync", docs["mcp"])
+        self.assertIn("APPROVED_REQUIREMENT_FAST_PATH", docs["scanner"])
+        self.assertNotIn("的 RED-first、AI Library、Issue、remote QA 流程", docs["scanner"])
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
