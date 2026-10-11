@@ -429,8 +429,10 @@ class Phase6FoldDesignerComposition:
     def remove_receiving_layer(self, namespace):
         return _composition_receiving.remove_receiving_layer(self, namespace)
 
-    def resize_receiving_bays(self, namespace, layer_index, delta):
-        return _composition_receiving.resize_receiving_bays(self, namespace, layer_index, delta)
+    def resize_receiving_bays(self, namespace, layer_index, delta, *, refresh_controls=True):
+        return _composition_receiving.resize_receiving_bays(
+            self, namespace, layer_index, delta, refresh_controls=refresh_controls
+        )
 
     def confirm_receiving_opening(self, namespace, layer_index, connection_index, brand):
         return _composition_receiving.confirm_receiving_opening(self, namespace, layer_index, connection_index, brand)
