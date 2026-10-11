@@ -75,7 +75,7 @@ def test_hash_handle_size_and_upper_lower_owner_fail_closed(tmp_path):
         _read(path,up,up,digest)
     with pytest.raises(ValueError,match="anchors"):
         _read(path,"NONEXISTENT",lo,digest)
-    with pytest.raises(ValueError,match="reference"):
+    with pytest.raises(ValueError,match="typed closed source"):
         inspect_nfb_original_source_regions(
             path,indexed_filename=path.name,expected_sha256=digest,
             upper_reference_handle=lo,lower_reference_handle=up,
