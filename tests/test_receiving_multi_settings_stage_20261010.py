@@ -47,6 +47,39 @@ def test_sketch_uses_only_identified_original_door_marks():
     assert extract_original_door_marks(drawing)["handle"] == ()
 
 
+def test_modal_connection_resize_skips_hidden_global_panel_until_exit():
+    from gui_modules.application.fold_designer_composition_receiving import resize_receiving_bays
+
+    class FakeSwitch:
+        def resize_connections(self, index, delta):
+            calls.append(("resize", index, delta))
+            return True
+
+    class FakeComposition:
+        def receiving_switch_adapter(self, namespace):
+            assert namespace == "receiving"
+            return switch
+
+        def mark_receiving_switch_layout_dirty(self, namespace, adapter):
+            assert namespace == "receiving" and adapter is switch
+            calls.append(("dirty",))
+
+        def refresh_receiving_set_bay_control(self, namespace):
+            assert namespace == "receiving"
+            calls.append(("hidden-refresh",))
+
+    calls = []
+    switch = FakeSwitch()
+    composition = FakeComposition()
+    assert resize_receiving_bays(composition, "receiving", 0, 1,
+                                refresh_controls=False)
+    assert calls == [("resize", 0, 1), ("dirty",)]
+    calls.clear()
+    # Other callers still refresh the original panel by default.
+    assert resize_receiving_bays(composition, "receiving", 0, 1)
+    assert calls == [("resize", 0, 1), ("dirty",), ("hidden-refresh",)]
+
+
 def test_assembly_button_is_hidden_until_receiving_assembly():
     root = tk.Tk()
     root.withdraw()
@@ -95,6 +128,8 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
     selected_settings = []
     resized = []
     brand_calls = []
+    deferred_refresh = []
+    brand_commit = []
 
     def resize(index, delta):
         resized.append((index, delta))
@@ -116,7 +151,9 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
             on_setting_selected=lambda set_index, bay_index, kind:
                 selected_settings.append((set_index, bay_index, kind)),
             get_brand=lambda: "士林",
-            set_brand=lambda brand: brand_calls.append(brand),
+            set_brand=lambda brand: brand_calls.append(brand) or True,
+            on_close=lambda: deferred_refresh.append(tuple(counts)),
+            on_brand_close=lambda: brand_commit.append(brand_calls[-1]),
         )
         root.update()
         brand_picker = win._receiving_multi_brand_selector
@@ -128,6 +165,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         brand_picker.event_generate("<<ComboboxSelected>>")
         root.update()
         assert brand_calls == ["東元"]
+        assert brand_commit == []  # no synchronous 3D/geometry redraw
         assert brand_picker.master.master is win._receiving_multi_mode_controls.master
         assert win.title() == "多只設定"
         assert win.grab_current() is win
@@ -192,10 +230,19 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert [w.cget("text") for w in current_row()] == [
             "第1套", "＋連", "1", "－連", "套用"]
         plus, minus, apply = current_buttons()
+        first_row = rows_host.winfo_children()[0]
+        first_count = current_row()[2]
         plus.invoke()
+        # First click must not destroy the invoking Tk button or recreate
+        # its row, which previously caused a stalled callback/blank view.
+        assert rows_host.winfo_children()[0] is first_row
+        assert current_buttons() == [plus, minus, apply]
+        assert current_row()[2] is first_count
+        assert plus.winfo_exists()
         assert displayed_count() == "2"
-        plus, minus, apply = current_buttons()
+        assert deferred_refresh == []  # no expensive hidden control rebuild
         plus.invoke()
+        assert rows_host.winfo_children()[0] is first_row
         assert displayed_count() == "3"
         assert counts == [3]
         assert len(canvas._receiving_bay_hitboxes) == 1  # apply controls the sketch
@@ -272,29 +319,20 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         win._receiving_multi_close()
         root.update()
         assert root.grab_current() is None
+        assert deferred_refresh == [(2,)]
+        assert brand_commit == ["東元"]
     finally:
         root.destroy()
 
 
-def test_embedded_head_tail_versions_reuse_original_quantity_owner():
+def test_multi_settings_does_not_expose_postponed_version_ui():
     from phase6_quantity_model import QuantityModel
 
     root = tk.Tk()
     root.withdraw()
     mode = {"value": "set_bay"}
     model = QuantityModel()
-    edits = []
-
-    def ports():
-        return {
-            "snapshot": model.snapshot,
-            "select": model.select,
-            "add": model.add_version,
-            "delete": lambda confirmed: model.delete_selected(confirmed=confirmed),
-            "count": model.set_piece_count,
-            "holes": lambda role: edits.append((role, model.selected_version_id)),
-        }
-
+    original = model.snapshot()
     try:
         win = open_multi_settings(
             root,
@@ -302,52 +340,40 @@ def test_embedded_head_tail_versions_reuse_original_quantity_owner():
             get_switch=lambda: SimpleNamespace(connection_counts=lambda: (1,)),
             switch_mode=lambda target: mode.__setitem__("value", target) or True,
             resize_connections=lambda *_args: True,
-            get_quantity_ports=ports,
+            get_settings_ports=lambda _set: {
+                "select": lambda _bay: None,
+                "holes": lambda _role, _bays: None,
+            },
         )
         root.update()
+        listing = win._receiving_multi_setting_list
+        listing.selection_set(0)
+        listing.event_generate("<<ListboxSelect>>")
+        root.update()
+        panel = win._receiving_multi_settings_host
+        assert not any("版本" in label for label in _visible_texts(panel))
+        assert not any(isinstance(child, ttk.Treeview)
+                       for child in panel.winfo_children())
+        # Switching to 數量 must not silently add an unfinished version UI.
         choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
                    if isinstance(w, ttk.Radiobutton)]
         choices[1].invoke()
         root.update()
         assert mode["value"] == "quantity"
-        listing = win._receiving_multi_setting_list
-        assert tuple(listing.get(0, tk.END)) == ("封頭尾",)
-        assert win._receiving_multi_quantity_editor["controls"] is None
         listing.selection_set(0)
         listing.event_generate("<<ListboxSelect>>")
         root.update()
-        controls = win._receiving_multi_quantity_editor["controls"]
-        assert controls is not None
-        assert controls.versions.master.master is win._receiving_multi_settings_host
-        assert _visible_texts(win._receiving_multi_settings_host).count("編輯") == 2
-        assert "封頭孔" in _visible_texts(win._receiving_multi_settings_host)
-        assert "封尾孔" in _visible_texts(win._receiving_multi_settings_host)
-        assert [controls.versions.item(child)["values"][0]
-                for child in controls.versions.get_children()] == ["孔型版本 1"]
-        controls.add()
-        root.update()
-        assert model.version_count == 2
-        assert [controls.versions.item(child)["values"][0]
-                for child in controls.versions.get_children()] == [
-                    "孔型版本 1", "孔型版本 2"
-                ]
-        controls.edit_holes("head")
-        controls.edit_holes("tail")
-        assert edits == [("head", "quantity-v2"), ("tail", "quantity-v2")]
-        controls.ports["count"]("3")
-        controls.refresh()
-        assert model.selected_piece_count == 3
+        assert not panel.winfo_children()
+        assert model.snapshot() == original
         choices[0].invoke()
         root.update()
-        assert win._receiving_multi_quantity_editor["controls"] is None
-        assert tuple(listing.get(0, tk.END)) == ("封頭尾", "內門")
-        assert model.version_count == 2  # no duplicate model or mode transfer
+        assert mode["value"] == "set_bay"
         win._receiving_multi_close()
     finally:
         root.destroy()
 
 
-def test_sketch_multi_highlights_drive_existing_endcap_share_actions():
+def test_sketch_multi_highlights_drive_existing_endcap_edits_without_link_buttons():
     root = tk.Tk()
     root.withdraw()
     calls = []
@@ -388,6 +414,8 @@ def test_sketch_multi_highlights_drive_existing_endcap_share_actions():
         labels = _visible_texts(panel)
         assert "連動目標" not in labels
         assert "編輯／套用" not in labels
+        assert "連動選取的連" not in labels
+        assert "解除本連連動" not in labels
         assert labels.count("編輯") == 2
         assert all(not isinstance(widget, ttk.Checkbutton)
                    for frame in panel.winfo_children()
@@ -398,12 +426,7 @@ def test_sketch_multi_highlights_drive_existing_endcap_share_actions():
         assert len(edits) == 1
         edits[0].invoke()
         assert ("edit", "head", (0, 1, 2)) in calls
-        first = panel.winfo_children()[0]
-        shares = [child for child in first.winfo_children()
-                  if isinstance(child, ttk.Button)
-                  and child.cget("text") == "連動選取的連"]
-        shares[0].invoke()
-        assert ("share", "head_features", (0, 1, 2)) in calls
+        assert not any(item[0] in {"share", "unlink"} for item in calls)
         win._receiving_multi_close()
     finally:
         root.destroy()

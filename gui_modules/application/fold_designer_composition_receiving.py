@@ -433,15 +433,18 @@ def resize_receiving_bays(
     namespace,
     layer_index,
     delta,
+    *,
+    refresh_controls=True,
 ):
-    """Resize one switch layer's connection count only."""
+    """Resize canonical topology; skip redundant hidden panel refresh in modal."""
     switch = self.receiving_switch_adapter(namespace)
     if not switch.resize_connections(
         int(layer_index), int(delta)
     ):
         return False
     self.mark_receiving_switch_layout_dirty(namespace, switch)
-    self.refresh_receiving_set_bay_control(namespace)
+    if refresh_controls:
+        self.refresh_receiving_set_bay_control(namespace)
     return True
 
 def confirm_receiving_opening(
@@ -970,10 +973,10 @@ def _open_common_box(self, namespace):
 
 def _refresh_mode_controls(self, namespace):
     from .receiving_mode_controls import build_mode_controls
+    from .quantity_version_ports import quantity_ports
     app = self.app
     controls = getattr(self, "_receiving_mode_controls", None)
     applicable = self.receiving_layout_applicable()
-    from .quantity_version_ports import quantity_ports
     if controls is None:
         controls = build_mode_controls(
             app.receiving_set_bay_control.master,
@@ -1009,7 +1012,6 @@ def open_receiving_multi_settings(self, namespace):
     if not self.receiving_layout_applicable():
         return False
     from .receiving_multi_settings_window import open_multi_settings
-    from .quantity_version_ports import quantity_ports
 
     def select_bay(set_index, bay_index):
         # Reuse canonical selection; no new data owner or manufacturing draw.
@@ -1029,31 +1031,20 @@ def open_receiving_multi_settings(self, namespace):
         return setting_value(ports["row"](), int(bay_index), kind)
 
     def set_global_brand(value):
-        # The original Receiving layout remains the sole NFB data owner.
-        # Update all Sets as one operator action, then commit the projection
-        # once; selecting a brand must not silently change the active bay.
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
-        if value not in RECEIVING_SWITCH_BRANDS:
-            raise ValueError("不支援的開關品牌")
+        # The original Receiving layout is the one NFB authority. In the
+        # modal, edit data only; geometry rebuild on ComboboxSelected blocks
+        # Tk's UI thread (noticeably on the first selection).
         adapter = self.receiving_adapter(namespace)
-        original_set = adapter.selection.set_index
-        original_bay = adapter.selection.bay_index
-        if all(row.get("switch_brand", "士林") == value
-               for row in adapter.layout["sets"]):
-            return value
-        try:
-            for index in range(len(adapter.layout["sets"])):
-                adapter.select_set(index + 1)
-                adapter.set_brand(value)
-        finally:
-            adapter.select_set(original_set + 1)
-            adapter.select_bay(original_bay + 1)
-        self.mark_receiving_switch_layout_dirty(
-            namespace, self.receiving_switch_adapter(namespace)
-        )
-        self.sync_receiving_current_bay(namespace)
+        if not adapter.set_global_brand(value):
+            return False
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        return True
+
+    def finalize_global_brand():
+        # After the modal has closed, project and submit once for the latest
+        # selected brand. The operator can change brands without a 3D reload.
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
         self.app.submit_update_intent("geometry", commit=True)
-        return value
 
     def existing_door_marks(set_index, bay_index):
         # The lightweight diagram reuses ONLY the existing Door baseline.
@@ -1092,13 +1083,14 @@ def open_receiving_multi_settings(self, namespace):
         get_switch=lambda: self.receiving_switch_adapter(namespace),
         switch_mode=lambda mode: _switch_mode(self, namespace, mode),
         resize_connections=lambda index, delta: self.resize_receiving_bays(
-            namespace, index, delta
+            namespace, index, delta, refresh_controls=False
         ),
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
-        get_quantity_ports=lambda: quantity_ports(self, namespace),
         get_original_door_marks=existing_door_marks,
+        on_brand_close=finalize_global_brand,
+        on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
     )
