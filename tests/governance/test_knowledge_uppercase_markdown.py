@@ -35,5 +35,26 @@ class UppercaseMarkdownGovernanceTests(unittest.TestCase):
             self.assertTrue(any("說明.MD" in error and "missing" in error for error in errors), errors)
 
 
+class CurrentSpecAuthorityCoverageTests(unittest.TestCase):
+    """Keep distinct existing CURRENT specs mapped without changing their rules."""
+
+    def test_current_spec_contracts_are_registered_once(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        authority = (root / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
+        owners = {
+            "receiving-inner-door-frame-physical-mating": "docs/receiving-inner-door-frame-mating-contract.md",
+            "assembly-joint-placement-marking": "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md",
+            "ci-test-sharding-parallelization-design": "docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md",
+        }
+        for contract, path in owners.items():
+            metadata = knowledge_governance.parse_doc_metadata(
+                (root / path).read_text(encoding="utf-8-sig"), path=path
+            )
+            self.assertEqual((metadata.role, metadata.contract), ("CURRENT", contract))
+            marker = f"<!-- WHD_AUTHORITY contract={contract} role=CURRENT path={path} -->"
+            self.assertEqual(authority.count(marker), 1, (contract, path))
+            self.assertEqual(authority.count(f"WHD_AUTHORITY contract={contract} role=CURRENT "), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
