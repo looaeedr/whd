@@ -23,6 +23,7 @@ from ae_engine.receiving_nfb_manufacturing_release import (
 )
 from ae_engine.receiving_nfb_ui1b_bridge import (
     verify_nfb_ui1a_for_submit,assert_live_verified_nfb,submit_live_verified_nfb,
+    copy_live_verified_nfb,
 )
 import ae_engine.receiving_nfb_ui1b_bridge as bridge
 
@@ -195,3 +196,44 @@ def test_live_submit_rejects_changed_or_missing_original_source(tmp_path,monkeyp
     source.unlink()
     with pytest.raises(ValueError,match="missing since verification"):
         assert_live_verified_nfb(Adapter(),verified,current_snapshot=kwargs["snapshot"])
+
+
+
+def test_live_copy_requires_submitted_source_and_exact_target_bundle(tmp_path,monkeypatch):
+    kwargs,unit,_=_setup(tmp_path,monkeypatch)
+    layout=kwargs["layout"]
+    layout["sets"][0]["bays"].append({
+        "stable_id":"bay-b","nfb_config_submitted":True,
+        "nfb_config":{"holes":[{"physical_hole_id":"source-independently-configured"}]},
+    })
+    bundle=verify_nfb_ui1a_for_submit(**kwargs)  # target is Bay 0
+    calls=[]
+    class Adapter:
+        def __init__(self):
+            self.layout=layout
+        def copy_submitted_nfb_to_bay(self,**arguments):
+            calls.append(arguments)
+            return SimpleNamespace(changed=True)
+    adapter=Adapter()
+    outcome=copy_live_verified_nfb(
+        adapter,source_bay_index=1,target_bundle=bundle,
+        current_snapshot=kwargs["snapshot"],confirm=lambda _:True,
+    )
+    assert outcome.changed
+    assert calls[0]["source_bay_index"]==1
+    assert calls[0]["target_bay_index"]==0
+    assert calls[0]["evidence"][0]==bundle.scope
+    assert calls[0]["target_config"]==bundle.config
+    with pytest.raises(ValueError,match="distinct"):
+        copy_live_verified_nfb(
+            adapter,source_bay_index=0,target_bundle=bundle,
+            current_snapshot=kwargs["snapshot"],confirm=lambda _:True,
+        )
+    assert len(calls)==1
+    layout["sets"][0]["bays"][1].pop("nfb_config_submitted")
+    with pytest.raises(ValueError,match="UNCONFIGURED"):
+        copy_live_verified_nfb(
+            adapter,source_bay_index=1,target_bundle=bundle,
+            current_snapshot=kwargs["snapshot"],confirm=lambda _:True,
+        )
+    assert len(calls)==1

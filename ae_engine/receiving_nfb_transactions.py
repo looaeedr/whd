@@ -276,8 +276,10 @@ def copy_submitted_nfb_bay(
             k:v for k,v in configured.items() if k != "holes"}:
         raise ValueError("NFB copy must preserve layer and physical-unit configuration")
     for old, new in zip(copied["holes"], configured["holes"]):
-        excluded = {"physical_hole_id", "manual_x_state", "manual_x_mm",
-                    "datum_revision", "datum_snapshot"}
+        # Each target must keep an independent physical unit identity.
+        # Logical unit IDs are local to a Bay and must not be copied over.
+        excluded = {"physical_hole_id", "unit_id", "manual_x_state",
+                    "manual_x_mm", "datum_revision", "datum_snapshot"}
         if ({k:v for k,v in old.items() if k not in excluded}
                 != {k:v for k,v in new.items() if k not in excluded}):
             raise ValueError("NFB copy must preserve model/rotation/offset identity")
