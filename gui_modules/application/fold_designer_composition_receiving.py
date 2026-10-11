@@ -2357,6 +2357,19 @@ def open_receiving_multi_settings(self, namespace):
                 "submit": submit, "copy": copy, "manifest": physical_manifest,
                 "restore": restore, "undo": undo}
 
+    def applied_version_labels(set_index):
+        """Read ONLY persisted per-Bay identifiers from the current layout."""
+        from ae_engine.receiving_shared_settings import setting_value
+        selected_set = candidate_adapter().layout["sets"][set_index]
+        return tuple({
+            role: setting_value(selected_set, bi, kind)
+            for role, kind in (
+                ("head", "head_version_id"),
+                ("tail", "tail_version_id"),
+                ("inner-door", "inner_door_version_id"),
+            )
+        } for bi in range(len(selected_set["bays"])))
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -2375,6 +2388,7 @@ def open_receiving_multi_settings(self, namespace):
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_original_door_marks=existing_door_marks,
+        get_applied_version_labels=applied_version_labels,
         on_brand_close=finalize_global_brand,
         on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
     )
