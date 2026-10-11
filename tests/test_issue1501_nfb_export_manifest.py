@@ -37,6 +37,7 @@ def _prepared(tmp_path,*,submitted=True,color30=0,color150=1):
         }),
         part_id="inner1",indexed_model_key=("士林",MODEL),
         source_sha256=digest,physical_hole_ids=("nfb:bay1:slot1",),
+        verified_hole_locations=(("nfb:bay1:slot1",0.0,1,0,90),),
     )
     scope=NfbPhysicalScope(
         "setA","bayA","version-1",submitted,"inner1",
@@ -50,7 +51,7 @@ def _prepared(tmp_path,*,submitted=True,color30=0,color150=1):
             "model_filename":MODEL,
             "manual_x_state":"CONFIRMED","manual_x_mm":0,
             "datum_revision":"MEASURED_V1","datum_snapshot":{"w":800},
-            "rotation_deg":90,
+            "rotation_deg":90,"layer_count":1,"slot_index":0,
         }]}
     parts=[
         NfbActualPart("inner1",INNER_DOOR,2),
@@ -58,7 +59,7 @@ def _prepared(tmp_path,*,submitted=True,color30=0,color150=1):
         NfbActualPart("middle1",MIDDLE_PLATE,4),
         NfbActualPart("side1",OTHER,3),
     ]
-    opts=dict(scope=scope,saved_bay=bay,actual_parts=parts,
+    opts=dict(scope=scope,saved_bay=bay,set_brand="士林",actual_parts=parts,
               source_inventory=inventory,verified_inner_door=door,
               source_path=file,proven_unaffected_part_ids=("side1",))
     return opts
@@ -148,8 +149,10 @@ def test_identity_role_count_and_target_list_fail_closed(tmp_path):
         [NfbActualPart("inner1",OTHER),NfbActualPart("base1",BASE_PLATE)],
     ):
         with pytest.raises(ValueError):
-            derive_nfb_partial_export_manifest(**{**opts,"actual_parts":rows},
-                proven_unaffected_part_ids=("missing-other",))
+            derive_nfb_partial_export_manifest(**{
+                **opts,"actual_parts":rows,
+                "proven_unaffected_part_ids":("missing-other",),
+            })
     with pytest.raises(ValueError,match="Bay stable ID"):
         derive_nfb_partial_export_manifest(**{**opts,
             "saved_bay":{**opts["saved_bay"],"stable_id":"wrong"}})
@@ -183,3 +186,30 @@ def test_other_part_without_independent_unaffected_proof_stays_held(tmp_path):
     assert next(x for x in m.rows if x.part_id=="side1").reasons==(
         "OTHER_PART_UNAFFECTED_OWNER_NOT_VERIFIED",
     )
+
+
+
+def test_saved_hole_moved_or_rotated_requires_new_cutting_proof(tmp_path):
+    opts=_prepared(tmp_path)
+    assert "inner1" in derive_nfb_partial_export_manifest(**opts).authorized_part_ids
+    for field,value in (("manual_x_mm",22),("rotation_deg",180),
+                        ("slot_index",1),("model_filename","wrong.dxf")):
+        updated={**opts["saved_bay"],
+                 "nfb_config":{"holes":[{
+                     **opts["saved_bay"]["nfb_config"]["holes"][0],
+                     field:value,
+                 }]}}
+        m=derive_nfb_partial_export_manifest(**{**opts,"saved_bay":updated})
+        assert "inner1" not in m.authorized_part_ids
+        assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in m.unresolved_dependencies
+        assert m.partial_only and not m.whole_ready
+        assert "side1" in m.authorized_part_ids
+
+
+def test_cross_brand_same_filename_must_not_reuse_source_proof(tmp_path):
+    opts=_prepared(tmp_path)
+    mismatch=derive_nfb_partial_export_manifest(**{**opts,"set_brand":"東元"})
+    assert "inner1" not in mismatch.authorized_part_ids
+    assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in mismatch.unresolved_dependencies
+    with pytest.raises(ValueError,match="Set brand"):
+        derive_nfb_partial_export_manifest(**{**opts,"set_brand":""})
