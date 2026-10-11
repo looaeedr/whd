@@ -124,3 +124,42 @@ def test_receiving_illustration_cannot_override_family_or_mount_hole_datum():
     for spec in invalid:
         with pytest.raises(ValueError):
             build_part_render_data(spec)
+
+
+
+def test_built_real_receiving_base_accepts_NFB_overlay_without_recutting_ear():
+    from ae_engine.receiving_nfb_base_process_projection import (
+        NfbActualBaseWorkFace, NfbProjectedBaseProcess,
+        compose_projected_nfb_on_actual_base,
+    )
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    spec=_spec(RECEIVING_BASE_PATTERN_LEFT)
+    render=build_part_render_data(spec)
+    # The real mounting face has FOUR existing EAR voids. It remains one
+    # work face; preexisting holes must not falsely make it 'unresolved'.
+    face=NfbActualBaseWorkFace(
+        physical_part_id="base_plate",
+        actual_render=render,
+        world_face_center_xy_mm=(0.,250.),
+        unfolded_face_center_uv_mm=(355.,150.),
+        face_outline_uv_mm=((0.,20.),(710.,20.),(710.,280.),(0.,280.)),
+    )
+    holes=DrawingScene()
+    holes.add_circle((355.,150.),1.6,layer="CUTTING",color=30,
+                     source_type="NFB_LOWER_NATIVE_FIXING_CIRCLE",
+                     source_id="nfb:1:source:F1")
+    projected=NfbProjectedBaseProcess(
+        physical_part_id="base_plate",source_sha256="a"*64,
+        source_model="400_140X257_107.dxf",owner_hole_ids=("nfb:1",),
+        cutting=tuple(holes.primitives),marking=(),
+    )
+    assembled=compose_projected_nfb_on_actual_base(
+        target=face,projection=projected,
+    )
+    assert assembled.render_data.material.area < render.material.area
+    assert len([p for p in assembled.render_data.scene.primitives
+                if isinstance(p,PolylinePrimitive) and p.layer=="CUTTING"])==5
+    assert len([p for p in assembled.render_data.scene.primitives
+                if isinstance(p,CirclePrimitive)
+                and p.source_type=="NFB_LOWER_NATIVE_FIXING_CIRCLE"])==1
+    assert not assembled.manufacturing_ready
