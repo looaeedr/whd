@@ -21,7 +21,7 @@ whd_schema: WHD_DOC_META_V1
 - 空 diff、未知路徑、非法路徑、一份 diff 包含任何產品路徑 → **不能使用治理直送**。
 - Git rename/copy 同時檢查原路徑與新路徑；不能把產品檔改名為 Markdown 來騙過白名單。
 - 只有指定 repo、正式 X base、同 repo head、符合通道的分支、實際 Git diff 才可通過。
-- Product/mixed PR 只能以 `localX` 為 head 且須已完成使用者 exact `/推推`；不能僅靠 PR body、機器人 comment 或舊版核准。
+- **以正式 X 為 base 的產品／混合發布 PR**：head 必須為 `localX`，並具有使用者當次 exact `/推推` 授權；不能僅靠 PR body、機器人 comment 或舊版核准。**以 `localX` 為 base 的一般產品工作 PR**：是正常施工與 CI 驗收流程，不是 X 發布，不需每張另下 `/推推`；仍須依當次 `/派工`／`/接手` 權限及 `AGENTS.md` 的安全整合、同步、回讀規則辦理。不得用這項區分跳過正式 X 發布閘門。
 - GitHub Actions 使用 **base SHA 的可信政策程式**，不能直接信任候選 PR 修改後的 gate。
 - 本機測試、GitHub Actions 結果及 merge/readback 各自回報；CI GREEN 不等於已合併。
 
