@@ -146,9 +146,26 @@ def test_existing_upper_base_ear_NFB_finalscene_are_one_real_part(tmp_path,patte
     out=tmp_path/(pattern+".dxf")
     save_part_render_data_dxf(real,out)
     imported=ezdxf.readfile(out).modelspace()
-    assert len(imported.query("CIRCLE[layer=='CUTTING']"))>=8
-    assert len(imported.query("LWPOLYLINE[layer=='CUTTING']"))>=7
-    assert len(imported.query("LWPOLYLINE[layer=='MARKING']"))>=8
+    source_circles=sorted(
+        (round(p.center.x,6),round(p.center.y,6),round(p.radius,6))
+        for p in real.scene.primitives
+        if isinstance(p,CirclePrimitive) and p.layer=="CUTTING"
+    )
+    saved_circles=sorted(
+        (round(e.dxf.center.x,6),round(e.dxf.center.y,6),round(e.dxf.radius,6))
+        for e in imported
+        if e.dxftype()=="CIRCLE" and e.dxf.layer=="CUTTING"
+    )
+    assert saved_circles==source_circles  # exact NFB screw/CUTTING count & XY
+    saved_cuts=[e for e in imported
+                if e.dxftype()=="LWPOLYLINE" and e.dxf.layer=="CUTTING" and e.closed]
+    saved_marks=[e for e in imported
+                 if e.dxftype()=="LWPOLYLINE" and e.dxf.layer=="MARKING"]
+    assert len(saved_cuts)==len(cuts)
+    source_marks=[p for p in real.scene.primitives
+                  if isinstance(p,PolylinePrimitive) and p.layer=="MARKING"]
+    assert len(saved_marks)==len(source_marks)
+    assert len(saved_cuts)==7 and len(saved_marks)==8
 
 
 def test_lower_bay_does_not_create_second_base_plate(tmp_path):
