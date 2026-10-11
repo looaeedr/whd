@@ -186,14 +186,13 @@ def test_legacy_knowledge_preflight_has_no_current_authority_row() -> None:
 
 def test_registered_mirrors_match_canonical_metadata() -> None:
     """Registered pointer-only mirrors must not invent another contract."""
-    from tools.knowledge_governance import GovernanceError
     import re
 
     paths = []
     for line in read(AUTHORITY_MAP_REL).splitlines():
         if "WHD_AUTHORITY " not in line or "role=MIRROR" not in line:
             continue
-        match = re.search(r"\\bpath=([^\\s]+)", line)
+        match = re.search(r"\bpath=([^\s]+)", line)
         assert match is not None
         paths.append(match.group(1))
     paths.append("docs/governance/WHD_規格書Skill前置與Grounding規則.md")
