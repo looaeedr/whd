@@ -248,3 +248,16 @@ def test_beta_skill_navigation_does_not_resurrect_retired_preflight() -> None:
     assert "not** a promotion prerequisite" in text
     assert "Skill governance, Preflight and regression checks" not in text
     assert "no local-machine permission" in text
+
+
+def test_remote_qa_route_checks_explicit_github_only_approval_before_dc() -> None:
+    text = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
+    dispatch = read(".agents/skills/engineering/派工/SKILL.md")
+    assert "整合路線先看使用者當次授權範圍，再決定是否可用 DC" in text
+    assert "不得先試探、連線或要求 DC 斷線證據" in text
+    assert "按當次授權選路" in text
+    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in text
+    assert "GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING" in text
+    assert "LOCALX_INTEGRATION_PENDING" in text
+    assert "不可假記" in text
+    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in dispatch
