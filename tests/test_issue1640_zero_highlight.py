@@ -77,3 +77,20 @@ def test_last_highlight_can_be_cleared_and_candidate_apply_is_noop():
         win._receiving_multi_close()
     finally:
         root.destroy()
+
+
+def test_empty_highlights_cannot_fall_back_to_current_bay_in_legacy_ports():
+    from gui_modules.application import fold_designer_composition_receiving as comp
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from ae_engine.receiving_shared_settings import setting_value
+
+    adapter = ReceivingSetBayAdapter(
+        new_receiving_layout(width=800, height=1600, depth=350)
+    )
+    host = SimpleNamespace(receiving_adapter=lambda _namespace: adapter)
+    ports = comp.receiving_settings_ports(host, "test", 0)
+    initial_layout = adapter.layout
+    assert ports["change"]("inner_door_layers", 2, ()) is False
+    assert ports["holes"]("head", ()) is False
+    assert adapter.layout == initial_layout
+    assert setting_value(adapter.layout["sets"][0], 0, "inner_door_layers") == 1
