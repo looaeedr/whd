@@ -9,7 +9,8 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk, messagebox
 from ae_engine.receiving_hole_candidates import version_label
-from ae_engine.receiving_switch_model_catalog import INDEX_PATH, model_filenames, display_model
+from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
+from .receiving_endcap_thumbnail import paint_endcap_thumbnail
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
@@ -321,57 +322,105 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                        "buttons_frame": None, "quantity_frame": None,
                        "canvas": None}
     quantity_ui = None
-    model_state = {"listbox": None, "status": None, "layer": None,
-                   "files": (), "signature": None}
+    preview_state = {"applied": None, "candidate": None, "status": None}
+    endcap_preview_state = {}
 
-    def refresh_switch_model_list(*, force=False):
-        """Refresh names only: editing CSV never launches 3D or applies a Bay."""
-        widget = model_state["listbox"]
-        if widget is None or not widget.winfo_exists():
+    def refresh_endcap_previews(role=None):
+        """Compare original physical Bay with selected head/tail version."""
+        roles = (role,) if role is not None else ("head", "tail")
+        if (active_ports["ports"] is None or get_candidate_ports is None
+                or not callable(active_ports["ports"].get("row"))):
+            # Preserve lean legacy/testing ports without opening a new data owner.
             return
-        try:
-            stat = INDEX_PATH.stat()
-            signature = (brand_var.get(), stat.st_mtime_ns, stat.st_size)
-        except OSError:
-            signature = (brand_var.get(), None, None)
-        if not force and signature == model_state["signature"]:
+        from ae_engine.receiving_shared_settings import setting_value
+        bay_index = selected_setting["bay_index"]
+        row = active_ports["ports"]["row"]()
+        bay = row["bays"][bay_index]
+        width, depth = bay["width"], bay["depth"]
+        for name in roles:
+            widgets = endcap_preview_state.get(name)
+            if not widgets or not widgets["applied"].winfo_exists():
+                continue
+            applied_features = setting_value(row, bay_index, name + "_features")
+            version_id = candidate_selected[name]
+            candidate_features = None
+            if version_id is not None:
+                for item in get_candidate_ports()["versions"](name):
+                    if item["id"] == version_id:
+                        candidate_features = item["features"]
+                        break
+            try:
+                paint_endcap_thumbnail(
+                    widgets["applied"], applied_features, width, depth,
+                    title="目前：第{}套／第{}連".format(
+                        selected_setting["set_index"] + 1, bay_index + 1),
+                )
+                paint_endcap_thumbnail(
+                    widgets["candidate"], candidate_features, width, depth,
+                    title=(f"候選：{version_label(version_id)}"
+                           if candidate_features is not None else "候選：即時"),
+                )
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                for c in (widgets["applied"], widgets["candidate"]):
+                    c.delete("all")
+                    c.create_text(10, 20, anchor="w", text="預覽資料無法解析",
+                                  fill="#efb4a3")
+                widgets["status"].set(str(exc))
+                continue
+            if candidate_features is None:
+                message = "選擇版本後比較目前配置"
+            elif candidate_features == applied_features:
+                message = "候選內容與目前這一連相同"
+            else:
+                message = "候選內容尚未套用至目前這一連"
+            current_meta = widgets["applied"]._receiving_endcap_preview
+            candidate_meta = widgets["candidate"]._receiving_endcap_preview
+            if current_meta["unsupported"] or candidate_meta["unsupported"]:
+                message += "｜部分孔位格式無法畫出，請用孔位編輯器確認"
+            if len(applied["selected_bays"]) > 1:
+                message += "（左圖只顯示目前連位）"
+            widgets["status"].set(message)
+
+    def refresh_inner_preview():
+        """Show real Bay data versus currently selected candidate, not geometry."""
+        applied_canvas = preview_state["applied"]
+        chosen_canvas = preview_state["candidate"]
+        if (applied_canvas is None or chosen_canvas is None
+                or not applied_canvas.winfo_exists()
+                or not chosen_canvas.winfo_exists()):
             return
-        model_state["signature"] = signature
-        try:
-            files = model_filenames(brand_var.get())
-            error = None
-        except (OSError, UnicodeError, ValueError) as exc:
-            files, error = (), str(exc)
-        model_state["files"] = files
-        widget.delete(0, tk.END)
-        for filename in files:
-            widget.insert(tk.END, display_model(filename))
-        try:
-            slot = model_state["layer"].get() - 1
-            row = active_ports["ports"]["row"]()
-            bay_index = selected_setting["bay_index"]
-            from ae_engine.receiving_shared_settings import setting_value
-            current = setting_value(row, bay_index, "inner_door_models")[slot]
-        except (ValueError, IndexError, KeyError, TypeError):
-            current = ""
-        if current in files:
-            position = files.index(current)
-            widget.selection_set(position)
-            widget.see(position)
-            model_state["status"].set("目前型號：" + display_model(current))
-        elif current:
-            model_state["status"].set("目前型號已不在 CSV，請重新選擇")
+        from ae_engine.receiving_shared_settings import setting_value
+        bay = selected_setting["bay_index"]
+        row = active_ports["ports"]["row"]()
+        applied_config = {
+            "layers": setting_value(row, bay, "inner_door_layers"),
+            "models": setting_value(row, bay, "inner_door_models"),
+        }
+        paint_inner_door_thumbnail(
+            applied_canvas, applied_config,
+            title=f"目前：第{selected_setting['set_index']+1}套／第{bay+1}連",
+        )
+        version_id = candidate_selected["inner-door"]
+        candidate_config = None
+        if version_id is not None and get_inner_candidate_ports is not None:
+            for version in get_inner_candidate_ports()["versions"]("inner-door"):
+                if version["id"] == version_id:
+                    candidate_config = version["config"]
+                    break
+        paint_inner_door_thumbnail(
+            chosen_canvas, candidate_config,
+            title=(f"候選：{version_label(version_id)}"
+                   if candidate_config is not None else "候選：即時"),
+        )
+        if candidate_config is None:
+            message = "選取內門版本，即可比較縮圖"
+        elif candidate_config == applied_config:
+            message = "候選內容與目前這一連相同"
         else:
-            model_state["status"].set(
-                ("CSV 讀取失敗：" + error) if error else
-                ("此品牌沒有 CSV 型號" if not files else "請選擇開關型號")
-            )
-
-    def poll_switch_model_list():
-        if not win.winfo_exists():
-            return
-        refresh_switch_model_list()
-        win.after(1800, poll_switch_model_list)
+            message = "候選內容尚未套用至目前這一連"
+        if len(applied["selected_bays"]) > 1:
+            message += "（左圖僅顯示目前連位）"
+        preview_state["status"].set(message)
 
     def editor_saved(role, version_id, *, keep_live=False):
         # Saving while "即時" creates a candidate but MUST NOT select it:
@@ -384,7 +433,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             win.after_idle(refresh_manager_controls)
 
     def show_setting_controls():
-        model_state.update(listbox=None, status=None, layer=None, files=(), signature=None)
+        preview_state.update(applied=None, candidate=None, status=None)
+        endcap_preview_state.clear()
         for widget in settings_host.winfo_children():
             widget.destroy()
         active_ports["ports"] = None
@@ -418,10 +468,19 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 current = setting_value(ports["row"](), bay_index, kind)
                 value = tk.StringVar(master=win, value=str(current))
                 ttk.Label(row, text="內門層數").pack(side="left")
-                ttk.Combobox(row, textvariable=value, values=("1", "2"),
-                             width=5, state="readonly").pack(side="left", padx=3)
-                ttk.Button(row, text="編輯",
-                           command=lambda: perform(lambda: ports["change"](kind, int(value.get()), targets()))).pack(side="left", padx=3)
+                selector = ttk.Combobox(
+                    row, textvariable=value, values=("1", "2"),
+                    width=5, state="readonly",
+                )
+                selector.pack(side="left", padx=3)
+                # Previously "編輯" only committed the layer count.
+                # Choosing 1/2 now applies it immediately to highlighted Bays.
+                selector.bind(
+                    "<<ComboboxSelected>>",
+                    lambda _event: perform(
+                        lambda: ports["change"](kind, int(value.get()), targets())
+                    ),
+                )
                 return
             ttk.Label(
                 row, text={"head": "封頭孔", "tail": "封尾孔",
@@ -463,6 +522,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     state="normal" if candidate_selected[role] else "disabled"
                 )
                 refresh_manager_controls()
+                if role == "inner-door":
+                    refresh_inner_preview()
+                elif role in ("head", "tail"):
+                    refresh_endcap_previews(role)
 
             selector.bind("<<ComboboxSelected>>", choose)
 
@@ -485,6 +548,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         role, candidate_selected[role],
                         applied["set_index"], tuple(applied["selected_bays"]),
                     )
+                    if role == "inner-door":
+                        refresh_inner_preview()
+                    elif role in ("head", "tail"):
+                        refresh_endcap_previews(role)
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
 
@@ -502,75 +569,61 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Button(
                     settings_host, text="版本管理", command=open_manager,
                 ).pack(anchor="e", pady=(5, 0))
+                # Head and tail are independent. Show both real-Bay
+                # and selected-candidate outlines using Hole Editor features.
+                for endcap_role, heading in (("head", "封頭"), ("tail", "封尾")):
+                    holder = ttk.Frame(settings_host)
+                    holder.pack(anchor="w", fill="x", pady=(6, 1))
+                    ttk.Label(holder, text=heading + " 配置比較").pack(
+                        anchor="w", pady=(0, 2),
+                    )
+                    canvases = ttk.Frame(holder)
+                    canvases.pack(anchor="w", fill="x")
+                    current_canvas = tk.Canvas(
+                        canvases, width=220, height=134,
+                        background="#1a2734", highlightthickness=0,
+                    )
+                    current_canvas.pack(side="left", padx=(0, 7))
+                    candidate_canvas = tk.Canvas(
+                        canvases, width=220, height=134,
+                        background="#1a2734", highlightthickness=0,
+                    )
+                    candidate_canvas.pack(side="left")
+                    status = tk.StringVar(master=win)
+                    ttk.Label(holder, textvariable=status).pack(anchor="w")
+                    endcap_preview_state[endcap_role] = {
+                        "applied": current_canvas, "candidate": candidate_canvas,
+                        "status": status,
+                    }
+                refresh_endcap_previews()
         else:
             actions(settings_host, "inner_door_layers")
-            if "share" in ports and "unlink" in ports:
-                linked_row = ttk.Frame(settings_host)
-                linked_row.pack(anchor="w", pady=3)
-                ttk.Button(
-                    linked_row, text="連動選取的連",
-                    command=lambda: perform(lambda: ports["share"](
-                        "inner_door_layers", targets(),
-                    )),
-                ).pack(side="left", padx=(0, 5))
-                ttk.Button(
-                    linked_row, text="解除本連連動",
-                    command=lambda: perform(lambda: ports["unlink"](
-                        "inner_door_layers",
-                    )),
-                ).pack(side="left")
             if get_inner_candidate_ports is not None:
                 actions(settings_host, "inner_door_layers", role="inner-door")
                 ttk.Button(
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
-            # NFB models are per-Bay inner-door settings, never head/tail.
-            # Highlighted Bay identity is shared with the existing 2D diagram.
-            current_layers = int(setting_value(ports["row"](), bay_index, "inner_door_layers"))
-            model_row = ttk.Frame(settings_host)
-            model_row.pack(anchor="w", pady=(4, 2))
-            ttk.Label(model_row, text="開關型號｜").pack(side="left")
-            layer = tk.IntVar(master=win, value=1)
-            for index in (1, 2):
-                ttk.Radiobutton(
-                    model_row, text=f"第{index}層", variable=layer, value=index,
-                    state="normal" if index <= current_layers else "disabled",
-                    command=lambda: refresh_switch_model_list(force=True),
-                ).pack(side="left", padx=(0, 6))
-            choices = tk.Listbox(
-                settings_host, height=6, width=30, selectmode=tk.BROWSE,
-                exportselection=False,
-            )
-            choices.pack(anchor="w", fill="x")
-            model_status = tk.StringVar(master=win)
-            ttk.Label(settings_host, textvariable=model_status).pack(anchor="w")
-            model_state.update(listbox=choices, layer=layer,
-                               status=model_status, signature=None)
-            refresh_switch_model_list(force=True)
-
-            def apply_model():
-                choices_index = choices.curselection()
-                if not choices_index:
-                    raise ValueError("請從開關索引.csv 的清單選擇型號")
-                filename = model_state["files"][choices_index[0]]
-                # Guard edits or brand changes after the list was populated.
-                if filename not in model_filenames(brand_var.get()):
-                    raise ValueError("選取型號已不在 CSV，請重新選擇")
-                if layer.get() > int(setting_value(
-                    ports["row"](), bay_index, "inner_door_layers"
-                )):
-                    raise ValueError("請先設定內門層數")
-                existing = list(setting_value(
-                    ports["row"](), bay_index, "inner_door_models"
-                ))
-                existing[layer.get() - 1] = filename
-                ports["change"]("inner_door_models", existing, targets())
-
-            ttk.Button(settings_host, text="套用開關型號",
-                       command=lambda: perform(apply_model)).pack(
-                anchor="w", pady=(4, 0),
-            )
+                # Small factual thumbnails: Bay-applied versus only-selected
+                # candidate. No inferred hole geometry, 3D or manufacturing.
+                thumbnails = ttk.Frame(settings_host)
+                thumbnails.pack(anchor="w", fill="x", pady=(7, 2))
+                preview_state["applied"] = tk.Canvas(
+                    thumbnails, width=256, height=158,
+                    background="#1a2734", highlightthickness=0,
+                )
+                preview_state["applied"].pack(side="left", padx=(0, 8))
+                preview_state["candidate"] = tk.Canvas(
+                    thumbnails, width=256, height=158,
+                    background="#1a2734", highlightthickness=0,
+                )
+                preview_state["candidate"].pack(side="left")
+                preview_state["status"] = tk.StringVar(master=win)
+                ttk.Label(
+                    settings_host, textvariable=preview_state["status"],
+                ).pack(anchor="w")
+                refresh_inner_preview()
+            # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
 
@@ -1031,7 +1084,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     canvas.bind("<Configure>", lambda _event: render())
     refresh_rows()
     render()
-    win.after(1800, poll_switch_model_list)
 
     # Test hooks are presentation state only, not product data authority.
     win._receiving_multi_brand_var = brand_var
@@ -1039,8 +1091,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_set_buttons = (minus_set, plus_set)
     win._receiving_multi_candidate_selected = candidate_selected
     win._receiving_multi_candidate_combos = candidate_combos
-    win._receiving_multi_inner_model_state = model_state
-    win._receiving_multi_refresh_switch_models = refresh_switch_model_list
+    win._receiving_multi_inner_preview = preview_state
+    win._receiving_multi_endcap_preview = endcap_preview_state
+    win._receiving_multi_refresh_endcap_previews = refresh_endcap_previews
+    win._receiving_multi_refresh_inner_preview = refresh_inner_preview
     win._receiving_multi_manager_state = manager_state
     win._receiving_multi_manager_window = manager_window
     win._receiving_multi_open_manager = open_manager
