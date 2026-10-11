@@ -166,9 +166,10 @@ def read_nfb_native_mfg2_features(
     )
 
 
-def candidate_nfb_base_plate_uv(
+def candidate_nfb_plate_uv(
     observation:NfbNativeMfg2SourceObservation,*,
     target_physical_part_id:str,
+    target_role:str,
     independently_measured_reference_uv_xy:tuple[float,float],
     rotation_deg:int,
 )->tuple[NfbUnapprovedUvCandidate,...]:
@@ -180,8 +181,10 @@ def candidate_nfb_base_plate_uv(
     """
     if not isinstance(observation,NfbNativeMfg2SourceObservation):
         raise TypeError("NFB native original source observation required")
-    if not target_physical_part_id or not target_physical_part_id.strip():
+    if not isinstance(target_physical_part_id,str) or not target_physical_part_id.strip():
         raise ValueError("NFB UV needs real target physical plate ID")
+    if target_role not in (BASE,MIDDLE):
+        raise ValueError("NFB MFG-2 UV target must be real base/middle plate")
     if type(rotation_deg) is not int or rotation_deg not in (0,90,180,270):
         raise ValueError("NFB physical UV requires explicit quarter-turn orientation")
     if (len(independently_measured_reference_uv_xy)!=2 or
@@ -193,12 +196,12 @@ def candidate_nfb_base_plate_uv(
     co,si=round(cos(angle)),round(sin(angle))
     out=[]
     for feature in observation.upper_features:
-        if BASE not in feature.possible_physical_roles:
+        if target_role not in feature.possible_physical_roles:
             continue
         coords=tuple((x+co*px-si*py,y+si*px+co*py)
                      for px,py in feature.points_from_upper_center_mm)
         out.append(NfbUnapprovedUvCandidate(
-            physical_part_id=target_physical_part_id,role=BASE,
+            physical_part_id=target_physical_part_id,role=target_role,
             source_handle=feature.source_handle,
             process_layer=feature.process_layer,points_uv_mm=coords,
             circle_radius_mm=feature.circle_radius_mm,closed=feature.closed,
@@ -206,3 +209,23 @@ def candidate_nfb_base_plate_uv(
                         feature.source_handle),
         ))
     return tuple(out)
+
+
+def candidate_nfb_base_plate_uv(observation,*,target_physical_part_id,
+                                independently_measured_reference_uv_xy,rotation_deg):
+    return candidate_nfb_plate_uv(
+        observation,target_physical_part_id=target_physical_part_id,
+        target_role=BASE,
+        independently_measured_reference_uv_xy=independently_measured_reference_uv_xy,
+        rotation_deg=rotation_deg,
+    )
+
+
+def candidate_nfb_middle_plate_uv(observation,*,target_physical_part_id,
+                                  independently_measured_reference_uv_xy,rotation_deg):
+    return candidate_nfb_plate_uv(
+        observation,target_physical_part_id=target_physical_part_id,
+        target_role=MIDDLE,
+        independently_measured_reference_uv_xy=independently_measured_reference_uv_xy,
+        rotation_deg=rotation_deg,
+    )
