@@ -19,8 +19,6 @@ class PublishGateTests(unittest.TestCase):
           comments=[{"user":{"login":"looaeedr","type":"User"},
           "body":"/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\nrepo=looaeedr/whd\npr=12\nsource=localX\nhead="+("a"*40)+"\ntarget=cleanup/2d-3d-sync\nbase="+("b"*40)}])
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class ConversationBugfixIntegrationTests(unittest.TestCase):
@@ -84,3 +82,7 @@ class ConversationBugfixIntegrationTests(unittest.TestCase):
         with self.assertRaises(LocalXIntegrationDenied):
             require_conversational_bugfix_localx_integration(
                 authorization=item, delivery=self.delivery)
+
+
+if __name__ == "__main__":
+    unittest.main()
