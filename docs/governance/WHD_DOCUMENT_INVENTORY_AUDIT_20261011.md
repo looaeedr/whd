@@ -136,6 +136,12 @@ whd_schema: WHD_DOC_META_V1
 - 本輪僅為候選治理 PR 的已施工內容；**通過 exact-head 可信治理 CI、合併 X 並回讀**之前，不宣稱本節已正式上線。
 - 另有第一層 `04_全域AI協作規則.md` 的「每票先建 Issue」段落，屬 `REFERENCE` 且含舊轉派欄位。當前已有雲端直送治理分流；該檔不在治理直送白名單，不能因本次發現就越權修改，應先核對其適用對象及變更通道。
 
+## 第七輪補充：產品工作 PR 與正式 X 發布 PR 的規則適用範圍（2026-10-11）
+
+- 現行 `docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md` 原「Product/mixed PR 只能以 `localX` 為 head，且要使用者 exact `/推推`」易被脫離上下文引用，錯誤地套用到日常 **base=`localX` 的產品工作 PR**，造成每張單被要求額外 `/推推`。實際受信任 `tools/change_lane_gate.py` 僅對 **base=`cleanup/2d-3d-sync` 的正式 X PR** 驗證產品 head=`localX` 及 owner exact `/推推`。
+- 這次對 CURRENT governance policy 做**適用範圍文字澄清**：`X ← localX` 正式產品發布仍嚴格要求當次 `/推推`；`work branch → localX` 則依 `AGENTS.md`／既有工單授權完成 exact CI 與合法的本機優先整合，不需每張工作 PR 另下 `/推推`。**不修改 trusted gate 程式、不放寬任何 X 發布驗收**。
+- 在既有會由 Knowledge Governance Bootstrap 呼叫的 `tests/process/test_change_lane_gate.py` 補文字／實際 `evaluate_pr` 雙重回歸，防止這兩種 PR 角色再次混為一談。本節是本次候選的施工證據，正式上線與否仍以新 PR CI、merge／readback 為準。
+
 ## 清查判定
 
 - **已執行**：全樹文件清單、權威索引角色統計、重要 CURRENT／REFERENCE／MIRROR 的優先核對、59 份 Skill metadata 與退役流程關鍵字查核、確認一處治理文字錯誤並提出修正。
