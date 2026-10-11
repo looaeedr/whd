@@ -182,3 +182,26 @@ def test_legacy_knowledge_preflight_has_no_current_authority_row() -> None:
     agents = read("AGENTS.md")
     assert "舊工單交易、工作槽與 lease 控制系統已退役" in agents
     assert "Preflight receipt" in agents
+
+
+def test_registered_mirrors_match_canonical_metadata() -> None:
+    """Registered pointer-only mirrors must not invent another contract."""
+    from tools.knowledge_governance import GovernanceError
+    import re
+
+    paths = []
+    for line in read(AUTHORITY_MAP_REL).splitlines():
+        if "WHD_AUTHORITY " not in line or "role=MIRROR" not in line:
+            continue
+        match = re.search(r"\\bpath=([^\\s]+)", line)
+        assert match is not None
+        paths.append(match.group(1))
+    paths.append("docs/governance/WHD_規格書Skill前置與Grounding規則.md")
+    for path in sorted(set(paths)):
+        metadata = parse_doc_metadata(read(path), path=path)
+        assert metadata.role == "MIRROR", path
+        assert metadata.canonical, path
+        target = metadata.canonical
+        target_meta = parse_doc_metadata(read(target), path=target)
+        assert target_meta.role == "CURRENT", (path, target)
+        assert metadata.contract == target_meta.contract, (path, target)
