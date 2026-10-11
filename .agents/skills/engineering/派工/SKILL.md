@@ -50,6 +50,10 @@ whd_schema: WHD_DOC_META_V1
 
 本節**不允許 `/派工` 以 DC 施工**，亦不放寬任何平台公開上傳安全審查。平台實際拒絕就回報 `PUBLIC_UPLOAD_REVIEW_BLOCKED` 與拒絕操作、必要補證，不得更換管道規避或無限重問相同核准。**純治理文件必須優先 GitHub 直送 X，不得未經另外明確授權而使用 DC**。
 
+## 預設自動整合本機 localX `DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1`
+
+這裡「自動」指**既有合法執行者在同一次交付中主動續作，不要求使用者每張 PR 再下合併命令**，不是新建排程、背景代理或 CI 跨網路操作本機。原 `/派工` 同一 Issue／PR 的已核准範圍，包含 CI SUCCESS 後的標準 `LOCALX_INTEGRATION`；先檢查該單是否有明確 GitHub-only／不使用 DC 的覆寫。**未覆寫時預設 `DC_LOCALX_FIRST`**，合法階段僅操作本機安全合併／整合驗證／非強制同步／SHA readback；成功才記 `LOCALX_SYNCED`。不能先把 `LOCALX_INTEGRATION_PENDING` 當作要向使用者索取新合併指令的理由。平台／裝置真實阻塞才回報 blocker，不能藉此直接遠端合併。跨 Issue／範圍、正式 X 發布及平台權限仍遵守原有閘門。
+
 ## GitHub-only 遠端 localX 整合 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1`
 
 使用者已**對本工單明確授權遠端 GitHub `localX` 合併**且明示不准 DC／本機時，不應以 DC-first 無法執行為由停在 `Ready for review`；必須在 exact PR HEAD CI SUCCESS、PR base=`localX`、合併前 head/base/mergeable 回讀無異常後，用 GitHub PR merge（設定 `expected_head_sha`）整合遠端 `localX`，再回讀 PR merged、merge_commit_sha 與 GitHub localX HEAD；記錄 `GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING`，本機 localX 未查一律 UNKNOWN。絕不可把這條寫成 `DC_UNREACHABLE`，不可替使用者虛構遠端合併授權。若原指令只寫「禁止 DC」，沒有授權整合 remote localX，仍是 `LOCALX_INTEGRATION_PENDING`，需明列缺口，不得擅自合併。只有原 Issue/PR 範圍已授權整合時，才不需反覆詢問。此例外不變更正式 X 產品 `/推推` 及本機保留限制。
@@ -60,7 +64,7 @@ whd_schema: WHD_DOC_META_V1
 
 1. 讀當前 PR `base/head_sha` 以及 **exact SHA** Product Regression 的 `run_id/status/conclusion`（含 jobs）；不存在、SHA 不符或資訊不足 → `RECONCILE_ONLY`，定向補讀，不得沿用舊 GREEN。
 2. `requested/queued/waiting/pending/in_progress` → `CONTINUE_POLL`，同一回合繼續查狀態；每 2–3 次操作回報，而非結束。避免高頻重抓完整 CI log。
-3. `completed/success` → `LOCALX_INTEGRATION_PENDING`：驗收通過後繼續既有 `LOCALX_INTEGRATION` 或獲使用者明確授權的 GitHub-only 整合，保留本機修改；即使 PR 仍 Draft，也不能以「綠燈但還未合併」作為完成。其他 terminal conclusion → `REPAIR_AND_RETEST`。
+3. `completed/success` → `LOCALX_INTEGRATION_PENDING`：這是**待執行動作**而非待使用者再次授權；既有 `/派工` 範圍直接續行預設本機 `LOCALX_INTEGRATION`，當次明確 GitHub-only 覆寫才走遠端整合。保留本機修改；即使 PR 仍 Draft，也不能以「綠燈但還未合併」作為完成。其他 terminal conclusion → `REPAIR_AND_RETEST`。
 4. `localX` 整合、Issue close/readback、`NEXT_ISSUE_DISCOVERY_REQUIRED` 未完成 → `CONTINUE_FINALIZATION`，不能冒稱 `RELEASED`；只有所有義務已驗證才宣告交付完成。
 5. **唯一非完成式退出**：真正的外部障礙 `BLOCKED_WITH_EVIDENCE` 或真實工具／回合上限 `RUNTIME_LIMIT_UNRESOLVED`；附 `Issue/PR/head_sha/run_id/last_observation/blocker/next_exact_action`，不得稱 DONE，不能假裝背景會繼續。ChatGPT 平台沒有可由此文件攔截的「關閉回答」鉤子；此規則依賴執行者按規則行動。
 
@@ -69,7 +73,7 @@ whd_schema: WHD_DOC_META_V1
 ## 發出產品 PR 之後必須續作
 
 1. `PR_OPEN / CI_QUEUED / CI_IN_PROGRESS / CI_PENDING` 一律 `CONTINUE_POLL`，**不是可結束的交付狀態**；在當前回合持續輪詢 exact PR SHA 與對應 run，不得把「正在測試」當成派工完成。
-2. `CI_SUCCESS` 且 PR 可整合，**先由 DC 最終整合到本機 `localX`**、驗證後非強制同步 GitHub `localX`，回讀兩端 HEAD、PR 與 Issue 後留言、close Issue + readback；DC 真正不可連線可走斷線備援；使用者明確授權 GitHub-only remote `localX` 整合可走 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1`；兩者均記錄 `LOCALX_SYNC_PENDING`，不可假稱 DC 已斷線。整段不必使用者再喊「繼續」。
+2. `CI_SUCCESS` 且 PR 可整合，**先由 DC 最終整合到本機 `localX`**、驗證後非強制同步 GitHub `localX`，回讀兩端 HEAD、PR 與 Issue 後留言、close Issue + readback；DC 真正不可連線可走斷線備援；使用者明確授權 GitHub-only remote `localX` 整合可走 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1`；**本機成功且兩端驗證完成**記錄 `LOCALX_SYNCED`；只有 GitHub-only／真實 DC 斷線備援才記錄 `LOCALX_SYNC_PENDING`，不可假稱 DC 已斷線。整段不必使用者再喊「繼續」。
    **重要先後次序**：本機 `localX` merge＋雙端 SHA 回讀成功（或已標記 DC 斷線、遠端合併及本機待同步）後，**立刻啟動 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，同步完成原 Issue 留言／close/readback；**不得等 Issue CLOSED 才找下一張**，也不得以 Issue close/readback 為流程終點。
    搜尋下一張 OPEN 且前置工單已完成的可執行 Issue；檢查相同工作是否已有 owner/PR，避免重複；可施工就建立真實工作分支、寫入派工留言並繼續執行。找不到則輸出已核查清單與 `NO_ELIGIBLE_ISSUE`，不得假報成功派工。
 

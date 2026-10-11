@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 - **預設 `main` 歷史隔離（`MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY`）**：`main` 保持原狀，視為非現行歷史分支；**不清理、不縮成 tombstone、不自動合併、鏡像、同步或刪除**。正式執行／治理唯一權威是 `X=cleanup/2d-3d-sync`。凡 GitHub／Agent／Skill／CI 查詢現行 WHD 規則，必須明確指定 `ref=cleanup/2d-3d-sync`；未指定 ref、工具默認落到 `main` 或無法確定所讀 HEAD 時，禁止把結果當 CURRENT，須重新以 X ref 讀取或 fail closed。舊 `WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1` 的 `MAIN_MINIMAL_TOMBSTONE_TREE` 要求已退役，不得再次啟動 `main` 清理；使用者另有當次明確指令才可另行規劃 `main` 變更。
 - **舊工單交易、工作槽與 lease 控制系統已退役**；不得要求其憑證、工作槽、Preflight receipt 或其他管控才能執行修改、測試、Git commit。
 - **入口及階段分流**：`/派工` 的**施工、修改、測試、commit、PR 與 CI** 只能在 GitHub／排程／雲端執行器完成，嚴禁使用使用者本機。**唯一例外是 exact SHA CI 已通過後的 `LOCALX_INTEGRATION` 最終階段**：此時 `/派工` 可經 Desktop Commander（DC）連線 CoreELEC `whd-dev:/workspace/whd`，**只做使用者本機 `localX` 合併／必要整合驗證／同步回讀**，不得在該階段暗改產品程式或重做雲端施工。`/接手` 仍須使用者明確指令，才可在 RC 進行整個施工流程。
-- **產品施工通道**：`/派工` 遠端施工提交後建立 GitHub `localX` 目標 PR，確認 exact HEAD 的 CI SUCCESS；**先透過 DC 在本機 `localX` 整合且保留本機未發布修改**，通過整合驗證後以非強制方式同步 GitHub `localX` 並讀回兩端 SHA／PR 狀態。若 **DC 實際無法連線**，才允許走斷線備援並註明 `DC_UNREACHABLE`、`LOCALX_SYNC_PENDING`；使用者對本工單另有明確 GitHub-only 整合授權時，改依 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1` 直接整合遠端 `localX` 並留下本機待同步，不得假稱 DC 已斷線。兩條路徑均不能聲稱本機已合併或同步。DC 可連但本機有衝突、髒檔、權限拒絕、CI RED，**不可冒用斷線備援**。`/接手` 依其明確指令走 RC 全流程。正式 X 的產品發布仍必須當次 `/推推`。
+- **產品施工通道**：`/派工` 遠端施工提交後建立 GitHub `localX` 目標 PR，確認 exact HEAD 的 CI SUCCESS；**先透過 DC 在本機 `localX` 整合且保留本機未發布修改**，通過整合驗證後以非強制方式同步 GitHub `localX` 並讀回兩端 SHA／PR 狀態。若 **DC 實際無法連線**，才允許走斷線備援並註明 `DC_UNREACHABLE`、`LOCALX_SYNC_PENDING`；使用者對本工單另有明確 GitHub-only 整合授權時，改依 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1` 直接整合遠端 `localX` 並留下本機待同步，不得假稱 DC 已斷線。**DC 正常整合路線**只有實際完成本機安全合併、必要整合驗證、非強制遠端同步並回讀兩端 SHA 後，才能回報 `LOCALX_SYNCED`；**GitHub-only 明確授權／DC 真正斷線備援**才回報 `LOCALX_SYNC_PENDING`。不能把成功的本機整合也報成待同步。DC 可連但本機有衝突、髒檔、權限拒絕、CI RED，**不可冒用斷線備援**。`/接手` 依其明確指令走 RC 全流程。正式 X 的產品發布仍必須當次 `/推推`。
 - **治理直送通道（正式硬閘門 `NON_PRODUCT_GOVERNANCE_DIRECT_X`）**：僅限 `tools/change_lane_gate.py` 明確白名單內的非產品文件、治理規則、技能、GitHub 工作流程與其專用測試。此類修改**不必**走 localX、`/推推`、工單派工或產品 QA；**優先直接使用 GitHub／雲端治理分支** `governance/*`、`docs/*` 或 `skills/*`，從最新 X 修改、檢查、PR 至 X 並合併。**未取得使用者本次對 DC／本機的明確授權，不得為治理修改存取 CoreELEC、whd-dev 或本地 shell**；雲端能力不足時回報阻塞，不得自動轉走 DC。
 - **非本體 CI 排程／驗收權威硬分流（`CI_SCHEDULING_ONLY_V1`）**：純 CI 排程數字、既有 Runner 選型可依 `tools/change_lane_gate.py` 的**受信任 base X → PR HEAD 實際 blob 差異**走治理直送，不需本機 `localX`／DC／完整產品回歸。產品驗收主 workflow `.github/workflows/whd-product-regression.yml` **不得僅憑副檔名或 `.github/workflows/` 目錄判定治理**：只有對既有行的 `runs-on`、`timeout-minutes`、`max-parallel`、`retention-days` 且舊值、新值均符合白名單的替換能例外直送。增刪行、修改觸發 paths、matrix shards、jobs/if、測試指令、必跑步驟、CI 名稱、artifact 集合、完整性檢查一律產品通道；`tools/product_ci_regression.py`、`tools/product_ci_green_reuse.py`、`tools/whd_v15_acceptance_evidence.py`、產品測試清單／驗收矩陣與相關測試，永遠不能只靠 CI 調度名義豁免產品回歸與 `/推推`。GitHub X 的 required `WHD Change Lane Gate` 必須由**受信任 X 版本**執行這項判定。未知／缺少 git diff 證據 fail closed，不得自行改走本機。
 - **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得走治理直送；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
@@ -66,6 +66,12 @@ whd_schema: WHD_DOC_META_V1
 **其餘所有情境（含治理文件直合 X、GitHub 能力不足、排程卡關、只想看看本機狀態、清理先前事故殘留）一律不用 DC。** 若確實需要，先向使用者說明 **使用 DC 的必要原因、預計使用的裝置／路徑、要讀／改／執行的操作與影響**，標記 `DC_AUTHORIZATION_REQUIRED`，**停止任何 DC 呼叫並等待使用者明確核准**；未核准不得改用其他本機通道繞行。核准僅在被核准的當次目的與範圍有效，不自動延伸到下一張工單或其他工作。
 
 **失敗即封閉**：授權來源不明、`/派工` 所在階段不明、CI 非 exact SUCCESS、PR base 不確定、使用者撤回授權時都視為 DENY。此規則不改動平台工具 ACL；任何外部平台拒絕仍不得繞過。CI 回歸測試可約束倉庫規則不被改鬆，**但不得誤稱 GitHub CI 能直接攔截 ChatGPT 的 DC 工具呼叫**。
+
+## /派工跨工單自動收尾 `DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1`
+
+**既有 `/派工` 授權涵蓋同一 Issue／PR 的正常 `localX` 最終整合，不存在每張單另下合併口令的前置。** 對每張已合法接取的產品工單，PR base=`localX`、exact HEAD CI 全綠及範圍／mergeability 核對成功後，執行者必須繼續預設 `DC_LOCALX_FIRST`：在 `LOCALX_INTEGRATION` 合法階段經 DC 僅檢查及安全合併本機 `localX`、必要整合驗證、非強制同步 GitHub `localX`、兩端 readback；不能以 `LOCALX_INTEGRATION_PENDING` 當成已結案，更不能反覆要求「GitHub-only 合併 PR #...」取代預設路線。同一工單重新產生 HEAD 只重驗 exact CI／修改範圍，不重索既有 localX 整合授權。
+
+只有**該 Issue／PR 的使用者明確指定**不碰 DC、且授權 GitHub-only 遠端 `localX` 合併，才改走 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1`；只有真實 DC 連線故障且有證據才能走 `DC_UNREACHABLE_FALLBACK`。**兩種例外均不代表本機已整合**。若 DC 合法階段缺工具或連線被拒，須留下可核對的 blocker／SHA／續接動作，不得捏造失聯、不擅自遠端代合。這是當次執行者的連續交付義務，不是 GitHub Actions／文件自身具備跨回合喚醒或操作 DC 的能力；也不改動正式 X 產品發布仍需 `/推推` 的界線。
 
 ## 工單範圍授權延續 `ISSUE_SCOPE_AUTHORIZATION_REUSE`
 

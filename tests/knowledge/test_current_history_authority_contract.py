@@ -279,3 +279,26 @@ def test_ci_qa_reference_does_not_resurrect_legacy_merge_or_fresh_branch_rule() 
     assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in nav
     assert "LOCALX_SYNC_PENDING" in nav
     assert "不能先探測 DC" in nav
+
+def test_dispatch_default_localx_integration_is_continuation_not_extra_user_approval() -> None:
+    import json
+
+    agents = read("AGENTS.md")
+    dispatch = read(".agents/skills/engineering/派工/SKILL.md")
+    qa = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
+    nav = read(".agents/skills/engineering/README.md")
+    gate = json.loads(read(".agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json"))
+    assert "DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1" in agents
+    assert "DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1" in dispatch
+    assert "不要求使用者每張 PR 再下合併命令" in dispatch
+    assert "不得要求每張 PR 另下一次合併指令" in qa
+    assert "不需每張 PR 另下合併指令" in nav
+    assert gate["default_integration_route"] == "DC_LOCALX_FIRST"
+    assert gate["integration_routes"]["DC_LOCALX_FIRST"]["on_success"] == "LOCALX_SYNCED"
+    assert "local and GitHub readback" in gate["route_readback_invariants"]["DC_LOCALX_FIRST"]
+    assert "LOCALX_SYNC_PENDING" in gate["integration_routes"]["GITHUB_ONLY_EXPLICIT_SCOPE"]["on_success"]
+    assert "verified_dc_connection_failure" in gate["integration_routes"]["DC_UNREACHABLE_FALLBACK"]["requires"]
+    assert "兩條路徑均不能聲稱本機已合併或同步" not in agents
+    assert "兩者均記錄 `LOCALX_SYNC_PENDING`" not in dispatch
+    assert "先由 DC 最終整合到本機 `localX`" in dispatch
+    assert "不豁免" in agents
