@@ -138,6 +138,9 @@ def test_existing_upper_base_ear_NFB_finalscene_are_one_real_part(tmp_path,patte
     assert real.material.area>0
     assert real.unfolded_topology.piece_id=="base_plate"
     assert real.metadata["nfb_source_sha256"]==combined.projection.source_sha256
+    assert real.metadata["receiving_base_ear_mount_center_world_xy_mm"]==pytest.approx((0.,250.))
+    assert real.metadata["receiving_base_nfb_row_center_world_xy_mm"]==pytest.approx((0.,250.))
+    assert real.metadata["receiving_base_ear_weld_z_verified"] is False
     # Headless original serialization must use the SAME FinalScene, not a
     # freshly generated legacy base without the configured NFB features.
     out=tmp_path/(pattern+".dxf")
