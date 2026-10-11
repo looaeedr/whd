@@ -19,7 +19,7 @@ whd_schema: WHD_DOC_META_V1
 2. **`/派工` 產品路線**：由 GitHub／排程／雲端執行器施工、測試、commit、PR（base=`localX`）及 exact SHA CI；僅最終 `LOCALX_INTEGRATION` 階段可依 `AGENTS.md` 授權使用 DC 合併／驗證／同步，不能在使用者本機暗中施工。
 3. **`/接手` 產品路線**：只有使用者當次明確 `/接手` 才可使用 RC 的 `whd-dev:/workspace/whd` 施工。兩條產品路線發布正式 X 都需要使用者當次 `/推推`。
 4. **非產品治理路線**：僅受信任 `tools/change_lane_gate.py` 將所有 changed paths 判定為治理白名單時，可經 GitHub／雲端治理 PR 與 CI 直接合併 X，不得由此 Skill 授予 DC 權限。
-5. **驗收**：修改路徑確定後核對實際 diff、適用 DM7／GUI／DXF 測試與 PR／CI 證據；**不得**要求已退役的 preflight 重跑、`READ_REFERENCE`、claim／lease 或 `GIT_WRITE_UNLOCKED` 作為修改或交付前置。
+5. **驗收**：修改路徑確定後核對實際 diff、適用 DM7／GUI／DXF 測試與 PR／CI 證據；**不得**要求已退役的 preflight 重跑、`READ_REFERENCE`、claim／lease 或舊 Git 寫入解鎖憑證作為修改或交付前置。
 
 ## SSOT 契約
 
