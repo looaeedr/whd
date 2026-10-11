@@ -212,6 +212,37 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的開關品牌")
         self._layout["sets"][self.selection.set_index]["switch_brand"] = brand
 
+    def apply_candidate_to_bays(self, role, set_index, bay_indices, features):
+        """Atomically update ONLY highlighted Bays; preserve other shared refs."""
+        from ae_engine.receiving_hole_candidates import role_key
+        from ae_engine.receiving_shared_settings import (
+            unlink_setting, edit_setting, validate_setting,
+        )
+        kind = role_key(role) + "_features"
+        features = validate_setting(kind, features)
+        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
+            raise ValueError("選取的套不存在")
+        indices = tuple(sorted(set(bay_indices)))
+        count = len(self._layout["sets"][set_index]["bays"])
+        if not indices or any(type(i) is not int or not 0 <= i < count for i in indices):
+            raise ValueError("請在簡易圖高亮有效的連")
+        candidate = self._layout
+        for bay_index in indices:
+            candidate = unlink_setting(
+                candidate, set_index=set_index, bay_index=bay_index, kind=kind,
+            )
+            candidate = edit_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=kind, value=features,
+            )
+        # Commit once after all validation and changes, with no UI reselect.
+        self._layout = candidate
+        self._session_dirty_ids.update(
+            str(self._layout["sets"][set_index]["bays"][i]["stable_id"])
+            for i in indices
+        )
+        return indices
+
     def hole_candidates(self):
         """One candidate library for this project, not a Set/Bay owner."""
         from ae_engine.receiving_hole_candidates import normalize_candidates
