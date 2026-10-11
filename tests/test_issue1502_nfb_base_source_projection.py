@@ -4,6 +4,10 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
+import ezdxf
+from hashlib import sha256
+from ae_engine.receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
+from ae_engine.receiving_nfb_base_process_projection import project_one_original_nfb_into_actual_base
 
 from ae_engine.cabinet_types.receiving import apply_family_defaults
 from ae_engine.manufacturing_render_data import (
@@ -218,3 +222,72 @@ def test_no_lower_group_no_phantom_middle_no_dxf_release():
             =="NFB_LOWER_NATIVE_FIXING_CIRCLE"]
     assert len(screws)==8
     assert {x.source_id.split(":")[-1] for x in screws}=={"F1","F2","F3","F4"}
+
+
+
+def test_one_original_source_to_one_actual_base_no_separate_location_system(tmp_path):
+    # End-to-end through original NFB SHA/handles, native upper+lower group
+    # readers, existing door-Y and ONE target physical material/UV face.
+    path=tmp_path/MODEL
+    doc=ezdxf.new("R2010")
+    msp=doc.modelspace()
+    upper=msp.add_lwpolyline(
+        [(-8.5,352.),(48.5,352.),(48.5,448.),(-8.5,448.)],
+        close=True,dxfattribs={"color":150},
+    )
+    lower=msp.add_lwpolyline(
+        [(-50.,0.),(50.,0.),(50.,257.),(-50.,257.)],
+        close=True,dxfattribs={"color":3},
+    )
+    for x in (80.,95.,110.,125.):
+        msp.add_circle((x,400.),2.,dxfattribs={"color":30})
+    corners=((35.,430.),(45.,430.),(45.,440.),(35.,440.))
+    for i in range(4):
+        msp.add_line(corners[i],corners[(i+1)%4],dxfattribs={"color":30})
+    for x in (50.,55.,60.,65.):
+        msp.add_lwpolyline(
+            [(x,405.),(x+2.,405.)],dxfattribs={"color":212},
+        )
+    for sx in (-4.,4.):
+        for sy in (120.,140.):
+            msp.add_circle((sx,sy),1.,dxfattribs={"color":3})
+    msp.add_line((-20.,80.),(20.,80.),dxfattribs={"color":212})
+    doc.saveas(path)
+    digest=sha256(path.read_bytes()).hexdigest()
+    profile=NfbUpperSourceProfile(
+        "士林",MODEL,digest,upper.dxf.handle,
+        (57.,96.),"SOURCE_ALIAS_SHA256_IDENTICAL","native-test",
+    )
+    door=replace(_verified(),source_sha256=digest)
+    actual=_base(ear_at=(100.,100.))
+    before=tuple(actual.actual_render.scene.primitives)
+    result=project_one_original_nfb_into_actual_base(
+        snapshot=_snapshot(),inner_door_id="upper",
+        verified_inner_door=door,
+        source_path=path,profile=profile,
+        lower_reference_handle=lower.dxf.handle,
+        target=actual,
+    )
+    assert result.source_sha256==digest
+    assert result.owner_hole_ids==door.physical_hole_ids
+    assert len(result.cutting)==18  # 4+1 upper and 4 lower per NFB
+    assert len(result.marking)==8  # 4 upper MARKING per NFB
+    screws=[
+        x for x in result.cutting
+        if getattr(x,"source_type",None)=="NFB_LOWER_NATIVE_FIXING_CIRCLE"
+    ]
+    assert len(screws)==8
+    assert len({x.source_id for x in screws})==8
+    assert tuple(actual.actual_render.scene.primitives)==before
+    assert not result.manufacturing_ready
+    assert "LOWER" not in str(result.status)
+
+    # Source must belong to the exact approved inner-door model and SHA.
+    with pytest.raises(ValueError,match="source and verified inner door"):
+        project_one_original_nfb_into_actual_base(
+            snapshot=_snapshot(),inner_door_id="upper",
+            verified_inner_door=replace(door,source_sha256="0"*64),
+            source_path=path,profile=profile,
+            lower_reference_handle=lower.dxf.handle,
+            target=actual,
+        )
