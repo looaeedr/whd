@@ -97,7 +97,8 @@
     "No X product publish without /推推",
     "No DC before exact CI success and LOCALX_INTEGRATION",
     "No new recurring schedule or workflow_run coding agent",
-    "No GitHub-only merge merely from no-DC wording without explicit same-issue remote localX integration approval"
+    "No GitHub-only merge merely from no-DC wording without explicit same-issue remote localX integration approval",
+    "No per-PR repeated merge-command demand after authorized /派工 scope and exact CI success on default DC_LOCALX_FIRST"
   ],
   "integration_routes": {
     "DC_LOCALX_FIRST": {
@@ -132,5 +133,17 @@
         "silently_using_pr_body_as_user_authorization"
       ]
     }
+  },
+  "default_integration_route": "DC_LOCALX_FIRST",
+  "route_selection_order": [
+    "If same-Issue/PR explicit user no-DC and GitHub-only remote localX merge approval: GITHUB_ONLY_EXPLICIT_SCOPE",
+    "Else for existing authorized /派工 scope after exact CI success: DC_LOCALX_FIRST without any new per-PR merge command",
+    "Only if DC connection actually fails with evidence: DC_UNREACHABLE_FALLBACK",
+    "If permissions, dirty tree, merge conflict or tool capacity block local integration: BLOCKED_WITH_EVIDENCE, never pretend DC_UNREACHABLE or silently remote-merge"
+  ],
+  "route_readback_invariants": {
+    "DC_LOCALX_FIRST": "LOCALX_SYNCED only after successful local safe merge, integration validation, non-force remote sync, local and GitHub readback",
+    "GITHUB_ONLY_EXPLICIT_SCOPE": "GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING; workstation state UNKNOWN",
+    "DC_UNREACHABLE_FALLBACK": "DC_UNREACHABLE + LOCALX_SYNC_PENDING; connection failure evidence required"
   }
 }

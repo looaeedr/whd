@@ -62,6 +62,8 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         root.update()
         state = modal._receiving_inner_switch_state
         assert len(state["rows"]) == 2
+        assert modal._receiving_inner_preview_canvas._receiving_inner_preview_rows == ((),)
+        assert modal._receiving_inner_preview_status.get() == "與已載入版本相同"
         first = state["rows"][0]
         assert first["available"].get(0, tk.END) == ("A", "B")
         buttons = {b.cget("text"): b for b in
@@ -74,6 +76,10 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         buttons["＋加入"].invoke()
         assert first["assigned"].get(0, tk.END) == ("A", "A", "B")
         assert first["count"].get() == "已配置 3 顆"
+        assert modal._receiving_inner_preview_canvas._receiving_inner_preview_rows == (
+            ("A.dxf", "A.dxf", "B.dxf"),
+        )
+        assert modal._receiving_inner_preview_status.get() == "尚未儲存的變更"
         first["assigned"].selection_set(1)
         buttons["－移除"].invoke()
         assert first["assigned"].get(0, tk.END) == ("A", "B")
@@ -95,6 +101,21 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         root.update()
         new_state = modal._receiving_inner_switch_state
         assert new_state["rows"][0]["assigned"].get(0, tk.END) == ("A", "B", "A")
+        assert modal._receiving_inner_preview_canvas._receiving_inner_preview_rows == (
+            ("A.dxf", "B.dxf", "A.dxf"),
+        )
+        assert modal._receiving_inner_preview_status.get() == "與已載入版本相同"
+        # Add a second layer in-memory; the preview must change before saving.
+        new_state["layers"].set(2)
+        layer_two = new_state["rows"][1]
+        layer_two["section"].pack(fill="x")
+        layer_two["available"].selection_set(1)
+        next(b for b in _buttons(layer_two["section"])
+             if b.cget("text") == "＋加入").invoke()
+        assert modal._receiving_inner_preview_canvas._receiving_inner_preview_rows == (
+            ("A.dxf", "B.dxf", "A.dxf"), ("B.dxf",),
+        )
+        assert modal._receiving_inner_preview_status.get() == "尚未儲存的變更"
         csv_path.write_text(
             header + "1,A.dxf,,無對應檔案,,無對應檔案,\n"
             + "3,C.dxf,,無對應檔案,,無對應檔案,\n",
