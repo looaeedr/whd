@@ -212,6 +212,18 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的開關品牌")
         self._layout["sets"][self.selection.set_index]["switch_brand"] = brand
 
+    def set_global_brand(self, brand):
+        """Update every Set NFB once, keeping active Set/Bay identity intact."""
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        if brand not in RECEIVING_SWITCH_BRANDS:
+            raise ValueError("不支援的開關品牌")
+        changed = False
+        for set_row in self._layout["sets"]:
+            if set_row.get("switch_brand", "士林") != brand:
+                set_row["switch_brand"] = brand
+                changed = True
+        return changed
+
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:
         return receiving_joint_alignment_editability(
             self._layout,

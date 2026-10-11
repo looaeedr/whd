@@ -173,7 +173,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_settings_ports=None,
                         get_original_door_marks=None,
-                        get_quantity_ports=None):
+                        on_close=None, on_brand_close=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -185,12 +185,20 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win.title("多只設定")
     win.transient(parent)
     parent._receiving_multi_settings_window = win
+    topology_changed = {"value": False}
+    brand_changed = {"value": False}
 
     def close():
         if win.grab_current() is win:
             win.grab_release()
         parent._receiving_multi_settings_window = None
         win.destroy()
+        # Reconcile the original (hidden) controls only once on exit,
+        # never from inside the +連 button's Tk callback.
+        if (topology_changed["value"] or brand_changed["value"]) and on_close is not None:
+            on_close()
+        if brand_changed["value"] and on_brand_close is not None:
+            on_brand_close()
 
     win.protocol("WM_DELETE_WINDOW", close)
     win._receiving_multi_close = close
@@ -236,7 +244,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def apply_brand(_event=None):
         if set_brand is not None:
             try:
-                set_brand(brand_var.get())
+                if set_brand(brand_var.get()):
+                    brand_changed["value"] = True
             except (ValueError, IndexError, RuntimeError) as exc:
                 warn(exc)
                 brand_var.set(get_brand() if get_brand else "士林")
@@ -276,27 +285,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
-    quantity_editor = {"controls": None}
-
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
-        quantity_editor["controls"] = None
         active_ports["ports"] = None
-        if selected_setting["kind"] is None:
-            return
-        if applied["mode"] == "quantity":
-            # Original QuantityModel remains the exclusive hole-version owner.
-            # Embed its existing editor here, NOT in a new data model/window.
-            if (selected_setting["kind"] == "head_features"
-                    and get_quantity_ports is not None):
-                from .quantity_version_controls import build_quantity_controls
-                ports = get_quantity_ports()
-                if ports["snapshot"]() is not None:
-                    editor = build_quantity_controls(settings_host, ports, embedded_endcap=True)
-                    editor.frame.pack(anchor="w")
-                    editor.refresh()
-                    quantity_editor["controls"] = editor
+        if selected_setting["kind"] is None or applied["mode"] == "quantity":
+            # Version feature design will be handled separately. Preserve the
+            # existing QuantityModel but do not render a version editor here.
             return
         if get_settings_ports is None:
             return
@@ -330,10 +325,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                              width=5, state="readonly").pack(side="left", padx=3)
                 ttk.Button(row, text="編輯",
                            command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
-            ttk.Button(row, text="連動選取的連",
-                       command=lambda: perform(lambda: ports["share"](kind, targets()))).pack(side="left", padx=3)
-            ttk.Button(row, text="解除本連連動",
-                       command=lambda: perform(lambda: ports["unlink"](kind))).pack(side="left", padx=3)
         if selected_setting["kind"] == "head_features":
             actions(settings_host, "head_features", role="head")
             actions(settings_host, "tail_features", role="tail")
@@ -375,12 +366,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
 
+    # Retain button identity while a +連/−連 callback is executing.
+    # Destroying its own Tk button mid-invoke is a first-click freeze risk.
+    bay_rows = []
+
     def refresh_rows():
-        for widget in actions_host.winfo_children():
-            widget.destroy()
         if mode_var.get() != "set_bay":
-            # Keep the original hole-version entry in the same left-hand list
-            # while Quantity owns it; no unused per-Bay controls in this mode.
+            for entry in bay_rows:
+                entry["frame"].destroy()
+            bay_rows.clear()
+            # Quantity keeps the original version entry, not Set/Bay controls.
             if tuple(setting_list.get(0, tk.END)) != ("封頭尾",):
                 setting_list.delete(0, tk.END)
                 setting_list.insert(tk.END, "封頭尾")
@@ -392,21 +387,30 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             setting_list.insert(tk.END, "封頭尾", "內門")
         if not setting_list.winfo_manager():
             setting_list.pack(anchor="w", pady=(6, 0))
-        for index, raw_count in enumerate(tuple(get_switch().connection_counts())):
-            count = max(1, int(raw_count))
+        counts = tuple(max(1, int(n)) for n in get_switch().connection_counts())
+        # Only create or remove rows when the number of Sets changes.
+        while len(bay_rows) > len(counts):
+            bay_rows.pop()["frame"].destroy()
+        while len(bay_rows) < len(counts):
+            index = len(bay_rows)
             row = ttk.Frame(actions_host)
             row.pack(anchor="w", pady=2)
-            ttk.Label(row, text=f"第{index + 1}套").pack(side="left", padx=(0, 10))
-            ttk.Button(row, text="＋連", command=lambda i=index: resize(i, 1)).pack(
-                side="left", padx=(0, 3))
-            # Keep the actual connection count between +連 and -連. The row
-            # is rebuilt from the canonical Switch owner after each edit.
-            ttk.Label(row, text=str(count), width=3, anchor="center").pack(
-                side="left", padx=(0, 3))
-            ttk.Button(row, text="－連", command=lambda i=index: resize(i, -1)).pack(
-                side="left", padx=(0, 3))
-            ttk.Button(row, text="套用", command=lambda i=index: apply(i)).pack(
-                side="left")
+            ttk.Label(row, text=f"第{index + 1}套").pack(
+                side="left", padx=(0, 10))
+            plus = ttk.Button(row, text="＋連",
+                              command=lambda i=index: resize(i, 1))
+            plus.pack(side="left", padx=(0, 3))
+            count_label = ttk.Label(row, width=3, anchor="center")
+            count_label.pack(side="left", padx=(0, 3))
+            minus = ttk.Button(row, text="－連",
+                               command=lambda i=index: resize(i, -1))
+            minus.pack(side="left", padx=(0, 3))
+            apply_button = ttk.Button(row, text="套用",
+                                      command=lambda i=index: apply(i))
+            apply_button.pack(side="left")
+            bay_rows.append({"frame": row, "count": count_label})
+        for entry, count in zip(bay_rows, counts):
+            entry["count"].configure(text=str(count))
 
     def select_setting(_event=None):
         indices = setting_list.curselection()
@@ -439,7 +443,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if not ensure_set_mode():
                 return False
             result = resize_connections(index, delta)
-            refresh_rows()
+            if result:
+                topology_changed["value"] = True
+                refresh_rows()
             # Intentionally do not redraw: only 套用 projects the current
             # number of bays into the 2D diagram.
             return result
@@ -526,7 +532,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_brand_var = brand_var
     win._receiving_multi_brand_selector = brand_selector
     win._receiving_multi_settings_host = settings_host
-    win._receiving_multi_quantity_editor = quantity_editor
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host
