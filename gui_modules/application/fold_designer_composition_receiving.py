@@ -1054,6 +1054,37 @@ def open_receiving_multi_settings(self, namespace):
         self.app.submit_update_intent("geometry", commit=True)
         return value
 
+    def existing_door_marks(set_index, bay_index):
+        # The lightweight diagram reuses ONLY the existing Door baseline.
+        # Do not synthesize handle/nameplate positions when source is missing.
+        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+        from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+        from .receiving_multi_settings_window import extract_original_door_marks
+
+        host = getattr(self.app._scene_query_callback, "__self__", None)
+        if host is None or not hasattr(host, "_door_layout_baseline_scene"):
+            return ()
+        snapshot = dict(self.app._phase6_input_snapshot)
+        snapshot["receiving_layout"] = self.receiving_adapter(namespace).layout
+        projected = project_receiving_bay_legacy_aliases(
+            snapshot, set_index=int(set_index), bay_index=int(bay_index)
+        )
+        columns = projected.get("door_layout_columns") or ()
+        if not projected.get("multi_door_enabled") or not columns:
+            return ()
+        cells = derive_door_layout_cells(columns)
+        # The operator sketch has two Door faces in a single column.
+        # Do not invent a projection for unsupported multi-column topology.
+        if len(cells) != 2 or any(cell.column_index != 0 for cell in cells):
+            return ()
+        result = []
+        for cell in sorted(cells, key=lambda item: item.row_index):
+            scene, _status = host._door_layout_baseline_scene(cell, projected)
+            if scene is None:
+                return ()
+            result.append(extract_original_door_marks(scene))
+        return tuple(result)
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -1067,4 +1098,5 @@ def open_receiving_multi_settings(self, namespace):
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
+        get_original_door_marks=existing_door_marks,
     )
