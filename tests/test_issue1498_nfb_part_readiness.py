@@ -131,6 +131,44 @@ def test_missing_real_plate_id_is_scope_blocker_not_an_invented_part():
         "side_panel:left",)
 
 
+def test_issue1502_one_authority_inner_door_NFB_no_base_from_illustration():
+    # User-shown base DXFs are illustrative. They cannot create a real
+    # physical Base Plate, a lower-layer plate or new switch coordinates.
+    # The verified inner-door NFB configuration is the only hole-position
+    # authority. Downstream parts remain blocked until independently
+    # verified against actual manufacturing geometry.
+    scope=NfbPhysicalScope(
+        set_id="setA", bay_id="bayA", version_id="v1", submitted=True,
+        inner_door_part_id="inner_door:upper:panel",
+        base_plate_part_ids=(), middle_plate_part_ids=(),
+    )
+    result=derive_nfb_part_readiness(
+        scope, source_inventory=_inventory(color30=16, color150=1, color212=26),
+        verified_inner_door=_inner(),
+    )
+    assert result.can_submit
+    assert result.for_part("inner_door:upper:panel").status==READY
+    assert tuple(row.part_id for row in result.decisions)==(
+        "inner_door:upper:panel",
+    )
+    assert set(result.scope_reasons)=={
+        "BASE_PLATE_PHYSICAL_ID_UNRESOLVED",
+        "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED",
+    }
+    assert result.filter_export_part_ids(
+        ("inner_door:upper:panel",), partial=True,
+    )[0]==("inner_door:upper:panel",)
+    with pytest.raises(ValueError, match="physical dependencies unresolved"):
+        result.filter_export_part_ids(("inner_door:upper:panel",))
+    # Missing source-verified inner door must block even this partial scope.
+    not_verified=derive_nfb_part_readiness(
+        scope, source_inventory=_inventory(color30=16, color150=1, color212=26),
+        verified_inner_door=None,
+    )
+    assert not not_verified.can_submit
+    assert not_verified.for_part("inner_door:upper:panel").status==READY
+
+
 def test_each_set_bay_version_independent_and_no_cross_scope_ready_cache():
     approved=derive_nfb_part_readiness(
         _scope(),source_inventory=_inventory(),verified_inner_door=_inner(),
