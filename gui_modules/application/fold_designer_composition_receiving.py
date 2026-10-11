@@ -1834,6 +1834,95 @@ def open_receiving_multi_settings(self, namespace):
         modal._receiving_inner_preview_status = preview_status
         modal._receiving_inner_nfb_dxf_panel = nfb_preview_panel["panel"]
 
+        def open_nfb_world_x_dialog():
+            """Operator enters absolute world-X; UI-1A draft offset is not X."""
+            if version_id is None:
+                warning.set("請先儲存內門版本，再進行 NFB 實體確認")
+                return
+            from ae_engine.receiving_nfb_ui1b_runtime import verify_current_nfb_ui_draft
+            current=edit_session.current
+            active=[
+                (i,j,slot)
+                for i,layer in enumerate(current["layers"][:current["layer_count"]])
+                for j,slot in enumerate(layer["slots"])
+                if slot["filename"] is not None
+            ]
+            if not active:
+                warning.set("尚未選擇可驗證的 NFB 型號")
+                return
+            popup=tk.Toplevel(modal)
+            popup.title("NFB 物理世界 X｜正式提交前驗證")
+            popup.transient(modal)
+            popup.geometry("540x440")
+            body=ttk.Frame(popup,padding=14)
+            body.pack(fill="both",expand=True)
+            ttk.Label(
+                body,text="輸入受電箱基準的實際世界 X（mm），不是名義間距或 X 位移。",
+                wraplength=490,
+            ).pack(anchor="w",pady=(0,7))
+            ttk.Label(
+                body,text="僅士林已具備輪廓資料的型號可試；實際 DXF/SHA、內門板、1100 Y"
+                          " 與孔位碰撞全部須通過才會準備提交。",
+                wraplength=490,
+            ).pack(anchor="w",pady=(0,9))
+            world_values={}
+            for layer_i,slot_i,slot in active:
+                line=ttk.Frame(body)
+                line.pack(fill="x",anchor="w",pady=3)
+                ttk.Label(
+                    line,text=f"第 {layer_i+1} 層 第 {slot_i+1} 顆"
+                              f"｜{slot['filename'][:-4]}",
+                    width=40,
+                ).pack(side="left")
+                var=tk.StringVar(master=popup,value="")
+                ttk.Entry(line,textvariable=var,width=11).pack(side="right")
+                world_values[slot["unit_id"]]=var
+            outcome=tk.StringVar(master=popup,value="目前尚未驗證，未修改專案。")
+            ttk.Label(body,textvariable=outcome,wraplength=500).pack(
+                anchor="w",pady=(8,4),
+            )
+
+            def close_world_dialog():
+                if popup.grab_current() is popup:
+                    popup.grab_release()
+                popup.destroy()
+                if modal.winfo_exists():
+                    modal.grab_set()
+
+            def prepare():
+                try:
+                    coords={}
+                    for unit_id,var in world_values.items():
+                        value=var.get().strip()
+                        if not value:
+                            raise ValueError("每顆 NFB 的世界 X 都須明確輸入，0 亦可")
+                        coords[unit_id]=float(value)
+                    adapter=candidate_adapter()
+                    selected=adapter.selection
+                    bundle=verify_current_nfb_ui_draft(
+                        edit_session.current,layout=adapter.layout,
+                        set_index=selected.set_index,
+                        bay_index=selected.bay_index,
+                        version_id=version_id,
+                        projected_snapshot=_current_mode_snapshot(self,namespace),
+                        world_x_by_unit=coords,
+                    )
+                    nfb_transaction_ports()["stage_verified"](bundle)
+                    outcome.set("已完成真實來源／內門實體驗證，仍須回主視窗按「確認套用（NFB）」")
+                    close_world_dialog()
+                    after_saved(version_id)  # UI refresh only, no candidate write
+                    close_editor(saved=True)  # verified stage returns to parent
+                except (ValueError,TypeError,KeyError,IndexError,OSError) as exc:
+                    outcome.set("尚未通過驗證："+str(exc))
+            actions=ttk.Frame(body)
+            actions.pack(anchor="e",pady=(9,0))
+            ttk.Button(actions,text="取消",command=close_world_dialog).pack(
+                side="left",padx=5,
+            )
+            ttk.Button(actions,text="驗證實體來源",command=prepare).pack(side="left")
+            popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
+            popup.grab_set()
+
         def confirm():
             try:
                 # #1491 is transient UI-1A only. Distinct NFB physical layer
@@ -1888,6 +1977,7 @@ def open_receiving_multi_settings(self, namespace):
         ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
             side="left", padx=5,
         )
+        ttk.Button(buttons, text="核對世界 X／來源", command=open_nfb_world_x_dialog).pack(side="left",padx=5)
         ttk.Button(buttons, text="復原上一步", command=undo_nfb_draft).pack(side="left",padx=5)
         ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
         # Restore the parent multi-settings grab after this editor closes.
