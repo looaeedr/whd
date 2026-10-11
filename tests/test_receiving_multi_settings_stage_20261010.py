@@ -8,7 +8,7 @@ import pytest
 from ae_engine.receiving_quantity_box import normalize_common_box, project_common_box
 from gui_modules.application.receiving_multi_settings_window import (
     default_preview_dimensions, display_dimension, open_multi_settings,
-    paint_connected_bays,
+    paint_connected_bays, extract_original_door_marks,
 )
 from phase6_assembly_panel import Phase6AssemblyPanel, AssemblyPanelActions
 
@@ -23,6 +23,28 @@ def test_family_dimensions_without_initialization_dialog():
     assert default_preview_dimensions({"active_mode": "quantity"}) == (800, 1600, 350)
     assert display_dimension(800.0) == "800"
     assert display_dimension(800.5) == "800.5"
+
+
+def test_sketch_uses_only_identified_original_door_marks():
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    drawing = DrawingScene()
+    assert extract_original_door_marks(None) == {"nameplate": (), "handle": ()}
+    drawing.add_polyline(((0, 0), (100, 0), (100, 200), (0, 200)),
+                         layer="CUTTING", closed=True)
+    drawing.add_polyline(((10, 70), (14, 70), (14, 110), (10, 110)),
+                         layer="CUTTING", closed=True)
+    drawing.add_circle((50, 175), 1.6, layer="CUTTING",
+                       source_type="nameplate_mount",
+                       source_id="door:nameplate_mount:1")
+    drawing.add_circle((91, 40), 4, layer="CUTTING")
+    marks = extract_original_door_marks(drawing)
+    assert len(marks["handle"]) == 4
+    assert marks["handle"][0] == (0.1, 0.65)
+    assert marks["nameplate"] == ((0.5, 0.125, 0.016, 0.008),)
+    drawing.add_polyline(((20, 40), (25, 40), (25, 60), (20, 60)),
+                         layer="CUTTING", closed=True)
+    assert extract_original_door_marks(drawing)["handle"] == ()
 
 
 def test_assembly_button_is_hidden_until_receiving_assembly():
