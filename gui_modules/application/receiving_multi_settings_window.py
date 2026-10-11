@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+from ae_engine.receiving_hole_candidates import version_label
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
@@ -355,8 +356,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
             library = get_candidate_ports()
             versions = library["versions"](role)
-            ids = {__import__("ae_engine.receiving_hole_candidates",
-                              fromlist=["version_label"]).version_label(item["id"]): item["id"]
+            ids = {version_label(item["id"]): item["id"]
                    for item in versions}
             current_id = candidate_selected[role]
             if current_id not in ids.values():
@@ -461,10 +461,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         chosen = candidate_selected[role]
         title.configure(text=("封頭孔" if role == "head" else "封尾孔")
                         + "｜" + ("即時" if chosen is None else
-                                 __import__("ae_engine.receiving_hole_candidates",
-                                            fromlist=["version_label"]).version_label(chosen)))
+                                 version_label(chosen)))
         for button in manager_widgets["buttons"]:
             button.configure(state="normal" if chosen is not None else "disabled")
+        if manager_widgets["buttons"]:
+            manager_widgets["buttons"][1].configure(
+                text="複製到封尾" if role == "head" else "複製到封頭"
+            )
 
     def toggle_manager():
         frame = manager_widgets["frame"]
