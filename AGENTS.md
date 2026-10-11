@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 - **預設 `main` 歷史隔離（`MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY`）**：`main` 保持原狀，視為非現行歷史分支；**不清理、不縮成 tombstone、不自動合併、鏡像、同步或刪除**。正式執行／治理唯一權威是 `X=cleanup/2d-3d-sync`。凡 GitHub／Agent／Skill／CI 查詢現行 WHD 規則，必須明確指定 `ref=cleanup/2d-3d-sync`；未指定 ref、工具默認落到 `main` 或無法確定所讀 HEAD 時，禁止把結果當 CURRENT，須重新以 X ref 讀取或 fail closed。舊 `WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1` 的 `MAIN_MINIMAL_TOMBSTONE_TREE` 要求已退役，不得再次啟動 `main` 清理；使用者另有當次明確指令才可另行規劃 `main` 變更。
 - **舊工單交易、工作槽與 lease 控制系統已退役**；不得要求其憑證、工作槽、Preflight receipt 或其他管控才能執行修改、測試、Git commit。
 - **入口及階段分流**：`/派工` 的**施工、修改、測試、commit、PR 與 CI** 只能在 GitHub／排程／雲端執行器完成，嚴禁使用使用者本機。**唯一例外是 exact SHA CI 已通過後的 `LOCALX_INTEGRATION` 最終階段**：此時 `/派工` 可經 Desktop Commander（DC）連線 CoreELEC `whd-dev:/workspace/whd`，**只做使用者本機 `localX` 合併／必要整合驗證／同步回讀**，不得在該階段暗改產品程式或重做雲端施工。`/接手` 仍須使用者明確指令，才可在 RC 進行整個施工流程。
-- **產品施工通道**：`/派工` 遠端施工提交後建立 GitHub `localX` 目標 PR，確認 exact HEAD 的 CI SUCCESS；**先透過 DC 在本機 `localX` 整合且保留本機未發布修改**，通過整合驗證後以非強制方式同步 GitHub `localX` 並讀回兩端 SHA／PR 狀態。若 **DC 實際無法連線**，才允許 GitHub PR 直接合併遠端 `localX` 備援，需註明 `DC_UNREACHABLE`、`LOCALX_SYNC_PENDING`，不能聲稱本機已合併或同步。DC 可連但本機有衝突、髒檔、權限拒絕、CI RED，**不可冒用斷線備援**。`/接手` 依其明確指令走 RC 全流程。正式 X 的產品發布仍必須當次 `/推推`。
+- **產品施工通道**：`/派工` 遠端施工提交後建立 GitHub `localX` 目標 PR，確認 exact HEAD 的 CI SUCCESS；**先透過 DC 在本機 `localX` 整合且保留本機未發布修改**，通過整合驗證後以非強制方式同步 GitHub `localX` 並讀回兩端 SHA／PR 狀態。若 **DC 實際無法連線**，才允許走斷線備援並註明 `DC_UNREACHABLE`、`LOCALX_SYNC_PENDING`；使用者對本工單另有明確 GitHub-only 整合授權時，改依 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1` 直接整合遠端 `localX` 並留下本機待同步，不得假稱 DC 已斷線。兩條路徑均不能聲稱本機已合併或同步。DC 可連但本機有衝突、髒檔、權限拒絕、CI RED，**不可冒用斷線備援**。`/接手` 依其明確指令走 RC 全流程。正式 X 的產品發布仍必須當次 `/推推`。
 - **治理直送通道（正式硬閘門 `NON_PRODUCT_GOVERNANCE_DIRECT_X`）**：僅限 `tools/change_lane_gate.py` 明確白名單內的非產品文件、治理規則、技能、GitHub 工作流程與其專用測試。此類修改**不必**走 localX、`/推推`、工單派工或產品 QA；**優先直接使用 GitHub／雲端治理分支** `governance/*`、`docs/*` 或 `skills/*`，從最新 X 修改、檢查、PR 至 X 並合併。**未取得使用者本次對 DC／本機的明確授權，不得為治理修改存取 CoreELEC、whd-dev 或本地 shell**；雲端能力不足時回報阻塞，不得自動轉走 DC。
 - **非本體 CI 排程／驗收權威硬分流（`CI_SCHEDULING_ONLY_V1`）**：純 CI 排程數字、既有 Runner 選型可依 `tools/change_lane_gate.py` 的**受信任 base X → PR HEAD 實際 blob 差異**走治理直送，不需本機 `localX`／DC／完整產品回歸。產品驗收主 workflow `.github/workflows/whd-product-regression.yml` **不得僅憑副檔名或 `.github/workflows/` 目錄判定治理**：只有對既有行的 `runs-on`、`timeout-minutes`、`max-parallel`、`retention-days` 且舊值、新值均符合白名單的替換能例外直送。增刪行、修改觸發 paths、matrix shards、jobs/if、測試指令、必跑步驟、CI 名稱、artifact 集合、完整性檢查一律產品通道；`tools/product_ci_regression.py`、`tools/product_ci_green_reuse.py`、`tools/whd_v15_acceptance_evidence.py`、產品測試清單／驗收矩陣與相關測試，永遠不能只靠 CI 調度名義豁免產品回歸與 `/推推`。GitHub X 的 required `WHD Change Lane Gate` 必須由**受信任 X 版本**執行這項判定。未知／缺少 git diff 證據 fail closed，不得自行改走本機。
 - **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得走治理直送；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
@@ -87,8 +87,15 @@ whd_schema: WHD_DOC_META_V1
 
 - **施工階段**（`DISCOVERY / BUILD / TEST / COMMIT / PUSH / PR / CI`）：限 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION` 的真正雲端執行器（不得暗接使用者裝置）；`RC / DESKTOP_COMMANDER / LOCAL_SHELL / /workspace/whd / Z:\\新WHD` 一律 `DISPATCH_LOCAL_EXECUTION_DENIED`。
 - **最終整合階段**（`LOCALX_INTEGRATION`）：PR HEAD exact CI SUCCESS 且 scope／工作分支驗證通過後，**才**允許一次 DC 連線，將已測試的 commit 整合到**本機** `localX`，確認 `localX` 現況並保留任何本機未發布改動；整合必須非強制、不得 reset／覆蓋、不得藉本機修改程式取代遠端施工。完成本機整合後才同步 GitHub `localX` 並回讀兩端；PR 自動關閉或 GitHub 狀態異常時必須實際回讀，不虛構 merge。
-- **DC 無法連線的唯一備援**：記錄實際連線失敗／逾時、當時 PR/HEAD/CI 證據後，才可合併 GitHub 遠端 `localX`；標記 `DC_UNREACHABLE + LOCALX_SYNC_PENDING`，安排後續本機對齊而非冒稱本機已整合。DC 可連線但 merge 衝突、工作樹 dirty、認證被拒或測試失敗時**不能**改走斷線備援。
+- **DC 斷線備援（非使用者明確授權 GitHub-only）**：記錄實際連線失敗／逾時、當時 PR/HEAD/CI 證據後，才可合併 GitHub 遠端 `localX`；標記 `DC_UNREACHABLE + LOCALX_SYNC_PENDING`，安排後續本機對齊而非冒稱本機已整合。DC 可連線但 merge 衝突、工作樹 dirty、認證被拒或測試失敗時**不能**改走斷線備援。
 - 沒有雲端施工能力回報 `REMOTE_EXECUTOR_UNAVAILABLE`，不能用 DC 做施工；`/派工` 不會因此隱性轉成 `/接手`。任何平台公開上傳／遠端工具拒絕仍需遵守，不得換 transport 偷渡。
+
+## 使用者明確授權 GitHub-only 整合 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1`
+
+- **獨立於 DC 斷線備援**：當使用者針對本次指定 Issue／PR **明確要求不用 DC／不接觸本機，且已授權將成果整合至 GitHub 遠端 `localX`** 時，允許在 exact HEAD CI 全綠、PR base=`localX`、無衝突、合併權限與施工範圍符合後，直接用 GitHub PR merge 整合遠端 `localX`。不必先探測 DC，也**不得**假記 `DC_UNREACHABLE`。單純執行者自寫 PR 說明「無 DC」、只有 CI GREEN 或只允許寫程式，均**不構成使用者遠端合併授權**。
+- **回讀與權威分流**：合併前再次讀 PR/head_sha/base/current remote localX，使用 `expected_head_sha` 防競態；成功後回讀 PR merged、merge_commit_sha 與 GitHub `localX` HEAD，標記 `GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING`。**本機 `localX` SHA 未經合法連線實際讀取前一律 UNKNOWN**，不虛構本機已整合；不 force、不 reset、不覆蓋本機未發布改動。
+- **完成與續作**：GitHub-only 遠端合併後可依既有規則續行 Issue 留言／結案回讀及 `NEXT_ISSUE_DISCOVERY_REQUIRED`；本機同步仍列待辦，不能標 `LOCALX_SYNCED` 或宣稱三方一致。若沒有同工單明確 GitHub-only 整合授權，必須保留 `LOCALX_INTEGRATION_PENDING` 並回報缺少何種核准，**不得偷走 DC 斷線備援**。
+- **正式 X 邊界不變**：產品 `localX → X` 必須使用者當次 `/推推`；這項例外不准提前碰使用者本機／DC、不允許跳過必要 CI、不擴張其他工單的公開推送或合併權限。非產品治理依 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直送 X。
 
 ## /派工退出前查核 `DISPATCH_TURN_EXIT_GATE_V1`
 
@@ -96,7 +103,7 @@ whd_schema: WHD_DOC_META_V1
 
 - **先對準 exact HEAD**：讀取當下 PR `base=localX`、`head_sha` 與同一 SHA 的 Canonical Product Regression `run_id/status/conclusion`、jobs。缺 run、查到舊 SHA／矛盾資料 → `RECONCILE_ONLY`，不得借用其他 HEAD 的 GREEN。
 - **CI 非終態**（`requested/queued/waiting/pending/in_progress`）→ `CONTINUE_POLL`：在當次仍可呼叫工具時持續查詢 exact run，2–3 次操作回報一次實質進度，回報不是退出訊號；只讀結構化狀態與精簡失敗資料，不重抓長 Log、不要無限制高頻打 API。
-- **CI 終態**：`success` → `LOCALX_INTEGRATION_PENDING`，按既有 DC 最終階段／合法備援進行合併回讀，不能停在「CI GREEN」；`failure/cancelled/timed_out/action_required` 或其他不成功 → `REPAIR_AND_RETEST`（如平台無權操作則報實際阻塞），不當作驗收完成。
+- **CI 終態**：`success` → `LOCALX_INTEGRATION_PENDING`，按既有 DC 最終階段／合法斷線備援／明確 GitHub-only 授權例外進行合併回讀，不能停在「CI GREEN」；`failure/cancelled/timed_out/action_required` 或其他不成功 → `REPAIR_AND_RETEST`（如平台無權操作則報實際阻塞），不當作驗收完成。
 - **CI 成功仍未完成交付**：本機／遠端 `localX` 整合回讀、Issue close/readback 及 `NEXT_ISSUE_DISCOVERY_REQUIRED` 等既有義務未處理 → `CONTINUE_FINALIZATION`；達到所有必要驗收與追蹤義務、讀回證據後才可標 `RELEASED`。正式 X 仍限使用者當次 `/推推`。
 - **允許當回合非完成式退出的真實例外**：有可追溯 API 錯誤／權限拒絕／無合法執行途徑 → `BLOCKED_WITH_EVIDENCE`，或執行環境真實中斷／當回合工具資源限制 → `RUNTIME_LIMIT_UNRESOLVED`；回報當時 `Issue/PR/head_sha/run_id/last_observation/blocker/next_exact_action`，**不得標示 DONE、已完成、背景自動續作**，不得假造阻塞來取代仍可做的輪詢。
 - **不擴權**：本規則只對現有 `/派工` 回合施加退出前的決策檢查；不啟動新排程／`workflow_run` 自動施工、不重建舊 Flow v2、不增設 GitHub 分支保護，不允許提早使用 DC／RC／本機，純治理文件照既有 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直送 X。
@@ -105,7 +112,7 @@ whd_schema: WHD_DOC_META_V1
 
 - `/派工` 不以「已建立 PR」「CI queued/in_progress/pending」作為交付完成。這些都是 **CONTINUE_POLL**，不能以「等 CI 完成」作最終答覆來退出當輪任務。
 - 一旦已建立指向 `localX` 的產品 PR，就應在**當次可執行回合**追蹤 exact PR HEAD、base 與 Canonical Product Regression 的 GitHub Actions run；短間隔再次查詢。每 2–3 次操作回報實質進度，但**回報本身不是停止訊號**。
-- exact HEAD 的 Product Regression `SUCCESS` 且 PR 可整合 → **合併至 localX（本機優先），進入 `LOCALX_INTEGRATION`，使用 DC 合併本機 `localX` → 必要本機整合驗證 → 非強制同步 GitHub `localX` → 兩端 SHA／PR 狀態回讀 → 工單留言 → close + readback**。僅 DC 連線實際失敗時可走遠端 `localX` 備援並標記 `LOCALX_SYNC_PENDING`；不需用戶重複喊「繼續」。
+- exact HEAD 的 Product Regression `SUCCESS` 且 PR 可整合 → **合併至 localX（本機優先），進入 `LOCALX_INTEGRATION`，使用 DC 合併本機 `localX` → 必要本機整合驗證 → 非強制同步 GitHub `localX` → 兩端 SHA／PR 狀態回讀 → 工單留言 → close + readback**。除 DC 連線實際失敗的斷線備援外，使用者明確授權本工單 GitHub-only 整合時，亦可按 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1` 合併遠端 `localX` 並標記 `LOCALX_SYNC_PENDING`；兩者均不得冒稱本機同步，不需用戶重複喊「繼續」。
 - **觸發點是本機 `localX` 真正合併成功並回讀、或已證實 DC 斷線而 GitHub `localX` 備援合併成功且記錄待同步；不是 Issue CLOSED。** 回讀確認成功後立即執行 `NEXT_ISSUE_DISCOVERY_REQUIRED`：查最新 GitHub Open Issue 與前置狀態、排除已完成／既有 owner／衝突工作；符合資格者直接進入下一張的派工及施工入口。原工單留言／close/readback 仍要完成，但不得把 close 當尋找下一張的前置，也不能因「已結案」就退出。沒有符合條件者要回報搜尋範圍、已檢查原因及 `NO_ELIGIBLE_ISSUE`，不得虛構已派出。
 
 - CI 失敗 → 查該 run 的 job/step/log，修復並重測；沒有執行中的 run → 檢查 workflow branch/path 觸發與權限，修接線並重新觸發。不得將其他 SHA、舊 local GREEN 或 pending 冒充目前 PR GREEN。
