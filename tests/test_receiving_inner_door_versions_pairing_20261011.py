@@ -27,6 +27,9 @@ def fixture():
     )
     adapter.set_bay_count(2)
     adapter.set_set_count(2)
+    adapter.select_set(2)
+    adapter.set_bay_count(2)
+    adapter.select_set(1)
     return adapter
 
 
