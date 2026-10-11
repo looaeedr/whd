@@ -32,3 +32,19 @@ whd_schema: WHD_DOC_META_V1
 2. 需要實際修改時，從正式 X 重新檢查來源、相關產品權威與 exact diff；依使用者指定的合法 `/派工` 雲端施工或當次明確 `/接手` RC 施工，完成產品測試、PR／CI、`localX` 整合，再由使用者當次 `/推推` 發布 X。
 3. **禁止自行讀寫 DC／CoreELEC／本機**、不重啟 Flow v2、不修改 `main`、不擴大 `change_lane_gate.py` 白名單規避產品通道。
 4. 這份清查紀錄和機器分類測試可經治理通道直送 X；它們**不構成上述四份文件已修復的驗收證據**。
+
+
+## 補充清查：入口導覽文件（2026-10-11）
+
+下列兩份 **X 中的入口／導覽文件原文尚未修改**；這些路徑同樣不在目前受信任 `change_lane_gate.py` 的治理直送白名單，不能因為內容是 Markdown 就繞過產品通道：
+
+| 路徑 | 角色／殘留 | 後續 |
+|---|---|---|
+| `README.md` | REFERENCE，Current authority pointers 把 `AGENTS.md` 描述為「Agent 啟動、Preflight、派工與驗收流程入口」 | 舊 Preflight 已非 CURRENT 必經門檻；需由合法產品／混合通道修正導覽文字 |
+| `handoff/00_AI_HANDOFF_README.md` | MIRROR／POINTER_ONLY，Current entry 把 `AGENTS.md` 描述為「Agent 啟動與 Preflight process」 | 保留指向 `AGENTS.md` 的相容路徑，但不能恢復舊 Preflight；按路徑分類處置 |
+
+本輪也已針對正式 X 的 Catalog 規則下 **47 份 canonical 候選 `SKILL.md`** 逐份掃描退役交易關鍵字。完成之修復：[#1555](https://github.com/looaeedr/whd/pull/1555) 的問答／技能發現／MCP／架構掃描入口，以及 [#1556](https://github.com/looaeedr/whd/pull/1556) 的正式出包施工分流。其餘命中包含**明確標示退役的歷史說明**，不能只因字串存在就當成 ACTIVE 舊門檻；這是關鍵字清查而非所有技能語意／產品驗收通過證明。
+
+- 目前待實際修改的路徑：上述 2 份導覽文件 + 前節 4 份域 SOP，共 6 份。
+- `main`：維持 `HISTORICAL_UNMANAGED_DO_NOT_MUTATE`，不清理、不同步、不提交修改。
+- 不因清查發現問題就自行擴大治理白名單、觸碰 DC／本機或發布產品 X。
