@@ -15,7 +15,7 @@ Registry 選路僅在明確 `/接手` 或直接查改本 Skill 時提示此路�
 
 ## DC 呼叫前的強制判斷
 
-本 Skill 遵循 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`：只有使用者在當次明確 `/接手`、`/派工` 最後的 `LOCALX_INTEGRATION` exact CI SUCCESS，或使用者明確授權本次 DC 用途才能使用。**預設 `DC_ACCESS_DENIED_BY_DEFAULT`**，連 `list_devices`／`ping` 都不得探測。其餘需求先說明必要原因、裝置／路徑、預計操作與影響，回報 `DC_AUTHORIZATION_REQUIRED`，取得當次明確核准前完全禁止 DC 或其他本機繞道。
+本 Skill 遵循 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`：只有使用者在當次明確 `/接手`、`/派工` 最後的 `LOCALX_INTEGRATION` exact CI SUCCESS、當次 `/推推` 的既定本機優先產品發布／X 回同步，或使用者明確授權本次 DC 用途才能使用。`/推推` 不需第二次 DC 授權，但不得擴張為本機施工；當次明確 GitHub-only 時禁止 DC。**預設 `DC_ACCESS_DENIED_BY_DEFAULT`**，連 `list_devices`／`ping` 都不得探測。其餘需求先說明必要原因、裝置／路徑、預計操作與影響，回報 `DC_AUTHORIZATION_REQUIRED`，取得當次明確核准前完全禁止 DC 或其他本機繞道。
 
 公開交付按 `AGENTS.md` 的 `ISSUE_SCOPE_AUTHORIZATION_REUSE`：同一已核准 Issue、工作分支、`localX` 及施工範圍內的修正 commit 不因 SHA 改變重問；新 SHA 的 diff／CI 仍須核實，不可繞過平台安全審查或擴權至正式 X。
 
