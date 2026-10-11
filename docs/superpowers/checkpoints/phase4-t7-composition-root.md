@@ -1,3 +1,12 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: execution-checkpoint-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
+> **HISTORICAL／Phase 4 T7 驗收快照**：以下 SHA、Run、測試數量和當時責任分工均按原文保留，不能取代今天 CURRENT Bridge owner 或當前 CI 結論。
+
 # Phase 4 T7 — Composition-root integration + bridge compatibility compression
 
 ## Identity

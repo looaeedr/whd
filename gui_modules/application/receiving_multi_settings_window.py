@@ -9,6 +9,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk, messagebox
 from ae_engine.receiving_hole_candidates import version_label
+from ae_engine.receiving_switch_model_catalog import INDEX_PATH, model_filenames, display_model
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
@@ -171,7 +172,8 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
 
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, resize_sets=None,
-                        get_candidate_ports=None, select_bay=None,
+                        get_candidate_ports=None, get_inner_candidate_ports=None,
+                        select_bay=None,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_settings_ports=None,
                         get_original_door_marks=None,
@@ -259,6 +261,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             try:
                 if set_brand(brand_var.get()):
                     brand_changed["value"] = True
+                    win.after_idle(show_setting_controls)
             except (ValueError, IndexError, RuntimeError) as exc:
                 warn(exc)
                 brand_var.set(get_brand() if get_brand else "士林")
@@ -310,14 +313,65 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
-    candidate_selected = {"head": None, "tail": None}
+    candidate_selected = {"head": None, "tail": None, "inner-door": None}
     candidate_combos = {}
-    manager_state = {"role": "head", "page": "candidates"}
+    manager_state = {"role": "head", "page": "candidates", "family": "endcap"}
     manager_window = {"win": None}
     manager_widgets = {"frame": None, "label": None, "buttons": (),
                        "buttons_frame": None, "quantity_frame": None,
                        "canvas": None}
     quantity_ui = None
+    model_state = {"listbox": None, "status": None, "layer": None,
+                   "files": (), "signature": None}
+
+    def refresh_switch_model_list(*, force=False):
+        """Refresh names only: editing CSV never launches 3D or applies a Bay."""
+        widget = model_state["listbox"]
+        if widget is None or not widget.winfo_exists():
+            return
+        try:
+            stat = INDEX_PATH.stat()
+            signature = (brand_var.get(), stat.st_mtime_ns, stat.st_size)
+        except OSError:
+            signature = (brand_var.get(), None, None)
+        if not force and signature == model_state["signature"]:
+            return
+        model_state["signature"] = signature
+        try:
+            files = model_filenames(brand_var.get())
+            error = None
+        except (OSError, UnicodeError, ValueError) as exc:
+            files, error = (), str(exc)
+        model_state["files"] = files
+        widget.delete(0, tk.END)
+        for filename in files:
+            widget.insert(tk.END, display_model(filename))
+        try:
+            slot = model_state["layer"].get() - 1
+            row = active_ports["ports"]["row"]()
+            bay_index = selected_setting["bay_index"]
+            from ae_engine.receiving_shared_settings import setting_value
+            current = setting_value(row, bay_index, "inner_door_models")[slot]
+        except (ValueError, IndexError, KeyError, TypeError):
+            current = ""
+        if current in files:
+            position = files.index(current)
+            widget.selection_set(position)
+            widget.see(position)
+            model_state["status"].set("目前型號：" + display_model(current))
+        elif current:
+            model_state["status"].set("目前型號已不在 CSV，請重新選擇")
+        else:
+            model_state["status"].set(
+                ("CSV 讀取失敗：" + error) if error else
+                ("此品牌沒有 CSV 型號" if not files else "請選擇開關型號")
+            )
+
+    def poll_switch_model_list():
+        if not win.winfo_exists():
+            return
+        refresh_switch_model_list()
+        win.after(1800, poll_switch_model_list)
 
     def editor_saved(role, version_id, *, keep_live=False):
         # Saving while "即時" creates a candidate but MUST NOT select it:
@@ -330,6 +384,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             win.after_idle(refresh_manager_controls)
 
     def show_setting_controls():
+        model_state.update(listbox=None, status=None, layer=None, files=(), signature=None)
         for widget in settings_host.winfo_children():
             widget.destroy()
         active_ports["ports"] = None
@@ -366,17 +421,25 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Combobox(row, textvariable=value, values=("1", "2"),
                              width=5, state="readonly").pack(side="left", padx=3)
                 ttk.Button(row, text="編輯",
-                           command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
+                           command=lambda: perform(lambda: ports["change"](kind, int(value.get()), targets()))).pack(side="left", padx=3)
                 return
-            ttk.Label(row, text="封頭孔" if role == "head" else "封尾孔").pack(
-                side="left", padx=(0, 5)
-            )
-            if get_candidate_ports is None:
-                ttk.Button(row, text="編輯",
-                           command=lambda: perform(lambda: ports["holes"](role, targets()))).pack(side="left", padx=3)
+            ttk.Label(
+                row, text={"head": "封頭孔", "tail": "封尾孔",
+                           "inner-door": "內門版本"}[role],
+            ).pack(side="left", padx=(0, 5))
+            source = (get_inner_candidate_ports if role == "inner-door"
+                      else get_candidate_ports)
+            if source is None:
+                if role != "inner-door":
+                    ttk.Button(
+                        row, text="編輯",
+                        command=lambda: perform(
+                            lambda: ports["holes"](role, targets())
+                        ),
+                    ).pack(side="left", padx=3)
                 return
 
-            library = get_candidate_ports()
+            library = source()
             versions = library["versions"](role)
             ids = {version_label(item["id"]): item["id"]
                    for item in versions}
@@ -418,7 +481,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 try:
                     if applied["mode"] != "set_bay" or applied["set_index"] is None:
                         raise ValueError("請先套用一套並在簡易圖高亮要指定的連")
-                    get_candidate_ports()["apply"](
+                    source()["apply"](
                         role, candidate_selected[role],
                         applied["set_index"], tuple(applied["selected_bays"]),
                     )
@@ -441,6 +504,73 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ).pack(anchor="e", pady=(5, 0))
         else:
             actions(settings_host, "inner_door_layers")
+            if "share" in ports and "unlink" in ports:
+                linked_row = ttk.Frame(settings_host)
+                linked_row.pack(anchor="w", pady=3)
+                ttk.Button(
+                    linked_row, text="連動選取的連",
+                    command=lambda: perform(lambda: ports["share"](
+                        "inner_door_layers", targets(),
+                    )),
+                ).pack(side="left", padx=(0, 5))
+                ttk.Button(
+                    linked_row, text="解除本連連動",
+                    command=lambda: perform(lambda: ports["unlink"](
+                        "inner_door_layers",
+                    )),
+                ).pack(side="left")
+            if get_inner_candidate_ports is not None:
+                actions(settings_host, "inner_door_layers", role="inner-door")
+                ttk.Button(
+                    settings_host, text="版本管理",
+                    command=lambda: open_manager("inner"),
+                ).pack(anchor="e", pady=(5, 0))
+            # NFB models are per-Bay inner-door settings, never head/tail.
+            # Highlighted Bay identity is shared with the existing 2D diagram.
+            current_layers = int(setting_value(ports["row"](), bay_index, "inner_door_layers"))
+            model_row = ttk.Frame(settings_host)
+            model_row.pack(anchor="w", pady=(4, 2))
+            ttk.Label(model_row, text="開關型號｜").pack(side="left")
+            layer = tk.IntVar(master=win, value=1)
+            for index in (1, 2):
+                ttk.Radiobutton(
+                    model_row, text=f"第{index}層", variable=layer, value=index,
+                    state="normal" if index <= current_layers else "disabled",
+                    command=lambda: refresh_switch_model_list(force=True),
+                ).pack(side="left", padx=(0, 6))
+            choices = tk.Listbox(
+                settings_host, height=6, width=30, selectmode=tk.BROWSE,
+                exportselection=False,
+            )
+            choices.pack(anchor="w", fill="x")
+            model_status = tk.StringVar(master=win)
+            ttk.Label(settings_host, textvariable=model_status).pack(anchor="w")
+            model_state.update(listbox=choices, layer=layer,
+                               status=model_status, signature=None)
+            refresh_switch_model_list(force=True)
+
+            def apply_model():
+                choices_index = choices.curselection()
+                if not choices_index:
+                    raise ValueError("請從開關索引.csv 的清單選擇型號")
+                filename = model_state["files"][choices_index[0]]
+                # Guard edits or brand changes after the list was populated.
+                if filename not in model_filenames(brand_var.get()):
+                    raise ValueError("選取型號已不在 CSV，請重新選擇")
+                if layer.get() > int(setting_value(
+                    ports["row"](), bay_index, "inner_door_layers"
+                )):
+                    raise ValueError("請先設定內門層數")
+                existing = list(setting_value(
+                    ports["row"](), bay_index, "inner_door_models"
+                ))
+                existing[layer.get() - 1] = filename
+                ports["change"]("inner_door_models", existing, targets())
+
+            ttk.Button(settings_host, text="套用開關型號",
+                       command=lambda: perform(apply_model)).pack(
+                anchor="w", pady=(4, 0),
+            )
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
 
@@ -470,12 +600,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return
         role = manager_state["role"]
         chosen = candidate_selected[role]
-        title.configure(text=("封頭孔" if role == "head" else "封尾孔")
+        title.configure(text=({"head": "封頭孔", "tail": "封尾孔",
+                               "inner-door": "內門"}[role])
                         + "｜" + ("即時" if chosen is None else version_label(chosen)))
         buttons = manager_widgets["buttons"]
         for button in buttons:
             button.configure(state="normal" if chosen is not None else "disabled")
-        if buttons:
+        if len(buttons) == 3:
             buttons[1].configure(text="複製到封尾" if role == "head" else "複製到封頭")
         candidate_frame = manager_widgets["buttons_frame"]
         quantity_frame = manager_widgets["quantity_frame"]
@@ -505,17 +636,25 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         else:
             diagram.master.pack_forget()
 
-    def open_manager():
+    def open_manager(family="endcap"):
         nonlocal quantity_ui
-        if get_candidate_ports is None:
+        source = (get_inner_candidate_ports if family == "inner"
+                  else get_candidate_ports)
+        if source is None:
             return
         old = manager_window["win"]
         if old is not None and old.winfo_exists():
             old.lift()
             old.focus_set()
             return old
+        manager_state["family"] = family
+        manager_state["role"] = ("inner-door" if family == "inner"
+                                 else manager_state["role"]
+                                 if manager_state["role"] in ("head", "tail")
+                                 else "head")
+        manager_state["page"] = "candidates"
         manager = tk.Toplevel(win)
-        manager.title("版本管理")
+        manager.title("內門版本管理" if family == "inner" else "版本管理")
         manager.transient(win)
         manager.geometry("960x720")
         manager.minsize(570, 350)
@@ -535,11 +674,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         def choose_page():
             manager_state["page"] = page_var.get()
             refresh_manager_controls()
-        for label, value in (("封頭孔", "head"), ("封尾孔", "tail")):
-            ttk.Radiobutton(
-                top, text=label, value=value, variable=role_var,
-                command=choose_role,
-            ).pack(side="left", padx=(0, 14))
+        if family == "inner":
+            ttk.Label(top, text="內門").pack(side="left")
+        else:
+            for label, value in (("封頭孔", "head"), ("封尾孔", "tail")):
+                ttk.Radiobutton(
+                    top, text=label, value=value, variable=role_var,
+                    command=choose_role,
+                ).pack(side="left", padx=(0, 14))
         tabs = ttk.Frame(body)
         tabs.pack(anchor="nw", pady=(10, 0))
         for label, value in (("候選版本", "candidates"), ("數量配置", "quantity")):
@@ -551,9 +693,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         title.pack(anchor="nw", pady=(10, 0))
         buttons = ttk.Frame(body)
         actions_map = []
-        for label, action in (("複製為新版本", "same"),
+        menu_actions = ([("複製為新版本", "same"),
+                         ("刪除目前版本", "delete")] if family == "inner"
+                        else [("複製為新版本", "same"),
                               ("複製到另一側", "other"),
-                              ("刪除目前版本", "delete")):
+                              ("刪除目前版本", "delete")])
+        for label, action in menu_actions:
             control = ttk.Button(
                 buttons, text=label,
                 command=lambda action=action: manage_action(action),
@@ -579,8 +724,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         quantity_ui = ReceivingQuantityAllocationUI(
             manager, diagram,
             get_counts=lambda: tuple(get_switch().connection_counts()),
-            get_ports=get_candidate_ports,
+            get_ports=source,
             get_marks=get_original_door_marks,
+            roles=("inner-door",) if family == "inner" else ("head", "tail"),
+            validate_role=(lambda role: role if role == "inner-door"
+                           else (_ for _ in ()).throw(ValueError("內門權責錯誤")))
+                          if family == "inner" else None,
             on_render=render_manager_diagram,
             warn=warn,
         )
@@ -617,10 +766,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def manage_action(action):
         role = manager_state["role"]
         selected_id = candidate_selected[role]
-        if selected_id is None or get_candidate_ports is None:
+        source = (get_inner_candidate_ports if role == "inner-door"
+                  else get_candidate_ports)
+        if selected_id is None or source is None:
             return
         try:
-            library = get_candidate_ports()
+            library = source()
             if action == "delete":
                 if not messagebox.askyesno(
                     "刪除候選版本", "確定刪除此候選版本？已套用到板件的孔位不會刪除。",
@@ -630,6 +781,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 library["delete"](role, selected_id)
                 candidate_selected[role] = None
             else:
+                if role == "inner-door" and action == "other":
+                    raise ValueError("內門不能複製到封頭尾")
                 destination = role if action == "same" else (
                     "tail" if role == "head" else "head"
                 )
@@ -878,6 +1031,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     canvas.bind("<Configure>", lambda _event: render())
     refresh_rows()
     render()
+    win.after(1800, poll_switch_model_list)
 
     # Test hooks are presentation state only, not product data authority.
     win._receiving_multi_brand_var = brand_var
@@ -885,6 +1039,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_set_buttons = (minus_set, plus_set)
     win._receiving_multi_candidate_selected = candidate_selected
     win._receiving_multi_candidate_combos = candidate_combos
+    win._receiving_multi_inner_model_state = model_state
+    win._receiving_multi_refresh_switch_models = refresh_switch_model_list
     win._receiving_multi_manager_state = manager_state
     win._receiving_multi_manager_window = manager_window
     win._receiving_multi_open_manager = open_manager

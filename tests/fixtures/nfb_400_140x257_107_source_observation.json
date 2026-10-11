@@ -1,0 +1,163 @@
+{
+  "schema": "WHD_NFB_SOURCE_OBSERVATION_V1",
+  "file_name": "400_140X257_107(1).dxf",
+  "sha256": "8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3",
+  "bytes": 123089,
+  "dxf_version": "AC1015",
+  "insunits": 4,
+  "modelspace_entity_count": 41,
+  "modelspace_insert_count": 0,
+  "modelspace_layer_counts": {
+    "0": 41
+  },
+  "entity_aci_counts": {
+    "3": 5,
+    "30": 8,
+    "150": 1,
+    "212": 27
+  },
+  "regions": {
+    "lower_spacer_candidate": {
+      "status": "SOURCE_REGION_CANDIDATE_ONLY",
+      "entity_count": 28,
+      "handles": [
+        "481",
+        "482",
+        "483",
+        "484",
+        "485",
+        "48A",
+        "48B",
+        "48C",
+        "48D",
+        "490",
+        "491",
+        "492",
+        "493",
+        "494",
+        "495",
+        "496",
+        "497",
+        "498",
+        "499",
+        "49A",
+        "49B",
+        "49C",
+        "49D",
+        "49E",
+        "49F",
+        "4A0",
+        "4A1",
+        "597"
+      ],
+      "entity_color_counts": {
+        "3": 5,
+        "212": 23
+      },
+      "entity_type_counts": {
+        "ARC": 5,
+        "CIRCLE": 4,
+        "LINE": 18,
+        "LWPOLYLINE": 1
+      },
+      "source_role": "USER_DESCRIBED_LOWER_SPACER"
+    },
+    "upper_opening_candidate": {
+      "status": "SOURCE_REGION_CANDIDATE_ONLY",
+      "entity_count": 13,
+      "handles": [
+        "486",
+        "487",
+        "488",
+        "489",
+        "4A2",
+        "4A3",
+        "4A4",
+        "4A5",
+        "585",
+        "586",
+        "587",
+        "588",
+        "589"
+      ],
+      "entity_color_counts": {
+        "30": 8,
+        "150": 1,
+        "212": 4
+      },
+      "entity_type_counts": {
+        "CIRCLE": 4,
+        "LINE": 4,
+        "LWPOLYLINE": 5
+      },
+      "source_role": "USER_DESCRIBED_UPPER_OPENING"
+    }
+  },
+  "upper_color150_rectangle": {
+    "handle": "585",
+    "aci": 150,
+    "closed": true,
+    "vertex_count": 4,
+    "bbox_mm": [
+      3743.467234,
+      2560.809181,
+      3800.467234,
+      2656.809181
+    ],
+    "size_mm": [
+      57,
+      96
+    ],
+    "geometric_bbox_center_mm": [
+      3771.967234,
+      2608.809181
+    ]
+  },
+  "lower_color3_envelope": {
+    "handle": "597",
+    "aci": 3,
+    "closed": true,
+    "vertex_count": 20,
+    "bbox_mm": [
+      3699.967234,
+      2095.269181,
+      3843.967234,
+      2352.269181
+    ],
+    "size_mm": [
+      144,
+      257
+    ],
+    "geometric_bbox_center_mm": [
+      3771.967234,
+      2223.769181
+    ]
+  },
+  "source_main_cutting_pivot_certified": false,
+  "source_nfb_model_certified": false,
+  "ready_for_1497_manufacturing": false,
+  "note": "Upper Color150 rectangle handle 585 CENTER is user-confirmed common positioning reference for middle-board and inner-door opening. The lower region is intentionally excluded from this operation. The witness does NOT certify per-model hole catalog, transform into either finished part, or CUTTING readiness.",
+  "user_confirmed_upper_reference": {
+    "source_region": "upper_opening_candidate",
+    "reference_handle": "585",
+    "reference_color_aci": 150,
+    "role": "MIDDLE_PLATE_OPENING_AND_INNER_DOOR_OPENING",
+    "owner_parts": [
+      "MIDDLE_PLATE",
+      "INNER_DOOR"
+    ],
+    "center_xy_mm": [
+      3771.967234,
+      2608.809181
+    ],
+    "rectangle_size_mm": [
+      57,
+      96
+    ],
+    "center_rule": "CENTER_OF_EXPLICIT_UPPER_COLOR150_CLOSED_RECTANGLE",
+    "user_confirmation": "2026-10-11: lower region ignored; Color150 middle plate and inner door share this positioning reference",
+    "lower_region_policy": "IGNORE_FOR_THIS_OPERATION",
+    "source_reference_confirmed": true,
+    "output_manufacturing_ready": false
+  }
+}

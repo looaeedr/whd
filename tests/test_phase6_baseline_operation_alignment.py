@@ -179,3 +179,89 @@ def test_door_final_baseline_scene_marking_stays_material_and_cutting_is_removed
     assert cut.layer == 'CUTTING'
     assert (float(cut.center.x), float(cut.center.y)) == pytest.approx((55.0, 110.0))
     assert not material.contains(Point(cut.center.x, cut.center.y))
+
+
+@pytest.mark.parametrize(
+    ("layer", "color", "expected"),
+    [
+        ("0", 211, "MARKING"),
+        ("0", 212, "MARKING"),
+        ("0", 213, "MARKING"),
+        ("0", 30, "CUTTING"),
+        ("0", 150, "CUTTING"),
+        ("0", 256, "CUTTING"),
+        ("CUTTING", 212, "CUTTING"),
+        ("MARKING", 30, "MARKING"),
+        ("BLIND_HOLE", 212, "BLIND_HOLE"),
+        ("DATUM", 213, "DATUM"),
+    ],
+)
+def test_baseline_subtype_aci_fallback_respects_explicit_layer(layer, color, expected):
+    doc = ezdxf.new("R2010")
+    entity = doc.modelspace().add_circle(
+        (10, 10), 2, dxfattribs={"layer": layer, "color": color},
+    )
+    assert ae._baseline_entity_layer(entity) == expected
+
+
+def test_baseline_subtype_markings_do_not_expand_cutting_bounds():
+    doc = ezdxf.new("R2010")
+    msp = doc.modelspace()
+    msp.add_lwpolyline(
+        [(0, 0), (100, 0), (100, 60), (0, 60)],
+        close=True, dxfattribs={"layer": "CUTTING"},
+    )
+    msp.add_circle((-500, -500), 5, dxfattribs={"layer": "0", "color": 212})
+    msp.add_line(
+        (500, 500), (600, 600), dxfattribs={"layer": "0", "color": 213},
+    )
+    assert ae._baseline_cutting_bounds(msp) == pytest.approx((0, 0, 100, 60))
+
+
+def test_door_baseline_subtype_aci_survives_scene_and_dxf_reopen(tmp_path, monkeypatch):
+    path = tmp_path / "門.dxf"
+    _write_door_baseline(path)
+    doc = ezdxf.readfile(path)
+    msp = doc.modelspace()
+    msp.add_line((100, 200), (180, 200), dxfattribs={"layer": "0", "color": 212})
+    msp.add_circle((150, 250), 7.25, dxfattribs={"layer": "0", "color": 213})
+    msp.add_circle((200, 300), 3.25, dxfattribs={"layer": "0", "color": 30})
+    msp.add_lwpolyline(
+        [(245, 280), (280, 280), (265, 300)],
+        close=True, dxfattribs={"layer": "0", "color": 150},
+    )
+    msp.add_arc((300, 330), 6, 0, 90, dxfattribs={"layer": "0", "color": 212})
+    doc.saveas(path)
+    monkeypatch.setattr(ae, "baseline_part_path", lambda model, filename: str(path))
+    monkeypatch.setattr(ae, "baseline_expected_path", lambda model, filename: str(path))
+
+    scene = ae.get_stretched_door_data(
+        "TEST", 500, 600, 2, 25, 3.5, 3.5, 30, 30, 30, 30,
+    ).scene
+    required = {
+        (212, "MARKING", "LinePrimitive"),
+        (213, "MARKING", "CirclePrimitive"),
+        (30, "CUTTING", "CirclePrimitive"),
+        (150, "CUTTING", "PolylinePrimitive"),
+        (212, "MARKING", "PolylinePrimitive"),
+    }
+    observed = {
+        (primitive.color, primitive.layer, type(primitive).__name__)
+        for primitive in scene.primitives
+    }
+    assert required <= observed
+
+    out = tmp_path / "reopened.dxf"
+    ae._save_scene_dxf(out, scene)
+    saved = ezdxf.readfile(out)
+    exported = {
+        (int(entity.dxf.color), entity.dxf.layer, entity.dxftype())
+        for entity in saved.modelspace()
+    }
+    assert {
+        (212, "MARKING", "LINE"),
+        (213, "MARKING", "CIRCLE"),
+        (30, "CUTTING", "CIRCLE"),
+        (150, "CUTTING", "LWPOLYLINE"),
+        (212, "MARKING", "LWPOLYLINE"),
+    } <= exported

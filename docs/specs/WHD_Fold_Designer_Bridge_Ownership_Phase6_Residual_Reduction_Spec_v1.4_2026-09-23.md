@@ -1,4 +1,8 @@
 ---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 title: "WHD Fold Designer Bridge Ownership Phase 6 — Residual Reduction + Protected Boundary Reconsideration 規格"
 version: "v1.4"
 status: "USER_ACCEPTED_FOR_EXECUTION"
@@ -16,6 +20,8 @@ supersedes_spec: "WHD Fold Designer Bridge Ownership Phase 6 — Residual Reduct
 
 # WHD Fold Designer Bridge Ownership Phase 6
 ## Residual Reduction + Protected Boundary Reconsideration 規格 v1.4
+
+> **REFERENCE／2026-09-23 核准歷程快照**：Frontmatter 的 `USER_ACCEPTED_FOR_EXECUTION` 記錄後續已接受的狀態；以下 `DRAFT_FOR_USER_ACCEPTANCE` 是原提案階段文字，**不是目前尚待核准的要求**。保留原始 Gate A–H 和 ownership evidence 供追溯；現行 Bridge owner 與施工分流以正式 X 的 `AGENTS.md`、CURRENT `12_WHD_FoldDesignerBridgeOwnership規則.md` 和 production tests 為準。
 
 > 狀態：**DRAFT_FOR_USER_ACCEPTANCE**
 >

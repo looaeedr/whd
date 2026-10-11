@@ -8,6 +8,8 @@ SETTING_DEFAULTS = {
     "head_features": [],
     "tail_features": [],
     "inner_door_layers": 1,
+    # One optional filename per physical switch layer; "" means not configured.
+    "inner_door_models": ["", ""],
 }
 
 
@@ -21,6 +23,14 @@ def validate_setting(kind, value):
     elif kind == "inner_door_layers":
         if value not in (1, 2) or isinstance(value, bool):
             raise ValueError("內門層數必須為 1 或 2")
+    elif kind == "inner_door_models":
+        if (not isinstance(value, (list, tuple)) or len(value) != 2
+                or any(not isinstance(model, str) or (model and (
+                    not model.lower().endswith(".dxf") or model.lower() == ".dxf"
+                    or "/" in model or chr(92) in model
+                )) for model in value)):
+            raise ValueError("內門開關型號必須為兩個合法 DXF 檔名或空白")
+        value = list(value)
     elif not isinstance(value, (list, tuple)):
         raise ValueError("封頭尾設定必須是 Hole Editor feature 清單")
     return deepcopy(value)

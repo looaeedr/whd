@@ -677,8 +677,15 @@ def get_stretched_door_data(model_name, W_val, H_val, T_val, FW_val=None,
 
     for ent in _iter_baseline_entities(msp):
         # Operation ownership is authoritative. Explicit MARKING/BLIND_HOLE/DATUM
-        # layers beat entity color; color 211 remains only as a legacy layer-0 fallback.
+        # layers beat entity color; 211/212/213 are legacy layer-0 MARKING fallbacks.
         tgt_layer = _baseline_entity_layer(ent)
+        # Preserve plate-specific ACI colors through DrawingScene -> DXF export.
+        # Explicit operation layers still take precedence over conflicting colors.
+        aci = int(getattr(ent.dxf, "color", 0) or 0) if ent.dxf.hasattr("color") else 0
+        subtype_color = aci if (
+            (tgt_layer == 'MARKING' and aci in {212, 213})
+            or (tgt_layer == 'CUTTING' and aci in {30, 150})
+        ) else None
         if tgt_layer in {'BEND', 'CHECK', 'STOCK'}:
             continue
 
@@ -695,7 +702,7 @@ def get_stretched_door_data(model_name, W_val, H_val, T_val, FW_val=None,
                 continue
             p1 = (map_x(start_pt[0]), map_y(start_pt[1]))
             p2 = (map_x(end_pt[0]), map_y(end_pt[1]))
-            scene.add_line(p1, p2, layer=tgt_layer)
+            scene.add_line(p1, p2, layer=tgt_layer, color=subtype_color)
         elif ent.dxftype() == 'LWPOLYLINE':
             pts = list(ent.get_points())
             local_pts = [(float(pt[0]) - min_x, float(pt[1]) - min_y) for pt in pts]
@@ -717,7 +724,7 @@ def get_stretched_door_data(model_name, W_val, H_val, T_val, FW_val=None,
                 if bool(ent.closed) and spans_sheet:
                     continue
             pts_mapped = [(map_x(x), map_y(y)) for x, y in local_pts]
-            scene.add_polyline(pts_mapped, layer=tgt_layer, closed=ent.closed)
+            scene.add_polyline(pts_mapped, layer=tgt_layer, closed=ent.closed, color=subtype_color)
         elif ent.dxftype() == 'CIRCLE':
             cx = ent.dxf.center.x - min_x
             cy = ent.dxf.center.y - min_y
@@ -732,7 +739,7 @@ def get_stretched_door_data(model_name, W_val, H_val, T_val, FW_val=None,
                 cy_new = float(finished_guide.min_point.y) + float(finished_h) - datum
             scene.add_circle(
                 (cx_new, cy_new), ent.dxf.radius, layer=tgt_layer,
-                source_type=source_type, source_id=source_id,
+                color=subtype_color, source_type=source_type, source_id=source_id,
             )
         elif ent.dxftype() == 'ARC':
             if ent.dxf.radius > 50:
@@ -740,7 +747,7 @@ def get_stretched_door_data(model_name, W_val, H_val, T_val, FW_val=None,
             pts_flattened = []
             for pt in ent.flattening(0.5):
                 pts_flattened.append((map_x(pt[0] - min_x), map_y(pt[1] - min_y)))
-            scene.add_polyline(pts_flattened, layer=tgt_layer, closed=False)
+            scene.add_polyline(pts_flattened, layer=tgt_layer, closed=False, color=subtype_color)
 
     # === 指示燈小門視窗：由零件角色判斷，不依賴任何 shared folder/model 名稱 ===
     if indicator_window_groups is not None:

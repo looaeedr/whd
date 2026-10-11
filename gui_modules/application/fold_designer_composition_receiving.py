@@ -1210,6 +1210,205 @@ def open_receiving_multi_settings(self, namespace):
             "apply_quantity": apply_quantity_configuration,
         }
 
+    # Independent inner-door candidate data. It shares the UX mechanics with
+    # endcaps, but never reads/writes receiving_hole_candidates or QuantityModel.
+    from ae_engine.receiving_inner_door_candidates import (
+        KEY as INNER_KEY, ROLE as INNER_ROLE,
+        normalize_inner_candidates, inner_versions, inner_config,
+        create_inner_candidate, update_inner_candidate,
+        delete_inner_candidate, duplicate_inner_candidate,
+    )
+    from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
+    from ae_engine.receiving_hole_candidates import version_label
+    from ae_engine.receiving_shared_settings import setting_value
+    from ae_engine.receiving_switch_model_catalog import model_filenames, display_model
+
+    def inner_library():
+        return normalize_inner_candidates(
+            self.app._phase6_input_snapshot.get(INNER_KEY)
+        )
+
+    def persist_inner(library):
+        self.app._phase6_input_snapshot[INNER_KEY] = (
+            normalize_inner_candidates(library)
+        )
+        workspace = getattr(self.app, "designer_workspace", None)
+        if workspace is not None:
+            workspace.mark_dirty()
+
+    def inner_edit(role, version_id, after_saved):
+        if role != INNER_ROLE:
+            raise ValueError("內門版本權責錯誤")
+        from tkinter import ttk, messagebox
+        import tkinter as tk
+
+        if version_id is None:
+            adapter = candidate_adapter()
+            set_row = adapter.layout["sets"][adapter.selection.set_index]
+            bi = adapter.selection.bay_index
+            initial = {
+                "layers": setting_value(set_row, bi, "inner_door_layers"),
+                "models": setting_value(set_row, bi, "inner_door_models"),
+            }
+        else:
+            initial = inner_config(inner_library(), version_id)
+        brand = self.receiving_switch_adapter(namespace).brand
+        filenames = model_filenames(brand)
+        modal = tk.Toplevel(self.app.root)
+        modal.title("內門版本編輯")
+        modal.transient(self.app.root)
+        modal.geometry("650x520")
+        frame = ttk.Frame(modal, padding=14)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
+                        else version_label(version_id))).pack(anchor="w")
+        layers = tk.IntVar(master=modal, value=initial["layers"])
+        controls = ttk.Frame(frame)
+        controls.pack(anchor="w", pady=(8, 6))
+        ttk.Label(controls, text="開關層數").pack(side="left")
+        for count in (1, 2):
+            ttk.Radiobutton(
+                controls, text=str(count), value=count, variable=layers,
+            ).pack(side="left", padx=8)
+        boxes = []
+        for idx in range(2):
+            ttk.Label(frame, text=f"第 {idx+1} 層開關型號").pack(anchor="w")
+            listing = tk.Listbox(
+                frame, exportselection=False, height=6, width=38,
+            )
+            listing.pack(anchor="w", fill="x", pady=(1, 7))
+            for filename in filenames:
+                listing.insert(tk.END, display_model(filename))
+            if initial["models"][idx] in filenames:
+                listing.selection_set(filenames.index(initial["models"][idx]))
+                listing.see(filenames.index(initial["models"][idx]))
+            boxes.append(listing)
+        warning = tk.StringVar(master=modal, value="")
+        ttk.Label(frame, textvariable=warning).pack(anchor="w")
+        def confirm():
+            chosen = list(initial["models"])
+            for idx, listing in enumerate(boxes):
+                index = listing.curselection()
+                if index:
+                    chosen[idx] = filenames[index[0]]
+            if layers.get() == 1:
+                chosen[1] = ""
+            try:
+                latest_files = model_filenames(
+                    self.receiving_switch_adapter(namespace).brand
+                )
+                if any(name and name not in latest_files for name in
+                       chosen[:layers.get()]):
+                    raise ValueError("開關索引.csv 已變動或來源型號失效")
+                config = {"layers": layers.get(), "models": chosen}
+                if version_id is None:
+                    saved, vid = create_inner_candidate(inner_library(), config)
+                else:
+                    saved = update_inner_candidate(
+                        inner_library(), version_id, config,
+                    )
+                    vid = version_id
+                persist_inner(saved)
+                after_saved(vid)
+                close_editor()
+            except (ValueError, OSError) as exc:
+                warning.set(str(exc))
+        buttons = ttk.Frame(frame)
+        buttons.pack(anchor="e", pady=(10, 0))
+        ttk.Button(buttons, text="取消", command=modal.destroy).pack(
+            side="left", padx=5,
+        )
+        ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
+        # Restore the parent multi-settings grab after this editor closes.
+        parent_modal = getattr(
+            self.app.root, "_receiving_multi_settings_window", None
+        )
+        def close_editor():
+            if modal.grab_current() is modal:
+                modal.grab_release()
+            modal.destroy()
+            if (parent_modal is not None and parent_modal.winfo_exists()
+                    and parent_modal.grab_current() is None):
+                parent_modal.grab_set()
+        modal.protocol("WM_DELETE_WINDOW", close_editor)
+        for widget in buttons.winfo_children():
+            if widget.cget("text") == "取消":
+                widget.configure(command=close_editor)
+        modal.grab_set()
+        return modal
+
+    def inner_copy(role, version_id, destination):
+        if role != INNER_ROLE or destination != INNER_ROLE:
+            raise ValueError("內門版本不能複製到封頭尾")
+        updated, vid = duplicate_inner_candidate(inner_library(), version_id)
+        persist_inner(updated)
+        return vid
+
+    def inner_delete(role, version_id):
+        if role != INNER_ROLE:
+            raise ValueError("內門版本權責錯誤")
+        persist_inner(delete_inner_candidate(inner_library(), version_id))
+
+    def verify_inner_models(config):
+        allowed = set(model_filenames(
+            self.receiving_switch_adapter(namespace).brand
+        ))
+        for name in config["models"][:config["layers"]]:
+            if name and name not in allowed:
+                raise ValueError(
+                    "內門版本型號已不在開關索引.csv，請重新編輯選擇：" + name
+                )
+
+    def inner_apply(role, version_id, set_index, highlighted):
+        if role != INNER_ROLE or version_id is None or not highlighted:
+            raise ValueError("請選內門版本及實際連位")
+        adapter = candidate_adapter()
+        config = inner_config(inner_library(), version_id)
+        verify_inner_models(config)
+        adapter.apply_inner_door_candidate_to_bays(
+            config, set_index, highlighted,
+        )
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        self.app.submit_update_intent("geometry", commit=True)
+        return True
+
+    def inner_validate_quantity(quantities, assigned, expected_counts):
+        plan = validate_inner_door_allocation(
+            candidate_adapter().layout, inner_library(), quantities, assigned,
+            expected_counts=expected_counts,
+        )
+        for _si, _bi, config in plan:
+            verify_inner_models(config)
+        return plan
+
+    def inner_apply_quantity(role, quantities, assigned, expected_counts):
+        if role != INNER_ROLE:
+            raise ValueError("內門版本權責錯誤")
+        inner_validate_quantity(quantities, assigned, expected_counts)
+        adapter = candidate_adapter()
+        count = adapter.apply_inner_door_quantity_configuration(
+            inner_library(), quantities, assigned,
+            expected_counts=expected_counts,
+        )
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        self.app.submit_update_intent("geometry", commit=True)
+        return count
+
+    def inner_candidate_ports():
+        return {
+            "versions": lambda role: (
+                inner_versions(inner_library()) if role == INNER_ROLE else ()
+            ),
+            "edit": inner_edit,
+            "copy": inner_copy,
+            "delete": inner_delete,
+            "apply": inner_apply,
+            "apply_quantity": inner_apply_quantity,
+            "validate_quantity": inner_validate_quantity,
+        }
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -1220,6 +1419,7 @@ def open_receiving_multi_settings(self, namespace):
         ),
         resize_sets=resize_sets,
         get_candidate_ports=candidate_ports,
+        get_inner_candidate_ports=inner_candidate_ports,
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
