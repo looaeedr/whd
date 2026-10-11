@@ -113,13 +113,16 @@ def resolve_upper_nfb_base_plate_owner(
             raise ValueError("NFB upper base has noncanonical assembly placement")
         render=getattr(part,"render_data",None)
         material=getattr(render,"material",None)
-        topology=getattr(render,"unfolded_topology",None)
-        if (material is None or material.is_empty or not material.is_valid
-                or topology is None):
+        # The real BasePlate PartSpec currently has no
+        # UnfoldedBlankTopology; its authoritative actual FinalScene material
+        # owns the blank, and four-side BENDs stay with its renderer.
+        # Do not fabricate a topology just to pass an MFG-2 identity check.
+        if material is None or material.is_empty or not material.is_valid:
             raise ValueError("NFB upper base has no real unfolded manufacturing material")
-        width=float(topology.width)
-        height=float(topology.height)
-        if width<=0 or height<=0:
+        minx,miny,maxx,maxy=map(float,material.bounds)
+        width=maxx-minx
+        height=maxy-miny
+        if not all(__import__("math").isfinite(v) for v in (width,height)) or min(width,height)<=0:
             raise ValueError("NFB upper base has invalid physical blank dimensions")
         physical.append((key,placement,width,height))
     if len(physical)!=1:
