@@ -421,7 +421,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Combobox(row, textvariable=value, values=("1", "2"),
                              width=5, state="readonly").pack(side="left", padx=3)
                 ttk.Button(row, text="編輯",
-                           command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
+                           command=lambda: perform(lambda: ports["change"](kind, int(value.get()), targets()))).pack(side="left", padx=3)
                 return
             ttk.Label(
                 row, text={"head": "封頭孔", "tail": "封尾孔",
@@ -504,6 +504,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ).pack(anchor="e", pady=(5, 0))
         else:
             actions(settings_host, "inner_door_layers")
+            if "share" in ports and "unlink" in ports:
+                linked_row = ttk.Frame(settings_host)
+                linked_row.pack(anchor="w", pady=3)
+                ttk.Button(
+                    linked_row, text="連動選取的連",
+                    command=lambda: perform(lambda: ports["share"](
+                        "inner_door_layers", targets(),
+                    )),
+                ).pack(side="left", padx=(0, 5))
+                ttk.Button(
+                    linked_row, text="解除本連連動",
+                    command=lambda: perform(lambda: ports["unlink"](
+                        "inner_door_layers",
+                    )),
+                ).pack(side="left")
             if get_inner_candidate_ports is not None:
                 actions(settings_host, "inner_door_layers", role="inner-door")
                 ttk.Button(
