@@ -51,6 +51,7 @@ class NfbNativeBaseMark:
     vertices_xy_mm: tuple[tuple[float, float], ...]
     bulges: tuple[float, ...]
     source_color_aci: int = 212
+    source_closed: bool = False
 
 
 @dataclass(frozen=True)
@@ -214,6 +215,7 @@ def inspect_nfb_upper_base_native_process(
             raise ValueError("NFB upper Color212 native MARKING geometry unsupported")
         marks.append(NfbNativeBaseMark(
             row.handle_path,row.dxf_type,tuple(row.vertices_xy),tuple(row.bulges),
+            source_closed=bool(row.closed),
         ))
     if not color30 or not marks or not (circles or loops):
         raise ValueError("NFB upper base CUTTING/MARKING source not fully identified")
