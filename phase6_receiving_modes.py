@@ -106,6 +106,14 @@ class ReceivingModeSession:
             candidate["custom_parts"] = payload
             if "workspace" in candidate:
                 candidate["workspace"]["custom_parts"] = deepcopy(payload)
+        # The operator's head/tail candidate library is project-global,
+        # NOT a QuantityModel or Set/Bay buffer. Transfer its one authority
+        # on every successful mode switch, including first-time initialization.
+        if "receiving_hole_candidates" in current:
+            from ae_engine.receiving_hole_candidates import normalize_candidates
+            candidate["receiving_hole_candidates"] = normalize_candidates(
+                current["receiving_hole_candidates"]
+            )
         self._buffers[self._mode] = current
         self._active = candidate
         self._mode = target

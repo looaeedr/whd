@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+from ae_engine.receiving_hole_candidates import version_label
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
@@ -169,7 +170,8 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
 
 
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
-                        resize_connections, select_bay=None,
+                        resize_connections, resize_sets=None,
+                        get_candidate_ports=None, select_bay=None,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_settings_ports=None,
                         get_original_door_marks=None,
@@ -238,7 +240,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
     brand_selector = ttk.Combobox(
         brand_row, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS,
-        state="readonly", width=10,
+        state="readonly", width=8,
     )
     brand_selector.pack(side="left")
     def apply_brand(_event=None):
@@ -252,6 +254,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_selector.bind("<<ComboboxSelected>>", apply_brand)
     mode_row = ttk.Frame(top_left)
     mode_row.pack(anchor="w")
+    set_actions = ttk.Frame(top_left)
+    set_actions.pack(anchor="w", pady=(5, 0))
+    minus_set = ttk.Button(
+        set_actions, text="－套", width=5, command=lambda: adjust_sets(-1)
+    )
+    minus_set.pack(side="left", padx=(0, 3))
+    plus_set = ttk.Button(
+        set_actions, text="＋套", width=5, command=lambda: adjust_sets(1)
+    )
+    plus_set.pack(side="left")
 
     applied = {"set_index": None, "count": 1, "selected": None,
                "selected_bays": (), "mode": "set_bay"}
@@ -285,6 +297,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
+    candidate_selected = {"head": None, "tail": None}
+    candidate_combos = {}
+    manager_state = {"open": False, "role": "head"}
+    manager_widgets = {"frame": None, "label": None, "buttons": ()}
+
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
@@ -309,14 +326,17 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 show_setting_controls()
             except (ValueError, IndexError, RuntimeError) as exc:
                 warn(exc)
+        candidate_combos.clear()
+
+        def editor_saved(role, version_id):
+            candidate_selected[role] = version_id
+            if win.winfo_exists():
+                win.after_idle(show_setting_controls)
+
         def actions(parent, kind, *, role=None):
             row = ttk.Frame(parent)
             row.pack(anchor="w", pady=3)
-            if role is not None:
-                ttk.Label(row, text="封頭孔" if role == "head" else "封尾孔").pack(side="left")
-                ttk.Button(row, text="編輯",
-                           command=lambda: perform(lambda: ports["holes"](role, targets()))).pack(side="left", padx=3)
-            else:
+            if role is None:
                 from ae_engine.receiving_shared_settings import setting_value
                 current = setting_value(ports["row"](), bay_index, kind)
                 value = tk.StringVar(master=win, value=str(current))
@@ -325,11 +345,166 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                              width=5, state="readonly").pack(side="left", padx=3)
                 ttk.Button(row, text="編輯",
                            command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
+                return
+            ttk.Label(row, text="封頭孔" if role == "head" else "封尾孔").pack(
+                side="left", padx=(0, 5)
+            )
+            if get_candidate_ports is None:
+                ttk.Button(row, text="編輯",
+                           command=lambda: perform(lambda: ports["holes"](role, targets()))).pack(side="left", padx=3)
+                return
+
+            library = get_candidate_ports()
+            versions = library["versions"](role)
+            ids = {version_label(item["id"]): item["id"]
+                   for item in versions}
+            current_id = candidate_selected[role]
+            if current_id not in ids.values():
+                candidate_selected[role] = None
+            chosen = next((label for label, key in ids.items()
+                           if key == candidate_selected[role]), "即時")
+            variable = tk.StringVar(master=win, value=chosen)
+            # Use the ORIGINAL native readonly ttk.Combobox, not a drawn menu.
+            selector = ttk.Combobox(
+                row, textvariable=variable, values=("即時", *ids),
+                width=11, state="readonly",
+            )
+            selector.pack(side="left", padx=(0, 5))
+            candidate_combos[role] = selector
+
+            def choose(_event=None):
+                candidate_selected[role] = ids.get(variable.get())
+                apply_button.configure(
+                    state="normal" if candidate_selected[role] else "disabled"
+                )
+                refresh_manager_controls()
+
+            selector.bind("<<ComboboxSelected>>", choose)
+
+            def edit_role():
+                try:
+                    library["edit"](
+                        role, candidate_selected[role],
+                        lambda created, role=role: editor_saved(role, created),
+                    )
+                except (ValueError, IndexError, RuntimeError) as exc:
+                    warn(exc)
+
+            def apply_role():
+                try:
+                    if applied["mode"] != "set_bay" or applied["set_index"] is None:
+                        raise ValueError("請先套用一套並在簡易圖高亮要指定的連")
+                    get_candidate_ports()["apply"](
+                        role, candidate_selected[role],
+                        applied["set_index"], tuple(applied["selected_bays"]),
+                    )
+                except (ValueError, IndexError, RuntimeError) as exc:
+                    warn(exc)
+
+            ttk.Button(row, text="編輯", command=edit_role).pack(side="left", padx=(0, 3))
+            apply_button = ttk.Button(
+                row, text="套用", command=apply_role,
+                state="normal" if candidate_selected[role] else "disabled",
+            )
+            apply_button.pack(side="left")
+
         if selected_setting["kind"] == "head_features":
             actions(settings_host, "head_features", role="head")
             actions(settings_host, "tail_features", role="tail")
+            if get_candidate_ports is not None:
+                manage_toggle = ttk.Button(
+                    settings_host, text="版本管理",
+                    command=lambda: toggle_manager()
+                )
+                manage_toggle.pack(anchor="e", pady=(5, 0))
+                manage = ttk.Frame(settings_host)
+                title = ttk.Label(manage, text="")
+                title.pack(anchor="w")
+                choices = ttk.Frame(manage)
+                choices.pack(anchor="w", pady=(4, 2))
+                role_var = tk.StringVar(master=win, value=manager_state["role"])
+                def choose_manage_role():
+                    manager_state["role"] = role_var.get()
+                    refresh_manager_controls()
+                for label, value in (("封頭孔", "head"), ("封尾孔", "tail")):
+                    ttk.Radiobutton(
+                        choices, text=label, value=value,
+                        variable=role_var, command=choose_manage_role,
+                    ).pack(side="left", padx=(0, 10))
+                buttons = ttk.Frame(manage)
+                buttons.pack(anchor="w", pady=3)
+                actions_map = []
+                for label, destination in (("複製為新版本", "same"),
+                                           ("複製到另一側", "other"),
+                                           ("刪除目前版本", "delete")):
+                    control = ttk.Button(
+                        buttons, text=label,
+                        command=lambda action=destination: manage_action(action)
+                    )
+                    control.pack(side="left", padx=(0, 4))
+                    actions_map.append(control)
+                manager_widgets.update(frame=manage, label=title, buttons=tuple(actions_map))
+                refresh_manager_controls()
+                if manager_state["open"]:
+                    manage.pack(anchor="e")
+            else:
+                manager_widgets.update(frame=None, label=None, buttons=())
         else:
             actions(settings_host, "inner_door_layers")
+            manager_widgets.update(frame=None, label=None, buttons=())
+
+    def refresh_manager_controls():
+        title = manager_widgets["label"]
+        if title is None or not title.winfo_exists():
+            return
+        role = manager_state["role"]
+        chosen = candidate_selected[role]
+        title.configure(text=("封頭孔" if role == "head" else "封尾孔")
+                        + "｜" + ("即時" if chosen is None else
+                                 version_label(chosen)))
+        for button in manager_widgets["buttons"]:
+            button.configure(state="normal" if chosen is not None else "disabled")
+        if manager_widgets["buttons"]:
+            manager_widgets["buttons"][1].configure(
+                text="複製到封尾" if role == "head" else "複製到封頭"
+            )
+
+    def toggle_manager():
+        frame = manager_widgets["frame"]
+        if frame is None:
+            return
+        manager_state["open"] = not manager_state["open"]
+        if manager_state["open"]:
+            frame.pack(anchor="e")
+            refresh_manager_controls()
+        else:
+            frame.pack_forget()
+
+    def manage_action(action):
+        role = manager_state["role"]
+        selected_id = candidate_selected[role]
+        if selected_id is None or get_candidate_ports is None:
+            return
+        try:
+            library = get_candidate_ports()
+            if action == "delete":
+                if not messagebox.askyesno(
+                    "刪除候選版本", "確定刪除此候選版本？已套用到板件的孔位不會刪除。",
+                    parent=win,
+                ):
+                    return
+                library["delete"](role, selected_id)
+                candidate_selected[role] = None
+            else:
+                destination = role if action == "same" else (
+                    "tail" if role == "head" else "head"
+                )
+                created = library["copy"](role, selected_id, destination)
+                candidate_selected[destination] = created
+                manager_state["role"] = destination
+            win.after_idle(show_setting_controls)
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
 
     def warn(exc):
         messagebox.showwarning("多只設定", str(exc), parent=win)
@@ -372,6 +547,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def refresh_rows():
         if mode_var.get() != "set_bay":
+            set_actions.pack_forget()
             for entry in bay_rows:
                 entry["frame"].destroy()
             bay_rows.clear()
@@ -382,6 +558,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if not setting_list.winfo_manager():
                 setting_list.pack(anchor="w", pady=(6, 0))
             return
+        if not set_actions.winfo_manager():
+            set_actions.pack(anchor="w", pady=(5, 0))
         if tuple(setting_list.get(0, tk.END)) != ("封頭尾", "內門"):
             setting_list.delete(0, tk.END)
             setting_list.insert(tk.END, "封頭尾", "內門")
@@ -397,14 +575,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             row.pack(anchor="w", pady=2)
             ttk.Label(row, text=f"第{index + 1}套").pack(
                 side="left", padx=(0, 10))
-            plus = ttk.Button(row, text="＋連",
-                              command=lambda i=index: resize(i, 1))
-            plus.pack(side="left", padx=(0, 3))
-            count_label = ttk.Label(row, width=3, anchor="center")
-            count_label.pack(side="left", padx=(0, 3))
             minus = ttk.Button(row, text="－連",
                                command=lambda i=index: resize(i, -1))
             minus.pack(side="left", padx=(0, 3))
+            count_label = ttk.Label(row, width=3, anchor="center")
+            count_label.pack(side="left", padx=(0, 3))
+            plus = ttk.Button(row, text="＋連",
+                              command=lambda i=index: resize(i, 1))
+            plus.pack(side="left", padx=(0, 3))
             apply_button = ttk.Button(row, text="套用",
                                       command=lambda i=index: apply(i))
             apply_button.pack(side="left")
@@ -437,6 +615,29 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             warn(exc)
 
     setting_list.bind("<<ListboxSelect>>", select_setting)
+
+    def adjust_sets(delta):
+        if resize_sets is None or mode_var.get() != "set_bay":
+            return False
+        try:
+            if not ensure_set_mode():
+                return False
+            result = resize_sets(delta)
+            if result:
+                topology_changed["value"] = True
+                counts = tuple(get_switch().connection_counts())
+                if (applied["set_index"] is not None
+                        and applied["set_index"] >= len(counts)):
+                    applied.update(set_index=None, selected=None,
+                                   selected_bays=(), count=1)
+                    selected_setting.update(set_index=None, bay_index=None, kind=None)
+                    setting_list.selection_clear(0, tk.END)
+                    show_setting_controls()
+                    render()
+                refresh_rows()
+            return result
+        except (ValueError, IndexError, RuntimeError) as exc:
+            return warn(exc)
 
     def resize(index, delta):
         try:
@@ -531,6 +732,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # Test hooks are presentation state only, not product data authority.
     win._receiving_multi_brand_var = brand_var
     win._receiving_multi_brand_selector = brand_selector
+    win._receiving_multi_set_buttons = (minus_set, plus_set)
+    win._receiving_multi_candidate_selected = candidate_selected
+    win._receiving_multi_candidate_combos = candidate_combos
+    win._receiving_multi_manager_state = manager_state
     win._receiving_multi_settings_host = settings_host
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row

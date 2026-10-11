@@ -594,7 +594,7 @@ class HoleEditorModalLifecycle:
         commit_active_edit, sync_all, validate_current_indicator_fit,
         door_indicator_state, collect_indicator_state, door_indicator_commit,
         editor_closed, editor, on_close, insert_mode, set_insert_mode,
-        cancel_active_edit,
+        cancel_active_edit, on_confirm=None,
     ):
         self.hole_session = hole_session
         self.has_selected_feature = has_selected_feature
@@ -608,6 +608,7 @@ class HoleEditorModalLifecycle:
         self.editor_closed = editor_closed
         self.editor = editor
         self.on_close = on_close
+        self.on_confirm = on_confirm
         self.insert_mode = insert_mode
         self.set_insert_mode = set_insert_mode
         self.cancel_active_edit = cancel_active_edit
@@ -632,6 +633,8 @@ class HoleEditorModalLifecycle:
                     self.door_indicator_commit(committed)
         self.editor_closed[0] = True
         self.sync_all()
+        if self.on_confirm is not None:
+            self.on_confirm()
         self.editor.destroy()
         if self.on_close is not None:
             self.on_close()

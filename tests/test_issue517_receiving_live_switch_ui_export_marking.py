@@ -450,9 +450,14 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         # Only user-specified elements are exposed, no legacy editor or
         # extra brand/common-box/quantity-version controls.
         texts = _mapped_widget_texts(win)
-        for expected in ("套／連", "數量", "第1套", "＋連", "－連", "套用"):
+        for expected in (
+            "套／連", "數量", "－套", "＋套", "第1套", "－連", "＋連", "套用",
+        ):
             assert expected in texts, (expected, texts)
-        for unwanted in ("開關", "＋套", "－套", "共用箱體", "套用品牌", "件數"):
+        assert [w.cget("text") for w in win._receiving_multi_set_buttons] == [
+            "－套", "＋套"
+        ]
+        for unwanted in ("開關", "共用箱體", "套用品牌", "件數"):
             assert unwanted not in texts, (unwanted, texts)
         assert win._receiving_multi_mode_var.get() == "set_bay"
         assert win._receiving_multi_applied["set_index"] is None
