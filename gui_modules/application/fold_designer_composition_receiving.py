@@ -2200,7 +2200,9 @@ def open_receiving_multi_settings(self, namespace):
                 "can_copy": can_copy,
                 "can_restore": submitted,
                 "can_undo": adapter.nfb_can_undo,
-                "reason": reason or "當前 NFB 已核對來源／世界 X／實體內門，可確認套用",
+                "reason": ("來源已配置、目標連獨立世界 X 與 DXF 已驗證，可複製提交"
+                           if can_copy else
+                           (reason or "當前 NFB 已核對來源／世界 X／實體內門，可確認套用")),
             }
 
         def submit(set_index,bay_indices,confirm):
