@@ -1,6 +1,8 @@
 """Bounded DXF export sink for canonical manufacturing output."""
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import os
 from pathlib import Path
 import re
@@ -151,6 +153,19 @@ def _atomic_commit_staged_dxfs(
         shutil.rmtree(backup_dir, ignore_errors=True)
 
 
+def _require_released_nfb_base_for_batch_export(rows) -> None:
+    """Reject unreleased #1502 NFB Base Plate at the final production batch sink.
+
+    The direct per-part DXF serializer remains available for non-production
+    geometry/DXF roundtrip tests; it does not establish MFG-2 release.
+    A caller-supplied True flag alone is not a certified EAR-Z/CHECK-Q proof.
+    """
+    for _, _, render_data in rows:
+        metadata = getattr(render_data, 'metadata', None)
+        if isinstance(metadata, Mapping) and 'nfb_base_process_status' in metadata:
+            raise ValueError('NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT')
+
+
 def _save_resolved_rows_atomic(
     rows,
     output_dir,
@@ -158,6 +173,9 @@ def _save_resolved_rows_atomic(
     save_part_render_data_dxf,
     overwrite: bool,
 ) -> dict[str, str]:
+    # Validate the ENTIRE batch before opening any file or making the output dir.
+    rows = tuple(rows)
+    _require_released_nfb_base_for_batch_export(rows)
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
     stage_dir = Path(tempfile.mkdtemp(prefix='.whd-dxf-stage-', dir=str(root)))
