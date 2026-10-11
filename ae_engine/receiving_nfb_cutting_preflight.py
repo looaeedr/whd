@@ -35,6 +35,8 @@ class NfbUpperOpeningRequest:
     source_aci: int
     source_outline_xy: tuple[tuple[float, float], ...]
     source_center_xy: tuple[float, float]
+    source_profile_closed: bool
+    source_bulges: tuple[float, ...]
     rotation_deg: int = 0
     # Actual manufactured-inner-Door UV coordinates, never nominal box X/Y.
     uv_center_x: float | None = None
@@ -101,8 +103,11 @@ def _upper_rectangle_relative_vertices(request: NfbUpperOpeningRequest):
     if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
         raise ValueError("NFB original source SHA256 is required")
     pts = tuple(_finite_xy(p, "NFB source point") for p in request.source_outline_xy)
-    if len(pts) != 4 or len(set(pts)) != 4:
+    if not request.source_profile_closed or len(pts) != 4 or len(set(pts)) != 4:
         raise ValueError("NFB upper Color150 profile must be a closed four-corner rectangle")
+    bulges = tuple(float(v) for v in request.source_bulges)
+    if len(bulges) != 4 or any(not isfinite(v) or abs(v) > 1e-9 for v in bulges):
+        raise ValueError("NFB upper Color150 must have four straight edges without bulges")
     xs = sorted({p[0] for p in pts})
     ys = sorted({p[1] for p in pts})
     if (
@@ -111,6 +116,12 @@ def _upper_rectangle_relative_vertices(request: NfbUpperOpeningRequest):
         or set(pts) != {(x, y) for x in xs for y in ys}
     ):
         raise ValueError("NFB upper Color150 must be an axis-aligned rectangle")
+    for i, p in enumerate(pts):
+        q = pts[(i + 1) % len(pts)]
+        horizontal = abs(p[1] - q[1]) <= 1e-8 and abs(p[0] - q[0]) > 1e-8
+        vertical = abs(p[0] - q[0]) <= 1e-8 and abs(p[1] - q[1]) > 1e-8
+        if not (horizontal or vertical):
+            raise ValueError("NFB upper Color150 source outline has broken/crossed edge order")
     center = _finite_xy(request.source_center_xy, "NFB Color150 source center")
     computed = (sum(xs) / 2.0, sum(ys) / 2.0)
     if max(abs(center[0]-computed[0]), abs(center[1]-computed[1])) > 1e-5:
