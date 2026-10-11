@@ -163,6 +163,13 @@ def _visible_texts(widget):
     return tuple(result)
 
 
+def first_row_width_fits(win):
+    win.update_idletasks()
+    row = win._receiving_multi_rows_host.winfo_children()[0]
+    viewport = win._receiving_multi_left_scroll._receiving_scroll_viewport
+    return row.winfo_reqwidth() <= viewport.winfo_width()
+
+
 def test_modal_fullscreen_strict_controls_apply_and_highlight():
     root = tk.Tk()
     root.geometry("800x600+0+0")
@@ -213,7 +220,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert brand_commit == []  # no synchronous 3D/geometry redraw
         assert brand_picker.master.master is win._receiving_multi_mode_controls.master
         assert win.title() == "多只設定"
-        assert win.grab_current() is None
+        assert win.grab_current() is win
         assert win.winfo_width() >= win.winfo_screenwidth() - 2
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
@@ -289,6 +296,9 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
 
         assert [w.cget("text") for w in current_row()] == [
             "第1套", "－連", "1", "＋連", "套用"]
+        assert all(int(w.cget("width")) <= 4 for w in current_buttons())
+        assert first_row_width_fits(win)
+
         minus, plus, apply = current_buttons()
         first_row = rows_host.winfo_children()[0]
         first_count = current_row()[2]
@@ -549,7 +559,7 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         assert child is not None and child.winfo_exists()
         assert child.master is win
         assert child.title() == "版本管理"
-        assert child.grab_current() is None  # Parent and child can switch directly.
+        assert child.grab_current() is child  # Child owns the grab; main stays blocked.
         assert win._receiving_multi_canvas.master is win._receiving_multi_diagram_host
         assert "複製為新版本" not in _visible_texts(host)
         assert "複製為新版本" in _visible_texts(child)
@@ -582,7 +592,7 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         win._receiving_multi_close_manager()
         root.update()
         assert not child.winfo_exists()
-        assert win.grab_current() is None
+        assert win.grab_current() is win
         win._receiving_multi_close()
     finally:
         root.destroy()

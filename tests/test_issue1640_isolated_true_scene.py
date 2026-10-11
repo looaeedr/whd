@@ -49,7 +49,7 @@ def test_real_finalscene_preview_receives_isolated_candidate_set_bay_not_live_mu
     real = captured["get_real_cut_preview_request"]
 
     assert real("head", None, 0, 0) is receipt
-    assert requests[-1][3] is None  # 即時 reads canonical live scene.
+    assert requests[-1][3] == adapter.layout  # 即時 reads current canonical Set/Bay geometry.
     assert real("head", head_version, 0, 0) is receipt
     candidate_layout = normalize_receiving_layout(requests[-1][3])
     assert setting_value(candidate_layout["sets"][0], 0, "head_features") == [
