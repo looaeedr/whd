@@ -9,7 +9,11 @@ whd_schema: WHD_DOC_META_V1
 
 Date: 2026-09-16 (Asia/Taipei)
 Repository: `looaeedr/whd`
-Status: Design approved for specification; implementation not yet authorized
+Status: CURRENT design contract; original 2026-09-16 implementation authorization statement below is historical
+
+> **2026-10-11 實作回讀**：當前 `.github/workflows/whd-product-regression.yml` 已使用三個 product regression shards，並透過 `tools/test_shard_execution.py` 運行；所以原來的「implementation not yet authorized」已非今日的完整狀態。但三個 shard 的存在不等於本設計所有性能目標與完整驗收都已通過，仍依正式 CI／測試證據判定。
+
+> 原版狀態記錄（2026-09-16）：Design approved for specification; implementation not yet authorized
 Scope owner: Test/CI execution architecture only
 
 ## 1. Purpose
