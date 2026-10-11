@@ -1,6 +1,8 @@
 """Bounded DXF export sink for canonical manufacturing output."""
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import os
 from pathlib import Path
 import re
@@ -160,7 +162,7 @@ def _require_released_nfb_base_for_batch_export(rows) -> None:
     """
     for _, _, render_data in rows:
         metadata = getattr(render_data, 'metadata', None)
-        if isinstance(metadata, dict) and 'nfb_base_process_status' in metadata:
+        if isinstance(metadata, Mapping) and 'nfb_base_process_status' in metadata:
             raise ValueError('NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT')
 
 
