@@ -81,5 +81,15 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
                     assert_delete_candidates_safe(["feature/unrelated"], malformed)
 
 
+    def test_knowledge_authority_suite_is_wired_to_bootstrap(self):
+        workflow = (
+            ROOT / ".github/workflows/knowledge-governance-bootstrap.yml"
+        ).read_text(encoding="utf-8")
+        suite = "tests/knowledge/test_current_history_authority_contract.py"
+        self.assertIn("- '" + suite + "'", workflow)
+        self.assertIn("python -m pytest -q " + suite, workflow)
+
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -160,6 +160,14 @@ whd_schema: WHD_DOC_META_V1
 - 同時核對 #1629 的其他三個代表性檔案 Blob：`06_踩坑記錄與防錯經驗庫.md` 在 GitHub `localX` 與 X 相同、尚不等於 #1629 版本；`07_WHD技能發現與掃描深模組規則.md` 的 localX 與 #1629 各有不同 Blob；`docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md` 在 localX 與 X 相同、尚未含 #1629 註記。**不能把 #1629 全部分支當作已整合，也不能用較舊分支覆寫 localX 的較新內容。**
 - #1629 的實際 GitHub PR 仍 OPEN；後續須以新 `localX` HEAD fresh compare、actual product diff、exact CI 與已授權的安全整合處理，正式 X 仍僅由當次 `/推推` 發布。這不是提出任何新的製造規格、CLI 強制門檻或 DC／RC 授權。
 
+## 第八輪：引用關係及回歸實際執行鏈（2026-10-11）
+
+- 逐檔檢查 `docs/governance/` 8 份與 `個人AI檔案庫/踩坑庫/` 15 份 Markdown 形式的相對連結，**沒有發現失效的相對 Markdown URL**。範圍僅此 23 份的 `[文字](相對路徑)`；這一結論不擴大到全部文件，也不代表行內反引號引用已驗證。
+- 用最新正式 X Git tree 比對 **17 份 AI 專案 SOP**、**39 份工程 `SKILL.md`**、根目錄、交接與主要規格的反引號 repo-root 檔案路徑。Skill 唯一以 `docs/agents/*.md` 形式出現的缺檔，屬 setup Skill **預定生成的輸出**，不應建立假檔；真正殘留的失效路徑集中於 `06_踩坑記錄與防錯經驗庫.md` 與 `07_WHD技能發現與掃描深模組規則.md`，已在產品 PR #1629 提交修訂但**尚不代表合併／發布**。另 `WHD_20261010_retired_process_provenance.md` 中失效程式路徑為刻意保留的 HISTORICAL 原文，不能誤當 CURRENT。
+- **發現驗收接線缺口**：先前治理 PR #1634／#1638／#1639 的反退役規則案例寫入 `tests/knowledge/test_current_history_authority_contract.py`，但正式 X 的 `Knowledge Governance Bootstrap` 只運行列舉的 `unittest` 檔及 Markdown inventory，沒有實際執行上述 pytest 函式。故不能以那些 PR 的 CI GREEN 推論「新寫的每項反退役案例都跑過」。
+- **本輪最小實修**：在既有 `.github/workflows/knowledge-governance-bootstrap.yml` 加入該 suite 的 `python -m pytest` 及必要 pytest 安裝，並讓僅修改該測試檔也能觸發原有 workflow；在已被 CI 執行的 `tests/governance/test_default_branch_explicit_x_contract.py` 補接線回歸。**沒有另建 workflow／排程或第二道硬閘門**。此為治理白名單候選，是否全綠及實際合併，以本次 PR 的 exact HEAD run、X readback 為準。
+- 未動使用者本機、`main`、製造圖面與產品 `localX`；不能把治理 CI 的執行結果當作產品回歸通過。
+
 ## 清查判定
 
 - **已執行**：全樹文件清單、權威索引角色統計、重要 CURRENT／REFERENCE／MIRROR 的優先核對、59 份 Skill metadata 與退役流程關鍵字查核、確認一處治理文字錯誤並提出修正。
