@@ -491,12 +491,12 @@ def require_x_only_governance_history(
             ) and not is_historical_reverted_sop_history(
                 repo_root, commit=commit, paths=paths,
                 x_sha=x_sha, localx_sha=localx_sha,
-            ) and not is_previously_merged_localx_product_history(
-                repo_root, commit=commit, paths=paths,
-                localx_sha=localx_sha,
             ) and classify_verified_pr_changes(
                 repo_root, first_parent, commit, paths,
-            ) != "GOVERNANCE_DIRECT_X":
+            ) != "GOVERNANCE_DIRECT_X" and not is_previously_merged_localx_product_history(
+                repo_root, commit=commit, paths=paths,
+                localx_sha=localx_sha,
+            ):
                 raise ChangeLaneDenied(
                     f"X_AHEAD_NON_GOVERNANCE_BLOCKED:{commit}"
                 )
