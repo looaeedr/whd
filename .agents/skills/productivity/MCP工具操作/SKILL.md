@@ -158,7 +158,7 @@ MCP 可能連到 GitHub、filesystem、database、SaaS 或內部服務。對會�
 - 不把 token、password、auth header 寫進 command example、log、Skill 或 durable evidence；
 - mutation 完成後依可用介面重新 read-back / fetch，不能只相信「request sent」。
 
-若任務有現行 `AGENTS.md` 的執行地點限制、PR／CI／`localX`／`/推推`、使用者授權或 destructive-action gate，均須遵守；舊泛用 root-local-first、`GIT_WRITE_UNLOCKED`／Git-phase branch 交易前置已退役，不得靠 MCP 重新啟動。MCP 只是 transport，不是繞過治理或取得本機權限的捷徑。
+若任務有現行 `AGENTS.md` 的執行地點限制、PR／CI／`localX`／`/推推`、使用者授權或 destructive-action gate，均須遵守；舊泛用 root-local-first、舊 Git 解鎖憑證／Git-phase branch 交易前置已退役，不得靠 MCP 重新啟動。MCP 只是 transport，不是繞過治理或取得本機權限的捷徑。
 
 ## 7. WHD 專案邊界
 
