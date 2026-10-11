@@ -152,16 +152,14 @@ FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh ex
 
 正確順序：ZIP CRC/entry policy → pristine FULL extraction → pristine baseline + UPDATE overlay → cleanup policy → 逐檔 missing/extra/SHA256。測試 gate 另用其他 extraction 執行，不污染封包完整性比較目錄。
 
-## Root-local-first release / integration gate
+## WHD 正式出包／整合路由（依 CURRENT AGENTS.md）
 
-WHD interactive/default changes enter release only after root-local qualification:
+本 Skill 負責 FULL／UPDATE 封包的 baseline、測試、pristine extraction、驗收及 durable checkpoint，**不單獨授權 repository 施工、DC 或 X 發布**。來源、施工位置、PR 與合併流程優先服從正式 X 的 `AGENTS.md`。
 
-- root workspace first: current source → mutation → classified tests → terminal GREEN → frozen exact diff;
-- Git content writes stay limited to the tested task branch and current /接手 or /派工 scope, respect host tool permissions, and never directly advance production X;
-- after unlock, create a fresh work branch from fresh authoritative target HEAD and re-read parent/base;
-- the work branch may receive `EXACT_TESTED_DIFF_ONLY`; no branch-side hotfixes or cleanup edits that were not root-tested;
-- if target moved across touched/base identity, return to root and `RESYNC_ROOT_AND_RETEST_BEFORE_GIT_WRITE`;
-- push/Actions/remote QA are post-push verification; failure returns to root for a new tested freeze;
-- final target update remains normal non-force PR/merge whose closing head is accepted by final acceptance and drift audit.
+1. **`/派工` 的產品施工**：由 GitHub／排程／雲端真正執行器建立合法工作分支，完成修改、測試、提交、push、PR（base=`localX`）、exact HEAD CI。**CI SUCCESS 前不得接觸使用者本機或使用 DC**；CI 通過後僅在 `LOCALX_INTEGRATION` 使用 DC 做本機 `localX` 最終整合／必要驗證／非強制同步回讀，不可在此階段暗改產品。
+2. **`/接手`**：只有使用者當次明確授權，才可經 RC → CoreELEC `whd-dev:/workspace/whd` 在本機進行產品施工、測試與交付；此前不能用 Skill 路由、出包要求或普通「繼續」取得 DC 權限。
+3. **非產品治理／技能／專用測試**：受信任 `tools/change_lane_gate.py` 確認所有路徑屬治理白名單，才可由 GitHub／雲端治理分支直接 PR／CI 合併 X，不經 `localX`、不需 `/推推`，亦不得為治理修改探測使用者本機。
+4. **產品正式 X 發布**：先依現行 `localX` 驗收與非強制同步，仍必須使用者**當次 `/推推`**，以及 exact PR／SHA／CI／merge/readback。禁止直接 patch X 或 `main`，也不得把 release ZIP、測試 GREEN 或本 Skill 自身當成發布許可。
+5. **維持原本封包與來源嚴格驗證**：必須保留原始 FULL baseline、實際 source/tested SHA、exact diff、CI、必跑產品回歸、pristine 完整性與 drift audit；target 或 touched content 改變就回合法施工環境重驗後再交付，不得使用 root-first unlock、事後補 branch／後補測試的退役交易程序。
 
-A work branch is still mandatory in Git phase, but it does not precede root development/testing.
+已退役的泛用 root-local-first 啟動次序、先在本機 root 改完才允許建立 branch 的規則，不得作為任何正式出包的強制前置。完整製造、2D/3D、DXF、Save→Reload 與封包驗證流程仍依本 Skill 前文各節執行。
