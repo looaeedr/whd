@@ -7,7 +7,7 @@ whd_schema: WHD_DOC_META_V1
 # Phase6 交付備忘 — OVERLAY 成型 FW Registry / 3D Relief 正式化
 
 > 本檔只是交付歷史備忘，不是 release policy、runtime oracle、必備檔名契約或下一輪修改的 Source of Truth。
-> 正式依據請以 `AGENTS.md` 的 Phase6 Knowledge Preflight、`release_required_artifacts.json`、`AI_HANDOFF.md`、`CONTEXT.md`、對應 spec / verification 與踩坑庫為準。
+> 現行施工、交付與權責以正式 X 的 `AGENTS.md`、`個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md`、對應 CURRENT domain spec／Skill 與最新產品驗證為準；舊 Phase6 Preflight receipt 已退役，`AI_HANDOFF.md`、`CONTEXT.md` 及本檔均屬 REFERENCE，不得覆蓋 CURRENT。
 > 不得因本檔存在或檔名固定，就把 `DELIVERY_README.md` 照搬成其他流程的 mandatory artifact。
 
 ## [CURRENT] 2026-09-02 Runtime semantic guard
@@ -21,7 +21,7 @@ whd_schema: WHD_DOC_META_V1
 - **`40×23 + 16×4` 只屬 linked-FW `INSERT_OVERLAY` fixture**（`ENDCAP_TOP_INSERT_OVERLAY_LINKED_FW_V1@1`），不是標準 OVERLAY oracle。
 
 
-> 本文件其餘日期段落是交付歷史；除標成 `[CURRENT]` 外，只能作 HISTORICAL/FIXTURE evidence，不可作 runtime oracle。
+> 本文件**整體**為 REFERENCE／交付歷史；即使下方有早期 `[CURRENT]` 標題，也只反映該日期的當時版本。真正 runtime oracle 必須從 CURRENT 製造規則、已認證 Registry 與當次產品程式取得。舊 fixture 與交付證據保留。
 
 ### [HISTORICAL/SUPERSEDED — 不可作 runtime oracle] 2026-08-29 formed-FW v2 交付記錄
 
