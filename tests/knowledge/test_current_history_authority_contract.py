@@ -172,3 +172,13 @@ def test_dm7_current_skill_does_not_restore_retired_preflight_gate() -> None:
     assert "再以全部 changed files 重跑 preflight" not in skill
     assert "## DM7 canonical navigation authority" in skill
     assert "STALE_PHYSICAL_CHILD" in skill
+
+
+def test_legacy_knowledge_preflight_has_no_current_authority_row() -> None:
+    """The retired receipt transaction cannot be reintroduced as CURRENT."""
+    authority = read(AUTHORITY_MAP_REL)
+    assert "WHD_AUTHORITY contract=knowledge-preflight role=CURRENT" not in authority
+    assert "退役入口註記（HISTORICAL）" in authority
+    agents = read("AGENTS.md")
+    assert "舊工單交易、工作槽與 lease 控制系統已退役" in agents
+    assert "Preflight receipt" in agents
