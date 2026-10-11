@@ -31,6 +31,24 @@ class DispatchExecutorHandoffContract(unittest.TestCase):
             self.assertIn(item, start)
         self.assertLess(start.index("沿用既有工作"), start.index("無能力才找外部代理"))
 
+    def test_non_product_governance_does_not_enter_product_dispatch(self):
+        agents = AGENTS.read_text(encoding="utf-8")
+        skill = SKILL.read_text(encoding="utf-8")
+        for text in (agents, skill):
+            self.assertIn("NON_PRODUCT_GOVERNANCE_DIRECT_X", text)
+            self.assertIn("治理", text)
+            self.assertIn("不走", text)
+            self.assertIn("/推推", text)
+        self.assertIn("不走 `localX`、一般產品派工或 `/推推`", skill)
+        from tools.change_lane_gate import classify_changes
+        self.assertEqual(classify_changes([
+            "AGENTS.md", ".agents/skills/engineering/派工/SKILL.md",
+            "tests/governance/test_dispatch_executor_handoff_contract.py",
+        ]), "GOVERNANCE_DIRECT_X")
+        self.assertEqual(classify_changes([
+            "AGENTS.md", "gui.py",
+        ]), "PRODUCT_LOCALX_ONLY")
+
     def test_handoff_is_not_registration(self):
         for path in (AGENTS, SKILL):
             content = path.read_text(encoding="utf-8")
