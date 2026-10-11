@@ -17,7 +17,7 @@ def test_ci_sharding_revision_notes_current_status_and_historical_record():
     assert "implementation readback" in header
     assert "three product regression shards" in header
     assert "tools/test_shard_execution.py" in header
-    assert "every R1–R4" in header
+    assert "every revision requirement (R1–R5)" in header
     assert "2026-10-11" in parent
-    for section in ("## R1", "## R2", "## R3", "## R4"):
+    for section in ("## R1", "## R2", "## R3", "## R4", "## R5"):
         assert section in text
