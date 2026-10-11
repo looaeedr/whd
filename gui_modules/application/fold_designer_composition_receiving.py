@@ -479,7 +479,7 @@ def confirm_receiving_opening(
         submit("geometry", commit=True)
     return True
 
-def receiving_bay_preview_request(self, namespace, set_index, bay_index):
+def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
     """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
     from types import SimpleNamespace
     from copy import deepcopy
@@ -491,8 +491,12 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
     from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
     from ae_engine.display_dimensions import resolve_operator_finished_dimensions
     app = self.app
+    source = dict(app._phase6_input_snapshot)
+    if preview_layout is not None:
+        # Candidate previews run on an isolated layout clone, NEVER live state.
+        source["receiving_layout"] = preview_layout
     snapshot = project_receiving_bay_legacy_aliases(
-        app._phase6_input_snapshot, set_index=set_index, bay_index=bay_index,
+        source, set_index=set_index, bay_index=bay_index,
     )
     settings = {**dict(app._settings_values), **{key: snapshot[key] for key in ("w", "h", "d")}}
     snapshot.update(settings)
@@ -501,7 +505,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
     fingerprint = stable_fingerprint({"snapshot": snapshot, "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
-    if cache_key in cache and cache[cache_key][0] == fingerprint:
+    if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
         return cache[cache_key][1]
     box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
     profile_map = {key: build_endcap_xy_profiles(snapshot, part_key=key) for key in ("head", "tail")}
@@ -559,8 +563,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
         x_profile=(), y_profile=(), part_key="assembly",
         finished_dimensions=dimensions(), thickness=float(snapshot.get("t", 2)),
     )
-    cache[cache_key] = (fingerprint, result)
-    self._receiving_bay_preview_cache = cache
+    if preview_layout is None:
+        cache[cache_key] = (fingerprint, result)
+        self._receiving_bay_preview_cache = cache
     return result
 
 def receiving_layer_preview_payload(self, namespace, layer_index):
@@ -2357,6 +2362,30 @@ def open_receiving_multi_settings(self, namespace):
                 "submit": submit, "copy": copy, "manifest": physical_manifest,
                 "restore": restore, "undo": undo}
 
+    def real_cut_preview_request(role, version_id, set_index, bay_index):
+        """True canonical FinalScene, candidate-injected in memory, no mutation."""
+        if version_id is None:
+            return self.receiving_bay_preview_request(
+                namespace, set_index, bay_index,
+            )
+        from .receiving_set_bay_adapter import ReceivingSetBayAdapter
+        temporary = ReceivingSetBayAdapter(candidate_adapter().layout)
+        if role == "inner-door":
+            config = inner_config(inner_library(), version_id)
+            temporary.apply_inner_door_candidate_to_bays(
+                config, set_index, (bay_index,), version_id=version_id,
+            )
+        elif role in ("head", "tail"):
+            features = candidate_features(candidate_library(), role, version_id)
+            temporary.apply_candidate_to_bays(
+                role, set_index, (bay_index,), features, version_id=version_id,
+            )
+        else:
+            raise ValueError("不支援的真實截角資料預覽部位")
+        return self.receiving_bay_preview_request(
+            namespace, set_index, bay_index, preview_layout=temporary.layout,
+        )
+
     def applied_version_labels(set_index):
         """Read ONLY persisted per-Bay identifiers from the current layout."""
         from ae_engine.receiving_shared_settings import setting_value
@@ -2389,6 +2418,7 @@ def open_receiving_multi_settings(self, namespace):
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_original_door_marks=existing_door_marks,
         get_applied_version_labels=applied_version_labels,
+        get_real_cut_preview_request=real_cut_preview_request,
         on_brand_close=finalize_global_brand,
         on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
     )
