@@ -66,7 +66,12 @@ class NfbIndexedDxfAudit:
 
 def _source_filename(raw: str, *, row_number: int, brand: str) -> tuple[str | None, str | None]:
     value = str(raw or "").strip().strip('"').strip()
-    if not value or value in {"-", "—", "無", "無檔", "N/A", "NA", "none", "None"}:
+    # Both original 7-col and RC 10-col tables use 「無對應檔案」 for
+    # *no catalog mapping*. This is ordinary absence, NOT a bad filename.
+    if not value or value.casefold() in {
+        "-", "—", "無", "無檔", "無對應", "無對應檔案", "無對應文件",
+        "n/a", "na", "none", "null",
+    }:
         return None, None
     if value.endswith(("；", ";")):
         return None, f"row {row_number} {brand}:UNEXPECTED_FILENAME_FORMAT"
