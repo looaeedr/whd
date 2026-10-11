@@ -8,9 +8,41 @@ SETTING_DEFAULTS = {
     "head_features": [],
     "tail_features": [],
     "inner_door_layers": 1,
-    # One optional filename per physical switch layer; "" means not configured.
+    # Two independent layers; each slot accepts a legacy single filename or
+    # multiple switch instances (including repeated identical DXF filenames).
     "inner_door_models": ["", ""],
 }
+
+
+def switch_filenames_in_layer(slot):
+    """Return physical switch occurrences, never deduplicate quantity."""
+    if isinstance(slot, str):
+        names = () if not slot else (slot,)
+    elif isinstance(slot, (list, tuple)):
+        names = tuple(slot)
+        if not names:
+            return ()
+    else:
+        raise ValueError("每層開關須為 DXF 檔名或檔名清單")
+    for name in names:
+        if (not isinstance(name, str) or len(name) <= 4
+                or not name.lower().endswith(".dxf")
+                or "/" in name or chr(92) in name or chr(0) in name):
+            raise ValueError("每層開關必須為合法 DXF 檔名")
+    return names
+
+
+def pack_switch_layer(names):
+    """Canonical compact slot: keep old 0/1-string project data compatible."""
+    items = switch_filenames_in_layer(list(names))
+    return "" if not items else items[0] if len(items) == 1 else list(items)
+
+
+def switch_model_layers(value):
+    """Normalize old [str,str] and new [str|list,str|list] without data loss."""
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ValueError("內門須包含兩層獨立的開關清單")
+    return [pack_switch_layer(switch_filenames_in_layer(slot)) for slot in value]
 
 
 def validate_setting(kind, value):
@@ -24,13 +56,7 @@ def validate_setting(kind, value):
         if value not in (1, 2) or isinstance(value, bool):
             raise ValueError("內門層數必須為 1 或 2")
     elif kind == "inner_door_models":
-        if (not isinstance(value, (list, tuple)) or len(value) != 2
-                or any(not isinstance(model, str) or (model and (
-                    not model.lower().endswith(".dxf") or model.lower() == ".dxf"
-                    or "/" in model or chr(92) in model
-                )) for model in value)):
-            raise ValueError("內門開關型號必須為兩個合法 DXF 檔名或空白")
-        value = list(value)
+        value = switch_model_layers(value)
     elif not isinstance(value, (list, tuple)):
         raise ValueError("封頭尾設定必須是 Hole Editor feature 清單")
     return deepcopy(value)

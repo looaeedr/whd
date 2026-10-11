@@ -64,9 +64,21 @@ def test_inner_door_list_no_extension_and_apply_to_highlighted_bays(monkeypatch,
         selector.event_generate("<<ListboxSelect>>")
         root.update()
 
-        models = win._receiving_multi_inner_model_state["listbox"]
-        assert isinstance(models, tk.Listbox)
-        assert models.get(0, tk.END) == ("A1",)  # case-preserving first unique
+        host = win._receiving_multi_settings_host
+        # The first/main operator page must not expose switch model selection.
+        texts = [
+            child.cget("text")
+            for widget in host.winfo_children()
+            for child in widget.winfo_children()
+            if isinstance(child, (ttk.Button, ttk.Label))
+        ]
+        assert "連動選取的連" not in texts
+        assert "解除本連連動" not in texts
+        assert "套用開關型號" not in texts
+        assert not hasattr(win, "_receiving_multi_inner_model_state")
+        assert not any(isinstance(child, tk.Listbox)
+                       for child in host.winfo_children())
+
         hitbox = win._receiving_multi_canvas._receiving_bay_hitboxes[1]
         x0, y0, x1, y1 = hitbox
         win._receiving_multi_canvas.event_generate(
@@ -74,36 +86,21 @@ def test_inner_door_list_no_extension_and_apply_to_highlighted_bays(monkeypatch,
         )
         root.update()
         assert win._receiving_multi_applied["selected_bays"] == (0, 1)
-
-        models = win._receiving_multi_inner_model_state["listbox"]
-        models.selection_set(0)
-        apply_button = next(
-            child for child in win._receiving_multi_settings_host.winfo_children()
-            if isinstance(child, ttk.Button)
-            and child.cget("text") == "套用開關型號"
-        )
-        apply_button.invoke()
+        layer_row = host.winfo_children()[0]
+        assert not any(isinstance(child, ttk.Button)
+                       and child.cget("text") == "編輯"
+                       for child in layer_row.winfo_children())
+        layers = next(child for child in layer_row.winfo_children()
+                      if isinstance(child, ttk.Combobox))
+        layers.set("2")
+        layers.event_generate("<<ComboboxSelected>>")
         root.update()
-        assert state["calls"][-1] == ("inner_door_models", (0, 1))
+        assert state["calls"][-1] == ("inner_door_layers", (0, 1))
         for bay_index in (0, 1):
             assert setting_value(
-                state["layout"]["sets"][0], bay_index, "inner_door_models",
-            ) == ["A1.dxf", ""]
+                state["layout"]["sets"][0], bay_index, "inner_door_layers"
+            ) == 2
 
-        # The exact same CSV is re-read after an operator saves a changed file.
-        index_file.write_text(
-            header + "a,NEW_MODEL.dxf,,B1.dxf,,C1.dxf,\n",
-            encoding="utf-8-sig",
-        )
-        win._receiving_multi_refresh_switch_models(force=True)
-        assert win._receiving_multi_inner_model_state["listbox"].get(
-            0, tk.END,
-        ) == ("NEW_MODEL",)
-        assert "已不在 CSV" in win._receiving_multi_inner_model_state["status"].get()
-        # Source change never overwrites the previous saved selection.
-        assert setting_value(
-            state["layout"]["sets"][0], 0, "inner_door_models",
-        ) == ["A1.dxf", ""]
         win._receiving_multi_close()
     finally:
         root.destroy()
