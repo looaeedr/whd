@@ -1027,6 +1027,64 @@ def open_receiving_multi_settings(self, namespace):
         ports["select"](int(bay_index))
         return setting_value(ports["row"](), int(bay_index), kind)
 
+    def set_global_brand(value):
+        # The original Receiving layout remains the sole NFB data owner.
+        # Update all Sets as one operator action, then commit the projection
+        # once; selecting a brand must not silently change the active bay.
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        if value not in RECEIVING_SWITCH_BRANDS:
+            raise ValueError("不支援的開關品牌")
+        adapter = self.receiving_adapter(namespace)
+        original_set = adapter.selection.set_index
+        original_bay = adapter.selection.bay_index
+        if all(row.get("switch_brand", "士林") == value
+               for row in adapter.layout["sets"]):
+            return value
+        try:
+            for index in range(len(adapter.layout["sets"])):
+                adapter.select_set(index + 1)
+                adapter.set_brand(value)
+        finally:
+            adapter.select_set(original_set + 1)
+            adapter.select_bay(original_bay + 1)
+        self.mark_receiving_switch_layout_dirty(
+            namespace, self.receiving_switch_adapter(namespace)
+        )
+        self.sync_receiving_current_bay(namespace)
+        self.app.submit_update_intent("geometry", commit=True)
+        return value
+
+    def existing_door_marks(set_index, bay_index):
+        # The lightweight diagram reuses ONLY the existing Door baseline.
+        # Do not synthesize handle/nameplate positions when source is missing.
+        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+        from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+        from .receiving_multi_settings_window import extract_original_door_marks
+
+        host = getattr(self.app._scene_query_callback, "__self__", None)
+        if host is None or not hasattr(host, "_door_layout_baseline_scene"):
+            return ()
+        snapshot = dict(self.app._phase6_input_snapshot)
+        snapshot["receiving_layout"] = self.receiving_adapter(namespace).layout
+        projected = project_receiving_bay_legacy_aliases(
+            snapshot, set_index=int(set_index), bay_index=int(bay_index)
+        )
+        columns = projected.get("door_layout_columns") or ()
+        if not projected.get("multi_door_enabled") or not columns:
+            return ()
+        cells = derive_door_layout_cells(columns)
+        # The operator sketch has two Door faces in a single column.
+        # Do not invent a projection for unsupported multi-column topology.
+        if len(cells) != 2 or any(cell.column_index != 0 for cell in cells):
+            return ()
+        result = []
+        for cell in sorted(cells, key=lambda item: item.row_index):
+            scene, _status = host._door_layout_baseline_scene(cell, projected)
+            if scene is None:
+                return ()
+            result.append(extract_original_door_marks(scene))
+        return tuple(result)
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -1037,4 +1095,8 @@ def open_receiving_multi_settings(self, namespace):
         ),
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
+        get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
+        set_brand=set_global_brand,
+        get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
+        get_original_door_marks=existing_door_marks,
     )
