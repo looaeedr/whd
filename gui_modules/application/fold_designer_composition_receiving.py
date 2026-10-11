@@ -1305,6 +1305,7 @@ def open_receiving_multi_settings(self, namespace):
         draft_summary = tk.StringVar(master=modal, value="")
         initial_nfb_draft = deepcopy(draft_state["draft"])
         nfb_preview_panel = {"panel": None}
+        nfb_source_viewed = {"value": False}
 
         def sync_chosen():
             for layer in range(2):
@@ -1504,6 +1505,7 @@ def open_receiving_multi_settings(self, namespace):
             files = source_state["files"][index]
             if selected and selected[0] < len(files):
                 nfb_preview_panel["panel"].show(view_source_catalog(index),files[selected[0]])
+                nfb_source_viewed["value"] = True
 
         def preview_assigned(index):
             selected = layer_rows[index]["assigned"].curselection()
@@ -1511,6 +1513,7 @@ def open_receiving_multi_settings(self, namespace):
                 slot = draft_state["draft"]["layers"][index]["slots"][selected[0]]
                 brand = effective_nfb_slot_brand(draft_state["draft"],index,selected[0])
                 nfb_preview_panel["panel"].show(brand,slot["filename"])
+                nfb_source_viewed["value"] = True
 
         editor_body = ttk.Frame(frame)
         editor_body.pack(fill="both", expand=True, pady=(4, 6))
@@ -1716,7 +1719,8 @@ def open_receiving_multi_settings(self, namespace):
             self.app.root, "_receiving_multi_settings_window", None
         )
         def close_editor(*, saved=False):
-            if (not saved and draft_state["draft"] != initial_nfb_draft
+            if (not saved and (draft_state["draft"] != initial_nfb_draft
+                               or nfb_source_viewed["value"])
                     and not messagebox.askyesno(
                         "捨棄未提交的 NFB 草稿？",
                         "目前 NFB 物理層、空槽或品牌選型的預覽尚未提交。確定捨棄？",
