@@ -208,7 +208,7 @@ DoD 是 ownership / lifecycle 語意，而不是 LOC threshold。
 
 1. 先讀 Canonical Authority Map 與本文件；
 2. 若是新 extraction / new owner / new composition boundary，必須先有 accepted spec；
-3. 保持 root-local-first、`GIT_WRITE_UNLOCKED` 後 Git-phase branch、single execution claim、non-force integration；
+3. 依正式 X `AGENTS.md` 分流：`/派工` 在 GitHub／雲端施工與驗證、使用者當次明確 `/接手` 才可在 RC 施工；純治理白名單變更由 GitHub／雲端 PR 直送 X。產品先依驗收整合 `localX`，發布 X 須當次 `/推推`；保留 non-force integration、exact CI 與回讀，**不得啟動退役的 `GIT_WRITE_UNLOCKED`、single execution claim 或工作槽／lease 前置**；
 4. owner 搬移必須同一變更完成新 owner、舊 owner降級/刪除、reverse-import guard 與直接回歸；
 5. 不得用「bridge 太長」本身作 extraction authority；
 6. focused GREEN 不等於 final acceptance；若改動影響實體板件、2D/3D、DXF、persistence，仍須走對應 final acceptance。
