@@ -15,6 +15,7 @@ from tools.change_lane_gate import (
     HISTORICAL_TAIPEI_CI_GOVERNANCE_COMMITS,
     HISTORICAL_REVERTED_SOP_COMMITS,
     is_historical_reverted_sop_history,
+    is_previously_merged_localx_product_history,
     is_historical_verified_x_ci_governance,
     parse_name_status_zero,
     require_x_only_governance_history,
@@ -262,6 +263,11 @@ class ChangeLaneTests(unittest.TestCase):
                 subprocess.CompletedProcess([], 0, (commit + "\n").encode()),
                 subprocess.CompletedProcess([], 0, ("d" * 40 + "\n").encode()),
                 subprocess.CompletedProcess([], 0, changed),
+                # A normal one-parent product commit has no verified
+                # historical localX merge provenance and must remain blocked.
+                subprocess.CompletedProcess(
+                    [], 0, (commit + " " + "d" * 40 + "\n").encode()
+                ),
             ]
             with self.subTest(changed=changed):
                 with patch("tools.change_lane_gate.subprocess.run", side_effect=responses):
@@ -269,6 +275,54 @@ class ChangeLaneTests(unittest.TestCase):
                         ChangeLaneDenied, "X_AHEAD_NON_GOVERNANCE_BLOCKED"
                     ):
                         require_x_only_governance_history(Path("."), BASE, HEAD)
+
+    def test_x_only_previous_localx_merge_provenance_requires_unchanged_blobs(self):
+        commit = "c" * 40
+        parent_x = "d" * 40
+        parent_localx = "e" * 40
+        path = "gui.py"
+        source_blob = "f" * 40
+
+        def step(data, returncode=0):
+            return subprocess.CompletedProcess(
+                [], returncode, data.encode("ascii")
+            )
+
+        lineage = step(f"{commit} {parent_x} {parent_localx}\n")
+        ancestry = step("")
+        blob = step(source_blob + "\n")
+        good = [lineage, ancestry, blob, blob]
+        with patch("tools.change_lane_gate.subprocess.run",
+                   side_effect=good) as git:
+            self.assertTrue(is_previously_merged_localx_product_history(
+                Path("."), commit=commit, paths=[path],
+                localx_sha=HEAD,
+            ))
+            self.assertEqual(git.call_count, 4)
+        # Two or more changed paths must ALL match the source parent; a
+        # conflict-resolved product modification cannot pass this history gate.
+        bad = [lineage, ancestry, blob, step("0" * 40 + "\n")]
+        with patch("tools.change_lane_gate.subprocess.run",
+                   side_effect=bad):
+            self.assertFalse(is_previously_merged_localx_product_history(
+                Path("."), commit=commit, paths=[path],
+                localx_sha=HEAD,
+            ))
+        for responses in (
+            [step(f"{commit} {parent_x}\n")],  # no second parent
+            [lineage, step("", 1)],  # original localX not ancestor
+            [lineage, ancestry, step("", 128), blob],  # missing merged file
+        ):
+            with patch("tools.change_lane_gate.subprocess.run",
+                       side_effect=responses):
+                self.assertFalse(is_previously_merged_localx_product_history(
+                    Path("."), commit=commit, paths=[path],
+                    localx_sha=HEAD,
+                ))
+        # Current incoming product PR classification remains restricted.
+        self.assertEqual(classify_changes([path]), "PRODUCT_LOCALX_ONLY")
+        with self.assertRaisesRegex(ChangeLaneDenied, "REQUIRES_LOCALX"):
+            evaluate_pr(event=pr_event(), changed_paths=[path])
 
     def test_reverted_domain_sop_exception_is_exact_and_history_only(self):
         # Eight immutable X-only commits revert four protected SOP files to
