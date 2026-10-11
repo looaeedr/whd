@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """#1502: Receiving keeps ONE original base, never derived lower-cell bases."""
-import inspect
+from pathlib import Path
 
 from phase6_derived_part_projection import (
     DerivedPartRequestAssemblyInput,
     build_derived_part_projection_request,
     build_derived_part_sync_plan,
 )
-from gui_modules.application import fold_designer_composition_shell_settings
 
 
 def _input(*, receiving):
@@ -85,9 +84,7 @@ def test_hidden_receiving_original_base_is_reactivated_without_door_base_clones(
 
 
 def test_real_receiving_composition_passes_preservation_intent_from_model():
-    source=inspect.getsource(
-        fold_designer_composition_shell_settings.sync_authoritative_derived_parts
-    )
+    source=Path('gui_modules/application/fold_designer_composition_shell_settings.py').read_text(encoding='utf-8')
     assert "receiving_single_base" in source
     assert 'str(snapshot.get("model") or "").strip()' in source
     assert "preserve_single_base_plate=receiving_single_base" in source
