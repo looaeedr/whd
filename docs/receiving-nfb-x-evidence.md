@@ -67,6 +67,10 @@ Golden fixture：`tests/fixtures/receiving_nfb_closed_cutting_reference.json` �
 
 依 42 筆記錄的各品牌 DXF 檔名唯讀盤點：士林有檔 21、無對應 21；東元列有檔 19、無對應 23，但實際 15 個位置有檔，`400_Type.dxf` 在索引中被引用 4 次、目前 `基準檔/NFB/東元/` 缺檔；伍菱有檔 24、無對應 18。這些計數是**索引記錄列數**，不是唯一 DXF 檔數、不是已核准 NFB 型號數，亦不是可直接製造的主孔數。#1496 應接續查實際 DXF 幾何與版本；#1494 保持孔位座標證據而非切孔能力。未覆寫兩份 CSV，也未用索引尺寸替代實際 NFB CUTTING。
 
-## 限定 W800／T2 上層內門：下料高度差異必須保留
+## 限定 W800／T2 上層內門：高度修正並與來源 CUTTING 對齊
 
-以既有 `apply_family_defaults`／`derive_inner_door_panels`／`build_inner_door_panel_render_data` 對 W800/T2、1100 mm 上層／500 mm 下層、門縫3.5、折邊19 實際生成 CUTTING：下料 bounding box 為 **723 × 1063.5 mm**，成品面 689 × 1029.5 mm。新封閉來源圖 bounding box 為 **723 × 1075 mm**，高度差 **11.5 mm**。因此來源圖 A1→封閉 CUTTING 參考左緣已具幾何實證，但**完整外框不等同於目前 WHD 的生成下料**；不得將左側 X 對齊當作 Y／整個零件同一性核准。`tests/test_issue1494_closed_cutting_reference.py` 保留這項反例並防止誤升格。
+2026-10-11 使用者確認內門高度沿用**外門共用門板展開算法**，但裝配扣除使用內門自己的邊界：以上層分層高 1100 mm 為來源，上方扣 50 mm 內門框折後佔用再扣 T=2 mm，下方不扣框、不用中隔折後支承面回扣板高；上下門縫各 3.5 mm。因此成品高 `1100-50-2-7=1041`，沿用既有折彎規則後下料高 `1041-4+19+19=1075` mm；寬方向維持成品 689、下料 723 mm。
+
+WHD 先前以中隔的折後接觸面反推**門板**下緣，產生錯誤的 1029.5 mm 成品高／1063.5 mm 下料高。已在 `ae_engine/cabinet_types/receiving.py` 的共用高度扣除權威及 `ae_engine/assembly_placement.py` 的 3D 門板座標修正；**左右門框本身**仍以中隔實體面作為框下端的貼合來源，不得取消框—中隔驗收。
+
+現在生成的門板 CUTTING bbox 應為 **723 × 1075 mm**，與使用者封閉 DXF 參考之 bbox 尺寸一致（差值 0）。測試 `tests/test_issue1494_closed_cutting_reference.py` 固定檢查實際生成 CUTTING x/y span，不從文件值或 metadata 自證；來源外框頂點、孔型及下料→成品→箱體映射仍需各自驗證，**不得因尺寸對齊就自動核准 NFB 真正製造孔**。
