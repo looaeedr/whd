@@ -7,7 +7,7 @@ No hidden geometry solve, nested editor, preview popup or extra controls.
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox
 from ae_engine.receiving_hole_candidates import version_label
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
@@ -207,7 +207,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     win = tk.Toplevel(parent)
     win.title("多只設定")
-    # Nonmodal operator surface; transient/grab hid it behind child windows.
+    # The primary application is not interactive while multi-settings is open.
+    win.transient(parent)
     parent._receiving_multi_settings_window = win
     topology_changed = {"value": False}
     brand_changed = {"value": False}
@@ -247,6 +248,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0"
                 )
         if win.winfo_viewable():
+            if win.grab_current() is None:
+                win.grab_set()
             win.lift()
             win.focus_set()
 
@@ -361,10 +364,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         popup = real_preview["win"]
         real_preview.update(win=None, view=None, status=None, role=None)
         if popup is not None and popup.winfo_exists():
+            if popup.grab_current() is popup:
+                popup.grab_release()
             popup.destroy()
+        if win.winfo_exists() and win.grab_current() is None:
+            win.grab_set()
 
     def show_real_preview(role):
-        """Movable nonmodal full FinalScene view, never a fake thumbnail."""
+        """Movable verified FinalScene view; the main window stays blocked."""
         if get_real_cut_preview_request is None:
             return None
         popup = real_preview["win"]
@@ -373,8 +380,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             popup.title("截角實體資料｜真實2D")
             popup.geometry("960x720")
             popup.minsize(460, 320)
-            # Deliberately no transient/grab: operator can switch parent,
-            # manager, quantity tabs and floating preview without closing.
+            popup.transient(win)
             from .receiving_scroll_view import make_scrollable_frame
             popup_scroll, popup_content, popup_viewport = make_scrollable_frame(
                 popup, tk=tk, ttk=ttk, width=920, height=660,
@@ -397,8 +403,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             ttk.Button(actions, text="關閉", command=close_real_preview).pack(side="right")
             popup.protocol("WM_DELETE_WINDOW", close_real_preview)
             real_preview.update(win=popup, view=view, status=status)
-        else:
-            popup.lift()
+        if win.grab_current() is win:
+            win.grab_release()
+        if popup.grab_current() is not popup:
+            popup.grab_set()
+        popup.lift()
+        popup.focus_set()
         real_preview["role"] = role
         real_preview["generation"] += 1
         generation = real_preview["generation"]
@@ -588,163 +598,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
-            if get_nfb_transaction_ports is not None:
-                transactions = get_nfb_transaction_ports()
-                state = transactions["state"](set_index, bay_index, targets())
-                nfb_row = ttk.Frame(settings_host)
-                nfb_row.pack(anchor="w", pady=(7, 2))
-
-                def refresh_after_transaction():
-                    # Re-read the ONE adapter authority after a commit/reset/
-                    # undo. Do not leave stale buttons or an older preview.
-                    if win.winfo_exists():
-                        win.after_idle(show_setting_controls)
-
-                def confirm_nfb_transaction(preview):
-                    action = {
-                        "SUBMIT": "正式提交 NFB 開孔配置",
-                        "COPY_SUBMIT": "複製 NFB 至未配置連",
-                        "COPY_OVERWRITE": "覆寫已提交的 NFB 配置",
-                        "RESTORE_UNCONFIGURED": "還原 NFB 為未配置",
-                    }.get(preview.action, "變更 NFB 配置")
-                    impacted = "、".join(preview.impacted_parts) or "目前選取的連"
-                    held = ("\n仍待加工資料的板件：" + "、".join(preview.held_parts)
-                            if preview.held_parts else "")
-                    unresolved = ("\n其他板件身份／加工尚未就緒：" +
-                                  "、".join(preview.dependency_warnings)
-                                  if preview.dependency_warnings else "")
-                    return bool(messagebox.askyesno(
-                        "確認 NFB 交易",
-                        f"{action}\n受影響：{impacted}{held}{unresolved}\n"
-                        "確定後會更新專案內的 NFBConfig；取消不會更動設定。",
-                        parent=win,
-                    ))
-
-                def nfb_reset():
-                    try:
-                        if not state["can_restore"]:
-                            raise ValueError("目前連尚未正式提交 NFBConfig")
-                        if transactions["restore"](
-                            set_index, targets(), confirm_nfb_transaction,
-                        ):
-                            refresh_after_transaction()
-                    except (ValueError, IndexError, RuntimeError) as exc:
-                        warn(exc)
-
-                def nfb_undo():
-                    try:
-                        transactions["undo"]()
-                        refresh_after_transaction()
-                    except (ValueError, IndexError, RuntimeError) as exc:
-                        warn(exc)
-
-                # Candidate Apply only chooses filename/layers. A verified
-                # physical source/target bundle enables the corresponding
-                # canonical MFG-1 submit/copy transaction; never infer X.
-                def nfb_submit():
-                    try:
-                        if not transactions["state"](set_index,bay_index)["can_submit"]:
-                            raise ValueError("當前 NFB 實體來源或世界 X 尚未驗證")
-                        if transactions["submit"](
-                            set_index, targets(), confirm_nfb_transaction,
-                        ):
-                            refresh_after_transaction()
-                    except (ValueError,IndexError,RuntimeError,OSError) as exc:
-                        warn(exc)
-
-                ttk.Button(
-                    nfb_row, text="確認套用（NFB）",
-                    state="normal" if state["can_submit"] else "disabled",
-                    command=nfb_submit,
-                ).pack(side="left", padx=(0, 4))
-                def nfb_copy():
-                    try:
-                        selected = targets()
-                        if not transactions["state"](
-                            set_index, bay_index, selected,
-                        )["can_copy"]:
-                            raise ValueError(
-                                "請高亮已提交的來源連及另外核對來源／世界 X 的目標連"
-                            )
-                        if transactions["copy"](
-                            set_index, selected, confirm_nfb_transaction,
-                        ):
-                            refresh_after_transaction()
-                    except (ValueError,IndexError,RuntimeError,OSError) as exc:
-                        warn(exc)
-
-                ttk.Button(
-                    nfb_row, text="複製至其他連",
-                    state="normal" if state["can_copy"] else "disabled",
-                    command=nfb_copy,
-                ).pack(side="left", padx=(0, 4))
-                ttk.Button(
-                    nfb_row, text="還原為未配置",
-                    state="normal" if state["can_restore"] else "disabled",
-                    command=nfb_reset,
-                ).pack(side="left", padx=(0, 4))
-                ttk.Button(
-                    nfb_row, text="復原",
-                    state="normal" if state["can_undo"] else "disabled",
-                    command=nfb_undo,
-                ).pack(side="left")
-                if state["reason"]:
-                    ttk.Label(
-                        settings_host, text=state["reason"], wraplength=570,
-                    ).pack(anchor="w")
-                # Read-only current physical-part status; never acts as an
-                # export enable/override control or a second Hole Editor.
-                from .receiving_nfb_manifest_view import nfb_manifest_display_lines
-                live_manifest = transactions["manifest"](set_index,bay_index)
-                manifest_frame=ttk.LabelFrame(
-                    settings_host,text="NFB 板件就緒／部分製造清單（動態核對）",
-                )
-                manifest_frame.pack(fill="x",anchor="w",pady=(7,2))
-                for label_line in nfb_manifest_display_lines(live_manifest):
-                    ttk.Label(
-                        manifest_frame,text=label_line,wraplength=565,
-                    ).pack(fill="x",anchor="w",padx=6,pady=1)
-                # Independent #1501 verified partial export remains fail-closed:
-                # source SHA, physical WORLD-X and actual Bay are revalidated.
-                def export_verified_nfb_partial():
-                    try:
-                        destination = filedialog.asksaveasfilename(
-                            parent=win,
-                            title="輸出已驗證 NFB 內門（部分製造 DXF）",
-                            defaultextension=".dxf",
-                            filetypes=(("DXF", "*.dxf"),),
-                            initialfile="nfb_verified_inner_door.dxf",
-                        )
-                        if not destination:
-                            return
-                        path, manifest = transactions["partial_export"](
-                            set_index, bay_index, destination,
-                        )
-                        messagebox.showinfo(
-                            "NFB 部分出圖完成",
-                            "已輸出實際驗證的內門 CUTTING：\n" + str(path)
-                            + "\n中板／底板／PAD／耳朵尚未完成，不代表整箱加工完成。"
-                            + "\n本次實體板件數：" + str(manifest.actual_export_count),
-                            parent=win,
-                        )
-                        refresh_after_transaction()
-                    except (ValueError, TypeError, KeyError, OSError) as exc:
-                        warn(exc)
-
-                ttk.Button(
-                    manifest_frame, text="輸出已驗證內門 DXF（僅部分）",
-                    state=(
-                        "normal"
-                        if live_manifest["status"] in ("PARTIAL_ONLY", "WHOLE_READY")
-                        and any(
-                            row.get("role") == "INNER_DOOR"
-                            and row.get("may_export") is True
-                            for row in live_manifest.get("rows", ())
-                        )
-                        else "disabled"
-                    ),
-                    command=export_verified_nfb_partial,
-                ).pack(anchor="w", padx=6, pady=(5, 7))
             # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
@@ -764,6 +617,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager_widgets.update(frame=None, label=None, buttons=(),
                                buttons_frame=None, quantity_frame=None, canvas=None)
         if win.winfo_exists():
+            if win.grab_current() is None:
+                win.grab_set()
             win.lift()
             win.focus_set()
 
@@ -830,8 +685,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager_state["page"] = "candidates"
         manager = tk.Toplevel(win)
         manager.title("內門版本管理" if family == "inner" else "版本管理")
-        # Managed child stays nonmodal so the parent and floating true view
-        # remain usable without closing each other first.
+        manager.transient(win)
         manager.geometry("960x720")
         manager.minsize(570, 350)
         manager_window["win"] = manager
@@ -939,6 +793,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager._receiving_manager_tabs = tabs
         manager._receiving_manager_role_var = role_var
         refresh_manager_controls()
+        if win.grab_current() is win:
+            win.grab_release()
+        manager.grab_set()
         manager.lift()
         manager.focus_set()
         return manager
@@ -1055,16 +912,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             row = ttk.Frame(actions_host)
             row.pack(anchor="w", pady=2)
             ttk.Label(row, text=f"第{index + 1}套").pack(
-                side="left", padx=(0, 10))
-            minus = ttk.Button(row, text="－連",
+                side="left", padx=(0, 4))
+            minus = ttk.Button(row, text="－連", width=3,
                                command=lambda i=index: resize(i, -1))
-            minus.pack(side="left", padx=(0, 3))
-            count_label = ttk.Label(row, width=3, anchor="center")
-            count_label.pack(side="left", padx=(0, 3))
-            plus = ttk.Button(row, text="＋連",
+            minus.pack(side="left", padx=(0, 2))
+            count_label = ttk.Label(row, width=2, anchor="center")
+            count_label.pack(side="left", padx=(0, 2))
+            plus = ttk.Button(row, text="＋連", width=3,
                               command=lambda i=index: resize(i, 1))
-            plus.pack(side="left", padx=(0, 3))
-            apply_button = ttk.Button(row, text="套用",
+            plus.pack(side="left", padx=(0, 2))
+            apply_button = ttk.Button(row, text="套用", width=4,
                                       command=lambda i=index: apply(i))
             apply_button.pack(side="left")
             bay_rows.append({"frame": row, "count": count_label})
