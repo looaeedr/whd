@@ -235,6 +235,7 @@ class NfbUpperColor150Reference:
     source_entity_id: str
     center_xy: tuple[float, float]
     size_mm: tuple[float, float]
+    source_outline_vertices_xy: tuple[tuple[float, float], ...]
     source_color_aci: int = 150
     consumers: tuple[str, str] = ("MIDDLE_PLATE", "INNER_DOOR")
     status: str = "USER_CONFIRMED_UPPER_REFERENCE_ONLY"
@@ -280,6 +281,7 @@ def resolve_upper_color150_reference(
         source_entity_id=row.source_id,
         center_xy=((xs[0] + xs[1]) / 2.0, (ys[0] + ys[1]) / 2.0),
         size_mm=(xs[1] - xs[0], ys[1] - ys[0]),
+        source_outline_vertices_xy=pts,
     )
 
 
@@ -302,6 +304,26 @@ def place_upper_nfb_point_from_color150(
         target[0] + rotated[0] - reference.center_xy[0],
         target[1] + rotated[1] - reference.center_xy[1],
     )
+
+
+def place_upper_color150_opening_outline(
+    *, reference: NfbUpperColor150Reference,
+    target_center_xy: Iterable[float],
+    rotation_deg: int = 0,
+    consumer: str,
+) -> tuple[tuple[float, float], ...]:
+    """The SAME real source Color-150 aperture fits middle plate or inner door.
+
+    Coordinates remain on the caller-supplied target part plane. The caller
+    must separately verify correct physical part ID, fit and production rights.
+    Color-30 base holes / Color-212 marking / LOWER spacer are never copied.
+    """
+    if consumer not in reference.consumers:
+        raise ValueError("NFB upper Color150 opening consumer must be middle plate or inner door")
+    return tuple(place_upper_nfb_point_from_color150(
+        point, reference=reference, target_center_xy=target_center_xy,
+        rotation_deg=rotation_deg,
+    ) for point in reference.source_outline_vertices_xy)
 
 
 def rotate_point_around_source_pivot(
