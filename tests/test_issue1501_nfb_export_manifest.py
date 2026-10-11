@@ -114,14 +114,14 @@ def test_source_sha_change_invalidates_nfb_but_not_proven_other(tmp_path):
     assert not absent.whole_ready
 
 
-def test_missing_color150_physical_middle_id_has_no_fictitious_allowlist(tmp_path):
+def test_missing_explicit_middle_id_is_not_inferred_from_inner_door_color150(tmp_path):
     opts=_prepared(tmp_path)
     opts["scope"]=NfbPhysicalScope(
         "setA","bayA","version-1",True,"inner1",
         ("base1",),(),
     )
     m=derive_nfb_partial_export_manifest(**opts)
-    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" in m.unresolved_dependencies
+    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" not in m.unresolved_dependencies
     assert next(x for x in m.rows if x.part_id=="middle1").status==BLOCKED
     assert m.authorized_part_ids==("inner1","base1","side1")
     assert not m.whole_ready
