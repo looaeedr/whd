@@ -227,7 +227,7 @@ def project_verified_nfb_base_process(
             pts = tuple(move(point) for point in mark.vertices_xy_mm)
             if len(pts) < 2:
                 raise ValueError("NFB source Color212 marking path invalid")
-            marking.add_polyline(pts, layer="MARKING", closed=False, color=212)
+            marking.add_polyline(pts, layer="MARKING", closed=mark.source_closed, color=212)
     if not cuts:
         raise ValueError("NFB base cannot have empty generated holes")
     # Existing material already includes any ear-mount holes. The new NFB
