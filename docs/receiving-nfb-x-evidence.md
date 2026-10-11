@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: receiving-nfb-x-evidence
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1494：NFB X 基準證據（v1.4-evidence-2）
 
 本交付是證據資料與回歸測試，**不是可製造能力註冊，也未核准任何絕對 X**。JSON：`docs/receiving-nfb-x-evidence.json`。每個 `rule_id` 是可追溯的證據身份；`revision` 是證據版本，**不等於**實體 owner 核准的 `certified_x_revision`。
