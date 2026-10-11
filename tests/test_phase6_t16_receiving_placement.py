@@ -57,7 +57,14 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
     import ae_engine.assembly_placement as placement
     envelope = placement._inner_door_geometry(snapshot, "upper")
     assert envelope["panel_width"] == pytest.approx(689.0)
-    assert panel.world_offset[2] == pytest.approx(95.0)
+    assert envelope["panel_height"] == pytest.approx(1041.0)
+    assert envelope["upper_frame_edge"] == pytest.approx(748.0)
+    assert envelope["lower_frame_edge"] == pytest.approx(-300.0)
+    assert manufactured.height == pytest.approx(1041.0)
+    assert manufactured.unfolded_height == pytest.approx(1075.0)
+    assert panel.world_offset == pytest.approx((0.0, 224.0, 95.0))
+    assert panel.world_offset[1] + manufactured.height / 2 == pytest.approx(744.5)
+    assert panel.world_offset[1] - manufactured.height / 2 == pytest.approx(-296.5)
 
     top = resolve_assembly_placement(snapshot, "inner_door:upper:top_frame")
     # Final 22-mm flange faces the EndCap's underside at H/2 - T = 798.
@@ -68,9 +75,11 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
         snapshot, "upper"
     )
     assert vertical["top_terminal_y"] == pytest.approx(750.0)
-    assert panel.world_offset[1] == pytest.approx(
-        (vertical["top_terminal_y"] + vertical["lower_terminal_y"]) / 2.0
-    )
+    # Side frames keep their own real Divider mating span. That is NOT
+    # the Door panel's manufacturing height / Y center.
+    assert vertical["lower_terminal_y"] == pytest.approx(-286.5)
+    assert vertical["center_y"] == pytest.approx(231.75)
+    assert panel.world_offset[1] == pytest.approx(224.0)
     frames = {
         row.stable_id: row
         for row in derive_all_inner_door_frames(

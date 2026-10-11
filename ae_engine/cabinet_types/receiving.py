@@ -335,8 +335,34 @@ def inner_door_body_clear_width(*, cell_width: float, thickness: float) -> float
     return width - 2.0 * t
 
 
+def inner_door_panel_vertical_contract(*, cell_height: float, thickness: float, gap_h: float) -> dict[str, float]:
+    """Shared manufactured-panel Y rules; frames retain their own physical mates.
+
+    The upper assembly consumes the formed top-frame occupation PLUS the box
+    sheet thickness.  There is no bottom inner-door frame: the lower cell
+    boundary loses no frame occupation, but BOTH door clearances are kept.
+    Finished-to-blank folding is handled by the existing Door engine.
+    """
+    from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
+
+    h, t, gap = float(cell_height), float(thickness), float(gap_h)
+    if h <= 0.0 or t <= 0.0 or gap < 0.0:
+        raise ValueError("inner-door cell height/thickness/gap must be valid")
+    top_occupation = inner_door_frame_formed_occupation(t) + t
+    bottom_occupation = 0.0
+    finished_height = h - top_occupation - bottom_occupation - 2.0 * gap
+    if finished_height <= 0.0:
+        raise ValueError("inner-door top frame and gaps leave no positive finished height")
+    return {
+        "top_occupation": top_occupation,
+        "bottom_occupation": bottom_occupation,
+        "finished_height": finished_height,
+        "center_offset_y": (bottom_occupation - top_occupation) / 2.0,
+    }
+
+
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
-    """Derive inner-door panels from physical Box Body *inside* width and framed opening."""
+    """Derive inner doors from shared Door folding plus family assembly deductions."""
     from ae_engine.inner_door_panels import derive_inner_door_panel
     from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
     from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
@@ -367,14 +393,12 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
         seen.add(panel_id)
         cell = cells[cell_key]
         panel_w = inner_door_body_clear_width(cell_width=cell.start_width, thickness=t) - 2.0 * formed - 2.0 * gap_w
-        try:
-            vertical = inner_door_vertical_frame_contract(data, stable_id)
-        except ValueError:
-            # Unresolved Divider during topology editing: panel may remain in
-            # preview, but no fictitious lower frame may be manufactured.
-            panel_h = float(cell.start_height) - formed - 2.0 * gap_h
-        else:
-            panel_h = float(vertical["span"]) - 2.0 * gap_h
+        # Do not use the physical Divider contact height of the side FRAMES
+        # to size a Door PANEL. Panel Y follows its nominal cell height,
+        # the top frame + T assembly occupation and two door clearances.
+        panel_h = inner_door_panel_vertical_contract(
+            cell_height=cell.start_height, thickness=t, gap_h=gap_h,
+        )["finished_height"]
         result.append(derive_inner_door_panel(
             stable_id, cell_key=cell_key, width=panel_w, height=panel_h, thickness=t,
             fold_left=float(data.get("door_fold_l", DOOR_DEFAULTS["door_fold_l"])),
