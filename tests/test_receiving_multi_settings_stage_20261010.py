@@ -47,6 +47,39 @@ def test_sketch_uses_only_identified_original_door_marks():
     assert extract_original_door_marks(drawing)["handle"] == ()
 
 
+def test_modal_connection_resize_skips_hidden_global_panel_until_exit():
+    from gui_modules.application.fold_designer_composition_receiving import resize_receiving_bays
+
+    class FakeSwitch:
+        def resize_connections(self, index, delta):
+            calls.append(("resize", index, delta))
+            return True
+
+    class FakeComposition:
+        def receiving_switch_adapter(self, namespace):
+            assert namespace == "receiving"
+            return switch
+
+        def mark_receiving_switch_layout_dirty(self, namespace, adapter):
+            assert namespace == "receiving" and adapter is switch
+            calls.append(("dirty",))
+
+        def refresh_receiving_set_bay_control(self, namespace):
+            assert namespace == "receiving"
+            calls.append(("hidden-refresh",))
+
+    calls = []
+    switch = FakeSwitch()
+    composition = FakeComposition()
+    assert resize_receiving_bays(composition, "receiving", 0, 1,
+                                refresh_controls=False)
+    assert calls == [("resize", 0, 1), ("dirty",)]
+    calls.clear()
+    # Other callers still refresh the original panel by default.
+    assert resize_receiving_bays(composition, "receiving", 0, 1)
+    assert calls == [("resize", 0, 1), ("dirty",), ("hidden-refresh",)]
+
+
 def test_assembly_button_is_hidden_until_receiving_assembly():
     root = tk.Tk()
     root.withdraw()
