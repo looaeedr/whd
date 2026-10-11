@@ -57,11 +57,12 @@ whd_schema: WHD_DOC_META_V1
 
 ## 全域 DC 硬閘門 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`
 
-**預設禁止（DENY）**：所有 ChatGPT／Agent／排程／治理／文件／程式執行器，**在呼叫任何 Remote Desktop Commander（DC）工具之前**先做以下判斷。包含 `list_devices`、`ping`、`who_am_i`、檔案讀寫、工作目錄查詢、process／shell／Git 操作；**不得先連線探測再補問授權**。除以下三種情況外一律 `DC_ACCESS_DENIED_BY_DEFAULT`：
+**預設禁止（DENY）**：所有 ChatGPT／Agent／排程／治理／文件／程式執行器，**在呼叫任何 Remote Desktop Commander（DC）工具之前**先做以下判斷。包含 `list_devices`、`ping`、`who_am_i`、檔案讀寫、工作目錄查詢、process／shell／Git 操作；**不得先連線探測再補問授權**。除以下四種情況外一律 `DC_ACCESS_DENIED_BY_DEFAULT`：
 
 1. **當前使用者明確下達 `/接手`**：僅授權該次指定工單及 RC → `whd-dev:/workspace/whd` 的施工、測試和該工單交付。先前對話的 `/接手` 不得永久沿用；不能把一般「去修修」「繼續」「可以」、文件修改或推送 GitHub 的授權解讀為 `/接手`。
 2. **`/派工` 的最後 `LOCALX_INTEGRATION` 階段**：必須先由真正雲端完成施工，確認對應工作 PR `base=localX`、exact HEAD SHA 的必要 CI 全部 SUCCESS、可整合，才准 DC **只做本機 `localX` 最終合併、必要整合驗證、同步與回讀**；此例外不允許本機 BUILD／TEST／COMMIT／修產品程式，不允許提早讀取 DC 裝置或測試連線。
-3. **使用者對本次特定目的明確指示允許 DC**：必須能辨識當次授權的工作、裝置、操作／路徑範圍；不能將概括的修正命令、先前授權或某個 Skill 裡的建議當作當次 DC 許可。
+3. **使用者當次下達 `/推推`**：視為產品 `localX → X` 的完整發布授權，內含為該次發布所需的 DC 本機 `localX` 查核、安全同步、發布後 X 回同步與三方 readback；無須另請一次「允許 DC」。此授權只涵蓋同一批已驗收產品成果的發布與同步，不得藉此施工、修改無關檔案、強推或略過 CI；若當次使用者明確指定 GitHub-only，則不觸碰 DC，並保留 `LOCAL_SYNC_PENDING`。
+4. **使用者對本次特定目的明確指示允許 DC**：必須能辨識當次授權的工作、裝置、操作／路徑範圍；不能將概括的修正命令、先前授權或某個 Skill 裡的建議當作當次 DC 許可。
 
 **其餘所有情境（含治理文件直合 X、GitHub 能力不足、排程卡關、只想看看本機狀態、清理先前事故殘留）一律不用 DC。** 若確實需要，先向使用者說明 **使用 DC 的必要原因、預計使用的裝置／路徑、要讀／改／執行的操作與影響**，標記 `DC_AUTHORIZATION_REQUIRED`，**停止任何 DC 呼叫並等待使用者明確核准**；未核准不得改用其他本機通道繞行。核准僅在被核准的當次目的與範圍有效，不自動延伸到下一張工單或其他工作。
 
