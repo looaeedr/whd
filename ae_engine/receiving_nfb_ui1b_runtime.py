@@ -29,6 +29,7 @@ def verify_current_nfb_ui_draft(
     world_x_by_unit: Mapping[str,float],
     index_path: str | Path = INDEX_PATH,
     profile_path: str | Path | None = None,
+    selected_source_path: str | Path | None = None,
 ):
     """Proof from actual runtime source and part, never a fake READY badge."""
     if not isinstance(version_id,str) or not version_id.strip():
@@ -70,7 +71,18 @@ def verify_current_nfb_ui_draft(
              ==(brand,filename.casefold())]
     if len(matched)!=1:
         raise ValueError("NFB 來源輪廓 CSV 尚未建立該型號的真實 SHA/Color150 資料")
-    real_source=resolve_indexed_dxf_path(brand,filename,index_path=source_index)
+    if selected_source_path is not None:
+        # A numbered browser-downloaded copy is okay ONLY if #1497 also
+        # verifies its exact original byte SHA and selected Color150 handle.
+        import re
+        chosen=Path(selected_source_path)
+        pattern=(re.escape(Path(filename).stem)
+                 + r"(?:\([1-9][0-9]*\))?\.dxf")
+        if not re.fullmatch(pattern,chosen.name,re.IGNORECASE):
+            raise ValueError("選取 DXF 並非 CSV 型號原檔或其編號副本")
+        real_source=chosen
+    else:
+        real_source=resolve_indexed_dxf_path(brand,filename,index_path=source_index)
     if not real_source.is_file():
         raise ValueError(f"NFB 缺原始 DXF：{real_source}（僅預覽，不可提交）")
     owners={str(d.get("stable_id")):str(d.get("cell_key"))
