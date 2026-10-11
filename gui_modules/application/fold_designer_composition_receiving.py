@@ -1513,21 +1513,84 @@ def open_receiving_multi_settings(self, namespace):
                        command=lambda idx=idx: remove_switch(idx)).pack(
                 pady=3)
             ttk.Button(buttons_area, text="＋加入",
-                       command=lambda idx=idx: add_switch(idx)).pack(
-                pady=3)
+                       command=lambda idx=idx: add_switch(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="＋空槽",
+                       command=lambda idx=idx: add_empty_slot(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="替換所選",
+                       command=lambda idx=idx: replace_selected_slot(idx)).pack(pady=3)
             assigned = tk.Listbox(section, selectmode=tk.BROWSE,
                                   exportselection=False, height=6)
             assigned.grid(row=1, column=2, sticky="nsew", padx=5)
             count_text = tk.StringVar(master=modal)
             ttk.Label(section, textvariable=count_text).grid(
                 row=2, column=2, sticky="w", padx=(5, 0), pady=(0, 3))
+            # Set.switch_brand is the ONLY Set owner; these two selectors
+            # are explicit layer/unit override controls on a transient draft.
+            brand_row = ttk.Frame(section)
+            brand_row.grid(row=3, column=0, columnspan=3, sticky="w", pady=(2, 4))
+            ttk.Label(brand_row, text="本層品牌").pack(side="left")
+            brand_choices = ("繼承本套", *RECEIVING_SWITCH_BRANDS)
+            layer_brand_var = tk.StringVar(master=modal, value="繼承本套")
+            layer_brand_select = ttk.Combobox(
+                brand_row, textvariable=layer_brand_var, values=brand_choices,
+                width=12, state="readonly",
+            )
+            layer_brand_select.pack(side="left", padx=(3, 12))
+            ttk.Label(brand_row, text="所選顆品牌").pack(side="left")
+            slot_brand_var = tk.StringVar(master=modal, value="繼承本層")
+            slot_brand_select = ttk.Combobox(
+                brand_row, textvariable=slot_brand_var,
+                values=("繼承本層", *RECEIVING_SWITCH_BRANDS),
+                width=12, state="readonly",
+            )
+            slot_brand_select.pack(side="left", padx=3)
             layer_rows.append({
                 "section": section, "available": available,
                 "assigned": assigned, "count": count_text,
+                "layer_brand_var": layer_brand_var,
+                "slot_brand_var": slot_brand_var,
             })
+
+            def layer_brand_changed(_event=None, idx=idx):
+                from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+                value = layer_rows[idx]["layer_brand_var"].get()
+                draft_state["draft"] = set_nfb_layer_brand(
+                    draft_state["draft"],idx,mode=INHERIT if value=="繼承本套" else OVERRIDE,
+                    value=None if value=="繼承本套" else value,
+                )
+                refresh_source(force=True)
+                repaint(idx)
+
+            def slot_brand_changed(_event=None, idx=idx):
+                selected = layer_rows[idx]["assigned"].curselection()
+                if not selected:
+                    warning.set("請先選取一個實際 NFB 顆位或空槽")
+                    return
+                value = layer_rows[idx]["slot_brand_var"].get()
+                draft_state["draft"] = set_nfb_slot_brand(
+                    draft_state["draft"],idx,selected[0],
+                    mode=INHERIT if value=="繼承本層" else OVERRIDE,
+                    value=None if value=="繼承本層" else value,
+                )
+                refresh_source(force=True)
+                repaint(idx)
+
+            layer_brand_select.bind("<<ComboboxSelected>>",layer_brand_changed)
+            slot_brand_select.bind("<<ComboboxSelected>>",slot_brand_changed)
+            assigned.bind(
+                "<<ListboxSelect>>",
+                lambda _event, i=idx: (repaint(i), refresh_source(force=True)),
+            )
             repaint(idx)
 
         def change_layers():
+            try:
+                draft_state["draft"] = set_nfb_draft_layer_count(
+                    draft_state["draft"], layers.get(),
+                )
+            except ValueError as exc:
+                layers.set(draft_state["draft"]["layer_count"])
+                warning.set(str(exc))
             if layers.get() == 1:
                 layer_rows[1]["section"].pack_forget()
             elif not layer_rows[1]["section"].winfo_manager():
@@ -1536,14 +1599,17 @@ def open_receiving_multi_settings(self, namespace):
                     after=layer_rows[0]["section"],
                 )
             paint_draft_preview()
+            refresh_source(force=True)
 
         change_layers()
+        ttk.Label(frame, textvariable=draft_summary, wraplength=770).pack(anchor="w")
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
         refresh_source(force=True)
         modal.after(1800, poll_source)
         modal._receiving_inner_switch_state = {
             "chosen": chosen, "layers": layers,
             "rows": layer_rows, "warning": warning,
+            "nfb_draft": draft_state, "nfb_draft_status": draft_summary,
         }
         modal._receiving_inner_refresh_switch_models = refresh_source
         modal._receiving_inner_preview_canvas = thumbnail
@@ -1551,6 +1617,18 @@ def open_receiving_multi_settings(self, namespace):
 
         def confirm():
             try:
+                # #1491 is transient UI-1A only. Existing candidate-version
+                # serializer has no stable empty slot/brand override fields.
+                # Refuse a lossy save until #1493 owns physical-slot editing.
+                active = draft_state["draft"]["layers"][:layers.get()]
+                for row in active:
+                    if row["brand"]["mode"] == OVERRIDE:
+                        raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
+                    for slot in row["slots"]:
+                        if slot["filename"] is None or slot["brand"]["mode"] == OVERRIDE:
+                            raise ValueError("空槽或單顆品牌覆寫仍是 NFB 草稿，不能丟失後儲存")
+                        if slot["source_brand"] != draft_state["draft"]["set_brand"]:
+                            raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
                 latest_files = set(model_filenames(
                     self.receiving_switch_adapter(namespace).brand
                 ))
