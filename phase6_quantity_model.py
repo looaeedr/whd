@@ -190,6 +190,13 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
     result = deepcopy(dict(snapshot or {}))
     from ae_engine.cabinet_types.receiving import is_receiving_snapshot
     receiving = is_receiving_snapshot(result)
+    if receiving and "receiving_hole_candidates" in result:
+        # Project-global candidate authority is not tied to either mode's
+        # version model; validate it on Save and Reload in BOTH modes.
+        from ae_engine.receiving_hole_candidates import normalize_candidates
+        result["receiving_hole_candidates"] = normalize_candidates(
+            result["receiving_hole_candidates"]
+        )
     mode = result.get("active_mode", SET_BAY_MODE if receiving else QUANTITY_MODE)
     if mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):
         raise ValueError("不合法的箱體操作模式")
