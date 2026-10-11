@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 # Ask Matt
 
-這是 repo Skill router。Filesystem `.agents/skills/**/SKILL.md` 只提供 **inventory evidence**；`.agents/skills/skill_catalog.json` 是 active **classification** authority，只有 `canonical` 預設是 WHD active Skill。README 只是導覽，Registry 是 Preflight route；`reference/upstream-beta/tool-specific/retired` 不得因檔案存在就自動成為 current routing owner。
+這是 repo Skill router。Filesystem `.agents/skills/**/SKILL.md` 只提供 **inventory evidence**；`.agents/skills/skill_catalog.json` 是 active **classification** authority，只有 `canonical` 預設是 WHD active Skill。README 只是導覽，Registry 是技能／必要參考資料的路由資訊，**不是已退役 Phase6 Preflight receipt 或施工授權**；`reference/upstream-beta/tool-specific/retired` 不得因檔案存在就自動成為 current routing owner。所有 CURRENT 規則必須由明確 `ref=cleanup/2d-3d-sync` 讀取，GitHub 預設 `main` 只作歷史參考。
 
 ## Main flow：idea → ship
 
@@ -20,9 +20,9 @@ whd_schema: WHD_DOC_META_V1
 2. **需要 runnable answer 的 design question** — 可用 `prototype` 做 throwaway experiment；跨 session/harness 時可配 `handoff`。
 3. **多 session build**：
    - **寫成規格書** → 將 grounded conversation/code/AI Library 收成 spec。
-   - **拆解任務工單** → Requirement RED-first + 使用者核准後拆 tickets。
-   - **執行開發任務** → 每票依 TDD/派工/QA gate 施工。
-4. **小而已明確的 build**：可直接進 **執行開發任務**，但仍服從專案 Preflight/branch/QA 規則。
+   - **拆解任務工單** → 已核准規格直接使用 `APPROVED_REQUIREMENT_FAST_PATH` 拆 tickets；僅真正未定案需求才進 requirement discovery。
+   - **執行開發任務** → 只提供實作方法：`/派工` 的產品施工／測試／提交須由真正 GitHub／雲端執行器完成，當次明確 `/接手` 才可經 RC 施工；遵守適用 TDD／QA／`localX` 驗收及 `/推推` 發布規則。
+4. **小而已明確的 build**：可直接讀 **執行開發任務** 的方法，但讀取 Skill **不等於取得施工、DC 或發布權限**；仍需先按正式 X `AGENTS.md` 分流。純治理可由 GitHub／雲端治理分支經白名單與 PR／CI 直送 X；產品依 `/派工` 或當次明確 `/接手` 執行，正式 X 產品發布需當次 `/推推`。
 
 
 ## On-ramps
@@ -67,7 +67,7 @@ whd_schema: WHD_DOC_META_V1
 
 - 有真正 Subagent Runtime 才委派 isolated task。
 - 沒有就由同一執行者 inline 完成，不宣稱「已派出去」。
-- 跨回合的 execution authority 必須落在 `WHD_EXECUTION_RECORD_V2` / owning Issue / exact Git evidence；領域型 file/journal/checkpoint 只可作 evidence，不得建立第二套 execution state machine。
+- **已退役** `WHD_EXECUTION_RECORD_V2`、claim／lease／工作槽等交易前置不得恢復，也不得拿聊天摘要當執行證據。跨回合只能依最新 GitHub Issue／PR／exact SHA／CI 和當次工具結果回讀實際狀態；沒有真實排程或執行器時，不得假裝會背景續作、已派工或已有 worker 施工。
 
 ## Canonical Chinese Skill map
 
