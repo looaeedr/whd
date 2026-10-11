@@ -95,6 +95,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
     selected_settings = []
     resized = []
     brand_calls = []
+    deferred_refresh = []
 
     def resize(index, delta):
         resized.append((index, delta))
@@ -117,6 +118,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
                 selected_settings.append((set_index, bay_index, kind)),
             get_brand=lambda: "士林",
             set_brand=lambda brand: brand_calls.append(brand),
+            on_close=lambda: deferred_refresh.append(tuple(counts)),
         )
         root.update()
         brand_picker = win._receiving_multi_brand_selector
@@ -192,10 +194,19 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert [w.cget("text") for w in current_row()] == [
             "第1套", "＋連", "1", "－連", "套用"]
         plus, minus, apply = current_buttons()
+        first_row = rows_host.winfo_children()[0]
+        first_count = current_row()[2]
         plus.invoke()
+        # First click must not destroy the invoking Tk button or recreate
+        # its row, which previously caused a stalled callback/blank view.
+        assert rows_host.winfo_children()[0] is first_row
+        assert current_buttons() == [plus, minus, apply]
+        assert current_row()[2] is first_count
+        assert plus.winfo_exists()
         assert displayed_count() == "2"
-        plus, minus, apply = current_buttons()
+        assert deferred_refresh == []  # no expensive hidden control rebuild
         plus.invoke()
+        assert rows_host.winfo_children()[0] is first_row
         assert displayed_count() == "3"
         assert counts == [3]
         assert len(canvas._receiving_bay_hitboxes) == 1  # apply controls the sketch
@@ -272,6 +283,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         win._receiving_multi_close()
         root.update()
         assert root.grab_current() is None
+        assert deferred_refresh == [(2,)]
     finally:
         root.destroy()
 
