@@ -1189,6 +1189,17 @@ def open_receiving_multi_settings(self, namespace):
         self.app.submit_update_intent("geometry", commit=True)
         return True
 
+    def apply_quantity_configuration(role, quantities, assigned, expected_counts):
+        adapter = candidate_adapter()
+        result = adapter.apply_quantity_configuration(
+            role, candidate_library(), quantities, assigned,
+            expected_counts=expected_counts,
+        )
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        self.app.submit_update_intent("geometry", commit=True)
+        return result
+
     def candidate_ports():
         return {
             "versions": lambda role: candidates_for(candidate_library(), role),
@@ -1196,6 +1207,7 @@ def open_receiving_multi_settings(self, namespace):
             "copy": copy_candidate,
             "delete": remove_candidate,
             "apply": apply_candidate,
+            "apply_quantity": apply_quantity_configuration,
         }
 
     return open_multi_settings(

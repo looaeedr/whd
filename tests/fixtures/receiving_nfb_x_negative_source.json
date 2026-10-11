@@ -1,0 +1,46 @@
+{
+  "schema": "receiving-nfb-negative-x-source-v1",
+  "raw_source_sha256": "e65e77ffa676defc0c16eeed6f1eb808f41cdbe8bc100f0ab8f4e5d0cb6c191c",
+  "source_access": "AUTHORIZED_RC_READ_ONLY",
+  "full_customer_drawing_included": false,
+  "dimensions": [
+    {
+      "handle": "30F001",
+      "type": "DIMENSION",
+      "rotation_degrees": 90.0,
+      "measured_distance_mm": 361.5063297635716,
+      "extension_start": [
+        125075.3854397939,
+        -21734.3859305825
+      ],
+      "extension_end": [
+        125075.4629418014,
+        -22095.89226034608
+      ],
+      "dimension_block": "*D2633",
+      "classification": "VERTICAL_DIMENSION_NOT_NFB_X"
+    },
+    {
+      "handle": "30F01D",
+      "type": "DIMENSION",
+      "rotation_degrees": 90.0,
+      "measured_distance_mm": 361.5063297635643,
+      "extension_start": [
+        129947.5531867483,
+        -21734.3859305825
+      ],
+      "extension_end": [
+        129947.5531867483,
+        -22095.89226034607
+      ],
+      "dimension_block": "*D2635",
+      "classification": "VERTICAL_DIMENSION_NOT_NFB_X"
+    }
+  ],
+  "neighbor_outline": {
+    "handle": "3083F9",
+    "width_mm": 650.0,
+    "height_mm": 850.0
+  },
+  "conclusion": "361.5 text matches do not certify W800x3 horizontal centers"
+}
