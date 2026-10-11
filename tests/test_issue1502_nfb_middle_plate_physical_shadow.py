@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-"""#1502 native Color150 -> real horizontal divider UV, never MFG2 READY."""
+"""#1502 verified Color150 center -> actual middle-divider UV, no new X input."""
 from dataclasses import replace
 from hashlib import sha256
 from math import isclose
+from pathlib import Path
+from types import SimpleNamespace
+import os
 
 import ezdxf
 import pytest
@@ -17,11 +20,16 @@ from ae_engine.manufacturing_equivalence import (
     ManufacturingParameters, manufacturing_equivalence_payload,
 )
 from ae_engine.receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
+from ae_engine.receiving_nfb_manufacturing_release import (
+    NfbValidatedInnerDoorRender, VALIDATED,
+)
 from ae_engine.receiving_nfb_middle_plate_projection import (
     MIDDLE_SHADOW, NfbMiddlePlateUnfoldDatum,
     shadow_nfb_middle_plate_color150,
 )
 from ae_engine.sheetmetal_drawing import PolylinePrimitive
+
+HOLE_ID="nfb:set-a:bay-a:unit-1"
 
 
 def _source(tmp_path):
@@ -53,6 +61,8 @@ def _part():
         "w":800.,"h":1600.,"d":350.,"t":2.,"fw":29.,
         "door_layout_scope":"receiving-main",
         "door_layout_columns":[[800.,[1100.,500.]]],
+        "inner_doors":[{"stable_id":"upper","cell_key":"0:0",
+                        "included_frame_sides":["top","left","right"]}],
         "multi_door_enabled":True,
     })
     part=derive_box_body_dividers(
@@ -69,27 +79,52 @@ def _part():
     return snapshot,part,render,datum
 
 
-def _plan(tmp_path, *, world_x=0., rotation=0):
+def _verified(snapshot,profile,*,world_x=0.,rotation=0):
+    inner=next(p for p in receiving.derive_inner_door_panels(snapshot)
+               if p.inner_door_id=="upper")
+    return NfbValidatedInnerDoorRender(
+        render_data=SimpleNamespace(metadata={
+            "nfb_trial_status":VALIDATED,
+            "nfb_trial_export_approved":True,
+            "nfb_source_handle":profile.source_sha256+":"+profile.upper_handle,
+            "nfb_profile_revision":profile.revision,
+        }),
+        part_id=inner.stable_id,
+        indexed_model_key=(profile.brand,profile.indexed_filename),
+        source_sha256=profile.source_sha256,
+        physical_hole_ids=(HOLE_ID,),
+        verified_hole_locations=((HOLE_ID,float(world_x),1,0,rotation),),
+    )
+
+
+def _plan(tmp_path):
     source,profile,lower=_source(tmp_path)
     snapshot,part,baseline,datum=_part()
     kwargs=dict(
         source_path=source,profile=profile,lower_reference_handle=lower,
-        world_x_mm=world_x,physical_datum=datum,rotation_deg=rotation,
+        verified_inner_door=_verified(snapshot,profile),
+        physical_hole_id=HOLE_ID,physical_datum=datum,
     )
     return snapshot,part,baseline,kwargs
 
 
-def test_real_middle_plate_origin_from_W800_horizontal_divider_not_raw_DXF(tmp_path):
+def _with_hole(proof, *, world_x=0.,rotation=0):
+    return replace(proof,verified_hole_locations=(
+        (HOLE_ID,world_x,1,0,rotation),
+    ))
+
+
+def test_middle_plate_uses_existing_verified_NFB_hole_not_new_world_X(tmp_path):
     snapshot,part,original,kwargs=_plan(tmp_path)
+    assert "world_x_mm" not in kwargs
     trial=shadow_nfb_middle_plate_color150(snapshot,part,original,**kwargs)
     assert trial.part_id==part.stable_id
-    assert trial.status==MIDDLE_SHADOW
-    assert not trial.manufacturing_ready
+    assert trial.status==MIDDLE_SHADOW and not trial.manufacturing_ready
     assert trial.source_handle==kwargs["profile"].upper_handle
     assert trial.original_region=="UPPER_SOURCE"
     assert trial.uv_center_xy[1]==pytest.approx(398.)
     assert trial.uv_center_xy[0]==pytest.approx(kwargs["physical_datum"].core_depth_uv_x_mm)
-    assert original.metadata.get("nfb_mfg2_status") is None  # immutable baseline
+    assert original.metadata.get("nfb_mfg2_status") is None
     assert len(trial.render_data.scene.primitives)==len(original.scene.primitives)+1
     cut=trial.render_data.scene.primitives[-1]
     assert isinstance(cut,PolylinePrimitive)
@@ -100,42 +135,42 @@ def test_real_middle_plate_origin_from_W800_horizontal_divider_not_raw_DXF(tmp_p
     path=tmp_path/"middle_shadow_unreleased.dxf"
     save_part_render_data_dxf(trial.render_data,path)
     model=ezdxf.readfile(path).modelspace()
-    assert any(
-        x.dxftype()=="LWPOLYLINE"
-        and x.dxf.layer=="CUTTING" and x.closed
-        and x.dxf.color==150
-        for x in model
-    )
-    assert not any(x.dxf.get("color",256)==212 for x in model)
+    assert any(e.dxftype()=="LWPOLYLINE" and e.dxf.layer=="CUTTING"
+               and e.closed and e.dxf.color==150 for e in model)
+    assert not any(e.dxf.get("color",256)==212 for e in model)
 
 
-def test_W800_world_x_reversible_and_rotation_changes_exact_equivalence(tmp_path):
+def test_existing_verified_positions_and_rotation_change_manufacturing_equivalence(tmp_path):
     snapshot,part,original,kwargs=_plan(tmp_path)
+    base=kwargs["verified_inner_door"]
     center=shadow_nfb_middle_plate_color150(snapshot,part,original,**kwargs)
     right=shadow_nfb_middle_plate_color150(
-        snapshot,part,original,**(kwargs|{"world_x_mm":180.}),
+        snapshot,part,original,
+        **(kwargs|{"verified_inner_door":_with_hole(base,world_x=180.)}),
     )
     rotated=shadow_nfb_middle_plate_color150(
-        snapshot,part,original,**(kwargs|{"rotation_deg":90}),
+        snapshot,part,original,
+        **(kwargs|{"verified_inner_door":_with_hole(base,rotation=90)}),
     )
     assert right.uv_center_xy[1]-center.uv_center_xy[1]==pytest.approx(180.)
     assert rotated.uv_center_xy==pytest.approx(center.uv_center_xy)
     params=ManufacturingParameters("steel",2.,"laser")
-    base=manufacturing_equivalence_payload(center.render_data,params)
-    identical=manufacturing_equivalence_payload(
+    reference=manufacturing_equivalence_payload(center.render_data,params)
+    same=manufacturing_equivalence_payload(
         shadow_nfb_middle_plate_color150(snapshot,part,original,**kwargs).render_data,
         params,
     )
-    assert base==identical
-    assert base!=manufacturing_equivalence_payload(right.render_data,params)
-    assert base!=manufacturing_equivalence_payload(rotated.render_data,params)
+    assert reference==same
+    assert reference!=manufacturing_equivalence_payload(right.render_data,params)
+    assert reference!=manufacturing_equivalence_payload(rotated.render_data,params)
 
 
 @pytest.mark.parametrize("change",(
-    "wrong_part","vertical","axis_missing","bad_sign","opposite_sign","outside_width",
-    "wrong_sha","wrong_lower","wrong_handle","core_overflow",
+    "wrong_part","vertical","axis_missing","bad_sign","opposite_sign",
+    "outside_width","wrong_sha","wrong_lower","wrong_handle","core_overflow",
+    "unverified_hole","wrong_inner_owner",
 ))
-def test_missing_physical_or_source_identity_stops_before_cutting(tmp_path,change):
+def test_missing_physical_source_or_proof_stops_before_cutting(tmp_path,change):
     snapshot,part,original,kwargs=_plan(tmp_path)
     if change=="wrong_part":
         kwargs["physical_datum"]=replace(kwargs["physical_datum"],part_id="wrong")
@@ -148,7 +183,7 @@ def test_missing_physical_or_source_identity_stops_before_cutting(tmp_path,chang
     elif change=="opposite_sign":
         kwargs["physical_datum"]=replace(kwargs["physical_datum"],span_world_x_sign=-1)
     elif change=="outside_width":
-        kwargs["world_x_mm"]=500.
+        kwargs["verified_inner_door"]=_with_hole(kwargs["verified_inner_door"],world_x=500.)
     elif change=="wrong_sha":
         kwargs["profile"]=replace(kwargs["profile"],source_sha256="0"*64)
     elif change=="wrong_lower":
@@ -157,12 +192,17 @@ def test_missing_physical_or_source_identity_stops_before_cutting(tmp_path,chang
         kwargs["profile"]=replace(kwargs["profile"],upper_handle="NONEXISTENT")
     elif change=="core_overflow":
         kwargs["physical_datum"]=replace(kwargs["physical_datum"],core_depth_uv_x_mm=0.)
+    elif change=="unverified_hole":
+        kwargs["physical_hole_id"]="nfb:unknown-hole"
+    elif change=="wrong_inner_owner":
+        proof=kwargs["verified_inner_door"]
+        kwargs["verified_inner_door"]=replace(proof,part_id="foreign-inner")
     with pytest.raises((TypeError,ValueError)):
         shadow_nfb_middle_plate_color150(snapshot,part,original,**kwargs)
     assert original.metadata.get("nfb_mfg2_status") is None
 
 
-def test_original_customer_DXF_is_never_modified_by_middle_shadow(tmp_path):
+def test_original_customer_DXF_unchanged_and_exact_source_identity(tmp_path):
     snapshot,part,original,kwargs=_plan(tmp_path)
     before=kwargs["source_path"].read_bytes()
     trial=shadow_nfb_middle_plate_color150(snapshot,part,original,**kwargs)
@@ -171,29 +211,27 @@ def test_original_customer_DXF_is_never_modified_by_middle_shadow(tmp_path):
     assert trial.render_data.metadata["nfb_source_handle"]==kwargs["profile"].upper_handle
 
 
-def test_optional_actual_shihlin_400_native_source_replay_keeps_lower_deferred(tmp_path):
-    """Replay original bytes only if supplied, never commit a customer DXF."""
-    import os
-    source_value=os.environ.get("WHD_NFB_ORIGINAL_DXF")
-    if not source_value:
-        pytest.skip("customer original DXF not available in GitHub CI")
-    from pathlib import Path
-    path=Path(source_value)
+def test_optional_actual_shihlin_original_replay_without_customer_file_in_Git(tmp_path):
+    path_value=os.environ.get("WHD_NFB_ORIGINAL_DXF")
+    if not path_value:
+        pytest.skip("original customer DXF is deliberately outside GitHub")
+    path=Path(path_value)
     if path.name!="400_140X257_107.dxf":
-        pytest.skip("only exact indexed Shihlin 400 original qualifies")
-    real_sha="8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3"
-    assert sha256(path.read_bytes()).hexdigest()==real_sha
+        pytest.skip("exact indexed original required")
+    digest="8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3"
+    assert sha256(path.read_bytes()).hexdigest()==digest
     snapshot,part,baseline,datum=_part()
     profile=NfbUpperSourceProfile(
-        "士林",path.name,real_sha,"585",(57.,96.),
+        "士林",path.name,digest,"585",(57.,96.),
         "SOURCE_ALIAS_SHA256_IDENTICAL","NFB-1497-SHIHLIN400-SOURCE-BYTE-IDENTITY-V2",
     )
     trial=shadow_nfb_middle_plate_color150(
         snapshot,part,baseline,source_path=path,profile=profile,
-        lower_reference_handle="597",world_x_mm=0.,
-        physical_datum=datum,
+        lower_reference_handle="597",
+        verified_inner_door=_verified(snapshot,profile),
+        physical_hole_id=HOLE_ID,physical_datum=datum,
     )
-    assert trial.source_sha256==real_sha
+    assert trial.source_sha256==digest
     assert trial.source_handle=="585"
     assert trial.render_data.material.area==pytest.approx(baseline.material.area-57*96)
     assert trial.status==MIDDLE_SHADOW and not trial.manufacturing_ready
