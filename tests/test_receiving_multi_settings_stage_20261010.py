@@ -325,25 +325,14 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         root.destroy()
 
 
-def test_embedded_head_tail_versions_reuse_original_quantity_owner():
+def test_multi_settings_does_not_expose_postponed_version_ui():
     from phase6_quantity_model import QuantityModel
 
     root = tk.Tk()
     root.withdraw()
     mode = {"value": "set_bay"}
     model = QuantityModel()
-    edits = []
-
-    def ports():
-        return {
-            "snapshot": model.snapshot,
-            "select": model.select,
-            "add": model.add_version,
-            "delete": lambda confirmed: model.delete_selected(confirmed=confirmed),
-            "count": model.set_piece_count,
-            "holes": lambda role: edits.append((role, model.selected_version_id)),
-        }
-
+    original = model.snapshot()
     try:
         win = open_multi_settings(
             root,
@@ -351,7 +340,6 @@ def test_embedded_head_tail_versions_reuse_original_quantity_owner():
             get_switch=lambda: SimpleNamespace(connection_counts=lambda: (1,)),
             switch_mode=lambda target: mode.__setitem__("value", target) or True,
             resize_connections=lambda *_args: True,
-            get_quantity_ports=ports,
             get_settings_ports=lambda _set: {
                 "select": lambda _bay: None,
                 "holes": lambda _role, _bays: None,
@@ -362,48 +350,24 @@ def test_embedded_head_tail_versions_reuse_original_quantity_owner():
         listing.selection_set(0)
         listing.event_generate("<<ListboxSelect>>")
         root.update()
-        assert "孔型版本一／二" in _visible_texts(win._receiving_multi_settings_host)
-        launcher = next(
-            widget for widget in win._receiving_multi_settings_host.winfo_children()
-            if isinstance(widget, ttk.Button)
-            and widget.cget("text") == "孔型版本一／二"
-        )
-        launcher.invoke()
-        root.update()
-        assert mode["value"] == "quantity"
+        panel = win._receiving_multi_settings_host
+        assert not any("版本" in label for label in _visible_texts(panel))
+        assert not any(isinstance(child, ttk.Treeview)
+                       for child in panel.winfo_children())
+        # Switching to 數量 must not silently add an unfinished version UI.
         choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
                    if isinstance(w, ttk.Radiobutton)]
-        listing = win._receiving_multi_setting_list
-        assert tuple(listing.get(0, tk.END)) == ("封頭尾",)
-        assert listing.curselection() == (0,)
-        # The original version editor opens directly after the explicit
-        # entry; no second list click should be required.
-        controls = win._receiving_multi_quantity_editor["controls"]
-        assert controls is not None
-        assert controls.versions.master.master is win._receiving_multi_settings_host
-        assert _visible_texts(win._receiving_multi_settings_host).count("編輯") == 2
-        assert "封頭孔" in _visible_texts(win._receiving_multi_settings_host)
-        assert "封尾孔" in _visible_texts(win._receiving_multi_settings_host)
-        assert [controls.versions.item(child)["values"][0]
-                for child in controls.versions.get_children()] == ["孔型版本 1"]
-        controls.add()
+        choices[1].invoke()
         root.update()
-        assert model.version_count == 2
-        assert [controls.versions.item(child)["values"][0]
-                for child in controls.versions.get_children()] == [
-                    "孔型版本 1", "孔型版本 2"
-                ]
-        controls.edit_holes("head")
-        controls.edit_holes("tail")
-        assert edits == [("head", "quantity-v2"), ("tail", "quantity-v2")]
-        controls.ports["count"]("3")
-        controls.refresh()
-        assert model.selected_piece_count == 3
+        assert mode["value"] == "quantity"
+        listing.selection_set(0)
+        listing.event_generate("<<ListboxSelect>>")
+        root.update()
+        assert not panel.winfo_children()
+        assert model.snapshot() == original
         choices[0].invoke()
         root.update()
-        assert win._receiving_multi_quantity_editor["controls"] is None
-        assert tuple(listing.get(0, tk.END)) == ("封頭尾", "內門")
-        assert model.version_count == 2  # no duplicate model or mode transfer
+        assert mode["value"] == "set_bay"
         win._receiving_multi_close()
     finally:
         root.destroy()
