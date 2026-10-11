@@ -1775,8 +1775,20 @@ def open_receiving_multi_settings(self, namespace):
                     layer_rows[idx]["slot_brand_var"].set(
                         "繼承本層" if unit["mode"] == INHERIT else unit["value"]
                     )
+                    rotation=slots[selected[0]].get(
+                        "rotation",{"mode":INHERIT,"value":None},
+                    )
+                    layer_rows[idx]["unit_rotation_var"].set(
+                        "跟隨本層" if rotation["mode"]==INHERIT else str(rotation["value"])
+                    )
+                    manual=slots[selected[0]].get("manual_x_mm")
+                    layer_rows[idx]["manual_x_var"].set(
+                        "" if manual is None else f"{manual:g}"
+                    )
                 else:
                     layer_rows[idx]["slot_brand_var"].set("繼承本層")
+                    layer_rows[idx]["unit_rotation_var"].set("跟隨本層")
+                    layer_rows[idx]["manual_x_var"].set("")
                 refresh_source(force=True)
 
             assigned.bind("<<ListboxSelect>>", lambda event, i=idx: (
