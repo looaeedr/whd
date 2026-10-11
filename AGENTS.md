@@ -56,10 +56,17 @@ whd_schema: WHD_DOC_META_V1
 - **外部平台安全審查不受此規則改寫**：GitHub／RC／自動核准系統若實際拒絕公開 push／merge，保留既有提交，明確回報被拒工具、操作、缺少哪類證據與 `PUBLIC_UPLOAD_REVIEW_BLOCKED`。不得以切換工具或傳輸管道繞過；已具有有效範圍核准時，也不得只是對使用者重播同一句核准問題而不解決證據傳遞。
 - 此條不恢復舊 Flow v2／lease／工作槽等交易控制，也不能把聊天文字聲稱為已通過平台審查。
 
+## /派工本體優先施工 `DISPATCH_SELF_EXECUTION_FIRST`
+
+- **本體直接施工優先。** 只要當次已有合法 GitHub 讀寫、建立 commit／PR 的能力與可觸發的雲端 CI，當前 AI 本體就應沿用指定 Issue、既有 PR 與工作分支直接執行實質修改、補測試、提交和 CI；**不得先搜尋 Codex、雲端程式代理外掛或子代理**，也不得因缺少另一位 executor 而停工。GitHub 工具可施工不代表本體能自行在雲端執行 shell；可由 GitHub Actions 執行可用測試，不得假稱本體已在 GitHub Runner 上測過。
+- **兩種接取證據分開。** 本體施工時記錄身分 `本體直接接取`、`execution_location=GITHUB`、Issue／原工作分支／PR，以及第一筆真正的修改 commit SHA；有 CI 時再記錄 exact SHA 的 Actions run ID／測試結果。不要求不存在的外部 task ID。**只有文字留言、空提交或搜尋外掛不是施工成功**。外部代理施工才需要對方的實際啟動回執／接取證據。
+- **能力不足才找外援。** 先具體指出缺少哪些 GitHub 寫入、提交、合法雲端驗證／CI 等能力，確實無法由本體施工才尋找或啟動外部代理；僅搜尋外掛不算派工。無可行途徑時正確標 `DISPATCH_REGISTERED_ONLY`／`REMOTE_EXECUTOR_UNAVAILABLE`，不可假稱已接取或背景運作。
+- **原權限不變。** `/派工` 的 BUILD／TEST／COMMIT 不得改用使用者本機、RC 或 DC；必要 exact SHA CI、`LOCALX_INTEGRATION` 與產品正式發布 `/推推` 均不豁免。本條只改執行者優先順序；**修改治理文件／技能本身仍依治理直送 X，不走產品派工或 localX。**
+
 ## /派工真實啟動證據 `DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
 
-- **/派工不是只登記 Issue/PR。** 在本回合完成 Issue／現有 PR 查核後，先確認有可**實際執行程式修改、測試、commit/PR**的授權雲端執行入口，並真的呼叫啟動／接手動作。僅有 Issue、PR、留言、指派欄位、CI run 或排程設定均**不是**執行者啟動證據；不能因為登記完成就輸出「已派工」或「執行中」。
-- **成功證據必須回讀：** `EXECUTOR_START_CONFIRMED` 需同時有執行者身分、實際雲端執行入口、可追溯的啟動結果／run 或 task ID、對應 Issue、工作分支，以及執行者第一個有內容的施工動作或確認接取的證據。單純自己在 Issue 貼「請接手」不算確認；回報須附實際連結或 ID。若本人在有合法雲端執行環境中直接施工，提供本回合真實執行記錄，而非冒稱另有 Agent。
+- **/派工不是只登記 Issue/PR。** 先依 `DISPATCH_SELF_EXECUTION_FIRST` 由本體使用現有 GitHub／雲端 CI 能力直接施工；只有本體缺少實際能力才尋找、啟動外部雲端代理。Issue、PR、留言、指派欄位、未對應實質施工的 CI run、外掛搜尋都不是開工證據，不能宣稱已派工或執行中。
+- **成功證據必須回讀：** `EXECUTOR_START_CONFIRMED` 必須有可核對的 Issue、原工作分支、執行者身分與真實施工動作。**本體施工**以實質 commit SHA、PR、exact GitHub Actions run／測試結果為憑，不要求外部 task ID；**委派外部代理**才需真實啟動回執／task ID 及代理接取。單純留言或宣稱已接取不算施工，不得冒稱另有 Agent。
 - **失敗必須真實結束：** 只有登記成功時標 `DISPATCH_REGISTERED_ONLY`；無法調用實際雲端施工入口時標 `REMOTE_EXECUTOR_UNAVAILABLE`；呼叫遭拒／未得到接取證據時標 `DISPATCH_START_UNCONFIRMED`，列明拒絕或未證實之處、最後可驗證狀態與續作入口，不得稱派工完成、不得假裝背景有人施工。**不要再創第二張 Issue／PR 來掩飾失敗。** 不得因此改走 DC、本機或未授權 `/接手`。
 - **成功接取之後**仍須按現有 CI、`localX` 與 `/推推` 規則續作；這只是防止「登記即完成」的真實性檢查，**不建立舊式 lease／claim／Flow v2 或新的輪詢排程**。
 
