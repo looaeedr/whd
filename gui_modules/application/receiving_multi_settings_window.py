@@ -626,7 +626,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 refresh_inner_preview()
             if get_nfb_transaction_ports is not None:
                 transactions = get_nfb_transaction_ports()
-                state = transactions["state"](set_index, bay_index)
+                state = transactions["state"](set_index, bay_index, targets())
                 nfb_row = ttk.Frame(settings_host)
                 nfb_row.pack(anchor="w", pady=(7, 2))
 
@@ -674,9 +674,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     except (ValueError, IndexError, RuntimeError) as exc:
                         warn(exc)
 
-                # Candidate Apply above only chooses filename/layers. The
-                # separate MFG-1 Submit/Copy buttons MUST remain disabled
-                # until actual source+X/Y readiness can be supplied.
+                # Candidate Apply only chooses filename/layers. A verified
+                # physical source/target bundle enables the corresponding
+                # canonical MFG-1 submit/copy transaction; never infer X.
                 def nfb_submit():
                     try:
                         if not transactions["state"](set_index,bay_index)["can_submit"]:
@@ -693,12 +693,26 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     state="normal" if state["can_submit"] else "disabled",
                     command=nfb_submit,
                 ).pack(side="left", padx=(0, 4))
+                def nfb_copy():
+                    try:
+                        selected = targets()
+                        if not transactions["state"](
+                            set_index, bay_index, selected,
+                        )["can_copy"]:
+                            raise ValueError(
+                                "請高亮已提交的來源連及另外核對來源／世界 X 的目標連"
+                            )
+                        if transactions["copy"](
+                            set_index, selected, confirm_nfb_transaction,
+                        ):
+                            refresh_after_transaction()
+                    except (ValueError,IndexError,RuntimeError,OSError) as exc:
+                        warn(exc)
+
                 ttk.Button(
                     nfb_row, text="複製至其他連",
                     state="normal" if state["can_copy"] else "disabled",
-                    command=lambda: warn(ValueError(
-                        "尚未確認目標連的獨立 X 基準，不能複製提交"
-                    )),
+                    command=nfb_copy,
                 ).pack(side="left", padx=(0, 4))
                 ttk.Button(
                     nfb_row, text="還原為未配置",
