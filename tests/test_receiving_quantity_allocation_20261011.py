@@ -178,22 +178,29 @@ def test_allocation_ui_native_combobox_and_explicit_apply():
                    if isinstance(w, ttk.Button) and w.cget("text") == "版本管理"][0]
         manager.invoke()
         root.update()
-        frame = [w for w in host.winfo_children() if isinstance(w, ttk.Frame)][-1]
-        pages = [w for w in frame.winfo_children()
-                 if isinstance(w, ttk.Frame)
-                 and any(isinstance(c, ttk.Radiobutton)
-                         and c.cget("text") == "數量配置" for c in w.winfo_children())][0]
-        button = [w for w in pages.winfo_children()
+        child = win._receiving_multi_manager_window["win"]
+        assert child is not None and child.winfo_exists()
+        assert child.master is win and child.grab_current() is child
+        main_canvas = win._receiving_multi_canvas
+        before_hits = main_canvas._receiving_bay_hitboxes
+        pages = [
+            frame for frame in child.winfo_children()[0].winfo_children()
+            if isinstance(frame, ttk.Frame)
+            and any(isinstance(w, ttk.Radiobutton) and
+                    w.cget("text") == "數量配置" for w in frame.winfo_children())
+        ]
+        assert len(pages) == 1
+        button = [w for w in pages[0].winfo_children()
                   if isinstance(w, ttk.Radiobutton) and w.cget("text") == "數量配置"][0]
         button.invoke()
         root.update()
-        ui = win._receiving_multi_quantity_ui
+        ui = child._receiving_quantity_ui
+        assert child._receiving_manager_canvas is not main_canvas
         assert ui is not None
         assert ui.role == "head"
         assert ui.draft.counts == (3, 2)
         ui._operation(ui._add)
         root.update()
-        panel = win._receiving_multi_settings_host
         combobox = [w for w in ui.host.winfo_children()
                     if isinstance(w, ttk.Frame)
                     for w in w.winfo_children() if isinstance(w, ttk.Combobox)][0]
@@ -210,7 +217,9 @@ def test_allocation_ui_native_combobox_and_explicit_apply():
         assert ui.draft.ready_for_positioning("head")
         ui._operation(lambda: ui.draft.step.__setitem__("head", 2))
         root.update()
-        assert len(win._receiving_multi_canvas._receiving_allocation_hitboxes) == 5
+        assert len(child._receiving_manager_canvas._receiving_allocation_hitboxes) == 5
+        assert main_canvas._receiving_bay_hitboxes == before_hits
+        assert not hasattr(main_canvas, "_receiving_allocation_hitboxes")
         for version, bays in (
             ("head-v1", ((0, 1), (1, 0))),
             ("head-v2", ((0, 0), (0, 2), (1, 1))),
@@ -219,7 +228,7 @@ def test_allocation_ui_native_combobox_and_explicit_apply():
             for si, bi in bays:
                 box = next(b for b in ui._hitboxes if b[:2] == (si, bi))
                 _, _, x0, y0, x1, y1 = box
-                canvas = win._receiving_multi_canvas
+                canvas = child._receiving_manager_canvas
                 canvas.event_generate(
                     "<Button-1>",
                     x=int((x0 + x1) / 2), y=int((y0 + y1) / 2 - canvas.canvasy(0)),
@@ -239,5 +248,6 @@ def test_allocation_ui_native_combobox_and_explicit_apply():
             (0, 0): "head-v2", (0, 2): "head-v2", (1, 1): "head-v2",
         }
         win._receiving_multi_close()
+        assert not child.winfo_exists()
     finally:
         root.destroy()
