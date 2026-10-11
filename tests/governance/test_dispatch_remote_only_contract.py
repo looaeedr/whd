@@ -175,6 +175,20 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(path, report)
 
+    def test_ask_matt_router_does_not_reenable_retired_execution(self):
+        router = (
+            ROOT / ".agents/skills/engineering/ask-matt/SKILL.md"
+        ).read_text(encoding="utf-8")
+        for marker in ("APPROVED_REQUIREMENT_FAST_PATH", "/派工", "/接手",
+                       "/推推", "ref=cleanup/2d-3d-sync"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, router)
+        self.assertNotIn("Requirement RED-first + 使用者核准後拆 tickets", router)
+        self.assertNotIn("跨回合的 execution authority 必須落在 `WHD_EXECUTION_RECORD_V2`", router)
+        self.assertNotIn("仍服從專案 Preflight/branch/QA 規則", router)
+        self.assertIn("已退役", router)
+        self.assertIn("不得假裝會背景續作", router)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
