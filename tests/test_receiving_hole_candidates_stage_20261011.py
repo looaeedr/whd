@@ -138,3 +138,34 @@ def test_hole_editor_confirm_only_callback_never_runs_on_cancel():
     modal.confirm_all()
     assert session.commits == [True]
     assert events == ["sync", "persist", "close"]
+
+
+def test_apply_candidate_updates_exact_highlight_and_not_legacy_sharing_neighbors():
+    from ae_engine.receiving_shared_settings import setting_value
+
+    layout = new_receiving_layout(width=800, height=1100, depth=400)
+    adapter = ReceivingSetBayAdapter(layout)
+    adapter.set_bay_count(3)
+    adapter.update_setting("head_features", [{"tag": "original"}])
+    adapter.share_setting("head_features", (0, 1, 2))
+    before = adapter.layout["sets"][0]
+    assert all(setting_value(before, i, "head_features") == [{"tag": "original"}]
+               for i in range(3))
+    initial_selection = adapter.selection
+    result = adapter.apply_candidate_to_bays(
+        "head", 0, (1,), [{"tag": "new"}]
+    )
+    assert result == (1,)
+    after = adapter.layout["sets"][0]
+    assert setting_value(after, 0, "head_features") == [{"tag": "original"}]
+    assert setting_value(after, 1, "head_features") == [{"tag": "new"}]
+    assert setting_value(after, 2, "head_features") == [{"tag": "original"}]
+    assert adapter.selection == initial_selection
+    assert all(setting_value(after, i, "tail_features") == [] for i in range(3))
+    frozen = adapter.layout
+    with pytest.raises(ValueError):
+        adapter.apply_candidate_to_bays("head", 0, (0, 9), [])
+    assert adapter.layout == frozen  # all-or-nothing
+    with pytest.raises(ValueError):
+        adapter.apply_candidate_to_bays("head", 0, (), [])
+    assert adapter.layout == frozen
