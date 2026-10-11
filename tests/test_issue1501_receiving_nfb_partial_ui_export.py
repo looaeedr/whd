@@ -35,7 +35,13 @@ def _case(monkeypatch, *, changed_source=False):
         set_index=0,bay_index=0,version_id="v1",
         config=bay["nfb_config"],scope=scope,
         source_inventory=SimpleNamespace(source_sha256=digest),
-        verified_door=SimpleNamespace(indexed_model_key=("士林",name)),
+        verified_door=SimpleNamespace(
+            indexed_model_key=("士林",name),
+            render_data=SimpleNamespace(metadata={
+                "nfb_source_handle":digest+":585",
+                "nfb_profile_revision":"v2",
+            }),
+        ),
         readiness=SimpleNamespace(can_submit=True),
         source_path="/real/士林/400_140X257_107(1).dxf",
         snapshot_at_verification=snapshot.copy(),
@@ -119,6 +125,21 @@ def test_stale_or_invalid_session_never_calls_writer(monkeypatch,failure):
 def test_profile_sha_mismatch_does_not_write(monkeypatch):
     bundle,args,hits=_case(monkeypatch,changed_source=True)
     with pytest.raises(ValueError,match="SHA"):
+        action.export_verified_receiving_nfb_inner_door(bundle,**args)
+    assert hits==[]
+
+
+def test_profile_handle_changed_on_same_dxf_bytes_requires_reverification(monkeypatch):
+    bundle,args,hits=_case(monkeypatch)
+    changed=NfbUpperSourceProfile(
+        "士林","400_140X257_107.dxf","8"*64,
+        "587",(57.,96.),"SOURCE_ALIAS_SHA256_IDENTICAL","v2",
+    )
+    monkeypatch.setattr(
+        action,"read_nfb_runtime_source_profiles_csv",
+        lambda path:(changed,),
+    )
+    with pytest.raises(ValueError,match="handle"):
         action.export_verified_receiving_nfb_inner_door(bundle,**args)
     assert hits==[]
 
