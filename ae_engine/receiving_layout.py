@@ -574,6 +574,9 @@ def project_receiving_bay_legacy_aliases(
             part_features[role] = deepcopy(features[role])
         result["part_features"] = part_features
         result["receiving_inner_door_layers"] = setting_value(selected, bay_index, "inner_door_layers")
+        result["receiving_inner_door_models"] = setting_value(
+            selected, bay_index, "inner_door_models"
+        )
     if validate_common:
         try:
             _validate_common_receiving_state(result)
