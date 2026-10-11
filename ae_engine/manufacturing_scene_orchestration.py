@@ -283,7 +283,24 @@ def build_part_scene(
             sb = spec.shrink_bottom
             sl = spec.shrink_left
             sr = spec.shrink_right
-            if spec.corner_policy is not None:
+            receiving_pattern = spec.receiving_bend_pattern
+            if receiving_pattern is not None:
+                if str(spec.model_name or "").strip() not in {"受電箱", "RECEIVING"}:
+                    raise ValueError("Receiving pattern cannot modify another family's Base Plate")
+                if spec.corner_policy is not None:
+                    raise ValueError("Receiving bend drawing cannot silently override corner-policy geometry")
+                if (spec.box_body_fold_profile or spec.box_body_structure_state
+                        or spec.seam_positions):
+                    raise ValueError("Receiving illustrated pattern seam geometry needs separately verified relief")
+                from .sheetmetal_part_adapters import build_receiving_base_plate_result
+                result = _call(
+                    build_receiving_base_plate_result,
+                    w=spec.width, h=spec.height, t=spec.thickness,
+                    shrink_top=st, shrink_bottom=sb,
+                    shrink_left=sl, shrink_right=sr,
+                    bend=spec.bend, pattern=receiving_pattern,
+                )
+            elif spec.corner_policy is not None:
                 from .sheetmetal_part_adapters import build_unknown_base_plate_result
                 result = _call(
                     build_unknown_base_plate_result,
@@ -322,6 +339,7 @@ def build_part_scene(
                 sl=sl, sr=sr, bend=spec.bend,
                 draw_stock=ctx.draw_stock, user_features=list(spec.features),
                 structural_result=result,
+                receiving_bend_pattern=receiving_pattern,
             )
 
         if isinstance(spec, IndicatorBoxPartSpec):
