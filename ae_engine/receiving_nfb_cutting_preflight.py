@@ -70,6 +70,18 @@ class NfbUpperOpeningPreflight:
         return False
 
 
+@dataclass(frozen=True)
+class NfbUpperOpeningBatchPreflight:
+    """Atomic Q16-style change gate: all proposals or none, never partial CUTTING."""
+    status: str
+    diagnostics: tuple[str, ...]
+    items: tuple[NfbUpperOpeningPreflight, ...]
+
+    @property
+    def manufacturing_ready(self) -> bool:
+        return False
+
+
 def _finite_xy(values: Sequence[float], label: str) -> tuple[float, float]:
     if len(values) != 2:
         raise ValueError(f"{label} must be exactly two coordinates")
@@ -205,4 +217,48 @@ def preflight_nfb_inner_door_opening(
         preview_outline_uv_xy=preview,
         source_sha256=request.source_sha256,
         source_handle=request.source_handle,
+    )
+
+
+def preflight_nfb_inner_door_batch(
+    panel: InnerDoorPanelPart,
+    requests: Sequence[NfbUpperOpeningRequest],
+    *,
+    existing_claims: Sequence[NfbExistingCuttingClaim] = (),
+) -> NfbUpperOpeningBatchPreflight:
+    """Plan a whole proposed edit atomically, without mutating owner/Feature data.
+
+    Duplicate IDs or colliding NFB units block the entire batch. An invalid
+    switch-model change must NOT silently move a neighbor or remove legacy.
+    All-success is still PREVIEW_ONLY until an authorized capability is added.
+    """
+    proposals = tuple(requests)
+    if not proposals:
+        return NfbUpperOpeningBatchPreflight(
+            status=PREVIEW_ONLY, diagnostics=("NO_NEW_NFB_CUTTING",), items=(),
+        )
+    items = tuple(preflight_nfb_inner_door_opening(
+        panel, request, existing_claims=existing_claims,
+    ) for request in proposals)
+    problems: list[str] = []
+    if any(item.status == BLOCKED for item in items):
+        problems.extend(code for item in items for code in item.diagnostics)
+    for idx, first in enumerate(items):
+        for second in items[idx+1:]:
+            if (first.physical_hole_id and
+                    first.physical_hole_id == second.physical_hole_id):
+                problems.append("DUPLICATE_NEW_NFB_PHYSICAL_HOLE_OWNER")
+            if first.preview_outline_uv_xy and second.preview_outline_uv_xy and (
+                    _bbox_overlaps(
+                        first.preview_outline_uv_xy, second.preview_outline_uv_xy
+                    )):
+                problems.append("NEW_NFB_CUTTING_FOOTPRINT_COLLISION")
+    if problems:
+        return NfbUpperOpeningBatchPreflight(
+            status=BLOCKED, diagnostics=tuple(dict.fromkeys(problems)), items=items,
+        )
+    return NfbUpperOpeningBatchPreflight(
+        status=PREVIEW_ONLY,
+        diagnostics=("MANUFACTURING_CAPABILITY_NOT_REGISTERED",),
+        items=items,
     )
