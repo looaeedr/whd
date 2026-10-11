@@ -41,8 +41,8 @@ Canonical durable contract 固定為：
 
 ## 開發/驗收規則
 
-- 每次修改先以最新 target SHA/tree 完成 `ROOT_SOURCE_CURRENT → PATHS_RESERVED`；實際修改與測試先在 canonical root 完成，只有 `GIT_WRITE_UNLOCKED` 後才從 fresh target 建立 Git work branch。
-- 先跑 Phase6 preflight 並讀完 REQUIRED SKILLS / REQUIRED REFERENCES。
+- **現行施工分流**：本檔為 `REFERENCE`、不授予 repository 寫入／DC 權限。先明確取正式 X `cleanup/2d-3d-sync` 最新域權威，再依 `AGENTS.md` 由 `/派工` 的 GitHub／雲端產品施工或當次明確 `/接手` 的 RC 施工；產品 PR base=`localX`，正式 X 發布須當次 `/推推`，治理白名單另經 GitHub／雲端直送 X。
+- 仍須讀取真正適用的 CURRENT Skills、owning production source、必要 domain references 與測試，但舊 `ROOT_SOURCE_CURRENT → PATHS_RESERVED`、Git 解鎖憑證和 Phase6 Preflight receipt 已退役，**不作為修改或交付前置**。
 - Contract/Adapter RED-first，之後最小 production change。
 - 最終要有 headless、Tk/Xvfb、Save→Reload、DXF/physical-part acceptance 與 config.ini invariant。
 - 所有新發現的規則與踩坑，要同步 Skill、AI knowledge/library、durable agent docs，不得只留聊天紀錄。

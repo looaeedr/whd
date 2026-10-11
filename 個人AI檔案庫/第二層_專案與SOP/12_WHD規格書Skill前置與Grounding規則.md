@@ -10,7 +10,9 @@ whd_doc_id: WHD-SOP-SPEC-SKILL-GROUNDING
 
 日期：2026-09-21
 
-## 永久規則
+> **REFERENCE／事故與 grounding 說明，非執行權威。** 以下 2026-09-21 首行公告、Phase6 Preflight receipt、`READ_REFERENCE` evidence 與 Git-phase 解鎖次序為歷史流程，不再作為 CURRENT 修改、寫規格或交付前置。現行規格遵守正式 X `AGENTS.md` 與 `.agents/skills/engineering/寫成規格書/SKILL.md`：確實讀 owning code／SOP／spec／tests／fixture（存在時），區分確認產品規則與診斷值，定稿提供真實可下載 UTF-8 Markdown。當次未實際查證來源不得假稱已讀。
+
+## 2026-09-21 歷史流程（HISTORICAL / SUPERSEDED）
 
 只要任務是建立、重寫、精修、更新、定稿或交付 WHD 工程／產品規格，**聊天記憶不能算 Skill read**。
 
@@ -18,7 +20,7 @@ whd_doc_id: WHD-SOP-SPEC-SKILL-GROUNDING
 
 1. 第一個 user-visible 內容先公告：`使用「寫成規格書」技能。`
 2. 本次 invocation fresh-read `.agents/skills/engineering/寫成規格書/SKILL.md`。
-3. 執行 `tools/phase6_skill_preflight.py`，取得 required Skills / required references。
+3. **HISTORICAL**：當時要求執行 `tools/phase6_skill_preflight.py`；現行該工具只提供相容的路由診斷，不是強制授權或寫規格前置。
 4. required references 必須逐一實讀並留下 `READ_REFERENCE: <path>` evidence。
 5. 依 Skill mandatory pre-spec gate 交叉讀 owning production code、AI Library/SOP、既有 spec/design note、tests，以及存在時的 fixture/baseline/certified data。
 6. 以上完成前不得開始 normative spec drafting。
@@ -38,12 +40,12 @@ whd_doc_id: WHD-SOP-SPEC-SKILL-GROUNDING
 
 > **KNOWING_IS_NOT_READING** — 知道、記得、摘要過、上一輪讀過，都不能取代本次 fresh-read。
 
-## Authority
+## Authority（CURRENT 指向）
 
-1. `AGENTS.md`：公告、root-local-first、Preflight、durable writeback、`GIT_WRITE_UNLOCKED` 後 Git-phase branch。
+1. `AGENTS.md`（明確取正式 X）：執行授權、`/派工` 雲端／當次 `/接手` RC、治理直送與 `localX`／`/推推`；舊 root-local-first 泛用前置、Preflight receipt 與 Git 解鎖交易均退役。
 2. `.agents/skills/engineering/寫成規格書/SKILL.md`：grounded spec authoring canonical workflow。
 3. `.agents/skills/skill_registry.json` + `tools/phase6_skill_preflight.py`：machine route / required references。
-4. `docs/governance/WHD_規格書Skill前置與Grounding規則.md`：`MIRROR` 治理／導覽說明；不得覆蓋 `寫成規格書` Skill 或 root-local-first execution order。
+4. `docs/governance/WHD_規格書Skill前置與Grounding規則.md`：`MIRROR` 治理／導覽說明，不得覆蓋現行 `寫成規格書` Skill 與 `AGENTS.md` 的權限分流。
 5. 本 AI Library 文件：讓後續 Agent 在知識預載階段能直接命中此踩坑。
 
 ## 禁止
