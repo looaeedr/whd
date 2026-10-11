@@ -1586,6 +1586,48 @@ def open_receiving_multi_settings(self, namespace):
                     fill="x",pady=(4,6),after=layer_rows[0]["section"],
                 )
 
+        def set_rotation_in_draft(index,*,unit=False):
+            row=layer_rows[index]
+            try:
+                if unit:
+                    selected=row["assigned"].curselection()
+                    if not selected:
+                        raise ValueError("請先選擇要旋轉的 NFB 顆位")
+                    text=row["unit_rotation_var"].get()
+                    draft_state["draft"]=set_nfb_slot_rotation(
+                        draft_state["draft"],index,selected[0],
+                        mode=INHERIT if text=="跟隨本層" else OVERRIDE,
+                        value=None if text=="跟隨本層" else int(text),
+                    )
+                else:
+                    draft_state["draft"]=set_nfb_layer_rotation(
+                        draft_state["draft"],index,int(row["layer_rotation_var"].get()),
+                    )
+                warning.set("角度僅保存草稿；來源主孔中心未認證，不能當製造旋轉")
+                paint_draft_preview()
+            except (ValueError,IndexError) as exc:
+                warning.set(str(exc))
+
+        def set_x_in_draft(index):
+            row=layer_rows[index]
+            selected=row["assigned"].curselection()
+            if not selected:
+                warning.set("請先選擇要編輯 X 位移的 NFB 顆位")
+                return
+            typed=row["manual_x_var"].get().strip()
+            try:
+                value=None if not typed else float(typed)
+                draft_state["draft"]=set_nfb_manual_x(
+                    draft_state["draft"],index,selected[0],value,
+                )
+                warning.set(
+                    "X 位移保留為未驗證草稿，不是絕對製造座標"
+                    if value is not None else "本顆位移已清除"
+                )
+                paint_draft_preview()
+            except ValueError as exc:
+                warning.set(str(exc))
+
         editor_body = ttk.Frame(frame)
         editor_body.pack(fill="both", expand=True, pady=(4, 6))
         slot_columns = ttk.Frame(editor_body)
