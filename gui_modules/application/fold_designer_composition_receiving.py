@@ -1538,6 +1538,54 @@ def open_receiving_multi_settings(self, namespace):
                 nfb_preview_panel["panel"].show(brand,slot["filename"])
                 nfb_source_viewed["value"] = True
 
+        def reposition_nfb_slot(index,direction):
+            selected=layer_rows[index]["assigned"].curselection()
+            if not selected:
+                warning.set("請先選取要換序的 NFB 顆位")
+                return
+            old=selected[0]
+            dest=old+direction
+            count=len(draft_state["draft"]["layers"][index]["slots"])
+            if not 0<=dest<count:return
+            try:
+                draft_state["draft"]=move_nfb_slot(draft_state["draft"],index,old,dest)
+                sync_chosen()
+                repaint(index)
+                layer_rows[index]["assigned"].selection_clear(0,tk.END)
+                layer_rows[index]["assigned"].selection_set(dest)
+                warning.set("已調整順序：本層 X 位移重設，其他層不變")
+            except (ValueError,IndexError) as exc:
+                warning.set(str(exc))
+
+        def undo_nfb_draft():
+            try:
+                edit_session.undo()
+                dict.__setitem__(draft_state,"draft",edit_session.current)
+                sync_chosen()
+                nfb_physical_layers.set(edit_session.current["layer_count"])
+                for i,row in enumerate(layer_rows):
+                    brand=edit_session.current["layers"][i]["brand"]
+                    row["layer_brand_var"].set(
+                        "繼承本套" if brand["mode"]==INHERIT else brand["value"]
+                    )
+                    row["layer_rotation_var"].set(
+                        str(edit_session.current["layers"][i]["rotation_deg"])
+                    )
+                    repaint(i)
+                change_layers_visibility_only()
+                refresh_source(force=True)
+                warning.set("已復原 NFB 草稿上一筆交易")
+            except ValueError as exc:
+                warning.set(str(exc))
+
+        def change_layers_visibility_only():
+            if nfb_physical_layers.get()==1:
+                layer_rows[1]["section"].pack_forget()
+            elif not layer_rows[1]["section"].winfo_manager():
+                layer_rows[1]["section"].pack(
+                    fill="x",pady=(4,6),after=layer_rows[0]["section"],
+                )
+
         editor_body = ttk.Frame(frame)
         editor_body.pack(fill="both", expand=True, pady=(4, 6))
         slot_columns = ttk.Frame(editor_body)
