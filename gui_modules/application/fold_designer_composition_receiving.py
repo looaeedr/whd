@@ -1009,6 +1009,7 @@ def open_receiving_multi_settings(self, namespace):
     if not self.receiving_layout_applicable():
         return False
     from .receiving_multi_settings_window import open_multi_settings
+    from .quantity_version_ports import quantity_ports
 
     def select_bay(set_index, bay_index):
         # Reuse canonical selection; no new data owner or manufacturing draw.
@@ -1098,9 +1099,6 @@ def open_receiving_multi_settings(self, namespace):
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
-        get_quantity_ports=lambda: __import__(
-            "gui_modules.application.quantity_version_ports",
-            fromlist=["quantity_ports"]
-        ).quantity_ports(self, namespace),
+        get_quantity_ports=lambda: quantity_ports(self, namespace),
         get_original_door_marks=existing_door_marks,
     )
