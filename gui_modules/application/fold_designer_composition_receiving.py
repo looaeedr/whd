@@ -1349,12 +1349,24 @@ def open_receiving_multi_settings(self, namespace):
             raise ValueError("內門版本權責錯誤")
         persist_inner(delete_inner_candidate(inner_library(), version_id))
 
+    def verify_inner_models(config):
+        allowed = set(model_filenames(
+            self.receiving_switch_adapter(namespace).brand
+        ))
+        for name in config["models"][:config["layers"]]:
+            if name and name not in allowed:
+                raise ValueError(
+                    "內門版本型號已不在開關索引.csv，請重新編輯選擇：" + name
+                )
+
     def inner_apply(role, version_id, set_index, highlighted):
         if role != INNER_ROLE or version_id is None or not highlighted:
             raise ValueError("請選內門版本及實際連位")
         adapter = candidate_adapter()
+        config = inner_config(inner_library(), version_id)
+        verify_inner_models(config)
         adapter.apply_inner_door_candidate_to_bays(
-            inner_config(inner_library(), version_id), set_index, highlighted,
+            config, set_index, highlighted,
         )
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
@@ -1362,14 +1374,18 @@ def open_receiving_multi_settings(self, namespace):
         return True
 
     def inner_validate_quantity(quantities, assigned, expected_counts):
-        return validate_inner_door_allocation(
+        plan = validate_inner_door_allocation(
             candidate_adapter().layout, inner_library(), quantities, assigned,
             expected_counts=expected_counts,
         )
+        for _si, _bi, config in plan:
+            verify_inner_models(config)
+        return plan
 
     def inner_apply_quantity(role, quantities, assigned, expected_counts):
         if role != INNER_ROLE:
             raise ValueError("內門版本權責錯誤")
+        inner_validate_quantity(quantities, assigned, expected_counts)
         adapter = candidate_adapter()
         count = adapter.apply_inner_door_quantity_configuration(
             inner_library(), quantities, assigned,
