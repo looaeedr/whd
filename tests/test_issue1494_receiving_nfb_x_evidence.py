@@ -21,7 +21,7 @@ def test_approved_relative_table_does_not_become_absolute_x(width, count, distan
     assert item['x_status'] == 'PREVIEW_ONLY'
     for field in ('certified_x_revision', 'blank_x_origin', 'finished_face_x_origin',
                   'box_world_x_origin', 'blank_to_finished_face_x',
-                  'finished_face_to_box_world_x', 'source_dxf_sha256'):
+                  'finished_face_to_box_world_x'):
         assert item[field] is None, f'{field} needs owner-approved source proof'
     assert item['missing_evidence']
 
@@ -88,3 +88,36 @@ def test_evidence_ids_are_distinct_and_cannot_act_as_certified_revisions():
     assert all(r['revision'] and r['certified_x_revision'] is None for r in records)
     assert data['purpose'] == 'EVIDENCE_ONLY_NOT_MANUFACTURING_CAPABILITY_REGISTRY'
     assert data['unsupported_combination_policy'] == 'PREVIEW_ONLY_NO_DEFAULT_CENTER'
+
+
+def test_uploaded_w800_three_dxf_measures_local_centers_from_its_side_lines():
+    fixture = json.loads((ROOT / 'tests/fixtures/receiving_nfb_w800_three_source.json')
+                         .read_text(encoding='utf-8'))
+    entities = {e['handle']: e for e in fixture['entities']}
+    left = entities[fixture['blank_left_handle']]
+    right = entities[fixture['blank_right_handle']]
+    assert left['start'][0] == left['end'][0]
+    assert right['start'][0] == right['end'][0]
+    origin = left['start'][0]
+    assert right['start'][0] - origin == pytest.approx(723.0)
+    centers = []
+    for handles in fixture['aperture_side_handles']:
+        sides = [entities[h] for h in handles]
+        assert all(s['start'][0] == s['end'][0] for s in sides)
+        side_x = sorted({s['start'][0] for s in sides})
+        assert len(side_x) == 2
+        assert side_x[1] - side_x[0] == pytest.approx(28.0)
+        centers.append(sum(side_x) / 2.0 - origin)
+    assert centers == pytest.approx([181.5, 361.5, 541.5])
+    assert [b-a for a,b in zip(centers, centers[1:])] == pytest.approx([180.0,180.0])
+    # Translate the entire source drawing: local X must stay identical.
+    shift = 10000.0
+    translated = [(c+origin+shift)-(origin+shift) for c in centers]
+    assert translated == pytest.approx(centers)
+    row = next(r for r in evidence()['records']
+               if r['box_outer_width_mm'] == 800 and r['nfb_count'] == 3)
+    assert row['source_dxf_sha256'] == fixture['source_sha256']
+    assert row['source_geometry_observation']['centers_relative_to_source_left'] == pytest.approx(centers)
+    assert row['x_status'] == 'PREVIEW_ONLY'
+    assert row['blank_to_finished_face_x'] is None
+    assert row['finished_face_to_box_world_x'] is None

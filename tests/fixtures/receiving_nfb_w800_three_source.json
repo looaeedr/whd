@@ -1,0 +1,365 @@
+{
+  "schema": "receiving-nfb-w800-three-source-v1",
+  "source_name": "800x3.dxf",
+  "source_sha256": "2e3143124a4bd81394143a12b464d78dd030f479c0da2d02279b1dd502ad4416",
+  "source_insunits": 0,
+  "source_semantics": "USER_SUPPLIED_PLACEMENT_EVIDENCE_NOT_CLOSED_MANUFACTURING_DXF",
+  "entities": [
+    {
+      "handle": "A0",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        6015.99589,
+        2343.0,
+        0.0
+      ],
+      "end": [
+        6015.99589,
+        1312.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "A1",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5292.99589,
+        1312.0,
+        0.0
+      ],
+      "end": [
+        5292.99589,
+        2343.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "AC",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5668.49589,
+        1544.0,
+        0.0
+      ],
+      "end": [
+        5640.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "AD",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5640.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5668.49589,
+        1602.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "AE",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5848.49589,
+        1544.0,
+        0.0
+      ],
+      "end": [
+        5820.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "AF",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5820.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5848.49589,
+        1602.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "B0",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5488.49589,
+        1544.0,
+        0.0
+      ],
+      "end": [
+        5460.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "B1",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5460.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5488.49589,
+        1602.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "B6",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5460.49589,
+        1573.0,
+        0.0
+      ],
+      "end": [
+        5460.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "B7",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5460.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5460.49589,
+        1573.75,
+        0.0
+      ]
+    },
+    {
+      "handle": "B8",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5488.49589,
+        1573.0,
+        0.0
+      ],
+      "end": [
+        5488.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "B9",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5488.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5488.49589,
+        1573.75,
+        0.0
+      ]
+    },
+    {
+      "handle": "BA",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5640.49589,
+        1573.0,
+        0.0
+      ],
+      "end": [
+        5640.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "BB",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5640.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5640.49589,
+        1573.75,
+        0.0
+      ]
+    },
+    {
+      "handle": "BC",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5668.49589,
+        1573.0,
+        0.0
+      ],
+      "end": [
+        5668.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "BD",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5668.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5668.49589,
+        1573.75,
+        0.0
+      ]
+    },
+    {
+      "handle": "BE",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5820.49589,
+        1573.0,
+        0.0
+      ],
+      "end": [
+        5820.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "BF",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5820.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5820.49589,
+        1573.75,
+        0.0
+      ]
+    },
+    {
+      "handle": "C0",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5848.49589,
+        1573.0,
+        0.0
+      ],
+      "end": [
+        5848.49589,
+        1544.0,
+        0.0
+      ]
+    },
+    {
+      "handle": "C1",
+      "type": "LINE",
+      "layer": "0",
+      "color": 7,
+      "start": [
+        5848.49589,
+        1602.0,
+        0.0
+      ],
+      "end": [
+        5848.49589,
+        1573.75,
+        0.0
+      ]
+    }
+  ],
+  "aperture_side_handles": [
+    [
+      "B6",
+      "B7",
+      "B8",
+      "B9"
+    ],
+    [
+      "BA",
+      "BB",
+      "BC",
+      "BD"
+    ],
+    [
+      "BE",
+      "BF",
+      "C0",
+      "C1"
+    ]
+  ],
+  "blank_left_handle": "A1",
+  "blank_right_handle": "A0",
+  "geometric_expected_mm": {
+    "blank_width": 723.0,
+    "local_centers_x": [
+      181.5,
+      361.5,
+      541.5
+    ],
+    "center_distances": [
+      180.0,
+      180.0
+    ]
+  },
+  "physical_cutting_identity_approved": false,
+  "box_mapping_approved": false
+}
