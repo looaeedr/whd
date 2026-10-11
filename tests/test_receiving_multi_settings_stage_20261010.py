@@ -399,7 +399,8 @@ def test_multi_settings_does_not_expose_postponed_version_ui():
     from phase6_quantity_model import QuantityModel
 
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("800x600+0+0")
+    root.update()
     mode = {"value": "set_bay"}
     model = QuantityModel()
     original = model.snapshot()
@@ -450,7 +451,8 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
     )
 
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("800x600+0+0")
+    root.update()
     counts = [2]
     library = {"value": None}
     calls = []
@@ -600,7 +602,8 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
 
 def test_sketch_multi_highlights_drive_existing_endcap_edits_without_link_buttons():
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("800x600+0+0")
+    root.update()
     calls = []
     bay_ids = ("a", "b", "c")
     row = {"bays": [{"stable_id": sid} for sid in bay_ids]}
