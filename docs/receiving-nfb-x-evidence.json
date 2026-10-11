@@ -117,7 +117,7 @@
       "box_outer_width_mm": 600,
       "nfb_count": 2,
       "nominal_adjacent_center_distances_mm": [
-        180.0
+        180
       ],
       "nominal_source": {
         "reference_index": 0,
@@ -150,7 +150,7 @@
       "box_outer_width_mm": 750,
       "nfb_count": 2,
       "nominal_adjacent_center_distances_mm": [
-        310.0
+        310
       ],
       "nominal_source": {
         "reference_index": 0,
@@ -183,7 +183,7 @@
       "box_outer_width_mm": 800,
       "nfb_count": 2,
       "nominal_adjacent_center_distances_mm": [
-        325.0
+        325
       ],
       "nominal_source": {
         "reference_index": 0,
@@ -216,8 +216,8 @@
       "box_outer_width_mm": 800,
       "nfb_count": 3,
       "nominal_adjacent_center_distances_mm": [
-        180.0,
-        180.0
+        180,
+        180
       ],
       "nominal_source": {
         "reference_index": 0,
@@ -269,7 +269,7 @@
         "source_x_direction": "DXF_POSITIVE_X_TO_RIGHT",
         "source_left_x": 5292.99589,
         "source_right_x": 6015.99589,
-        "source_width": 723.0,
+        "source_width": 723,
         "source_aperture_centers_x": [
           5474.49589,
           5654.49589,
@@ -290,15 +290,15 @@
   ],
   "w800_t2_three_hole_observation": {
     "scope": {
-      "box_outer_width_mm": 800.0,
-      "thickness_mm": 2.0,
+      "box_outer_width_mm": 800,
+      "thickness_mm": 2,
       "nfb_count": 3
     },
     "status": "DXF_LOCAL_X_VERIFIED_PHYSICAL_MAP_PENDING",
     "approved_dimensions_mm": {
-      "body_inner_clear_width": 796.0,
-      "finished_door_width": 689.0,
-      "cutting_blank_width": 723.0
+      "body_inner_clear_width": 796,
+      "finished_door_width": 689,
+      "cutting_blank_width": 723
     },
     "reported_centers_from_drawing_left_mm": [
       181.5,
@@ -306,8 +306,8 @@
       541.5
     ],
     "relative_distances_mm": [
-      180.0,
-      180.0
+      180,
+      180
     ],
     "mathematical_midpoint_mm": 361.5,
     "source_outline_is_723_cutting_left_verified": false,
@@ -330,9 +330,10 @@
       "raw_customer_file_committed": false,
       "verified_scope": "REFERENCE_DXF_GEOMETRY_ONLY",
       "wHD_manufacturing_cutting_identity_approved": false,
-      "canonical_whd_blank_height_mm": 1063.5,
-      "reference_blank_height_mm": 1075.0,
-      "height_mismatch_mm": 11.5
+      "canonical_whd_blank_height_mm": 1075,
+      "reference_blank_height_mm": 1075,
+      "height_mismatch_mm": 0,
+      "manufactured_height_resolution": "CELL_HEIGHT_MINUS_TOP_FRAME_PLUS_T_AND_TWO_GAPS__SHARED_DOOR_FOLD"
     }
   }
 }
