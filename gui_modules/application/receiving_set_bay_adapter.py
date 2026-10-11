@@ -243,6 +243,33 @@ class ReceivingSetBayAdapter:
         )
         return indices
 
+    def apply_quantity_configuration(self, role, library, quantities, assigned, *,
+                                     expected_counts=None):
+        """Atomically commit complete candidate distribution across every Set."""
+        from ae_engine.receiving_hole_candidates import role_key
+        from ae_engine.receiving_quantity_allocation import validate_quantity_allocation
+        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
+        plan = validate_quantity_allocation(
+            self._layout, library, role, quantities, assigned,
+            expected_counts=expected_counts,
+        )
+        kind = role_key(role) + "_features"
+        candidate = self._layout
+        for set_index, bay_index, features in plan:
+            candidate = unlink_setting(
+                candidate, set_index=set_index, bay_index=bay_index, kind=kind
+            )
+            candidate = edit_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=kind, value=features
+            )
+        self._layout = candidate
+        self._session_dirty_ids.update(
+            str(self._layout["sets"][si]["bays"][bi]["stable_id"])
+            for si, bi, _ in plan
+        )
+        return len(plan)
+
     def set_global_brand(self, brand):
         """Update every Set NFB once, keeping active Set/Bay identity intact."""
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
