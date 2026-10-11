@@ -87,6 +87,51 @@ def read_nfb_upper_source_profiles(path: str | Path) -> tuple[NfbUpperSourceProf
     return tuple(rows)
 
 
+
+def read_nfb_runtime_source_profiles_csv(path: str | Path) -> tuple[NfbUpperSourceProfile, ...]:
+    """Read source fingerprints from operator-editable CSV, never as approval."""
+    import csv
+    keys=("brand","indexed_filename","source_sha256","upper_handle",
+          "upper_width_mm","upper_height_mm","source_alias_status","revision")
+    results=[]; seen=set()
+    with Path(path).open("r",encoding="utf-8-sig",newline="") as stream:
+        reader=csv.DictReader(stream)
+        if tuple(reader.fieldnames or ())!=keys:
+            raise ValueError("NFB source-profile CSV header invalid")
+        for number,row in enumerate(reader,start=2):
+            if not row or any(row.get(key) is None for key in keys):
+                raise ValueError(f"NFB source-profile CSV row {number} incomplete")
+            brand=row["brand"].strip()
+            filename=row["indexed_filename"].strip()
+            digest=row["source_sha256"].strip().lower()
+            handle=row["upper_handle"].strip()
+            if (not brand or not filename.lower().endswith(".dxf")
+                    or filename in (".dxf",".DXF") or
+                    "/" in filename or chr(92) in filename):
+                raise ValueError("NFB source-profile CSV name invalid")
+            key=(brand,filename.casefold())
+            if key in seen:
+                raise ValueError("NFB source-profile CSV duplicate model")
+            seen.add(key)
+            if (len(digest)!=64 or
+                    any(char not in "0123456789abcdef" for char in digest)):
+                raise ValueError("NFB source-profile CSV SHA256 invalid")
+            try:
+                width,height=float(row["upper_width_mm"]),float(row["upper_height_mm"])
+            except (ValueError,TypeError) as exc:
+                raise ValueError("NFB source-profile CSV dimensions invalid") from exc
+            if (not isfinite(width) or not isfinite(height) or
+                    width<=0 or height<=0 or not handle):
+                raise ValueError("NFB source-profile CSV geometry invalid")
+            results.append(NfbUpperSourceProfile(
+                brand=brand,indexed_filename=filename,source_sha256=digest,
+                upper_handle=handle,upper_size_mm=(width,height),
+                source_alias_status=row["source_alias_status"],
+                revision=row["revision"],
+            ))
+    return tuple(results)
+
+
 def trial_nfb_upper_cutting_on_inner_door(
     panel: InnerDoorPanelPart,
     requests: Sequence[NfbUpperOpeningRequest],
