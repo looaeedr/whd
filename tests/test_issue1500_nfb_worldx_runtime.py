@@ -135,3 +135,23 @@ def test_no_matching_source_profile_is_not_automatic_manufacturing(tmp_path,monk
     with pytest.raises(ValueError,match="尚未建立"):
         verify_current_nfb_ui_draft(**values)
     assert calls==[]
+
+
+
+def test_numbered_original_dxf_is_selectable_without_renaming_index(tmp_path,monkeypatch):
+    values,unit,original,profile,calls=setup(tmp_path,monkeypatch)
+    original.unlink()
+    downloaded=tmp_path/"400_140X257_107(1).dxf"
+    downloaded.write_bytes(b"operator-selected-same-source-placeholder")
+    # The full real byte-level SHA gate remains in #1497; this test only
+    # verifies that UI routing retains the ORIGINAL CSV filename identity.
+    result=verify_current_nfb_ui_draft(
+        **{**values,"selected_source_path":downloaded},
+    )
+    assert result=="genuine-verifier-would-run"
+    assert calls[-1][1]["source_path"]==downloaded
+    assert calls[-1][1]["profile"].indexed_filename=="400_140X257_107.dxf"
+    with pytest.raises(ValueError,match="並非 CSV 型號"):
+        verify_current_nfb_ui_draft(
+            **{**values,"selected_source_path":tmp_path/"unrelated.dxf"},
+        )
