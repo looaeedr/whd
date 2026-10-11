@@ -259,8 +259,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # Two permanent columns. Left owns Set/Bay actions; right owns the
     # function selector above a separate 2D diagram. Neither section moves
     # when the category changes or when the version manager is opened.
-    left_host = ttk.Frame(win)
-    left_host.grid(row=0, column=0, sticky="nsw", padx=16, pady=16)
+    from .receiving_scroll_view import make_scrollable_frame
+    left_scroll, left_content, left_scroll_canvas = make_scrollable_frame(
+        win, tk=tk, ttk=ttk, width=280, height=610,
+    )
+    left_scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
+    left_host = ttk.Frame(left_content)
+    left_host.pack(fill="both", expand=True)
     right_host = ttk.Frame(win)
     right_host.grid(row=0, column=1, sticky="nsew", padx=24, pady=16)
     right_host.columnconfigure(0, weight=1)
@@ -308,8 +313,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # Right TOP: original Listbox and its selected category controls.
     # Right BOTTOM: the independent diagram region, never commandeered
     # by quantity version management.
-    function_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
-    function_host.grid(row=0, column=0, sticky="new")
+    function_scroll, function_content, function_scroll_canvas = make_scrollable_frame(
+        right_host, tk=tk, ttk=ttk, width=610, height=250,
+    )
+    function_scroll.grid(row=0, column=0, sticky="new")
+    function_host = ttk.Frame(
+        function_content, padding=8, relief="groove", borderwidth=1,
+    )
+    function_host.pack(fill="both", expand=True)
     function_host.columnconfigure(1, weight=1)
     setting_list = tk.Listbox(
         function_host, height=3, width=16, selectmode=tk.BROWSE,
@@ -466,8 +477,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             popup.minsize(460, 320)
             # Deliberately no transient/grab: operator can switch parent,
             # manager, quantity tabs and floating preview without closing.
-            body = ttk.Frame(popup, padding=6)
+            from .receiving_scroll_view import make_scrollable_frame
+            popup_scroll, popup_content, popup_viewport = make_scrollable_frame(
+                popup, tk=tk, ttk=ttk, width=920, height=660,
+            )
+            popup_scroll.pack(fill="both", expand=True)
+            body = ttk.Frame(popup_content, padding=6)
             body.pack(fill="both", expand=True)
+            popup._receiving_real_preview_scroll = popup_scroll
             status = tk.StringVar(master=popup, value="準備顯示實際幾何資料")
             ttk.Label(body, textvariable=status).pack(anchor="w")
             from .receiving_settings_preview_2d import ReceivingSettingsPreview2D
@@ -883,8 +900,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager_window["win"] = manager
         manager.protocol("WM_DELETE_WINDOW", close_manager)
 
-        body = ttk.Frame(manager, padding=14)
+        manager_scroll, manager_content, manager_viewport = make_scrollable_frame(
+            manager, tk=tk, ttk=ttk, width=920, height=660,
+        )
+        manager_scroll.pack(fill="both", expand=True)
+        body = ttk.Frame(manager_content, padding=14)
         body.pack(fill="both", expand=True)
+        manager._receiving_manager_scroll = manager_scroll
         top = ttk.Frame(body)
         top.pack(anchor="nw", fill="x")
 
@@ -1292,6 +1314,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_close_manager = close_manager
     win._receiving_multi_settings_host = settings_host
     win._receiving_multi_left_host = left_host
+    win._receiving_multi_left_scroll = left_scroll
+    win._receiving_multi_function_scroll = function_scroll
     win._receiving_multi_right_host = right_host
     win._receiving_multi_function_host = function_host
     win._receiving_multi_diagram_host = diagram_host
