@@ -23,6 +23,7 @@ from .receiving_nfb_manufacturing_release import (
 from .receiving_nfb_upper_base_source import (
     NfbUpperBaseSourceProcess, OBSERVED,
 )
+from .receiving_nfb_lower_fixing_source import NfbVerifiedLowerFixingGroup
 from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
 from .sheetmetal_drawing import DrawingScene
 
@@ -121,6 +122,7 @@ def project_verified_nfb_base_process(
     inner_door_id: str,
     verified_inner_door: NfbValidatedInnerDoorRender,
     native_source: NfbUpperBaseSourceProcess,
+    lower_fixing: NfbVerifiedLowerFixingGroup,
     target: NfbActualBaseWorkFace,
 ) -> NfbProjectedBaseProcess:
     """Map the SAME real NFB source onto one independently built base.
@@ -144,6 +146,12 @@ def project_verified_nfb_base_process(
             or native_source.source_sha256 != door.source_sha256
             or native_source.indexed_filename != door.indexed_model_key[1]):
         raise ValueError("NFB base source differs from approved inner-door NFB")
+    if (not isinstance(lower_fixing, NfbVerifiedLowerFixingGroup)
+            or lower_fixing.manufacturing_ready is not False
+            or lower_fixing.source_sha256 != door.source_sha256
+            or lower_fixing.indexed_filename != door.indexed_model_key[1]
+            or len(lower_fixing.circles) != 4):
+        raise ValueError("NFB native lower screw group not matched to verified door")
     from .assembly_placement import resolve_inner_door_panel_placement
     resolved_door = resolve_inner_door_panel_placement(snapshot, inner_door_id)
     if door.part_id != resolved_door.stable_id:
@@ -187,6 +195,25 @@ def project_verified_nfb_base_process(
             cutting.add_circle(center, shape.radius_mm, layer="CUTTING",
                                color=30, source_type="NFB_COLOR30",
                                source_id=f"{physical_id}:{shape.source_handle}")
+        # Only four LOWER-group CIRCLEs are NFB fixing screws. Their
+        # native quartet centroid (not its schematic drawing Y) is placed
+        # under the SAME verified main-opening center as the upper group.
+        lower_center = _xy(lower_fixing.screw_group_center_xy_mm,
+                           "NFB native lower screw quartet center")
+        for screw in lower_fixing.circles:
+            if not isfinite(screw.radius_mm) or screw.radius_mm <= 0:
+                raise ValueError("NFB native screw hole radius invalid")
+            center = _projection(
+                screw.center_xy_mm, pivot=lower_center,
+                world_hole=world_hole, face_world=face_world,
+                face_uv=face_uv, rotation_deg=angle,
+            )
+            cuts.append(Point(*center).buffer(screw.radius_mm, quad_segs=32))
+            cutting.add_circle(
+                center, screw.radius_mm, layer="CUTTING", color=30,
+                source_type="NFB_LOWER_NATIVE_FIXING_CIRCLE",
+                source_id=f"{physical_id}:{screw.source_handle}",
+            )
         for shape in native_source.base_cutting_closed_loops:
             points = tuple(move(xy) for xy in shape.vertices_xy_mm)
             geom = Polygon(points)
