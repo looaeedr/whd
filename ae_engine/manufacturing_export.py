@@ -153,6 +153,32 @@ def _atomic_commit_staged_dxfs(
         shutil.rmtree(backup_dir, ignore_errors=True)
 
 
+def _reject_unapproved_nfb_pad_ear_manufacturing(rows) -> None:
+    """#1503: deferred PAD/EAR source data is NOT a manufacturing blank.
+
+    An NFB-specific PAD/EAR cannot be made from DXF lower-picture geometry,
+    model depth or a caller approval flag without physical Z/contact proof.
+    Reject before any temporary/output file is created. This does not ban
+    the already valid ear-mount HOLES in the ordinary Base Plate FinalScene.
+    """
+    for output_key, _, render_data in rows:
+        meta = getattr(render_data, 'metadata', None)
+        metadata = meta if isinstance(meta, Mapping) else {}
+        role = str(metadata.get('nfb_deferred_manufacturing_role') or '').upper()
+        ids = (str(output_key), str(metadata.get('stable_id') or ''))
+        nfb_part = any(
+            token.startswith(('nfb_pad', 'nfb_ear', 'nfb-pad', 'nfb-ear'))
+            for value in ids
+            for token in re.split(r'[:/\\]', value.casefold())
+        )
+        nfb_markers = any(
+            str(key).startswith(('nfb_pad_', 'nfb_ear_'))
+            for key in metadata
+        )
+        if role in {'PAD', 'EAR'} or nfb_part or nfb_markers:
+            raise ValueError('NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED')
+
+
 def _validate_nfb_base_part_scope(rows, *, part_only: bool) -> set[str]:
     """Separately admit verified physical plate CUTTING; never whole assembly.
 
@@ -185,6 +211,7 @@ def _save_resolved_rows_atomic(
 ) -> dict[str, str]:
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
+    _reject_unapproved_nfb_pad_ear_manufacturing(rows)
     verified_nfb_parts = _validate_nfb_base_part_scope(rows, part_only=part_only)
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
