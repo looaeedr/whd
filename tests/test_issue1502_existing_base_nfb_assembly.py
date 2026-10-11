@@ -40,13 +40,14 @@ def _snapshot():
 def _upper_base(pattern="LEFT_FLAT_SIDE"):
     central=pattern=="CENTER_DOUBLE_SIDE_FOLD"
     return BasePlatePartSpec(
-        width=800.,height=1100.,thickness=2.,
+        width=800.,height=(280. if central else 360. if pattern=="RIGHT_FLAT_SIDE" else 340.),
+        thickness=2.,
         shrink_top=20.,shrink_bottom=20.,
         shrink_left=85. if central else 45.,
         shrink_right=85. if central else 45.,
         bend=20.,model_name="受電箱",
         receiving_bend_pattern=pattern,
-        physical_id="base_plate_c1_r1",
+        physical_id="base_plate",
     )
 
 
@@ -120,7 +121,7 @@ def test_existing_upper_base_ear_NFB_finalscene_are_one_real_part(tmp_path,patte
     combined=_build(tmp_path,base=_upper_base(pattern))
     assert not combined.manufacturing_ready
     real=combined.render_data
-    assert real.metadata["stable_id"]=="base_plate_c1_r1"
+    assert real.metadata["stable_id"]=="base_plate"
     assert real.metadata["nfb_base_mfg2_release_approved"] is False
     assert real.metadata["nfb_physical_hole_ids"]==(
         "nfb:upper:1","nfb:upper:2",
@@ -135,7 +136,7 @@ def test_existing_upper_base_ear_NFB_finalscene_are_one_real_part(tmp_path,patte
     assert len(native)==8  # 4 original lower screw circles per verified NFB
     assert len({x.source_id for x in native})==8
     assert real.material.area>0
-    assert real.unfolded_topology.piece_id=="base_plate_c1_r1"
+    assert real.unfolded_topology.piece_id=="base_plate"
     assert real.metadata["nfb_source_sha256"]==combined.projection.source_sha256
     # Headless original serialization must use the SAME FinalScene, not a
     # freshly generated legacy base without the configured NFB features.
@@ -148,18 +149,44 @@ def test_existing_upper_base_ear_NFB_finalscene_are_one_real_part(tmp_path,patte
 
 
 def test_lower_bay_does_not_create_second_base_plate(tmp_path):
-    with pytest.raises(ValueError,match="upper cell"):
+    with pytest.raises(ValueError,match="actual physical identity"):
         _build(tmp_path,base=replace(_upper_base(),physical_id="base_plate_c1_r2"))
-    with pytest.raises(ValueError,match="physical ID"):
-        _build(tmp_path,base=replace(_upper_base(),physical_id="base_plate"))
+    with pytest.raises(ValueError,match="actual physical identity"):
+        _build(tmp_path,base=replace(_upper_base(),physical_id="base_plate_c1_r1"))
 
 
 def test_source_owner_and_geometry_fail_closed(tmp_path):
     with pytest.raises(ValueError,match="bend-pattern"):
         _build(tmp_path,base=replace(_upper_base(),receiving_bend_pattern=None))
-    with pytest.raises(ValueError,match="actual upper cell"):
+    with pytest.raises(ValueError,match="cannot exceed upper"):
         _build(tmp_path,base=replace(_upper_base(),height=1600.))
     with pytest.raises(ValueError,match="box W/T"):
         _build(tmp_path,base=replace(_upper_base(),width=900.))
     with pytest.raises(ValueError,match="Receiving cabinet"):
         _build(tmp_path,base=replace(_upper_base(),model_name="金庫型"))
+
+
+
+def test_two_real_NFB_heights_cannot_share_one_assumed_ear_group(tmp_path):
+    path,profile,lower=_native_original(tmp_path)
+    two=NfbValidatedInnerDoorRender(
+        render_data=SimpleNamespace(metadata={
+            "nfb_trial_status":VALIDATED,
+            "nfb_trial_export_approved":True,
+        }),
+        part_id="inner_door:upper:panel",
+        indexed_model_key=(profile.brand,profile.indexed_filename),
+        source_sha256=profile.source_sha256,
+        physical_hole_ids=("nfb:upper:1","nfb:upper:2"),
+        verified_hole_locations=(
+            ("nfb:upper:1",-100.,2,0,0),
+            ("nfb:upper:2",100.,2,1,0),
+        ),
+    )
+    with pytest.raises(ValueError,match="distinct actual ear/base groups"):
+        build_existing_receiving_base_with_verified_nfb(
+            snapshot=_snapshot(),inner_door_id="upper",
+            base_spec=_upper_base(),verified_inner_door=two,
+            source_path=path,profile=profile,
+            lower_reference_handle=lower,
+        )
