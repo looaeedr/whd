@@ -7,6 +7,8 @@ whd_schema: WHD_DOC_META_V1
 
 # 長流程持續執行 / 停工點踩坑規則
 
+> **REFERENCE／事故封存，不是現行交易引擎**。持續執行、不能假裝背景工作等原則仍須依實際工具能力與正式 X `AGENTS.md` 落實；下方 `WHD_EXECUTION_RECORD_V2`、`ACCEPT_QA`、`CONSUME_QA`、`FINALIZE`、legacy control plane 與 machine owner 均為**當時流程的歷史敘述**，不得重建執行憑證、工作槽或 lease 作為施工前置。
+
 
 ## SCHEDULED_WAKEUP_STATUS_ONLY_PITFALL
 
@@ -38,14 +40,14 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 - 只有 COMPLETE、真正需要產品決策/權限/不可推導資料的 BLOCKED，或平台實際 Runtime/tool interruption，才允許離開目前工作鏈。
 - Runtime 被硬切時要留下 durable checkpoint；下一回合先驗 drift，再從 next exact action 續跑，不重新要求使用者交代已知上下文。
 
-以上是 reference guidance；CURRENT durable state、transition、resume 與 finalization 是否可通過，必須由 `WHD_EXECUTION_RECORD_V2`、atomic control transaction 與 `tools/execution_invocation_exit.py` 的實際 behavior 判定。legacy checkpoint 只作 migration evidence。
+以上是歷史 reference guidance；當時 durable state／transition／resume／finalization 曾由 `WHD_EXECUTION_RECORD_V2`、atomic control transaction 及 `tools/execution_invocation_exit.py` 判定，**此執行權威已退役**。當前以正式 X `AGENTS.md`、實際 GitHub Issue／PR／CI 與可驗證工具結果為準，不再要求舊 checkpoint／交易收據。
 
 
 過去曾用 `USER_VISIBLE_CHECKPOINT_GATE`、`CHECKPOINT_RESUME_CONTRACT`、`RUNNING / WAITING_REMOTE / RECOVERING` 等文件 marker 補 user-visible recovery。這些 marker 現在只屬歷史事故語彙，**不得再作 CURRENT execution contract**。
 
-CURRENT 規則：
+當時 V2 規則（HISTORICAL／不可作今天執行門檻）：
 
-- durable state 唯一來自 `WHD_EXECUTION_RECORD_V2`；visible progress / CHECKPOINT 只是 observation/projection，不能建立 lease、owner、resume、turn-exit 或 closure authority。
+- 當時 durable state 來自 `WHD_EXECUTION_RECORD_V2`；visible progress / CHECKPOINT 僅是 observation/projection，不能建立 lease、owner、resume、turn-exit 或 closure authority。
 - `tests/process/test_checkpoint_resume_contract.py` 與 `tests/process/test_continuous_execution_durable_contract.py` 現在是**反向 anti-regrowth tests**：它們保證 legacy marker 不會被重新塞回 CURRENT/MIRROR entry skills。
 
 
@@ -170,6 +172,6 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 
 ## TERMINAL_GREEN_IS_NOT_EXIT_AUTHORITY_V1
 
-CURRENT：QA/CI GREEN 只代表候選驗證成功，不代表 invocation 可以停止。exact-head GREEN 被 ACCEPT_QA / CONSUME_QA 接受且 continuation 進入 MERGE 後，立刻進 no-yield terminal tail；必須連續完成 MERGE → Issue close/readback → FINALIZE → RELEASED/DONE。PR merged 也只是 terminal tail 中段，不是 completion。
+**HISTORICAL（當時 V2 terminal tail）**：QA/CI GREEN 只代表候選驗證成功，不代表整項任務已完成。當時的 ACCEPT_QA / CONSUME_QA、MERGE → Issue close/readback → FINALIZE → RELEASED/DONE 交易鏈現已退役；不可把它當成新的續作或結案硬閘門。
 
-防回長規則：不得因「GREEN 已經回報」「PR 已 merge」「本輪已有 substantive transaction」「host boundary 到了」而 YIELD。machine owner=`tools/execution_invocation_exit.py`；terminal tail 固定回 `CONTINUE_TERMINAL_TAIL`。
+**可沿用的防停工原則**：GREEN、PR merged 或進度回報都不等於所有義務完成；應依正式 X 的現行規則續作到可驗證收尾。舊 machine owner=`tools/execution_invocation_exit.py` 與 `CONTINUE_TERMINAL_TAIL` 為歷史，不得作現在的控制門檻。
