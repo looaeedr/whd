@@ -192,6 +192,11 @@ class BasePlatePartSpec:
     box_body_fold_profile: tuple[FoldProfileSegment, ...] = ()
     model_name: str | None = None
     seam_positions: tuple[float, ...] = ()
+    # Receiving-only use of THIS SAME Base Plate PartSpec and FinalScene.
+    # Explicit pattern from the real physical part; do not infer a position
+    # from an illustrative DXF's sheet layout or add a second plate editor.
+    receiving_bend_pattern: str | None = None
+    physical_id: str | None = None
 
 
 @dataclass(frozen=True)
