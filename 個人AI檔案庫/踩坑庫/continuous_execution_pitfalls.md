@@ -55,7 +55,7 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 
 #188 在 real Tk/Xvfb 與 inherited QA 已 terminal GREEN 後，execution window interruption 發生在 durable writeback 前。如果因視窗重開就把 RED/GREEN/remote QA 全部從頭重跑，會浪費 runner、模糊 tested-head provenance，甚至把新的 harness noise 誤當舊 production regression。
 
-永久規則：
+當時的事故防錯規則（HISTORICAL；今日依 CURRENT Skill／GitHub 回讀）：
 
 - execution window interruption 只把語意狀態切到 `RECOVERING`；它本身不撤銷既有 completed phase evidence。
 - 先 remote refetch production target、反讀 owning Issue recovery checkpoint、核對 work branch + HEAD 與既有 run identity；無 drift 就接 exact next action。
@@ -68,7 +68,7 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 
 這次 #188 又暴露另一個長流程失敗模式：checkpoint 寫著 `WAITING_REMOTE_QA`，但實際 GitHub 已無 active run，worker 仍把舊 waiting 字樣當成目前真實狀態，因而無限等待。
 
-永久規則：
+當時的事故防錯規則（HISTORICAL；今日依 CURRENT Skill／GitHub 回讀）：
 
 - `WAITING_REMOTE_QA` 不是 durable truth；它必須由 exact `run_id + head_sha` 的 live readback 支持。沒有 run identity 或 run 已 terminal，就不得繼續 waiting。
 - checkpoint 寫著 WAITING_REMOTE_QA 但 GitHub 已無 active run 時，分類為 `STALE_WAIT`，不是「還在跑」。
@@ -80,7 +80,7 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 ## WORK_ORDER_LINEAGE_PITFALL — HISTORICAL/SUPERSEDED BRANCH MECHANICS
 
 
-永久規則：
+當時的事故防錯規則（HISTORICAL；今日依 CURRENT Skill／GitHub 回讀）：
 
 - 派工一個含 T1/T2/... 的 Master 工單時，先從當下 authoritative production target 建立唯一 **工單主分支**；此 branch 持有整張工單從第一個 accepted slice 到 final Combined Acceptance 的前序 accepted lineage。
 - 子票不得重新從 production target 起跑。下一張子票的 authoritative base 必須是工單主分支目前 accepted HEAD，或是從該 HEAD 開出的短命 `task/QA branch`；完成後回到工單主分支。

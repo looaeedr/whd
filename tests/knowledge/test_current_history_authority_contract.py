@@ -335,3 +335,14 @@ def test_reference_pitfalls_cannot_reactivate_workspace_or_phase6_preflight() ->
     assert "不能作為 Git／施工／PR／DC／CI 前置授權或阻擋門檻" in keyword
     assert "相容診斷工具的字詞比對正確性規則" in keyword
     assert "## 永久規則" not in keyword
+
+
+def test_retired_pitfall_subsections_do_not_advertise_active_owners() -> None:
+    """History-only subheadings must not masquerade as CURRENT routing."""
+    closure = read("個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md")
+    continuity = read("個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md")
+    assert "當時的 Canonical Skill（HISTORICAL／已退役）" in closure
+    assert "當時的 Machine guards（HISTORICAL；不可作今日必經驗收）" in closure
+    assert "當時的 Registry route（HISTORICAL；不代表現行啟用）" in closure
+    assert continuity.count("當時的事故防錯規則（HISTORICAL；今日依 CURRENT Skill／GitHub 回讀）") == 3
+    assert "\n永久規則：\n" not in continuity
