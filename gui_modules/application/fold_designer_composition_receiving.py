@@ -1104,4 +1104,5 @@ def open_receiving_multi_settings(self, namespace):
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_quantity_ports=lambda: quantity_ports(self, namespace),
         get_original_door_marks=existing_door_marks,
+        on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
     )
