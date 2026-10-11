@@ -1310,7 +1310,7 @@ def open_receiving_multi_settings(self, namespace):
                     vid = version_id
                 persist_inner(saved)
                 after_saved(vid)
-                modal.destroy()
+                close_editor()
             except (ValueError, OSError) as exc:
                 warning.set(str(exc))
         buttons = ttk.Frame(frame)
