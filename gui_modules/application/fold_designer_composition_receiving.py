@@ -505,6 +505,10 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     fingerprint = stable_fingerprint({"snapshot": snapshot, "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
+    virtual_cache = getattr(self, "_receiving_bay_virtual_preview_cache", {})
+    virtual_key = (set_index, bay_index, fingerprint)
+    if preview_layout is not None and virtual_key in virtual_cache:
+        return virtual_cache[virtual_key]
     if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
         return cache[cache_key][1]
     box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
@@ -566,6 +570,13 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     if preview_layout is None:
         cache[cache_key] = (fingerprint, result)
         self._receiving_bay_preview_cache = cache
+    else:
+        # Small bounded cache prevents every preview-version switch from
+        # repeating the real FinalScene solve. Fingerprint invalidates drafts.
+        virtual_cache[virtual_key] = result
+        while len(virtual_cache) > 8:
+            virtual_cache.pop(next(iter(virtual_cache)))
+        self._receiving_bay_virtual_preview_cache = virtual_cache
     return result
 
 def receiving_layer_preview_payload(self, namespace, layer_index):
