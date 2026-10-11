@@ -1470,20 +1470,19 @@ def open_receiving_multi_settings(self, namespace):
                 warning.set("CSV 已變動，請重新選擇")
                 refresh_source(force=True)
                 return
-            draft_state["draft"] = insert_nfb_slot(
+            added = insert_nfb_slot(
                 draft_state["draft"], index,
                 len(draft_state["draft"]["layers"][index]["slots"]),
                 filename=filename, brand=expected_brand,
             )
-            # Newly added physical unit inherits the layer brand; when list
-            # was displaying a selected slot override, do not silently give
-            # that override to a different new slot.
-            if expected_brand != effective_nfb_layer_brand(draft_state["draft"],index):
-                draft_state["draft"] = set_nfb_slot_brand(
-                    draft_state["draft"], index,
-                    len(draft_state["draft"]["layers"][index]["slots"])-1,
+            # Source brand override and the physical insert are ONE undo step.
+            if expected_brand != effective_nfb_layer_brand(added,index):
+                added = set_nfb_slot_brand(
+                    added, index,
+                    len(added["layers"][index]["slots"])-1,
                     mode=OVERRIDE, value=expected_brand,
                 )
+            draft_state["draft"] = added
             sync_chosen()
             repaint(index)
             warning.set("")
@@ -1844,9 +1843,15 @@ def open_receiving_multi_settings(self, namespace):
                 for row in active:
                     if row["brand"]["mode"] == OVERRIDE:
                         raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
+                    if row["rotation_deg"]!=0:
+                        raise ValueError("NFB 草稿角度不能被舊版內門層數格式丟失")
                     for slot in row["slots"]:
                         if slot["filename"] is None or slot["brand"]["mode"] == OVERRIDE:
                             raise ValueError("空槽或單顆品牌覆寫仍是 NFB 草稿，不能丟失後儲存")
+                        if (slot["rotation"]["mode"]==OVERRIDE
+                                or slot["manual_x_state"]!="NONE"
+                                or slot["manual_x_mm"] is not None):
+                            raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
                         if slot["source_brand"] != draft_state["draft"]["set_brand"]:
                             raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
                 latest_files = set(model_filenames(
