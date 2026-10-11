@@ -8,6 +8,8 @@ Parts are supplied by the physical scene with stable IDs and actual counts.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hashlib import sha256
+from pathlib import Path
 from typing import Mapping, Sequence
 
 from .receiving_nfb_part_readiness import (
@@ -16,6 +18,7 @@ from .receiving_nfb_part_readiness import (
 )
 from .receiving_nfb_dxf_source import NfbSourceInventory
 from .receiving_nfb_manufacturing_release import NfbValidatedInnerDoorRender
+from .receiving_nfb_persistence import normalize_nfb_saved_fields
 
 INNER_DOOR="INNER_DOOR"
 BASE_PLATE="BASE_PLATE"
@@ -122,6 +125,7 @@ def derive_nfb_partial_export_manifest(
     saved_bay:Mapping[str,object],
     source_inventory:NfbSourceInventory|None=None,
     verified_inner_door:NfbValidatedInnerDoorRender|None=None,
+    source_path:str|Path|None=None,
     proven_unaffected_part_ids:Sequence[str]=(),
 )->NfbPartialExportManifest:
     """Live scoped readiness; unresolved physical role is never guessed."""
@@ -133,8 +137,10 @@ def derive_nfb_partial_export_manifest(
     if type(raw) is not bool:
         raise ValueError("NFB submission fact must be a real boolean")
     submitted=raw is True
-    if submitted and not isinstance(saved_bay.get("nfb_config"),Mapping):
-        raise ValueError("NFB submitted Bay missing actual saved NFBConfig")
+    if submitted:
+        normalize_nfb_saved_fields(saved_bay)
+    if saved_bay.get("stable_id")!=scope.bay_id:
+        raise ValueError("NFB manifest Bay stable ID mismatch")
     if scope.submitted is not submitted:
         raise ValueError("NFB saved Bay and physical submitted fact disagree")
     observed=tuple(actual_parts)
@@ -154,9 +160,19 @@ def derive_nfb_partial_export_manifest(
                 *scope.identity,p.part_id,p.role,LEGACY,(),p.count,True
             ) for p in observed),(),False,True,
         )
+    source_fresh=False
+    if (source_path is not None and
+            isinstance(source_inventory,NfbSourceInventory)):
+        try:
+            source_fresh=(sha256(Path(source_path).read_bytes()).hexdigest()
+                          ==source_inventory.source_sha256)
+        except (OSError,ValueError):
+            source_fresh=False
+    # Source inventory and rendered hole proof are never accepted from stale
+    # bytes or a cached in-memory approval. Fail only NFB-affected pieces.
     readiness=derive_nfb_part_readiness(
-        scope,source_inventory=source_inventory,
-        verified_inner_door=verified_inner_door,
+        scope,source_inventory=source_inventory if source_fresh else None,
+        verified_inner_door=verified_inner_door if source_fresh else None,
     )
     declared={
         INNER_DOOR:{scope.inner_door_part_id},
@@ -184,6 +200,7 @@ def derive_nfb_partial_export_manifest(
     missing=tuple(pid for values in declared.values()
                   for pid in values if pid not in observed_ids)
     unresolved=tuple(dict.fromkeys((
+        *((("ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED",) if not source_fresh else ())),
         *readiness.scope_reasons,
         *(("REQUIRED_PART_NOT_IN_SCENE:"+pid) for pid in missing),
     )))
