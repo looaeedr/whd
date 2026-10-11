@@ -646,9 +646,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     impacted = "、".join(preview.impacted_parts) or "目前選取的連"
                     held = ("\n仍待加工資料的板件：" + "、".join(preview.held_parts)
                             if preview.held_parts else "")
+                    unresolved = ("\n其他板件身份／加工尚未就緒：" +
+                                  "、".join(preview.dependency_warnings)
+                                  if preview.dependency_warnings else "")
                     return bool(messagebox.askyesno(
                         "確認 NFB 交易",
-                        f"{action}\n受影響：{impacted}{held}\n"
+                        f"{action}\n受影響：{impacted}{held}{unresolved}\n"
                         "確定後會更新專案內的 NFBConfig；取消不會更動設定。",
                         parent=win,
                     ))

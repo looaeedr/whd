@@ -207,3 +207,31 @@ def test_adapter_undo_preserves_sibling_changes_and_native_owner():
     assert not adapter.nfb_can_undo
     with pytest.raises(ValueError,match="復原"):
         adapter.undo_last_nfb_transaction()
+
+
+
+def test_real_mfg1_submit_preserves_unresolved_mfg2_warning_and_no_export_grant():
+    row=layout()
+    scope,inventory,door=evidence(row,0)
+    scope=NfbPhysicalScope(
+        set_id=scope.set_id,bay_id=scope.bay_id,version_id=scope.version_id,
+        submitted=True,inner_door_part_id=scope.inner_door_part_id,
+    )
+    previews=[]
+    result=submit_nfb_bays(
+        row,set_index=0,bay_indices=(0,),version_id="v1",
+        configs={0:config()},evidence={0:(scope,inventory,door)},
+        confirm=lambda p:previews.append(p) or True,
+    )
+    assert result.changed
+    assert result.preview.can_commit
+    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" in (
+        result.preview.dependency_warnings
+    )
+    assert result.layout["sets"][0]["bays"][0]["nfb_config_submitted"]
+    from ae_engine.receiving_nfb_part_readiness import derive_nfb_part_readiness
+    readiness=derive_nfb_part_readiness(
+        scope,source_inventory=inventory,verified_inner_door=door,
+    )
+    with pytest.raises(ValueError,match="dependencies unresolved"):
+        readiness.filter_export_part_ids((scope.inner_door_part_id,))

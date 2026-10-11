@@ -32,6 +32,7 @@ class NfbTransactionPreview:
     impacted_parts: tuple[str, ...]
     blocking_reasons: tuple[str, ...]
     held_parts: tuple[str, ...] = ()
+    dependency_warnings: tuple[str, ...] = ()
     requires_confirmation: bool = True
 
     @property
@@ -141,9 +142,10 @@ def _preview(
     action: str, target_ids, *, source_id=None, readiness=(),
     additionally_blocked=(),
 ):
-    affected, held, reasons = [], [], list(additionally_blocked)
+    affected, held, reasons, pending = [], [], list(additionally_blocked), []
     for result in readiness:
         affected.extend(row.part_id for row in result.decisions)
+        pending.extend(result.scope_reasons)
         held.extend(row.part_id for row in result.decisions
                     if row.status == BLOCKED and
                     row.part_id != result.scope.inner_door_part_id)
@@ -159,6 +161,7 @@ def _preview(
         impacted_parts=tuple(dict.fromkeys(affected)),
         blocking_reasons=tuple(dict.fromkeys(reasons)),
         held_parts=tuple(dict.fromkeys(held)),
+        dependency_warnings=tuple(dict.fromkeys(pending)),
     )
 
 

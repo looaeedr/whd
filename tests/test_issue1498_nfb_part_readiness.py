@@ -124,6 +124,7 @@ def test_missing_real_plate_id_is_scope_blocker_not_an_invented_part():
     assert result.for_part("inner_door:upper:panel").status==READY
     assert "BASE_PLATE_PHYSICAL_ID_UNRESOLVED" in result.scope_reasons
     assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" in result.scope_reasons
+    assert result.can_submit  # only the genuinely verified MFG-1 door
     with pytest.raises(ValueError,match="dependencies unresolved"):
         result.filter_export_part_ids(("side_panel:left",))
     assert result.filter_export_part_ids(("side_panel:left",),partial=True)[0]==(
