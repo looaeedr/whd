@@ -42,6 +42,10 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=phase6-dimension-semantics role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md -->
 <!-- WHD_AUTHORITY contract=phase6-dimension-semantics role=MIRROR path=07_Phase6尺寸語意與標準截角母規則.md canonical=個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md -->
 
+<!-- WHD_AUTHORITY contract=receiving-inner-door-frame-physical-mating role=CURRENT path=docs/receiving-inner-door-frame-mating-contract.md -->
+<!-- WHD_AUTHORITY contract=assembly-joint-placement-marking role=CURRENT path=docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md -->
+<!-- WHD_AUTHORITY contract=ci-test-sharding-parallelization-design role=CURRENT path=docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md -->
+
 <!-- WHD_AUTHORITY contract=manufacturing-layer-classification role=CURRENT path=加工層分類與定義.md -->
 <!-- WHD_AUTHORITY contract=manufacturing-layer-classification role=MIRROR path=標準基準檔格式.md canonical=加工層分類與定義.md -->
 
