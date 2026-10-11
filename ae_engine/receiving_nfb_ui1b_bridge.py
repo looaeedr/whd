@@ -199,14 +199,9 @@ def verify_nfb_ui1a_for_submit(
     )
 
 
-def submit_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
-                             *, current_snapshot, confirm):
-    """Use the existing #1500 Receiving transaction and reject stale evidence.
-
-    This is a REAL submit when its source, panel, Set/Bay and confirmed
-    operator world-X all still match. Cancel/failed revalidation changes
-    neither ReceivingLayout nor project state.
-    """
+def assert_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
+                             *, current_snapshot):
+    """Verify the staged proof still matches source bytes, panel and Bay."""
     if not isinstance(bundle,NfbVerifiedDraftSubmission):
         raise TypeError("NFB submit needs the real source-verified UI-1A bundle")
     layout=adapter.layout
@@ -229,6 +224,13 @@ def submit_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
         raise ValueError("NFB original source DXF changed since verification")
     if not bundle.can_submit:
         raise ValueError("NFB physical scope is not manufacturing-ready")
+    return True
+
+
+def submit_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
+                             *, current_snapshot, confirm):
+    """Atomically save via existing #1500 Receiving transaction; no bypass."""
+    assert_live_verified_nfb(adapter,bundle,current_snapshot=current_snapshot)
     return adapter.submit_nfb_to_bays(
         set_index=bundle.set_index,bay_indices=(bundle.bay_index,),
         version_id=bundle.version_id,configs={bundle.bay_index:bundle.config},
