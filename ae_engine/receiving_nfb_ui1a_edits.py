@@ -24,6 +24,18 @@ RECONFIRM = "RECONFIRM_REQUIRED"
 ROTATIONS = (0,90,180,270)
 
 
+def _rotation_override(mode=INHERIT,value=None):
+    if mode not in (INHERIT,OVERRIDE):
+        raise ValueError("NFB rotation override mode invalid")
+    if mode == INHERIT:
+        if value is not None:
+            raise ValueError("NFB inherited rotation cannot hold an override")
+        return {"mode":INHERIT,"value":None}
+    if type(value) is not int or value not in ROTATIONS:
+        raise ValueError("NFB unit rotation must be 0/90/180/270")
+    return {"mode":OVERRIDE,"value":value}
+
+
 def editable_nfb_draft(draft):
     state=deepcopy(draft)
     seen=set()
@@ -39,7 +51,7 @@ def editable_nfb_draft(draft):
             if not isinstance(slot["unit_id"],str) or slot["unit_id"] in seen:
                 raise ValueError("NFB draft unit IDs must be unique")
             seen.add(slot["unit_id"])
-            slot.setdefault("rotation",_override())
+            slot.setdefault("rotation",_rotation_override())
             slot.setdefault("manual_x_state",NONE)
             slot.setdefault("manual_x_mm",None)
             slot.setdefault("datum_snapshot",None)
@@ -73,7 +85,7 @@ def insert_nfb_slot(draft, layer_index, position, *, filename=None, brand=None):
     state["_next_unit_number"]+=1
     layer["slots"].insert(position,{
         "unit_id":uid,"filename":filename,"source_brand":brand if filename else None,
-        "brand":_override(),"rotation":_override(),
+        "brand":_override(),"rotation":_rotation_override(),
         "manual_x_state":NONE,"manual_x_mm":None,"datum_snapshot":None,
     })
     _reset_layer_x(layer)
@@ -132,7 +144,7 @@ def set_nfb_slot_rotation(draft,layer_index,slot_index,*,mode,value=None):
     if mode==INHERIT and value is not None:
         raise ValueError("NFB inherited rotation has no separate value")
     state=editable_nfb_draft(draft)
-    _get_slot(state,layer_index,slot_index)["rotation"]=_override(mode,value)
+    _get_slot(state,layer_index,slot_index)["rotation"]=_rotation_override(mode,value)
     return state
 
 
