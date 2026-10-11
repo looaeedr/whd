@@ -59,3 +59,9 @@ whd_schema: WHD_DOC_META_V1
 `CLASSIFICATION_NOT_RUN != HANG/TIMEOUT`：classifier 尚未執行、沒有 terminal classifier record，不能推論成 hang 或 timeout。先確認 child process / job / step terminal state，再依 exact log evidence 分類。
 
 `FLAKY_WARNING`：首次 unexpected RED、同一 exact scope retry GREEN，仍必須保留 `[FLAKY-WARNING]` 與 first-run evidence；retry GREEN 不得抹除第一次異常，也不得自動升格成 deterministic PASS 證據。
+
+## 本體長對話上下文損耗防護 `WHD_CONTEXT_LOSS_PREVENTION_V1`
+
+本 Skill 的 bounded tail / cursor 同樣適用 ChatGPT 對話容量：避免在工具結果與回答重複貼出完整 Log、全文檔案或重跑相同搜尋。能用 GitHub `fetch_file` 的 `start_line/end_line`、PR changed filenames、CI `run/jobs/steps` 狀態和固定 `<=80` 行錯誤切片，就不讀整份。讀取的目的是維持本輪 `Issue/PR`、`branch/HEAD`、`run_id`、已確認決策與下一動作的精簡工作事實，不建立交接文件或背景排程。
+
+一旦觀察到輸出 `truncated`、上下文摘要缺細節或版本矛盾，對缺失的事實做定向 fresh-read，不臆測舊決策，也不要求使用者重複已提供的答案；不中斷既有施工，不用長輸出沖掉當前工作資訊。ChatGPT 無法讀取確切剩餘 Token 或控制平台壓縮，因此只能降低風險，不能承諾永遠不遺失上下文。
