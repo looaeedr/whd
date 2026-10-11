@@ -8,7 +8,8 @@ from gui_modules.application.receiving_multi_settings_window import open_multi_s
 
 def test_mode_toggle_and_manager_stay_operable_without_forced_window_exit():
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("800x600+0+0")
+    root.update()
     mode = {"current": "set_bay"}
     switched = []
     try:
@@ -47,7 +48,9 @@ def test_mode_toggle_and_manager_stay_operable_without_forced_window_exit():
         assert win.winfo_exists()
         assert win._receiving_multi_left_scroll.winfo_exists()
         assert win._receiving_multi_function_scroll.winfo_exists()
-        assert win.grab_current() is None
+        assert win.grab_current() is win  # Mode switches cannot unlock the parent.
         win._receiving_multi_close()
+        root.update()
+        assert root.grab_current() is None
     finally:
         root.destroy()
