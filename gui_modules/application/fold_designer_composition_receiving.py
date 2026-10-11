@@ -1698,11 +1698,40 @@ def open_receiving_multi_settings(self, namespace):
                 width=12, state="readonly",
             )
             slot_brand_select.pack(side="left", padx=3)
+            rotation_row=ttk.Frame(section)
+            rotation_row.grid(row=4,column=0,columnspan=3,sticky="w",pady=(2,4))
+            ttk.Label(rotation_row,text="本層角度").pack(side="left")
+            layer_rotation_var=tk.StringVar(master=modal,value="0")
+            layer_rotation_select=ttk.Combobox(
+                rotation_row,textvariable=layer_rotation_var,
+                values=("0","90","180","270"),width=5,state="readonly",
+            )
+            layer_rotation_select.pack(side="left",padx=(4,10))
+            ttk.Label(rotation_row,text="所選顆角度").pack(side="left")
+            unit_rotation_var=tk.StringVar(master=modal,value="跟隨本層")
+            unit_rotation_select=ttk.Combobox(
+                rotation_row,textvariable=unit_rotation_var,
+                values=("跟隨本層","0","90","180","270"),
+                width=9,state="readonly",
+            )
+            unit_rotation_select.pack(side="left",padx=(4,10))
+            ttk.Label(rotation_row,text="X 位移 mm").pack(side="left")
+            manual_x_var=tk.StringVar(master=modal,value="")
+            ttk.Entry(rotation_row,textvariable=manual_x_var,width=8).pack(
+                side="left",padx=(4,3),
+            )
+            ttk.Button(
+                rotation_row,text="設定",
+                command=lambda idx=idx:set_x_in_draft(idx),
+            ).pack(side="left")
             layer_rows.append({
                 "section": section, "available": available,
                 "assigned": assigned, "count": count_text,
                 "layer_brand_var": layer_brand_var,
                 "slot_brand_var": slot_brand_var,
+                "layer_rotation_var": layer_rotation_var,
+                "unit_rotation_var": unit_rotation_var,
+                "manual_x_var": manual_x_var,
             })
 
             def layer_brand_changed(_event=None, idx=idx):
@@ -1730,6 +1759,14 @@ def open_receiving_multi_settings(self, namespace):
 
             layer_brand_select.bind("<<ComboboxSelected>>",layer_brand_changed)
             slot_brand_select.bind("<<ComboboxSelected>>",slot_brand_changed)
+            layer_rotation_select.bind(
+                "<<ComboboxSelected>>",
+                lambda _event,i=idx:set_rotation_in_draft(i),
+            )
+            unit_rotation_select.bind(
+                "<<ComboboxSelected>>",
+                lambda _event,i=idx:set_rotation_in_draft(i,unit=True),
+            )
             def selected_slot_changed(_event=None, idx=idx):
                 selected = layer_rows[idx]["assigned"].curselection()
                 slots = draft_state["draft"]["layers"][idx]["slots"]
