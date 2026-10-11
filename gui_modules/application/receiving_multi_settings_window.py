@@ -299,8 +299,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     active_ports = {"ports": None}
     candidate_selected = {"head": None, "tail": None}
     candidate_combos = {}
-    manager_state = {"open": False, "role": "head"}
-    manager_widgets = {"frame": None, "label": None, "buttons": ()}
+    manager_state = {"open": False, "role": "head", "page": "candidates"}
+    manager_widgets = {"frame": None, "label": None, "buttons": (),
+                       "buttons_frame": None, "quantity_frame": None}
+    if get_candidate_ports is not None:
+        from .receiving_quantity_allocation_ui import ReceivingQuantityAllocationUI
+        quantity_ui = ReceivingQuantityAllocationUI(
+            win, canvas,
+            get_counts=lambda: tuple(get_switch().connection_counts()),
+            get_ports=get_candidate_ports,
+            get_marks=get_original_door_marks,
+            on_render=lambda: render(),
+            warn=lambda exc: warn(exc),
+        )
+    else:
+        quantity_ui = None
 
     def show_setting_controls():
         for widget in settings_host.winfo_children():
@@ -426,10 +439,23 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 def choose_manage_role():
                     manager_state["role"] = role_var.get()
                     refresh_manager_controls()
+                    render()
                 for label, value in (("封頭孔", "head"), ("封尾孔", "tail")):
                     ttk.Radiobutton(
                         choices, text=label, value=value,
                         variable=role_var, command=choose_manage_role,
+                    ).pack(side="left", padx=(0, 10))
+                pages = ttk.Frame(manage)
+                pages.pack(anchor="w", pady=(4, 2))
+                page_var = tk.StringVar(master=win, value=manager_state["page"])
+                def change_manager_page():
+                    manager_state["page"] = page_var.get()
+                    refresh_manager_controls()
+                    render()
+                for label, value in (("候選版本", "candidates"), ("數量配置", "quantity")):
+                    ttk.Radiobutton(
+                        pages, text=label, value=value,
+                        variable=page_var, command=change_manager_page,
                     ).pack(side="left", padx=(0, 10))
                 buttons = ttk.Frame(manage)
                 buttons.pack(anchor="w", pady=3)
@@ -443,15 +469,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     )
                     control.pack(side="left", padx=(0, 4))
                     actions_map.append(control)
-                manager_widgets.update(frame=manage, label=title, buttons=tuple(actions_map))
+                quantity_frame = ttk.Frame(manage)
+                manager_widgets.update(
+                    frame=manage, label=title, buttons=tuple(actions_map),
+                    buttons_frame=buttons, quantity_frame=quantity_frame,
+                )
                 refresh_manager_controls()
                 if manager_state["open"]:
                     manage.pack(anchor="e")
             else:
-                manager_widgets.update(frame=None, label=None, buttons=())
+                manager_widgets.update(frame=None, label=None, buttons=(),
+                                       buttons_frame=None, quantity_frame=None)
         else:
             actions(settings_host, "inner_door_layers")
-            manager_widgets.update(frame=None, label=None, buttons=())
+            manager_widgets.update(frame=None, label=None, buttons=(),
+                                   buttons_frame=None, quantity_frame=None)
 
     def refresh_manager_controls():
         title = manager_widgets["label"]
@@ -468,6 +500,17 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             manager_widgets["buttons"][1].configure(
                 text="複製到封尾" if role == "head" else "複製到封頭"
             )
+        candidate_frame = manager_widgets["buttons_frame"]
+        quantity_frame = manager_widgets["quantity_frame"]
+        if quantity_ui is not None and manager_state["page"] == "quantity":
+            candidate_frame.pack_forget()
+            quantity_frame.pack(anchor="w", pady=3)
+            quantity_ui.show(quantity_frame, role)
+        else:
+            if quantity_frame is not None:
+                quantity_frame.pack_forget()
+            if candidate_frame is not None and not candidate_frame.winfo_manager():
+                candidate_frame.pack(anchor="w", pady=3)
 
     def toggle_manager():
         frame = manager_widgets["frame"]
@@ -479,6 +522,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             refresh_manager_controls()
         else:
             frame.pack_forget()
+        render()
 
     def manage_action(action):
         role = manager_state["role"]
@@ -519,6 +563,15 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     mark_cache = {"key": None, "values": ()}
 
     def render():
+        if (quantity_ui is not None and manager_state["open"] and
+                manager_state["page"] == "quantity" and
+                applied["mode"] == "set_bay" and
+                selected_setting["kind"] == "head_features" and
+                quantity_ui.draft.step[manager_state["role"]] == 2):
+            quantity_ui.paint()
+            return
+        canvas.configure(scrollregion=(0, 0, 0, 0))
+        canvas.yview_moveto(0)
         count = applied["count"] if applied["mode"] == "set_bay" else 1
         selected = applied["selected_bays"] if applied["mode"] == "set_bay" else None
         marks = ()
@@ -672,6 +725,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def click_bay(event):
+        if (quantity_ui is not None and manager_state["open"] and
+                manager_state["page"] == "quantity" and
+                applied["mode"] == "set_bay" and
+                selected_setting["kind"] == "head_features" and
+                quantity_ui.draft.step[manager_state["role"]] == 2):
+            quantity_ui.click(event)
+            return
         if applied["mode"] != "set_bay" or applied["set_index"] is None:
             return
         for index, (x0, y0, x1, y1) in enumerate(canvas._receiving_bay_hitboxes):
@@ -726,6 +786,17 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     canvas.bind("<Button-1>", click_bay)
     canvas.bind("<Configure>", lambda _event: render())
+    def scroll_quantity(event):
+        if (quantity_ui is not None and manager_state["open"] and
+                manager_state["page"] == "quantity" and
+                quantity_ui.draft.step[manager_state["role"]] == 2):
+            direction = (-1 if getattr(event, "delta", 0) > 0 or
+                         getattr(event, "num", 0) == 4 else 1)
+            canvas.yview_scroll(direction, "units")
+            return "break"
+    canvas.bind("<MouseWheel>", scroll_quantity)
+    canvas.bind("<Button-4>", scroll_quantity)
+    canvas.bind("<Button-5>", scroll_quantity)
     refresh_rows()
     render()
 
@@ -736,6 +807,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_candidate_selected = candidate_selected
     win._receiving_multi_candidate_combos = candidate_combos
     win._receiving_multi_manager_state = manager_state
+    win._receiving_multi_quantity_ui = quantity_ui
     win._receiving_multi_settings_host = settings_host
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
