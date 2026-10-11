@@ -1,6 +1,6 @@
 ---
 whd_doc_role: MIRROR
-whd_contract: spec-authoring-skill-gate
+whd_contract: grounded-spec-authoring
 whd_canonical: .agents/skills/engineering/寫成規格書/SKILL.md
 whd_schema: WHD_DOC_META_V1
 ---
