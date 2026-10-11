@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Phase6 Knowledge Preflight gate.
+"""Legacy-compatible Skill/reference routing diagnostic, not an execution gate.
 
-Skills 決定 AI 怎麼改；required references 提供踩坑、規格與 Source of Truth。
-本工具只檢查 AI 開發流程 evidence，不參與 runtime 製造公式。
+Skills 決定 AI 怎麼改；required references 用於可選的技能／域權威查找。
+保留既有路由、evidence 輸出與非零診斷 exit status 供測試／舊呼叫者相容；
+但正式 X `AGENTS.md` 已退役強制 Phase6 Preflight receipt。
+**本工具的查找結果、missing evidence 或 CLI exit code 不得作為現行
+Git／DC／施工／提交／PR／CI 的授權或阻擋門檻。**
+實際權限、產品／治理通道與驗收以 X `AGENTS.md` 和適用 gate 為準。
+本工具不參與 runtime 製造公式。
 """
 from __future__ import annotations
 
@@ -221,7 +226,7 @@ def format_report(required: Sequence[str], completed: set[str]) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Phase6 machine-readable Knowledge Preflight gate")
+    parser = argparse.ArgumentParser(description="Optional legacy-compatible Skill/reference routing diagnostic; NOT a CURRENT execution gate")
     parser.add_argument("--task", default="", help="任務描述或任務類型")
     parser.add_argument("--changed-file", action="append", default=[], help="本次修改檔案，可重複")
     parser.add_argument("--evidence", action="append", default=[], help="Skill/reference verification evidence 檔案，可重複")
