@@ -238,3 +238,39 @@ def submit_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
             bundle.scope,bundle.source_inventory,bundle.verified_door,
         )},confirm=confirm,
     )
+
+
+def copy_live_verified_nfb(adapter, *, source_bay_index: int,
+                           target_bundle: NfbVerifiedDraftSubmission,
+                           current_snapshot, confirm):
+    """Copy a submitted NFB Bay to a separately verified physical target.
+
+    Only the source's model/layout/rotation and its chosen offsets are
+    eligible for deep copy. The destination's independent world-X, physical
+    IDs and datum are taken from a real MFG-1 source+part verification,
+    never reused from the source. All changes remain atomic/cancellable.
+    """
+    assert_live_verified_nfb(
+        adapter,target_bundle,current_snapshot=current_snapshot,
+    )
+    layout=adapter.layout
+    row=layout["sets"][target_bundle.set_index]
+    if (type(source_bay_index) is not int
+            or not 0<=source_bay_index<len(row["bays"])
+            or source_bay_index==target_bundle.bay_index):
+        raise ValueError("NFB copy requires distinct source and target real Bays")
+    source=row["bays"][source_bay_index]
+    if source.get("nfb_config_submitted") is not True:
+        raise ValueError("NFB copy source is UNCONFIGURED")
+    # The canonical transaction verifies deep-copy identity and target's
+    # live physical evidence again; never synthesize an approved target.
+    return adapter.copy_submitted_nfb_to_bay(
+        set_index=target_bundle.set_index,
+        source_bay_index=source_bay_index,
+        target_bay_index=target_bundle.bay_index,
+        version_id=target_bundle.version_id,
+        target_config=target_bundle.config,
+        evidence=(target_bundle.scope,target_bundle.source_inventory,
+                  target_bundle.verified_door),
+        confirm=confirm,
+    )
