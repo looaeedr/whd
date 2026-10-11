@@ -59,6 +59,36 @@ whd_schema: WHD_DOC_META_V1
 - 本次回讀顯示 GitHub `localX` 較正式 X **超前 52 commits，X 並未超前**；檔案 diff 中四份文檔有差異：新增 `docs/manufacturing/receiving-large-weld-ear.md`，修訂 AI Library 的 `03_常用Prompt指令庫.md`、`05_CAD批次拆圖與特徵萃取規範.md`、`07_WHD技能發現與掃描深模組規則.md`。
 - 這些內容已進入 `localX`，**不代表已發布 X**；尤其焊接耳朵製造政策為產品域，正式 X 仍需使用者當次 `/推推`。不可利用本次治理通道搬運上述產品差異。
 
+## 第二輪深入清查：歷史計畫、驗收、checkpoint、logs（2026-10-11）
+
+> 本節以正式 X 讀取的 Git 樹與個別檔案 frontmatter、GitHub Issue 結案回讀為依據；**是角色與歷史證據風險稽核，不表示這些檔案的製造語意已獲產品驗收。** 舊計畫的保留理由是追溯用，不重啟退役派工／Preflight。
+
+| 目錄 | 路徑數 | HISTORICAL | REFERENCE | CURRENT | 未標角色 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `docs/superpowers/plans/` | 96 | 82 | 10 | 4 | 0 |
+| `docs/superpowers/verification/` | 91 | 81 | 3 | 3 | 4 份原始 `.txt` |
+| `docs/superpowers/checkpoints/` | 172 | 44 | 22 | 0 | **73 份 `.md`、33 份原始 `.txt`** |
+| `logs/` | 185 | 未完成全檔角色統計 | 未完成 | 未完成 | 62 份 `.md`、123 份 `.txt`，抽檢的歷史紀錄無 metadata |
+| `.scratch/` | 54 | 未完成全檔角色統計 | 未完成 | 未完成 | 54 份 `.md`，抽檢的 checkpoint／journal 無 metadata |
+
+前三個 `docs/superpowers` 子目錄已**逐件取原文前言／角色資訊**；`logs`／`.scratch` 本節只完成路徑盤點及跨頭尾的抽樣內容檢查，不能把抽樣結果冒充全篇驗收。
+
+### 已結案但仍標 CURRENT 的七份計畫／驗收證據
+
+- `docs/superpowers/plans/2026-09-15-issue280-permanent-test-reconciliation-and-move.md`（Issue [#280](https://github.com/looaeedr/whd/issues/280) 已於 2026-09-15 結案）。
+- `docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md`、`2026-09-16-issue305-t1-shard-manifest.md`、`2026-09-16-issue306-t2-non-gui-sharding.md`（Issue [#304](https://github.com/looaeedr/whd/issues/304)／[#305](https://github.com/looaeedr/whd/issues/305)／[#306](https://github.com/looaeedr/whd/issues/306) 均已於 2026-09-16 結案；母票 [#303](https://github.com/looaeedr/whd/issues/303) 於 2026-09-17 結案）。
+- `docs/superpowers/verification/2026-09-16-issue304-t0-baseline.md`、`2026-09-16-issue305-t1-shard-manifest.md`、`2026-09-16-issue306-t2-non-xvfb-sharding.md`。
+
+這七份檔案的 CURRENT metadata 與「日期化歷史實作指令／一次性驗收數據」同時存在，形成**角色語意待確認**問題：舊分支起點、RUN、原收集節點數（如 T0 的 2153）不是今天的授權或目前測試數。**不能僅因工單已關閉就斷言其整份領域契約失效**，CI 分片權威仍須跟現在的 `tools/test_shard_execution.py`、現行 workflow 和已核准 CURRENT design 核對；調整原文件需走產品通道 `localX`／必要 CI，不能以本治理報告或治理白名單修改。
+
+### Checkpoint 歷史保留與未標記文件
+
+- `docs/superpowers/checkpoints/` 的 **73 份無角色 Markdown**，包括 `issue334-t1-green-candidate.md`、`issue531-b6-controller-aggregate.md`、`phase4-t0-deep-owner-census.md` 等，保留當時綠燈、批次審核與固定 SHA。**不能根據檔名、日期、單一 GREEN 就視為當前可執行工作**；查閱時先交叉核對現行 Issue／PR／最新 source。
+- 另 **33 份原始 `.txt`** 沒有 metadata；原始測試／Preflight 證據不可機械插入 YAML 或改寫內容，應由索引／清查報告說明歷史用途。
+- `docs/superpowers/verification/issue678-poweroff-red/approved/` 有四份無 metadata 的原始 `.txt`，同樣保留位元內容與測試追溯，不自行修改。
+- `logs/` 有 62 個 `.md`、123 個 `.txt`；`.scratch/` 有 54 份 `.md`。抽檢 `logs/box_body_single_source/T*.state.md`、`logs/preflight/*`、`.scratch/dm*/checkpoint.md`、`.scratch/*/phase6_preflight_evidence.md` 均是日期化執行證據，**沒有理由把其中 READ_SKILL／Preflight 憑證重新升格成 CURRENT 前置**。
+- 本節不對過去合法驗收的結果重新判決、不自動刪除，也不創建新的必經 Gate；真正需要刪改原件時，先查引用者與 path classifier，避免破壞追溯或產品守衛。
+
 ## 清查判定
 
 - **已執行**：全樹文件清單、權威索引角色統計、重要 CURRENT／REFERENCE／MIRROR 的優先核對、59 份 Skill metadata 與退役流程關鍵字查核、確認一處治理文字錯誤並提出修正。
