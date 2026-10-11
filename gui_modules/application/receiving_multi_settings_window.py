@@ -173,7 +173,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_settings_ports=None,
                         get_original_door_marks=None,
-                        get_quantity_ports=None, on_close=None, on_brand_close=None):
+                        on_close=None, on_brand_close=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -285,27 +285,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
-    quantity_editor = {"controls": None}
-
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
-        quantity_editor["controls"] = None
         active_ports["ports"] = None
-        if selected_setting["kind"] is None:
-            return
-        if applied["mode"] == "quantity":
-            # Original QuantityModel remains the exclusive hole-version owner.
-            # Embed its existing editor here, NOT in a new data model/window.
-            if (selected_setting["kind"] == "head_features"
-                    and get_quantity_ports is not None):
-                from .quantity_version_controls import build_quantity_controls
-                ports = get_quantity_ports()
-                if ports["snapshot"]() is not None:
-                    editor = build_quantity_controls(settings_host, ports, embedded_endcap=True)
-                    editor.frame.pack(anchor="w")
-                    editor.refresh()
-                    quantity_editor["controls"] = editor
+        if selected_setting["kind"] is None or applied["mode"] == "quantity":
+            # Version feature design will be handled separately. Preserve the
+            # existing QuantityModel but do not render a version editor here.
             return
         if get_settings_ports is None:
             return
@@ -342,14 +328,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         if selected_setting["kind"] == "head_features":
             actions(settings_host, "head_features", role="head")
             actions(settings_host, "tail_features", role="tail")
-            if get_quantity_ports is not None:
-                # Existing version ownership belongs to Quantity mode.
-                # Make it discoverable beside retained per-Bay hole editors
-                # instead of silently inventing per-Bay version storage.
-                ttk.Button(
-                    settings_host, text="孔型版本一／二",
-                    command=lambda: win.after_idle(show_original_versions),
-                ).pack(anchor="w", pady=(5, 2))
         else:
             actions(settings_host, "inner_door_layers")
 
@@ -522,18 +500,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     warn(exc)
                 return
 
-    def show_original_versions():
-        """Use the original QuantityModel editor only after explicit entry."""
-        if not win.winfo_exists():
-            return
-        mode_var.set("quantity")
-        change_mode()
-        if applied["mode"] != "quantity":
-            return
-        setting_list.selection_clear(0, tk.END)
-        setting_list.selection_set(0)
-        select_setting()
-
     def change_mode():
         target = mode_var.get()
         try:
@@ -566,7 +532,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_brand_var = brand_var
     win._receiving_multi_brand_selector = brand_selector
     win._receiving_multi_settings_host = settings_host
-    win._receiving_multi_quantity_editor = quantity_editor
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host
