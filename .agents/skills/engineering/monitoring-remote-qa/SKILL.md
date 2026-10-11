@@ -13,10 +13,12 @@ whd_schema: WHD_DOC_META_V1
 
 依 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json` 做 exact PR HEAD 判斷：`requested/queued/waiting/pending/in_progress` 一律 `CONTINUE_POLL`；找不到 run 或 SHA 不符 `RECONCILE_ONLY`；同 SHA `completed/success` 必須續做 `LOCALX_INTEGRATION_PENDING`；`failure/cancelled/timed_out/action_required` → `REPAIR_AND_RETEST`。`localX` 整合後仍要完成 Issue 回讀和下一張工單查找 `CONTINUE_FINALIZATION`，不是 GREEN 即 `RELEASED`。只有真實 API/權限/環境阻塞時回報 `BLOCKED_WITH_EVIDENCE` 或 `RUNTIME_LIMIT_UNRESOLVED` 和 `head_sha/run_id/next_exact_action`，不得稱 DONE 或背景會繼續；本規則不具跨回合喚醒能力。
 
+GitHub-only 例外需要使用者當次 Issue／PR 範圍內的遠端合併核准；**執行者自己在 PR 寫的「不使用 DC」不能代替這項授權**。exact HEAD 全綠但僅禁止 DC，仍須標記 `LOCALX_INTEGRATION_PENDING` 並明列缺少的整合核准。不可假記 `DC_UNREACHABLE`。
+
 ## QA 輪詢與交付閘門
 
 - `queued / waiting / pending / in_progress` → **CONTINUE_POLL**。輪詢 exact SHA 的 checks + job；工作仍可執行時不得「CI 跑著就結束」；每 2–3 操作回報，不能用回報代替續作。
-- `completed / success` → 若 PR base=`localX`、工作分支及 exact SHA 核准條件符合，`/派工` **先進 `LOCALX_INTEGRATION` 透過 DC 整合本機 `localX`**，必要整合驗證後非強制同步遠端 GitHub `localX`、回讀兩端 SHA／PR；**只有 DC 確實無法連線**才直接合併遠端 `localX` 並標記 `DC_UNREACHABLE`／`LOCALX_SYNC_PENDING`，不可聲稱本機已同步；若 PR 已標示 merged 也必須回讀本機／遠端證據。之後工單 close/readback。**測試 GREEN 不是派工終點**。
+- `completed / success` → 若 PR base=`localX`、工作分支及 exact SHA 核准條件符合，`/派工` **先進 `LOCALX_INTEGRATION` 透過 DC 整合本機 `localX`**，必要整合驗證後非強制同步遠端 GitHub `localX`、回讀兩端 SHA／PR；除 DC 確實無法連線、須標記 `DC_UNREACHABLE`／`LOCALX_SYNC_PENDING` 的斷線備援外，使用者對當次工單有明確 GitHub-only 遠端合併授權時，依 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1` 直接合併並標記 `GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING`；兩者均不可聲稱本機已同步；若 PR 已標示 merged 也必須回讀本機／遠端證據。之後工單 close/readback。**測試 GREEN 不是派工終點**。
 - **`localX` merge + SHA 回讀即觸發 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，不等原工單 close；原工單回寫及結案與下一張搜尋銜接處理。可執行者直接續派並施工；若無候選須回報 `NO_ELIGIBLE_ISSUE` 和實際查核依據，不能把 CI/merge/close 當成停止條件。
 
 - `completed / failure / cancelled / timed_out` → 檢查 logs，修復後重試，不得將其他 commit 的 GREEN 當成同一 HEAD。
