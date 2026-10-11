@@ -9,6 +9,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk, messagebox
 from ae_engine.receiving_hole_candidates import version_label
+from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
@@ -320,6 +321,49 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                        "buttons_frame": None, "quantity_frame": None,
                        "canvas": None}
     quantity_ui = None
+    preview_state = {"applied": None, "candidate": None, "status": None}
+
+    def refresh_inner_preview():
+        """Show real Bay data versus currently selected candidate, not geometry."""
+        applied_canvas = preview_state["applied"]
+        chosen_canvas = preview_state["candidate"]
+        if (applied_canvas is None or chosen_canvas is None
+                or not applied_canvas.winfo_exists()
+                or not chosen_canvas.winfo_exists()):
+            return
+        from ae_engine.receiving_shared_settings import setting_value
+        bay = selected_setting["bay_index"]
+        row = active_ports["ports"]["row"]()
+        applied_config = {
+            "layers": setting_value(row, bay, "inner_door_layers"),
+            "models": setting_value(row, bay, "inner_door_models"),
+        }
+        paint_inner_door_thumbnail(
+            applied_canvas, applied_config,
+            title=f"目前：第{selected_setting['set_index']+1}套／第{bay+1}連",
+        )
+        version_id = candidate_selected["inner-door"]
+        candidate_config = None
+        if version_id is not None and get_inner_candidate_ports is not None:
+            for version in get_inner_candidate_ports()["versions"]("inner-door"):
+                if version["id"] == version_id:
+                    candidate_config = version["config"]
+                    break
+        paint_inner_door_thumbnail(
+            chosen_canvas, candidate_config,
+            title=(f"候選：{version_label(version_id)}"
+                   if candidate_config is not None else "候選：即時"),
+        )
+        if candidate_config is None:
+            message = "選取內門版本，即可比較縮圖"
+        elif candidate_config == applied_config:
+            message = "候選內容與目前這一連相同"
+        else:
+            message = "候選內容尚未套用至目前這一連"
+        if len(applied["selected_bays"]) > 1:
+            message += "（左圖僅顯示目前連位）"
+        preview_state["status"].set(message)
+
     def editor_saved(role, version_id, *, keep_live=False):
         # Saving while "即時" creates a candidate but MUST NOT select it:
         # selecting v1 here would make the next Edit overwrite v1 instead of
@@ -331,6 +375,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             win.after_idle(refresh_manager_controls)
 
     def show_setting_controls():
+        preview_state.update(applied=None, candidate=None, status=None)
         for widget in settings_host.winfo_children():
             widget.destroy()
         active_ports["ports"] = None
@@ -418,6 +463,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     state="normal" if candidate_selected[role] else "disabled"
                 )
                 refresh_manager_controls()
+                if role == "inner-door":
+                    refresh_inner_preview()
 
             selector.bind("<<ComboboxSelected>>", choose)
 
@@ -440,6 +487,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         role, candidate_selected[role],
                         applied["set_index"], tuple(applied["selected_bays"]),
                     )
+                    if role == "inner-door":
+                        refresh_inner_preview()
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
 
@@ -465,8 +514,26 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
-            # CSV switch placement belongs to the separate inner-door version
-            # editor, not the main Receiving Set/Bay operator page.
+                # Small factual thumbnails: Bay-applied versus only-selected
+                # candidate. No inferred hole geometry, 3D or manufacturing.
+                thumbnails = ttk.Frame(settings_host)
+                thumbnails.pack(anchor="w", fill="x", pady=(7, 2))
+                preview_state["applied"] = tk.Canvas(
+                    thumbnails, width=256, height=158,
+                    background="#1a2734", highlightthickness=0,
+                )
+                preview_state["applied"].pack(side="left", padx=(0, 8))
+                preview_state["candidate"] = tk.Canvas(
+                    thumbnails, width=256, height=158,
+                    background="#1a2734", highlightthickness=0,
+                )
+                preview_state["candidate"].pack(side="left")
+                preview_state["status"] = tk.StringVar(master=win)
+                ttk.Label(
+                    settings_host, textvariable=preview_state["status"],
+                ).pack(anchor="w")
+                refresh_inner_preview()
+            # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
 
@@ -934,6 +1001,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_set_buttons = (minus_set, plus_set)
     win._receiving_multi_candidate_selected = candidate_selected
     win._receiving_multi_candidate_combos = candidate_combos
+    win._receiving_multi_inner_preview = preview_state
+    win._receiving_multi_refresh_inner_preview = refresh_inner_preview
     win._receiving_multi_manager_state = manager_state
     win._receiving_multi_manager_window = manager_window
     win._receiving_multi_open_manager = open_manager

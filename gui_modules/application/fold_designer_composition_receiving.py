@@ -1255,20 +1255,53 @@ def open_receiving_multi_settings(self, namespace):
         modal = tk.Toplevel(self.app.root)
         modal.title("內門版本編輯")
         modal.transient(self.app.root)
-        modal.geometry("780x680")
+        from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
+        modal.geometry("820x750")
         frame = ttk.Frame(modal, padding=14)
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
                         else version_label(version_id))).pack(anchor="w")
         layers = tk.IntVar(master=modal, value=initial["layers"])
-        controls = ttk.Frame(frame)
-        controls.pack(anchor="w", pady=(8, 6))
+        summary_row = ttk.Frame(frame)
+        summary_row.pack(fill="x", pady=(4, 6))
+        controls = ttk.Frame(summary_row)
+        controls.pack(side="left", anchor="n")
         ttk.Label(controls, text="開關層數").pack(side="left")
+        preview_box = ttk.Frame(summary_row)
+        preview_box.pack(side="right", anchor="ne")
+        thumbnail = tk.Canvas(
+            preview_box, width=335, height=158,
+            background="#1a2734", highlightthickness=0,
+        )
+        thumbnail.pack(anchor="e")
+        preview_status = tk.StringVar(master=modal)
+        ttk.Label(preview_box, textvariable=preview_status).pack(anchor="e")
         chosen = [list(switch_filenames_in_layer(slot))
                   for slot in initial["models"]]
         layer_rows = []
         warning = tk.StringVar(master=modal, value="")
         source_state = {"files": (), "signature": None}
+
+        def paint_draft_preview():
+            config = {
+                "layers": layers.get(),
+                "models": [
+                    pack_switch_layer(chosen[0]),
+                    pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                ],
+            }
+            paint_inner_door_thumbnail(thumbnail, config, title="版本配置即時縮圖")
+            before = {
+                "layers": initial["layers"],
+                "models": [
+                    pack_switch_layer(switch_filenames_in_layer(initial["models"][0])),
+                    pack_switch_layer(switch_filenames_in_layer(initial["models"][1]))
+                    if initial["layers"] == 2 else "",
+                ],
+            }
+            preview_status.set(
+                "尚未儲存的變更" if config != before else "與已載入版本相同"
+            )
 
         def repaint(index):
             entry = layer_rows[index]
@@ -1279,6 +1312,7 @@ def open_receiving_multi_settings(self, namespace):
             if selected and selected[0] < len(chosen[index]):
                 entry["assigned"].selection_set(selected[0])
             entry["count"].set(f"已配置 {len(chosen[index])} 顆")
+            paint_draft_preview()
 
         def refresh_source(*, force=False):
             if not modal.winfo_exists():
@@ -1377,6 +1411,7 @@ def open_receiving_multi_settings(self, namespace):
                     fill="x", pady=(4, 6),
                     after=layer_rows[0]["section"],
                 )
+            paint_draft_preview()
 
         change_layers()
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
@@ -1387,6 +1422,8 @@ def open_receiving_multi_settings(self, namespace):
             "rows": layer_rows, "warning": warning,
         }
         modal._receiving_inner_refresh_switch_models = refresh_source
+        modal._receiving_inner_preview_canvas = thumbnail
+        modal._receiving_inner_preview_status = preview_status
 
         def confirm():
             try:
