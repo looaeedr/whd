@@ -173,7 +173,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_settings_ports=None,
                         get_original_door_marks=None,
-                        get_quantity_ports=None, on_close=None):
+                        get_quantity_ports=None, on_close=None, on_brand_close=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -186,6 +186,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win.transient(parent)
     parent._receiving_multi_settings_window = win
     topology_changed = {"value": False}
+    brand_changed = {"value": False}
 
     def close():
         if win.grab_current() is win:
@@ -194,8 +195,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         win.destroy()
         # Reconcile the original (hidden) controls only once on exit,
         # never from inside the +連 button's Tk callback.
-        if topology_changed["value"] and on_close is not None:
+        if (topology_changed["value"] or brand_changed["value"]) and on_close is not None:
             on_close()
+        if brand_changed["value"] and on_brand_close is not None:
+            on_brand_close()
 
     win.protocol("WM_DELETE_WINDOW", close)
     win._receiving_multi_close = close
@@ -241,7 +244,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def apply_brand(_event=None):
         if set_brand is not None:
             try:
-                set_brand(brand_var.get())
+                if set_brand(brand_var.get()):
+                    brand_changed["value"] = True
             except (ValueError, IndexError, RuntimeError) as exc:
                 warn(exc)
                 brand_var.set(get_brand() if get_brand else "士林")
@@ -335,10 +339,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                              width=5, state="readonly").pack(side="left", padx=3)
                 ttk.Button(row, text="編輯",
                            command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
-            ttk.Button(row, text="連動選取的連",
-                       command=lambda: perform(lambda: ports["share"](kind, targets()))).pack(side="left", padx=3)
-            ttk.Button(row, text="解除本連連動",
-                       command=lambda: perform(lambda: ports["unlink"](kind))).pack(side="left", padx=3)
         if selected_setting["kind"] == "head_features":
             actions(settings_host, "head_features", role="head")
             actions(settings_host, "tail_features", role="tail")
