@@ -289,9 +289,8 @@ def build_part_scene(
                     raise ValueError("Receiving pattern cannot modify another family's Base Plate")
                 if spec.corner_policy is not None:
                     raise ValueError("Receiving bend drawing cannot silently override corner-policy geometry")
-                if (spec.box_body_fold_profile or spec.box_body_structure_state
-                        or spec.seam_positions):
-                    raise ValueError("Receiving illustrated pattern seam geometry needs separately verified relief")
+                if spec.seam_positions:
+                    raise ValueError("Receiving pattern with explicit physical seam relief is not yet verified")
                 from .sheetmetal_part_adapters import build_receiving_base_plate_result
                 result = _call(
                     build_receiving_base_plate_result,
@@ -318,7 +317,7 @@ def build_part_scene(
                     shrink_left=sl, shrink_right=sr,
                     bend=spec.bend,
                 )
-            if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions:
+            if receiving_pattern is None and ((spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions):
                 from .box_body_structure import resolve_box_body_structure, apply_base_plate_structure_reliefs
                 box_structure = None
                 if spec.box_body_fold_profile and spec.box_body_structure_state:
