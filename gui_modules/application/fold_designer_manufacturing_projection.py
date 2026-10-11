@@ -484,6 +484,8 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
                 "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
                 "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
                 "base_plate_bend": float(data.get("base_plate_bend", 20)),
+                "receiving_bend_pattern": data.get("receiving_bend_pattern"),
+                "physical_id": key,
                 "model": model,
             },
             features=features,
