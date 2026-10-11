@@ -31,6 +31,7 @@ class NfbTransactionPreview:
     target_bay_ids: tuple[str, ...]
     impacted_parts: tuple[str, ...]
     blocking_reasons: tuple[str, ...]
+    held_parts: tuple[str, ...] = ()
     requires_confirmation: bool = True
 
     @property
@@ -110,18 +111,24 @@ def _preview(
     action: str, target_ids, *, source_id=None, readiness=(),
     additionally_blocked=(),
 ):
-    affected, reasons = [], list(additionally_blocked)
+    affected, held, reasons = [], [], list(additionally_blocked)
     for result in readiness:
         affected.extend(row.part_id for row in result.decisions)
-        reasons.extend(result.scope_reasons)
-        for row in result.decisions:
-            if row.status == BLOCKED:
-                reasons.extend(f"{row.part_id}: {reason}" for reason in row.reasons)
+        held.extend(row.part_id for row in result.decisions
+                    if row.status == BLOCKED and
+                    row.part_id != result.scope.inner_door_part_id)
+        if not result.can_submit:
+            reasons.extend(result.scope_reasons)
+            reasons.extend(f"{row.part_id}: {reason}"
+                           for row in result.decisions if row.status == BLOCKED
+                           and row.part_id == result.scope.inner_door_part_id
+                           for reason in row.reasons)
     return NfbTransactionPreview(
         action=action, source_bay_id=source_id,
         target_bay_ids=tuple(target_ids),
         impacted_parts=tuple(dict.fromkeys(affected)),
         blocking_reasons=tuple(dict.fromkeys(reasons)),
+        held_parts=tuple(dict.fromkeys(held)),
     )
 
 
