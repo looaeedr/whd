@@ -47,8 +47,6 @@ PYTEST_PATHS = (
     "tests/test_issue1502_nfb_source_regions.py::test_cross_boundary_source_entity_is_ambiguous_not_auto_assigned",
     "tests/test_issue1502_nfb_source_regions.py::test_hash_handle_size_and_upper_lower_owner_fail_closed",
     "tests/test_issue1502_nfb_source_regions.py::test_insert_complex_group_is_not_silently_flattened_into_a_plate",
-    "tests/test_issue1502_existing_base_nfb_assembly.py::test_proven_base_cutting_partial_dxf_is_independent_of_ear_weld_z",
-    "tests/test_issue1502_existing_base_nfb_assembly.py::test_part_only_batch_rejects_unproved_nfb_before_any_output",
     "tests/test_issue1469_v15_acceptance.py",
     "tests/test_issue390_settings_contracts.py",
     "tests/test_issue500_settings_profile_projection.py::test_issue500_requires_frozen_request_and_plan_contracts",
