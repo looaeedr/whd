@@ -78,6 +78,10 @@ def test_project_level_candidates_survive_mode_switch_and_both_save_modes():
     assert "hole_candidates" not in restored["receiving_layout"]
     assert candidate_features(restored["receiving_hole_candidates"], "head", head) == [{"tag": "H"}]
     assert candidate_features(restored["receiving_hole_candidates"], "tail", tail) == [{"tag": "T"}]
+    invalid = deepcopy(restored)
+    invalid["receiving_hole_candidates"]["head"]["next_number"] = 1
+    with pytest.raises(ValueError):
+        normalize_quantity_snapshot(invalid, for_save=True)
 
 
 def test_candidate_validation_fails_closed():
