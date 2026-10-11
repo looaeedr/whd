@@ -1028,18 +1028,31 @@ def open_receiving_multi_settings(self, namespace):
         return setting_value(ports["row"](), int(bay_index), kind)
 
     def set_global_brand(value):
-        # One operator NFB choice applies to every Set; preserve active selection.
+        # The original Receiving layout remains the sole NFB data owner.
+        # Update all Sets as one operator action, then commit the projection
+        # once; selecting a brand must not silently change the active bay.
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        if value not in RECEIVING_SWITCH_BRANDS:
+            raise ValueError("不支援的開關品牌")
         adapter = self.receiving_adapter(namespace)
-        original = adapter.selection.set_index
+        original_set = adapter.selection.set_index
+        original_bay = adapter.selection.bay_index
+        if all(row.get("switch_brand", "士林") == value
+               for row in adapter.layout["sets"]):
+            return value
         try:
             for index in range(len(adapter.layout["sets"])):
                 adapter.select_set(index + 1)
                 adapter.set_brand(value)
         finally:
-            adapter.select_set(original + 1)
+            adapter.select_set(original_set + 1)
+            adapter.select_bay(original_bay + 1)
         self.mark_receiving_switch_layout_dirty(
             namespace, self.receiving_switch_adapter(namespace)
         )
+        self.sync_receiving_current_bay(namespace)
+        self.app.submit_update_intent("geometry", commit=True)
+        return value
 
     return open_multi_settings(
         self.app.root,
