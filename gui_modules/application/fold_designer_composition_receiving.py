@@ -1196,7 +1196,9 @@ def open_receiving_multi_settings(self, namespace):
         features = candidate_features(candidate_library(), role, version_id)
         # One validated all-or-nothing update; retains the active editor
         # selection and avoids the old per-Bay UI/geometry churn.
-        adapter.apply_candidate_to_bays(role, set_index, targets, features)
+        adapter.apply_candidate_to_bays(
+            role, set_index, targets, features, version_id=version_id,
+        )
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
         self.app.submit_update_intent("geometry", commit=True)
@@ -1213,6 +1215,15 @@ def open_receiving_multi_settings(self, namespace):
         self.app.submit_update_intent("geometry", commit=True)
         return result
 
+    def apply_live_label(role, set_index, highlighted):
+        """Tag the existing physical config 即時; no candidate or geometry mutation."""
+        adapter = candidate_adapter()
+        applied_bays = adapter.mark_live_version_for_bays(role, set_index, highlighted)
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        # A display-label mutation must never rebuild FinalScene.
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        return applied_bays
+
     def candidate_ports():
         return {
             "versions": lambda role: candidates_for(candidate_library(), role),
@@ -1220,6 +1231,7 @@ def open_receiving_multi_settings(self, namespace):
             "copy": copy_candidate,
             "delete": remove_candidate,
             "apply": apply_candidate,
+            "apply_live": apply_live_label,
             "apply_quantity": apply_quantity_configuration,
         }
 
@@ -2072,7 +2084,7 @@ def open_receiving_multi_settings(self, namespace):
         config = inner_config(inner_library(), version_id)
         verify_inner_models(config)
         adapter.apply_inner_door_candidate_to_bays(
-            config, set_index, highlighted,
+            config, set_index, highlighted, version_id=version_id,
         )
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
@@ -2111,6 +2123,7 @@ def open_receiving_multi_settings(self, namespace):
             "copy": inner_copy,
             "delete": inner_delete,
             "apply": inner_apply,
+            "apply_live": apply_live_label,
             "apply_quantity": inner_apply_quantity,
             "validate_quantity": inner_validate_quantity,
         }
