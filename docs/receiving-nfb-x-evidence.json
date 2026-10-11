@@ -317,6 +317,22 @@
     "not_exportable_as_manufacturing_x": true,
     "source_dxf_sha256": "2e3143124a4bd81394143a12b464d78dd030f479c0da2d02279b1dd502ad4416",
     "source_fixture": "tests/fixtures/receiving_nfb_w800_three_source.json",
-    "drawing_left_geometry_width_verified": true
+    "drawing_left_geometry_width_verified": true,
+    "closed_cutting_reference": {
+      "source_name": "800x2_1_CUTTING_CLOSED(1).dxf",
+      "source_sha256": "f2a30d89a8127eb7296b9269fe464a3f6786674ee4ea9d6097a35cae5050604e",
+      "source_fixture": "tests/fixtures/receiving_nfb_closed_cutting_reference.json",
+      "source_layer": "CUTTING",
+      "source_aci": 3,
+      "a1_a0_straight_segments_match_closed_cutting": true,
+      "two_rows_of_three_28_by_58_verified": true,
+      "upper_lower_row_center_distance_mm": 500,
+      "raw_customer_file_committed": false,
+      "verified_scope": "REFERENCE_DXF_GEOMETRY_ONLY",
+      "wHD_manufacturing_cutting_identity_approved": false,
+      "canonical_whd_blank_height_mm": 1063.5,
+      "reference_blank_height_mm": 1075.0,
+      "height_mismatch_mm": 11.5
+    }
   }
 }

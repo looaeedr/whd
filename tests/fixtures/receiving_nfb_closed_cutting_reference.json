@@ -1,0 +1,216 @@
+{
+  "schema": "receiving-nfb-closed-cutting-reference-v1",
+  "source_name": "800x2_1_CUTTING_CLOSED(1).dxf",
+  "source_sha256": "f2a30d89a8127eb7296b9269fe464a3f6786674ee4ea9d6097a35cae5050604e",
+  "source_size_bytes": 18928,
+  "dxf_insunits": 4,
+  "layer": "CUTTING",
+  "layer_aci": 3,
+  "entity_count": 13,
+  "all_entities": "CLOSED_LWPOLYLINE",
+  "outer": {
+    "handle": "30",
+    "closed": true,
+    "vertices_xy_bulge": [
+      [
+        5309.99589,
+        1293,
+        0
+      ],
+      [
+        5309.99589,
+        1306,
+        -0.41421356
+      ],
+      [
+        5312.99589,
+        1309,
+        0
+      ],
+      [
+        5295.99589,
+        1309,
+        -0.41421356
+      ],
+      [
+        5292.99589,
+        1312,
+        0
+      ],
+      [
+        5292.99589,
+        2343,
+        -0.41421356
+      ],
+      [
+        5295.99589,
+        2346,
+        0
+      ],
+      [
+        5312.99589,
+        2346,
+        -0.41421356
+      ],
+      [
+        5309.99589,
+        2349,
+        0
+      ],
+      [
+        5309.99589,
+        2362,
+        -0.41421356
+      ],
+      [
+        5312.99589,
+        2365,
+        0
+      ],
+      [
+        5995.99589,
+        2365,
+        -0.41421356
+      ],
+      [
+        5998.99589,
+        2362,
+        0
+      ],
+      [
+        5998.99589,
+        2349,
+        -0.41421356
+      ],
+      [
+        5995.99589,
+        2346,
+        0
+      ],
+      [
+        6012.99589,
+        2346,
+        -0.41421356
+      ],
+      [
+        6015.99589,
+        2343,
+        0
+      ],
+      [
+        6015.99589,
+        1312,
+        -0.41421356
+      ],
+      [
+        6012.99589,
+        1309,
+        0
+      ],
+      [
+        5995.99589,
+        1309,
+        -0.41421356
+      ],
+      [
+        5998.99589,
+        1306,
+        0
+      ],
+      [
+        5998.99589,
+        1293,
+        -0.41421356
+      ],
+      [
+        5995.99589,
+        1290,
+        0
+      ],
+      [
+        5312.99589,
+        1290,
+        -0.41421356
+      ]
+    ]
+  },
+  "rectangular_holes": [
+    {
+      "handle": "32",
+      "layer": "CUTTING",
+      "closed": true,
+      "vertex_count": 4,
+      "bbox": [
+        5460.49589,
+        2044,
+        5488.49589,
+        2102
+      ]
+    },
+    {
+      "handle": "33",
+      "layer": "CUTTING",
+      "closed": true,
+      "vertex_count": 4,
+      "bbox": [
+        5640.49589,
+        2044,
+        5668.49589,
+        2102
+      ]
+    },
+    {
+      "handle": "34",
+      "layer": "CUTTING",
+      "closed": true,
+      "vertex_count": 4,
+      "bbox": [
+        5820.49589,
+        2044,
+        5848.49589,
+        2102
+      ]
+    },
+    {
+      "handle": "35",
+      "layer": "CUTTING",
+      "closed": true,
+      "vertex_count": 4,
+      "bbox": [
+        5640.49589,
+        1544,
+        5668.49589,
+        1602
+      ]
+    },
+    {
+      "handle": "36",
+      "layer": "CUTTING",
+      "closed": true,
+      "vertex_count": 4,
+      "bbox": [
+        5820.49589,
+        1544,
+        5848.49589,
+        1602
+      ]
+    },
+    {
+      "handle": "37",
+      "layer": "CUTTING",
+      "closed": true,
+      "vertex_count": 4,
+      "bbox": [
+        5460.49589,
+        1544,
+        5488.49589,
+        1602
+      ]
+    }
+  ],
+  "other_inner_contours": 6,
+  "claim": "SOURCE_CUTTING_GEOMETRY_ONLY_NOT_PRODUCTION_APPROVAL",
+  "source_a1_segment_identical_to_closed_cutting": true,
+  "physical_blank_to_face_box_transform_certified": false,
+  "nfb_model_main_hole_certified": false
+}

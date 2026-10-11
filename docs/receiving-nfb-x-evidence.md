@@ -48,3 +48,25 @@ RC 唯讀原圖 SHA256 `e65e77ffa676defc0c16eeed6f1eb808f41cdbe8bc100f0ab8f4e5d0
 回歸獨立驗證：單柱 W800 時 P=0，左側另有 W400 柱時 P=200；三孔影子 X 分別為 [-180,0,180] 與 [20,200,380]，逆算回到真原圖 handle 中心。這些影子世界值**不可**寫入正式證據 JSON 的 box_world_centers_mm；測試永遠確保 certified_x_revision=null、box_world_centers_mm=null、逐組 x_status=PREVIEW_ONLY。
 
 **待補實證／核准：** 真實來源 A1 → 程式生成 CUTTING 左邊的同一性、內門下料 UV → 成品核心面 → 既有箱體裝配 X 的方向與正反映射，以及實際 NFB 主開孔型號幾何，全部須由實體 owner 核准 rule/revision。#1494 在此之前只有證據與 shadow 回歸，不能將此輸出視為 #1497/#1498 可製造能力。
+
+## 追加來源：800x2_1_CUTTING_CLOSED(1).dxf 封閉 CUTTING 參考（2026-10-11）
+
+使用者另提供此檔，原始 bytes SHA-256 `f2a30d89a8127eb7296b9269fe464a3f6786674ee4ea9d6097a35cae5050604e`（18,928 bytes；DXF INSUNITS=4）。使用 ezdxf 原圖唯讀解析：13 個封閉 LWPOLYLINE，均為 `CUTTING` layer，layer ACI=3；外框 handle `30` 含 24 個帶 bulge 的頂點，bbox 寬 723 mm、高 1075 mm。6 個 28×58 mm 長方 CUTTING 孔位於 **兩排各三個**，兩排 Y 中心為 1573、2073 mm，排距 500 mm；各排從原始 A1 左側 X 起算中心為 181.5／361.5／541.5 mm（相鄰 180）。此外尚有 6 個其他封閉內孔，不能將它們歸入 NFB 主孔。
+
+**這次確實補證到的範圍：** 新檔封閉 CUTTING 外輪廓內的左直線，與 `800x3.dxf` LINE A1 的起、終點完全一致（X=5292.99589, Y=1312→2343）；其右直線與原圖 A0 也完全相同。不是只有「兩個文件各量到 723」的數值巧合。原圖 A1→**使用者提供的封閉 CUTTING 參考**已建立逐端點幾何對應。
+
+**仍未跨越的界線：** 這不等同於 WHD 既有內門製造 API 所生成的實際 CUTTING 輪廓，在來源 Part ID、下料 U/V 軸、折後核心面、裝配世界 X 的規則與方向上已核准為相同零件。新檔也不能單憑六個 28×58 孔推出不同 NFB 型號的真實主孔中心。`source_outline_is_723_cutting_left_verified` 是既有 **WHD 正式 CUTTING 身份**旗標，因此目前仍保持 false；新增的 `closed_cutting_reference` 僅記錄這次使用者來源幾何已實證。
+
+Golden fixture：`tests/fixtures/receiving_nfb_closed_cutting_reference.json` 保存來源 SHA、完整外輪廓頂點／bulge、6 個方孔與輪廓摘要，**不提交客戶原始 DXF**。`tests/test_issue1494_closed_cutting_reference.py` 直接將來源 A1/A0 handle 的起終點與新 CUTTING 外輪廓相同直線段比對；另驗兩排三孔尺寸、行距及 fail-closed 未註冊狀態。這是來源證據與測試，不是 NFB CUTTING 功能已完成。#1494 應繼續與 #1495（Y 映射）及 #1496（真 NFB 孔型）銜接，最後由 #1497 做實際產品出孔。
+
+## NFB 開關索引對照（來源交接 #1496，不核准 #1494 世界 X）
+
+使用者提供 `開關索引.csv`（42 筆圖塊；UTF-8 BOM；SHA-256 `d6638de4dc204de5a9c465359ab6f051033ef505eab1382ae9234e68b5134321`）。原始 CSV 為 7 欄：`圖塊名稱、士林、深、東元、深、伍菱、深`。RC 現存 `基準檔/NFB/開關索引.csv` 是 10 欄（增列各廠 `準確率`，將相同數字欄命名 `高度`；RC SHA-256 `90087edfef5a8502b5689c015169a3d5d6a2db251fa3bcad4a2b923267f30e17`）。
+
+兩個版本若只取 42 筆的圖塊名稱、每廠 DXF 檔名及其相隨數字，共 7 欄並序列化成 UTF-8 緊湊 JSON，SHA-256 均為 `904a511e4785df04e12d2e58465fe02418b1362c7329661a0a505aca14b092bd`：**映射一致**。惟 `深` 與 `高度` 名稱衝突，不能自行宣稱數字是孔中心／厚度／零件高度，須由 #1496 來源語意驗收。既有 10 欄 `準確率` 也不能視為物理幾何認證。
+
+依 42 筆記錄的各品牌 DXF 檔名唯讀盤點：士林有檔 21、無對應 21；東元列有檔 19、無對應 23，但實際 15 個位置有檔，`400_Type.dxf` 在索引中被引用 4 次、目前 `基準檔/NFB/東元/` 缺檔；伍菱有檔 24、無對應 18。這些計數是**索引記錄列數**，不是唯一 DXF 檔數、不是已核准 NFB 型號數，亦不是可直接製造的主孔數。#1496 應接續查實際 DXF 幾何與版本；#1494 保持孔位座標證據而非切孔能力。未覆寫兩份 CSV，也未用索引尺寸替代實際 NFB CUTTING。
+
+## 限定 W800／T2 上層內門：下料高度差異必須保留
+
+以既有 `apply_family_defaults`／`derive_inner_door_panels`／`build_inner_door_panel_render_data` 對 W800/T2、1100 mm 上層／500 mm 下層、門縫3.5、折邊19 實際生成 CUTTING：下料 bounding box 為 **723 × 1063.5 mm**，成品面 689 × 1029.5 mm。新封閉來源圖 bounding box 為 **723 × 1075 mm**，高度差 **11.5 mm**。因此來源圖 A1→封閉 CUTTING 參考左緣已具幾何實證，但**完整外框不等同於目前 WHD 的生成下料**；不得將左側 X 對齊當作 Y／整個零件同一性核准。`tests/test_issue1494_closed_cutting_reference.py` 保留這項反例並防止誤升格。
