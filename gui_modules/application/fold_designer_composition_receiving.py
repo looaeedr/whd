@@ -1317,12 +1317,16 @@ def open_receiving_multi_settings(self, namespace):
             }
         else:
             initial = inner_config(inner_library(), version_id)
-        modal = tk.Toplevel(self.app.root)
+        parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
+        owner = parent_modal if (parent_modal is not None
+                                 and parent_modal.winfo_exists()) else self.app.root
+        modal = tk.Toplevel(owner)
         modal.title("內門版本編輯")
+        modal.transient(owner)
         from .receiving_scroll_view import make_scrollable_frame
-        modal.geometry("1130x850")
+        modal.geometry("820x750")
         modal_scroll, modal_content, modal_viewport = make_scrollable_frame(
-            modal, tk=tk, ttk=ttk, width=1080, height=780,
+            modal, tk=tk, ttk=ttk, width=790, height=680,
         )
         modal_scroll.pack(fill="both", expand=True)
         frame = ttk.Frame(modal_content, padding=14)
@@ -1345,8 +1349,8 @@ def open_receiving_multi_settings(self, namespace):
         ttk.Label(summary_row, textvariable=preview_status).pack(
             side="right", anchor="ne",
         )
+        # Keep legacy draft in memory but remove its unapproved controls.
         physical_row = ttk.Frame(frame)
-        physical_row.pack(fill="x", pady=(2, 4))
         ttk.Label(physical_row, text="NFB 物理層（未提交草稿）").pack(side="left")
         chosen = [list(switch_filenames_in_layer(slot))
                   for slot in initial["models"]]
@@ -1682,11 +1686,18 @@ def open_receiving_multi_settings(self, namespace):
         slot_columns = ttk.Frame(editor_body)
         slot_columns.pack(side="left", fill="both", expand=True)
         nfb_preview_panel["panel"] = NfbDxfSourcePreviewPanel(editor_body)
+        nfb_preview_panel["panel"].frame.pack_forget()
+
+        def sync_visible_layers():
+            nfb_physical_layers.set(layers.get())
+            change_layers()
 
         for count in (1, 2):
             ttk.Radiobutton(
                 controls, text=str(count), value=count, variable=layers,
-                command=lambda: paint_draft_preview(),
+                # The retired physical-layer selector follows the visible
+                # inner-door layer choice so a two-layer save remains valid.
+                command=lambda: sync_visible_layers(),
             ).pack(side="left", padx=8)
             ttk.Radiobutton(
                 physical_row, text=str(count), value=count,
@@ -1721,6 +1732,9 @@ def open_receiving_multi_settings(self, namespace):
                        command=lambda idx=idx: reposition_nfb_slot(idx,-1)).pack(pady=2)
             ttk.Button(buttons_area, text="↓ 後移",
                        command=lambda idx=idx: reposition_nfb_slot(idx,1)).pack(pady=2)
+            # Restore the user's compact editor: only +加入 and −移除.
+            for extra in buttons_area.winfo_children()[2:]:
+                extra.pack_forget()
             assigned = tk.Listbox(section, selectmode=tk.BROWSE,
                                   exportselection=False, height=6)
             assigned.grid(row=1, column=2, sticky="nsew", padx=5)
@@ -1747,6 +1761,7 @@ def open_receiving_multi_settings(self, namespace):
                 width=12, state="readonly",
             )
             slot_brand_select.pack(side="left", padx=3)
+            brand_row.grid_remove()
             rotation_row=ttk.Frame(section)
             rotation_row.grid(row=4,column=0,columnspan=3,sticky="w",pady=(2,4))
             ttk.Label(rotation_row,text="本層角度").pack(side="left")
@@ -1773,6 +1788,7 @@ def open_receiving_multi_settings(self, namespace):
                 rotation_row,text="設定",
                 command=lambda idx=idx:set_x_in_draft(idx),
             ).pack(side="left")
+            rotation_row.grid_remove()
             layer_rows.append({
                 "section": section, "available": available,
                 "assigned": assigned, "count": count_text,
@@ -1865,7 +1881,7 @@ def open_receiving_multi_settings(self, namespace):
             refresh_source(force=True)
 
         change_layers()
-        ttk.Label(frame, textvariable=draft_summary, wraplength=770).pack(anchor="w")
+        # Nominal NFB draft/workflow summary is not part of the approved UI.
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
         refresh_source(force=True)
         modal.after(1800, poll_source)
@@ -2054,8 +2070,6 @@ def open_receiving_multi_settings(self, namespace):
         ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
             side="left", padx=5,
         )
-        ttk.Button(buttons, text="核對世界 X／來源", command=open_nfb_world_x_dialog).pack(side="left",padx=5)
-        ttk.Button(buttons, text="復原上一步", command=undo_nfb_draft).pack(side="left",padx=5)
         ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
         # Restore the parent multi-settings grab after this editor closes.
         parent_modal = getattr(
@@ -2074,13 +2088,20 @@ def open_receiving_multi_settings(self, namespace):
                 modal.grab_release()
             modal.destroy()
             if parent_modal is not None and parent_modal.winfo_exists():
+                if parent_modal.grab_current() is None:
+                    parent_modal.grab_set()
                 parent_modal.lift()
+                parent_modal.focus_set()
         modal.protocol("WM_DELETE_WINDOW", close_editor)
         modal.bind("<Escape>",lambda _event:close_editor())
         for widget in buttons.winfo_children():
             if widget.cget("text") == "取消":
                 widget.configure(command=close_editor)
+        if owner.grab_current() is owner:
+            owner.grab_release()
+        modal.grab_set()
         modal.lift()
+        modal.focus_set()
         return modal
 
     def inner_copy(role, version_id, destination):
@@ -2407,8 +2428,11 @@ def open_receiving_multi_settings(self, namespace):
     def real_cut_preview_request(role, version_id, set_index, bay_index):
         """True canonical FinalScene, candidate-injected in memory, no mutation."""
         if version_id is None:
+            # Read the active canonical Set/Bay layout, not a possibly stale
+            # application snapshot; it is still resolved in an isolated scene.
             return self.receiving_bay_preview_request(
                 namespace, set_index, bay_index,
+                preview_layout=candidate_adapter().layout,
             )
         from .receiving_set_bay_adapter import ReceivingSetBayAdapter
         temporary = ReceivingSetBayAdapter(candidate_adapter().layout)
