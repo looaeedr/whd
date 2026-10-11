@@ -14,6 +14,7 @@ on:
       - '.agents/skills/skill_registry.json'
       - '.agents/contracts/WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1.json'
       - 'tests/governance/test_default_branch_explicit_x_contract.py'
+      - 'tests/knowledge/test_current_history_authority_contract.py'
       - 'docs/governance/main_cleanup_governance_sync_20260928.json'
       - 'tests/governance/test_dispatch_remote_only_contract.py'
       - 'tests/governance/test_context_loss_prevention_contract.py'
@@ -59,6 +60,13 @@ jobs:
             --inventory docs/superpowers/verification/knowledge_governance_inventory_v1.json \
             --base "${{ github.event.pull_request.base.sha }}" \
             --head "${{ github.sha }}"
+
+      - name: Verify CURRENT and historical document authority regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m pytest -q tests/knowledge/test_current_history_authority_contract.py
 
       - name: Reject uppercase Markdown bypass regressions
         shell: bash
