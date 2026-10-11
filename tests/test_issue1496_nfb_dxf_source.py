@@ -13,6 +13,8 @@ from ae_engine.receiving_nfb_dxf_source import (
     inspect_expected_nfb_sources,
     inspect_nfb_dxf_source,
     rotate_point_around_source_pivot,
+    resolve_upper_color150_reference,
+    place_upper_nfb_point_from_color150,
 )
 
 
@@ -147,3 +149,81 @@ def test_invalid_rotation_is_refused(angle):
         rotate_point_around_source_pivot(
             (1, 2), pivot_xy=(0, 0), rotation_deg=angle,
         )
+
+
+def test_confirmed_upper_color150_rectangle_center_not_circle_or_lower_spacer(tmp_path):
+    doc = ezdxf.new("R2010")
+    doc.layers.new("MIDDLE", dxfattribs={"color": 150})
+    doc.layers.new("BASE", dxfattribs={"color": 30})
+    upper = doc.modelspace().add_lwpolyline(
+        [(100, 200), (157, 200), (157, 296), (100, 296)],
+        close=True, dxfattribs={"layer": "MIDDLE"},
+    )
+    # An unrelated lower region can itself contain a Color-150 rectangle;
+    # neither a whole-DXF center nor a first-color search can choose it.
+    lower = doc.modelspace().add_lwpolyline(
+        [(900, -800), (1044, -800), (1044, -543), (900, -543)],
+        close=True, dxfattribs={"layer": "MIDDLE"},
+    )
+    circle = doc.modelspace().add_circle((80, 230), radius=2.55,
+                                        dxfattribs={"layer": "BASE"})
+    path = tmp_path / "upper_and_lower.dxf"
+    doc.saveas(path)
+    evidence = inspect_nfb_dxf_source(path)
+    ids = {e.handle_path: e.source_id for e in evidence.entities}
+    upper_ids = (ids[upper.dxf.handle], ids[circle.dxf.handle])
+    ref = resolve_upper_color150_reference(
+        evidence, upper_source_entity_ids=upper_ids,
+    )
+    assert ref.source_entity_id == ids[upper.dxf.handle]
+    assert ref.source_color_aci == 150
+    assert ref.center_xy == pytest.approx((128.5, 248.0))
+    assert ref.size_mm == (57.0, 96.0)
+    assert ref.consumers == ("MIDDLE_PLATE", "INNER_DOOR")
+    assert ref.status == "USER_CONFIRMED_UPPER_REFERENCE_ONLY"
+    # Both consumers use this same origin, but can use different target centers.
+    assert place_upper_nfb_point_from_color150(
+        ref.center_xy, reference=ref, target_center_xy=(0, 0),
+    ) == pytest.approx((0.0, 0.0))
+    assert place_upper_nfb_point_from_color150(
+        ref.center_xy, reference=ref, target_center_xy=(300, 500),
+    ) == pytest.approx((300.0, 500.0))
+    assert place_upper_nfb_point_from_color150(
+        (157, 296), reference=ref, target_center_xy=(0, 0),
+        rotation_deg=90,
+    ) == pytest.approx((-48, 28.5))
+    # Selecting the lower region (or both) must not silently contaminate upper.
+    with pytest.raises(ValueError, match="one explicit"):
+        resolve_upper_color150_reference(
+            evidence, upper_source_entity_ids=(ids[upper.dxf.handle], ids[lower.dxf.handle]),
+        )
+    with pytest.raises(ValueError, match="not found"):
+        resolve_upper_color150_reference(
+            evidence, upper_source_entity_ids=(ids[upper.dxf.handle], "unknown"),
+        )
+    with pytest.raises(ValueError, match="missing or duplicated"):
+        resolve_upper_color150_reference(
+            evidence, upper_source_entity_ids=(ids[upper.dxf.handle], ids[upper.dxf.handle]),
+        )
+
+
+def test_upper_color150_rejects_unclosed_or_bulged_profile(tmp_path):
+    doc = ezdxf.new("R2010")
+    doc.layers.new("MIDDLE", dxfattribs={"color": 150})
+    not_closed = doc.modelspace().add_lwpolyline(
+        [(0, 0), (57, 0), (57, 96), (0, 96)],
+        close=False, dxfattribs={"layer": "MIDDLE"},
+    )
+    bulged = doc.modelspace().add_lwpolyline(
+        [(100, 0, 0), (157, 0, .1), (157, 96, 0), (100, 96, 0)],
+        format="xyb", close=True, dxfattribs={"layer": "MIDDLE"},
+    )
+    path = tmp_path / "unsafe_geometry.dxf"
+    doc.saveas(path)
+    evidence = inspect_nfb_dxf_source(path)
+    ids = {e.handle_path: e.source_id for e in evidence.entities}
+    for row in (not_closed, bulged):
+        with pytest.raises(ValueError, match="valid closed rectangle"):
+            resolve_upper_color150_reference(
+                evidence, upper_source_entity_ids=(ids[row.dxf.handle],),
+            )
