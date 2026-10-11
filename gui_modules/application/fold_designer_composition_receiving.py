@@ -973,6 +973,7 @@ def _open_common_box(self, namespace):
 
 def _refresh_mode_controls(self, namespace):
     from .receiving_mode_controls import build_mode_controls
+    from .quantity_version_ports import quantity_ports
     app = self.app
     controls = getattr(self, "_receiving_mode_controls", None)
     applicable = self.receiving_layout_applicable()
@@ -1011,7 +1012,6 @@ def open_receiving_multi_settings(self, namespace):
     if not self.receiving_layout_applicable():
         return False
     from .receiving_multi_settings_window import open_multi_settings
-    from .quantity_version_ports import quantity_ports
 
     def select_bay(set_index, bay_index):
         # Reuse canonical selection; no new data owner or manufacturing draw.
