@@ -350,7 +350,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             try:
                 paint_endcap_thumbnail(
                     widgets["applied"], applied_features, width, depth,
-                    title=f"目前：第{selected_setting[\'set_index\']+1}套／第{bay_index+1}連",
+                    title="目前：第{}套／第{}連".format(
+                        selected_setting["set_index"] + 1, bay_index + 1),
                 )
                 paint_endcap_thumbnail(
                     widgets["candidate"], candidate_features, width, depth,
