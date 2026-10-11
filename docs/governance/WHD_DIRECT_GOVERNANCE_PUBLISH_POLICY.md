@@ -12,6 +12,10 @@ whd_schema: WHD_DOC_META_V1
 1. **治理直送 `GOVERNANCE_DIRECT_X`**：非產品文件、治理規格、技能、GitHub 工作流程及治理專用測試，必須 **每一個** changed path 命中 `tools/change_lane_gate.py` 的明確白名單。從當前 X 優先在 GitHub／雲端 `governance/*`、`docs/*` 或 `skills/*` 分支修改，執行適用檢查後提交 X PR，CI 通過才 merge/readback；不用 localX、`/推推` 或已退役工單交易。未經使用者當次明確授權，不得使用 DC、CoreELEC、whd-dev 或使用者本機 shell；雲端能力不足時回報實際阻塞，不得自行轉用本機。
 2. **產品通道 `PRODUCT_LOCALX_ONLY`**：產品程式、GUI、幾何、製造資料、DXF、產品測試、未分類檔案，或同時包含產品與文件的修改，先測試並整合 localX，等待使用者當次明確 `/推推`，由 exact SHA/PR GitHub owner comment 核准後才能合併 X。
 
+### 當次 GitHub-only 產品發布（`GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1`）
+
+預設產品先在本機 `localX` 安全整合再同步 GitHub；若使用者**當次明確指定 GitHub-only 正式發布、包含新增產品變更及本機同步待辦**，可僅用已整合的 GitHub `localX`，經正式 X PR exact head/base、owner `/推推` comment、必要產品 CI 與 X-only 歷史檢查後合併 X。來源 SHA／產品範圍改變，不沿用舊授權或舊 CI；必須核對新版本與當次授權是否涵蓋。發布後僅以 `expected_sha`、非強制 fast-forward 讓 GitHub `localX` 對齊 X；本機未查只能回報 `GITHUB_ONLY_PUBLISHED + LOCAL_SYNC_PENDING`。此例外**不開放 DC、RC、本機**，不豁免產品測試或 `/推推`，也不把本機同步待辦誤稱完成。
+
 ## Fail-closed 不可繞過規則
 
 - 空 diff、未知路徑、非法路徑、一份 diff 包含任何產品路徑 → **不能使用治理直送**。
