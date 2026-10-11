@@ -319,6 +319,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                        "canvas": None}
     quantity_ui = None
 
+    def editor_saved(role, version_id):
+        candidate_selected[role] = version_id
+        if win.winfo_exists():
+            win.after_idle(show_setting_controls)
+            win.after_idle(refresh_manager_controls)
+
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
@@ -344,14 +350,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             except (ValueError, IndexError, RuntimeError) as exc:
                 warn(exc)
         candidate_combos.clear()
-
-        def editor_saved(role, version_id):
-            candidate_selected[role] = version_id
-            if win.winfo_exists():
-                win.after_idle(show_setting_controls)
-                # The editor may have created the next version. Refresh the
-                # manager too so its selected label follows the saved ID.
-                win.after_idle(refresh_manager_controls)
 
         def actions(parent, kind, *, role=None):
             row = ttk.Frame(parent)
