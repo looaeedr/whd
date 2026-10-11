@@ -1093,7 +1093,7 @@ def open_receiving_multi_settings(self, namespace):
     # receiving_layout Bays.
     from ae_engine.receiving_hole_candidates import (
         candidates_for, candidate_features, create_candidate, update_candidate,
-        delete_candidate, duplicate_candidate,
+        delete_candidate, duplicate_candidate, normalize_candidates,
     )
     from ae_engine.sheetmetal_features import (
         resolve_endcap_finished_face_guide, feature_surface_from_rect, RectGuide, Vec2,
@@ -1102,14 +1102,24 @@ def open_receiving_multi_settings(self, namespace):
     def candidate_adapter():
         return self.receiving_adapter(namespace)
 
+    def candidate_library():
+        # A single project-level authority survives mode switches and Save.
+        # It is neither part of any Set/Bay nor the QuantityModel.
+        return normalize_candidates(
+            self.app._phase6_input_snapshot.get("receiving_hole_candidates")
+        )
+
     def persist_candidates(library):
-        adapter = candidate_adapter()
-        adapter.set_hole_candidates(library)
-        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        self.app._phase6_input_snapshot["receiving_hole_candidates"] = (
+            normalize_candidates(library)
+        )
+        workspace = getattr(self.app, "designer_workspace", None)
+        if workspace is not None:
+            workspace.mark_dirty()
 
     def edit_candidate(role, version_id, after_saved):
         adapter = candidate_adapter()
-        original = adapter.hole_candidates()
+        original = candidate_library()
         # An editor opens on the active Bay's finished face as a coordinate
         # guide, but its candidate data has no Bay assignment until Apply.
         bay = adapter.current_bay()
@@ -1127,7 +1137,7 @@ def open_receiving_multi_settings(self, namespace):
         def confirmed():
             # The Hole Editor's preview-sync fires on BOTH Confirm and Cancel.
             # Persist ONLY from its new Confirm-only transaction callback.
-            latest = candidate_adapter().hole_candidates()
+            latest = candidate_library()
             if version_id is None:
                 saved, selected = create_candidate(latest, role, draft)
             else:
@@ -1149,14 +1159,14 @@ def open_receiving_multi_settings(self, namespace):
 
     def copy_candidate(role, version_id, destination):
         library, created = duplicate_candidate(
-            candidate_adapter().hole_candidates(), role, version_id, destination
+            candidate_library(), role, version_id, destination
         )
         persist_candidates(library)
         return created
 
     def remove_candidate(role, version_id):
         library = delete_candidate(
-            candidate_adapter().hole_candidates(), role, version_id
+            candidate_library(), role, version_id
         )
         persist_candidates(library)
 
@@ -1170,7 +1180,7 @@ def open_receiving_multi_settings(self, namespace):
         targets = tuple(sorted(set(highlighted)))
         if any(type(i) is not int or not 0 <= i < len(sets[set_index]["bays"]) for i in targets):
             raise ValueError("簡易圖高亮的連已無效")
-        features = candidate_features(adapter.hole_candidates(), role, version_id)
+        features = candidate_features(candidate_library(), role, version_id)
         # One validated all-or-nothing update; retains the active editor
         # selection and avoids the old per-Bay UI/geometry churn.
         adapter.apply_candidate_to_bays(role, set_index, targets, features)
@@ -1181,7 +1191,7 @@ def open_receiving_multi_settings(self, namespace):
 
     def candidate_ports():
         return {
-            "versions": lambda role: candidates_for(candidate_adapter().hole_candidates(), role),
+            "versions": lambda role: candidates_for(candidate_library(), role),
             "edit": edit_candidate,
             "copy": copy_candidate,
             "delete": remove_candidate,
