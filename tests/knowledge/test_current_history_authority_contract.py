@@ -318,3 +318,6 @@ def test_retired_continuity_pitfalls_do_not_present_removed_machine_guards_as_cu
     assert "Canonical semantic owners remain single-source" not in closure
     assert "當時的 finalization 規則（HISTORICAL／已退役）" in closure
     assert "AGENTS.md" in continuous and "AGENTS.md" in closure
+    entry = read("個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md")
+    assert "現行糾偏（不恢復歷史入口）" in entry
+    assert "不得因讀到本段就呼叫 root-local-first 或 DC／RC" in entry
