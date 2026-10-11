@@ -213,7 +213,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert brand_commit == []  # no synchronous 3D/geometry redraw
         assert brand_picker.master.master is win._receiving_multi_mode_controls.master
         assert win.title() == "多只設定"
-        assert win.grab_current() is win
+        assert win.grab_current() is None
         assert win.winfo_width() >= win.winfo_screenwidth() - 2
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
@@ -232,12 +232,14 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         right = win._receiving_multi_right_host
         function = win._receiving_multi_function_host
         diagram = win._receiving_multi_diagram_host
-        assert left.master is win and right.master is win
-        assert left.grid_info()["column"] == 0
+        assert left.master is win._receiving_multi_left_scroll._receiving_scroll_content
+        assert right.master is win
+        assert win._receiving_multi_left_scroll.grid_info()["column"] == 0
         assert right.grid_info()["column"] == 1
         assert mode_row.master.master is left
         assert controls_column.master is left
-        assert function.master is right and function.grid_info()["row"] == 0
+        assert function.master is win._receiving_multi_function_scroll._receiving_scroll_content
+        assert win._receiving_multi_function_scroll.grid_info()["row"] == 0
         assert diagram.master is right and diagram.grid_info()["row"] == 1
         assert canvas.master is diagram and canvas.grid_info()["row"] == 0
         assert win._receiving_multi_settings_host.master is function
@@ -547,7 +549,7 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         assert child is not None and child.winfo_exists()
         assert child.master is win
         assert child.title() == "版本管理"
-        assert child.grab_current() is child
+        assert child.grab_current() is None  # Parent and child can switch directly.
         assert win._receiving_multi_canvas.master is win._receiving_multi_diagram_host
         assert "複製為新版本" not in _visible_texts(host)
         assert "複製為新版本" in _visible_texts(child)
@@ -580,7 +582,7 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         win._receiving_multi_close_manager()
         root.update()
         assert not child.winfo_exists()
-        assert win.grab_current() is win
+        assert win.grab_current() is None
         win._receiving_multi_close()
     finally:
         root.destroy()

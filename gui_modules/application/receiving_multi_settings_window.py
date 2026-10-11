@@ -9,8 +9,6 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from ae_engine.receiving_hole_candidates import version_label
-from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
-from .receiving_endcap_thumbnail import paint_endcap_thumbnail
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
@@ -88,7 +86,7 @@ def extract_original_door_marks(scene):
     return {"nameplate": nameplate, "handle": handle}
 
 
-def paint_connected_bays(canvas, count, selected=None, door_marks=None):
+def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None):
     """Cheap front-elevation sketch: touching bays with basic upper/lower doors.
 
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
@@ -161,6 +159,24 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None):
                 sx, sy = max(1.0, rx * dw), max(1.0, ry * dh)
                 canvas.create_oval(px - sx, py - sy, px + sx, py + sy,
                                   outline="#f7c66f", width=1)
+        labels = (version_labels or ())
+        by_role = labels[index] if index < len(labels) else {}
+        if by_role:
+            label_lines = []
+            for role, prefix in (("head", "封頭"), ("tail", "封尾"),
+                                 ("inner-door", "內門")):
+                version_id = by_role.get(role)
+                if version_id is not None:
+                    label = version_label(version_id) if version_id else "即時"
+                    label_lines.append(f"{prefix}：{label}")
+            # Canvas text is a status overlay only; source is saved per-Bay
+            # identity, never candidate dropdown presentation state.
+            for line_no, label in enumerate(label_lines):
+                canvas.create_text(
+                    (x0+x1)/2, top + bay_h * (0.2 + 0.13*line_no),
+                    text=label, fill="#ffffff", width=max(18, bay_w-4),
+                    font=("TkDefaultFont", 9, "bold"), tags=("applied_version",),
+                )
         hitboxes.append((x0, top, x1, top + bay_h))
     canvas._receiving_bay_hitboxes = tuple(hitboxes)
     return count
@@ -179,6 +195,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         set_brand=None, get_settings_ports=None,
                         get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
+                        get_applied_version_labels=None,
+                        get_real_cut_preview_request=None,
                         on_close=None, on_brand_close=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
@@ -189,12 +207,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     win = tk.Toplevel(parent)
     win.title("多只設定")
-    win.transient(parent)
+    # Nonmodal operator surface; transient/grab hid it behind child windows.
     parent._receiving_multi_settings_window = win
     topology_changed = {"value": False}
     brand_changed = {"value": False}
 
     def close():
+        close_real_preview()
         close_manager()
         if win.grab_current() is win:
             win.grab_release()
@@ -228,7 +247,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0"
                 )
         if win.winfo_viewable():
-            win.grab_set()
+            win.lift()
             win.focus_set()
 
     win.after_idle(maximize_and_lock)
@@ -238,8 +257,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # Two permanent columns. Left owns Set/Bay actions; right owns the
     # function selector above a separate 2D diagram. Neither section moves
     # when the category changes or when the version manager is opened.
-    left_host = ttk.Frame(win)
-    left_host.grid(row=0, column=0, sticky="nsw", padx=16, pady=16)
+    from .receiving_scroll_view import make_scrollable_frame
+    left_scroll, left_content, left_scroll_canvas = make_scrollable_frame(
+        win, tk=tk, ttk=ttk, width=280, height=610,
+    )
+    left_scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
+    left_host = ttk.Frame(left_content)
+    left_host.pack(fill="both", expand=True)
     right_host = ttk.Frame(win)
     right_host.grid(row=0, column=1, sticky="nsew", padx=24, pady=16)
     right_host.columnconfigure(0, weight=1)
@@ -287,8 +311,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # Right TOP: original Listbox and its selected category controls.
     # Right BOTTOM: the independent diagram region, never commandeered
     # by quantity version management.
-    function_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
-    function_host.grid(row=0, column=0, sticky="new")
+    function_scroll, function_content, function_scroll_canvas = make_scrollable_frame(
+        right_host, tk=tk, ttk=ttk, width=610, height=250,
+    )
+    function_scroll.grid(row=0, column=0, sticky="new")
+    function_host = ttk.Frame(
+        function_content, padding=8, relief="groove", borderwidth=1,
+    )
+    function_host.pack(fill="both", expand=True)
     function_host.columnconfigure(1, weight=1)
     setting_list = tk.Listbox(
         function_host, height=3, width=16, selectmode=tk.BROWSE,
@@ -323,105 +353,81 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                        "buttons_frame": None, "quantity_frame": None,
                        "canvas": None}
     quantity_ui = None
-    preview_state = {"applied": None, "candidate": None, "status": None}
-    endcap_preview_state = {}
+    real_preview = {"win": None, "view": None, "status": None,
+                    "role": None, "generation": 0}
 
-    def refresh_endcap_previews(role=None):
-        """Compare original physical Bay with selected head/tail version."""
-        roles = (role,) if role is not None else ("head", "tail")
-        if (active_ports["ports"] is None or get_candidate_ports is None
-                or not callable(active_ports["ports"].get("row"))):
-            # Preserve lean legacy/testing ports without opening a new data owner.
-            return
-        from ae_engine.receiving_shared_settings import setting_value
-        bay_index = selected_setting["bay_index"]
-        row = active_ports["ports"]["row"]()
-        bay = row["bays"][bay_index]
-        width, depth = bay["width"], bay["depth"]
-        for name in roles:
-            widgets = endcap_preview_state.get(name)
-            if not widgets or not widgets["applied"].winfo_exists():
-                continue
-            applied_features = setting_value(row, bay_index, name + "_features")
-            version_id = candidate_selected[name]
-            candidate_features = None
-            if version_id is not None:
-                for item in get_candidate_ports()["versions"](name):
-                    if item["id"] == version_id:
-                        candidate_features = item["features"]
-                        break
-            try:
-                paint_endcap_thumbnail(
-                    widgets["applied"], applied_features, width, depth,
-                    title="目前：第{}套／第{}連".format(
-                        selected_setting["set_index"] + 1, bay_index + 1),
-                )
-                paint_endcap_thumbnail(
-                    widgets["candidate"], candidate_features, width, depth,
-                    title=(f"候選：{version_label(version_id)}"
-                           if candidate_features is not None else "候選：即時"),
-                )
-            except (ValueError, TypeError, KeyError, OverflowError) as exc:
-                for c in (widgets["applied"], widgets["candidate"]):
-                    c.delete("all")
-                    c.create_text(10, 20, anchor="w", text="預覽資料無法解析",
-                                  fill="#efb4a3")
-                widgets["status"].set(str(exc))
-                continue
-            if candidate_features is None:
-                message = "選擇版本後比較目前配置"
-            elif candidate_features == applied_features:
-                message = "候選內容與目前這一連相同"
-            else:
-                message = "候選內容尚未套用至目前這一連"
-            current_meta = widgets["applied"]._receiving_endcap_preview
-            candidate_meta = widgets["candidate"]._receiving_endcap_preview
-            if current_meta["unsupported"] or candidate_meta["unsupported"]:
-                message += "｜部分孔位格式無法畫出，請用孔位編輯器確認"
-            if len(applied["selected_bays"]) > 1:
-                message += "（左圖只顯示目前連位）"
-            widgets["status"].set(message)
+    def close_real_preview():
+        real_preview["generation"] += 1
+        popup = real_preview["win"]
+        real_preview.update(win=None, view=None, status=None, role=None)
+        if popup is not None and popup.winfo_exists():
+            popup.destroy()
 
-    def refresh_inner_preview():
-        """Show real Bay data versus currently selected candidate, not geometry."""
-        applied_canvas = preview_state["applied"]
-        chosen_canvas = preview_state["candidate"]
-        if (applied_canvas is None or chosen_canvas is None
-                or not applied_canvas.winfo_exists()
-                or not chosen_canvas.winfo_exists()):
-            return
-        from ae_engine.receiving_shared_settings import setting_value
-        bay = selected_setting["bay_index"]
-        row = active_ports["ports"]["row"]()
-        applied_config = {
-            "layers": setting_value(row, bay, "inner_door_layers"),
-            "models": setting_value(row, bay, "inner_door_models"),
-        }
-        paint_inner_door_thumbnail(
-            applied_canvas, applied_config,
-            title=f"目前：第{selected_setting['set_index']+1}套／第{bay+1}連",
-        )
-        version_id = candidate_selected["inner-door"]
-        candidate_config = None
-        if version_id is not None and get_inner_candidate_ports is not None:
-            for version in get_inner_candidate_ports()["versions"]("inner-door"):
-                if version["id"] == version_id:
-                    candidate_config = version["config"]
-                    break
-        paint_inner_door_thumbnail(
-            chosen_canvas, candidate_config,
-            title=(f"候選：{version_label(version_id)}"
-                   if candidate_config is not None else "候選：即時"),
-        )
-        if candidate_config is None:
-            message = "選取內門版本，即可比較縮圖"
-        elif candidate_config == applied_config:
-            message = "候選內容與目前這一連相同"
+    def show_real_preview(role):
+        """Movable nonmodal full FinalScene view, never a fake thumbnail."""
+        if get_real_cut_preview_request is None:
+            return None
+        popup = real_preview["win"]
+        if popup is None or not popup.winfo_exists():
+            popup = tk.Toplevel(win)
+            popup.title("截角實體資料｜真實2D")
+            popup.geometry("960x720")
+            popup.minsize(460, 320)
+            # Deliberately no transient/grab: operator can switch parent,
+            # manager, quantity tabs and floating preview without closing.
+            from .receiving_scroll_view import make_scrollable_frame
+            popup_scroll, popup_content, popup_viewport = make_scrollable_frame(
+                popup, tk=tk, ttk=ttk, width=920, height=660,
+            )
+            popup_scroll.pack(fill="both", expand=True)
+            body = ttk.Frame(popup_content, padding=6)
+            body.pack(fill="both", expand=True)
+            popup._receiving_real_preview_scroll = popup_scroll
+            status = tk.StringVar(master=popup, value="準備顯示實際幾何資料")
+            ttk.Label(body, textvariable=status).pack(anchor="w")
+            from .receiving_settings_preview_2d import ReceivingSettingsPreview2D
+            view = ReceivingSettingsPreview2D(
+                body, tk=tk, ttk=ttk, requests=(),
+            )
+            actions = ttk.Frame(body)
+            actions.pack(fill="x")
+            ttk.Button(actions, text="放大", command=lambda: view.zoom(.8)).pack(side="left")
+            ttk.Button(actions, text="縮小", command=lambda: view.zoom(1.25)).pack(side="left")
+            ttk.Button(actions, text="重設視角", command=view.reset_view).pack(side="left")
+            ttk.Button(actions, text="關閉", command=close_real_preview).pack(side="right")
+            popup.protocol("WM_DELETE_WINDOW", close_real_preview)
+            real_preview.update(win=popup, view=view, status=status)
         else:
-            message = "候選內容尚未套用至目前這一連"
-        if len(applied["selected_bays"]) > 1:
-            message += "（左圖僅顯示目前連位）"
-        preview_state["status"].set(message)
+            popup.lift()
+        real_preview["role"] = role
+        real_preview["generation"] += 1
+        generation = real_preview["generation"]
+        selected_id = candidate_selected[role]
+        si = applied["set_index"] if applied["set_index"] is not None else 0
+        bi = selected_setting["bay_index"]
+        if bi is None or selected_setting["set_index"] != si:
+            bi = applied["selected"] if applied["selected"] is not None else 0
+        label = "即時" if selected_id is None else version_label(selected_id)
+        popup.title(f"{role.replace('inner-door', '內門').replace('head', '封頭').replace('tail', '封尾')}｜{label}｜真實截角2D")
+        real_preview["status"].set("正在取得既有 FinalScene 真實幾何…")
+        def refresh_exact():
+            if (real_preview["generation"] != generation or
+                    not popup.winfo_exists()):
+                return
+            try:
+                request = get_real_cut_preview_request(role, selected_id, si, bi)
+                if request is None:
+                    raise ValueError("此版本缺少可驗證的實體幾何來源")
+                real_preview["view"].draw_geometry((request,))
+                popup._receiving_real_preview_request = request
+                real_preview["status"].set(
+                    f"第{si+1}套／第{bi+1}連｜{label}｜實際 FinalScene 投影；滾輪縮放／中鍵平移"
+                )
+            except Exception as exc:
+                real_preview["view"].invalidate(str(exc))
+                real_preview["status"].set("真實幾何不可用：" + str(exc))
+        popup.after_idle(refresh_exact)
+        return popup
 
     def editor_saved(role, version_id, *, keep_live=False):
         # Saving while "即時" creates a candidate but MUST NOT select it:
@@ -434,8 +440,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             win.after_idle(refresh_manager_controls)
 
     def show_setting_controls():
-        preview_state.update(applied=None, candidate=None, status=None)
-        endcap_preview_state.clear()
         for widget in settings_host.winfo_children():
             widget.destroy()
         active_ports["ports"] = None
@@ -452,7 +456,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         active_ports["ports"] = ports
         from ae_engine.receiving_shared_settings import setting_value
         # Highlighter owns the multi-selection. No second checkbox selector.
-        targets = lambda: tuple(sorted(set(applied["selected_bays"]) | {bay_index}))
+        # The canvas highlight, including an empty selection, is the ONLY apply target.
+        targets = lambda: tuple(applied["selected_bays"])
         def perform(action):
             try:
                 action()
@@ -520,13 +525,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             def choose(_event=None):
                 candidate_selected[role] = ids.get(variable.get())
                 apply_button.configure(
-                    state="normal" if candidate_selected[role] else "disabled"
+                    state="normal" if candidate_selected[role] is not None
+                    or "apply_live" in source() else "disabled"
                 )
                 refresh_manager_controls()
-                if role == "inner-door":
-                    refresh_inner_preview()
-                elif role in ("head", "tail"):
-                    refresh_endcap_previews(role)
+                show_real_preview(role)
 
             selector.bind("<<ComboboxSelected>>", choose)
 
@@ -545,21 +548,28 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 try:
                     if applied["mode"] != "set_bay" or applied["set_index"] is None:
                         raise ValueError("請先套用一套並在簡易圖高亮要指定的連")
-                    source()["apply"](
-                        role, candidate_selected[role],
-                        applied["set_index"], tuple(applied["selected_bays"]),
-                    )
-                    if role == "inner-door":
-                        refresh_inner_preview()
-                    elif role in ("head", "tail"):
-                        refresh_endcap_previews(role)
+                    if not applied["selected_bays"]:
+                        return  # Zero highlighted Bays is a valid no-op.
+                    if candidate_selected[role] is None:
+                        source()["apply_live"](
+                            role, applied["set_index"], tuple(applied["selected_bays"]),
+                        )
+                    else:
+                        source()["apply"](
+                            role, candidate_selected[role],
+                            applied["set_index"], tuple(applied["selected_bays"]),
+                        )
+                    render()
+                    if real_preview["role"] == role:
+                        show_real_preview(role)
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
 
             ttk.Button(row, text="編輯", command=edit_role).pack(side="left", padx=(0, 3))
             apply_button = ttk.Button(
                 row, text="套用", command=apply_role,
-                state="normal" if candidate_selected[role] else "disabled",
+                state="normal" if candidate_selected[role] is not None
+                or "apply_live" in source() else "disabled",
             )
             apply_button.pack(side="left")
 
@@ -570,33 +580,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Button(
                     settings_host, text="版本管理", command=open_manager,
                 ).pack(anchor="e", pady=(5, 0))
-                # Head and tail are independent. Show both real-Bay
-                # and selected-candidate outlines using Hole Editor features.
-                for endcap_role, heading in (("head", "封頭"), ("tail", "封尾")):
-                    holder = ttk.Frame(settings_host)
-                    holder.pack(anchor="w", fill="x", pady=(6, 1))
-                    ttk.Label(holder, text=heading + " 配置比較").pack(
-                        anchor="w", pady=(0, 2),
-                    )
-                    canvases = ttk.Frame(holder)
-                    canvases.pack(anchor="w", fill="x")
-                    current_canvas = tk.Canvas(
-                        canvases, width=220, height=134,
-                        background="#1a2734", highlightthickness=0,
-                    )
-                    current_canvas.pack(side="left", padx=(0, 7))
-                    candidate_canvas = tk.Canvas(
-                        canvases, width=220, height=134,
-                        background="#1a2734", highlightthickness=0,
-                    )
-                    candidate_canvas.pack(side="left")
-                    status = tk.StringVar(master=win)
-                    ttk.Label(holder, textvariable=status).pack(anchor="w")
-                    endcap_preview_state[endcap_role] = {
-                        "applied": current_canvas, "candidate": candidate_canvas,
-                        "status": status,
-                    }
-                refresh_endcap_previews()
         else:
             actions(settings_host, "inner_door_layers")
             if get_inner_candidate_ports is not None:
@@ -605,25 +588,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
-                # Small factual thumbnails: Bay-applied versus only-selected
-                # candidate. No inferred hole geometry, 3D or manufacturing.
-                thumbnails = ttk.Frame(settings_host)
-                thumbnails.pack(anchor="w", fill="x", pady=(7, 2))
-                preview_state["applied"] = tk.Canvas(
-                    thumbnails, width=256, height=158,
-                    background="#1a2734", highlightthickness=0,
-                )
-                preview_state["applied"].pack(side="left", padx=(0, 8))
-                preview_state["candidate"] = tk.Canvas(
-                    thumbnails, width=256, height=158,
-                    background="#1a2734", highlightthickness=0,
-                )
-                preview_state["candidate"].pack(side="left")
-                preview_state["status"] = tk.StringVar(master=win)
-                ttk.Label(
-                    settings_host, textvariable=preview_state["status"],
-                ).pack(anchor="w")
-                refresh_inner_preview()
             if get_nfb_transaction_ports is not None:
                 transactions = get_nfb_transaction_ports()
                 state = transactions["state"](set_index, bay_index, targets())
@@ -740,10 +704,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     ttk.Label(
                         manifest_frame,text=label_line,wraplength=565,
                     ).pack(fill="x",anchor="w",padx=6,pady=1)
-                # Explicit partial manufacturing path: the existing full
-                # DXF button remains fail-closed for submitted NFB. This
-                # action reruns source SHA, WORLD-X, saved Bay, geometry and
-                # per-physical-part validation before writing any CUTTING.
+                # Independent #1501 verified partial export remains fail-closed:
+                # source SHA, physical WORLD-X and actual Bay are revalidated.
                 def export_verified_nfb_partial():
                     try:
                         destination = filedialog.asksaveasfilename(
@@ -801,8 +763,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager.destroy()
         manager_widgets.update(frame=None, label=None, buttons=(),
                                buttons_frame=None, quantity_frame=None, canvas=None)
-        if win.winfo_exists() and win.grab_current() is None:
-            win.grab_set()
+        if win.winfo_exists():
+            win.lift()
             win.focus_set()
 
     def refresh_manager_controls():
@@ -868,14 +830,20 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager_state["page"] = "candidates"
         manager = tk.Toplevel(win)
         manager.title("內門版本管理" if family == "inner" else "版本管理")
-        manager.transient(win)
+        # Managed child stays nonmodal so the parent and floating true view
+        # remain usable without closing each other first.
         manager.geometry("960x720")
         manager.minsize(570, 350)
         manager_window["win"] = manager
         manager.protocol("WM_DELETE_WINDOW", close_manager)
 
-        body = ttk.Frame(manager, padding=14)
+        manager_scroll, manager_content, manager_viewport = make_scrollable_frame(
+            manager, tk=tk, ttk=ttk, width=920, height=660,
+        )
+        manager_scroll.pack(fill="both", expand=True)
+        body = ttk.Frame(manager_content, padding=14)
         body.pack(fill="both", expand=True)
+        manager._receiving_manager_scroll = manager_scroll
         top = ttk.Frame(body)
         top.pack(anchor="nw", fill="x")
 
@@ -968,11 +936,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         manager._receiving_manager_canvas = diagram
         manager._receiving_manager_buttons = tuple(actions_map)
         manager._receiving_manager_page_var = page_var
+        manager._receiving_manager_tabs = tabs
         manager._receiving_manager_role_var = role_var
         refresh_manager_controls()
-        if win.grab_current() is win:
-            win.grab_release()
-        manager.grab_set()
+        manager.lift()
         manager.focus_set()
         return manager
 
@@ -1045,7 +1012,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 )
                 mark_cache["key"] = key
             marks = mark_cache["values"]
-        paint_connected_bays(canvas, count, selected, marks)
+        labels = ()
+        if (applied["mode"] == "set_bay" and
+                applied["set_index"] is not None and
+                get_applied_version_labels is not None):
+            labels = get_applied_version_labels(applied["set_index"])
+        paint_connected_bays(canvas, count, selected, marks, labels)
         canvas._receiving_selected_bay = (
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
@@ -1194,22 +1166,28 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if x0 <= event.x <= x1 and y0 <= event.y <= y1:
                 try:
                     selected_bays = set(applied["selected_bays"])
-                    if index in selected_bays and len(selected_bays) > 1:
+                    if index in selected_bays:
                         selected_bays.remove(index)
-                        active = min(selected_bays)
+                        active = min(selected_bays) if selected_bays else None
                     else:
                         selected_bays.add(index)
                         active = index
-                    if select_bay is not None:
+                    if active is not None and select_bay is not None:
                         select_bay(applied["set_index"], active)
                     applied["selected"] = active
                     applied["selected_bays"] = tuple(sorted(selected_bays))
-                    if selected_setting["kind"] is not None:
+                    if selected_setting["kind"] is not None and active is not None:
                         if on_setting_selected is not None:
                             on_setting_selected(applied["set_index"], active,
                                                 selected_setting["kind"])
                         selected_setting.update(
                             set_index=applied["set_index"], bay_index=active
+                        )
+                    # Keep the last browsed Bay as the read-only context if
+                    # everything is unhighlighted; never turn it into a target.
+                    if active is None and selected_setting["kind"] is not None:
+                        selected_setting.update(
+                            set_index=applied["set_index"], bay_index=index
                         )
                     show_setting_controls()
                     render()
@@ -1217,8 +1195,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     warn(exc)
                 return
 
+    mode_transition = {"busy": False}
+
     def change_mode():
         target = mode_var.get()
+        if mode_transition["busy"]:
+            mode_var.set(applied["mode"])
+            return
+        if target == applied["mode"]:
+            return
+        mode_transition["busy"] = True
         try:
             if get_snapshot().get("active_mode", "set_bay") != target:
                 if not switch_mode(target):
@@ -1234,6 +1220,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         except (ValueError, IndexError, RuntimeError) as exc:
             mode_var.set(applied["mode"])
             warn(exc)
+        finally:
+            mode_transition["busy"] = False
 
     for text, value in (("套／連", "set_bay"), ("數量", "quantity")):
         ttk.Radiobutton(mode_row, text=text, value=value,
@@ -1251,16 +1239,17 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_set_buttons = (minus_set, plus_set)
     win._receiving_multi_candidate_selected = candidate_selected
     win._receiving_multi_candidate_combos = candidate_combos
-    win._receiving_multi_inner_preview = preview_state
-    win._receiving_multi_endcap_preview = endcap_preview_state
-    win._receiving_multi_refresh_endcap_previews = refresh_endcap_previews
-    win._receiving_multi_refresh_inner_preview = refresh_inner_preview
+    win._receiving_multi_real_preview = real_preview
+    win._receiving_multi_show_real_preview = show_real_preview
+    win._receiving_multi_close_real_preview = close_real_preview
     win._receiving_multi_manager_state = manager_state
     win._receiving_multi_manager_window = manager_window
     win._receiving_multi_open_manager = open_manager
     win._receiving_multi_close_manager = close_manager
     win._receiving_multi_settings_host = settings_host
     win._receiving_multi_left_host = left_host
+    win._receiving_multi_left_scroll = left_scroll
+    win._receiving_multi_function_scroll = function_scroll
     win._receiving_multi_right_host = right_host
     win._receiving_multi_function_host = function_host
     win._receiving_multi_diagram_host = diagram_host

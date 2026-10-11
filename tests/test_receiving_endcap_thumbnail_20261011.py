@@ -154,45 +154,33 @@ def test_head_tail_candidates_are_separately_previewed_and_applied_to_real_bay()
         lst.event_generate("<<ListboxSelect>>")
         root.update()
 
-        thumbs = win._receiving_multi_endcap_preview
-        assert set(thumbs) == {"head", "tail"}
-        assert thumbs["head"]["applied"]._receiving_endcap_preview["source_count"] == 0
-        assert thumbs["tail"]["applied"]._receiving_endcap_preview["source_count"] == 0
-        assert thumbs["head"]["candidate"]._receiving_endcap_preview["source_count"] is None
-
+        # Both endcap roles keep independent settings; the old embedded
+        # thumbnails have been replaced by one opt-in floating true view.
+        assert win._receiving_multi_real_preview["win"] is None
+        assert not any(
+            isinstance(w, tk.Canvas)
+            for w in win._receiving_multi_settings_host.winfo_children()
+        )
         head_combo = win._receiving_multi_candidate_combos["head"]
         head_combo.set("版本一")
         head_combo.event_generate("<<ComboboxSelected>>")
         root.update()
-        assert thumbs["head"]["candidate"]._receiving_endcap_preview["shapes"][0] == (
-            "circle", "CUTTING", (40, 30, 10),
-        )
-        assert thumbs["head"]["applied"]._receiving_endcap_preview["source_count"] == 0
-        assert "尚未套用" in thumbs["head"]["status"].get()
-        assert thumbs["tail"]["candidate"]._receiving_endcap_preview["source_count"] is None
-
         row_head = win._receiving_multi_settings_host.winfo_children()[0]
         next(w for w in row_head.winfo_children()
              if isinstance(w, ttk.Button) and w.cget("text") == "套用").invoke()
         root.update()
         assert applied_calls == [("head", head_id, (0,))]
-        assert thumbs["head"]["applied"]._receiving_endcap_preview["source_count"] == 1
-        assert "相同" in thumbs["head"]["status"].get()
+        assert setting_value(layout["value"]["sets"][0], 0, "tail_features") == []
 
         tail_combo = win._receiving_multi_candidate_combos["tail"]
         tail_combo.set("版本一")
         tail_combo.event_generate("<<ComboboxSelected>>")
         root.update()
-        assert thumbs["tail"]["candidate"]._receiving_endcap_preview["shapes"][0][0] == "path"
-        assert thumbs["tail"]["applied"]._receiving_endcap_preview["source_count"] == 0
-        assert "尚未套用" in thumbs["tail"]["status"].get()
-
         row_tail = win._receiving_multi_settings_host.winfo_children()[1]
         next(w for w in row_tail.winfo_children()
              if isinstance(w, ttk.Button) and w.cget("text") == "套用").invoke()
         root.update()
         assert applied_calls[-1] == ("tail", tail_id, (0,))
-        assert "相同" in thumbs["tail"]["status"].get()
         assert setting_value(layout["value"]["sets"][0], 0, "head_features") == [circle()]
         assert setting_value(layout["value"]["sets"][0], 0, "tail_features") == [rectangle()]
         win._receiving_multi_close()

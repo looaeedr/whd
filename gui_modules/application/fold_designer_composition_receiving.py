@@ -479,7 +479,7 @@ def confirm_receiving_opening(
         submit("geometry", commit=True)
     return True
 
-def receiving_bay_preview_request(self, namespace, set_index, bay_index):
+def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
     """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
     from types import SimpleNamespace
     from copy import deepcopy
@@ -491,8 +491,12 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
     from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
     from ae_engine.display_dimensions import resolve_operator_finished_dimensions
     app = self.app
+    source = dict(app._phase6_input_snapshot)
+    if preview_layout is not None:
+        # Candidate previews run on an isolated layout clone, NEVER live state.
+        source["receiving_layout"] = preview_layout
     snapshot = project_receiving_bay_legacy_aliases(
-        app._phase6_input_snapshot, set_index=set_index, bay_index=bay_index,
+        source, set_index=set_index, bay_index=bay_index,
     )
     settings = {**dict(app._settings_values), **{key: snapshot[key] for key in ("w", "h", "d")}}
     snapshot.update(settings)
@@ -501,7 +505,11 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
     fingerprint = stable_fingerprint({"snapshot": snapshot, "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
-    if cache_key in cache and cache[cache_key][0] == fingerprint:
+    virtual_cache = getattr(self, "_receiving_bay_virtual_preview_cache", {})
+    virtual_key = (set_index, bay_index, fingerprint)
+    if preview_layout is not None and virtual_key in virtual_cache:
+        return virtual_cache[virtual_key]
+    if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
         return cache[cache_key][1]
     box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
     profile_map = {key: build_endcap_xy_profiles(snapshot, part_key=key) for key in ("head", "tail")}
@@ -559,8 +567,16 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
         x_profile=(), y_profile=(), part_key="assembly",
         finished_dimensions=dimensions(), thickness=float(snapshot.get("t", 2)),
     )
-    cache[cache_key] = (fingerprint, result)
-    self._receiving_bay_preview_cache = cache
+    if preview_layout is None:
+        cache[cache_key] = (fingerprint, result)
+        self._receiving_bay_preview_cache = cache
+    else:
+        # Small bounded cache prevents every preview-version switch from
+        # repeating the real FinalScene solve. Fingerprint invalidates drafts.
+        virtual_cache[virtual_key] = result
+        while len(virtual_cache) > 8:
+            virtual_cache.pop(next(iter(virtual_cache)))
+        self._receiving_bay_virtual_preview_cache = virtual_cache
     return result
 
 def receiving_layer_preview_payload(self, namespace, layer_index):
@@ -596,13 +612,20 @@ def receiving_settings_ports(self, namespace, set_index):
     def selected(index):
         adapter.select_bay(index + 1)
 
-    def change(kind, value, indices=()):
+    def change(kind, value, indices=None):
+        # No explicitly highlighted Bay means no edit. Omitted indices keeps
+        # compatibility for the direct one-Bay editor, not the multi GUI.
+        targets = ((adapter.selection.bay_index,) if indices is None
+                   else tuple(indices))
+        if not targets:
+            return False
         current = adapter.selection.bay_index
-        for index in tuple(indices) or (current,):
+        for index in targets:
             adapter.select_bay(index + 1)
             adapter.update_setting(kind, value)
         adapter.select_bay(current + 1)
         commit()
+        return True
 
     def share(kind, indices):
         adapter.share_setting(kind, indices)
@@ -632,7 +655,9 @@ def receiving_settings_ports(self, namespace, set_index):
         adapter.set_brand(value)
         commit()
 
-    def holes(role, indices=()):
+    def holes(role, indices=None):
+        if indices is not None and not tuple(indices):
+            return False
         bay = adapter.current_bay()
         width, depth = float(bay["width"]), float(bay["depth"])
         thickness = float(self.app._phase6_input_snapshot.get("t", 2))
@@ -646,7 +671,7 @@ def receiving_settings_ports(self, namespace, set_index):
         def save_features():
             kind = f"{role}_features"
             current = adapter.selection.bay_index
-            targets = tuple(indices) or (current,)
+            targets = (current,) if indices is None else tuple(indices)
             if len(targets) > 1:
                 adapter.select_bay(targets[0] + 1)
                 adapter.share_setting(kind, targets)
@@ -1196,7 +1221,9 @@ def open_receiving_multi_settings(self, namespace):
         features = candidate_features(candidate_library(), role, version_id)
         # One validated all-or-nothing update; retains the active editor
         # selection and avoids the old per-Bay UI/geometry churn.
-        adapter.apply_candidate_to_bays(role, set_index, targets, features)
+        adapter.apply_candidate_to_bays(
+            role, set_index, targets, features, version_id=version_id,
+        )
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
         self.app.submit_update_intent("geometry", commit=True)
@@ -1213,6 +1240,15 @@ def open_receiving_multi_settings(self, namespace):
         self.app.submit_update_intent("geometry", commit=True)
         return result
 
+    def apply_live_label(role, set_index, highlighted):
+        """Tag the existing physical config 即時; no candidate or geometry mutation."""
+        adapter = candidate_adapter()
+        applied_bays = adapter.mark_live_version_for_bays(role, set_index, highlighted)
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        # A display-label mutation must never rebuild FinalScene.
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        return applied_bays
+
     def candidate_ports():
         return {
             "versions": lambda role: candidates_for(candidate_library(), role),
@@ -1220,6 +1256,7 @@ def open_receiving_multi_settings(self, namespace):
             "copy": copy_candidate,
             "delete": remove_candidate,
             "apply": apply_candidate,
+            "apply_live": apply_live_label,
             "apply_quantity": apply_quantity_configuration,
         }
 
@@ -1282,11 +1319,15 @@ def open_receiving_multi_settings(self, namespace):
             initial = inner_config(inner_library(), version_id)
         modal = tk.Toplevel(self.app.root)
         modal.title("內門版本編輯")
-        modal.transient(self.app.root)
-        from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
+        from .receiving_scroll_view import make_scrollable_frame
         modal.geometry("1130x850")
-        frame = ttk.Frame(modal, padding=14)
+        modal_scroll, modal_content, modal_viewport = make_scrollable_frame(
+            modal, tk=tk, ttk=ttk, width=1080, height=780,
+        )
+        modal_scroll.pack(fill="both", expand=True)
+        frame = ttk.Frame(modal_content, padding=14)
         frame.pack(fill="both", expand=True)
+        modal._receiving_editor_scroll = modal_scroll
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
                         else version_label(version_id))).pack(anchor="w")
         # Legacy inner-door candidate layers and NFB physical layers are
@@ -1298,15 +1339,12 @@ def open_receiving_multi_settings(self, namespace):
         controls = ttk.Frame(summary_row)
         controls.pack(side="left", anchor="n")
         ttk.Label(controls, text="內門版本層數").pack(side="left")
-        preview_box = ttk.Frame(summary_row)
-        preview_box.pack(side="right", anchor="ne")
-        thumbnail = tk.Canvas(
-            preview_box, width=335, height=158,
-            background="#1a2734", highlightthickness=0,
-        )
-        thumbnail.pack(anchor="e")
+        # No fake inventory thumbnail: true real geometry is shown from the
+        # selected version in the separate movable FinalScene window.
         preview_status = tk.StringVar(master=modal)
-        ttk.Label(preview_box, textvariable=preview_status).pack(anchor="e")
+        ttk.Label(summary_row, textvariable=preview_status).pack(
+            side="right", anchor="ne",
+        )
         physical_row = ttk.Frame(frame)
         physical_row.pack(fill="x", pady=(2, 4))
         ttk.Label(physical_row, text="NFB 物理層（未提交草稿）").pack(side="left")
@@ -1363,7 +1401,6 @@ def open_receiving_multi_settings(self, namespace):
                     pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
                 ],
             }
-            paint_inner_door_thumbnail(thumbnail, config, title="版本配置即時縮圖")
             before = {
                 "layers": initial["layers"],
                 "models": [
@@ -1840,7 +1877,6 @@ def open_receiving_multi_settings(self, namespace):
             "nfb_draft": draft_state, "nfb_draft_status": draft_summary,
         }
         modal._receiving_inner_refresh_switch_models = refresh_source
-        modal._receiving_inner_preview_canvas = thumbnail
         modal._receiving_inner_preview_status = preview_status
         modal._receiving_inner_nfb_dxf_panel = nfb_preview_panel["panel"]
 
@@ -1862,10 +1898,15 @@ def open_receiving_multi_settings(self, namespace):
                 return
             popup=tk.Toplevel(modal)
             popup.title("NFB 物理世界 X｜正式提交前驗證")
-            popup.transient(modal)
             popup.geometry("540x440")
-            body=ttk.Frame(popup,padding=14)
+            from .receiving_scroll_view import make_scrollable_frame
+            world_scroll, world_content, _world_view = make_scrollable_frame(
+                popup, tk=tk, ttk=ttk, width=510, height=410,
+            )
+            world_scroll.pack(fill="both", expand=True)
+            body=ttk.Frame(world_content,padding=14)
             body.pack(fill="both",expand=True)
+            popup._receiving_world_scroll = world_scroll
             ttk.Label(
                 body,text="輸入受電箱基準的實際世界 X（mm），不是名義間距或 X 位移。",
                 wraplength=490,
@@ -1919,7 +1960,8 @@ def open_receiving_multi_settings(self, namespace):
                     popup.grab_release()
                 popup.destroy()
                 if modal.winfo_exists():
-                    modal.grab_set()
+                    modal.lift()
+                    modal.focus_set()
 
             def prepare():
                 try:
@@ -1956,7 +1998,7 @@ def open_receiving_multi_settings(self, namespace):
             )
             ttk.Button(actions,text="驗證實體來源",command=prepare).pack(side="left")
             popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
-            popup.grab_set()
+            popup.lift()
 
         def confirm():
             try:
@@ -2031,15 +2073,14 @@ def open_receiving_multi_settings(self, namespace):
             if modal.grab_current() is modal:
                 modal.grab_release()
             modal.destroy()
-            if (parent_modal is not None and parent_modal.winfo_exists()
-                    and parent_modal.grab_current() is None):
-                parent_modal.grab_set()
+            if parent_modal is not None and parent_modal.winfo_exists():
+                parent_modal.lift()
         modal.protocol("WM_DELETE_WINDOW", close_editor)
         modal.bind("<Escape>",lambda _event:close_editor())
         for widget in buttons.winfo_children():
             if widget.cget("text") == "取消":
                 widget.configure(command=close_editor)
-        modal.grab_set()
+        modal.lift()
         return modal
 
     def inner_copy(role, version_id, destination):
@@ -2072,7 +2113,7 @@ def open_receiving_multi_settings(self, namespace):
         config = inner_config(inner_library(), version_id)
         verify_inner_models(config)
         adapter.apply_inner_door_candidate_to_bays(
-            config, set_index, highlighted,
+            config, set_index, highlighted, version_id=version_id,
         )
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
@@ -2111,6 +2152,7 @@ def open_receiving_multi_settings(self, namespace):
             "copy": inner_copy,
             "delete": inner_delete,
             "apply": inner_apply,
+            "apply_live": apply_live_label,
             "apply_quantity": inner_apply_quantity,
             "validate_quantity": inner_validate_quantity,
         }
@@ -2261,8 +2303,7 @@ def open_receiving_multi_settings(self, namespace):
             if bundle is None:
                 raise ValueError("此連已提交 NFB，但來源／世界 X 尚未在本次操作重新驗證")
             adapter = candidate_adapter()
-            # The bridge reads the ACTUAL saved Bay and current physical
-            # cabinet geometry; a displayed manifest is never export permission.
+            # Source proof and actual saved Bay are revalidated before writing.
             return export_verified_receiving_nfb_inner_door(
                 bundle,
                 layout=adapter.layout,
@@ -2363,6 +2404,43 @@ def open_receiving_multi_settings(self, namespace):
                 "partial_export": export_partial_nfb_inner_door,
                 "restore": restore, "undo": undo}
 
+    def real_cut_preview_request(role, version_id, set_index, bay_index):
+        """True canonical FinalScene, candidate-injected in memory, no mutation."""
+        if version_id is None:
+            return self.receiving_bay_preview_request(
+                namespace, set_index, bay_index,
+            )
+        from .receiving_set_bay_adapter import ReceivingSetBayAdapter
+        temporary = ReceivingSetBayAdapter(candidate_adapter().layout)
+        if role == "inner-door":
+            config = inner_config(inner_library(), version_id)
+            temporary.apply_inner_door_candidate_to_bays(
+                config, set_index, (bay_index,), version_id=version_id,
+            )
+        elif role in ("head", "tail"):
+            features = candidate_features(candidate_library(), role, version_id)
+            temporary.apply_candidate_to_bays(
+                role, set_index, (bay_index,), features, version_id=version_id,
+            )
+        else:
+            raise ValueError("不支援的真實截角資料預覽部位")
+        return self.receiving_bay_preview_request(
+            namespace, set_index, bay_index, preview_layout=temporary.layout,
+        )
+
+    def applied_version_labels(set_index):
+        """Read ONLY persisted per-Bay identifiers from the current layout."""
+        from ae_engine.receiving_shared_settings import setting_value
+        selected_set = candidate_adapter().layout["sets"][set_index]
+        return tuple({
+            role: setting_value(selected_set, bi, kind)
+            for role, kind in (
+                ("head", "head_version_id"),
+                ("tail", "tail_version_id"),
+                ("inner-door", "inner_door_version_id"),
+            )
+        } for bi in range(len(selected_set["bays"])))
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -2381,6 +2459,8 @@ def open_receiving_multi_settings(self, namespace):
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_original_door_marks=existing_door_marks,
+        get_applied_version_labels=applied_version_labels,
+        get_real_cut_preview_request=real_cut_preview_request,
         on_brand_close=finalize_global_brand,
         on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
     )
