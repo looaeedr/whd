@@ -366,3 +366,122 @@ def compose_projected_nfb_on_actual_base(
             box_body_face_contexts=actual.box_body_face_contexts,
         ),
     )
+
+
+
+def build_existing_receiving_base_with_verified_nfb(
+    *,
+    snapshot: Mapping[str, object],
+    inner_door_id: str,
+    base_spec,
+    verified_inner_door: NfbValidatedInnerDoorRender,
+    source_path,
+    profile,
+    lower_reference_handle: str,
+) -> NfbComposedActualBase:
+    """#1502: ONE existing BasePlatePartSpec → FinalScene, ear + NFB together.
+
+    The existing selected upper-door cell identifies the owning physical
+    Base Plate; its normal manufacturing builder supplies actual CUTTING,
+    BEND, mounting slots, unfolded topology and surface material. The
+    existing assembly placement supplies world XY; the original verified
+    inner door supplies NFB positions. No second user-selected X/UV datum,
+    mock lower plate or separate DXF exporter is introduced.
+
+    This is a *manufacturing preparation* result.  It remains unapproved
+    until real assembled EAR and complete NFB CHECK/Q production gates pass.
+    """
+    from .contracts import BasePlatePartSpec
+    from .manufacturing_api import build_part_render_data
+    from .assembly_placement import resolve_base_plate_placement
+    from .sheetmetal_part_adapters import (
+        RECEIVING_BASE_PATTERN_CENTER, RECEIVING_BASE_PATTERNS,
+        derive_door_layout_cells,
+    )
+    from .sheetmetal_drawing import PolylinePrimitive
+    if not isinstance(base_spec, BasePlatePartSpec):
+        raise TypeError("NFB base requires original BasePlatePartSpec owner")
+    if str(base_spec.model_name or "").strip() not in ("受電箱", "RECEIVING"):
+        raise ValueError("NFB Base Plate owner must be Receiving cabinet")
+    if base_spec.receiving_bend_pattern not in RECEIVING_BASE_PATTERNS:
+        raise ValueError("NFB Base Plate needs existing physical bend-pattern decision")
+    if not base_spec.physical_id:
+        raise ValueError("NFB Base Plate stable physical ID missing")
+    if (float(snapshot.get("w", 0.)) != float(base_spec.width)
+            or float(snapshot.get("t", 0.)) != float(base_spec.thickness)):
+        raise ValueError("NFB Base Plate does not belong to current box W/T")
+
+    inner = next((
+        row for row in (snapshot.get("inner_doors") or ())
+        if str(row.get("stable_id", "")).strip() == str(inner_door_id).strip()
+    ), None)
+    if inner is None:
+        raise ValueError("NFB selected inner door absent from real cabinet topology")
+    cell_key = str(inner.get("cell_key") or "")
+    try:
+        column, row = (int(v) for v in cell_key.split(":"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("NFB inner door has invalid owning cell") from exc
+    # No lower base plate may be inferred from a second lower Door cell.
+    if column < 0 or row != 0:
+        raise ValueError("NFB base can belong only to the actual upper cell")
+    cells = derive_door_layout_cells(snapshot.get("door_layout_columns") or ())
+    cell = next((x for x in cells
+                 if x.column_index == column and x.row_index == row), None)
+    if cell is None:
+        raise ValueError("NFB base owning Door cell not found")
+    if (abs(float(base_spec.width) - float(cell.start_width)) > _TOL
+            or abs(float(base_spec.height) - float(cell.start_height)) > _TOL):
+        raise ValueError("NFB Base Plate must use actual upper cell W/H")
+    exact_base_id = f"base_plate_c{column + 1}_r{row + 1}"
+    # The old single 'base_plate' is still one legitimate physical part
+    # only when no additional Door cells are present (whole-box base).
+    if base_spec.physical_id != exact_base_id:
+        if (base_spec.physical_id != "base_plate" or len(cells) != 1):
+            raise ValueError("NFB Base Plate physical ID differs from its upper cell")
+    placement = resolve_base_plate_placement(snapshot, base_spec.physical_id)
+    if placement.stable_id != base_spec.physical_id:
+        raise ValueError("NFB Base Plate placement stable ID mismatch")
+    render = build_part_render_data(base_spec)
+
+    # Derive the actual central installation face from the manufactured
+    # fold chain, not from an illustrative CAD drawing's origin or NFB hole.
+    actual_w = float(render.unfolded_topology.width)
+    actual_h = float(render.unfolded_topology.height)
+    fold_y = float(base_spec.bend)
+    side_return = (71.0 if base_spec.receiving_bend_pattern
+                   == RECEIVING_BASE_PATTERN_CENTER else 0.0)
+    x0, x1 = side_return, actual_w - side_return
+    y0, y1 = fold_y, actual_h - fold_y
+    if x1 <= x0 or y1 <= y0:
+        raise ValueError("NFB physical base has no usable central mounting face")
+    ear_slots = [
+        obj for obj in render.scene.primitives
+        if isinstance(obj, PolylinePrimitive)
+        and obj.layer == "CUTTING" and obj.closed
+    ]
+    if len(ear_slots) != 5:
+        raise ValueError("NFB actual Base Plate requires exterior plus four EAR slots")
+    target = NfbActualBaseWorkFace(
+        physical_part_id=base_spec.physical_id,
+        actual_render=render,
+        world_face_center_xy_mm=(
+            float(placement.world_offset[0]), float(placement.world_offset[1]),
+        ),
+        unfolded_face_center_uv_mm=(
+            (x0 + x1) / 2.0, (y0 + y1) / 2.0,
+        ),
+        face_outline_uv_mm=((x0,y0),(x1,y0),(x1,y1),(x0,y1)),
+    )
+    projection=project_one_original_nfb_into_actual_base(
+        snapshot=snapshot,
+        inner_door_id=inner_door_id,
+        verified_inner_door=verified_inner_door,
+        source_path=source_path,
+        profile=profile,
+        lower_reference_handle=lower_reference_handle,
+        target=target,
+    )
+    return compose_projected_nfb_on_actual_base(
+        target=target, projection=projection,
+    )
