@@ -88,7 +88,7 @@ def extract_original_door_marks(scene):
     return {"nameplate": nameplate, "handle": handle}
 
 
-def paint_connected_bays(canvas, count, selected=None, door_marks=None):
+def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None):
     """Cheap front-elevation sketch: touching bays with basic upper/lower doors.
 
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
@@ -161,6 +161,24 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None):
                 sx, sy = max(1.0, rx * dw), max(1.0, ry * dh)
                 canvas.create_oval(px - sx, py - sy, px + sx, py + sy,
                                   outline="#f7c66f", width=1)
+        labels = (version_labels or ())
+        by_role = labels[index] if index < len(labels) else {}
+        if by_role:
+            label_lines = []
+            for role, prefix in (("head", "封頭"), ("tail", "封尾"),
+                                 ("inner-door", "內門")):
+                version_id = by_role.get(role)
+                if version_id is not None:
+                    label = version_label(version_id) if version_id else "即時"
+                    label_lines.append(f"{prefix}：{label}")
+            # Canvas text is a status overlay only; source is saved per-Bay
+            # identity, never candidate dropdown presentation state.
+            for line_no, label in enumerate(label_lines):
+                canvas.create_text(
+                    (x0+x1)/2, top + bay_h * (0.2 + 0.13*line_no),
+                    text=label, fill="#ffffff", width=max(18, bay_w-4),
+                    font=("TkDefaultFont", 9, "bold"), tags=("applied_version",),
+                )
         hitboxes.append((x0, top, x1, top + bay_h))
     canvas._receiving_bay_hitboxes = tuple(hitboxes)
     return count
@@ -179,6 +197,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         set_brand=None, get_settings_ports=None,
                         get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
+                        get_applied_version_labels=None,
                         on_close=None, on_brand_close=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
@@ -521,7 +540,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             def choose(_event=None):
                 candidate_selected[role] = ids.get(variable.get())
                 apply_button.configure(
-                    state="normal" if candidate_selected[role] else "disabled"
+                    state="normal" if candidate_selected[role] is not None
+                    or "apply_live" in source() else "disabled"
                 )
                 refresh_manager_controls()
                 if role == "inner-door":
@@ -548,10 +568,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         raise ValueError("請先套用一套並在簡易圖高亮要指定的連")
                     if not applied["selected_bays"]:
                         return  # Zero highlighted Bays is a valid no-op.
-                    source()["apply"](
-                        role, candidate_selected[role],
-                        applied["set_index"], tuple(applied["selected_bays"]),
-                    )
+                    if candidate_selected[role] is None:
+                        source()["apply_live"](
+                            role, applied["set_index"], tuple(applied["selected_bays"]),
+                        )
+                    else:
+                        source()["apply"](
+                            role, candidate_selected[role],
+                            applied["set_index"], tuple(applied["selected_bays"]),
+                        )
+                    render()
                     if role == "inner-door":
                         refresh_inner_preview()
                     elif role in ("head", "tail"):
@@ -562,7 +588,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             ttk.Button(row, text="編輯", command=edit_role).pack(side="left", padx=(0, 3))
             apply_button = ttk.Button(
                 row, text="套用", command=apply_role,
-                state="normal" if candidate_selected[role] else "disabled",
+                state="normal" if candidate_selected[role] is not None
+                or "apply_live" in source() else "disabled",
             )
             apply_button.pack(side="left")
 
@@ -1005,7 +1032,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 )
                 mark_cache["key"] = key
             marks = mark_cache["values"]
-        paint_connected_bays(canvas, count, selected, marks)
+        labels = ()
+        if (applied["mode"] == "set_bay" and
+                applied["set_index"] is not None and
+                get_applied_version_labels is not None):
+            labels = get_applied_version_labels(applied["set_index"])
+        paint_connected_bays(canvas, count, selected, marks, labels)
         canvas._receiving_selected_bay = (
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
