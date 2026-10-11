@@ -83,3 +83,26 @@ def test_unrelated_and_unconfigured_parts_keep_their_valid_export_path(tmp_path)
     assert set(result) == {"inner_door", "base_plate"}
     assert len(calls) == 2
     assert all((root / (part + ".dxf")).is_file() for part in result)
+
+
+@pytest.mark.parametrize("metadata", [
+    {"nfb_base_process_status": "BASE_PROCESS_PROJECTED_ACTUAL_FACE_NOT_RELEASED",
+     "stable_id": "base_plate", "nfb_base_mfg2_release_approved": True},
+    MappingProxyType({
+        "nfb_base_process_status": "BASE_PROCESS_PROJECTED_ACTUAL_FACE_NOT_RELEASED",
+        "stable_id": "base_plate", "nfb_base_mfg2_release_approved": True,
+        "receiving_base_ear_weld_z_verified": True,
+    }),
+])
+def test_part_only_rejects_approval_flags_without_real_scene(tmp_path, metadata):
+    calls = []
+    root = tmp_path / "unverified"
+    with pytest.raises(ValueError, match="NFB_BASE_PART_CUTTING_EVIDENCE_MISSING"):
+        save_resolved_manufacturing_geometry_dxf(
+            _geometry(_part("base_plate", metadata)), root,
+            save_part_render_data_dxf=_serializer(calls),
+            box_body_physical_piece_roles=(),
+            part_only=True,
+        )
+    assert calls == []
+    assert not root.exists()
