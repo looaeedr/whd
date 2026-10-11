@@ -226,13 +226,21 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         mode_row = win._receiving_multi_mode_controls
         setting_list = win._receiving_multi_setting_list
         controls_column = rows_host.master
-        # Both the action row and the three-item LIST (not a dropdown) sit
-        # directly below upper-left mode choices; 2D stays lower right.
-        assert mode_row.master.grid_info()["row"] == 0
-        assert controls_column.grid_info()["row"] == 1
-        assert controls_column.grid_info()["column"] == 0
-        assert canvas.grid_info()["row"] == 1
-        assert canvas.grid_info()["column"] == 0
+        # Two columns: Set/Bay stays LEFT; category/function selection is
+        # RIGHT TOP, and a separate diagram container occupies RIGHT BOTTOM.
+        left = win._receiving_multi_left_host
+        right = win._receiving_multi_right_host
+        function = win._receiving_multi_function_host
+        diagram = win._receiving_multi_diagram_host
+        assert left.master is win and right.master is win
+        assert left.grid_info()["column"] == 0
+        assert right.grid_info()["column"] == 1
+        assert mode_row.master.master is left
+        assert controls_column.master is left
+        assert function.master is right and function.grid_info()["row"] == 0
+        assert diagram.master is right and diagram.grid_info()["row"] == 1
+        assert canvas.master is diagram and canvas.grid_info()["row"] == 0
+        assert win._receiving_multi_settings_host.master is function
         assert abs(controls_column.winfo_rootx() - mode_row.winfo_rootx()) <= 2
         set_buttons = win._receiving_multi_set_buttons
         assert [w.cget("text") for w in set_buttons] == ["－套", "＋套"]
@@ -241,7 +249,10 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         )
         assert 0 <= vertical_gap <= 32
         assert isinstance(setting_list, tk.Listbox)
-        assert setting_list.master is controls_column
+        assert setting_list.master is function
+        assert setting_list.grid_info()["row"] == 0
+        assert setting_list.grid_info()["column"] == 0
+        assert win._receiving_multi_settings_host.grid_info()["column"] == 1
         assert setting_list.winfo_ismapped()
         assert tuple(setting_list.get(0, tk.END)) == ("封頭尾", "內門")
         assert setting_list.curselection() == ()
@@ -347,7 +358,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         choices[1].invoke()
         root.update()
         assert mode["value"] == "quantity"
-        assert not win._receiving_multi_rows_host.winfo_children()[0].winfo_children()
+        assert not win._receiving_multi_rows_host.winfo_children()
         assert setting_list.winfo_ismapped()
         assert tuple(setting_list.get(0, tk.END)) == ("封頭尾",)
         assert len(canvas._receiving_bay_hitboxes) == 1
@@ -527,13 +538,17 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
                    if isinstance(w, ttk.Button) and w.cget("text") == "版本管理"][0]
         manager.invoke()
         root.update()
-        assert "複製為新版本" in _visible_texts(host)
-        assert "複製到封尾" in _visible_texts(host)
-        assert "刪除目前版本" in _visible_texts(host)
-        expanded = [w for w in host.winfo_children() if isinstance(w, ttk.Frame)][-1]
-        manage_buttons = [w for row in expanded.winfo_children()
-                          for w in row.winfo_children()
-                          if isinstance(w, ttk.Button)]
+        child = win._receiving_multi_manager_window["win"]
+        assert child is not None and child.winfo_exists()
+        assert child.master is win
+        assert child.title() == "版本管理"
+        assert child.grab_current() is child
+        assert win._receiving_multi_canvas.master is win._receiving_multi_diagram_host
+        assert "複製為新版本" not in _visible_texts(host)
+        assert "複製為新版本" in _visible_texts(child)
+        assert "複製到封尾" in _visible_texts(child)
+        assert "刪除目前版本" in _visible_texts(child)
+        manage_buttons = child._receiving_manager_buttons
         duplicate = [w for w in manage_buttons
                      if w.cget("text") == "複製為新版本"][0]
         duplicate.invoke()
@@ -541,10 +556,7 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         assert len(candidates_for(library["value"], "head")) == 2
         combo = win._receiving_multi_candidate_combos["head"]
         assert combo.get() == "版本二"
-        expanded = [w for w in host.winfo_children() if isinstance(w, ttk.Frame)][-1]
-        manage_buttons = [w for row in expanded.winfo_children()
-                          for w in row.winfo_children()
-                          if isinstance(w, ttk.Button)]
+        manage_buttons = child._receiving_manager_buttons
         to_other = [w for w in manage_buttons
                     if w.cget("text") == "複製到封尾"][0]
         to_other.invoke()
@@ -552,6 +564,18 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         assert len(candidates_for(library["value"], "tail")) == 1
         assert win._receiving_multi_candidate_combos["tail"].get() == "版本一"
         assert len(candidates_for(library["value"], "head")) == 2
+        # Re-clicking the entry raises the SAME manager, not a duplicate.
+        new_host = win._receiving_multi_settings_host
+        reopen = [w for w in new_host.winfo_children()
+                  if isinstance(w, ttk.Button) and w.cget("text") == "版本管理"][0]
+        reopen.invoke()
+        root.update()
+        assert win._receiving_multi_manager_window["win"] is child
+        assert len([w for w in win.winfo_children() if isinstance(w, tk.Toplevel)]) == 1
+        win._receiving_multi_close_manager()
+        root.update()
+        assert not child.winfo_exists()
+        assert win.grab_current() is win
         win._receiving_multi_close()
     finally:
         root.destroy()
