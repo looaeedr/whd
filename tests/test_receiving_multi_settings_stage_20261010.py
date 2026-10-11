@@ -375,10 +375,9 @@ def test_embedded_head_tail_versions_reuse_original_quantity_owner():
                    if isinstance(w, ttk.Radiobutton)]
         listing = win._receiving_multi_setting_list
         assert tuple(listing.get(0, tk.END)) == ("封頭尾",)
-        assert win._receiving_multi_quantity_editor["controls"] is None
-        listing.selection_set(0)
-        listing.event_generate("<<ListboxSelect>>")
-        root.update()
+        assert listing.curselection() == (0,)
+        # The original version editor opens directly after the explicit
+        # entry; no second list click should be required.
         controls = win._receiving_multi_quantity_editor["controls"]
         assert controls is not None
         assert controls.versions.master.master is win._receiving_multi_settings_host
