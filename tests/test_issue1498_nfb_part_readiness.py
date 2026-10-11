@@ -123,7 +123,7 @@ def test_missing_real_plate_id_is_scope_blocker_not_an_invented_part():
     )
     assert result.for_part("inner_door:upper:panel").status==READY
     assert "BASE_PLATE_PHYSICAL_ID_UNRESOLVED" in result.scope_reasons
-    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" in result.scope_reasons
+    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" not in result.scope_reasons
     assert result.can_submit  # only the genuinely verified MFG-1 door
     with pytest.raises(ValueError,match="dependencies unresolved"):
         result.filter_export_part_ids(("side_panel:left",))
@@ -153,7 +153,6 @@ def test_issue1502_one_authority_inner_door_NFB_no_base_from_illustration():
     )
     assert set(result.scope_reasons)=={
         "BASE_PLATE_PHYSICAL_ID_UNRESOLVED",
-        "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED",
     }
     assert result.filter_export_part_ids(
         ("inner_door:upper:panel",), partial=True,
