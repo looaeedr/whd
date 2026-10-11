@@ -1299,11 +1299,16 @@ def open_receiving_multi_settings(self, namespace):
             initial = inner_config(inner_library(), version_id)
         modal = tk.Toplevel(self.app.root)
         modal.title("內門版本編輯")
-        modal.transient(self.app.root)
         from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
+        from .receiving_scroll_view import make_scrollable_frame
         modal.geometry("1130x850")
-        frame = ttk.Frame(modal, padding=14)
+        modal_scroll, modal_content, modal_viewport = make_scrollable_frame(
+            modal, tk=tk, ttk=ttk, width=1080, height=780,
+        )
+        modal_scroll.pack(fill="both", expand=True)
+        frame = ttk.Frame(modal_content, padding=14)
         frame.pack(fill="both", expand=True)
+        modal._receiving_editor_scroll = modal_scroll
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
                         else version_label(version_id))).pack(anchor="w")
         # Legacy inner-door candidate layers and NFB physical layers are
@@ -1879,10 +1884,15 @@ def open_receiving_multi_settings(self, namespace):
                 return
             popup=tk.Toplevel(modal)
             popup.title("NFB 物理世界 X｜正式提交前驗證")
-            popup.transient(modal)
             popup.geometry("540x440")
-            body=ttk.Frame(popup,padding=14)
+            from .receiving_scroll_view import make_scrollable_frame
+            world_scroll, world_content, _world_view = make_scrollable_frame(
+                popup, tk=tk, ttk=ttk, width=510, height=410,
+            )
+            world_scroll.pack(fill="both", expand=True)
+            body=ttk.Frame(world_content,padding=14)
             body.pack(fill="both",expand=True)
+            popup._receiving_world_scroll = world_scroll
             ttk.Label(
                 body,text="輸入受電箱基準的實際世界 X（mm），不是名義間距或 X 位移。",
                 wraplength=490,
@@ -1936,7 +1946,8 @@ def open_receiving_multi_settings(self, namespace):
                     popup.grab_release()
                 popup.destroy()
                 if modal.winfo_exists():
-                    modal.grab_set()
+                    modal.lift()
+                    modal.focus_set()
 
             def prepare():
                 try:
@@ -1973,7 +1984,7 @@ def open_receiving_multi_settings(self, namespace):
             )
             ttk.Button(actions,text="驗證實體來源",command=prepare).pack(side="left")
             popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
-            popup.grab_set()
+            popup.lift()
 
         def confirm():
             try:
@@ -2048,15 +2059,14 @@ def open_receiving_multi_settings(self, namespace):
             if modal.grab_current() is modal:
                 modal.grab_release()
             modal.destroy()
-            if (parent_modal is not None and parent_modal.winfo_exists()
-                    and parent_modal.grab_current() is None):
-                parent_modal.grab_set()
+            if parent_modal is not None and parent_modal.winfo_exists():
+                parent_modal.lift()
         modal.protocol("WM_DELETE_WINDOW", close_editor)
         modal.bind("<Escape>",lambda _event:close_editor())
         for widget in buttons.winfo_children():
             if widget.cget("text") == "取消":
                 widget.configure(command=close_editor)
-        modal.grab_set()
+        modal.lift()
         return modal
 
     def inner_copy(role, version_id, destination):
