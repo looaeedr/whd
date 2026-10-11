@@ -1242,6 +1242,7 @@ def open_receiving_multi_settings(self, namespace):
         from tkinter import ttk, messagebox
         import tkinter as tk
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        from .receiving_nfb_source_preview import NfbDxfSourcePreviewPanel
         from ae_engine.receiving_nfb_ui1a import (
             INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
             reconcile_set_brand, set_nfb_draft_layer_count,
@@ -1264,7 +1265,7 @@ def open_receiving_multi_settings(self, namespace):
         modal.title("內門版本編輯")
         modal.transient(self.app.root)
         from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
-        modal.geometry("820x750")
+        modal.geometry("1130x850")
         frame = ttk.Frame(modal, padding=14)
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
@@ -1302,6 +1303,9 @@ def open_receiving_multi_settings(self, namespace):
         )}
         source_state = {"files": [(), ()], "signature": [None, None]}
         draft_summary = tk.StringVar(master=modal, value="")
+        initial_nfb_draft = deepcopy(draft_state["draft"])
+        nfb_preview_panel = {"panel": None}
+        nfb_source_viewed = {"value": False}
 
         def sync_chosen():
             for layer in range(2):
@@ -1496,6 +1500,27 @@ def open_receiving_multi_settings(self, namespace):
             repaint(index)
             refresh_source(force=True)
 
+        def preview_available(index):
+            selected = layer_rows[index]["available"].curselection()
+            files = source_state["files"][index]
+            if selected and selected[0] < len(files):
+                nfb_preview_panel["panel"].show(view_source_catalog(index),files[selected[0]])
+                nfb_source_viewed["value"] = True
+
+        def preview_assigned(index):
+            selected = layer_rows[index]["assigned"].curselection()
+            if selected:
+                slot = draft_state["draft"]["layers"][index]["slots"][selected[0]]
+                brand = effective_nfb_slot_brand(draft_state["draft"],index,selected[0])
+                nfb_preview_panel["panel"].show(brand,slot["filename"])
+                nfb_source_viewed["value"] = True
+
+        editor_body = ttk.Frame(frame)
+        editor_body.pack(fill="both", expand=True, pady=(4, 6))
+        slot_columns = ttk.Frame(editor_body)
+        slot_columns.pack(side="left", fill="both", expand=True)
+        nfb_preview_panel["panel"] = NfbDxfSourcePreviewPanel(editor_body)
+
         for count in (1, 2):
             ttk.Radiobutton(
                 controls, text=str(count), value=count, variable=layers,
@@ -1508,7 +1533,7 @@ def open_receiving_multi_settings(self, namespace):
             ).pack(side="left", padx=7)
 
         for idx in range(2):
-            section = ttk.LabelFrame(frame, text=f"第 {idx+1} 層開關")
+            section = ttk.LabelFrame(slot_columns, text=f"第 {idx+1} 層開關")
             section.pack(fill="x", pady=(4, 6))
             section.columnconfigure(0, weight=1)
             section.columnconfigure(2, weight=1)
@@ -1600,7 +1625,10 @@ def open_receiving_multi_settings(self, namespace):
                     layer_rows[idx]["slot_brand_var"].set("繼承本層")
                 refresh_source(force=True)
 
-            assigned.bind("<<ListboxSelect>>", selected_slot_changed)
+            assigned.bind("<<ListboxSelect>>", lambda event, i=idx: (
+                selected_slot_changed(event,i), preview_assigned(i),
+            ))
+            available.bind("<<ListboxSelect>>",lambda event,i=idx: preview_available(i))
             repaint(idx)
 
         def change_layers():
@@ -1635,6 +1663,7 @@ def open_receiving_multi_settings(self, namespace):
         modal._receiving_inner_refresh_switch_models = refresh_source
         modal._receiving_inner_preview_canvas = thumbnail
         modal._receiving_inner_preview_status = preview_status
+        modal._receiving_inner_nfb_dxf_panel = nfb_preview_panel["panel"]
 
         def confirm():
             try:
@@ -1676,12 +1705,12 @@ def open_receiving_multi_settings(self, namespace):
                     vid = version_id
                 persist_inner(saved)
                 after_saved(vid)
-                close_editor()
+                close_editor(saved=True)
             except (ValueError, OSError, UnicodeError) as exc:
                 warning.set(str(exc))
         buttons = ttk.Frame(frame)
         buttons.pack(anchor="e", pady=(10, 0))
-        ttk.Button(buttons, text="取消", command=modal.destroy).pack(
+        ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
             side="left", padx=5,
         )
         ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
@@ -1689,7 +1718,15 @@ def open_receiving_multi_settings(self, namespace):
         parent_modal = getattr(
             self.app.root, "_receiving_multi_settings_window", None
         )
-        def close_editor():
+        def close_editor(*, saved=False):
+            if (not saved and (draft_state["draft"] != initial_nfb_draft
+                               or nfb_source_viewed["value"])
+                    and not messagebox.askyesno(
+                        "捨棄未提交的 NFB 草稿？",
+                        "目前 NFB 物理層、空槽或品牌選型的預覽尚未提交。確定捨棄？",
+                        parent=modal,
+                    )):
+                return
             if modal.grab_current() is modal:
                 modal.grab_release()
             modal.destroy()
