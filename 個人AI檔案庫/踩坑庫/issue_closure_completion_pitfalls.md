@@ -94,17 +94,17 @@ WHD 曾發生以下錯誤流程：
 
 ## 當時對應 Skill / Machine Guard（HISTORICAL，非現行路由）
 
-Canonical Skill：
+當時的 Canonical Skill（HISTORICAL／已退役）：
 
 `.agents/skills/engineering/issue-closure-gate/SKILL.md`
 
-Machine guards：
+當時的 Machine guards（HISTORICAL；不可作今日必經驗收）：
 
 - `tests/process/test_finalization_owner_guard.py`
 - `tests/process/test_continuity_controller.py`
 - `tests/test_issue_closure_completion_skill_contract.py`
 
-Registry route：
+當時的 Registry route（HISTORICAL；不代表現行啟用）：
 
 `.agents/skills/skill_registry.json` → `issue-closure-gate`
 
