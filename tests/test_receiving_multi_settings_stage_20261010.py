@@ -528,7 +528,7 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         manager.invoke()
         root.update()
         assert "複製為新版本" in _visible_texts(host)
-        assert "複製到另一側" in _visible_texts(host)
+        assert "複製到封尾" in _visible_texts(host)
         assert "刪除目前版本" in _visible_texts(host)
         expanded = [w for w in host.winfo_children() if isinstance(w, ttk.Frame)][-1]
         manage_buttons = [w for row in expanded.winfo_children()
@@ -546,7 +546,7 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
                           for w in row.winfo_children()
                           if isinstance(w, ttk.Button)]
         to_other = [w for w in manage_buttons
-                    if w.cget("text") == "複製到另一側"][0]
+                    if w.cget("text") == "複製到封尾"][0]
         to_other.invoke()
         root.update()
         assert len(candidates_for(library["value"], "tail")) == 1
