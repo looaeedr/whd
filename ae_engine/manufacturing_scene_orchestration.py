@@ -283,7 +283,23 @@ def build_part_scene(
             sb = spec.shrink_bottom
             sl = spec.shrink_left
             sr = spec.shrink_right
-            if spec.corner_policy is not None:
+            receiving_pattern = spec.receiving_bend_pattern
+            if receiving_pattern is not None:
+                if str(spec.model_name or "").strip() not in {"受電箱", "RECEIVING"}:
+                    raise ValueError("Receiving pattern cannot modify another family's Base Plate")
+                if spec.corner_policy is not None:
+                    raise ValueError("Receiving bend drawing cannot silently override corner-policy geometry")
+                if spec.seam_positions:
+                    raise ValueError("Receiving pattern with explicit physical seam relief is not yet verified")
+                from .sheetmetal_part_adapters import build_receiving_base_plate_result
+                result = _call(
+                    build_receiving_base_plate_result,
+                    w=spec.width, h=spec.height, t=spec.thickness,
+                    shrink_top=st, shrink_bottom=sb,
+                    shrink_left=sl, shrink_right=sr,
+                    bend=spec.bend, pattern=receiving_pattern,
+                )
+            elif spec.corner_policy is not None:
                 from .sheetmetal_part_adapters import build_unknown_base_plate_result
                 result = _call(
                     build_unknown_base_plate_result,
@@ -301,7 +317,7 @@ def build_part_scene(
                     shrink_left=sl, shrink_right=sr,
                     bend=spec.bend,
                 )
-            if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions:
+            if receiving_pattern is None and ((spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions):
                 from .box_body_structure import resolve_box_body_structure, apply_base_plate_structure_reliefs
                 box_structure = None
                 if spec.box_body_fold_profile and spec.box_body_structure_state:
@@ -322,6 +338,7 @@ def build_part_scene(
                 sl=sl, sr=sr, bend=spec.bend,
                 draw_stock=ctx.draw_stock, user_features=list(spec.features),
                 structural_result=result,
+                receiving_bend_pattern=receiving_pattern,
             )
 
         if isinstance(spec, IndicatorBoxPartSpec):
@@ -834,6 +851,41 @@ def _replace_receiving_bottom_relief_from_registry(render_data, spec: EndCapPart
 
 def _unfolded_topology_for_spec(spec: PartSpec, *, piece_id: str = "") -> UnfoldedBlankTopology | None:
     """Build blank envelope only from authoritative PartSpec/Fold Profile semantics."""
+    if isinstance(spec, BasePlatePartSpec) and spec.receiving_bend_pattern is not None:
+        from .sheetmetal_part_adapters import (
+            RECEIVING_BASE_PATTERN_CENTER, build_receiving_base_plate_result,
+        )
+        actual=build_receiving_base_plate_result(
+            w=spec.width,h=spec.height,t=spec.thickness,
+            shrink_top=spec.shrink_top,shrink_bottom=spec.shrink_bottom,
+            shrink_left=spec.shrink_left,shrink_right=spec.shrink_right,
+            bend=spec.bend,pattern=spec.receiving_bend_pattern,
+        )
+        if spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_CENTER:
+            return UnfoldedBlankTopology(
+                piece_id=str(spec.physical_id or piece_id or "base_plate"),
+                x_segments=(
+                    MaterialSegment("X","ear_side_return_left",71.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","base_face",actual.width-142.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","ear_side_return_right",71.0,"RECEIVING_BASE_BEND"),
+                ),
+                y_segments=(
+                    MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_core",actual.height-40.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_top_fold20",20.0,"RECEIVING_BASE_BEND"),
+                ),
+                source="RECEIVING_BASE_BEND",revision=1,
+            )
+        return UnfoldedBlankTopology(
+            piece_id=str(spec.physical_id or piece_id or "base_plate"),
+            x_segments=(MaterialSegment("X","flat_side_span",actual.width,"RECEIVING_BASE_BEND"),),
+            y_segments=(
+                MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_core",actual.height-40.0,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_top_fold20",20.0,"RECEIVING_BASE_BEND"),
+            ),
+            source="RECEIVING_BASE_BEND",revision=1,
+        )
     if isinstance(spec, EndCapPartSpec):
         resolved = resolve_endcap_request(spec)
         x_rows = tuple(resolved.fold_profile_x or ())

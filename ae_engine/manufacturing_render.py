@@ -1,7 +1,7 @@
 """Bounded render-data orchestration for canonical manufacturing output."""
 from __future__ import annotations
 
-from .contracts import BoxBodyPartSpec, EndCapPartSpec
+from .contracts import BoxBodyPartSpec, EndCapPartSpec, BasePlatePartSpec
 
 
 def build_part_render_data(
@@ -52,6 +52,13 @@ def build_part_render_data(
         scene = build_part_scene(spec, context)
 
     metadata = {}
+    if (isinstance(spec, BasePlatePartSpec)
+            and spec.receiving_bend_pattern is not None):
+        metadata = {
+            "stable_id": str(spec.physical_id or "base_plate"),
+            "receiving_bend_pattern": str(spec.receiving_bend_pattern),
+            "receiving_nfb_base_mfg2_release_approved": False,
+        }
     if isinstance(spec, EndCapPartSpec):
         metadata = {
             'nominal_fold_left': endcap_scalar(spec.fold_left, default_fold_left),
