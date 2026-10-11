@@ -9,6 +9,7 @@ from ae_engine.receiving_switch_model_catalog import (
     PROJECT_ROOT, INDEX_PATH, INDEX_RELATIVE_PATH,
     BRANDS, display_model, model_choices, model_filenames,
 )
+from ae_engine.receiving_nfb_index_sources import unique_nfb_dxfs_from_switch_index
 from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays
 from ae_engine.receiving_shared_settings import edit_setting, setting_value, validate_setting
 
@@ -33,6 +34,14 @@ def test_user_csv_is_single_authority_and_shows_eight_unique_models_per_brand():
     assert display_model("Model.DXF") == "Model"
     with pytest.raises(ValueError):
         display_model("Model.txt")
+
+
+def test_nfb_dxf_source_index_uses_same_relocated_csv():
+    catalog = unique_nfb_dxfs_from_switch_index(INDEX_PATH)
+    assert catalog.index_path == "開關索引.csv"
+    assert catalog.records_read == 42
+    assert len(catalog.sources) == 24
+    assert not catalog.diagnostics
 
 
 def test_model_catalog_path_not_dependent_on_working_directory(monkeypatch, tmp_path):
