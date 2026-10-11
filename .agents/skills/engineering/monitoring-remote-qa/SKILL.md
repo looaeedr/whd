@@ -9,6 +9,10 @@ whd_schema: WHD_DOC_META_V1
 # monitoring-remote-qa
 追蹤指定 PR 的 exact workflow run、commit 和測試結果；失敗時直接修程式並重測，不得將 pending 當 GREEN。普通產品 QA 不會自動發布正式 X；產品發布權限只來自使用者 /推推。純治理文檔/技能透過 tools/change_lane_gate.py 驗證，可不經一般產品 QA，直接治理分支 PR 合併 X。
 
+## 退出前 CI 狀態查核 `DISPATCH_TURN_EXIT_GATE_V1`
+
+依 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json` 做 exact PR HEAD 判斷：`requested/queued/waiting/pending/in_progress` 一律 `CONTINUE_POLL`；找不到 run 或 SHA 不符 `RECONCILE_ONLY`；同 SHA `completed/success` 必須續做 `LOCALX_INTEGRATION_PENDING`；`failure/cancelled/timed_out/action_required` → `REPAIR_AND_RETEST`。`localX` 整合後仍要完成 Issue 回讀和下一張工單查找 `CONTINUE_FINALIZATION`，不是 GREEN 即 `RELEASED`。只有真實 API/權限/環境阻塞時回報 `BLOCKED_WITH_EVIDENCE` 或 `RUNTIME_LIMIT_UNRESOLVED` 和 `head_sha/run_id/next_exact_action`，不得稱 DONE 或背景會繼續；本規則不具跨回合喚醒能力。
+
 ## QA 輪詢與交付閘門
 
 - `queued / waiting / pending / in_progress` → **CONTINUE_POLL**。輪詢 exact SHA 的 checks + job；工作仍可執行時不得「CI 跑著就結束」；每 2–3 操作回報，不能用回報代替續作。
