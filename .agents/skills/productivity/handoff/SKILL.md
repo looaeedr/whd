@@ -32,7 +32,7 @@ Redact secrets, credentials, account identifiers, and unnecessary personal infor
 風險：NORMAL | WATCH | HIGH（附可觀察原因）
 repo / Issue / PR：
 執行者與接取狀態：
-來源分支 → 目標分支 / 最新已核實 SHA：
+來源分支 → 目標分支 / 最新已核實 head_sha：
 已完成與證據（commit / PR / CI）：
 當前步驟 / run_id / 長日誌 cursor（適用時）：
 阻塞、未完成事項：
