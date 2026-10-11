@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
+  "description": "Machine-readable Skill/reference discovery routes (legacy Phase6 Preflight CLI-compatible). Routes are advisory grounding data, NOT current execution/CI/DC authorization or mandatory receipt. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
   "routes": [
     {
       "id": "root-local-first",
