@@ -189,6 +189,21 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("已退役", router)
         self.assertIn("不得假裝會背景續作", router)
 
+    def test_legacy_preflight_router_is_not_execution_authority(self):
+        import json
+        from tools import phase6_skill_preflight
+
+        registry = json.loads(
+            (ROOT / ".agents/skills/skill_registry.json").read_text("utf-8")
+        )
+        self.assertIn("NOT current execution/CI/DC authorization", registry["description"])
+        self.assertIn("not an execution gate", phase6_skill_preflight.__doc__)
+        self.assertNotIn("Phase6 Knowledge Preflight gate.", phase6_skill_preflight.__doc__)
+        self.assertIn("NOT a CURRENT execution gate",
+                      phase6_skill_preflight.build_parser().description)
+        self.assertTrue(callable(phase6_skill_preflight.required_skills_for))
+        self.assertTrue(callable(phase6_skill_preflight.required_references_for))
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
