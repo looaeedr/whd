@@ -296,7 +296,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
 
         assert [w.cget("text") for w in current_row()] == [
             "第1套", "－連", "1", "＋連", "套用"]
-        assert all(w.cget("width") <= 4 for w in current_buttons())
+        assert all(int(w.cget("width")) <= 4 for w in current_buttons())
         assert first_row_width_fits(win)
 
         minus, plus, apply = current_buttons()
