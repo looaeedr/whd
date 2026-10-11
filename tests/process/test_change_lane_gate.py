@@ -279,9 +279,9 @@ class ChangeLaneTests(unittest.TestCase):
                 self.assertEqual(classify_changes([path]), "PRODUCT_LOCALX_ONLY")
                 merge_base = "c" * 40
                 good = [
-                    subprocess.CompletedProcess([], 0, (merge_base + "\\n").encode()),
-                    subprocess.CompletedProcess([], 0, (original_blob + "\\n").encode()),
-                    subprocess.CompletedProcess([], 0, (original_blob + "\\n").encode()),
+                    subprocess.CompletedProcess([], 0, (merge_base + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, (original_blob + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, (original_blob + "\n").encode()),
                 ]
                 with patch("tools.change_lane_gate.subprocess.run",
                            side_effect=good) as run:
@@ -291,9 +291,9 @@ class ChangeLaneTests(unittest.TestCase):
                     ))
                     self.assertEqual(run.call_count, 3)
                 bad = [
-                    subprocess.CompletedProcess([], 0, (merge_base + "\\n").encode()),
-                    subprocess.CompletedProcess([], 0, (original_blob + "\\n").encode()),
-                    subprocess.CompletedProcess([], 0, ("f" * 40 + "\\n").encode()),
+                    subprocess.CompletedProcess([], 0, (merge_base + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, (original_blob + "\n").encode()),
+                    subprocess.CompletedProcess([], 0, ("f" * 40 + "\n").encode()),
                 ]
                 with patch("tools.change_lane_gate.subprocess.run",
                            side_effect=bad):
