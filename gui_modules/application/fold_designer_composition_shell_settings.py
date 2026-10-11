@@ -285,8 +285,13 @@ def sync_authoritative_derived_parts(
         local["part_dimensions"] = local_dims
         door_profiles[row.part_key] = build_profiles(local, row.part_key)
 
+    # Receiving uses its ORIGINAL base_plate component, not a Base Plate
+    # automatically manufactured for each Door cell (including the empty
+    # lower 500-mm section). Other families keep their existing multi-door
+    # base_plate_cN_rN projection unchanged.
+    receiving_single_base = str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
     base_plate_profiles = {}
-    if door_rows:
+    if door_rows and not receiving_single_base:
         columns = tuple(
             (float(row[0]), tuple(float(v) for v in row[1]))
             for row in tuple(snapshot.get("door_layout_columns") or ())
@@ -391,7 +396,7 @@ def sync_authoritative_derived_parts(
     )
     single_base_plate_profiles = (
         build_profiles(snapshot, "base_plate")
-        if not door_rows and "base_plate" in source_parts and "base_plate" not in available_parts
+        if (not door_rows or receiving_single_base) and "base_plate" in source_parts and "base_plate" not in available_parts
         else None
     )
     request = build_derived_part_projection_request(
@@ -411,6 +416,7 @@ def sync_authoritative_derived_parts(
             single_base_plate_profiles=single_base_plate_profiles,
             active_part=workspace.active_part,
             selected_part=workspace.selected_part,
+            preserve_single_base_plate=receiving_single_base,
         )
     )
     plan = build_derived_part_sync_plan(request)
