@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from pathlib import PurePosixPath
+import subprocess
+from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 SCHEMA = "WHD_CHANGE_TEST_PROFILE_V1"
@@ -189,12 +190,81 @@ def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type
     }
 
 
+def evaluate_merge_test_reuse(
+    *, repo_root: str | Path, tested_commit: str, integrated_commit: str,
+    ci_head_sha: str, ci_conclusion: str, required_tests_complete: bool,
+) -> dict[str, object]:
+    """Read-only gate: reuse exact successful test evidence only for identical Git trees.
+
+    Test/CI attestation must be validated from a trusted source by the caller.
+    Git commands independently inspect real commit trees; a different SHA alone
+    is not a reason to retest. The gate never launches any tests or mutations.
+    """
+    def result(decision: str, reason: str, **details: object) -> dict[str, object]:
+        return {"schema": "WHD_LOCALX_MERGE_TEST_REUSE_V1",
+                "decision": decision, "reason": reason, **details}
+
+    sha = re.compile(r"[0-9a-f]{40}\Z")
+    if (not all(isinstance(v, str) and sha.fullmatch(v)
+                for v in (tested_commit, integrated_commit, ci_head_sha))
+            or ci_head_sha != tested_commit
+            or ci_conclusion != "SUCCESS"
+            or required_tests_complete is not True):
+        return result("EVIDENCE_INCOMPLETE", "MISSING_EXACT_GREEN_TEST_RECEIPT")
+
+    def git(*args: str, binary: bool = False) -> str | bytes:
+        done = subprocess.run(["git", "-C", str(repo_root), *args],
+                              capture_output=True, check=False)
+        if done.returncode:
+            raise ValueError("GIT_TREE_READ_FAILED")
+        return done.stdout if binary else done.stdout.decode("ascii", "strict").strip()
+
+    try:
+        for ref in (tested_commit, integrated_commit):
+            if git("cat-file", "-t", ref) != "commit":
+                raise ValueError("NOT_A_COMMIT")
+        tested_tree = git("rev-parse", tested_commit + "^{tree}")
+        integrated_tree = git("rev-parse", integrated_commit + "^{tree}")
+        if tested_tree == integrated_tree:
+            return result("REUSE_VERIFIED", "IDENTICAL_TESTED_GIT_TREE",
+                          tested_tree=tested_tree, integrated_tree=integrated_tree,
+                          extra_test_runs=0)
+        changed_raw = git("diff", "--name-only", "-z", "--no-ext-diff",
+                          tested_commit, integrated_commit, binary=True)
+        paths = sorted(p.decode("utf-8", "strict")
+                       for p in changed_raw.split(b"\x00") if p)
+        if not paths:
+            raise ValueError("TREE_DIFF_UNEXPLAINED")
+        return result("IMPACT_TEST_REQUIRED", "UNTESTED_INTEGRATION_TREE_DIFFERENCE",
+                      tested_tree=tested_tree, integrated_tree=integrated_tree,
+                      changed_paths=paths, full_regression_default=False)
+    except (ValueError, UnicodeError, OSError):
+        return result("EVIDENCE_INCOMPLETE", "CANNOT_VERIFY_GIT_TREE_OR_DIFF")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--task", required=True)
+    parser.add_argument("--task")
     parser.add_argument("--changed-file", action="append", default=[])
     parser.add_argument("--change-type", choices=PRIMARY_TYPES)
+    parser.add_argument("--merge-test-reuse", action="store_true")
+    parser.add_argument("--repo-root", default=".")
+    parser.add_argument("--tested-commit")
+    parser.add_argument("--integrated-commit")
+    parser.add_argument("--ci-head-sha")
+    parser.add_argument("--ci-conclusion")
+    parser.add_argument("--required-tests-complete", action="store_true")
     args = parser.parse_args(argv)
+    if args.merge_test_reuse:
+        result = evaluate_merge_test_reuse(
+            repo_root=args.repo_root, tested_commit=args.tested_commit,
+            integrated_commit=args.integrated_commit, ci_head_sha=args.ci_head_sha,
+            ci_conclusion=args.ci_conclusion,
+            required_tests_complete=args.required_tests_complete)
+        print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0 if result["decision"] == "REUSE_VERIFIED" else 2
+    if not args.task:
+        parser.error("--task is required without --merge-test-reuse")
     profile = build_test_profile(task=args.task, changed_files=args.changed_file, explicit_type=args.change_type)
     print(json.dumps(profile, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
