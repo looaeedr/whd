@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # GitHub Issue Closure / Completion 踩坑規則
 
+> **REFERENCE／歷史事故與防錯紀錄，非結案交易權威**。下述舊 Preflight／Flow v2／Master checkpoint 等程序以當時日期留存；現行 Issue close、CI、localX 與正式 X 授權，均依正式 X `AGENTS.md`、當次 Issue／PR 和 GitHub readback。不得要求退役交易收據作為現行關單前置。
+
 
 
 ## 事故模式：把 code integrated 誤報成 process completed
@@ -106,7 +108,7 @@ Registry route：
 
 `.agents/skills/skill_registry.json` → `issue-closure-gate`
 
-任何派工收尾、Final Combined、production integration、關單、Master completion 都必須讓 Preflight 命中此 Skill，不得靠聊天記憶。
+**歷史流程（已退役）**：當時要求派工收尾、Final Combined、production integration、關單與 Master completion 由 Preflight 命中此 Skill。現在不再要求 Preflight receipt；仍須依現行 `AGENTS.md` 驗證真正的 PR／CI、Issue close/readback 與剩餘可執行工作。
 
 ## CHILD_CLOSE_MASTER_CHAIN_HANDOFF_PITFALL
 
