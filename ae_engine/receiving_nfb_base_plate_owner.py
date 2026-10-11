@@ -10,6 +10,7 @@ This returns physical *ownership evidence*, not a machining UV or permit.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Mapping
 
 from .assembly_placement import resolve_base_plate_placement
@@ -122,7 +123,7 @@ def resolve_upper_nfb_base_plate_owner(
         minx,miny,maxx,maxy=map(float,material.bounds)
         width=maxx-minx
         height=maxy-miny
-        if not all(__import__("math").isfinite(v) for v in (width,height)) or min(width,height)<=0:
+        if not all(isfinite(v) for v in (width,height)) or min(width,height)<=0:
             raise ValueError("NFB upper base has invalid physical blank dimensions")
         physical.append((key,placement,width,height))
     if len(physical)!=1:
