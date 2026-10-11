@@ -90,6 +90,9 @@ class DerivedPartRequestAssemblyInput:
     single_base_plate_profiles: Mapping[str, Iterable[Any]] | None
     active_part: str | None
     selected_part: str | None
+    # Receiving keeps the existing ONE Base Plate part; Door-cell-derived
+    # base_plate_cN_rN are not physical NFB mounting plates.
+    preserve_single_base_plate: bool = False
 
 
 @dataclass(frozen=True)
@@ -150,10 +153,10 @@ def build_derived_part_projection_request(
         # stash with the target family's freshly derived profile.
         stash_profiles.append(door_projection)
 
-    if door_keys and "base_plate" in available:
+    if door_keys and "base_plate" in available and not data.preserve_single_base_plate:
         remove_part_keys.append("base_plate")
     if (
-        not door_keys
+        (not door_keys or data.preserve_single_base_plate)
         and "base_plate" in source_parts
         and "base_plate" not in available
         and data.single_base_plate_profiles is not None
@@ -181,17 +184,22 @@ def build_derived_part_projection_request(
         first_base = first_door.replace("door_", "base_plate_", 1)
         if data.active_part == "door":
             active_repair = first_door
-        elif data.active_part == "base_plate":
+        elif data.active_part == "base_plate" and not data.preserve_single_base_plate:
             active_repair = first_base
+        elif data.preserve_single_base_plate and str(data.active_part or "").startswith("base_plate_c") and "base_plate" in source_parts:
+            active_repair = "base_plate"
         if data.selected_part == "door":
             selected_repair = first_door
-        elif data.selected_part == "base_plate":
+        elif data.selected_part == "base_plate" and not data.preserve_single_base_plate:
             selected_repair = first_base
+        elif data.preserve_single_base_plate and str(data.selected_part or "").startswith("base_plate_c") and "base_plate" in source_parts:
+            selected_repair = "base_plate"
 
     return DerivedPartProjectionRequest(
         namespaces=(
             namespace_projection("door_c", data.door_profiles),
-            namespace_projection("base_plate_c", data.base_plate_profiles),
+            namespace_projection("base_plate_c",
+                                 {} if data.preserve_single_base_plate else data.base_plate_profiles),
             namespace_projection("box_body:divider:", data.divider_profiles),
             namespace_projection("inner_door:", data.inner_profiles),
         ),
