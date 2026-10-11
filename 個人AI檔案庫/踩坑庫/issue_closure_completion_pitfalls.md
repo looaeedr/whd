@@ -82,9 +82,9 @@ WHD 曾發生以下錯誤流程：
 
 - 當時的 executable owner（現已移除）：`tools/continuity_controller.py`。不能當作今日 closure 授權。
 - `assert_finalizable` 僅為 state-only predicate；不得當 issue/workflow closure authorization。
-- closure 必須 fresh 綁定 `issue + owning branch + owning HEAD SHA`，三者任一缺失或與 checkpoint 不完全一致，立即 fail closed。
-- 必須實際呼叫 `authorize-finalization` 並產生 bound `FinalizationProof`；聊天文字、stdout 摘錄、marker、舊 acceptance 記錄不能代替 proof。
-- 真正 close/finalize mutation 前必須再次 `verify-finalization-proof`。
+- **當時的 proof 綁定要求（HISTORICAL）**：closure 綁 `issue + owning branch + owning HEAD SHA`，缺失或 checkpoint 不符便 fail closed；現行不能因這份 REFERENCE 重新要求舊 proof 交易。
+- **當時的 finalization 呼叫（HISTORICAL，現已退役）**：曾要求實際呼叫 `authorize-finalization` 並產生 bound `FinalizationProof`，不得以聊天文字或 marker 假裝成功；現在不再呼叫這個已移除的交易入口。
+- **當時的 proof 驗證（HISTORICAL）**：close/finalize mutation 前曾需 `verify-finalization-proof`，不代表當前 GitHub Issue close/readback 的新硬閘門。
 - proof 不存在、malformed、owner 不符、version 不符或 checkpoint fingerprint 改變，立即 fail closed。
 - checkpoint / issue / branch / HEAD 有任何 drift，舊 proof 失效，必須重新 authorization。
 - Proof 是 process-integrity receipt，用於防 accidental bypass / wrong owner / stale mutation；不是 malicious-writer cryptographic signature，不得過度宣稱。
@@ -140,7 +140,7 @@ leaf/child Issue 已 `closed/completed`、自己的 checkpoint 也 terminal，�
 - 每批刪除前 fresh live-fetch OPEN PR；不能沿用上一輪 inventory。
 - 任一 OPEN PR 的 head/base ref evidence 缺失、空白或 malformed，整批 branch deletion fail closed，不能「先刪確定的」。
 - Canonical executable guard 是 `tools/branch_cleanup_ref_guard.py`；刪除候選必須先經 `assert_delete_candidates_safe`。
-- Primary regression 是 `tests/process/test_branch_cleanup_ref_guard.py`，其中必須保留「base ref deletion 被拒絕」案例。文字 marker 不是 runtime protection。
+- **2026-10-11 實際測試回讀**：原 `tests/process/test_branch_cleanup_ref_guard.py` 現已不存在，不能再聲稱它是正在執行的 Primary regression。正式 X 的 `tools/branch_cleanup_ref_guard.py` **確實仍存在**且提供 `assert_delete_candidates_safe`／`protected_open_pr_refs`；現行回歸改由 `tests/governance/test_default_branch_explicit_x_contract.py::DefaultBranchExplicitXContract::test_open_pr_head_and_base_refs_fail_closed` 驗證 head/base、`refs/heads/`、malformed evidence 的 fail-closed 行為，並由 Knowledge Governance Bootstrap 現有測試步驟執行。舊測試路徑只作歷史追溯，文字 marker 本身不是 runtime protection。
 - 若誤刪 OPEN PR ref，修復必須使用該 PR remote metadata 記錄的 exact ref + SHA；不得猜 branch tip、不得從 current X 重建冒充原 base。
 
 ## INVALID_FINALIZATION_EVIDENCE_PITFALL

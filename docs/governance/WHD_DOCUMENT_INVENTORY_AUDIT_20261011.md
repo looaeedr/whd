@@ -128,6 +128,14 @@ whd_schema: WHD_DOC_META_V1
 - **產品域仍待整合**：#1629 的 7 份歷史 CI 計畫／驗收、`06_踩坑記錄與防錯經驗庫.md`／`07_WHD技能發現與掃描深模組規則.md` 已做原位修正，latest HEAD exact CI GREEN 但 PR OPEN。其分類為產品通道而非本治理白名單，不能偷渡正式 X，也不能把 GitHub OPEN/CI GREEN 說成已同步本機。
 - 未變更產品 DXF、加工層顏色、CUTTING／MARKING owner、`main` 或本機。保留跨域產品判斷給 `localX` 的真實回歸與工程來源。
 
+## 第六輪：OPEN PR 分支保護與誤導性關單測試引用（2026-10-11）
+
+- `個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md` 為 **REFERENCE**。再次抽查發現其「OPEN PR head/base refs 不可刪」這項仍有效的安全原則有真實實作：`tools/branch_cleanup_ref_guard.py` 仍存在，內含 `protected_open_pr_refs`、`assert_delete_candidates_safe`，對缺失或錯誤的 ref evidence fail closed。**不能把此安全工具與已退役的 finalization/claim 工具混為一談，也不應移除有效安全規則。**
+- 但該文件聲稱存在的 `tests/process/test_branch_cleanup_ref_guard.py` 在本次正式 X Git tree 不存在。這次把測試收斂在已被 Knowledge Governance Bootstrap 現行 workflow 呼叫的 `tests/governance/test_default_branch_explicit_x_contract.py`，新增 `test_open_pr_head_and_base_refs_fail_closed` 實際覆蓋 head/base refs、`refs/heads/` 格式及 malformed evidence。**沒有新增工作流啟動步驟或多一條排程硬閘門。**
+- 同一份 REFERENCE 的 `authorize-finalization`／`verify-finalization-proof` 仍有「必須」用語，現已原位改標 `HISTORICAL`，避免使用者從搜尋片段誤認為現行 closing gate；有效的 GitHub Issue／PR readback 與禁止假證據原則不變。
+- 本輪僅為候選治理 PR 的已施工內容；**通過 exact-head 可信治理 CI、合併 X 並回讀**之前，不宣稱本節已正式上線。
+- 另有第一層 `04_全域AI協作規則.md` 的「每票先建 Issue」段落，屬 `REFERENCE` 且含舊轉派欄位。當前已有雲端直送治理分流；該檔不在治理直送白名單，不能因本次發現就越權修改，應先核對其適用對象及變更通道。
+
 ## 清查判定
 
 - **已執行**：全樹文件清單、權威索引角色統計、重要 CURRENT／REFERENCE／MIRROR 的優先核對、59 份 Skill metadata 與退役流程關鍵字查核、確認一處治理文字錯誤並提出修正。
