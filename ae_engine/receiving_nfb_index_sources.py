@@ -59,7 +59,9 @@ class NfbIndexedDxfAudit:
     def process_color_entity_counts(self) -> tuple[tuple[int, int], ...] | None:
         # None is UNKNOWN, not zero. Counts on an observed drawing do not
         # prove the upper opening / plate part / model is manufacturable.
-        if self.inventory is None:
+        if (self.inventory is None or self.status != UNCERTIFIED
+                or getattr(self.inventory, "diagnostics", ())
+                or getattr(self.inventory, "unresolved_color_entities", 0)):
             return None
         return self.inventory.process_aci_entity_counts
 
@@ -188,9 +190,88 @@ def audit_unique_nfb_index_sources(
                 inventory=None, diagnostic=type(exc).__name__,
             ))
             continue
+        if inventory.diagnostics or inventory.unresolved_color_entities:
+            # Original still has a SHA for traceability, but incomplete
+            # expansion/color evidence can NOT be reported as a zero count.
+            items.append(NfbIndexedDxfAudit(
+                source=source, path=str(target),
+                status="SOURCE_UNRESOLVED_UNKNOWN",
+                source_sha256=inventory.source_sha256,
+                inventory=None,
+                diagnostic=(";".join(inventory.diagnostics) or
+                            f"UNRESOLVED_COLOR:{inventory.unresolved_color_entities}"),
+            ))
+            continue
         items.append(NfbIndexedDxfAudit(
             source=source, path=str(target), status=UNCERTIFIED,
             source_sha256=inventory.source_sha256, inventory=inventory,
-            diagnostic=(";".join(inventory.diagnostics) or None),
+            diagnostic=None,
         ))
     return index, tuple(items)
+
+
+
+@dataclass(frozen=True)
+class NfbIndexedColorEvidence:
+    """One authoritative index entry; NONE is unknown, never zero holes.
+
+    Counts refer ONLY to an observed original DXF's effective ACI entities,
+    not to an approved manufacturing plate, opening or part-specific UV.
+    UPPER/LOWER allocation is a separate source-region verification step.
+    """
+    brand: str
+    filename: str
+    model_links: tuple[NfbIndexLink, ...]
+    status: str
+    source_sha256: str | None
+    aci30_count: int | None
+    aci150_count: int | None
+    aci212_count: int | None
+    diagnostic: str | None
+    manufacturing_ready: bool = False
+
+
+def build_nfb_indexed_color_evidence(
+    catalog: NfbIndexSourceCatalog,
+    audits: Iterable[NfbIndexedDxfAudit],
+) -> tuple[NfbIndexedColorEvidence, ...]:
+    """Read-only source color audit with no missing->0 conversion.
+
+    The source index owns filename/model links. The exact matching original
+    DXF SHA owns any observed color count. A duplicate, missing or foreign
+    source audit is not silently merged with an unrelated manufacturer.
+    """
+    seen: dict[tuple[str, str], NfbIndexedDxfAudit] = {}
+    for row in audits:
+        key = (row.source.brand, row.source.filename.casefold())
+        if key in seen:
+            raise ValueError("NFB indexed color audit has duplicate source evidence")
+        seen[key] = row
+    expected = {(src.brand, src.filename.casefold()) for src in catalog.sources}
+    if set(seen) != expected or len(expected) != len(catalog.sources):
+        raise ValueError("NFB indexed color audit incomplete or foreign to source index")
+    result = []
+    for src in catalog.sources:
+        entry = seen[(src.brand, src.filename.casefold())]
+        if entry.source != src:
+            raise ValueError("NFB indexed color audit links differ from index")
+        if entry.status == UNCERTIFIED:
+            counts = entry.process_color_entity_counts
+            if not entry.source_sha256 or counts is None:
+                raise ValueError("NFB indexed color evidence has no verified original SHA/counts")
+            known = dict(counts)
+            color_counts = tuple(known.get(aci) for aci in (30, 150, 212))
+            if any(type(v) is not int or v < 0 for v in color_counts):
+                raise ValueError("NFB indexed source color count is invalid")
+        else:
+            color_counts = (None, None, None)
+        result.append(NfbIndexedColorEvidence(
+            brand=src.brand, filename=src.filename,
+            model_links=src.links, status=entry.status,
+            source_sha256=entry.source_sha256,
+            aci30_count=color_counts[0],
+            aci150_count=color_counts[1],
+            aci212_count=color_counts[2],
+            diagnostic=entry.diagnostic,
+        ))
+    return tuple(result)
