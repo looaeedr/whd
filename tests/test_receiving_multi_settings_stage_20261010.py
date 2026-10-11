@@ -218,7 +218,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"NFB", "套／連", "數量", "第1套", "＋連", "1", "－連", "套用"}
+        assert set(texts) == {"NFB", "套／連", "數量", "－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas
@@ -234,8 +234,10 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert canvas.grid_info()["row"] == 1
         assert canvas.grid_info()["column"] == 0
         assert abs(controls_column.winfo_rootx() - mode_row.winfo_rootx()) <= 2
+        set_buttons = win._receiving_multi_set_buttons
+        assert [w.cget("text") for w in set_buttons] == ["－套", "＋套"]
         vertical_gap = controls_column.winfo_rooty() - (
-            mode_row.winfo_rooty() + mode_row.winfo_height()
+            set_buttons[0].master.winfo_rooty() + set_buttons[0].master.winfo_height()
         )
         assert 0 <= vertical_gap <= 32
         assert isinstance(setting_list, tk.Listbox)
@@ -273,15 +275,15 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
             return labels[1]
 
         assert [w.cget("text") for w in current_row()] == [
-            "第1套", "＋連", "1", "－連", "套用"]
-        plus, minus, apply = current_buttons()
+            "第1套", "－連", "1", "＋連", "套用"]
+        minus, plus, apply = current_buttons()
         first_row = rows_host.winfo_children()[0]
         first_count = current_row()[2]
         plus.invoke()
         # First click must not destroy the invoking Tk button or recreate
         # its row, which previously caused a stalled callback/blank view.
         assert rows_host.winfo_children()[0] is first_row
-        assert current_buttons() == [plus, minus, apply]
+        assert current_buttons() == [minus, plus, apply]
         assert current_row()[2] is first_count
         assert plus.winfo_exists()
         assert displayed_count() == "2"
@@ -327,7 +329,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert canvas._receiving_selected_bays == frozenset({0, 2})
         assert win._receiving_multi_applied["selected"] == 0
 
-        plus, minus, apply = current_buttons()
+        minus, plus, apply = current_buttons()
         minus.invoke()
         assert counts == [2]
         assert displayed_count() == "2"
