@@ -236,7 +236,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert left.grid_info()["column"] == 0
         assert right.grid_info()["column"] == 1
         assert mode_row.master.master is left
-        assert controls_column is left
+        assert controls_column.master is left
         assert function.master is right and function.grid_info()["row"] == 0
         assert diagram.master is right and diagram.grid_info()["row"] == 1
         assert canvas.master is diagram and canvas.grid_info()["row"] == 0
@@ -358,7 +358,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         choices[1].invoke()
         root.update()
         assert mode["value"] == "quantity"
-        assert not win._receiving_multi_rows_host.winfo_children()[0].winfo_children()
+        assert not win._receiving_multi_rows_host.winfo_children()
         assert setting_list.winfo_ismapped()
         assert tuple(setting_list.get(0, tk.END)) == ("封頭尾",)
         assert len(canvas._receiving_bay_hitboxes) == 1
@@ -572,7 +572,6 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         root.update()
         assert win._receiving_multi_manager_window["win"] is child
         assert len([w for w in win.winfo_children() if isinstance(w, tk.Toplevel)]) == 1
-        child.protocol("WM_DELETE_WINDOW")
         win._receiving_multi_close_manager()
         root.update()
         assert not child.winfo_exists()
