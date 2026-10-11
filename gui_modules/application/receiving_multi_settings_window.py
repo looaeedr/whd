@@ -293,7 +293,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 from .quantity_version_controls import build_quantity_controls
                 ports = get_quantity_ports()
                 if ports["snapshot"]() is not None:
-                    editor = build_quantity_controls(settings_host, ports)
+                    editor = build_quantity_controls(settings_host, ports, embedded_endcap=True)
                     editor.frame.pack(anchor="w")
                     editor.refresh()
                     quantity_editor["controls"] = editor
