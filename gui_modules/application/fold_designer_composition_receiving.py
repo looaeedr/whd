@@ -433,15 +433,18 @@ def resize_receiving_bays(
     namespace,
     layer_index,
     delta,
+    *,
+    refresh_controls=True,
 ):
-    """Resize one switch layer's connection count only."""
+    """Resize canonical topology; skip redundant hidden panel refresh in modal."""
     switch = self.receiving_switch_adapter(namespace)
     if not switch.resize_connections(
         int(layer_index), int(delta)
     ):
         return False
     self.mark_receiving_switch_layout_dirty(namespace, switch)
-    self.refresh_receiving_set_bay_control(namespace)
+    if refresh_controls:
+        self.refresh_receiving_set_bay_control(namespace)
     return True
 
 def confirm_receiving_opening(
@@ -1092,7 +1095,7 @@ def open_receiving_multi_settings(self, namespace):
         get_switch=lambda: self.receiving_switch_adapter(namespace),
         switch_mode=lambda mode: _switch_mode(self, namespace, mode),
         resize_connections=lambda index, delta: self.resize_receiving_bays(
-            namespace, index, delta
+            namespace, index, delta, refresh_controls=False
         ),
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
