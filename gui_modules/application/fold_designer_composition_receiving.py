@@ -2252,6 +2252,24 @@ def open_receiving_multi_settings(self, namespace):
                     "unresolved_dependencies":("SOURCE_REVALIDATION_REQUIRED",),
                 }
 
+        def export_partial_nfb_inner_door(set_index, bay_index, output_path):
+            """Operator-requested NFB-only partial DXF; not legacy whole export."""
+            from .receiving_nfb_partial_export_action import (
+                export_verified_receiving_nfb_inner_door,
+            )
+            bundle = committed_nfb_evidence.get((set_index, bay_index))
+            if bundle is None:
+                raise ValueError("此連已提交 NFB，但來源／世界 X 尚未在本次操作重新驗證")
+            adapter = candidate_adapter()
+            # The bridge reads the ACTUAL saved Bay and current physical
+            # cabinet geometry; a displayed manifest is never export permission.
+            return export_verified_receiving_nfb_inner_door(
+                bundle,
+                layout=adapter.layout,
+                current_snapshot=nfb_physical_bay_snapshot(set_index, bay_index),
+                output_path=output_path,
+            )
+
         def state(set_index, bay_index, selected_bays=()):
             adapter = candidate_adapter()
             row = adapter.layout["sets"][set_index]["bays"][bay_index]
@@ -2342,6 +2360,7 @@ def open_receiving_multi_settings(self, namespace):
 
         return {"state": state, "stage_verified": stage_verified,
                 "submit": submit, "copy": copy, "manifest": physical_manifest,
+                "partial_export": export_partial_nfb_inner_door,
                 "restore": restore, "undo": undo}
 
     return open_multi_settings(

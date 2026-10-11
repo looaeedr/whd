@@ -7,7 +7,7 @@ No hidden geometry solve, nested editor, preview popup or extra controls.
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from ae_engine.receiving_hole_candidates import version_label
 from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
 from .receiving_endcap_thumbnail import paint_endcap_thumbnail
@@ -740,6 +740,49 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     ttk.Label(
                         manifest_frame,text=label_line,wraplength=565,
                     ).pack(fill="x",anchor="w",padx=6,pady=1)
+                # Explicit partial manufacturing path: the existing full
+                # DXF button remains fail-closed for submitted NFB. This
+                # action reruns source SHA, WORLD-X, saved Bay, geometry and
+                # per-physical-part validation before writing any CUTTING.
+                def export_verified_nfb_partial():
+                    try:
+                        destination = filedialog.asksaveasfilename(
+                            parent=win,
+                            title="輸出已驗證 NFB 內門（部分製造 DXF）",
+                            defaultextension=".dxf",
+                            filetypes=(("DXF", "*.dxf"),),
+                            initialfile="nfb_verified_inner_door.dxf",
+                        )
+                        if not destination:
+                            return
+                        path, manifest = transactions["partial_export"](
+                            set_index, bay_index, destination,
+                        )
+                        messagebox.showinfo(
+                            "NFB 部分出圖完成",
+                            "已輸出實際驗證的內門 CUTTING：\n" + str(path)
+                            + "\n中板／底板／PAD／耳朵尚未完成，不代表整箱加工完成。"
+                            + "\n本次實體板件數：" + str(manifest.actual_export_count),
+                            parent=win,
+                        )
+                        refresh_after_transaction()
+                    except (ValueError, TypeError, KeyError, OSError) as exc:
+                        warn(exc)
+
+                ttk.Button(
+                    manifest_frame, text="輸出已驗證內門 DXF（僅部分）",
+                    state=(
+                        "normal"
+                        if live_manifest["status"] in ("PARTIAL_ONLY", "WHOLE_READY")
+                        and any(
+                            row.get("role") == "INNER_DOOR"
+                            and row.get("may_export") is True
+                            for row in live_manifest.get("rows", ())
+                        )
+                        else "disabled"
+                    ),
+                    command=export_verified_nfb_partial,
+                ).pack(anchor="w", padx=6, pady=(5, 7))
             # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
