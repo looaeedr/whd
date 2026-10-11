@@ -44,9 +44,9 @@ def make_scrollable_frame(parent, *, tk, ttk, width=520, height=340):
     def bind_tree(node):
         # Do not intercept native scrollable controls or nested diagrams.
         for widget in node.winfo_children():
-            widget_name = str(widget)
-            if widget_name not in attached:
-                attached.add(widget_name)
+            widget_key = (str(widget), widget.winfo_id())
+            if widget_key not in attached:
+                attached.add(widget_key)
                 if widget.winfo_class() not in (
                     "Listbox", "Text", "Treeview", "TCombobox", "Canvas",
                     "TScrollbar", "Scrollbar",
