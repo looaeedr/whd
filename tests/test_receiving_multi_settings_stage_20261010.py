@@ -80,6 +80,51 @@ def test_modal_connection_resize_skips_hidden_global_panel_until_exit():
     assert calls == [("resize", 0, 1), ("dirty",), ("hidden-refresh",)]
 
 
+def test_modal_resize_public_composition_forwards_refresh_controls():
+    """GUI calls the public composition method, not the helper directly."""
+    from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
+
+    calls = []
+
+    class FakeSwitch:
+        def resize_connections(self, index, delta):
+            calls.append(("resize", index, delta))
+            return True
+
+    class FakeComposition:
+        def receiving_switch_adapter(self, namespace):
+            assert namespace == "receiving"
+            return switch
+
+        def mark_receiving_switch_layout_dirty(self, namespace, adapter):
+            assert namespace == "receiving" and adapter is switch
+            calls.append(("dirty",))
+
+        def refresh_receiving_set_bay_control(self, namespace):
+            assert namespace == "receiving"
+            calls.append(("hidden-refresh",))
+
+    switch = FakeSwitch()
+    composition = FakeComposition()
+    # Both buttons pass refresh_controls=False through the public facade.
+    for delta in (1, -1):
+        assert Phase6FoldDesignerComposition.resize_receiving_bays(
+            composition, "receiving", 0, delta, refresh_controls=False
+        )
+    assert calls == [
+        ("resize", 0, 1), ("dirty",),
+        ("resize", 0, -1), ("dirty",),
+    ]
+    calls.clear()
+    # Existing callers still refresh the hidden controls by default.
+    assert Phase6FoldDesignerComposition.resize_receiving_bays(
+        composition, "receiving", 0, 1
+    )
+    assert calls == [
+        ("resize", 0, 1), ("dirty",), ("hidden-refresh",)
+    ]
+
+
 def test_assembly_button_is_hidden_until_receiving_assembly():
     root = tk.Tk()
     root.withdraw()
