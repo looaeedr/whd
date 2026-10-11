@@ -69,7 +69,7 @@ def test_pitfall_ledger_retains_provenance_without_reactivating_old_transactions
 def test_previous_audit_legacy_root_documents_have_reference_metadata():
     for path in ("GUI.MD", "說明.MD"):
         doc = read(path)
-        assert doc.startswith("---\\nwhd_doc_role: REFERENCE\\n".replace("\\\\n", "\\n"))
+        assert doc.startswith("---\nwhd_doc_role: REFERENCE\n")
         assert "whd_schema: WHD_DOC_META_V1" in doc
         assert "早期" in doc
     assert "FW可選" in read("GUI.MD")
@@ -96,5 +96,5 @@ def test_previous_audit_spec_status_and_checkpoint_provenance():
     assert "whd_doc_role: CURRENT" in ci[:150]
     assert "2026-10-11 實作回讀" in ci
     checkpoint = read("docs/superpowers/checkpoints/phase4-t7-composition-root.md")
-    assert checkpoint.startswith("---\\nwhd_doc_role: HISTORICAL\\n".replace("\\\\n", "\\n"))
+    assert checkpoint.startswith("---\nwhd_doc_role: HISTORICAL\n")
     assert "Final tested HEAD:" in checkpoint
