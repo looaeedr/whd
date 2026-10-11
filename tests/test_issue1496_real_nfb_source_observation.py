@@ -16,6 +16,8 @@ import pytest
 
 from ae_engine.receiving_nfb_dxf_source import (
     inspect_nfb_dxf_source,
+    resolve_upper_color150_reference,
+    place_upper_nfb_point_from_color150,
 )
 
 WITNESS = (
@@ -69,6 +71,16 @@ def test_source_witness_has_traceable_region_partition_and_no_false_certs():
     assert top["geometric_bbox_center_mm"] == [3771.967234, 2608.809181]
     assert bottom["geometric_bbox_center_mm"] == [3771.967234, 2223.769181]
     assert round(top["geometric_bbox_center_mm"][1] - bottom["geometric_bbox_center_mm"][1], 6) == 385.04
+    approved = witness["user_confirmed_upper_reference"]
+    assert approved["reference_handle"] == "585"
+    assert approved["reference_color_aci"] == 150
+    assert approved["center_rule"] == "CENTER_OF_EXPLICIT_UPPER_COLOR150_CLOSED_RECTANGLE"
+    assert approved["owner_parts"] == ["MIDDLE_PLATE", "INNER_DOOR"]
+    assert approved["source_reference_confirmed"] is True
+    assert approved["lower_region_policy"] == "IGNORE_FOR_THIS_OPERATION"
+    assert approved["center_xy_mm"] == [3771.967234, 2608.809181]
+    assert approved["rectangle_size_mm"] == [57, 96]
+    assert approved["output_manufacturing_ready"] is False
     assert witness["source_main_cutting_pivot_certified"] is False
     assert witness["source_nfb_model_certified"] is False
     assert witness["ready_for_1497_manufacturing"] is False
@@ -118,5 +130,22 @@ def test_original_uploaded_dxf_matches_witness_when_explicitly_available():
         xs, ys = [p[0] for p in actual.vertices_xy], [p[1] for p in actual.vertices_xy]
         assert [round(min(xs), 6), round(min(ys), 6),
                 round(max(xs), 6), round(max(ys), 6)] == part["bbox_mm"]
-    # Reading one real source cannot activate a model pivot or finished CUTTING.
+    # Recompute the selected physical reference from original DXF geometry,
+    # with EXPLICIT upper source identities only. The lower group is ignored.
+    upper = expected["regions"]["upper_opening_candidate"]["handles"]
+    upper_ids = [handles[handle].source_id for handle in upper]
+    reference = resolve_upper_color150_reference(
+        observed, upper_source_entity_ids=upper_ids,
+    )
+    approved = expected["user_confirmed_upper_reference"]
+    assert reference.source_entity_id == handles[approved["reference_handle"]].source_id
+    assert reference.consumers == ("MIDDLE_PLATE", "INNER_DOOR")
+    assert reference.size_mm == pytest.approx(approved["rectangle_size_mm"])
+    assert reference.center_xy == pytest.approx(approved["center_xy_mm"], abs=1e-6)
+    assert place_upper_nfb_point_from_color150(
+        reference.center_xy, reference=reference, target_center_xy=(0, 0),
+        rotation_deg=90,
+    ) == pytest.approx((0.0, 0.0), abs=1e-8)
+    # This still cannot activate NFB model certification or finished CUTTING.
+    assert observed.main_hole_source_id is None
     assert expected["ready_for_1497_manufacturing"] is False
