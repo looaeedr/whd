@@ -1241,6 +1241,13 @@ def open_receiving_multi_settings(self, namespace):
             raise ValueError("內門版本權責錯誤")
         from tkinter import ttk, messagebox
         import tkinter as tk
+        from ae_engine.receiving_nfb_ui1a import (
+            INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
+            reconcile_set_brand, set_nfb_draft_layer_count,
+            set_nfb_layer_brand, set_nfb_slot_brand, add_nfb_draft_slot,
+            select_nfb_slot_model, remove_nfb_draft_slot,
+            effective_nfb_layer_brand, effective_nfb_slot_brand, nfb_ui1a_preview,
+        )
 
         if version_id is None:
             adapter = candidate_adapter()
@@ -1266,7 +1273,7 @@ def open_receiving_multi_settings(self, namespace):
         summary_row.pack(fill="x", pady=(4, 6))
         controls = ttk.Frame(summary_row)
         controls.pack(side="left", anchor="n")
-        ttk.Label(controls, text="開關層數").pack(side="left")
+        ttk.Label(controls, text="NFB 物理層").pack(side="left")
         preview_box = ttk.Frame(summary_row)
         preview_box.pack(side="right", anchor="ne")
         thumbnail = tk.Canvas(
@@ -1280,7 +1287,30 @@ def open_receiving_multi_settings(self, namespace):
                   for slot in initial["models"]]
         layer_rows = []
         warning = tk.StringVar(master=modal, value="")
-        source_state = {"files": (), "signature": None}
+        # UI-1A transient state; NOT persisted to .p6fold and NOT a second
+        # ReceivingLayout owner. Existing candidate saving below stays intact.
+        draft_state = {"draft": new_nfb_ui1a_draft(
+            set_brand=self.receiving_switch_adapter(namespace).brand,
+            layer_count=initial["layers"], model_layers=initial["models"],
+        )}
+        source_state = {"files": [(), ()], "signature": [None, None]}
+        draft_summary = tk.StringVar(master=modal, value="")
+
+        def sync_chosen():
+            for layer in range(2):
+                chosen[layer][:] = [
+                    slot["filename"] for slot in
+                    draft_state["draft"]["layers"][layer]["slots"]
+                    if slot["filename"] is not None
+                ]
+
+        def view_source_catalog(index):
+            d = draft_state["draft"]
+            row = layer_rows[index]
+            sel = row["assigned"].curselection()
+            if sel and sel[0] < len(d["layers"][index]["slots"]):
+                return effective_nfb_slot_brand(d, index, sel[0])
+            return effective_nfb_layer_brand(d, index)
 
         def paint_draft_preview():
             config = {
@@ -1302,40 +1332,96 @@ def open_receiving_multi_settings(self, namespace):
             preview_status.set(
                 "尚未儲存的變更" if config != before else "與已載入版本相同"
             )
+            try:
+                adapter = candidate_adapter()
+                selection = adapter.selection
+                width = adapter.layout["sets"][selection.set_index]["bays"][
+                    selection.bay_index]["width"]
+                snapshot = _current_mode_snapshot(self, namespace)
+                columns = snapshot.get("door_layout_columns") or ()
+                from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+                cells = derive_door_layout_cells(columns) if columns else ()
+                upper = [c for c in cells if c.row_index == 0]
+                height = float(upper[0].start_height) if len(upper) == 1 else -1.0
+                projection = nfb_ui1a_preview(
+                    draft_state["draft"], bay_width_mm=width,
+                    upper_cell_height_mm=height,
+                )
+                segments = []
+                for entry in projection["layers"]:
+                    pitch = entry["adjacent_x_mm"]
+                    x_label = ("相鄰 " + "／".join(str(int(p)) for p in pitch) + " mm"
+                               if pitch is not None else "X 基準未定")
+                    y = entry["nominal_y_from_top_mm"]
+                    y_label = (f"名義 Y {y:g} mm" if y is not None else "Y 未定")
+                    stale = sum(x["status"] == NEEDS_RESELECTION
+                                for x in entry["slots"])
+                    segments.append(
+                        f"第{entry['layer_index']+1}層 {x_label}、{y_label}"
+                        + (f"｜{stale} 顆待重選" if stale else "")
+                    )
+                draft_summary.set("｜".join(segments) + "｜僅預覽、不提交製造")
+            except (ValueError,TypeError,KeyError) as exc:
+                draft_summary.set(f"NFB 名義幾何未定：{exc}｜僅預覽")
+
 
         def repaint(index):
             entry = layer_rows[index]
             selected = entry["assigned"].curselection()
             entry["assigned"].delete(0, tk.END)
-            for name in chosen[index]:
-                entry["assigned"].insert(tk.END, display_model(name))
-            if selected and selected[0] < len(chosen[index]):
+            slots = draft_state["draft"]["layers"][index]["slots"]
+            for slot in slots:
+                entry["assigned"].insert(
+                    tk.END,
+                    (display_model(slot["filename"]) if slot["filename"] else "（空槽）")
+                )
+            if selected and selected[0] < len(slots):
                 entry["assigned"].selection_set(selected[0])
-            entry["count"].set(f"已配置 {len(chosen[index])} 顆")
+            entry["count"].set(
+                f"實體 {len(slots)} 槽／開關 {sum(bool(s['filename']) for s in slots)} 顆"
+            )
+            if "slot_brand_var" in entry:
+                selected_now = entry["assigned"].curselection()
+                if selected_now:
+                    brand_state = slots[selected_now[0]]["brand"]
+                    entry["slot_brand_var"].set(
+                        "繼承本層" if brand_state["mode"] == INHERIT
+                        else brand_state["value"]
+                    )
+                else:
+                    entry["slot_brand_var"].set("繼承本層")
             paint_draft_preview()
 
         def refresh_source(*, force=False):
             if not modal.winfo_exists():
                 return
-            brand = self.receiving_switch_adapter(namespace).brand
+            current_owner = self.receiving_switch_adapter(namespace).brand
+            if current_owner != draft_state["draft"]["set_brand"]:
+                draft_state["draft"] = reconcile_set_brand(
+                    draft_state["draft"], current_owner,
+                )
             try:
                 stat = INDEX_PATH.stat()
-                signature = (brand, stat.st_mtime_ns, stat.st_size)
+                stamp = (stat.st_mtime_ns, stat.st_size)
             except OSError:
-                signature = (brand, None, None)
-            if not force and signature == source_state["signature"]:
-                return
-            source_state["signature"] = signature
-            try:
-                source_state["files"] = model_filenames(brand)
-                warning.set("")
-            except (ValueError, OSError, UnicodeError) as exc:
-                source_state["files"] = ()
-                warning.set("開關索引.csv 讀取失敗：" + str(exc))
-            for entry in layer_rows:
+                stamp = (None, None)
+            for index, entry in enumerate(layer_rows):
+                if index >= draft_state["draft"]["layer_count"]:
+                    continue
+                brand = view_source_catalog(index)
+                signature = (brand, *stamp)
+                if not force and signature == source_state["signature"][index]:
+                    continue
+                source_state["signature"][index] = signature
+                try:
+                    files = model_filenames(brand)
+                except (ValueError,OSError,UnicodeError) as exc:
+                    files = ()
+                    warning.set("開關索引.csv 讀取失敗：" + str(exc))
+                source_state["files"][index] = files
                 entry["available"].delete(0, tk.END)
-                for name in source_state["files"]:
-                    entry["available"].insert(tk.END, display_model(name))
+                for filename in files:
+                    entry["available"].insert(tk.END, display_model(filename))
 
         def poll_source():
             if not modal.winfo_exists():
@@ -1348,13 +1434,47 @@ def open_receiving_multi_settings(self, namespace):
             if not selected:
                 warning.set("請先選擇 CSV 開關型號")
                 return
-            filename = source_state["files"][selected[0]]
-            if filename not in model_filenames(
-                    self.receiving_switch_adapter(namespace).brand):
+            filename = source_state["files"][index][selected[0]]
+            expected_brand = view_source_catalog(index)
+            if filename not in model_filenames(expected_brand):
                 warning.set("CSV 已變動，請重新選擇")
                 refresh_source(force=True)
                 return
-            chosen[index].append(filename)
+            draft_state["draft"] = add_nfb_draft_slot(
+                draft_state["draft"], index, filename=filename,
+                source_brand=expected_brand,
+            )
+            # Newly added physical unit inherits the layer brand; when list
+            # was displaying a selected slot override, do not silently give
+            # that override to a different new slot.
+            if expected_brand != effective_nfb_layer_brand(draft_state["draft"],index):
+                draft_state["draft"] = set_nfb_slot_brand(
+                    draft_state["draft"], index,
+                    len(draft_state["draft"]["layers"][index]["slots"])-1,
+                    mode=OVERRIDE, value=expected_brand,
+                )
+            sync_chosen()
+            repaint(index)
+            warning.set("")
+
+        def add_empty_slot(index):
+            draft_state["draft"] = add_nfb_draft_slot(draft_state["draft"], index)
+            sync_chosen()
+            repaint(index)
+
+        def replace_selected_slot(index):
+            selected = layer_rows[index]["assigned"].curselection()
+            choice = layer_rows[index]["available"].curselection()
+            if not selected or not choice:
+                warning.set("請選擇原槽與新的 CSV 型號")
+                return
+            brand = view_source_catalog(index)
+            filename = source_state["files"][index][choice[0]]
+            draft_state["draft"] = select_nfb_slot_model(
+                draft_state["draft"],index,selected[0],filename,
+                catalog={brand:model_filenames(brand)},
+            )
+            sync_chosen()
             repaint(index)
             warning.set("")
 
@@ -1362,8 +1482,12 @@ def open_receiving_multi_settings(self, namespace):
             selected = layer_rows[index]["assigned"].curselection()
             if not selected:
                 return
-            chosen[index].pop(selected[0])
+            draft_state["draft"] = remove_nfb_draft_slot(
+                draft_state["draft"], index, selected[0],
+            )
+            sync_chosen()
             repaint(index)
+            refresh_source(force=True)
 
         for count in (1, 2):
             ttk.Radiobutton(
