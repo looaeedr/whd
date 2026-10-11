@@ -290,3 +290,68 @@ def project_one_original_nfb_into_actual_base(
         verified_inner_door=verified_inner_door,
         native_source=upper, lower_fixing=lower, target=target,
     )
+
+
+
+@dataclass(frozen=True)
+class NfbComposedActualBase:
+    """Real existing structural base plus NFB process on its FinalScene.
+
+    Never silently promote a source-only adapter to full MFG-2 release.
+    """
+    projection: NfbProjectedBaseProcess
+    render_data: PartRenderData
+    manufacturing_ready: bool = False
+
+
+def compose_projected_nfb_on_actual_base(
+    *, target: NfbActualBaseWorkFace,
+    projection: NfbProjectedBaseProcess,
+) -> NfbComposedActualBase:
+    """Merge one NFB process onto ONE already manufactured base part scene.
+
+    The outer base blank, fold guides and EAR attachment cuts remain owned by
+    the existing part. The NFB native circles/closed loops are added as real
+    CUTTING, marking as real MARKING, and material is recomputed from the
+    shared final scene: preview/3D/export all can consume one geometry result.
+    The per-physical-part readiness/export policy still blocks whole MFG-2
+    until actual formed EAR/plate manufacturing validation is completed.
+    """
+    from .manufacturing_render_data import material_polygon_from_final_scene
+    if (not isinstance(projection, NfbProjectedBaseProcess)
+            or projection.manufacturing_ready is not False
+            or projection.physical_part_id != target.physical_part_id):
+        raise ValueError("NFB overlay does not match actual base geometry owner")
+    face_poly, _, _ = _work_face(target)
+    actual = target.actual_render
+    if not isinstance(actual.scene, DrawingScene):
+        raise ValueError("NFB real base requires shared DrawingScene source")
+    scene=DrawingScene()
+    scene.extend(actual.scene.primitives)
+    scene.extend(projection.cutting)
+    scene.extend(projection.marking)
+    material=material_polygon_from_final_scene(scene)
+    if material.is_empty or material.area >= actual.material.area - _TOL:
+        raise ValueError("NFB composite base did not produce actual material CUTTING")
+    if not face_poly.buffer(_TOL).covers(
+        material.intersection(face_poly)
+    ):
+        raise ValueError("NFB composited material invalid for base face")
+    metadata={
+        **dict(actual.metadata),
+        "nfb_source_sha256": projection.source_sha256,
+        "nfb_source_model": projection.source_model,
+        "nfb_physical_hole_ids": projection.owner_hole_ids,
+        "nfb_base_process_status": projection.status,
+        "nfb_base_mfg2_release_approved": False,
+    }
+    return NfbComposedActualBase(
+        projection=projection,
+        render_data=PartRenderData(
+            scene=scene, material=material,
+            fold_guides=actual.fold_guides,
+            metadata=metadata,
+            unfolded_topology=actual.unfolded_topology,
+            box_body_face_contexts=actual.box_body_face_contexts,
+        ),
+    )
