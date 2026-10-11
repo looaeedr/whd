@@ -25,7 +25,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 <!-- WHD_AUTHORITY contract=canonical-authority-map role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md -->
 
-<!-- WHD_AUTHORITY contract=push-delivery-skill role=CURRENT path=.agents/skills/engineering/推推/SKILL.md -->
+<!-- WHD_AUTHORITY contract=localx-explicit-publish role=CURRENT path=.agents/skills/engineering/推推/SKILL.md -->
 <!-- WHD_AUTHORITY contract=root-local-first-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=deterministic-repo-migration role=CURRENT path=.agents/skills/engineering/deterministic-repo-migration/SKILL.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
