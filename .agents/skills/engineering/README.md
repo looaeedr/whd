@@ -12,7 +12,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 
 ## User-invoked navigation
 
-- **[root-local-first](./root-local-first/SKILL.md)**: 互動式／預設 repository content work 的 root-first gate；root 測綠與 diff freeze 後才解鎖 Git work branch。
+- **[root-local-first](./root-local-first/SKILL.md)**: 僅供使用者當次明確 `/接手` 的 RC 施工路線；一般任務與 `/派工` 不得據此取得 DC／本機施工權限。
 
 - **[ask-matt](./ask-matt/SKILL.md)**: Router over engineering/productivity flows.
 - **[拷問邊建立文件](./拷問邊建立文件/SKILL.md)**: 深度質詢並同步維護 `CONTEXT.md` / ADR。
@@ -21,10 +21,10 @@ Engineering skills used for code, design, QA, specs and delivery.
 - **[驗證板件與DXF](./驗證板件與DXF/SKILL.md)**: 驗 current/resolved physical parts、DXF reopen、multipart、Save→Reload 與 remote QA。
 - **[setup-matt-pocock-skills](./setup-matt-pocock-skills/SKILL.md)**: Upstream/reference setup material；classification 由 catalog 決定，不是 WHD governance owner。
 - **[寫成規格書](./寫成規格書/SKILL.md)**: 從 grounded conversation/code/AI Library 產生工程規格。
-- **[拆解任務工單](./拆解任務工單/SKILL.md)**: Requirement RED-first，經核准後拆 tracer-bullet tickets。
-- **[執行開發任務](./執行開發任務/SKILL.md)**: 依核准 spec/ticket 實作，遵守 TDD、checkpoint、派工與 QA gate。
+- **[拆解任務工單](./拆解任務工單/SKILL.md)**: 未決需求先釐清；已核准規格直接按 `APPROVED_REQUIREMENT_FAST_PATH` 拆工單，不再要求第二次需求核准。
+- **[執行開發任務](./執行開發任務/SKILL.md)**: 明確 `/接手` 才允許 RC 產品施工；`/派工` 仍須使用 GitHub／雲端施工及 exact CI，不能混用施工權限。
 - **[寫技能](./寫技能/SKILL.md)**: 建立、修改、驗證與改善 Skill。
-- **[派工](./派工/SKILL.md)**: 直接 GitHub Issue 派工與本地施工。
+- **[派工](./派工/SKILL.md)**: GitHub／雲端施工、測試及交付至 `localX`；只有 exact CI SUCCESS 後 `LOCALX_INTEGRATION` 階段可依規定使用 DC 進行本機最終整合，禁止本機施工。
 - **[wayfinder](./wayfinder/SKILL.md)**: Plan large multi-session work as decision tickets。
 
 ## Model- or user-reachable navigation
