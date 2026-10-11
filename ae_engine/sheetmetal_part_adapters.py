@@ -551,3 +551,100 @@ def build_finished_reference_guide(part_key, result: StructuralGeometryResult, *
         Vec2(cx + fw / 2.0, cy + fh / 2.0),
         "finished_boundary",
     )
+
+
+
+RECEIVING_BASE_PATTERN_LEFT = "LEFT_FLAT_SIDE"
+RECEIVING_BASE_PATTERN_CENTER = "CENTER_DOUBLE_SIDE_FOLD"
+RECEIVING_BASE_PATTERN_RIGHT = "RIGHT_FLAT_SIDE"
+RECEIVING_BASE_PATTERNS = frozenset((
+    RECEIVING_BASE_PATTERN_LEFT,
+    RECEIVING_BASE_PATTERN_CENTER,
+    RECEIVING_BASE_PATTERN_RIGHT,
+))
+
+
+def build_receiving_base_plate_result(
+    *, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right,
+    bend, pattern,
+) -> StructuralGeometryResult:
+    """Reuse the Base Plate part owner for the three drawn Receiving patterns.
+
+    The supplied drawing is the SHAPE/BEND reference, not a manufacturing
+    world-coordinate or a second NFB location owner. The part spec owns
+    actual enclosure/plate dimensions; these offsets are always local UV.
+
+    LEFT/RIGHT: straight side edges, TOP and BOTTOM fold only (20 mm).
+    CENTER: top/bottom 20 mm plus TWO side folds of 40,33 mm on each
+    side; sheet T is deducted once per side. The central straight span
+    is therefore W - shrink_left - shrink_right. At W800, shrinks85/85
+    and T2: 630 + 2*(40+33-2) = 772 mm, not 774.
+
+    User supplied base sample outlines also show a 35-mm shoulder from
+    top/bottom on the center pattern. No drawing's absolute X/Y, holes
+    or cut profile may become an installation coordinate by itself.
+    """
+    from math import isfinite
+    from .sheetmetal_geometry import BendLine
+
+    values=(w,h,t,shrink_top,shrink_bottom,shrink_left,shrink_right,bend)
+    if not all(isfinite(float(v)) for v in values):
+        raise ValueError("Receiving Base Plate has nonfinite dimensions")
+    w,h,t,st,sb,sl,sr,bend=map(float,values)
+    if pattern not in RECEIVING_BASE_PATTERNS:
+        raise ValueError("Receiving Base Plate needs a known left/center/right bend pattern")
+    if t<=0 or min(st,sb,sl,sr)<0 or w-sl-sr<=0 or h-st-sb<=0:
+        raise ValueError("Receiving Base Plate dimensions cannot resolve valid material")
+    if abs(bend-20.0)>1e-6:
+        raise ValueError("Receiving illustrated top/bottom bend is 20 mm")
+    core_w=w-sl-sr
+    blank_h=h-st-sb
+    if blank_h<=2*bend:
+        raise ValueError("Receiving Base Plate face height insufficient for upper/lower folds")
+    if pattern in (RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT):
+        blank_w=core_w
+        outline=(Vec2(0.,0.),Vec2(blank_w,0.),
+                 Vec2(blank_w,blank_h),Vec2(0.,blank_h))
+        bends=(
+            BendLine("receiving_bottom_20",Vec2(0.,bend),Vec2(blank_w,bend)),
+            BendLine("receiving_top_20",Vec2(0.,blank_h-bend),
+                     Vec2(blank_w,blank_h-bend)),
+        )
+        return _result(outline,bends,blank_w,blank_h,(
+            "RECEIVING_BASE",pattern,core_w,blank_h,bend,t,
+        ))
+
+    if abs(t-2.0)>1e-6:
+        raise ValueError("Receiving center double-side bend drawing is T2 only")
+    first, second=40.0,33.0
+    # Relative dimensional chain in the user's corrected drawing:
+    # (40 + 33 - T)*2 + central straight width.
+    side_fold=first+second-t
+    blank_w=core_w+2*side_fold
+    shoulder=35.0
+    if blank_h<=2*shoulder or core_w<=0:
+        raise ValueError("Receiving center base shoulders consume the physical core")
+    x0,x1=side_fold,blank_w-side_fold
+    y0,y1=shoulder,blank_h-shoulder
+    outline=(
+        Vec2(x0,0.),Vec2(x1,0.),
+        Vec2(x1,y0),Vec2(blank_w,y0),
+        Vec2(blank_w,y1),Vec2(x1,y1),
+        Vec2(x1,blank_h),Vec2(x0,blank_h),
+        Vec2(x0,y1),Vec2(0.,y1),
+        Vec2(0.,y0),Vec2(x0,y0),
+    )
+    bends=(
+        BendLine("receiving_bottom_20",Vec2(x0,bend),Vec2(x1,bend)),
+        BendLine("receiving_top_20",
+                 Vec2(x0,blank_h-bend),Vec2(x1,blank_h-bend)),
+        BendLine("receiving_left_40",Vec2(first,y0),Vec2(first,y1)),
+        BendLine("receiving_left_33",Vec2(side_fold,y0),Vec2(side_fold,y1)),
+        BendLine("receiving_right_40",
+                 Vec2(blank_w-first,y0),Vec2(blank_w-first,y1)),
+        BendLine("receiving_right_33",
+                 Vec2(blank_w-side_fold,y0),Vec2(blank_w-side_fold,y1)),
+    )
+    return _result(outline,bends,blank_w,blank_h,(
+        "RECEIVING_BASE",pattern,core_w,blank_h,bend,t,
+    ))

@@ -414,6 +414,14 @@ def _base_plate_part_spec_from_values(self, val, *, features, corner_policy=None
         box_body_structure_state=self.workspace_controller.box_body_structure_state(),
         box_body_fold_profile=profile_to_fold_segments(self.workspace_controller.box_body_profile() or ()),
         model_name=str(val.get('model', '')).strip() or None,
+        # Same pre-existing Base Plate producer; the Receiving pattern is
+        # received from the real part snapshot, not a second editor.
+        receiving_bend_pattern=(
+            val.get('receiving_bend_pattern')
+            if str(val.get('model', '')).strip() in {'受電箱', 'RECEIVING'}
+            else None
+        ),
+        physical_id=str(val.get('physical_id') or 'base_plate'),
     )
 
 def _base_plate_part_spec(self, val):

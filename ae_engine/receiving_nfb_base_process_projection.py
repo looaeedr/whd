@@ -95,8 +95,19 @@ def _work_face(face: NfbActualBaseWorkFace):
     face_poly = Polygon(face.face_outline_uv_mm)
     if not face_poly.is_valid or face_poly.is_empty or face_poly.area <= _TOL:
         raise ValueError("NFB base real work face invalid")
-    if not render.material.buffer(_TOL).covers(face_poly):
-        raise ValueError("NFB base work face outside actual cut material")
+    # Work faces may already contain EAR mounting slots. Their voids are
+    # intentional holes, not evidence that the surrounding face is absent.
+    # Compare the face against the EXISTING structural exterior envelope;
+    # the individual NFB contours are checked against actual remaining
+    # material below, so an NFB circle may never re-cut an EAR hole.
+    from shapely.geometry import Polygon as _Polygon
+    faces = getattr(render.material, "geoms", (render.material,))
+    exterior = unary_union(tuple(
+        _Polygon(piece.exterior) for piece in faces
+        if hasattr(piece, "exterior")
+    ))
+    if exterior.is_empty or not exterior.buffer(_TOL).covers(face_poly):
+        raise ValueError("NFB base work face outside actual plate exterior")
     world = _xy(face.world_face_center_xy_mm, "base assembly face world center")
     uv = _xy(face.unfolded_face_center_uv_mm, "base unfolded flat face center")
     if not face_poly.buffer(_TOL).covers(Point(*uv)):
