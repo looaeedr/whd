@@ -10,6 +10,8 @@ is created. Only #1500's canonical atomic transaction can save the result.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from copy import deepcopy
+from hashlib import sha256
 from math import isfinite
 from pathlib import Path
 from typing import Mapping
@@ -36,6 +38,9 @@ class NfbVerifiedDraftSubmission:
     source_inventory: NfbSourceInventory
     verified_door: NfbValidatedInnerDoorRender
     readiness: NfbScopeReadiness
+    source_path: str
+    snapshot_at_verification: dict
+    bay_at_verification: dict
 
     @property
     def can_submit(self):
@@ -188,4 +193,46 @@ def verify_nfb_ui1a_for_submit(
         set_index=set_index,bay_index=bay_index,version_id=version_id,
         config=config,scope=physical_scope,source_inventory=source,
         verified_door=verified,readiness=readiness,
+        source_path=str(source_path),
+        snapshot_at_verification=deepcopy(dict(snapshot)),
+        bay_at_verification=deepcopy(dict(bay)),
+    )
+
+
+def submit_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
+                             *, current_snapshot, confirm):
+    """Use the existing #1500 Receiving transaction and reject stale evidence.
+
+    This is a REAL submit when its source, panel, Set/Bay and confirmed
+    operator world-X all still match. Cancel/failed revalidation changes
+    neither ReceivingLayout nor project state.
+    """
+    if not isinstance(bundle,NfbVerifiedDraftSubmission):
+        raise TypeError("NFB submit needs the real source-verified UI-1A bundle")
+    layout=adapter.layout
+    try:
+        row=layout["sets"][bundle.set_index]
+        bay=row["bays"][bundle.bay_index]
+    except (KeyError,IndexError,TypeError) as exc:
+        raise ValueError("NFB submit Set/Bay no longer exists") from exc
+    if (row["stable_id"]!=bundle.scope.set_id or
+            bay["stable_id"]!=bundle.scope.bay_id or
+            bay!=bundle.bay_at_verification):
+        raise ValueError("NFB submit Bay has changed since actual source verification")
+    if dict(current_snapshot)!=bundle.snapshot_at_verification:
+        raise ValueError("NFB submit real inner-door geometry has changed; reverify")
+    try:
+        source_sha=sha256(Path(bundle.source_path).read_bytes()).hexdigest()
+    except OSError as exc:
+        raise ValueError("NFB source DXF missing since verification") from exc
+    if source_sha!=bundle.source_inventory.source_sha256:
+        raise ValueError("NFB original source DXF changed since verification")
+    if not bundle.can_submit:
+        raise ValueError("NFB physical scope is not manufacturing-ready")
+    return adapter.submit_nfb_to_bays(
+        set_index=bundle.set_index,bay_indices=(bundle.bay_index,),
+        version_id=bundle.version_id,configs={bundle.bay_index:bundle.config},
+        evidence={bundle.bay_index:(
+            bundle.scope,bundle.source_inventory,bundle.verified_door,
+        )},confirm=confirm,
     )
