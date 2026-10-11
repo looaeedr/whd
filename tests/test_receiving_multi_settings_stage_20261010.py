@@ -218,7 +218,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"NFB", "套／連", "數量", "第1套", "＋連", "1", "－連", "套用"}
+        assert set(texts) == {"NFB", "套／連", "數量", "－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas
@@ -234,8 +234,10 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert canvas.grid_info()["row"] == 1
         assert canvas.grid_info()["column"] == 0
         assert abs(controls_column.winfo_rootx() - mode_row.winfo_rootx()) <= 2
+        set_buttons = win._receiving_multi_set_buttons
+        assert [w.cget("text") for w in set_buttons] == ["－套", "＋套"]
         vertical_gap = controls_column.winfo_rooty() - (
-            mode_row.winfo_rooty() + mode_row.winfo_height()
+            set_buttons[0].master.winfo_rooty() + set_buttons[0].master.winfo_height()
         )
         assert 0 <= vertical_gap <= 32
         assert isinstance(setting_list, tk.Listbox)
@@ -273,15 +275,15 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
             return labels[1]
 
         assert [w.cget("text") for w in current_row()] == [
-            "第1套", "＋連", "1", "－連", "套用"]
-        plus, minus, apply = current_buttons()
+            "第1套", "－連", "1", "＋連", "套用"]
+        minus, plus, apply = current_buttons()
         first_row = rows_host.winfo_children()[0]
         first_count = current_row()[2]
         plus.invoke()
         # First click must not destroy the invoking Tk button or recreate
         # its row, which previously caused a stalled callback/blank view.
         assert rows_host.winfo_children()[0] is first_row
-        assert current_buttons() == [plus, minus, apply]
+        assert current_buttons() == [minus, plus, apply]
         assert current_row()[2] is first_count
         assert plus.winfo_exists()
         assert displayed_count() == "2"
@@ -327,7 +329,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert canvas._receiving_selected_bays == frozenset({0, 2})
         assert win._receiving_multi_applied["selected"] == 0
 
-        plus, minus, apply = current_buttons()
+        minus, plus, apply = current_buttons()
         minus.invoke()
         assert counts == [2]
         assert displayed_count() == "2"
@@ -413,6 +415,143 @@ def test_multi_settings_does_not_expose_postponed_version_ui():
         choices[0].invoke()
         root.update()
         assert mode["value"] == "set_bay"
+        win._receiving_multi_close()
+    finally:
+        root.destroy()
+
+
+def test_compact_candidates_and_set_controls_use_original_combobox():
+    from ae_engine.receiving_hole_candidates import (
+        create_candidate, duplicate_candidate, delete_candidate,
+        candidates_for,
+    )
+
+    root = tk.Tk()
+    root.withdraw()
+    counts = [2]
+    library = {"value": None}
+    calls = []
+
+    def candidate_ports():
+        def editor(role, version_id, on_saved):
+            calls.append(("edit", role, version_id))
+            if version_id is None:
+                library["value"], created = create_candidate(
+                    library["value"], role, [{"unit": role}]
+                )
+                on_saved(created)
+            else:
+                on_saved(version_id)
+
+        def copier(role, version_id, destination):
+            library["value"], created = duplicate_candidate(
+                library["value"], role, version_id, destination
+            )
+            return created
+
+        def delete(role, version_id):
+            library["value"] = delete_candidate(library["value"], role, version_id)
+
+        return {
+            "versions": lambda role: candidates_for(library["value"], role),
+            "edit": editor,
+            "copy": copier,
+            "delete": delete,
+            "apply": lambda role, version_id, set_index, targets:
+                calls.append(("apply", role, version_id, set_index, targets)),
+        }
+
+    def resize_sets(delta):
+        if delta == 1:
+            counts.append(1)
+        elif len(counts) > 1:
+            counts.pop()
+        else:
+            return False
+        return True
+
+    try:
+        win = open_multi_settings(
+            root, get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: tuple(counts)),
+            switch_mode=lambda _mode: True,
+            resize_connections=lambda *_args: False,
+            resize_sets=resize_sets, get_candidate_ports=candidate_ports,
+            get_settings_ports=lambda _set: {"select": lambda _bay: None},
+        )
+        root.update()
+        minus_set, plus_set = win._receiving_multi_set_buttons
+        assert (minus_set.cget("text"), plus_set.cget("text")) == ("－套", "＋套")
+        plus_set.invoke()
+        root.update()
+        assert counts == [2, 1]
+        rows = win._receiving_multi_rows_host.winfo_children()
+        assert len(rows) == 2
+        assert [w.cget("text") for w in rows[0].winfo_children()] == [
+            "第1套", "－連", "2", "＋連", "套用"
+        ]
+        minus_set.invoke()
+        root.update()
+        assert counts == [2]
+        assert len(win._receiving_multi_rows_host.winfo_children()) == 1
+
+        win._receiving_multi_apply(0)
+        listing = win._receiving_multi_setting_list
+        listing.selection_set(0)
+        listing.event_generate("<<ListboxSelect>>")
+        root.update()
+        host = win._receiving_multi_settings_host
+        assert "版本管理" in _visible_texts(host)
+        assert len([t for t in _visible_texts(host) if t == "編輯"]) == 2
+        assert "複製為新版本" not in _visible_texts(host)
+        combo = win._receiving_multi_candidate_combos["head"]
+        assert isinstance(combo, ttk.Combobox)
+        assert combo.cget("state") == "readonly"
+        assert tuple(combo.cget("values")) == ("即時",)
+        head_row = host.winfo_children()[0]
+        head_edit = [w for w in head_row.winfo_children()
+                     if isinstance(w, ttk.Button) and w.cget("text") == "編輯"][0]
+        head_edit.invoke()
+        root.update()
+        assert calls[0] == ("edit", "head", None)
+        combo = win._receiving_multi_candidate_combos["head"]
+        assert tuple(combo.cget("values")) == ("即時", "版本一")
+        assert combo.get() == "版本一"
+        head_row = host.winfo_children()[0]
+        apply = [w for w in head_row.winfo_children()
+                 if isinstance(w, ttk.Button) and w.cget("text") == "套用"][0]
+        apply.invoke()
+        assert ("apply", "head", "head-v1", 0, (0,)) in calls
+
+        manager = [w for w in host.winfo_children()
+                   if isinstance(w, ttk.Button) and w.cget("text") == "版本管理"][0]
+        manager.invoke()
+        root.update()
+        assert "複製為新版本" in _visible_texts(host)
+        assert "複製到封尾" in _visible_texts(host)
+        assert "刪除目前版本" in _visible_texts(host)
+        expanded = [w for w in host.winfo_children() if isinstance(w, ttk.Frame)][-1]
+        manage_buttons = [w for row in expanded.winfo_children()
+                          for w in row.winfo_children()
+                          if isinstance(w, ttk.Button)]
+        duplicate = [w for w in manage_buttons
+                     if w.cget("text") == "複製為新版本"][0]
+        duplicate.invoke()
+        root.update()
+        assert len(candidates_for(library["value"], "head")) == 2
+        combo = win._receiving_multi_candidate_combos["head"]
+        assert combo.get() == "版本二"
+        expanded = [w for w in host.winfo_children() if isinstance(w, ttk.Frame)][-1]
+        manage_buttons = [w for row in expanded.winfo_children()
+                          for w in row.winfo_children()
+                          if isinstance(w, ttk.Button)]
+        to_other = [w for w in manage_buttons
+                    if w.cget("text") == "複製到封尾"][0]
+        to_other.invoke()
+        root.update()
+        assert len(candidates_for(library["value"], "tail")) == 1
+        assert win._receiving_multi_candidate_combos["tail"].get() == "版本一"
+        assert len(candidates_for(library["value"], "head")) == 2
         win._receiving_multi_close()
     finally:
         root.destroy()
