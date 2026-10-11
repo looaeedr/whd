@@ -272,7 +272,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     right_host.columnconfigure(0, weight=1)
     right_host.rowconfigure(1, weight=1)
 
-    mode_var = tk.StringVar(master=win, value="set_bay")
+    # Reflect the authoritative mode instead of deferring a hidden mode switch
+    # (and its complete geometry rebuild) to the first connection edit.
+    initial_mode = get_snapshot().get("active_mode", "set_bay")
+    mode_var = tk.StringVar(master=win, value=initial_mode)
     top_left = ttk.Frame(left_host)
     top_left.pack(anchor="nw")
     brand_row = ttk.Frame(top_left)
@@ -309,7 +312,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     plus_set.pack(side="left")
 
     applied = {"set_index": None, "count": 1, "selected": None,
-               "selected_bays": (), "mode": "set_bay"}
+               "selected_bays": (), "mode": initial_mode}
 
     # Right TOP: original Listbox and its selected category controls.
     # Right BOTTOM: the independent diagram region, never commandeered
