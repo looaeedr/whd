@@ -527,7 +527,12 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         assert calls[0] == ("edit", "head", None)
         combo = win._receiving_multi_candidate_combos["head"]
         assert tuple(combo.cget("values")) == ("即時", "版本一")
-        assert combo.get() == "版本一"
+        assert combo.get() == "即時"  # A live save must not lock subsequent edits to v1.
+        # Apply still requires an explicit version selection; highlight ownership
+        # must not be inferred from the live draft.
+        combo.set("版本一")
+        combo.event_generate("<<ComboboxSelected>>")
+        root.update()
         head_row = host.winfo_children()[0]
         apply = [w for w in head_row.winfo_children()
                  if isinstance(w, ttk.Button) and w.cget("text") == "套用"][0]
