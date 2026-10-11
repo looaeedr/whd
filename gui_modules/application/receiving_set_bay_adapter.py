@@ -69,6 +69,7 @@ class ReceivingSetBayAdapter:
         self._persisted_ids = {str(value) for value in persisted_ids}
         self._session_dirty_ids: set[str] = set()
         self._confirm_destructive = confirm_destructive
+        self._nfb_undo_receipts = []  # transient transaction history, not persisted
 
     @property
     def layout(self) -> dict[str, object]:
@@ -325,6 +326,61 @@ class ReceivingSetBayAdapter:
             for si, bi, _ in plan
         )
         return len(plan)
+
+
+    def _nfb_apply_outcome(self, outcome):
+        """Commit an already validated, atomically prepared NFB transaction."""
+        if outcome.changed:
+            self._layout = outcome.layout
+            self._nfb_undo_receipts.append(outcome.receipt)
+            self._session_dirty_ids.update(
+                change.stable_id for change in outcome.receipt.changes
+            )
+        return outcome
+
+    def submit_nfb_to_bays(
+        self, *, set_index, bay_indices, version_id, configs, evidence, confirm,
+    ):
+        from ae_engine.receiving_nfb_transactions import submit_nfb_bays
+        return self._nfb_apply_outcome(submit_nfb_bays(
+            self._layout, set_index=set_index, bay_indices=bay_indices,
+            version_id=version_id, configs=configs, evidence=evidence,
+            confirm=confirm,
+        ))
+
+    def copy_submitted_nfb_to_bay(
+        self, *, set_index, source_bay_index, target_bay_index,
+        version_id, target_config, evidence, confirm,
+    ):
+        from ae_engine.receiving_nfb_transactions import copy_submitted_nfb_bay
+        return self._nfb_apply_outcome(copy_submitted_nfb_bay(
+            self._layout, set_index=set_index,
+            source_bay_index=source_bay_index, target_bay_index=target_bay_index,
+            version_id=version_id, target_config=target_config,
+            evidence=evidence, confirm=confirm,
+        ))
+
+    def restore_nfb_unconfigured(self, *, set_index, bay_indices, confirm):
+        from ae_engine.receiving_nfb_transactions import restore_nfb_bays_unconfigured
+        return self._nfb_apply_outcome(restore_nfb_bays_unconfigured(
+            self._layout, set_index=set_index, bay_indices=bay_indices,
+            confirm=confirm,
+        ))
+
+    @property
+    def nfb_can_undo(self):
+        return bool(self._nfb_undo_receipts)
+
+    def undo_last_nfb_transaction(self):
+        from ae_engine.receiving_nfb_transactions import undo_nfb_transaction
+        if not self._nfb_undo_receipts:
+            raise ValueError("沒有可復原的內門 NFB 操作")
+        receipt = self._nfb_undo_receipts[-1]
+        restored = undo_nfb_transaction(self._layout, receipt)
+        self._layout = restored
+        self._nfb_undo_receipts.pop()
+        self._session_dirty_ids.update(change.stable_id for change in receipt.changes)
+        return receipt
 
     def set_global_brand(self, brand):
         """Update every Set NFB once, keeping active Set/Bay identity intact."""
