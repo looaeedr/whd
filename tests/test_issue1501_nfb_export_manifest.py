@@ -156,7 +156,7 @@ def test_identity_role_count_and_target_list_fail_closed(tmp_path):
     with pytest.raises(ValueError,match="Bay stable ID"):
         derive_nfb_partial_export_manifest(**{**opts,
             "saved_bay":{**opts["saved_bay"],"stable_id":"wrong"}})
-    with pytest.raises(ValueError,match="duplicates"):
+    with pytest.raises(ValueError,match="duplicate"):
         derive_nfb_partial_export_manifest(**{**opts,
             "actual_parts":opts["actual_parts"]+opts["actual_parts"][:1]})
     with pytest.raises(ValueError,match="count"):
