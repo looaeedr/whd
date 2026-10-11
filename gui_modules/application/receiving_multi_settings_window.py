@@ -319,6 +319,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                        "canvas": None}
     quantity_ui = None
 
+    def editor_saved(role, version_id, *, keep_live=False):
+        # Saving while "即時" creates a candidate but MUST NOT select it:
+        # selecting v1 here would make the next Edit overwrite v1 instead of
+        # creating v2. Existing-version edits retain their selected version.
+        if not keep_live:
+            candidate_selected[role] = version_id
+        if win.winfo_exists():
+            win.after_idle(show_setting_controls)
+            win.after_idle(refresh_manager_controls)
+
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
@@ -344,11 +354,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             except (ValueError, IndexError, RuntimeError) as exc:
                 warn(exc)
         candidate_combos.clear()
-
-        def editor_saved(role, version_id):
-            candidate_selected[role] = version_id
-            if win.winfo_exists():
-                win.after_idle(show_setting_controls)
 
         def actions(parent, kind, *, role=None):
             row = ttk.Frame(parent)
@@ -400,9 +405,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
             def edit_role():
                 try:
+                    selected_before = candidate_selected[role]
                     library["edit"](
-                        role, candidate_selected[role],
-                        lambda created, role=role: editor_saved(role, created),
+                        role, selected_before,
+                        lambda created, role=role, live=(selected_before is None):
+                            editor_saved(role, created, keep_live=live),
                     )
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
