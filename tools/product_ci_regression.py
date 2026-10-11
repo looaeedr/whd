@@ -25,6 +25,7 @@ PYTEST_PATHS = (
     "tests/test_issue1466_quantity_bom.py",
     "tests/test_issue1467_quantity_dxf_groups.py",
     "tests/test_issue1468_quantity_check.py",
+    "tests/test_issue1502_nfb_base_batch_export_gate.py",
     "tests/test_issue1469_v15_acceptance.py",
     "tests/test_issue390_settings_contracts.py",
     "tests/test_issue500_settings_profile_projection.py::test_issue500_requires_frozen_request_and_plan_contracts",
