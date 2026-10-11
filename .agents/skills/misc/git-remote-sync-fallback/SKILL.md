@@ -17,20 +17,20 @@ whd_schema: WHD_DOC_META_V1
 
 ## 現行遠端操作與公開上傳邊界
 
-本 Skill 僅處理已確認 Issue 的 Git 運輸，不新增已退役的專案內部 remote token、receipt 或 unlock。依當輪 /接手 或 /派工 已指定的使用者公開倉庫 looaeedr/whd、工作分支、exact tested diff，推送工作分支、建立 base=localX 的 PR、CI 驗收並合併 localX。正式 X 的產品發布只允許當次 /推推。
+本 Skill 只處理已授權工作分支的 Git 運輸／失敗備援，**不自行授權施工或 DC 存取**，也不恢復舊 remote token／receipt／unlock。`/派工` 的產品 BUILD／TEST／COMMIT 必須在 GitHub／排程／雲端執行器；`/接手` 僅在使用者當次明確指示後才能於 RC `whd-dev:/workspace/whd` 施工。兩者依現行流程將產品 PR 交付至 `localX`，正式 X 的產品發布仍只接受當次 `/推推`。純治理走受信任 `tools/change_lane_gate.py` 白名單的 GitHub／雲端治理分支直送 X。
 
 實際平台安全審查仍然有效：若 Git/Connector/Remote Desktop 因公開上傳要求更精確批准或拒絕，不可換工具規避、偽稱已獲批准、重建不同 commit 冒充原提交；保留本機 SHA、回報原始拒絕操作與使用者可行動的步驟。
 
 ## 固定流程
 
-1. **先確認本機 Git 真值**
+1. **先確認合法執行器的 Git 真值（不可藉此探測本機）**
    ```bash
    git status --short --branch
    git rev-parse HEAD
    git branch --show-current
    git remote -v
    ```
-   工作樹有未提交內容時，先依專案 Git 備份規則落 commit / backup tag；禁止用遠端同步掩蓋本機 dirty state。
+   僅在當次已授權且有真實 Git 工作區的執行器上檢查；`/派工` 的施工階段不得連線或讀取使用者本機。工作樹有未提交內容時，不得用遠端同步掩蓋 dirty state；只能在原合法施工環境安全保存與核對。
 
 2. **重現並分類傳輸失敗**
     先確認操作落在本輪 repo/Issue/工作分支的既有授權與實際工具權限範圍；不再要求已退役的內部遠端批准才能進行讀取或已核准工作分支的正常交付。
@@ -72,12 +72,12 @@ whd_schema: WHD_DOC_META_V1
 | 「文字檔都上去了，所以 ZIP 應該也算上去了」 | 未遠端讀回或列檔驗證就不算。 |
 | 「remote 有內容就等於 local commits 都 push 了」 | 內容同步與 commit identity 是兩回事。 |
 
-## Root-local-first before remote content write
+## GitHub transport and execution-location boundary
 
-- 施工、測試和 commit 仍由指定本地工作區擁有；/接手 在 CoreELEC whd-dev:/workspace/whd 執行。
-- 已確認 Issue 的 /接手 或 /派工涵蓋 exact tested work branch → GitHub looaeedr/whd → PR base=localX → CI → merge localX；不增加第二次內部授權。
-- Connector 備援僅同步 exact tested diff，不能把新遠端 SHA 假稱為原始本地 git push。
-- 遇平台安全拒絕、無法保留 commit 身份、目標衝突均 fail closed，不 force、不越過正常審查。
+- `/派工`：BUILD／TEST／COMMIT 只由 GitHub／排程／雲端施工環境擁有；DC 僅於 exact CI SUCCESS 的 `LOCALX_INTEGRATION` 才能執行本機最終合併與回讀，不能藉 Git transport fallback 在本機施工。
+- `/接手`：只有使用者當次明確授權，才可於 CoreELEC `whd-dev:/workspace/whd` 進行產品施工；不能將先前授權或普通「繼續」當成 DC 許可。
+- 治理／文件變更：依 `tools/change_lane_gate.py` 的白名單，從最新 X 的 GitHub／雲端治理分支 PR／CI／合併 X；未經當次明確授權不得接觸本機／DC。
+- Connector 備援僅同步合法執行器已測試的 exact diff，不能把新遠端 SHA 假稱原始本機 git push；平台安全拒絕、commit 身分不可保存或目標衝突均須 fail closed，不 force、不更換工具繞過。
 
 ## Connector target-write hard gate
 
