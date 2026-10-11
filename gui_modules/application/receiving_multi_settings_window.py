@@ -94,7 +94,15 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None):
     count = max(1, int(count))
     canvas.delete("all")
     canvas._receiving_bay_hitboxes = ()
-    canvas._receiving_selected_bay = selected
+    selected_bays = ({selected} if isinstance(selected, int)
+                     else set(selected or ()))
+    selected_bays = frozenset(index for index in selected_bays
+                              if isinstance(index, int) and 0 <= index < count)
+    canvas._receiving_selected_bays = selected_bays
+    canvas._receiving_selected_bay = (
+        selected if isinstance(selected, int) else
+        (max(selected_bays) if selected_bays else None)
+    )
     width = max(int(canvas.winfo_width()), int(canvas.cget("width")))
     height = max(int(canvas.winfo_height()), int(canvas.cget("height")))
     usable_w = max(40, width - 24)
@@ -107,7 +115,7 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None):
     hitboxes = []
     for index in range(count):
         x0, x1 = left + index * bay_w, left + (index + 1) * bay_w
-        active = index == selected
+        active = index in selected_bays
         outline = "#42bdf4" if active else "#8faec4"
         fill = "#315775" if active else "#263a4d"
         canvas.create_rectangle(x0, top, x1, top + bay_h,
@@ -164,7 +172,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, select_bay=None,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_settings_ports=None,
-                        get_original_door_marks=None):
+                        get_original_door_marks=None,
+                        get_quantity_ports=None):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -235,7 +244,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     mode_row = ttk.Frame(top_left)
     mode_row.pack(anchor="w")
 
-    applied = {"set_index": None, "count": 1, "selected": None, "mode": "set_bay"}
+    applied = {"set_index": None, "count": 1, "selected": None,
+               "selected_bays": (), "mode": "set_bay"}
 
     right_host = ttk.Frame(win)
     right_host.grid(row=1, column=1, sticky="nsew", padx=24, pady=12)
@@ -266,12 +276,29 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
-    linked_targets = set()
+    quantity_editor = {"controls": None}
 
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
-        if selected_setting["kind"] is None or get_settings_ports is None:
+        quantity_editor["controls"] = None
+        active_ports["ports"] = None
+        if selected_setting["kind"] is None:
+            return
+        if applied["mode"] == "quantity":
+            # Original QuantityModel remains the exclusive hole-version owner.
+            # Embed its existing editor here, NOT in a new data model/window.
+            if (selected_setting["kind"] == "head_features"
+                    and get_quantity_ports is not None):
+                from .quantity_version_controls import build_quantity_controls
+                ports = get_quantity_ports()
+                if ports["snapshot"]() is not None:
+                    editor = build_quantity_controls(settings_host, ports, embedded_endcap=True)
+                    editor.frame.pack(anchor="w")
+                    editor.refresh()
+                    quantity_editor["controls"] = editor
+            return
+        if get_settings_ports is None:
             return
         set_index = selected_setting["set_index"]
         bay_index = selected_setting["bay_index"]
@@ -279,22 +306,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         ports["select"](bay_index)
         active_ports["ports"] = ports
         from ae_engine.receiving_shared_settings import setting_value
-        current_row = ports["row"]()
-        bay_choices = ttk.Frame(settings_host)
-        bay_choices.pack(anchor="w")
-        ttk.Label(bay_choices, text="連動目標").pack(side="left", padx=(0, 5))
-        for other in range(len(current_row["bays"])):
-            if other == bay_index:
-                continue
-            toggle = tk.BooleanVar(master=win, value=other in linked_targets)
-            def select_target(index=other, variable=toggle):
-                if variable.get():
-                    linked_targets.add(index)
-                else:
-                    linked_targets.discard(index)
-            ttk.Checkbutton(bay_choices, text=f"第{other + 1}連",
-                            variable=toggle, command=select_target).pack(side="left")
-        targets = lambda: tuple(sorted(linked_targets | {bay_index}))
+        # Highlighter owns the multi-selection. No second checkbox selector.
+        targets = lambda: tuple(sorted(set(applied["selected_bays"]) | {bay_index}))
         def perform(action):
             try:
                 action()
@@ -306,7 +319,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             row.pack(anchor="w", pady=3)
             if role is not None:
                 ttk.Label(row, text="封頭孔" if role == "head" else "封尾孔").pack(side="left")
-                ttk.Button(row, text="編輯／套用",
+                ttk.Button(row, text="編輯",
                            command=lambda: perform(lambda: ports["holes"](role, targets()))).pack(side="left", padx=3)
             else:
                 from ae_engine.receiving_shared_settings import setting_value
@@ -315,7 +328,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 ttk.Label(row, text="內門層數").pack(side="left")
                 ttk.Combobox(row, textvariable=value, values=("1", "2"),
                              width=5, state="readonly").pack(side="left", padx=3)
-                ttk.Button(row, text="編輯／套用",
+                ttk.Button(row, text="編輯",
                            command=lambda: perform(lambda: ports["change"](kind, int(value.get())))).pack(side="left", padx=3)
             ttk.Button(row, text="連動選取的連",
                        command=lambda: perform(lambda: ports["share"](kind, targets()))).pack(side="left", padx=3)
@@ -341,7 +354,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def render():
         count = applied["count"] if applied["mode"] == "set_bay" else 1
-        selected = applied["selected"] if applied["mode"] == "set_bay" else None
+        selected = applied["selected_bays"] if applied["mode"] == "set_bay" else None
         marks = ()
         if applied["mode"] == "set_bay" and get_original_door_marks is not None:
             set_index = applied["set_index"]
@@ -358,13 +371,25 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 mark_cache["key"] = key
             marks = mark_cache["values"]
         paint_connected_bays(canvas, count, selected, marks)
+        canvas._receiving_selected_bay = (
+            applied["selected"] if applied["mode"] == "set_bay" else None
+        )
 
     def refresh_rows():
         for widget in actions_host.winfo_children():
             widget.destroy()
         if mode_var.get() != "set_bay":
-            setting_list.pack_forget()
+            # Keep the original hole-version entry in the same left-hand list
+            # while Quantity owns it; no unused per-Bay controls in this mode.
+            if tuple(setting_list.get(0, tk.END)) != ("封頭尾",):
+                setting_list.delete(0, tk.END)
+                setting_list.insert(tk.END, "封頭尾")
+            if not setting_list.winfo_manager():
+                setting_list.pack(anchor="w", pady=(6, 0))
             return
+        if tuple(setting_list.get(0, tk.END)) != ("封頭尾", "內門"):
+            setting_list.delete(0, tk.END)
+            setting_list.insert(tk.END, "封頭尾", "內門")
         if not setting_list.winfo_manager():
             setting_list.pack(anchor="w", pady=(6, 0))
         for index, raw_count in enumerate(tuple(get_switch().connection_counts())):
@@ -385,7 +410,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def select_setting(_event=None):
         indices = setting_list.curselection()
-        if not indices or mode_var.get() != "set_bay":
+        if not indices:
             return
         label = str(setting_list.get(indices[0]))
         set_index = applied["set_index"]
@@ -395,11 +420,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         if bay_index is None:
             bay_index = 0
         kind = setting_kind[label]
-        linked_targets.clear()
         try:
-            # Read/choose the ORIGINAL Set/Bay setting owner; do not replace
-            # a Hole Editor with a fake feature editor in this window.
-            if on_setting_selected is not None:
+            # In quantity mode the embedded version controls use QuantityModel,
+            # not an accidental per-Bay mutation.
+            if applied["mode"] == "set_bay" and on_setting_selected is not None:
                 on_setting_selected(set_index, bay_index, kind)
             selected_setting.update(
                 set_index=set_index, bay_index=bay_index, kind=kind
@@ -429,9 +453,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             counts = tuple(get_switch().connection_counts())
             count = max(1, int(counts[index]))
             applied.update(mode="set_bay", set_index=index,
-                           count=count, selected=0)
+                           count=count, selected=0, selected_bays=(0,))
             selected_setting.update(set_index=None, bay_index=None, kind=None)
-            linked_targets.clear()
             setting_list.selection_clear(0, tk.END)
             show_setting_controls()
             if select_bay is not None:
@@ -447,17 +470,24 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         for index, (x0, y0, x1, y1) in enumerate(canvas._receiving_bay_hitboxes):
             if x0 <= event.x <= x1 and y0 <= event.y <= y1:
                 try:
+                    selected_bays = set(applied["selected_bays"])
+                    if index in selected_bays and len(selected_bays) > 1:
+                        selected_bays.remove(index)
+                        active = min(selected_bays)
+                    else:
+                        selected_bays.add(index)
+                        active = index
                     if select_bay is not None:
-                        select_bay(applied["set_index"], index)
-                    applied["selected"] = index
+                        select_bay(applied["set_index"], active)
+                    applied["selected"] = active
+                    applied["selected_bays"] = tuple(sorted(selected_bays))
                     if selected_setting["kind"] is not None:
                         if on_setting_selected is not None:
-                            on_setting_selected(applied["set_index"], index,
+                            on_setting_selected(applied["set_index"], active,
                                                 selected_setting["kind"])
                         selected_setting.update(
-                            set_index=applied["set_index"], bay_index=index
+                            set_index=applied["set_index"], bay_index=active
                         )
-                    linked_targets.clear()
                     show_setting_controls()
                     render()
                 except (ValueError, IndexError, RuntimeError) as exc:
@@ -472,13 +502,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     mode_var.set(applied["mode"])
                     return
             applied["mode"] = target
-            if target == "quantity":
-                applied.update(set_index=None, selected=None, count=1)
-                selected_setting.update(
-                    set_index=None, bay_index=None, kind=None
-                )
-                setting_list.selection_clear(0, tk.END)
-                show_setting_controls()
+            applied.update(set_index=None, selected=None, selected_bays=(), count=1)
+            selected_setting.update(set_index=None, bay_index=None, kind=None)
+            setting_list.selection_clear(0, tk.END)
+            show_setting_controls()
             refresh_rows()
             render()
         except (ValueError, IndexError, RuntimeError) as exc:
@@ -499,6 +526,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_brand_var = brand_var
     win._receiving_multi_brand_selector = brand_selector
     win._receiving_multi_settings_host = settings_host
+    win._receiving_multi_quantity_editor = quantity_editor
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host

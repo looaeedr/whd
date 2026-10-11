@@ -215,6 +215,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert selected[-1] == (0, 2)
         assert win._receiving_multi_applied["selected"] == 2
         assert canvas._receiving_selected_bay == 2
+        assert canvas._receiving_selected_bays == frozenset({0, 2})
         setting_list.selection_set(0)
         setting_list.event_generate("<<ListboxSelect>>")
         root.update()
@@ -224,6 +225,15 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
                               y=int((y0 + y1) / 2))
         root.update()
         assert selected_settings[-1] == (0, 1, "head_features")
+        assert canvas._receiving_selected_bays == frozenset({0, 1, 2})
+        assert canvas._receiving_selected_bay == 1
+        # Repeated click toggles this highlight; the active editor moves to
+        # a retained selected Bay rather than clearing selection.
+        canvas.event_generate("<Button-1>", x=int((x0 + x1) / 2),
+                              y=int((y0 + y1) / 2))
+        root.update()
+        assert canvas._receiving_selected_bays == frozenset({0, 2})
+        assert win._receiving_multi_applied["selected"] == 0
 
         plus, minus, apply = current_buttons()
         minus.invoke()
@@ -233,6 +243,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         apply.invoke()
         assert len(canvas._receiving_bay_hitboxes) == 2
         assert win._receiving_multi_applied["selected"] == 0
+        assert canvas._receiving_selected_bays == frozenset({0})
 
         # Two choices are mutually exclusive; no quantity-version table or
         # common-box affordance is exposed until explicitly requested.
@@ -242,8 +253,9 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         choices[1].invoke()
         root.update()
         assert mode["value"] == "quantity"
-        assert not rows_host.winfo_children()
-        assert not setting_list.winfo_ismapped()
+        assert not win._receiving_multi_rows_host.winfo_children()[0].winfo_children()
+        assert setting_list.winfo_ismapped()
+        assert tuple(setting_list.get(0, tk.END)) == ("封頭尾",)
         assert len(canvas._receiving_bay_hitboxes) == 1
         assert set(_visible_texts(win)) == {"NFB", "套／連", "數量"}
         choices[0].invoke()
@@ -260,6 +272,139 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         win._receiving_multi_close()
         root.update()
         assert root.grab_current() is None
+    finally:
+        root.destroy()
+
+
+def test_embedded_head_tail_versions_reuse_original_quantity_owner():
+    from phase6_quantity_model import QuantityModel
+
+    root = tk.Tk()
+    root.withdraw()
+    mode = {"value": "set_bay"}
+    model = QuantityModel()
+    edits = []
+
+    def ports():
+        return {
+            "snapshot": model.snapshot,
+            "select": model.select,
+            "add": model.add_version,
+            "delete": lambda confirmed: model.delete_selected(confirmed=confirmed),
+            "count": model.set_piece_count,
+            "holes": lambda role: edits.append((role, model.selected_version_id)),
+        }
+
+    try:
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": mode["value"]},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (1,)),
+            switch_mode=lambda target: mode.__setitem__("value", target) or True,
+            resize_connections=lambda *_args: True,
+            get_quantity_ports=ports,
+        )
+        root.update()
+        choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
+                   if isinstance(w, ttk.Radiobutton)]
+        choices[1].invoke()
+        root.update()
+        assert mode["value"] == "quantity"
+        listing = win._receiving_multi_setting_list
+        assert tuple(listing.get(0, tk.END)) == ("封頭尾",)
+        assert win._receiving_multi_quantity_editor["controls"] is None
+        listing.selection_set(0)
+        listing.event_generate("<<ListboxSelect>>")
+        root.update()
+        controls = win._receiving_multi_quantity_editor["controls"]
+        assert controls is not None
+        assert controls.versions.master.master is win._receiving_multi_settings_host
+        assert _visible_texts(win._receiving_multi_settings_host).count("編輯") == 2
+        assert "封頭孔" in _visible_texts(win._receiving_multi_settings_host)
+        assert "封尾孔" in _visible_texts(win._receiving_multi_settings_host)
+        assert [controls.versions.item(child)["values"][0]
+                for child in controls.versions.get_children()] == ["孔型版本 1"]
+        controls.add()
+        root.update()
+        assert model.version_count == 2
+        assert [controls.versions.item(child)["values"][0]
+                for child in controls.versions.get_children()] == [
+                    "孔型版本 1", "孔型版本 2"
+                ]
+        controls.edit_holes("head")
+        controls.edit_holes("tail")
+        assert edits == [("head", "quantity-v2"), ("tail", "quantity-v2")]
+        controls.ports["count"]("3")
+        controls.refresh()
+        assert model.selected_piece_count == 3
+        choices[0].invoke()
+        root.update()
+        assert win._receiving_multi_quantity_editor["controls"] is None
+        assert tuple(listing.get(0, tk.END)) == ("封頭尾", "內門")
+        assert model.version_count == 2  # no duplicate model or mode transfer
+        win._receiving_multi_close()
+    finally:
+        root.destroy()
+
+
+def test_sketch_multi_highlights_drive_existing_endcap_share_actions():
+    root = tk.Tk()
+    root.withdraw()
+    calls = []
+    bay_ids = ("a", "b", "c")
+    row = {"bays": [{"stable_id": sid} for sid in bay_ids]}
+    def ports(_set_index):
+        return {
+            "row": lambda: row,
+            "select": lambda bay: calls.append(("select", bay)),
+            "holes": lambda role, targets: calls.append(("edit", role, targets)),
+            "share": lambda kind, targets: calls.append(("share", kind, targets)),
+            "unlink": lambda kind: calls.append(("unlink", kind)),
+        }
+    try:
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (3,)),
+            switch_mode=lambda _mode: True,
+            resize_connections=lambda *_args: True,
+            get_settings_ports=ports,
+        )
+        root.update()
+        assert win._receiving_multi_apply(0)
+        canvas = win._receiving_multi_canvas
+        hits = canvas._receiving_bay_hitboxes
+        for bay in (1, 2):
+            x0, y0, x1, y1 = hits[bay]
+            canvas.event_generate("<Button-1>", x=int((x0 + x1)/2),
+                                  y=int((y0 + y1)/2))
+            root.update()
+        assert canvas._receiving_selected_bays == frozenset({0, 1, 2})
+        listing = win._receiving_multi_setting_list
+        listing.selection_set(0)
+        listing.event_generate("<<ListboxSelect>>")
+        root.update()
+        panel = win._receiving_multi_settings_host
+        labels = _visible_texts(panel)
+        assert "連動目標" not in labels
+        assert "編輯／套用" not in labels
+        assert labels.count("編輯") == 2
+        assert all(not isinstance(widget, ttk.Checkbutton)
+                   for frame in panel.winfo_children()
+                   for widget in frame.winfo_children())
+        first = panel.winfo_children()[0]
+        edits = [child for child in first.winfo_children()
+                 if isinstance(child, ttk.Button) and child.cget("text") == "編輯"]
+        assert len(edits) == 1
+        edits[0].invoke()
+        assert ("edit", "head", (0, 1, 2)) in calls
+        first = panel.winfo_children()[0]
+        shares = [child for child in first.winfo_children()
+                  if isinstance(child, ttk.Button)
+                  and child.cget("text") == "連動選取的連"]
+        shares[0].invoke()
+        assert ("share", "head_features", (0, 1, 2)) in calls
+        win._receiving_multi_close()
     finally:
         root.destroy()
 
