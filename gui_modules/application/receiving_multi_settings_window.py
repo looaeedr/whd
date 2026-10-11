@@ -371,6 +371,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 mark_cache["key"] = key
             marks = mark_cache["values"]
         paint_connected_bays(canvas, count, selected, marks)
+        canvas._receiving_selected_bay = (
+            applied["selected"] if applied["mode"] == "set_bay" else None
+        )
 
     def refresh_rows():
         for widget in actions_host.winfo_children():
@@ -499,10 +502,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     mode_var.set(applied["mode"])
                     return
             applied["mode"] = target
-            if target == "quantity":
-                applied.update(set_index=None, selected=None, selected_bays=(), count=1)
-            else:
-                applied.update(set_index=None, selected=None, selected_bays=(), count=1)
+            applied.update(set_index=None, selected=None, selected_bays=(), count=1)
             selected_setting.update(set_index=None, bay_index=None, kind=None)
             setting_list.selection_clear(0, tk.END)
             show_setting_controls()
