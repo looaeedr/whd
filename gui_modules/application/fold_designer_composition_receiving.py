@@ -1098,5 +1098,9 @@ def open_receiving_multi_settings(self, namespace):
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
+        get_quantity_ports=lambda: __import__(
+            "gui_modules.application.quantity_version_ports",
+            fromlist=["quantity_ports"]
+        ).quantity_ports(self, namespace),
         get_original_door_marks=existing_door_marks,
     )
