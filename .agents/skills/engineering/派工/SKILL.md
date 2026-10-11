@@ -18,12 +18,21 @@ whd_schema: WHD_DOC_META_V1
 
 確認 GitHub Issue／依賴／owner 後由遠端隔離工作分支施工、測試、commit、push 到 `looaeedr/whd`，建立 base=`localX` PR，持續查 exact HEAD CI。**CI SUCCESS 之前禁止用 DC**。
 
+## 本體直接施工優先 `DISPATCH_SELF_EXECUTION_FIRST`
+
+**本體有合法 GitHub 施工能力就直接動手，不走尋找外部代理的前置流程。** 已有指定 Issue、原 PR／工作分支、GitHub 讀寫／提交／PR 和雲端 CI 能力時，由當前 AI 本體直接完成 `BUILD→TEST→COMMIT→CI`，不需要 Codex 雲端程式代理外掛、子代理或獨立 task ID。
+
+1. **沿用既有工作**：核對 Issue／PR／head/base，直接改程式與測試，提交原工作分支並回讀 SHA；GitHub Actions 執行適用測試。GitHub 寫檔、空 commit、文字留言、單獨搜尋外掛都不是已通過測試的證據。
+2. **本人實質接取**：工單記錄 `本體直接接取`、`execution_location=GITHUB`、Issue、分支與 PR，後續補首筆實際施工 commit SHA、exact SHA 測試 run ID／結果。只有真實施工動作才能標 `EXECUTOR_START_CONFIRMED`；不得自己留言就聲稱接取完成。
+3. **無能力才找外部代理**：先具體核對欠缺 GitHub 寫入／提交／合法雲端測試能力，確定本體無法進行才搜尋 Codex 或其他已可用代理。搜尋不能取代啟動證據；不可用時回報 `DISPATCH_REGISTERED_ONLY`／`REMOTE_EXECUTOR_UNAVAILABLE`，不宣稱背景有人施工。
+4. **治理直送獨立**：本 Skill／`AGENTS.md`／治理測試等非產品本體修改，照治理通道直接由 GitHub PR 合併 X，不走 `localX`、一般產品派工或 `/推推`。產品施工仍遵守原 CI、`LOCALX_INTEGRATION`、本機 DC 禁令與正式 X 發布權限。
+
 ## 真實執行者接取：`DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
 
 **完成登記不等於完成派工。** 先核對指定號碼究竟是 Issue 或 PR；若已有 draft PR 與追蹤工單，沿用原 PR／分支／Issue，不另起一套。完成建立／留言後必須在**本回合**走以下路徑：
 
-1. **能力核對與啟動**：辨識實際可用且獲授權的 `GITHUB|SCHEDULER|REMOTE_ACTION` 雲端施工入口（必須能修改、測試與交付程式），呼叫真實的啟動或由同一合法雲端執行者直接施工。GitHub issue/PR 寫入、加 assignee、留言提及另一人、建立 CI、只寫排程 prompt，**都不等於啟動施工**。
-2. **回讀接取證據**：只有可回讀 `EXECUTOR_START_CONFIRMED`（身分、執行入口、task/run ID 或相當證據、Issue、分支、執行者確認接取或首個真實施工動作）才能回報「已派工／已接取／執行中」。接取人應在同一 Issue 留身份及實質進度；**由派工者代貼『請施工』不算接取**。
+1. **能力核對與啟動**：依 `DISPATCH_SELF_EXECUTION_FIRST`，先由有合法 GitHub 寫入／提交／CI 能力的同一合法雲端執行者直接施工；缺少必要能力時才辨識並呼叫獲授權的 `GITHUB|SCHEDULER|REMOTE_ACTION` 外部施工入口。GitHub issue/PR 寫入、加 assignee、留言提及另一人、建立 CI、只寫排程 prompt，**都不等於啟動施工**。
+2. **回讀接取證據**：只有可回讀 `EXECUTOR_START_CONFIRMED`（身分、執行入口、Issue、分支、首個真實施工動作）才能回報「已派工／已接取／執行中」。本體直接施工使用 commit SHA 與相應 CI run ID，不需外部 task ID；委派代理才需對方 task/run ID 或相當接取證據。接取人應在同一 Issue 留身份及實質進度；**由派工者代貼『請施工』不算接取**。
 3. **失敗即真實回報**：僅寫入 PR／Issue／派工留言而沒有執行者，回報 `DISPATCH_REGISTERED_ONLY` 並在未找到可用雲端入口時明列 `REMOTE_EXECUTOR_UNAVAILABLE`。有入口但啟動失敗／接取未證實則回報 `DISPATCH_START_UNCONFIRMED` 與具體操作／錯誤／證據。**不得標完成，不得宣稱背景有人運作，不得為了補外觀另建 PR 或 Issue，也不得轉用 DC／本機。**
 4. **成功後連續施工**：執行者按原 Issue 規格在合法雲端進行 BUILD→TEST→COMMIT→PR→CI，隨後依 `LOCALX_INTEGRATION` 整合。每次更新以真實 commit/run/Issue 留言為準；回合無法跨時自主續作時不得宣稱能自行喚醒。
 
