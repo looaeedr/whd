@@ -1241,6 +1241,7 @@ def open_receiving_multi_settings(self, namespace):
             raise ValueError("內門版本權責錯誤")
         from tkinter import ttk, messagebox
         import tkinter as tk
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
         from ae_engine.receiving_nfb_ui1a import (
             INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
             reconcile_set_brand, set_nfb_draft_layer_count,
@@ -1552,7 +1553,6 @@ def open_receiving_multi_settings(self, namespace):
             })
 
             def layer_brand_changed(_event=None, idx=idx):
-                from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
                 value = layer_rows[idx]["layer_brand_var"].get()
                 draft_state["draft"] = set_nfb_layer_brand(
                     draft_state["draft"],idx,mode=INHERIT if value=="繼承本套" else OVERRIDE,
@@ -1577,10 +1577,19 @@ def open_receiving_multi_settings(self, namespace):
 
             layer_brand_select.bind("<<ComboboxSelected>>",layer_brand_changed)
             slot_brand_select.bind("<<ComboboxSelected>>",slot_brand_changed)
-            assigned.bind(
-                "<<ListboxSelect>>",
-                lambda _event, i=idx: (repaint(i), refresh_source(force=True)),
-            )
+            def selected_slot_changed(_event=None, idx=idx):
+                selected = layer_rows[idx]["assigned"].curselection()
+                slots = draft_state["draft"]["layers"][idx]["slots"]
+                if selected and selected[0] < len(slots):
+                    unit = slots[selected[0]]["brand"]
+                    layer_rows[idx]["slot_brand_var"].set(
+                        "繼承本層" if unit["mode"] == INHERIT else unit["value"]
+                    )
+                else:
+                    layer_rows[idx]["slot_brand_var"].set("繼承本層")
+                refresh_source(force=True)
+
+            assigned.bind("<<ListboxSelect>>", selected_slot_changed)
             repaint(idx)
 
         def change_layers():
