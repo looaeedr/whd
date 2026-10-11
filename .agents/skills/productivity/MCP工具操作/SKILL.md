@@ -15,7 +15,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### GitHub Connector 現行操作邊界
 
-WHD GitHub 讀取依本輪任務需要及實際工具權限執行。明確 /接手 或 /派工 的同一 Issue 包含工作分支推送至公開 looaeedr/whd、PR base=localX、exact CI 與 localX 合併；不要求退役的額外 token。正式 X 的產品發布必須當次 /推推。
+WHD 的 CURRENT 規則須明確由 `ref=cleanup/2d-3d-sync` 讀取，不能把 GitHub 預設 `main` 當成現行權威。產品的 `/派工` 必須由 GitHub／雲端執行器施工／測試／提交，僅在 exact CI SUCCESS 後的 `LOCALX_INTEGRATION` 階段才准依規定使用 DC 做本機 `localX` 最終整合；只有使用者當次明確 `/接手` 才可在 RC 施工。產品 PR base=`localX`，正式 X 的產品發布仍須當次 `/推推`。純治理依受信任白名單由 GitHub／雲端 PR 直送 X，無須舊 remote token 或 Preflight receipt。MCP 只是 transport，不授予額外 DC／施工權限。
 
 平台對公開上傳可能有獨立安全審查，遇拒絕不可用其他 MCP 或 Connector 偷渡；保留本地提交、回報具體失敗與可行的授權方式。
 
@@ -158,7 +158,7 @@ MCP 可能連到 GitHub、filesystem、database、SaaS 或內部服務。對會�
 - 不把 token、password、auth header 寫進 command example、log、Skill 或 durable evidence；
 - mutation 完成後依可用介面重新 read-back / fetch，不能只相信「request sent」。
 
-若任務本身另有專案級 root-local-first、Git-phase branch、PR、approval、release 或 destructive-action gate，這些 gate 仍然有效；MCP 只是 transport，不是繞過治理的捷徑。
+若任務有現行 `AGENTS.md` 的執行地點限制、PR／CI／`localX`／`/推推`、使用者授權或 destructive-action gate，均須遵守；舊泛用 root-local-first、`GIT_WRITE_UNLOCKED`／Git-phase branch 交易前置已退役，不得靠 MCP 重新啟動。MCP 只是 transport，不是繞過治理或取得本機權限的捷徑。
 
 ## 7. WHD 專案邊界
 
