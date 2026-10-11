@@ -88,6 +88,36 @@ def _confirmed_operator_x(config):
             raise ValueError("NFB physical datum/version is missing")
 
 
+def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
+    """Match operator values to EXACT manufactured CUTTING evidence, not IDs alone.
+
+    Same model/physical_hole_id with changed X, Y slot or rotation MUST require
+    a new #1497 verification. An old manufactured result never grants an
+    unverified new displacement.
+    """
+    witnessed = tuple(door.verified_hole_locations)
+    holes = tuple(config["holes"])
+    if len(witnessed) != len(holes) or not witnessed:
+        raise ValueError("NFB verified physical X/Y/rotation evidence missing")
+    original = {row[0]: row for row in witnessed}
+    if len(original) != len(witnessed):
+        raise ValueError("NFB source proof repeats physical holes")
+    for hole in holes:
+        key = hole["physical_hole_id"]
+        if key not in original:
+            raise ValueError("NFB submitted physical-hole ID absent from machining proof")
+        actual_slot = hole.get("slot_index")
+        actual_count = hole.get("layer_count", config.get("layer_count"))
+        if type(actual_slot) is not int or type(actual_count) is not int:
+            raise ValueError("NFB slot/layer cannot be inferred for production")
+        want = (key, float(hole["manual_x_mm"]), actual_count,
+                actual_slot, hole["rotation_deg"])
+        observed = original[key]
+        if (len(observed) != 5 or abs(want[1] - observed[1]) > 1e-6
+                or want[2:] != observed[2:]):
+            raise ValueError("NFB configured X/Y slot/rotation differs from actual CUTTING")
+
+
 def _ready(
     set_row, bay, *,
     version_id: str,
@@ -196,6 +226,7 @@ def submit_nfb_bays(
                 or door.indexed_model_key != (expected_brand, next(iter(actual_models)))
                 or actual_holes != set(door.physical_hole_ids)):
             raise ValueError("NFB configured brand/model/physical-hole IDs differ from verified CUTTING")
+        _verify_hole_locations(config, door)
         reports.append(_ready(set_row, bay, version_id=version_id,
                               scope=scope, inventory=inventory,
                               verified_inner_door=door))
@@ -257,6 +288,7 @@ def copy_submitted_nfb_bay(
             or door.indexed_model_key != (brand, next(iter(actual_models)))
             or actual_holes != set(door.physical_hole_ids)):
         raise ValueError("NFB copied source/model/physical-hole IDs not verified for target")
+    _verify_hole_locations(configured, door)
     readiness = _ready(row,target,version_id=version_id,scope=scope,
                        inventory=inv,verified_inner_door=door)
     preview = _preview(
