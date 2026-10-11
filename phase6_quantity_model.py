@@ -197,6 +197,11 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
         result["receiving_hole_candidates"] = normalize_candidates(
             result["receiving_hole_candidates"]
         )
+    if receiving and "receiving_inner_door_candidates" in result:
+        from ae_engine.receiving_inner_door_candidates import normalize_inner_candidates
+        result["receiving_inner_door_candidates"] = normalize_inner_candidates(
+            result["receiving_inner_door_candidates"]
+        )
     mode = result.get("active_mode", SET_BAY_MODE if receiving else QUANTITY_MODE)
     if mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):
         raise ValueError("不合法的箱體操作模式")
