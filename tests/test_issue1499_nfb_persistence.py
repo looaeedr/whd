@@ -67,11 +67,11 @@ def test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy(tm
     layout = _layout()
     config = _config(x=0)
     layout = update_receiving_bay(
-        layout, set_index=0, bay_index=0,
+        layout, set_index=0, bay_index=1,
         nfb_config_submitted=True, nfb_config=config,
     )
     copy = resize_receiving_bays(layout, set_index=0, bay_count=3)
-    original = copy["sets"][0]["bays"][0]["nfb_config"]
+    original = copy["sets"][0]["bays"][1]["nfb_config"]
     clone = copy["sets"][0]["bays"][2]["nfb_config"]
     assert clone["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
     assert original["holes"][0]["manual_x_state"] == "CONFIRMED"
@@ -82,16 +82,16 @@ def test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy(tm
     raw = json.loads(file.read_text(encoding="utf-8"))
     assert raw["schema"] == PROJECT_SCHEMA_V3
     rows = raw["snapshot"]["receiving_layout"]["sets"][0]["bays"]
-    assert rows[0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
-    assert "nfb_config_submitted" not in rows[1]
+    assert rows[1]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+    assert "nfb_config_submitted" not in rows[0]
     restored = read_project(file)["snapshot"]
     reloaded_rows = restored["receiving_layout"]["sets"][0]["bays"]
-    assert reloaded_rows[0]["nfb_config"]["holes"][0]["datum_snapshot"] == {
+    assert reloaded_rows[1]["nfb_config"]["holes"][0]["datum_snapshot"] == {
         "width": 800, "thickness": 2,
     }
     assert reloaded_rows[2]["nfb_config"]["holes"][0]["manual_x_mm"] == 100
     assert project_receiving_bay_legacy_aliases(
-        restored, set_index=0, bay_index=1, validate_common=False,
+        restored, set_index=0, bay_index=0, validate_common=False,
     ).get("nfb_config_submitted") is None
 
 
@@ -158,7 +158,7 @@ def test_old_schema_reader_must_not_silently_strip_new_nfb_scope(tmp_path):
         file.write_text(json.dumps(corrupted,ensure_ascii=False),encoding="utf-8")
         with pytest.raises(ValueError,match="old schema"):
             read_project(file)
-    with pytest.raises(ValueError,match="不支援"):
+    with pytest.raises(ValueError,match="孔型版本"):
         QuantityModel.from_payload({
             "schema":"phase6-quantity-v1",
             "versions":[{
