@@ -21,7 +21,9 @@ from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
 from ae_engine.receiving_nfb_manufacturing_release import (
     NfbValidatedInnerDoorRender,VALIDATED,
 )
-from ae_engine.receiving_nfb_ui1b_bridge import verify_nfb_ui1a_for_submit
+from ae_engine.receiving_nfb_ui1b_bridge import (
+    verify_nfb_ui1a_for_submit,assert_live_verified_nfb,submit_live_verified_nfb,
+)
 import ae_engine.receiving_nfb_ui1b_bridge as bridge
 
 
@@ -140,3 +142,56 @@ def test_runtime_csv_profiles_never_certify_sources_and_reject_bad_rows(tmp_path
     path.write_text(header+"\n"+good.replace(digest,"bad")+"\n",encoding="utf-8")
     with pytest.raises(ValueError,match="SHA256"):
         read_nfb_runtime_source_profiles_csv(path)
+
+
+
+def test_live_submit_rechecks_bay_source_and_snapshot_before_adapter_write(tmp_path,monkeypatch):
+    kwargs,unit,_=_setup(tmp_path,monkeypatch)
+    verified=verify_nfb_ui1a_for_submit(**kwargs)
+    called=[]
+    class Adapter:
+        def __init__(self):
+            self.layout=kwargs["layout"]
+        def submit_nfb_to_bays(self,**arguments):
+            called.append(arguments)
+            return SimpleNamespace(changed=True)
+    adapter=Adapter()
+    assert assert_live_verified_nfb(
+        adapter,verified,current_snapshot=kwargs["snapshot"],
+    ) is True
+    outcome=submit_live_verified_nfb(
+        adapter,verified,current_snapshot=kwargs["snapshot"],
+        confirm=lambda preview:True,
+    )
+    assert outcome.changed
+    assert len(called)==1
+    assert called[0]["configs"][0]["holes"][0]["manual_x_mm"]==0.0
+    with pytest.raises(ValueError,match="geometry"):
+        submit_live_verified_nfb(
+            adapter,verified,current_snapshot={**kwargs["snapshot"],"w":999},
+            confirm=lambda preview:True,
+        )
+    assert len(called)==1
+    adapter.layout["sets"][0]["bays"][0]["width"]=1200
+    with pytest.raises(ValueError,match="Bay has changed"):
+        assert_live_verified_nfb(adapter,verified,current_snapshot=kwargs["snapshot"])
+    assert len(called)==1
+
+
+def test_live_submit_rejects_changed_or_missing_original_source(tmp_path,monkeypatch):
+    kwargs,_,_=_setup(tmp_path,monkeypatch)
+    verified=verify_nfb_ui1a_for_submit(**kwargs)
+    class Adapter:
+        layout=kwargs["layout"]
+        def submit_nfb_to_bays(self,**arguments):
+            pytest.fail("stale source must never reach canonical submit")
+    source=kwargs["source_path"]
+    source.write_bytes(source.read_bytes()+b"\n")
+    with pytest.raises(ValueError,match="changed since verification"):
+        submit_live_verified_nfb(
+            Adapter(),verified,current_snapshot=kwargs["snapshot"],
+            confirm=lambda _:True,
+        )
+    source.unlink()
+    with pytest.raises(ValueError,match="missing since verification"):
+        assert_live_verified_nfb(Adapter(),verified,current_snapshot=kwargs["snapshot"])
