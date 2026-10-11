@@ -261,3 +261,21 @@ def test_remote_qa_route_checks_explicit_github_only_approval_before_dc() -> Non
     assert "LOCALX_INTEGRATION_PENDING" in text
     assert "不可假記" in text
     assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in dispatch
+
+
+def test_ci_qa_reference_does_not_resurrect_legacy_merge_or_fresh_branch_rule() -> None:
+    contract = read(".agents/skills/engineering/monitoring-remote-qa/CI_SHARDING_ACCEPTANCE_CONTRACT.md")
+    nav = read(".agents/skills/engineering/README.md")
+    assert "whd_doc_role: REFERENCE" in contract[:250]
+    assert "Historical #303/T8 routing only" in contract
+    assert "Every modification starts on a fresh branch" in contract
+    assert "explicit `合`" in contract
+    assert "Neither sentence is a current WHD" in contract
+    assert "Product PRs target `localX`" in contract
+    assert "requires a fresh `/推推`" in contract
+    assert "specific user approval for that Issue/PR" in contract
+    assert "FULL_COLLECTION == UNIQUE_SHARD_UNION" in contract
+    assert "FLAKY-WARNING" in contract
+    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in nav
+    assert "LOCALX_SYNC_PENDING" in nav
+    assert "不能先探測 DC" in nav

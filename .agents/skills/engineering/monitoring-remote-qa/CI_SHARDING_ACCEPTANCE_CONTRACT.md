@@ -7,7 +7,7 @@ whd_schema: WHD_DOC_META_V1
 
 # CI Sharding / Parallel Acceptance Contract
 
-This reference is part of `monitoring-remote-qa` and preserves the durable #303/T8 CI qualification rules while the canonical `SKILL.md` retains the newer production continuity/checkpoint bridges.
+This REFERENCE preserves #303/T8 CI qualification and historical integration evidence; it is **not a separate CURRENT execution, branch, merge or user-authorization policy**. For current actions use formal-X `AGENTS.md`, `.agents/skills/engineering/monitoring-remote-qa/SKILL.md`, `.agents/skills/engineering/派工/SKILL.md`, and `.agents/skills/engineering/推推/SKILL.md`. Sharding evidence below remains useful; if old process wording conflicts, the CURRENT owners control routing.
 
 ## Run identity and monitoring
 
@@ -42,6 +42,6 @@ This reference is part of `monitoring-remote-qa` and preserves the durable #303/
 
 - Cleanup occurs only after acceptance evidence is durable.
 - Immediately before deleting any branch, perform a fresh OPEN-PR protection readback for both `head.ref` and `base.ref`; never delete a branch referenced by an open PR and never fake deletion by moving refs.
-- Every modification starts on a fresh branch.
-- Final production integration requires the user's explicit `合`; never infer authorization from `GO`, `繼續`, successful QA, or issue closure.
+- **Historical #303/T8 routing only:** the former rules said “Every modification starts on a fresh branch” and “Final production integration requires the user's explicit `合`.” Neither sentence is a current WHD branch or release authorization requirement.
+- **Current routing:** for an existing Issue/PR, continue the authorized work branch; new isolated work uses a new branch. Product PRs target `localX`, with DC integration only in its authorized final stage or GitHub-only merge only upon **specific user approval for that Issue/PR**. Product `localX → cleanup/2d-3d-sync` requires a fresh `/推推` and exact PR/head/base/CI verification; pure governance follows the separate X direct lane. `GO`, `繼續`, QA GREEN, or issue closure does not create missing merge/publish permission.
 - Integration must preserve qualified history and current production governance/continuity rules; do not use force updates to bypass conflicts.
