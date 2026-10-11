@@ -187,6 +187,15 @@ def submit_nfb_bays(
         _confirmed_operator_x(config)
         bay = set_row["bays"][bi]
         scope, inventory, door = evidence[bi]
+        if not isinstance(door, NfbValidatedInnerDoorRender):
+            raise ValueError("NFB configured model has no verified manufacturing result")
+        expected_brand = set_row.get("switch_brand", "士林")
+        actual_models = {hole["model_filename"] for hole in config["holes"]}
+        actual_holes = {hole["physical_hole_id"] for hole in config["holes"]}
+        if (len(actual_models) != 1
+                or door.indexed_model_key != (expected_brand, next(iter(actual_models)))
+                or actual_holes != set(door.physical_hole_ids)):
+            raise ValueError("NFB configured brand/model/physical-hole IDs differ from verified CUTTING")
         reports.append(_ready(set_row, bay, version_id=version_id,
                               scope=scope, inventory=inventory,
                               verified_inner_door=door))
@@ -229,12 +238,25 @@ def copy_submitted_nfb_bay(
     target_ids = {hole["physical_hole_id"] for hole in configured["holes"]}
     if source_ids & target_ids:
         raise ValueError("NFB copied physical holes require independent target IDs")
+    if {k:v for k,v in copied.items() if k != "holes"} != {
+            k:v for k,v in configured.items() if k != "holes"}:
+        raise ValueError("NFB copy must preserve layer and physical-unit configuration")
     for old, new in zip(copied["holes"], configured["holes"]):
-        if (old["model_filename"] != new["model_filename"]
-                or old["rotation_deg"] != new["rotation_deg"]):
-            raise ValueError("NFB copy must preserve model/rotation identity")
+        excluded = {"physical_hole_id", "manual_x_state", "manual_x_mm",
+                    "datum_revision", "datum_snapshot"}
+        if ({k:v for k,v in old.items() if k not in excluded}
+                != {k:v for k,v in new.items() if k not in excluded}):
+            raise ValueError("NFB copy must preserve model/rotation/offset identity")
     _confirmed_operator_x(configured)
     scope, inv, door = evidence
+    brand = row.get("switch_brand", "士林")
+    actual_models = {hole["model_filename"] for hole in configured["holes"]}
+    actual_holes = {hole["physical_hole_id"] for hole in configured["holes"]}
+    if (not isinstance(door, NfbValidatedInnerDoorRender)
+            or len(actual_models) != 1
+            or door.indexed_model_key != (brand, next(iter(actual_models)))
+            or actual_holes != set(door.physical_hole_ids)):
+        raise ValueError("NFB copied source/model/physical-hole IDs not verified for target")
     readiness = _ready(row,target,version_id=version_id,scope=scope,
                        inventory=inv,verified_inner_door=door)
     preview = _preview(
