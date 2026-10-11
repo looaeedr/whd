@@ -247,12 +247,24 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 win.geometry(
                     f"{win.winfo_screenwidth()}x{win.winfo_screenheight()}+0+0"
                 )
-        if win.winfo_viewable():
-            if win.grab_current() is None:
-                win.grab_set()
+        capture_modal_focus()
+
+    def capture_modal_focus():
+        # On X11 a first after_idle may run before the Toplevel is mapped.
+        # Grab only a visible window, and never steal a nested dialog's grab.
+        if not win.winfo_exists() or not win.winfo_viewable():
+            return
+        if win.grab_current() is None:
+            win.grab_set()
+        if win.grab_current() is win:
             win.lift()
             win.focus_set()
 
+    def on_modal_map(event):
+        if event.widget is win:
+            win.after_idle(capture_modal_focus)
+
+    win.bind("<Map>", on_modal_map, add="+")
     win.after_idle(maximize_and_lock)
     win.columnconfigure(1, weight=1)
     win.rowconfigure(0, weight=1)

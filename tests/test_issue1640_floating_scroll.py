@@ -45,7 +45,8 @@ def test_overflow_scrollbars_scoped_to_hovered_pane():
 
 def test_real_popup_reuses_one_nonmodal_toplevel_without_applying_candidate(monkeypatch):
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("800x600+0+0")
+    root.update()
     calls = []
     views = []
     saved, version = create_candidate(None, "head", [{"tag": "real"}])
