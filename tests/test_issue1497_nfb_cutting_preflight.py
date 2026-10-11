@@ -42,6 +42,8 @@ def _source(**updates):
         source_aci=150,
         source_outline_xy=PROFILE_150,
         source_center_xy=CENTER,
+        source_profile_closed=True,
+        source_bulges=(0.0, 0.0, 0.0, 0.0),
         rotation_deg=0,
         # These values demonstrate geometry only. They are *not* a
         # manufacturing-certified X/X_rule revision for this model.
@@ -111,6 +113,13 @@ def test_source_requires_real_upper_150_and_correct_stable_door_part():
         {"source_outline_xy": PROFILE_150[:3]},
         {"source_outline_xy": ((0.0, 0.0), (1.0, 2.0), (1.0, 3.0), (0.0, 2.0))},
         {"rotation_deg": 45},
+        {"source_profile_closed": False},
+        {"source_bulges": (0.0, 0.2, 0.0, 0.0)},
+        {"source_bulges": ()},
+        {"source_outline_xy": (
+            PROFILE_150[0], PROFILE_150[2],
+            PROFILE_150[1], PROFILE_150[3],
+        )},
     ):
         with pytest.raises(ValueError):
             preflight_nfb_inner_door_opening(panel, _source(**kw))
