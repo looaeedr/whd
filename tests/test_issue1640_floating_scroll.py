@@ -106,7 +106,7 @@ def test_real_popup_reuses_one_nonmodal_toplevel_without_applying_candidate(monk
         root.update()
         popup = win._receiving_multi_real_preview["win"]
         assert popup is not None and popup.winfo_exists()
-        assert popup.grab_current() is None
+        assert popup.grab_current() is popup
         assert calls == [("head", version, 0, 0)]
         assert views[0].drawn == [(scene,)]
         assert popup._receiving_real_preview_request is scene
