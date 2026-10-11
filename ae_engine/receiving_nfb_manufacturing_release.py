@@ -57,6 +57,9 @@ class NfbValidatedInnerDoorRender:
     source_sha256: str
     physical_hole_ids: tuple[str, ...]
     manufacturing_ready: bool = True
+    # Binds the actual measured/verified machining result to operator X/Y,
+    # not just an easily reused stable-hole label.
+    verified_hole_locations: tuple[tuple[str, float, int, int, int], ...] = ()
 
 
 def _validate_source_path(source_path: str | Path, profile: NfbUpperSourceProfile) -> Path:
@@ -209,6 +212,10 @@ def configured_nfb_inner_door_render_data(
         indexed_model_key=(profile.brand, profile.indexed_filename),
         source_sha256=inventory.source_sha256,
         physical_hole_ids=tuple(h.physical_hole_id for h in entries),
+        verified_hole_locations=tuple(
+            (h.physical_hole_id, float(h.world_x_mm),
+             h.layer_count, h.slot_index, h.rotation_deg) for h in entries
+        ),
     )
 
 

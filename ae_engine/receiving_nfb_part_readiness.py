@@ -70,8 +70,17 @@ class NfbScopeReadiness:
 
     @property
     def can_submit(self) -> bool:
-        return (not self.scope_reasons
-                and all(row.can_export for row in self.decisions))
+        # MFG-1 can commit verified INNER-DOOR NFB configuration while MFG-2
+        # base/middle plates remain individually BLOCKED from fabrication.
+        # Gate the submitted hole owner + resolved part dependencies, rather
+        # than making every Color150 model permanently uncommittable.
+        # A configured MFG-1 inner door can be submitted once its own real
+        # source+part proof is READY. Missing independent MFG-2 base/middle
+        # identities remain scope_reasons and continue to block *whole*
+        # manufacturing export via filter_export_part_ids; never invent IDs.
+        return (bool(self.decisions)
+                and self.decisions[0].part_id == self.scope.inner_door_part_id
+                and self.decisions[0].status == READY)
 
     def for_part(self, part_id: str) -> NfbPartDecision:
         matches = [row for row in self.decisions if row.part_id == part_id]

@@ -9,9 +9,11 @@ whd_doc_id: WHD-SOP-SKILL-DISCOVERY-DEEP-SCAN
 
 ## 目的
 
+> **REFERENCE／非 CURRENT 執行權威。** 本文件保留技能發現的背景與指引，實際有效性、分類與路由仍以正式 X 的 `AGENTS.md`、`.agents/skills/skill_catalog.json`、`.agents/skills/skill_registry.json` 及 CURRENT `找技能`／`掃描深模組` Skill 為準。`Phase6 Preflight` 一詞只描述歷史路由相容性，不是現行修改與寫入前置門檻。
+
 避免 AI 把「檔案存在」「README 有列」「Registry 可路由」「目前 Runtime 可正式使用」混成同一件事，並確保中文 Skill identity、Skill classification 與 WHD routing authority 一致。
 
-## CURRENT — Skill inventory 與 active classification 分離
+## Skill inventory 與 active classification 分離（REFERENCE 導覽）
 
 ### 1. Inventory evidence
 

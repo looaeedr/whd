@@ -66,7 +66,7 @@ def test_shihlin_upper_source_allows_inner_door_but_blocks_middle_only():
     assert result.for_part("base_plate:upper").status==UNAFFECTED
     assert result.for_part("middle_plate:upper").status==BLOCKED
     assert result.for_part("side_panel:right").can_export
-    assert not result.can_submit
+    assert result.can_submit  # inner-door MFG-1 READY; middle-plate still held
     with pytest.raises(ValueError,match="middle_plate"):
         result.filter_export_part_ids(("inner_door:upper:panel","middle_plate:upper"))
     allowed,blocked=result.filter_export_part_ids(
@@ -124,6 +124,7 @@ def test_missing_real_plate_id_is_scope_blocker_not_an_invented_part():
     assert result.for_part("inner_door:upper:panel").status==READY
     assert "BASE_PLATE_PHYSICAL_ID_UNRESOLVED" in result.scope_reasons
     assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" in result.scope_reasons
+    assert result.can_submit  # only the genuinely verified MFG-1 door
     with pytest.raises(ValueError,match="dependencies unresolved"):
         result.filter_export_part_ids(("side_panel:left",))
     assert result.filter_export_part_ids(("side_panel:left",),partial=True)[0]==(

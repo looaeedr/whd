@@ -8,6 +8,7 @@ import os
 import shutil
 import tempfile
 from dataclasses import replace
+from collections.abc import Mapping
 from tkinter import filedialog, messagebox
 
 from ae_engine import manufacturing_api
@@ -119,6 +120,62 @@ def _resolved_export_intention_key(part_key):
     return None
 
 
+
+def _has_submitted_nfb_in_current_snapshot(payload):
+    """Read persisted NFB submission from nested project/quantity snapshots."""
+    seen=set()
+    def walk(node,depth):
+        if depth>32:
+            raise ValueError("NFB project export nesting exceeds safe bound")
+        if isinstance(node,Mapping):
+            if id(node) in seen:
+                return False
+            seen.add(id(node))
+            if "nfb_config_submitted" in node:
+                fact=node["nfb_config_submitted"]
+                if type(fact) is not bool:
+                    raise ValueError("NFB saved submission flag must be boolean")
+                if fact:
+                    return True
+            return any(walk(value,depth+1) for value in node.values())
+        if isinstance(node,(list,tuple)):
+            if id(node) in seen:
+                return False
+            seen.add(id(node))
+            return any(walk(value,depth+1) for value in node)
+        return False
+    return walk(payload,0)
+
+
+def _assert_legacy_nfb_export_scope_safe(self, flags):
+    """Block stale legacy door/body/base but not demonstrably independent parts.
+
+    Submitted NFB requires current actual part+source verification; an old
+    resolved geometry cannot silently replace missing NFB CUTTING. This
+    guard never creates a second export authority and only protects the
+    legacy GUI pipeline until the scoped partial dispatcher is wired.
+    """
+    affected=("door","base_plate","box_body")
+    if not any(bool(flags.get(k)) for k in affected):
+        return
+    designer=getattr(self,"fold_designer_app",None)
+    sources=(
+        getattr(self,"_phase6_input_snapshot",None),
+        getattr(designer,"_phase6_input_snapshot",None),
+    )
+    workspace=getattr(designer,"designer_workspace",None)
+    other=()
+    if workspace is not None:
+        snapshot=getattr(workspace,"snapshot",None)
+        if callable(snapshot):
+            other=(snapshot(),)
+    if any(_has_submitted_nfb_in_current_snapshot(source)
+           for source in (*sources,*other)):
+        raise ValueError(
+            "已提交 NFB：舊式內門／箱身／底板 DXF 無法證明 NFB 孔位，"
+            "不得忽略 NFB 配置直接完整出圖；須使用逐板件來源驗證"
+        )
+
 def _selected_resolved_geometry(resolved_geometry, flags):
     """Filter presence by export intention without inventing a physical-part list."""
     selected = tuple(
@@ -131,6 +188,7 @@ def _selected_resolved_geometry(resolved_geometry, flags):
 
 def _export_selected_resolved_parts(self, folder, flags):
     """Export the primary GUI's canonical resolved physical inventory when available."""
+    _assert_legacy_nfb_export_scope_safe(self, flags)
     designer = getattr(self, "fold_designer_app", None)
     resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
     if not callable(resolver):
@@ -189,6 +247,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
     # Export its physical inventory directly; logical checkboxes only filter
     # operator intention and never become a second physical-part authority.
     try:
+        _assert_legacy_nfb_export_scope_safe(self, flags)
         canonical = _export_selected_resolved_parts(self, folder, flags)
     except Exception as ex:
         return [], [f"canonical resolved export: {ex}"]

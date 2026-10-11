@@ -140,13 +140,7 @@ def test_inner_version_selector_manager_quantity_and_real_highlights():
         ]
         assert manager._receiving_manager_state["role"] == ROLE
         manager._receiving_manager_page_var.set("quantity")
-        tabs = next(
-            child for child in manager.winfo_children()[0].winfo_children()
-            if isinstance(child, ttk.Frame)
-            and any(isinstance(w, ttk.Radiobutton)
-                    and w.cget("text") == "數量配置"
-                    for w in child.winfo_children())
-        )
+        tabs = manager._receiving_manager_tabs
         next(w for w in tabs.winfo_children() if isinstance(w, ttk.Radiobutton)
              and w.cget("text") == "數量配置").invoke()
         root.update()
