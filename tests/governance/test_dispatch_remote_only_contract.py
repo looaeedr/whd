@@ -238,6 +238,21 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertNotIn("A work branch is still mandatory in Git phase, but it does not precede root development/testing", skill)
         self.assertIn("不得為治理修改探測使用者本機", skill)
 
+    def test_nonwhitelisted_readme_handoff_are_tracked_without_bypass(self):
+        from tools.change_lane_gate import classify_changes
+
+        paths = ["README.md", "handoff/00_AI_HANDOFF_README.md"]
+        self.assertEqual(classify_changes(paths), "PRODUCT_LOCALX_ONLY")
+        audit = (
+            ROOT / "docs/governance/WHD_RETIRED_SOP_ROUTING_AUDIT_20261011.md"
+        ).read_text("utf-8")
+        self.assertIn("47 份 canonical 候選", audit)
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(path, audit)
+        self.assertIn("共 6 份", audit)
+        self.assertIn("HISTORICAL_UNMANAGED_DO_NOT_MUTATE", audit)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [
