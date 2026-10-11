@@ -103,13 +103,11 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 - `LOCAL_MACHINE_UNAVAILABLE` 必須投影 `ERROR / LOCAL_MACHINE_UNREACHABLE`，不得假裝 remote clean 或與 conflict 混用。
 - 此 owner 不負責 planned handoff、scheduler takeover 或 power-off aggregation。
 
-### interactive-runtime-liveness
+### 退役 interactive-runtime-liveness（HISTORICAL／不可當 CURRENT 執行權威）
 
-- Executable CURRENT owner：`tools/interactive_runtime_liveness.py`。
-- Interactive markers 固定為 `WHD_INTERACTIVE_RUNTIME_LIVENESS_V1` / `WHD_INTERACTIVE_RUNTIME_END_V1`。
-- Heartbeat / END 目前仍維持 #679 parser 的相容欄位 `issue + slot_id + worker + invocation_identity + conversation_identity + claim_blob_sha + branch + head_sha + executor_source=chat`；END identity drift fail closed。
-- `conversation_identity=UNAVAILABLE` 不構成有效 interactive liveness evidence；generic `executor_source=chat` 也不能取代 exact provenance。
-- Scheduler 的 `WHD_SCHEDULER_RUNTIME_*` 仍由 `tools/scheduler_runtime_liveness.py` 獨立擁有；兩者不得互相冒充。
+- 舊 interactive heartbeat / END、工作槽、claim identity 與 scheduler liveness 的流程權威已退役，不能當作現行施工、交付、關機安全或監控寫入的必要交易。
+- 原版 schema、欄位與 owner 引用完整保留在 `docs/governance/WHD_20261010_retired_process_provenance.md`；此處只作歷史導覽，不重新宣告 executable owner。
+- 現行本機資料持久性、工作站關機安全與 HA 投影，仍分別由下文 `local-durability-machine`、`workstation-poweroff-safety` 與 `ha-poweroff-projection` 的 CURRENT owner 負責，不能因舊交易退役而誤刪。
 
 ### workstation-poweroff-safety
 
@@ -144,20 +142,11 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 5. 跑永久 authority uniqueness、mirror pointer、metadata 與 routing guards。
 6. 驗證只能判斷 authority 是否一致，不得反過來創造 domain truth。
 
-### whd-chatgpt-scheduled-resume / execution control plane
+### 退役 scheduled-resume / execution control plane（HISTORICAL／不可當 CURRENT 交易）
 
-- AI Library MIRROR/reference: `個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md`
-- record/store: `tools/execution_record.py` + `tools/execution_record_store.py`
-- scheduler/exit: `tools/execution_scheduler_view.py` + `tools/execution_invocation_exit.py`
-- work-slot: `tools/execution_work_slot_view.py`
-- explicit READY ingress: `tools/execution_dispatch_ingress.py`
-- mutation policy: `tools/execution_authority_policy.py`
-- runtime observability (NON_AUTHORITY): `coord/monitor-v2:.dispatch/monitor/runtime/*.json`，schema=`WHD_RUNTIME_OBSERVATION_V1`；只供 whd-monitor/HA 顯示 WAKE/PROGRESS/EXIT，不得授權 execution mutation。
-- default interactive slot gate: 未指定 slot 的 USER_EXPLICIT + EXECUTE_TICKET 正規化為 `worker.slot.0`；explicit `/工作1/2/3` 與 scheduler lane 不受覆蓋。
-
-ready-index只作 DERIVED_CACHE_ONLY。所有舊 workflow Skills只作 pointer/bridge。2026-09-28前的舊 ownership/prewrite/heartbeat/finalization語意為HISTORICAL；保留 transports已 fail-closed。
-
-Generation fencing：只有 current generation + canonical branch + expected fingerprint/head具有authority；舊generation寫入為ORPHAN_WRITE，可salvage工程成果但不可直接accept。
+- 舊 execution record / store、READY ingress、work-slot、lease / generation fencing 與 finalization transaction 已退役；不得將其重新要求為 `/派工`、`/接手`、`/推推`、純治理寫入或 Issue close/readback 的前置。
+- 原流程及外部 monitor observation 參照已保存於 `docs/governance/WHD_20261010_retired_process_provenance.md`；該檔明確為 HISTORICAL，不授權執行。此處不複製舊路徑或恢復不存在的 executable owner。
+- HA／Node-RED 的安全投影、監控畫面及歷史 WAKE／PROGRESS／EXIT 訊息不等於舊 control plane 的執行授權；有效安全權責仍由上方 CURRENT owner 定義。
 
 <!-- ISSUE693_COMBINED_ACCEPTANCE_WRITEBACK_V1 -->
 ## #693 Combined Acceptance durable readback

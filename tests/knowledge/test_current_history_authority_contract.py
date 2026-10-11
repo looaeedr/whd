@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tools.knowledge_governance import parse_doc_metadata
+
 
 ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_MAP_REL = "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
@@ -27,15 +29,26 @@ ROLE_MARKERS = {
 
 
 def test_t7_documents_have_machine_readable_roles() -> None:
-    missing = [path for path, marker in ROLE_MARKERS.items() if marker not in read(path)[:1200]]
-    assert missing == []
+    # The current owner is WHD_DOC_META_V1 YAML; legacy HTML markers are optional.
+    # Keep the older expected-role list as an independent regression oracle.
+    for path, marker in ROLE_MARKERS.items():
+        metadata = parse_doc_metadata(read(path), path=path)
+        assert f"role={metadata.role} contract={metadata.contract}" in marker, path
+
 
 
 def test_current_entrypoints_point_to_current_authorities() -> None:
-    for rel in ("README.md", "AI_HANDOFF.md", "AGENTS.md", "handoff/00_AI_HANDOFF_README.md"):
+    # Navigation mirrors name domain owners; AGENTS.md itself owns the workflow
+    # contract and is not required to self-reference the entire authority map.
+    for rel in ("README.md", "AI_HANDOFF.md", "handoff/00_AI_HANDOFF_README.md"):
         text = read(rel)[:5000]
         assert AUTHORITY_MAP_REL in text, rel
         assert "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md" in text, rel
+
+    entry = read("AGENTS.md")[:5000]
+    assert "cleanup/2d-3d-sync" in entry
+    assert "NON_PRODUCT_GOVERNANCE_DIRECT_X" in entry
+    assert "main" in entry
 
 
 def test_stale_roadmaps_and_dated_api_inventory_are_explicitly_historical() -> None:
@@ -102,3 +115,23 @@ def test_historical_evidence_is_preserved_instead_of_deleted() -> None:
     assert "下一個真正階段：第二箱型" in read("handoff/05_NEXT_STEPS.md")
     assert "第一階段：先新增一個穩定 API" in read("目前主要任務.md")
     assert "generate_part()" in read("docs/superpowers/CURRENT_API_INVENTORY_20260818.md")
+
+def test_retired_execution_references_are_not_current_map_owners() -> None:
+    authority = read(AUTHORITY_MAP_REL)
+    historical = read("docs/governance/WHD_20261010_retired_process_provenance.md")
+    for former_owner in (
+        "tools/interactive_runtime_liveness.py",
+        "tools/scheduler_runtime_liveness.py",
+        "tools/execution_record.py",
+        "tools/execution_work_slot_view.py",
+    ):
+        assert former_owner not in authority
+        assert former_owner in historical
+
+    for active_owner in (
+        "tools/local_durability_gate.py",
+        "tools/workstation_poweroff_gate.py",
+        "tools/whd_poweroff_ha_bridge.py",
+    ):
+        assert active_owner in authority
+    assert "退役 scheduled-resume / execution control plane" in authority
