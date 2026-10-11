@@ -1012,6 +1012,9 @@ def open_receiving_multi_settings(self, namespace):
     if not self.receiving_layout_applicable():
         return False
     from .receiving_multi_settings_window import open_multi_settings
+    # Verified source/panel evidence is per currently edited Set/Bay, ephemeral.
+    # Nothing here is saved to the project or allowed to bypass #1500.
+    pending_verified_nfb = {}
 
     def select_bay(set_index, bay_index):
         # Reuse canonical selection; no new data owner or manufacturing draw.
@@ -1988,21 +1991,67 @@ def open_receiving_multi_settings(self, namespace):
         }
 
     def nfb_transaction_ports():
-        """UI exposes actual Receiving transaction authority, never a fake READY."""
+        """Single Receiving authority, with real source-verified transient stage."""
+        from ae_engine.receiving_nfb_ui1b_bridge import (
+            NfbVerifiedDraftSubmission, assert_live_verified_nfb,
+            submit_live_verified_nfb,
+        )
+
+        def stage_verified(bundle):
+            if not isinstance(bundle, NfbVerifiedDraftSubmission):
+                raise TypeError("NFB 必須提供真實來源與內門物理位置驗證")
+            adapter=candidate_adapter()
+            assert_live_verified_nfb(
+                adapter,bundle,current_snapshot=_current_mode_snapshot(self,namespace),
+            )
+            pending_verified_nfb[(bundle.set_index,bundle.bay_index)]=bundle
+            return True
+
+        def eligible_bundle(set_index,bay_index):
+            bundle=pending_verified_nfb.get((set_index,bay_index))
+            if bundle is None:
+                return None,"尚未取得當前連的原始 DXF、實體世界 X 與內門板驗證"
+            try:
+                assert_live_verified_nfb(
+                    candidate_adapter(),bundle,
+                    current_snapshot=_current_mode_snapshot(self,namespace),
+                )
+            except (ValueError,TypeError,KeyError,IndexError,OSError) as exc:
+                pending_verified_nfb.pop((set_index,bay_index),None)
+                return None,"已配置 NFB 驗證過期，必須重新檢查："+str(exc)
+            return bundle,""
+
         def state(set_index, bay_index):
             adapter = candidate_adapter()
             row = adapter.layout["sets"][set_index]["bays"][bay_index]
             submitted = row.get("nfb_config_submitted") is True
+            bundle,reason=eligible_bundle(set_index,bay_index)
             return {
                 "submitted": submitted,
-                # No #1498 source+physical X/Y evidence is provided by the
-                # candidate selector (only filename/layers). Fail closed.
-                "can_submit": False,
-                "can_copy": False,
+                "can_submit": bundle is not None and bundle.can_submit,
+                "can_copy": False,  # separate target-proof/source-Bay required
                 "can_restore": submitted,
                 "can_undo": adapter.nfb_can_undo,
-                "reason": "請先在 NFB 孔位配置確認實體 X/Y 與來源；僅候選版本不能直接提交製造",
+                "reason": reason or "當前 NFB 已核對來源／世界 X／實體內門，可確認套用",
             }
+
+        def submit(set_index,bay_indices,confirm):
+            targets=tuple(bay_indices)
+            if len(targets)!=1:
+                raise ValueError("NFB MFG-1 本次僅驗證單一實體連，跨連須逐連確認")
+            bi=targets[0]
+            bundle,reason=eligible_bundle(set_index,bi)
+            if bundle is None:
+                raise ValueError(reason)
+            result=submit_live_verified_nfb(
+                candidate_adapter(),bundle,
+                current_snapshot=_current_mode_snapshot(self,namespace),
+                confirm=confirm,
+            )
+            if result.changed:
+                pending_verified_nfb.pop((set_index,bi),None)
+                flush()
+            return result.changed
 
         def flush():
             adapter = candidate_adapter()
@@ -2025,7 +2074,8 @@ def open_receiving_multi_settings(self, namespace):
             flush()
             return receipt
 
-        return {"state": state, "restore": restore, "undo": undo}
+        return {"state": state, "stage_verified": stage_verified,
+                "submit": submit, "restore": restore, "undo": undo}
 
     return open_multi_settings(
         self.app.root,

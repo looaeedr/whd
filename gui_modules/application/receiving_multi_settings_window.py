@@ -674,12 +674,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 # Candidate Apply above only chooses filename/layers. The
                 # separate MFG-1 Submit/Copy buttons MUST remain disabled
                 # until actual source+X/Y readiness can be supplied.
+                def nfb_submit():
+                    try:
+                        if not transactions["state"](set_index,bay_index)["can_submit"]:
+                            raise ValueError("當前 NFB 實體來源或世界 X 尚未驗證")
+                        if transactions["submit"](
+                            set_index, targets(), confirm_nfb_transaction,
+                        ):
+                            refresh_after_transaction()
+                    except (ValueError,IndexError,RuntimeError,OSError) as exc:
+                        warn(exc)
+
                 ttk.Button(
                     nfb_row, text="確認套用（NFB）",
                     state="normal" if state["can_submit"] else "disabled",
-                    command=lambda: warn(ValueError(
-                        "尚未取得原始 DXF、實體定位與製造守衛證據，不能提交"
-                    )),
+                    command=nfb_submit,
                 ).pack(side="left", padx=(0, 4))
                 ttk.Button(
                     nfb_row, text="複製至其他連",
