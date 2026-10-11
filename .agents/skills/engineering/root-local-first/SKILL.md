@@ -15,10 +15,12 @@ Registry 選路僅在明確 `/接手` 或直接查改本 Skill 時提示此路�
 
 ## DC 呼叫前的強制判斷
 
-本 Skill 遵循 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`：只有使用者在當次明確 `/接手`、`/派工` 最後的 `LOCALX_INTEGRATION` exact CI SUCCESS、當次 `/推推` 的既定本機優先產品發布／X 回同步，或使用者明確授權本次 DC 用途才能使用。`/推推` 不需第二次 DC 授權，但不得擴張為本機施工；當次明確 GitHub-only 時禁止 DC。**預設 `DC_ACCESS_DENIED_BY_DEFAULT`**，連 `list_devices`／`ping` 都不得探測。其餘需求先說明必要原因、裝置／路徑、預計操作與影響，回報 `DC_AUTHORIZATION_REQUIRED`，取得當次明確核准前完全禁止 DC 或其他本機繞道。
+本 Skill 遵循 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`：只有使用者在當次明確 `/接手`、`/派工` 最後的 `LOCALX_INTEGRATION` exact CI SUCCESS、一般對話中明確授權的 BUG 修復在 exact CI 成功後同範圍 `LOCALX_INTEGRATION`、當次 `/推推` 的既定本機優先產品發布／X 回同步，或使用者明確授權本次 DC 用途才能使用。一般對話的 BUG 討論不等於修復指令，具體許可依 `AGENTS.md::CONVERSATIONAL_BUGFIX_LOCALX_CONTINUITY_V1` 和 `tools/localx_publish_gate.py::require_conversational_bugfix_localx_integration` 判斷；不得提前使用 DC 在本機施工。`/推推` 不需第二次 DC 授權，但不得擴張為本機施工；當次明確 GitHub-only 時禁止 DC。**預設 `DC_ACCESS_DENIED_BY_DEFAULT`**，連 `list_devices`／`ping` 都不得探測。其餘需求先說明必要原因、裝置／路徑、預計操作與影響，回報 `DC_AUTHORIZATION_REQUIRED`，取得當次明確核准前完全禁止 DC 或其他本機繞道。
 
 公開交付按 `AGENTS.md` 的 `ISSUE_SCOPE_AUTHORIZATION_REUSE`：同一已核准 Issue、工作分支、`localX` 及施工範圍內的修正 commit 不因 SHA 改變重問；新 SHA 的 diff／CI 仍須核實，不可繞過平台安全審查或擴權至正式 X。
 
 本 Skill 不得新增啟動授權檢查、claim、lease、工作槽、紀錄或協調交易；程式測試和 Git diff 才是修改成果證據.
 
 產品工作先整合 localX；origin/localX 只作備份，正式 X 需使用者當次 /推推。純非產品文檔、治理、技能及治理專用測試，優先由 GitHub／雲端從最新 X 開獨立 governance/docs/skills 分支並直接 PR merge X；需通過 tools/change_lane_gate.py 白名單，不得夾帶產品檔案。**此 root-local-first Skill 不得當成治理任務存取 DC 的授權**；未經使用者本次明確允許，不得存取 CoreELEC／whd-dev。
+
+合併後測試採 `AGENTS.md::MERGE_TEST_REUSE_HARD_GATE`：使用 `tools/change_test_profile.py --merge-test-reuse` read-only 比對 exact tested 與整合 Git tree；完全一致且必要測試有有效 GREEN 收據，直接沿用測試，不重跑 GUI；有差異只針對受影響範圍補測，無法定界才全面回歸。
