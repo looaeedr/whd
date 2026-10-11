@@ -1,7 +1,7 @@
 ---
 whd_doc_role: CURRENT
 whd_contract: receiving-large-side-weld-ear-670x210-670x140
-whd_canonical: ae_engine/receiving_weld_ear_policy.py
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
