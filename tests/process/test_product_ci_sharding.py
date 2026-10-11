@@ -101,3 +101,16 @@ def test_closed_ci_history_current_role_has_scope_disclaimer(historical_doc):
         assert "文件時效界線" in header, historical_doc
         assert "不代表" in header or "不宣稱" in header, historical_doc
 
+
+
+def test_retired_execution_ledger_cannot_require_phase6_claim_machine():
+    text = (Path(__file__).resolve().parents[2]
+            / "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+            ).read_text(encoding="utf-8-sig")
+    assert "whd_doc_role: REFERENCE" in text[:300]
+    assert "**CURRENT 永久防線**：parent/chain continuation" not in text
+    assert "**當時的 Master-chain 防線（HISTORICAL／已退役）**" in text
+    assert "**當時規格書 Preflight 規則（HISTORICAL／SUPERSEDED）**" in text
+    assert "**當時的 stale claim 防線（HISTORICAL／已退役）**" in text
+    assert "**當時的 scheduler lease 規則（HISTORICAL／已退役）**" in text
+    assert "**當時普通工單（HISTORICAL／SUPERSEDED）**" in text
