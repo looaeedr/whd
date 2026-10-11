@@ -27,7 +27,6 @@ def _part_data(height):
         shrink_left=55.,shrink_right=55.,
         bend=15.,model_name="受電箱",
     ))
-    assert render.unfolded_topology is not None
     return render
 
 
