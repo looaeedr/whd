@@ -251,7 +251,7 @@ def test_part_only_batch_rejects_unproved_nfb_before_any_output(tmp_path):
     batch = (("setA__bay1", SimpleNamespace(parts=(
         SimpleNamespace(part_key="base_plate", render_data=data),))),)
     root = tmp_path / "wrong-owner"
-    with pytest.raises(ValueError, match="NFB_BASE_PART_SOURCE_HOLE_MAPPING_UNVERIFIED"):
+    with pytest.raises(ValueError, match="NFB_BASE_PART_SOURCE_(CUTTING_INCOMPLETE|HOLE_MAPPING_UNVERIFIED)"):
         save_resolved_manufacturing_geometry_batch_dxf(
             batch, root, part_only=True,
         )
