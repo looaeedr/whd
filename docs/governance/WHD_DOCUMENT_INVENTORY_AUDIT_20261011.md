@@ -142,6 +142,24 @@ whd_schema: WHD_DOC_META_V1
 - 這次對 CURRENT governance policy 做**適用範圍文字澄清**：`X ← localX` 正式產品發布仍嚴格要求當次 `/推推`；`work branch → localX` 則依 `AGENTS.md`／既有工單授權完成 exact CI 與合法的本機優先整合，不需每張工作 PR 另下 `/推推`。**不修改 trusted gate 程式、不放寬任何 X 發布驗收**。
 - 在既有會由 Knowledge Governance Bootstrap 呼叫的 `tests/process/test_change_lane_gate.py` 補文字／實際 `evaluate_pr` 雙重回歸，防止這兩種 PR 角色再次混為一談。本節是本次候選的施工證據，正式上線與否仍以新 PR CI、merge／readback 為準。
 
+## 第八輪：Markdown 連結與 repo 引用回讀（2026-10-11）
+
+> 此節只陳述本次已逐檔取得的 GitHub 正式 X 原文與相應 live repo path 比對，**不是所有文件／所有未加 backtick 文字的全域無錯保證**。歷史範例、相對於 AI Library root 的簡寫及未在 Git 的使用者本機路徑，不能單憑 repo-root path regex 就認作壞連結。
+
+### 相對 Markdown links
+
+- 已核對 `docs/governance/` **8** 份及 `個人AI檔案庫/踩坑庫/` **15** 份 Markdown 之顯式 `[label](target)` 非 URL 相對目標：**共 23 份，未出現此型態的相對連結**，故本次未發現可修的失效 Markdown 相對超連結。未聲稱所有 backtick 檔案名稱、純文字提及或外部 URL 都有效。
+- 又核對 `docs/` 非 `superpowers`、非 `governance` 的 **7** 份計畫／產品規格／readback，亦未發現此型態相對 Markdown 連結。
+- 根目錄 `README.md`、`AI_HANDOFF.md`、`CONTEXT.md`、`DELIVERY_README.md` 與 `handoff/` 四份代表性說明已查內文 repo-root 反引號引用；`handoff/00_AI_HANDOFF_README.md` 的 `../AGENTS.md` 等為**真正存在的相對路徑**，不能誤報成找不到 root `../AGENTS.md`。
+- `個人AI檔案庫/第一層_核心檔案/05_反饋學習與自我演化機制.md` 中 `第一層_核心檔案/...`、`第二層_專案與SOP/...` 使用的是**AI Library 根目錄相對慣例**，其檔案實際存在；不應擅自替換成不存在的 Git root 路徑。第一層 `03` 的舊 `Z:/改DXF/AGENTS.md` 屬歷史本機路徑，不能當成 Git 缺檔要求下載或啟動 DC。
+
+### 真正過時的參考來源：已在 localX 有修正，不可重複施工
+
+- 正式 X `個人AI檔案庫/第二層_專案與SOP/05_CAD批次拆圖與特徵萃取規範.md` Blob `7cc78f8cba17c8024ce2b570427f1d86beafe616` 仍稱 `Z:\\Ollama-整合whd\\` 為最新一體化專案，並稱透過 repo 已不存在的 `modules/ae_adapter.py` 對接製造。
+- GitHub `localX` **已有原位修正**：Blob `0224e682f0e0f57daec8becc28175b37d26b8b55` 將它正名為 `REFERENCE／歷史拆圖方案`，不假稱舊 Windows 路徑與 Adapter 是現行入口；同份 Blob 亦已存在於 #1629 的工作分支。這是**已在 localX 的產品文件修正，不代表正式 X 已發布**。正式製造 public boundary 的實際原始碼為 `ae_engine/manufacturing_api.py`；`gui_modules/application/manufacturing_adapter.py` 是既有 UI state → AE contract 的 adapter，**不可據此推論原始 CAD 批次萃取入口已經實作或驗收完成**。
+- 同時核對 #1629 的其他三個代表性檔案 Blob：`06_踩坑記錄與防錯經驗庫.md` 在 GitHub `localX` 與 X 相同、尚不等於 #1629 版本；`07_WHD技能發現與掃描深模組規則.md` 的 localX 與 #1629 各有不同 Blob；`docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md` 在 localX 與 X 相同、尚未含 #1629 註記。**不能把 #1629 全部分支當作已整合，也不能用較舊分支覆寫 localX 的較新內容。**
+- #1629 的實際 GitHub PR 仍 OPEN；後續須以新 `localX` HEAD fresh compare、actual product diff、exact CI 與已授權的安全整合處理，正式 X 仍僅由當次 `/推推` 發布。這不是提出任何新的製造規格、CLI 強制門檻或 DC／RC 授權。
+
 ## 清查判定
 
 - **已執行**：全樹文件清單、權威索引角色統計、重要 CURRENT／REFERENCE／MIRROR 的優先核對、59 份 Skill metadata 與退役流程關鍵字查核、確認一處治理文字錯誤並提出修正。
