@@ -157,25 +157,23 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("APPROVED_REQUIREMENT_FAST_PATH", nav)
         self.assertIn("舊 Phase6 Preflight receipt 已退役", handoff)
 
-    def test_current_fold_owner_and_reference_sops_do_not_revive_old_gates(self):
-        sop_root = ROOT / "個人AI檔案庫/第二層_專案與SOP"
-        fold = (sop_root / "12_WHD_FoldDesignerBridgeOwnership規則.md").read_text("utf-8")
-        corner = (sop_root / "08_WHD截角資料與2D入口收斂規則.md").read_text("utf-8")
-        spec = (sop_root / "12_WHD規格書Skill前置與Grounding規則.md").read_text("utf-8")
-        pitfalls = (sop_root / "06_踩坑記錄與防錯經驗庫.md").read_text("utf-8")
+    def test_non_whitelisted_sop_remediation_stays_out_of_governance_lane(self):
+        from tools.change_lane_gate import classify_changes
 
-        self.assertIn("/派工", fold)
-        self.assertIn("/接手", fold)
-        self.assertIn("/推推", fold)
-        self.assertNotIn("保持 root-local-first、`GIT_WRITE_UNLOCKED` 後 Git-phase branch", fold)
-        self.assertIn("REFERENCE", corner)
-        self.assertIn("已退役", corner)
-        self.assertNotIn("先跑 Phase6 preflight 並讀完 REQUIRED SKILLS", corner)
-        self.assertIn("REFERENCE／非執行權威", spec)
-        self.assertIn("已退役 Preflight receipt", spec)
-        self.assertNotIn("第一個 user-visible 內容先公告", spec)
-        self.assertIn("HISTORICAL / SUPERSEDED（2026-10-11）", pitfalls)
-        self.assertNotIn("**CURRENT 防錯規則**：owner-authored marker", pitfalls)
+        paths = [
+            "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
+            "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md",
+            "個人AI檔案庫/第二層_專案與SOP/12_WHD規格書Skill前置與Grounding規則.md",
+            "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        ]
+        self.assertEqual(classify_changes(paths), "PRODUCT_LOCALX_ONLY")
+        report = (ROOT / "docs/governance/WHD_RETIRED_SOP_ROUTING_AUDIT_20261011.md").read_text("utf-8")
+        self.assertIn("PENDING_PRODUCT_LOCALX_ROUTE", report)
+        self.assertIn("PRODUCT_OR_MIXED_REQUIRES_LOCALX", report)
+        self.assertIn("不得加入治理 PR 直送 X", report)
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(path, report)
 
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
