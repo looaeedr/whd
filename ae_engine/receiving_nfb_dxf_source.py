@@ -224,6 +224,86 @@ def circle_candidate_pivot(
     return matches[0].center_xy
 
 
+@dataclass(frozen=True)
+class NfbUpperColor150Reference:
+    """User-confirmed common origin for UPPER middle-board and inner-door holes.
+
+    It does not certify NFB model identity or release a CUTTING operation.
+    """
+    source_id: str
+    source_sha256: str
+    source_entity_id: str
+    center_xy: tuple[float, float]
+    size_mm: tuple[float, float]
+    source_color_aci: int = 150
+    consumers: tuple[str, str] = ("MIDDLE_PLATE", "INNER_DOOR")
+    status: str = "USER_CONFIRMED_UPPER_REFERENCE_ONLY"
+
+
+def resolve_upper_color150_reference(
+    inventory: NfbSourceInventory, *, upper_source_entity_ids: Iterable[str],
+) -> NfbUpperColor150Reference:
+    """Use the explicitly selected upper Color-150 closed rectangle CENTER.
+
+    Upper/lower separation must be evidenced by caller-selected source IDs.
+    Never locate it by whole-DXF bbox, guessed Y cutoff or filename. Only
+    geometry from the selected UPPER set participates; the lower assembly is
+    ignored. Ambiguous, malformed or changed upper references fail closed.
+    """
+    selected = tuple(str(v) for v in upper_source_entity_ids)
+    if not selected or len(selected) != len(set(selected)):
+        raise ValueError("NFB upper-source identity missing or duplicated")
+    known_ids = {row.source_id for row in inventory.entities}
+    if not set(selected).issubset(known_ids):
+        raise ValueError("NFB upper-source entity not found in this DXF")
+    candidates = [row for row in inventory.entities
+                  if row.source_id in selected and row.effective_color_aci == 150]
+    if len(candidates) != 1:
+        raise ValueError("NFB upper Color 150 must be one explicit closed profile")
+    row = candidates[0]
+    pts = tuple(row.vertices_xy)
+    if (row.dxf_type not in ("LWPOLYLINE", "POLYLINE")
+            or not row.closed or len(pts) != 4 or len(set(pts)) != 4
+            or any(abs(float(b)) > 1e-9 for b in row.bulges)
+            or row.source_hash != inventory.source_sha256):
+        raise ValueError("NFB upper Color 150 must be a valid closed rectangle")
+    xs = sorted({float(pt[0]) for pt in pts})
+    ys = sorted({float(pt[1]) for pt in pts})
+    if (len(xs) != 2 or len(ys) != 2 or
+            len(set(pts)) != 4 or
+            set(pts) != {(x,y) for x in xs for y in ys} or
+            xs[1] <= xs[0] or ys[1] <= ys[0]):
+        raise ValueError("NFB upper Color 150 is not a rectangular outline")
+    return NfbUpperColor150Reference(
+        source_id=inventory.source_id,
+        source_sha256=inventory.source_sha256,
+        source_entity_id=row.source_id,
+        center_xy=((xs[0] + xs[1]) / 2.0, (ys[0] + ys[1]) / 2.0),
+        size_mm=(xs[1] - xs[0], ys[1] - ys[0]),
+    )
+
+
+def place_upper_nfb_point_from_color150(
+    source_point_xy: Iterable[float], *,
+    reference: NfbUpperColor150Reference,
+    target_center_xy: Iterable[float],
+    rotation_deg: int = 0,
+) -> tuple[float, float]:
+    """Both approved consumers use one upper-source center and 0/90/180/270.
+
+    This returns source-relative placement geometry only; no DXF cutting is
+    output and no lower-region shapes are imported through this helper.
+    """
+    rotated = rotate_point_around_source_pivot(
+        source_point_xy, pivot_xy=reference.center_xy, rotation_deg=rotation_deg,
+    )
+    target = _xy(tuple(target_center_xy))
+    return (
+        target[0] + rotated[0] - reference.center_xy[0],
+        target[1] + rotated[1] - reference.center_xy[1],
+    )
+
+
 def rotate_point_around_source_pivot(
     point_xy: Iterable[float], *, pivot_xy: Iterable[float], rotation_deg: int
 ) -> tuple[float, float]:
