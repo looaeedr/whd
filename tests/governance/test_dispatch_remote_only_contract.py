@@ -204,6 +204,55 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertTrue(callable(phase6_skill_preflight.required_skills_for))
         self.assertTrue(callable(phase6_skill_preflight.required_references_for))
 
+    def test_skill_discovery_and_questioning_respect_current_x_lanes(self):
+        paths = {
+            "questioning": ".agents/skills/engineering/拷問邊建立文件/SKILL.md",
+            "discovery": ".agents/skills/productivity/找技能/SKILL.md",
+            "mcp": ".agents/skills/productivity/MCP工具操作/SKILL.md",
+            "scanner": ".agents/skills/engineering/掃描深模組/SKILL.md",
+        }
+        docs = {name: (ROOT / path).read_text("utf-8")
+                for name, path in paths.items()}
+        for name in ("questioning", "discovery", "mcp"):
+            with self.subTest(skill=name):
+                self.assertIn("/派工", docs[name])
+                self.assertIn("/接手", docs[name])
+                self.assertIn("GitHub／雲端", docs[name])
+        self.assertNotIn("先遵守 `AGENTS.md` / root-local-first / Knowledge Preflight", docs["questioning"])
+        self.assertNotIn("Phase6 **Preflight**、root-local-first、Git-phase branch", docs["discovery"])
+        self.assertNotIn("若任務本身另有專案級 root-local-first", docs["mcp"])
+        self.assertIn("ref=cleanup/2d-3d-sync", docs["mcp"])
+        self.assertIn("APPROVED_REQUIREMENT_FAST_PATH", docs["scanner"])
+        self.assertNotIn("的 RED-first、AI Library、Issue、remote QA 流程", docs["scanner"])
+
+    def test_release_packaging_does_not_override_cloud_dispatch_execution(self):
+        skill = (
+            ROOT / ".agents/skills/engineering/phase6-release-packaging/SKILL.md"
+        ).read_text(encoding="utf-8")
+        for marker in ("/派工", "/接手", "LOCALX_INTEGRATION", "/推推",
+                       "GitHub／排程／雲端", "pristine", "exact HEAD CI"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, skill)
+        self.assertNotIn("WHD interactive/default changes enter release only after root-local qualification", skill)
+        self.assertNotIn("after unlock, create a fresh work branch", skill)
+        self.assertNotIn("A work branch is still mandatory in Git phase, but it does not precede root development/testing", skill)
+        self.assertIn("不得為治理修改探測使用者本機", skill)
+
+    def test_nonwhitelisted_readme_handoff_are_tracked_without_bypass(self):
+        from tools.change_lane_gate import classify_changes
+
+        paths = ["README.md", "handoff/00_AI_HANDOFF_README.md"]
+        self.assertEqual(classify_changes(paths), "PRODUCT_LOCALX_ONLY")
+        audit = (
+            ROOT / "docs/governance/WHD_RETIRED_SOP_ROUTING_AUDIT_20261011.md"
+        ).read_text("utf-8")
+        self.assertIn("47 份 canonical 候選", audit)
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertIn(path, audit)
+        self.assertIn("共 6 份", audit)
+        self.assertIn("HISTORICAL_UNMANAGED_DO_NOT_MUTATE", audit)
+
     def test_changes_are_governance_only(self):
         from tools.change_lane_gate import classify_changes
         paths = [

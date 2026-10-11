@@ -75,7 +75,7 @@ class QuantityVersionControls:
         return True
 
 
-def build_quantity_controls(parent, ports):
+def build_quantity_controls(parent, ports, *, embedded_endcap=False):
     frame = ttk.Frame(parent)
     buttons = ttk.Frame(frame)
     buttons.pack(fill=tk.X)
@@ -98,7 +98,13 @@ def build_quantity_controls(parent, ports):
     entry.bind("<FocusOut>", controls.commit_count)
     controls.count_entry = entry
     for role, label in (("head", "封頭孔"), ("tail", "封尾孔")):
-        ttk.Button(row, text=label, command=lambda role=role: controls.edit_holes(role)).pack(side=tk.LEFT)
+        if embedded_endcap:
+            ttk.Label(row, text=label).pack(side=tk.LEFT, padx=(5, 0))
+            ttk.Button(row, text="編輯",
+                       command=lambda role=role: controls.edit_holes(role)).pack(side=tk.LEFT)
+        else:
+            ttk.Button(row, text=label,
+                       command=lambda role=role: controls.edit_holes(role)).pack(side=tk.LEFT)
     ttk.Label(frame, textvariable=totals).pack(anchor="w")
     tree.bind("<<TreeviewSelect>>", controls.select)
     return controls
