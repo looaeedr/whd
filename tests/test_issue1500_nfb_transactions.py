@@ -34,10 +34,11 @@ def config(*,x=0,owner="nfb:0:slot1",state="CONFIRMED",offset=5,filename="400_14
         "datum_snapshot":{"width":800,"t":2},
         "operator_offset_mm":[0,offset],
         "rotation_deg":90,
+        "slot_index":0,
     }],"layer_count":1}
 
 
-def evidence(row,bi,*,status="ready",inventory=None):
+def evidence(row,bi,*,status="ready",inventory=None,x=0,slot=0):
     bay=row["sets"][0]["bays"][bi]
     scope=NfbPhysicalScope(
         set_id=row["sets"][0]["stable_id"],bay_id=bay["stable_id"],
@@ -57,6 +58,7 @@ def evidence(row,bi,*,status="ready",inventory=None):
         }),
         part_id=PART,indexed_model_key=("士林","400_140X257_107.dxf"),
         source_sha256=SHA,physical_hole_ids=(f"nfb:{bi}:slot1",),
+        verified_hole_locations=((f"nfb:{bi}:slot1",float(x),1,slot,90),),
     )
     return scope,src,door
 
@@ -103,6 +105,8 @@ def test_invalid_source_x_scope_or_one_bay_collision_atomic():
     for cfg,src,scope in [
         ({0:config(state="RECONFIRM_REQUIRED")}, {0:evidence(row,0)},(0,)),
         ({0:config(x=None)}, {0:evidence(row,0)},(0,)),
+        ({0:config(x=25)}, {0:evidence(row,0,x=0)},(0,)),
+        ({0:config()}, {0:evidence(row,0,slot=1)},(0,)),
         ({0:config(filename="wrong.dxf")}, {0:evidence(row,0)},(0,)),
         ({0:config(owner="nfb:wrong:slot1")}, {0:evidence(row,0)},(0,)),
         ({0:config()}, {0:evidence(row,1)},(0,)),
@@ -145,13 +149,13 @@ def test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation():
     cancelled=copy_submitted_nfb_bay(
         first,set_index=0,source_bay_index=0,target_bay_index=1,
         version_id="v1",target_config=config(owner="nfb:1:slot1",x=100),
-        evidence=evidence(first,1),confirm=lambda p:False,
+        evidence=evidence(first,1,x=100),confirm=lambda p:False,
     )
     assert not cancelled.changed and cancelled.layout==first
     result=copy_submitted_nfb_bay(
         first,set_index=0,source_bay_index=0,target_bay_index=1,
         version_id="v1",target_config=config(owner="nfb:1:slot1",x=100),
-        evidence=evidence(first,1),confirm=lambda p:True,
+        evidence=evidence(first,1,x=100),confirm=lambda p:True,
     )
     assert result.preview.action=="COPY_SUBMIT"
     target=result.layout["sets"][0]["bays"][1]["nfb_config"]
@@ -161,7 +165,7 @@ def test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation():
     updated=copy_submitted_nfb_bay(
         result.layout,set_index=0,source_bay_index=0,target_bay_index=1,
         version_id="v1",target_config=config(owner="nfb:1:slot1",x=200),
-        evidence=evidence(result.layout,1),confirm=lambda p:True,
+        evidence=evidence(result.layout,1,x=200),confirm=lambda p:True,
     )
     assert updated.preview.action=="COPY_OVERWRITE"
     assert undo_nfb_transaction(updated.layout,updated.receipt)==result.layout
