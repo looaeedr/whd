@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # #305 T1 — Deterministic Shard Manifest Engine Verification
 
+> **2026-10-11 文件時效界線（T1 manifest 驗收證據）**：工單 [#305](https://github.com/looaeedr/whd/issues/305) 已於 2026-09-16 結案。此份仍標 `CURRENT` 的驗收文件只固定當次核准的歷史量測／測試身分、run 與 commit 證據；**不宣稱它記錄的 collection 數、測試綠燈或 workflow 配置等於今天的產品狀態**。實際運作與新交付以正式 X 的 `AGENTS.md`、現行程式／workflow、當次 exact-HEAD CI 為準。保留原文與數值，禁止重算或改寫既有驗收證據。
+
 Date: 2026-09-16 (Asia/Taipei)
 Parent: #303
 Task: #305 / T1
