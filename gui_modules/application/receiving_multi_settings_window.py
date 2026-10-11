@@ -452,7 +452,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         active_ports["ports"] = ports
         from ae_engine.receiving_shared_settings import setting_value
         # Highlighter owns the multi-selection. No second checkbox selector.
-        targets = lambda: tuple(sorted(set(applied["selected_bays"]) | {bay_index}))
+        # The canvas highlight, including an empty selection, is the ONLY apply target.
+        targets = lambda: tuple(applied["selected_bays"])
         def perform(action):
             try:
                 action()
@@ -545,6 +546,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 try:
                     if applied["mode"] != "set_bay" or applied["set_index"] is None:
                         raise ValueError("請先套用一套並在簡易圖高亮要指定的連")
+                    if not applied["selected_bays"]:
+                        return  # Zero highlighted Bays is a valid no-op.
                     source()["apply"](
                         role, candidate_selected[role],
                         applied["set_index"], tuple(applied["selected_bays"]),
@@ -1151,22 +1154,28 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if x0 <= event.x <= x1 and y0 <= event.y <= y1:
                 try:
                     selected_bays = set(applied["selected_bays"])
-                    if index in selected_bays and len(selected_bays) > 1:
+                    if index in selected_bays:
                         selected_bays.remove(index)
-                        active = min(selected_bays)
+                        active = min(selected_bays) if selected_bays else None
                     else:
                         selected_bays.add(index)
                         active = index
-                    if select_bay is not None:
+                    if active is not None and select_bay is not None:
                         select_bay(applied["set_index"], active)
                     applied["selected"] = active
                     applied["selected_bays"] = tuple(sorted(selected_bays))
-                    if selected_setting["kind"] is not None:
+                    if selected_setting["kind"] is not None and active is not None:
                         if on_setting_selected is not None:
                             on_setting_selected(applied["set_index"], active,
                                                 selected_setting["kind"])
                         selected_setting.update(
                             set_index=applied["set_index"], bay_index=active
+                        )
+                    # Keep the last browsed Bay as the read-only context if
+                    # everything is unhighlighted; never turn it into a target.
+                    if active is None and selected_setting["kind"] is not None:
+                        selected_setting.update(
+                            set_index=applied["set_index"], bay_index=index
                         )
                     show_setting_controls()
                     render()
