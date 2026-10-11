@@ -191,6 +191,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_changed = {"value": False}
 
     def close():
+        close_manager()
         if win.grab_current() is win:
             win.grab_release()
         parent._receiving_multi_settings_window = None
@@ -228,11 +229,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     win.after_idle(maximize_and_lock)
     win.columnconfigure(1, weight=1)
-    win.rowconfigure(1, weight=1)
+    win.rowconfigure(0, weight=1)
+
+    # Two permanent columns. Left owns Set/Bay actions; right owns the
+    # function selector above a separate 2D diagram. Neither section moves
+    # when the category changes or when the version manager is opened.
+    left_host = ttk.Frame(win)
+    left_host.grid(row=0, column=0, sticky="nsw", padx=16, pady=16)
+    right_host = ttk.Frame(win)
+    right_host.grid(row=0, column=1, sticky="nsew", padx=24, pady=16)
+    right_host.columnconfigure(0, weight=1)
+    right_host.rowconfigure(1, weight=1)
 
     mode_var = tk.StringVar(master=win, value="set_bay")
-    top_left = ttk.Frame(win)
-    top_left.grid(row=0, column=0, sticky="nw", padx=16, pady=(16, 6))
+    top_left = ttk.Frame(left_host)
+    top_left.pack(anchor="nw")
     brand_row = ttk.Frame(top_left)
     brand_row.pack(anchor="w", pady=(0, 8))
     ttk.Label(brand_row, text="NFB").pack(side="left", padx=(0, 8))
@@ -268,52 +279,45 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     applied = {"set_index": None, "count": 1, "selected": None,
                "selected_bays": (), "mode": "set_bay"}
 
-    right_host = ttk.Frame(win)
-    right_host.grid(row=1, column=1, sticky="nsew", padx=24, pady=12)
-    right_host.columnconfigure(0, weight=1)
-    right_host.rowconfigure(1, weight=1)
-    settings_host = ttk.Frame(right_host)
-    settings_host.grid(row=0, column=0, sticky="new")
-    canvas = tk.Canvas(right_host, width=525, height=310, background="#1a2734",
-                       highlightthickness=0)
-    canvas.grid(row=1, column=0, sticky="se")
-
-    rows_host = ttk.Frame(win)
-    # The Set/Bay row belongs directly BELOW the two upper-left mode
-    # choices; only the 2D canvas is anchored to the lower-right corner.
-    rows_host.grid(row=1, column=0, sticky="nw",
-                   padx=16, pady=(0, 16))
-    # The retained per-bay setting categories live directly below the
-    # Set/Bay controls. Selection has no implicit edit or popup side effect.
-    actions_host = ttk.Frame(rows_host)
-    actions_host.pack(anchor="w")
+    # Right TOP: original Listbox and its selected category controls.
+    # Right BOTTOM: the independent diagram region, never commandeered
+    # by quantity version management.
+    function_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
+    function_host.grid(row=0, column=0, sticky="new")
+    function_host.columnconfigure(1, weight=1)
     setting_list = tk.Listbox(
-        rows_host, height=3, width=16, selectmode=tk.BROWSE,
+        function_host, height=3, width=16, selectmode=tk.BROWSE,
         exportselection=False, activestyle="dotbox",
     )
     for label in ("封頭尾", "內門"):
         setting_list.insert(tk.END, label)
-    setting_list.pack(anchor="w", pady=(6, 0))
+    setting_list.grid(row=0, column=0, sticky="nw", padx=(0, 12))
+    settings_host = ttk.Frame(function_host)
+    settings_host.grid(row=0, column=1, sticky="new")
+
+    diagram_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
+    diagram_host.grid(row=1, column=0, sticky="nsew", pady=(12, 0))
+    diagram_host.columnconfigure(0, weight=1)
+    diagram_host.rowconfigure(0, weight=1)
+    canvas = tk.Canvas(diagram_host, width=525, height=310, background="#1a2734",
+                       highlightthickness=0)
+    canvas.grid(row=0, column=0, sticky="nsew")
+
+    rows_host = ttk.Frame(left_host)
+    rows_host.pack(anchor="nw", pady=(8, 0))
+    actions_host = ttk.Frame(rows_host)
+    actions_host.pack(anchor="w")
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
     candidate_selected = {"head": None, "tail": None}
     candidate_combos = {}
-    manager_state = {"open": False, "role": "head", "page": "candidates"}
+    manager_state = {"role": "head", "page": "candidates"}
+    manager_window = {"win": None}
     manager_widgets = {"frame": None, "label": None, "buttons": (),
-                       "buttons_frame": None, "quantity_frame": None}
-    if get_candidate_ports is not None:
-        from .receiving_quantity_allocation_ui import ReceivingQuantityAllocationUI
-        quantity_ui = ReceivingQuantityAllocationUI(
-            win, canvas,
-            get_counts=lambda: tuple(get_switch().connection_counts()),
-            get_ports=get_candidate_ports,
-            get_marks=get_original_door_marks,
-            on_render=lambda: render(),
-            warn=lambda exc: warn(exc),
-        )
-    else:
-        quantity_ui = None
+                       "buttons_frame": None, "quantity_frame": None,
+                       "canvas": None}
+    quantity_ui = None
 
     def show_setting_controls():
         for widget in settings_host.winfo_children():
@@ -425,104 +429,183 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             actions(settings_host, "head_features", role="head")
             actions(settings_host, "tail_features", role="tail")
             if get_candidate_ports is not None:
-                manage_toggle = ttk.Button(
-                    settings_host, text="版本管理",
-                    command=lambda: toggle_manager()
-                )
-                manage_toggle.pack(anchor="e", pady=(5, 0))
-                manage = ttk.Frame(settings_host)
-                title = ttk.Label(manage, text="")
-                title.pack(anchor="w")
-                choices = ttk.Frame(manage)
-                choices.pack(anchor="w", pady=(4, 2))
-                role_var = tk.StringVar(master=win, value=manager_state["role"])
-                def choose_manage_role():
-                    manager_state["role"] = role_var.get()
-                    refresh_manager_controls()
-                    render()
-                for label, value in (("封頭孔", "head"), ("封尾孔", "tail")):
-                    ttk.Radiobutton(
-                        choices, text=label, value=value,
-                        variable=role_var, command=choose_manage_role,
-                    ).pack(side="left", padx=(0, 10))
-                pages = ttk.Frame(manage)
-                pages.pack(anchor="w", pady=(4, 2))
-                page_var = tk.StringVar(master=win, value=manager_state["page"])
-                def change_manager_page():
-                    manager_state["page"] = page_var.get()
-                    refresh_manager_controls()
-                    render()
-                for label, value in (("候選版本", "candidates"), ("數量配置", "quantity")):
-                    ttk.Radiobutton(
-                        pages, text=label, value=value,
-                        variable=page_var, command=change_manager_page,
-                    ).pack(side="left", padx=(0, 10))
-                buttons = ttk.Frame(manage)
-                buttons.pack(anchor="w", pady=3)
-                actions_map = []
-                for label, destination in (("複製為新版本", "same"),
-                                           ("複製到另一側", "other"),
-                                           ("刪除目前版本", "delete")):
-                    control = ttk.Button(
-                        buttons, text=label,
-                        command=lambda action=destination: manage_action(action)
-                    )
-                    control.pack(side="left", padx=(0, 4))
-                    actions_map.append(control)
-                quantity_frame = ttk.Frame(manage)
-                manager_widgets.update(
-                    frame=manage, label=title, buttons=tuple(actions_map),
-                    buttons_frame=buttons, quantity_frame=quantity_frame,
-                )
-                refresh_manager_controls()
-                if manager_state["open"]:
-                    manage.pack(anchor="e")
-            else:
-                manager_widgets.update(frame=None, label=None, buttons=(),
-                                       buttons_frame=None, quantity_frame=None)
+                ttk.Button(
+                    settings_host, text="版本管理", command=open_manager,
+                ).pack(anchor="e", pady=(5, 0))
         else:
             actions(settings_host, "inner_door_layers")
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
 
+    def close_manager():
+        nonlocal quantity_ui
+        manager = manager_window["win"]
+        if manager is None or not manager.winfo_exists():
+            manager_window["win"] = None
+            quantity_ui = None
+            return
+        if manager.grab_current() is manager:
+            manager.grab_release()
+        manager_window["win"] = None
+        quantity_ui = None
+        manager.destroy()
+        manager_widgets.update(frame=None, label=None, buttons=(),
+                               buttons_frame=None, quantity_frame=None, canvas=None)
+        if win.winfo_exists() and win.grab_current() is None:
+            win.grab_set()
+            win.focus_set()
+
     def refresh_manager_controls():
+        manager = manager_window["win"]
         title = manager_widgets["label"]
-        if title is None or not title.winfo_exists():
+        if (manager is None or not manager.winfo_exists() or
+                title is None or not title.winfo_exists()):
             return
         role = manager_state["role"]
         chosen = candidate_selected[role]
         title.configure(text=("封頭孔" if role == "head" else "封尾孔")
-                        + "｜" + ("即時" if chosen is None else
-                                 version_label(chosen)))
-        for button in manager_widgets["buttons"]:
+                        + "｜" + ("即時" if chosen is None else version_label(chosen)))
+        buttons = manager_widgets["buttons"]
+        for button in buttons:
             button.configure(state="normal" if chosen is not None else "disabled")
-        if manager_widgets["buttons"]:
-            manager_widgets["buttons"][1].configure(
-                text="複製到封尾" if role == "head" else "複製到封頭"
-            )
+        if buttons:
+            buttons[1].configure(text="複製到封尾" if role == "head" else "複製到封頭")
         candidate_frame = manager_widgets["buttons_frame"]
         quantity_frame = manager_widgets["quantity_frame"]
         if quantity_ui is not None and manager_state["page"] == "quantity":
             candidate_frame.pack_forget()
-            quantity_frame.pack(anchor="w", pady=3)
+            quantity_frame.pack(anchor="w", fill="x", pady=(8, 3))
             quantity_ui.show(quantity_frame, role)
         else:
             if quantity_frame is not None:
                 quantity_frame.pack_forget()
-            if candidate_frame is not None and not candidate_frame.winfo_manager():
-                candidate_frame.pack(anchor="w", pady=3)
+            if candidate_frame is not None:
+                candidate_frame.pack(anchor="w", pady=(8, 3))
+        render_manager_diagram()
 
-    def toggle_manager():
-        frame = manager_widgets["frame"]
-        if frame is None:
+    def render_manager_diagram():
+        manager = manager_window["win"]
+        if manager is None or not manager.winfo_exists():
             return
-        manager_state["open"] = not manager_state["open"]
-        if manager_state["open"]:
-            frame.pack(anchor="e")
-            refresh_manager_controls()
+        diagram = manager_widgets["canvas"]
+        if diagram is None:
+            return
+        if (quantity_ui is not None and manager_state["page"] == "quantity" and
+                quantity_ui.draft.step[manager_state["role"]] == 2):
+            if not diagram.master.winfo_manager():
+                diagram.master.pack(fill="both", expand=True, pady=(12, 0))
+            quantity_ui.paint()
         else:
-            frame.pack_forget()
-        render()
+            diagram.master.pack_forget()
+
+    def open_manager():
+        nonlocal quantity_ui
+        if get_candidate_ports is None:
+            return
+        old = manager_window["win"]
+        if old is not None and old.winfo_exists():
+            old.lift()
+            old.focus_set()
+            return old
+        manager = tk.Toplevel(win)
+        manager.title("版本管理")
+        manager.transient(win)
+        manager.geometry("960x720")
+        manager.minsize(570, 350)
+        manager_window["win"] = manager
+        manager.protocol("WM_DELETE_WINDOW", close_manager)
+
+        body = ttk.Frame(manager, padding=14)
+        body.pack(fill="both", expand=True)
+        top = ttk.Frame(body)
+        top.pack(anchor="nw", fill="x")
+
+        role_var = tk.StringVar(master=manager, value=manager_state["role"])
+        page_var = tk.StringVar(master=manager, value=manager_state["page"])
+        def choose_role():
+            manager_state["role"] = role_var.get()
+            refresh_manager_controls()
+        def choose_page():
+            manager_state["page"] = page_var.get()
+            refresh_manager_controls()
+        for label, value in (("封頭孔", "head"), ("封尾孔", "tail")):
+            ttk.Radiobutton(
+                top, text=label, value=value, variable=role_var,
+                command=choose_role,
+            ).pack(side="left", padx=(0, 14))
+        tabs = ttk.Frame(body)
+        tabs.pack(anchor="nw", pady=(10, 0))
+        for label, value in (("候選版本", "candidates"), ("數量配置", "quantity")):
+            ttk.Radiobutton(
+                tabs, text=label, value=value, variable=page_var,
+                command=choose_page,
+            ).pack(side="left", padx=(0, 14))
+        title = ttk.Label(body, text="")
+        title.pack(anchor="nw", pady=(10, 0))
+        buttons = ttk.Frame(body)
+        actions_map = []
+        for label, action in (("複製為新版本", "same"),
+                              ("複製到另一側", "other"),
+                              ("刪除目前版本", "delete")):
+            control = ttk.Button(
+                buttons, text=label,
+                command=lambda action=action: manage_action(action),
+            )
+            control.pack(side="left", padx=(0, 6))
+            actions_map.append(control)
+        quantity_frame = ttk.Frame(body)
+
+        # The only all-Set quantity sketch belongs to this child window.
+        # Main-window 2D retains its normal per-Bay highlight and click owner.
+        diagram_host = ttk.Frame(body, padding=8, relief="groove", borderwidth=1)
+        diagram_host.columnconfigure(0, weight=1)
+        diagram_host.rowconfigure(0, weight=1)
+        diagram = tk.Canvas(
+            diagram_host, width=800, height=380, background="#1a2734",
+            highlightthickness=0,
+        )
+        diagram.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(diagram_host, orient="vertical", command=diagram.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        diagram.configure(yscrollcommand=scrollbar.set)
+        from .receiving_quantity_allocation_ui import ReceivingQuantityAllocationUI
+        quantity_ui = ReceivingQuantityAllocationUI(
+            manager, diagram,
+            get_counts=lambda: tuple(get_switch().connection_counts()),
+            get_ports=get_candidate_ports,
+            get_marks=get_original_door_marks,
+            on_render=render_manager_diagram,
+            warn=warn,
+        )
+        diagram.bind("<Button-1>", quantity_ui.click)
+        diagram.bind("<Configure>", lambda _event: render_manager_diagram())
+        def scroll_quantity(event):
+            if manager_state["page"] != "quantity":
+                return
+            direction = (-1 if getattr(event, "delta", 0) > 0 or
+                         getattr(event, "num", 0) == 4 else 1)
+            diagram.yview_scroll(direction, "units")
+            return "break"
+        diagram.bind("<MouseWheel>", scroll_quantity)
+        diagram.bind("<Button-4>", scroll_quantity)
+        diagram.bind("<Button-5>", scroll_quantity)
+        manager_widgets.update(
+            frame=body, label=title, buttons=tuple(actions_map),
+            buttons_frame=buttons, quantity_frame=quantity_frame,
+            canvas=diagram,
+        )
+        manager._receiving_quantity_ui = quantity_ui
+        manager._receiving_manager_state = manager_state
+        manager._receiving_manager_canvas = diagram
+        manager._receiving_manager_buttons = tuple(actions_map)
+        manager._receiving_manager_page_var = page_var
+        manager._receiving_manager_role_var = role_var
+        refresh_manager_controls()
+        if win.grab_current() is win:
+            win.grab_release()
+        manager.grab_set()
+        manager.focus_set()
+        return manager
 
     def manage_action(action):
         role = manager_state["role"]
@@ -534,7 +617,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if action == "delete":
                 if not messagebox.askyesno(
                     "刪除候選版本", "確定刪除此候選版本？已套用到板件的孔位不會刪除。",
-                    parent=win,
+                    parent=manager_window["win"],
                 ):
                     return
                 library["delete"](role, selected_id)
@@ -546,7 +629,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 created = library["copy"](role, selected_id, destination)
                 candidate_selected[destination] = created
                 manager_state["role"] = destination
-            win.after_idle(show_setting_controls)
+                window = manager_window["win"]
+                if window is not None and window.winfo_exists():
+                    window._receiving_manager_role_var.set(destination)
+            if win.winfo_exists():
+                win.after_idle(show_setting_controls)
+                win.after_idle(refresh_manager_controls)
         except (ValueError, IndexError, RuntimeError) as exc:
             warn(exc)
 
@@ -563,13 +651,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     mark_cache = {"key": None, "values": ()}
 
     def render():
-        if (quantity_ui is not None and manager_state["open"] and
-                manager_state["page"] == "quantity" and
-                applied["mode"] == "set_bay" and
-                selected_setting["kind"] == "head_features" and
-                quantity_ui.draft.step[manager_state["role"]] == 2):
-            quantity_ui.paint()
-            return
+        # The main sketch always remains a Set/Bay highlighter. Quantity
+        # allocation uses the separate version-manager window's own canvas.
         canvas.configure(scrollregion=(0, 0, 0, 0))
         canvas.yview_moveto(0)
         count = applied["count"] if applied["mode"] == "set_bay" else 1
@@ -642,14 +725,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             bay_rows.append({"frame": row, "count": count_label})
         for entry, count in zip(bay_rows, counts):
             entry["count"].configure(text=str(count))
-        # A topology edit invalidates an in-progress 2D distribution. Rebuild
-        # the embedded allocation pane on idle, never inside the +連 callback.
-        if (quantity_ui is not None and manager_state["open"] and
-                manager_state["page"] == "quantity" and
-                selected_setting["kind"] == "head_features"):
+        # Topology invalidates an in-progress child-window allocation.
+        # Schedule after idle so the invoking +連 button remains alive.
+        if quantity_ui is not None and manager_window["win"] is not None:
             quantity_ui.reconcile()
-            win.after_idle(quantity_ui.draw_controls)
-            win.after_idle(render)
+            if manager_state["page"] == "quantity":
+                win.after_idle(quantity_ui.draw_controls)
+                win.after_idle(render_manager_diagram)
 
     def select_setting(_event=None):
         indices = setting_list.curselection()
@@ -733,13 +815,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def click_bay(event):
-        if (quantity_ui is not None and manager_state["open"] and
-                manager_state["page"] == "quantity" and
-                applied["mode"] == "set_bay" and
-                selected_setting["kind"] == "head_features" and
-                quantity_ui.draft.step[manager_state["role"]] == 2):
-            quantity_ui.click(event)
-            return
         if applied["mode"] != "set_bay" or applied["set_index"] is None:
             return
         for index, (x0, y0, x1, y1) in enumerate(canvas._receiving_bay_hitboxes):
@@ -794,17 +869,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     canvas.bind("<Button-1>", click_bay)
     canvas.bind("<Configure>", lambda _event: render())
-    def scroll_quantity(event):
-        if (quantity_ui is not None and manager_state["open"] and
-                manager_state["page"] == "quantity" and
-                quantity_ui.draft.step[manager_state["role"]] == 2):
-            direction = (-1 if getattr(event, "delta", 0) > 0 or
-                         getattr(event, "num", 0) == 4 else 1)
-            canvas.yview_scroll(direction, "units")
-            return "break"
-    canvas.bind("<MouseWheel>", scroll_quantity)
-    canvas.bind("<Button-4>", scroll_quantity)
-    canvas.bind("<Button-5>", scroll_quantity)
     refresh_rows()
     render()
 
@@ -815,8 +879,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_candidate_selected = candidate_selected
     win._receiving_multi_candidate_combos = candidate_combos
     win._receiving_multi_manager_state = manager_state
-    win._receiving_multi_quantity_ui = quantity_ui
+    win._receiving_multi_manager_window = manager_window
+    win._receiving_multi_open_manager = open_manager
+    win._receiving_multi_close_manager = close_manager
     win._receiving_multi_settings_host = settings_host
+    win._receiving_multi_left_host = left_host
+    win._receiving_multi_right_host = right_host
+    win._receiving_multi_function_host = function_host
+    win._receiving_multi_diagram_host = diagram_host
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host
