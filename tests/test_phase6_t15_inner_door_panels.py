@@ -74,6 +74,12 @@ def test_inner_door_panel_has_real_manufacturing_render_data():
     assert panel.unfolded_width == pytest.approx(723.0)
     assert render.metadata["finished_width"] == pytest.approx(689.0)
     assert render.metadata["unfolded_width"] == pytest.approx(723.0)
+    # Same finished-to-blank formula as the outer Door, but inner-door
+    # assembly deductions: 1100 - (50 top frame + T2) - two 3.5 gaps.
+    assert panel.height == pytest.approx(1041.0)
+    assert panel.unfolded_height == pytest.approx(1075.0)
+    assert render.metadata["finished_height"] == pytest.approx(1041.0)
+    assert render.metadata["unfolded_height"] == pytest.approx(1075.0)
 
     # Measure the actual generated CUTTING polygon; do not validate a
     # manufacturing number only against metadata produced by the same code.
@@ -85,8 +91,31 @@ def test_inner_door_panel_has_real_manufacturing_render_data():
     ]
     assert len(cutting_outlines) == 1
     cutting_x = [float(point.x) for point in cutting_outlines[0].points]
+    cutting_y = [float(point.y) for point in cutting_outlines[0].points]
     assert max(cutting_x) - min(cutting_x) == pytest.approx(723.0)
+    assert max(cutting_y) - min(cutting_y) == pytest.approx(1075.0)
 
+
+@pytest.mark.parametrize(
+    "cell_height,thickness,gap_h",
+    [(1100.0, 2.0, 3.5), (500.0, 2.0, 3.5),
+     (1100.0, 3.0, 5.0)],
+)
+def test_inner_door_vertical_deductions_keep_bottom_frame_absent(
+    cell_height, thickness, gap_h,
+):
+    from ae_engine.cabinet_types.receiving import inner_door_panel_vertical_contract
+    from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
+
+    contract = inner_door_panel_vertical_contract(
+        cell_height=cell_height, thickness=thickness, gap_h=gap_h,
+    )
+    top = inner_door_frame_formed_occupation(thickness) + thickness
+    expected_height = cell_height - top - 2.0 * gap_h
+    assert contract["top_occupation"] == pytest.approx(top)
+    assert contract["bottom_occupation"] == 0.0
+    assert contract["finished_height"] == pytest.approx(expected_height)
+    assert contract["center_offset_y"] == pytest.approx(-top / 2.0)
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
