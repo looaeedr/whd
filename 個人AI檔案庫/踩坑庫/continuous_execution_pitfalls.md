@@ -48,7 +48,7 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 當時 V2 規則（HISTORICAL／不可作今天執行門檻）：
 
 - 當時 durable state 來自 `WHD_EXECUTION_RECORD_V2`；visible progress / CHECKPOINT 僅是 observation/projection，不能建立 lease、owner、resume、turn-exit 或 closure authority。
-- `tests/process/test_checkpoint_resume_contract.py` 與 `tests/process/test_continuous_execution_durable_contract.py` 現在是**反向 anti-regrowth tests**：它們保證 legacy marker 不會被重新塞回 CURRENT/MIRROR entry skills。
+- **歷史測試名稱（2026-10-11 已不存在）**：當時使用 `tests/process/test_checkpoint_resume_contract.py`、`tests/process/test_continuous_execution_durable_contract.py` 驗證舊 checkpoint／marker；它們目前均不在正式 X Git 樹，**不得宣稱現在仍有這兩項 anti-regrowth 測試或直接執行**。現行續作與不重啟退役入口依正式 X `AGENTS.md` 及現存 CI／Skill 驗證。
 
 
 ## ISSUE188_EXECUTION_WINDOW_RECOVERY_PITFALL
@@ -75,7 +75,7 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 - exact run terminal 時立即退出 waiting；非 terminal 但找不到 matching active run 時，以連續 2 次 observation 排除短暫 API 延遲，之後強制進 `RECOVERING_STALE_WAIT`。
 - recovery 必須先 remote refetch、反讀 checkpoint、驗 work/production HEAD 與 exact run identity；無 drift 就接 next exact action，不重跑已完成證據。
 - global active run = 0 只作 supporting evidence；exact `run_id + head_sha` 才是 canonical remote-QA identity。
-- `.agents/skills/engineering/monitoring-remote-qa/SKILL.md::STALE_WAIT_WATCHDOG` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 remote-QA/documentation regression guards；它們不取代 executable checkpoint state/finalization authority。
+- `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 是現存 remote-QA Skill；歷史 `STALE_WAIT_WATCHDOG` 與已不存在的 `tests/process/test_continuous_execution_durable_contract.py` 不得再宣稱為現行 executable checkpoint／finalization guard。適用規則與驗收仍須以正式 X CURRENT Skill、GitHub exact run／HEAD 回讀為準。
 
 ## WORK_ORDER_LINEAGE_PITFALL — HISTORICAL/SUPERSEDED BRANCH MECHANICS
 
@@ -90,7 +90,7 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 - 只有整張工單 final Combined Acceptance、durable writeback、invariants、cleanup、closing drift audit 全完成後，才把 final verified work-order HEAD **一次 non-force 整合**到 production target。
 - 整合後另做 production-head verification/readback；若 FAIL，從 actual production HEAD 開 fresh hotfix/revert branch，不能倒退或 force production。
 - 若歷史工單已發生 lineage divergence，先 classify accepted commits，建立/修復單一 work-order lineage，再續工；不得把舊 production branch 當作「比較乾淨」而丟掉前序 accepted lineage。
-- `.agents/skills/engineering/派工/SKILL.md::WORK_ORDER_LINEAGE_CONTRACT` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 workflow lineage regression guards；它們不建立另一套 executable continuity state machine。
+- 上述是當時 Master 工單的 **HISTORICAL lineage 方案**；現行 `.agents/skills/engineering/派工/SKILL.md` 不得被本段舊主分支／Combined Acceptance 手續覆寫，已不存在的 `tests/process/test_continuous_execution_durable_contract.py` 也不是目前 machine guard。
 
 ## REMOTE_TERMINAL_CLOSING_LOCK_GAP — HISTORICAL/SUPERSEDED
 
@@ -101,7 +101,7 @@ Remote QA 在 `queued / in_progress` 時有 `REMOTE_QA_ACTIVE_LOCK`，所以 30 
 ### 根因與永久修正
 
 - 根因不是缺少 `NON_TERMINAL_CONTINUE` 文字，而是 enforcement scope 只覆蓋 workflow finalization，沒有覆蓋 assistant turn boundary。
-- HISTORICAL fix 曾使用 `tools/continuity_controller.py::assert_turn_exitable`；CURRENT fix 是 `tools/execution_invocation_exit.py::classify_invocation_exit` + durable DONE tuple。
+- 當時曾先以 `tools/continuity_controller.py::assert_turn_exitable`，再以 `tools/execution_invocation_exit.py::classify_invocation_exit`／durable DONE tuple 實作；**兩套 executable 模組已從現行 X 移除**。本段只保存當時歷史修補，不存在另一個 CURRENT turn-exit machine gate。
 - Remote terminal 後若還有收尾，必須 `WAITING_REMOTE → RUNNING(next_acceptance_action)`，由 global turn-exit gate 無縫接手 remote lock。
 - progress / CHECKPOINT / PASS / integrated / process-incomplete 都只是 observation；只要 machine checkpoint 還有可自主 next action，使用者就不是續跑 scheduler。
 

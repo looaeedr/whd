@@ -302,3 +302,22 @@ def test_dispatch_default_localx_integration_is_continuation_not_extra_user_appr
     assert "兩者均記錄 `LOCALX_SYNC_PENDING`" not in dispatch
     assert "先由 DC 最終整合到本機 `localX`" in dispatch
     assert "不豁免" in agents
+
+
+def test_retired_continuity_pitfalls_do_not_present_removed_machine_guards_as_current() -> None:
+    """Archived failure evidence must not offer removed control-plane executables."""
+    continuous = read("個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md")
+    closure = read("個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md")
+    assert "whd_doc_role: REFERENCE" in continuous[:250]
+    assert "whd_doc_role: REFERENCE" in closure[:250]
+    assert "現在是**反向 anti-regrowth tests**" not in continuous
+    assert "CURRENT fix 是 `tools/execution_invocation_exit.py" not in continuous
+    assert "已不存在" in continuous and "HISTORICAL" in continuous
+    assert "### 當時的 fail-closed 規則（HISTORICAL／已退役）" in closure
+    assert "**當時的 semantic owners（HISTORICAL）**" in closure
+    assert "Canonical semantic owners remain single-source" not in closure
+    assert "當時的 finalization 規則（HISTORICAL／已退役）" in closure
+    assert "AGENTS.md" in continuous and "AGENTS.md" in closure
+    entry = read("個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md")
+    assert "現行糾偏（不恢復歷史入口）" in entry
+    assert "不得因讀到本段就呼叫 root-local-first 或 DC／RC" in entry
