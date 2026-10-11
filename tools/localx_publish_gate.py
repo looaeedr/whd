@@ -69,3 +69,58 @@ def require_publish_approval(
         ):
             return
     raise LocalXPublishDenied("LOCALX_PUBLISH_REQUIRES_EXPLICIT_USER_SLASH_PUSH")
+
+
+class LocalXIntegrationDenied(ValueError):
+    """A conversation BUG fix has not proved same-task localX integration authority."""
+
+
+def require_conversational_bugfix_localx_integration(
+    *, authorization: dict, delivery: dict,
+) -> None:
+    """Validate scoped continuation to DC LOCALX_INTEGRATION, never X publish.
+
+    The caller must source authorization from the authenticated user
+    conversation and delivery from fresh GitHub PR/CI readback. Untrusted
+    JSON cannot authenticate either source on its own. No DC call belongs
+    before this verification. A discussion of a BUG is not execution intent.
+    """
+    import re
+
+    if not isinstance(authorization, dict) or not isinstance(delivery, dict):
+        raise LocalXIntegrationDenied("UNVERIFIED_CONVERSATION_OR_DELIVERY")
+    if (
+        authorization.get("source") != "AUTHENTICATED_USER_CONVERSATION"
+        or authorization.get("intent") != "EXECUTE_BUGFIX"
+        or not isinstance(authorization.get("instruction_id"), str)
+        or not authorization["instruction_id"].strip()
+        or not isinstance(authorization.get("scope"), str)
+        or not authorization["scope"].strip()
+        or authorization.get("repo") != "looaeedr/whd"
+    ):
+        raise LocalXIntegrationDenied("NO_EXPLICIT_CONVERSATION_BUGFIX_AUTH")
+    if (
+        authorization.get("github_only") is True
+        or authorization.get("dc_forbidden") is True
+        or authorization.get("revoked") is True
+    ):
+        raise LocalXIntegrationDenied("CONVERSATION_DC_SCOPE_EXCLUDED")
+    if (
+        delivery.get("repo") != authorization["repo"]
+        or delivery.get("scope") != authorization["scope"]
+        or delivery.get("stage") != "LOCALX_INTEGRATION"
+        or delivery.get("pr_base") != INTEGRATION_BRANCH
+        or delivery.get("ci_conclusion") != "SUCCESS"
+        or delivery.get("required_tests_complete") is not True
+    ):
+        raise LocalXIntegrationDenied("LOCALX_SCOPE_OR_CI_NOT_VERIFIED")
+    sha = delivery.get("head_sha")
+    if (
+        not isinstance(sha, str)
+        or not re.fullmatch(r"[0-9a-f]{40}", sha)
+        or delivery.get("ci_head_sha") != sha
+        or not isinstance(delivery.get("work_branch"), str)
+        or not delivery["work_branch"].strip()
+        or delivery["work_branch"] in (INTEGRATION_BRANCH, PRODUCTION_X)
+    ):
+        raise LocalXIntegrationDenied("LOCALX_EXACT_HEAD_REQUIRED")

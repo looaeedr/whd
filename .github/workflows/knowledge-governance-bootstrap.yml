@@ -25,6 +25,10 @@ on:
       - 'UPDATE/**/*.md'
       - 'UPDATE/**/*.MD'
       - 'tools/knowledge_governance.py'
+      - 'tools/localx_publish_gate.py'
+      - 'tools/change_test_profile.py'
+      - 'tests/process/test_localx_publish_gate.py'
+      - 'tests/governance/test_localx_merge_test_reuse.py'
       - 'tests/governance/test_knowledge_uppercase_markdown.py'
       - 'docs/superpowers/verification/knowledge_governance_inventory_v1.json'
       - '.github/workflows/knowledge-governance-bootstrap.yml'
@@ -91,3 +95,10 @@ jobs:
           python -m unittest discover -s tests/governance -p 'test_issue_dispatch_ci_continuity_contract.py' -v
           python -m unittest discover -s tests/governance -p 'test_dispatch_turn_exit_gate_contract.py' -v
           python -m unittest discover -s tests/process -p 'test_change_lane_gate.py' -v
+
+      - name: Validate BUG fix delivery authority and no-duplicate merge tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests/process -p 'test_localx_publish_gate.py' -v
+          python -m unittest discover -s tests/governance -p 'test_localx_merge_test_reuse.py' -v

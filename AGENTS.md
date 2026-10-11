@@ -57,16 +57,29 @@ whd_schema: WHD_DOC_META_V1
 
 ## 全域 DC 硬閘門 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`
 
-**預設禁止（DENY）**：所有 ChatGPT／Agent／排程／治理／文件／程式執行器，**在呼叫任何 Remote Desktop Commander（DC）工具之前**先做以下判斷。包含 `list_devices`、`ping`、`who_am_i`、檔案讀寫、工作目錄查詢、process／shell／Git 操作；**不得先連線探測再補問授權**。除以下四種情況外一律 `DC_ACCESS_DENIED_BY_DEFAULT`：
+**預設禁止（DENY）**：所有 ChatGPT／Agent／排程／治理／文件／程式執行器，**在呼叫任何 Remote Desktop Commander（DC）工具之前**先做以下判斷。包含 `list_devices`、`ping`、`who_am_i`、檔案讀寫、工作目錄查詢、process／shell／Git 操作；**不得先連線探測再補問授權**。除以下五種情況外一律 `DC_ACCESS_DENIED_BY_DEFAULT`：
 
 1. **當前使用者明確下達 `/接手`**：僅授權該次指定工單及 RC → `whd-dev:/workspace/whd` 的施工、測試和該工單交付。先前對話的 `/接手` 不得永久沿用；不能把一般「去修修」「繼續」「可以」、文件修改或推送 GitHub 的授權解讀為 `/接手`。
 2. **`/派工` 的最後 `LOCALX_INTEGRATION` 階段**：必須先由真正雲端完成施工，確認對應工作 PR `base=localX`、exact HEAD SHA 的必要 CI 全部 SUCCESS、可整合，才准 DC **只做本機 `localX` 最終合併、必要整合驗證、同步與回讀**；此例外不允許本機 BUILD／TEST／COMMIT／修產品程式，不允許提早讀取 DC 裝置或測試連線。
 3. **使用者當次下達 `/推推`**：視為產品 `localX → X` 的完整發布授權，內含為該次發布所需的 DC 本機 `localX` 查核、安全同步、發布後 X 回同步與三方 readback；無須另請一次「允許 DC」。此授權只涵蓋同一批已驗收產品成果的發布與同步，不得藉此施工、修改無關檔案、強推或略過 CI；若當次使用者明確指定 GitHub-only，則不觸碰 DC，並保留 `LOCAL_SYNC_PENDING`。
-4. **使用者對本次特定目的明確指示允許 DC**：必須能辨識當次授權的工作、裝置、操作／路徑範圍；不能將概括的修正命令、先前授權或某個 Skill 裡的建議當作當次 DC 許可。
+4. **一般對話已明確要求執行特定 BUG 修復，且進入該次 `LOCALX_INTEGRATION`**：依 `CONVERSATIONAL_BUGFIX_LOCALX_CONTINUITY_V1`，原授權只在同一 repo、已確認的 BUG 範圍與工作成果、exact HEAD 必要 CI 全部 SUCCESS、PR base=`localX`、且未明示禁止 DC／改用 GitHub-only 時，延續至本機 `localX` 安全合併、必要驗證、非強制同步與回讀；不得再要求一次「允許 DC」。純討論 BUG、尚未要求施工、未知範圍、未完成測試或提前進入本機施工均不適用。
+5. **使用者對本次特定目的明確指示允許 DC**：必須能辨識當次授權的工作、裝置、操作／路徑範圍；不能將概括的修正命令、先前授權或某個 Skill 裡的建議當作當次 DC 許可。
 
 **其餘所有情境（含治理文件直合 X、GitHub 能力不足、排程卡關、只想看看本機狀態、清理先前事故殘留）一律不用 DC。** 若確實需要，先向使用者說明 **使用 DC 的必要原因、預計使用的裝置／路徑、要讀／改／執行的操作與影響**，標記 `DC_AUTHORIZATION_REQUIRED`，**停止任何 DC 呼叫並等待使用者明確核准**；未核准不得改用其他本機通道繞行。核准僅在被核准的當次目的與範圍有效，不自動延伸到下一張工單或其他工作。
 
 **失敗即封閉**：授權來源不明、`/派工` 所在階段不明、CI 非 exact SUCCESS、PR base 不確定、使用者撤回授權時都視為 DENY。此規則不改動平台工具 ACL；任何外部平台拒絕仍不得繞過。CI 回歸測試可約束倉庫規則不被改鬆，**但不得誤稱 GitHub CI 能直接攔截 ChatGPT 的 DC 工具呼叫**。
+
+## 一般對話 BUG 修復授權延續 `CONVERSATIONAL_BUGFIX_LOCALX_CONTINUITY_V1`
+
+- **已明確要求執行**的 BUG 修復（不必輸入斜線指令）授權同一任務的工作區施工、必要測試、提交、PR／CI，以及在 exact HEAD CI 成功後的 **本機 `localX` 最終整合**。不得把「這個 BUG 怎麼回事？」等純討論解釋成執行授權；對話裡的明確否定、GitHub-only 指示、範圍限制仍優先。
+- 必須核對當次可信對話中的修復指令、repo、功能範圍、工作分支／PR 及 exact HEAD；實際 DC 呼叫只允許在 `LOCALX_INTEGRATION` 階段、安全保留本機未發布修改、必要合併檢查與非強制 GitHub `localX` 同步。不准藉此提早於本機 BUILD／TEST／COMMIT、修改無關檔案或走到正式 X。原範圍沒變就不重問 DC 授權。
+- machine decision：`tools/localx_publish_gate.py::require_conversational_bugfix_localx_integration`。輸入必須來自執行者**已驗證真實來源**的對話授權與 GitHub CI／PR readback；caller 提供的文字／JSON 不能自行證明對話真實性，GitHub CI 更不能代替 ChatGPT 驗證對話。來源不明、CI 不是 exact SUCCESS、scope drift、拒絕本機或 DC 不可用時 fail closed，記錄實際 blocker；不得以重複授權問題假裝為 blocker 或偷走 GitHub-only。
+
+## 合併後測試證據沿用硬閘門 `MERGE_TEST_REUSE_HARD_GATE`
+
+- 工作區與 exact HEAD 必要測試／CI 通過後，**合併不是自動重跑 GUI／完整回歸的理由**。先回讀 trusted test receipt 和合併後實際 Git tree；`tools/change_test_profile.py::evaluate_merge_test_reuse` 對已測試 commit 與整合 commit 做 read-only tree 比對。tested tree 與 integrated tree 完全相同（即使 commit SHA 不同）且所需測試完整通過 → `REUSE_VERIFIED`，直接保留 GREEN 並執行 Git SHA／merge/readback，不得重啟已完成的 GUI 測試。
+- 兩個 tree 不同 → 先列出 `git diff` 實際異動路徑、衝突與依賴影響，僅補跑未被原證據覆蓋的目標 GUI／模組／整合測試；影響不可界定才跑完整回歸。缺少可核驗測試收據、測試未完成、CI 非 SUCCESS 或 Git tree 無法回讀 → `EVIDENCE_INCOMPLETE`，**不得冒稱免測通過**。
+- 已在執行的本機測試應先核對是否真屬重複且可安全停止；不得為求速度殺掉未知程序、取消必要測試或破壞本機檔案。安全同步 GitHub `localX` 與正式 `/推推` 權限邊界均不變。此決策器**不代替** GitHub CI 簽章及真實外部驗收，執行者須從可信來源驗證輸入後才能採信。
 
 ## /派工跨工單自動收尾 `DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1`
 
