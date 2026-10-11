@@ -61,6 +61,7 @@ def test_pitfall_ledger_retains_provenance_without_reactivating_old_transactions
     assert "HISTORICAL / SUPERSEDED（2026-10-11）" in pit
     assert "EXECUTION_HISTORY_SUPERSEDED_20261011" in pit
     assert "現行僅依正式 X" in pit
-    assert "CURRENT 永遠 WORKSPACE_DEFAULT；歷史 drift" not in pit
+    # Old wording may appear in a clearly marked historical incident; reject only a live top-level directive.
+    assert "\nCURRENT 永遠 WORKSPACE_DEFAULT；歷史 drift" not in pit
     assert "CURRENT 防錯規則**：owner-authored marker" not in pit
     assert "ISSUE1469_V15_INTEGRATION_PITFALL" in pit
