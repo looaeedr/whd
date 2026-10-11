@@ -342,6 +342,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         if selected_setting["kind"] == "head_features":
             actions(settings_host, "head_features", role="head")
             actions(settings_host, "tail_features", role="tail")
+            if get_quantity_ports is not None:
+                # Existing version ownership belongs to Quantity mode.
+                # Make it discoverable beside retained per-Bay hole editors
+                # instead of silently inventing per-Bay version storage.
+                ttk.Button(
+                    settings_host, text="孔型版本一／二",
+                    command=lambda: win.after_idle(show_original_versions),
+                ).pack(anchor="w", pady=(5, 2))
         else:
             actions(settings_host, "inner_door_layers")
 
@@ -513,6 +521,18 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
                 return
+
+    def show_original_versions():
+        """Use the original QuantityModel editor only after explicit entry."""
+        if not win.winfo_exists():
+            return
+        mode_var.set("quantity")
+        change_mode()
+        if applied["mode"] != "quantity":
+            return
+        setting_list.selection_clear(0, tk.END)
+        setting_list.selection_set(0)
+        select_setting()
 
     def change_mode():
         target = mode_var.get()
