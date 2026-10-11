@@ -12,6 +12,25 @@ SKILL = ROOT / ".agents/skills/engineering/派工/SKILL.md"
 
 
 class DispatchExecutorHandoffContract(unittest.TestCase):
+    def test_self_execution_first_before_external_agent_discovery(self):
+        for path in (AGENTS, SKILL):
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("DISPATCH_SELF_EXECUTION_FIRST", content)
+            self.assertIn("Codex", content)
+            self.assertIn("本體", content)
+            self.assertIn("REMOTE_EXECUTOR_UNAVAILABLE", content)
+            self.assertIn("EXECUTOR_START_CONFIRMED", content)
+            self.assertLess(content.index("DISPATCH_SELF_EXECUTION_FIRST"),
+                            content.index("## 真實執行者接取：" if path == SKILL
+                                          else "## /派工真實啟動證據"))
+        skill = SKILL.read_text(encoding="utf-8")
+        start = skill.split("## 本體直接施工優先", 1)[1].split("## 真實執行者接取", 1)[0]
+        for item in ("本體直接接取", "execution_location=GITHUB",
+                     "commit SHA", "CI", "無能力才找外部代理",
+                     "不走 `localX`", "治理"):
+            self.assertIn(item, start)
+        self.assertLess(start.index("沿用既有工作"), start.index("無能力才找外部代理"))
+
     def test_handoff_is_not_registration(self):
         for path in (AGENTS, SKILL):
             content = path.read_text(encoding="utf-8")
