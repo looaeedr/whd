@@ -642,6 +642,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             bay_rows.append({"frame": row, "count": count_label})
         for entry, count in zip(bay_rows, counts):
             entry["count"].configure(text=str(count))
+        # A topology edit invalidates an in-progress 2D distribution. Rebuild
+        # the embedded allocation pane on idle, never inside the +連 callback.
+        if (quantity_ui is not None and manager_state["open"] and
+                manager_state["page"] == "quantity" and
+                selected_setting["kind"] == "head_features"):
+            quantity_ui.reconcile()
+            win.after_idle(quantity_ui.draw_controls)
+            win.after_idle(render)
 
     def select_setting(_event=None):
         indices = setting_list.curselection()
