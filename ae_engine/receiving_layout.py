@@ -177,13 +177,7 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 bay["back_panel_mode"] = setting_value(selected, index, "back_panel_mode")
         sets.append(selected)
 
-    result = {"schema": RECEIVING_LAYOUT_SCHEMA, "sets": sets}
-    # Optional project-global hole candidate library, independent of Sets and
-    # Bay shared-feature refs; leave legacy snapshots unchanged when absent.
-    if "hole_candidates" in layout:
-        from ae_engine.receiving_hole_candidates import normalize_candidates
-        result["hole_candidates"] = normalize_candidates(layout["hole_candidates"])
-    return result
+    return {"schema": RECEIVING_LAYOUT_SCHEMA, "sets": sets}
 
 
 def primary_bay(layout: Mapping[str, object]) -> dict[str, object]:
