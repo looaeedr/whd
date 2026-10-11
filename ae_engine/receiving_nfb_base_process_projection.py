@@ -507,3 +507,78 @@ def build_existing_receiving_base_with_verified_nfb(
         composed,
         render_data=replace(composed.render_data,metadata=metadata),
     )
+
+
+def validate_nfb_base_part_cutting(
+    render_data: PartRenderData, *, physical_part_id: str,
+) -> None:
+    """Validate one actual NFB Base Plate CUTTING result, not its EAR assembly.
+
+    Called at the production PART_ONLY boundary before the DXF is written.
+    This uses the source-bound FinalScene and real unfolded part, never a
+    caller-supplied approval boolean. Assembly/weld Z remains independent.
+    """
+    from .sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    import re
+
+    if not isinstance(render_data, PartRenderData):
+        raise ValueError("NFB_BASE_PART_CUTTING_EVIDENCE_MISSING")
+    metadata = render_data.metadata
+    identity = str(physical_part_id or "").strip()
+    topology = render_data.unfolded_topology
+    if (not identity or identity.startswith("base_plate_c")
+            or metadata.get("stable_id") != identity
+            or topology is None or topology.piece_id != identity
+            or str(metadata.get("receiving_bend_pattern") or "") not in (
+                "LEFT_FLAT_SIDE", "RIGHT_FLAT_SIDE", "CENTER_DOUBLE_SIDE_FOLD"
+            )):
+        raise ValueError("NFB_BASE_PART_PHYSICAL_ID_OR_BEND_PATTERN_UNVERIFIED")
+    if (metadata.get("nfb_base_process_status") != _STATUS
+            or not re.fullmatch(r"[0-9a-f]{64}", str(metadata.get("nfb_source_sha256") or ""))
+            or not str(metadata.get("nfb_source_model") or "").lower().endswith(".dxf")):
+        raise ValueError("NFB_BASE_PART_SOURCE_EVIDENCE_MISSING")
+    hole_ids = metadata.get("nfb_physical_hole_ids")
+    if (not isinstance(hole_ids, (tuple, list)) or not hole_ids
+            or any(not isinstance(v, str) or not v for v in hole_ids)
+            or len(hole_ids) != len(set(hole_ids))):
+        raise ValueError("NFB_BASE_PART_HOLE_OWNERS_UNVERIFIED")
+    if (render_data.material is None or render_data.material.is_empty
+            or render_data.material.area <= _TOL
+            or not isinstance(render_data.scene, DrawingScene)
+            or topology.width <= 0 or topology.height <= 0):
+        raise ValueError("NFB_BASE_PART_ACTUAL_GEOMETRY_MISSING")
+    try:
+        ear_center = _xy(metadata["receiving_base_ear_mount_center_world_xy_mm"], "EAR")
+        nfb_center = _xy(metadata["receiving_base_nfb_row_center_world_xy_mm"], "NFB")
+    except (KeyError, ValueError) as exc:
+        raise ValueError("NFB_BASE_PART_MATING_XY_UNVERIFIED") from exc
+    if max(abs(a-b) for a, b in zip(ear_center, nfb_center)) > _TOL:
+        raise ValueError("NFB_BASE_PART_MATING_XY_UNVERIFIED")
+
+    primitives = render_data.scene.primitives
+    screws = tuple(p for p in primitives
+                   if isinstance(p, CirclePrimitive)
+                   and p.layer == "CUTTING"
+                   and p.source_type == "NFB_LOWER_NATIVE_FIXING_CIRCLE")
+    uppers = tuple(p for p in primitives
+                   if isinstance(p, CirclePrimitive)
+                   and p.layer == "CUTTING"
+                   and p.source_type == "NFB_COLOR30")
+    if len(screws) != 4 * len(hole_ids) or not uppers:
+        raise ValueError("NFB_BASE_PART_SOURCE_CUTTING_INCOMPLETE")
+    screw_ids = tuple(str(getattr(p, "source_id", "") or "") for p in screws)
+    if (len(set(screw_ids)) != len(screw_ids)
+            or any(sum(s.startswith(hole + ":") for s in screw_ids) != 4
+                   for hole in hole_ids)
+            or any(not any(str(getattr(p, "source_id", "") or "").startswith(hole + ":")
+                           for p in uppers) for hole in hole_ids)):
+        raise ValueError("NFB_BASE_PART_SOURCE_HOLE_MAPPING_UNVERIFIED")
+    contours = tuple(p for p in primitives
+                     if isinstance(p, PolylinePrimitive)
+                     and p.layer == "CUTTING" and p.closed)
+    marks = tuple(p for p in primitives
+                  if isinstance(p, PolylinePrimitive) and p.layer == "MARKING")
+    if len(contours) < 5 or not marks:
+        raise ValueError("NFB_BASE_PART_EAR_AND_MARKING_GEOMETRY_MISSING")
+    # Does NOT require the independent physical EAR bend/weld-Z certification;
+    # this authorizes only the verified Base Plate CUTTING DXF, not an assembly.
