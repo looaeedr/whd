@@ -9,8 +9,6 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk, messagebox
 from ae_engine.receiving_hole_candidates import version_label
-from .receiving_inner_door_thumbnail import paint_inner_door_thumbnail
-from .receiving_endcap_thumbnail import paint_endcap_thumbnail
 
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
@@ -355,106 +353,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                        "buttons_frame": None, "quantity_frame": None,
                        "canvas": None}
     quantity_ui = None
-    preview_state = {"applied": None, "candidate": None, "status": None}
-    endcap_preview_state = {}
-
-    def refresh_endcap_previews(role=None):
-        """Compare original physical Bay with selected head/tail version."""
-        roles = (role,) if role is not None else ("head", "tail")
-        if (active_ports["ports"] is None or get_candidate_ports is None
-                or not callable(active_ports["ports"].get("row"))):
-            # Preserve lean legacy/testing ports without opening a new data owner.
-            return
-        from ae_engine.receiving_shared_settings import setting_value
-        bay_index = selected_setting["bay_index"]
-        row = active_ports["ports"]["row"]()
-        bay = row["bays"][bay_index]
-        width, depth = bay["width"], bay["depth"]
-        for name in roles:
-            widgets = endcap_preview_state.get(name)
-            if not widgets or not widgets["applied"].winfo_exists():
-                continue
-            applied_features = setting_value(row, bay_index, name + "_features")
-            version_id = candidate_selected[name]
-            candidate_features = None
-            if version_id is not None:
-                for item in get_candidate_ports()["versions"](name):
-                    if item["id"] == version_id:
-                        candidate_features = item["features"]
-                        break
-            try:
-                paint_endcap_thumbnail(
-                    widgets["applied"], applied_features, width, depth,
-                    title="目前：第{}套／第{}連".format(
-                        selected_setting["set_index"] + 1, bay_index + 1),
-                )
-                paint_endcap_thumbnail(
-                    widgets["candidate"], candidate_features, width, depth,
-                    title=(f"候選：{version_label(version_id)}"
-                           if candidate_features is not None else "候選：即時"),
-                )
-            except (ValueError, TypeError, KeyError, OverflowError) as exc:
-                for c in (widgets["applied"], widgets["candidate"]):
-                    c.delete("all")
-                    c.create_text(10, 20, anchor="w", text="預覽資料無法解析",
-                                  fill="#efb4a3")
-                widgets["status"].set(str(exc))
-                continue
-            if candidate_features is None:
-                message = "選擇版本後比較目前配置"
-            elif candidate_features == applied_features:
-                message = "候選內容與目前這一連相同"
-            else:
-                message = "候選內容尚未套用至目前這一連"
-            current_meta = widgets["applied"]._receiving_endcap_preview
-            candidate_meta = widgets["candidate"]._receiving_endcap_preview
-            if current_meta["unsupported"] or candidate_meta["unsupported"]:
-                message += "｜部分孔位格式無法畫出，請用孔位編輯器確認"
-            if len(applied["selected_bays"]) > 1:
-                message += "（左圖只顯示目前連位）"
-            widgets["status"].set(message)
-
-    def refresh_inner_preview():
-        """Show real Bay data versus currently selected candidate, not geometry."""
-        applied_canvas = preview_state["applied"]
-        chosen_canvas = preview_state["candidate"]
-        if (applied_canvas is None or chosen_canvas is None
-                or not applied_canvas.winfo_exists()
-                or not chosen_canvas.winfo_exists()):
-            return
-        from ae_engine.receiving_shared_settings import setting_value
-        bay = selected_setting["bay_index"]
-        row = active_ports["ports"]["row"]()
-        applied_config = {
-            "layers": setting_value(row, bay, "inner_door_layers"),
-            "models": setting_value(row, bay, "inner_door_models"),
-        }
-        paint_inner_door_thumbnail(
-            applied_canvas, applied_config,
-            title=f"目前：第{selected_setting['set_index']+1}套／第{bay+1}連",
-        )
-        version_id = candidate_selected["inner-door"]
-        candidate_config = None
-        if version_id is not None and get_inner_candidate_ports is not None:
-            for version in get_inner_candidate_ports()["versions"]("inner-door"):
-                if version["id"] == version_id:
-                    candidate_config = version["config"]
-                    break
-        paint_inner_door_thumbnail(
-            chosen_canvas, candidate_config,
-            title=(f"候選：{version_label(version_id)}"
-                   if candidate_config is not None else "候選：即時"),
-        )
-        if candidate_config is None:
-            message = "選取內門版本，即可比較縮圖"
-        elif candidate_config == applied_config:
-            message = "候選內容與目前這一連相同"
-        else:
-            message = "候選內容尚未套用至目前這一連"
-        if len(applied["selected_bays"]) > 1:
-            message += "（左圖僅顯示目前連位）"
-        preview_state["status"].set(message)
-
     real_preview = {"win": None, "view": None, "status": None,
                     "role": None, "generation": 0}
 
@@ -542,8 +440,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             win.after_idle(refresh_manager_controls)
 
     def show_setting_controls():
-        preview_state.update(applied=None, candidate=None, status=None)
-        endcap_preview_state.clear()
         for widget in settings_host.winfo_children():
             widget.destroy()
         active_ports["ports"] = None
@@ -1305,10 +1201,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_real_preview = real_preview
     win._receiving_multi_show_real_preview = show_real_preview
     win._receiving_multi_close_real_preview = close_real_preview
-    win._receiving_multi_inner_preview = preview_state
-    win._receiving_multi_endcap_preview = endcap_preview_state
-    win._receiving_multi_refresh_endcap_previews = refresh_endcap_previews
-    win._receiving_multi_refresh_inner_preview = refresh_inner_preview
     win._receiving_multi_manager_state = manager_state
     win._receiving_multi_manager_window = manager_window
     win._receiving_multi_open_manager = open_manager
