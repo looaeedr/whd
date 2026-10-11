@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import csv
+import json
+import os
+from pathlib import Path
 
 import ezdxf
 import pytest
@@ -153,3 +156,87 @@ def test_brand_columns_required_and_no_metadata_column_interpreted_as_dxf(tmp_pa
                     encoding="utf-8-sig")
     with pytest.raises(ValueError, match="伍菱"):
         unique_nfb_dxfs_from_switch_index(path)
+
+
+
+REAL_INDEX_WITNESS = (
+    Path(__file__).resolve().parent
+    / "fixtures" / "receiving_nfb_real_switch_index_manifest.json"
+)
+
+
+def _real_index_witness():
+    return json.loads(REAL_INDEX_WITNESS.read_text(encoding="utf-8"))
+
+
+def test_real_uploaded_42_row_index_golden_manifest_is_consistent():
+    witness = _real_index_witness()
+    assert witness["source_sha256"] == (
+        "d6638de4dc204de5a9c465359ab6f051033ef505eab1382ae9234e68b5134321"
+    )
+    assert witness["source_format"] == "UTF-8-BOM, 7 columns"
+    assert witness["records"] == 42
+    assert witness["totals"] == {
+        "references": 64, "unique_brand_filenames": 24,
+        "no_matching_file_cells": 62,
+    }
+    total_refs = 0
+    total_unique = 0
+    total_missing = 0
+    for brand, expected in witness["by_brand"].items():
+        assert brand in ("士林", "東元", "伍菱")
+        refs = expected["source_reference_counts"]
+        assert len(refs) == 8
+        assert len(refs) == len({name.casefold() for name in refs})
+        assert all(filename.lower().endswith(".dxf") for filename in refs)
+        assert sum(refs.values()) == expected["references"]
+        assert expected["missing"] + expected["references"] == witness["records"]
+        total_refs += expected["references"]
+        total_unique += len(refs)
+        total_missing += expected["missing"]
+    assert total_refs == 64
+    assert total_unique == 24
+    assert total_missing == 62
+    source = witness["verified_attachment"]
+    assert source["indexed_filename"] == "400_140X257_107.dxf"
+    assert source["attachment_file"] == "400_140X257_107(1).dxf"
+    assert source["name_equivalence"] == "NOT_PROVEN_BY_FILENAME_ALONE"
+    assert source["lower_region_ignored"] is True
+
+
+def test_actual_original_switch_index_roundtrip_when_available():
+    """CI need not bundle user original, but source-present replay must match."""
+    source = os.environ.get("WHD_NFB_SWITCH_INDEX_CSV")
+    if not source:
+        pytest.skip("Original index not bundled in Git; supply WHD_NFB_SWITCH_INDEX_CSV")
+    from hashlib import sha256
+
+    path = Path(source)
+    expected = _real_index_witness()
+    assert sha256(path.read_bytes()).hexdigest() == expected["source_sha256"]
+    catalog = unique_nfb_dxfs_from_switch_index(path)
+    assert catalog.records_read == expected["records"]
+    assert catalog.index_sha256 == expected["source_sha256"]
+    assert catalog.diagnostics == ()
+    assert len(catalog.sources) == expected["totals"]["unique_brand_filenames"]
+    sources = {(entry.brand, entry.filename): entry for entry in catalog.sources}
+    for brand, values in expected["by_brand"].items():
+        found = {(item.filename): len(item.links) for item in catalog.sources if item.brand == brand}
+        assert found == values["source_reference_counts"]
+        assert all(entry.brand == brand for (b, _), entry in sources.items() if b == brand)
+    assert sum(len(s.links) for s in catalog.sources) == 64
+
+
+def test_no_matching_file_is_sentinel_not_corrupt_dxf_filename(tmp_path):
+    path = tmp_path / "開關索引.csv"
+    with path.open("w", encoding="utf-8-sig", newline="") as stream:
+        writer = csv.writer(stream)
+        writer.writerow(("圖塊名稱", "士林", "深", "東元", "深", "伍菱", "深"))
+        writer.writerow(("K1", "無對應檔案", "", "無對應檔案", "", "無對應檔案", ""))
+        writer.writerow(("K2", "Example.DXF", "", "無對應檔案", "", "無對應檔案", ""))
+    result = unique_nfb_dxfs_from_switch_index(path)
+    assert result.records_read == 2
+    assert len(result.sources) == 1
+    assert result.sources[0].brand == "士林"
+    assert result.sources[0].filename == "Example.DXF"
+    assert result.diagnostics == ()
