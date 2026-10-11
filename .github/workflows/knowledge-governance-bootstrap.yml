@@ -12,6 +12,8 @@ on:
       - '.agents/skills/**/*.md'
       - '.agents/skills/**/*.MD'
       - '.agents/skills/skill_registry.json'
+      - '.agents/contracts/WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1.json'
+      - 'tests/governance/test_default_branch_explicit_x_contract.py'
       - 'tests/governance/test_dispatch_remote_only_contract.py'
       - 'docs/**/*.md'
       - 'docs/**/*.MD'
@@ -61,6 +63,12 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s tests/governance -p 'test_knowledge_uppercase_markdown.py' -v
+
+      - name: Enforce explicit X authority and unmanaged historical main
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests/governance -p 'test_default_branch_explicit_x_contract.py' -v
 
       - name: Enforce remote-only dispatch and explicit local takeover
         shell: bash

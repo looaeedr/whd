@@ -4,16 +4,27 @@
   "status": "CURRENT",
   "production_branch": "cleanup/2d-3d-sync",
   "default_branch": "main",
-  "policy": "MAIN_MINIMAL_TOMBSTONE_TREE",
-  "reason": "GitHub connector cannot mutate repository default-branch setting; main must contain no stale production execution/governance tree.",
-  "legacy_tree_preserved_under_archive_branch": true,
-  "required_main_stub_paths": [
-    "README.md",
-    "AGENTS.md",
-    ".agents/skills/skill_registry.json",
-    "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
-    "tools/phase6_skill_preflight.py"
+  "policy": "MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY",
+  "reason": "User-directed main freeze: main is an unmanaged historical/default-branch snapshot, not a production execution or governance authority. No main cleanup, mirror, synchronization, branch switch, or tombstone rewrite is required.",
+  "main_disposition": "HISTORICAL_UNMANAGED_DO_NOT_MUTATE",
+  "main_automatic_mutations_forbidden": [
+    "cleanup",
+    "delete",
+    "rewrite_as_stub",
+    "governance_mirror",
+    "synchronize",
+    "merge",
+    "rebase",
+    "force_push"
   ],
+  "canonical_read_ref": "cleanup/2d-3d-sync",
+  "unspecified_ref_policy": "FAIL_CLOSED_REQUIRE_EXPLICIT_X",
+  "main_read_policy": "HISTORICAL_CONTEXT_ONLY_NO_EXECUTION_AUTHORITY",
+  "retired_main_tree_policy": {
+    "name": "MAIN_MINIMAL_TOMBSTONE_TREE",
+    "status": "RETIRED",
+    "evidence": "Git history and docs/governance/main_cleanup_governance_sync_20260928.json are historical only"
+  },
   "forbidden_main_semantics": [
     "CURRENT execution authority",
     "CURRENT governance authority",
@@ -21,5 +32,5 @@
     "governance parity/mirror/ancestry execution",
     "repository mutation implementation"
   ],
-  "recovery": "explicitly bind reads/actions to live cleanup/2d-3d-sync or fail closed"
+  "recovery": "Explicitly bind all current WHD canonical reads and actions to live cleanup/2d-3d-sync; if a tool defaults to main, re-read with explicit X ref before any action or fail closed. Do not alter main."
 }
