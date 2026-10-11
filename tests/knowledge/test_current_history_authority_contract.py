@@ -321,3 +321,17 @@ def test_retired_continuity_pitfalls_do_not_present_removed_machine_guards_as_cu
     entry = read("個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md")
     assert "現行糾偏（不恢復歷史入口）" in entry
     assert "不得因讀到本段就呼叫 root-local-first 或 DC／RC" in entry
+
+
+def test_reference_pitfalls_cannot_reactivate_workspace_or_phase6_preflight() -> None:
+    """Optional legacy diagnostics and historical migration notes are not work gates."""
+    migration = read("個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md")
+    keyword = read("個人AI檔案庫/踩坑庫/preflight_keyword_boundary_pitfall.md")
+    for text in (migration, keyword):
+        assert "whd_doc_role: REFERENCE" in text[:200]
+        assert "AGENTS.md" in text
+    assert "當時的工作區規則（HISTORICAL／SUPERSEDED）" in migration
+    assert "不得把舊 `WORKSPACE_DEFAULT` 當作每件 WHD 任務的強制入口" in migration
+    assert "不能作為 Git／施工／PR／DC／CI 前置授權或阻擋門檻" in keyword
+    assert "相容診斷工具的字詞比對正確性規則" in keyword
+    assert "## 永久規則" not in keyword
