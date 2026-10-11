@@ -1,0 +1,93 @@
+{
+  "schema": "WHD_RECEIVING_NFB_MIDDLE_FIXING_SOURCE_OBSERVATION_V1",
+  "issue": 1502,
+  "original_file": "受電箱底板(1).dxf",
+  "original_sha256": "0a817ccedf83b22ca407e7d620d4de99b58aee716bd365742c994e09add24685",
+  "converted_file": "受電箱底板(4).dxf",
+  "converted_sha256": "cccf060cf6ff704b717dff0edd01d522c559cbf4ca98f5113ad84c9f4160d29b",
+  "original_center_circle_count": 16,
+  "converted_center_closed_four_bulge_count": 16,
+  "center_and_radius_sets_exactly_equal": true,
+  "source_semantics_user_confirmed": "CENTER_BENT_MIDDLE_DRAWING_CIRCLES_EQUAL_NFB_LOWER_SOURCE_GROUP_FIXING_HOLES",
+  "source_relation_scope": "LOWER_GROUP_CIRCLES_ONLY_NOT_ALL_LOWER_GEOMETRY",
+  "radius_mm": 1.6,
+  "original_source_groups": [
+    {
+      "handles": [
+        "E7",
+        "E8",
+        "E9",
+        "EA"
+      ],
+      "center": [
+        5474.49589,
+        1033.79
+      ],
+      "horizontal_pitch": 30,
+      "vertical_pitch": 132
+    },
+    {
+      "handles": [
+        "EB",
+        "EC",
+        "ED",
+        "EE"
+      ],
+      "center": [
+        5474.49589,
+        1033.79
+      ],
+      "horizontal_pitch": 35,
+      "vertical_pitch": 126,
+      "relationship": "ALTERNATE_SOURCE_QUARTET_NOT_DUPLICATES"
+    },
+    {
+      "handles": [
+        "E3",
+        "E4",
+        "E5",
+        "E6"
+      ],
+      "center": [
+        5654.49589,
+        1033.79
+      ],
+      "horizontal_pitch": 30,
+      "vertical_pitch": 132
+    },
+    {
+      "handles": [
+        "DF",
+        "E0",
+        "E1",
+        "E2"
+      ],
+      "center": [
+        5834.49589,
+        1033.79
+      ],
+      "horizontal_pitch": 30,
+      "vertical_pitch": 132
+    }
+  ],
+  "reference_only_no_mfg2_approval": true,
+  "converted_bending_layer_conflicts": [
+    {
+      "pattern": "LEFT_FLAT",
+      "line_handles": [
+        "63",
+        "64"
+      ],
+      "reason": "USER_SAYS_NO_BEND"
+    },
+    {
+      "pattern": "RIGHT_FLAT",
+      "line_handles": [
+        "67",
+        "68"
+      ],
+      "reason": "USER_SAYS_NO_BEND"
+    }
+  ],
+  "note": "NFB lower original DXF exact circle positions and actual per-version fixing quartet selection still require cross-source verification; source owner semantic is user-confirmed; do not assign all four quartets to a single NFB or mark the processed DXF production approved."
+}
