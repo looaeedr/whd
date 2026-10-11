@@ -90,6 +90,17 @@ whd_schema: WHD_DOC_META_V1
 - **DC 無法連線的唯一備援**：記錄實際連線失敗／逾時、當時 PR/HEAD/CI 證據後，才可合併 GitHub 遠端 `localX`；標記 `DC_UNREACHABLE + LOCALX_SYNC_PENDING`，安排後續本機對齊而非冒稱本機已整合。DC 可連線但 merge 衝突、工作樹 dirty、認證被拒或測試失敗時**不能**改走斷線備援。
 - 沒有雲端施工能力回報 `REMOTE_EXECUTOR_UNAVAILABLE`，不能用 DC 做施工；`/派工` 不會因此隱性轉成 `/接手`。任何平台公開上傳／遠端工具拒絕仍需遵守，不得換 transport 偷渡。
 
+## /派工退出前查核 `DISPATCH_TURN_EXIT_GATE_V1`
+
+**執行者必須先判斷下一個合法動作，才可正常結束當前施工回合。** 狀態表權威為 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json`；它是治理契約，不是平台層級的 ChatGPT 回合攔截器。只有本體當輪具備實際工具能力才能執行續作；此契約**不會在回合結束後自行喚醒模型或啟動背景輪詢**。
+
+- **先對準 exact HEAD**：讀取當下 PR `base=localX`、`head_sha` 與同一 SHA 的 Canonical Product Regression `run_id/status/conclusion`、jobs。缺 run、查到舊 SHA／矛盾資料 → `RECONCILE_ONLY`，不得借用其他 HEAD 的 GREEN。
+- **CI 非終態**（`requested/queued/waiting/pending/in_progress`）→ `CONTINUE_POLL`：在當次仍可呼叫工具時持續查詢 exact run，2–3 次操作回報一次實質進度，回報不是退出訊號；只讀結構化狀態與精簡失敗資料，不重抓長 Log、不要無限制高頻打 API。
+- **CI 終態**：`success` → `LOCALX_INTEGRATION_PENDING`，按既有 DC 最終階段／合法備援進行合併回讀，不能停在「CI GREEN」；`failure/cancelled/timed_out/action_required` 或其他不成功 → `REPAIR_AND_RETEST`（如平台無權操作則報實際阻塞），不當作驗收完成。
+- **CI 成功仍未完成交付**：本機／遠端 `localX` 整合回讀、Issue close/readback 及 `NEXT_ISSUE_DISCOVERY_REQUIRED` 等既有義務未處理 → `CONTINUE_FINALIZATION`；達到所有必要驗收與追蹤義務、讀回證據後才可標 `RELEASED`。正式 X 仍限使用者當次 `/推推`。
+- **允許當回合非完成式退出的真實例外**：有可追溯 API 錯誤／權限拒絕／無合法執行途徑 → `BLOCKED_WITH_EVIDENCE`，或執行環境真實中斷／當回合工具資源限制 → `RUNTIME_LIMIT_UNRESOLVED`；回報當時 `Issue/PR/head_sha/run_id/last_observation/blocker/next_exact_action`，**不得標示 DONE、已完成、背景自動續作**，不得假造阻塞來取代仍可做的輪詢。
+- **不擴權**：本規則只對現有 `/派工` 回合施加退出前的決策檢查；不啟動新排程／`workflow_run` 自動施工、不重建舊 Flow v2、不增設 GitHub 分支保護，不允許提早使用 DC／RC／本機，純治理文件照既有 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直送 X。
+
 ## /派工 產品交付不中斷閘門（執行者責任）
 
 - `/派工` 不以「已建立 PR」「CI queued/in_progress/pending」作為交付完成。這些都是 **CONTINUE_POLL**，不能以「等 CI 完成」作最終答覆來退出當輪任務。

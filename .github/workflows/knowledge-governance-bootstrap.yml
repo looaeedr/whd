@@ -81,4 +81,5 @@ jobs:
           python -m unittest discover -s tests/governance -p 'test_context_loss_prevention_contract.py' -v
           python -m unittest discover -s tests/governance -p 'test_issue1464_dispatch_takeover_remote_contract.py' -v
           python -m unittest discover -s tests/governance -p 'test_issue_dispatch_ci_continuity_contract.py' -v
+          python -m unittest discover -s tests/governance -p 'test_dispatch_turn_exit_gate_contract.py' -v
           python -m unittest discover -s tests/process -p 'test_change_lane_gate.py' -v

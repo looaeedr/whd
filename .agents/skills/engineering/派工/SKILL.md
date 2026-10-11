@@ -50,6 +50,18 @@ whd_schema: WHD_DOC_META_V1
 
 本節**不允許 `/派工` 以 DC 施工**，亦不放寬任何平台公開上傳安全審查。平台實際拒絕就回報 `PUBLIC_UPLOAD_REVIEW_BLOCKED` 與拒絕操作、必要補證，不得更換管道規避或無限重問相同核准。**純治理文件必須優先 GitHub 直送 X，不得未經另外明確授權而使用 DC**。
 
+## 退出前決策：`DISPATCH_TURN_EXIT_GATE_V1`
+
+當次回合準備收尾時，先套用 `AGENTS.md` 和 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json`，不能因為已發進度報告就退出：
+
+1. 讀當前 PR `base/head_sha` 以及 **exact SHA** Product Regression 的 `run_id/status/conclusion`（含 jobs）；不存在、SHA 不符或資訊不足 → `RECONCILE_ONLY`，定向補讀，不得沿用舊 GREEN。
+2. `requested/queued/waiting/pending/in_progress` → `CONTINUE_POLL`，同一回合繼續查狀態；每 2–3 次操作回報，而非結束。避免高頻重抓完整 CI log。
+3. `completed/success` → `LOCALX_INTEGRATION_PENDING`：驗收通過後繼續既有 `LOCALX_INTEGRATION`，保留本機修改；即使 PR 仍 Draft，也不能以「綠燈但還未合併」作為完成。其他 terminal conclusion → `REPAIR_AND_RETEST`。
+4. `localX` 整合、Issue close/readback、`NEXT_ISSUE_DISCOVERY_REQUIRED` 未完成 → `CONTINUE_FINALIZATION`，不能冒稱 `RELEASED`；只有所有義務已驗證才宣告交付完成。
+5. **唯一非完成式退出**：真正的外部障礙 `BLOCKED_WITH_EVIDENCE` 或真實工具／回合上限 `RUNTIME_LIMIT_UNRESOLVED`；附 `Issue/PR/head_sha/run_id/last_observation/blocker/next_exact_action`，不得稱 DONE，不能假裝背景會繼續。ChatGPT 平台沒有可由此文件攔截的「關閉回答」鉤子；此規則依賴執行者按規則行動。
+
+只增加現有流程的真實退出決策，不需要 Codex、不建新排程、不改本機施工授權，也不恢復退役 lease／claim／Flow v2。
+
 ## 發出產品 PR 之後必須續作
 
 1. `PR_OPEN / CI_QUEUED / CI_IN_PROGRESS / CI_PENDING` 一律 `CONTINUE_POLL`，**不是可結束的交付狀態**；在當前回合持續輪詢 exact PR SHA 與對應 run，不得把「正在測試」當成派工完成。

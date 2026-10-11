@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "contract": "WHD_DISPATCH_TURN_EXIT_GATE_V1",
+  "purpose": "product /派工 turn-exit decision consistency; not a ChatGPT platform execution hook",
+  "required_observation_fields": [
+    "issue",
+    "pr",
+    "base_branch",
+    "pr_head_sha",
+    "run_id",
+    "run_head_sha",
+    "run_status",
+    "run_conclusion",
+    "last_observation",
+    "next_exact_action"
+  ],
+  "nonterminal_statuses": [
+    "requested",
+    "queued",
+    "waiting",
+    "pending",
+    "in_progress"
+  ],
+  "red_conclusions": [
+    "failure",
+    "cancelled",
+    "timed_out",
+    "action_required",
+    "startup_failure",
+    "stale"
+  ],
+  "decisions": {
+    "RUN_OR_HEAD_MISSING_OR_MISMATCH": {
+      "action": "RECONCILE_ONLY",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "CI_NONTERMINAL": {
+      "action": "CONTINUE_POLL",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "CI_TERMINAL_RED": {
+      "action": "REPAIR_AND_RETEST",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "CI_EXACT_SUCCESS_LOCALX_PENDING": {
+      "action": "LOCALX_INTEGRATION_PENDING",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "CI_EXACT_SUCCESS_REMAINING_DELIVERY": {
+      "action": "CONTINUE_FINALIZATION",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "FULL_DELIVERY_READBACK": {
+      "action": "RELEASED",
+      "normal_completion": true,
+      "may_end_turn_without_completion": false
+    },
+    "VERIFIED_EXTERNAL_BLOCKER": {
+      "action": "BLOCKED_WITH_EVIDENCE",
+      "normal_completion": false,
+      "may_end_turn_without_completion": true,
+      "requires": [
+        "blocker",
+        "last_observation",
+        "next_exact_action"
+      ]
+    },
+    "REAL_RUNTIME_LIMIT": {
+      "action": "RUNTIME_LIMIT_UNRESOLVED",
+      "normal_completion": false,
+      "may_end_turn_without_completion": true,
+      "requires": [
+        "limit_evidence",
+        "last_observation",
+        "next_exact_action"
+      ]
+    }
+  },
+  "ordering": [
+    "REAL_RUNTIME_LIMIT",
+    "VERIFIED_EXTERNAL_BLOCKER",
+    "RUN_OR_HEAD_MISSING_OR_MISMATCH",
+    "CI_NONTERMINAL",
+    "CI_TERMINAL_RED",
+    "CI_EXACT_SUCCESS_LOCALX_PENDING",
+    "CI_EXACT_SUCCESS_REMAINING_DELIVERY",
+    "FULL_DELIVERY_READBACK"
+  ],
+  "restrictions": [
+    "No normal exit while CI is nonterminal and tools remain available",
+    "No stale HEAD success reuse",
+    "No X product publish without /推推",
+    "No DC before exact CI success and LOCALX_INTEGRATION",
+    "No new recurring schedule or workflow_run coding agent"
+  ]
+}
