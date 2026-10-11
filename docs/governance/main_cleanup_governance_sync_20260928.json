@@ -17,5 +17,11 @@
       "reason": "acceptance/regression test implementation; not governance truth"
     }
   ],
-  "invariant": "Mirrored governance files must have identical blob content on main and cleanup/2d-3d-sync after merge."
+  "invariant": "Mirrored governance files must have identical blob content on main and cleanup/2d-3d-sync after merge.",
+  "status": "HISTORICAL",
+  "execution_authority": false,
+  "superseded_on": "2026-10-11",
+  "superseded_by_current_policy": ".agents/contracts/WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1.json",
+  "current_main_policy": "MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY",
+  "usage_note": "Historic record of 2026-09-28 mirroring only. Do not run mirroring, cleanup, sync, diff parity or writes to main from this manifest. Current WHD rules and writes use explicit cleanup/2d-3d-sync refs; main remains unchanged."
 }
