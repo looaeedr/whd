@@ -295,12 +295,12 @@ def _phase6_box_body_piece_solver_key(body_part, region, *, require_flat_uv):
 
 
 def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tolerance=1e-7):
-    """Expand BoxBody FW physical face about its material segment center.
+    """Expand formed FW inward from the REAL side-sheet D-core mid-surface.
 
-    Flat/material fold geometry and bend datums remain unchanged. A side-piece
-    FW segment may carry an authoritative `formed_length`; only its already
-    placed world mid-face triangles are expanded along cabinet W/X about the
-    original segment center before sheet-thickness skins are built.
+    The original FW material endpoint and the side-sheet mating hinge are
+    different under outside-to-material bend compensation. Use the placed
+    D-core mid-surface as the outboard anchor, not the FW bbox center or its
+    pre-expansion endpoint. Flat CUTTING and Divider relief remain unchanged.
     """
     role = str(getattr(piece, "role", "") or "").strip().lower()
     fw_key = {"left_side": "fw_left", "right_side": "fw_right"}.get(role)
@@ -309,6 +309,7 @@ def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tole
 
     cursor = 0.0
     band = None
+    core_bands = []
     target = None
     for row in tuple(getattr(piece, "fold_profile", ()) or ()):
         length = float(getattr(row, "length", 0.0) or 0.0)
@@ -318,10 +319,13 @@ def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tole
             if raw is not None:
                 target = float(raw)
                 band = (float(cursor), float(end))
-            break
+        if str(getattr(row, "core", "") or "") == "D":
+            core_bands.append((float(cursor), float(end)))
         cursor = end
     if band is None or target is None or target <= float(tolerance):
         return tuple(world_mid_piece or ())
+    if len(core_bands) != 1:
+        raise ValueError("formed side FW requires exactly one physical D core")
 
     selected = []
     for index, item in enumerate(tuple(mapped or ())):
@@ -342,18 +346,31 @@ def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tole
     span = float(hi - lo)
     if span <= float(tolerance):
         return tuple(rows)
-    # The outboard side-sheet hinge, not the FW face center, is the
-    # installation datum. Center-scaling shifts that hinge T/2 outwards
-    # after the side-sheet center is correctly placed at (W-T)/2, yielding
-    # physical FW skins at +/-401 for W800/T2. Keep the hinge fixed and
-    # expand only toward the inboard edge. No fixed 1-mm offset or CUTTING
-    # modification: correction follows the real formed-length contract.
-    outboard_hinge = float(lo if role == "left_side" else hi)
+    # The already-placed D core is the only true side-sheet installation
+    # datum. The raw FW endpoint itself is NOT the bend hinge: centering its
+    # expansion yields W800/T2 outer skin +/-401; anchoring to its raw end
+    # shifts too far inward (outer skin +/-399). Derive the actual hinge from
+    # same-piece D-core world mesh instead, without ANY nominal offset.
+    core_lo, core_hi = core_bands[0]
+    core_selected = [
+        index for index, item in enumerate(tuple(mapped or ()))
+        if len(tuple(getattr(item, "flat", ()) or ())) == 3
+        and core_lo + float(tolerance) < (
+            sum(float(point[0]) for point in item.flat) / 3.0
+        ) < core_hi - float(tolerance)
+    ]
+    if not core_selected:
+        raise ValueError("formed side FW cannot resolve physical D-core triangles")
+    core_xs = [
+        float(point[0]) for index in core_selected for point in rows[index]
+    ]
+    core_midplane_x = (min(core_xs) + max(core_xs)) / 2.0
+    outboard_fw_x = float(lo if role == "left_side" else hi)
     scale = float(target) / span
     for index in selected:
         rows[index] = tuple(
             (
-                outboard_hinge + (float(point[0]) - outboard_hinge) * scale,
+                core_midplane_x + (float(point[0]) - outboard_fw_x) * scale,
                 float(point[1]), float(point[2]),
             )
             for point in rows[index]
