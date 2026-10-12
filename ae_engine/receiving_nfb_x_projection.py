@@ -178,6 +178,14 @@ def _physical_w800_basis(snapshot: Mapping[str, object], inner_door_id: str):
     if data.get("model") != "受電箱" or not data.get("multi_door_enabled"):
         raise ValueError("OPEN-X-W800x3 requires enabled Receiving inner door")
     columns = data.get("door_layout_columns") or ()
+    # Assembly placement subtracts snapshot["w"]/2 from accumulated columns.
+    # An inconsistent cabinet W silently shifts every NFB shadow in later
+    # columns, even when the target W800 panel itself is geometrically valid.
+    total_columns_w = sum(float(column[0]) for column in columns)
+    cabinet_w = float(data.get("w", 0.0))
+    if (not isfinite(cabinet_w) or not isfinite(total_columns_w)
+            or abs(total_columns_w - cabinet_w) > 1e-6):
+        raise ValueError("OPEN-X-W800x3 column widths do not equal cabinet world width")
     cells = derive_door_layout_cells(columns)
     owners = [r for r in data.get("inner_doors", ()) if isinstance(r, dict)
               and r.get("stable_id") == inner_door_id]
