@@ -806,15 +806,28 @@ def test_issue63_divider_candidate_preserves_physical_depth_on_standard_topology
                 continue
             secondary_count += 1
             x0, y0, x1, y1 = map(float, row["source_solid_footprint_bounds"])
-            assert tuple(map(float, row["cut_bounds"])) == pytest.approx(
-                (x0, y0, x1, y1), abs=1.0e-5
-            )
+            cx0, cy0, cx1, cy1 = map(float, row["cut_bounds"])
+            # The actual world-to-flat footprint measures the secondary
+            # collision WIDTH and LENGTH. Its absolute V start is NOT the
+            # material CUTTING datum: the secondary must attach to the
+            # primary FW physical inside-face boundary, which can move when
+            # the authentic side-sheet formed outer skin is corrected.
+            # Check BOTH independently instead of hiding a T/2 discrepancy
+            # by requiring two unlike coordinate systems to be identical.
+            assert (cx0, cx1) == pytest.approx((x0, x1), abs=1.0e-5)
+            assert cx1 - cx0 == pytest.approx(x1 - x0, abs=1.0e-5)
+            assert cy1 - cy0 == pytest.approx(y1 - y0, abs=1.0e-5)
             assert float(row["stage_u_span"]) == pytest.approx(x1 - x0, abs=1.0e-5)
             assert float(row["stage_v_span"]) == pytest.approx(y1 - y0, abs=1.0e-5)
             assert row["dimension_source"] == (
                 "PHYSICAL_FW_INSIDE_FACE_PLUS_SOURCE_COLLISION_SPAN"
             )
-            assert "primary_inside_face_boundary" in row
+            inside_face = float(row["primary_inside_face_boundary"])
+            if row["edge"] == "MIN_Y":
+                assert cy0 == pytest.approx(inside_face, abs=1.0e-5)
+            else:
+                assert row["edge"] == "MAX_Y"
+                assert cy1 == pytest.approx(inside_face, abs=1.0e-5)
 
     assert primary_edges["box_body:left_side"] != primary_edges["box_body:right_side"]
     assert secondary_count >= 1
