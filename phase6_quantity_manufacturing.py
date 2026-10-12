@@ -136,3 +136,91 @@ def quantity_manufacturing_groups(batch, *, demands=None):
             )
     return manufacturing_api.group_quantity_physical_demands(
         batch.demands if demands is None else demands, parameters)
+
+
+def quantity_nfb_checked_manufacturing_groups(
+    batch, *, live_manifest_provider, partial,
+):
+    """Join live NFB Set/Bay/version proof to CANONICAL quantity CHECK/Q.
+
+    Each QuantityModel version is supplied with the *CURRENT* NFB per-part
+    manifest(s) by the caller's source/geometry-verifying provider. No cached
+    UI report or saved 'READY' flag is accepted as a manufacturing grant.
+    Every resolved physical demand, including held parts, must have exactly
+    one matching real manifest row before any grouping. The ordinary legacy
+    `quantity_manufacturing_groups` path remains unchanged.
+
+    Returns (canonical_groups, actual_gate). Callers must not serialize a
+    complete-box delivery claim when gate.partial_only is true.
+    """
+    from ae_engine.manufacturing_quantity import PhysicalPartDemand
+    from ae_engine.receiving_nfb_export_manifest import NfbPartialExportManifest
+    from ae_engine.receiving_nfb_quantity_gate import (
+        gate_nfb_quantity_physical_demands,
+    )
+
+    if not isinstance(batch, QuantityManufacturingBatch):
+        raise TypeError("NFB CHECK requires canonical QuantityManufacturingBatch")
+    if not callable(live_manifest_provider):
+        raise TypeError("NFB CHECK requires a live verified manifest provider")
+    if type(partial) is not bool:
+        raise TypeError("NFB CHECK partial selection must be boolean")
+    versions = tuple(batch.versions)
+    requests = tuple(batch.requests)
+    demands = tuple(batch.demands)
+    if not versions or len(versions) != len(requests) or not demands:
+        raise ValueError("NFB CHECK requires complete resolved quantity versions")
+
+    counts = {}
+    for version in versions:
+        version_id = getattr(version, "version_id", None)
+        pieces = getattr(version, "piece_count", None)
+        if (not isinstance(version_id, str) or not version_id.strip()
+                or version_id in counts
+                or type(pieces) is not int or pieces < 1):
+            raise ValueError("NFB CHECK quantity version identity/count invalid")
+        counts[version_id] = pieces
+    request_ids = set()
+    manifests = []
+    for version_id, piece_count, request in requests:
+        if (version_id not in counts or version_id in request_ids
+                or type(piece_count) is not int
+                or piece_count != counts[version_id]):
+            raise ValueError("NFB CHECK request version or quantity mismatch")
+        request_ids.add(version_id)
+        current = live_manifest_provider(version_id, request)
+        if not isinstance(current, (tuple, list)) or not current:
+            raise ValueError("NFB CHECK missing live per-Bay manifest for version")
+        for manifest in current:
+            if (not isinstance(manifest, NfbPartialExportManifest)
+                    or manifest.scope.version_id != version_id):
+                raise ValueError("NFB CHECK source manifest belongs to wrong version")
+            manifests.append(manifest)
+    if request_ids != set(counts):
+        raise ValueError("NFB CHECK quantity versions are not fully represented")
+    expected = []
+    for manifest in manifests:
+        expected.extend((manifest.scope.version_id, row.part_id)
+                        for row in manifest.rows)
+    observed = []
+    for demand in demands:
+        if (not isinstance(demand, PhysicalPartDemand)
+                or demand.version_id not in counts
+                or type(demand.piece_count) is not int
+                or demand.piece_count != counts[demand.version_id]):
+            raise ValueError("NFB CHECK resolved demand version/count mismatch")
+        observed.append((demand.version_id, demand.physical_id))
+    if (len(set(expected)) != len(expected)
+            or len(set(observed)) != len(observed)
+            or set(expected) != set(observed)):
+        raise ValueError(
+            "NFB CHECK physical inventory does not match full live manifest"
+        )
+
+    gate = gate_nfb_quantity_physical_demands(
+        demands, manifests=tuple(manifests), partial=partial,
+    )
+    groups = quantity_manufacturing_groups(batch, demands=gate.permitted)
+    if sum(group.quantity for group in groups) != gate.permitted_total_pieces:
+        raise ValueError("NFB CHECK grouped Q not equal to verified physical Q")
+    return groups, gate
