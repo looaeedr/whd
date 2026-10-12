@@ -50,6 +50,9 @@ def snapshot(*, left_neighbor=None, t=2.0, upper=1100.0):
                    [800.0, [upper, 1600.0-upper]]]
         cell_key = "1:0"
     state.update({
+        # apply_family_defaults supplies the W800 fresh-family nominal width.
+        # Multi-column tests must restore the actual assembled cabinet W.
+        "w": total_w,
         "multi_door_enabled": True,
         "door_layout_scope": "receiving-main",
         "door_layout_columns": columns,
@@ -231,3 +234,38 @@ def test_reverse_nonfinite_or_far_outside_physical_core_rejected():
                 snapshot(),"upper",candidate_world_x_mm=x,
                 original_source=src,closed_cutting_reference=closed,
             )
+
+
+@pytest.mark.parametrize("tamper", ["source_y", "closed_y", "source_color"])
+def test_original_aperture_requires_identical_closed_cutting_xy_identity(tamper):
+    """The six-hole reference has repeated X columns in two different Y rows."""
+    source, closed = originals()
+    source, closed = deepcopy(source), deepcopy(closed)
+    if tamper == "source_y":
+        side = next(e for e in source["entities"] if e["handle"] == "B6")
+        side["end"][1] -= 2.0
+    elif tamper == "closed_y":
+        # The lower-row footprint of slot zero must be byte-evidence identical.
+        lower = next(h for h in closed["rectangular_holes"]
+                     if abs(h["bbox"][0] - 5460.49589) < 1e-6
+                     and abs(h["bbox"][1] - 1544.0) < 1e-6)
+        lower["bbox"][1] += 1.0
+    else:
+        side = next(e for e in source["entities"] if e["handle"] == "B6")
+        side["color"] = 3
+    with pytest.raises(ValueError, match="OPEN-X-W800x3 source aperture"):
+        shadow_w800_three_source_x(
+            snapshot(), "upper", slot_index=0,
+            original_source=source, closed_cutting_reference=closed,
+        )
+
+def test_physical_column_width_mismatch_rejected_before_world_x_shadow():
+    state = snapshot(left_neighbor=400.0)
+    assert state["w"] == pytest.approx(1200.0)
+    state["w"] = 800.0  # malformed physical topology, not a 1200-mm cabinet
+    source, closed = originals()
+    with pytest.raises(ValueError, match="column widths do not equal cabinet world width"):
+        shadow_w800_three_source_x(
+            state, "upper", slot_index=0,
+            original_source=source, closed_cutting_reference=closed,
+        )

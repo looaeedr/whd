@@ -127,14 +127,38 @@ def _source_three_centers(source: Mapping[str, object],
         if len(matching) != 1:
             raise ValueError("OPEN-X-W800x3 source A1/A0 has no identical closed CUTTING side")
     centers = []
+    matching_closed_holes = []
     for handles in source["aperture_side_handles"]:
-        side_x = {float(entities[h]["start"][0]) for h in handles}
-        if (len(handles) != 4 or len(side_x) != 2
-                or any(entities[h]["start"][0] != entities[h]["end"][0]
-                       for h in handles)
+        if len(handles) != 4 or len(set(handles)) != 4:
+            raise ValueError("OPEN-X-W800x3 source aperture sides are ambiguous")
+        sides = [entities[h] for h in handles]
+        if any(e["type"] != "LINE" or e["layer"] != "0" or e["color"] != 7
+               for e in sides):
+            raise ValueError("OPEN-X-W800x3 source aperture side provenance differs")
+        side_x = {float(e["start"][0]) for e in sides}
+        if (len(side_x) != 2
+                or any(e["start"][0] != e["end"][0] for e in sides)
                 or abs(max(side_x) - min(side_x) - 28.0) > 1e-6):
             raise ValueError("OPEN-X-W800x3 source aperture sides are ambiguous")
+        side_y = [float(p[1]) for e in sides
+                  for p in (e["start"], e["end"])]
+        bottom, top = min(side_y), max(side_y)
+        if abs(top - bottom - 58.0) > 1e-6:
+            raise ValueError("OPEN-X-W800x3 source aperture height mismatch")
+        # The customer drawing has three apertures, while the closed reference
+        # has two rows of three. Match the actual XY hole footprint, not only
+        # the common X columns (which could hide a different Y/physical hole).
+        source_bbox = (min(side_x), bottom, max(side_x), top)
+        matched = [i for i, hole in enumerate(closed["rectangular_holes"])
+                   if len(hole["bbox"]) == 4 and all(
+                       abs(float(a) - float(b)) <= 1e-6
+                       for a, b in zip(hole["bbox"], source_bbox))]
+        if len(matched) != 1:
+            raise ValueError("OPEN-X-W800x3 source aperture has no identical closed CUTTING hole")
+        matching_closed_holes.append(matched[0])
         centers.append((min(side_x) + max(side_x)) / 2.0)
+    if len(matching_closed_holes) != 3 or len(set(matching_closed_holes)) != 3:
+        raise ValueError("OPEN-X-W800x3 source apertures do not uniquely match closed CUTTING")
     if len(centers) != 3 or any(abs(v - expect) > 1e-6 for v, expect in zip(
         (v-left_x for v in centers), (181.5, 361.5, 541.5)
     )):
@@ -154,6 +178,14 @@ def _physical_w800_basis(snapshot: Mapping[str, object], inner_door_id: str):
     if data.get("model") != "受電箱" or not data.get("multi_door_enabled"):
         raise ValueError("OPEN-X-W800x3 requires enabled Receiving inner door")
     columns = data.get("door_layout_columns") or ()
+    # Assembly placement subtracts snapshot["w"]/2 from accumulated columns.
+    # An inconsistent cabinet W silently shifts every NFB shadow in later
+    # columns, even when the target W800 panel itself is geometrically valid.
+    total_columns_w = sum(float(column[0]) for column in columns)
+    cabinet_w = float(data.get("w", 0.0))
+    if (not isfinite(cabinet_w) or not isfinite(total_columns_w)
+            or abs(total_columns_w - cabinet_w) > 1e-6):
+        raise ValueError("OPEN-X-W800x3 column widths do not equal cabinet world width")
     cells = derive_door_layout_cells(columns)
     owners = [r for r in data.get("inner_doors", ()) if isinstance(r, dict)
               and r.get("stable_id") == inner_door_id]
