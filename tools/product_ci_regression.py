@@ -50,6 +50,13 @@ PYTEST_PATHS = (
     "tests/test_issue1497_w800_three_canonical_cutting.py",
     "tests/test_issue1497_w800_three_ui_worldx.py",
     "tests/test_issue1498_nfb_part_readiness.py",
+    # #1500 persisted NFB UI-1B submit/copy/Undo used to be absent from the
+    # canonical run despite full PR GREEN. Keep exact, no-skip transaction,
+    # world-X/source, and genuine 723-mm DXF lifecycle checks here.
+    "tests/test_issue1500_nfb_transactions.py",
+    "tests/test_issue1500_nfb_ui1b_bridge.py",
+    "tests/test_issue1500_nfb_worldx_runtime.py",
+    "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
     # These were missing from the canonical product run: a GREEN alone did not
     # exercise the new production geometry. Optional customer DXF replays are
