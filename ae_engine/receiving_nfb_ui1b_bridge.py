@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from copy import deepcopy
 from hashlib import sha256
+import json
 from math import isfinite
 from pathlib import Path
 from typing import Mapping
@@ -41,6 +42,7 @@ class NfbVerifiedDraftSubmission:
     source_path: str
     snapshot_at_verification: dict
     bay_at_verification: dict
+    config_sha256_at_verification: str
 
     @property
     def can_submit(self):
@@ -58,6 +60,21 @@ class NfbVerifiedDraftSubmission:
     def held_parts(self):
         return tuple(p.part_id for p in self.readiness.decisions
                      if p.part_id != self.scope.inner_door_part_id and not p.can_export)
+
+
+def _nfb_config_proof_sha256(config: Mapping[str, object]) -> str:
+    """Canonical digest of ALL saved NFBConfig values, not just physical X.
+
+    A frozen dataclass can still contain mutable dicts: changing offsets,
+    follow/overwrite settings or source model after stage must invalidate
+    that transient proof before the canonical #1500 transaction.
+    """
+    value = normalize_nfb_config(config)
+    encoded = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return sha256(encoded).hexdigest()
 
 
 def _world_coordinate(value, unit_id):
@@ -196,6 +213,7 @@ def verify_nfb_ui1a_for_submit(
         source_path=str(source_path),
         snapshot_at_verification=deepcopy(dict(snapshot)),
         bay_at_verification=deepcopy(dict(bay)),
+        config_sha256_at_verification=_nfb_config_proof_sha256(config),
     )
 
 
@@ -204,6 +222,8 @@ def assert_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
     """Verify the staged proof still matches source bytes, panel and Bay."""
     if not isinstance(bundle,NfbVerifiedDraftSubmission):
         raise TypeError("NFB submit needs the real source-verified UI-1A bundle")
+    if _nfb_config_proof_sha256(bundle.config) != bundle.config_sha256_at_verification:
+        raise ValueError("NFB staged config changed since physical verification; reverify")
     layout=adapter.layout
     try:
         row=layout["sets"][bundle.set_index]
