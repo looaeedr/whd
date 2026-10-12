@@ -1,0 +1,90 @@
+# -*- coding: utf-8 -*-
+"""Temporary independent inverse-geometry inspection (#1702).
+
+The probe imports NO certified formula or DXF oracle into the inverse solver.
+It deliberately emits a failing test containing its complete numeric witness
+so GitHub Actions preserves the captured output for review.
+"""
+from __future__ import annotations
+
+import json
+import pytest
+
+from ae_engine.assembly_collision import build_divider_front_fold_relief_candidate
+from ae_engine.divider_manufacturing import _core_start
+from tests.test_issue39_divider_relief import (
+    _snapshot, _body_part, _divider_part, _divider_insert_joint,
+)
+from tests.test_issue74_divider_side_front_penetration import _piece_bands
+import fold_designer_bridge as bridge
+
+
+def _rounded_bounds(poly):
+    return tuple(round(float(v), 6) for v in poly.bounds)
+
+
+def test_issue1702_independent_full_thickness_reverse_cut_probe():
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, part = _divider_part(snap)
+    dims = (snap["w"], snap["h"], snap["d"])
+    world = bridge._phase6_build_joint_world_geometry((body, part), dims, snap["t"])
+    candidate = build_divider_front_fold_relief_candidate(
+        _divider_insert_joint(divider.stable_id),
+        world_triangles_by_part=world["world_triangles_by_part"],
+        mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+        flat_material_by_part=world["flat_material_by_part"],
+        core_start=_core_start(part),
+        source_geometry_keys=("box_body:left_side", "box_body:right_side"),
+        source_fold_bands_by_key=_piece_bands(body),
+        clearance=0.0,
+        sheet_thickness=snap["t"],
+    )
+    assert candidate is not None, "Full-thickness reverse solver returned no candidate"
+    minx, miny, maxx, maxy = map(float, part.render_data.material.bounds)
+    probes = []
+    for source, evidence in candidate.evidence["projection_by_source"].items():
+        stages = {}
+        for key, raw in evidence["physical_stages"].items():
+            stages[key] = {
+                "role": raw.get("role"),
+                "edge": raw.get("edge"),
+                "fw_contact_bounds": raw.get("fw_contact_bounds"),
+                "primary_cutting_depth": raw.get("primary_cutting_depth"),
+                "source_solid_footprint_bounds": raw.get("source_solid_footprint_bounds"),
+                "stage_u_span": raw.get("stage_u_span"),
+                "stage_v_span": raw.get("stage_v_span"),
+                "cut_bounds": raw.get("cut_bounds"),
+            }
+        probes.append({
+            "source": source,
+            "penetrating_bands": evidence["penetrating_bands"],
+            "contact_bands": evidence["retained_contact_bands"],
+            "physical_stages": stages,
+        })
+    # This is separate evidence only, not an input to the reverse solver.
+    solved_parts, diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
+        (body, part), finished_dimensions=dims,
+        sheet_thickness=snap["t"], clearance=0.0,
+    )
+    solved = next(row for row in solved_parts if row.part_key == divider.stable_id)
+    certified_removed = part.render_data.material.difference(solved.render_data.material)
+    reverse_removed = candidate.cut_polygon_2d
+    witness = {
+        "input": {"W": snap["w"], "T": snap["t"], "FW": snap["fw"], "D": snap["d"]},
+        "flat_blank_bounds": (minx, miny, maxx, maxy),
+        "reverse_source": "PRE_RELIEF_TWO_SKIN_WORLD_CROSSINGS_TO_FLAT",
+        "reverse_cut_bounds": _rounded_bounds(reverse_removed),
+        "reverse_cut_area": float(reverse_removed.area),
+        "reverse_cut_depths_reported": candidate.cut_depths,
+        "reverse_source_bands": probes,
+        "certified_final_cut_bounds": _rounded_bounds(certified_removed),
+        "certified_final_cut_area": float(certified_removed.area),
+        "reverse_extra_area": float(reverse_removed.difference(certified_removed).area),
+        "reverse_missing_area": float(certified_removed.difference(reverse_removed).area),
+        "source_classification": candidate.evidence["classification"],
+        "geometry_subsystem": candidate.evidence["manufacturing_dimensions_source"],
+    }
+    # Intentional red diagnostic, isolated on research branch, NEVER merge this
+    # until replaced with genuine assertions against physical geometry.
+    pytest.fail("ISSUE1702_REVERSE_PROBE=" + json.dumps(witness, ensure_ascii=False, default=str))
