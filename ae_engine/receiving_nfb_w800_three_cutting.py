@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from .manufacturing_api import save_part_render_data_dxf
+from .manufacturing_render_data import PartRenderData
 from .receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
 from .receiving_nfb_cutting_preflight import NfbExistingCuttingClaim
 from .receiving_nfb_manufacturing_release import (
@@ -102,6 +103,7 @@ def configured_w800_three_nfb_inner_door_render_data(
     source_path: str | Path,
     profile: NfbUpperSourceProfile,
     existing_claims: Sequence[NfbExistingCuttingClaim] = (),
+    existing_render_data: PartRenderData | None = None,
 ) -> NfbValidatedInnerDoorRender:
     """Execute the actual #1497 source-verified CUTTING on WHD canonical 3-up X.
 
@@ -115,6 +117,7 @@ def configured_w800_three_nfb_inner_door_render_data(
         snapshot, inner_door_id, holes=holes,
         index_path=index_path, source_path=source_path, profile=profile,
         existing_claims=existing_claims,
+        existing_render_data=existing_render_data,
     )
 
 
@@ -128,6 +131,7 @@ def save_w800_three_nfb_inner_door_dxf(
     source_path: str | Path,
     profile: NfbUpperSourceProfile,
     existing_claims: Sequence[NfbExistingCuttingClaim] = (),
+    existing_render_data: PartRenderData | None = None,
     overwrite: bool = False,
 ) -> str:
     """Create one real CUTTING DXF only after ALL configured holes pass."""
@@ -135,6 +139,7 @@ def save_w800_three_nfb_inner_door_dxf(
         snapshot, inner_door_id, rows=rows,
         index_path=index_path, source_path=source_path, profile=profile,
         existing_claims=existing_claims,
+        existing_render_data=existing_render_data,
     )
     return save_part_render_data_dxf(
         verified.render_data, output_path, overwrite=overwrite,
