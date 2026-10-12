@@ -511,6 +511,38 @@ def resolve_divider_final_geometry(
         certified_cut = _unary_union(tuple(
             _translate(poly, xoff=minx, yoff=miny) for poly in local_cuts
         )).intersection(original_material)
+        # Independent inverse witness: the pre-cut physical skin/contact
+        # and fold topology must reproduce this complete CROSS end contour.
+        # The certified registry remains manufacturing authority. Do not
+        # compare against later independent Ø6.4 datum/hole operations.
+        inverse_evidence = {"status": "NO_COLLISION_CANDIDATE"}
+        if candidate is not None:
+            from .divider_reverse_relief import reconstruct_receiving_divider_cross
+
+            inverted = reconstruct_receiving_divider_cross(
+                divider=divider, box_body=box_body, candidate=candidate,
+                thickness=float(sheet_thickness),
+            )
+            extra_area = float(
+                inverted.cut_polygon_2d.difference(certified_cut).area
+            )
+            missing_area = float(
+                certified_cut.difference(inverted.cut_polygon_2d).area
+            )
+            inverse_evidence = {
+                "status": "MATCH" if max(extra_area, missing_area) <= 1e-4 else "MISMATCH",
+                "source": "PHYSICAL_FW_CONTACT_AND_REAL_FOLD_TOPOLOGY",
+                "cutting_source": "CERTIFIED_REGISTRY_CROSS_PARAMETERS_UNCHANGED",
+                "cutting_parameters": dict(inverted.parameters),
+                "physical_world_evidence": dict(inverted.evidence),
+                "extra_area": extra_area,
+                "missing_area": missing_area,
+            }
+            if inverse_evidence["status"] != "MATCH":
+                raise ValueError(
+                    "DIVIDER_INVERSE_CROSS_MISMATCH: physical inverse must not "
+                    f"silently replace certified cutting: {extra_area=}, {missing_area=}"
+                )
         solved = _apply_cut_to_part(divider, certified_cut)
         solved = replace(
             solved,
@@ -556,6 +588,7 @@ def resolve_divider_final_geometry(
                 "collision_shadow": (
                     {} if candidate is None else dict(candidate.evidence or {})
                 ),
+                "independent_physical_inverse": inverse_evidence,
             },
             post_evidence=dict(verification),
         )

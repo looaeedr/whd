@@ -218,9 +218,16 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     assert pre["box_body:right_side"]["zr2"]["through"] is True
 
 
-def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
-    """Receiving 3D FW must occupy formed outside width, not raw material length."""
+@pytest.mark.parametrize(
+    "width, thickness", [(800.0, 2.0), (900.0, 2.0), (900.0, 1.5)]
+)
+def test_receiving_boxbody_fw_world_occupation_matches_formed_contract(width, thickness):
+    """True physical FW occupies formed width WITHOUT exceeding cabinet outside W."""
     snap = _snapshot()
+    snap.update({
+        "w": float(width), "t": float(thickness),
+        "door_layout_columns": [[float(width), [1100.0, 500.0]]],
+    })
     body = _body_part(snap)
     divider, divider_part = _divider_part(snap)
     world = bridge._phase6_build_joint_world_geometry(
@@ -256,6 +263,13 @@ def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
             "Receiving 3D FW uses material length instead of formed outside occupation",
             observed,
         )
+        # Measure real assembled skin faces, not any 27-mm CUTTING-depth
+        # projection. Outboard hinge stays on the physical side sheet;
+        # W800/T2 must be +/-400, not +/-401. Width/T vary independently.
+        if source_key == "box_body:left_side":
+            assert x0 == pytest.approx(-float(width) / 2.0, abs=1.0e-5), observed
+        else:
+            assert x1 == pytest.approx(float(width) / 2.0, abs=1.0e-5), observed
 
     print("RECEIVING_FW_FORMED_OCCUPATION=", observed)
 
@@ -500,3 +514,12 @@ def test_receiving_final_solid_divider_contacts_are_reverse_mapped_from_real_sid
         )
         _world_line, flat_line = _backproject_contact_boundary(contact)
         assert owner_pieces[role].material.covers(LineString(flat_line))
+
+
+
+def test_issue74_inverse_full_solid_reprojection_matches_final_material():
+    """Canonical product regression includes independent full-solid inverse validation."""
+    from tests.test_issue1702_reverse_geometry_probe import (
+        test_issue1702_independent_full_thickness_reverse_cut_probe,
+    )
+    test_issue1702_independent_full_thickness_reverse_cut_probe()
