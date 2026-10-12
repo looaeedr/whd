@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue1504-nfb-v14-ac-traceability
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1504 NFB v1.4 — 88 項 AC 追溯矩陣（未驗收完畢）
 
 > **請勿把 88 項已找到候選測試誤讀為 88 項通過。** 此表每一項 `accepted=false`；測試檔存在不代表已核對其 assertion。
