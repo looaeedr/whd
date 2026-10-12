@@ -58,6 +58,12 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     "tests/test_issue1504_v14_ac_traceability.py",
+    # #1504 discovered these three owner regressions were absent from canonical
+    # even though test cases existed: actual 1100 Y, saved NFB schema,
+    # source-scoped per-piece partial export. No duplicate selectors.
+    "tests/test_issue1495_receiving_nfb_y_projection.py",
+    "tests/test_issue1499_nfb_persistence.py",
+    "tests/test_issue1501_nfb_export_manifest.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
     # These were missing from the canonical product run: a GREEN alone did not
     # exercise the new production geometry. Optional customer DXF replays are
