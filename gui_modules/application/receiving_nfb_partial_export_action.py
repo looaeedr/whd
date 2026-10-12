@@ -31,6 +31,18 @@ _GEOMETRY_KEYS = (
 )
 
 
+def nfb_verification_geometry_changed(current: Mapping[str, object],
+                                      verified: Mapping[str, object]) -> bool:
+    """Shared read-only geometry fingerprint for UI readiness and real DXF.
+
+    A status preview must invalidate the SAME fields as the manufacturing
+    export action, including door gaps/flange and active layout scope.
+    """
+    if not isinstance(current, Mapping) or not isinstance(verified, Mapping):
+        raise TypeError("NFB verified geometry requires two snapshots")
+    return any(current.get(key) != verified.get(key) for key in _GEOMETRY_KEYS)
+
+
 def export_verified_receiving_nfb_inner_door(
     bundle: NfbVerifiedDraftSubmission,
     *, layout: Mapping[str, object],
@@ -49,9 +61,8 @@ def export_verified_receiving_nfb_inner_door(
         raise ValueError("NFB 需重新核對原始 DXF 與世界 X 才可部分出圖")
     if not isinstance(current_snapshot, Mapping) or not isinstance(layout, Mapping):
         raise TypeError("NFB actual Receiving geometry and layout are required")
-    if any(
-        current_snapshot.get(key) != bundle.snapshot_at_verification.get(key)
-        for key in _GEOMETRY_KEYS
+    if nfb_verification_geometry_changed(
+        current_snapshot, bundle.snapshot_at_verification,
     ):
         raise ValueError("NFB 實體內門已變更，須重新驗證後才可出圖")
     try:

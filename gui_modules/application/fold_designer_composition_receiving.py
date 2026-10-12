@@ -2274,12 +2274,12 @@ def open_receiving_multi_settings(self, namespace):
                 current=nfb_physical_bay_snapshot(set_index,bay_index)
                 # Report-only geometry fingerprint; manufacturing remains
                 # gated again by #1497/#1498 and the part-export writer.
-                geometry_keys=(
-                    "w","h","d","t","inner_doors","door_layout_columns",
-                    "box_body_profile","multi_door_enabled",
+                from .receiving_nfb_partial_export_action import (
+                    nfb_verification_geometry_changed,
                 )
-                if any(current.get(k)!=bundle.snapshot_at_verification.get(k)
-                       for k in geometry_keys):
+                if nfb_verification_geometry_changed(
+                    current, bundle.snapshot_at_verification,
+                ):
                     raise ValueError("內門幾何已變更，來源驗證必須重新執行")
                 scope=bundle.scope
                 physical=[
