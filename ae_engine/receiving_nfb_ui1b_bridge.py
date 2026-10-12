@@ -42,7 +42,7 @@ class NfbVerifiedDraftSubmission:
     source_path: str
     snapshot_at_verification: dict
     bay_at_verification: dict
-    config_sha256_at_verification: str
+    config_sha256_at_verification: str | None = None  # old read-only export receipts only
 
     @property
     def can_submit(self):
