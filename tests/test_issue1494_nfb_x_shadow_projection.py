@@ -306,16 +306,22 @@ def test_user_original_two_slot_x_sources_are_evidence_not_world_x(
     assert centers[1] - centers[0] == pytest.approx(pitch)
     assert row["observed_pitch_mm"] == pitch
     assert nominal_nfb_x_group(w, 2).adjacent_distances_mm == (pitch,)
-    # A 1-mm discrepancy against the *conditional current* T2/gap 3.5
-    # panel recipe cannot be silently erased or called a certified blank.
+    # Preserve native dimensions solely as source observations. A source drawing
+    # may be stale: its 1-mm difference MUST NOT become WHD blank authority.
     assert outer_width - row["conditional_current_t2_gap35_blank_width_mm"] == delta
     assert row["conditional_source_span_delta_mm"] == delta
+    assert row["source_outline_is_manufacturing_dimension_authority"] is False
+    assert row["canonical_whd_t2_blank_width_mm"] == w - 77
+    assert row["source_span_difference_is_release_blocker"] is False
     documented, = (entry for entry in fixture("docs/receiving-nfb-x-evidence.json")["records"]
                    if entry["box_outer_width_mm"] == w and entry["nfb_count"] == 2)
     assert documented["source_dxf_sha256"] == source_sha
     assert documented["source_outline_handles"] == row["source_outer_side_handles"]
     assert documented["source_layout_observation"]["observed_center_pitch_mm"] == pitch
     assert documented["source_layout_observation"]["status"] == "SOURCE_PITCH_OBSERVED_ONLY"
+    assert documented["source_layout_observation"]["source_span_is_dimension_authority"] is False
+    assert documented["source_layout_observation"]["source_span_difference_is_release_blocker"] is False
+    assert documented["canonical_whd_inner_door_blank_width_mm"] == w - 77
     assert documented["source_layout_observation"]["physical_blank_to_source_identical"] is False
     assert documented["source_layout_observation"]["model_main_hole_authenticated"] is False
     assert documented["certified_x_revision"] is None
@@ -325,3 +331,52 @@ def test_user_original_two_slot_x_sources_are_evidence_not_world_x(
     assert group.absolute_centers_mm is None
     assert group.certified_x_revision is None
     assert group.manufacturing_ready is False
+
+
+@pytest.mark.parametrize("width,expected_finished,expected_blank", [
+    (600, 489.0, 523.0),
+    (750, 639.0, 673.0),
+    (800, 689.0, 723.0),
+])
+def test_inner_door_blank_authority_is_live_w800_723_formula_not_source_dxf(
+    width, expected_finished, expected_blank,
+):
+    """Use the actual Receiving family -> folded panel -> CUTTING, not source bbox."""
+    from ae_engine.cabinet_types import policy
+    from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+
+    state = apply_family_defaults({
+        "model": "受電箱", "w": width, "h": 1600.0, "d": 350.0,
+        "t": 2.0, "fw": 29.0, "door_gap_w": 3.5, "door_gap_h": 3.5,
+    })
+    state.update({
+        "w": float(width),
+        "door_layout_columns": [[float(width), [1100.0, 500.0]]],
+        "multi_door_enabled": True,
+        "inner_doors": [{
+            "stable_id": "upper", "cell_key": "0:0",
+            "included_frame_sides": ["top", "left", "right"],
+        }],
+    })
+    panel, = policy.derive_inner_door_panels(state)
+    assert panel.width == pytest.approx(expected_finished)
+    assert panel.unfolded_width == pytest.approx(expected_blank)
+    actual = build_inner_door_panel_render_data(panel)
+    outlines = [
+        primitive for primitive in actual.scene.primitives
+        if isinstance(primitive, PolylinePrimitive)
+        and primitive.closed and primitive.layer.upper() == "CUTTING"
+    ]
+    assert len(outlines) == 1
+    xx = [float(point.x) for point in outlines[0].points]
+    assert max(xx) - min(xx) == pytest.approx(expected_blank)
+
+    # Historical native DXF left/right endpoints are NOT manufacturing datums:
+    witnesses = fixture("tests/fixtures/receiving_nfb_nominal_x_native_observations.json")
+    witness, = (row for row in witnesses["records"]
+                if row["box_outer_width_mm"] == width and row["nfb_count"] == 2)
+    assert witness["source_outline_is_manufacturing_dimension_authority"] is False
+    assert witness["canonical_whd_t2_blank_width_mm"] == expected_blank
+    assert witness["source_span_difference_is_release_blocker"] is False
+    assert nominal_nfb_x_group(width, 2).manufacturing_ready is False
