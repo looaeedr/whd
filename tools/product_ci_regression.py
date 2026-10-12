@@ -28,6 +28,7 @@ PYTEST_PATHS = (
     "tests/test_issue1501_nfb_check_quantity_gate.py",
     "tests/test_issue1501_nfb_manifest_ui.py",
     "tests/test_issue1501_receiving_nfb_partial_ui_export.py",
+    "tests/test_issue1501_highlighted_partial_dxf_dispatcher.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
     "tests/test_issue1496_index_color_evidence.py",
