@@ -18,6 +18,8 @@ import json
 from pathlib import Path
 import re
 import sys
+from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -29,6 +31,8 @@ from ae_engine.receiving_nfb_index_sources import (
 )
 
 DEFAULT_INDEX = ROOT / "基準檔" / "開孔" / "NFB" / "開關索引.csv"
+# Real source drawings are NOT stored alongside the index CSV.
+DEFAULT_SOURCE_ROOT = ROOT / "基準檔" / "NFB"
 DEFAULT_PINS = ROOT / "基準檔" / "開孔" / "NFB" / "來源輪廓索引.csv"
 
 
@@ -56,17 +60,74 @@ def _identity_pins(path: Path) -> dict[tuple[str, str], str]:
     return result
 
 
+def _audit_with_optional_archive(
+    index_path: str | Path, *, source_root: str | Path,
+    archive_path: str | Path | None,
+):
+    """Use original brand folders, then only uniquely named ZIP members.
+
+    The archive is read-only. A missing indexed name may be sampled from one
+    uniquely matching ZIP member, NEVER from a guessed manufacturer alias.
+    The temporary tree is cleaned automatically. No original file is copied
+    back or modified; the evidence records archival provenance separately.
+    """
+    from ae_engine.receiving_nfb_index_sources import (
+        audit_unique_nfb_index_sources, unique_nfb_dxfs_from_switch_index,
+    )
+    if archive_path is None:
+        catalog, audits = audit_unique_nfb_index_sources(
+            index_path, nfb_root=source_root,
+        )
+        return catalog, audits, {}
+    catalog = unique_nfb_dxfs_from_switch_index(index_path)
+    stored = {}
+    with ZipFile(archive_path) as archive, TemporaryDirectory(
+        prefix="whd-nfb-index-source-audit-"
+    ) as scratch:
+        members_by_basename = {}
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            basename = info.filename.rsplit("/", 1)[-1].casefold()
+            members_by_basename.setdefault(basename, []).append(info)
+        staged = Path(scratch)
+        for item in catalog.sources:
+            origin = Path(source_root) / item.relative_path
+            destination = staged / item.relative_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            key = (item.brand, item.filename.casefold())
+            if origin.is_file():
+                destination.symlink_to(origin.resolve())
+                stored[key] = "BRAND_SOURCE_FOLDER"
+                continue
+            matches = members_by_basename.get(item.filename.casefold(), ())
+            if len(matches) == 1:
+                destination.write_bytes(archive.read(matches[0]))
+                stored[key] = "ARCHIVE_SINGLE_EXACT_BASENAME_TEMP"
+            else:
+                stored[key] = (
+                    "ARCHIVE_AMBIGUOUS_UNKNOWN" if matches
+                    else "SOURCE_MISSING_UNKNOWN"
+                )
+        _catalog, audits = audit_unique_nfb_index_sources(
+            index_path, nfb_root=staged,
+        )
+        if _catalog != catalog:
+            raise ValueError("NFB staged archive index identity changed")
+        return catalog, audits, stored
+
+
 def build_source_coverage_report(
     index_path: str | Path, *, source_root: str | Path,
-    pin_path: str | Path,
+    pin_path: str | Path, archive_path: str | Path | None = None,
 ) -> dict[str, object]:
     """Resolve every catalog name; unknown observations carry JSON null counts.
 
     Pins are provenance checks, NOT permissions for main-hole CUTTING.
     A real file with unexpected bytes stays UNKNOWN despite parsable geometry.
     """
-    catalog, audits = audit_unique_nfb_index_sources(
-        index_path, nfb_root=source_root,
+    catalog, audits, storage = _audit_with_optional_archive(
+        index_path, source_root=source_root, archive_path=archive_path,
     )
     if catalog.diagnostics:
         raise ValueError("NFB source catalog has unresolved CSV diagnostics: "
@@ -98,6 +159,10 @@ def build_source_coverage_report(
         records.append({
             "brand": row.brand, "indexed_filename": row.filename,
             "source_relative_path": str(row.brand + "/" + row.filename),
+            "source_storage": storage.get(
+                key, "BRAND_SOURCE_FOLDER" if row.source_sha256
+                else "SOURCE_MISSING_UNKNOWN"
+            ),
             "model_links": [
                 {"csv_row": x.row_number, "model_key": x.model_key}
                 for x in row.model_links
@@ -154,13 +219,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--index", type=Path, default=DEFAULT_INDEX)
     parser.add_argument("--source-root", type=Path,
-                        default=DEFAULT_INDEX.parent)
+                        default=DEFAULT_SOURCE_ROOT)
+    parser.add_argument("--archive", type=Path, default=None,
+                        help="Optional ZIP fallback for uniquely named missing originals")
     parser.add_argument("--pins", type=Path, default=DEFAULT_PINS)
     parser.add_argument("--out", type=Path,
                         help="Optional report path; absent means stdout only")
     args = parser.parse_args(argv)
     report = build_source_coverage_report(
         args.index, source_root=args.source_root, pin_path=args.pins,
+        archive_path=args.archive,
     )
     payload = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.out is not None:
