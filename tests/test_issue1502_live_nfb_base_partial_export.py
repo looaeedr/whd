@@ -107,7 +107,16 @@ def test_submitted_nfb_to_existing_base_is_real_part_only_dxf(pattern, tmp_path)
     doc = ezdxf.readfile(filename)
     actual = tuple(x for x in doc.modelspace() if x.dxftype() == "CIRCLE"
                    and x.dxf.layer == "CUTTING")
-    assert len(actual) == 8
+    # The synthetic sample has DISTINCT upper Color30 circles and native
+    # lower NFB screws: 8 upper + 8 lower, NOT one alias group. Do not
+    # silently discard one group or force it to 8 to make a test green.
+    assert len(actual) == 16
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    cutting = tuple(p for p in result.render_data.scene.primitives
+                    if isinstance(p, CirclePrimitive) and p.layer == "CUTTING")
+    lower = tuple(p for p in cutting
+                  if p.source_type == "NFB_LOWER_NATIVE_FIXING_CIRCLE")
+    assert len(cutting) == 16 and len(lower) == 8
     assert len(tuple(root.glob("*.dxf"))) == 1
     assert sha256(v.original.read_bytes()).hexdigest() == v.bundle.source_inventory.source_sha256
 
