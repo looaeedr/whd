@@ -673,6 +673,7 @@ def _divider_side_contact(
         for boundary in ("MIN", "MAX")
     )
     contacts = []
+    probes = []
     for group in _mapped_plane_groups(mapped):
         normal = _unit(_outward_normal(group[0]))
         if _dot(normal, mother_normal) < 1.0 - 1e-6:
@@ -693,12 +694,19 @@ def _divider_side_contact(
         )
         for terminal in terminals:
             candidate = resolve_legal_coplanar_contact(mother, terminal)
+            probes.append((
+                terminal.region_id,
+                round(float(origin[0]), 6),
+                round(float(terminal.supporting_plane[0][0]), 6),
+                candidate.diagnostic_code,
+                dict(candidate.evidence or {}),
+            ))
             if candidate.status == "LEGAL_CONTACT" and candidate.contact is not None:
                 contacts.append(candidate.contact)
 
     if len(contacts) != 1:
         raise ValueError(
-            f"Divider/side contact requires one unique legal physical mating region; got {len(contacts)}"
+            f"Divider/side contact requires one unique legal physical mating region; got {len(contacts)}; probes={probes}"
         )
     return contacts[0]
 
