@@ -2,7 +2,7 @@
   "schema": "receiving-nfb-x-evidence-v1",
   "issue": 1494,
   "purpose": "EVIDENCE_ONLY_NOT_MANUFACTURING_CAPABILITY_REGISTRY",
-  "revision": "v1.4-evidence-2",
+  "revision": "v1.4-evidence-3-original-native-two-slot-dxf",
   "references": [
     {
       "path": "docs/specs/WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
@@ -126,8 +126,11 @@
       "x_status": "PREVIEW_ONLY",
       "certified_x_revision": null,
       "actual_inner_door_part_id": null,
-      "source_dxf_sha256": null,
-      "source_outline_handles": [],
+      "source_dxf_sha256": "cb6f200eb5339bd8abd994eee01ad405c7e0bd004984ac5b4f1be3a2b6e1bc76",
+      "source_outline_handles": [
+        "9E",
+        "9D"
+      ],
       "source_main_hole_handles": [],
       "x_direction": null,
       "blank_x_origin": null,
@@ -136,12 +139,29 @@
       "blank_to_finished_face_x": null,
       "finished_face_to_box_world_x": null,
       "missing_evidence": [
-        "OWNER_APPROVED_X_RULE_REVISION",
-        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
-        "PHYSICAL_PART_ID_AND_X_DIRECTION",
-        "BLANK_ORIGIN_IDENTITY",
-        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+        "SOURCE_LAYOUT_OUTER_EDGE_TO_WHD_MANUFACTURED_CUTTING_IDENTITY",
+        "SOURCE_CUTOUT_TO_SELECTED_NFB_MAIN_HOLE_IDENTITY",
+        "PHYSICAL_PART_X_DIRECTION_AND_ORIGIN",
+        "REVERSIBLE_BLANK_FACE_BOX_WORLD_X_MAP"
+      ],
+      "source_layout_observation": {
+        "fixture": "tests/fixtures/receiving_nfb_nominal_x_native_observations.json",
+        "source_filename": "600x2.dxf",
+        "observed_outer_vertical_edge_span_mm": 524,
+        "observed_two_cutout_centers_relative_to_left_mm": [
+          172,
+          352
+        ],
+        "observed_center_pitch_mm": 180,
+        "sampled_cutout_side_widths_mm": [
+          57,
+          57
+        ],
+        "conditional_current_t2_gap35_width_delta_mm": 1,
+        "physical_blank_to_source_identical": false,
+        "model_main_hole_authenticated": false,
+        "status": "SOURCE_PITCH_OBSERVED_ONLY"
+      }
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-750-2",
@@ -159,8 +179,11 @@
       "x_status": "PREVIEW_ONLY",
       "certified_x_revision": null,
       "actual_inner_door_part_id": null,
-      "source_dxf_sha256": null,
-      "source_outline_handles": [],
+      "source_dxf_sha256": "892cd8a391e41937e6cff74696294342d06894c1b4c47d51874da1309075da49",
+      "source_outline_handles": [
+        "6F",
+        "70"
+      ],
       "source_main_hole_handles": [],
       "x_direction": null,
       "blank_x_origin": null,
@@ -169,12 +192,29 @@
       "blank_to_finished_face_x": null,
       "finished_face_to_box_world_x": null,
       "missing_evidence": [
-        "OWNER_APPROVED_X_RULE_REVISION",
-        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
-        "PHYSICAL_PART_ID_AND_X_DIRECTION",
-        "BLANK_ORIGIN_IDENTITY",
-        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+        "SOURCE_LAYOUT_OUTER_EDGE_TO_WHD_MANUFACTURED_CUTTING_IDENTITY",
+        "SOURCE_CUTOUT_TO_SELECTED_NFB_MAIN_HOLE_IDENTITY",
+        "PHYSICAL_PART_X_DIRECTION_AND_ORIGIN",
+        "REVERSIBLE_BLANK_FACE_BOX_WORLD_X_MAP"
+      ],
+      "source_layout_observation": {
+        "fixture": "tests/fixtures/receiving_nfb_nominal_x_native_observations.json",
+        "source_filename": "750X2.dxf",
+        "observed_outer_vertical_edge_span_mm": 674,
+        "observed_two_cutout_centers_relative_to_left_mm": [
+          182,
+          492
+        ],
+        "observed_center_pitch_mm": 310,
+        "sampled_cutout_side_widths_mm": [
+          50,
+          50
+        ],
+        "conditional_current_t2_gap35_width_delta_mm": 1,
+        "physical_blank_to_source_identical": false,
+        "model_main_hole_authenticated": false,
+        "status": "SOURCE_PITCH_OBSERVED_ONLY"
+      }
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-800-2",
@@ -192,8 +232,11 @@
       "x_status": "PREVIEW_ONLY",
       "certified_x_revision": null,
       "actual_inner_door_part_id": null,
-      "source_dxf_sha256": null,
-      "source_outline_handles": [],
+      "source_dxf_sha256": "a2de69b4dba64ee8d22d42d79b7a67bdc94f561181bc232d3193f6ce9afc41e7",
+      "source_outline_handles": [
+        "8D",
+        "8E"
+      ],
       "source_main_hole_handles": [],
       "x_direction": null,
       "blank_x_origin": null,
@@ -202,12 +245,29 @@
       "blank_to_finished_face_x": null,
       "finished_face_to_box_world_x": null,
       "missing_evidence": [
-        "OWNER_APPROVED_X_RULE_REVISION",
-        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
-        "PHYSICAL_PART_ID_AND_X_DIRECTION",
-        "BLANK_ORIGIN_IDENTITY",
-        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+        "SOURCE_LAYOUT_OUTER_EDGE_TO_WHD_MANUFACTURED_CUTTING_IDENTITY",
+        "SOURCE_CUTOUT_TO_SELECTED_NFB_MAIN_HOLE_IDENTITY",
+        "PHYSICAL_PART_X_DIRECTION_AND_ORIGIN",
+        "REVERSIBLE_BLANK_FACE_BOX_WORLD_X_MAP"
+      ],
+      "source_layout_observation": {
+        "fixture": "tests/fixtures/receiving_nfb_nominal_x_native_observations.json",
+        "source_filename": "800x2.dxf",
+        "observed_outer_vertical_edge_span_mm": 723,
+        "observed_two_cutout_centers_relative_to_left_mm": [
+          216.5,
+          541.5
+        ],
+        "observed_center_pitch_mm": 325,
+        "sampled_cutout_side_widths_mm": [
+          57,
+          28
+        ],
+        "conditional_current_t2_gap35_width_delta_mm": 0,
+        "physical_blank_to_source_identical": false,
+        "model_main_hole_authenticated": false,
+        "status": "SOURCE_PITCH_OBSERVED_ONLY"
+      }
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-800-3",
