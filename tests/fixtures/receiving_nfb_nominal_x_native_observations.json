@@ -53,7 +53,11 @@
       ],
       "observed_pitch_mm": 180,
       "conditional_current_t2_gap35_blank_width_mm": 523,
-      "conditional_source_span_delta_mm": 1
+      "conditional_source_span_delta_mm": 1,
+      "source_outline_is_manufacturing_dimension_authority": false,
+      "canonical_whd_t2_finished_width_mm": 489,
+      "canonical_whd_t2_blank_width_mm": 523,
+      "source_span_difference_is_release_blocker": false
     },
     {
       "box_outer_width_mm": 750,
@@ -103,7 +107,11 @@
       ],
       "observed_pitch_mm": 310,
       "conditional_current_t2_gap35_blank_width_mm": 673,
-      "conditional_source_span_delta_mm": 1
+      "conditional_source_span_delta_mm": 1,
+      "source_outline_is_manufacturing_dimension_authority": false,
+      "canonical_whd_t2_finished_width_mm": 639,
+      "canonical_whd_t2_blank_width_mm": 673,
+      "source_span_difference_is_release_blocker": false
     },
     {
       "box_outer_width_mm": 800,
@@ -153,13 +161,32 @@
       ],
       "observed_pitch_mm": 325,
       "conditional_current_t2_gap35_blank_width_mm": 723,
-      "conditional_source_span_delta_mm": 0
+      "conditional_source_span_delta_mm": 0,
+      "source_outline_is_manufacturing_dimension_authority": false,
+      "canonical_whd_t2_finished_width_mm": 689,
+      "canonical_whd_t2_blank_width_mm": 723,
+      "source_span_difference_is_release_blocker": false
     }
   ],
   "limitations": [
     "LINE layer 0 / ACI 7 is placement source, not CUTTING entity authority",
     "The two sampled source cutouts need not be the same NFB model/geometry (W800x2 widths 57 versus 28)",
     "No absolute box-world X or manufacturing-ready conclusion may be inferred",
-    "Conditional T2/3.5 gap blank-width comparison is not a certification of the historical original drawing setup"
-  ]
+    "User correction 2026-10-12: native DXF edge spans may be wrong or stale; WHD W800=723 real inner-door folding formula owns manufacturing width, extended through existing family engine for W600=523 and W750=673 at T2/gap3.5",
+    "The observed native-vs-WHD 1-mm differences at W600/W750 are provenance-only, not manufacturing tolerance, not a width adjustment, and not a release blocker."
+  ],
+  "manufacturing_width_authority": {
+    "source": "ae_engine/cabinet_types/receiving.py::derive_inner_door_panels -> ae_engine/inner_door_panels.py::InnerDoorPanelPart.unfolded_width -> ae_engine.manufacturing_api.build_inner_door_panel_render_data",
+    "status": "CANONICAL_WHD_GEOMETRY_NOT_NATIVE_DXF",
+    "approved_reference": "W800 T2 outer=800 / inner-finished=689 / blank=723",
+    "checked_context": {
+      "thickness_mm": 2,
+      "inner_frame_side_occupation_mm": 50,
+      "door_gap_each_side_mm": 3.5,
+      "fold_each_side_mm": 19
+    },
+    "native_source_edge_spans_are_historical_observations": true,
+    "source_span_differences_never_override_manufacturing_blank": true,
+    "source_layout_pitch_does_not_establish_absolute_world_x": true
+  }
 }
