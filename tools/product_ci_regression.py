@@ -34,6 +34,10 @@ PYTEST_PATHS = (
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
     "tests/test_issue1494_nfb_x_shadow_projection.py",
     "tests/test_issue1496_index_color_evidence.py",
+    "tests/test_issue1496_nfb_dxf_source.py",
+    "tests/test_issue1496_nfb_index_unique_sources.py",
+    "tests/test_issue1496_real_nfb_source_observation.py",
+    "tests/test_issue1496_nfb_source_inventory_report.py",
     "tests/test_issue1498_nfb_part_readiness.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
     # These were missing from the canonical product run: a GREEN alone did not
