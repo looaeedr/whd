@@ -783,7 +783,11 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "current_scope_correction": {
+        "issue": 1502,
+        "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
+      }
     },
     {
       "id": "NFB-AC-39",
@@ -922,7 +926,11 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "current_scope_correction": {
+        "issue": 1502,
+        "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
+      }
     },
     {
       "id": "NFB-AC-45",
@@ -1154,7 +1162,11 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "current_scope_correction": {
+        "issue": 1502,
+        "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
+      }
     },
     {
       "id": "NFB-AC-56",
@@ -1615,7 +1627,11 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "current_scope_correction": {
+        "issue": 1502,
+        "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
+      }
     },
     {
       "id": "SWT-AC-22",
@@ -1833,7 +1849,20 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "current_scope_correction": {
+        "issue": 1502,
+        "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
+      }
     }
-  ]
+  ],
+  "latest_product_scope": {
+    "authority_issue": 1502,
+    "rule": "Actual submitted NFB inner-door hole center is the sole NFB location source; left/right ears and real base plate consume it. A center illustration folded sample is not a separate middle plate. Never use sample DXF origin to set machine world coordinates.",
+    "cannot_be_inferred": [
+      "EAR welded Z/correction",
+      "PAD manufacturing geometry",
+      "imaginary middle plate from Color150"
+    ]
+  }
 }
