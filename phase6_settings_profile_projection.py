@@ -267,9 +267,14 @@ def project_part_dimensions(snapshot: Mapping[str, object]) -> dict[str, dict[st
     shrink_bottom = _num(snapshot.get("base_plate_shrink_bottom", 55), 55)
     base_w = max(1.0, w - shrink_left - shrink_right)
     base_h = max(1.0, h - shrink_top - shrink_bottom)
+    if str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}:
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
+        physical_size = receiving_base_plate_blank_dimensions(snapshot)
+        if physical_size is not None:
+            base_w, base_h = physical_size
     dims["base_plate"] = {"width": base_w, "height": base_h}
 
-    if door_rows:
+    if door_rows and str(snapshot.get("model") or "").strip() not in {"受電箱", "RECEIVING"}:
         columns = tuple(
             (float(row[0]), tuple(float(v) for v in row[1]))
             for row in tuple(snapshot.get("door_layout_columns") or ())
