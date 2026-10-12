@@ -128,6 +128,7 @@ def derive_w800_three_nfb_capability(
     hole_locations = (
         verified_inner_door.verified_hole_locations
         if isinstance(verified_inner_door, NfbValidatedInnerDoorRender)
+        and isinstance(verified_inner_door.verified_hole_locations, tuple)
         else ()
     )
     layer_counts = {row[2] for row in hole_locations
@@ -147,7 +148,7 @@ def derive_w800_three_nfb_capability(
                 raise ValueError("NFB real Y physical part mismatch")
         except (ValueError, TypeError, KeyError, IndexError):
             failed.append("W800_THREE_UPPER_1100_Y_UNVERIFIED")
-    if layers in (1, 2) and x_sites and y_sites:
+    if readiness.can_submit and layers in (1, 2) and x_sites and y_sites:
         actual_x = sorted(x.box_world_x_mm for x in x_sites)
         for layer in range(layers):
             observed_x = sorted(float(r[1]) for r in hole_locations
