@@ -268,3 +268,38 @@ def test_receiving_side_sheet_datum_uses_outside_width_not_inner_skin(width, thi
         outer_skin = midplane + side * thickness / 2.0
         assert inner_skin == pytest.approx(side * (width - 2.0 * thickness) / 2.0)
         assert outer_skin == pytest.approx(side * width / 2.0)
+
+
+@pytest.mark.parametrize(
+    "outside_w,thickness,center",
+    [(800.0, 2.0, 0.0), (900.0, 1.5, 0.0), (800.0, 2.0, 50.0)],
+)
+def test_receiving_sheet_forward_and_reverse_use_identical_physical_faces(
+    outside_w, thickness, center,
+):
+    from ae_engine.side_sheet_datum import SideSheetDatum
+
+    original = SideSheetDatum.from_outside_width(
+        outside_w, thickness, center_x=center,
+    )
+    reconstructed = SideSheetDatum.from_inner_faces(
+        original.inside_face(-1), original.inside_face(+1), thickness,
+    )
+    assert reconstructed == original
+    assert reconstructed.inner_clear_width == pytest.approx(outside_w - 2 * thickness)
+    for side in (-1, +1):
+        assert original.mid_surface(side) == pytest.approx(
+            (original.outside_face(side) + original.inside_face(side)) / 2.0
+        )
+        assert original.outside_face(side) == pytest.approx(
+            original.inside_face(side) + side * thickness
+        )
+
+
+def test_receiving_sheet_datum_rejects_nonphysical_outside_dimensions():
+    from ae_engine.side_sheet_datum import SideSheetDatum
+
+    with pytest.raises(ValueError):
+        SideSheetDatum.from_outside_width(4.0, 2.0)
+    with pytest.raises(ValueError):
+        SideSheetDatum.from_inner_faces(398.0, -398.0, 2.0)
