@@ -177,7 +177,7 @@ def _validated_legacy_inner_door_scene(
         elif isinstance(primitive, CirclePrimitive):
             center = primitive.center
             x, y, radius = float(center.x), float(center.y), float(primitive.radius)
-                    if not all(isfinite(t) for t in (x, y, radius)) or radius <= 0:
+            if not all(isfinite(t) for t in (x, y, radius)) or radius <= 0:
                 raise ValueError("NFB existing legacy CIRCLE has invalid CUTTING radius")
             # Bounding polygon is intentionally conservative for round holes:
             # bbox intersection may hold a noncolliding hole, never duplicate it.
