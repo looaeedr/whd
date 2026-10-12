@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """#1498 NFB per-physical-part readiness / partial export regression."""
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -50,7 +51,9 @@ def _inner(*, sha=SHA, part="inner_door:upper:panel", status=VALIDATED):
 
 def test_unconfigured_preserves_legacy_even_when_nfb_source_absent():
     result=derive_nfb_part_readiness(_scope(submitted=False))
-    assert result.can_submit
+    # Legacy output remains usable, but UNCONFIGURED is not a verified NFB
+    # submission and cannot authorize an NFB manufacturing transaction.
+    assert not result.can_submit
     assert all(item.status==LEGACY for item in result.decisions)
     assert result.filter_export_part_ids((
         "inner_door:upper:panel","base_plate:upper",
@@ -165,7 +168,7 @@ def test_issue1502_one_authority_inner_door_NFB_no_base_from_illustration():
         verified_inner_door=None,
     )
     assert not not_verified.can_submit
-    assert not_verified.for_part("inner_door:upper:panel").status==READY
+    assert not_verified.for_part("inner_door:upper:panel").status==BLOCKED
 
 
 def test_each_set_bay_version_independent_and_no_cross_scope_ready_cache():
@@ -197,3 +200,45 @@ def test_duplicate_or_ambiguous_physical_ids_fail_closed():
     )
     with pytest.raises(ValueError,match="duplicate"):
         result.filter_export_part_ids(("side_panel:left","side_panel:left"))
+
+
+def test_duplicate_process_color_rows_cannot_hide_real_base_holes():
+    original=_inventory(color30=1)
+    poisoned=replace(original,process_aci_entity_counts=(
+        (30,1),(150,1),(212,0),(30,0),
+    ))
+    status=derive_nfb_part_readiness(
+        _scope(),source_inventory=poisoned,verified_inner_door=_inner(),
+    )
+    assert not status.can_submit
+    assert status.for_part("inner_door:upper:panel").status==BLOCKED
+    assert status.for_part("base_plate:upper").status==BLOCKED
+    assert status.for_part("middle_plate:upper").status==BLOCKED
+    assert "NFB_SOURCE_COLOR_SCOPE_UNKNOWN" in status.scope_reasons
+
+
+@pytest.mark.parametrize("bad_counts",(
+    ((30,False),(150,1),(212,0)),
+    ((30,0),(150,1)),
+    ((30,0),(150,1),(212,-1)),
+    ((30,0),(150,0),(150,1),(212,0)),
+))
+def test_missing_or_malformed_color_evidence_is_unknown_not_zero(bad_counts):
+    inventory=replace(_inventory(),process_aci_entity_counts=bad_counts)
+    state=derive_nfb_part_readiness(
+        _scope(),source_inventory=inventory,verified_inner_door=_inner(),
+    )
+    assert state.for_part("base_plate:upper").status==BLOCKED
+    assert "NFB_SOURCE_COLOR_SCOPE_UNKNOWN" in state.scope_reasons
+
+
+def test_unique_out_of_order_color_counts_do_not_change_valid_readiness():
+    reordered=replace(_inventory(),process_aci_entity_counts=(
+        (212,0),(150,1),(30,0),
+    ))
+    state=derive_nfb_part_readiness(
+        _scope(),source_inventory=reordered,verified_inner_door=_inner(),
+    )
+    assert state.can_submit
+    assert state.for_part("base_plate:upper").status==UNAFFECTED
+    assert state.for_part("middle_plate:upper").status==BLOCKED
