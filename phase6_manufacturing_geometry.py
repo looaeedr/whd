@@ -342,11 +342,20 @@ def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tole
     span = float(hi - lo)
     if span <= float(tolerance):
         return tuple(rows)
-    center = (float(lo) + float(hi)) / 2.0
+    # The OUTBOARD end is the real side-sheet fold/mating datum. Growing the
+    # formed FW about its center shifts that hinge outward by half the formed
+    # compensation, even though the side-sheet core remains at the correct
+    # outside-W midplane. W800/T2 then produced physical skins at +/-401.
+    # Preserve the original hinge and expand only toward the cabinet interior:
+    # no absolute X, magic 1 mm, change to the flat CUTTING, or side relocation.
+    outboard_hinge = float(lo if role == "left_side" else hi)
     scale = float(target) / span
     for index in selected:
         rows[index] = tuple(
-            (center + (float(point[0]) - center) * scale, float(point[1]), float(point[2]))
+            (
+                outboard_hinge + (float(point[0]) - outboard_hinge) * scale,
+                float(point[1]), float(point[2]),
+            )
             for point in rows[index]
         )
     return tuple(rows)
