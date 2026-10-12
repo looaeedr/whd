@@ -23,6 +23,15 @@ from ae_engine.receiving_nfb_legacy_feature_bridge import (
 )
 from ae_engine.sheetmetal_geometry import Vec2
 from ae_engine.receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
+from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+from ae_engine.receiving_nfb_part_readiness import (
+    NfbPhysicalScope, READY, BLOCKED, LEGACY,
+)
+from ae_engine.receiving_nfb_capability_matrix import (
+    derive_w800_three_nfb_capability, CAPABILITY_SCHEMA,
+    CAPABILITY_RULE_REVISION,
+)
+from ae_engine.receiving_nfb_x_projection import W800_THREE_DATUM_REVISION
 from ae_engine.receiving_nfb_cutting_preflight import NfbExistingCuttingClaim
 from ae_engine.receiving_nfb_w800_three_cutting import (
     NfbW800ThreeRow,
@@ -674,3 +683,108 @@ def test_legacy_features_and_existing_scene_cannot_disagree(tmp_path):
         existing_inner_door_feature_finalscene(
             state,panel,existing_render_data=foreign,
         )
+
+
+def _w800_capability(tmp_path, *, neighbor=None, layers=1,
+                     submitted=True, change_state=None, change_proof=None):
+    state=_state(neighbor)
+    if change_state:
+        state.update(change_state)
+    index,source,profile=_source(tmp_path)
+    inventory=inspect_nfb_dxf_source(source)
+    scope=NfbPhysicalScope(
+        set_id="setW800",bay_id="bayUpper",version_id="version-1",
+        submitted=submitted,inner_door_part_id="inner_door:upper:panel",
+    )
+    evidence=None
+    if submitted:
+        # For deliberately mismatched snapshots, generate an otherwise valid
+        # witness from the original canonical physical part.
+        verified_state=state if change_state is None else _state(neighbor)
+        evidence=configured_w800_three_nfb_inner_door_render_data(
+            verified_state,"upper",
+            rows=(_row(),) if layers==1 else (_row(0),_row(1)),
+            index_path=index,source_path=source,profile=profile,
+        )
+    if change_proof and evidence is not None:
+        evidence=change_proof(evidence)
+    actual=derive_w800_three_nfb_capability(
+        state,"upper",scope=scope,source_inventory=inventory,
+        verified_inner_door=evidence,
+    )
+    return actual
+
+
+@pytest.mark.parametrize("neighbor,layer_count", [
+    (None,1),(400.,1),(None,2),(400.,2),
+])
+def test_1498_versioned_w800_three_capability_tracks_real_x_y_and_source(
+    tmp_path,neighbor,layer_count,
+):
+    proven=_w800_capability(tmp_path,neighbor=neighbor,layers=layer_count)
+    assert proven.schema==CAPABILITY_SCHEMA
+    assert proven.revision==CAPABILITY_RULE_REVISION
+    assert proven.status==READY
+    assert proven.can_manufacture_nfb_inner_door
+    assert proven.scope_identity==("setW800","bayUpper","version-1")
+    assert proven.physical_part_id=="inner_door:upper:panel"
+    assert proven.bay_cell_width_mm==pytest.approx(800.)
+    assert proven.blank_cutting_width_mm==pytest.approx(723.)
+    assert proven.units_per_layer==3
+    assert proven.layer_count==layer_count
+    assert proven.x_datum_revision==W800_THREE_DATUM_REVISION
+    assert proven.y_datum_revision
+    assert proven.model_identity==("士林","400_140X257_107.dxf")
+    assert len(proven.source_sha256)==64
+    report=proven.report()
+    assert report["status"]=="READY"
+    assert report["can_manufacture_nfb_inner_door"] is True
+    assert report["scope"]["version_id"]=="version-1"
+    assert report["model_identity"]==["士林","400_140X257_107.dxf"]
+
+
+@pytest.mark.parametrize("change", [
+    {"w":750.}, {"t":3.}, {"door_gap_w":4.},
+    {"multi_door_enabled":False},
+])
+def test_1498_wrong_w800_manufacturing_part_datum_is_blocked_not_guessed(
+    tmp_path, change,
+):
+    status=_w800_capability(tmp_path,change_state=change)
+    assert status.status==BLOCKED
+    assert "W800_THREE_ACTUAL_723_CUTTING_X_UNVERIFIED" in status.reasons
+    assert not status.can_manufacture_nfb_inner_door
+
+
+@pytest.mark.parametrize("poison", [
+    lambda r:replace(r,verified_hole_locations=()),
+    lambda r:replace(r,verified_hole_locations=tuple(
+        (p[0],p[1]+9.,p[2],p[3],p[4])
+        if i==1 else p for i,p in enumerate(r.verified_hole_locations)
+    )),
+    lambda r:replace(r,verified_hole_locations=tuple(
+        (p[0],p[1],2,p[3],p[4]) for p in r.verified_hole_locations
+    )),
+    lambda r:replace(r,source_sha256="0"*64),
+    lambda r:replace(r,render_data=replace(
+        r.render_data,metadata={
+            **r.render_data.metadata,"nfb_y_rule_revision":"STALE",
+        },
+    )),
+])
+def test_1498_matrix_rejects_stale_x_y_layers_and_source(
+    tmp_path,poison,
+):
+    result=_w800_capability(tmp_path,change_proof=poison)
+    assert result.status==BLOCKED
+    assert result.reasons
+    assert result.report()["can_manufacture_nfb_inner_door"] is False
+
+
+def test_1498_unconfigured_matrix_is_legacy_not_manufacturing_permission(tmp_path):
+    result=_w800_capability(tmp_path,submitted=False)
+    assert result.status==LEGACY
+    assert not result.can_manufacture_nfb_inner_door
+    assert result.report()["status"]=="UNCONFIGURED_LEGACY"
+    assert result.model_identity is None
+    assert result.source_sha256 is None
