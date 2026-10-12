@@ -500,3 +500,12 @@ def test_receiving_final_solid_divider_contacts_are_reverse_mapped_from_real_sid
         )
         _world_line, flat_line = _backproject_contact_boundary(contact)
         assert owner_pieces[role].material.covers(LineString(flat_line))
+
+
+
+def test_issue74_inverse_full_solid_reprojection_matches_final_material():
+    """Canonical product regression includes independent full-solid inverse validation."""
+    from tests.test_issue1702_reverse_geometry_probe import (
+        test_issue1702_independent_full_thickness_reverse_cut_probe,
+    )
+    test_issue1702_independent_full_thickness_reverse_cut_probe()
