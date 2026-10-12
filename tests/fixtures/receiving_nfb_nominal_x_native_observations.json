@@ -1,0 +1,165 @@
+{
+  "schema": "receiving-nfb-nominal-x-original-dxf-observations-v1",
+  "scope": "ORIGINAL_SOURCE_GEOMETRY_ONLY_NOT_WORLD_X_NOT_MANUFACTURING",
+  "read_method": "Independent ezdxf inspection of user-uploaded native DXF modelspace, 2026-10-12",
+  "source_dxf_bytes_not_committed": true,
+  "coordinate_units": "DXF header INSUNITS=0; values interpreted against approved millimetre nominal widths, not auto-certified",
+  "records": [
+    {
+      "box_outer_width_mm": 600,
+      "nfb_count": 2,
+      "source_filename": "600x2.dxf",
+      "source_sha256": "cb6f200eb5339bd8abd994eee01ad405c7e0bd004984ac5b4f1be3a2b6e1bc76",
+      "source_outer_side_handles": [
+        "9E",
+        "9D"
+      ],
+      "source_outer_side_x_mm": [
+        5194.77,
+        5718.77
+      ],
+      "source_outer_span_mm": 524,
+      "source_cutout_side_handles": [
+        [
+          "AF",
+          "B2"
+        ],
+        [
+          "B3",
+          "B6"
+        ]
+      ],
+      "cutout_side_x_mm": [
+        [
+          5338.27,
+          5395.27
+        ],
+        [
+          5518.27,
+          5575.27
+        ]
+      ],
+      "cutout_side_separation_mm": [
+        57,
+        57
+      ],
+      "observed_centers_source_x_mm": [
+        5366.77,
+        5546.77
+      ],
+      "observed_centers_relative_to_source_left_mm": [
+        172,
+        352
+      ],
+      "observed_pitch_mm": 180,
+      "conditional_current_t2_gap35_blank_width_mm": 523,
+      "conditional_source_span_delta_mm": 1
+    },
+    {
+      "box_outer_width_mm": 750,
+      "nfb_count": 2,
+      "source_filename": "750X2.dxf",
+      "source_sha256": "892cd8a391e41937e6cff74696294342d06894c1b4c47d51874da1309075da49",
+      "source_outer_side_handles": [
+        "6F",
+        "70"
+      ],
+      "source_outer_side_x_mm": [
+        5527.52447,
+        6201.52447
+      ],
+      "source_outer_span_mm": 674,
+      "source_cutout_side_handles": [
+        [
+          "81",
+          "80"
+        ],
+        [
+          "87",
+          "86"
+        ]
+      ],
+      "cutout_side_x_mm": [
+        [
+          5684.52447,
+          5734.52447
+        ],
+        [
+          5994.52447,
+          6044.52447
+        ]
+      ],
+      "cutout_side_separation_mm": [
+        50,
+        50
+      ],
+      "observed_centers_source_x_mm": [
+        5709.52447,
+        6019.52447
+      ],
+      "observed_centers_relative_to_source_left_mm": [
+        182,
+        492
+      ],
+      "observed_pitch_mm": 310,
+      "conditional_current_t2_gap35_blank_width_mm": 673,
+      "conditional_source_span_delta_mm": 1
+    },
+    {
+      "box_outer_width_mm": 800,
+      "nfb_count": 2,
+      "source_filename": "800x2.dxf",
+      "source_sha256": "a2de69b4dba64ee8d22d42d79b7a67bdc94f561181bc232d3193f6ce9afc41e7",
+      "source_outer_side_handles": [
+        "8D",
+        "8E"
+      ],
+      "source_outer_side_x_mm": [
+        6092.99589,
+        6815.99589
+      ],
+      "source_outer_span_mm": 723,
+      "source_cutout_side_handles": [
+        [
+          "A2",
+          "A5"
+        ],
+        [
+          "A8",
+          "A6"
+        ]
+      ],
+      "cutout_side_x_mm": [
+        [
+          6280.99589,
+          6337.99589
+        ],
+        [
+          6620.49589,
+          6648.49589
+        ]
+      ],
+      "cutout_side_separation_mm": [
+        57,
+        28
+      ],
+      "observed_centers_source_x_mm": [
+        6309.49589,
+        6634.49589
+      ],
+      "observed_centers_relative_to_source_left_mm": [
+        216.5,
+        541.5
+      ],
+      "observed_pitch_mm": 325,
+      "conditional_current_t2_gap35_blank_width_mm": 723,
+      "conditional_source_span_delta_mm": 0
+    }
+  ],
+  "limitations": [
+    "LINE layer 0 / ACI 7 is placement source, not CUTTING entity authority",
+    "The two sampled source cutouts need not be the same NFB model/geometry (W800x2 widths 57 versus 28)",
+    "No absolute box-world X or manufacturing-ready conclusion may be inferred",
+    "Conditional T2/3.5 gap blank-width comparison is not a certification of the historical original drawing setup"
+  ]
+}
