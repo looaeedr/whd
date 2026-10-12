@@ -370,9 +370,9 @@ def resolve_inner_door_frame_placement(
             snapshot, inner_door_id
         )
         frame_center_y = float(vertical["center_y"])
-        # Box Body side physical midplanes at ±(W-2T)/2; their inside
-        # skins are another T/2 toward the opening.
-        side_inner = w / 2.0 - 1.5 * t
+        # Mate the frame to the REAL side-sheet inside skin: outside W
+        # minus one full sheet thickness, not the side-sheet midplane.
+        side_inner = w / 2.0 - t
         if side == "left":
             # Last flange local +U maps to cabinet -X.
             position = (-side_inner + physical_skin, frame_center_y, cz)

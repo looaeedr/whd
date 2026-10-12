@@ -362,11 +362,18 @@ def test_receiving_assembly_view_visibly_projects_receiver_mother_plate_markings
             if str(part.part_key).startswith("box_body:divider:"):
                 divider_marks.extend(marking_lines(part.render_data))
 
-        assert len(receiver_sources["left_side"]) == 1
-        assert len(receiver_sources["right_side"]) == 1
+        # Each actual side plate now carries the pre-existing inner-frame
+        # contact AND the newly verified Divider terminal contact.
+        for role in ("left_side", "right_side"):
+            rows = tuple(dict(pieces[role].metadata or {}).get("joint_markings") or ())
+            assert {row["attached_part_id"] for row in rows} == {
+                f"inner_door:upper:{role.split('_')[0]}_frame",
+                "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1",
+            }
+            assert len(receiver_sources[role]) == 2
         assert len(receiver_sources["head"]) == 1
         assert len(divider_marks) == 2
-        assert sum(len(rows) for rows in receiver_sources.values()) + len(divider_marks) == 5
+        assert sum(len(rows) for rows in receiver_sources.values()) + len(divider_marks) == 7
 
         for frame_id in (
             "inner_door:upper:top_frame",
@@ -385,8 +392,8 @@ def test_receiving_assembly_view_visibly_projects_receiver_mother_plate_markings
             line for line in tuple(ax.lines)
             if str(line.get_color()).lower() == "#f59e0b"
         ]
-        assert len(visible_marks) >= 5, (
-            "All five canonical receiver-owned contact MARKING lines exist in "
+        assert len(visible_marks) >= 7, (
+            "All seven canonical receiver-owned contact MARKING lines exist in "
             "FinalScene/DXF but are not visibly projected in Receiving assembly 3D"
         )
         assert all(float(line.get_zorder()) >= 10.0 for line in visible_marks)

@@ -87,8 +87,8 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
         )
     }
     expected = {
-        "inner_door:upper:left_frame": (-362.0, "box_body:left_side"),
-        "inner_door:upper:right_frame": (373.0, "box_body:right_side"),
+        "inner_door:upper:left_frame": (-363.0, "box_body:left_side"),
+        "inner_door:upper:right_frame": (374.0, "box_body:right_side"),
     }
     for stable_id, (x, mother_plate) in expected.items():
         placement = resolve_assembly_placement(snapshot, stable_id)
@@ -247,3 +247,24 @@ def test_2d_receiving_overlay_consumes_authoritative_placement_not_local_50px_of
     assert "world_offset" in snapshot_source
     assert "inset_px = 50.0 * scale" not in snapshot_source + render_source
     assert "_door_layout_world_to_canvas" in render_source
+
+
+@pytest.mark.parametrize("width, thickness", [(800.0, 2.0), (900.0, 1.5)])
+def test_receiving_side_sheet_datum_uses_outside_width_not_inner_skin(width, thickness):
+    """The assembly mid-surface is a rendering datum, not a manufacturing width."""
+    from types import SimpleNamespace
+    from ae_engine.assembly_geometry_folded_mesh import place_box_body_structure_points
+
+    profile = ({"len": 300.0, "core": "D"},)
+    for role, side in (("left_side", -1), ("right_side", +1)):
+        sheet = SimpleNamespace(role=role, formed_y_offset=0.0)
+        point = place_box_body_structure_points(
+            ((0.0, 0.0, 0.0),), sheet,
+            total_w=width, thickness=thickness, x_profile=profile,
+        )[0]
+        midplane = side * (width - thickness) / 2.0
+        assert point[0] == pytest.approx(midplane)
+        inner_skin = midplane - side * thickness / 2.0
+        outer_skin = midplane + side * thickness / 2.0
+        assert inner_skin == pytest.approx(side * (width - 2.0 * thickness) / 2.0)
+        assert outer_skin == pytest.approx(side * width / 2.0)
