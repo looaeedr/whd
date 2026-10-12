@@ -46,6 +46,7 @@ def _inner(*, sha=SHA, part="inner_door:upper:panel", status=VALIDATED):
         part_id=part, indexed_model_key=("士林","400_140X257_107.dxf"),
         source_sha256=sha,
         physical_hole_ids=("nfb:upper:1",),
+        verified_hole_locations=(("nfb:upper:1", 0.0, 1, 0, 90),),
     )
 
 
@@ -242,3 +243,50 @@ def test_unique_out_of_order_color_counts_do_not_change_valid_readiness():
     assert state.can_submit
     assert state.for_part("base_plate:upper").status==UNAFFECTED
     assert state.for_part("middle_plate:upper").status==BLOCKED
+
+
+@pytest.mark.parametrize("hole_locations", (
+    (),
+    (("nfb:upper:1", float("nan"), 1, 0, 90),),
+    (("nfb:upper:1", float("inf"), 1, 0, 90),),
+    (("nfb:upper:1", 0.0, 0, 0, 90),),
+    (("nfb:upper:1", 0.0, 1, 1, 90),),
+    (("nfb:upper:1", 0.0, 1, 0, 45),),
+    (("nfb:unknown:1", 0.0, 1, 0, 90),),
+    (("nfb:upper:1", 0.0, 1, 0, 90),
+     ("nfb:upper:1", 1.0, 1, 0, 90)),
+    (("nfb:upper:1", True, 1, 0, 90),),
+))
+def test_ready_requires_actual_per_hole_x_y_and_rotation_proof(hole_locations):
+    """No metadata-only READY; missing or malformed #1497 location proof blocks."""
+    fake=replace(_inner(),verified_hole_locations=hole_locations)
+    result=derive_nfb_part_readiness(
+        _scope(),source_inventory=_inventory(),verified_inner_door=fake,
+    )
+    assert not result.can_submit
+    assert result.for_part("inner_door:upper:panel").status==BLOCKED
+    assert "INNER_DOOR_SOURCE_OR_CUTTING_NOT_VERIFIED" in (
+        result.for_part("inner_door:upper:panel").reasons
+    )
+    assert result.for_part("side_panel:left").status==UNAFFECTED
+
+
+def test_verified_w800_three_upper_six_holes_are_valid_with_repeated_layer_slots():
+    ids=tuple(f"nfb:upper:layer:{i}:unit:{j}" for i in range(2) for j in range(3))
+    observed=tuple(
+        (ids[i*3+j], float((-180, 0, 180)[j]), 2, i, (0, 90, 270)[j])
+        for i in range(2) for j in range(3)
+    )
+    render=replace(_inner(),physical_hole_ids=ids,
+                   verified_hole_locations=observed)
+    good=derive_nfb_part_readiness(
+        _scope(),source_inventory=_inventory(),verified_inner_door=render,
+    )
+    assert good.can_submit
+    assert good.for_part("inner_door:upper:panel").status==READY
+    # Physical owner collision must not be hidden behind a duplicate-ID tuple.
+    duplicated=replace(render,physical_hole_ids=ids[:-1]+(ids[0],))
+    rejected=derive_nfb_part_readiness(
+        _scope(),source_inventory=_inventory(),verified_inner_door=duplicated,
+    )
+    assert rejected.for_part("inner_door:upper:panel").status==BLOCKED
