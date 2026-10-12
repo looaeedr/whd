@@ -269,3 +269,49 @@ def test_physical_column_width_mismatch_rejected_before_world_x_shadow():
             state, "upper", slot_index=0,
             original_source=source, closed_cutting_reference=closed,
         )
+
+
+@pytest.mark.parametrize("w,source_sha,outer_width,side_widths,pitch,delta", [
+    (600, "cb6f200eb5339bd8abd994eee01ad405c7e0bd004984ac5b4f1be3a2b6e1bc76", 524, (57, 57), 180, 1),
+    (750, "892cd8a391e41937e6cff74696294342d06894c1b4c47d51874da1309075da49", 674, (50, 50), 310, 1),
+    (800, "a2de69b4dba64ee8d22d42d79b7a67bdc94f561181bc232d3193f6ce9afc41e7", 723, (57, 28), 325, 0),
+])
+def test_user_original_two_slot_x_sources_are_evidence_not_world_x(
+    w, source_sha, outer_width, side_widths, pitch, delta,
+):
+    evidence = fixture("tests/fixtures/receiving_nfb_nominal_x_native_observations.json")
+    assert evidence["source_dxf_bytes_not_committed"] is True
+    assert evidence["scope"] == "ORIGINAL_SOURCE_GEOMETRY_ONLY_NOT_WORLD_X_NOT_MANUFACTURING"
+    row, = (r for r in evidence["records"]
+            if r["box_outer_width_mm"] == w and r["nfb_count"] == 2)
+    assert row["source_sha256"] == source_sha
+    assert row["source_outer_span_mm"] == outer_width
+    left, right = row["source_outer_side_x_mm"]
+    assert right - left == pytest.approx(outer_width)
+    assert len(set(row["source_outer_side_handles"])) == 2
+    assert len(row["source_cutout_side_handles"]) == 2
+    centers = []
+    for pair, handles, side_width in zip(
+        row["cutout_side_x_mm"], row["source_cutout_side_handles"], side_widths
+    ):
+        assert len(set(handles)) == 2
+        assert pair[1] - pair[0] == pytest.approx(side_width)
+        center = sum(pair) / 2
+        assert left < center < right
+        centers.append(center)
+    assert centers == pytest.approx(row["observed_centers_source_x_mm"])
+    assert [x - left for x in centers] == pytest.approx(
+        row["observed_centers_relative_to_source_left_mm"]
+    )
+    assert centers[1] - centers[0] == pytest.approx(pitch)
+    assert row["observed_pitch_mm"] == pitch
+    assert nominal_nfb_x_group(w, 2).adjacent_distances_mm == (pitch,)
+    # A 1-mm discrepancy against the *conditional current* T2/gap 3.5
+    # panel recipe cannot be silently erased or called a certified blank.
+    assert outer_width - row["conditional_current_t2_gap35_blank_width_mm"] == delta
+    assert row["conditional_source_span_delta_mm"] == delta
+    group = nominal_nfb_x_group(w, 2)
+    assert group.status == PREVIEW_ONLY
+    assert group.absolute_centers_mm is None
+    assert group.certified_x_revision is None
+    assert group.manufacturing_ready is False
