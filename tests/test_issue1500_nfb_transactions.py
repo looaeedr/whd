@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """#1500 product transaction acceptance: atomic per-Bay NFB, cancel, copy, restore/undo."""
 from copy import deepcopy
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -210,7 +211,9 @@ def test_adapter_undo_preserves_sibling_changes_and_native_owner():
 
 
 
-def test_real_mfg1_submit_preserves_unresolved_mfg2_warning_and_no_export_grant():
+def test_real_mfg1_submit_does_not_invent_middle_plate_from_inner_color150():
+    # #1502 authority: NFB upper Color150 belongs to real INNER DOOR.
+    # With no real middle part ID, an illustrative drawing is not a plate.
     row=layout()
     scope,inventory,door=evidence(row,0)
     scope=NfbPhysicalScope(
@@ -225,7 +228,7 @@ def test_real_mfg1_submit_preserves_unresolved_mfg2_warning_and_no_export_grant(
     )
     assert result.changed
     assert result.preview.can_commit
-    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" in (
+    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" not in (
         result.preview.dependency_warnings
     )
     assert result.layout["sets"][0]["bays"][0]["nfb_config_submitted"]
@@ -233,8 +236,20 @@ def test_real_mfg1_submit_preserves_unresolved_mfg2_warning_and_no_export_grant(
     readiness=derive_nfb_part_readiness(
         scope,source_inventory=inventory,verified_inner_door=door,
     )
-    with pytest.raises(ValueError,match="dependencies unresolved"):
-        readiness.filter_export_part_ids((scope.inner_door_part_id,))
+    assert readiness.filter_export_part_ids((scope.inner_door_part_id,)) == (
+        (scope.inner_door_part_id,), (),
+    )
+    # A *real* middle plate still requires its own MFG-2 machining proof.
+    physical=replace(scope,middle_plate_part_ids=("middle_plate:upper",))
+    with_middle=derive_nfb_part_readiness(
+        physical,source_inventory=inventory,verified_inner_door=door,
+    )
+    assert with_middle.can_submit
+    assert with_middle.for_part("middle_plate:upper").status=="BLOCKED"
+    with pytest.raises(ValueError,match="not manufacturing-ready"):
+        with_middle.filter_export_part_ids((
+            scope.inner_door_part_id,"middle_plate:upper",
+        ))
 
 
 
