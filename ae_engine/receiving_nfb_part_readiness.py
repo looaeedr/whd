@@ -117,9 +117,18 @@ def _source_colors(inventory: NfbSourceInventory | None):
         raise TypeError("NFB source must be an actual DXF source inventory")
     if inventory.diagnostics or inventory.unresolved_color_entities:
         return None
-    counts = dict(inventory.process_aci_entity_counts)
-    if any(type(counts.get(color)) is not int or counts[color] < 0
-           for color in (30, 150, 212)):
+    # A stale/merged source may contain conflicting readings for the same
+    # process ACI. dict(...) would quietly retain the LAST count, possibly
+    # turning real Color30/212 base holes into a false zero (UNAFFECTED).
+    # Fail closed for ambiguous, missing or malformed process-color evidence.
+    raw = tuple(inventory.process_aci_entity_counts)
+    if (any(not isinstance(pair, (tuple, list)) or len(pair) != 2
+            or type(pair[0]) is not int or type(pair[1]) is not int
+            or pair[1] < 0 for pair in raw)
+            or len(raw) != len({pair[0] for pair in raw})):
+        return None
+    counts = dict(raw)
+    if any(color not in counts for color in (30, 150, 212)):
         return None
     return counts
 
