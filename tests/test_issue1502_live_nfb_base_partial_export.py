@@ -13,6 +13,8 @@ from ae_engine.receiving_nfb_ui1b_bridge import (
     NfbVerifiedDraftSubmission, _nfb_config_proof_sha256,
 )
 from ae_engine.receiving_nfb_lower_fixing_source import resolve_unique_nfb_lower_reference_handle
+from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
+from ae_engine.receiving_nfb_persistence import normalize_nfb_config
 from gui_modules.application.receiving_nfb_base_partial_export_action import (
     export_verified_receiving_nfb_base_plate,
 )
@@ -39,14 +41,20 @@ def _live(tmp_path, pattern="LEFT_FLAT_SIDE"):
         "bend": plate.bend,
     }
     holes = [{
-        "physical_hole_id": physical_id, "manual_x_mm": x,
+        "physical_hole_id": physical_id, "model_filename": profile.indexed_filename,
+        "manual_x_state": "CONFIRMED", "manual_x_mm": x,
+        "datum_revision": "TEST_1502", "datum_snapshot": {"w": 800, "t": 2},
         "layer_count": count, "slot_index": slot,
         "rotation_deg": rotation,
     } for physical_id, x, count, slot, rotation in verified.verified_hole_locations]
-    config = {"layer_count": 1, "holes": holes, "source_sha256": profile.source_sha256}
-    scope = SimpleNamespace(
-        identity=("setA", "bayA", "v1"), inner_door_part_id="inner_door:upper:panel",
-        base_plate_part_ids=("base_plate",), set_id="setA", bay_id="bayA",
+    config = normalize_nfb_config({
+        "layer_count": 1, "holes": holes, "source_sha256": profile.source_sha256,
+    })
+    # The real #1497 inner-door scope intentionally DOES NOT claim a base ID.
+    # The physical plate owner must instead be verified from the live spec.
+    scope = NfbPhysicalScope(
+        set_id="setA", bay_id="bayA", version_id="v1", submitted=True,
+        inner_door_part_id="inner_door:upper:panel",
     )
     layout = {"sets": [{"stable_id": "setA", "switch_brand": "士林", "bays": [{
         "stable_id": "bayA", "nfb_config_submitted": True, "nfb_config": config,
