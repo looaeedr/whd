@@ -6,6 +6,8 @@ manufactures three closed CUTTING features on a WHD 723-mm door, then uses
 those specific per-hole X/Y/rotation witnesses to transact between Bays.
 The source itself is generated inside the test; this is NOT a declaration
 that the user's original Shihlin DXF underwent interactive GUI acceptance.
+It verifies actual DXF parsing, 723-mm inner-door placement, and native
+Receiving transactions in a single repeatable canonical product acceptance.
 """
 from __future__ import annotations
 
