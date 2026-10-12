@@ -11,8 +11,10 @@ import ezdxf
 import pytest
 
 from tools.nfb_source_audit import (
-    DEFAULT_INDEX, DEFAULT_PINS, build_source_coverage_report, main,
+    DEFAULT_INDEX, DEFAULT_PINS, DEFAULT_SOURCE_ROOT,
+    build_source_coverage_report, main,
 )
+from ae_engine.receiving_nfb_index_sources import unique_nfb_dxfs_from_switch_index
 
 
 def _case(tmp_path):
@@ -179,3 +181,74 @@ def test_ambiguous_zip_basenames_do_not_guess_brand(tmp_path):
     assert row["color_30_entities"] is None
     assert row["color_150_entities"] is None
     assert row["color_212_entities"] is None
+
+
+def test_24_real_local_dxf_observations_are_traceable_but_not_certified():
+    """#1496 local v0.7 source files and v0.6 ZIP are NOT user raw originals.
+
+    The fixed witness carries 24 actual DXF hashes and native observed colors.
+    CI verifies the model/index links, not the unavailable original bytes.
+    """
+    path = (
+        DEFAULT_INDEX.parents[3] / "tests" / "fixtures"
+        / "receiving_nfb_24_local_native_observations.json"
+    )
+    receipt = json.loads(path.read_text(encoding="utf-8"))
+    index = unique_nfb_dxfs_from_switch_index(DEFAULT_INDEX)
+    assert receipt["schema"] == "WHD_NFB_24_LOCAL_NATIVE_SOURCE_OBSERVATIONS_V1"
+    assert receipt["index_sha256"] == index.index_sha256
+    assert receipt["index_rows"] == index.records_read == 42
+    assert receipt["indexed_unique_sources"] == len(index.sources) == 24
+    assert receipt["index_references"] == 64
+    assert receipt["single_color150_rectangle_count"] == 22
+    assert receipt["missing_color150_count"] == 1
+    assert receipt["nonrectangle_color150_count"] == 1
+    assert receipt["source_pin_sha_mismatch_count"] == 1
+    records = {
+        (r["brand"], r["indexed_filename"].casefold()): r
+        for r in receipt["records"]
+    }
+    assert len(receipt["records"]) == len(records) == 24
+    assert set(records) == {
+        (r.brand, r.filename.casefold()) for r in index.sources
+    }
+    for source in index.sources:
+        row = records[source.brand, source.filename.casefold()]
+        assert [(x["csv_row"], x["model_key"]) for x in row["model_links"]] == [
+            (x.row_number, x.model_key) for x in source.links
+        ]
+        assert len(row["observed_source_sha256"]) == 64
+        assert row["source_parsing_status"] == "SOURCE_OBSERVED_UNCERTIFIED"
+        assert row["manufacturing_ready"] is False
+        assert row["entity_count"] == sum(row["entity_type_counts"].values())
+        for color in ("30", "150", "212"):
+            count = row["effective_aci_entity_counts"][color]
+            assert type(count) is int and 0 <= count <= row["entity_count"]
+        assert len(row["color150_entities"]) == row["effective_aci_entity_counts"]["150"]
+        # A sampled 150 contour is a source candidate, not a manufacturing
+        # pivot identity or a method for silently flattening 6-vertex shapes.
+        if row["candidate_rectangle"] is not None:
+            assert row["effective_aci_entity_counts"]["150"] == 1
+            assert row["candidate_rectangle"]["size_mm"][0] > 0
+            assert row["candidate_rectangle"]["size_mm"][1] > 0
+    missing = records[("士林", "bh_25x95.dxf")]
+    assert missing["effective_aci_entity_counts"]["150"] == 0
+    assert missing["candidate_rectangle"] is None
+    complex_source = records[("士林", "bh_25x95_02.dxf")]
+    assert complex_source["color150_entities"][0]["vertices"] == 6
+    assert complex_source["candidate_rectangle"] is None
+    teco = records[("東元", "400_type.dxf")]
+    assert teco["source_storage"] == "ARCHIVE_V06_TEMP"
+    assert teco["manufacturing_ready"] is False
+    # A normalized local file with the same filename does NOT override
+    # the separately proven customer byte-original pin in GitHub.
+    shihlin400 = records[("士林", "400_140x257_107.dxf")]
+    assert shihlin400["pinned_original_matches"] is False
+    assert shihlin400["observed_source_sha256"] == (
+        "80fd96bf10458b830e049d93c2a259b52aec9dd07d8fc594ff7752ffb47a77ea"
+    )
+    assert shihlin400["pinned_original_sha256"] == (
+        "8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3"
+    )
+    assert shihlin400["candidate_rectangle"]["handle"] == "585"
+    assert not DEFAULT_SOURCE_ROOT.is_relative_to(DEFAULT_INDEX.parent)
