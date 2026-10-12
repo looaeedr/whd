@@ -57,6 +57,7 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_ui1b_bridge.py",
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+    "tests/test_issue1504_v14_ac_traceability.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
     # These were missing from the canonical product run: a GREEN alone did not
     # exercise the new production geometry. Optional customer DXF replays are
