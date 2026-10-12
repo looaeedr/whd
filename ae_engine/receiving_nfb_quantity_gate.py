@@ -67,7 +67,7 @@ def gate_nfb_quantity_physical_demands(
                 or scope.submitted is not manifest.nfb_config_submitted):
             raise ValueError("NFB CHECK manifest submitted fact mismatch")
         if scope.identity in observed_scopes:
-            raise ValueError("NFB CHECK duplicate Set/Bay/version scope")
+            raise ValueError("NFB CHECK ambiguous duplicate Set/Bay/version scope")
         observed_scopes.add(scope.identity)
         if not manifest.rows:
             raise ValueError("NFB CHECK manifest missing actual physical rows")
