@@ -14,6 +14,7 @@ from typing import Mapping, Sequence
 from .manufacturing_equivalence import group_quantity_physical_demands
 from .manufacturing_quantity import PhysicalPartDemand
 from .receiving_nfb_export_manifest import NfbPartialExportManifest
+from .receiving_nfb_part_readiness import BLOCKED, LEGACY, READY, UNAFFECTED
 
 
 @dataclass(frozen=True)
@@ -57,13 +58,41 @@ def gate_nfb_quantity_physical_demands(
     if not manifests:
         raise ValueError("NFB CHECK requires current physical scope manifest")
     owners={}
+    observed_scopes=set()
     for manifest in manifests:
         if not isinstance(manifest,NfbPartialExportManifest):
             raise TypeError("NFB CHECK requires typed live scope manifest")
+        scope=manifest.scope
+        if (type(manifest.nfb_config_submitted) is not bool
+                or scope.submitted is not manifest.nfb_config_submitted):
+            raise ValueError("NFB CHECK manifest submitted fact mismatch")
+        if scope.identity in observed_scopes:
+            raise ValueError("NFB CHECK duplicate Set/Bay/version scope")
+        observed_scopes.add(scope.identity)
+        if not manifest.rows:
+            raise ValueError("NFB CHECK manifest missing actual physical rows")
+        if manifest.whole_ready and manifest.unresolved_dependencies:
+            raise ValueError("NFB CHECK whole readiness conflicts with unresolved dependencies")
         if manifest.nfb_config_submitted and not partial and not manifest.whole_ready:
             raise ValueError("NFB whole CHECK not ready; partial only")
         for item in manifest.rows:
-            key=(manifest.scope.version_id,item.part_id)
+            if (item.set_id,item.bay_id,item.version_id)!=scope.identity:
+                raise ValueError("NFB CHECK row Set/Bay/version identity mismatch")
+            if type(item.actual_count) is not int or item.actual_count<=0:
+                raise ValueError("NFB CHECK row actual physical count invalid")
+            if type(item.may_export) is not bool:
+                raise ValueError("NFB CHECK row export decision must be boolean")
+            allowed_states=({READY,UNAFFECTED,BLOCKED}
+                            if manifest.nfb_config_submitted else {LEGACY})
+            if item.status not in allowed_states:
+                raise ValueError("NFB CHECK row status conflicts with saved submission")
+            if item.may_export is not (item.status in {READY,UNAFFECTED,LEGACY}):
+                raise ValueError("NFB CHECK row export decision conflicts with status")
+            if item.status==BLOCKED and not item.reasons:
+                raise ValueError("NFB CHECK blocked row missing diagnostic reason")
+            if manifest.whole_ready and not item.may_export:
+                raise ValueError("NFB CHECK whole readiness contains held physical part")
+            key=(scope.version_id,item.part_id)
             if key in owners:
                 raise ValueError("NFB CHECK part ID ambiguous across Set/Bay")
             owners[key]=(manifest,item)
