@@ -18,7 +18,7 @@ from typing import Sequence
 
 from .inner_door_panels import InnerDoorPanelPart
 from .manufacturing_api import build_inner_door_panel_render_data
-from .manufacturing_render_data import material_polygon_from_final_scene
+from .manufacturing_render_data import PartRenderData, material_polygon_from_final_scene
 from .receiving_nfb_cutting_preflight import (
     BLOCKED, NfbExistingCuttingClaim, NfbUpperOpeningRequest,
     preflight_nfb_inner_door_batch,
@@ -27,7 +27,9 @@ from .receiving_nfb_dxf_source import (
     NfbSourceInventory, resolve_upper_color150_reference,
 )
 from .receiving_nfb_index_sources import NfbIndexSourceCatalog
-from .sheetmetal_drawing import DrawingScene
+from .sheetmetal_drawing import (
+    DrawingScene, CirclePrimitive, PolylinePrimitive,
+)
 
 TRIAL_ONLY = "NFB_CUTTING_TRIAL_NOT_PRODUCTION_APPROVED"
 SOURCE_ALIAS_UNCERTIFIED = "SOURCE_ALIAS_UNCERTIFIED"
@@ -133,6 +135,71 @@ def read_nfb_runtime_source_profiles_csv(path: str | Path) -> tuple[NfbUpperSour
     return tuple(results)
 
 
+def _validated_legacy_inner_door_scene(
+    panel: InnerDoorPanelPart,
+    current: PartRenderData | None,
+) -> tuple[PartRenderData, tuple[NfbExistingCuttingClaim, ...]]:
+    """Keep native legacy-hole geometry and detect physical CUTTING collisions.
+
+    An existing FinalScene is accepted ONLY for the same real sheet and after
+    its entire canonical outer CUTTING/BEND prefix matches WHD's fresh part.
+    The extra physical holes preserve their own primitives/IDs, while the
+    common manufacturing UV becomes the single owner for collisions.
+    Unsupported/open CUTTING is not silently ignored.
+    """
+    baseline = build_inner_door_panel_render_data(panel)
+    if current is None:
+        return baseline, ()
+    if not isinstance(current, PartRenderData):
+        raise TypeError("NFB existing physical FinalScene must be PartRenderData")
+    meta = dict(current.metadata)
+    if (meta.get("stable_id") != panel.stable_id
+            or meta.get("inner_door_id") != panel.inner_door_id
+            or meta.get("cell_key") != panel.cell_key
+            or current.unfolded_topology != baseline.unfolded_topology
+            or current.fold_guides != baseline.fold_guides):
+        raise ValueError("NFB legacy inner-door FinalScene physical identity/topology mismatch")
+    before = tuple(baseline.scene.primitives)
+    actual = tuple(current.scene.primitives)
+    if len(actual) < len(before) or actual[:len(before)] != before:
+        raise ValueError("NFB legacy FinalScene must preserve exact original panel CUTTING/BEND")
+    claims = []
+    for index, primitive in enumerate(actual[len(before):], start=1):
+        if str(getattr(primitive, "layer", "")).upper() != "CUTTING":
+            # MARKING/BEND/etc stay in the final scene unmodified.
+            continue
+        hole_id = f"legacy:{panel.stable_id}:{index}"
+        if isinstance(primitive, PolylinePrimitive):
+            vertices = tuple((float(p.x), float(p.y)) for p in primitive.points)
+            if not primitive.closed or len(vertices) < 3 or len(set(vertices)) < 3:
+                raise ValueError("NFB existing legacy CUTTING contour is not closed")
+            outline = vertices
+        elif isinstance(primitive, CirclePrimitive):
+            center = primitive.center
+            x, y, radius = float(center.x), float(center.y), float(primitive.radius)
+            from math import isfinite
+            if not all(isfinite(t) for t in (x, y, radius)) or radius <= 0:
+                raise ValueError("NFB existing legacy CIRCLE has invalid CUTTING radius")
+            # Bounding polygon is intentionally conservative for round holes:
+            # bbox intersection may hold a noncolliding hole, never duplicate it.
+            outline = (
+                (x-radius, y-radius), (x+radius, y-radius),
+                (x+radius, y+radius), (x-radius, y+radius),
+            )
+            if primitive.source_id:
+                hole_id = primitive.source_id
+        else:
+            raise ValueError("NFB existing legacy CUTTING type cannot be safely owned")
+        if (any(not all(__import__("math").isfinite(v) for v in pair) for pair in outline)):
+            raise ValueError("NFB existing legacy CUTTING contains nonfinite XY")
+        claims.append(NfbExistingCuttingClaim(
+            physical_hole_id=hole_id,
+            part_id=panel.stable_id,
+            outline_uv_xy=outline,
+        ))
+    return current, tuple(claims)
+
+
 def trial_nfb_upper_cutting_on_inner_door(
     panel: InnerDoorPanelPart,
     requests: Sequence[NfbUpperOpeningRequest],
@@ -141,6 +208,7 @@ def trial_nfb_upper_cutting_on_inner_door(
     inventory: NfbSourceInventory,
     profile: NfbUpperSourceProfile,
     existing_claims: Sequence[NfbExistingCuttingClaim] = (),
+    existing_render_data: PartRenderData | None = None,
 ) -> NfbInnerDoorCuttingTrial:
     """Render actual closed NFB CUTTING contours without releasing manufacturing.
 
@@ -195,15 +263,18 @@ def trial_nfb_upper_cutting_on_inner_door(
                 or orig.source_handle != profile.upper_handle
                 or orig.source_aci != 150 or orig.source_region != "UPPER"):
             raise ValueError("NFB request/model/source identity mismatch")
+    baseline, native_legacy_claims = _validated_legacy_inner_door_scene(
+        panel, existing_render_data,
+    )
     preflight = preflight_nfb_inner_door_batch(
-        panel, normalized, existing_claims=existing_claims,
+        panel, normalized,
+        existing_claims=(*tuple(existing_claims), *native_legacy_claims),
     )
     if preflight.status == BLOCKED:
         raise ValueError("NFB cutting trial blocked: " + ",".join(preflight.diagnostics))
     if any(not item.preview_outline_uv_xy for item in preflight.items):
         raise ValueError("NFB cutting trial cannot infer unapproved X/Y centers")
 
-    baseline = build_inner_door_panel_render_data(panel)
     scene = DrawingScene()
     scene.extend(tuple(baseline.scene.primitives))
     for item in preflight.items:
