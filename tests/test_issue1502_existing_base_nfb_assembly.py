@@ -256,3 +256,100 @@ def test_part_only_batch_rejects_unproved_nfb_before_any_output(tmp_path):
             batch, root, part_only=True,
         )
     assert not root.exists()
+
+
+def _repeated_native_quartet(tmp_path):
+    """Original-style two views, with a large nonintegral schematic offset."""
+    path, profile, lower = _native_original(tmp_path)
+    doc = ezdxf.readfile(path)
+    circles = tuple(e for e in doc.modelspace()
+                    if e.dxftype() == "CIRCLE" and e.dxf.color == 30)
+    for upper, (x, y) in zip(circles, ((-10., -10.), (-10., 10.),
+                                     (10., -10.), (10., 10.))):
+        upper.dxf.center = (28.5 + x, 398. + y)
+        upper.dxf.radius = 1.4
+    # Matching native lower quartet remains at centroid (0, 120).
+    from ezdxf.math import Matrix44
+    shift = Matrix44.translate(3743.467233573938, 2162.8091805827455, 0)
+    for entity in doc.modelspace():
+        entity.transform(shift)
+    doc.saveas(path)
+    return path, replace(profile, source_sha256=sha256(path.read_bytes()).hexdigest()), lower
+
+
+def _build_repeated_native(tmp_path, pattern="LEFT_FLAT_SIDE", angle=0):
+    path, profile, lower = _repeated_native_quartet(tmp_path)
+    proof = _verified(profile)
+    proof = replace(proof, verified_hole_locations=tuple(
+        (*row[:4], angle) for row in proof.verified_hole_locations))
+    return build_existing_receiving_base_with_verified_nfb(
+        snapshot=_snapshot(), inner_door_id="upper", base_spec=_upper_base(pattern),
+        verified_inner_door=proof, source_path=path, profile=profile,
+        lower_reference_handle=lower,
+    )
+
+
+@pytest.mark.parametrize("pattern", ("LEFT_FLAT_SIDE", "RIGHT_FLAT_SIDE",
+                                     "CENTER_DOUBLE_SIDE_FOLD"))
+@pytest.mark.parametrize("angle", (0, 90, 180, 270))
+def test_repeated_native_fixing_quartet_has_four_cuts_per_owner(tmp_path, pattern, angle):
+    combined = _build_repeated_native(tmp_path, pattern, angle)
+    circles = tuple(p for p in combined.render_data.scene.primitives
+                    if isinstance(p, CirclePrimitive) and p.layer == "CUTTING")
+    assert len(circles) == 8
+    assert all(p.source_type == "NFB_LOWER_NATIVE_FIXING_CIRCLE" for p in circles)
+    aliases = combined.projection.native_fixing_aliases
+    assert len(aliases) == 8
+    assert all(a.source_sha256 == combined.projection.source_sha256 for a in aliases)
+    assert len({(a.owner_hole_id, a.upper_handle) for a in aliases}) == 8
+    assert len({(a.owner_hole_id, a.lower_handle) for a in aliases}) == 8
+    resolved = SimpleNamespace(parts=(SimpleNamespace(
+        part_key="base_plate", render_data=combined.render_data),))
+    result = save_resolved_manufacturing_geometry_dxf(
+        resolved, tmp_path / "part-only-alias", part_only=True)
+    saved = tuple(e for e in ezdxf.readfile(result["base_plate"]).modelspace()
+                  if e.dxftype() == "CIRCLE" and e.dxf.layer == "CUTTING")
+    assert len(saved) == 8
+    assert sorted((round(e.dxf.center.x, 6), round(e.dxf.center.y, 6),
+                   round(e.dxf.radius, 6)) for e in saved) == sorted(
+        (round(p.center.x, 6), round(p.center.y, 6), round(p.radius, 6)) for p in circles)
+    assert not combined.manufacturing_ready
+    assert combined.render_data.metadata["receiving_base_ear_weld_z_verified"] is False
+
+
+def test_partial_native_quartet_match_is_not_silently_deduplicated(tmp_path):
+    path, profile, lower = _repeated_native_quartet(tmp_path)
+    doc = ezdxf.readfile(path)
+    upper = next(e for e in doc.modelspace()
+                 if e.dxftype() == "CIRCLE" and e.dxf.color == 30)
+    upper.dxf.radius = 1.5
+    doc.saveas(path)
+    profile = replace(profile, source_sha256=sha256(path.read_bytes()).hexdigest())
+    with pytest.raises(ValueError, match="quartet alias incomplete"):
+        build_existing_receiving_base_with_verified_nfb(
+            snapshot=_snapshot(), inner_door_id="upper", base_spec=_upper_base(),
+            verified_inner_door=_verified(profile), source_path=path, profile=profile,
+            lower_reference_handle=lower)
+
+
+@pytest.mark.parametrize("mutation", ("sha", "owner", "position", "missing", "duplicate"))
+def test_part_only_rejects_changed_native_alias_evidence_before_write(tmp_path, mutation):
+    combined = _build_repeated_native(tmp_path)
+    aliases = combined.projection.native_fixing_aliases
+    if mutation == "sha":
+        aliases = (replace(aliases[0], source_sha256="0" * 64), *aliases[1:])
+    elif mutation == "owner":
+        aliases = (replace(aliases[0], owner_hole_id="other-owner"), *aliases[1:])
+    elif mutation == "position":
+        aliases = (replace(aliases[0], center_uv_mm=(0., 0.)), *aliases[1:])
+    elif mutation == "missing":
+        aliases = aliases[1:]
+    else:
+        aliases = (*aliases, aliases[0])
+    data = replace(combined.render_data, metadata={
+        **dict(combined.render_data.metadata), "nfb_native_fixing_aliases": aliases})
+    resolved = SimpleNamespace(parts=(SimpleNamespace(part_key="base_plate", render_data=data),))
+    root = tmp_path / "unverified-alias"
+    with pytest.raises(ValueError, match="NFB_BASE_PART_(NATIVE_ALIAS|SOURCE_HOLE_MAPPING)_UNVERIFIED"):
+        save_resolved_manufacturing_geometry_dxf(resolved, root, part_only=True)
+    assert not root.exists()
