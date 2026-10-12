@@ -9,6 +9,7 @@ blocks ONLY the physically affected pieces, preserving unrelated output.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Sequence
 
 from .receiving_nfb_dxf_source import NfbSourceInventory
@@ -155,6 +156,39 @@ def _source_colors(inventory: NfbSourceInventory | None):
     return counts
 
 
+def _verified_physical_hole_locations(
+    door: NfbValidatedInnerDoorRender | None,
+) -> bool:
+    """A READY registry entry must carry real per-hole X/Y slot/rotation proof.
+
+    A VALIDATED metadata flag and an owner-ID list alone are insufficient.
+    The formal #1500 commit and #1501 export compare these very observations
+    to the saved configuration; #1498 must not claim READY earlier.
+    """
+    if not isinstance(door, NfbValidatedInnerDoorRender):
+        return False
+    ids = door.physical_hole_ids
+    witnessed = door.verified_hole_locations
+    if (not isinstance(ids, tuple) or not ids or
+            any(not isinstance(x, str) or not x.strip() for x in ids)
+            or len(set(ids)) != len(ids) or
+            not isinstance(witnessed, tuple) or len(witnessed) != len(ids)):
+        return False
+    observed = []
+    for row in witnessed:
+        if not isinstance(row, tuple) or len(row) != 5:
+            return False
+        hole_id, x, count, slot, rotation = row
+        if (not isinstance(hole_id, str) or hole_id not in ids or
+                type(x) not in (float, int) or not isfinite(float(x)) or
+                type(count) is not int or count not in (1, 2) or
+                type(slot) is not int or not 0 <= slot < count or
+                type(rotation) is not int or rotation not in (0, 90, 180, 270)):
+            return False
+        observed.append(hole_id)
+    return len(set(observed)) == len(ids) and set(observed) == set(ids)
+
+
 def derive_nfb_part_readiness(
     scope: NfbPhysicalScope,
     *,
@@ -185,7 +219,7 @@ def derive_nfb_part_readiness(
                    and verified_inner_door.part_id == scope.inner_door_part_id
                    and verified_inner_door.source_sha256
                        == source_inventory.source_sha256
-                   and len(verified_inner_door.physical_hole_ids) > 0
+                   and _verified_physical_hole_locations(verified_inner_door)
                    and bool(verified_inner_door.indexed_model_key[0])
                    and bool(verified_inner_door.indexed_model_key[1])
                    and getattr(verified_inner_door.render_data,
