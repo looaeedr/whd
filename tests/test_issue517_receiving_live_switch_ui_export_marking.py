@@ -735,3 +735,55 @@ def test_primary_selected_version_popup_draws_real_geometry_without_live_mutatio
         win._receiving_multi_close()
     finally:
         _close(tk, root, designer)
+
+
+
+def test_primary_receiving_inner_door_is_visible_selectable_and_real_panel_without_multi_settings():
+    """#1702: production main-window entry, not the legacy 2D calculator.
+
+    A generated available_parts entry is not enough: the user must SEE the
+    sheet in the real part menu and Assembly and SELECT its manufacturing scene.
+    """
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 10)
+        physical = "inner_door:upper:panel"
+        present = tuple(designer.designer_workspace.available_parts)
+        assert physical in present, {
+            "stage": "PRIMARY_WORKSPACE",
+            "present": present,
+            "inner_doors": designer._phase6_input_snapshot.get("inner_doors"),
+            "multi_door_enabled": designer._phase6_input_snapshot.get("multi_door_enabled"),
+        }
+
+        # User-visible part menu, not just the hidden model/metadata.
+        menu = designer.part_choice_menu
+        labels = tuple(str(menu.entrycget(i, "label")) for i in range(int(menu.index("end")) + 1))
+        assert "上層內門門板" in labels, {
+            "stage": "PRIMARY_MENU",
+            "labels": labels,
+            "present": present,
+        }
+        owner = designer._phase6_assembly_panel_owner
+        assert physical in owner.visible_vars, {
+            "stage": "PRIMARY_ASSEMBLY",
+            "rendered": tuple(owner.visible_vars),
+            "present": present,
+        }
+        assert str(owner.checkbuttons[physical].cget("text")) == "上層內門門板"
+
+        # Exercise the actual operator menu action and renderer authority.
+        menu.invoke(labels.index("上層內門門板"))
+        _pump(root, 6)
+        assert designer.designer_workspace.active_part == physical
+        assert designer.active_part_key == physical
+        assert str(designer.part_var.get()) == "上層內門門板"
+        render = designer._scene_query_callback(physical, designer._phase6_input_snapshot)
+        assert render is not None
+        assert render.metadata["stable_id"] == physical
+        assert render.material.area > 0
+        assert render.fold_guides
+        assert any(str(item.layer).upper() == "CUTTING" for item in render.scene.primitives)
+    finally:
+        _close(tk, root, designer)
