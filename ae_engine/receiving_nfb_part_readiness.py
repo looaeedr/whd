@@ -9,6 +9,7 @@ blocks ONLY the physically affected pieces, preserving unrelated output.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Sequence
 
 from .receiving_nfb_dxf_source import NfbSourceInventory
@@ -49,6 +50,28 @@ class NfbPhysicalScope:
     @property
     def identity(self) -> tuple[str, str, str]:
         return self.set_id, self.bay_id, self.version_id
+
+
+@dataclass(frozen=True)
+class NfbQuantityPhysicalScope(NfbPhysicalScope):
+    """Quantity versions have no Set/Bay owner; do not invent those identities.
+
+    Reuses the physical manifest contract with an explicit absent Set/Bay.
+    The actual QuantityModel version and physical part IDs remain authority.
+    An unconfigured version without an inner door may have no inner-door ID.
+    """
+    def __post_init__(self):
+        if self.set_id is not None or self.bay_id is not None:
+            raise ValueError("NFB quantity scope cannot fabricate Set/Bay identity")
+        if not isinstance(self.version_id, str) or not self.version_id.strip():
+            raise ValueError("NFB quantity version identity required")
+        if type(self.submitted) is not bool:
+            raise ValueError("NFB quantity submitted fact must be boolean")
+        ids = (*((self.inner_door_part_id,) if self.inner_door_part_id is not None else ()),
+               *self.base_plate_part_ids, *self.middle_plate_part_ids)
+        if (any(not isinstance(v, str) or not v.strip() for v in ids)
+                or len(ids) != len(set(ids))):
+            raise ValueError("NFB quantity physical part identities invalid")
 
 
 @dataclass(frozen=True)
@@ -117,11 +140,53 @@ def _source_colors(inventory: NfbSourceInventory | None):
         raise TypeError("NFB source must be an actual DXF source inventory")
     if inventory.diagnostics or inventory.unresolved_color_entities:
         return None
-    counts = dict(inventory.process_aci_entity_counts)
-    if any(type(counts.get(color)) is not int or counts[color] < 0
-           for color in (30, 150, 212)):
+    # A stale/merged source may contain conflicting readings for the same
+    # process ACI. dict(...) would quietly retain the LAST count, possibly
+    # turning real Color30/212 base holes into a false zero (UNAFFECTED).
+    # Fail closed for ambiguous, missing or malformed process-color evidence.
+    raw = tuple(inventory.process_aci_entity_counts)
+    if (any(not isinstance(pair, (tuple, list)) or len(pair) != 2
+            or type(pair[0]) is not int or type(pair[1]) is not int
+            or pair[1] < 0 for pair in raw)
+            or len(raw) != len({pair[0] for pair in raw})):
+        return None
+    counts = dict(raw)
+    if any(color not in counts for color in (30, 150, 212)):
         return None
     return counts
+
+
+def _verified_physical_hole_locations(
+    door: NfbValidatedInnerDoorRender | None,
+) -> bool:
+    """A READY registry entry must carry real per-hole X/Y slot/rotation proof.
+
+    A VALIDATED metadata flag and an owner-ID list alone are insufficient.
+    The formal #1500 commit and #1501 export compare these very observations
+    to the saved configuration; #1498 must not claim READY earlier.
+    """
+    if not isinstance(door, NfbValidatedInnerDoorRender):
+        return False
+    ids = door.physical_hole_ids
+    witnessed = door.verified_hole_locations
+    if (not isinstance(ids, tuple) or not ids or
+            any(not isinstance(x, str) or not x.strip() for x in ids)
+            or len(set(ids)) != len(ids) or
+            not isinstance(witnessed, tuple) or len(witnessed) != len(ids)):
+        return False
+    observed = []
+    for row in witnessed:
+        if not isinstance(row, tuple) or len(row) != 5:
+            return False
+        hole_id, x, count, slot, rotation = row
+        if (not isinstance(hole_id, str) or hole_id not in ids or
+                type(x) not in (float, int) or not isfinite(float(x)) or
+                type(count) is not int or count not in (1, 2) or
+                type(slot) is not int or not 0 <= slot < count or
+                type(rotation) is not int or rotation not in (0, 90, 180, 270)):
+            return False
+        observed.append(hole_id)
+    return len(set(observed)) == len(ids) and set(observed) == set(ids)
 
 
 def derive_nfb_part_readiness(
@@ -154,7 +219,7 @@ def derive_nfb_part_readiness(
                    and verified_inner_door.part_id == scope.inner_door_part_id
                    and verified_inner_door.source_sha256
                        == source_inventory.source_sha256
-                   and len(verified_inner_door.physical_hole_ids) > 0
+                   and _verified_physical_hole_locations(verified_inner_door)
                    and bool(verified_inner_door.indexed_model_key[0])
                    and bool(verified_inner_door.indexed_model_key[1])
                    and getattr(verified_inner_door.render_data,

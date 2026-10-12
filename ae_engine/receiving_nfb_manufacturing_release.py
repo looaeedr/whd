@@ -23,6 +23,8 @@ from .assembly_placement import resolve_inner_door_panel_placement
 from .cabinet_types import policy as cabinet_family_policy
 from .inner_door_panels import InnerDoorPanelPart
 from .manufacturing_api import build_inner_door_panel_render_data, save_part_render_data_dxf
+from .manufacturing_render_data import PartRenderData
+from .receiving_nfb_legacy_feature_bridge import existing_inner_door_feature_finalscene
 from .receiving_nfb_cutting_manufacturing import (
     NfbUpperSourceProfile, trial_nfb_upper_cutting_on_inner_door,
 )
@@ -112,6 +114,7 @@ def configured_nfb_inner_door_render_data(
     source_path: str | Path,
     profile: NfbUpperSourceProfile,
     existing_claims: Sequence[NfbExistingCuttingClaim] = (),
+    existing_render_data: PartRenderData | None = None,
 ) -> NfbValidatedInnerDoorRender:
     """Materialize source-verified Color150 into that configured door FinalScene.
 
@@ -145,6 +148,11 @@ def configured_nfb_inner_door_render_data(
         raise ValueError("NFB upper source Color150 size mismatch")
 
     panel, placement = _resolve_physical_panel(snapshot, inner_door_id)
+    # Consume the ACTUAL same-panel Hole Editor Feature store. Never silently
+    # regenerate an empty inner door when already-authored legacy holes exist.
+    existing_render_data = existing_inner_door_feature_finalscene(
+        snapshot, panel, existing_render_data=existing_render_data,
+    )
     core_width = panel.unfolded_width - panel.fold_left - panel.fold_right
     if core_width <= 0:
         raise ValueError("NFB inner-door has invalid fold/core X topology")
@@ -190,6 +198,7 @@ def configured_nfb_inner_door_render_data(
     trial = trial_nfb_upper_cutting_on_inner_door(
         panel, tuple(requests), catalog=catalog, inventory=inventory,
         profile=profile, existing_claims=existing_claims,
+        existing_render_data=existing_render_data,
     )
     if trial.manufacturing_ready:
         raise ValueError("NFB manufacturing path improperly bypassed trial contract")
@@ -229,12 +238,14 @@ def save_configured_nfb_inner_door_dxf(
     source_path: str | Path,
     profile: NfbUpperSourceProfile,
     existing_claims: Sequence[NfbExistingCuttingClaim] = (),
+    existing_render_data: PartRenderData | None = None,
     overwrite: bool = False,
 ) -> str:
     """Canonical export, only after the actual source and all holes validate."""
     ready = configured_nfb_inner_door_render_data(
         snapshot, inner_door_id, holes=holes, index_path=index_path,
         source_path=source_path, profile=profile, existing_claims=existing_claims,
+        existing_render_data=existing_render_data,
     )
     return save_part_render_data_dxf(
         ready.render_data, output_path, overwrite=overwrite,

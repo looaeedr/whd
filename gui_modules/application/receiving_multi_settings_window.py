@@ -613,6 +613,84 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
+            # #1501: ONLY a genuinely READY current highlighted Set/Bay
+            # gets the explicit partial manufacturing action. The existing
+            # physical writer is still revalidated after folder selection.
+            if get_nfb_transaction_ports is not None and applied["selected_bays"]:
+                from .receiving_nfb_partial_batch_dispatcher import (
+                    require_highlighted_nfb_inner_doors,
+                    export_highlighted_nfb_inner_doors,
+                )
+                try:
+                    nfb_ports = get_nfb_transaction_ports()
+                    require_highlighted_nfb_inner_doors(
+                        nfb_ports, set_index, targets(), allow_held=True,
+                    )
+                except (ValueError, TypeError, KeyError, IndexError, OSError):
+                    pass  # Do not display an enabled button without live proof.
+                else:
+                    def export_nfb_partial():
+                        try:
+                            if (applied["mode"] != "set_bay"
+                                    or applied["set_index"] != set_index):
+                                raise ValueError("NFB 匯出套位已切換，請重新選擇")
+                            # Selection and source are independently refreshed
+                            # on click, not authorized by the rendered button.
+                            current = tuple(applied["selected_bays"])
+                            live_ports = get_nfb_transaction_ports()
+                            require_highlighted_nfb_inner_doors(
+                                live_ports, set_index, current, allow_held=True,
+                            )
+                            from tkinter import filedialog
+                            folder = filedialog.askdirectory(
+                                title="選擇 NFB 已驗證內門部分 DXF 資料夾",
+                                parent=win,
+                            )
+                            if not folder:
+                                return
+                            completed = export_highlighted_nfb_inner_doors(
+                                live_ports, set_index=set_index,
+                                bay_indices=current, output_directory=folder, allow_held=True,
+                            )
+                            messagebox.showinfo(
+                                "NFB 部分 DXF",
+                                f"已輸出 {len(completed)} 片已驗證內門。"
+                                "受阻連未輸出，詳見同批部分匯出清單。"
+                                 "中／底板、PAD／EAR 和整箱尚未放行。",
+                                parent=win,
+                            )
+                        except (ValueError, TypeError, IndexError,
+                                KeyError, RuntimeError, OSError) as exc:
+                            warn(exc)
+                    ttk.Button(
+                        settings_host,
+                        text="輸出已驗證內門 DXF（僅部分）",
+                        command=export_nfb_partial,
+                    ).pack(anchor="e", pady=(5, 0))
+            # #1501 operator disclosure: show the REAL per-part live result,
+            # including blocked Bays and source reasons, not a fabricated
+            # green checkbox. No widget at all for fully legacy selections.
+            if get_nfb_transaction_ports is not None and applied["selected_bays"]:
+                from .receiving_nfb_manifest_view import (
+                    highlighted_nfb_manifest_lines,
+                )
+                try:
+                    report_lines = highlighted_nfb_manifest_lines(
+                        get_nfb_transaction_ports(), set_index, targets(),
+                    )
+                except (ValueError, TypeError, KeyError,
+                        IndexError, OSError) as exc:
+                    report_lines = ("NFB 板件狀態不可用：" + str(exc),)
+                if report_lines:
+                    report_host = ttk.LabelFrame(
+                        settings_host, text="NFB 板件清單（唯讀）",
+                    )
+                    report_host.pack(fill="x", pady=(6, 0))
+                    for item in report_lines:
+                        ttk.Label(
+                            report_host, text=item, wraplength=580,
+                            justify="left",
+                        ).pack(anchor="w", padx=6, pady=1)
             # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)

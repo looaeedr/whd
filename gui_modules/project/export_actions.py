@@ -188,10 +188,10 @@ def _selected_resolved_geometry(resolved_geometry, flags):
 
 def _export_selected_resolved_parts(self, folder, flags):
     """Export the primary GUI's canonical resolved physical inventory when available."""
-    _assert_legacy_nfb_export_scope_safe(self, flags)
     designer = getattr(self, "fold_designer_app", None)
     resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
     if not callable(resolver):
+        _assert_legacy_nfb_export_scope_safe(self, flags)
         return None
 
     workspace = getattr(designer, "designer_workspace", None)
@@ -207,6 +207,7 @@ def _export_selected_resolved_parts(self, folder, flags):
         )
         from phase6_quantity_manufacturing import (
             resolve_quantity_manufacturing, quantity_manufacturing_groups,
+            quantity_nfb_checked_manufacturing_groups,
         )
         request = build_manufacturing_request(
             designer,
@@ -215,20 +216,90 @@ def _export_selected_resolved_parts(self, folder, flags):
             part_spec_provider=designer._part_spec_query_callback,
             finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(designer, key),
         )
-        batch = resolve_quantity_manufacturing(request, workspace.snapshot())
+        workspace_snapshot = workspace.snapshot()
+        quantity = workspace_snapshot.get("quantity") or {}
+        input_quantity = mode_source.get("quantity") or {}
+        def submitted_facts(payload):
+            return {row["version_id"]: row.get("nfb_config")
+                    for row in payload.get("versions", ())
+                    if row.get("nfb_config_submitted") is True}
+        if submitted_facts(input_quantity) != submitted_facts(quantity):
+            raise ValueError("NFB 數量版本與目前工作狀態不一致，請重新套用後再出圖")
+        batch = resolve_quantity_manufacturing(request, workspace_snapshot)
+        nfb_selection = None
+        if any(row.get("nfb_config_submitted") is True
+               for row in quantity.get("versions", ())):
+            from gui_modules.application.receiving_nfb_quantity_partial import (
+                select_quantity_nfb_partial, QuantityNfbPartialSelection,
+                quantity_partial_live_manifests,
+            )
+            full = select_quantity_nfb_partial(batch, workspace_snapshot)
+            selected_reports = tuple(row for row in full.rows
+                if row["source_part_id"].startswith("custom:")
+                or bool(flags.get(_resolved_export_intention_key(row["source_part_id"]), False)))
+            selected_keys = {(row["version_id"], row["part_id"]) for row in selected_reports}
+            nfb_selection = QuantityNfbPartialSelection(tuple(d for d in full.demands
+                if (d.version_id, d.physical_id) in selected_keys), selected_reports)
         selected_demands = tuple(
-            row for row in batch.demands
+            row for row in (nfb_selection.demands if nfb_selection else batch.demands)
             if row.source_part_id.startswith("custom:")
             or bool(flags.get(_resolved_export_intention_key(row.source_part_id), False))
         )
         if not selected_demands:
+            if nfb_selection is not None:
+                self._phase6_nfb_partial_export_report = nfb_selection.report()
+                diagnostics = [
+                    f"{row['version_id']} / {row['part_id']}：受阻 {row['actual_count']} 片；"
+                    + ", ".join(
+                        f"{source['physical_hole_id']} / {source['source_brand']} / "
+                        f"{source['model_filename']} / datum {source['datum_revision']}"
+                        for source in row["source_dependencies"])
+                    + "；" + row["reason"]
+                    for row in nfb_selection.rows
+                ]
+                return ([], [f"NFB 選中板件全數受阻（共 {nfb_selection.held_piece_count} 片），未輸出檔案。",
+                             *diagnostics])
             return ([], ["canonical quantity export: no selected physical parts"])
-        groups = quantity_manufacturing_groups(batch, demands=selected_demands)
+        if nfb_selection is not None:
+            selected_versions = {row["version_id"] for row in selected_reports}
+            updated = {(d.version_id, d.physical_id): d for d in full.demands}
+            checked_batch = replace(
+                batch,
+                versions=tuple(v for v in batch.versions if v.version_id in selected_versions),
+                requests=tuple(r for r in batch.requests if r[0] in selected_versions),
+                demands=tuple(updated.get((d.version_id, d.physical_id), d)
+                              for d in batch.demands
+                              if (d.version_id, d.physical_id) in selected_keys),
+            )
+            live_manifests = quantity_partial_live_manifests(
+                full, workspace_snapshot, selected_reports)
+            groups, gate = quantity_nfb_checked_manufacturing_groups(
+                checked_batch, live_manifest_provider=lambda vid, _request: live_manifests[vid],
+                partial=True,
+            )
+            if gate.permitted_total_pieces != nfb_selection.exported_piece_count:
+                raise ValueError("NFB live manifest and selected physical pieces disagree")
+        else:
+            groups = quantity_manufacturing_groups(batch, demands=selected_demands)
+        if sum(group.quantity for group in groups) != sum(row.quantity for row in selected_demands):
+            raise ValueError("NFB CHECK actual piece count not conserved")
         outputs = manufacturing_api.save_quantity_manufacturing_groups_dxf(
             groups, folder, overwrite=True,
         )
-        return ([os.path.basename(path) for path in outputs.values()], [])
+        names = [os.path.basename(path) for path in outputs.values()]
+        if nfb_selection is not None:
+            import json
+            from pathlib import Path
+            report = nfb_selection.report()
+            report["outputs"] = names
+            report_name = "nfb_partial_manifest.json"
+            Path(folder, report_name).write_text(
+                json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+            names.append(report_name)
+            self._phase6_nfb_partial_export_report = report
+        return (names, [])
 
+    _assert_legacy_nfb_export_scope_safe(self, flags)
     resolved = resolver()
     selected = _selected_resolved_geometry(resolved, flags)
     if not tuple(getattr(selected, "parts", ()) or ()):
@@ -246,8 +317,8 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
     # Primary Phase6 UI already owns one canonical ResolvedManufacturingGeometry.
     # Export its physical inventory directly; logical checkboxes only filter
     # operator intention and never become a second physical-part authority.
+    self._phase6_nfb_partial_export_report = None
     try:
-        _assert_legacy_nfb_export_scope_safe(self, flags)
         canonical = _export_selected_resolved_parts(self, folder, flags)
     except Exception as ex:
         return [], [f"canonical resolved export: {ex}"]
@@ -462,6 +533,19 @@ def export_selected_dxf(self):
         if not exported:
             messagebox.showerror("輸出失敗", "沒有產生任何 DXF 檔案。")
             return
+        partial_report = getattr(self, "_phase6_nfb_partial_export_report", None)
+        if partial_report is not None:
+            details = "\n".join(
+                f"{row['version_id']} / {row['part_id']}：{row['status']}，"
+                f"{row['actual_count']} 片" + (f"（{row['reason']}）" if row['reason'] else "")
+                for row in partial_report["rows"])
+            if not messagebox.askyesno(
+                    "NFB 僅部分匯出",
+                    f"可出 {partial_report['actual_export_count']} 片；"
+                    f"受阻 {partial_report['held_actual_count']} 片。\n"
+                    "此批不是整套完成；PAD／耳朵裝配尚未驗收。\n\n"
+                    + details + "\n\n是否匯出以上合法板件與清單？"):
+                return
         try:
             committed = _commit_staged_project_export(stage_folder, folder)
         except Exception as ex:
@@ -469,8 +553,9 @@ def export_selected_dxf(self):
             return
 
     messagebox.showinfo(
-        "輸出成功",
-        f"已成功輸出 {len(committed)} 個檔案至：\n{folder}\n\n"
+        "NFB 部分匯出完成" if partial_report is not None else "輸出成功",
+        ("僅完成已驗證板件，整套尚未完成。\n" if partial_report is not None else "")
+        + f"已成功輸出 {len(committed)} 個檔案至：\n{folder}\n\n"
         + "\n".join(f"  • {name}" for name in committed),
     )
 

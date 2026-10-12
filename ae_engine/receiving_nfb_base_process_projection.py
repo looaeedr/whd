@@ -48,6 +48,17 @@ class NfbActualBaseWorkFace:
 
 
 @dataclass(frozen=True)
+class NfbNativeFixingAlias:
+    """Two native handles proven to describe ONE screw on ONE physical NFB."""
+    source_sha256: str
+    owner_hole_id: str
+    upper_handle: str
+    lower_handle: str
+    center_uv_mm: tuple[float, float]
+    radius_mm: float
+
+
+@dataclass(frozen=True)
 class NfbProjectedBaseProcess:
     physical_part_id: str
     source_sha256: str
@@ -57,6 +68,7 @@ class NfbProjectedBaseProcess:
     marking: tuple[object, ...]
     status: str = _STATUS
     manufacturing_ready: bool = False
+    native_fixing_aliases: tuple[NfbNativeFixingAlias, ...] = ()
 
     def source_process_scene(self) -> DrawingScene:
         """Process overlay for the existing scene composer; never a full blank."""
@@ -127,6 +139,34 @@ def _projection(point, *, pivot, world_hole, face_world, face_uv, rotation_deg):
     )
 
 
+
+def _native_fixing_alias_pairs(upper, lower, pivot):
+    """Require a full bijection before collapsing a repeated native quartet.
+
+    Comparison is in the original groups' relative coordinates, before any
+    placement or rotation. No cross-unit, cross-source or proximity dedupe.
+    Partial matches remain unsafe instead of silently dropping process holes.
+    """
+    center = _xy(lower.screw_group_center_xy_mm, "native screw centroid")
+    pairs = []
+    for circle in upper.base_cutting_circles:
+        matches = tuple(screw for screw in lower.circles if
+            abs(circle.radius_mm - screw.radius_mm) <= _TOL
+            and all(abs((a-b) - (c-d)) <= _TOL for a,b,c,d in
+                    zip(circle.center_xy_mm, pivot, screw.center_xy_mm, center)))
+        if len(matches) > 1:
+            raise ValueError("NFB native fixing quartet alias ambiguous")
+        if matches:
+            pairs.append((circle, matches[0]))
+    if not pairs:
+        return ()
+    if (len(upper.base_cutting_circles) != 4 or len(pairs) != 4
+            or len({s.source_handle for _, s in pairs}) != 4
+            or len({u.source_handle for u, _ in pairs}) != 4
+            or any(u.source_handle == s.source_handle for u, s in pairs)):
+        raise ValueError("NFB native fixing quartet alias incomplete")
+    return tuple(pairs)
+
 def project_verified_nfb_base_process(
     *,
     snapshot: Mapping[str, object],
@@ -179,6 +219,9 @@ def project_verified_nfb_base_process(
     cutting = DrawingScene()
     marking = DrawingScene()
     cuts = []
+    aliases = []
+    alias_pairs = _native_fixing_alias_pairs(native_source, lower_fixing, pivot)
+    aliased_upper = {upper.source_handle for upper, _ in alias_pairs}
     for physical_id, world_x, layers, slot, angle in placements:
         if (not isinstance(physical_id, str) or not physical_id.strip()
                 or type(angle) is not int or angle not in _ANGLES
@@ -198,6 +241,8 @@ def project_verified_nfb_base_process(
             )
 
         for shape in native_source.base_cutting_circles:
+            if shape.source_handle in aliased_upper:
+                continue
             if shape.radius_mm <= 0 or not isfinite(shape.radius_mm):
                 raise ValueError("NFB source native circle radius invalid")
             center = move(shape.center_xy_mm)
@@ -225,6 +270,15 @@ def project_verified_nfb_base_process(
                 source_type="NFB_LOWER_NATIVE_FIXING_CIRCLE",
                 source_id=f"{physical_id}:{screw.source_handle}",
             )
+        for upper, screw in alias_pairs:
+            aliases.append(NfbNativeFixingAlias(
+                source_sha256=native_source.source_sha256,
+                owner_hole_id=physical_id,
+                upper_handle=upper.source_handle,
+                lower_handle=screw.source_handle,
+                center_uv_mm=move(upper.center_xy_mm),
+                radius_mm=upper.radius_mm,
+            ))
         for shape in native_source.base_cutting_closed_loops:
             points = tuple(move(xy) for xy in shape.vertices_xy_mm)
             geom = Polygon(points)
@@ -260,6 +314,7 @@ def project_verified_nfb_base_process(
         owner_hole_ids=door.physical_hole_ids,
         cutting=tuple(cutting.primitives),
         marking=tuple(marking.primitives),
+        native_fixing_aliases=tuple(aliases),
     )
 
 
@@ -353,6 +408,7 @@ def compose_projected_nfb_on_actual_base(
         "nfb_source_sha256": projection.source_sha256,
         "nfb_source_model": projection.source_model,
         "nfb_physical_hole_ids": projection.owner_hole_ids,
+        "nfb_native_fixing_aliases": projection.native_fixing_aliases,
         "nfb_base_process_status": projection.status,
         "nfb_base_mfg2_release_approved": False,
     }
@@ -564,15 +620,46 @@ def validate_nfb_base_part_cutting(
                    if isinstance(p, CirclePrimitive)
                    and p.layer == "CUTTING"
                    and p.source_type == "NFB_COLOR30")
-    if len(screws) != 4 * len(hole_ids) or not uppers:
+    if len(screws) != 4 * len(hole_ids):
         raise ValueError("NFB_BASE_PART_SOURCE_CUTTING_INCOMPLETE")
     screw_ids = tuple(str(getattr(p, "source_id", "") or "") for p in screws)
     if (len(set(screw_ids)) != len(screw_ids)
             or any(sum(s.startswith(hole + ":") for s in screw_ids) != 4
-                   for hole in hole_ids)
-            or any(not any(str(getattr(p, "source_id", "") or "").startswith(hole + ":")
-                           for p in uppers) for hole in hole_ids)):
+                   for hole in hole_ids)):
         raise ValueError("NFB_BASE_PART_SOURCE_HOLE_MAPPING_UNVERIFIED")
+    aliases = metadata.get("nfb_native_fixing_aliases", ())
+    if not isinstance(aliases, tuple):
+        raise ValueError("NFB_BASE_PART_NATIVE_ALIAS_UNVERIFIED")
+    alias_ids = set()
+    upper_ids = set()
+    for alias in aliases:
+        if (not isinstance(alias, NfbNativeFixingAlias)
+                or alias.source_sha256 != metadata["nfb_source_sha256"]
+                or alias.owner_hole_id not in hole_ids
+                or not alias.upper_handle or not alias.lower_handle
+                or alias.upper_handle == alias.lower_handle):
+            raise ValueError("NFB_BASE_PART_NATIVE_ALIAS_UNVERIFIED")
+        lower_id = alias.owner_hole_id + ":" + alias.lower_handle
+        upper_id = alias.owner_hole_id + ":" + alias.upper_handle
+        if lower_id in alias_ids or upper_id in upper_ids:
+            raise ValueError("NFB_BASE_PART_NATIVE_ALIAS_UNVERIFIED")
+        alias_ids.add(lower_id)
+        upper_ids.add(upper_id)
+        matches = tuple(p for p in screws if p.source_id == lower_id)
+        if (len(matches) != 1
+                or abs(matches[0].radius - alias.radius_mm) > _TOL
+                or not isfinite(alias.radius_mm) or alias.radius_mm <= 0
+                or any(abs(a-b) > _TOL for a,b in zip(
+                    (matches[0].center.x, matches[0].center.y),
+                    _xy(alias.center_uv_mm, "native alias UV")))):
+            raise ValueError("NFB_BASE_PART_NATIVE_ALIAS_UNVERIFIED")
+    for hole in hole_ids:
+        owned_aliases = tuple(a for a in aliases if a.owner_hole_id == hole)
+        owned_uppers = tuple(p for p in uppers if
+                             str(p.source_id or "").startswith(hole + ":"))
+        if ((owned_aliases and (len(owned_aliases) != 4 or owned_uppers))
+                or (not owned_aliases and not owned_uppers)):
+            raise ValueError("NFB_BASE_PART_SOURCE_HOLE_MAPPING_UNVERIFIED")
     contours = tuple(p for p in primitives
                      if isinstance(p, PolylinePrimitive)
                      and p.layer == "CUTTING" and p.closed)

@@ -127,14 +127,38 @@ def _source_three_centers(source: Mapping[str, object],
         if len(matching) != 1:
             raise ValueError("OPEN-X-W800x3 source A1/A0 has no identical closed CUTTING side")
     centers = []
+    matching_closed_holes = []
     for handles in source["aperture_side_handles"]:
-        side_x = {float(entities[h]["start"][0]) for h in handles}
-        if (len(handles) != 4 or len(side_x) != 2
-                or any(entities[h]["start"][0] != entities[h]["end"][0]
-                       for h in handles)
+        if len(handles) != 4 or len(set(handles)) != 4:
+            raise ValueError("OPEN-X-W800x3 source aperture sides are ambiguous")
+        sides = [entities[h] for h in handles]
+        if any(e["type"] != "LINE" or e["layer"] != "0" or e["color"] != 7
+               for e in sides):
+            raise ValueError("OPEN-X-W800x3 source aperture side provenance differs")
+        side_x = {float(e["start"][0]) for e in sides}
+        if (len(side_x) != 2
+                or any(e["start"][0] != e["end"][0] for e in sides)
                 or abs(max(side_x) - min(side_x) - 28.0) > 1e-6):
             raise ValueError("OPEN-X-W800x3 source aperture sides are ambiguous")
+        side_y = [float(p[1]) for e in sides
+                  for p in (e["start"], e["end"])]
+        bottom, top = min(side_y), max(side_y)
+        if abs(top - bottom - 58.0) > 1e-6:
+            raise ValueError("OPEN-X-W800x3 source aperture height mismatch")
+        # The customer drawing has three apertures, while the closed reference
+        # has two rows of three. Match the actual XY hole footprint, not only
+        # the common X columns (which could hide a different Y/physical hole).
+        source_bbox = (min(side_x), bottom, max(side_x), top)
+        matched = [i for i, hole in enumerate(closed["rectangular_holes"])
+                   if len(hole["bbox"]) == 4 and all(
+                       abs(float(a) - float(b)) <= 1e-6
+                       for a, b in zip(hole["bbox"], source_bbox))]
+        if len(matched) != 1:
+            raise ValueError("OPEN-X-W800x3 source aperture has no identical closed CUTTING hole")
+        matching_closed_holes.append(matched[0])
         centers.append((min(side_x) + max(side_x)) / 2.0)
+    if len(matching_closed_holes) != 3 or len(set(matching_closed_holes)) != 3:
+        raise ValueError("OPEN-X-W800x3 source apertures do not uniquely match closed CUTTING")
     if len(centers) != 3 or any(abs(v - expect) > 1e-6 for v, expect in zip(
         (v-left_x for v in centers), (181.5, 361.5, 541.5)
     )):
@@ -154,6 +178,14 @@ def _physical_w800_basis(snapshot: Mapping[str, object], inner_door_id: str):
     if data.get("model") != "受電箱" or not data.get("multi_door_enabled"):
         raise ValueError("OPEN-X-W800x3 requires enabled Receiving inner door")
     columns = data.get("door_layout_columns") or ()
+    # Assembly placement subtracts snapshot["w"]/2 from accumulated columns.
+    # An inconsistent cabinet W silently shifts every NFB shadow in later
+    # columns, even when the target W800 panel itself is geometrically valid.
+    total_columns_w = sum(float(column[0]) for column in columns)
+    cabinet_w = float(data.get("w", 0.0))
+    if (not isfinite(cabinet_w) or not isfinite(total_columns_w)
+            or abs(total_columns_w - cabinet_w) > 1e-6):
+        raise ValueError("OPEN-X-W800x3 column widths do not equal cabinet world width")
     cells = derive_door_layout_cells(columns)
     owners = [r for r in data.get("inner_doors", ()) if isinstance(r, dict)
               and r.get("stable_id") == inner_door_id]
@@ -195,6 +227,8 @@ def _physical_w800_basis(snapshot: Mapping[str, object], inner_door_id: str):
             or abs(blank_max-blank_min-723.0)>1e-6
             or abs(topo.width-723.0)>1e-6
             or abs(core-(panel.width-2*panel.thickness))>1e-6
+            or abs(lower_fold-19.0)>1e-6
+            or abs(upper_fold-19.0)>1e-6
             or abs(panel.width-689.0)>1e-6
             or abs(lower_fold+core+upper_fold-723.0)>1e-6):
         raise ValueError("OPEN-X-W800x3 real part core/blank conflict")
@@ -215,13 +249,17 @@ def shadow_w800_three_source_x(
     if type(slot_index) is not int or slot_index not in (0, 1, 2):
         raise ValueError("OPEN-X-W800x3 slot index must be 0/1/2")
     source_left, centers = _source_three_centers(original_source, closed_cutting_reference)
-    panel, placement, cell, blank_min, fold, core = _physical_w800_basis(snapshot, inner_door_id)
+    canonical = resolve_w800_three_whd_x(
+        snapshot, inner_door_id, slot_index=slot_index,
+    )
     source_x = centers[slot_index]
-    uv_x = blank_min + (source_x-source_left)
-    actual_core_mid_x = blank_min+fold+core/2.0
-    from_center = uv_x-actual_core_mid_x
-    if not (blank_min+fold < uv_x < blank_min+fold+core):
-        raise ValueError("OPEN-X-W800x3 shadow center outside formed core")
+    if abs((source_x - source_left) - canonical.blank_x_from_cutting_left_mm) > 1e-6:
+        raise ValueError("OPEN-X-W800x3 source does not match WHD canonical blank X")
+    # Source only corroborates; actual CUTTING and assembly set the datum.
+    cell = canonical.cell_key
+    uv_x = canonical.blank_uv_x_mm
+    blank_min = canonical.blank_cutting_left_x_mm
+    core = canonical.folded_core_width_mm
     return NfbW800ThreeXShadow(
         rule_id="RECEIVING-NFB-OPEN-X-800-3",
         revision=RULE_REVISION,
@@ -229,15 +267,15 @@ def shadow_w800_three_source_x(
         source_dxf_sha256=_SOURCE_SHA,
         closed_reference_sha256=_CLOSED_SHA,
         source_aperture_handles=tuple(original_source["aperture_side_handles"][slot_index]),
-        part_id=panel.stable_id, cell_key=cell, slot_index=slot_index,
+        part_id=canonical.part_id, cell_key=cell, slot_index=slot_index,
         source_center_x_mm=source_x,
         source_left_x_mm=source_left,
         source_right_x_mm=source_left+723.0,
         blank_uv_x_mm=uv_x,
-        finished_face_x_from_left_mm=float(panel.width)/2.0+from_center,
-        candidate_box_world_x_mm=float(placement.world_offset[0])+from_center,
+        finished_face_x_from_left_mm=canonical.finished_face_x_from_left_mm,
+        candidate_box_world_x_mm=canonical.box_world_x_mm,
         blank_cutting_min_x_mm=blank_min,
-        unfolded_blank_width_mm=float(panel.unfolded_width),
+        unfolded_blank_width_mm=canonical.unfolded_blank_width_mm,
         folded_core_width_mm=core,
     )
 
@@ -248,12 +286,123 @@ def reverse_shadow_w800_three_source_x(
     closed_cutting_reference: Mapping[str, object],
 ) -> float:
     """Reconstruct source X under the SAME unapproved, positive-X assumption."""
-    source_left, _ = _source_three_centers(original_source, closed_cutting_reference)
-    _, placement, _, _, fold, core = _physical_w800_basis(snapshot, inner_door_id)
+    source_left, centers = _source_three_centers(original_source, closed_cutting_reference)
     x = float(candidate_world_x_mm)
     if not isfinite(x):
         raise ValueError("OPEN-X shadow world X must be finite")
-    from_center = x-float(placement.world_offset[0])
-    if not (-core/2.0 < from_center < core/2.0):
-        raise ValueError("OPEN-X shadow world X outside physical door core")
-    return source_left+(fold+core/2.0+from_center)
+    matches = []
+    for slot in range(3):
+        candidate = resolve_w800_three_whd_x(
+            snapshot, inner_door_id, slot_index=slot,
+        )
+        if abs(x - candidate.box_world_x_mm) <= 1e-6:
+            matches.append(slot)
+    if len(matches) != 1:
+        raise ValueError("OPEN-X shadow world X does not match a canonical slot")
+    slot = matches[0]
+    offset = reverse_w800_three_whd_x(
+        snapshot, inner_door_id, slot_index=slot, box_world_x_mm=x,
+    )
+    if abs((centers[slot]-source_left)-offset)>1e-6:
+        raise ValueError("OPEN-X source does not match WHD canonical inverse")
+    return source_left+offset
+
+
+# A W800x3 datum is derived from WHD's OWN manufactured CUTTING and
+# physical placement. The customer DXF is neither a width nor an origin authority.
+W800_THREE_DATUM_REVISION = "WHD-NFB-OPEN-X-800-3-WHD-DATUM-V1"
+WHD_PART_DATUM_VERIFIED = "WHD_PANEL_X_DATUM_VERIFIED_NOT_NFB_CUTTING"
+_W800_THREE_BLANK_CENTERS = (181.5, 361.5, 541.5)
+
+
+@dataclass(frozen=True)
+class NfbW800ThreeCanonicalX:
+    rule_id: str
+    revision: str
+    status: str
+    part_id: str
+    cell_key: str
+    slot_index: int
+    x_direction: str
+    blank_cutting_left_x_mm: float
+    blank_x_from_cutting_left_mm: float
+    blank_uv_x_mm: float
+    finished_face_x_from_left_mm: float
+    box_world_x_mm: float
+    box_world_panel_center_x_mm: float
+    unfolded_blank_width_mm: float
+    folded_core_width_mm: float
+    manufacturing_ready: bool = False
+    certified_x_revision: None = None
+
+
+def resolve_w800_three_whd_x(
+    snapshot: Mapping[str, object], inner_door_id: str, *, slot_index: int,
+) -> NfbW800ThreeCanonicalX:
+    """WHD canonical CUTTING-left -> formed face -> cabinet X, source DXF independent.
+
+    The *X datum mapping* is witnessed for W800/T2/1100 with three slots.
+    No NFB model-specific CUTTING, Y placement, or manufacturing release is
+    granted by this result.  Geometry must come from the live physical part.
+    """
+    if type(slot_index) is not int or slot_index not in (0, 1, 2):
+        raise ValueError("OPEN-X-W800x3 slot index must be 0/1/2")
+    panel, placement, cell, blank_left, fold_left, core = _physical_w800_basis(
+        snapshot, inner_door_id
+    )
+    blank_from_left = _W800_THREE_BLANK_CENTERS[slot_index]
+    # Actual unfold: each fold starts outside the formed face core; the
+    # CUTTING min X (not customer's A1) is the positive-X blank origin.
+    blank_x = blank_left + blank_from_left
+    center_of_core = blank_left + fold_left + core / 2.0
+    local_x = blank_x - center_of_core
+    panel_cx = float(placement.world_offset[0])
+    if (not isfinite(panel_cx)
+            or not (blank_left + fold_left < blank_x < blank_left + fold_left + core)
+            or abs(float(panel.unfolded_width) - 723.0) > 1e-6):
+        raise ValueError("OPEN-X-W800x3 canonical panel X datum invalid")
+    face_x = float(panel.width) / 2.0 + local_x
+    if not (0.0 < face_x < float(panel.width)):
+        raise ValueError("OPEN-X-W800x3 canonical finished face X invalid")
+    return NfbW800ThreeCanonicalX(
+        rule_id="RECEIVING-NFB-OPEN-X-800-3",
+        revision=W800_THREE_DATUM_REVISION,
+        status=WHD_PART_DATUM_VERIFIED,
+        part_id=panel.stable_id, cell_key=cell, slot_index=slot_index,
+        x_direction="WHD_CUTTING_POSITIVE_X_EQUALS_BOX_WORLD_POSITIVE_X",
+        blank_cutting_left_x_mm=blank_left,
+        blank_x_from_cutting_left_mm=blank_from_left,
+        blank_uv_x_mm=blank_x,
+        finished_face_x_from_left_mm=face_x,
+        box_world_x_mm=panel_cx+local_x,
+        box_world_panel_center_x_mm=panel_cx,
+        unfolded_blank_width_mm=float(panel.unfolded_width),
+        folded_core_width_mm=core,
+    )
+
+
+def reverse_w800_three_whd_x(
+    snapshot: Mapping[str, object], inner_door_id: str,
+    *, slot_index: int, box_world_x_mm: float,
+) -> float:
+    """Inverse WHD box world X to this slot's CUTTING-left offset.
+
+    Reject an arbitrary X posing as the requested NFB slot; do not snap,
+    silently infer an X, or transfer witness to another topology.
+    """
+    expected = resolve_w800_three_whd_x(
+        snapshot, inner_door_id, slot_index=slot_index,
+    )
+    world = float(box_world_x_mm)
+    if not isfinite(world):
+        raise ValueError("OPEN-X-W800x3 canonical world X must be finite")
+    _panel, _placement, _cell, blank_left, fold, core = _physical_w800_basis(
+        snapshot, inner_door_id
+    )
+    uv = blank_left + fold + core / 2.0 + (
+        world - expected.box_world_panel_center_x_mm
+    )
+    distance = uv - blank_left
+    if abs(distance - expected.blank_x_from_cutting_left_mm) > 1e-6:
+        raise ValueError("OPEN-X-W800x3 world X does not match this canonical slot")
+    return distance

@@ -179,7 +179,8 @@ def inspect_nfb_upper_base_native_process(
             f"{inventory.source_sha256}:{profile.upper_handle}",
         ),
     )
-    if source_reference.size_mm!=tuple(profile.upper_size_mm):
+    if any(abs(a-b) > 1e-5 for a, b in
+           zip(source_reference.size_mm, profile.upper_size_mm)):
         raise ValueError("NFB source Color150 pivot geometry changed")
     color30=tuple(e for e in upper if e.effective_color_aci==30)
     circles=[]

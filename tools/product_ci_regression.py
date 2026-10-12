@@ -25,9 +25,38 @@ PYTEST_PATHS = (
     "tests/test_issue1466_quantity_bom.py",
     "tests/test_issue1467_quantity_dxf_groups.py",
     "tests/test_issue1468_quantity_check.py",
+    "tests/test_issue1501_nfb_check_quantity_gate.py",
+    "tests/test_issue1501_nfb_manifest_ui.py",
+    "tests/test_issue1501_receiving_nfb_partial_ui_export.py",
+    "tests/test_issue1501_highlighted_partial_dxf_dispatcher.py",
+    "tests/test_issue1501_live_partial_writer.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+    "tests/test_issue1494_nfb_x_shadow_projection.py",
     "tests/test_issue1496_index_color_evidence.py",
+    "tests/test_issue1496_nfb_dxf_source.py",
+    # Native originals require explicit WHD_NFB_SWITCH_INDEX_CSV /
+    # WHD_NFB_400_SOURCE_DXF and are not present on PR CI. Mandatory
+    # canonical JUnit forbids skipped cases: select only deterministic tests.
+    "tests/test_issue1496_nfb_index_unique_sources.py::test_csv_filenames_are_unique_per_brand_not_per_model_or_dimensions",
+    "tests/test_issue1496_nfb_index_unique_sources.py::test_case_insensitive_dedupe_only_within_same_brand",
+    "tests/test_issue1496_nfb_index_unique_sources.py::test_no_directory_traversal_and_unrecognized_cells_are_diagnostic",
+    "tests/test_issue1496_nfb_index_unique_sources.py::test_batch_actual_source_is_read_once_and_missing_is_unknown",
+    "tests/test_issue1496_nfb_index_unique_sources.py::test_brand_columns_required_and_no_metadata_column_interpreted_as_dxf",
+    "tests/test_issue1496_nfb_index_unique_sources.py::test_real_uploaded_42_row_index_golden_manifest_is_consistent",
+    "tests/test_issue1496_nfb_index_unique_sources.py::test_no_matching_file_is_sentinel_not_corrupt_dxf_filename",
+    "tests/test_issue1496_real_nfb_source_observation.py::test_source_witness_has_traceable_region_partition_and_no_false_certs",
+    "tests/test_issue1496_nfb_source_inventory_report.py",
+    "tests/test_issue1497_w800_three_canonical_cutting.py",
+    "tests/test_issue1497_w800_three_ui_worldx.py",
+    "tests/test_issue1498_nfb_part_readiness.py",
+    # #1500 persisted NFB UI-1B submit/copy/Undo used to be absent from the
+    # canonical run despite full PR GREEN. Keep exact, no-skip transaction,
+    # world-X/source, and genuine 723-mm DXF lifecycle checks here.
+    "tests/test_issue1500_nfb_transactions.py",
+    "tests/test_issue1500_nfb_ui1b_bridge.py",
+    "tests/test_issue1500_nfb_worldx_runtime.py",
+    "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
     # These were missing from the canonical product run: a GREEN alone did not
     # exercise the new production geometry. Optional customer DXF replays are
