@@ -284,6 +284,16 @@ def build_part_scene(
             sl = spec.shrink_left
             sr = spec.shrink_right
             receiving_pattern = spec.receiving_bend_pattern
+            # A Receiving Base Plate is family-specific. Without the real
+            # physical fold variant, the ordinary four-side Base Plate would
+            # silently produce a plausible but WRONG manufacturing contour.
+            # Keep other cabinet families on their existing geometry path.
+            if (receiving_pattern is None
+                    and str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}):
+                raise ValueError(
+                    "RECEIVING_BASE_PLATE_PATTERN_REQUIRED: actual Receiving "
+                    "plate geometry must be selected before 2D/3D/DXF export"
+                )
             if receiving_pattern is not None:
                 if str(spec.model_name or "").strip() not in {"受電箱", "RECEIVING"}:
                     raise ValueError("Receiving pattern cannot modify another family's Base Plate")
