@@ -310,6 +310,16 @@ def test_user_original_two_slot_x_sources_are_evidence_not_world_x(
     # panel recipe cannot be silently erased or called a certified blank.
     assert outer_width - row["conditional_current_t2_gap35_blank_width_mm"] == delta
     assert row["conditional_source_span_delta_mm"] == delta
+    documented, = (entry for entry in fixture("docs/receiving-nfb-x-evidence.json")["records"]
+                   if entry["box_outer_width_mm"] == w and entry["nfb_count"] == 2)
+    assert documented["source_dxf_sha256"] == source_sha
+    assert documented["source_outline_handles"] == row["source_outer_side_handles"]
+    assert documented["source_layout_observation"]["observed_center_pitch_mm"] == pitch
+    assert documented["source_layout_observation"]["status"] == "SOURCE_PITCH_OBSERVED_ONLY"
+    assert documented["source_layout_observation"]["physical_blank_to_source_identical"] is False
+    assert documented["source_layout_observation"]["model_main_hole_authenticated"] is False
+    assert documented["certified_x_revision"] is None
+    assert documented["x_status"] == PREVIEW_ONLY
     group = nominal_nfb_x_group(w, 2)
     assert group.status == PREVIEW_ONLY
     assert group.absolute_centers_mm is None
