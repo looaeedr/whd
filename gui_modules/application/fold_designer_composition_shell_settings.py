@@ -386,8 +386,11 @@ def sync_authoritative_derived_parts(
             )
     frames = derive_all_inner_door_frames(tuple(frame_sets))
     panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
-    inner_profiles = inner_door_frame_part_profiles(frames)
-    inner_profiles.update(inner_door_panel_part_profiles(panels))
+    # The real inner-door sheet must appear before its separate frame pieces
+    # in the single-cabinet operator part selector.  Do not make opening
+    # multi-settings a prerequisite to see or manufacture the panel.
+    inner_profiles = inner_door_panel_part_profiles(panels)
+    inner_profiles.update(inner_door_frame_part_profiles(frames))
 
     single_door_profiles = (
         build_profiles(snapshot, "door")
