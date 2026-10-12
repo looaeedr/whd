@@ -2360,6 +2360,26 @@ def open_receiving_multi_settings(self, namespace):
                 output_path=output_path,
             )
 
+        def export_partial_nfb_base_plate(set_index, bay_index, output_directory):
+            """Real NFB Base Plate PART_ONLY export, not whole-cabinet release."""
+            from .receiving_nfb_base_partial_export_action import (
+                export_verified_receiving_nfb_base_plate,
+            )
+            bundle = committed_nfb_evidence.get((set_index, bay_index))
+            if bundle is None:
+                raise ValueError("受電箱底板無已提交的 NFB 原始來源及實體孔位驗證")
+            current = nfb_physical_bay_snapshot(set_index, bay_index)
+            # Reuse the original manufacturing PartSpec owner.  In
+            # particular, this must not synthesize base_plate_cN_rN.
+            spec, _ = self.app._part_spec_query_callback("base_plate", current)
+            return export_verified_receiving_nfb_base_plate(
+                bundle,
+                layout=candidate_adapter().layout,
+                current_snapshot=current,
+                base_spec=spec,
+                output_directory=output_directory,
+            )
+
         def state(set_index, bay_index, selected_bays=()):
             adapter = candidate_adapter()
             row = adapter.layout["sets"][set_index]["bays"][bay_index]
@@ -2376,6 +2396,11 @@ def open_receiving_multi_settings(self, namespace):
                 "can_copy": can_copy,
                 "can_restore": submitted,
                 "can_undo": adapter.nfb_can_undo,
+                "base_partial_ready": bool(
+                    submitted
+                    and (set_index, bay_index) in committed_nfb_evidence
+                    and nfb_physical_bay_snapshot(set_index, bay_index).get("receiving_base_plate")
+                ),
                 "reason": ("來源已配置、目標連獨立世界 X 與 DXF 已驗證，可複製提交"
                            if can_copy else
                            (reason or "當前 NFB 已核對來源／世界 X／實體內門，可確認套用")),
@@ -2451,6 +2476,7 @@ def open_receiving_multi_settings(self, namespace):
         return {"state": state, "stage_verified": stage_verified,
                 "submit": submit, "copy": copy, "manifest": physical_manifest,
                 "partial_export": export_partial_nfb_inner_door,
+                "base_partial_export": export_partial_nfb_base_plate,
                 "restore": restore, "undo": undo}
 
     def real_cut_preview_request(role, version_id, set_index, bay_index):

@@ -87,3 +87,44 @@ def inspect_nfb_lower_four_fixing_circles(
         screw_group_center_xy_mm=(x,y),
         circles=tuple(circles),
     )
+
+
+def resolve_unique_nfb_lower_reference_handle(source_path, *, profile: NfbUpperSourceProfile) -> str:
+    """Resolve one original lower closed Color-3 source reference, or refuse.
+
+    The chosen handle must be uniquely evidenced by the SAME original DXF.
+    It is a source-group identity only, NEVER the assembly world-coordinate
+    origin, a pad/ear plate, or an invented NFB screw pitch.
+    """
+    from hashlib import sha256
+    import ezdxf
+
+    source = Path(source_path)
+    import re
+    accepted = re.fullmatch(
+        re.escape(Path(profile.indexed_filename).stem)
+        + r"(?:[(][1-9][0-9]*[)])?[.]dxf",
+        source.name, re.IGNORECASE,
+    )
+    if not accepted:
+        raise ValueError("NFB lower source filename does not match verified index")
+    if sha256(source.read_bytes()).hexdigest() != profile.source_sha256:
+        raise ValueError("NFB lower source SHA does not match verified index")
+    document = ezdxf.readfile(source)
+    candidates = tuple(
+        str(entity.dxf.handle)
+        for entity in document.modelspace()
+        if entity.dxftype() == "LWPOLYLINE"
+        and entity.closed
+        and int(entity.dxf.get("color", 256)) == 3
+    )
+    if len(candidates) != 1:
+        raise ValueError("NFB lower source reference is absent or ambiguous")
+    # Structural provenance is not sufficient: the same source must also
+    # contain the exact four native screws in a strictly separate lower group.
+    inspected = inspect_nfb_lower_four_fixing_circles(
+        source, profile=profile, lower_reference_handle=candidates[0],
+    )
+    if inspected.source_sha256 != profile.source_sha256:
+        raise ValueError("NFB lower group proof changed")
+    return candidates[0]
