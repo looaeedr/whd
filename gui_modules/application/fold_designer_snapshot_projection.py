@@ -192,6 +192,11 @@ def _snapshot_part_dimensions(self, snapshot):
         1.0,
         h - snapshot["base_plate_shrink_top"] - snapshot["base_plate_shrink_bottom"],
     )
+    if snapshot.get("model") in {"受電箱", "RECEIVING"}:
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
+        physical_size = receiving_base_plate_blank_dimensions(snapshot)
+        if physical_size is not None:
+            base_w, base_h = physical_size
 
     try:
         layers = max(1, int(self.indicator_l_var.get()))
