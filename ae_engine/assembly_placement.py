@@ -370,15 +370,17 @@ def resolve_inner_door_frame_placement(
             snapshot, inner_door_id
         )
         frame_center_y = float(vertical["center_y"])
-        # Mate the frame to the REAL side-sheet inside skin: outside W
-        # minus one full sheet thickness, not the side-sheet midplane.
-        side_inner = w / 2.0 - t
+        from .side_sheet_datum import SideSheetDatum
+
+        # Same physical inside faces as BoxBody folding, derived from W/T.
+        # Do not reverse dimension from the virtual sheet mid-surface.
+        sides = SideSheetDatum.from_outside_width(w, t)
         if side == "left":
             # Last flange local +U maps to cabinet -X.
-            position = (-side_inner + physical_skin, frame_center_y, cz)
+            position = (sides.inside_face(-1) + physical_skin, frame_center_y, cz)
             target = "box_body:left_side"
         else:
-            position = (side_inner - physical_skin, frame_center_y, cz)
+            position = (sides.inside_face(+1) - physical_skin, frame_center_y, cz)
             target = "box_body:right_side"
     stable_id = f"inner_door:{str(inner_door_id).strip()}:{side}_frame"
     world = tuple(float(v) for v in position)

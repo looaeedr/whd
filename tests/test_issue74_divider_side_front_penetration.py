@@ -261,18 +261,14 @@ def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
 
 
 def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
-    """Independent geometry witness; preserve the approved 22/27 manufacturing values.
+    """Measure the PRE-RELIEF world projection only; not the final mating/CUTTING.
 
-    The certified 27-mm Divider relief CUTTING depth remains unchanged and is
-    validated independently against the supplied DXF below. World FW overlap
-    is *not* that cutting depth: the historical 27-mm overlap was measured
-    with side-sheet midplanes accidentally placed on their inner-skin datum.
-    Using the actual W-outside side sheet placement moves the physical overlap
-    inward by half a sheet thickness. Do not change the certified CUTTING or
-    push the side sheets back onto the incorrect mid-surface datum.
+    World-axis bounding-box intersection is diagnostic, not a final material
+    dimension or a physical contact witness. The independently certified 27-mm
+    CUTTING depth is measured from final material against the DXF below.
+    A thickness-derived ad-hoc correction to make them match is forbidden.
     """
     REFERENCE_ZL1_STEP_LENGTH = 22.0
-    REFERENCE_FW_CERTIFIED_RELIEF_DEPTH = 27.0
 
     snap = _snapshot()
     body = _body_part(snap)
@@ -320,34 +316,30 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
     def overlap_1d(a, b):
         return max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
 
-    observed_left_overlap = overlap_1d(left_fw, divider_bounds)
-    observed_right_overlap = overlap_1d(right_fw, divider_bounds)
+    projected_left = overlap_1d(left_fw, divider_bounds)
+    projected_right = overlap_1d(right_fw, divider_bounds)
 
     observed = {
         "zl1_step_length": observed_zl1_step,
         "divider_x_bounds": divider_bounds,
         "left_fw_x_bounds": left_fw,
         "right_fw_x_bounds": right_fw,
-        "left_fw_divider_overlap": observed_left_overlap,
-        "right_fw_divider_overlap": observed_right_overlap,
+        "left_fw_divider_projection_only": projected_left,
+        "right_fw_divider_projection_only": projected_right,
+        "dimension_authority": "PRE_RELIEF_WORLD_AXIS_PROJECTION_DIAGNOSTIC_ONLY",
     }
     print("RECEIVING_REFERENCE_22_27_ORACLE=", observed)
 
     assert observed_zl1_step == pytest.approx(
         REFERENCE_ZL1_STEP_LENGTH, abs=1.0e-5
     )
-    # Separate the certified material CUTTING depth from the assembled
-    # pre-relief collision shadow. For T2: 27-mm cut, 26-mm physical FW
-    # overlap after the outside-W assembly datum is corrected.
-    expected_physical_overlap = (
-        REFERENCE_FW_CERTIFIED_RELIEF_DEPTH - float(snap["t"]) / 2.0
-    )
-    assert observed_left_overlap == pytest.approx(
-        expected_physical_overlap, abs=1.0e-5
-    )
-    assert observed_right_overlap == pytest.approx(
-        expected_physical_overlap, abs=1.0e-5
-    )
+    # Both values are projections in the PRE-RELIEF world, not a claim about
+    # the post-solve physical contact or cutting depth.  In particular do not
+    # "repair" them by adding fixed 1 mm, T/2, or a certified 27-mm oracle.
+    assert 0 < projected_left < left_fw[1] - left_fw[0]
+    assert 0 < projected_right < right_fw[1] - right_fw[0]
+    assert projected_left == pytest.approx(projected_right, abs=1.0e-5)
+
 
 
 def test_receiving_reference_fixture_final_cutting_matches_certified_dxf_oracle():
@@ -464,3 +456,47 @@ def test_receiving_operator_inputs_are_authority_and_material_fold_is_one_way_de
             float(roundtrip["zr2"]),
         ),
     })
+
+
+def test_receiving_final_solid_divider_contacts_are_reverse_mapped_from_real_side_skins():
+    """POST-relief physical terminal/skin contact, not a pre-relief FW projection."""
+    from shapely.geometry import LineString
+    from ae_engine.contracts import ResolvedManufacturingGeometry
+    from ae_engine.receiving_joint_marking import (
+        _divider_side_contact, _backproject_contact_boundary,
+    )
+    from ae_engine.side_sheet_datum import SideSheetDatum
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    dims = (snap["w"], snap["h"], snap["d"])
+    solved_parts, diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
+        (body, divider_part),
+        finished_dimensions=dims,
+        sheet_thickness=snap["t"],
+        clearance=0.0,
+    )
+    assert diagnostics and diagnostics[0].illegal_penetration is False
+    world = bridge._phase6_build_joint_world_geometry(
+        solved_parts, dims, snap["t"],
+    )
+    geometry = ResolvedManufacturingGeometry(parts=tuple(solved_parts))
+    sides = SideSheetDatum.from_outside_width(snap["w"], snap["t"])
+    owner_pieces = {
+        str(piece.role): piece.render_data
+        for piece in body.render_data.pieces
+    }
+    for role, side in (("left_side", -1), ("right_side", +1)):
+        contact = _divider_side_contact(
+            geometry=geometry, world=world, divider=divider,
+            locator_id=f"box_body:{role}", dimensions=dims,
+            sheet_thickness=snap["t"],
+        )
+        assert float(contact.evidence["plane_separation"]) == pytest.approx(0.0, abs=1e-6)
+        assert all(
+            float(p[0]) == pytest.approx(sides.inside_face(side), abs=1e-6)
+            for p in contact.overlap_world
+        )
+        _world_line, flat_line = _backproject_contact_boundary(contact)
+        assert owner_pieces[role].material.covers(LineString(flat_line))
