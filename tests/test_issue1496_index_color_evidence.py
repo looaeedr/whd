@@ -8,7 +8,7 @@ import pytest
 
 from ae_engine.receiving_nfb_index_sources import (
     NO_SOURCE, UNCERTIFIED, audit_unique_nfb_index_sources,
-    build_nfb_indexed_color_evidence,
+    build_nfb_indexed_color_evidence, unique_nfb_dxfs_from_switch_index,
 )
 
 
@@ -114,3 +114,31 @@ def test_missing_duplicate_and_foreign_audit_rejected_instead_of_merged(tmp_path
     poisoned=replace(audits[0],source=replace(audits[0].source,links=()))
     with pytest.raises(ValueError,match="links differ"):
         build_nfb_indexed_color_evidence(catalog,(poisoned,*audits[1:]))
+
+
+def test_truncated_brand_source_csv_row_does_not_become_missing_dxf(tmp_path):
+    """An omitted brand column is corruption, not an explicit no-source."""
+    index=tmp_path/"開關索引.csv"
+    with index.open("w",encoding="utf-8-sig",newline="") as out:
+        writer=csv.writer(out)
+        writer.writerow(("圖塊名稱","士林","深","東元","深","伍菱","深"))
+        writer.writerow(("K1","A.dxf","107","A.dxf","99"))
+    with pytest.raises(ValueError,match=r"row 2:TRUNCATED_BRAND_SOURCE_COLUMNS"):
+        unique_nfb_dxfs_from_switch_index(index)
+    with pytest.raises(ValueError,match="TRUNCATED_BRAND_SOURCE_COLUMNS"):
+        audit_unique_nfb_index_sources(index,nfb_root=tmp_path/"NFB")
+
+
+def test_explicit_no_source_cell_allows_missing_trailing_metadata(tmp_path):
+    index=tmp_path/"開關索引.csv"
+    with index.open("w",encoding="utf-8-sig",newline="") as out:
+        writer=csv.writer(out)
+        writer.writerow(("圖塊名稱","士林","深","東元","深","伍菱","深"))
+        # All brand columns are present: final optional metadata cell absent.
+        writer.writerow(("K1","A.dxf","107","A.dxf","99","無對應檔案"))
+    catalog=unique_nfb_dxfs_from_switch_index(index)
+    assert catalog.records_read==1
+    assert catalog.diagnostics==()
+    assert {(x.brand,x.filename) for x in catalog.sources}=={
+        ("士林","A.dxf"),("東元","A.dxf"),
+    }
