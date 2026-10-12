@@ -169,6 +169,13 @@ def select_quantity_nfb_partial(batch, workspace_snapshot, *,
             "version_id": vid, "part_id": demand.physical_id,
             "physical_part_id": actual_id,
             "source_part_id": demand.source_part_id,
+            "source_dependencies": [
+                {key: hole.get(key) for key in (
+                    "physical_hole_id", "source_brand", "model_filename",
+                    "manual_x_state", "datum_revision",
+                )}
+                for hole in (version.get("nfb_config") or {}).get("holes", ())
+            ] if submitted and not _independent(demand.source_part_id) else [],
             "status": status, "may_export": allowed, "reason": reason,
             "per_box_count": demand.per_box_count,
             "piece_count": demand.piece_count, "actual_count": demand.quantity,

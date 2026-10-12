@@ -426,3 +426,50 @@ def test_operator_partial_confirmation_controls_atomic_delivery(tmp_path, monkey
     else:
         assert not list(tmp_path.iterdir())
     assert not list(tmp_path.glob(".whd-export-stage-*"))
+
+
+def test_all_held_quantity_selection_discloses_nfb_dxf_datum_and_writes_nothing(tmp_path, monkeypatch):
+    from copy import deepcopy
+    from dataclasses import replace
+    from functools import partial
+    from types import SimpleNamespace
+    import phase6_manufacturing_adapter as adapter
+    import phase6_quantity_manufacturing as quantity
+    from gui_modules.project import export_actions
+    from gui_modules.application import receiving_nfb_quantity_partial as partial_action
+
+    opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
+    assert model.delete_selected(confirmed=True)  # omit the unconfigured version
+    ids = {v["version_id"] for v in model.snapshot()["versions"]}
+    batch = replace(batch,
+                    versions=tuple(v for v in batch.versions if v.version_id in ids),
+                    requests=tuple(r for r in batch.requests if r[0] in ids),
+                    demands=tuple(d for d in batch.demands if d.version_id in ids))
+    snapshot = deepcopy(opts["snapshot"])
+    snapshot.update(active_mode="quantity", quantity=model.snapshot())
+    app = SimpleNamespace(fold_designer_app=SimpleNamespace(
+        _phase6_input_snapshot=snapshot,
+        designer_workspace=SimpleNamespace(snapshot=lambda: deepcopy(snapshot)),
+        _phase6_resolve_manufacturing_geometry=lambda: None,
+        _scene_query_callback=lambda *_: None, _part_spec_query_callback=lambda *_: None,
+    ))
+    monkeypatch.setattr(adapter, "build_manufacturing_request", lambda *_a, **_k: batch.requests[0][2])
+    monkeypatch.setattr(quantity, "resolve_quantity_manufacturing", lambda *_: batch)
+    monkeypatch.setattr(partial_action, "verify_quantity_nfb_inner_door",
+                        partial(partial_action.verify_quantity_nfb_inner_door,
+                                index_path=opts["index_path"], profile_path=profiles))
+    source.write_bytes(source.read_bytes() + b"stale")
+    output = tmp_path / "output"
+    output.mkdir()
+    exported, errors = export_actions._export_selected_parts(
+        app, str(output), {}, {"door": True}, False,
+    )
+    assert not exported and not list(output.iterdir())
+    diagnostic = "\n".join(errors)
+    assert "共 10 片" in diagnostic
+    assert all(value in diagnostic for value in (
+        "quantity-v1", "quantity-v2", "400_140X257_107.dxf", "nfb:bay-a:hole-1", "datum",
+    ))
+    report = app._phase6_nfb_partial_export_report
+    assert report["actual_export_count"] == 0 and report["held_actual_count"] == 10
+    assert all(row["source_dependencies"] for row in report["rows"])

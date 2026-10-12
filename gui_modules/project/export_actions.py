@@ -246,6 +246,19 @@ def _export_selected_resolved_parts(self, folder, flags):
             or bool(flags.get(_resolved_export_intention_key(row.source_part_id), False))
         )
         if not selected_demands:
+            if nfb_selection is not None:
+                self._phase6_nfb_partial_export_report = nfb_selection.report()
+                diagnostics = [
+                    f"{row['version_id']} / {row['part_id']}：受阻 {row['actual_count']} 片；"
+                    + ", ".join(
+                        f"{source['physical_hole_id']} / {source['source_brand']} / "
+                        f"{source['model_filename']} / datum {source['datum_revision']}"
+                        for source in row["source_dependencies"])
+                    + "；" + row["reason"]
+                    for row in nfb_selection.rows
+                ]
+                return ([], [f"NFB 選中板件全數受阻（共 {nfb_selection.held_piece_count} 片），未輸出檔案。",
+                             *diagnostics])
             return ([], ["canonical quantity export: no selected physical parts"])
         if nfb_selection is not None:
             selected_versions = {row["version_id"] for row in selected_reports}
