@@ -294,13 +294,15 @@ def _phase6_box_body_piece_solver_key(body_part, region, *, require_flat_uv):
     return "box_body"
 
 
-def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tolerance=1e-7):
-    """Expand formed FW inward from the REAL side-sheet D-core mid-surface.
+def _phase6_expand_box_body_fw_world_mid(
+    piece, mapped, world_mid_piece, *, sheet_thickness, tolerance=1e-7
+):
+    """Expand formed FW inward from the side-sheet's real OUTER physical skin.
 
-    The original FW material endpoint and the side-sheet mating hinge are
-    different under outside-to-material bend compensation. Use the placed
-    D-core mid-surface as the outboard anchor, not the FW bbox center or its
-    pre-expansion endpoint. Flat CUTTING and Divider relief remain unchanged.
+    The D core is placed by its mid-surface while FW's world X is an in-plane
+    coordinate, not a thickness-offset normal. The outboard FW formed edge
+    must mate the D core's OUTSIDE skin, derived from its real mid-surface
+    and outward sheet normal. Neither flat CUTTING nor Divider relief changes.
     """
     role = str(getattr(piece, "role", "") or "").strip().lower()
     fw_key = {"left_side": "fw_left", "right_side": "fw_right"}.get(role)
@@ -365,12 +367,19 @@ def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tole
         float(point[0]) for index in core_selected for point in rows[index]
     ]
     core_midplane_x = (min(core_xs) + max(core_xs)) / 2.0
+    thickness = float(sheet_thickness)
+    if not (thickness > 0.0):
+        raise ValueError("formed side FW requires a physical positive sheet thickness")
+    outward_normal_x = -1.0 if role == "left_side" else 1.0
+    core_outer_skin_x = (
+        core_midplane_x + outward_normal_x * thickness / 2.0
+    )
     outboard_fw_x = float(lo if role == "left_side" else hi)
     scale = float(target) / span
     for index in selected:
         rows[index] = tuple(
             (
-                core_midplane_x + (float(point[0]) - outboard_fw_x) * scale,
+                core_outer_skin_x + (float(point[0]) - outboard_fw_x) * scale,
                 float(point[1]), float(point[2]),
             )
             for point in rows[index]
@@ -723,7 +732,8 @@ def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickne
                 world_mid_piece = body_world_mid[cursor:cursor + count]
                 cursor += count
                 world_mid_piece = _phase6_expand_box_body_fw_world_mid(
-                    piece, mapped, world_mid_piece
+                    piece, mapped, world_mid_piece,
+                    sheet_thickness=sheet_thickness,
                 )
                 world_mid_piece = _phase6_shift_multistage_terminal_fold_world_mid(
                     piece, mapped, world_mid_piece
