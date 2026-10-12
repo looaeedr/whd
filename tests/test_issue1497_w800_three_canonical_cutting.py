@@ -117,11 +117,11 @@ def test_w800x3_uses_whd_723_blank_x_for_three_real_holes(
     assert [p[0] for p in centers] == pytest.approx((181.5, 361.5, 541.5))
     assert centers[0][1] == pytest.approx(centers[1][1])
     assert centers[1][1] == pytest.approx(centers[2][1])
-    assert [(max(p.x for p in c.points)-min(p.x for p in c.points),
-             max(p.y for p in c.points)-min(p.y for p in c.points))
-            for c in contours[1:]] == pytest.approx(
-                [(57., 96.), (96., 57.), (96., 57.)]
-            )
+    measured = [(max(p.x for p in c.points)-min(p.x for p in c.points),
+                 max(p.y for p in c.points)-min(p.y for p in c.points))
+                for c in contours[1:]]
+    for actual, expected in zip(measured, ((57., 96.), (96., 57.), (96., 57.))):
+        assert actual == pytest.approx(expected)
     assert build_inner_door_panel_render_data(panel).scene.primitives == (
         original.scene.primitives
     )
