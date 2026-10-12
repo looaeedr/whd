@@ -145,3 +145,228 @@ def test_unsubmitted_or_cross_bay_evidence_never_write(tmp_path):
     )
     with pytest.raises(ValueError,match="submitted"):
         export_current_nfb_inner_door_partial_dxf(**opts)
+
+
+def _quantity_source_case(tmp_path):
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from ae_engine.manufacturing_quantity import PhysicalPartDemand
+    from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+    from ae_engine.receiving_nfb_manufacturing_release import X_REVISION
+    from phase6_quantity_model import QuantityModel
+    from phase6_manufacturing_contracts import freeze_manufacturing_value
+
+    opts = _case(tmp_path)
+    panel = next(p for p in cabinet_family_policy.derive_inner_door_panels(opts["snapshot"])
+                 if p.inner_door_id == "upper")
+    config = deepcopy(opts["saved_bay"]["nfb_config"])
+    for hole in config["holes"]:
+        hole["source_brand"] = "士林"
+        hole["datum_revision"] = X_REVISION
+        hole["datum_snapshot"] = {
+            "w": 800., "h": 1600., "t": 2.,
+            "part_id": panel.stable_id, "inner_door_id": panel.inner_door_id,
+            "cell_key": panel.cell_key, "profile_revision": opts["profile"].revision,
+        }
+    model = QuantityModel()
+    model.set_piece_count(6)
+    v2 = model.add_version()
+    model.set_piece_count(4)
+    model.set_version_nfb_config("quantity-v1", submitted=True, config=config)
+    model.set_version_nfb_config(v2, submitted=True, config=config)
+    v3 = model.add_version()
+    model.set_piece_count(3)
+    model.set_version_nfb_config(v3, submitted=False)
+    source = tmp_path / opts["profile"].indexed_filename
+    source.write_bytes(opts["source_path"].read_bytes())
+    profile = opts["profile"]
+    profile_csv = tmp_path / "來源輪廓索引.csv"
+    profile_csv.write_text(
+        "brand,indexed_filename,source_sha256,upper_handle,upper_width_mm,"
+        "upper_height_mm,source_alias_status,revision\n"
+        f"{profile.brand},{profile.indexed_filename},{profile.source_sha256},"
+        f"{profile.upper_handle},57,96,{profile.source_alias_status},{profile.revision}\n",
+        encoding="utf-8-sig",
+    )
+    base = build_inner_door_panel_render_data(panel)
+    requests = []
+    demands = []
+    for row in model.snapshot()["versions"]:
+        vid, count = row["version_id"], row["piece_count"]
+        request = SimpleNamespace(input_snapshot=freeze_manufacturing_value(opts["snapshot"]),
+                                  settings=freeze_manufacturing_value({"t": 2.}), parts=())
+        requests.append((vid, count, request))
+        for key in ("inner_door:upper", "base_plate", "box_body:left_side"):
+            demands.append(PhysicalPartDemand(vid, key, key, count, 1, base))
+    batch = SimpleNamespace(demands=tuple(demands), requests=tuple(requests))
+    return opts, model, batch, source, profile_csv
+
+
+def test_quantity_main_selection_uses_live_source_and_keeps_other_versions(tmp_path):
+    from functools import partial
+    from dataclasses import replace
+    from gui_modules.application.receiving_nfb_quantity_partial import (
+        select_quantity_nfb_partial, verify_quantity_nfb_inner_door,
+    )
+    opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
+    # The fixture side/base sheets must retain independent physical topology.
+    batch.demands = tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
+                          if d.source_part_id != "inner_door:upper" else d
+                          for d in batch.demands)
+    selection = select_quantity_nfb_partial(
+        batch, {"quantity": model.snapshot()},
+        verifier=partial(verify_quantity_nfb_inner_door,
+                         index_path=opts["index_path"], profile_path=profiles),
+    )
+    ready = [r for r in selection.rows if r["status"] == "READY"]
+    assert [r["actual_count"] for r in ready] == [6, 4]
+    assert selection.exported_piece_count == 29  # 10 inner + 10 side + 9 legacy
+    assert selection.held_piece_count == 10
+    assert not selection.report()["whole_cabinet_complete"]
+    original = next(d.render_data for d in batch.demands if d.source_part_id == "inner_door:upper")
+    actual = next(d.render_data for d in selection.demands if d.version_id == "quantity-v1"
+                  and d.source_part_id == "inner_door:upper")
+    assert len(actual.scene.primitives) > len(original.scene.primitives)
+    source.write_bytes(source.read_bytes() + b"stale")
+    stale = select_quantity_nfb_partial(
+        batch, {"quantity": model.snapshot()},
+        verifier=partial(verify_quantity_nfb_inner_door,
+                         index_path=opts["index_path"], profile_path=profiles),
+    )
+    assert stale.exported_piece_count == 19  # unaffected sides + whole legacy version
+    assert stale.held_piece_count == 20
+    assert all(r["status"] != "READY" for r in stale.rows)
+
+
+@pytest.mark.parametrize("change", ["datum", "reconfirm", "existing_cutting", "count"])
+def test_quantity_partial_rejects_changed_datum_and_preserves_existing_machining(tmp_path, change):
+    from functools import partial
+    from dataclasses import replace
+    from gui_modules.application.receiving_nfb_quantity_partial import (
+        select_quantity_nfb_partial, verify_quantity_nfb_inner_door,
+    )
+    opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
+    batch.demands = tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
+                          if d.source_part_id != "inner_door:upper" else d
+                          for d in batch.demands)
+    if change in ("datum", "reconfirm"):
+        config = model.nfb_config_for_version("quantity-v1")["nfb_config"]
+        if change == "datum":
+            config["holes"][0]["datum_snapshot"]["w"] = 900
+        else:
+            config["holes"][0]["manual_x_state"] = "RECONFIRM_REQUIRED"
+        model.set_version_nfb_config("quantity-v1", submitted=True, config=config)
+    elif change == "existing_cutting":
+        # Extra legacy machining must never be discarded to substitute NFB.
+        first = batch.demands[0]
+        from copy import deepcopy
+        render = deepcopy(first.render_data)
+        render.scene.add_circle((200, 200), 2, layer="CUTTING")
+        batch.demands = (replace(first, render_data=render), *batch.demands[1:])
+    else:
+        batch.demands = (replace(batch.demands[0], piece_count=7), *batch.demands[1:])
+    kwargs = dict(verifier=partial(verify_quantity_nfb_inner_door,
+                                  index_path=opts["index_path"], profile_path=profiles))
+    if change == "count":
+        with pytest.raises(ValueError, match="identity/count"):
+            select_quantity_nfb_partial(batch, {"quantity": model.snapshot()}, **kwargs)
+        return
+    result = select_quantity_nfb_partial(batch, {"quantity": model.snapshot()}, **kwargs)
+    row = next(r for r in result.rows if r["version_id"] == "quantity-v1"
+               and r["source_part_id"] == "inner_door:upper")
+    assert row["status"] == "BLOCKED" and row["reason"]
+    assert any(r["version_id"] == "quantity-v2" and r["status"] == "READY"
+               for r in result.rows)
+
+
+def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manifest(tmp_path, monkeypatch):
+    import json
+    import re
+    from copy import deepcopy
+    from dataclasses import replace
+    from functools import partial
+    from types import SimpleNamespace
+    import phase6_manufacturing_adapter as adapter
+    import phase6_quantity_manufacturing as quantity
+    from gui_modules.project import export_actions
+    from gui_modules.application import receiving_nfb_quantity_partial as partial_action
+
+    opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
+    batch.demands = tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
+                          if d.source_part_id != "inner_door:upper" else d
+                          for d in batch.demands)
+    config = model.nfb_config_for_version("quantity-v2")["nfb_config"]
+    config["holes"][0]["manual_x_mm"] = 60.
+    model.set_version_nfb_config("quantity-v2", submitted=True, config=config)
+    snapshot = deepcopy(opts["snapshot"])
+    snapshot.update(active_mode="quantity", quantity=model.snapshot())
+    designer = SimpleNamespace(
+        _phase6_input_snapshot=snapshot,
+        designer_workspace=SimpleNamespace(snapshot=lambda: deepcopy(snapshot)),
+        _phase6_resolve_manufacturing_geometry=lambda: None,
+        _scene_query_callback=lambda *_: None,
+        _part_spec_query_callback=lambda *_: None,
+    )
+    app = SimpleNamespace(fold_designer_app=designer)
+    monkeypatch.setattr(adapter, "build_manufacturing_request", lambda *_a, **_k: batch.requests[0][2])
+    monkeypatch.setattr(quantity, "resolve_quantity_manufacturing", lambda *_: batch)
+    monkeypatch.setattr(partial_action, "verify_quantity_nfb_inner_door",
+                        partial(partial_action.verify_quantity_nfb_inner_door,
+                                index_path=opts["index_path"], profile_path=profiles))
+    output = tmp_path / "output"
+    output.mkdir()
+    exported, errors = export_actions._export_selected_parts(
+        app, str(output), {}, {"door": True, "base_plate": True, "box_body": True}, False,
+    )
+    assert not errors
+    assert "nfb_partial_manifest.json" in exported
+    report = json.loads((output / "nfb_partial_manifest.json").read_text())
+    assert report["actual_export_count"] == 29 and report["held_actual_count"] == 10
+    assert report["whole_cabinet_complete"] is False
+    assert report["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
+    assert all(row["version_id"] in {"quantity-v1", "quantity-v2", "quantity-v3"}
+               and row["physical_part_id"] for row in report["rows"])
+    labels = []
+    for path in output.glob("*.dxf"):
+        entities = ezdxf.readfile(path).modelspace()
+        labels.extend(row.plain_text() for row in entities.query("MTEXT")
+                      if re.fullmatch(r"Q[0-9]+", row.plain_text()))
+    assert sorted(labels) == ["Q19", "Q4", "Q6"]
+    assert sum(int(q[1:]) for q in labels) == report["actual_export_count"]
+    # Stale bytes hold both inner doors, not the untouched version/side parts.
+    source.write_bytes(source.read_bytes() + b"invalidated")
+    next_output = tmp_path / "stale-output"
+    next_output.mkdir()
+    files, errors = export_actions._export_selected_parts(
+        app, str(next_output), {}, {"door": True, "base_plate": True, "box_body": True}, False,
+    )
+    assert files and not errors
+    stale = json.loads((next_output / "nfb_partial_manifest.json").read_text())
+    assert stale["actual_export_count"] == 19 and stale["held_actual_count"] == 20
+    assert not any(row["status"] == "READY" for row in stale["rows"])
+
+
+def test_quantity_partial_main_refuses_divergent_submitted_version_owners(tmp_path, monkeypatch):
+    from copy import deepcopy
+    from types import SimpleNamespace
+    import phase6_manufacturing_adapter as adapter
+    from gui_modules.project import export_actions
+    opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
+    source_snapshot = deepcopy(opts["snapshot"])
+    source_snapshot.update(active_mode="quantity", quantity=model.snapshot())
+    workspace_snapshot = deepcopy(source_snapshot)
+    workspace_snapshot["quantity"]["versions"][0]["nfb_config"]["holes"][0]["manual_x_mm"] = 88.
+    designer = SimpleNamespace(
+        _phase6_input_snapshot=source_snapshot,
+        designer_workspace=SimpleNamespace(snapshot=lambda: workspace_snapshot),
+        _phase6_resolve_manufacturing_geometry=lambda: None,
+        _scene_query_callback=lambda *_: None, _part_spec_query_callback=lambda *_: None,
+    )
+    monkeypatch.setattr(adapter, "build_manufacturing_request", lambda *_a, **_k: batch.requests[0][2])
+    app = SimpleNamespace(fold_designer_app=designer)
+    output = tmp_path / "output"
+    output.mkdir()
+    exported, errors = export_actions._export_selected_parts(
+        app, str(output), {}, {"door": True}, False,
+    )
+    assert not exported and errors and not list(output.iterdir())

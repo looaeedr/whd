@@ -624,7 +624,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 try:
                     nfb_ports = get_nfb_transaction_ports()
                     require_highlighted_nfb_inner_doors(
-                        nfb_ports, set_index, targets(),
+                        nfb_ports, set_index, targets(), allow_held=True,
                     )
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
                     pass  # Do not display an enabled button without live proof.
@@ -639,7 +639,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             current = tuple(applied["selected_bays"])
                             live_ports = get_nfb_transaction_ports()
                             require_highlighted_nfb_inner_doors(
-                                live_ports, set_index, current,
+                                live_ports, set_index, current, allow_held=True,
                             )
                             from tkinter import filedialog
                             folder = filedialog.askdirectory(
@@ -650,12 +650,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                                 return
                             completed = export_highlighted_nfb_inner_doors(
                                 live_ports, set_index=set_index,
-                                bay_indices=current, output_directory=folder,
+                                bay_indices=current, output_directory=folder, allow_held=True,
                             )
                             messagebox.showinfo(
                                 "NFB 部分 DXF",
                                 f"已輸出 {len(completed)} 片已驗證內門。"
-                                "中／底板、PAD／EAR 和整箱 CHECK/Q 尚未放行。",
+                                "受阻連未輸出，詳見同批部分匯出清單。"
+                                 "中／底板、PAD／EAR 和整箱尚未放行。",
                                 parent=win,
                             )
                         except (ValueError, TypeError, IndexError,

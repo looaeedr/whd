@@ -139,3 +139,52 @@ def test_stale_or_untyped_writer_result_does_not_publish(tmp_path):
             ports,set_index=0,bay_indices=(0,),output_directory=tmp_path,
         )
     assert list(tmp_path.iterdir())==[]
+
+
+def test_explicit_partial_selection_exports_ready_bay_and_reports_held_source(tmp_path):
+    import json
+    ports, calls = _ports(changed_source=True)
+    assert batch.require_highlighted_nfb_inner_doors(
+        ports, 0, (0, 1), allow_held=True,
+    ) == (0,)
+    done = batch.export_highlighted_nfb_inner_doors(
+        ports, set_index=0, bay_indices=(0, 1), output_directory=tmp_path,
+        allow_held=True,
+    )
+    assert len(done) == 1 and [call[1] for call in calls] == [0]
+    report = json.loads((tmp_path / "nfb_set1_partial_manifest.json").read_text())
+    assert report["actual_export_count"] == 1
+    assert report["whole_cabinet_complete"] is False
+    assert report["not_exported_bays"][0]["bay_index"] == 1
+    assert report["not_exported_bays"][0]["reason"] == "source SHA stale"
+    assert not (tmp_path / "nfb_set1_bay2_inner_partial.dxf").exists()
+
+
+def test_partial_manifest_publication_failure_rolls_back_dxfs(tmp_path, monkeypatch):
+    ports, calls = _ports(changed_source=True)
+    original = os.link
+    def fail_report(source, destination):
+        if Path(destination).suffix == ".json":
+            raise OSError("manifest publication failed")
+        return original(source, destination)
+    monkeypatch.setattr(batch.os, "link", fail_report)
+    with pytest.raises(OSError, match="manifest publication failed"):
+        batch.export_highlighted_nfb_inner_doors(
+            ports, set_index=0, bay_indices=(0, 1), output_directory=tmp_path,
+            allow_held=True,
+        )
+    assert not list(tmp_path.iterdir())
+
+
+def test_writer_cannot_substitute_another_bay_scope(tmp_path):
+    ports, calls = _ports()
+    original = ports["partial_export"]
+    def swapped(si, bi, path):
+        return original(si, 1, path)
+    ports["partial_export"] = swapped
+    with pytest.raises(ValueError, match="ownership changed"):
+        batch.export_highlighted_nfb_inner_doors(
+            ports, set_index=0, bay_indices=(0,), output_directory=tmp_path,
+            allow_held=True,
+        )
+    assert not list(tmp_path.iterdir())
