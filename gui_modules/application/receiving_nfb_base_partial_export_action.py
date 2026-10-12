@@ -89,7 +89,7 @@ def export_verified_receiving_nfb_base_plate(
     import re
     expected_name = bundle.verified_door.indexed_model_key[1]
     allowed_copy = re.fullmatch(
-        re.escape(Path(expected_name).stem) + r"(?:\\([1-9][0-9]*\\))?\\.dxf",
+        re.escape(Path(expected_name).stem) + r"(?:[(][1-9][0-9]*[)])?[.]dxf",
         source.name, re.IGNORECASE,
     )
     if (not allowed_copy
