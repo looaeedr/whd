@@ -49,7 +49,11 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
     """
     total = float(total_w)
     t = max(0.0, float(thickness or 0.0))
-    w_material_half = max(0.0, (total - 2.0 * t) / 2.0)
+    # W is the outside cabinet width. Side-sheet mid-surfaces lie T/2
+    # inboard of the outer surfaces; their inner skins therefore mate the
+    # approved Divider W-2T end faces, without using a mid-surface as a
+    # manufacturing cutting dimension.
+    side_midplane_half = max(0.0, (total - t) / 2.0)
     role = str(getattr(piece, "role", "") or "")
     formed_y_offset = float(getattr(piece, "formed_y_offset", 0.0) or 0.0)
 
@@ -73,10 +77,10 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
         d_half = base_len / 2.0
         if role == "left_side":
             return tuple((
-                -w_material_half + float(p[2]), float(p[1]) + formed_y_offset, d_half - float(p[0])
+                -side_midplane_half + float(p[2]), float(p[1]) + formed_y_offset, d_half - float(p[0])
             ) for p in (points or ()))
         return tuple((
-            w_material_half - float(p[2]), float(p[1]) + formed_y_offset, float(p[0]) + d_half
+            side_midplane_half - float(p[2]), float(p[1]) + formed_y_offset, float(p[0]) + d_half
         ) for p in (points or ()))
 
     return tuple(tuple(float(v) for v in p) for p in (points or ()))
