@@ -11,7 +11,7 @@ from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dim
 def test_real_receiving_gui_base_bridge_and_project_roundtrip(tmp_path):
     import tkinter as tk
     import gui
-    import phase6_project as project
+    import phase6_project_file as project
     from phase6_manufacturing_adapter import build_scene_payload_for_app
     from gui_modules.application.fold_designer_snapshot_projection import _snapshot_base_state
 
