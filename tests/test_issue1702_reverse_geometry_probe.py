@@ -12,6 +12,7 @@ import pytest
 
 from ae_engine.assembly_collision import build_divider_front_fold_relief_candidate
 from ae_engine.divider_manufacturing import _core_start
+from ae_engine.divider_reverse_relief import reconstruct_receiving_divider_cross
 from tests.test_issue39_divider_relief import (
     _snapshot, _body_part, _divider_part, _divider_insert_joint,
 )
@@ -69,14 +70,19 @@ def test_issue1702_independent_full_thickness_reverse_cut_probe():
     )
     solved = next(row for row in solved_parts if row.part_key == divider.stable_id)
     certified_removed = part.render_data.material.difference(solved.render_data.material)
-    reverse_removed = candidate.cut_polygon_2d
+    inverse = reconstruct_receiving_divider_cross(
+        divider=part, box_body=body, candidate=candidate, thickness=snap["t"],
+    )
+    reverse_removed = inverse.cut_polygon_2d
     witness = {
         "input": {"W": snap["w"], "T": snap["t"], "FW": snap["fw"], "D": snap["d"]},
         "flat_blank_bounds": (minx, miny, maxx, maxy),
         "reverse_source": "PRE_RELIEF_TWO_SKIN_WORLD_CROSSINGS_TO_FLAT",
         "reverse_cut_bounds": _rounded_bounds(reverse_removed),
         "reverse_cut_area": float(reverse_removed.area),
-        "reverse_cut_depths_reported": candidate.cut_depths,
+        "collision_only_cut_depths_reported": candidate.cut_depths,
+        "full_inverse_parameters": inverse.parameters,
+        "full_inverse_evidence": inverse.evidence,
         "reverse_source_bands": probes,
         "certified_final_cut_bounds": _rounded_bounds(certified_removed),
         "certified_final_cut_area": float(certified_removed.area),
