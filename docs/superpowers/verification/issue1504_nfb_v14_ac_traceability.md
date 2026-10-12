@@ -104,3 +104,36 @@
 | SWT-AC-30 | #1498 | EVIDENCE_CANDIDATE_ONLY | UI-1A（標示）／MFG-1（能力註冊） | 已知四組相鄰名義孔距不是可製造清單；只對逐組核准的 W×N×Y×型號×內門 datum 顯示可製造（內門），範圍外僅預覽。 |
 | SWT-AC-31 | #1499 | EVIDENCE_CANDIDATE_ONLY | UI-1B（Save／Reload／降級回歸） | 未提交保持既有 schema 與 DXF；已有提交 scope 須根專案與 Quantity schema 升版，凍結舊版 schema 清單的舊 reader 拒載；不能對不認識新 schema 的舊版 silent export。 |
 | SWT-AC-32 | #1496、#1502 | BLOCKED_1502_PHYSICAL_MFG | MFG-1（盤點／依賴）／UI-1B（告知）／MFG-2（出圖） | 真 DXF Color 30／150 盤點件數與解析狀態逐檔可追溯；未取得源檔前不得假報 0。MFG-2 未完成的相依底／中板阻斷、其他無相依板件照常出圖，manifest／CHECK 計數不受污染。 |
+
+## 26 項已核對測試函式（部分證據，非整條 AC 驗收）
+
+下列每個測試函式的名稱、其所在檔案及該 AC owner 候選連結都經過檢查；**測試存在不代表整條 AC 已驗收**。未列出的 62 項仍須逐條檢查 assertion。
+
+| AC | 已找到的測試函式（只代表部分自動化證據） |
+|---|---|
+| NFB-AC-10 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly` |
+| NFB-AC-14 | `tests/test_issue1502_nfb_ear_base_assembly_contract.py::test_ear_mounting_does_not_invent_base_or_change_verified_inner_NFB` |
+| NFB-AC-16 | `tests/test_issue1499_nfb_persistence.py::test_unconfigured_bay_and_quantity_keep_legacy_schema` |
+| NFB-AC-29 | `tests/test_issue1499_nfb_persistence.py::test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback` |
+| NFB-AC-30 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_no_unapproved_size_or_single_unit_center_defaults` |
+| NFB-AC-35 | `tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy` |
+| NFB-AC-37 | `tests/test_issue1497_w800_three_canonical_cutting.py::test_legacy_same_location_or_same_physical_owner_blocks_atomic_export` |
+| NFB-AC-39 | `tests/test_issue1501_nfb_export_manifest.py::test_shihlin_color150_partial_only_counts_real_pieces` |
+| NFB-AC-43 | `tests/test_issue1500_nfb_transactions.py::test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation` |
+| NFB-AC-44 | `tests/test_issue1498_nfb_part_readiness.py::test_missing_real_plate_id_is_scope_blocker_not_an_invented_part` |
+| NFB-AC-45 | `tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy` |
+| NFB-AC-48 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_no_unapproved_size_or_single_unit_center_defaults` |
+| NFB-AC-49 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly` |
+| NFB-AC-50 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_approved_nominal_box_top_y_maps_to_real_1075_blank` |
+| NFB-AC-52 | `tests/test_issue1497_w800_three_canonical_cutting.py::test_w800x3_uses_whd_723_blank_x_for_three_real_holes` |
+| NFB-AC-53 | `tests/test_issue1498_nfb_part_readiness.py::test_ready_requires_actual_per_hole_x_y_and_rotation_proof` |
+| NFB-AC-54 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` |
+| NFB-AC-56 | `tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy` |
+| SWT-AC-02 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_approved_nominal_box_top_y_maps_to_real_1075_blank` |
+| SWT-AC-07 | `tests/test_issue1499_nfb_persistence.py::test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy` |
+| SWT-AC-10 | `tests/test_issue1497_w800_three_canonical_cutting.py::test_w800x3_uses_whd_723_blank_x_for_three_real_holes` |
+| SWT-AC-16 | `tests/test_issue1499_nfb_persistence.py::test_confirmed_x_zero_is_not_missing_and_none_is_not_zero` |
+| SWT-AC-23 | `tests/test_issue1497_w800_three_canonical_cutting.py::test_existing_legacy_circle_is_preserved_exactly_once_in_real_nfb_dxf` |
+| SWT-AC-27 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly` |
+| SWT-AC-28 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_non_1100_upper_y_is_unapproved_not_silently_scaled` |
+| SWT-AC-31 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` |

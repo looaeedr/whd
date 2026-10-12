@@ -7,6 +7,7 @@ while #1500 real-source GUI or #1502 true physical DXF work remains open.
 """
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import re
@@ -123,3 +124,38 @@ def test_manifest_review_summary_is_recomputed_from_records():
     assert counts["DEFERRED_PRODUCT_EVIDENCE"] >= 3
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
     assert counts["BLOCKED_1502_PHYSICAL_MFG"] >= 1
+
+
+def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
+    data = _data()
+    assert data["exact_test_function_witnesses_count"] == 26
+    assert data["assertion_witness_note"]
+    found = 0
+    for item in data["records"]:
+        witnesses = item["identified_test_functions"]
+        state = item["assertion_review_state"]
+        if not witnesses:
+            assert state == "AWAITING_EXACT_ASSERTION_REVIEW"
+            continue
+        assert state == "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+        assert len(witnesses) == 1  # reviewed subset; not an invented blanket proof
+        for witness in witnesses:
+            assert witness["path"] in item["regression_candidates"]
+            assert witness["accepted"] is False
+            assert witness["witness_scope"] == "PARTIAL_AUTOMATED_ASSERTIONS_ONLY"
+            target = ROOT / witness["path"]
+            nodes = ast.parse(target.read_text(encoding="utf-8")).body
+            actual = {n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+            assert witness["test_name"] in actual, item["id"]
+            found += 1
+    assert found == 26
+
+
+def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
+    row = {r["id"]: r for r in _data()["records"]}
+    assert "x" in row["NFB-AC-49"]["identified_test_functions"][0]["test_name"]
+    assert "y" in row["NFB-AC-50"]["identified_test_functions"][0]["test_name"]
+    assert "legacy" in row["NFB-AC-37"]["identified_test_functions"][0]["test_name"]
+    assert "undo" in row["NFB-AC-35"]["identified_test_functions"][0]["test_name"]
+    assert "schema" in row["NFB-AC-54"]["identified_test_functions"][0]["test_name"]
+    assert not row["NFB-AC-35"]["accepted"]
