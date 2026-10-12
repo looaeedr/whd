@@ -460,15 +460,17 @@ def save_resolved_manufacturing_geometry_dxf(
     output_dir: str | os.PathLike[str],
     *,
     overwrite: bool = False,
+    part_only: bool = False,
     instance_namespace: str | None = None,
 ) -> dict[str, str]:
-    """Export exact canonical physical parts to stable per-part DXF files."""
+    """Export physical DXF; part_only permits independently verified NFB base CUTTING, not full assembly."""
     return _manufacturing_export.save_resolved_manufacturing_geometry_dxf(
         resolved_geometry,
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
         overwrite=overwrite,
+        part_only=part_only,
         instance_namespace=instance_namespace,
     )
 
@@ -478,14 +480,16 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     output_dir: str | os.PathLike[str],
     *,
     overwrite: bool = False,
+    part_only: bool = False,
 ) -> dict[str, str]:
-    """Atomically export a stable multi-instance physical DXF inventory."""
+    """Export multi-Bay DXF; part_only never certifies incomplete EAR/box assembly."""
     return _manufacturing_export.save_resolved_manufacturing_geometry_batch_dxf(
         instances,
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
         overwrite=overwrite,
+        part_only=part_only,
     )
 
 
