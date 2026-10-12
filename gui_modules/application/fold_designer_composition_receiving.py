@@ -1966,7 +1966,34 @@ def open_receiving_multi_settings(self, namespace):
                 var=tk.StringVar(master=popup,value="")
                 ttk.Entry(line,textvariable=var,width=11).pack(side="right")
                 world_values[slot["unit_id"]]=var
-            outcome=tk.StringVar(master=popup,value="目前尚未驗證，未修改專案。")
+            # W800/T2/top-1100/complete three-unit source is derived from
+            # the real manufactured 723 mm inner-door CUTTING, never from a
+            # customer's DXF bbox or a guessed 800/2. Unsupported layouts
+            # keep the existing explicit-world-X editor.
+            canonical_prefilled=False
+            try:
+                from ae_engine.receiving_nfb_ui1b_runtime import (
+                    derive_w800_three_world_x_by_unit,
+                )
+                selection_for_x=candidate_adapter().selection
+                physical_for_x=nfb_physical_bay_snapshot(
+                    selection_for_x.set_index,selection_for_x.bay_index,
+                )
+                canonical_x=derive_w800_three_world_x_by_unit(
+                    edit_session.current,snapshot=physical_for_x,
+                )
+                if set(canonical_x)==set(world_values):
+                    for unit_id,physical_x in canonical_x.items():
+                        world_values[unit_id].set(str(physical_x))
+                    canonical_prefilled=True
+            except (ValueError,TypeError,KeyError,IndexError):
+                pass
+            outcome=tk.StringVar(
+                master=popup,
+                value=("已帶入 WHD 實際板件驗證的 W800×3 世界 X，提交前會再次核對。"
+                       if canonical_prefilled else
+                       "目前尚未驗證，未修改專案。"),
+            )
             ttk.Label(body,textvariable=outcome,wraplength=500).pack(
                 anchor="w",pady=(8,4),
             )
@@ -1999,6 +2026,7 @@ def open_receiving_multi_settings(self, namespace):
                         ),
                         world_x_by_unit=coords,
                         selected_source_path=source_choice["path"],
+                        canonical_w800_three=canonical_prefilled,
                     )
                     nfb_transaction_ports()["stage_verified"](bundle)
                     outcome.set("已完成真實來源／內門實體驗證，仍須回主視窗按「確認套用（NFB）」")
