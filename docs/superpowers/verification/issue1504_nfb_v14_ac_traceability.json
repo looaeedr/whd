@@ -44,7 +44,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-02",
@@ -67,7 +69,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-03",
@@ -83,7 +87,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-04",
@@ -99,7 +105,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-05",
@@ -122,7 +130,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-06",
@@ -138,7 +148,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-07",
@@ -159,7 +171,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-08",
@@ -175,7 +189,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-09",
@@ -193,7 +209,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-10",
@@ -213,7 +231,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
+          "test_name": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-11",
@@ -240,7 +267,9 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-12",
@@ -266,7 +295,9 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-13",
@@ -284,7 +315,9 @@
       "blocking_issues": [
         1503
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-14",
@@ -310,7 +343,16 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
+          "test_name": "test_ear_mounting_does_not_invent_base_or_change_verified_inner_NFB",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-15",
@@ -326,7 +368,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-16",
@@ -349,7 +393,16 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1499_nfb_persistence.py",
+          "test_name": "test_unconfigured_bay_and_quantity_keep_legacy_schema",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-17",
@@ -365,7 +418,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-18",
@@ -381,7 +436,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-19",
@@ -404,7 +461,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-20",
@@ -420,7 +479,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-21",
@@ -438,7 +499,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-22",
@@ -454,7 +517,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-23",
@@ -477,7 +542,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-24",
@@ -493,7 +560,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-25",
@@ -509,7 +578,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-26",
@@ -527,7 +598,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-27",
@@ -550,7 +623,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-28",
@@ -573,7 +648,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-29",
@@ -596,7 +673,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1499_nfb_persistence.py",
+          "test_name": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-30",
@@ -614,7 +700,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
+          "test_name": "test_no_unapproved_size_or_single_unit_center_defaults",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-31",
@@ -640,7 +735,9 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-32",
@@ -656,7 +753,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-33",
@@ -672,7 +771,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-34",
@@ -693,7 +794,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-35",
@@ -714,7 +817,16 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1500_nfb_transactions.py",
+          "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-36",
@@ -735,7 +847,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-37",
@@ -756,7 +870,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+          "test_name": "test_legacy_same_location_or_same_physical_owner_blocks_atomic_export",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-38",
@@ -787,7 +910,9 @@
       "current_scope_correction": {
         "issue": 1502,
         "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
-      }
+      },
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-39",
@@ -814,7 +939,16 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1501_nfb_export_manifest.py",
+          "test_name": "test_shihlin_color150_partial_only_counts_real_pieces",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-40",
@@ -837,7 +971,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-41",
@@ -855,7 +991,9 @@
       "blocking_issues": [
         1503
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-42",
@@ -878,7 +1016,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-43",
@@ -899,7 +1039,16 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1500_nfb_transactions.py",
+          "test_name": "test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-44",
@@ -930,7 +1079,16 @@
       "current_scope_correction": {
         "issue": 1502,
         "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
-      }
+      },
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1498_nfb_part_readiness.py",
+          "test_name": "test_missing_real_plate_id_is_scope_blocker_not_an_invented_part",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-45",
@@ -951,7 +1109,16 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1500_nfb_transactions.py",
+          "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-46",
@@ -974,7 +1141,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-47",
@@ -990,7 +1159,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-48",
@@ -1016,7 +1187,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
+          "test_name": "test_no_unapproved_size_or_single_unit_center_defaults",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-49",
@@ -1034,7 +1214,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
+          "test_name": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-50",
@@ -1050,7 +1239,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1495_receiving_nfb_y_projection.py",
+          "test_name": "test_approved_nominal_box_top_y_maps_to_real_1075_blank",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-51",
@@ -1075,7 +1273,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-52",
@@ -1096,7 +1296,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+          "test_name": "test_w800x3_uses_whd_723_blank_x_for_three_real_holes",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-53",
@@ -1119,7 +1328,16 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1498_nfb_part_readiness.py",
+          "test_name": "test_ready_requires_actual_per_hole_x_y_and_rotation_proof",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-54",
@@ -1135,7 +1353,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1499_nfb_persistence.py",
+          "test_name": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "NFB-AC-55",
@@ -1166,7 +1393,9 @@
       "current_scope_correction": {
         "issue": 1502,
         "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
-      }
+      },
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "NFB-AC-56",
@@ -1187,7 +1416,16 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1500_nfb_transactions.py",
+          "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-01",
@@ -1203,7 +1441,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-02",
@@ -1219,7 +1459,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1495_receiving_nfb_y_projection.py",
+          "test_name": "test_approved_nominal_box_top_y_maps_to_real_1075_blank",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-03",
@@ -1235,7 +1484,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-04",
@@ -1253,7 +1504,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-05",
@@ -1276,7 +1529,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-06",
@@ -1299,7 +1554,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-07",
@@ -1322,7 +1579,16 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1499_nfb_persistence.py",
+          "test_name": "test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-08",
@@ -1349,7 +1615,9 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-09",
@@ -1367,7 +1635,9 @@
       "blocking_issues": [
         1503
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-10",
@@ -1394,7 +1664,16 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+          "test_name": "test_w800x3_uses_whd_723_blank_x_for_three_real_holes",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-11",
@@ -1420,7 +1699,9 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-12",
@@ -1437,7 +1718,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-13",
@@ -1453,7 +1736,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-14",
@@ -1471,7 +1756,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-15",
@@ -1487,7 +1774,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-16",
@@ -1510,7 +1799,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1499_nfb_persistence.py",
+          "test_name": "test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-17",
@@ -1528,7 +1826,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-18",
@@ -1551,7 +1851,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-19",
@@ -1574,7 +1876,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-20",
@@ -1600,7 +1904,9 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-21",
@@ -1631,7 +1937,9 @@
       "current_scope_correction": {
         "issue": 1502,
         "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
-      }
+      },
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-22",
@@ -1649,7 +1957,9 @@
       "blocking_issues": [
         1503
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-23",
@@ -1670,7 +1980,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+          "test_name": "test_existing_legacy_circle_is_preserved_exactly_once_in_real_nfb_dxf",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-24",
@@ -1698,7 +2017,9 @@
       "blocking_issues": [
         1502
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-25",
@@ -1714,7 +2035,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-26",
@@ -1735,7 +2058,9 @@
       "blocking_issues": [
         1500
       ],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-27",
@@ -1753,7 +2078,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
+          "test_name": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-28",
@@ -1769,7 +2103,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1495_receiving_nfb_y_projection.py",
+          "test_name": "test_non_1100_upper_y_is_unapproved_not_silently_scaled",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-29",
@@ -1790,7 +2133,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-30",
@@ -1806,7 +2151,9 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     },
     {
       "id": "SWT-AC-31",
@@ -1822,7 +2169,16 @@
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
       "blocking_issues": [],
-      "accepted": false
+      "accepted": false,
+      "identified_test_functions": [
+        {
+          "path": "tests/test_issue1499_nfb_persistence.py",
+          "test_name": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ],
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
     },
     {
       "id": "SWT-AC-32",
@@ -1853,7 +2209,9 @@
       "current_scope_correction": {
         "issue": 1502,
         "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
-      }
+      },
+      "identified_test_functions": [],
+      "assertion_review_state": "AWAITING_EXACT_ASSERTION_REVIEW"
     }
   ],
   "latest_product_scope": {
@@ -1864,5 +2222,7 @@
       "PAD manufacturing geometry",
       "imaginary middle plate from Color150"
     ]
-  }
+  },
+  "exact_test_function_witnesses_count": 26,
+  "assertion_witness_note": "Named functions were checked against GitHub test sources. This is partial automated evidence, never assertion-completeness, real GUI or factory signoff."
 }
