@@ -78,6 +78,7 @@ PYTEST_PATHS = (
     # deliberately excluded until those original files are available.
     "tests/test_issue1502_existing_base_nfb_assembly.py",
     "tests/test_issue1502_receiving_existing_base_plate_patterns.py",
+    "tests/test_issue1502_receiving_base_family_routing.py",
     "tests/test_issue1502_receiving_single_base_workspace.py",
     "tests/test_issue1502_nfb_base_source_projection.py",
     "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
