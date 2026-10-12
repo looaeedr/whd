@@ -36,7 +36,7 @@ def _data():
 
 def test_exact_original_v14_ac_text_is_not_rewritten_by_trace_owners():
     rows = _data()["records"]
-    canonical = "\\n".join(
+    canonical = "\n".join(
         "|".join((r["id"], r["requirement"], r["phase"])) for r in rows
     )
     # Digest produced from the exact two approved source docs' §7 tables,
