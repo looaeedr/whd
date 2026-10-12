@@ -52,6 +52,28 @@ class NfbPhysicalScope:
 
 
 @dataclass(frozen=True)
+class NfbQuantityPhysicalScope(NfbPhysicalScope):
+    """Quantity versions have no Set/Bay owner; do not invent those identities.
+
+    Reuses the physical manifest contract with an explicit absent Set/Bay.
+    The actual QuantityModel version and physical part IDs remain authority.
+    An unconfigured version without an inner door may have no inner-door ID.
+    """
+    def __post_init__(self):
+        if self.set_id is not None or self.bay_id is not None:
+            raise ValueError("NFB quantity scope cannot fabricate Set/Bay identity")
+        if not isinstance(self.version_id, str) or not self.version_id.strip():
+            raise ValueError("NFB quantity version identity required")
+        if type(self.submitted) is not bool:
+            raise ValueError("NFB quantity submitted fact must be boolean")
+        ids = (*((self.inner_door_part_id,) if self.inner_door_part_id is not None else ()),
+               *self.base_plate_part_ids, *self.middle_plate_part_ids)
+        if (any(not isinstance(v, str) or not v.strip() for v in ids)
+                or len(ids) != len(set(ids))):
+            raise ValueError("NFB quantity physical part identities invalid")
+
+
+@dataclass(frozen=True)
 class NfbPartDecision:
     part_id: str
     status: str

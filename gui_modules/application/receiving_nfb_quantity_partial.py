@@ -156,7 +156,7 @@ def select_quantity_nfb_partial(batch, workspace_snapshot, *,
                 reasons[vid] = "Existing physical machining needs explicit NFB ownership reconciliation"
         allowed = not submitted or _independent(demand.source_part_id) or part_proof
         reason = ""
-        status = "LEGACY" if not submitted else "UNAFFECTED"
+        status = "UNCONFIGURED_LEGACY" if not submitted else "UNAFFECTED"
         if part_proof:
             demand = replace(demand, render_data=ready.render_data)
             status = "READY"
@@ -181,3 +181,51 @@ def select_quantity_nfb_partial(batch, workspace_snapshot, *,
         if len(matches) != 1:
             raise ValueError("NFB verified part absent/ambiguous in canonical inventory")
     return QuantityNfbPartialSelection(tuple(selected), tuple(reports))
+
+
+def quantity_partial_live_manifests(selection, workspace_snapshot, selected_rows):
+    """Adapt freshly verified machining facts to the shared #1501 CHECK gate.
+
+    These rows originate only from select_quantity_nfb_partial in this action,
+    not from persisted/UI reports. Quantity has no synthetic Set/Bay IDs.
+    """
+    from ae_engine.receiving_nfb_export_manifest import (
+        NfbPartialExportManifest, NfbManifestRow, INNER_DOOR, BASE_PLATE, OTHER,
+    )
+    from ae_engine.receiving_nfb_part_readiness import NfbQuantityPhysicalScope
+    versions = {v["version_id"]: v for v in
+                QuantityModel.from_payload(workspace_snapshot["quantity"]).snapshot()["versions"]}
+    result = {}
+    for vid, version in versions.items():
+        rows = tuple(row for row in selected_rows if row["version_id"] == vid)
+        if not rows:
+            continue
+        submitted = version.get("nfb_config_submitted") is True
+        inner_ids = tuple(row["part_id"] for row in selection.rows
+                          if row["version_id"] == vid
+                          and row["source_part_id"].startswith("inner_door:"))
+        bases = tuple(row["part_id"] for row in rows
+                      if row["source_part_id"] == "base_plate"
+                      or row["source_part_id"].startswith("base_plate_"))
+        datum_ids = {hole["datum_snapshot"].get("part_id") for hole in
+                     (version.get("nfb_config") or {}).get("holes", ())}
+        targets = tuple(row["part_id"] for row in selection.rows
+                        if row["version_id"] == vid
+                        and row["physical_part_id"] in datum_ids
+                        and row["part_id"] in inner_ids)
+        scope = NfbQuantityPhysicalScope(None, None, vid, submitted,
+                                        targets[0] if len(targets) == 1 else None,
+                                        base_plate_part_ids=bases)
+        typed_rows = tuple(NfbManifestRow(
+            *scope.identity, row["part_id"],
+            INNER_DOOR if row["source_part_id"].startswith("inner_door:") else
+            BASE_PLATE if row["part_id"] in bases else OTHER,
+            row["status"], (row["reason"],) if row["reason"] else (),
+            row["per_box_count"], row["may_export"],
+        ) for row in rows)
+        result[vid] = (NfbPartialExportManifest(
+            scope, typed_rows,
+            ("NFB_FULL_ASSEMBLY_NOT_RELEASED",) if submitted else (),
+            submitted, not submitted,
+        ),)
+    return result

@@ -198,7 +198,13 @@ def _quantity_source_case(tmp_path):
         requests.append((vid, count, request))
         for key in ("inner_door:upper", "base_plate", "box_body:left_side"):
             demands.append(PhysicalPartDemand(vid, key, key, count, 1, base))
-    batch = SimpleNamespace(demands=tuple(demands), requests=tuple(requests))
+    from phase6_quantity_manufacturing import QuantityManufacturingBatch
+    from ae_engine.manufacturing_quantity import ResolvedQuantityVersion
+    batch = QuantityManufacturingBatch(
+        tuple(ResolvedQuantityVersion(vid, count, SimpleNamespace(parts=()))
+              for vid, count, _request in requests),
+        tuple(demands), tuple(requests),
+    )
     return opts, model, batch, source, profile_csv
 
 
@@ -210,9 +216,9 @@ def test_quantity_main_selection_uses_live_source_and_keeps_other_versions(tmp_p
     )
     opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
     # The fixture side/base sheets must retain independent physical topology.
-    batch.demands = tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
+    batch = replace(batch, demands=tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
                           if d.source_part_id != "inner_door:upper" else d
-                          for d in batch.demands)
+                          for d in batch.demands))
     selection = select_quantity_nfb_partial(
         batch, {"quantity": model.snapshot()},
         verifier=partial(verify_quantity_nfb_inner_door,
@@ -246,9 +252,9 @@ def test_quantity_partial_rejects_changed_datum_and_preserves_existing_machining
         select_quantity_nfb_partial, verify_quantity_nfb_inner_door,
     )
     opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
-    batch.demands = tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
+    batch = replace(batch, demands=tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
                           if d.source_part_id != "inner_door:upper" else d
-                          for d in batch.demands)
+                          for d in batch.demands))
     if change in ("datum", "reconfirm"):
         config = model.nfb_config_for_version("quantity-v1")["nfb_config"]
         if change == "datum":
@@ -262,9 +268,9 @@ def test_quantity_partial_rejects_changed_datum_and_preserves_existing_machining
         from copy import deepcopy
         render = deepcopy(first.render_data)
         render.scene.add_circle((200, 200), 2, layer="CUTTING")
-        batch.demands = (replace(first, render_data=render), *batch.demands[1:])
+        batch = replace(batch, demands=(replace(first, render_data=render), *batch.demands[1:]))
     else:
-        batch.demands = (replace(batch.demands[0], piece_count=7), *batch.demands[1:])
+        batch = replace(batch, demands=(replace(batch.demands[0], piece_count=7), *batch.demands[1:]))
     kwargs = dict(verifier=partial(verify_quantity_nfb_inner_door,
                                   index_path=opts["index_path"], profile_path=profiles))
     if change == "count":
@@ -292,9 +298,9 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
     from gui_modules.application import receiving_nfb_quantity_partial as partial_action
 
     opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
-    batch.demands = tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
+    batch = replace(batch, demands=tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
                           if d.source_part_id != "inner_door:upper" else d
-                          for d in batch.demands)
+                          for d in batch.demands))
     config = model.nfb_config_for_version("quantity-v2")["nfb_config"]
     config["holes"][0]["manual_x_mm"] = 60.
     model.set_version_nfb_config("quantity-v2", submitted=True, config=config)
@@ -370,3 +376,53 @@ def test_quantity_partial_main_refuses_divergent_submitted_version_owners(tmp_pa
         app, str(output), {}, {"door": True}, False,
     )
     assert not exported and errors and not list(output.iterdir())
+
+
+@pytest.mark.parametrize("confirmed", [False, True])
+def test_operator_partial_confirmation_controls_atomic_delivery(tmp_path, monkeypatch, confirmed):
+    import json
+    from types import SimpleNamespace
+    from gui_modules.project import export_actions
+    report = {
+        "actual_export_count": 6, "held_actual_count": 4,
+        "whole_cabinet_complete": False, "rows": [{
+            "version_id": "quantity-v1", "part_id": "inner_door:upper",
+            "status": "READY", "actual_count": 6, "reason": "",
+        }],
+    }
+    app = SimpleNamespace(
+        _flush_phase6_authoritative_state=lambda: None,
+        _phase6_current_existing_parts=lambda: (),
+        _has_any_indicator_box=lambda: False,
+        get_float_values=lambda: {},
+        draw_stock_var=SimpleNamespace(get=lambda: False),
+    )
+    notices = []
+    questions = []
+    monkeypatch.setattr(export_actions, "_selected_export_flags", lambda *_: {"door": True})
+    monkeypatch.setattr(export_actions, "_validate_selected_indicator_exports", lambda *_: None)
+    monkeypatch.setattr(export_actions.filedialog, "askdirectory", lambda **_: str(tmp_path))
+    def write_stage(owner, folder, *_):
+        from pathlib import Path
+        owner._phase6_nfb_partial_export_report = report
+        Path(folder, "inner.dxf").write_bytes(b"staged authorized file")
+        Path(folder, "nfb_partial_manifest.json").write_text(json.dumps(report))
+        return ["inner.dxf", "nfb_partial_manifest.json"], []
+    def confirm(title, text):
+        questions.append((title, text))
+        return confirmed
+    monkeypatch.setattr(export_actions, "_export_selected_parts", write_stage)
+    monkeypatch.setattr(export_actions.messagebox, "askyesno", confirm)
+    monkeypatch.setattr(export_actions.messagebox, "showinfo", lambda *a: notices.append(a))
+    monkeypatch.setattr(export_actions.messagebox, "showerror",
+                        lambda *a: pytest.fail(str(a)))
+    export_actions.export_selected_dxf(app)
+    assert len(questions) == 1
+    assert "不是整套完成" in questions[0][1] and "受阻 4 片" in questions[0][1]
+    assert (tmp_path / "inner.dxf").exists() is confirmed
+    assert bool(notices) is confirmed
+    if confirmed:
+        assert notices[0][0] == "NFB 部分匯出完成"
+    else:
+        assert not list(tmp_path.iterdir())
+    assert not list(tmp_path.glob(".whd-export-stage-*"))
