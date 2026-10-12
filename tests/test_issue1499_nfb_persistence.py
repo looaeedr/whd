@@ -179,7 +179,7 @@ def test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback(tmp_path
             nfb_config_submitted=True,nfb_config=bad,
         )
     assert normalize_receiving_layout(layout)["sets"][0]["bays"][0].get("nfb_config") is None
-    with pytest.raises(ValueError,match="requires explicit"):
+    with pytest.raises(ValueError,match="must preserve its actual NFBConfig"):
         update_receiving_bay(
             layout, set_index=0,bay_index=0,nfb_config_submitted=True,
         )
