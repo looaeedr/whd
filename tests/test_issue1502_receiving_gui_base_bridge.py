@@ -13,7 +13,6 @@ def test_real_receiving_gui_base_bridge_and_project_roundtrip(tmp_path):
     import gui
     import phase6_project_file as project
     from phase6_manufacturing_adapter import build_scene_payload_for_app
-    from gui_modules.application.fold_designer_snapshot_projection import _snapshot_base_state
 
     root = tk.Tk()
     root.withdraw()
@@ -45,8 +44,9 @@ def test_real_receiving_gui_base_bridge_and_project_roundtrip(tmp_path):
         assert (data.unfolded_topology.width, data.unfolded_topology.height) == pytest.approx((772.0, 240.0))
         assert "receiving_base_plate_unconfigured" not in data.metadata
 
-        snapshot = _snapshot_base_state(app)
+        snapshot = host._make_original_fold_designer_snapshot()
         assert snapshot["receiving_base_plate"] == physical
+        assert snapshot["part_dimensions"]["base_plate"] == {"width": 772.0, "height": 240.0}
         assert receiving_base_plate_blank_dimensions(snapshot) == pytest.approx((772.0, 240.0))
         filename = project.write_project(
             tmp_path / "receiving-physical-base.p6fold",
