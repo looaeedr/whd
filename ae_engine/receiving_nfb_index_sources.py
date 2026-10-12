@@ -128,6 +128,14 @@ def unique_nfb_dxfs_from_switch_index(path: str | Path) -> NfbIndexSourceCatalog
         if not model:
             diagnostics.append(f"row {lineno}:MISSING_MODEL_KEY")
             continue
+        # A physically truncated CSV row is NOT an explicit no-source cell.
+        # Requiring every named manufacturer column prevents an omitted tail
+        # from silently becoming "no mapping" (and later a false zero).
+        # Trailing non-source metadata may still be absent.
+        if len(cells) <= max(locations.values()):
+            raise ValueError(
+                f"開關索引.csv row {lineno}:TRUNCATED_BRAND_SOURCE_COLUMNS"
+            )
         for brand in BRANDS:
             pos = locations[brand]
             raw = cells[pos] if pos < len(cells) else ""
