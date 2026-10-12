@@ -100,7 +100,13 @@ def resolve_unique_nfb_lower_reference_handle(source_path, *, profile: NfbUpperS
     import ezdxf
 
     source = Path(source_path)
-    if source.name.casefold() != profile.indexed_filename.casefold():
+    import re
+    accepted = re.fullmatch(
+        re.escape(Path(profile.indexed_filename).stem)
+        + r"(?:\\([1-9][0-9]*\\))?\\.dxf",
+        source.name, re.IGNORECASE,
+    )
+    if not accepted:
         raise ValueError("NFB lower source filename does not match verified index")
     if sha256(source.read_bytes()).hexdigest() != profile.source_sha256:
         raise ValueError("NFB lower source SHA does not match verified index")
