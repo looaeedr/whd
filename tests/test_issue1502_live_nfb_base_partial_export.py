@@ -26,6 +26,7 @@ def _live(tmp_path, pattern="LEFT_FLAT_SIDE"):
     native = inspect_nfb_dxf_source(source)
     old = _verified(profile)
     verified = replace(old, render_data=SimpleNamespace(metadata={
+        **old.render_data.metadata,
         "nfb_source_handle": profile.source_sha256 + ":" + profile.upper_handle,
         "nfb_profile_revision": profile.revision,
     }))
