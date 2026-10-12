@@ -89,7 +89,9 @@ def test_color_sources_preserve_entity_layer_and_block_inheritance(tmp_path):
         (300.0, 1000.0), (700.0, -400.0),
     }
     color_counts = dict(inv.process_aci_entity_counts)
-    assert color_counts[30] == 2
+    # Two explicit/layer-derived CIRCLEs PLUS the BASE_CUT LINE are ACI 30.
+    # The old expectation of 2 silently omitted the real layer-colored LINE.
+    assert color_counts[30] == 3
     assert color_counts[150] == 3  # 2 nested CIRCLE + 1 layer ARC
     assert color_counts[212] == 1
     assert sum(color_counts.values()) <= len(inv.entities)
