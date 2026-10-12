@@ -104,7 +104,7 @@ def test_slots_do_not_erase_second_layer_and_no_stale_model_is_saved():
         set_nfb_draft_layer_count(d,1)
     assert d==before
     assert set_nfb_draft_layer_count(d,2)==d
-    with pytest.raises(ValueError,match="hidden"):
+    with pytest.raises(ValueError,match="physical layer must be visible and valid"):
         add_nfb_draft_slot(new_nfb_ui1a_draft(set_brand="士林"),1)
     with pytest.raises(ValueError,match="cannot hide"):
         new_nfb_ui1a_draft(set_brand="士林",layer_count=1,
