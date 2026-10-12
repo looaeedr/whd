@@ -242,18 +242,21 @@ def _canonical_quantity_batch():
     """Existing physical demand shapes from the real quantity resolver."""
     from types import SimpleNamespace
     from ae_engine.manufacturing_quantity import ResolvedQuantityVersion
+    from phase6_manufacturing_contracts import freeze_manufacturing_value
     from phase6_quantity_manufacturing import QuantityManufacturingBatch
     rows=_demands()
     requests=[]
     versions=[]
     for version,pieces in (("v1",6),("v2",4)):
         parts=tuple(SimpleNamespace(
-            part_key=part,part_spec=None,scene_values={},
+            part_key=part,part_spec=None,
+            scene_values=freeze_manufacturing_value({}),
             manufacturing_context=None,x_profile=(),y_profile=(),
         ) for part in ("inner","middle","side"))
         requests.append((version,pieces,SimpleNamespace(
-            parts=parts,input_snapshot={"material":"STEEL"},
-            settings={"t":2},
+            parts=parts,
+            input_snapshot=freeze_manufacturing_value({"material":"STEEL"}),
+            settings=freeze_manufacturing_value({"t":2}),
         )))
         versions.append(ResolvedQuantityVersion(version,pieces,None))
     return QuantityManufacturingBatch(tuple(versions),rows,tuple(requests))
