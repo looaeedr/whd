@@ -212,6 +212,14 @@ def _save_resolved_rows_atomic(
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)
+    for output_key, _, render_data in rows:
+        metadata = getattr(render_data, "metadata", None)
+        if (isinstance(metadata, Mapping)
+                and metadata.get("receiving_base_plate_unconfigured") is True):
+            raise ValueError(
+                "RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING: "
+                + str(output_key)
+            )
     verified_nfb_parts = _validate_nfb_base_part_scope(rows, part_only=part_only)
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)

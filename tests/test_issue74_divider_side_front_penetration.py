@@ -218,9 +218,16 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     assert pre["box_body:right_side"]["zr2"]["through"] is True
 
 
-def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
-    """Receiving 3D FW must occupy formed outside width, not raw material length."""
+@pytest.mark.parametrize(
+    "width, thickness", [(800.0, 2.0), (900.0, 2.0), (900.0, 1.5)]
+)
+def test_receiving_boxbody_fw_world_occupation_matches_formed_contract(width, thickness):
+    """True physical FW occupies formed width WITHOUT exceeding cabinet outside W."""
     snap = _snapshot()
+    snap.update({
+        "w": float(width), "t": float(thickness),
+        "door_layout_columns": [[float(width), [1100.0, 500.0]]],
+    })
     body = _body_part(snap)
     divider, divider_part = _divider_part(snap)
     world = bridge._phase6_build_joint_world_geometry(
@@ -256,20 +263,26 @@ def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
             "Receiving 3D FW uses material length instead of formed outside occupation",
             observed,
         )
+        # Measure real assembled skin faces, not any 27-mm CUTTING-depth
+        # projection. Outboard hinge stays on the physical side sheet;
+        # W800/T2 must be +/-400, not +/-401. Width/T vary independently.
+        if source_key == "box_body:left_side":
+            assert x0 == pytest.approx(-float(width) / 2.0, abs=1.0e-5), observed
+        else:
+            assert x1 == pytest.approx(float(width) / 2.0, abs=1.0e-5), observed
 
     print("RECEIVING_FW_FORMED_OCCUPATION=", observed)
 
 
 def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
-    """Validation-only oracle for the approved Receiving reference fixture.
+    """Measure the PRE-RELIEF world projection only; not the final mating/CUTTING.
 
-    IMPORTANT: 22/27 are acceptance values only. Production geometry must never
-    import/read this test or derive collision dimensions from these constants.
-    The test measures independently reconstructed world/collision geometry and
-    only judges whether production inputs/placement produced the approved shape.
+    World-axis bounding-box intersection is diagnostic, not a final material
+    dimension or a physical contact witness. The independently certified 27-mm
+    CUTTING depth is measured from final material against the DXF below.
+    A thickness-derived ad-hoc correction to make them match is forbidden.
     """
     REFERENCE_ZL1_STEP_LENGTH = 22.0
-    REFERENCE_FW_OVERLAP = 27.0
 
     snap = _snapshot()
     body = _body_part(snap)
@@ -317,28 +330,30 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
     def overlap_1d(a, b):
         return max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
 
-    observed_left_overlap = overlap_1d(left_fw, divider_bounds)
-    observed_right_overlap = overlap_1d(right_fw, divider_bounds)
+    projected_left = overlap_1d(left_fw, divider_bounds)
+    projected_right = overlap_1d(right_fw, divider_bounds)
 
     observed = {
         "zl1_step_length": observed_zl1_step,
         "divider_x_bounds": divider_bounds,
         "left_fw_x_bounds": left_fw,
         "right_fw_x_bounds": right_fw,
-        "left_fw_divider_overlap": observed_left_overlap,
-        "right_fw_divider_overlap": observed_right_overlap,
+        "left_fw_divider_projection_only": projected_left,
+        "right_fw_divider_projection_only": projected_right,
+        "dimension_authority": "PRE_RELIEF_WORLD_AXIS_PROJECTION_DIAGNOSTIC_ONLY",
     }
     print("RECEIVING_REFERENCE_22_27_ORACLE=", observed)
 
     assert observed_zl1_step == pytest.approx(
         REFERENCE_ZL1_STEP_LENGTH, abs=1.0e-5
     )
-    assert observed_left_overlap == pytest.approx(
-        REFERENCE_FW_OVERLAP, abs=1.0e-5
-    )
-    assert observed_right_overlap == pytest.approx(
-        REFERENCE_FW_OVERLAP, abs=1.0e-5
-    )
+    # Both values are projections in the PRE-RELIEF world, not a claim about
+    # the post-solve physical contact or cutting depth.  In particular do not
+    # "repair" them by adding fixed 1 mm, T/2, or a certified 27-mm oracle.
+    assert 0 < projected_left < left_fw[1] - left_fw[0]
+    assert 0 < projected_right < right_fw[1] - right_fw[0]
+    assert projected_left == pytest.approx(projected_right, abs=1.0e-5)
+
 
 
 def test_receiving_reference_fixture_final_cutting_matches_certified_dxf_oracle():
@@ -455,3 +470,56 @@ def test_receiving_operator_inputs_are_authority_and_material_fold_is_one_way_de
             float(roundtrip["zr2"]),
         ),
     })
+
+
+def test_receiving_final_solid_divider_contacts_are_reverse_mapped_from_real_side_skins():
+    """POST-relief physical terminal/skin contact, not a pre-relief FW projection."""
+    from shapely.geometry import LineString
+    from ae_engine.contracts import ResolvedManufacturingGeometry
+    from ae_engine.receiving_joint_marking import (
+        _divider_side_contact, _backproject_contact_boundary,
+    )
+    from ae_engine.side_sheet_datum import SideSheetDatum
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    dims = (snap["w"], snap["h"], snap["d"])
+    solved_parts, diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
+        (body, divider_part),
+        finished_dimensions=dims,
+        sheet_thickness=snap["t"],
+        clearance=0.0,
+    )
+    assert diagnostics and diagnostics[0].illegal_penetration is False
+    world = bridge._phase6_build_joint_world_geometry(
+        solved_parts, dims, snap["t"],
+    )
+    geometry = ResolvedManufacturingGeometry(parts=tuple(solved_parts))
+    sides = SideSheetDatum.from_outside_width(snap["w"], snap["t"])
+    owner_pieces = {
+        str(piece.role): piece.render_data
+        for piece in body.render_data.pieces
+    }
+    for role, side in (("left_side", -1), ("right_side", +1)):
+        contact = _divider_side_contact(
+            geometry=geometry, world=world, divider=divider,
+            locator_id=f"box_body:{role}", dimensions=dims,
+            sheet_thickness=snap["t"],
+        )
+        assert float(contact.evidence["plane_separation"]) == pytest.approx(0.0, abs=1e-6)
+        assert all(
+            float(p[0]) == pytest.approx(sides.inside_face(side), abs=1e-6)
+            for p in contact.overlap_world
+        )
+        _world_line, flat_line = _backproject_contact_boundary(contact)
+        assert owner_pieces[role].material.covers(LineString(flat_line))
+
+
+
+def test_issue74_inverse_full_solid_reprojection_matches_final_material():
+    """Canonical product regression includes independent full-solid inverse validation."""
+    from tests.test_issue1702_reverse_geometry_probe import (
+        test_issue1702_independent_full_thickness_reverse_cut_probe,
+    )
+    test_issue1702_independent_full_thickness_reverse_cut_probe()

@@ -27,7 +27,10 @@ def receiving_snapshot(*, upper=1100.0, t=2.0, gap_h=3.5, left_col=None):
     if left_col is not None:
         columns = [[left_col, [1100.0, 500.0]], *columns]
         col = "1:0"
+    # apply_family_defaults installs its own fresh W800 values. Explicitly
+    # restore the physical measured width for multi-column 400+800 layouts.
     state.update({
+        "w": w,
         "multi_door_enabled": True, "door_layout_scope": "receiving-main",
         "door_layout_columns": columns,
         "inner_doors": [
@@ -98,10 +101,20 @@ def test_non_default_thickness_gap_folds_use_actual_part_core_not_fixed_36p5():
     item = project_nfb_inner_door_nominal_y(
         state, "upper", layer_count=1, slot_index=0,
     )
-    assert item.finished_panel_height_mm == pytest.approx(1035.0)
-    assert item.unfolded_blank_height_mm == pytest.approx(1067.0)
+    assert item.finished_panel_height_mm == pytest.approx(1038.0)
+    assert item.unfolded_blank_height_mm == pytest.approx(1070.0)
+    # Manufacturing source: top frame formed occupation + T, no bottom
+    # frame deduction, two physical 5-mm clearances. T3 -> H1038;
+    # unfolded blank = finished - 2*T + 19+19 -> H1070.
+    assert item.finished_panel_height_mm == pytest.approx(1100.0 - 52.0 - 10.0)
+    assert item.unfolded_blank_height_mm == pytest.approx(
+        item.finished_panel_height_mm - 2*state["t"] + 38.0
+    )
     assert item.box_world_y_mm == pytest.approx(250.0)
-    assert item.unfolded_uv_y_mm == pytest.approx(561.0)
+    # Actual formed top-frame/assembly center at T3 differs from T2:
+    # world Y=250, physical panel placement Y=222.5, core=1032;
+    # UV = lower fold19 + 1032/2 + (250-222.5) = 562.5.
+    assert item.unfolded_uv_y_mm == pytest.approx(562.5)
     assert invert_nfb_inner_door_unfolded_y(
         state, "upper", unfolded_uv_y_mm=item.unfolded_uv_y_mm,
     ) == pytest.approx(550.0)

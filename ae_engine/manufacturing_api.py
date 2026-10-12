@@ -303,6 +303,8 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
 
 def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: ManufacturingContext):
     is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+    if is_receiving and spec.receiving_bend_pattern is None:
+        raise ValueError("RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING")
     # Receiving base plate uses final_scene path to preserve nominal blank
     # geometry and apply local seam reliefs consistently with 2D/render.
     if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:

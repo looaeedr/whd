@@ -121,6 +121,39 @@ class BoxBodyDividerPart:
             "manufacturing_resolver": "ae_engine.divider_manufacturing.resolve_divider_final_geometry",
         }
 
+
+@dataclass(frozen=True)
+class DividerTerminalMatingRegionSemantic:
+    """The actual Y-terminal wall of a horizontal Divider, not a bounding box."""
+
+    region_id: str
+    region_role: str
+    physical_face_kind: str
+    flat_boundary_axis: str
+    flat_boundary_side: str
+    flat_outward_normal: tuple[float, float]
+    requires_flat_mapping: bool = False
+
+
+def divider_terminal_mating_region(
+    divider: BoxBodyDividerPart, boundary_side: str
+) -> DividerTerminalMatingRegionSemantic:
+    """Publish both physical ends; assembly contact selects the touching side."""
+    if not isinstance(divider, BoxBodyDividerPart) or divider.axis != "HORIZONTAL":
+        raise ValueError("side-plate terminal mating requires a horizontal Divider")
+    side = str(boundary_side or "").upper()
+    if side not in {"MIN", "MAX"}:
+        raise ValueError("horizontal Divider terminal side must be MIN or MAX")
+    return DividerTerminalMatingRegionSemantic(
+        region_id=f"DIVIDER_{side}_Y_TERMINAL",
+        region_role="ATTACHED_TERMINAL",
+        physical_face_kind="TERMINAL_BOUNDARY_WALL",
+        flat_boundary_axis="Y",
+        flat_boundary_side=side,
+        flat_outward_normal=(0.0, -1.0 if side == "MIN" else 1.0),
+    )
+
+
 @dataclass(frozen=True)
 class InnerDoorSharedFrameRole:
     inner_door_id: str

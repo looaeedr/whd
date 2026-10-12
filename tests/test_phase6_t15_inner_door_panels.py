@@ -48,7 +48,7 @@ def test_enabled_inner_doors_derive_real_panel_parts_with_stable_ids():
     assert [panel.stable_id for panel in panels] == ["inner_door:lower:panel"]
 
 
-def test_inner_door_panel_has_real_manufacturing_render_data():
+def test_inner_door_panel_has_real_manufacturing_render_data(tmp_path):
     from ae_engine.cabinet_types import policy as cabinet_family_policy
     from ae_engine.manufacturing_api import build_inner_door_panel_render_data, measure_unfolded_blanks
 
@@ -94,6 +94,16 @@ def test_inner_door_panel_has_real_manufacturing_render_data():
     cutting_y = [float(point.y) for point in cutting_outlines[0].points]
     assert max(cutting_x) - min(cutting_x) == pytest.approx(723.0)
     assert max(cutting_y) - min(cutting_y) == pytest.approx(1075.0)
+
+    # Single-cabinet real panel uses the same FinalScene in the standalone
+    # physical DXF (not a thumbnail or a Bay/NFB-only preview).
+    import ezdxf
+    from ae_engine.manufacturing_api import save_part_render_data_dxf
+    path = save_part_render_data_dxf(render, tmp_path / "inner-door-upper.dxf")
+    drawing = ezdxf.readfile(path)
+    entities = tuple(drawing.modelspace())
+    assert any(e.dxftype() == "LWPOLYLINE" and e.dxf.layer == "CUTTING" for e in entities)
+    assert any(e.dxf.layer == "BEND" for e in entities)
 
 
 @pytest.mark.parametrize(
@@ -170,6 +180,17 @@ def test_3d_workspace_generates_panels_only_for_checked_outer_doors_and_keeps_gu
         root.update_idletasks(); root.update()
         panel_keys = {k for k in designer.designer_workspace.available_parts if k.startswith("inner_door:") and k.endswith(":panel")}
         assert panel_keys == {"inner_door:upper:panel"}
+        # A SINGLE receiving cabinet must show its existing real inner-door
+        # sheet in the ordinary part menu without opening multi-settings.
+        keys = designer.designer_workspace.available_parts
+        assert keys.index("inner_door:upper:panel") < keys.index("inner_door:upper:top_frame")
+        menu = designer.part_choice_menu
+        menu_labels = tuple(
+            str(menu.entrycget(i, "label"))
+            for i in range(int(menu.index("end")) + 1)
+        )
+        assert "上層內門門板" in menu_labels
+        assert "inner_door:upper:panel" not in menu_labels
         assert "inner_door:upper:top_frame" in designer.designer_workspace.available_parts
         divider_keys = {k for k in designer.designer_workspace.available_parts if k.startswith("box_body:divider:")}
         assert len(divider_keys) == 1

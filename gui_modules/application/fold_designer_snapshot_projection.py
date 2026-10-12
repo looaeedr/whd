@@ -101,6 +101,17 @@ def _snapshot_base_state(self):
         (model for model in baseline_models if is_unknown_model(model)), "自訂"
     )
     snapshot["factory_defaults"] = load_factory_defaults_from_ae(ae)
+    if snapshot["model"] in {"受電箱", "RECEIVING"}:
+        designer = getattr(self, "fold_designer_app", None)
+        stored = (
+            getattr(designer, "_phase6_input_snapshot", None)
+            or getattr(self, "_phase6_input_snapshot", None)
+            or {}
+        )
+        if "receiving_base_plate" in stored:
+            # Keep the existing physical plate choice across GUI snapshot and
+            # project Save/Reload; never derive it from the DXF sketch layout.
+            snapshot["receiving_base_plate"] = deepcopy(stored["receiving_base_plate"])
     return snapshot
 
 def _snapshot_workspace_state(self, snapshot):
@@ -186,6 +197,11 @@ def _snapshot_part_dimensions(self, snapshot):
         1.0,
         h - snapshot["base_plate_shrink_top"] - snapshot["base_plate_shrink_bottom"],
     )
+    if snapshot.get("model") in {"受電箱", "RECEIVING"}:
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
+        physical_size = receiving_base_plate_blank_dimensions(snapshot)
+        if physical_size is not None:
+            base_w, base_h = physical_size
 
     try:
         layers = max(1, int(self.indicator_l_var.get()))

@@ -162,7 +162,7 @@ def test_identity_role_count_and_target_list_fail_closed(tmp_path):
     with pytest.raises(ValueError,match="count"):
         NfbActualPart("a",INNER_DOOR,0)
     m=derive_nfb_partial_export_manifest(**opts)
-    with pytest.raises(ValueError,match="duplicate"):
+    with pytest.raises(ValueError,match="repeats physical part"):
         m.require_export(("inner1","inner1"),partial=True)
 
 

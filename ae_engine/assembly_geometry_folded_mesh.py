@@ -49,7 +49,6 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
     """
     total = float(total_w)
     t = max(0.0, float(thickness or 0.0))
-    w_material_half = max(0.0, (total - 2.0 * t) / 2.0)
     role = str(getattr(piece, "role", "") or "")
     formed_y_offset = float(getattr(piece, "formed_y_offset", 0.0) or 0.0)
 
@@ -67,16 +66,21 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
         return tuple((float(p[0]) + center, float(p[1]) + formed_y_offset, float(p[2])) for p in (points or ()))
 
     if role in {"left_side", "right_side"}:
+        from .side_sheet_datum import SideSheetDatum
+
+        # The mid-surface is derived from the SAME physical inside/outside
+        # faces used by reverse dimensioning and mating, never vice versa.
+        sides = SideSheetDatum.from_outside_width(total, t)
         base_index = _profile_base_index(x_profile)
         segs = list(x_profile or ())
         base_len = _as_float(_segment_value(segs[base_index], "len", 0.0)) if segs else 0.0
         d_half = base_len / 2.0
         if role == "left_side":
             return tuple((
-                -w_material_half + float(p[2]), float(p[1]) + formed_y_offset, d_half - float(p[0])
+                sides.mid_surface(-1) + float(p[2]), float(p[1]) + formed_y_offset, d_half - float(p[0])
             ) for p in (points or ()))
         return tuple((
-            w_material_half - float(p[2]), float(p[1]) + formed_y_offset, float(p[0]) + d_half
+            sides.mid_surface(+1) - float(p[2]), float(p[1]) + formed_y_offset, float(p[0]) + d_half
         ) for p in (points or ()))
 
     return tuple(tuple(float(v) for v in p) for p in (points or ()))

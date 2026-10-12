@@ -44,6 +44,7 @@ from .sheetmetal_drawing import DrawingScene, LinePrimitive
 
 
 RECEIVING_POLICY_ID = "RECEIVING_INNER_DOOR_MOTHER_PLATE_CONTACT_V3"
+DIVIDER_SIDE_POLICY_ID = "RECEIVING_DIVIDER_SIDE_PLATE_CONTACT_V1"
 GATE_B_STATE = "JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED"
 ALLOW_EXPORT_WITH_DIAGNOSTIC = "ALLOW_EXPORT_WITH_DIAGNOSTIC"
 
@@ -59,6 +60,25 @@ RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY = JointMarkingPolicy(
     attached_selector="RECEIVING_INNER_DOOR_FRAME",
     locator_contact_region="FINAL_MATERIAL_PHYSICAL_SKIN",
     attached_contact_region="FRAME_PHYSICAL_MATING_SKIN",
+    footprint_mode="ACTUAL_CONTACT_BOUNDARY",
+    boundary_frame_contract={
+        "frame_version": "MOTHER_PLATE_CONTACT_BOUNDARY_V1",
+        "basis_part": "LOCATOR",
+        "boundary_source": "CANONICAL_ASSEMBLY_PHYSICAL_GEOMETRY",
+        "backprojection": "LOCATOR_WORLD_TO_FLAT_UV",
+    },
+    contact_span_contract="PHYSICAL_CONTACT_OVERLAP",
+    allowed_overlap_contract="NONE",
+)
+
+RECEIVING_DIVIDER_SIDE_PLATE_POLICY = JointMarkingPolicy(
+    policy_id=DIVIDER_SIDE_POLICY_ID,
+    revision=1,
+    enabled=True,
+    locator_selector="RECEIVING_SIDE_PLATE",
+    attached_selector="RECEIVING_HORIZONTAL_DIVIDER",
+    locator_contact_region="FINAL_MATERIAL_PHYSICAL_INSIDE_SKIN",
+    attached_contact_region="DIVIDER_ACTUAL_Y_TERMINAL_TRUE_SOLID",
     footprint_mode="ACTUAL_CONTACT_BOUNDARY",
     boundary_frame_contract={
         "frame_version": "MOTHER_PLATE_CONTACT_BOUNDARY_V1",
@@ -93,7 +113,7 @@ def resolve_joint_marking_production_status() -> JointMarkingProductionStatus:
         gate_state=GATE_B_STATE,
         activation_enabled=True,
         export_disposition=PRODUCTION_JOINT_MARKING_FAILURE_POLICY.disposition,
-        production_policy_count=1,
+        production_policy_count=2,
     )
 
 
@@ -236,8 +256,8 @@ def _fail(
     diagnostic_code: str,
     detail: str,
     evidence: Mapping[str, object] | None = None,
+    policy: JointMarkingPolicy = RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY,
 ) -> ResolvedJointMarkingResult:
-    policy = RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY
     return ResolvedJointMarkingResult(
         policy_id=policy.policy_id,
         policy_revision=policy.revision,
@@ -611,6 +631,86 @@ def _divider_contact(
     return result.contact
 
 
+
+def _divider_side_contact(
+    *, geometry, world, divider, locator_id, dimensions, sheet_thickness
+):
+    """Resolve physical Divider end-wall contact on an actual side-plate skin.
+
+    The Divider publishes MIN/MAX Y terminal wall semantics.  Which terminal
+    touches which side is established by opposed normals, coplanarity and
+    positive real face overlap, never by a guessed world-X or a fixed offset.
+    """
+    from .assembly_contact import resolve_legal_coplanar_contact
+    from .assembly_geometry import resolve_physical_mating_region
+    from .door_dividers import divider_terminal_mating_region
+
+    part = _part_map(geometry).get(str(divider.stable_id))
+    if part is None:
+        raise ValueError("actual horizontal Divider physical part is missing")
+    mother_normal = {
+        "box_body:left_side": (1.0, 0.0, 0.0),
+        "box_body:right_side": (-1.0, 0.0, 0.0),
+    }.get(str(locator_id))
+    if mother_normal is None:
+        raise ValueError("Divider side locator must be a real left/right side plate")
+    mapped = tuple(world["mapped_skin_triangles_by_part"].get(str(locator_id), ()) or ())
+    if not mapped:
+        raise ValueError("side-plate physical skin mapping is missing")
+
+    terminals = tuple(
+        resolve_physical_mating_region(
+            part_id=str(divider.stable_id),
+            semantic=divider_terminal_mating_region(divider, boundary),
+            render_data=part.render_data,
+            x_profile=part.x_profile,
+            y_profile=part.y_profile,
+            placement=part.placement,
+            offset=part.offset,
+            dimensions=dimensions,
+            sheet_thickness=sheet_thickness,
+        )
+        for boundary in ("MIN", "MAX")
+    )
+    contacts = []
+    probes = []
+    for group in _mapped_plane_groups(mapped):
+        normal = _unit(_outward_normal(group[0]))
+        if _dot(normal, mother_normal) < 1.0 - 1e-6:
+            continue
+        origin = tuple(float(v) for v in group[0].world[0])
+        u, v = _plane_basis(normal)
+        poly = _group_world_polygon(group, origin=origin, u=u, v=v)
+        mother = ResolvedPhysicalMatingRegion(
+            part_id=str(locator_id),
+            region_id="FACING_SIDE_PLATE_INSIDE_SKIN",
+            region_role="LOCATOR_SUPPORT_FACE",
+            physical_face_kind="MAPPED_SKIN",
+            supporting_plane=(origin, normal),
+            outward_normal=normal,
+            world_polygon=_polygon_world_exterior(poly, origin=origin, u=u, v=v),
+            flat_mapping=tuple(group),
+            provenance={"source": "CANONICAL_FACING_PHYSICAL_SKIN"},
+        )
+        for terminal in terminals:
+            candidate = resolve_legal_coplanar_contact(mother, terminal)
+            probes.append((
+                terminal.region_id,
+                round(float(origin[0]), 6),
+                round(float(terminal.supporting_plane[0][0]), 6),
+                candidate.diagnostic_code,
+                dict(candidate.evidence or {}),
+            ))
+            if candidate.status == "LEGAL_CONTACT" and candidate.contact is not None:
+                contacts.append(candidate.contact)
+
+    if len(contacts) != 1:
+        raise ValueError(
+            f"Divider/side contact requires one unique legal physical mating region; got {len(contacts)}; probes={probes}"
+        )
+    return contacts[0]
+
+
 def _longest_contact_boundary(contact: ResolvedLegalContact):
     points = tuple(tuple(float(v) for v in p) for p in tuple(contact.overlap_world or ()))
     if len(points) < 3:
@@ -642,13 +742,14 @@ def _backproject_contact_boundary(contact):
 
 
 def _mark_row(
-    *, locator_id: str, attached_id: str, boundary_role: str, contact
+    *, locator_id: str, attached_id: str, boundary_role: str, contact,
+    policy_id: str = RECEIVING_POLICY_ID,
 ):
     world_segment, flat_segment = _backproject_contact_boundary(contact)
     p1, p2 = flat_segment
     data = {
         "mark_id": stable_joint_mark_id(
-            RECEIVING_POLICY_ID, locator_id, attached_id, boundary_role
+            policy_id, locator_id, attached_id, boundary_role
         ),
         "boundary_role": str(boundary_role),
         "locator_part_id": str(locator_id),
@@ -664,8 +765,10 @@ def _mark_row(
     return data
 
 
-def _emitted_result(*, locator_id, attached_id, row, contact):
-    policy = RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY
+def _emitted_result(
+    *, locator_id, attached_id, row, contact,
+    policy: JointMarkingPolicy = RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY,
+):
     return ResolvedJointMarkingResult(
         policy_id=policy.policy_id,
         policy_revision=policy.revision,
@@ -740,8 +843,6 @@ def resolve_receiving_joint_markings(
         return ReceivingJointMarkingResolution(geometry=geometry, results=(), status=status)
 
     items = _inner_door_items(snapshot)
-    if not items:
-        return ReceivingJointMarkingResolution(geometry=geometry, results=(), status=status)
 
     try:
         frames = _derived_receiving_frames(snapshot)
@@ -926,6 +1027,52 @@ def resolve_receiving_joint_markings(
                         )
                     )
 
+
+    # Stage 1 / single physical cabinet: mark the horizontal Divider's actual
+    # attachment to BOTH side mother plates.  This is independent of whether
+    # an inner door is configured.  Multi-Bay ownership is a later stage.
+    columns = tuple(snapshot_map.get("door_layout_columns") or ())
+    if len(columns) == 1 and bool(snapshot_map.get("multi_door_enabled", False)):
+        for divider in dividers:
+            if str(divider.axis) != "HORIZONTAL":
+                continue
+            attached_id = str(divider.stable_id)
+            if _part_map(geometry).get(attached_id) is None:
+                continue
+            for locator_id in ("box_body:left_side", "box_body:right_side"):
+                if owner_render_data(geometry, locator_id) is None:
+                    continue
+                try:
+                    contact = _divider_side_contact(
+                        geometry=geometry, world=world, divider=divider,
+                        locator_id=locator_id, dimensions=dimensions,
+                        sheet_thickness=float(sheet_thickness),
+                    )
+                    row = _mark_row(
+                        locator_id=locator_id,
+                        attached_id=attached_id,
+                        boundary_role="SIDE_POSITIVE",
+                        contact=contact,
+                        policy_id=DIVIDER_SIDE_POLICY_ID,
+                    )
+                    carrier = owner_render_data(geometry, locator_id)
+                    if not carrier.material.covers(LineString((row["p1"], row["p2"]))):
+                        raise ValueError("Divider contact boundary outside side-plate Final Material")
+                    rows_by_owner.setdefault(locator_id, []).append(row)
+                    results.append(_emitted_result(
+                        locator_id=locator_id, attached_id=attached_id,
+                        row=row, contact=contact,
+                        policy=RECEIVING_DIVIDER_SIDE_PLATE_POLICY,
+                    ))
+                except (KeyError, TypeError, ValueError) as exc:
+                    results.append(_fail(
+                        locator_part_id=locator_id,
+                        attached_part_id=attached_id,
+                        diagnostic_code="CONTACT_NOT_FOUND",
+                        detail=str(exc),
+                        policy=RECEIVING_DIVIDER_SIDE_PLATE_POLICY,
+                    ))
+
     try:
         enriched = _write_rows(geometry, rows_by_owner)
     except (KeyError, TypeError, ValueError) as exc:
@@ -961,6 +1108,7 @@ __all__ = [
     "GATE_B_STATE",
     "PRODUCTION_JOINT_MARKING_FAILURE_POLICY",
     "RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY",
+    "RECEIVING_DIVIDER_SIDE_PLATE_POLICY",
     "RECEIVING_INNER_DOOR_FRAME_UPPER_HORIZONTAL_POLICY",
     "RECEIVING_INNER_DOOR_VERTICAL_FRAME_POLICY",
     "ReceivingJointMarkingResolution",

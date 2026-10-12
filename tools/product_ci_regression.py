@@ -57,12 +57,29 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_ui1b_bridge.py",
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+    "tests/test_issue1504_v14_ac_traceability.py",
+    # #1504 exact function audit uncovered these five previously unselected
+    # UI-1A / native-source preview / MFG-1 preflight owner suites.
+    "tests/test_issue1491_nfb_ui1a.py",
+    "tests/test_issue1492_nfb_real_dxf_preview.py",
+    "tests/test_issue1493_nfb_draft_transactions.py",
+    "tests/test_issue1497_nfb_cutting_preflight.py",
+    "tests/test_issue1497_configured_nfb_manufacturing_release.py",
+    "tests/process/test_issue1504_required_nfb_regression_selectors.py",
+    # #1504 discovered these three owner regressions were absent from canonical
+    # even though test cases existed: actual 1100 Y, saved NFB schema,
+    # source-scoped per-piece partial export. No duplicate selectors.
+    "tests/test_issue1495_receiving_nfb_y_projection.py",
+    "tests/test_issue1499_nfb_persistence.py",
+    "tests/test_issue1501_nfb_export_manifest.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
     # These were missing from the canonical product run: a GREEN alone did not
     # exercise the new production geometry. Optional customer DXF replays are
     # deliberately excluded until those original files are available.
     "tests/test_issue1502_existing_base_nfb_assembly.py",
     "tests/test_issue1502_receiving_existing_base_plate_patterns.py",
+    "tests/test_issue1502_receiving_base_family_routing.py",
+    "tests/test_issue1502_receiving_gui_base_bridge.py",
     "tests/test_issue1502_receiving_single_base_workspace.py",
     "tests/test_issue1502_nfb_base_source_projection.py",
     "tests/test_issue1502_nfb_ear_base_assembly_contract.py",

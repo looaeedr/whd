@@ -52,13 +52,21 @@ def build_part_render_data(
         scene = build_part_scene(spec, context)
 
     metadata = {}
-    if (isinstance(spec, BasePlatePartSpec)
-            and spec.receiving_bend_pattern is not None):
-        metadata = {
-            "stable_id": str(spec.physical_id or "base_plate"),
-            "receiving_bend_pattern": str(spec.receiving_bend_pattern),
-            "receiving_nfb_base_mfg2_release_approved": False,
-        }
+    if isinstance(spec, BasePlatePartSpec):
+        is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+        if spec.receiving_bend_pattern is not None:
+            metadata = {
+                "stable_id": str(spec.physical_id or "base_plate"),
+                "receiving_bend_pattern": str(spec.receiving_bend_pattern),
+                "receiving_nfb_base_mfg2_release_approved": False,
+            }
+        elif is_receiving:
+            # Legacy preview is non-manufacturing: never sell its ordinary
+            # four-side contour as the Receiving physical bottom plate.
+            metadata = {
+                "stable_id": str(spec.physical_id or "base_plate"),
+                "receiving_base_plate_unconfigured": True,
+            }
     if isinstance(spec, EndCapPartSpec):
         metadata = {
             'nominal_fold_left': endcap_scalar(spec.fold_left, default_fold_left),
