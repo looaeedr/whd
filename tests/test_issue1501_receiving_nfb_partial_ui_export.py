@@ -151,3 +151,32 @@ def test_saved_holes_missing_or_unsubmitted_fail_closed(monkeypatch):
     with pytest.raises(ValueError,match="沒有實際加工孔"):
         action.export_verified_receiving_nfb_inner_door(bundle,**args)
     assert hits==[]
+
+
+@pytest.mark.parametrize("key,value",[
+    ("model","金庫型"),
+    ("fw",50.),
+    ("door_gap_w",2.0),
+    ("door_gap_h",2.0),
+    ("door_layout_scope","another-bay"),
+    ("door_layout_columns",("new-column",)),
+])
+def test_manifest_and_export_share_geometry_staleness_keys(monkeypatch,key,value):
+    bundle,args,hits=_case(monkeypatch)
+    current=dict(args["current_snapshot"],**{key:value})
+    assert action.nfb_verification_geometry_changed(
+        current,bundle.snapshot_at_verification,
+    )
+    args["current_snapshot"]=current
+    with pytest.raises(ValueError,match="實體內門已變更"):
+        action.export_verified_receiving_nfb_inner_door(bundle,**args)
+    assert hits==[]
+
+
+def test_verified_geometry_fingerprint_accepts_unchanged_snapshot(monkeypatch):
+    bundle,args,hits=_case(monkeypatch)
+    assert not action.nfb_verification_geometry_changed(
+        args["current_snapshot"],bundle.snapshot_at_verification,
+    )
+    with pytest.raises(TypeError,match="two snapshots"):
+        action.nfb_verification_geometry_changed(None,{})
