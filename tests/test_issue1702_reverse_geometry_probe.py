@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import pytest
+from shapely.ops import unary_union
 
 from ae_engine.assembly_collision import build_divider_front_fold_relief_candidate
 from ae_engine.divider_manufacturing import _core_start
@@ -70,6 +71,11 @@ def test_issue1702_independent_full_thickness_reverse_cut_probe():
     )
     solved = next(row for row in solved_parts if row.part_key == divider.stable_id)
     certified_removed = part.render_data.material.difference(solved.render_data.material)
+    y0, y1 = float(part.render_data.material.bounds[1]), float(part.render_data.material.bounds[3])
+    all_pieces = tuple(getattr(certified_removed, 'geoms', (certified_removed,)))
+    end_pieces = tuple(g for g in all_pieces if float(g.area) > 0 and (float(g.bounds[1]) <= y0 + 1e-6 or float(g.bounds[3]) >= y1 - 1e-6))
+    assert len(end_pieces) == 2, [(g.area, g.bounds) for g in all_pieces]
+    certified_cross = unary_union(end_pieces)
     inverse = reconstruct_receiving_divider_cross(
         divider=part, box_body=body, candidate=candidate, thickness=snap["t"],
     )
@@ -86,8 +92,9 @@ def test_issue1702_independent_full_thickness_reverse_cut_probe():
         "reverse_source_bands": probes,
         "certified_final_cut_bounds": _rounded_bounds(certified_removed),
         "certified_final_cut_area": float(certified_removed.area),
-        "reverse_extra_area": float(reverse_removed.difference(certified_removed).area),
-        "reverse_missing_area": float(certified_removed.difference(reverse_removed).area),
+        "reverse_extra_area": float(reverse_removed.difference(certified_cross).area),
+        "reverse_missing_area": float(certified_cross.difference(reverse_removed).area),
+        "independent_non_cross_area": float(certified_removed.difference(certified_cross).area),
         "source_classification": candidate.evidence["classification"],
         "geometry_subsystem": candidate.evidence["manufacturing_dimensions_source"],
     }
