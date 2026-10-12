@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 from hashlib import sha256
 import json
+from zipfile import ZipFile
 
 import ezdxf
 import pytest
@@ -131,3 +132,50 @@ def test_invalid_pins_cannot_certify_foreign_source(tmp_path):
         fd.write("假廠,FOREIGN.dxf," + "1" * 64 + "\n")
     with pytest.raises(ValueError, match="absent from the current switch index"):
         build_source_coverage_report(index, source_root=root, pin_path=pins)
+
+
+def test_zip_only_indexed_source_is_audited_in_temporary_tree(tmp_path):
+    index, root, pins, original = _case(tmp_path)
+    archive = tmp_path / "source-archive.zip"
+    replacement = ezdxf.new("R2010")
+    replacement.modelspace().add_circle(
+        (17, 35), 7, dxfattribs={"color": 212},
+    )
+    staging = tmp_path / "zip-member.dxf"
+    replacement.saveas(staging)
+    with ZipFile(archive, "w") as zipfile:
+        zipfile.write(staging, "READ_ONLY_DXF_BUNDLE/TECO/C.dxf")
+    report = build_source_coverage_report(
+        index, source_root=root, pin_path=pins, archive_path=archive,
+    )
+    by_name = {(row["brand"], row["indexed_filename"]): row
+               for row in report["records"]}
+    recovered = by_name[("東元", "C.dxf")]
+    assert recovered["source_storage"] == "ARCHIVE_SINGLE_EXACT_BASENAME_TEMP"
+    assert recovered["status"] == "SOURCE_OBSERVED_UNCERTIFIED"
+    assert recovered["source_sha256"] == sha256(staging.read_bytes()).hexdigest()
+    assert (recovered["color_30_entities"], recovered["color_150_entities"],
+            recovered["color_212_entities"]) == (0, 0, 1)
+    assert not (root / "東元" / "C.dxf").exists()
+    assert original.is_file()
+    assert report["totals"]["observed_uncertified"] == 2
+    assert report["totals"]["unknown"] == 2
+
+
+def test_ambiguous_zip_basenames_do_not_guess_brand(tmp_path):
+    index, root, pins, _ = _case(tmp_path)
+    source = root / "士林" / "A.dxf"
+    with ZipFile(tmp_path / "ambiguous.zip", "w") as z:
+        z.write(source, "part-a/TECO/C.dxf")
+        z.write(source, "part-b/TECO/C.dxf")
+    report = build_source_coverage_report(
+        index, source_root=root, pin_path=pins,
+        archive_path=tmp_path / "ambiguous.zip",
+    )
+    row = next(x for x in report["records"]
+               if x["brand"] == "東元" and x["indexed_filename"] == "C.dxf")
+    assert row["source_storage"] == "ARCHIVE_AMBIGUOUS_UNKNOWN"
+    assert row["status"] == "SOURCE_MISSING_UNKNOWN"
+    assert row["color_30_entities"] is None
+    assert row["color_150_entities"] is None
+    assert row["color_212_entities"] is None
