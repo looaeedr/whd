@@ -667,6 +667,57 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         text="輸出已驗證內門 DXF（僅部分）",
                         command=export_nfb_partial,
                     ).pack(anchor="e", pady=(5, 0))
+            # #1502: this control is separate from inner-door PART_ONLY.
+            # It is displayed only for one already-submitted NFB Bay with
+            # a selected real Receiving physical Base Plate; it never grants
+            # whole-box or EAR-Z/PAD manufacturing.
+            if (get_nfb_transaction_ports is not None
+                    and applied["mode"] == "set_bay"
+                    and len(applied["selected_bays"]) == 1):
+                chosen_bay = applied["selected_bays"][0]
+                try:
+                    base_ports = get_nfb_transaction_ports()
+                    base_ready = bool(
+                        base_ports["state"](set_index, chosen_bay).get("base_partial_ready")
+                    )
+                except (ValueError, TypeError, KeyError, IndexError, OSError):
+                    base_ready = False
+                if base_ready:
+                    def export_nfb_base_partial():
+                        try:
+                            if (applied["mode"] != "set_bay"
+                                    or applied["set_index"] != set_index
+                                    or tuple(applied["selected_bays"]) != (chosen_bay,)):
+                                raise ValueError("NFB 底板輸出連位已切換，請重新選擇")
+                            live_ports = get_nfb_transaction_ports()
+                            if not live_ports["state"](
+                                set_index, chosen_bay
+                            ).get("base_partial_ready"):
+                                raise ValueError("NFB 底板實體選型／提交驗證已失效")
+                            from tkinter import filedialog
+                            folder = filedialog.askdirectory(
+                                title="選擇 NFB 已驗證底板部分 DXF 資料夾",
+                                parent=win,
+                            )
+                            if not folder:
+                                return
+                            saved, _part = live_ports["base_partial_export"](
+                                set_index, chosen_bay, folder,
+                            )
+                            messagebox.showinfo(
+                                "NFB 底板部分 DXF",
+                                "已輸出一片來源驗證的實體底板：" + str(saved)
+                                + "。耳朵焊接 Z、PAD／EAR 與整箱 MFG-2 尚未放行。",
+                                parent=win,
+                            )
+                        except (ValueError, TypeError, IndexError,
+                                KeyError, RuntimeError, OSError) as exc:
+                            warn(exc)
+                    ttk.Button(
+                        settings_host,
+                        text="輸出已驗證底板 DXF（僅單片）",
+                        command=export_nfb_base_partial,
+                    ).pack(anchor="e", pady=(5, 0))
             # #1501 operator disclosure: show the REAL per-part live result,
             # including blocked Bays and source reasons, not a fabricated
             # green checkbox. No widget at all for fully legacy selections.
