@@ -236,3 +236,126 @@ def test_manifest_integrity_failure_writes_no_dxf_even_with_valid_count(tmp_path
         groups=gate.group_checked(_params(demands))
         api.save_quantity_manufacturing_groups_dxf(groups,tmp_path)
     assert list(tmp_path.glob("*.dxf"))==[]
+
+
+def _canonical_quantity_batch():
+    """Existing physical demand shapes from the real quantity resolver."""
+    from types import SimpleNamespace
+    from ae_engine.manufacturing_quantity import ResolvedQuantityVersion
+    from phase6_manufacturing_contracts import freeze_manufacturing_value
+    from phase6_quantity_manufacturing import QuantityManufacturingBatch
+    rows=_demands()
+    requests=[]
+    versions=[]
+    for version,pieces in (("v1",6),("v2",4)):
+        parts=tuple(SimpleNamespace(
+            part_key=part,part_spec=None,
+            scene_values=freeze_manufacturing_value({}),
+            manufacturing_context=None,x_profile=(),y_profile=(),
+        ) for part in ("inner","middle","side"))
+        requests.append((version,pieces,SimpleNamespace(
+            parts=parts,
+            input_snapshot=freeze_manufacturing_value({"material":"STEEL"}),
+            settings=freeze_manufacturing_value({"t":2}),
+        )))
+        versions.append(ResolvedQuantityVersion(version,pieces,None))
+    return QuantityManufacturingBatch(tuple(versions),rows,tuple(requests))
+
+
+def test_live_per_version_nfb_bridge_groups_canonical_Q10_Q6_Q4(tmp_path):
+    from phase6_quantity_manufacturing import quantity_nfb_checked_manufacturing_groups
+    batch=_canonical_quantity_batch()
+    queried=[]
+    def source_verified(version,request):
+        queried.append(version)
+        assert request in [entry[2] for entry in batch.requests]
+        return (_scope(version),)
+    groups,gate=quantity_nfb_checked_manufacturing_groups(
+        batch,live_manifest_provider=source_verified,partial=True,
+    )
+    assert queried==["v1","v2"]
+    assert gate.partial_only
+    assert gate.permitted_total_pieces==20
+    assert gate.held_total_pieces==10
+    assert sorted(g.quantity for g in groups)==[4,6,10]
+    assert all(all(p.physical_id!="middle" for p in g.members) for g in groups)
+    exported=api.save_quantity_manufacturing_groups_dxf(
+        groups,tmp_path,overwrite=False,
+    )
+    assert len(exported)==3
+    annotations=[]
+    for path in exported.values():
+        dxf=ezdxf.readfile(path)
+        annotations.extend(
+            part.plain_text()
+            for part in dxf.modelspace().query("MTEXT")
+            if re.fullmatch(r"Q[0-9]+",part.plain_text())
+        )
+    assert sorted(annotations)==["Q10","Q4","Q6"]
+
+
+def test_live_nfb_quantity_bridge_refuses_missing_or_forged_physical_inventory():
+    from dataclasses import replace
+    from phase6_quantity_manufacturing import quantity_nfb_checked_manufacturing_groups
+    batch=_canonical_quantity_batch()
+    provider=lambda version,request: (_scope(version),)
+    for corrupt in (
+        replace(batch,demands=batch.demands[:-1]),
+        replace(batch,demands=batch.demands+(batch.demands[0],)),
+        replace(batch,demands=tuple(
+            replace(d,physical_id="fake") if d.version_id=="v1" and
+            d.physical_id=="inner" else d
+            for d in batch.demands
+        )),
+    ):
+        with pytest.raises(ValueError,match="physical inventory"):
+            quantity_nfb_checked_manufacturing_groups(
+                corrupt,live_manifest_provider=provider,partial=True,
+            )
+
+
+def test_live_nfb_quantity_bridge_refuses_other_version_stale_or_missing_proof():
+    from dataclasses import replace
+    from phase6_quantity_manufacturing import quantity_nfb_checked_manufacturing_groups
+    batch=_canonical_quantity_batch()
+    def wrong_version(version,request):
+        return (_scope("v1"),)
+    with pytest.raises(ValueError,match="wrong version"):
+        quantity_nfb_checked_manufacturing_groups(
+            batch,live_manifest_provider=wrong_version,partial=True,
+        )
+    with pytest.raises(ValueError,match="missing live"):
+        quantity_nfb_checked_manufacturing_groups(
+            batch,live_manifest_provider=lambda version,request: (),
+            partial=True,
+        )
+    with pytest.raises(ValueError,match="request version"):
+        quantity_nfb_checked_manufacturing_groups(
+            replace(batch,requests=((batch.requests[0][0],7,batch.requests[0][2]),
+                                    batch.requests[1])),
+            live_manifest_provider=lambda v,req:(_scope(v),),partial=True,
+        )
+    bad=replace(batch.demands[0],piece_count=9)
+    with pytest.raises(ValueError,match="demand version/count"):
+        quantity_nfb_checked_manufacturing_groups(
+            replace(batch,demands=(bad,*batch.demands[1:])),
+            live_manifest_provider=lambda v,req:(_scope(v),),partial=True,
+        )
+
+
+def test_nfb_quantity_bridge_never_treats_partial_as_whole_or_legacy_fallback():
+    from phase6_quantity_manufacturing import quantity_nfb_checked_manufacturing_groups
+    batch=_canonical_quantity_batch()
+    provider=lambda version,request: (_scope(version),)
+    with pytest.raises(ValueError,match="partial only"):
+        quantity_nfb_checked_manufacturing_groups(
+            batch,live_manifest_provider=provider,partial=False,
+        )
+    with pytest.raises(TypeError,match="live verified"):
+        quantity_nfb_checked_manufacturing_groups(
+            batch,live_manifest_provider=None,partial=True,
+        )
+    with pytest.raises(TypeError,match="boolean"):
+        quantity_nfb_checked_manufacturing_groups(
+            batch,live_manifest_provider=provider,partial=1,
+        )
