@@ -270,6 +270,15 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
     try:
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
+        # A production bottom plate needs an explicitly selected physical
+        # variant. The three sample drawings are candidates, not a universal
+        # default. This fixture chooses a real physical spec before batch DXF.
+        from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+        designer._phase6_input_snapshot["receiving_base_plate"] = {
+            "pattern": RECEIVING_BASE_PATTERN_CENTER,
+            "height": 280.0, "shrink_top": 20.0, "shrink_bottom": 20.0,
+            "shrink_left": 85.0, "shrink_right": 85.0, "bend": 20.0,
+        }
 
         # Operator asks the actual 3D Output surface to export every selectable kind.
         for var in designer.output_export_vars.values():
