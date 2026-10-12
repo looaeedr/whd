@@ -65,3 +65,49 @@ def nfb_manifest_display_lines(view):
     if state=="PARTIAL_ONLY":
         lines.append("此為部分製造清單，不代表整套可交付")
     return tuple(lines)
+
+
+def highlighted_nfb_manifest_lines(ports, set_index, highlighted_bays):
+    """Project saved, current per-Bay proof into read-only operator text.
+
+    Never turn preview status into manufacturing approval. In particular,
+    mixed or stale selections must show their blocked rows; export is gated
+    separately by the real partial DXF writer.
+    """
+    from collections.abc import Mapping
+
+    if not isinstance(ports, Mapping) or not callable(ports.get("manifest")):
+        raise TypeError("NFB live manifest port required")
+    if type(set_index) is not int or set_index < 0:
+        raise ValueError("NFB Set index invalid")
+    bays=tuple(highlighted_bays)
+    if (not bays or len(set(bays))!=len(bays)
+            or any(type(bi) is not int or bi<0 for bi in bays)):
+        raise ValueError("NFB highlighted Bay selection invalid")
+
+    lines=[]
+    has_submitted=False
+    for bay_index in bays:
+        current=ports["manifest"](set_index,bay_index)
+        if not isinstance(current,Mapping):
+            raise TypeError("NFB live manifest must be a mapping")
+        state=current.get("status")
+        if state=="LEGACY":
+            lines.append((f"第{set_index+1}套／第{bay_index+1}連"
+                          "｜未配置 NFB｜原有加工流程"))
+            continue
+        has_submitted=True
+        prefix=f"第{set_index+1}套／第{bay_index+1}連"
+        if state=="BLOCKED":
+            lines.append(prefix+"｜NFB 尚不可匯出："+str(
+                current.get("reason") or "缺少來源驗證"))
+            continue
+        ids=tuple(current.get(key) for key in ("set_id","bay_id","version_id"))
+        if any(not isinstance(value,str) or not value.strip() for value in ids):
+            raise ValueError("NFB live manifest missing Set/Bay/version stable IDs")
+        lines.append(
+            prefix+f"｜Set {ids[0]}／Bay {ids[1]}／版本 {ids[2]}"
+        )
+        lines.extend(nfb_manifest_display_lines(dict(current)))
+    # Do not change the legacy UI when EVERY highlighted Bay is unconfigured.
+    return tuple(lines) if has_submitted else ()
