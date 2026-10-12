@@ -58,6 +58,13 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     "tests/test_issue1504_v14_ac_traceability.py",
+    # #1504 exact function audit uncovered these five previously unselected
+    # UI-1A / native-source preview / MFG-1 preflight owner suites.
+    "tests/test_issue1491_nfb_ui1a.py",
+    "tests/test_issue1492_nfb_real_dxf_preview.py",
+    "tests/test_issue1493_nfb_draft_transactions.py",
+    "tests/test_issue1497_nfb_cutting_preflight.py",
+    "tests/test_issue1497_configured_nfb_manufacturing_release.py",
     "tests/process/test_issue1504_required_nfb_regression_selectors.py",
     # #1504 discovered these three owner regressions were absent from canonical
     # even though test cases existed: actual 1100 Y, saved NFB schema,

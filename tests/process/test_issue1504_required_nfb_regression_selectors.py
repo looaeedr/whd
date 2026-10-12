@@ -1,6 +1,6 @@
 """#1504 regression anti-regrowth: previously omitted v1.4 owner tests run in CI.
 
-These three owner slices existed long before combined acceptance but were not
+Eight owner slices existed long before combined acceptance but were not
 selected by tools/product_ci_regression.py. Passing unrelated NFB suites was
 not proof that Y, Save/Reload or partial manifest contracts were checked.
 """
@@ -13,6 +13,11 @@ from tools.product_ci_regression import PYTEST_PATHS
 
 ROOT = Path(__file__).resolve().parents[2]
 REQUIRED = (
+    "tests/test_issue1491_nfb_ui1a.py",
+    "tests/test_issue1492_nfb_real_dxf_preview.py",
+    "tests/test_issue1493_nfb_draft_transactions.py",
+    "tests/test_issue1497_nfb_cutting_preflight.py",
+    "tests/test_issue1497_configured_nfb_manufacturing_release.py",
     "tests/test_issue1495_receiving_nfb_y_projection.py",
     "tests/test_issue1499_nfb_persistence.py",
     "tests/test_issue1501_nfb_export_manifest.py",
@@ -30,7 +35,7 @@ def test_owner_regressions_are_exactly_once_in_canonical_product_ci():
 
 
 def test_all_newly_selected_owner_regression_files_have_live_test_functions():
-    for candidate in REQUIRED[:3]:
+    for candidate in REQUIRED[:8]:
         source = ROOT / candidate
         assert source.is_file()
         nodes = ast.parse(source.read_text(encoding="utf-8")).body
