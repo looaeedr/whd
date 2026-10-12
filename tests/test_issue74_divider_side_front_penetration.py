@@ -261,15 +261,18 @@ def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
 
 
 def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
-    """Validation-only oracle for the approved Receiving reference fixture.
+    """Independent geometry witness; preserve the approved 22/27 manufacturing values.
 
-    IMPORTANT: 22/27 are acceptance values only. Production geometry must never
-    import/read this test or derive collision dimensions from these constants.
-    The test measures independently reconstructed world/collision geometry and
-    only judges whether production inputs/placement produced the approved shape.
+    The certified 27-mm Divider relief CUTTING depth remains unchanged and is
+    validated independently against the supplied DXF below. World FW overlap
+    is *not* that cutting depth: the historical 27-mm overlap was measured
+    with side-sheet midplanes accidentally placed on their inner-skin datum.
+    Using the actual W-outside side sheet placement moves the physical overlap
+    inward by half a sheet thickness. Do not change the certified CUTTING or
+    push the side sheets back onto the incorrect mid-surface datum.
     """
     REFERENCE_ZL1_STEP_LENGTH = 22.0
-    REFERENCE_FW_OVERLAP = 27.0
+    REFERENCE_FW_CERTIFIED_RELIEF_DEPTH = 27.0
 
     snap = _snapshot()
     body = _body_part(snap)
@@ -333,11 +336,17 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
     assert observed_zl1_step == pytest.approx(
         REFERENCE_ZL1_STEP_LENGTH, abs=1.0e-5
     )
+    # Separate the certified material CUTTING depth from the assembled
+    # pre-relief collision shadow. For T2: 27-mm cut, 26-mm physical FW
+    # overlap after the outside-W assembly datum is corrected.
+    expected_physical_overlap = (
+        REFERENCE_FW_CERTIFIED_RELIEF_DEPTH - float(snap["t"]) / 2.0
+    )
     assert observed_left_overlap == pytest.approx(
-        REFERENCE_FW_OVERLAP, abs=1.0e-5
+        expected_physical_overlap, abs=1.0e-5
     )
     assert observed_right_overlap == pytest.approx(
-        REFERENCE_FW_OVERLAP, abs=1.0e-5
+        expected_physical_overlap, abs=1.0e-5
     )
 
 
