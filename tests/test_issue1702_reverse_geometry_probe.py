@@ -85,6 +85,10 @@ def test_issue1702_independent_full_thickness_reverse_cut_probe():
         "source_classification": candidate.evidence["classification"],
         "geometry_subsystem": candidate.evidence["manufacturing_dimensions_source"],
     }
-    # Intentional red diagnostic, isolated on research branch, NEVER merge this
-    # until replaced with genuine assertions against physical geometry.
-    pytest.fail("ISSUE1702_REVERSE_PROBE=" + json.dumps(witness, ensure_ascii=False, default=str))
+    # Validate independent inverse and approved final material as complete
+    # geometry; any discrepancy is reported with measured source-face evidence.
+    assert float(reverse_removed.area) > 0.0
+    assert (
+        witness["reverse_extra_area"] <= 1e-4
+        and witness["reverse_missing_area"] <= 1e-4
+    ), "ISSUE1702_REVERSE_PROBE=" + json.dumps(witness, ensure_ascii=False, default=str)
