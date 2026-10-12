@@ -107,8 +107,13 @@ def export_verified_receiving_nfb_base_plate(
             or metadata.get("nfb_profile_revision") != profile.revision):
         raise ValueError("NFB base inner-door upper original identity changed")
     lower = resolve_unique_nfb_lower_reference_handle(source, profile=profile)
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    panels = tuple(part for part in derive_inner_door_panels(current_snapshot)
+                   if part.stable_id == scope.inner_door_part_id)
+    if len(panels) != 1:
+        raise ValueError("NFB base has no unique current physical inner-door panel")
     composed = build_existing_receiving_base_with_verified_nfb(
-        snapshot=current_snapshot, inner_door_id=scope.inner_door_part_id.split(":")[1],
+        snapshot=current_snapshot, inner_door_id=panels[0].inner_door_id,
         base_spec=base_spec, verified_inner_door=bundle.verified_door,
         source_path=source, profile=profile, lower_reference_handle=lower,
     )
