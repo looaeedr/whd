@@ -102,7 +102,12 @@ def _snapshot_base_state(self):
     )
     snapshot["factory_defaults"] = load_factory_defaults_from_ae(ae)
     if snapshot["model"] in {"受電箱", "RECEIVING"}:
-        stored = getattr(self, "_phase6_input_snapshot", {}) or {}
+        designer = getattr(self, "fold_designer_app", None)
+        stored = (
+            getattr(designer, "_phase6_input_snapshot", None)
+            or getattr(self, "_phase6_input_snapshot", None)
+            or {}
+        )
         if "receiving_base_plate" in stored:
             # Keep the existing physical plate choice across GUI snapshot and
             # project Save/Reload; never derive it from the DXF sketch layout.
