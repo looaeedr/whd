@@ -128,17 +128,15 @@ def test_manifest_review_summary_is_recomputed_from_records():
 
 def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
     data = _data()
-    assert data["exact_test_function_witnesses_count"] == 26
+    assert data["exact_test_function_witnesses_count"] == 88
     assert data["assertion_witness_note"]
     found = 0
     for item in data["records"]:
         witnesses = item["identified_test_functions"]
         state = item["assertion_review_state"]
-        if not witnesses:
-            assert state == "AWAITING_EXACT_ASSERTION_REVIEW"
-            continue
+        assert witnesses, item["id"]
         assert state == "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
-        assert len(witnesses) == 1  # reviewed subset; not an invented blanket proof
+        assert len(witnesses) == 1  # exact function identity, not full AC proof
         for witness in witnesses:
             assert witness["path"] in item["regression_candidates"]
             assert witness["accepted"] is False
@@ -148,7 +146,7 @@ def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_fl
             actual = {n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
             assert witness["test_name"] in actual, item["id"]
             found += 1
-    assert found == 26
+    assert found == 88
 
 
 def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
@@ -159,3 +157,18 @@ def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
     assert "undo" in row["NFB-AC-35"]["identified_test_functions"][0]["test_name"]
     assert "schema" in row["NFB-AC-54"]["identified_test_functions"][0]["test_name"]
     assert not row["NFB-AC-35"]["accepted"]
+
+
+
+def test_all_function_links_are_only_partial_and_no_factory_approval_is_implied():
+    obj = _data()
+    assert obj["exact_test_function_witnesses_review"].startswith(
+        "88/88 FUNCTION_IDENTITIES_VERIFIED; 0/88 FULL_AC_ACCEPTED;"
+    )
+    for row in obj["records"]:
+        assert row["assertion_review_state"] == (
+            "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+        )
+        assert row["accepted"] is False
+        assert row["identified_test_functions"][0]["accepted"] is False
+    assert set(obj["open_gates"]) >= {1500, 1502, 1503, 1504}
