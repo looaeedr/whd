@@ -176,3 +176,20 @@ def test_lower_source_ambiguous_reference_fails_without_world_placement(tmp_path
     )
     with pytest.raises(ValueError, match="absent or ambiguous"):
         resolve_unique_nfb_lower_reference_handle(v.original, profile=profile)
+
+
+def test_sha_identical_numbered_download_keeps_single_source_identity(tmp_path):
+    """#1497 explicitly permits a browser-numbered ORIGINAL file copy."""
+    v = _live(tmp_path)
+    copied = tmp_path / (v.original.stem + "(1).dxf")
+    copied.write_bytes(v.original.read_bytes())
+    bundle = replace(v.bundle, source_path=str(copied))
+    directory = tmp_path / "export-numbered"
+    directory.mkdir()
+    path, composed = export_verified_receiving_nfb_base_plate(
+        bundle, layout=v.layout, current_snapshot=v.snapshot, base_spec=v.plate,
+        output_directory=directory, index_path=v.index, profile_path=v.profile,
+    )
+    assert composed.projection.source_sha256 == v.bundle.source_inventory.source_sha256
+    assert ezdxf.readfile(path).modelspace() is not None
+    assert copied.read_bytes() == v.original.read_bytes()
