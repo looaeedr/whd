@@ -103,7 +103,7 @@ def resolve_unique_nfb_lower_reference_handle(source_path, *, profile: NfbUpperS
     import re
     accepted = re.fullmatch(
         re.escape(Path(profile.indexed_filename).stem)
-        + r"(?:\\([1-9][0-9]*\\))?\\.dxf",
+        + r"(?:[(][1-9][0-9]*[)])?[.]dxf",
         source.name, re.IGNORECASE,
     )
     if not accepted:
