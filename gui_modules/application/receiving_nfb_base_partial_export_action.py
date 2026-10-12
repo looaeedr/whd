@@ -65,7 +65,7 @@ def export_verified_receiving_nfb_base_plate(
                != scope.identity
             or selected_set.get("switch_brand") != bundle.verified_door.indexed_model_key[0]
             or saved != bundle.config
-            or "base_plate" not in tuple(scope.base_plate_part_ids)):
+            or (tuple(scope.base_plate_part_ids) and "base_plate" not in scope.base_plate_part_ids)):
         raise ValueError("NFB base current submitted owner/config does not match proof")
     if not isinstance(base_spec, BasePlatePartSpec):
         raise TypeError("NFB base must use existing BasePlatePartSpec")
@@ -86,7 +86,13 @@ def export_verified_receiving_nfb_base_plate(
                    for key, value in expected.items())):
         raise ValueError("NFB base physical spec differs from live configured plate")
     source = Path(bundle.source_path)
-    if (source.name.casefold() != bundle.verified_door.indexed_model_key[1].casefold()
+    import re
+    expected_name = bundle.verified_door.indexed_model_key[1]
+    allowed_copy = re.fullmatch(
+        re.escape(Path(expected_name).stem) + r"(?:\\([1-9][0-9]*\\))?\\.dxf",
+        source.name, re.IGNORECASE,
+    )
+    if (not allowed_copy
             or sha256(source.read_bytes()).hexdigest() != bundle.source_inventory.source_sha256
             or bundle.verified_door.source_sha256 != bundle.source_inventory.source_sha256):
         raise ValueError("NFB base original indexed source bytes changed")
