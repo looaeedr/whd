@@ -168,7 +168,7 @@ def test_issue1502_one_authority_inner_door_NFB_no_base_from_illustration():
         verified_inner_door=None,
     )
     assert not not_verified.can_submit
-    assert not_verified.for_part("inner_door:upper:panel").status==READY
+    assert not_verified.for_part("inner_door:upper:panel").status==BLOCKED
 
 
 def test_each_set_bay_version_independent_and_no_cross_scope_ready_cache():
