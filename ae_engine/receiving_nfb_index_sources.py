@@ -267,6 +267,14 @@ def build_nfb_indexed_color_evidence(
             counts = entry.process_color_entity_counts
             if not entry.source_sha256 or counts is None:
                 raise ValueError("NFB indexed color evidence has no verified original SHA/counts")
+            # No later row may override a real Color30/150/212 observation.
+            # Even a read-only catalog must not present conflicting DXF
+            # colors as a trustworthy zero count for downstream consumers.
+            if (any(not isinstance(pair, (tuple,list)) or len(pair)!=2
+                    or type(pair[0]) is not int or type(pair[1]) is not int
+                    or pair[1]<0 for pair in counts)
+                    or len(counts)!=len({pair[0] for pair in counts})):
+                raise ValueError("NFB indexed source color evidence ambiguous or malformed")
             known = dict(counts)
             color_counts = tuple(known.get(aci) for aci in (30, 150, 212))
             if any(type(v) is not int or v < 0 for v in color_counts):
