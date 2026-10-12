@@ -170,6 +170,13 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     assert formula_values["slotted_fold_u"] == pytest.approx(66.0)
     assert formula_values["plain_fold_u"] == pytest.approx(60.0)
     assert formula_values["fold_v"] == pytest.approx(27.0)
+    inverse = dict(relief["evidence"]["independent_physical_inverse"])
+    assert inverse["status"] == "MATCH"
+    assert inverse["source"] == "PHYSICAL_FW_CONTACT_AND_REAL_FOLD_TOPOLOGY"
+    assert inverse["extra_area"] <= 1e-4
+    assert inverse["missing_area"] <= 1e-4
+    assert inverse["cutting_parameters"]["fold_v"] == pytest.approx(27.0)
+    assert inverse["physical_world_evidence"]["contact_v_projection_only"]["MIN_Y"] == pytest.approx(26.0)
     # Receiving front Fold topology is intentionally asymmetric:
     # left has penetrating zl1/zl2 bands while right has penetrating zr2.
     # Do not force their physical relief depths to be numerically symmetric.
