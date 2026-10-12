@@ -17,7 +17,7 @@ from ae_engine.receiving_nfb_export_manifest import (
     INNER_DOOR,MIDDLE_PLATE,OTHER,
 )
 from ae_engine.receiving_nfb_part_readiness import (
-    NfbPhysicalScope,READY,BLOCKED,UNAFFECTED,
+    NfbPhysicalScope,READY,BLOCKED,UNAFFECTED,LEGACY,
 )
 from ae_engine.receiving_nfb_quantity_gate import gate_nfb_quantity_physical_demands
 
@@ -157,3 +157,82 @@ def test_no_part_or_nonboolean_partial_flag_fails_closed():
         gate_nfb_quantity_physical_demands(
             _demands(),manifests=(_scope("v1"),_scope("v2")),partial=1,
         )
+
+
+def test_inconsistent_manifest_decisions_cannot_enter_check_grouping():
+    from dataclasses import replace
+    good=_scope("v1")
+    ready,middle,side=good.rows
+    for altered in (
+        replace(middle,may_export=True),
+        replace(ready,may_export=False),
+        replace(middle,status=READY,reasons=(),may_export=False),
+    ):
+        bad=replace(good,rows=tuple(
+            altered if row.part_id==altered.part_id else row
+            for row in good.rows
+        ))
+        with pytest.raises(ValueError,match="export decision conflicts"):
+            gate_nfb_quantity_physical_demands(
+                (next(x for x in _demands() if x.version_id=="v1" and
+                      x.physical_id==altered.part_id),),
+                manifests=(bad,),partial=True,
+            )
+
+
+def test_cross_bay_stale_manifest_identity_and_duplicate_scope_fail_closed():
+    from dataclasses import replace
+    good=_scope("v1")
+    changed=replace(good.rows[0],bay_id="different-bay")
+    stale=replace(good,rows=(changed,*good.rows[1:]))
+    with pytest.raises(ValueError,match="row Set/Bay/version"):
+        gate_nfb_quantity_physical_demands(
+            (next(x for x in _demands() if x.version_id=="v1"
+                  and x.physical_id=="inner"),),
+            manifests=(stale,),partial=True,
+        )
+    with pytest.raises(ValueError,match="duplicate Set/Bay/version scope"):
+        gate_nfb_quantity_physical_demands(
+            (next(x for x in _demands() if x.version_id=="v1"
+                  and x.physical_id=="inner"),),
+            manifests=(good,replace(good,rows=(good.rows[-1],))),
+            partial=True,
+        )
+
+
+def test_manifest_submission_readiness_and_count_claims_are_verified():
+    from dataclasses import replace
+    good=_scope("v1")
+    inner=next(x for x in _demands() if x.version_id=="v1" and
+               x.physical_id=="inner")
+    cases=(
+        (replace(good,nfb_config_submitted=False),"submitted fact"),
+        (replace(good,whole_ready=True),"whole readiness"),
+        (replace(good,rows=(replace(good.rows[0],actual_count=0),*good.rows[1:])),
+         "physical count invalid"),
+        (replace(good,rows=(replace(good.rows[1],reasons=()),good.rows[0],
+                            good.rows[2])),"blocked row missing diagnostic"),
+        (replace(good,rows=(replace(good.rows[0],status=LEGACY),*good.rows[1:])),
+         "status conflicts"),
+    )
+    for altered,expected in cases:
+        with pytest.raises(ValueError,match=expected):
+            gate_nfb_quantity_physical_demands(
+                (inner,),manifests=(altered,),partial=True,
+            )
+
+
+def test_manifest_integrity_failure_writes_no_dxf_even_with_valid_count(tmp_path):
+    from dataclasses import replace
+    good=_scope("v1")
+    blocked=good.rows[1]
+    forged=replace(good,rows=(good.rows[0],
+                   replace(blocked,may_export=True),good.rows[2]))
+    demands=tuple(x for x in _demands() if x.version_id=="v1")
+    with pytest.raises(ValueError,match="export decision conflicts"):
+        gate=gate_nfb_quantity_physical_demands(
+            demands,manifests=(forged,),partial=True,
+        )
+        groups=gate.group_checked(_params(demands))
+        api.save_quantity_manufacturing_groups_dxf(groups,tmp_path)
+    assert list(tmp_path.glob("*.dxf"))==[]
