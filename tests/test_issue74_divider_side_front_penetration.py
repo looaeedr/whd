@@ -218,9 +218,16 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     assert pre["box_body:right_side"]["zr2"]["through"] is True
 
 
-def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
-    """Receiving 3D FW must occupy formed outside width, not raw material length."""
+@pytest.mark.parametrize(
+    "width, thickness", [(800.0, 2.0), (900.0, 2.0), (900.0, 1.5)]
+)
+def test_receiving_boxbody_fw_world_occupation_matches_formed_contract(width, thickness):
+    """True FW skins must keep BOTH formed length and the outside-W envelope."""
     snap = _snapshot()
+    snap.update({
+        "w": float(width), "t": float(thickness),
+        "door_layout_columns": [[float(width), [1100.0, 500.0]]],
+    })
     body = _body_part(snap)
     divider, divider_part = _divider_part(snap)
     world = bridge._phase6_build_joint_world_geometry(
@@ -256,6 +263,13 @@ def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
             "Receiving 3D FW uses material length instead of formed outside occupation",
             observed,
         )
+        # Segment CENTER is not an assembly anchor: the outboard hinge is
+        # fixed to the physical side-sheet middle skin and the formed face
+        # must grow inward without overshooting the finished box W.
+        if source_key == "box_body:left_side":
+            assert x0 == pytest.approx(-float(width) / 2.0, abs=1.0e-5), observed
+        else:
+            assert x1 == pytest.approx(float(width) / 2.0, abs=1.0e-5), observed
 
     print("RECEIVING_FW_FORMED_OCCUPATION=", observed)
 
