@@ -111,7 +111,10 @@ def test_non_default_thickness_gap_folds_use_actual_part_core_not_fixed_36p5():
         item.finished_panel_height_mm - 2*state["t"] + 38.0
     )
     assert item.box_world_y_mm == pytest.approx(250.0)
-    assert item.unfolded_uv_y_mm == pytest.approx(561.0)
+    # Actual formed top-frame/assembly center at T3 differs from T2:
+    # world Y=250, physical panel placement Y=222.5, core=1032;
+    # UV = lower fold19 + 1032/2 + (250-222.5) = 562.5.
+    assert item.unfolded_uv_y_mm == pytest.approx(562.5)
     assert invert_nfb_inner_door_unfolded_y(
         state, "upper", unfolded_uv_y_mm=item.unfolded_uv_y_mm,
     ) == pytest.approx(550.0)
