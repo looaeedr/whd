@@ -342,11 +342,20 @@ def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tole
     span = float(hi - lo)
     if span <= float(tolerance):
         return tuple(rows)
-    center = (float(lo) + float(hi)) / 2.0
+    # The outboard side-sheet hinge, not the FW face center, is the
+    # installation datum. Center-scaling shifts that hinge T/2 outwards
+    # after the side-sheet center is correctly placed at (W-T)/2, yielding
+    # physical FW skins at +/-401 for W800/T2. Keep the hinge fixed and
+    # expand only toward the inboard edge. No fixed 1-mm offset or CUTTING
+    # modification: correction follows the real formed-length contract.
+    outboard_hinge = float(lo if role == "left_side" else hi)
     scale = float(target) / span
     for index in selected:
         rows[index] = tuple(
-            (center + (float(point[0]) - center) * scale, float(point[1]), float(point[2]))
+            (
+                outboard_hinge + (float(point[0]) - outboard_hinge) * scale,
+                float(point[1]), float(point[2]),
+            )
             for point in rows[index]
         )
     return tuple(rows)
