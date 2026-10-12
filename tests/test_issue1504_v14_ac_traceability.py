@@ -7,6 +7,7 @@ while #1500 real-source GUI or #1502 true physical DXF work remains open.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from collections import Counter
@@ -31,6 +32,18 @@ ORIGINAL_SHA = {
 
 def _data():
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
+
+
+def test_exact_original_v14_ac_text_is_not_rewritten_by_trace_owners():
+    rows = _data()["records"]
+    canonical = "\\n".join(
+        "|".join((r["id"], r["requirement"], r["phase"])) for r in rows
+    )
+    # Digest produced from the exact two approved source docs' §7 tables,
+    # not from issues, speculative machine geometries, or a newer summary.
+    assert hashlib.sha256(canonical.encode("utf-8")).hexdigest() == (
+        "46612c4295d0ee86e6f3f8e9b833b0bc50e928938ac2305789debf3b6c4addc2"
+    )
 
 
 def test_approved_v14_has_all_88_unique_original_acceptance_ids():
@@ -90,6 +103,16 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
             assert r["blocking_issues"] == [1503]
         else:
             assert not r["blocking_issues"]
+
+
+def test_1502_newer_corrected_base_plate_scope_is_not_lost():
+    obj = _data()
+    assert obj["latest_product_scope"]["authority_issue"] == 1502
+    for row in obj["records"]:
+        if "current_scope_correction" in row:
+            assert 1502 in row["owning_issues"]
+            assert row["current_scope_correction"]["issue"] == 1502
+            assert row["accepted"] is False
 
 
 def test_manifest_review_summary_is_recomputed_from_records():
