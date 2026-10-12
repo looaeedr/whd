@@ -17,7 +17,34 @@ def nfb_manifest_display_lines(view):
     if state not in ("PARTIAL_ONLY","WHOLE_READY"):
         raise ValueError("NFB manufacturing view status unsupported")
     rows=tuple(view.get("rows",()))
-    allowed=int(view.get("actual_export_count",0))
+    allowed=view.get("actual_export_count",0)
+    if type(allowed) is not int or allowed<0:
+        raise ValueError("NFB manifest display count must be a nonnegative integer")
+    # This is only a read-only UI projection, but it must not show a false
+    # green manufacturing count when a stale/contradictory view is supplied.
+    actual_ready=0
+    for item in rows:
+        if not isinstance(item,dict):
+            raise ValueError("NFB manifest row must be a mapping")
+        count=item.get("actual_count")
+        status=item.get("status")
+        may_export=item.get("may_export")
+        if type(count) is not int or count<=0:
+            raise ValueError("NFB manifest row count must be positive")
+        if type(may_export) is not bool:
+            raise ValueError("NFB manifest row export decision must be boolean")
+        if status not in ("READY","UNAFFECTED","BLOCKED"):
+            raise ValueError("NFB manifest row status not recognized")
+        if may_export is not (status in ("READY","UNAFFECTED")):
+            raise ValueError("NFB manifest row status/export mismatch")
+        if may_export:
+            actual_ready+=count
+    if allowed!=actual_ready:
+        raise ValueError("NFB manifest displayed count differs from physical rows")
+    if state=="WHOLE_READY" and (
+            any(not row["may_export"] for row in rows)
+            or view.get("unresolved_dependencies")):
+        raise ValueError("NFB manifest full-ready display has blocked dependencies")
     header=(
         f"NFB 板件狀態：可加工 {allowed} 片（僅部分可出）"
         if state=="PARTIAL_ONLY" else
