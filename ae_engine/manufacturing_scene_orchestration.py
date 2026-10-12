@@ -284,6 +284,9 @@ def build_part_scene(
             sl = spec.shrink_left
             sr = spec.shrink_right
             receiving_pattern = spec.receiving_bend_pattern
+            # Missing Receiving physical-plate selection remains preview-only.
+            # Exporters reject it before writing any manufacturing DXF; do not
+            # block the rest of a Receiving project's GUI/Set/Bay navigation.
             if receiving_pattern is not None:
                 if str(spec.model_name or "").strip() not in {"受電箱", "RECEIVING"}:
                     raise ValueError("Receiving pattern cannot modify another family's Base Plate")
