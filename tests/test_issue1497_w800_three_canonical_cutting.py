@@ -18,6 +18,9 @@ from ae_engine.sheetmetal_drawing import DrawingScene, CirclePrimitive
 from ae_engine.sheetmetal_features import (
     CircleFeature, RectFeature, FeatureAnchor,
 )
+from ae_engine.receiving_nfb_legacy_feature_bridge import (
+    existing_inner_door_feature_finalscene,
+)
 from ae_engine.sheetmetal_geometry import Vec2
 from ae_engine.receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
 from ae_engine.receiving_nfb_cutting_preflight import NfbExistingCuttingClaim
@@ -532,3 +535,142 @@ def test_other_outer_door_feature_store_is_not_inner_door_owner(tmp_path):
     assert len(_actual_cuttings(result))==4
     assert not any(isinstance(x,CirclePrimitive)
                    for x in result.render_data.scene.primitives)
+
+
+def _part(state):
+    return next(
+        p for p in cabinet_family_policy.derive_inner_door_panels(state)
+        if p.inner_door_id == "upper"
+    )
+
+
+def _edited_inner_door_state(*features):
+    state=_state()
+    state["part_features"]={"inner_door:upper:panel":list(features)}
+    return state
+
+
+def test_real_hole_editor_circle_and_rect_are_kept_in_three_nfb_cutting(tmp_path):
+    # Hole Editor uses the exact inner_door stable_id, not the outer-door ID.
+    circle=CircleFeature(
+        diameter=12.,anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(60.,100.),layer="CUTTING",
+    )
+    mark=RectFeature(
+        width=9.,height=7.,anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(90.,125.),layer="MARKING",
+    )
+    state=_edited_inner_door_state(circle,mark)
+    before=deepcopy(state)
+    panel=_part(state)
+    legacy=existing_inner_door_feature_finalscene(state,panel)
+    assert legacy is not None
+    # Finished-face 60,100 with fold19 and thickness2 -> unfolded 77,117.
+    found=[p for p in legacy.scene.primitives
+           if isinstance(p,CirclePrimitive) and p.layer=="CUTTING"]
+    assert len(found)==1
+    assert (found[0].center.x, found[0].center.y)==pytest.approx((77.,117.))
+    mark_rows=[p for p in legacy.scene.primitives
+               if isinstance(p,PolylinePrimitive) and p.layer=="MARKING"]
+    assert len(mark_rows)==1
+    assert legacy.metadata["nfb_legacy_feature_owner"]==panel.stable_id
+    assert legacy.metadata["nfb_legacy_feature_count"]==2
+
+    idx,src,profile=_source(tmp_path)
+    actual=configured_w800_three_nfb_inner_door_render_data(
+        state,"upper",rows=(_row(),),
+        index_path=idx,source_path=src,profile=profile,
+    )
+    assert actual.manufacturing_ready
+    assert tuple(actual.render_data.scene.primitives[:len(legacy.scene.primitives)])==(
+        tuple(legacy.scene.primitives)
+    )
+    assert len(_actual_cuttings(actual))==4
+    assert sum(isinstance(p,CirclePrimitive) and p.layer=="CUTTING"
+               for p in actual.render_data.scene.primitives)==1
+    assert sum(isinstance(p,PolylinePrimitive) and p.layer=="MARKING"
+               for p in actual.render_data.scene.primitives)==1
+    output=tmp_path/"actual-hole-editor-and-three-nfb.dxf"
+    save_w800_three_nfb_inner_door_dxf(
+        state,"upper",output,rows=(_row(),),
+        index_path=idx,source_path=src,profile=profile,
+    )
+    entities=list(ezdxf.readfile(output).modelspace())
+    assert len([x for x in entities if x.dxf.layer=="CUTTING"
+                and x.dxftype()=="CIRCLE"])==1
+    assert len([x for x in entities if x.dxf.layer=="CUTTING"
+                and x.dxftype()=="LWPOLYLINE" and x.closed])==4
+    assert state==before
+
+
+def test_hole_editor_circle_overlapping_real_nfb_is_blocked_atomically(tmp_path):
+    idx,src,profile=_source(tmp_path)
+    state=_state()
+    without=configured_w800_three_nfb_inner_door_render_data(
+        state,"upper",rows=(_row(),),
+        index_path=idx,source_path=src,profile=profile,
+    )
+    hole=_actual_cuttings(without)[1]
+    xs=[p.x for p in hole.points];ys=[p.y for p in hole.points]
+    uvx=(min(xs)+max(xs))/2.;uvy=(min(ys)+max(ys))/2.
+    # Same physical position expressed as genuine finished-face Feature.
+    legacy=CircleFeature(
+        diameter=6.,anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(uvx-17.,uvy-17.),layer="CUTTING",
+    )
+    state["part_features"]={"inner_door:upper:panel":[legacy]}
+    target=tmp_path/"must-not-exist.dxf"
+    with pytest.raises(ValueError,match="blocked"):
+        save_w800_three_nfb_inner_door_dxf(
+            state,"upper",target,rows=(_row(),),
+            index_path=idx,source_path=src,profile=profile,
+        )
+    assert not target.exists()
+
+
+def test_hole_editor_physical_owner_is_exact_and_unrecognized_store_fail_closed(tmp_path):
+    circle=CircleFeature(
+        diameter=12.,anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(60.,100.),layer="CUTTING",
+    )
+    state=_state()
+    panel=_part(state)
+    state["part_features"]={"door_c1_r1":[circle]}
+    assert existing_inner_door_feature_finalscene(state,panel) is None
+    state["part_features"]["inner_door:upper:panel"]=[circle]
+    state["surface_features"]={"inner_door:upper:panel":[circle]}
+    with pytest.raises(ValueError,match="competing physical Feature stores"):
+        existing_inner_door_feature_finalscene(state,panel)
+    state.pop("surface_features")
+    state["part_features"]["inner_door:upper:panel"]=[{"type":"circle","x":60}]
+    with pytest.raises(ValueError,match="format unsupported"):
+        existing_inner_door_feature_finalscene(state,panel)
+    state["part_features"]["inner_door:upper:panel"]=[circle]
+    state["part_face_features"]={"inner_door:upper:panel":{"front":[circle]}}
+    with pytest.raises(ValueError,match="face Feature owner not verified"):
+        existing_inner_door_feature_finalscene(state,panel)
+
+
+def test_legacy_features_and_existing_scene_cannot_disagree(tmp_path):
+    circle=CircleFeature(
+        diameter=12.,anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(60.,100.),layer="CUTTING",
+    )
+    state=_edited_inner_door_state(circle)
+    panel=_part(state)
+    previous=build_inner_door_panel_render_data(panel)
+    with pytest.raises(ValueError,match="does not uniquely own"):
+        existing_inner_door_feature_finalscene(
+            state,panel,existing_render_data=previous,
+        )
+    claimed=existing_inner_door_feature_finalscene(state,panel)
+    verified=existing_inner_door_feature_finalscene(
+        state,panel,existing_render_data=claimed,
+    )
+    assert verified is claimed
+    assert len(verified.scene.primitives)==len(claimed.scene.primitives)
+    foreign=replace(claimed,metadata={**claimed.metadata,"stable_id":"wrong"})
+    with pytest.raises(ValueError,match="does not match physical panel"):
+        existing_inner_door_feature_finalscene(
+            state,panel,existing_render_data=foreign,
+        )
