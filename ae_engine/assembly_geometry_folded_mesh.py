@@ -49,11 +49,7 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
     """
     total = float(total_w)
     t = max(0.0, float(thickness or 0.0))
-    # W is the assembled OUTSIDE width.  The side sheet midplanes are at
-    # +/- (W/2 - T/2), so the actual inside skins are at +/- (W/2 - T).
-    # W-2T here used to put the sheet *midplanes* at the inside-skin datum,
-    # leaving the Divider's approved W-2T span embedded T/2 into each side.
-    w_material_half = max(0.0, (total - t) / 2.0)
+    w_material_half = max(0.0, (total - 2.0 * t) / 2.0)
     role = str(getattr(piece, "role", "") or "")
     formed_y_offset = float(getattr(piece, "formed_y_offset", 0.0) or 0.0)
 

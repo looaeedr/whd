@@ -87,8 +87,8 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
         )
     }
     expected = {
-        "inner_door:upper:left_frame": (-363.0, "box_body:left_side"),
-        "inner_door:upper:right_frame": (374.0, "box_body:right_side"),
+        "inner_door:upper:left_frame": (-362.0, "box_body:left_side"),
+        "inner_door:upper:right_frame": (373.0, "box_body:right_side"),
     }
     for stable_id, (x, mother_plate) in expected.items():
         placement = resolve_assembly_placement(snapshot, stable_id)

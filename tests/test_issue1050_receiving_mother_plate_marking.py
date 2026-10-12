@@ -210,7 +210,7 @@ def test_receiving_marks_all_four_receiver_mother_plates_from_canonical_world_ge
     _snapshot_data, result = _resolved()
 
     emitted = tuple(row for row in result.results if row.status == "EMITTED")
-    if len(emitted) != 7:
+    if len(emitted) != 5:
         # Actionable diagnostics for physical mating geometry regressions.
         # Show actual folded skin plane positions instead of guessing a shift.
         from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
@@ -247,19 +247,17 @@ def test_receiving_marks_all_four_receiver_mother_plates_from_canonical_world_ge
             })
             descriptions.append((locator, frame_id, mother_planes, flange_planes))
         pytest.fail(
-            "Expected seven actual physical contact MARKING rows; "
+            "Expected five actual physical contact MARKING rows; "
             f"results={[(x.locator_part_id,x.attached_part_id,x.status,x.diagnostic_code,x.diagnostic_detail) for x in result.results]}; "
             f"skin_planes={descriptions}"
         )
-    assert len(emitted) == 7
+    assert len(emitted) == 5
     assert {(row.locator_part_id, row.attached_part_id) for row in emitted} == {
         (DIVIDER_ID, "inner_door:upper:left_frame"),
         (DIVIDER_ID, "inner_door:upper:right_frame"),
         ("box_body:left_side", "inner_door:upper:left_frame"),
         ("box_body:right_side", "inner_door:upper:right_frame"),
         ("head", "inner_door:upper:top_frame"),
-        ("box_body:left_side", DIVIDER_ID),
-        ("box_body:right_side", DIVIDER_ID),
     }
 
     divider_results = tuple(row for row in emitted if row.locator_part_id == DIVIDER_ID)
@@ -271,11 +269,7 @@ def test_receiving_marks_all_four_receiver_mother_plates_from_canonical_world_ge
     # Side/head MARKING is legal only when the FINAL 22-mm frame flange
     # actually touches its mother plate. In particular, a projected but
     # physically separated frame must never produce manufacturing marks.
-    physical = tuple(
-        row for row in emitted
-        if row.policy_id == "RECEIVING_INNER_DOOR_MOTHER_PLATE_CONTACT_V3"
-        and row.locator_part_id != DIVIDER_ID
-    )
+    physical = tuple(row for row in emitted if row.locator_part_id != DIVIDER_ID)
     assert len(physical) == 3
     assert all(
         row.evidence["contact_evidence"]["contact_mode"]
@@ -287,8 +281,8 @@ def test_receiving_marks_all_four_receiver_mother_plates_from_canonical_world_ge
         for row in physical
     )
 
-    assert len(_rows(_piece(result.geometry, "left_side"))) == 2
-    assert len(_rows(_piece(result.geometry, "right_side"))) == 2
+    assert len(_rows(_piece(result.geometry, "left_side"))) == 1
+    assert len(_rows(_piece(result.geometry, "right_side"))) == 1
     assert len(_rows(result.geometry.part("head").render_data)) == 1
     assert len(_rows(result.geometry.part(DIVIDER_ID).render_data)) == 2
 
@@ -306,7 +300,7 @@ def test_receiver_marking_metadata_binds_same_flat_and_world_contact_geometry():
         result.geometry.part(DIVIDER_ID).render_data,
     )
     rows = tuple(row for owner in owners for row in _rows(owner))
-    assert len(rows) == 7
+    assert len(rows) == 5
     for row in rows:
         assert row["source"] == "JOINT_PLACEMENT_MARKING"
         assert row["geometry_source"] == "RECEIVER_MATING_CONTACT_BACKPROJECTION"
@@ -321,8 +315,8 @@ def test_dxf_exports_receiver_marks_from_the_same_final_scene_primitives(tmp_pat
         result.geometry, tmp_path, overwrite=True
     )
     expected_counts = {
-        "box_body:box_body_left_side": 2,
-        "box_body:box_body_right_side": 2,
+        "box_body:box_body_left_side": 1,
+        "box_body:box_body_right_side": 1,
         "head": 1,
         DIVIDER_ID: 2,
     }
@@ -335,3 +329,22 @@ def test_dxf_exports_receiver_marks_from_the_same_final_scene_primitives(tmp_pat
             and str(entity.dxf.layer).upper() == "MARKING"
         ]
         assert len(marking) == count
+
+
+def test_single_receiving_divider_side_marking_fail_closed_on_unresolved_end_contact():
+    """Do not fake manufacturing contact by shifting the accepted 27-mm FW overlap."""
+    _snapshot_data, result = _resolved()
+    pair = tuple(
+        row for row in result.results
+        if row.policy_id == "RECEIVING_DIVIDER_SIDE_PLATE_CONTACT_V1"
+    )
+    assert {(row.locator_part_id, row.attached_part_id) for row in pair} == {
+        ("box_body:left_side", DIVIDER_ID),
+        ("box_body:right_side", DIVIDER_ID),
+    }
+    assert all(row.status == "SKIPPED_FAIL_CLOSED" for row in pair)
+    assert all(row.diagnostic_code == "CONTACT_NOT_FOUND" for row in pair)
+    assert all("CONTACT_NOT_COPLANAR" in row.diagnostic_detail for row in pair)
+    # Missing legal contact is NOT manufacturing authorization for a guessed mark.
+    for role in ("left_side", "right_side"):
+        assert len(_rows(_piece(result.geometry, role))) == 1

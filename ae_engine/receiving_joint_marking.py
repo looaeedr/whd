@@ -1051,7 +1051,7 @@ def resolve_receiving_joint_markings(
                     row = _mark_row(
                         locator_id=locator_id,
                         attached_id=attached_id,
-                        boundary_role="DIVIDER_TERMINAL_CONTACT",
+                        boundary_role="SIDE_POSITIVE",
                         contact=contact,
                         policy_id=DIVIDER_SIDE_POLICY_ID,
                     )
