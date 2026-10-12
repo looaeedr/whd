@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from .manufacturing_api import save_part_render_data_dxf
+from .manufacturing_render_data import PartRenderData
 from .receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
 from .receiving_nfb_cutting_preflight import NfbExistingCuttingClaim
 from .receiving_nfb_dxf_source import inspect_nfb_dxf_source
@@ -40,6 +41,7 @@ def export_current_nfb_inner_door_partial_dxf(
     source_path:str|Path,
     profile:NfbUpperSourceProfile,
     existing_claims:Sequence[NfbExistingCuttingClaim]=(),
+    existing_render_data:PartRenderData|None=None,
     overwrite:bool=False,
 )->tuple[str,NfbPartialExportManifest]:
     """Generate only an actually READY inner-door partial DXF.
@@ -64,6 +66,7 @@ def export_current_nfb_inner_door_partial_dxf(
         snapshot,inner_door_id,holes=holes,index_path=index_path,
         source_path=source_path,profile=profile,
         existing_claims=existing_claims,
+        existing_render_data=existing_render_data,
     )
     if ready.part_id!=physical_scope.inner_door_part_id:
         raise ValueError("NFB current inner-door physical part ID mismatch")

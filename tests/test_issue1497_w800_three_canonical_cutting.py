@@ -13,6 +13,8 @@ import pytest
 from ae_engine.cabinet_types.receiving import apply_family_defaults
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+from ae_engine.manufacturing_render_data import material_polygon_from_final_scene
+from ae_engine.sheetmetal_drawing import DrawingScene, CirclePrimitive
 from ae_engine.receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
 from ae_engine.receiving_nfb_cutting_preflight import NfbExistingCuttingClaim
 from ae_engine.receiving_nfb_w800_three_cutting import (
@@ -213,3 +215,136 @@ def test_w800x3_source_sha_and_existing_hole_owner_fail_without_output(tmp_path)
             existing_claims=(old_hole,), **kwargs,
         )
     assert not dst.exists()
+
+
+def _original_finalscene_with_legacy(panel, *, target_xy, hole_id="legacy:door:1",
+                                     kind="CIRCLE"):
+    """Actual current final scene: structural panel PLUS existing Feature hole."""
+    native = build_inner_door_panel_render_data(panel)
+    drawn = DrawingScene()
+    drawn.extend(native.scene.primitives)
+    if kind == "CIRCLE":
+        drawn.add_circle(target_xy, 6., layer="CUTTING", color=3,
+                         source_id=hole_id)
+    elif kind == "POLYLINE":
+        x,y=target_xy
+        drawn.add_polyline((
+            (x-4.,y-4.),(x+4.,y-4.),(x+4.,y+4.),(x-4.,y+4.)
+        ),layer="CUTTING",closed=True,color=3)
+    elif kind == "OPEN_CUTTING":
+        x,y=target_xy
+        drawn.add_line((x-4.,y),(x+4.,y),layer="CUTTING",color=3)
+    else:
+        raise ValueError("invalid fixture kind")
+    drawn.add_line((20.,20.),(30.,20.),layer="MARKING",color=212)
+    return replace(native,scene=drawn,material=material_polygon_from_final_scene(drawn))
+
+
+def test_existing_legacy_circle_is_preserved_exactly_once_in_real_nfb_dxf(tmp_path):
+    state=_state()
+    idx,src,profile=_source(tmp_path)
+    panel=next(p for p in cabinet_family_policy.derive_inner_door_panels(state)
+               if p.inner_door_id=="upper")
+    legacy=_original_finalscene_with_legacy(
+        panel,target_xy=(76.,130.),hole_id="legacy:door:bolt:42",
+    )
+    before=tuple(legacy.scene.primitives)
+    ready=configured_w800_three_nfb_inner_door_render_data(
+        state,"upper",rows=(_row(),),index_path=idx,
+        source_path=src,profile=profile,existing_render_data=legacy,
+    )
+    assert ready.manufacturing_ready
+    assert tuple(ready.render_data.scene.primitives[:len(before)])==before
+    assert sum(isinstance(p,CirclePrimitive) and p.source_id=="legacy:door:bolt:42"
+               for p in ready.render_data.scene.primitives)==1
+    assert len(_actual_cuttings(ready))==4
+    assert tuple(legacy.scene.primitives)==before
+
+    path=tmp_path/"door-with-existing-legacy-and-three-nfb.dxf"
+    save_w800_three_nfb_inner_door_dxf(
+        state,"upper",path,rows=(_row(),),index_path=idx,
+        source_path=src,profile=profile,existing_render_data=legacy,
+    )
+    native=ezdxf.readfile(path).modelspace()
+    assert len([e for e in native if e.dxftype()=="CIRCLE"
+                and e.dxf.layer=="CUTTING"])==1
+    assert len([e for e in native if e.dxftype()=="LWPOLYLINE"
+                and e.dxf.layer=="CUTTING" and e.closed])==4
+
+
+def test_legacy_polyline_and_marking_survive_noncolliding_nfb(tmp_path):
+    state=_state()
+    idx,src,profile=_source(tmp_path)
+    panel=next(p for p in cabinet_family_policy.derive_inner_door_panels(state)
+               if p.inner_door_id=="upper")
+    legacy=_original_finalscene_with_legacy(
+        panel,target_xy=(77.,180.),kind="POLYLINE",
+    )
+    result=configured_w800_three_nfb_inner_door_render_data(
+        state,"upper",rows=(_row(),),
+        index_path=idx,source_path=src,profile=profile,
+        existing_render_data=legacy,
+    )
+    assert len(_actual_cuttings(result))==5
+    assert tuple(result.render_data.scene.primitives[:len(legacy.scene.primitives)])==(
+        tuple(legacy.scene.primitives)
+    )
+
+
+def test_legacy_same_location_or_same_physical_owner_blocks_atomic_export(tmp_path):
+    state=_state()
+    idx,src,profile=_source(tmp_path)
+    panel=next(p for p in cabinet_family_policy.derive_inner_door_panels(state)
+               if p.inner_door_id=="upper")
+    reference=configured_w800_three_nfb_inner_door_render_data(
+        state,"upper",rows=(_row(),),
+        index_path=idx,source_path=src,profile=profile,
+    )
+    proposed=_actual_cuttings(reference)[2]  # center of second new hole
+    xs=[p.x for p in proposed.points]
+    ys=[p.y for p in proposed.points]
+    same_spot=(sum((min(xs),max(xs)))/2.,sum((min(ys),max(ys)))/2.)
+    for center,legacy_id in (
+        (same_spot,"legacy:different-physical-id"),
+        ((76.,130.),_row().physical_hole_ids[0]),
+    ):
+        existing=_original_finalscene_with_legacy(
+            panel,target_xy=center,hole_id=legacy_id,
+        )
+        output=tmp_path/"must-not-write-after-legacy-collision.dxf"
+        with pytest.raises(ValueError,match="blocked"):
+            save_w800_three_nfb_inner_door_dxf(
+                state,"upper",output,rows=(_row(),),
+                index_path=idx,source_path=src,profile=profile,
+                existing_render_data=existing,
+            )
+        assert not output.exists()
+
+
+@pytest.mark.parametrize("change", ["foreign_part","stale_topology",
+                                    "altered_structural_outer","open_legacy_cutting"])
+def test_bad_or_unresolved_existing_legacy_finalscene_never_writes(tmp_path,change):
+    state=_state()
+    idx,src,profile=_source(tmp_path)
+    panel=next(p for p in cabinet_family_policy.derive_inner_door_panels(state)
+               if p.inner_door_id=="upper")
+    legacy=_original_finalscene_with_legacy(
+        panel,target_xy=(76.,130.),
+        kind="OPEN_CUTTING" if change=="open_legacy_cutting" else "CIRCLE",
+    )
+    if change=="foreign_part":
+        legacy=replace(legacy,metadata={**legacy.metadata,"stable_id":"other:panel"})
+    elif change=="stale_topology":
+        legacy=replace(legacy,unfolded_topology=None)
+    elif change=="altered_structural_outer":
+        revised=DrawingScene()
+        revised.extend(tuple(legacy.scene.primitives)[1:])
+        legacy=replace(legacy,scene=revised)
+    output=tmp_path/"invalid-existing-source.dxf"
+    with pytest.raises(ValueError,match="NFB legacy|NFB existing"):
+        save_w800_three_nfb_inner_door_dxf(
+            state,"upper",output,rows=(_row(),),
+            index_path=idx,source_path=src,profile=profile,
+            existing_render_data=legacy,
+        )
+    assert not output.exists()
