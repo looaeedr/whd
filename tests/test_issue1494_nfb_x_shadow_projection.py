@@ -17,6 +17,10 @@ from ae_engine.receiving_nfb_x_projection import (
     RULE_REVISION,
     PREVIEW_ONLY,
     SHADOW_ONLY,
+    W800_THREE_DATUM_REVISION,
+    WHD_PART_DATUM_VERIFIED,
+    resolve_w800_three_whd_x,
+    reverse_w800_three_whd_x,
     nominal_nfb_x_group,
     reverse_shadow_w800_three_source_x,
     shadow_w800_three_source_x,
@@ -380,3 +384,111 @@ def test_inner_door_blank_authority_is_live_w800_723_formula_not_source_dxf(
     assert witness["canonical_whd_t2_blank_width_mm"] == expected_blank
     assert witness["source_span_difference_is_release_blocker"] is False
     assert nominal_nfb_x_group(width, 2).manufacturing_ready is False
+
+
+@pytest.mark.parametrize(
+    "neighbor,center,world",
+    [(None, 0.0, (-180.0, 0.0, 180.0)),
+     (400.0, 200.0, (20.0, 200.0, 380.0))],
+)
+def test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly(
+    neighbor, center, world,
+):
+    """#1494 X datum golden must NOT need a customer's source DXF."""
+    state = snapshot(left_neighbor=neighbor)
+    before = deepcopy(state)
+    rows = [
+        resolve_w800_three_whd_x(state, "upper", slot_index=i)
+        for i in range(3)
+    ]
+    assert [r.revision for r in rows] == [W800_THREE_DATUM_REVISION] * 3
+    assert [r.status for r in rows] == [WHD_PART_DATUM_VERIFIED] * 3
+    assert [r.rule_id for r in rows] == ["RECEIVING-NFB-OPEN-X-800-3"] * 3
+    assert [r.slot_index for r in rows] == [0, 1, 2]
+    assert [r.part_id for r in rows] == ["inner_door:upper:panel"] * 3
+    assert [r.cell_key for r in rows] == [("0:0" if neighbor is None else "1:0")] * 3
+    assert all(r.x_direction == "WHD_CUTTING_POSITIVE_X_EQUALS_BOX_WORLD_POSITIVE_X"
+               for r in rows)
+    assert [r.blank_x_from_cutting_left_mm for r in rows] == pytest.approx(
+        (181.5, 361.5, 541.5)
+    )
+    assert [r.blank_uv_x_mm-r.blank_cutting_left_x_mm for r in rows] == pytest.approx(
+        (181.5, 361.5, 541.5)
+    )
+    assert [r.finished_face_x_from_left_mm for r in rows] == pytest.approx(
+        (164.5, 344.5, 524.5)
+    )
+    assert [r.box_world_x_mm for r in rows] == pytest.approx(world)
+    assert [r.box_world_panel_center_x_mm for r in rows] == pytest.approx([center]*3)
+    assert all(r.unfolded_blank_width_mm == pytest.approx(723) for r in rows)
+    assert all(r.folded_core_width_mm == pytest.approx(685) for r in rows)
+    assert all(r.manufacturing_ready is False and r.certified_x_revision is None
+               for r in rows)
+    for row in rows:
+        assert reverse_w800_three_whd_x(
+            state, "upper", slot_index=row.slot_index,
+            box_world_x_mm=row.box_world_x_mm,
+        ) == pytest.approx(row.blank_x_from_cutting_left_mm)
+    assert state == before
+
+
+def test_original_dxf_wrong_outer_width_cannot_shift_whd_authoritative_x():
+    """Raw DXF is corroboration only, never the origin of WHD's own blank."""
+    state = snapshot()
+    expected = tuple(
+        resolve_w800_three_whd_x(state, "upper", slot_index=i)
+        for i in range(3)
+    )
+    source, closed = originals()
+    bad = deepcopy(source)
+    left = next(row for row in bad["entities"] if row["handle"] == "A1")
+    left["start"][0] += 1
+    left["end"][0] += 1
+    with pytest.raises(ValueError, match="OPEN-X-W800x3 source"):
+        shadow_w800_three_source_x(
+            state, "upper", slot_index=0,
+            original_source=bad, closed_cutting_reference=closed,
+        )
+    assert tuple(
+        resolve_w800_three_whd_x(state, "upper", slot_index=i)
+        for i in range(3)
+    ) == expected
+
+
+@pytest.mark.parametrize("slot,x", [
+    (-1, 0.0), (3, 0.0), (True, 0.0), (1, -180.0),
+    (0, float("inf")), (0, float("nan")), (0, -179.0),
+])
+def test_w800_canonical_inverse_rejects_invalid_or_other_slot(slot, x):
+    with pytest.raises(ValueError, match="OPEN-X-W800x3"):
+        reverse_w800_three_whd_x(
+            snapshot(), "upper", slot_index=slot, box_world_x_mm=x,
+        )
+
+
+def test_w800_canonical_datum_rejects_unwitnessed_physical_context():
+    for change in (
+        {"t":3.0},
+        {"door_gap_w":4.0},
+        {"door_fold_l":18.0, "door_fold_r":20.0},
+        {"w":799.0},
+        {"multi_door_enabled":False},
+    ):
+        state = snapshot()
+        state.update(change)
+        with pytest.raises(ValueError, match="OPEN-X-W800x3"):
+            resolve_w800_three_whd_x(state, "upper", slot_index=0)
+
+
+def test_w800_canonical_x_rejects_reversed_assembly_axes(monkeypatch):
+    from ae_engine import receiving_nfb_x_projection as projected
+    from ae_engine.assembly_placement import resolve_inner_door_panel_placement
+
+    real_resolve = resolve_inner_door_panel_placement
+
+    def reversed_placement(state, part_id):
+        return replace(real_resolve(state, part_id), rotation=(0.0, 0.0, 180.0))
+
+    monkeypatch.setattr(projected, "resolve_inner_door_panel_placement", reversed_placement)
+    with pytest.raises(ValueError, match="physical part/rotation"):
+        projected.resolve_w800_three_whd_x(snapshot(), "upper", slot_index=0)

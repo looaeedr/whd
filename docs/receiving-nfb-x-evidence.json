@@ -2,7 +2,7 @@
   "schema": "receiving-nfb-x-evidence-v1",
   "issue": 1494,
   "purpose": "EVIDENCE_ONLY_NOT_MANUFACTURING_CAPABILITY_REGISTRY",
-  "revision": "v1.4-evidence-4-whd-canonical-blank-width",
+  "revision": "v1.4-evidence-5-w800-three-whd-physical-x-datum",
   "references": [
     {
       "path": "docs/specs/WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
@@ -310,7 +310,7 @@
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-800-3",
-      "revision": "v1.4-evidence-2",
+      "revision": "v1.4-evidence-5-whd-datum",
       "gate": "OPEN-X-ROW",
       "box_outer_width_mm": 800,
       "nfb_count": 3,
@@ -357,10 +357,8 @@
       "blank_to_finished_face_x": null,
       "finished_face_to_box_world_x": null,
       "missing_evidence": [
-        "OWNER_APPROVED_X_RULE_REVISION",
-        "PHYSICAL_CUTTING_LEFT_EDGE_IDENTITY",
-        "PHYSICAL_PART_ID_AND_X_DIRECTION",
-        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+        "NFB_MODEL_MAIN_HOLE_AND_ROTATION_NOT_WHD_X_DATUM",
+        "NFB_Y_PLACEMENT_AND_FEATURE_OWNER_BELONG_TO_1497"
       ],
       "source_geometry_observation": {
         "status": "DXF_LOCAL_X_VERIFIED_PHYSICAL_MAP_PENDING",
@@ -388,7 +386,60 @@
       "canonical_whd_inner_door_blank_width_mm": 723,
       "canonical_whd_inner_door_finished_width_mm": 689,
       "canonical_blank_dimension_source": "ACTUAL_WHD_RECEIVING_INNER_DOOR_FAMILY_FOLDING",
-      "original_dxf_outline_is_manufacturing_dimension_authority": false
+      "original_dxf_outline_is_manufacturing_dimension_authority": false,
+      "physical_x_datum": {
+        "status": "WHD_PANEL_X_DATUM_VERIFIED_NOT_NFB_CUTTING",
+        "rule_id": "RECEIVING-NFB-OPEN-X-800-3",
+        "revision": "WHD-NFB-OPEN-X-800-3-WHD-DATUM-V1",
+        "implementation": "ae_engine/receiving_nfb_x_projection.py::resolve_w800_three_whd_x",
+        "reverse": "ae_engine/receiving_nfb_x_projection.py::reverse_w800_three_whd_x",
+        "actual_cutting_origin": "MIN_X_OF_UNIQUE_CLOSED_CUTTING_OUTLINE_FROM_BUILD_INNER_DOOR_PANEL_RENDER_DATA",
+        "x_direction": "WHD_CUTTING_POSITIVE_X_EQUALS_BOX_WORLD_POSITIVE_X",
+        "physical_panel_id": "inner_door:<inner_door_id>:panel",
+        "scope": {
+          "box_outer_width_mm": 800,
+          "thickness_mm": 2,
+          "cell_row_index": 0,
+          "cell_height_mm": 1100,
+          "folded_left_flange_mm": 19,
+          "folded_right_flange_mm": 19,
+          "finished_face_width_mm": 689,
+          "folded_core_width_mm": 685,
+          "manufactured_cutting_width_mm": 723,
+          "inner_door_placement_rotation": [
+            0,
+            0,
+            0
+          ]
+        },
+        "blank_centers_from_actual_cutting_left_mm": [
+          181.5,
+          361.5,
+          541.5
+        ],
+        "face_centers_from_finished_face_left_mm": [
+          164.5,
+          344.5,
+          524.5
+        ],
+        "box_world_centers_example_single_column_mm": [
+          -180,
+          0,
+          180
+        ],
+        "box_world_centers_example_400_left_neighbor_mm": [
+          20,
+          200,
+          380
+        ],
+        "blank_to_world_x_formula": "world_x=placement.world_offset[0]+(blank_from_cutting_left-19-685/2)",
+        "face_x_formula": "finished_face_left=689/2+(blank_from_cutting_left-19-685/2)",
+        "source_dxf_used_as_coordinate_origin": false,
+        "user_approved_manufacturing_width_formula": "T2/3.5gap/19fold=>W800 blank723",
+        "fully_reverse_verified": true,
+        "manufacturing_ready": false,
+        "certified_nfb_cutting_revision": null
+      }
     }
   ],
   "w800_t2_three_hole_observation": {
@@ -397,7 +448,7 @@
       "thickness_mm": 2,
       "nfb_count": 3
     },
-    "status": "DXF_LOCAL_X_VERIFIED_PHYSICAL_MAP_PENDING",
+    "status": "WHD_X_DATUM_VERIFIED_SOURCE_DXF_NOT_DIMENSION_AUTHORITY",
     "approved_dimensions_mm": {
       "body_inner_clear_width": 796,
       "finished_door_width": 689,
@@ -440,7 +491,16 @@
       "manufactured_height_resolution": "CELL_HEIGHT_MINUS_TOP_FRAME_PLUS_T_AND_TWO_GAPS__SHARED_DOOR_FOLD"
     },
     "source_outline_is_manufacturing_dimension_authority": false,
-    "source_723_match_is_not_authorization_to_replace_wHD_blank": true
+    "source_723_match_is_not_authorization_to_replace_wHD_blank": true,
+    "whd_origin_is_generated_cutting_left": true,
+    "whd_x_datum_revision": "WHD-NFB-OPEN-X-800-3-WHD-DATUM-V1",
+    "whd_x_datum_scope": "W800_T2_TOP_1100_THREE_SLOTS_PHYSICAL_INNER_DOOR",
+    "source_outline_is_723_cutting_left_required_for_whd_datum": false,
+    "manufacturing_cutting_ready": false,
+    "remaining_authorities": [
+      "NFB_MAIN_HOLE_MODEL_AND_ROTATION_1497",
+      "NFB_Y_PHYSICAL_HOLE_AND_OWNER_1497"
+    ]
   },
   "manufacturing_blank_width_authority": {
     "rule": "RECEIVING_INNER_DOOR_ACTUAL_PANEL_FOLDING",
