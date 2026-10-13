@@ -667,7 +667,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         text="輸出已驗證內門 DXF（僅部分）",
                         command=export_nfb_partial,
                     ).pack(anchor="e", pady=(5, 0))
-            # #1502: this control is separate from inner-door PART_ONLY.
+            # #1502: this current physical-Bay action atomically exports a verified
+            # inner-door + Base Plate pair, instead of separate half-products.
             # It is displayed only for one already-submitted NFB Bay with
             # a selected real Receiving physical Base Plate; it never grants
             # whole-box or EAR-Z/PAD manufacturing.
@@ -683,7 +684,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
                     base_ready = False
                 if base_ready:
-                    def export_nfb_base_partial():
+                    def export_nfb_paired_partial():
                         try:
                             if (applied["mode"] != "set_bay"
                                     or applied["set_index"] != set_index
@@ -696,17 +697,18 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                                 raise ValueError("NFB 底板實體選型／提交驗證已失效")
                             from tkinter import filedialog
                             folder = filedialog.askdirectory(
-                                title="選擇 NFB 已驗證底板部分 DXF 資料夾",
+                                title="選擇 NFB 內門＋底板成對 DXF 資料夾",
                                 parent=win,
                             )
                             if not folder:
                                 return
-                            saved, _part = live_ports["base_partial_export"](
+                            paired = live_ports["pair_partial_export"](
                                 set_index, chosen_bay, folder,
                             )
                             messagebox.showinfo(
-                                "NFB 底板部分 DXF",
-                                "已輸出一片來源驗證的實體底板：" + str(saved)
+                                "NFB 內門＋底板部分 DXF",
+                                "已原子輸出並驗證內門：" + paired.inner_door_path
+                                + "；實體底板：" + paired.base_plate_path
                                 + "。耳朵焊接 Z、PAD／EAR 與整箱 MFG-2 尚未放行。",
                                 parent=win,
                             )
@@ -715,8 +717,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             warn(exc)
                     ttk.Button(
                         settings_host,
-                        text="輸出已驗證底板 DXF（僅單片）",
-                        command=export_nfb_base_partial,
+                        text="輸出內門＋底板 DXF（成對部分）",
+                        command=export_nfb_paired_partial,
                     ).pack(anchor="e", pady=(5, 0))
             # #1501 operator disclosure: show the REAL per-part live result,
             # including blocked Bays and source reasons, not a fabricated

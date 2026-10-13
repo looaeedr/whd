@@ -2389,6 +2389,22 @@ def open_receiving_multi_settings(self, namespace):
                 output_directory=output_directory,
             )
 
+        def export_partial_nfb_door_base_pair(set_index, bay_index, output_directory):
+            """Atomic PART_ONLY actual inner-door + physical Receiving Base Plate."""
+            from .receiving_nfb_pair_partial_export_action import (
+                export_verified_receiving_nfb_door_base_pair,
+            )
+            bundle = committed_nfb_evidence.get((set_index, bay_index))
+            if bundle is None:
+                raise ValueError("NFB 成對出圖缺少本連已提交原始來源及實體孔位驗證")
+            current = nfb_physical_bay_snapshot(set_index, bay_index)
+            spec, _ = self.app._part_spec_query_callback("base_plate", current)
+            return export_verified_receiving_nfb_door_base_pair(
+                bundle, layout=candidate_adapter().layout,
+                current_snapshot=current, base_spec=spec,
+                output_directory=output_directory,
+            )
+
         def state(set_index, bay_index, selected_bays=()):
             adapter = candidate_adapter()
             row = adapter.layout["sets"][set_index]["bays"][bay_index]
@@ -2486,6 +2502,7 @@ def open_receiving_multi_settings(self, namespace):
                 "submit": submit, "copy": copy, "manifest": physical_manifest,
                 "partial_export": export_partial_nfb_inner_door,
                 "base_partial_export": export_partial_nfb_base_plate,
+                "pair_partial_export": export_partial_nfb_door_base_pair,
                 "restore": restore, "undo": undo}
 
     def real_cut_preview_request(role, version_id, set_index, bay_index):
