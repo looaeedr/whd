@@ -130,3 +130,32 @@ def test_receiving_settings_preview_2d_shares_exact_true_world_skins_with_manufa
             f"{role} 2D/3D settings preview differs from true-thickness "
             "source-mapped manufacturing 3D world; cannot trust visual FW/Z."
         )
+
+
+def test_receiving_full_3d_renderer_displays_exact_manufacturing_world_triangles():
+    """Actual 3D scene sink (not only helper) must show the real T=2 skins."""
+    from types import SimpleNamespace
+    from phase6_final_scene_renderer import (
+        Phase6FinalSceneRenderer, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    from tests.test_phase6_assembly_3d_view import Axis
+
+    snap, body, _divider, part, world = _source_world()
+    req = FinalSceneViewRequest(
+        AssemblySceneRenderData(
+            assembly_parts=(body, part),
+            visible_part_keys=("box_body",),
+        ),
+        (), (), "assembly", finished_dimensions=(snap["w"], snap["h"], snap["d"]),
+        thickness=snap["t"],
+    )
+    renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=Axis()))
+    shown = tuple(renderer.render(req))
+    canonical = tuple(
+        triangle for piece in body.render_data.pieces
+        for triangle in world["world_triangles_by_part"]["box_body:"+piece.role]
+    )
+    assert shown == canonical, (
+        "Assembly 3D displayed old zero-thickness strips, not manufactured "
+        "FW=29mm true-thickness world solids."
+    )
