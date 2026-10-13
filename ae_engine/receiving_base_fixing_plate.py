@@ -45,7 +45,7 @@ class BaseFixingPlatePreview:
     source_slot_size_mm: tuple[float, float]
     source_top_corner_radius_mm: float
     nominal_fold_from_weld_edge_mm: float
-    applicable_slot_pair_indexes: tuple[int, int]
+    applicable_slot_pair_indexes: tuple[int, int] | None
     manufacturing_status: str = MANUFACTURING_STATUS
 
     @property
@@ -76,8 +76,18 @@ def receiving_base_fixing_plate_previews(
         return ()
     config = data.get("receiving_base_plate")
     pattern = str(config.get("pattern") or "") if isinstance(config, Mapping) else ""
-    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
-    pitch_y = 140.0 if pattern == RECEIVING_BASE_PATTERN_CENTER else 210.0
+    from .sheetmetal_part_adapters import (
+        RECEIVING_BASE_PATTERN_CENTER, RECEIVING_BASE_PATTERN_LEFT,
+        RECEIVING_BASE_PATTERN_RIGHT,
+    )
+    # Source plate offers both slot pairs, but an unconfigured bottom plate
+    # cannot silently claim to mate the 210-mm pair.
+    chosen_pair = (
+        (1, 2) if pattern == RECEIVING_BASE_PATTERN_CENTER else
+        (0, 3) if pattern in (RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT)
+        else None
+    )
+    pitch_y = 140.0 if chosen_pair == (1, 2) else 210.0
     try:
         fit = resolve_receiving_large_weld_ear_fit(
             box_outer_width_mm=w,
@@ -99,7 +109,7 @@ def receiving_base_fixing_plate_previews(
             source_slot_size_mm=SOURCE_SLOT_SIZE_MM,
             source_top_corner_radius_mm=SOURCE_TOP_CORNER_RADIUS_MM,
             nominal_fold_from_weld_edge_mm=fit.nominal_fold_from_weld_edge_mm,
-            applicable_slot_pair_indexes=fit.slot_pair_indexes,
+            applicable_slot_pair_indexes=chosen_pair,
         )
         for side in ("left", "right")
     )
