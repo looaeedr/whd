@@ -172,7 +172,7 @@ def refresh_structure_tree(
                 text=label_for_key(key, snapshot=snapshot),
                 values=("顯示" if visible else "隱藏",),
                 tags=(() if visible else ("hidden",)),
-                open=(key == "box_body"),
+                open=(key in {"box_body", "base_plate"}),
             )
 
         mode = str(getattr(host, "_phase6_3d_display_mode", "assembly") or "assembly")
