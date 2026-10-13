@@ -229,6 +229,21 @@ def _query_fold_designer_render_data(self, part_key, payload):
         payload = collect_door_input(payload)
     """Return the same authoritative final geometry used by 2D consumers."""
     key = str(part_key or "")
+    if key.startswith("base_plate:fixing_plate:"):
+        # Native independent PartRenderData, not the BasePlatePartSpec blank
+        # and not a drawing-only menu simulation.
+        from ae_engine.receiving_base_fixing_plate import (
+            receiving_base_fixing_plate_previews,
+        )
+        from ae_engine.receiving_base_fixing_plate_geometry import (
+            build_fixing_plate_source_render_data,
+        )
+        physical = receiving_base_fixing_plate_previews(
+            dict(payload or {}), available_parts=("base_plate",),
+        )
+        if key not in {part.part_id for part in physical}:
+            raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
+        return build_fixing_plate_source_render_data(key)
     if key.startswith("box_body:divider:"):
         from ae_engine.door_dividers import derive_box_body_dividers
 

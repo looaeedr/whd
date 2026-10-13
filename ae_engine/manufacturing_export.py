@@ -68,6 +68,18 @@ def resolved_physical_render_parts(resolved_geometry):
         render_data = getattr(part, 'render_data', None)
         if render_data is None:
             raise ValueError(f'resolved manufacturing part missing render_data: {key}')
+        # Source-flat fixing plates have real physical PartRenderData for the
+        # GUI and a separate source DXF export. Until finished BEND/weld Z is
+        # verified, they are NOT part of the full cabinet production DXF set.
+        # This exclusion never publishes a forged EAR blank, and the existing
+        # PAD/EAR guard still checks all remaining manufacturing rows.
+        meta = getattr(render_data, 'metadata', None)
+        if (key.startswith('base_plate:fixing_plate:')
+                and getattr(part, 'placement', None) == 'standalone'
+                and isinstance(meta, Mapping)
+                and meta.get('physical_part_role') == 'BASE_FIXING_PLATE'
+                and meta.get('formed_geometry_verified') is False):
+            continue
         pieces = tuple(getattr(render_data, 'pieces', ()) or ())
         if pieces:
             for index, piece in enumerate(pieces, start=1):

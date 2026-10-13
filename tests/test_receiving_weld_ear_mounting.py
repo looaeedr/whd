@@ -128,3 +128,104 @@ def test_fixing_plate_unconfigured_base_does_not_invent_mounting_pair():
     assert len(plates) == 2
     assert all(p.applicable_slot_pair_indexes is None for p in plates)
     assert all(not p.manufacturing_ready for p in plates)
+
+def test_original_source_large_and_small_are_actual_independent_cutting_geometry():
+    from math import pi
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        build_fixing_plate_source_render_data,
+        LARGE_PATTERN, SMALL_PATTERN, source_pattern,
+    )
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive, LinePrimitive
+    big = build_fixing_plate_source_render_data("base_plate:fixing_plate:left")
+    small = build_fixing_plate_source_render_data(
+        "base_plate:fixing_plate:small_source", source_kind="small",
+    )
+    assert source_pattern("large") is LARGE_PATTERN
+    assert source_pattern("small") is SMALL_PATTERN
+    assert big.metadata["stable_id"] == "base_plate:fixing_plate:left"
+    assert big.metadata["thickness"] == 3
+    assert big.unfolded_topology.width == 256
+    assert big.unfolded_topology.height == 105
+    assert small.unfolded_topology.width == 90
+    assert small.unfolded_topology.height == 90
+    assert len([p for p in big.scene.primitives if isinstance(p, PolylinePrimitive)]) == 5
+    assert len([p for p in small.scene.primitives if isinstance(p, PolylinePrimitive)]) == 3
+    assert len([p for p in small.scene.primitives if isinstance(p, LinePrimitive)]) == 1
+    assert all(p.layer != "BEND" for p in small.scene.primitives)
+    assert small.metadata["weld_z_verified"] is False
+    assert big.metadata["formed_geometry_verified"] is False
+    # Source native arcs are tessellated at sub-hundredth-mm error, but the
+    # same *material* is returned to 2D, 3D and the independent DXF sink.
+    expected_big = (256 * 105 - 2 * (25 - pi*25/4)
+                    - 4 * (14*11 + pi * (5.5**2)))
+    expected_small = (90 * 90 - 2 * (25 - pi*25/4)
+                      - 2 * (19*11 + pi * (5.5**2)))
+    assert big.material.area == pytest.approx(expected_big, abs=0.15)
+    assert small.material.area == pytest.approx(expected_small, abs=0.15)
+
+
+def test_fixing_plate_source_dxf_is_independent_and_reopens(tmp_path):
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        save_independent_source_flat_dxf,
+    )
+    import ezdxf
+    for part_id in ("base_plate:fixing_plate:left", "base_plate:fixing_plate:right",
+                    "base_plate:fixing_plate:small_source"):
+        filepath = tmp_path / (part_id.rsplit(":", 1)[1] + ".dxf")
+        actual = save_independent_source_flat_dxf(part_id, filepath)
+        assert str(actual) == str(filepath)
+        source = ezdxf.readfile(filepath)
+        assert len(source.modelspace()) >= 3
+        with pytest.raises(FileExistsError):
+            save_independent_source_flat_dxf(part_id, filepath)
+
+
+def test_fixing_plate_derived_selector_and_parent_stable_ids():
+    from phase6_part_navigation import project_hierarchy, operator_part_selector_keys, operator_part_label
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    parts=("box_body","base_plate","base_plate:fixing_plate:left","base_plate:fixing_plate:right","head")
+    rows=project_hierarchy(parts)
+    assert tuple((r.part_key,r.parent_key) for r in rows) == (
+        ("box_body",None),("base_plate",None),
+        ("base_plate:fixing_plate:left","base_plate"),
+        ("base_plate:fixing_plate:right","base_plate"),("head",None),
+    )
+    assert operator_part_selector_keys(parts)==("box_body","base_plate","head")
+    assert operator_part_label("base_plate:fixing_plate:left")=="底板固定片（左）"
+    assert operator_part_label("base_plate:fixing_plate:right")=="底板固定片（右）"
+    ws=Phase6DesignerWorkspace.from_snapshot(
+        {"model":"受電箱","existing_parts":("box_body","base_plate")})
+    assert "base_plate:fixing_plate:left" not in ws.available_parts
+    ws.sync_derived_parts(namespace="base_plate:fixing_plate:", part_profiles={
+        "base_plate:fixing_plate:left": {"X":[{"len":256}], "Y":[{"len":105}]},
+        "base_plate:fixing_plate:right":{"X":[{"len":256}], "Y":[{"len":105}]},
+    })
+    assert set(ws.available_parts) >= {"base_plate:fixing_plate:left","base_plate:fixing_plate:right"}
+    ws.sync_derived_parts(namespace="base_plate:fixing_plate:",part_profiles={})
+    assert all(not p.startswith("base_plate:fixing_plate:") for p in ws.available_parts)
+
+
+def test_independent_unformed_fixing_plates_do_not_poison_whole_cabinet_export():
+    from types import SimpleNamespace
+    from ae_engine.manufacturing_export import resolved_physical_render_parts
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        build_fixing_plate_source_render_data,
+    )
+    left_id="base_plate:fixing_plate:left"
+    source=build_fixing_plate_source_render_data(left_id)
+    real_base=SimpleNamespace(part_key="base_plate",
+                              placement="offset",render_data=SimpleNamespace(metadata={}))
+    source_part=SimpleNamespace(part_key=left_id,
+                                placement="standalone",render_data=source)
+    rows=resolved_physical_render_parts(
+        SimpleNamespace(parts=(real_base,source_part)))
+    assert [key for key,_ in rows]==["base_plate"]
+    # The separate flat source is still a complete geometry object; it is
+    # excluded only from the *whole-cabinet* production DXF inventory.
+    assert source.material.area > 0
+    assert source.metadata["quantity_of_this_part"] == 1
+    # A forged unsupported part with the same key must not disappear silently.
+    forged=SimpleNamespace(part_key=left_id,placement="offset",render_data=source)
+    assert resolved_physical_render_parts(SimpleNamespace(parts=(forged,))) == (
+        (left_id,source),
+    )

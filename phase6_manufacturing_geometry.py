@@ -67,6 +67,11 @@ def _phase6_door_part_assembly_placement(snapshot, part_key):
 def _phase6_assembly_placement_for_part(snapshot, part_key):
     key = str(part_key or "")
     family = cabinet_family_policy.canonical_family_name(snapshot)
+    if key.startswith("base_plate:fixing_plate:"):
+        # The supplied DXF fully owns the sheet/holes, not the finished
+        # cabinet weld-Z. Until the mating Z is certified, show a real flat
+        # 3D plate on its own instead of guessing the assembled position.
+        return "standalone", (0.0, 0.0, 0.0)
     if key == "base_plate":
         from ae_engine.assembly_placement import resolve_assembly_placement
         placement = resolve_assembly_placement(snapshot, key)
