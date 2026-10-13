@@ -108,7 +108,7 @@ jobs:
           if len(candidates) != 1:
               raise RuntimeError("OFFICIAL_RELEASE_AMBIGUOUS_PUBLISH_PR")
 
-          pr = candidates[0]
+          pr = gh_json(f"repos/{repo}/pulls/{candidates[0]['number']}")
           commit = gh_json(f"repos/{repo}/commits/{sha}")
           parents = [p["sha"] for p in commit["parents"]]
           comment_pages = gh_json(
