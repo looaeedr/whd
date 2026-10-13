@@ -3,6 +3,7 @@ import unittest
 from tools.localx_publish_gate import (
     require_publish_approval, LocalXPublishDenied,
     require_conversational_bugfix_localx_integration, require_github_localx_integration, LocalXIntegrationDenied,
+    official_release_tag, require_official_release_proof, OfficialReleaseDenied,
 )
 
 class PublishGateTests(unittest.TestCase):
@@ -157,6 +158,90 @@ class ConversationBugfixIntegrationTests(unittest.TestCase):
         with self.assertRaises(LocalXIntegrationDenied):
             require_conversational_bugfix_localx_integration(
                 authorization=item, delivery=self.delivery)
+
+
+class OfficialReleaseTests(unittest.TestCase):
+    X, SOURCE, MERGE = ("b" * 40, "a" * 40, "c" * 40)
+
+    def _pr(self, **updates):
+        pr = {
+            "number": 12, "merged": True,
+            "merged_at": "2026-10-12T17:35:00Z",
+            "merge_commit_sha": self.MERGE,
+            "head": {"ref": "localX", "repo": {"full_name": "looaeedr/whd"}},
+            "base": {"ref": "cleanup/2d-3d-sync",
+                     "repo": {"full_name": "looaeedr/whd"}},
+        }
+        pr.update(updates)
+        return pr
+
+    def _comments(self):
+        fields = ("repo=looaeedr/whd\npr=12\nsource=localX\n"
+                  "head=" + self.SOURCE + "\ntarget=cleanup/2d-3d-sync\n"
+                  "base=" + self.X)
+        owner = {"login": "looaeedr", "type": "User"}
+        return [
+            {"id": 100, "user": owner,
+             "body": "/驗收通過\nWHD_WINDOWS_LOCALX_UAT_V1\n"
+                     + fields + "\ntest_site=WINDOWS\nwindows_head=" + self.SOURCE},
+            {"id": 101, "user": owner,
+             "body": "/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\n" + fields},
+        ]
+
+    def _check(self, *, x=None, pr=None, parents=None, comments=None):
+        return require_official_release_proof(
+            repo="looaeedr/whd", pushed_sha=self.MERGE,
+            production_sha=self.MERGE if x is None else x,
+            pr=self._pr() if pr is None else pr,
+            merge_parents=[self.X, self.SOURCE] if parents is None else parents,
+            comments=self._comments() if comments is None else comments,
+        )
+
+    def test_release_tag_uses_taipei_date_and_exact_merge_sha(self):
+        self.assertEqual(self._check(), "v2026.10.13-x-cccccccccccc")
+        self.assertEqual(
+            official_release_tag(self.MERGE, "2026-10-12T15:59:59Z"),
+            "v2026.10.12-x-cccccccccccc")
+        self.assertEqual(
+            official_release_tag(self.MERGE, "2026-10-12T16:00:00Z"),
+            "v2026.10.13-x-cccccccccccc")
+
+    def test_no_release_before_github_sync(self):
+        with self.assertRaisesRegex(OfficialReleaseDenied, "SYNC"):
+            self._check(x=self.X)
+
+    def test_reject_unapproved_or_non_product_merge(self):
+        for pr in (
+            self._pr(merged=False),
+            self._pr(merge_commit_sha=self.X),
+            self._pr(head={"ref": "feature", "repo": {"full_name": "looaeedr/whd"}}),
+            self._pr(head={"ref": "localX", "repo": {"full_name": "other/whd"}}),
+            self._pr(base={"ref": "main", "repo": {"full_name": "looaeedr/whd"}}),
+        ):
+            with self.subTest(pr=pr), self.assertRaises(OfficialReleaseDenied):
+                self._check(pr=pr)
+        for parents in ([], [self.X], [self.X, self.SOURCE, self.MERGE]):
+            with self.subTest(parents=parents), self.assertRaises(OfficialReleaseDenied):
+                self._check(parents=parents)
+        with self.assertRaises(LocalXPublishDenied):
+            self._check(parents=[self.SOURCE, self.X])
+
+    def test_release_needs_windows_acceptance_and_later_exact_push(self):
+        comments = self._comments()
+        for subset in ([], comments[:1], comments[1:]):
+            with self.subTest(subset=subset), self.assertRaises(LocalXPublishDenied):
+                self._check(comments=subset)
+        wrong = self._comments()
+        wrong[0]["body"] = wrong[0]["body"].replace(self.SOURCE, self.X)
+        with self.assertRaises(LocalXPublishDenied):
+            self._check(comments=wrong)
+
+    def test_invalid_sha_and_unzoned_merge_time_fail_closed(self):
+        for stamp in ("2026-10-13T00:00:00", "bad", None):
+            with self.subTest(stamp=stamp), self.assertRaises(OfficialReleaseDenied):
+                official_release_tag(self.MERGE, stamp)
+        with self.assertRaises(OfficialReleaseDenied):
+            official_release_tag("NOT_SHA", "2026-10-13T00:00:00+08:00")
 
 
 if __name__ == "__main__":

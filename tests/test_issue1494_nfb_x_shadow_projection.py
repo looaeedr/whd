@@ -470,7 +470,6 @@ def test_w800_canonical_datum_rejects_unwitnessed_physical_context():
     for change in (
         {"t":3.0},
         {"door_gap_w":4.0},
-        {"door_fold_l":18.0, "door_fold_r":20.0},
         {"w":799.0},
         {"multi_door_enabled":False},
     ):
@@ -478,6 +477,18 @@ def test_w800_canonical_datum_rejects_unwitnessed_physical_context():
         state.update(change)
         with pytest.raises(ValueError, match="OPEN-X-W800x3"):
             resolve_w800_three_whd_x(state, "upper", slot_index=0)
+
+
+def test_w800_inner_door_datum_stays_fixed_when_outer_door_folds_change():
+    # Receiving inner-door flanges are independently fixed at four 19-mm
+    # folds; changing the outer door's bends must not revoke its valid NFB
+    # physical datum or silently change its manufactured blank.
+    state = snapshot()
+    expected = resolve_w800_three_whd_x(state, "upper", slot_index=0)
+    state.update({"door_fold_l": 18.0, "door_fold_r": 20.0,
+                  "door_fold_t": 23.0, "door_fold_b": 17.0})
+    actual = resolve_w800_three_whd_x(state, "upper", slot_index=0)
+    assert actual == expected
 
 
 def test_w800_canonical_x_rejects_reversed_assembly_axes(monkeypatch):

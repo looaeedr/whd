@@ -1,0 +1,185 @@
+name: WHD Official GitHub Release
+
+# No release is created on a product PR, CI green or X merge alone.
+# Only a post-publish GitHub localX back-sync, matching exact X merge SHA,
+# can advance this workflow to its release step.
+on:
+  push:
+    branches:
+      - localX
+  pull_request:
+    branches:
+      - localX
+    paths:
+      - AGENTS.md
+      - tools/localx_publish_gate.py
+      - tests/process/test_localx_publish_gate.py
+      - .github/workflows/whd-official-release.yml
+
+env:
+  TZ: Asia/Taipei
+
+permissions:
+  contents: read
+
+jobs:
+  release-contract-tests:
+    name: Official Release Contract Tests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exact UAT, publish proof, Taiwan tag and rejection regression
+        run: python -m unittest discover -s tests/process -p 'test_localx_publish_gate.py' -v
+
+  official-release:
+    name: Verify and publish official WHD version
+    if: github.event_name == 'push' && github.ref == 'refs/heads/localX' && github.repository == 'looaeedr/whd'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: whd-official-release-${{ github.sha }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      issues: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify exact published X merge, manual UAT and /推推
+        id: verify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from tools.localx_publish_gate import require_official_release_proof
+
+          repo = os.environ["RELEASE_REPO"]
+          sha = os.environ["RELEASE_SHA"]
+
+          def gh_json(endpoint, *, pages=False):
+              cmd = ["gh", "api"]
+              if pages:
+                  cmd += ["--paginate", "--slurp"]
+              cmd.append(endpoint)
+              return json.loads(subprocess.check_output(cmd, text=True))
+
+          # Unlike a simple X merge, this requires post-publish GitHub localX
+          # back-sync. Ordinary localX work cannot accidentally create a tag.
+          x = gh_json(f"repos/{repo}/git/ref/heads/cleanup/2d-3d-sync")
+          x_sha = x["object"]["sha"]
+          output = os.environ["GITHUB_OUTPUT"]
+          if sha != x_sha:
+              with open(output, "a", encoding="utf-8") as f:
+                  f.write("eligible=false\n")
+              print("Not a completed /推推: GitHub localX != X. No release.")
+              raise SystemExit(0)
+
+          related = gh_json(f"repos/{repo}/commits/{sha}/pulls")
+          candidates = [
+              pr for pr in related
+              if pr.get("merged_at")
+              and pr.get("merge_commit_sha") == sha
+              and (pr.get("head") or {}).get("ref") == "localX"
+              and (pr.get("base") or {}).get("ref") == "cleanup/2d-3d-sync"
+          ]
+          if not candidates:
+              with open(output, "a", encoding="utf-8") as f:
+                  f.write("eligible=false\n")
+              print("X equals localX, but not an approved /推推 merge. No release.")
+              raise SystemExit(0)
+          if len(candidates) != 1:
+              raise RuntimeError("OFFICIAL_RELEASE_AMBIGUOUS_PUBLISH_PR")
+
+          pr = gh_json(f"repos/{repo}/pulls/{candidates[0]['number']}")
+          commit = gh_json(f"repos/{repo}/commits/{sha}")
+          parents = [p["sha"] for p in commit["parents"]]
+          comment_pages = gh_json(
+              f"repos/{repo}/issues/{pr['number']}/comments?per_page=100",
+              pages=True,
+          )
+          comments = [comment for page in comment_pages for comment in page]
+          tag = require_official_release_proof(
+              repo=repo, pushed_sha=sha, production_sha=x_sha,
+              pr=pr, merge_parents=parents, comments=comments,
+          )
+          with open(output, "a", encoding="utf-8") as f:
+              f.write(f"eligible=true\ntag={tag}\npr={pr['number']}\n")
+          print(f"Exact Windows UAT and /推推 verified; release {tag}, PR #{pr['number']}")
+          PY
+      - name: Create immutable tag and GitHub Release after /推推
+        if: steps.verify.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_TAG: ${{ steps.verify.outputs.tag }}
+          RELEASE_PR: ${{ steps.verify.outputs.pr }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Read an existing ref first; retries must never retarget a tag.
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" > "$RUNNER_TEMP/tag.json" 2>/dev/null; then
+            tag_sha="$(python -c 'import json,sys;print(json.load(open(sys.argv[1]))["object"]["sha"])' "$RUNNER_TEMP/tag.json")"
+            if [ "$tag_sha" != "$RELEASE_SHA" ]; then
+              echo "::error::OFFICIAL_RELEASE_TAG_POINTS_TO_OTHER_SHA"
+              exit 1
+            fi
+          fi
+
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            {
+              echo "Official WHD product publication, verified after /推推 and GitHub X/localX back-sync."
+              echo
+              echo "- Published X merge commit: \`$RELEASE_SHA\`"
+              echo "- GitHub localX at release: \`$RELEASE_SHA\`"
+              echo "- Verified Windows manual UAT and exact /推推: PR #$RELEASE_PR"
+              echo "- Source PR: https://github.com/$GITHUB_REPOSITORY/pull/$RELEASE_PR"
+              echo "- GitHub Actions exact HEAD verification: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              echo
+              echo "Note: local Windows/CoreELEC worktrees are tracked separately; this Release does not imply they were synchronized."
+            } > "$RUNNER_TEMP/whd-official-release-notes.md"
+            gh release create "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$RELEASE_SHA" \
+              --title "WHD $RELEASE_TAG" \
+              --notes-file "$RUNNER_TEMP/whd-official-release-notes.md" \
+              --generate-notes \
+              --latest
+          fi
+
+          # Final non-mutating readback: tag, release target, draft, prerelease.
+          actual_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
+          [ "$actual_sha" = "$RELEASE_SHA" ] || {
+            echo "::error::OFFICIAL_RELEASE_TAG_SHA_MISMATCH"; exit 1;
+          }
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,isPrerelease,targetCommitish,url > "$RUNNER_TEMP/whd-release.json"
+          python - "$RUNNER_TEMP/whd-release.json" "$RELEASE_TAG" "$RELEASE_SHA" <<'PY'
+          import json, sys
+          info = json.load(open(sys.argv[1], encoding="utf-8"))
+          tag, sha = sys.argv[2:]
+          if (info.get("tagName") != tag or info.get("isDraft")
+                  or info.get("isPrerelease")
+                  or info.get("targetCommitish") != sha or not info.get("url")):
+              raise SystemExit("OFFICIAL_RELEASE_READBACK_FAILED")
+          print("OFFICIAL_RELEASED:", info["url"], sha)
+          PY
+          echo "### Official WHD Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "Published and verified [$RELEASE_TAG](https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG) at X SHA $RELEASE_SHA." >> "$GITHUB_STEP_SUMMARY"
