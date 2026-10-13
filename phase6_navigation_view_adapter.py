@@ -540,7 +540,7 @@ def show_receiving_base_fixing_plate_preview(host, preview):
     ).pack(padx=12, pady=(3, 4))
     tk.Label(
         win,
-        text="名義折線 23 mm 尚非核准展開；焊接接觸／Z 待驗證。\\n"
+        text="23 mm 是裝配推得的名義折線，原大片來源尚無正式折線。工廠不使用折彎補償；折向／焊接 Z 待驗證。\\n"
              "此為來源 2D 檢視，不能作為正式下料或折彎圖。",
         fg="#9a3412", justify="center",
     ).pack(padx=12, pady=(0, 8))
