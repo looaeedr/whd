@@ -217,11 +217,23 @@ def _physical_w800_basis(snapshot: Mapping[str, object], inner_door_id: str):
     ):
         raise ValueError("OPEN-X-W800x3 unexpected manufactured X segments")
     lower_fold, core, upper_fold = [float(s.length) for s in segments]
+    # Vault 門.dxf also carries inner CUTTING apertures. Only the unique
+    # perimeter with the certified full blank W/H can define the X datum.
+    # Never confuse a real internal aperture with a second physical sheet.
     outlines = [p for p in render.scene.primitives if isinstance(p, PolylinePrimitive)
                 and p.closed and p.layer.upper() == "CUTTING"]
-    if len(outlines) != 1:
-        raise ValueError("OPEN-X-W800x3 unresolved actual manufactured outer CUTTING")
-    xs = [float(p.x) for p in outlines[0].points]
+    outer = [
+        shape for shape in outlines
+        if abs(max(float(p.x) for p in shape.points)
+               - min(float(p.x) for p in shape.points)
+               - panel.unfolded_width) <= 1e-6
+        and abs(max(float(p.y) for p in shape.points)
+                - min(float(p.y) for p in shape.points)
+                - panel.unfolded_height) <= 1e-6
+    ]
+    if len(outer) != 1:
+        raise ValueError("OPEN-X-W800x3 unresolved unique manufactured outer CUTTING")
+    xs = [float(p.x) for p in outer[0].points]
     blank_min, blank_max = min(xs), max(xs)
     if (not all(isfinite(x) and x > 0 for x in (lower_fold, core, upper_fold))
             or abs(blank_max-blank_min-723.0)>1e-6

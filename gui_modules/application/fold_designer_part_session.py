@@ -11,6 +11,7 @@ keeps narrow compatibility delegates.
 from __future__ import annotations
 
 from typing import Any
+from .receiving_inner_door_hole_editor import sync_inner_door_hole_editor_button
 
 
 class Phase6PartSessionOwner:
@@ -114,6 +115,7 @@ class Phase6PartSessionOwner:
         custom = getattr(app.designer_workspace, "custom_part", lambda _: None)(key)
         custom_frame = getattr(app, "_custom_part_editor", None)
         if custom is not None:
+            sync_inner_door_hole_editor_button(app, None)
             before_signature=bridge._phase6_manufacturing_state_signature(app)
             plan = navigation.plan_activation(key, initial=initial, leaving_non_single_view=True)
             if plan.save_outgoing:
@@ -217,6 +219,7 @@ class Phase6PartSessionOwner:
         if not initial and getattr(app, '_phase6_pending_settings', None):
             app.flush_pending_settings()
         if plan.noop:
+            sync_inner_door_hole_editor_button(app, key)
             return
         pending = getattr(app, '_job', None)
         if pending:
@@ -287,6 +290,7 @@ class Phase6PartSessionOwner:
         finally:
             navigation.finish_activation()
         bridge._navigation_view_finalize_single_part_layout(app, settings_context='box_body' if bridge._phase6_is_box_body_physical_piece_key(key) else key, render_settings_context=lambda context: bridge._phase6_render_settings_context(app, context), pack_right_panel=lambda widget: bridge._phase6_pack_right_panel_above_canvas(app, widget), render_active_drawing_edge_controls=lambda: bridge._phase6_render_active_drawing_edge_controls(app), tk_both=bridge.original.tk.BOTH)
+        sync_inner_door_hole_editor_button(app, key)
         try:
             after_signature = bridge._phase6_manufacturing_state_signature(app)
         except Exception:

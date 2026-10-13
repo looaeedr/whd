@@ -120,17 +120,20 @@ def test_non_default_thickness_gap_folds_use_actual_part_core_not_fixed_36p5():
     ) == pytest.approx(550.0)
 
 
-def test_fold_length_change_moves_uv_not_box_world_y():
+def test_outer_door_fold_length_changes_do_not_move_fixed_19_inner_door_uv():
     state = receiving_snapshot()
+    expected = project_nfb_inner_door_nominal_y(
+        state, "upper", layer_count=1, slot_index=0,
+    )
     state["door_fold_b"] = 23.0
     state["door_fold_t"] = 17.0
     actual = project_nfb_inner_door_nominal_y(
         state, "upper", layer_count=1, slot_index=0,
     )
     assert actual.box_world_y_mm == pytest.approx(250.0)
-    # Same formed 1037 core, moved bottom fold 19 -> 23.
-    assert actual.unfolded_uv_y_mm == pytest.approx(567.5)
-    assert actual.unfolded_blank_height_mm == pytest.approx(1077.0)
+    # Receiving inner sheet folds stay 19, independent from outer Door UI.
+    assert actual.unfolded_uv_y_mm == pytest.approx(expected.unfolded_uv_y_mm)
+    assert actual.unfolded_blank_height_mm == pytest.approx(1075.0)
     assert invert_nfb_inner_door_unfolded_y(
         state, "upper", unfolded_uv_y_mm=actual.unfolded_uv_y_mm,
     ) == pytest.approx(550.0)
