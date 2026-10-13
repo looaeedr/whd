@@ -105,3 +105,28 @@ def test_C_seven_mm_notch_keeps_left_22mm_identity():
     slots = dict(orientation["evidence"])
     assert slots["MIN_Y"]["phase6_key"] == "zl1"
     assert orientation["sign_by_end"]["MIN_Y"] < 0
+
+
+def test_receiving_settings_preview_2d_shares_exact_true_world_skins_with_manufacturing():
+    """A viewer must display the *same* placed physical pieces as manufacturing.
+
+    The old viewer folded zero-thickness strips and skipped the Receiving
+    25-material -> 29-outside FW physical correction, so apparent FW/Z mating
+    could disagree with the validated world while tests stayed green.
+    """
+    from phase6_final_scene_contracts import AssemblySceneRenderData, FinalSceneViewRequest
+    from gui_modules.application.receiving_settings_preview_2d import _assembly_world_meshes
+
+    snap, body, _divider, part, world = _source_world()
+    request = FinalSceneViewRequest(
+        AssemblySceneRenderData((body, part)), (), (), "assembly",
+        finished_dimensions=(snap["w"], snap["h"], snap["d"]),
+        thickness=snap["t"],
+    )
+    visual = {role: tuple(tris) for role, _stable, tris in _assembly_world_meshes(request)}
+    for role in ("left_side", "right_side", "back"):
+        ref = tuple(world["world_triangles_by_part"]["box_body:" + role])
+        assert visual[role] == ref, (
+            f"{role} 2D/3D settings preview differs from true-thickness "
+            "source-mapped manufacturing 3D world; cannot trust visual FW/Z."
+        )
