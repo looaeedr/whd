@@ -1453,7 +1453,21 @@ def open_receiving_multi_settings(self, namespace):
                         f"第{entry['layer_index']+1}層 {x_label}、{y_label}"
                         + (f"｜{stale} 顆待重選" if stale else "")
                     )
-                draft_summary.set("｜".join(segments) + "｜僅預覽、不提交製造")
+                pad = projection["pad_depth_preview"]
+                pad_status = pad["status"]
+                if pad_status == "PAD_DIFFERENT_DEPTH_REVIEW_ONLY":
+                    candidate = pad["shallower_unit_index"] + 1
+                    pad_text = (
+                        f"｜墊高候選：第{candidate}顆較淺，"
+                        f"深度差 {pad['candidate_delta_mm']:g} mm（未核准墊高實體）"
+                    )
+                elif pad_status == "PAD_NOT_NEEDED_SAME_DEPTH":
+                    pad_text = "｜兩顆深度相同，不需墊高片"
+                elif pad_status == "PAD_DEPTH_SOURCE_UNKNOWN":
+                    pad_text = "｜兩顆深度未齊：請檢查 CSV「深」欄及品牌來源"
+                else:
+                    pad_text = ""  # other layer/count configurations never create PAD
+                draft_summary.set("｜".join(segments) + pad_text + "｜僅預覽、不提交製造")
             except (ValueError,TypeError,KeyError) as exc:
                 draft_summary.set(f"NFB 名義幾何未定：{exc}｜僅預覽")
 
