@@ -446,9 +446,13 @@ def test_corner_data_inner_door_double_click_opens_original_hole_editor(monkeypa
         before = designer.designer_workspace.active_part
         button.invoke()  # One click only selects the Corner Data part.
         assert designer._phase6_corner_data_selected_part_key == key
-        button.event_generate("<Double-Button-1>")
+        # Tk rejects synthesising a Double modifier directly; two actual
+        # press/release cycles exercise Tk's double-click event recognition.
+        for _ in range(2):
+            button.event_generate("<ButtonPress-1>", x=5, y=5, when="now")
+            button.event_generate("<ButtonRelease-1>", x=5, y=5, when="now")
+            root.update()
         root.update_idletasks()
-        root.update()
         assert len(calls) == 1
         assert calls[0][0][0] == key
         assert calls[0][1]["baseline_scene"] is not None
