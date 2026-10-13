@@ -3,17 +3,18 @@
 PRODUCTION_X = "cleanup/2d-3d-sync"
 INTEGRATION_BRANCH = "localX"
 PUBLISH_MARKER = "WHD_LOCALX_PUBLISH_AUTH_V1"
+UAT_MARKER = "WHD_WINDOWS_LOCALX_UAT_V1"
 
 
 class LocalXPublishDenied(ValueError):
     """Publication lacks explicit user authorization."""
 
-def _exact_command(body: str, expected: dict[str, str]) -> bool:
+def _exact_command(body: str, expected: dict[str, str], *, command="/推推", marker=PUBLISH_MARKER) -> bool:
     """Reject substring matches, duplicate fields, and replayed HEADs."""
     lines = body.strip().splitlines()
     if len(lines) != len(expected) + 2:
         return False
-    if [part.strip() for part in lines[:2]] != ["/推推", PUBLISH_MARKER]:
+    if [part.strip() for part in lines[:2]] != [command, marker]:
         return False
     fields: dict[str, str] = {}
     for line in lines[2:]:
@@ -58,17 +59,29 @@ def require_publish_approval(
         "base": target_sha,
     }
     owner = repo.split("/", 1)[0]
+    acceptance, publication = [], []
     for comment in comments:
         if not isinstance(comment, dict):
             continue
         user = comment.get("user") or {}
-        if (
-            user.get("login") == owner
-            and user.get("type") == "User"
-            and _exact_command(str(comment.get("body") or ""), expected)
-        ):
-            return
-    raise LocalXPublishDenied("LOCALX_PUBLISH_REQUIRES_EXPLICIT_USER_SLASH_PUSH")
+        comment_id = comment.get("id")
+        if (user.get("login") != owner or user.get("type") != "User"
+                or not isinstance(comment_id, int) or comment_id <= 0):
+            continue
+        body = str(comment.get("body") or "")
+        manual_expected = dict(expected, test_site="WINDOWS",
+                               windows_head=head_sha)
+        if _exact_command(body, manual_expected,
+                          command="/驗收通過", marker=UAT_MARKER):
+            acceptance.append(comment_id)
+        if _exact_command(body, expected):
+            publication.append(comment_id)
+    if not acceptance:
+        raise LocalXPublishDenied("WINDOWS_LOCALX_MANUAL_UAT_REQUIRED")
+    if not publication:
+        raise LocalXPublishDenied("LOCALX_PUBLISH_REQUIRES_EXPLICIT_USER_SLASH_PUSH")
+    if not any(a < p for a in acceptance for p in publication):
+        raise LocalXPublishDenied("WINDOWS_UAT_MUST_PRECEDE_SLASH_PUSH")
 
 
 class LocalXIntegrationDenied(ValueError):
