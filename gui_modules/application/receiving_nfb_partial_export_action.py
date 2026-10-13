@@ -22,6 +22,7 @@ from ae_engine.receiving_nfb_partial_export_writer import (
 )
 from ae_engine.receiving_nfb_ui1b_bridge import NfbVerifiedDraftSubmission
 from ae_engine.receiving_switch_model_catalog import INDEX_PATH
+from ae_engine.receiving_nfb_editable_source import resolve_editable_nfb_source_profile
 
 
 _GEOMETRY_KEYS = (
@@ -113,9 +114,15 @@ def export_verified_receiving_nfb_inner_door(
                      == (model_key[0], model_key[1].casefold()))
     if len(matching) != 1:
         raise ValueError("NFB 原始輪廓資料已變更或來源不唯一")
-    profile = matching[0]
+    # Historical CSV SHA is an editable-source observation, not a lock.
+    # The current bytes must still match THIS Bay's submitted proof: if an
+    # operator edits the DXF, reverify against the new format before export.
+    try:
+        profile = resolve_editable_nfb_source_profile(bundle.source_path, profile=matching[0])
+    except OSError as exc:
+        raise ValueError("NFB 現行 DXF 原檔不存在，無法重新驗證") from exc
     if profile.source_sha256 != bundle.source_inventory.source_sha256:
-        raise ValueError("NFB DXF SHA 與已驗證來源不一致")
+        raise ValueError("NFB DXF 已修改，請重新核對當前來源後再出圖")
     proof_metadata = getattr(bundle.verified_door.render_data, "metadata", {})
     if (proof_metadata.get("nfb_source_handle")
             != profile.source_sha256 + ":" + profile.upper_handle

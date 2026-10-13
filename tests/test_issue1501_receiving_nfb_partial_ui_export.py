@@ -58,6 +58,10 @@ def _case(monkeypatch, *, changed_source=False):
         action,"read_nfb_runtime_source_profiles_csv",
         lambda path: (profile,),
     )
+    # This action contract mocks DXF I/O; actual format rebinding is tested
+    # separately against real saved ezdxf bytes in #1502.
+    monkeypatch.setattr(action,"resolve_editable_nfb_source_profile",
+                        lambda path, *, profile: profile)
     hits=[]
     def exporter(snapshot, inner_id, output_path, **kwargs):
         hits.append((snapshot,inner_id,output_path,kwargs))
@@ -122,9 +126,10 @@ def test_stale_or_invalid_session_never_calls_writer(monkeypatch,failure):
     assert hits==[]
 
 
-def test_profile_sha_mismatch_does_not_write(monkeypatch):
+def test_stale_session_source_mismatch_does_not_write(monkeypatch):
     bundle,args,hits=_case(monkeypatch,changed_source=True)
-    with pytest.raises(ValueError,match="SHA"):
+    with pytest.raises(ValueError,match="重新核對"):
+
         action.export_verified_receiving_nfb_inner_door(bundle,**args)
     assert hits==[]
 

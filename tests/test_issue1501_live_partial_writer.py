@@ -101,13 +101,16 @@ def test_actual_dxf_writer_emits_only_verified_inner_cutting_and_reports_partial
         export_current_nfb_inner_door_partial_dxf(**opts)
 
 
-def test_changed_original_bytes_stops_before_any_output(tmp_path):
+def test_edited_original_with_same_dxf_format_is_reverified_and_exported(tmp_path):
     opts=_case(tmp_path)
     source=opts["source_path"]
-    source.write_bytes(source.read_bytes()+b"outdated")
-    with pytest.raises(ValueError,match="SHA"):
-        export_current_nfb_inner_door_partial_dxf(**opts)
-    assert not opts["output_path"].exists()
+    drawing=ezdxf.readfile(source)
+    drawing.header["$LUNITS"]=4  # editable metadata, real CUTTING unchanged
+    drawing.saveas(source)
+    result,manifest=export_current_nfb_inner_door_partial_dxf(**opts)
+    assert result==str(opts["output_path"])
+    assert manifest.actual_export_count==2
+    assert opts["output_path"].exists()
 
 
 @pytest.mark.parametrize("change,value",[
@@ -239,9 +242,11 @@ def test_quantity_main_selection_uses_live_source_and_keeps_other_versions(tmp_p
         verifier=partial(verify_quantity_nfb_inner_door,
                          index_path=opts["index_path"], profile_path=profiles),
     )
-    assert stale.exported_piece_count == 19  # unaffected sides + whole legacy version
-    assert stale.held_piece_count == 20
-    assert all(r["status"] != "READY" for r in stale.rows)
+    # Same parseable manufacturing format remains usable even when file bytes
+    # change; quantity is recomputed, never pinned to a historical digest.
+    assert stale.exported_piece_count == 29
+    assert stale.held_piece_count == 10
+    assert [r["actual_count"] for r in stale.rows if r["status"] == "READY"] == [6, 4]
 
 
 @pytest.mark.parametrize("change", ["datum", "reconfirm", "existing_cutting", "count"])
@@ -339,8 +344,9 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
                       if re.fullmatch(r"Q[0-9]+", row.plain_text()))
     assert sorted(labels) == ["Q19", "Q4", "Q6"]
     assert sum(int(q[1:]) for q in labels) == report["actual_export_count"]
-    # Stale bytes hold both inner doors, not the untouched version/side parts.
-    source.write_bytes(source.read_bytes() + b"invalidated")
+    # A harmless byte change to a still-valid editable DXF is NOT a release
+    # blocker. This second export re-verifies the current source.
+    source.write_bytes(source.read_bytes() + b"format-still-valid")
     next_output = tmp_path / "stale-output"
     next_output.mkdir()
     files, errors = export_actions._export_selected_parts(
@@ -348,8 +354,8 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
     )
     assert files and not errors
     stale = json.loads((next_output / "nfb_partial_manifest.json").read_text())
-    assert stale["actual_export_count"] == 19 and stale["held_actual_count"] == 20
-    assert not any(row["status"] == "READY" for row in stale["rows"])
+    assert stale["actual_export_count"] == 29 and stale["held_actual_count"] == 10
+    assert any(row["status"] == "READY" for row in stale["rows"])
 
 
 def test_quantity_partial_main_refuses_divergent_submitted_version_owners(tmp_path, monkeypatch):
@@ -458,7 +464,13 @@ def test_all_held_quantity_selection_discloses_nfb_dxf_datum_and_writes_nothing(
     monkeypatch.setattr(partial_action, "verify_quantity_nfb_inner_door",
                         partial(partial_action.verify_quantity_nfb_inner_door,
                                 index_path=opts["index_path"], profile_path=profiles))
-    source.write_bytes(source.read_bytes() + b"stale")
+    # Structural corruption, unlike an ordinary DXF edit, must still block.
+    document = ezdxf.readfile(source)
+    document.modelspace().add_lwpolyline(
+        ((120., 0.), (177., 0.), (177., 96.), (120., 96.)),
+        close=True, dxfattribs={"color": 150},
+    )
+    document.saveas(source)
     output = tmp_path / "output"
     output.mkdir()
     exported, errors = export_actions._export_selected_parts(

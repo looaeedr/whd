@@ -110,9 +110,12 @@ def export_verified_receiving_nfb_base_plate(
                      if (x.brand, x.indexed_filename.casefold()) ==
                      (bundle.verified_door.indexed_model_key[0],
                       bundle.verified_door.indexed_model_key[1].casefold()))
-    if len(matching) != 1 or matching[0].source_sha256 != bundle.source_inventory.source_sha256:
-        raise ValueError("NFB base live indexed profile is missing or changed")
-    profile = matching[0]
+    if len(matching) != 1:
+        raise ValueError("NFB base live indexed model profile is missing or ambiguous")
+    from ae_engine.receiving_nfb_editable_source import resolve_editable_nfb_source_profile
+    profile = resolve_editable_nfb_source_profile(source, profile=matching[0])
+    if profile.source_sha256 != bundle.source_inventory.source_sha256:
+        raise ValueError("NFB base DXF edited after verification; verify and submit current source")
     metadata = getattr(bundle.verified_door.render_data, "metadata", {})
     if (metadata.get("nfb_source_handle") != profile.source_sha256 + ":" + profile.upper_handle
             or metadata.get("nfb_profile_revision") != profile.revision):

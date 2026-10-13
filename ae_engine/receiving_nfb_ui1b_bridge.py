@@ -146,6 +146,8 @@ def verify_nfb_ui1a_for_submit(
         raise ValueError("NFB world X requires a measured physical datum revision/snapshot")
     if not isinstance(world_x_by_unit,Mapping):
         raise ValueError("NFB world-X coordinates must be explicit for every physical unit")
+    from .receiving_nfb_editable_source import resolve_editable_nfb_source_profile
+    profile=resolve_editable_nfb_source_profile(source_path,profile=profile)
     entries=_active_slots(state,profile=profile)
     expected={unit["unit_id"] for _,unit in entries}
     if set(world_x_by_unit)!=expected:

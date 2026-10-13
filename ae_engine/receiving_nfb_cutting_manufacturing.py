@@ -116,15 +116,22 @@ def read_nfb_runtime_source_profiles_csv(path: str | Path) -> tuple[NfbUpperSour
             if key in seen:
                 raise ValueError("NFB source-profile CSV duplicate model")
             seen.add(key)
-            if (len(digest)!=64 or
-                    any(char not in "0123456789abcdef" for char in digest)):
+            # The columns are the stable CSV *format*. These optional
+            # historical observations may be blank for a newly edited DXF:
+            # live source parsing will derive actual SHA/handle/size.
+            if digest and (len(digest)!=64 or
+                           any(char not in "0123456789abcdef" for char in digest)):
                 raise ValueError("NFB source-profile CSV SHA256 invalid")
+            width_raw=row["upper_width_mm"].strip()
+            height_raw=row["upper_height_mm"].strip()
+            if bool(width_raw)!=bool(height_raw):
+                raise ValueError("NFB source-profile CSV partial dimensions invalid")
             try:
-                width,height=float(row["upper_width_mm"]),float(row["upper_height_mm"])
+                width,height=(float(width_raw),float(height_raw)) if width_raw else (0.,0.)
             except (ValueError,TypeError) as exc:
                 raise ValueError("NFB source-profile CSV dimensions invalid") from exc
-            if (not isfinite(width) or not isfinite(height) or
-                    width<=0 or height<=0 or not handle):
+            if (not isfinite(width) or not isfinite(height)
+                    or (width_raw and (width<=0 or height<=0))):
                 raise ValueError("NFB source-profile CSV geometry invalid")
             results.append(NfbUpperSourceProfile(
                 brand=brand,indexed_filename=filename,source_sha256=digest,
