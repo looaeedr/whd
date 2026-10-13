@@ -94,3 +94,109 @@ def test_model_assignments_follow_set_bay_and_round_trip_independently():
         validate_setting("inner_door_models", ["../other.dxf", ""])
     with pytest.raises(ValueError):
         validate_setting("inner_door_models", ["one.dxf"])
+
+
+def _pad_two_brand_draft(second_brand="東元", second_model="140X260_103.dxf"):
+    from ae_engine.receiving_nfb_ui1a import (
+        new_nfb_ui1a_draft, add_nfb_draft_slot, set_nfb_slot_brand, OVERRIDE,
+    )
+    state = new_nfb_ui1a_draft(set_brand="士林", layer_count=1)
+    state = add_nfb_draft_slot(
+        state, 0, filename="400_140X257_107.dxf", source_brand="士林"
+    )
+    state = add_nfb_draft_slot(
+        state, 0, filename=second_model, source_brand=second_brand
+    )
+    return set_nfb_slot_brand(state, 0, 1, mode=OVERRIDE, value=second_brand)
+
+
+def test_pad_two_400_models_uses_brand_specific_csv_depth_not_filename_guess():
+    from ae_engine.receiving_switch_model_catalog import model_depth_mm
+    from ae_engine.receiving_nfb_pad_depth_policy import (
+        preview_nfb_pad_depth, DIFFERENT_DEPTH,
+    )
+    from ae_engine.receiving_nfb_ui1a import nfb_ui1a_preview
+    assert model_depth_mm("士林", "400_140X257_107.dxf") == 107
+    assert model_depth_mm("東元", "140X260_103.dxf") == 103
+    assert model_depth_mm("伍菱", "NF400_140X257_107.dxf") == 107
+    # An actual 2P400 東元 '400_Type' entry has no depth, despite other
+    # 東元 400-model rows having 103. Never backfill from a filename/sibling.
+    assert model_depth_mm("東元", "400_Type.dxf") is None
+    draft = _pad_two_brand_draft()
+    pad = preview_nfb_pad_depth(draft)
+    assert pad.status == DIFFERENT_DEPTH
+    assert pad.layer_count == 1 and pad.unit_count == 2
+    assert pad.depth_mm == (107.0, 103.0)
+    assert pad.candidate_delta_mm == 4.0
+    assert pad.shallower_unit_index == 1
+    assert pad.deeper_unit_index == 0
+    assert pad.required_pad_count == 0  # not yet manufactured
+    assert pad.manufacturing_ready is False
+    preview = nfb_ui1a_preview(draft, bay_width_mm=800, upper_cell_height_mm=1100)
+    assert preview["pad_depth_preview"]["status"] == DIFFERENT_DEPTH
+    assert preview["pad_depth_preview"]["candidate_delta_mm"] == 4
+    assert not preview["can_manufacture"]
+
+
+def test_pad_not_applicable_for_other_layer_or_unit_counts_or_equal_depth():
+    from ae_engine.receiving_nfb_ui1a import (
+        new_nfb_ui1a_draft, add_nfb_draft_slot, set_nfb_draft_layer_count,
+    )
+    from ae_engine.receiving_nfb_pad_depth_policy import (
+        preview_nfb_pad_depth, NOT_APPLICABLE, NO_PAD_NEEDED,
+    )
+    draft = _pad_two_brand_draft()
+    two_layers = set_nfb_draft_layer_count(draft, 2)
+    assert preview_nfb_pad_depth(two_layers).status == NOT_APPLICABLE
+    # One or three NFBs are never eligible, regardless of brand/depth.
+    single = new_nfb_ui1a_draft(set_brand="士林", layer_count=1)
+    single = add_nfb_draft_slot(single, 0, filename="400_140X257_107.dxf")
+    assert preview_nfb_pad_depth(single).status == NOT_APPLICABLE
+    triple = add_nfb_draft_slot(draft, 0, filename="400_140X257_107.dxf")
+    assert preview_nfb_pad_depth(triple).status == NOT_APPLICABLE
+    # Different brands are not sufficient: 士林107 and 伍菱107 need no pad.
+    same = _pad_two_brand_draft("伍菱", "NF400_140X257_107.dxf")
+    pad = preview_nfb_pad_depth(same)
+    assert pad.status == NO_PAD_NEEDED
+    assert pad.candidate_delta_mm == 0
+    assert not pad.candidate and pad.required_pad_count == 0
+
+
+def test_pad_unknown_when_depth_or_brand_provenance_missing():
+    from ae_engine.receiving_nfb_pad_depth_policy import (
+        preview_nfb_pad_depth, NEEDS_SOURCE,
+    )
+    unknown = preview_nfb_pad_depth(_pad_two_brand_draft("東元","400_Type.dxf"))
+    assert unknown.status == NEEDS_SOURCE
+    assert unknown.depth_mm == (107.0, None)
+    stale = _pad_two_brand_draft()
+    stale["layers"][0]["slots"][1]["source_brand"] = "伍菱"
+    result = preview_nfb_pad_depth(stale)
+    assert result.status == NEEDS_SOURCE
+    assert result.candidate_delta_mm is None
+
+
+def test_pad_depth_index_remains_editable_and_rejects_conflicting_duplicates(tmp_path):
+    from ae_engine.receiving_switch_model_catalog import model_depth_mm
+    from ae_engine.receiving_nfb_pad_depth_policy import preview_nfb_pad_depth
+    path = tmp_path / "開關索引.csv"
+    header = "圖塊名稱,士林,深,東元,深,伍菱,深\n"
+    path.write_text(
+        header + "3P400SN,400_140X257_107.dxf,107,140X260_103.dxf,103,NF400_140X257_107.dxf,107\n",
+        encoding="utf-8-sig",
+    )
+    assert model_depth_mm("東元","140X260_103.dxf",path=path) == 103
+    path.write_text(
+        header + "3P400SN,400_140X257_107.dxf,107,140X260_103.dxf,105,NF400_140X257_107.dxf,107\n",
+        encoding="utf-8-sig",
+    )
+    assert model_depth_mm("東元","140X260_103.dxf",path=path) == 105
+    result = preview_nfb_pad_depth(_pad_two_brand_draft(), index_path=path)
+    assert result.candidate_delta_mm == 2
+    path.write_text(
+        header + "2P400,400_140X257_107.dxf,107,140X260_103.dxf,103,NF400_140X257_107.dxf,107\n"
+        + "3P400SN,400_140X257_107.dxf,107,140X260_103.dxf,105,NF400_140X257_107.dxf,107\n",
+        encoding="utf-8-sig",
+    )
+    with pytest.raises(ValueError, match="重複深度不一致"):
+        preview_nfb_pad_depth(_pad_two_brand_draft(), index_path=path)
