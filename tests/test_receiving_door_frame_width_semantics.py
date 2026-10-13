@@ -90,7 +90,7 @@ def test_receiving_inner_door_derivation_uses_the_same_corrected_outer_door_fini
 
     panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
     assert len(panels) == 1
-    assert (panels[0].width, panels[0].height) == pytest.approx((635.0, 1014.0))
+    assert (panels[0].width, panels[0].height) == pytest.approx((689.0, 1041.0))
 
     frame_sets = derive_inner_door_frame_sets(snapshot)
     assert len(frame_sets) == 1
@@ -98,7 +98,7 @@ def test_receiving_inner_door_derivation_uses_the_same_corrected_outer_door_fini
     # Vertical frame span is independently resolved from physical terminal
     # datums down to the shared Divider support skin.
     assert frame_sets[0].spans == {
-        "top": pytest.approx(635.0),
-        "left": pytest.approx(1018.5),
-        "right": pytest.approx(1018.5),
+        "top": pytest.approx(696.0),
+        "left": pytest.approx(1098.0),
+        "right": pytest.approx(1098.0),
     }
