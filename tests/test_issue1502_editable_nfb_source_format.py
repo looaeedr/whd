@@ -171,3 +171,23 @@ def test_stale_sha_csv_with_unchanged_source_does_not_block_base_export(tmp_path
     )
     assert ezdxf.readfile(path).modelspace() is not None
     assert rendered.projection.source_sha256 == fixture.bundle.source_inventory.source_sha256
+
+
+def test_editable_csv_same_header_allows_blank_observation_fields(tmp_path):
+    """New model/source edit requires no hand-maintained SHA or DXF handle."""
+    _index, source, _old = _source(tmp_path)
+    row = (
+        "brand,indexed_filename,source_sha256,upper_handle,"
+        "upper_width_mm,upper_height_mm,source_alias_status,revision\n"
+        "士林,400_140X257_107.dxf,,,,,OPERATOR_EDITABLE,v1\n"
+    )
+    csv_path = tmp_path / "來源輪廓索引.csv"
+    csv_path.write_text(row, encoding="utf-8")
+    profiles = read_nfb_runtime_source_profiles_csv(csv_path)
+    assert len(profiles) == 1
+    assert profiles[0].source_sha256 == ""
+    assert profiles[0].upper_handle == ""
+    live = resolve_editable_nfb_source_profile(source, profile=profiles[0])
+    assert live.source_sha256 == sha256(source.read_bytes()).hexdigest()
+    assert live.upper_handle
+    assert live.upper_size_mm == pytest.approx((57., 96.))
