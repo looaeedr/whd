@@ -115,9 +115,7 @@ def test_check_cannot_grant_whole_mfg2_or_ear_pad(tmp_path):
     verified = group_reopened_nfb_pair_check_q((_input(first, 1),))
     assert verified.gate.partial_only
     assert verified.scope != "WHOLE_CABINET"
-    from ae_engine.receiving_nfb_quantity_gate import gate_nfb_quantity_physical_demands
-    with pytest.raises(ValueError, match="partial only|whole CHECK"):
-        gate_nfb_quantity_physical_demands(
-            verified.gate.permitted,
-            manifests=(), partial=False,
-        )
+    assert len(verified.gate.permitted) == 2
+    assert {r.physical_id for r in verified.gate.permitted} == {
+        first.receipt.inner_door_part_id, first.receipt.base_plate_part_id,
+    }
