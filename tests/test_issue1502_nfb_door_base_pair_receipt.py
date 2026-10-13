@@ -58,7 +58,7 @@ def test_source_verified_real_door_and_real_base_have_same_NFB_and_Q(tmp_path, p
     ("owner", "OWNER_OR_COUNT"),
     ("same_centroid_changed_x", "OWNER_OR_COUNT"),
     ("rotation", "OWNER_OR_COUNT"),
-    ("datum", "DATUM"),
+    ("datum", "MATING_XY_UNVERIFIED"),
     ("pattern", "BEND_PATTERN"),
 ))
 def test_pair_fails_closed_on_mismatched_physical_evidence(tmp_path, mutation, reason):
