@@ -61,6 +61,8 @@ PYTEST_PATHS = (
     # #1504 exact function audit uncovered these five previously unselected
     # UI-1A / native-source preview / MFG-1 preflight owner suites.
     "tests/test_issue1491_nfb_ui1a.py",
+    # #1503 depth-only PAD predicate: exact 1 layer / 2 units / unequal CSV depths.
+    "tests/test_receiving_switch_model_catalog_20261011.py",
     "tests/test_issue1492_nfb_real_dxf_preview.py",
     "tests/test_issue1493_nfb_draft_transactions.py",
     "tests/test_issue1497_nfb_cutting_preflight.py",
