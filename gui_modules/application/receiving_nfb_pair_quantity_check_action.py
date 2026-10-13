@@ -148,3 +148,24 @@ def group_reopened_nfb_pair_check_q(
     if sum(g.quantity for g in groups) != 2 * sum(x.piece_count for x in inputs):
         raise ValueError("NFB_CHECK_Q_GROUP_QUANTITY_NOT_CONSERVED")
     return NfbPairedQuantityCheck(gate=gate, groups=groups)
+
+
+def save_checked_reopened_nfb_pair_q_dxf(
+    checked: NfbPairedQuantityCheck, output_directory,
+):
+    """Write Q DXF for this already verified paired PART_ONLY selection.
+
+    Opt in to PART_ONLY only after the genuine current DXF reopen + quantity
+    gate has completed. Do not change the existing full CHECK default.
+    """
+    if (not isinstance(checked, NfbPairedQuantityCheck)
+            or checked.scope != "PAIR_PART_ONLY_CHECK_Q_NOT_WHOLE_MFG2"
+            or not checked.gate.partial_only or checked.gate.held
+            or checked.actual_piece_count < 2):
+        raise ValueError("NFB_CHECK_Q_NOT_VERIFIED_PAIRED_PART_ONLY")
+    if sum(g.quantity for g in checked.groups) != checked.actual_piece_count:
+        raise ValueError("NFB_CHECK_Q_GROUP_COUNT_CHANGED")
+    from ae_engine.manufacturing_api import save_quantity_manufacturing_groups_dxf
+    return save_quantity_manufacturing_groups_dxf(
+        checked.groups, output_directory, part_only=True, overwrite=False,
+    )
