@@ -64,7 +64,7 @@ whd_doc_id: WHD-SOP-SKILL-DISCOVERY-DEEP-SCAN
 
 - Skill 名稱：`掃描深模組`
 - 正式路徑：`.agents/skills/engineering/掃描深模組/SKILL.md`
-- 同目錄支援：`HTML-REPORT.md`、`check_zh_tw_report.py`、`agents/openai.yaml`、`tests/test_check_zh_tw_report.py`、`tests/test_skill_sources_zh_tw.py`
+- 同目錄支援：`HTML-REPORT.md`、`check_zh_tw_report.py`、`agents/openai.yaml`。此 Skill 自帶的兩份測試實際為 `.agents/skills/engineering/掃描深模組/tests/test_check_zh_tw_report.py`、`.agents/skills/engineering/掃描深模組/tests/test_skill_sources_zh_tw.py`，**不是倉庫根目錄 `tests/`**。
 
 Canonical supporting Skills：
 
@@ -93,7 +93,7 @@ classification 只回答「WHD 是否把它視為 active canonical」，不保�
 
 ## Machine guards
 
-- `tests/knowledge/test_skill_catalog_classification_contract.py`：classification / bucket / retired alias / documentation contract。
+- **2026-10-11 實際測試路徑回讀**：過往所列 `tests/knowledge/test_skill_catalog_classification_contract.py` 在正式 X 已不存在，不得冒稱它仍是 machine guard。現存 `tests/knowledge/test_skill_registry_coverage_contract.py` 可驗 active canonical Skill 的 Registry 覆蓋／路由；分類本體依 `tools/skill_catalog.py`，其 bucket／retired alias 全面驗收不能只憑本段文字宣稱已完成。
 - `tests/test_chinese_skill_identity_contract.py`：中文 folder basename / frontmatter canonical identity。
 - `tools/skill_catalog.py`：inventory + classification machine scan；未分類 fail closed。
 

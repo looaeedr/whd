@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # #306 T2 Non-Xvfb Job-Level Sharding Implementation Plan
 
+> **2026-10-11 文件時效界線（T2 非 Xvfb 分片施工）**：工單 [#306](https://github.com/looaeedr/whd/issues/306) 已於 2026-09-16 結案。此處 `whd_doc_role: CURRENT` 不代表舊計畫尚待施工；下列固定前置 SHA、分支、`- [ ]`、`REQUIRED SUB-SKILL` 是當時的核准實作步驟，**不得當作今天的施工授權或重啟過時 Preflight**。新修改按正式 X `AGENTS.md`、適用 CURRENT 契約、現在的程式及 exact-HEAD CI 辦理；原文保留供歷史追溯。
+
 **Goal:** Execute every non-Xvfb pytest node exactly once through deterministic T1 shard ownership, with bounded GitHub runner concurrency, and prove result parity against a serial reference on the same exact head.
 
 **Exact predecessor:** `8a008b68d8c0058de589d79faf5865a96922460b` (#305/T1 accepted)

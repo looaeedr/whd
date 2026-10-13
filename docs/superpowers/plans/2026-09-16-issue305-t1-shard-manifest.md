@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # #305 T1 Deterministic Shard Manifest Engine Implementation Plan
 
+> **2026-10-11 文件時效界線（T1 shard manifest 建置）**：工單 [#305](https://github.com/looaeedr/whd/issues/305) 已於 2026-09-16 結案。此處 `whd_doc_role: CURRENT` 不代表舊計畫尚待施工；下列固定前置 SHA、分支、`- [ ]`、`REQUIRED SUB-SKILL` 是當時的核准實作步驟，**不得當作今天的施工授權或重啟過時 Preflight**。新修改按正式 X `AGENTS.md`、適用 CURRENT 契約、現在的程式及 exact-HEAD CI 辦理；原文保留供歷史追溯。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build deterministic, auditable pytest lane/shard manifests from the existing WHD lane taxonomy without changing test execution semantics.
