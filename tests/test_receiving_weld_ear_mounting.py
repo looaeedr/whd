@@ -67,3 +67,53 @@ def test_weld_ear_unverified_dimensions_fail_closed(kwargs, reason):
     source.update(kwargs)
     with pytest.raises(ValueError, match=reason):
         resolve_receiving_large_weld_ear_fit(**source)
+
+
+def test_bottom_fixing_plate_part_identity_and_original_2d_source():
+    from ae_engine.receiving_base_fixing_plate import (
+        receiving_base_fixing_plate_previews, MANUFACTURING_STATUS,
+    )
+    snapshot = {"model": "受電箱", "w": 800, "t": 2,
+                "receiving_base_plate": {"pattern": "LEFT"}}
+    parts = receiving_base_fixing_plate_previews(
+        snapshot, available_parts=("box_body", "base_plate"),
+    )
+    assert [p.part_id for p in parts] == [
+        "base_plate:fixing_plate:left", "base_plate:fixing_plate:right",
+    ]
+    assert [p.display_name for p in parts] == [
+        "底板固定片（左）", "底板固定片（右）",
+    ]
+    for part in parts:
+        assert part.parent_part_id == "base_plate"
+        assert part.stock_thickness_mm == 3
+        assert part.nominal_source_outline_mm == (256, 105)
+        assert part.nominal_source_slot_centers_mm == (
+            (23, 86), (58, 86), (198, 86), (233, 86),
+        )
+        assert part.source_slot_size_mm == (25, 11)
+        assert part.source_top_corner_radius_mm == 5
+        assert part.nominal_fold_from_weld_edge_mm == 23
+        assert part.applicable_slot_pair_indexes == (0, 3)
+        assert part.manufacturing_status == MANUFACTURING_STATUS
+        assert part.manufacturing_ready is False
+    # Same physical fixing plate, only an alternative hole pair for center base.
+    center = receiving_base_fixing_plate_previews(
+        {**snapshot, "receiving_base_plate": {"pattern": "CENTER"}},
+        available_parts=("box_body", "base_plate"),
+    )
+    assert [p.part_id for p in center] == [p.part_id for p in parts]
+    assert all(p.applicable_slot_pair_indexes == (1, 2) for p in center)
+
+
+@pytest.mark.parametrize("snapshot,available", [
+    ({"model": "金庫型", "w": 800, "t": 2}, ("base_plate",)),
+    ({"model": "受電箱", "w": 750, "t": 2}, ("base_plate",)),
+    ({"model": "受電箱", "w": 800, "t": 3}, ("base_plate",)),
+    ({"model": "受電箱", "w": 800, "t": 2}, ("box_body",)),
+])
+def test_bottom_fixing_plate_not_invented_for_other_families_or_unknown_geometry(
+    snapshot, available,
+):
+    from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
+    assert receiving_base_fixing_plate_previews(snapshot, available_parts=available) == ()
