@@ -725,6 +725,47 @@ def open_receiving_layer_preview(self, namespace, layer_index):
         bay_request_provider=lambda: tuple(self.receiving_bay_preview_request(namespace, index, i) for i in range(preview["connection_count"])),
     )
 
+def _commit_receiving_base_plate_from_settings(app, config):
+    """Atomic source selection; no Receiving pattern is inferred by default."""
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
+
+    snapshot = getattr(app, "_phase6_input_snapshot", None)
+    if not isinstance(snapshot, dict):
+        raise ValueError("受電箱實體底板缺少可提交的專案狀態")
+    if str(snapshot.get("model") or "").strip() not in {"受電箱", "RECEIVING"}:
+        raise ValueError("只有受電箱可選擇專用底板")
+    if config is not None and not isinstance(config, Mapping):
+        raise ValueError("受電箱底板配置必須是完整欄位")
+
+    # Validate the REAL part envelope before touching the live owner.  No
+    # illustrative DXF origin or implicit family-wide pattern is accepted.
+    if config is not None:
+        probe = dict(snapshot)
+        for key in ("w", "t"):
+            if key in getattr(app, "_settings_values", {}):
+                probe[key] = app._settings_values[key]
+        probe["receiving_base_plate"] = dict(config)
+        receiving_base_plate_blank_dimensions(probe)
+
+    existed = "receiving_base_plate" in snapshot
+    old = deepcopy(snapshot.get("receiving_base_plate"))
+    try:
+        if config is None:
+            snapshot.pop("receiving_base_plate", None)
+        else:
+            snapshot["receiving_base_plate"] = deepcopy(dict(config))
+        # Uses the existing scheduler and manufacturing projection; not a
+        # second base plate part, geometry path, or project schema.
+        app.submit_update_intent("geometry", commit=True)
+    except Exception:
+        if existed:
+            snapshot["receiving_base_plate"] = old
+        else:
+            snapshot.pop("receiving_base_plate", None)
+        raise
+    return deepcopy(snapshot.get("receiving_base_plate"))
+
+
 def settings_panel(self, namespace):
     """Construct the Settings presentation owner through the composition root."""
     app = self.app
@@ -760,6 +801,9 @@ def settings_panel(self, namespace):
         part_labels=required("PART_LABELS"),
         context_extension_projection=lambda context: self.settings_context_extension_projection(
             namespace, context
+        ),
+        receiving_base_plate_commit=lambda config: _commit_receiving_base_plate_from_settings(
+            app, config
         ),
         endcap_fw_value_selected=lambda part_key, value_var: required(
             "_phase6_on_endcap_fw_value_selected"
