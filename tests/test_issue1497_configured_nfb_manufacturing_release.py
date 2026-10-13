@@ -102,19 +102,24 @@ def test_configured_world_x_y_produce_real_door_cutting_without_manual_approval(
     assert build_inner_door_panel_render_data(panel).scene.primitives==baseline.scene.primitives
 
 
-def test_original_download_suffix_allowed_only_when_same_pinned_sha(tmp_path):
+def test_original_download_suffix_and_stale_profile_sha_are_allowed_for_same_format(tmp_path):
     index,src,profile = _source(tmp_path,suffix="(1)")
     result = configured_nfb_inner_door_render_data(
         _state(),"upper",holes=(_hole(),),
         index_path=index,source_path=src,profile=profile,
     )
     assert result.manufacturing_ready
-    with pytest.raises(ValueError,match="SHA"):
-        configured_nfb_inner_door_render_data(
-            _state(),"upper",holes=(_hole(),),
-            index_path=index,source_path=src,
-            profile=replace(profile,source_sha256="0"*64),
-        )
+    # The operator may edit a historical index SHA. It is NOT a frozen
+    # manufacturing allow-list: actual DXF geometry is read again.
+    rebound = configured_nfb_inner_door_render_data(
+        _state(),"upper",holes=(_hole(),),
+        index_path=index,source_path=src,
+        profile=replace(profile,source_sha256="0"*64),
+    )
+    assert rebound.source_sha256 == profile.source_sha256
+    assert rebound.render_data.metadata["nfb_source_handle"] == (
+        profile.source_sha256 + ":" + profile.upper_handle
+    )
     renamed=tmp_path/"unrelated_name.dxf"
     renamed.write_bytes(src.read_bytes())
     with pytest.raises(ValueError,match="filename"):
