@@ -71,6 +71,7 @@ def validate_nfb_door_base_pair(
     if (not ids or len(ids) != len(set(ids))
             or len(observations) != len(ids)
             or {row[0] for row in observations} != set(ids)
+            or projected.verified_hole_locations != observations
             or projected.owner_hole_ids != ids
             or tuple(base_meta.get("nfb_physical_hole_ids", ())) != ids
             or projected.physical_part_id != base_id
