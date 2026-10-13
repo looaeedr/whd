@@ -6,7 +6,7 @@ and small 90x90 / two slots (T3, top R5, slot R5.5). Coordinates below are
 local 0,0 normalization of the user's actual LINE/ARC entities, not a new
 cabinet placement. Geometry is shared by 2D / 3D flat-material preview and
 separate source-flat DXF. The source does not establish the finished weld Z,
-bend allowance or the number of *small* plates to install in a cabinet.
+large-ear fold direction/line or the number of *small* plates to install in a cabinet.
 
 The long plate applies to W800/T2 at the two verified side positions; the
 short profile is catalogued, never silently instantiated in that W800 cabinet.
