@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from typing import Mapping
 
 from ae_engine.contracts import BasePlatePartSpec
+from ae_engine.manufacturing_render_data import PartRenderData
 from ae_engine.manufacturing_api import save_resolved_manufacturing_geometry_dxf
 from ae_engine.manufacturing_export import receiving_instance_namespace
 from ae_engine.receiving_nfb_manufacturing_release import (
@@ -35,6 +36,12 @@ class NfbPairedPartOnlyDxf:
     inner_door_path: str
     base_plate_path: str
     receipt: NfbDoorBasePairReceipt
+    inner_door_render_data: PartRenderData
+    base_plate_render_data: PartRenderData
+    source_path: str
+    set_id: str
+    bay_id: str
+    version_id: str
     scope: str = "PAIR_PART_ONLY_NOT_WHOLE_CABINET"
 
 
@@ -121,4 +128,10 @@ def export_verified_receiving_nfb_door_base_pair(
         inner_door_path=paths[receipt.inner_door_part_id],
         base_plate_path=paths[receipt.base_plate_part_id],
         receipt=receipt,
+        inner_door_render_data=door_render,
+        base_plate_render_data=composed.render_data,
+        source_path=str(bundle.source_path),
+        set_id=bundle.scope.set_id,
+        bay_id=bundle.scope.bay_id,
+        version_id=bundle.scope.version_id,
     )

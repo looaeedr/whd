@@ -204,7 +204,8 @@ def _reject_unapproved_nfb_pad_ear_manufacturing(rows) -> None:
             raise ValueError('NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED')
 
 
-def _validate_nfb_base_part_scope(rows, *, part_only: bool) -> set[str]:
+def _validate_nfb_base_part_scope(rows, *, part_only: bool,
+                                  quantity_group: bool = False) -> set[str]:
     """Separately admit verified physical plate CUTTING; never whole assembly.
 
     A part-only DXF is independently checked after serialization before the
@@ -219,7 +220,10 @@ def _validate_nfb_base_part_scope(rows, *, part_only: bool) -> set[str]:
             raise ValueError('NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT')
         from .receiving_nfb_base_process_projection import validate_nfb_base_part_cutting
         physical_id = str(metadata.get('stable_id') or '')
-        if str(output_key) not in (physical_id,) and not str(output_key).endswith(':' + physical_id):
+        raw_key = str(output_key)
+        ordinary_owner = (raw_key == physical_id or raw_key.endswith(':' + physical_id))
+        group_owner = quantity_group and bool(re.fullmatch(r'[0-9a-f]{64}', raw_key))
+        if not (ordinary_owner or group_owner):
             raise ValueError('NFB_BASE_PART_OUTPUT_OWNER_MISMATCH')
         validate_nfb_base_part_cutting(render_data, physical_part_id=physical_id)
         approved.add(str(output_key))
@@ -233,6 +237,7 @@ def _save_resolved_rows_atomic(
     save_part_render_data_dxf,
     overwrite: bool,
     part_only: bool = False,
+    quantity_group: bool = False,
 ) -> dict[str, str]:
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
@@ -245,7 +250,9 @@ def _save_resolved_rows_atomic(
                 "RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING: "
                 + str(output_key)
             )
-    verified_nfb_parts = _validate_nfb_base_part_scope(rows, part_only=part_only)
+    verified_nfb_parts = _validate_nfb_base_part_scope(
+        rows, part_only=part_only, quantity_group=quantity_group,
+    )
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
     stage_dir = Path(tempfile.mkdtemp(prefix='.whd-dxf-stage-', dir=str(root)))
@@ -347,9 +354,16 @@ def resolved_manufacturing_nc_capability() -> dict[str, object]:
 
 def save_quantity_manufacturing_groups_dxf(
     groups, output_dir, *, save_part_render_data_dxf, verify_part_dxf, overwrite=False,
-    render_data_transform=None,
+    render_data_transform=None, part_only: bool = False,
 ):
-    """Serialize one sheet per validated group through the existing atomic sink."""
+    """Serialize one sheet per validated group through the existing atomic sink.
+
+    PART_ONLY remains explicitly opt-in: the base's genuine source/FinalScene
+    evidence is still checked by the existing _validate_nfb_base_part_scope.
+    It does NOT release full NFB MFG-2 or PAD/EAR assembly.
+    """
+    if type(part_only) is not bool:
+        raise TypeError("CHECK/Q part_only must be an explicit boolean")
     rows = []
     keys = set()
     filenames = set()
@@ -365,6 +379,17 @@ def save_quantity_manufacturing_groups_dxf(
         if isinstance(group.quantity, bool) or not isinstance(group.quantity, int) or group.quantity < 1:
             raise ValueError("manufacturing group quantity must be positive")
         render = group.render_data
+        if part_only:
+            # A PART_ONLY CHECK/Q group key must be derived from the same
+            # current physical scene/material/parameters as its DXF. Group
+            # names cannot stand in for a signed manufacturing equivalence.
+            from hashlib import sha256
+            from .manufacturing_equivalence import manufacturing_equivalence_payload
+            observed = sha256(
+                manufacturing_equivalence_payload(render, group.parameters).encode('utf-8')
+            ).hexdigest()
+            if observed != key:
+                raise ValueError('NFB_PART_ONLY_CHECK_GROUP_GEOMETRY_KEY_MISMATCH')
         if render_data_transform is not None:
             render = render_data_transform(group)
         from .drawing_annotation_layout import annotate_quantity_render_data
@@ -383,5 +408,6 @@ def save_quantity_manufacturing_groups_dxf(
 
     return _save_resolved_rows_atomic(
         rows, output_dir, save_part_render_data_dxf=save_verified,
-        overwrite=overwrite,
+        overwrite=overwrite, part_only=part_only,
+        quantity_group=part_only,
     )
