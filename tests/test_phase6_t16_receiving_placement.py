@@ -74,11 +74,11 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
     vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
         snapshot, "upper"
     )
-    assert vertical["top_terminal_y"] == pytest.approx(750.0)
+    assert vertical["top_terminal_y"] == pytest.approx(798.0)
     # Side frames keep their own real Divider mating span. That is NOT
     # the Door panel's manufacturing height / Y center.
-    assert vertical["lower_terminal_y"] == pytest.approx(-286.5)
-    assert vertical["center_y"] == pytest.approx(231.75)
+    assert vertical["lower_terminal_y"] == pytest.approx(-300.0)
+    assert vertical["center_y"] == pytest.approx(249.0)
     assert panel.world_offset[1] == pytest.approx(224.0)
     frames = {
         row.stable_id: row
@@ -87,8 +87,11 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
         )
     }
     expected = {
-        "inner_door:upper:left_frame": (-363.0, "box_body:left_side"),
-        "inner_door:upper:right_frame": (374.0, "box_body:right_side"),
+        # A = 22/46/22 mm frame from the original verified Receiving DXF.
+        "inner_door:upper:left_frame": (-374.0, "box_body:left_side"),
+        # B = 22/20/46/22 mm folded right frame; source and physical
+        # skin contact are checked independently by mother-plate tests.
+        "inner_door:upper:right_frame": (363.0, "box_body:right_side"),
     }
     for stable_id, (x, mother_plate) in expected.items():
         placement = resolve_assembly_placement(snapshot, stable_id)
@@ -142,7 +145,26 @@ def test_r06_divider_guard_stays_authoritative_and_repeatable():
     assert first == second
     assert first.relationship == "SHARED_STRUCTURAL_DIVIDER"
     assert first.placement_kind == "divider_horizontal_inward"
-    assert first.world_offset[:2] == pytest.approx((0.0, -300.0))
+    # The logical bay boundary stays at -300. The actual Divider assembly
+    # offset must instead account for its folded D-core outer skin, so the
+    # finished physical support surface (not the centre) is at -300.
+    assert first.semantic_position[:2] == pytest.approx((0.0, -300.0))
+    from ae_engine.cabinet_types.receiving import inner_door_vertical_frame_contract
+    from ae_engine.door_dividers import derive_box_body_dividers
+    from ae_engine.assembly_geometry import folded_profile_segment_center_from_full_envelope
+
+    source = _snapshot()
+    div = derive_box_body_dividers(
+        source["door_layout_columns"], depth=source["d"], thickness=source["t"],
+        frame_width=source["fw"], layout_scope=source["door_layout_scope"],
+        model_name="受電箱",
+    )[0]
+    _u, core_z = folded_profile_segment_center_from_full_envelope(
+        div.fold_profile, div.core_segment_index,
+    )
+    assert first.world_offset[0] == pytest.approx(0.0)
+    assert first.world_offset[1] + core_z + source["t"] / 2.0 == pytest.approx(-300.0)
+    assert inner_door_vertical_frame_contract(source, "upper")["span"] == pytest.approx(1098.0)
     # Depth is geometry-derived from the shared FW formed-face relation.
     # Do not lock a world-Z probe value here; Issue48 verifies the real skins.
     assert first.world_offset[2] != pytest.approx(0.0)

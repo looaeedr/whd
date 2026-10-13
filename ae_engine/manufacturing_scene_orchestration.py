@@ -502,8 +502,19 @@ def build_inner_door_frame_render_data(frame) -> PartRenderData:
         ),
         height=float(frame.span),
     )
+    # The Receiving upper trio has certified dedicated drawing A/B/D.
+    # The optional generic "bottom" role has no Receiving DXF part and
+    # preserves the original rectangular compatibility behavior.
+    if str(frame.side) in {"top", "left", "right"}:
+        from .receiving_frame_baseline import receiving_frame_source
+        source_outline, source_holes, source_info = receiving_frame_source(
+            str(frame.side), material_width=float(chain.total_width), span=float(frame.span),
+        )
+    else:
+        source_outline = tuple(build_strip_outline(chain))
+        source_holes, source_info = (), {}
     structural = StructuralGeometryResult(
-        outline=tuple(build_strip_outline(chain)),
+        outline=source_outline,
         bends=tuple(build_strip_bend_segments(chain)),
         width=float(chain.total_width),
         height=float(chain.height),
@@ -511,6 +522,7 @@ def build_inner_door_frame_render_data(frame) -> PartRenderData:
     )
     scene = DrawingScene()
     scene.extend(structural_result_to_primitives(structural))
+    scene.extend(source_holes)
 
     topology = UnfoldedBlankTopology(
         piece_id=str(frame.stable_id),
@@ -529,6 +541,7 @@ def build_inner_door_frame_render_data(frame) -> PartRenderData:
             "stable_id": str(frame.stable_id),
             "inner_door_id": str(frame.inner_door_id),
             "frame_side": str(frame.side),
+            **source_info,
             "signed_fold_chain": tuple(float(v) for v in frame.signed_fold_chain),
             "material_lengths": tuple(float(v) for v in frame.material_lengths),
             "fold_profile": tuple(frame.fold_profile),
