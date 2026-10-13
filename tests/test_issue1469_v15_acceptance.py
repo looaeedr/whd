@@ -138,6 +138,15 @@ def test_selectable_family_save_reload_real_output_custom_bom(family, first_coun
         before = deepcopy(ws.snapshot())
         flags = dict.fromkeys(("box_body", "head", "tail", "door", "base_plate", "indicator_box", "indicator_door"), True)
         exported, problems = _export_selected_parts(main, str(tmp_path), {}, flags, False)
+        if family == "受電箱":
+            # W900 quantity-mode fixture has NO approved physical Receiving
+            # bottom-plate variant. A full batch must not invent the old
+            # generic plate just to keep unrelated quantity tests green.
+            assert not exported
+            assert any("RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING" in str(p)
+                       for p in problems), problems
+            assert ws.snapshot() == before and path.read_bytes() == saved
+            return
         assert exported and not problems, problems
         batch = resolved_batch(app)
         groups = quantity_manufacturing_groups(batch)

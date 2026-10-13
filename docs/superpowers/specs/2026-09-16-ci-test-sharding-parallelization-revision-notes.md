@@ -9,7 +9,11 @@ whd_schema: WHD_DOC_META_V1
 
 Date: 2026-09-16 (Asia/Taipei)
 Applies to: `2026-09-16-ci-test-sharding-parallelization-design.md`
-Status: approved design corrections; implementation not yet authorized
+Status: CURRENT normative revision contract; original 2026-09-16 implementation authorization statement below is historical
+
+> **2026-10-11 implementation readback**: `.github/workflows/whd-product-regression.yml` uses three product regression shards and `tools/test_shard_execution.py`. Thus the original “implementation not yet authorized” statement is not the current overall implementation status. The existence of three shards **does not** prove every revision requirement (R1–R5), retry-diagnostics or performance acceptance target has been met; those require their own current source and CI evidence.
+
+> **Original status record (2026-09-16)**: approved design corrections; implementation not yet authorized
 
 These revision notes are normative. They tighten the parent specification in four areas discovered during review: shard-assignment stability, flaky retry visibility, unified aggregation reporting, and GitHub Actions `bash -e` result-classification safety.
 

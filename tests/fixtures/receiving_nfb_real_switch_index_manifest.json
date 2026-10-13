@@ -1,0 +1,70 @@
+{
+  "schema": "WHD_NFB_REAL_SWITCH_INDEX_V1",
+  "source_file": "開關索引.csv",
+  "source_sha256": "d6638de4dc204de5a9c465359ab6f051033ef505eab1382ae9234e68b5134321",
+  "source_format": "UTF-8-BOM, 7 columns",
+  "records": 42,
+  "totals": {
+    "references": 64,
+    "unique_brand_filenames": 24,
+    "no_matching_file_cells": 62
+  },
+  "by_brand": {
+    "士林": {
+      "references": 21,
+      "missing": 21,
+      "source_reference_counts": {
+        "BH_25X95.dxf": 3,
+        "BH_25X95_02.dxf": 1,
+        "100_75X130_68.dxf": 4,
+        "125_90X155_72.dxf": 4,
+        "250_105X165_72.dxf": 2,
+        "400_140X257_107.dxf": 5,
+        "BH_25X95_03.dxf": 1,
+        "LEAKAGE_75X130.dxf": 1
+      }
+    },
+    "東元": {
+      "references": 19,
+      "missing": 23,
+      "source_reference_counts": {
+        "50X130_68.dxf": 4,
+        "90X155_68.dxf": 4,
+        "BRANCH_75X130_68.dxf": 3,
+        "105X160_60.dxf": 1,
+        "400_Type.dxf": 4,
+        "140X260_103.dxf": 1,
+        "105X165_68.dxf": 1,
+        "ELCB_75X130_60.dxf": 1
+      }
+    },
+    "伍菱": {
+      "references": 24,
+      "missing": 18,
+      "source_reference_counts": {
+        "BH_BH_210.dxf": 3,
+        "BH_BH_210_02.dxf": 1,
+        "60X130_72.dxf": 5,
+        "90X130_72.dxf": 4,
+        "75X130_64.dxf": 3,
+        "105X165_72.dxf": 2,
+        "NF400_140X257_107.dxf": 5,
+        "BH_BH_210_03.dxf": 1
+      }
+    }
+  },
+  "verified_attachment": {
+    "attachment_file": "400_140X257_107(1).dxf",
+    "index_brand": "士林",
+    "indexed_filename": "400_140X257_107.dxf",
+    "attachment_sha256": "8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3",
+    "name_equivalence": "NOT_PROVEN_BY_FILENAME_ALONE",
+    "upper_aci150_ref": "585",
+    "upper_center_mm": [
+      3771.967234,
+      2608.809181
+    ],
+    "lower_region_ignored": true
+  },
+  "note": "Derived only from user-supplied original CSV. Sources are grouped by brand+basename. Name collision across brands must not be conflated. Missing NFB originals are UNKNOWN, not zero holes. No CUTTING approval."
+}

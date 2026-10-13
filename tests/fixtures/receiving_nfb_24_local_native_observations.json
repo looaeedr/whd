@@ -1,0 +1,1265 @@
+{
+  "schema": "WHD_NFB_24_LOCAL_NATIVE_SOURCE_OBSERVATIONS_V1",
+  "authority_scope": "LOCAL_V07_POSTPROCESSED_AND_ONE_ARCHIVE_V06_NOT_ORIGINAL_MANUFACTURING_CERTIFICATION",
+  "index_sha256": "9b2a0715ac4a61e4a9fe4d8d56a13a672c43ee9d7b173c2a9003079579fa7856",
+  "index_rows": 42,
+  "indexed_unique_sources": 24,
+  "index_references": 64,
+  "extraction_readme_sha256": "9e639d4076489161276f31aed20a5db2e2819ab343dd3a733125e23d1d6462b0",
+  "extraction_manifest_sha256": "1325c21244a06afec1bef84fb0083b98e2e350f6c4a846537fd7af741bedb039",
+  "archive_sha256": "788e18cb99dffe41996357ee936ea11976ddadb781ec4cf783fc491542d9c08b",
+  "single_color150_rectangle_count": 22,
+  "missing_color150_count": 1,
+  "nonrectangle_color150_count": 1,
+  "source_pin_sha_mismatch_count": 1,
+  "records": [
+    {
+      "brand": "士林",
+      "indexed_filename": "BH_25X95.dxf",
+      "model_links": [
+        {
+          "csv_row": 2,
+          "model_key": "1PBH"
+        },
+        {
+          "csv_row": 40,
+          "model_key": "A$C69112A31"
+        },
+        {
+          "csv_row": 42,
+          "model_key": "1PELCB"
+        }
+      ],
+      "observed_source_sha256": "def0512ea5433e9cbba1afeccaf501b8282eeea86ba80834136611dbd4e256eb",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 68,
+      "entity_type_counts": {
+        "LWPOLYLINE": 1,
+        "CIRCLE": 6,
+        "ARC": 12,
+        "LINE": 49
+      },
+      "effective_aci_entity_counts": {
+        "30": 2,
+        "150": 0,
+        "212": 61
+      },
+      "color150_entities": [],
+      "candidate_rectangle": null,
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "伍菱",
+      "indexed_filename": "BH_BH_210.dxf",
+      "model_links": [
+        {
+          "csv_row": 2,
+          "model_key": "1PBH"
+        },
+        {
+          "csv_row": 40,
+          "model_key": "A$C69112A31"
+        },
+        {
+          "csv_row": 42,
+          "model_key": "1PELCB"
+        }
+      ],
+      "observed_source_sha256": "8a771bd491839aa43938840288f7cc042a99f7ab011c74ac313a355c98c5492c",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 53,
+      "entity_type_counts": {
+        "LWPOLYLINE": 12,
+        "CIRCLE": 12,
+        "LINE": 29
+      },
+      "effective_aci_entity_counts": {
+        "30": 18,
+        "150": 1,
+        "212": 29
+      },
+      "color150_entities": [
+        {
+          "handle": "4A",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "4A",
+        "center_xy_mm": [
+          0,
+          331.5
+        ],
+        "size_mm": [
+          60,
+          63
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "士林",
+      "indexed_filename": "BH_25X95_02.dxf",
+      "model_links": [
+        {
+          "csv_row": 3,
+          "model_key": "2PBH"
+        }
+      ],
+      "observed_source_sha256": "8508eb5cc2b7e7e66978f8fbd81abfe98a785b77fdd6abe2052b214049753362",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 123,
+      "entity_type_counts": {
+        "LWPOLYLINE": 7,
+        "CIRCLE": 19,
+        "LINE": 83,
+        "ARC": 14
+      },
+      "effective_aci_entity_counts": {
+        "30": 14,
+        "150": 1,
+        "212": 97
+      },
+      "color150_entities": [
+        {
+          "handle": "56",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 6
+        }
+      ],
+      "candidate_rectangle": null,
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "伍菱",
+      "indexed_filename": "BH_BH_210_02.dxf",
+      "model_links": [
+        {
+          "csv_row": 3,
+          "model_key": "2PBH"
+        }
+      ],
+      "observed_source_sha256": "8e55c0d445a7ccd74daae93475d442120c123254769c158adc8ca9e8c951c151",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 95,
+      "entity_type_counts": {
+        "LWPOLYLINE": 12,
+        "CIRCLE": 14,
+        "LINE": 64,
+        "ARC": 5
+      },
+      "effective_aci_entity_counts": {
+        "30": 18,
+        "150": 1,
+        "212": 69
+      },
+      "color150_entities": [
+        {
+          "handle": "52",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "52",
+        "center_xy_mm": [
+          11.75,
+          344.5
+        ],
+        "size_mm": [
+          50.5,
+          63
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "士林",
+      "indexed_filename": "100_75X130_68.dxf",
+      "model_links": [
+        {
+          "csv_row": 4,
+          "model_key": "2P125SN"
+        },
+        {
+          "csv_row": 7,
+          "model_key": "100HN-s"
+        },
+        {
+          "csv_row": 31,
+          "model_key": "A$C3CA840D9"
+        },
+        {
+          "csv_row": 32,
+          "model_key": "A$C4BDF2500"
+        }
+      ],
+      "observed_source_sha256": "66c2cfa5aeb8fae6e3156d3460fd86d0276f42f65ee0b20acf25118c95af6aa0",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 41,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 8,
+        "LINE": 27
+      },
+      "effective_aci_entity_counts": {
+        "30": 8,
+        "150": 1,
+        "212": 27
+      },
+      "color150_entities": [
+        {
+          "handle": "45",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "45",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          28,
+          58
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "東元",
+      "indexed_filename": "50X130_68.dxf",
+      "model_links": [
+        {
+          "csv_row": 4,
+          "model_key": "2P125SN"
+        },
+        {
+          "csv_row": 26,
+          "model_key": "A$C21286454"
+        },
+        {
+          "csv_row": 27,
+          "model_key": "A$C5677630C"
+        },
+        {
+          "csv_row": 28,
+          "model_key": "A$C1FD50147"
+        }
+      ],
+      "observed_source_sha256": "d1abc6a65e58f8957f82fa5bc8b66cfa34a673dbf862b4c62b7081f4bea9a3e0",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 29,
+      "entity_type_counts": {
+        "LWPOLYLINE": 8,
+        "CIRCLE": 3,
+        "LINE": 18
+      },
+      "effective_aci_entity_counts": {
+        "30": 7,
+        "150": 1,
+        "212": 18
+      },
+      "color150_entities": [
+        {
+          "handle": "43",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "43",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          54,
+          58
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "伍菱",
+      "indexed_filename": "60X130_72.dxf",
+      "model_links": [
+        {
+          "csv_row": 4,
+          "model_key": "2P125SN"
+        },
+        {
+          "csv_row": 26,
+          "model_key": "A$C21286454"
+        },
+        {
+          "csv_row": 27,
+          "model_key": "A$C5677630C"
+        },
+        {
+          "csv_row": 28,
+          "model_key": "A$C1FD50147"
+        },
+        {
+          "csv_row": 29,
+          "model_key": "A$C2A6554E1"
+        }
+      ],
+      "observed_source_sha256": "f73e56b4755c6f45797a97c88dadf56c619a9e787f0744699ee1b9352bf9c9ce",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 55,
+      "entity_type_counts": {
+        "LWPOLYLINE": 10,
+        "CIRCLE": 6,
+        "LINE": 39
+      },
+      "effective_aci_entity_counts": {
+        "30": 12,
+        "150": 1,
+        "212": 39
+      },
+      "color150_entities": [
+        {
+          "handle": "4A",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "4A",
+        "center_xy_mm": [
+          0,
+          340
+        ],
+        "size_mm": [
+          62,
+          56
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "士林",
+      "indexed_filename": "125_90X155_72.dxf",
+      "model_links": [
+        {
+          "csv_row": 5,
+          "model_key": "3P125SN"
+        },
+        {
+          "csv_row": 29,
+          "model_key": "A$C2A6554E1"
+        },
+        {
+          "csv_row": 33,
+          "model_key": "A$C53D3196F"
+        },
+        {
+          "csv_row": 34,
+          "model_key": "A$Cfbbc1a2c"
+        }
+      ],
+      "observed_source_sha256": "41149080323b626770a51d2b880887326d50559a39eb37671962474939a83ed8",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 42,
+      "entity_type_counts": {
+        "LWPOLYLINE": 7,
+        "CIRCLE": 12,
+        "LINE": 23
+      },
+      "effective_aci_entity_counts": {
+        "30": 13,
+        "150": 1,
+        "212": 23
+      },
+      "color150_entities": [
+        {
+          "handle": "42",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "42",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          28,
+          58
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "東元",
+      "indexed_filename": "90X155_68.dxf",
+      "model_links": [
+        {
+          "csv_row": 5,
+          "model_key": "3P125SN"
+        },
+        {
+          "csv_row": 29,
+          "model_key": "A$C2A6554E1"
+        },
+        {
+          "csv_row": 33,
+          "model_key": "A$C53D3196F"
+        },
+        {
+          "csv_row": 34,
+          "model_key": "A$Cfbbc1a2c"
+        }
+      ],
+      "observed_source_sha256": "90849e7b785ee6c3c91b974a4dddf9ce0a56abe865f07e5273e99bb4a0d22d14",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 26,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 6,
+        "LINE": 14
+      },
+      "effective_aci_entity_counts": {
+        "30": 6,
+        "150": 1,
+        "212": 14
+      },
+      "color150_entities": [
+        {
+          "handle": "41",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "41",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          30,
+          58
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "伍菱",
+      "indexed_filename": "90X130_72.dxf",
+      "model_links": [
+        {
+          "csv_row": 5,
+          "model_key": "3P125SN"
+        },
+        {
+          "csv_row": 32,
+          "model_key": "A$C4BDF2500"
+        },
+        {
+          "csv_row": 33,
+          "model_key": "A$C53D3196F"
+        },
+        {
+          "csv_row": 34,
+          "model_key": "A$Cfbbc1a2c"
+        }
+      ],
+      "observed_source_sha256": "04f71c4858235defa0bebbeb5a7bbf4b079a2768fb7fdf72b791a1ac3478c10e",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 31,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 8,
+        "LINE": 17
+      },
+      "effective_aci_entity_counts": {
+        "30": 8,
+        "150": 1,
+        "212": 17
+      },
+      "color150_entities": [
+        {
+          "handle": "45",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "45",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          92,
+          56
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "東元",
+      "indexed_filename": "BRANCH_75X130_68.dxf",
+      "model_links": [
+        {
+          "csv_row": 7,
+          "model_key": "100HN-s"
+        },
+        {
+          "csv_row": 31,
+          "model_key": "A$C3CA840D9"
+        },
+        {
+          "csv_row": 32,
+          "model_key": "A$C4BDF2500"
+        }
+      ],
+      "observed_source_sha256": "cb098f18e49a6cca0055979b38594babb8812cda817f625ce98549fa5dcd8e2c",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 21,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 6,
+        "LINE": 9
+      },
+      "effective_aci_entity_counts": {
+        "30": 6,
+        "150": 1,
+        "212": 9
+      },
+      "color150_entities": [
+        {
+          "handle": "3C",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "3C",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          30,
+          58
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "伍菱",
+      "indexed_filename": "75X130_64.dxf",
+      "model_links": [
+        {
+          "csv_row": 7,
+          "model_key": "100HN-s"
+        },
+        {
+          "csv_row": 31,
+          "model_key": "A$C3CA840D9"
+        },
+        {
+          "csv_row": 43,
+          "model_key": "2PELCB"
+        }
+      ],
+      "observed_source_sha256": "486da05382060b5f994b7a2249db3581ecfd73aa6355a9198ce68de622318099",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 99,
+      "entity_type_counts": {
+        "LWPOLYLINE": 12,
+        "CIRCLE": 21,
+        "ARC": 10,
+        "LINE": 56
+      },
+      "effective_aci_entity_counts": {
+        "30": 23,
+        "150": 1,
+        "212": 66
+      },
+      "color150_entities": [
+        {
+          "handle": "59",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "59",
+        "center_xy_mm": [
+          -12.5,
+          330
+        ],
+        "size_mm": [
+          28,
+          56
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "士林",
+      "indexed_filename": "250_105X165_72.dxf",
+      "model_links": [
+        {
+          "csv_row": 8,
+          "model_key": "TO-225E-f"
+        },
+        {
+          "csv_row": 37,
+          "model_key": "A$C661D75A4"
+        }
+      ],
+      "observed_source_sha256": "007531f1c8f31114a641f299cdc79b58d7987c375866ef76f9ba37fcadf85f65",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 31,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 12,
+        "LINE": 13
+      },
+      "effective_aci_entity_counts": {
+        "30": 12,
+        "150": 1,
+        "212": 13
+      },
+      "color150_entities": [
+        {
+          "handle": "38",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "38",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          28,
+          58
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "東元",
+      "indexed_filename": "105X160_60.dxf",
+      "model_links": [
+        {
+          "csv_row": 8,
+          "model_key": "TO-225E-f"
+        }
+      ],
+      "observed_source_sha256": "f76afbcf1268fe025e23b3564f40de2750519c65d63cd02a4266926a7c14b496",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 66,
+      "entity_type_counts": {
+        "LWPOLYLINE": 13,
+        "CIRCLE": 16,
+        "ARC": 4,
+        "LINE": 33
+      },
+      "effective_aci_entity_counts": {
+        "30": 23,
+        "150": 1,
+        "212": 37
+      },
+      "color150_entities": [
+        {
+          "handle": "52",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "52",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          33,
+          33
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "伍菱",
+      "indexed_filename": "105X165_72.dxf",
+      "model_links": [
+        {
+          "csv_row": 8,
+          "model_key": "TO-225E-f"
+        },
+        {
+          "csv_row": 37,
+          "model_key": "A$C661D75A4"
+        }
+      ],
+      "observed_source_sha256": "4cae0bb653e0726f39c25a51cb59398b2885bdd1c5324227eb2c72510e2924b4",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 31,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 12,
+        "LINE": 13
+      },
+      "effective_aci_entity_counts": {
+        "30": 12,
+        "150": 1,
+        "212": 13
+      },
+      "color150_entities": [
+        {
+          "handle": "38",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "38",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          28,
+          56
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "士林",
+      "indexed_filename": "400_140X257_107.dxf",
+      "model_links": [
+        {
+          "csv_row": 9,
+          "model_key": "2P400"
+        },
+        {
+          "csv_row": 10,
+          "model_key": "3P400SN"
+        },
+        {
+          "csv_row": 14,
+          "model_key": "KS-2P400A-I"
+        },
+        {
+          "csv_row": 17,
+          "model_key": "2P 400A (圖形版)"
+        },
+        {
+          "csv_row": 41,
+          "model_key": "A$Cfaf46693"
+        }
+      ],
+      "observed_source_sha256": "80fd96bf10458b830e049d93c2a259b52aec9dd07d8fc594ff7752ffb47a77ea",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": "8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3",
+      "pinned_original_matches": false,
+      "entity_count": 41,
+      "entity_type_counts": {
+        "ARC": 5,
+        "CIRCLE": 8,
+        "LINE": 22,
+        "LWPOLYLINE": 6
+      },
+      "effective_aci_entity_counts": {
+        "30": 8,
+        "150": 1,
+        "212": 27
+      },
+      "color150_entities": [
+        {
+          "handle": "585",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "585",
+        "center_xy_mm": [
+          3771.967234,
+          2608.809181
+        ],
+        "size_mm": [
+          57,
+          96
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "東元",
+      "indexed_filename": "400_Type.dxf",
+      "model_links": [
+        {
+          "csv_row": 9,
+          "model_key": "2P400"
+        },
+        {
+          "csv_row": 14,
+          "model_key": "KS-2P400A-I"
+        },
+        {
+          "csv_row": 17,
+          "model_key": "2P 400A (圖形版)"
+        },
+        {
+          "csv_row": 41,
+          "model_key": "A$Cfaf46693"
+        }
+      ],
+      "observed_source_sha256": "a8f4dc4c8840775983bb614f2d45c2c4c4dbdd09d007fe3ffb6b40cb4921a90a",
+      "source_storage": "ARCHIVE_V06_TEMP",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 32,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 5,
+        "ARC": 5,
+        "LINE": 16
+      },
+      "effective_aci_entity_counts": {
+        "30": 4,
+        "150": 1,
+        "212": 21
+      },
+      "color150_entities": [
+        {
+          "handle": "4A",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "4A",
+        "center_xy_mm": [
+          0,
+          340
+        ],
+        "size_mm": [
+          50,
+          98
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "伍菱",
+      "indexed_filename": "NF400_140X257_107.dxf",
+      "model_links": [
+        {
+          "csv_row": 9,
+          "model_key": "2P400"
+        },
+        {
+          "csv_row": 10,
+          "model_key": "3P400SN"
+        },
+        {
+          "csv_row": 14,
+          "model_key": "KS-2P400A-I"
+        },
+        {
+          "csv_row": 17,
+          "model_key": "2P 400A (圖形版)"
+        },
+        {
+          "csv_row": 41,
+          "model_key": "A$Cfaf46693"
+        }
+      ],
+      "observed_source_sha256": "c718cbb59860344c97e9c7ee62a0fbe0e1976a1d60e5e9a30d465f228e1b358d",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 41,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 8,
+        "ARC": 5,
+        "LINE": 22
+      },
+      "effective_aci_entity_counts": {
+        "30": 8,
+        "150": 1,
+        "212": 27
+      },
+      "color150_entities": [
+        {
+          "handle": "4F",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "4F",
+        "center_xy_mm": [
+          0,
+          340
+        ],
+        "size_mm": [
+          56,
+          96
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "東元",
+      "indexed_filename": "140X260_103.dxf",
+      "model_links": [
+        {
+          "csv_row": 10,
+          "model_key": "3P400SN"
+        }
+      ],
+      "observed_source_sha256": "6f4551faa9f6b5c3cf027e690b441d122759eaceb7c5fd3e86f9517a3b8932b9",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 39,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 5,
+        "LINE": 28
+      },
+      "effective_aci_entity_counts": {
+        "30": 4,
+        "150": 1,
+        "212": 28
+      },
+      "color150_entities": [
+        {
+          "handle": "2F",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "2F",
+        "center_xy_mm": [
+          -5,
+          350
+        ],
+        "size_mm": [
+          50,
+          98
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "士林",
+      "indexed_filename": "BH_25X95_03.dxf",
+      "model_links": [
+        {
+          "csv_row": 30,
+          "model_key": "A$C68542420"
+        }
+      ],
+      "observed_source_sha256": "f636be8a2b37e104635f9b83174e7d6bdacce26140df6ca5ed736f19e13d29ae",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 67,
+      "entity_type_counts": {
+        "LWPOLYLINE": 13,
+        "CIRCLE": 10,
+        "ARC": 5,
+        "LINE": 39
+      },
+      "effective_aci_entity_counts": {
+        "30": 15,
+        "150": 1,
+        "212": 44
+      },
+      "color150_entities": [
+        {
+          "handle": "5C",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "5C",
+        "center_xy_mm": [
+          -0.5,
+          394
+        ],
+        "size_mm": [
+          5,
+          6
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "伍菱",
+      "indexed_filename": "BH_BH_210_03.dxf",
+      "model_links": [
+        {
+          "csv_row": 30,
+          "model_key": "A$C68542420"
+        }
+      ],
+      "observed_source_sha256": "146756282fac88912479b1d62cd65aa112f81e52effe5d45b2784e48b097b1ea",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 67,
+      "entity_type_counts": {
+        "LWPOLYLINE": 11,
+        "CIRCLE": 12,
+        "ARC": 5,
+        "LINE": 39
+      },
+      "effective_aci_entity_counts": {
+        "30": 15,
+        "150": 1,
+        "212": 44
+      },
+      "color150_entities": [
+        {
+          "handle": "3A",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "3A",
+        "center_xy_mm": [
+          5,
+          324
+        ],
+        "size_mm": [
+          6,
+          6
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "東元",
+      "indexed_filename": "105X165_68.dxf",
+      "model_links": [
+        {
+          "csv_row": 37,
+          "model_key": "A$C661D75A4"
+        }
+      ],
+      "observed_source_sha256": "31477087a29c51da68226b2f29789a7aa7e9ddc67e811b63c068de6bb140f1ab",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 30,
+      "entity_type_counts": {
+        "LWPOLYLINE": 11,
+        "CIRCLE": 10,
+        "LINE": 9
+      },
+      "effective_aci_entity_counts": {
+        "30": 15,
+        "150": 1,
+        "212": 9
+      },
+      "color150_entities": [
+        {
+          "handle": "38",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "38",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          33,
+          33
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "士林",
+      "indexed_filename": "LEAKAGE_75X130.dxf",
+      "model_links": [
+        {
+          "csv_row": 43,
+          "model_key": "2PELCB"
+        }
+      ],
+      "observed_source_sha256": "021b481d8b1d6b00c2f44e7d333dc46230363264c48c3130f484a1560a7e1f03",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 72,
+      "entity_type_counts": {
+        "LWPOLYLINE": 18,
+        "CIRCLE": 14,
+        "LINE": 40
+      },
+      "effective_aci_entity_counts": {
+        "30": 22,
+        "150": 1,
+        "212": 40
+      },
+      "color150_entities": [
+        {
+          "handle": "4F",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "4F",
+        "center_xy_mm": [
+          0,
+          346
+        ],
+        "size_mm": [
+          58,
+          28
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    },
+    {
+      "brand": "東元",
+      "indexed_filename": "ELCB_75X130_60.dxf",
+      "model_links": [
+        {
+          "csv_row": 43,
+          "model_key": "2PELCB"
+        }
+      ],
+      "observed_source_sha256": "85465d28d76af7818bd37d65133fd951e3cd3d30189d7b33d0d4c440742608b0",
+      "source_storage": "NFB_EXTRACTED_V07_LOCAL",
+      "pinned_original_sha256": null,
+      "pinned_original_matches": null,
+      "entity_count": 56,
+      "entity_type_counts": {
+        "LWPOLYLINE": 6,
+        "CIRCLE": 20,
+        "ARC": 5,
+        "LINE": 25
+      },
+      "effective_aci_entity_counts": {
+        "30": 16,
+        "150": 1,
+        "212": 30
+      },
+      "color150_entities": [
+        {
+          "handle": "56",
+          "type": "LWPOLYLINE",
+          "closed": true,
+          "vertices": 4
+        }
+      ],
+      "candidate_rectangle": {
+        "handle": "56",
+        "center_xy_mm": [
+          0,
+          330
+        ],
+        "size_mm": [
+          77,
+          62
+        ]
+      },
+      "source_parsing_status": "SOURCE_OBSERVED_UNCERTIFIED",
+      "manufacturing_ready": false
+    }
+  ]
+}

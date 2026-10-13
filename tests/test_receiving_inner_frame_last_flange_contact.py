@@ -49,6 +49,14 @@ def test_only_last_22_mm_flat_band_is_mating_flange():
     left = derive_inner_door_frames(
         "upper", spans={"left": 100.0}, thickness=2.0, included_sides=("left",)
     )[0]
-    assert left.material_lengths == (22.0, 20.0, 46.0, 22.0)
-    rows = (_skin(0.0, 1, flat_x=60.0), _skin(0.0, 1, flat_x=96.0))
-    assert _last_frame_flange_skins(left, rows) == (rows[1],)
+    right = derive_inner_door_frames(
+        "upper", spans={"right": 100.0}, thickness=2.0, included_sides=("right",)
+    )[0]
+    assert left.material_lengths == (22.0, 46.0, 22.0)
+    assert right.material_lengths == (22.0, 20.0, 46.0, 22.0)
+    assert left.blank_width == 90.0
+    assert right.blank_width == 110.0
+    left_rows = (_skin(0.0, 1, flat_x=50.0), _skin(0.0, 1, flat_x=80.0))
+    right_rows = (_skin(0.0, 1, flat_x=60.0), _skin(0.0, 1, flat_x=96.0))
+    assert _last_frame_flange_skins(left, left_rows) == (left_rows[1],)
+    assert _last_frame_flange_skins(right, right_rows) == (right_rows[1],)

@@ -69,6 +69,7 @@ class ReceivingSetBayAdapter:
         self._persisted_ids = {str(value) for value in persisted_ids}
         self._session_dirty_ids: set[str] = set()
         self._confirm_destructive = confirm_destructive
+        self._nfb_undo_receipts = []  # transient transaction history, not persisted
 
     @property
     def layout(self) -> dict[str, object]:
@@ -212,13 +213,15 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的開關品牌")
         self._layout["sets"][self.selection.set_index]["switch_brand"] = brand
 
-    def apply_candidate_to_bays(self, role, set_index, bay_indices, features):
+    def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
         """Atomically update ONLY highlighted Bays; preserve other shared refs."""
         from ae_engine.receiving_hole_candidates import role_key
         from ae_engine.receiving_shared_settings import (
             unlink_setting, edit_setting, validate_setting,
         )
         kind = role_key(role) + "_features"
+        version_kind = role + "_version_id"
+        version_id = validate_setting(version_kind, version_id)
         features = validate_setting(kind, features)
         if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
             raise ValueError("選取的套不存在")
@@ -234,6 +237,14 @@ class ReceivingSetBayAdapter:
             candidate = edit_setting(
                 candidate, set_index=set_index, bay_index=bay_index,
                 kind=kind, value=features,
+            )
+            candidate = unlink_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=version_kind,
+            )
+            candidate = edit_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=version_kind, value=version_id,
             )
         # Commit once after all validation and changes, with no UI reselect.
         self._layout = candidate
@@ -254,6 +265,10 @@ class ReceivingSetBayAdapter:
             expected_counts=expected_counts,
         )
         kind = role_key(role) + "_features"
+        version_kind = role + "_version_id"
+        from ae_engine.receiving_shared_settings import validate_setting
+        for si, bi, _features in plan:
+            validate_setting(version_kind, assigned[(si, bi)])
         candidate = self._layout
         for set_index, bay_index, features in plan:
             candidate = unlink_setting(
@@ -263,12 +278,170 @@ class ReceivingSetBayAdapter:
                 candidate, set_index=set_index, bay_index=bay_index,
                 kind=kind, value=features
             )
+            candidate = unlink_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=version_kind,
+            )
+            candidate = edit_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=version_kind, value=assigned[(set_index, bay_index)],
+            )
         self._layout = candidate
         self._session_dirty_ids.update(
             str(self._layout["sets"][si]["bays"][bi]["stable_id"])
             for si, bi, _ in plan
         )
         return len(plan)
+
+    def apply_inner_door_candidate_to_bays(self, config, set_index, bay_indices, *, version_id=None):
+        """Apply one isolated inner-door candidate only to real highlighted Bays."""
+        from ae_engine.receiving_inner_door_candidates import validate_door_config
+        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
+        source = validate_door_config(config)
+        from ae_engine.receiving_shared_settings import validate_setting
+        version_id = validate_setting("inner_door_version_id", version_id)
+        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
+            raise ValueError("選取的套不存在")
+        selected = tuple(sorted(set(bay_indices)))
+        count = len(self._layout["sets"][set_index]["bays"])
+        if not selected or any(type(i) is not int or not 0 <= i < count
+                               for i in selected):
+            raise ValueError("請在簡易圖高亮有效的連")
+        candidate = self._layout
+        for bi in selected:
+            for kind, value in (
+                ("inner_door_layers", source["layers"]),
+                ("inner_door_models", source["models"]),
+                ("inner_door_version_id", version_id),
+            ):
+                candidate = unlink_setting(
+                    candidate, set_index=set_index, bay_index=bi, kind=kind,
+                )
+                candidate = edit_setting(
+                    candidate, set_index=set_index, bay_index=bi,
+                    kind=kind, value=value,
+                )
+        self._layout = candidate
+        self._session_dirty_ids.update(
+            str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
+            for bi in selected
+        )
+        return selected
+
+    def mark_live_version_for_bays(self, role, set_index, bay_indices):
+        """Explicit 即時 Apply only labels highlighted Bays, not their geometry."""
+        if role not in ("head", "tail", "inner-door"):
+            raise ValueError("不支援的版本角色")
+        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
+            raise ValueError("套不存在")
+        indices = tuple(sorted(set(bay_indices)))
+        count = len(self._layout["sets"][set_index]["bays"])
+        if not indices or any(type(bi) is not int or not 0 <= bi < count for bi in indices):
+            raise ValueError("請先高亮有效的連")
+        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
+        kind = role.replace("-", "_") + "_version_id"
+        candidate = self._layout
+        for bi in indices:
+            candidate = unlink_setting(
+                candidate, set_index=set_index, bay_index=bi, kind=kind,
+            )
+            candidate = edit_setting(
+                candidate, set_index=set_index, bay_index=bi,
+                kind=kind, value="",
+            )
+        self._layout = candidate
+        self._session_dirty_ids.update(
+            str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
+            for bi in indices
+        )
+        return indices
+
+    def apply_inner_door_quantity_configuration(
+            self, library, quantities, assigned, *, expected_counts=None):
+        """Validate every Set/Bay first, then replace both inner-door settings."""
+        from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
+        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
+        plan = validate_inner_door_allocation(
+            self._layout, library, quantities, assigned,
+            expected_counts=expected_counts,
+        )
+        from ae_engine.receiving_shared_settings import validate_setting
+        for si, bi, _config in plan:
+            validate_setting("inner_door_version_id", assigned[(si, bi)])
+        candidate = self._layout
+        for si, bi, config in plan:
+            for kind, value in (
+                ("inner_door_layers", config["layers"]),
+                ("inner_door_models", config["models"]),
+                ("inner_door_version_id", assigned[(si, bi)]),
+            ):
+                candidate = unlink_setting(
+                    candidate, set_index=si, bay_index=bi, kind=kind,
+                )
+                candidate = edit_setting(
+                    candidate, set_index=si, bay_index=bi, kind=kind, value=value,
+                )
+        self._layout = candidate
+        self._session_dirty_ids.update(
+            str(candidate["sets"][si]["bays"][bi]["stable_id"])
+            for si, bi, _ in plan
+        )
+        return len(plan)
+
+
+    def _nfb_apply_outcome(self, outcome):
+        """Commit an already validated, atomically prepared NFB transaction."""
+        if outcome.changed:
+            self._layout = outcome.layout
+            self._nfb_undo_receipts.append(outcome.receipt)
+            self._session_dirty_ids.update(
+                change.stable_id for change in outcome.receipt.changes
+            )
+        return outcome
+
+    def submit_nfb_to_bays(
+        self, *, set_index, bay_indices, version_id, configs, evidence, confirm,
+    ):
+        from ae_engine.receiving_nfb_transactions import submit_nfb_bays
+        return self._nfb_apply_outcome(submit_nfb_bays(
+            self._layout, set_index=set_index, bay_indices=bay_indices,
+            version_id=version_id, configs=configs, evidence=evidence,
+            confirm=confirm,
+        ))
+
+    def copy_submitted_nfb_to_bay(
+        self, *, set_index, source_bay_index, target_bay_index,
+        version_id, target_config, evidence, confirm,
+    ):
+        from ae_engine.receiving_nfb_transactions import copy_submitted_nfb_bay
+        return self._nfb_apply_outcome(copy_submitted_nfb_bay(
+            self._layout, set_index=set_index,
+            source_bay_index=source_bay_index, target_bay_index=target_bay_index,
+            version_id=version_id, target_config=target_config,
+            evidence=evidence, confirm=confirm,
+        ))
+
+    def restore_nfb_unconfigured(self, *, set_index, bay_indices, confirm):
+        from ae_engine.receiving_nfb_transactions import restore_nfb_bays_unconfigured
+        return self._nfb_apply_outcome(restore_nfb_bays_unconfigured(
+            self._layout, set_index=set_index, bay_indices=bay_indices,
+            confirm=confirm,
+        ))
+
+    @property
+    def nfb_can_undo(self):
+        return bool(self._nfb_undo_receipts)
+
+    def undo_last_nfb_transaction(self):
+        from ae_engine.receiving_nfb_transactions import undo_nfb_transaction
+        if not self._nfb_undo_receipts:
+            raise ValueError("沒有可復原的內門 NFB 操作")
+        receipt = self._nfb_undo_receipts[-1]
+        restored = undo_nfb_transaction(self._layout, receipt)
+        self._layout = restored
+        self._nfb_undo_receipts.pop()
+        self._session_dirty_ids.update(change.stable_id for change in receipt.changes)
+        return receipt
 
     def set_global_brand(self, brand):
         """Update every Set NFB once, keeping active Set/Bay identity intact."""

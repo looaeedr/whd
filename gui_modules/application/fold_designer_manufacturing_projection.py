@@ -229,6 +229,21 @@ def _query_fold_designer_render_data(self, part_key, payload):
         payload = collect_door_input(payload)
     """Return the same authoritative final geometry used by 2D consumers."""
     key = str(part_key or "")
+    if key.startswith("base_plate:fixing_plate:"):
+        # Native independent PartRenderData, not the BasePlatePartSpec blank
+        # and not a drawing-only menu simulation.
+        from ae_engine.receiving_base_fixing_plate import (
+            receiving_base_fixing_plate_previews,
+        )
+        from ae_engine.receiving_base_fixing_plate_geometry import (
+            build_fixing_plate_source_render_data,
+        )
+        physical = receiving_base_fixing_plate_previews(
+            dict(payload or {}), available_parts=("base_plate",),
+        )
+        if key not in {part.part_id for part in physical}:
+            raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
+        return build_fixing_plate_source_render_data(key, snapshot=dict(payload or {}))
     if key.startswith("box_body:divider:"):
         from ae_engine.door_dividers import derive_box_body_dividers
 
@@ -257,7 +272,9 @@ def _query_fold_designer_render_data(self, part_key, payload):
         panel = next((item for item in panels if item.stable_id == key), None)
         if panel is None:
             raise ValueError(f"內門板 stable_id 不存在於 authoritative topology: {key}")
-        return manufacturing_api.build_inner_door_panel_render_data(panel)
+        return manufacturing_api.build_inner_door_panel_render_data(
+            panel, features=tuple(data.get("features") or ()),
+        )
 
     if key.startswith("inner_door:") and key.endswith("_frame"):
         from ae_engine.inner_door_frames import (
@@ -476,18 +493,31 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             frame_edges=(door_cell.edges if door_cell is not None else None),
         )
     elif key == "base_plate" or key.startswith("base_plate_c"):
+        values = {
+            "w": w, "h": h, "t": t, "fw": fw,
+            "base_plate_shrink_top": float(data.get("base_plate_shrink_top", 0)),
+            "base_plate_shrink_bottom": float(data.get("base_plate_shrink_bottom", 0)),
+            "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
+            "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
+            "base_plate_bend": float(data.get("base_plate_bend", 20)),
+            "receiving_bend_pattern": data.get("receiving_bend_pattern"),
+            "physical_id": key,
+            "model": model,
+        }
+        if model in {"受電箱", "RECEIVING"}:
+            if key != "base_plate":
+                raise ValueError("RECEIVING_BASE_PLATE_LEGACY_CELL_UNSUPPORTED")
+            from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+            physical = receiving_base_plate_values(data)
+            if physical is not None:
+                # Physical Receiving base height/folds are NOT the cabinet H,
+                # a door cell H, or the ordinary family base shrink defaults.
+                values.update(physical)
+                # This already selected physical contour owns its corner cuts;
+                # the generic family corner policy must not replace it.
+                policy = None
         spec = self._base_plate_part_spec_from_values(
-            {
-                "w": w, "h": h, "t": t, "fw": fw,
-                "base_plate_shrink_top": float(data.get("base_plate_shrink_top", 0)),
-                "base_plate_shrink_bottom": float(data.get("base_plate_shrink_bottom", 0)),
-                "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
-                "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
-                "base_plate_bend": float(data.get("base_plate_bend", 20)),
-                "model": model,
-            },
-            features=features,
-            corner_policy=policy,
+            values, features=features, corner_policy=policy,
         )
     elif key == "indicator_box":
         groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))

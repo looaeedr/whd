@@ -283,7 +283,26 @@ def build_part_scene(
             sb = spec.shrink_bottom
             sl = spec.shrink_left
             sr = spec.shrink_right
-            if spec.corner_policy is not None:
+            receiving_pattern = spec.receiving_bend_pattern
+            # Missing Receiving physical-plate selection remains preview-only.
+            # Exporters reject it before writing any manufacturing DXF; do not
+            # block the rest of a Receiving project's GUI/Set/Bay navigation.
+            if receiving_pattern is not None:
+                if str(spec.model_name or "").strip() not in {"受電箱", "RECEIVING"}:
+                    raise ValueError("Receiving pattern cannot modify another family's Base Plate")
+                if spec.corner_policy is not None:
+                    raise ValueError("Receiving bend drawing cannot silently override corner-policy geometry")
+                if spec.seam_positions:
+                    raise ValueError("Receiving pattern with explicit physical seam relief is not yet verified")
+                from .sheetmetal_part_adapters import build_receiving_base_plate_result
+                result = _call(
+                    build_receiving_base_plate_result,
+                    w=spec.width, h=spec.height, t=spec.thickness,
+                    shrink_top=st, shrink_bottom=sb,
+                    shrink_left=sl, shrink_right=sr,
+                    bend=spec.bend, pattern=receiving_pattern,
+                )
+            elif spec.corner_policy is not None:
                 from .sheetmetal_part_adapters import build_unknown_base_plate_result
                 result = _call(
                     build_unknown_base_plate_result,
@@ -301,7 +320,7 @@ def build_part_scene(
                     shrink_left=sl, shrink_right=sr,
                     bend=spec.bend,
                 )
-            if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions:
+            if receiving_pattern is None and ((spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions):
                 from .box_body_structure import resolve_box_body_structure, apply_base_plate_structure_reliefs
                 box_structure = None
                 if spec.box_body_fold_profile and spec.box_body_structure_state:
@@ -322,6 +341,7 @@ def build_part_scene(
                 sl=sl, sr=sr, bend=spec.bend,
                 draw_stock=ctx.draw_stock, user_features=list(spec.features),
                 structural_result=result,
+                receiving_bend_pattern=receiving_pattern,
             )
 
         if isinstance(spec, IndicatorBoxPartSpec):
@@ -354,19 +374,29 @@ from .manufacturing_render_data import (
     _exploded_box_body_preview,
 )
 
-def build_inner_door_panel_render_data(panel) -> PartRenderData:
-    """Use the existing four-sided Door manufacturing topology for inner doors.
+def build_inner_door_panel_render_data(
+    panel, *, features=(), context: ManufacturingContext | None = None,
+) -> PartRenderData:
+    """Reuse the Vault four-sided Door topology for Receiving inner doors.
 
     The panel.width/height are FINISHED faces. The manufacturing blank is
     finished - 2*T + both fold lengths; at W800/T2/folds19: 689 -> 723.
     Never export the finished face as an unfolded, unbent CUTTING rectangle.
     """
     from .inner_door_panels import InnerDoorPanelPart
-    from .sheetmetal_part_adapters import build_door_result, DoorFrameEdges
-    from .sheetmetal_drawing import DrawingScene, structural_result_to_primitives
+    from .sheetmetal_part_adapters import build_door_result, DoorFrameEdges, build_finished_reference_guide
+    from .sheetmetal_drawing import DrawingScene, structural_result_to_primitives, resolved_features_to_primitives
 
     if not isinstance(panel, InnerDoorPanelPart):
         raise TypeError("panel must be InnerDoorPanelPart")
+    # The canonical shared Door geometry uses the certified Vault corner rule.
+    # The outer Vault door's *fixed apertures* are NOT automatically owned by
+    # a Receiving inner door: NFB CUTTING and each inner-door feature list own
+    # those holes independently, preventing duplicate manufacturing holes.
+    if any(abs(float(v) - 19.0) > 1e-8 for v in (
+        panel.fold_left, panel.fold_right, panel.fold_top, panel.fold_bottom,
+    )):
+        raise ValueError('Receiving inner door requires four 19-mm folds')
     # The incoming dimensions are already the inner frame opening less gaps.
     # Do NOT subtract the enclosure's outer frame or door gap again.
     structural = build_door_result(
@@ -378,6 +408,33 @@ def build_inner_door_panel_render_data(panel) -> PartRenderData:
     )
     scene = DrawingScene()
     scene.extend(structural_result_to_primitives(structural))
+    if features:
+        # Reuse the standard Door finished-face geometry/anchor for editor
+        # Features.  The generated 3D, 2D, NFB and DXF must all consume this
+        # same physical final-scene and leave other door stores untouched.
+        from .manufacturing_endcap_compat import _as_feature
+        from .sheetmetal_geometry import Vec2
+        from .sheetmetal_features import (
+            FeatureAnchor, feature_finished_point, feature_surface_from_structural_result,
+            resolve_surface_features,
+        )
+        guide = build_finished_reference_guide(
+            "door", structural, finished_width=float(panel.width),
+            finished_height=float(panel.height),
+        )
+        mapped = []
+        for raw in tuple(features):
+            feature = _as_feature(raw)
+            local = feature_finished_point(feature, float(panel.width), float(panel.height))
+            mapped.append(replace(
+                feature,
+                anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                offset=Vec2(guide.min_point.x + local.x, guide.min_point.y + local.y),
+            ))
+        surface = feature_surface_from_structural_result("door", structural)
+        scene.extend(resolved_features_to_primitives(resolve_surface_features(
+            surface, mapped, structural.width, structural.height,
+        )))
     if abs(float(structural.width) - panel.unfolded_width) > 1e-7:
         raise ValueError("inner-door blank width diverges from standard Door manufacturing")
     if abs(float(structural.height) - panel.unfolded_height) > 1e-7:
@@ -405,6 +462,9 @@ def build_inner_door_panel_render_data(panel) -> PartRenderData:
         fold_guides=fold_guides_from_final_scene(scene),
         metadata={
             "stable_id": str(panel.stable_id),
+            "source_cabinet_family": "金庫型",
+            "door_corner_rule": "VAULT_CERTIFIED_FOUR_SIDE",
+            "inner_door_hole_feature_count": len(tuple(features or ())),
             "inner_door_id": str(panel.inner_door_id),
             "cell_key": str(panel.cell_key),
             "thickness": float(panel.thickness),
@@ -442,8 +502,19 @@ def build_inner_door_frame_render_data(frame) -> PartRenderData:
         ),
         height=float(frame.span),
     )
+    # The Receiving upper trio has certified dedicated drawing A/B/D.
+    # The optional generic "bottom" role has no Receiving DXF part and
+    # preserves the original rectangular compatibility behavior.
+    if str(frame.side) in {"top", "left", "right"}:
+        from .receiving_frame_baseline import receiving_frame_source
+        source_outline, source_holes, source_info = receiving_frame_source(
+            str(frame.side), material_width=float(chain.total_width), span=float(frame.span),
+        )
+    else:
+        source_outline = tuple(build_strip_outline(chain))
+        source_holes, source_info = (), {}
     structural = StructuralGeometryResult(
-        outline=tuple(build_strip_outline(chain)),
+        outline=source_outline,
         bends=tuple(build_strip_bend_segments(chain)),
         width=float(chain.total_width),
         height=float(chain.height),
@@ -451,6 +522,7 @@ def build_inner_door_frame_render_data(frame) -> PartRenderData:
     )
     scene = DrawingScene()
     scene.extend(structural_result_to_primitives(structural))
+    scene.extend(source_holes)
 
     topology = UnfoldedBlankTopology(
         piece_id=str(frame.stable_id),
@@ -469,6 +541,7 @@ def build_inner_door_frame_render_data(frame) -> PartRenderData:
             "stable_id": str(frame.stable_id),
             "inner_door_id": str(frame.inner_door_id),
             "frame_side": str(frame.side),
+            **source_info,
             "signed_fold_chain": tuple(float(v) for v in frame.signed_fold_chain),
             "material_lengths": tuple(float(v) for v in frame.material_lengths),
             "fold_profile": tuple(frame.fold_profile),
@@ -834,6 +907,41 @@ def _replace_receiving_bottom_relief_from_registry(render_data, spec: EndCapPart
 
 def _unfolded_topology_for_spec(spec: PartSpec, *, piece_id: str = "") -> UnfoldedBlankTopology | None:
     """Build blank envelope only from authoritative PartSpec/Fold Profile semantics."""
+    if isinstance(spec, BasePlatePartSpec) and spec.receiving_bend_pattern is not None:
+        from .sheetmetal_part_adapters import (
+            RECEIVING_BASE_PATTERN_CENTER, build_receiving_base_plate_result,
+        )
+        actual=build_receiving_base_plate_result(
+            w=spec.width,h=spec.height,t=spec.thickness,
+            shrink_top=spec.shrink_top,shrink_bottom=spec.shrink_bottom,
+            shrink_left=spec.shrink_left,shrink_right=spec.shrink_right,
+            bend=spec.bend,pattern=spec.receiving_bend_pattern,
+        )
+        if spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_CENTER:
+            return UnfoldedBlankTopology(
+                piece_id=str(spec.physical_id or piece_id or "base_plate"),
+                x_segments=(
+                    MaterialSegment("X","ear_side_return_left",71.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","base_face",actual.width-142.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","ear_side_return_right",71.0,"RECEIVING_BASE_BEND"),
+                ),
+                y_segments=(
+                    MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_core",actual.height-40.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_top_fold20",20.0,"RECEIVING_BASE_BEND"),
+                ),
+                source="RECEIVING_BASE_BEND",revision=1,
+            )
+        return UnfoldedBlankTopology(
+            piece_id=str(spec.physical_id or piece_id or "base_plate"),
+            x_segments=(MaterialSegment("X","flat_side_span",actual.width,"RECEIVING_BASE_BEND"),),
+            y_segments=(
+                MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_core",actual.height-40.0,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_top_fold20",20.0,"RECEIVING_BASE_BEND"),
+            ),
+            source="RECEIVING_BASE_BEND",revision=1,
+        )
     if isinstance(spec, EndCapPartSpec):
         resolved = resolve_endcap_request(spec)
         x_rows = tuple(resolved.fold_profile_x or ())

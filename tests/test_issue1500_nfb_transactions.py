@@ -1,0 +1,287 @@
+# -*- coding: utf-8 -*-
+"""#1500 product transaction acceptance: atomic per-Bay NFB, cancel, copy, restore/undo."""
+from copy import deepcopy
+from dataclasses import replace
+from types import SimpleNamespace
+
+import pytest
+
+from ae_engine.receiving_layout import new_receiving_layout,resize_receiving_bays
+from ae_engine.receiving_nfb_dxf_source import NfbSourceInventory
+from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
+from ae_engine.receiving_nfb_manufacturing_release import NfbValidatedInnerDoorRender,VALIDATED
+from ae_engine.receiving_nfb_transactions import (
+    submit_nfb_bays,copy_submitted_nfb_bay,restore_nfb_bays_unconfigured,
+    undo_nfb_transaction,
+)
+from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+
+SHA="1"*64
+PART="inner_door:upper:panel"
+
+
+def layout():
+    source=new_receiving_layout(width=800,height=1600,depth=350)
+    return resize_receiving_bays(source,set_index=0,bay_count=2)
+
+
+def config(*,x=0,owner="nfb:0:slot1",state="CONFIRMED",offset=5,filename="400_140X257_107.dxf"):
+    return {"holes":[{
+        "physical_hole_id":owner,
+        "model_filename":filename,
+        "manual_x_state":state,
+        "manual_x_mm":x,
+        "datum_revision":"w800t2",
+        "datum_snapshot":{"width":800,"t":2},
+        "operator_offset_mm":[0,offset],
+        "rotation_deg":90,
+        "slot_index":0,
+    }],"layer_count":1}
+
+
+def evidence(row,bi,*,status="ready",inventory=None,x=0,slot=0):
+    bay=row["sets"][0]["bays"][bi]
+    scope=NfbPhysicalScope(
+        set_id=row["sets"][0]["stable_id"],bay_id=bay["stable_id"],
+        version_id="v1",submitted=True,inner_door_part_id=PART,
+        base_plate_part_ids=("base_plate:upper",),
+        middle_plate_part_ids=("middle_plate:upper",),
+    )
+    src=inventory or NfbSourceInventory(
+        source_path="sample.dxf",source_sha256=SHA,source_id="NFB-DXF:"+SHA,
+        status="SOURCE_OBSERVED_UNCERTIFIED",entities=(),
+        diagnostics=(),process_aci_entity_counts=((30,0),(150,1),(212,0)),
+        unresolved_color_entities=0,grouped_entity_counts=(("modelspace",1),),
+    )
+    door=None if status=="blocked" else NfbValidatedInnerDoorRender(
+        render_data=SimpleNamespace(metadata={
+            "nfb_trial_status":VALIDATED,"nfb_trial_export_approved":True,
+        }),
+        part_id=PART,indexed_model_key=("士林","400_140X257_107.dxf"),
+        source_sha256=SHA,physical_hole_ids=(f"nfb:{bi}:slot1",),
+        verified_hole_locations=((f"nfb:{bi}:slot1",float(x),1,slot,90),),
+    )
+    return scope,src,door
+
+
+def do_submit(row, *, yes=True,configs=None,evidences=None, indices=(0,)):
+    if configs is None:
+        configs={i:config(owner=f"nfb:{i}:slot1") for i in indices}
+    if evidences is None:
+        evidences={i:evidence(row,i) for i in indices}
+    return submit_nfb_bays(
+        row,set_index=0,bay_indices=indices,version_id="v1",
+        configs=configs,evidence=evidences,confirm=lambda _:yes,
+    )
+
+
+def test_first_submission_includes_held_plates_in_warning_but_commits_inner_config():
+    row=layout()
+    before=deepcopy(row)
+    pending=do_submit(row,yes=False)
+    assert not pending.changed and pending.receipt is None
+    assert pending.layout==before and row==before
+    previews=[]
+    result=submit_nfb_bays(
+        row,set_index=0,bay_indices=(0,),version_id="v1",
+        configs={0:config()},evidence={0:evidence(row,0)},
+        confirm=lambda preview:previews.append(preview) or True,
+    )
+    assert result.changed
+    assert result.preview.can_commit
+    assert "middle_plate:upper" in result.preview.held_parts
+    assert "inner_door:upper:panel" in result.preview.impacted_parts
+    assert result.layout["sets"][0]["bays"][0]["nfb_config_submitted"] is True
+    assert result.layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_mm"]==0
+    assert "nfb_config" not in result.layout["sets"][0]["bays"][1]
+    assert row==before
+    assert previews[0].action=="SUBMIT"
+    undone=undo_nfb_transaction(result.layout,result.receipt)
+    assert undone==before
+
+
+def test_invalid_source_x_scope_or_one_bay_collision_atomic():
+    row=layout()
+    before=deepcopy(row)
+    for cfg,src,scope in [
+        ({0:config(state="RECONFIRM_REQUIRED")}, {0:evidence(row,0)},(0,)),
+        ({0:config(x=None)}, {0:evidence(row,0)},(0,)),
+        ({0:config(x=25)}, {0:evidence(row,0,x=0)},(0,)),
+        ({0:config()}, {0:evidence(row,0,slot=1)},(0,)),
+        ({0:config(filename="wrong.dxf")}, {0:evidence(row,0)},(0,)),
+        ({0:config(owner="nfb:wrong:slot1")}, {0:evidence(row,0)},(0,)),
+        ({0:config()}, {0:evidence(row,1)},(0,)),
+        ({0:config()}, {0:evidence(row,0,status="blocked")},(0,)),
+        ({0:config(),1:config(state="NONE",owner="nfb:1:slot1")},
+         {0:evidence(row,0),1:evidence(row,1)},(0,1)),
+    ]:
+        with pytest.raises((ValueError,TypeError)):
+            do_submit(row,configs=cfg,evidences=src,indices=scope)
+        assert row==before
+
+
+def test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation():
+    row=layout()
+    with pytest.raises(ValueError,match="UNCONFIGURED"):
+        copy_submitted_nfb_bay(
+            row,set_index=0,source_bay_index=0,target_bay_index=1,
+            version_id="v1",target_config=config(owner="nfb:target:slot1"),
+            evidence=evidence(row,1),confirm=lambda p: True,
+        )
+    first=do_submit(row).layout
+    with pytest.raises(ValueError,match="offset"):
+        copy_submitted_nfb_bay(
+            first,set_index=0,source_bay_index=0,target_bay_index=1,
+            version_id="v1",target_config=config(owner="nfb:1:slot1",offset=999),
+            evidence=evidence(first,1),confirm=lambda p:True,
+        )
+    with pytest.raises(ValueError,match="independent"):
+        copy_submitted_nfb_bay(
+            first,set_index=0,source_bay_index=0,target_bay_index=1,
+            version_id="v1",target_config=config(owner="nfb:0:slot1"),
+            evidence=evidence(first,1),confirm=lambda p:True,
+        )
+    with pytest.raises(ValueError,match="confirmation"):
+        copy_submitted_nfb_bay(
+            first,set_index=0,source_bay_index=0,target_bay_index=1,
+            version_id="v1",target_config=None,
+            evidence=evidence(first,1),confirm=lambda p:True,
+        )
+    cancelled=copy_submitted_nfb_bay(
+        first,set_index=0,source_bay_index=0,target_bay_index=1,
+        version_id="v1",target_config=config(owner="nfb:1:slot1",x=100),
+        evidence=evidence(first,1,x=100),confirm=lambda p:False,
+    )
+    assert not cancelled.changed and cancelled.layout==first
+    result=copy_submitted_nfb_bay(
+        first,set_index=0,source_bay_index=0,target_bay_index=1,
+        version_id="v1",target_config=config(owner="nfb:1:slot1",x=100),
+        evidence=evidence(first,1,x=100),confirm=lambda p:True,
+    )
+    assert result.preview.action=="COPY_SUBMIT"
+    target=result.layout["sets"][0]["bays"][1]["nfb_config"]
+    assert target["holes"][0]["manual_x_mm"]==100
+    target["holes"][0]["operator_offset_mm"][0]=77
+    assert first["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["operator_offset_mm"]==[0,5]
+    updated=copy_submitted_nfb_bay(
+        result.layout,set_index=0,source_bay_index=0,target_bay_index=1,
+        version_id="v1",target_config=config(owner="nfb:1:slot1",x=200),
+        evidence=evidence(result.layout,1,x=200),confirm=lambda p:True,
+    )
+    assert updated.preview.action=="COPY_OVERWRITE"
+    assert undo_nfb_transaction(updated.layout,updated.receipt)==result.layout
+
+
+def test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy():
+    row=do_submit(layout()).layout
+    original=deepcopy(row)
+    cancelled=restore_nfb_bays_unconfigured(
+        row,set_index=0,bay_indices=(0,),confirm=lambda p:False,
+    )
+    assert not cancelled.changed and cancelled.layout==row
+    done=restore_nfb_bays_unconfigured(
+        row,set_index=0,bay_indices=(0,),confirm=lambda p:True,
+    )
+    assert done.changed and "nfb_config" not in done.layout["sets"][0]["bays"][0]
+    assert row==original
+    assert undo_nfb_transaction(done.layout,done.receipt)==original
+    mutated=deepcopy(done.layout)
+    mutated["sets"][0]["bays"][0]["nfb_config_submitted"]=True
+    mutated["sets"][0]["bays"][0]["nfb_config"]=config(x=55)
+    with pytest.raises(ValueError,match="conflict"):
+        undo_nfb_transaction(mutated,done.receipt)
+
+
+def test_adapter_undo_preserves_sibling_changes_and_native_owner():
+    adapter=ReceivingSetBayAdapter(layout())
+    starting=adapter.layout
+    event=adapter.submit_nfb_to_bays(
+        set_index=0,bay_indices=(0,),version_id="v1",
+        configs={0:config()},evidence={0:evidence(starting,0)},
+        confirm=lambda p:True,
+    )
+    assert event.changed and adapter.nfb_can_undo
+    adapter._layout["sets"][0]["bays"][1]["door_state"]={"multi_door_enabled":False}
+    adapter.undo_last_nfb_transaction()
+    assert "nfb_config" not in adapter.layout["sets"][0]["bays"][0]
+    assert adapter.layout["sets"][0]["bays"][1]["door_state"]=={"multi_door_enabled":False}
+    assert not adapter.nfb_can_undo
+    with pytest.raises(ValueError,match="復原"):
+        adapter.undo_last_nfb_transaction()
+
+
+
+def test_real_mfg1_submit_does_not_invent_middle_plate_from_inner_color150():
+    # #1502 authority: NFB upper Color150 belongs to real INNER DOOR.
+    # With no real middle part ID, an illustrative drawing is not a plate.
+    row=layout()
+    scope,inventory,door=evidence(row,0)
+    scope=NfbPhysicalScope(
+        set_id=scope.set_id,bay_id=scope.bay_id,version_id=scope.version_id,
+        submitted=True,inner_door_part_id=scope.inner_door_part_id,
+    )
+    previews=[]
+    result=submit_nfb_bays(
+        row,set_index=0,bay_indices=(0,),version_id="v1",
+        configs={0:config()},evidence={0:(scope,inventory,door)},
+        confirm=lambda p:previews.append(p) or True,
+    )
+    assert result.changed
+    assert result.preview.can_commit
+    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" not in (
+        result.preview.dependency_warnings
+    )
+    assert result.layout["sets"][0]["bays"][0]["nfb_config_submitted"]
+    from ae_engine.receiving_nfb_part_readiness import derive_nfb_part_readiness
+    readiness=derive_nfb_part_readiness(
+        scope,source_inventory=inventory,verified_inner_door=door,
+    )
+    assert readiness.filter_export_part_ids((scope.inner_door_part_id,)) == (
+        (scope.inner_door_part_id,), (),
+    )
+    # A *real* middle plate still requires its own MFG-2 machining proof.
+    physical=replace(scope,middle_plate_part_ids=("middle_plate:upper",))
+    with_middle=derive_nfb_part_readiness(
+        physical,source_inventory=inventory,verified_inner_door=door,
+    )
+    assert with_middle.can_submit
+    assert with_middle.for_part("middle_plate:upper").status=="BLOCKED"
+    with pytest.raises(ValueError,match="not manufacturing-ready"):
+        with_middle.filter_export_part_ids((
+            scope.inner_door_part_id,"middle_plate:upper",
+        ))
+
+
+
+def test_copy_submitted_source_into_independently_verified_target_unit_id():
+    base=layout()
+    old=config(owner="nfb:0:slot1",x=0)
+    old["holes"][0]["unit_id"]="physical-source-unit"
+    source=do_submit(base,configs={0:old}).layout
+    target=config(owner="nfb:1:slot1",x=100)
+    target["holes"][0]["unit_id"]="physical-target-unit"
+    warnings=[]
+    result=copy_submitted_nfb_bay(
+        source,set_index=0,source_bay_index=0,target_bay_index=1,
+        version_id="v1",target_config=target,
+        evidence=evidence(source,1,x=100),
+        confirm=lambda preview:warnings.append(preview) or True,
+    )
+    assert result.changed
+    assert warnings[0].action=="COPY_SUBMIT"
+    committed=result.layout["sets"][0]["bays"][1]["nfb_config"]["holes"][0]
+    original=result.layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert committed["unit_id"]=="physical-target-unit"
+    assert original["unit_id"]=="physical-source-unit"
+    assert committed["physical_hole_id"]!=original["physical_hole_id"]
+    assert committed["manual_x_mm"]==100
+    assert original["manual_x_mm"]==0
+    assert committed["rotation_deg"]==original["rotation_deg"]==90
+    assert committed["operator_offset_mm"]==original["operator_offset_mm"]
+    assert undo_nfb_transaction(result.layout,result.receipt)==source
+    canceled=copy_submitted_nfb_bay(
+        source,set_index=0,source_bay_index=0,target_bay_index=1,
+        version_id="v1",target_config=target,
+        evidence=evidence(source,1,x=100),confirm=lambda _:False,
+    )
+    assert not canceled.changed and canceled.layout==source

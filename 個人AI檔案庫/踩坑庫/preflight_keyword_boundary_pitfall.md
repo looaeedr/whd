@@ -4,7 +4,9 @@ whd_contract: pitfall-ledger
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
-# Phase6 Preflight Keyword Boundary 踩坑
+# Phase6 Preflight Keyword Boundary 踩坑（舊路由診斷相容紀錄）
+
+> **2026-10-11 REFERENCE／非現行施工入口**：`tools/phase6_skill_preflight.py` 現在保留作 optional legacy-compatible Skill／reference 路由診斷。CLI 的 missing evidence、非零結束碼、`READ_REFERENCE` 或 Preflight receipt **不能作為 Git／施工／PR／DC／CI 前置授權或阻擋門檻**。現行入口以正式 X `AGENTS.md`、CURRENT Skills 與受信任變更通道為準；下列 tokenizer 規則只用於維護該相容診斷，不得恢復舊 Phase6 硬閘門。
 
 ## 問題
 
@@ -20,16 +22,16 @@ keyword.lower() in task_text
 
 短英文縮寫被當成任意 substring，而不是獨立 token。這類風險不只 `UI`，也包括 `UX`、`3D`、`MCP`、`DNS` 等短 ASCII acronym-like keyword。
 
-## 永久規則
+## 相容診斷工具的字詞比對正確性規則（非現行 Preflight Gate）
 
 1. 短 ASCII acronym-like keyword（目前 matcher 定義為長度 `<= 3`、ASCII alnum，且原 Registry keyword 含大寫字母或數字）必須使用 ASCII token boundary matching。
 2. `guidance` / `build` / `suite` 之類較長單字內部的字母片段不得觸發 `UI`。
 3. 真正獨立 token 仍必須命中，例如 `UI design`、`UX review`、`3D geometry`。
 4. 中文 keyword、多字英文 phrase、一般 lowercase keyword 不因這次修正全面改成 word-boundary；避免一次 bugfix 改寫整個既有 routing semantics。
 5. `required_skills_for()` 與 `required_references_for()` 必須共用同一 keyword matcher，禁止兩條路徑各自實作造成 drift。
-6. 每次修改 Preflight matcher 必須同時保留 should-not-trigger 與 should-trigger regression，並跑既有 `tests/test_phase6_skill_preflight_gate.py`。
+6. **維護這個仍存在的相容診斷 matcher 時**，須同時檢查 should-not-trigger／should-trigger 的 regression；`tests/test_phase6_skill_preflight_gate.py` 為現存測試檔。這只驗證 matcher 相容性，不能當作目前使用者工作流程必跑 Preflight 的證據。
 
-## 回歸證據
+## 當次回歸證據（HISTORICAL）
 
 Issue #183：`tests/test_issue183_preflight_keyword_boundaries.py`
 

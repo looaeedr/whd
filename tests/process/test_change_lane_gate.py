@@ -39,14 +39,17 @@ def pr_event(*, branch="governance/direct-x", sha=HEAD):
 
 
 def publish_comment():
-    return [{
-        "user": {"login": "looaeedr", "type": "User"},
-        "body": "\n".join([
-            "/推推", "WHD_LOCALX_PUBLISH_AUTH_V1",
-            "repo=looaeedr/whd", "pr=42", "source=localX",
-            "head=" + HEAD, "target=cleanup/2d-3d-sync", "base=" + BASE,
-        ]),
-    }]
+    fields = "\n".join([
+        "repo=looaeedr/whd", "pr=42", "source=localX",
+        "head=" + HEAD, "target=cleanup/2d-3d-sync", "base=" + BASE,
+    ])
+    return [
+        {"id": 501, "user": {"login": "looaeedr", "type": "User"},
+         "body": "/驗收通過\nWHD_WINDOWS_LOCALX_UAT_V1\n"
+                 + fields + "\ntest_site=WINDOWS\nwindows_head=" + HEAD},
+        {"id": 502, "user": {"login": "looaeedr", "type": "User"},
+         "body": "/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\n" + fields},
+    ]
 
 
 class ChangeLaneTests(unittest.TestCase):
@@ -178,13 +181,14 @@ class ChangeLaneTests(unittest.TestCase):
             )
 
     def test_protected_acceptance_workflow_requires_localx_and_slash_push(self):
-        with self.assertRaisesRegex(ChangeLaneDenied, "REQUIRES_LOCALX"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
             evaluate_pr(event=pr_event(), changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW])
-        with self.assertRaisesRegex(ChangeLaneDenied, "EXACT_USER_SLASH_PUSH"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "WINDOWS_LOCALX_MANUAL_UAT_REQUIRED"):
             evaluate_pr(event=pr_event(branch="localX"),
                         changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW])
-        passed = evaluate_pr(event=pr_event(),
+        passed = evaluate_pr(event=pr_event(branch="localX"),
                              changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW],
+                             comments=publish_comment(),
                              verified_ci_scheduling=True)
         self.assertEqual(passed["lane"], "GOVERNANCE_DIRECT_X")
 
@@ -192,26 +196,29 @@ class ChangeLaneTests(unittest.TestCase):
         with self.assertRaisesRegex(ChangeLaneDenied, "EMPTY_PR_DIFF"):
             classify_changes([])
 
-    def test_governance_direct_x_branch_passes_without_slash_push(self):
-        r = evaluate_pr(event=pr_event(), changed_paths=[
-            "AGENTS.md", ".agents/skills/engineering/派工/SKILL.md",
-        ])
-        self.assertEqual(r["lane"], "GOVERNANCE_DIRECT_X")
+    def test_governance_direct_x_branch_is_denied(self):
+        with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
+            evaluate_pr(event=pr_event(), changed_paths=[
+                "AGENTS.md", ".agents/skills/engineering/派工/SKILL.md",
+            ])
 
     def test_governance_requires_named_fast_lane_branch(self):
-        with self.assertRaisesRegex(ChangeLaneDenied, "DEDICATED_BRANCH"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
             evaluate_pr(event=pr_event(branch="work/issue-1"), changed_paths=["AGENTS.md"])
 
     def test_product_and_mixed_require_localx(self):
         for paths in (["gui.py"], ["AGENTS.md", "gui.py"], ["some_unknown.txt"]):
             with self.subTest(paths=paths):
-                with self.assertRaisesRegex(ChangeLaneDenied, "REQUIRES_LOCALX"):
+                with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
                     evaluate_pr(event=pr_event(), changed_paths=paths)
 
     def test_localx_product_requires_owner_slash_push(self):
         event = pr_event(branch="localX")
-        with self.assertRaisesRegex(ChangeLaneDenied, "EXACT_USER_SLASH_PUSH"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "WINDOWS_LOCALX_MANUAL_UAT_REQUIRED"):
             evaluate_pr(event=event, changed_paths=["gui.py"], comments=[])
+        with self.assertRaisesRegex(ChangeLaneDenied, "EXACT_USER_SLASH_PUSH"):
+            evaluate_pr(event=event, changed_paths=["gui.py"],
+                        comments=publish_comment()[:1])
         r = evaluate_pr(event=event, changed_paths=["gui.py"], comments=publish_comment())
         self.assertEqual(r["lane"], "PRODUCT_LOCALX_ONLY")
 
@@ -321,7 +328,7 @@ class ChangeLaneTests(unittest.TestCase):
                 ))
         # Current incoming product PR classification remains restricted.
         self.assertEqual(classify_changes([path]), "PRODUCT_LOCALX_ONLY")
-        with self.assertRaisesRegex(ChangeLaneDenied, "REQUIRES_LOCALX"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
             evaluate_pr(event=pr_event(), changed_paths=[path])
 
     def test_reverted_domain_sop_exception_is_exact_and_history_only(self):
@@ -399,7 +406,7 @@ class ChangeLaneTests(unittest.TestCase):
         ))
         # These historical exceptions never grant a new PR direct-X status.
         self.assertEqual(classify_changes([workflow]), "PRODUCT_LOCALX_ONLY")
-        with self.assertRaisesRegex(ChangeLaneDenied, "REQUIRES_LOCALX"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
             evaluate_pr(event=pr_event(), changed_paths=[workflow])
 
     def test_x_ahead_unverifiable_history_is_blocked(self):
@@ -418,6 +425,24 @@ class ChangeLaneTests(unittest.TestCase):
             with self.subTest(blob=blob):
                 with self.assertRaises(ChangeLaneDenied):
                     parse_name_status_zero(blob)
+
+
+    def test_policy_distinguishes_localx_work_pr_from_x_publish_pr(self):
+        policy = (
+            Path(__file__).resolve().parents[2]
+            / "docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("以正式 X 為 base 的產品／混合發布 PR", policy)
+        self.assertIn("以 `localX` 為 base 的一般產品工作 PR", policy)
+        self.assertIn("不需每張另下 `/推推`", policy)
+        # These assertions only protect the documentation scope. The trusted
+        # X-target gate below still requires an exact owner publish approval.
+        with self.assertRaisesRegex(ChangeLaneDenied, "WINDOWS_LOCALX_MANUAL_UAT_REQUIRED"):
+            evaluate_pr(
+                event=pr_event(branch="localX"),
+                changed_paths=["gui.py"],
+                comments=[],
+            )
 
 
 if __name__ == "__main__":

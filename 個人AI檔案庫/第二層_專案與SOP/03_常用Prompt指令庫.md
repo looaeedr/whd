@@ -6,7 +6,7 @@ whd_schema: WHD_DOC_META_V1
 ---
 # ⚡ 03. 常用 Prompt 指令庫 (Prompt Library)
 
-> 常用高頻任務的快速啟動指令，可直接複製使用。
+> **REFERENCE／Prompt 範例，不是已驗證的 executable entry 或執行授權。** 其中 `Ollama-整合whd`、`main.run_pipeline` 屬歷史範例；正式 X 檔案樹目前沒有 `main.py`、`modules/ae_adapter.py`。執行前必須以最新 `AGENTS.md`、CURRENT domain/Skill、現存 API 和使用者當次授權重新核對，不得照範例猜本機根目錄或可執行介面。
 
 ---
 
@@ -23,7 +23,7 @@ whd_schema: WHD_DOC_META_V1
 ---
 
 ## 🚀 `Ollama-整合whd` 一體化任務
-- **批次拆圖與自動展開出圖**：
+- **批次拆圖與自動展開出圖（歷史 Prompt，需先查證入口）**：
   > 「請調用 `main.run_pipeline` 處理 [圖檔.dxf]，檢查圖框識別、視圖分割、底座拆分與 `ae_engine` 自動展開結果，導出獨立 DXF、JPG 與 CSV 報表。」
 - **API 接口與 Adapter 測試**：
   > 「請驗證 GUI Adapter 與 拆圖 Adapter 呼叫 `manufacturing_api` 產出的 `PartSpec` 是否一致，並執行 regression 測試。」

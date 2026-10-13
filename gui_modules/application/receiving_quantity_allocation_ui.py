@@ -17,7 +17,8 @@ from ae_engine.receiving_quantity_allocation import (
 
 class ReceivingQuantityAllocationUI:
     def __init__(self, window, canvas, *, get_counts, get_ports,
-                 get_marks=None, on_render=None, warn=None):
+                 get_marks=None, on_render=None, warn=None,
+                 roles=("head", "tail"), validate_role=None):
         self.window = window
         self.canvas = canvas
         self.get_counts = get_counts
@@ -25,10 +26,14 @@ class ReceivingQuantityAllocationUI:
         self.get_marks = get_marks
         self.on_render = on_render or (lambda: None)
         self.warn = warn or (lambda exc: None)
-        self.draft = AllocationDraft(get_counts())
-        self.role = "head"
+        from ae_engine.receiving_hole_candidates import role_key
+        self.roles = tuple(roles)
+        self.draft = AllocationDraft(
+            get_counts(), roles=self.roles, validate_role=validate_role or role_key,
+        )
+        self.role = self.roles[0]
         self.host = None
-        self.success = {"head": False, "tail": False}
+        self.success = {role: False for role in self.roles}
         self._mark_cache = {}
         self._hitboxes = ()
 
@@ -36,12 +41,12 @@ class ReceivingQuantityAllocationUI:
         ports = self.get_ports()
         available = {
             role: [item["id"] for item in ports["versions"](role)]
-            for role in ("head", "tail")
+            for role in self.roles
         }
         before_counts = self.draft.counts
         self.draft.reconcile(self.get_counts(), available)
         if self.draft.counts != before_counts:
-            self.success = {"head": False, "tail": False}
+            self.success = {role: False for role in self.roles}
         return available
 
     def show(self, host, role):
@@ -187,6 +192,14 @@ class ReceivingQuantityAllocationUI:
             # Pure validation only: this never writes selected Bay features.
             from ae_engine.receiving_hole_candidates import normalize_candidates
             ports = self.get_ports()
+            custom_validator = ports.get("validate_quantity")
+            if custom_validator is not None:
+                custom_validator(
+                    dict(self.draft.quantities[self.role]),
+                    dict(self.draft.assigned[self.role]),
+                    self.draft.counts,
+                )
+                return True
             library = normalize_candidates()
             # Validator needs the available IDs and their feature values.
             for role in ("head", "tail"):

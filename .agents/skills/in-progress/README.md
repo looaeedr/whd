@@ -12,4 +12,4 @@ These Skills are intentionally experimental/upstream Beta. Their `SKILL.md` file
 
 Examples currently kept in this bucket include `loop-me`, `writing-beats`, `writing-fragments`, `writing-shape`, `claude-handoff`, `setup-ts-deep-modules`, and `implement-spec`.
 
-Promotion rule: moving or copying a Skill into a stable bucket is not enough by itself. Graduation requires an explicit catalog classification change plus the normal WHD Skill governance, Preflight and regression checks.
+Promotion rule: moving or copying a Skill into a stable bucket is not enough by itself. Graduation requires an explicit `skill_catalog.json` classification change, CURRENT owner / source grounding checks where applicable, and applicable governance / regression tests. The retired Phase6 Preflight receipt or old root-local transaction is **not** a promotion prerequisite; no local-machine permission is granted by moving a Skill.

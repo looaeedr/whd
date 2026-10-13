@@ -233,15 +233,17 @@ def default_inner_doors(
 def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[str, object]:
     """Resolve Receiving vertical-frame span/center from its two physical terminal datums.
 
-    The upper datum is the real box opening after the formed 46+2T frame
-    occupation. The lower datum is the physical upper skin of the shared
-    horizontal Divider. No outer Door finished face is involved.
+    Left/right FRAME longitudinal span goes from the physical Head EndCap
+    inside mating face to the shared horizontal Divider assembly boundary.
+    The inner-door TOP FRAME (formed 46+2T) is a separate perpendicular
+    piece and cannot be deducted from side-frame length. For W800/H1600,
+    upper-cell H1100 and T2, this is 798 - (-300) = 1098 mm, matching
+    source 框.dxf A/B. Do not use the Divider web/core as the Y terminal.
     """
-    from ae_engine.assembly_geometry import folded_profile_segment_center_from_full_envelope
     from ae_engine.assembly_placement import resolve_divider_placement
+    from ae_engine.assembly_geometry import folded_profile_segment_center_from_full_envelope
     from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
     from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
-    from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
 
     data = dict(snapshot or {})
     wanted = str(inner_door_id or '').strip()
@@ -266,12 +268,14 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
     cell = cells[cell_key]
 
     t = float(data.get('t', 2.0))
-    # The last 22-mm flange mates the actual head/side, not outer Door.
+    # The side frame physically runs to the EndCap's inside sheet skin.
+    # The TOP inner-door frame's 50-mm formed web occupies the OPENING, not
+    # 50 mm of the LEFT/RIGHT side-frame longitudinal cut length.
     cell_top = (
         float(data.get('h', max(sum(v) for _w, v in normalized))) / 2.0
         - sum(normalized[cell.column_index][1][:cell.row_index])
     )
-    top_y = cell_top - inner_door_frame_formed_occupation(t)
+    top_y = cell_top - t
 
     dividers = derive_box_body_dividers(
         normalized,
@@ -297,11 +301,14 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
     if placement.placement_kind not in {'divider_horizontal', 'divider_horizontal_inward'}:
         raise ValueError("Receiving lower-frame Divider has unsupported assembly orientation")
 
+    # Use the *real physical* upper skin of the folded shared Divider.
+    # resolve_divider_placement aligns this skin with the Door layout
+    # boundary, so it is -300 for H1600/upper-bay 1100/T2, not -286.5.
     _core_u, core_z = folded_profile_segment_center_from_full_envelope(
         divider.fold_profile, divider.core_segment_index
     )
     lower_support_y = (
-        float(placement.world_offset[1]) + float(core_z) + float(t) / 2.0
+        float(placement.world_offset[1]) + float(core_z) + t / 2.0
     )
     span = float(top_y) - float(lower_support_y)
     if span <= 0.0:
@@ -313,7 +320,7 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
         'lower_terminal_y': float(lower_support_y),
         'center_y': (float(top_y) + float(lower_support_y)) / 2.0,
         'span': float(span),
-        'authority': 'BOX_BODY_FRAME_FORMED_EDGE__TO__DIVIDER_SUPPORT_SKIN',
+        'authority': 'HEAD_ENDCAP_INSIDE_SKIN__TO__DIVIDER_BAY_BOUNDARY',
     }
 
 def inner_door_body_clear_width(*, cell_width: float, thickness: float) -> float:
@@ -401,10 +408,10 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
         )["finished_height"]
         result.append(derive_inner_door_panel(
             stable_id, cell_key=cell_key, width=panel_w, height=panel_h, thickness=t,
-            fold_left=float(data.get("door_fold_l", DOOR_DEFAULTS["door_fold_l"])),
-            fold_right=float(data.get("door_fold_r", DOOR_DEFAULTS["door_fold_r"])),
-            fold_top=float(data.get("door_fold_t", DOOR_DEFAULTS["door_fold_t"])),
-            fold_bottom=float(data.get("door_fold_b", DOOR_DEFAULTS["door_fold_b"])),
+            # Inner Door is a Vault Door panel with its own fixed 19-mm folds.
+            # Do not inherit modified outer-door fold inputs from this family.
+            fold_left=19.0, fold_right=19.0,
+            fold_top=19.0, fold_bottom=19.0,
         ))
     return tuple(result)
 

@@ -119,6 +119,8 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 if not isinstance(raw_bay["door_state"], Mapping):
                     raise ValueError("每連門分割必須為物件")
                 bay["door_state"] = {key: deepcopy(raw_bay["door_state"][key]) for key in RECEIVING_DOOR_STATE_KEYS if key in raw_bay["door_state"]}
+            from .receiving_nfb_persistence import normalize_nfb_saved_fields
+            bay.update(normalize_nfb_saved_fields(raw_bay))
             bays.append(bay)
 
         raw_joints = raw_set.get("joints")
@@ -332,10 +334,24 @@ def _layout_set(layout: Mapping[str, object], set_index: int) -> tuple[dict[str,
     return normalized, sets[set_index]
 
 
+def _copied_nfb_bay_fields(bay):
+    from .receiving_nfb_persistence import (
+        normalize_nfb_saved_fields, reconfirm_copied_nfb_config,
+    )
+    saved = normalize_nfb_saved_fields(bay)
+    if not saved:
+        return {}
+    return {
+        "nfb_config_submitted": True,
+        "nfb_config": reconfirm_copied_nfb_config(saved["nfb_config"]),
+    }
+
+
 def _copy_bay_fields(bay: Mapping[str, object], *, stable_id: str) -> dict[str, object]:
     """Copy only persisted per-Bay input fields; never create a live link."""
     return {
         **({"door_state": deepcopy(bay["door_state"])} if "door_state" in bay else {}),
+        **_copied_nfb_bay_fields(bay),
         "stable_id": str(stable_id),
         "width": float(bay["width"]),
         "height": float(bay["height"]),
@@ -460,7 +476,8 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
     if bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     bay = deepcopy(dict(bays[bay_index]))
-    allowed = {"width", "height", "depth", "back_panel_mode", "door_state"}
+    allowed = {"width", "height", "depth", "back_panel_mode", "door_state",
+               "nfb_config_submitted", "nfb_config"}
     unknown = set(changes) - allowed
     if unknown:
         raise ValueError(f"unsupported Receiving Bay fields: {sorted(unknown)}")
@@ -478,6 +495,13 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
             row["values"][row["refs"][bay["stable_id"]]] = mode
     if "door_state" in changes:
         bay["door_state"] = deepcopy(dict(changes["door_state"]))
+    if "nfb_config_submitted" in changes or "nfb_config" in changes:
+        from .receiving_nfb_persistence import normalize_nfb_saved_fields
+        updated = {**bay, **{key: changes[key] for key in ("nfb_config_submitted", "nfb_config") if key in changes}}
+        fields = normalize_nfb_saved_fields(updated)
+        bay.pop("nfb_config_submitted", None)
+        bay.pop("nfb_config", None)
+        bay.update(fields)
     bays[bay_index] = bay
     normalized["sets"][set_index] = {
         **selected,
@@ -560,6 +584,10 @@ def project_receiving_bay_legacy_aliases(
         for key in RECEIVING_DOOR_STATE_KEYS:
             result.pop(key, None)
         result.update(deepcopy(bay["door_state"]))
+    for key in ("nfb_config_submitted", "nfb_config"):
+        result.pop(key, None)
+        if key in bay:
+            result[key] = deepcopy(bay[key])
     result["w"] = float(bay["width"])
     result["h"] = float(bay["height"])
     result["d"] = float(bay["depth"])
@@ -574,6 +602,9 @@ def project_receiving_bay_legacy_aliases(
             part_features[role] = deepcopy(features[role])
         result["part_features"] = part_features
         result["receiving_inner_door_layers"] = setting_value(selected, bay_index, "inner_door_layers")
+        result["receiving_inner_door_models"] = setting_value(
+            selected, bay_index, "inner_door_models"
+        )
     if validate_common:
         try:
             _validate_common_receiving_state(result)
@@ -719,7 +750,7 @@ def strip_legacy_receiving_aliases(snapshot: Mapping[str, object] | None) -> dic
     if "receiving_layout" not in result:
         return result
     result["receiving_layout"] = normalize_receiving_layout(result["receiving_layout"])
-    for key in ("w", "h", "d"):
+    for key in ("w", "h", "d", "nfb_config_submitted", "nfb_config"):
         result.pop(key, None)
     workspace = result.get("workspace")
     if isinstance(workspace, Mapping):

@@ -108,7 +108,9 @@ def baseline_entity_layer(ent):
     if raw in {"CHECK", "STOCK"}:
         return raw
     color = int(getattr(ent.dxf, "color", 0) or 0) if ent.dxf.hasattr("color") else 0
-    return "MARKING" if color == 211 else "CUTTING"
+    # Legacy layer-0 DXF identifies operation by its ACI subcategory color.
+    # 30/150 are CUTTING holes; 211/212/213 are MARKING lines.
+    return "MARKING" if color in {211, 212, 213} else "CUTTING"
 
 
 def baseline_cutting_bounds(msp):

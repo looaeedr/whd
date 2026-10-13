@@ -285,8 +285,13 @@ def sync_authoritative_derived_parts(
         local["part_dimensions"] = local_dims
         door_profiles[row.part_key] = build_profiles(local, row.part_key)
 
+    # Receiving uses its ORIGINAL base_plate component, not a Base Plate
+    # automatically manufactured for each Door cell (including the empty
+    # lower 500-mm section). Other families keep their existing multi-door
+    # base_plate_cN_rN projection unchanged.
+    receiving_single_base = str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
     base_plate_profiles = {}
-    if door_rows:
+    if door_rows and not receiving_single_base:
         columns = tuple(
             (float(row[0]), tuple(float(v) for v in row[1]))
             for row in tuple(snapshot.get("door_layout_columns") or ())
@@ -381,8 +386,11 @@ def sync_authoritative_derived_parts(
             )
     frames = derive_all_inner_door_frames(tuple(frame_sets))
     panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
-    inner_profiles = inner_door_frame_part_profiles(frames)
-    inner_profiles.update(inner_door_panel_part_profiles(panels))
+    # The real inner-door sheet must appear before its separate frame pieces
+    # in the single-cabinet operator part selector.  Do not make opening
+    # multi-settings a prerequisite to see or manufacture the panel.
+    inner_profiles = inner_door_panel_part_profiles(panels)
+    inner_profiles.update(inner_door_frame_part_profiles(frames))
 
     single_door_profiles = (
         build_profiles(snapshot, "door")
@@ -391,7 +399,7 @@ def sync_authoritative_derived_parts(
     )
     single_base_plate_profiles = (
         build_profiles(snapshot, "base_plate")
-        if not door_rows and "base_plate" in source_parts and "base_plate" not in available_parts
+        if (not door_rows or receiving_single_base) and "base_plate" in source_parts and "base_plate" not in available_parts
         else None
     )
     request = build_derived_part_projection_request(
@@ -411,10 +419,34 @@ def sync_authoritative_derived_parts(
             single_base_plate_profiles=single_base_plate_profiles,
             active_part=workspace.active_part,
             selected_part=workspace.selected_part,
+            preserve_single_base_plate=receiving_single_base,
         )
     )
     plan = build_derived_part_sync_plan(request)
     navigation.apply_derived_sync_plan(plan)
+
+    # #1503: this is a real derived physical Part, not a menu-only label.
+    # Synchronize the W800/T2 left/right fixing plates into the authoritative
+    # workspace. Replacing the namespace also removes stale plates on Family
+    # or cabinet-dimension switches. A short source drawing is catalog-only.
+    from ae_engine.receiving_base_fixing_plate import (
+        BASE_FIXING_PLATE_PREFIX, receiving_base_fixing_plate_previews,
+    )
+    plate_previews = receiving_base_fixing_plate_previews(
+        snapshot, available_parts=workspace.available_parts,
+    )
+    navigation.sync_derived_parts(
+        namespace=BASE_FIXING_PLATE_PREFIX,
+        part_profiles={
+            part.part_id: {
+                "X": [{"len": part.nominal_source_outline_mm[0],
+                       "phase6_key": "base_fixing_source_x"}],
+                "Y": [{"len": part.nominal_source_outline_mm[1],
+                       "phase6_key": "base_fixing_source_y"}],
+            }
+            for part in plate_previews
+        },
+    )
 
     return (
         tuple(divider_profiles),

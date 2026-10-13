@@ -1,0 +1,18 @@
+{
+  "schema": "WHD_NFB_UPPER_SOURCE_PROFILE_V1",
+  "profiles": [
+    {
+      "brand": "士林",
+      "indexed_filename": "400_140X257_107.dxf",
+      "source_sha256": "8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3",
+      "upper_handle": "585",
+      "upper_size_mm": [
+        57,
+        96
+      ],
+      "source_alias_status": "SOURCE_ALIAS_SHA256_IDENTICAL",
+      "revision": "NFB-1497-SHIHLIN400-SOURCE-BYTE-IDENTITY-V2"
+    }
+  ],
+  "note": "Both user-provided DXF files 400_140X257_107.dxf and 400_140X257_107(1).dxf were byte-for-byte verified identical at SHA-256 8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3. The original input DXF files are not committed. Their identity is proven; world-X placement, physical owner and MFG-2 export still require independent validation."
+}

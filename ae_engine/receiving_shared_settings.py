@@ -8,7 +8,45 @@ SETTING_DEFAULTS = {
     "head_features": [],
     "tail_features": [],
     "inner_door_layers": 1,
+    # Two independent layers; each slot accepts a legacy single filename or
+    # multiple switch instances (including repeated identical DXF filenames).
+    "inner_door_models": ["", ""],
+    # Per-Bay display provenance. None=never applied, ""=explicit 即時.
+    "head_version_id": None,
+    "tail_version_id": None,
+    "inner_door_version_id": None,
 }
+
+
+def switch_filenames_in_layer(slot):
+    """Return physical switch occurrences, never deduplicate quantity."""
+    if isinstance(slot, str):
+        names = () if not slot else (slot,)
+    elif isinstance(slot, (list, tuple)):
+        names = tuple(slot)
+        if not names:
+            return ()
+    else:
+        raise ValueError("每層開關須為 DXF 檔名或檔名清單")
+    for name in names:
+        if (not isinstance(name, str) or len(name) <= 4
+                or not name.lower().endswith(".dxf")
+                or "/" in name or chr(92) in name or chr(0) in name):
+            raise ValueError("每層開關必須為合法 DXF 檔名")
+    return names
+
+
+def pack_switch_layer(names):
+    """Canonical compact slot: keep old 0/1-string project data compatible."""
+    items = switch_filenames_in_layer(list(names))
+    return "" if not items else items[0] if len(items) == 1 else list(items)
+
+
+def switch_model_layers(value):
+    """Normalize old [str,str] and new [str|list,str|list] without data loss."""
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ValueError("內門須包含兩層獨立的開關清單")
+    return [pack_switch_layer(switch_filenames_in_layer(slot)) for slot in value]
 
 
 def validate_setting(kind, value):
@@ -18,9 +56,23 @@ def validate_setting(kind, value):
         value = str(value).upper()
         if value not in {"FULL", "HALF", "BACK_OPENING"}:
             raise ValueError("不支援的背板型式")
+    elif kind.endswith("_version_id"):
+        import re
+        role = {
+            "head_version_id": "head",
+            "tail_version_id": "tail",
+            "inner_door_version_id": "inner-door",
+        }[kind]
+        if value is not None and value != "" and (
+            not isinstance(value, str)
+            or re.fullmatch(rf"{re.escape(role)}-v[1-9][0-9]*", value) is None
+        ):
+            raise ValueError("不合法的已套用版本編號")
     elif kind == "inner_door_layers":
         if value not in (1, 2) or isinstance(value, bool):
             raise ValueError("內門層數必須為 1 或 2")
+    elif kind == "inner_door_models":
+        value = switch_model_layers(value)
     elif not isinstance(value, (list, tuple)):
         raise ValueError("封頭尾設定必須是 Hole Editor feature 清單")
     return deepcopy(value)

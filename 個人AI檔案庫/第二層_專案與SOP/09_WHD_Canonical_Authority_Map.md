@@ -25,12 +25,15 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 <!-- WHD_AUTHORITY contract=canonical-authority-map role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md -->
 
-<!-- WHD_AUTHORITY contract=push-delivery-skill role=CURRENT path=.agents/skills/engineering/推推/SKILL.md -->
+<!-- WHD_AUTHORITY contract=localx-explicit-publish role=CURRENT path=.agents/skills/engineering/推推/SKILL.md -->
 <!-- WHD_AUTHORITY contract=root-local-first-workflow role=CURRENT path=.agents/skills/engineering/root-local-first/SKILL.md -->
 <!-- WHD_AUTHORITY contract=deterministic-repo-migration role=CURRENT path=.agents/skills/engineering/deterministic-repo-migration/SKILL.md -->
+<!-- WHD_AUTHORITY contract=grounded-spec-authoring role=CURRENT path=.agents/skills/engineering/寫成規格書/SKILL.md -->
+<!-- WHD_AUTHORITY contract=grounded-spec-authoring role=MIRROR path=docs/governance/WHD_規格書Skill前置與Grounding規則.md canonical=.agents/skills/engineering/寫成規格書/SKILL.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=MIRROR path=handoff/00_AI_HANDOFF_README.md canonical=AGENTS.md -->
-<!-- WHD_AUTHORITY contract=knowledge-preflight role=CURRENT path=AGENTS.md -->
+<!-- WHD_AUTHORITY contract=direct-governance-publish role=CURRENT path=docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md -->
+> **退役入口註記（HISTORICAL）**：舊 `knowledge-preflight`／Phase6 receipt 交易不得再列為 CURRENT contract。實際來源／技能 grounding 仍須依正式 X 的 `AGENTS.md` 和所屬 CURRENT domain/Skill 查核，但不得要求舊 Preflight 憑證或重跑交易。
 
 <!-- WHD_AUTHORITY contract=phase6-startup-baseline-model role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/10_WHD啟動基準型號規則.md -->
 <!-- WHD_AUTHORITY contract=phase6-assembly-shared-content-presentation role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md -->

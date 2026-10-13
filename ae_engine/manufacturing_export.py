@@ -1,6 +1,8 @@
 """Bounded DXF export sink for canonical manufacturing output."""
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import os
 from pathlib import Path
 import re
@@ -57,7 +59,13 @@ def resolved_physical_dxf_stem(part_id: str, *, box_body_physical_piece_roles) -
     return safe_dxf_part_stem(value)
 
 
-def resolved_physical_render_parts(resolved_geometry):
+def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_source_flats=False):
+    """Project ordinary DXF parts or full physical BOM inventory.
+
+    Source-flat fixing plates count as real independent BOM items even when
+    their bent/welded form cannot yet enter a production DXF batch.
+    Full-cabinet export and verification keep the conservative default.
+    """
     rows = []
     for part in tuple(getattr(resolved_geometry, 'parts', ()) or ()):
         key = str(getattr(part, 'part_key', '') or '').strip()
@@ -66,6 +74,19 @@ def resolved_physical_render_parts(resolved_geometry):
         render_data = getattr(part, 'render_data', None)
         if render_data is None:
             raise ValueError(f'resolved manufacturing part missing render_data: {key}')
+        # Source-flat fixing plates have real physical PartRenderData for the
+        # GUI and a separate source DXF export. Until finished BEND/weld Z is
+        # verified, they are NOT part of the full cabinet production DXF set.
+        # This exclusion never publishes a forged EAR blank, and the existing
+        # PAD/EAR guard still checks all remaining manufacturing rows.
+        meta = getattr(render_data, 'metadata', None)
+        if (key.startswith('base_plate:fixing_plate:')
+                and getattr(part, 'placement', None) == 'standalone'
+                and isinstance(meta, Mapping)
+                and meta.get('physical_part_role') == 'BASE_FIXING_PLATE'
+                and meta.get('formed_geometry_verified') is False
+                and not include_unreleased_source_flats):
+            continue
         pieces = tuple(getattr(render_data, 'pieces', ()) or ())
         if pieces:
             for index, piece in enumerate(pieces, start=1):
@@ -151,13 +172,87 @@ def _atomic_commit_staged_dxfs(
         shutil.rmtree(backup_dir, ignore_errors=True)
 
 
+def _reject_unapproved_nfb_pad_ear_manufacturing(rows) -> None:
+    """#1503: deferred PAD/EAR source data is NOT a manufacturing blank.
+
+    An NFB-specific PAD/EAR cannot be made from DXF lower-picture geometry,
+    model depth or a caller approval flag without physical Z/contact proof.
+    Reject before any temporary/output file is created. This does not ban
+    the already valid ear-mount HOLES in the ordinary Base Plate FinalScene.
+    """
+    for output_key, _, render_data in rows:
+        meta = getattr(render_data, 'metadata', None)
+        metadata = meta if isinstance(meta, Mapping) else {}
+        role = str(metadata.get('nfb_deferred_manufacturing_role') or '').upper()
+        ids = (str(output_key), str(metadata.get('stable_id') or ''))
+        nfb_part = any(
+            token.startswith(('nfb_pad', 'nfb_ear', 'nfb-pad', 'nfb-ear'))
+            for value in ids
+            for token in re.split(r'[:/\\]', value.casefold())
+        )
+        nfb_markers = any(
+            str(key).startswith(('nfb_pad_', 'nfb_ear_'))
+            for key in metadata
+        )
+        # Preview part identities are not certified formed blanks. Deny
+        # direct DXF even when a caller provides a fake ready metadata flag.
+        if any(value.casefold().startswith((
+                'base_plate:fixing_plate:', 'base_fixing_plate:',
+                'bottom_fixing_plate:')) for value in ids) or role == 'BASE_FIXING_PLATE':
+            raise ValueError('BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED')
+        if role in {'PAD', 'EAR'} or nfb_part or nfb_markers:
+            raise ValueError('NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED')
+
+
+def _validate_nfb_base_part_scope(rows, *, part_only: bool,
+                                  quantity_group: bool = False) -> set[str]:
+    """Separately admit verified physical plate CUTTING; never whole assembly.
+
+    A part-only DXF is independently checked after serialization before the
+    atomic batch commit. Source metadata/boolean flags alone are insufficient.
+    """
+    approved = set()
+    for output_key, _, render_data in rows:
+        metadata = getattr(render_data, 'metadata', None)
+        if not isinstance(metadata, Mapping) or 'nfb_base_process_status' not in metadata:
+            continue
+        if not part_only:
+            raise ValueError('NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT')
+        from .receiving_nfb_base_process_projection import validate_nfb_base_part_cutting
+        physical_id = str(metadata.get('stable_id') or '')
+        raw_key = str(output_key)
+        ordinary_owner = (raw_key == physical_id or raw_key.endswith(':' + physical_id))
+        group_owner = quantity_group and bool(re.fullmatch(r'[0-9a-f]{64}', raw_key))
+        if not (ordinary_owner or group_owner):
+            raise ValueError('NFB_BASE_PART_OUTPUT_OWNER_MISMATCH')
+        validate_nfb_base_part_cutting(render_data, physical_part_id=physical_id)
+        approved.add(str(output_key))
+    return approved
+
+
 def _save_resolved_rows_atomic(
     rows,
     output_dir,
     *,
     save_part_render_data_dxf,
     overwrite: bool,
+    part_only: bool = False,
+    quantity_group: bool = False,
 ) -> dict[str, str]:
+    # Check all physical-part evidence before any output path is created.
+    rows = tuple(rows)
+    _reject_unapproved_nfb_pad_ear_manufacturing(rows)
+    for output_key, _, render_data in rows:
+        metadata = getattr(render_data, "metadata", None)
+        if (isinstance(metadata, Mapping)
+                and metadata.get("receiving_base_plate_unconfigured") is True):
+            raise ValueError(
+                "RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING: "
+                + str(output_key)
+            )
+    verified_nfb_parts = _validate_nfb_base_part_scope(
+        rows, part_only=part_only, quantity_group=quantity_group,
+    )
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
     stage_dir = Path(tempfile.mkdtemp(prefix='.whd-dxf-stage-', dir=str(root)))
@@ -170,6 +265,18 @@ def _save_resolved_rows_atomic(
             filenames.add(filename)
             stage_path = stage_dir / filename
             save_part_render_data_dxf(render_data, stage_path, overwrite=True)
+            metadata = getattr(render_data, "metadata", None)
+            paired_door = (isinstance(metadata, Mapping)
+                           and metadata.get("nfb_pair_roundtrip_required") is True
+                           and metadata.get("nfb_trial_export_approved") is True)
+            if str(output_key) in verified_nfb_parts or paired_door:
+                from .manufacturing_verification import verify_saved_part_render_data_dxf
+                verified = verify_saved_part_render_data_dxf(render_data, stage_path)
+                if not verified.ok:
+                    raise ValueError(
+                        "NFB_PAIR_DOOR_STAGED_DXF_ROUNDTRIP_FAILED"
+                        if paired_door else "NFB_BASE_PART_STAGED_DXF_ROUNDTRIP_FAILED"
+                    )
             staged[str(output_key)] = stage_path
         return _atomic_commit_staged_dxfs(staged, root, overwrite=overwrite)
     finally:
@@ -184,6 +291,7 @@ def save_resolved_manufacturing_geometry_dxf(
     box_body_physical_piece_roles,
     overwrite: bool = False,
     instance_namespace: str | None = None,
+    part_only: bool = False,
 ) -> dict[str, str]:
     rows = []
     for part_id, render_data in resolved_physical_render_parts(resolved_geometry):
@@ -198,6 +306,7 @@ def save_resolved_manufacturing_geometry_dxf(
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         overwrite=overwrite,
+        part_only=part_only,
     )
 
 
@@ -208,6 +317,7 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     save_part_render_data_dxf,
     box_body_physical_piece_roles,
     overwrite: bool = False,
+    part_only: bool = False,
 ) -> dict[str, str]:
     """Atomically export multiple stable manufacturing instances into one inventory."""
     rows = []
@@ -229,6 +339,7 @@ def save_resolved_manufacturing_geometry_batch_dxf(
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         overwrite=overwrite,
+        part_only=part_only,
     )
 
 
@@ -243,9 +354,16 @@ def resolved_manufacturing_nc_capability() -> dict[str, object]:
 
 def save_quantity_manufacturing_groups_dxf(
     groups, output_dir, *, save_part_render_data_dxf, verify_part_dxf, overwrite=False,
-    render_data_transform=None,
+    render_data_transform=None, part_only: bool = False,
 ):
-    """Serialize one sheet per validated group through the existing atomic sink."""
+    """Serialize one sheet per validated group through the existing atomic sink.
+
+    PART_ONLY remains explicitly opt-in: the base's genuine source/FinalScene
+    evidence is still checked by the existing _validate_nfb_base_part_scope.
+    It does NOT release full NFB MFG-2 or PAD/EAR assembly.
+    """
+    if type(part_only) is not bool:
+        raise TypeError("CHECK/Q part_only must be an explicit boolean")
     rows = []
     keys = set()
     filenames = set()
@@ -261,6 +379,17 @@ def save_quantity_manufacturing_groups_dxf(
         if isinstance(group.quantity, bool) or not isinstance(group.quantity, int) or group.quantity < 1:
             raise ValueError("manufacturing group quantity must be positive")
         render = group.render_data
+        if part_only:
+            # A PART_ONLY CHECK/Q group key must be derived from the same
+            # current physical scene/material/parameters as its DXF. Group
+            # names cannot stand in for a signed manufacturing equivalence.
+            from hashlib import sha256
+            from .manufacturing_equivalence import manufacturing_equivalence_payload
+            observed = sha256(
+                manufacturing_equivalence_payload(render, group.parameters).encode('utf-8')
+            ).hexdigest()
+            if observed != key:
+                raise ValueError('NFB_PART_ONLY_CHECK_GROUP_GEOMETRY_KEY_MISMATCH')
         if render_data_transform is not None:
             render = render_data_transform(group)
         from .drawing_annotation_layout import annotate_quantity_render_data
@@ -279,5 +408,6 @@ def save_quantity_manufacturing_groups_dxf(
 
     return _save_resolved_rows_atomic(
         rows, output_dir, save_part_render_data_dxf=save_verified,
-        overwrite=overwrite,
+        overwrite=overwrite, part_only=part_only,
+        quantity_group=part_only,
     )

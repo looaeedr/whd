@@ -71,13 +71,18 @@ def project_hierarchy(values: Iterable[object] | None) -> tuple[NavigationRow, .
     children = box_body_piece_keys(keys)
     child_set = set(children)
     parent_present = "box_body" in keys
+    fixing_children = tuple(key for key in keys if key.startswith("base_plate:fixing_plate:"))
+    fixing_set = set(fixing_children)
+    base_present = "base_plate" in keys
     rows: list[NavigationRow] = []
     for key in keys:
-        if parent_present and key in child_set:
+        if (parent_present and key in child_set) or (base_present and key in fixing_set):
             continue
         rows.append(NavigationRow(key, None, 0))
         if parent_present and key == "box_body":
             rows.extend(NavigationRow(child, "box_body", 1) for child in children)
+        if base_present and key == "base_plate":
+            rows.extend(NavigationRow(child, "base_plate", 1) for child in fixing_children)
     return tuple(rows)
 
 
@@ -122,6 +127,11 @@ def operator_part_label(
     }
     if key in piece_labels:
         return piece_labels[key]
+    if key.startswith("base_plate:fixing_plate:"):
+        side = key.rsplit(":", 1)[-1]
+        return "底板固定片（左）" if side == "left" else (
+            "底板固定片（右）" if side == "right" else "底板固定片"
+        )
 
     snap = dict(snapshot or {})
     catalog = snap.get("custom_parts") or dict(snap.get("workspace") or {}).get("custom_parts") or {}

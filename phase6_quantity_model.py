@@ -11,9 +11,11 @@ import re
 from typing import Mapping
 
 SCHEMA = "phase6-quantity-v1"
+SCHEMA_V2 = "phase6-quantity-v2"
 QUANTITY_MODE = "quantity"
 SET_BAY_MODE = "set_bay"
 _VERSION_KEYS = {"version_id", "piece_count", "head_features", "tail_features"}
+_VERSION_KEYS_V2 = _VERSION_KEYS | {"nfb_config_submitted", "nfb_config"}
 _PAYLOAD_KEYS = {"schema", "versions", "selected_version_id", "next_version_number"}
 _SESSION_KEYS = ("_mode_buffers", "_quantity_session", "_set_bay_session", "_quantitySession", "_setBaySession")
 _ID_PATTERN = re.compile(r"quantity-v([1-9][0-9]*)\Z")
@@ -53,26 +55,37 @@ class QuantityModel:
     def from_payload(cls, payload: Mapping, *, on_change=None):
         if not isinstance(payload, Mapping) or set(payload) != _PAYLOAD_KEYS:
             raise ValueError("不合法的孔型版本資料")
-        if payload["schema"] != SCHEMA:
+        schema = payload["schema"]
+        if schema not in {SCHEMA, SCHEMA_V2}:
             raise ValueError("不支援的孔型版本格式")
+        from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
         rows = payload["versions"]
         if not isinstance(rows, (list, tuple)) or not rows:
             raise ValueError("至少保留一個孔型版本")
         validated = []
         numbers = set()
+        found_submitted = False
         for row in rows:
-            if not isinstance(row, Mapping) or set(row) != _VERSION_KEYS:
+            valid_keys = _VERSION_KEYS_V2 if schema == SCHEMA_V2 else _VERSION_KEYS
+            if not isinstance(row, Mapping) or set(row) != valid_keys:
                 raise ValueError("孔型版本只能保存封頭／封尾 Features 和件數，不能保存獨立外形")
             match = _ID_PATTERN.fullmatch(str(row["version_id"]))
             if not match or int(match[1]) in numbers:
                 raise ValueError("孔型版本 ID 不合法或重複")
             numbers.add(int(match[1]))
-            validated.append({
+            item = {
                 "version_id": row["version_id"],
                 "piece_count": positive_piece_count(row["piece_count"]),
                 "head_features": _features(row["head_features"]),
                 "tail_features": _features(row["tail_features"]),
-            })
+            }
+            if schema == SCHEMA_V2:
+                saved = normalize_nfb_saved_fields(row)
+                item.update(saved)
+                found_submitted = found_submitted or bool(saved)
+            validated.append(item)
+        if schema == SCHEMA_V2 and not found_submitted:
+            raise ValueError("NFB quantity v2 requires at least one submitted scope")
         selected = payload["selected_version_id"]
         if selected not in {row["version_id"] for row in validated}:
             raise ValueError("目前選取的孔型版本不存在")
@@ -120,6 +133,9 @@ class QuantityModel:
         new_row = deepcopy(source)
         new_row["version_id"] = f"quantity-v{self._next_number}"
         new_row["piece_count"] = 1
+        if new_row.get("nfb_config_submitted") is True:
+            from ae_engine.receiving_nfb_persistence import reconfirm_copied_nfb_config
+            new_row["nfb_config"] = reconfirm_copied_nfb_config(new_row["nfb_config"])
         index = self._versions.index(source)
         self._versions.insert(index + 1, new_row)
         self._next_number += 1
@@ -173,9 +189,38 @@ class QuantityModel:
             row[f"{part}_features"] = copied
             self._changed()
 
+    def nfb_config_for_version(self, version_id):
+        from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
+        row = next((r for r in self._versions if r["version_id"] == version_id), None)
+        if row is None:
+            raise ValueError(f"孔型版本不存在: {version_id}")
+        return deepcopy(normalize_nfb_saved_fields(row))
+
+    def set_version_nfb_config(self, version_id, *, submitted, config=None):
+        from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
+        row = next((r for r in self._versions if r["version_id"] == version_id), None)
+        if row is None:
+            raise ValueError(f"孔型版本不存在: {version_id}")
+        fields = normalize_nfb_saved_fields({
+            "nfb_config_submitted": submitted, "nfb_config": config,
+        })
+        old = self.nfb_config_for_version(version_id)
+        if old != fields:
+            row.pop("nfb_config_submitted", None)
+            row.pop("nfb_config", None)
+            row.update(fields)
+            self._changed()
+
     def snapshot(self):
+        committed = any(r.get("nfb_config_submitted") is True for r in self._versions)
+        rows = deepcopy(self._versions)
+        if committed:
+            for row in rows:
+                if row.get("nfb_config_submitted") is not True:
+                    row["nfb_config_submitted"] = False
+                    row["nfb_config"] = None
         return {
-            "schema": SCHEMA, "versions": deepcopy(self._versions),
+            "schema": SCHEMA_V2 if committed else SCHEMA, "versions": rows,
             "selected_version_id": self._selected,
             "next_version_number": self._next_number,
         }
@@ -196,6 +241,11 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
         from ae_engine.receiving_hole_candidates import normalize_candidates
         result["receiving_hole_candidates"] = normalize_candidates(
             result["receiving_hole_candidates"]
+        )
+    if receiving and "receiving_inner_door_candidates" in result:
+        from ae_engine.receiving_inner_door_candidates import normalize_inner_candidates
+        result["receiving_inner_door_candidates"] = normalize_inner_candidates(
+            result["receiving_inner_door_candidates"]
         )
     mode = result.get("active_mode", SET_BAY_MODE if receiving else QUANTITY_MODE)
     if mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):

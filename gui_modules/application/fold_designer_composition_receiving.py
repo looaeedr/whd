@@ -67,6 +67,9 @@ from phase6_registry_diagnostics_panel import (
     registry_source_raw,
 )
 from phase6_settings_panel import Phase6SettingsPanel
+from gui_modules.application.receiving_base_plate_settings_transaction import (
+    commit_receiving_base_plate_settings,
+)
 from phase6_workspace_shell import (
     WorkspaceShellActions,
     WorkspaceShellOwner,
@@ -479,7 +482,7 @@ def confirm_receiving_opening(
         submit("geometry", commit=True)
     return True
 
-def receiving_bay_preview_request(self, namespace, set_index, bay_index):
+def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
     """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
     from types import SimpleNamespace
     from copy import deepcopy
@@ -491,8 +494,12 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
     from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
     from ae_engine.display_dimensions import resolve_operator_finished_dimensions
     app = self.app
+    source = dict(app._phase6_input_snapshot)
+    if preview_layout is not None:
+        # Candidate previews run on an isolated layout clone, NEVER live state.
+        source["receiving_layout"] = preview_layout
     snapshot = project_receiving_bay_legacy_aliases(
-        app._phase6_input_snapshot, set_index=set_index, bay_index=bay_index,
+        source, set_index=set_index, bay_index=bay_index,
     )
     settings = {**dict(app._settings_values), **{key: snapshot[key] for key in ("w", "h", "d")}}
     snapshot.update(settings)
@@ -501,7 +508,11 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
     fingerprint = stable_fingerprint({"snapshot": snapshot, "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
-    if cache_key in cache and cache[cache_key][0] == fingerprint:
+    virtual_cache = getattr(self, "_receiving_bay_virtual_preview_cache", {})
+    virtual_key = (set_index, bay_index, fingerprint)
+    if preview_layout is not None and virtual_key in virtual_cache:
+        return virtual_cache[virtual_key]
+    if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
         return cache[cache_key][1]
     box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
     profile_map = {key: build_endcap_xy_profiles(snapshot, part_key=key) for key in ("head", "tail")}
@@ -559,8 +570,16 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index):
         x_profile=(), y_profile=(), part_key="assembly",
         finished_dimensions=dimensions(), thickness=float(snapshot.get("t", 2)),
     )
-    cache[cache_key] = (fingerprint, result)
-    self._receiving_bay_preview_cache = cache
+    if preview_layout is None:
+        cache[cache_key] = (fingerprint, result)
+        self._receiving_bay_preview_cache = cache
+    else:
+        # Small bounded cache prevents every preview-version switch from
+        # repeating the real FinalScene solve. Fingerprint invalidates drafts.
+        virtual_cache[virtual_key] = result
+        while len(virtual_cache) > 8:
+            virtual_cache.pop(next(iter(virtual_cache)))
+        self._receiving_bay_virtual_preview_cache = virtual_cache
     return result
 
 def receiving_layer_preview_payload(self, namespace, layer_index):
@@ -596,13 +615,20 @@ def receiving_settings_ports(self, namespace, set_index):
     def selected(index):
         adapter.select_bay(index + 1)
 
-    def change(kind, value, indices=()):
+    def change(kind, value, indices=None):
+        # No explicitly highlighted Bay means no edit. Omitted indices keeps
+        # compatibility for the direct one-Bay editor, not the multi GUI.
+        targets = ((adapter.selection.bay_index,) if indices is None
+                   else tuple(indices))
+        if not targets:
+            return False
         current = adapter.selection.bay_index
-        for index in tuple(indices) or (current,):
+        for index in targets:
             adapter.select_bay(index + 1)
             adapter.update_setting(kind, value)
         adapter.select_bay(current + 1)
         commit()
+        return True
 
     def share(kind, indices):
         adapter.share_setting(kind, indices)
@@ -632,7 +658,9 @@ def receiving_settings_ports(self, namespace, set_index):
         adapter.set_brand(value)
         commit()
 
-    def holes(role, indices=()):
+    def holes(role, indices=None):
+        if indices is not None and not tuple(indices):
+            return False
         bay = adapter.current_bay()
         width, depth = float(bay["width"]), float(bay["depth"])
         thickness = float(self.app._phase6_input_snapshot.get("t", 2))
@@ -646,7 +674,7 @@ def receiving_settings_ports(self, namespace, set_index):
         def save_features():
             kind = f"{role}_features"
             current = adapter.selection.bay_index
-            targets = tuple(indices) or (current,)
+            targets = (current,) if indices is None else tuple(indices)
             if len(targets) > 1:
                 adapter.select_bay(targets[0] + 1)
                 adapter.share_setting(kind, targets)
@@ -735,6 +763,12 @@ def settings_panel(self, namespace):
         part_labels=required("PART_LABELS"),
         context_extension_projection=lambda context: self.settings_context_extension_projection(
             namespace, context
+        ),
+        receiving_base_plate_commit=lambda config: commit_receiving_base_plate_settings(
+            input_snapshot=app._phase6_input_snapshot,
+            settings_values=app._settings_values,
+            submit_geometry_update=lambda: app.submit_update_intent("geometry", commit=True),
+            config=config,
         ),
         endcap_fw_value_selected=lambda part_key, value_var: required(
             "_phase6_on_endcap_fw_value_selected"
@@ -1012,6 +1046,19 @@ def open_receiving_multi_settings(self, namespace):
     if not self.receiving_layout_applicable():
         return False
     from .receiving_multi_settings_window import open_multi_settings
+    # Verified source/panel evidence is per currently edited Set/Bay, ephemeral.
+    # Nothing here is saved to the project or allowed to bypass #1500.
+    pending_verified_nfb = {}
+    committed_nfb_evidence = {}  # session-only proof, NEVER persisted or blanket approved
+
+    def nfb_physical_bay_snapshot(set_index,bay_index):
+        """Real selected Bay authority, not the unprojected root UI snapshot."""
+        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+        source=_current_mode_snapshot(self,namespace)
+        source["receiving_layout"]=candidate_adapter().layout
+        return project_receiving_bay_legacy_aliases(
+            source,set_index=set_index,bay_index=bay_index,
+        )
 
     def select_bay(set_index, bay_index):
         # Reuse canonical selection; no new data owner or manufacturing draw.
@@ -1183,7 +1230,9 @@ def open_receiving_multi_settings(self, namespace):
         features = candidate_features(candidate_library(), role, version_id)
         # One validated all-or-nothing update; retains the active editor
         # selection and avoids the old per-Bay UI/geometry churn.
-        adapter.apply_candidate_to_bays(role, set_index, targets, features)
+        adapter.apply_candidate_to_bays(
+            role, set_index, targets, features, version_id=version_id,
+        )
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
         self.app.submit_update_intent("geometry", commit=True)
@@ -1200,6 +1249,15 @@ def open_receiving_multi_settings(self, namespace):
         self.app.submit_update_intent("geometry", commit=True)
         return result
 
+    def apply_live_label(role, set_index, highlighted):
+        """Tag the existing physical config 即時; no candidate or geometry mutation."""
+        adapter = candidate_adapter()
+        applied_bays = adapter.mark_live_version_for_bays(role, set_index, highlighted)
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        # A display-label mutation must never rebuild FinalScene.
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        return applied_bays
+
     def candidate_ports():
         return {
             "versions": lambda role: candidates_for(candidate_library(), role),
@@ -1207,8 +1265,1299 @@ def open_receiving_multi_settings(self, namespace):
             "copy": copy_candidate,
             "delete": remove_candidate,
             "apply": apply_candidate,
+            "apply_live": apply_live_label,
             "apply_quantity": apply_quantity_configuration,
         }
+
+    # Independent inner-door candidate data. It shares the UX mechanics with
+    # endcaps, but never reads/writes receiving_hole_candidates or QuantityModel.
+    from ae_engine.receiving_inner_door_candidates import (
+        KEY as INNER_KEY, ROLE as INNER_ROLE,
+        normalize_inner_candidates, inner_versions, inner_config,
+        create_inner_candidate, update_inner_candidate,
+        delete_inner_candidate, duplicate_inner_candidate,
+    )
+    from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
+    from ae_engine.receiving_hole_candidates import version_label
+    from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer
+    from ae_engine.receiving_switch_model_catalog import model_filenames, display_model, INDEX_PATH
+
+    def inner_library():
+        return normalize_inner_candidates(
+            self.app._phase6_input_snapshot.get(INNER_KEY)
+        )
+
+    def persist_inner(library):
+        self.app._phase6_input_snapshot[INNER_KEY] = (
+            normalize_inner_candidates(library)
+        )
+        workspace = getattr(self.app, "designer_workspace", None)
+        if workspace is not None:
+            workspace.mark_dirty()
+
+    def inner_edit(role, version_id, after_saved):
+        if role != INNER_ROLE:
+            raise ValueError("內門版本權責錯誤")
+        from tkinter import ttk, messagebox
+        import tkinter as tk
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        from .receiving_nfb_source_preview import NfbDxfSourcePreviewPanel
+        from ae_engine.receiving_nfb_ui1a_edits import (
+            NfbUi1aEditSession, editable_nfb_draft, insert_nfb_slot,
+            delete_nfb_slot, move_nfb_slot, replace_nfb_slot_model,
+            set_nfb_manual_x, set_nfb_layer_rotation,
+            set_nfb_slot_rotation, effective_nfb_rotation,
+        )
+        from ae_engine.receiving_nfb_ui1a import (
+            INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
+            reconcile_set_brand, set_nfb_draft_layer_count,
+            set_nfb_layer_brand, set_nfb_slot_brand, add_nfb_draft_slot,
+            select_nfb_slot_model, remove_nfb_draft_slot,
+            effective_nfb_layer_brand, effective_nfb_slot_brand, nfb_ui1a_preview,
+        )
+
+        if version_id is None:
+            adapter = candidate_adapter()
+            set_row = adapter.layout["sets"][adapter.selection.set_index]
+            bi = adapter.selection.bay_index
+            initial = {
+                "layers": setting_value(set_row, bi, "inner_door_layers"),
+                "models": setting_value(set_row, bi, "inner_door_models"),
+            }
+        else:
+            initial = inner_config(inner_library(), version_id)
+        parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
+        owner = parent_modal if (parent_modal is not None
+                                 and parent_modal.winfo_exists()) else self.app.root
+        modal = tk.Toplevel(owner)
+        modal.title("內門版本編輯")
+        modal.transient(owner)
+        from .receiving_scroll_view import make_scrollable_frame
+        modal.geometry("820x750")
+        modal_scroll, modal_content, modal_viewport = make_scrollable_frame(
+            modal, tk=tk, ttk=ttk, width=790, height=680,
+        )
+        modal_scroll.pack(fill="both", expand=True)
+        frame = ttk.Frame(modal_content, padding=14)
+        frame.pack(fill="both", expand=True)
+        modal._receiving_editor_scroll = modal_scroll
+        ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
+                        else version_label(version_id))).pack(anchor="w")
+        # Legacy inner-door candidate layers and NFB physical layers are
+        # DIFFERENT concepts. The #1491 draft must not rewrite either owner.
+        layers = tk.IntVar(master=modal, value=initial["layers"])
+        nfb_physical_layers = tk.IntVar(master=modal, value=initial["layers"])
+        summary_row = ttk.Frame(frame)
+        summary_row.pack(fill="x", pady=(4, 6))
+        controls = ttk.Frame(summary_row)
+        controls.pack(side="left", anchor="n")
+        ttk.Label(controls, text="內門版本層數").pack(side="left")
+        # No fake inventory thumbnail: true real geometry is shown from the
+        # selected version in the separate movable FinalScene window.
+        preview_status = tk.StringVar(master=modal)
+        ttk.Label(summary_row, textvariable=preview_status).pack(
+            side="right", anchor="ne",
+        )
+        # Keep legacy draft in memory but remove its unapproved controls.
+        physical_row = ttk.Frame(frame)
+        ttk.Label(physical_row, text="NFB 物理層（未提交草稿）").pack(side="left")
+        chosen = [list(switch_filenames_in_layer(slot))
+                  for slot in initial["models"]]
+        layer_rows = []
+        warning = tk.StringVar(master=modal, value="")
+        # UI-1A transient state; NOT persisted to .p6fold and NOT a second
+        # ReceivingLayout owner. Existing candidate saving below stays intact.
+        # All existing #1491 controls still set draft_state["draft"], but
+        # this single transient session captures every edit for #1493 Undo.
+        # It does not persist a second Hole Editor/project authority.
+        class _NfbDraftState(dict):
+            session = None
+            def __setitem__(self,key,value):
+                if key=="draft" and self.session is not None:
+                    self.session.apply("NFB_UI1A_EDIT",lambda _before:value)
+                    value=self.session.current
+                dict.__setitem__(self,key,value)
+        draft_state = _NfbDraftState({"draft": new_nfb_ui1a_draft(
+            set_brand=self.receiving_switch_adapter(namespace).brand,
+            layer_count=nfb_physical_layers.get(), model_layers=initial["models"],
+        )})
+        edit_session = NfbUi1aEditSession(draft_state["draft"])
+        draft_state.session = edit_session
+        dict.__setitem__(draft_state,"draft",edit_session.current)
+        source_state = {"files": [(), ()], "signature": [None, None]}
+        draft_summary = tk.StringVar(master=modal, value="")
+        initial_nfb_draft = deepcopy(draft_state["draft"])
+        nfb_preview_panel = {"panel": None}
+        nfb_source_viewed = {"value": False}
+
+        def sync_chosen():
+            for layer in range(2):
+                chosen[layer][:] = [
+                    slot["filename"] for slot in
+                    draft_state["draft"]["layers"][layer]["slots"]
+                    if slot["filename"] is not None
+                ]
+
+        def view_source_catalog(index):
+            d = draft_state["draft"]
+            row = layer_rows[index]
+            sel = row["assigned"].curselection()
+            if sel and sel[0] < len(d["layers"][index]["slots"]):
+                return effective_nfb_slot_brand(d, index, sel[0])
+            return effective_nfb_layer_brand(d, index)
+
+        def paint_draft_preview():
+            config = {
+                "layers": layers.get(),
+                "models": [
+                    pack_switch_layer(chosen[0]),
+                    pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                ],
+            }
+            before = {
+                "layers": initial["layers"],
+                "models": [
+                    pack_switch_layer(switch_filenames_in_layer(initial["models"][0])),
+                    pack_switch_layer(switch_filenames_in_layer(initial["models"][1]))
+                    if initial["layers"] == 2 else "",
+                ],
+            }
+            preview_status.set(
+                "尚未儲存的變更" if config != before else "與已載入版本相同"
+            )
+            try:
+                adapter = candidate_adapter()
+                selection = adapter.selection
+                width = adapter.layout["sets"][selection.set_index]["bays"][
+                    selection.bay_index]["width"]
+                snapshot = _current_mode_snapshot(self, namespace)
+                columns = snapshot.get("door_layout_columns") or ()
+                from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+                cells = derive_door_layout_cells(columns) if columns else ()
+                upper = [c for c in cells if c.row_index == 0]
+                height = float(upper[0].start_height) if len(upper) == 1 else -1.0
+                projection = nfb_ui1a_preview(
+                    draft_state["draft"], bay_width_mm=width,
+                    upper_cell_height_mm=height,
+                )
+                segments = []
+                for entry in projection["layers"]:
+                    pitch = entry["adjacent_x_mm"]
+                    x_label = ("相鄰 " + "／".join(str(int(p)) for p in pitch) + " mm"
+                               if pitch is not None else "X 基準未定")
+                    y = entry["nominal_y_from_top_mm"]
+                    y_label = (f"名義 Y {y:g} mm" if y is not None else "Y 未定")
+                    stale = sum(x["status"] == NEEDS_RESELECTION
+                                for x in entry["slots"])
+                    segments.append(
+                        f"第{entry['layer_index']+1}層 {x_label}、{y_label}"
+                        + (f"｜{stale} 顆待重選" if stale else "")
+                    )
+                pad = projection["pad_depth_preview"]
+                pad_status = pad["status"]
+                if pad_status == "PAD_DIFFERENT_DEPTH_REVIEW_ONLY":
+                    candidate = pad["shallower_unit_index"] + 1
+                    pad_text = (
+                        f"｜墊高候選：第{candidate}顆較淺，"
+                        f"深度差 {pad['candidate_delta_mm']:g} mm（未核准墊高實體）"
+                    )
+                elif pad_status == "PAD_NOT_NEEDED_SAME_DEPTH":
+                    pad_text = "｜兩顆深度相同，不需墊高片"
+                elif pad_status == "PAD_DEPTH_SOURCE_UNKNOWN":
+                    pad_text = "｜兩顆深度未齊：請檢查 CSV「深」欄及品牌來源"
+                else:
+                    pad_text = ""  # other layer/count configurations never create PAD
+                draft_summary.set("｜".join(segments) + pad_text + "｜僅預覽、不提交製造")
+            except (ValueError,TypeError,KeyError) as exc:
+                draft_summary.set(f"NFB 名義幾何未定：{exc}｜僅預覽")
+
+
+        def repaint(index):
+            entry = layer_rows[index]
+            selected = entry["assigned"].curselection()
+            entry["assigned"].delete(0, tk.END)
+            slots = draft_state["draft"]["layers"][index]["slots"]
+            for slot in slots:
+                entry["assigned"].insert(
+                    tk.END,
+                    (display_model(slot["filename"]) if slot["filename"] else "（空槽）")
+                )
+            if selected and selected[0] < len(slots):
+                entry["assigned"].selection_set(selected[0])
+            entry["count"].set(
+                f"實體 {len(slots)} 槽／開關 {sum(bool(s['filename']) for s in slots)} 顆"
+            )
+            if "slot_brand_var" in entry:
+                selected_now = entry["assigned"].curselection()
+                if selected_now:
+                    brand_state = slots[selected_now[0]]["brand"]
+                    entry["slot_brand_var"].set(
+                        "繼承本層" if brand_state["mode"] == INHERIT
+                        else brand_state["value"]
+                    )
+                else:
+                    entry["slot_brand_var"].set("繼承本層")
+            paint_draft_preview()
+
+        def refresh_source(*, force=False):
+            if not modal.winfo_exists():
+                return
+            current_owner = self.receiving_switch_adapter(namespace).brand
+            if current_owner != draft_state["draft"]["set_brand"]:
+                draft_state["draft"] = reconcile_set_brand(
+                    draft_state["draft"], current_owner,
+                )
+            try:
+                stat = INDEX_PATH.stat()
+                stamp = (stat.st_mtime_ns, stat.st_size)
+            except OSError:
+                stamp = (None, None)
+            for index, entry in enumerate(layer_rows):
+                if index >= draft_state["draft"]["layer_count"]:
+                    continue
+                brand = view_source_catalog(index)
+                signature = (brand, *stamp)
+                if not force and signature == source_state["signature"][index]:
+                    continue
+                source_state["signature"][index] = signature
+                try:
+                    files = model_filenames(brand)
+                except (ValueError,OSError,UnicodeError) as exc:
+                    files = ()
+                    warning.set("開關索引.csv 讀取失敗：" + str(exc))
+                source_state["files"][index] = files
+                entry["available"].delete(0, tk.END)
+                for filename in files:
+                    entry["available"].insert(tk.END, display_model(filename))
+
+        def poll_source():
+            if not modal.winfo_exists():
+                return
+            refresh_source()
+            modal.after(1800, poll_source)
+
+        def add_switch(index):
+            selected = layer_rows[index]["available"].curselection()
+            if not selected:
+                warning.set("請先選擇 CSV 開關型號")
+                return
+            filename = source_state["files"][index][selected[0]]
+            expected_brand = view_source_catalog(index)
+            if filename not in model_filenames(expected_brand):
+                warning.set("CSV 已變動，請重新選擇")
+                refresh_source(force=True)
+                return
+            added = insert_nfb_slot(
+                draft_state["draft"], index,
+                len(draft_state["draft"]["layers"][index]["slots"]),
+                filename=filename, brand=expected_brand,
+            )
+            # Source brand override and the physical insert are ONE undo step.
+            if expected_brand != effective_nfb_layer_brand(added,index):
+                added = set_nfb_slot_brand(
+                    added, index,
+                    len(added["layers"][index]["slots"])-1,
+                    mode=OVERRIDE, value=expected_brand,
+                )
+            draft_state["draft"] = added
+            sync_chosen()
+            repaint(index)
+            warning.set("")
+
+        def add_empty_slot(index):
+            draft_state["draft"] = insert_nfb_slot(
+                draft_state["draft"],index,
+                len(draft_state["draft"]["layers"][index]["slots"]),
+            )
+            sync_chosen()
+            repaint(index)
+
+        def replace_selected_slot(index):
+            selected = layer_rows[index]["assigned"].curselection()
+            choice = layer_rows[index]["available"].curselection()
+            if not selected or not choice:
+                warning.set("請選擇原槽與新的 CSV 型號")
+                return
+            brand = view_source_catalog(index)
+            filename = source_state["files"][index][choice[0]]
+            draft_state["draft"] = replace_nfb_slot_model(
+                draft_state["draft"],index,selected[0],filename,
+                catalog={brand:model_filenames(brand)},
+            )
+            sync_chosen()
+            repaint(index)
+            warning.set("")
+
+        def remove_switch(index):
+            selected = layer_rows[index]["assigned"].curselection()
+            if not selected:
+                return
+            draft_state["draft"] = delete_nfb_slot(
+                draft_state["draft"], index, selected[0],
+            )
+            sync_chosen()
+            repaint(index)
+            refresh_source(force=True)
+
+        def preview_available(index):
+            selected = layer_rows[index]["available"].curselection()
+            files = source_state["files"][index]
+            if selected and selected[0] < len(files):
+                nfb_preview_panel["panel"].show(view_source_catalog(index),files[selected[0]])
+                nfb_source_viewed["value"] = True
+
+        def preview_assigned(index):
+            selected = layer_rows[index]["assigned"].curselection()
+            if selected:
+                slot = draft_state["draft"]["layers"][index]["slots"][selected[0]]
+                brand = effective_nfb_slot_brand(draft_state["draft"],index,selected[0])
+                nfb_preview_panel["panel"].show(brand,slot["filename"])
+                nfb_source_viewed["value"] = True
+
+        def reposition_nfb_slot(index,direction):
+            selected=layer_rows[index]["assigned"].curselection()
+            if not selected:
+                warning.set("請先選取要換序的 NFB 顆位")
+                return
+            old=selected[0]
+            dest=old+direction
+            count=len(draft_state["draft"]["layers"][index]["slots"])
+            if not 0<=dest<count:return
+            try:
+                draft_state["draft"]=move_nfb_slot(draft_state["draft"],index,old,dest)
+                sync_chosen()
+                repaint(index)
+                layer_rows[index]["assigned"].selection_clear(0,tk.END)
+                layer_rows[index]["assigned"].selection_set(dest)
+                warning.set("已調整順序：本層 X 位移重設，其他層不變")
+            except (ValueError,IndexError) as exc:
+                warning.set(str(exc))
+
+        def undo_nfb_draft():
+            try:
+                edit_session.undo()
+                dict.__setitem__(draft_state,"draft",edit_session.current)
+                sync_chosen()
+                nfb_physical_layers.set(edit_session.current["layer_count"])
+                for i,row in enumerate(layer_rows):
+                    brand=edit_session.current["layers"][i]["brand"]
+                    row["layer_brand_var"].set(
+                        "繼承本套" if brand["mode"]==INHERIT else brand["value"]
+                    )
+                    row["layer_rotation_var"].set(
+                        str(edit_session.current["layers"][i]["rotation_deg"])
+                    )
+                    repaint(i)
+                change_layers_visibility_only()
+                refresh_source(force=True)
+                warning.set("已復原 NFB 草稿上一筆交易")
+            except ValueError as exc:
+                warning.set(str(exc))
+
+        def change_layers_visibility_only():
+            if nfb_physical_layers.get()==1:
+                layer_rows[1]["section"].pack_forget()
+            elif not layer_rows[1]["section"].winfo_manager():
+                layer_rows[1]["section"].pack(
+                    fill="x",pady=(4,6),after=layer_rows[0]["section"],
+                )
+
+        def set_rotation_in_draft(index,*,unit=False):
+            row=layer_rows[index]
+            try:
+                if unit:
+                    selected=row["assigned"].curselection()
+                    if not selected:
+                        raise ValueError("請先選擇要旋轉的 NFB 顆位")
+                    text=row["unit_rotation_var"].get()
+                    draft_state["draft"]=set_nfb_slot_rotation(
+                        draft_state["draft"],index,selected[0],
+                        mode=INHERIT if text=="跟隨本層" else OVERRIDE,
+                        value=None if text=="跟隨本層" else int(text),
+                    )
+                else:
+                    draft_state["draft"]=set_nfb_layer_rotation(
+                        draft_state["draft"],index,int(row["layer_rotation_var"].get()),
+                    )
+                warning.set("角度僅保存草稿；來源主孔中心未認證，不能當製造旋轉")
+                paint_draft_preview()
+            except (ValueError,IndexError) as exc:
+                warning.set(str(exc))
+
+        def set_x_in_draft(index):
+            row=layer_rows[index]
+            selected=row["assigned"].curselection()
+            if not selected:
+                warning.set("請先選擇要編輯 X 位移的 NFB 顆位")
+                return
+            typed=row["manual_x_var"].get().strip()
+            try:
+                value=None if not typed else float(typed)
+                draft_state["draft"]=set_nfb_manual_x(
+                    draft_state["draft"],index,selected[0],value,
+                )
+                warning.set(
+                    "X 位移保留為未驗證草稿，不是絕對製造座標"
+                    if value is not None else "本顆位移已清除"
+                )
+                paint_draft_preview()
+            except ValueError as exc:
+                warning.set(str(exc))
+
+        editor_body = ttk.Frame(frame)
+        editor_body.pack(fill="both", expand=True, pady=(4, 6))
+        slot_columns = ttk.Frame(editor_body)
+        slot_columns.pack(side="left", fill="both", expand=True)
+        nfb_preview_panel["panel"] = NfbDxfSourcePreviewPanel(editor_body)
+        nfb_preview_panel["panel"].frame.pack_forget()
+
+        def sync_visible_layers():
+            nfb_physical_layers.set(layers.get())
+            change_layers()
+
+        for count in (1, 2):
+            ttk.Radiobutton(
+                controls, text=str(count), value=count, variable=layers,
+                # The retired physical-layer selector follows the visible
+                # inner-door layer choice so a two-layer save remains valid.
+                command=lambda: sync_visible_layers(),
+            ).pack(side="left", padx=8)
+            ttk.Radiobutton(
+                physical_row, text=str(count), value=count,
+                variable=nfb_physical_layers,
+                command=lambda: change_layers(),
+            ).pack(side="left", padx=7)
+
+        for idx in range(2):
+            section = ttk.LabelFrame(slot_columns, text=f"第 {idx+1} 層開關")
+            section.pack(fill="x", pady=(4, 6))
+            section.columnconfigure(0, weight=1)
+            section.columnconfigure(2, weight=1)
+            ttk.Label(section, text="CSV 型號").grid(
+                row=0, column=0, sticky="w", padx=5)
+            ttk.Label(section, text="本層開關（可重複）").grid(
+                row=0, column=2, sticky="w", padx=5)
+            available = tk.Listbox(section, selectmode=tk.BROWSE,
+                                   exportselection=False, height=6)
+            available.grid(row=1, column=0, sticky="nsew", padx=5)
+            buttons_area = ttk.Frame(section)
+            buttons_area.grid(row=1, column=1, padx=7)
+            ttk.Button(buttons_area, text="－移除",
+                       command=lambda idx=idx: remove_switch(idx)).pack(
+                pady=3)
+            ttk.Button(buttons_area, text="＋加入",
+                       command=lambda idx=idx: add_switch(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="＋空槽",
+                       command=lambda idx=idx: add_empty_slot(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="替換所選",
+                       command=lambda idx=idx: replace_selected_slot(idx)).pack(pady=3)
+            ttk.Button(buttons_area, text="↑ 前移",
+                       command=lambda idx=idx: reposition_nfb_slot(idx,-1)).pack(pady=2)
+            ttk.Button(buttons_area, text="↓ 後移",
+                       command=lambda idx=idx: reposition_nfb_slot(idx,1)).pack(pady=2)
+            # Restore the user's compact editor: only +加入 and −移除.
+            for extra in buttons_area.winfo_children()[2:]:
+                extra.pack_forget()
+            assigned = tk.Listbox(section, selectmode=tk.BROWSE,
+                                  exportselection=False, height=6)
+            assigned.grid(row=1, column=2, sticky="nsew", padx=5)
+            count_text = tk.StringVar(master=modal)
+            ttk.Label(section, textvariable=count_text).grid(
+                row=2, column=2, sticky="w", padx=(5, 0), pady=(0, 3))
+            # Set.switch_brand is the ONLY Set owner; these two selectors
+            # are explicit layer/unit override controls on a transient draft.
+            brand_row = ttk.Frame(section)
+            brand_row.grid(row=3, column=0, columnspan=3, sticky="w", pady=(2, 4))
+            ttk.Label(brand_row, text="本層品牌").pack(side="left")
+            brand_choices = ("繼承本套", *RECEIVING_SWITCH_BRANDS)
+            layer_brand_var = tk.StringVar(master=modal, value="繼承本套")
+            layer_brand_select = ttk.Combobox(
+                brand_row, textvariable=layer_brand_var, values=brand_choices,
+                width=12, state="readonly",
+            )
+            layer_brand_select.pack(side="left", padx=(3, 12))
+            ttk.Label(brand_row, text="所選顆品牌").pack(side="left")
+            slot_brand_var = tk.StringVar(master=modal, value="繼承本層")
+            slot_brand_select = ttk.Combobox(
+                brand_row, textvariable=slot_brand_var,
+                values=("繼承本層", *RECEIVING_SWITCH_BRANDS),
+                width=12, state="readonly",
+            )
+            slot_brand_select.pack(side="left", padx=3)
+            brand_row.grid_remove()
+            rotation_row=ttk.Frame(section)
+            rotation_row.grid(row=4,column=0,columnspan=3,sticky="w",pady=(2,4))
+            ttk.Label(rotation_row,text="本層角度").pack(side="left")
+            layer_rotation_var=tk.StringVar(master=modal,value="0")
+            layer_rotation_select=ttk.Combobox(
+                rotation_row,textvariable=layer_rotation_var,
+                values=("0","90","180","270"),width=5,state="readonly",
+            )
+            layer_rotation_select.pack(side="left",padx=(4,10))
+            ttk.Label(rotation_row,text="所選顆角度").pack(side="left")
+            unit_rotation_var=tk.StringVar(master=modal,value="跟隨本層")
+            unit_rotation_select=ttk.Combobox(
+                rotation_row,textvariable=unit_rotation_var,
+                values=("跟隨本層","0","90","180","270"),
+                width=9,state="readonly",
+            )
+            unit_rotation_select.pack(side="left",padx=(4,10))
+            ttk.Label(rotation_row,text="X 位移 mm").pack(side="left")
+            manual_x_var=tk.StringVar(master=modal,value="")
+            ttk.Entry(rotation_row,textvariable=manual_x_var,width=8).pack(
+                side="left",padx=(4,3),
+            )
+            ttk.Button(
+                rotation_row,text="設定",
+                command=lambda idx=idx:set_x_in_draft(idx),
+            ).pack(side="left")
+            rotation_row.grid_remove()
+            layer_rows.append({
+                "section": section, "available": available,
+                "assigned": assigned, "count": count_text,
+                "layer_brand_var": layer_brand_var,
+                "slot_brand_var": slot_brand_var,
+                "layer_rotation_var": layer_rotation_var,
+                "unit_rotation_var": unit_rotation_var,
+                "manual_x_var": manual_x_var,
+            })
+
+            def layer_brand_changed(_event=None, idx=idx):
+                value = layer_rows[idx]["layer_brand_var"].get()
+                draft_state["draft"] = set_nfb_layer_brand(
+                    draft_state["draft"],idx,mode=INHERIT if value=="繼承本套" else OVERRIDE,
+                    value=None if value=="繼承本套" else value,
+                )
+                refresh_source(force=True)
+                repaint(idx)
+
+            def slot_brand_changed(_event=None, idx=idx):
+                selected = layer_rows[idx]["assigned"].curselection()
+                if not selected:
+                    warning.set("請先選取一個實際 NFB 顆位或空槽")
+                    return
+                value = layer_rows[idx]["slot_brand_var"].get()
+                draft_state["draft"] = set_nfb_slot_brand(
+                    draft_state["draft"],idx,selected[0],
+                    mode=INHERIT if value=="繼承本層" else OVERRIDE,
+                    value=None if value=="繼承本層" else value,
+                )
+                refresh_source(force=True)
+                repaint(idx)
+
+            layer_brand_select.bind("<<ComboboxSelected>>",layer_brand_changed)
+            slot_brand_select.bind("<<ComboboxSelected>>",slot_brand_changed)
+            layer_rotation_select.bind(
+                "<<ComboboxSelected>>",
+                lambda _event,i=idx:set_rotation_in_draft(i),
+            )
+            unit_rotation_select.bind(
+                "<<ComboboxSelected>>",
+                lambda _event,i=idx:set_rotation_in_draft(i,unit=True),
+            )
+            def selected_slot_changed(_event=None, idx=idx):
+                selected = layer_rows[idx]["assigned"].curselection()
+                slots = draft_state["draft"]["layers"][idx]["slots"]
+                if selected and selected[0] < len(slots):
+                    unit = slots[selected[0]]["brand"]
+                    layer_rows[idx]["slot_brand_var"].set(
+                        "繼承本層" if unit["mode"] == INHERIT else unit["value"]
+                    )
+                    rotation=slots[selected[0]].get(
+                        "rotation",{"mode":INHERIT,"value":None},
+                    )
+                    layer_rows[idx]["unit_rotation_var"].set(
+                        "跟隨本層" if rotation["mode"]==INHERIT else str(rotation["value"])
+                    )
+                    manual=slots[selected[0]].get("manual_x_mm")
+                    layer_rows[idx]["manual_x_var"].set(
+                        "" if manual is None else f"{manual:g}"
+                    )
+                else:
+                    layer_rows[idx]["slot_brand_var"].set("繼承本層")
+                    layer_rows[idx]["unit_rotation_var"].set("跟隨本層")
+                    layer_rows[idx]["manual_x_var"].set("")
+                refresh_source(force=True)
+
+            assigned.bind("<<ListboxSelect>>", lambda event, i=idx: (
+                selected_slot_changed(event,i), preview_assigned(i),
+            ))
+            available.bind("<<ListboxSelect>>",lambda event,i=idx: preview_available(i))
+            repaint(idx)
+
+        def change_layers():
+            try:
+                draft_state["draft"] = set_nfb_draft_layer_count(
+                    draft_state["draft"], nfb_physical_layers.get(),
+                )
+            except ValueError as exc:
+                nfb_physical_layers.set(draft_state["draft"]["layer_count"])
+                warning.set(str(exc))
+            if nfb_physical_layers.get() == 1:
+                layer_rows[1]["section"].pack_forget()
+            elif not layer_rows[1]["section"].winfo_manager():
+                layer_rows[1]["section"].pack(
+                    fill="x", pady=(4, 6),
+                    after=layer_rows[0]["section"],
+                )
+            paint_draft_preview()
+            refresh_source(force=True)
+
+        change_layers()
+        # Nominal NFB draft/workflow summary is not part of the approved UI.
+        ttk.Label(frame, textvariable=warning).pack(anchor="w")
+        refresh_source(force=True)
+        modal.after(1800, poll_source)
+        modal._receiving_inner_switch_state = {
+            "chosen": chosen, "layers": layers,
+            "edit_session": edit_session,
+            "nfb_physical_layers": nfb_physical_layers,
+            "rows": layer_rows, "warning": warning,
+            "nfb_draft": draft_state, "nfb_draft_status": draft_summary,
+        }
+        modal._receiving_inner_refresh_switch_models = refresh_source
+        modal._receiving_inner_preview_status = preview_status
+        modal._receiving_inner_nfb_dxf_panel = nfb_preview_panel["panel"]
+
+        def open_nfb_world_x_dialog():
+            """Operator enters absolute world-X; UI-1A draft offset is not X."""
+            if version_id is None:
+                warning.set("請先儲存內門版本，再進行 NFB 實體確認")
+                return
+            from ae_engine.receiving_nfb_ui1b_runtime import verify_current_nfb_ui_draft
+            current=edit_session.current
+            active=[
+                (i,j,slot)
+                for i,layer in enumerate(current["layers"][:current["layer_count"]])
+                for j,slot in enumerate(layer["slots"])
+                if slot["filename"] is not None
+            ]
+            if not active:
+                warning.set("尚未選擇可驗證的 NFB 型號")
+                return
+            popup=tk.Toplevel(modal)
+            popup.title("NFB 物理世界 X｜正式提交前驗證")
+            popup.geometry("540x440")
+            from .receiving_scroll_view import make_scrollable_frame
+            world_scroll, world_content, _world_view = make_scrollable_frame(
+                popup, tk=tk, ttk=ttk, width=510, height=410,
+            )
+            world_scroll.pack(fill="both", expand=True)
+            body=ttk.Frame(world_content,padding=14)
+            body.pack(fill="both",expand=True)
+            popup._receiving_world_scroll = world_scroll
+            ttk.Label(
+                body,text="輸入受電箱基準的實際世界 X（mm），不是名義間距或 X 位移。",
+                wraplength=490,
+            ).pack(anchor="w",pady=(0,7))
+            ttk.Label(
+                body,text="僅士林已具備輪廓資料的型號可試；實際 DXF/SHA、內門板、1100 Y"
+                          " 與孔位碰撞全部須通過才會準備提交。",
+                wraplength=490,
+            ).pack(anchor="w",pady=(0,9))
+            # Explicit file chooser; a numbered copy still requires real SHA
+            # and Color150 matching in the canonical #1497 verifier.
+            source_choice={"path":None}
+            source_caption=tk.StringVar(
+                master=popup,
+                value="來源：基準檔/開孔/NFB（缺檔可選原始 DXF）",
+            )
+            def choose_original_dxf():
+                from tkinter import filedialog
+                picked=filedialog.askopenfilename(
+                    parent=popup,title="選擇原始 NFB DXF",
+                    filetypes=(("DXF","*.dxf"),("所有檔案","*.*")),
+                )
+                if picked:
+                    source_choice["path"]=picked
+                    source_caption.set("已指定原始 DXF："+picked)
+            ttk.Button(
+                body,text="選取原始 DXF",command=choose_original_dxf,
+            ).pack(anchor="w")
+            ttk.Label(body,textvariable=source_caption,wraplength=500).pack(
+                anchor="w",pady=(2,7),
+            )
+            world_values={}
+            for layer_i,slot_i,slot in active:
+                line=ttk.Frame(body)
+                line.pack(fill="x",anchor="w",pady=3)
+                ttk.Label(
+                    line,text=f"第 {layer_i+1} 層 第 {slot_i+1} 顆"
+                              f"｜{slot['filename'][:-4]}",
+                    width=40,
+                ).pack(side="left")
+                var=tk.StringVar(master=popup,value="")
+                ttk.Entry(line,textvariable=var,width=11).pack(side="right")
+                world_values[slot["unit_id"]]=var
+            # W800/T2/top-1100/complete three-unit source is derived from
+            # the real manufactured 723 mm inner-door CUTTING, never from a
+            # customer's DXF bbox or a guessed 800/2. Unsupported layouts
+            # keep the existing explicit-world-X editor.
+            canonical_prefilled=False
+            try:
+                from ae_engine.receiving_nfb_ui1b_runtime import (
+                    derive_w800_three_world_x_by_unit,
+                )
+                selection_for_x=candidate_adapter().selection
+                physical_for_x=nfb_physical_bay_snapshot(
+                    selection_for_x.set_index,selection_for_x.bay_index,
+                )
+                canonical_x=derive_w800_three_world_x_by_unit(
+                    edit_session.current,snapshot=physical_for_x,
+                )
+                if set(canonical_x)==set(world_values):
+                    for unit_id,physical_x in canonical_x.items():
+                        world_values[unit_id].set(str(physical_x))
+                    canonical_prefilled=True
+            except (ValueError,TypeError,KeyError,IndexError):
+                pass
+            outcome=tk.StringVar(
+                master=popup,
+                value=("已帶入 WHD 實際板件驗證的 W800×3 世界 X，提交前會再次核對。"
+                       if canonical_prefilled else
+                       "目前尚未驗證，未修改專案。"),
+            )
+            ttk.Label(body,textvariable=outcome,wraplength=500).pack(
+                anchor="w",pady=(8,4),
+            )
+
+            def close_world_dialog():
+                if popup.grab_current() is popup:
+                    popup.grab_release()
+                popup.destroy()
+                if modal.winfo_exists():
+                    modal.lift()
+                    modal.focus_set()
+
+            def prepare():
+                try:
+                    coords={}
+                    for unit_id,var in world_values.items():
+                        value=var.get().strip()
+                        if not value:
+                            raise ValueError("每顆 NFB 的世界 X 都須明確輸入，0 亦可")
+                        coords[unit_id]=float(value)
+                    adapter=candidate_adapter()
+                    selected=adapter.selection
+                    bundle=verify_current_nfb_ui_draft(
+                        edit_session.current,layout=adapter.layout,
+                        set_index=selected.set_index,
+                        bay_index=selected.bay_index,
+                        version_id=version_id,
+                        projected_snapshot=nfb_physical_bay_snapshot(
+                            selected.set_index,selected.bay_index,
+                        ),
+                        world_x_by_unit=coords,
+                        selected_source_path=source_choice["path"],
+                        canonical_w800_three=canonical_prefilled,
+                    )
+                    nfb_transaction_ports()["stage_verified"](bundle)
+                    outcome.set("已完成真實來源／內門實體驗證，仍須回主視窗按「確認套用（NFB）」")
+                    close_world_dialog()
+                    after_saved(version_id)  # UI refresh only, no candidate write
+                    close_editor(saved=True)  # verified stage returns to parent
+                except (ValueError,TypeError,KeyError,IndexError,OSError) as exc:
+                    outcome.set("尚未通過驗證："+str(exc))
+            actions=ttk.Frame(body)
+            actions.pack(anchor="e",pady=(9,0))
+            ttk.Button(actions,text="取消",command=close_world_dialog).pack(
+                side="left",padx=5,
+            )
+            ttk.Button(actions,text="驗證實體來源",command=prepare).pack(side="left")
+            popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
+            popup.lift()
+
+        def confirm():
+            try:
+                # #1491 is transient UI-1A only. Distinct NFB physical layer
+                # count cannot be flattened into legacy inner-door layers.
+                if nfb_physical_layers.get() != layers.get():
+                    raise ValueError("NFB 物理層與內門版本層數不同，不能覆寫成舊候選")
+                # Existing candidate serializer also lacks physical empty
+                # slots and brand overrides. Fail rather than lose user data.
+                active = draft_state["draft"]["layers"][:nfb_physical_layers.get()]
+                for row in active:
+                    if row["brand"]["mode"] == OVERRIDE:
+                        raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
+                    if row["rotation_deg"]!=0:
+                        raise ValueError("NFB 草稿角度不能被舊版內門層數格式丟失")
+                    for slot in row["slots"]:
+                        if slot["filename"] is None or slot["brand"]["mode"] == OVERRIDE:
+                            raise ValueError("空槽或單顆品牌覆寫仍是 NFB 草稿，不能丟失後儲存")
+                        if (slot["rotation"]["mode"]==OVERRIDE
+                                or slot["manual_x_state"]!="NONE"
+                                or slot["manual_x_mm"] is not None):
+                            raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
+                        if slot["source_brand"] != draft_state["draft"]["set_brand"]:
+                            raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
+                latest_files = set(model_filenames(
+                    self.receiving_switch_adapter(namespace).brand
+                ))
+                relevant = chosen[:layers.get()]
+                if any(filename not in latest_files
+                       for layer_items in relevant for filename in layer_items):
+                    raise ValueError("開關索引.csv 已變動或來源型號失效")
+                config = {
+                    "layers": layers.get(),
+                    "models": [
+                        pack_switch_layer(chosen[0]),
+                        pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                    ],
+                }
+                if version_id is None:
+                    saved, vid = create_inner_candidate(inner_library(), config)
+                else:
+                    saved = update_inner_candidate(
+                        inner_library(), version_id, config,
+                    )
+                    vid = version_id
+                persist_inner(saved)
+                after_saved(vid)
+                close_editor(saved=True)
+            except (ValueError, OSError, UnicodeError) as exc:
+                warning.set(str(exc))
+        buttons = ttk.Frame(frame)
+        buttons.pack(anchor="e", pady=(10, 0))
+        ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
+            side="left", padx=5,
+        )
+        ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
+        # Restore the parent multi-settings grab after this editor closes.
+        parent_modal = getattr(
+            self.app.root, "_receiving_multi_settings_window", None
+        )
+        def close_editor(*, saved=False):
+            if (not saved and (draft_state["draft"] != initial_nfb_draft
+                               or nfb_source_viewed["value"])
+                    and not messagebox.askyesno(
+                        "捨棄未提交的 NFB 草稿？",
+                        "目前 NFB 物理層、空槽或品牌選型的預覽尚未提交。確定捨棄？",
+                        parent=modal,
+                    )):
+                return
+            if modal.grab_current() is modal:
+                modal.grab_release()
+            modal.destroy()
+            if parent_modal is not None and parent_modal.winfo_exists():
+                if parent_modal.grab_current() is None:
+                    parent_modal.grab_set()
+                parent_modal.lift()
+                parent_modal.focus_set()
+        modal.protocol("WM_DELETE_WINDOW", close_editor)
+        modal.bind("<Escape>",lambda _event:close_editor())
+        for widget in buttons.winfo_children():
+            if widget.cget("text") == "取消":
+                widget.configure(command=close_editor)
+        if owner.grab_current() is owner:
+            owner.grab_release()
+        modal.grab_set()
+        modal.lift()
+        modal.focus_set()
+        return modal
+
+    def inner_copy(role, version_id, destination):
+        if role != INNER_ROLE or destination != INNER_ROLE:
+            raise ValueError("內門版本不能複製到封頭尾")
+        updated, vid = duplicate_inner_candidate(inner_library(), version_id)
+        persist_inner(updated)
+        return vid
+
+    def inner_delete(role, version_id):
+        if role != INNER_ROLE:
+            raise ValueError("內門版本權責錯誤")
+        persist_inner(delete_inner_candidate(inner_library(), version_id))
+
+    def verify_inner_models(config):
+        allowed = set(model_filenames(
+            self.receiving_switch_adapter(namespace).brand
+        ))
+        for layer_slot in config["models"][:config["layers"]]:
+            for name in switch_filenames_in_layer(layer_slot):
+                if name not in allowed:
+                    raise ValueError(
+                        "內門版本型號已不在開關索引.csv，請重新編輯選擇：" + name
+                    )
+
+    def inner_apply(role, version_id, set_index, highlighted):
+        if role != INNER_ROLE or version_id is None or not highlighted:
+            raise ValueError("請選內門版本及實際連位")
+        adapter = candidate_adapter()
+        config = inner_config(inner_library(), version_id)
+        verify_inner_models(config)
+        adapter.apply_inner_door_candidate_to_bays(
+            config, set_index, highlighted, version_id=version_id,
+        )
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        self.app.submit_update_intent("geometry", commit=True)
+        return True
+
+    def inner_validate_quantity(quantities, assigned, expected_counts):
+        plan = validate_inner_door_allocation(
+            candidate_adapter().layout, inner_library(), quantities, assigned,
+            expected_counts=expected_counts,
+        )
+        for _si, _bi, config in plan:
+            verify_inner_models(config)
+        return plan
+
+    def inner_apply_quantity(role, quantities, assigned, expected_counts):
+        if role != INNER_ROLE:
+            raise ValueError("內門版本權責錯誤")
+        inner_validate_quantity(quantities, assigned, expected_counts)
+        adapter = candidate_adapter()
+        count = adapter.apply_inner_door_quantity_configuration(
+            inner_library(), quantities, assigned,
+            expected_counts=expected_counts,
+        )
+        self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        self.sync_receiving_current_bay(namespace, refresh_controls=False)
+        self.app.submit_update_intent("geometry", commit=True)
+        return count
+
+    def inner_candidate_ports():
+        return {
+            "versions": lambda role: (
+                inner_versions(inner_library()) if role == INNER_ROLE else ()
+            ),
+            "edit": inner_edit,
+            "copy": inner_copy,
+            "delete": inner_delete,
+            "apply": inner_apply,
+            "apply_live": apply_live_label,
+            "apply_quantity": inner_apply_quantity,
+            "validate_quantity": inner_validate_quantity,
+        }
+
+    def nfb_transaction_ports():
+        """Single Receiving authority, with real source-verified transient stage."""
+        from ae_engine.receiving_nfb_ui1b_bridge import (
+            NfbVerifiedDraftSubmission, assert_live_verified_nfb,
+            submit_live_verified_nfb, copy_live_verified_nfb,
+        )
+
+        def stage_verified(bundle):
+            if not isinstance(bundle, NfbVerifiedDraftSubmission):
+                raise TypeError("NFB 必須提供真實來源與內門物理位置驗證")
+            adapter=candidate_adapter()
+            assert_live_verified_nfb(
+                adapter,bundle,current_snapshot=nfb_physical_bay_snapshot(
+                    bundle.set_index,bundle.bay_index,
+                ),
+            )
+            pending_verified_nfb[(bundle.set_index,bundle.bay_index)]=bundle
+            return True
+
+        def eligible_bundle(set_index,bay_index):
+            bundle=pending_verified_nfb.get((set_index,bay_index))
+            if bundle is None:
+                return None,"尚未取得當前連的原始 DXF、實體世界 X 與內門板驗證"
+            try:
+                assert_live_verified_nfb(
+                    candidate_adapter(),bundle,
+                    current_snapshot=nfb_physical_bay_snapshot(
+                    bundle.set_index,bundle.bay_index,
+                ),
+                )
+            except (ValueError,TypeError,KeyError,IndexError,OSError) as exc:
+                pending_verified_nfb.pop((set_index,bay_index),None)
+                return None,"已配置 NFB 驗證過期，必須重新檢查："+str(exc)
+            return bundle,""
+
+        def copy_pair(set_index, selected_bays):
+            """Select one committed source and one separately verified target.
+
+            The highlighter, not a second selection popup, chooses exactly
+            two Bays. The source may be active or the destination may be
+            active. If both directions could apply, fail closed.
+            """
+            indices=tuple(selected_bays)
+            if (len(indices)!=2 or len(indices)!=len(set(indices))):
+                raise ValueError("NFB 複製請在同一套高亮來源連及目標連（恰好兩連）")
+            layout=candidate_adapter().layout
+            try:
+                bays=layout["sets"][set_index]["bays"]
+                selected={i:bays[i] for i in indices}
+            except (IndexError,KeyError,TypeError) as exc:
+                raise ValueError("NFB 複製的連位已不存在") from exc
+            options=[]
+            for source_bi in indices:
+                if selected[source_bi].get("nfb_config_submitted") is not True:
+                    continue
+                for target_bi in indices:
+                    if target_bi==source_bi:
+                        continue
+                    if (set_index,target_bi) not in pending_verified_nfb:
+                        continue
+                    bundle,reason=eligible_bundle(set_index,target_bi)
+                    if bundle is not None and bundle.can_submit:
+                        options.append((source_bi,bundle))
+            if len(options)!=1:
+                raise ValueError(
+                    "請先從已提交來源連複製，並在另一目標連核對獨立世界 X／真 DXF；"
+                    "不可使用未配置來源或不明確的複製方向"
+                )
+            return options[0]
+
+        def physical_manifest(set_index,bay_index):
+            """Read-only live status from current saved NFB + original source."""
+            from ae_engine.receiving_nfb_export_manifest import (
+                NfbActualPart,INNER_DOOR,BASE_PLATE,MIDDLE_PLATE,
+                derive_nfb_partial_export_manifest,
+            )
+            adapter=candidate_adapter()
+            owner=adapter.layout["sets"][set_index]
+            bay=owner["bays"][bay_index]
+            if bay.get("nfb_config_submitted") is not True:
+                return {
+                    "status":"LEGACY","reason":"未配置 NFB：保留原有開孔流程",
+                    "actual_export_count":None,"rows":(),
+                    "unresolved_dependencies":(),
+                }
+            bundle=committed_nfb_evidence.get((set_index,bay_index))
+            if bundle is None:
+                return {
+                    "status":"BLOCKED","reason":"已提交，但尚未重新核對原始 DXF／物理孔位",
+                    "actual_export_count":0,"rows":(),
+                    "unresolved_dependencies":("SOURCE_REVALIDATION_REQUIRED",),
+                }
+            try:
+                current=nfb_physical_bay_snapshot(set_index,bay_index)
+                # Report-only geometry fingerprint; manufacturing remains
+                # gated again by #1497/#1498 and the part-export writer.
+                from .receiving_nfb_partial_export_action import (
+                    nfb_verification_geometry_changed,
+                )
+                if nfb_verification_geometry_changed(
+                    current, bundle.snapshot_at_verification,
+                ):
+                    raise ValueError("內門幾何已變更，來源驗證必須重新執行")
+                scope=bundle.scope
+                physical=[
+                    NfbActualPart(scope.inner_door_part_id,INNER_DOOR),
+                    *(NfbActualPart(p,BASE_PLATE)
+                      for p in scope.base_plate_part_ids),
+                    *(NfbActualPart(p,MIDDLE_PLATE)
+                      for p in scope.middle_plate_part_ids),
+                ]
+                manifest=derive_nfb_partial_export_manifest(
+                    scope=scope,actual_parts=physical,
+                    saved_bay=bay,set_brand=owner["switch_brand"],
+                    source_inventory=bundle.source_inventory,
+                    verified_inner_door=bundle.verified_door,
+                    source_path=bundle.source_path,
+                )
+                details=manifest.report()
+                details["status"]=(
+                    "WHOLE_READY" if manifest.whole_ready else "PARTIAL_ONLY"
+                )
+                details["reason"]=(
+                    "可匯出僅限以下已通過的實體板件；PAD／EAR 仍延期"
+                    if manifest.authorized_part_ids else
+                    "尚無可放行 NFB 加工板件"
+                )
+                # This is a view, NOT the exporter authority itself.
+                return details
+            except (ValueError,TypeError,KeyError,IndexError,OSError) as exc:
+                committed_nfb_evidence.pop((set_index,bay_index),None)
+                return {
+                    "status":"BLOCKED","reason":"NFB 證據已過期："+str(exc),
+                    "actual_export_count":0,"rows":(),
+                    "unresolved_dependencies":("SOURCE_REVALIDATION_REQUIRED",),
+                }
+
+        def export_partial_nfb_inner_door(set_index, bay_index, output_path):
+            """Operator-requested NFB-only partial DXF; not legacy whole export."""
+            from .receiving_nfb_partial_export_action import (
+                export_verified_receiving_nfb_inner_door,
+            )
+            bundle = committed_nfb_evidence.get((set_index, bay_index))
+            if bundle is None:
+                raise ValueError("此連已提交 NFB，但來源／世界 X 尚未在本次操作重新驗證")
+            adapter = candidate_adapter()
+            # Source proof and actual saved Bay are revalidated before writing.
+            return export_verified_receiving_nfb_inner_door(
+                bundle,
+                layout=adapter.layout,
+                current_snapshot=nfb_physical_bay_snapshot(set_index, bay_index),
+                output_path=output_path,
+            )
+
+        def export_partial_nfb_base_plate(set_index, bay_index, output_directory):
+            """Real NFB Base Plate PART_ONLY export, not whole-cabinet release."""
+            from .receiving_nfb_base_partial_export_action import (
+                export_verified_receiving_nfb_base_plate,
+            )
+            bundle = committed_nfb_evidence.get((set_index, bay_index))
+            if bundle is None:
+                raise ValueError("受電箱底板無已提交的 NFB 原始來源及實體孔位驗證")
+            current = nfb_physical_bay_snapshot(set_index, bay_index)
+            # Reuse the original manufacturing PartSpec owner.  In
+            # particular, this must not synthesize base_plate_cN_rN.
+            spec, _ = self.app._part_spec_query_callback("base_plate", current)
+            return export_verified_receiving_nfb_base_plate(
+                bundle,
+                layout=candidate_adapter().layout,
+                current_snapshot=current,
+                base_spec=spec,
+                output_directory=output_directory,
+            )
+
+        def export_partial_nfb_door_base_pair(set_index, bay_index, output_directory):
+            """Atomic PART_ONLY actual inner-door + physical Receiving Base Plate."""
+            from .receiving_nfb_pair_partial_export_action import (
+                export_verified_receiving_nfb_door_base_pair,
+            )
+            bundle = committed_nfb_evidence.get((set_index, bay_index))
+            if bundle is None:
+                raise ValueError("NFB 成對出圖缺少本連已提交原始來源及實體孔位驗證")
+            current = nfb_physical_bay_snapshot(set_index, bay_index)
+            spec, _ = self.app._part_spec_query_callback("base_plate", current)
+            return export_verified_receiving_nfb_door_base_pair(
+                bundle, layout=candidate_adapter().layout,
+                current_snapshot=current, base_spec=spec,
+                output_directory=output_directory,
+            )
+
+        def state(set_index, bay_index, selected_bays=()):
+            adapter = candidate_adapter()
+            row = adapter.layout["sets"][set_index]["bays"][bay_index]
+            submitted = row.get("nfb_config_submitted") is True
+            bundle,reason=eligible_bundle(set_index,bay_index)
+            try:
+                copy_pair(set_index,selected_bays)
+                can_copy=True
+            except (ValueError,IndexError,KeyError):
+                can_copy=False
+            return {
+                "submitted": submitted,
+                "can_submit": bundle is not None and bundle.can_submit,
+                "can_copy": can_copy,
+                "can_restore": submitted,
+                "can_undo": adapter.nfb_can_undo,
+                "base_partial_ready": bool(
+                    submitted
+                    and (set_index, bay_index) in committed_nfb_evidence
+                    and nfb_physical_bay_snapshot(set_index, bay_index).get("receiving_base_plate")
+                ),
+                "reason": ("來源已配置、目標連獨立世界 X 與 DXF 已驗證，可複製提交"
+                           if can_copy else
+                           (reason or "當前 NFB 已核對來源／世界 X／實體內門，可確認套用")),
+            }
+
+        def submit(set_index,bay_indices,confirm):
+            targets=tuple(bay_indices)
+            if len(targets)!=1:
+                raise ValueError("NFB MFG-1 本次僅驗證單一實體連，跨連須逐連確認")
+            bi=targets[0]
+            bundle,reason=eligible_bundle(set_index,bi)
+            if bundle is None:
+                raise ValueError(reason)
+            result=submit_live_verified_nfb(
+                candidate_adapter(),bundle,
+                current_snapshot=nfb_physical_bay_snapshot(
+                    bundle.set_index,bundle.bay_index,
+                ),
+                confirm=confirm,
+            )
+            if result.changed:
+                pending_verified_nfb.pop((set_index,bi),None)
+                committed_nfb_evidence[(set_index,bi)]=bundle
+                flush()
+            return result.changed
+
+        def copy(set_index,bay_indices,confirm):
+            source_bi,target_bundle=copy_pair(set_index,bay_indices)
+            result=copy_live_verified_nfb(
+                candidate_adapter(),source_bay_index=source_bi,
+                target_bundle=target_bundle,
+                current_snapshot=nfb_physical_bay_snapshot(
+                    target_bundle.set_index,target_bundle.bay_index,
+                ),
+                confirm=confirm,
+            )
+            if result.changed:
+                pending_verified_nfb.pop(
+                    (target_bundle.set_index,target_bundle.bay_index),None
+                )
+                committed_nfb_evidence[
+                    (target_bundle.set_index,target_bundle.bay_index)
+                ]=target_bundle
+                flush()
+            return result.changed
+
+        def flush():
+            adapter = candidate_adapter()
+            self.mark_receiving_switch_layout_dirty(namespace, adapter)
+            self.sync_receiving_current_bay(namespace, refresh_controls=False)
+            self.app.submit_update_intent("geometry", commit=True)
+
+        def restore(set_index, bay_indices, confirm):
+            adapter = candidate_adapter()
+            result = adapter.restore_nfb_unconfigured(
+                set_index=set_index, bay_indices=bay_indices, confirm=confirm,
+            )
+            if result.changed:
+                for bi in bay_indices:
+                    committed_nfb_evidence.pop((set_index,bi),None)
+                    pending_verified_nfb.pop((set_index,bi),None)
+                flush()
+            return result.changed
+
+        def undo():
+            adapter = candidate_adapter()
+            receipt = adapter.undo_last_nfb_transaction()
+            committed_nfb_evidence.clear()  # Undo invalidates old physical evidence
+            pending_verified_nfb.clear()
+            flush()
+            return receipt
+
+        return {"state": state, "stage_verified": stage_verified,
+                "submit": submit, "copy": copy, "manifest": physical_manifest,
+                "partial_export": export_partial_nfb_inner_door,
+                "base_partial_export": export_partial_nfb_base_plate,
+                "pair_partial_export": export_partial_nfb_door_base_pair,
+                "restore": restore, "undo": undo}
+
+    def real_cut_preview_request(role, version_id, set_index, bay_index):
+        """True canonical FinalScene, candidate-injected in memory, no mutation."""
+        if version_id is None:
+            # Read the active canonical Set/Bay layout, not a possibly stale
+            # application snapshot; it is still resolved in an isolated scene.
+            return self.receiving_bay_preview_request(
+                namespace, set_index, bay_index,
+                preview_layout=candidate_adapter().layout,
+            )
+        from .receiving_set_bay_adapter import ReceivingSetBayAdapter
+        temporary = ReceivingSetBayAdapter(candidate_adapter().layout)
+        if role == "inner-door":
+            config = inner_config(inner_library(), version_id)
+            temporary.apply_inner_door_candidate_to_bays(
+                config, set_index, (bay_index,), version_id=version_id,
+            )
+        elif role in ("head", "tail"):
+            features = candidate_features(candidate_library(), role, version_id)
+            temporary.apply_candidate_to_bays(
+                role, set_index, (bay_index,), features, version_id=version_id,
+            )
+        else:
+            raise ValueError("不支援的真實截角資料預覽部位")
+        return self.receiving_bay_preview_request(
+            namespace, set_index, bay_index, preview_layout=temporary.layout,
+        )
+
+    def applied_version_labels(set_index):
+        """Read ONLY persisted per-Bay identifiers from the current layout."""
+        from ae_engine.receiving_shared_settings import setting_value
+        selected_set = candidate_adapter().layout["sets"][set_index]
+        return tuple({
+            role: setting_value(selected_set, bi, kind)
+            for role, kind in (
+                ("head", "head_version_id"),
+                ("tail", "tail_version_id"),
+                ("inner-door", "inner_door_version_id"),
+            )
+        } for bi in range(len(selected_set["bays"])))
 
     return open_multi_settings(
         self.app.root,
@@ -1220,12 +2569,16 @@ def open_receiving_multi_settings(self, namespace):
         ),
         resize_sets=resize_sets,
         get_candidate_ports=candidate_ports,
+        get_inner_candidate_ports=inner_candidate_ports,
+        get_nfb_transaction_ports=nfb_transaction_ports,
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
         get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_original_door_marks=existing_door_marks,
+        get_applied_version_labels=applied_version_labels,
+        get_real_cut_preview_request=real_cut_preview_request,
         on_brand_close=finalize_global_brand,
         on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
     )

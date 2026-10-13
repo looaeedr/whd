@@ -270,6 +270,15 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
     try:
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
+        # A production bottom plate needs an explicitly selected physical
+        # variant. The three sample drawings are candidates, not a universal
+        # default. This fixture chooses a real physical spec before batch DXF.
+        from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+        designer._phase6_input_snapshot["receiving_base_plate"] = {
+            "pattern": RECEIVING_BASE_PATTERN_CENTER,
+            "height": 280.0, "shrink_top": 20.0, "shrink_bottom": 20.0,
+            "shrink_left": 85.0, "shrink_right": 85.0, "bend": 20.0,
+        }
 
         # Operator asks the actual 3D Output surface to export every selectable kind.
         for var in designer.output_export_vars.values():
@@ -362,11 +371,18 @@ def test_receiving_assembly_view_visibly_projects_receiver_mother_plate_markings
             if str(part.part_key).startswith("box_body:divider:"):
                 divider_marks.extend(marking_lines(part.render_data))
 
-        assert len(receiver_sources["left_side"]) == 1
-        assert len(receiver_sources["right_side"]) == 1
+        # Each actual side plate now carries the pre-existing inner-frame
+        # contact AND the newly verified Divider terminal contact.
+        for role in ("left_side", "right_side"):
+            rows = tuple(dict(pieces[role].metadata or {}).get("joint_markings") or ())
+            assert {row["attached_part_id"] for row in rows} == {
+                f"inner_door:upper:{role.split('_')[0]}_frame",
+                "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1",
+            }
+            assert len(receiver_sources[role]) == 2
         assert len(receiver_sources["head"]) == 1
         assert len(divider_marks) == 2
-        assert sum(len(rows) for rows in receiver_sources.values()) + len(divider_marks) == 5
+        assert sum(len(rows) for rows in receiver_sources.values()) + len(divider_marks) == 7
 
         for frame_id in (
             "inner_door:upper:top_frame",
@@ -385,8 +401,8 @@ def test_receiving_assembly_view_visibly_projects_receiver_mother_plate_markings
             line for line in tuple(ax.lines)
             if str(line.get_color()).lower() == "#f59e0b"
         ]
-        assert len(visible_marks) >= 5, (
-            "All five canonical receiver-owned contact MARKING lines exist in "
+        assert len(visible_marks) >= 7, (
+            "All seven canonical receiver-owned contact MARKING lines exist in "
             "FinalScene/DXF but are not visibly projected in Receiving assembly 3D"
         )
         assert all(float(line.get_zorder()) >= 10.0 for line in visible_marks)
@@ -447,6 +463,13 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         win = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 3)
         assert win.title() == "多只設定"
+        # The dialog reflects the current canonical mode. Select Set/Bay
+        # explicitly before asserting its controls, rather than relying on a
+        # mismatched display that switches modes on the first connection edit.
+        mode_buttons = win._receiving_multi_mode_controls.winfo_children()
+        next(button for button in mode_buttons
+             if button.cget("value") == "set_bay").invoke()
+        _pump(root, 3)
         # Only user-specified elements are exposed, no legacy editor or
         # extra brand/common-box/quantity-version controls.
         texts = _mapped_widget_texts(win)
@@ -638,5 +661,129 @@ def test_receiving_preview_uses_real_current_2d_scenes_per_connection_and_lock_h
             for child in win.winfo_children()
         }
         win.destroy()
+    finally:
+        _close(tk, root, designer)
+
+
+def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
+    import time
+    import fold_designer_bridge as bridge
+    from gui_modules.application.fold_designer_composition_receiving import _current_mode_snapshot
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set('受電箱')
+        _pump(root, 8)
+        composition = bridge._phase6_composition(designer)
+        current = _current_mode_snapshot(composition, vars(bridge))['active_mode']
+        win = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 4)
+        assert win._receiving_multi_mode_var.get() == current
+        assert win._receiving_multi_applied['mode'] == current
+        if current != 'set_bay':
+            radios = win._receiving_multi_mode_controls.winfo_children()
+            next(button for button in radios if button.cget('value') == 'set_bay').invoke()
+            _pump(root, 4)
+        row = win._receiving_multi_rows_host.winfo_children()[0]
+        plus = next(button for button in row.winfo_children()
+                    if button.winfo_class() == 'TButton' and button.cget('text') == '＋連')
+        counts = []
+        durations = []
+        for _ in range(2):
+            started = time.perf_counter()
+            plus.invoke()
+            _pump(root, 4)
+            durations.append(time.perf_counter() - started)
+            counts.append(composition.receiving_switch_adapter(vars(bridge)).connection_counts()[0])
+        assert counts == [2, 3]
+        assert max(durations) < 1.0, durations
+        win._receiving_multi_close()
+    finally:
+        _close(tk, root, designer)
+
+
+def test_primary_selected_version_popup_draws_real_geometry_without_live_mutation():
+    from copy import deepcopy
+    import fold_designer_bridge as bridge
+    from ae_engine.receiving_hole_candidates import create_candidate
+    from gui_modules.application.fold_designer_composition_receiving import _switch_mode
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set('受電箱')
+        _pump(root, 8)
+        composition = bridge._phase6_composition(designer)
+        _switch_mode(composition, vars(bridge), 'set_bay')
+        designer._phase6_input_snapshot['receiving_hole_candidates'], _version = create_candidate(None, 'head', [])
+        win = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 4)
+        assert win._receiving_multi_apply(0)
+        listing = win._receiving_multi_setting_list
+        listing.selection_set(0)
+        listing.event_generate('<<ListboxSelect>>')
+        _pump(root, 2)
+        before = deepcopy(designer._phase6_input_snapshot)
+        chooser = win._receiving_multi_candidate_combos['head']
+        chooser.set('版本一')
+        chooser.event_generate('<<ComboboxSelected>>')
+        _pump(root, 4)
+        preview = win._receiving_multi_real_preview
+        assert preview['view'].tiles, preview['status'].get()
+        widget = preview['view'].canvas.get_tk_widget()
+        assert widget.winfo_ismapped() and widget.winfo_width() > 100
+        assert preview['view'].ax.collections
+        assert designer._phase6_input_snapshot == before
+        win._receiving_multi_close_real_preview()
+        win._receiving_multi_close()
+    finally:
+        _close(tk, root, designer)
+
+
+
+def test_primary_receiving_inner_door_is_visible_selectable_and_real_panel_without_multi_settings():
+    """#1702: production main-window entry, not the legacy 2D calculator.
+
+    A generated available_parts entry is not enough: the user must SEE the
+    sheet in the real part menu and Assembly and SELECT its manufacturing scene.
+    """
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 10)
+        physical = "inner_door:upper:panel"
+        present = tuple(designer.designer_workspace.available_parts)
+        assert physical in present, {
+            "stage": "PRIMARY_WORKSPACE",
+            "present": present,
+            "inner_doors": designer._phase6_input_snapshot.get("inner_doors"),
+            "multi_door_enabled": designer._phase6_input_snapshot.get("multi_door_enabled"),
+        }
+
+        # User-visible part menu, not just the hidden model/metadata.
+        menu = designer.part_choice_menu
+        labels = tuple(str(menu.entrycget(i, "label")) for i in range(int(menu.index("end")) + 1))
+        assert "上層內門門板" in labels, {
+            "stage": "PRIMARY_MENU",
+            "labels": labels,
+            "present": present,
+        }
+        owner = designer._phase6_assembly_panel_owner
+        assert physical in owner.visible_vars, {
+            "stage": "PRIMARY_ASSEMBLY",
+            "rendered": tuple(owner.visible_vars),
+            "present": present,
+        }
+        assert str(owner.checkbuttons[physical].cget("text")) == "上層內門門板"
+
+        # Exercise the actual operator menu action and renderer authority.
+        menu.invoke(labels.index("上層內門門板"))
+        _pump(root, 6)
+        assert designer.designer_workspace.active_part == physical
+        assert designer.active_part_key == physical
+        assert str(designer.part_var.get()) == "上層內門門板"
+        render = designer._scene_query_callback(physical, designer._phase6_input_snapshot)
+        assert render is not None
+        assert render.metadata["stable_id"] == physical
+        assert render.material.area > 0
+        assert render.fold_guides
+        assert any(str(item.layer).upper() == "CUTTING" for item in render.scene.primitives)
     finally:
         _close(tk, root, designer)

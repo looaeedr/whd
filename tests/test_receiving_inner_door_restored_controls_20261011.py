@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from gui_modules.application.receiving_multi_settings_window import open_multi_settings
 
 
-def test_inner_door_restores_existing_highlight_edit_share_and_unlink():
+def test_inner_door_existing_highlight_auto_edit_share_and_unlink():
     root = tk.Tk()
     root.withdraw()
     calls = []
@@ -52,7 +52,7 @@ def test_inner_door_restores_existing_highlight_edit_share_and_unlink():
             for child in row.winfo_children()
             if isinstance(child, ttk.Button)
         }
-        assert labels == {"編輯", "連動選取的連", "解除本連連動"}
+        assert labels == {"連動選取的連", "解除本連連動"}
 
         canvas = win._receiving_multi_canvas
         x0, y0, x1, y1 = canvas._receiving_bay_hitboxes[1]
@@ -71,7 +71,7 @@ def test_inner_door_restores_existing_highlight_edit_share_and_unlink():
         value = next(child for child in editor.winfo_children()
                      if isinstance(child, ttk.Combobox))
         value.set("2")
-        button("編輯").invoke()
+        value.event_generate("<<ComboboxSelected>>")
         root.update()
         assert calls[-1] == ("change", "inner_door_layers", 2, (0, 1))
         button("連動選取的連").invoke()
