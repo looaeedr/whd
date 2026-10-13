@@ -704,3 +704,13 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 
 
 ---
+
+
+## 三份 localX 與人工驗收發布規則 (LOCALX_THREE_COPY_UAT_V1)
+
+- 只有一個 GitHub 整合來源：`origin/localX`。CoreELEC `whd-dev:/workspace/whd` 的 `localX` 是 Linux 測試副本；Windows `Z:\\新WHD` 的 `localX` 是使用者自行更新、實際操作的副本。三者都是 localX，不是正式 `X=cleanup/2d-3d-sync`。
+- 工作成果經 exact HEAD 必要測試後，自動、安全、非強制合入 GitHub `localX`；CoreELEC 和 Windows 各自安全快轉同步，不得用任一個副本的舊狀態強制覆蓋其他副本。Windows 同步由使用者自行執行。
+- 正式 X 的所有新修改（含治理/文件/CI）一律先經 `localX`；舊的 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 僅能用於此規則正式部署前的歷史解讀，不能作為後續直送 X 的執行授權。
+- GitHub CI GREEN、PR merged、CoreELEC 自動測試與同步成功，都不代表使用者已實測。正式 X 發布必須有使用者針對當下 exact `origin/localX` SHA 的人工驗收通過，再有之後的當次 `/推推`；若驗收後 localX HEAD 變更，必須重新確認新的版本，禁止沿用舊驗收或舊 `/推推`。
+- `/推推` 前應回報此次包含的產品/治理修改及 localX、CoreELEC、Windows 各自已證實的 SHA。未驗證的副本標 UNKNOWN，不得假稱已同步。無驗收證據時只准停在待驗收狀態，不得將其當作授權請求反覆重問。
+- 以上政策不變更 `main` 歷史隔離、不准 reset/force-push、不准清除未提交修改、不授權未指定的本機操作。平台層須要求 X PR 通過 `WHD Change Lane Gate` 且禁止直接推送 X；只有文檔或工作流不能替代分支保護。
