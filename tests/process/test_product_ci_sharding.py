@@ -79,3 +79,38 @@ def test_pytest_command_uses_only_provided_selectors_and_reports_durations():
     assert "--junitxml" in command
     assert "tests/test_issue1464_custom_manufacturing.py" in command
     assert "tests/test_issue1465_quantity_ui.py" not in command
+
+# Historical CI plan evidence remains immutable, but must not re-activate
+# old preflight instructions or present fixed run metrics as today's status.
+@pytest.mark.parametrize("historical_doc", [
+    "docs/superpowers/plans/2026-09-15-issue280-permanent-test-reconciliation-and-move.md",
+    "docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md",
+    "docs/superpowers/plans/2026-09-16-issue305-t1-shard-manifest.md",
+    "docs/superpowers/plans/2026-09-16-issue306-t2-non-gui-sharding.md",
+    "docs/superpowers/verification/2026-09-16-issue304-t0-baseline.md",
+    "docs/superpowers/verification/2026-09-16-issue305-t1-shard-manifest.md",
+    "docs/superpowers/verification/2026-09-16-issue306-t2-non-xvfb-sharding.md",
+])
+def test_closed_ci_history_current_role_has_scope_disclaimer(historical_doc):
+    source = (Path(__file__).resolve().parents[2] / historical_doc).read_text(
+        encoding="utf-8"
+    )
+    assert source.startswith("---\nwhd_doc_role: "), historical_doc
+    header = source[:1200]
+    if "whd_doc_role: CURRENT" in header:
+        assert "文件時效界線" in header, historical_doc
+        assert "不代表" in header or "不宣稱" in header, historical_doc
+
+
+
+def test_retired_execution_ledger_cannot_require_phase6_claim_machine():
+    text = (Path(__file__).resolve().parents[2]
+            / "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+            ).read_text(encoding="utf-8-sig")
+    assert "whd_doc_role: REFERENCE" in text[:300]
+    assert "**CURRENT 永久防線**：parent/chain continuation" not in text
+    assert "**當時的 Master-chain 防線（HISTORICAL／已退役）**" in text
+    assert "**當時規格書 Preflight 規則（HISTORICAL／SUPERSEDED）**" in text
+    assert "**當時的 stale claim 防線（HISTORICAL／已退役）**" in text
+    assert "**當時的 scheduler lease 規則（HISTORICAL／已退役）**" in text
+    assert "**當時普通工單（HISTORICAL／SUPERSEDED）**" in text
