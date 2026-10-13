@@ -151,6 +151,7 @@ def export_verified_receiving_nfb_base_plate(
         bundle, layout=layout, current_snapshot=current_snapshot,
         base_spec=base_spec, index_path=index_path, profile_path=profile_path,
     )
+    scope = bundle.scope
     root = Path(output_directory)
     if not root.is_dir():
         raise ValueError("NFB base partial destination must already be a directory")
