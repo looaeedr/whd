@@ -31,7 +31,7 @@ def open_inner_door_hole_editor(app, part_key: str):
         build_door_result, build_finished_reference_guide, DoorFrameEdges,
     )
     from ae_engine.sheetmetal_features import feature_surface_from_structural_result
-    from ae_engine import ae, manufacturing_api
+    from ae_engine import manufacturing_api
 
     snapshot = dict(app._phase6_input_snapshot)
     panel = next((
@@ -57,8 +57,10 @@ def open_inner_door_hole_editor(app, part_key: str):
         "door", structural,
         finished_width=panel.width, finished_height=panel.height,
     )
-    # This preview is the same validated Vault DXF-derived manufacturing scene
-    # as the CUTTING/BEND export, not a separately drawn 2D rectangle.
+    # The inner-door hole UI must show the same physical CUTTING/BEND as
+    # its produced DXF. Reuse Vault certified folding/corner rules without
+    # importing the OUTER Vault Door's fixed handle/nameplate holes into a
+    # Receiving inner-door/NFB physical hole owner.
     render = manufacturing_api.build_inner_door_panel_render_data(panel)
     features = workspace.features_for(part_key)
 
@@ -79,7 +81,7 @@ def open_inner_door_hole_editor(app, part_key: str):
         ),
         door_thickness=float(panel.thickness),
         baseline_scene=render.scene,
-        baseline_status_text=ae.baseline_source_label("金庫型", "門.dxf"),
+        baseline_status_text="金庫型門板共用折彎／截角；內門孔位獨立",
     )
     return window or getattr(host, "last_unified_hole_editor", None)
 

@@ -242,14 +242,13 @@ def test_3d_workspace_generates_panels_only_for_checked_outer_doors_and_keeps_gu
 
 
 
-def test_inner_door_reuses_exact_vault_baseline_and_not_outer_fold_inputs():
-    from pathlib import Path
+def test_inner_door_reuses_vault_certified_sheet_rules_and_fixed_19_folds():
     from ae_engine.cabinet_types import policy as cabinet_family_policy
-    from ae_engine.contracts import DoorPartSpec, ManufacturingContext
-    from ae_engine.manufacturing_api import (
-        build_inner_door_panel_render_data, build_part_render_data,
+    from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+    from ae_engine.sheetmetal_part_adapters import (
+        build_door_result, DoorFrameEdges,
     )
-    from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
+    from ae_engine.sheetmetal_drawing import structural_result_to_primitives
 
     snapshot = _receiving_snapshot()
     snapshot.update({
@@ -258,21 +257,17 @@ def test_inner_door_reuses_exact_vault_baseline_and_not_outer_fold_inputs():
     })
     panel = cabinet_family_policy.derive_inner_door_panels(snapshot)[0]
     assert (panel.fold_left, panel.fold_right, panel.fold_top, panel.fold_bottom) == (19.0,) * 4
-    context = ManufacturingContext(resource_root=Path(__file__).resolve().parents[1])
-    built = build_inner_door_panel_render_data(panel, context=context)
-    vault = build_part_render_data(
-        DoorPartSpec(
-            width=panel.width, height=panel.height,
-            thickness=panel.thickness, frame_width=25.0,
-            model_name="金庫型", gap_w=0.0, gap_h=0.0,
-            fold_left=19.0, fold_right=19.0, fold_top=19.0, fold_bottom=19.0,
-            frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),
-        ), context,
+    expected = build_door_result(
+        w=panel.width, h=panel.height, t=panel.thickness,
+        fw=25.0, gap_w=0.0, gap_h=0.0,
+        fold_left=19.0, fold_right=19.0, fold_top=19.0, fold_bottom=19.0,
+        frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),
     )
-    assert tuple(built.scene.primitives) == tuple(vault.scene.primitives)
-    assert built.metadata["baseline_model"] == "金庫型"
-    assert built.metadata["baseline_part"] == "門.dxf"
-
+    inner = build_inner_door_panel_render_data(panel)
+    assert tuple(inner.scene.primitives) == tuple(structural_result_to_primitives(expected))
+    assert inner.metadata["source_cabinet_family"] == "金庫型"
+    assert inner.metadata["door_corner_rule"] == "VAULT_CERTIFIED_FOUR_SIDE"
+    assert inner.metadata["inner_door_hole_feature_count"] == 0
 
 def test_inner_door_hole_features_reach_real_vault_cutting_and_dxf(tmp_path):
     from pathlib import Path
@@ -298,7 +293,7 @@ def test_inner_door_hole_features_reach_real_vault_cutting_and_dxf(tmp_path):
     original = [p for p in baseline.scene.primitives if isinstance(p, CirclePrimitive)]
     circles = [p for p in edited.scene.primitives if isinstance(p, CirclePrimitive)]
     assert len(circles) == len(original) + 1
-    assert edited.metadata["hole_feature_count"] == 1
+    assert edited.metadata["inner_door_hole_feature_count"] == 1
     assert tuple(edited.fold_guides) == tuple(baseline.fold_guides)
     path = save_part_render_data_dxf(edited, tmp_path / "inner-door-with-user-hole.dxf")
     doc = ezdxf.readfile(path)
@@ -307,7 +302,7 @@ def test_inner_door_hole_features_reach_real_vault_cutting_and_dxf(tmp_path):
         if obj.dxftype() == "CIRCLE" and obj.dxf.layer == "CUTTING"
     ]
     original_cutting = [row for row in original if row.layer == "CUTTING"]
-    assert len(cutting_circles) >= len(original_cutting) + 1
+    assert len(cutting_circles) == len(original_cutting) + 1
 
 
 def test_inner_door_editor_reuses_original_vault_hole_editor_and_stashes_per_panel():
