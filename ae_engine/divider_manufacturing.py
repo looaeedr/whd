@@ -546,6 +546,21 @@ def resolve_divider_final_geometry(
         clearance=float(clearance),
         sheet_thickness=max(0.0, float(sheet_thickness)),
     )
+    if certified is not None and candidate is None:
+        # Registry HIT proves only the template geometry, not that the
+        # current physical counterpart is in contact with C. Previously
+        # an entirely disjoint left 22mm fold made pre-cut collision empty,
+        # yet cutting the template and seeing zero POST collision was marked
+        # CERTIFIED_REGISTRY_VERIFIED. Reject the vacuous acceptance.
+        return ResolvedDividerFinalGeometry(
+            part_id=str(divider.part_key), placement_datum=placement_datum,
+            placement_evidence=placement,
+            relief_evidence=DividerReliefEvidence(
+                "CERTIFIED_CROSS_NO_REAL_PRE_CUT_COLLISION", core_start=core_start,
+            ),
+            final_material=original_material, verified=False, solved_part=divider,
+            illegal_penetration=True,
+        )
     if certified is not None:
         minx, miny, maxx, maxy = map(float, original_material.bounds)
         width = maxx - minx
