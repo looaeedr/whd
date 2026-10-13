@@ -321,3 +321,44 @@ def test_correct_mating_evidence_flows_into_physical_render_data():
     assert all(part.metadata["xy_mating_proven"] for part in (left, right))
     assert all(not part.metadata["manufacturing_ready"] for part in (left, right))
     assert all(part.metadata["thickness"] == 3.0 for part in (left, right))
+
+
+@pytest.mark.parametrize("box_count", [1, 3])
+def test_bom_counts_both_independent_fixing_plates_without_unsafe_export(box_count):
+    from types import SimpleNamespace
+    from ae_engine.manufacturing_quantity import (
+        ResolvedQuantityVersion, resolved_quantity_physical_demands,
+    )
+    from ae_engine.manufacturing_export import resolved_physical_render_parts
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        build_fixing_plate_source_render_data,
+    )
+    snapshot = {"model": "受電箱", "w": 800, "t": 2,
+                "receiving_base_plate": {"pattern": "LEFT_FLAT_SIDE"}}
+    parts = tuple(
+        SimpleNamespace(
+            part_key="base_plate:fixing_plate:" + side,
+            placement="standalone",
+            render_data=build_fixing_plate_source_render_data(
+                "base_plate:fixing_plate:" + side, snapshot=snapshot,
+            ),
+        )
+        for side in ("left", "right")
+    )
+    geometry = SimpleNamespace(parts=parts)
+    # The all-material BOM must not use the *production output* whitelist.
+    bom = resolved_quantity_physical_demands(
+        (ResolvedQuantityVersion("v1", box_count, geometry),),
+    )
+    assert {item.physical_id: item.quantity for item in bom} == {
+        "base_plate:fixing_plate:left": box_count,
+        "base_plate:fixing_plate:right": box_count,
+    }
+    assert sum(item.quantity for item in bom) == 2 * box_count
+    assert all(item.render_data.metadata["thickness"] == 3 for item in bom)
+    # Formal full-cabinet export remains closed for unformed fixing plates.
+    assert resolved_physical_render_parts(geometry) == ()
+    all_parts = resolved_physical_render_parts(
+        geometry, include_unreleased_source_flats=True,
+    )
+    assert {key for key, _ in all_parts} == {item.physical_id for item in bom}
