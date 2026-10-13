@@ -555,9 +555,9 @@ def show_receiving_base_fixing_plate_preview(host, preview):
             fill="white", outline="#334155", width=2,
         )
     pair = preview.applicable_slot_pair_indexes
-    pitch = 210 if pair == (0, 3) else 140
+    pitch = "210 mm" if pair == (0, 3) else "140 mm" if pair == (1, 2) else "待配置（210／140 擇一）"
     tk.Label(
-        win, text=f"原圖 256×105 mm｜長圓孔 25×11 mm｜本底板對孔 {pitch} mm",
+        win, text=f"原圖 256×105 mm｜長圓孔 25×11 mm｜本底板對孔 {pitch}",
     ).pack(padx=12, pady=(3, 4))
     tk.Label(
         win,
