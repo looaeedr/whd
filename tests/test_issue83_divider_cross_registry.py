@@ -246,7 +246,7 @@ def test_receiving_production_resolver_uses_certified_cross_registry_not_collisi
     assert formula["slot_radius"] == pytest.approx(3.5)
     orientation = dict(evidence["mating_fold_orientation"])
     assert dict(orientation["sign_by_end"]) == {"MIN_Y": -1.0, "MAX_Y": 0.0}
-    assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl2"
+    assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl1"
     assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
     assert evidence["slot_end"] == "MIN_Y"
     assert diagnostics and diagnostics[0].illegal_penetration is False

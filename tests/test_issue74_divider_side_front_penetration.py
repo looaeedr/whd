@@ -202,7 +202,7 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
 
     orientation = dict(evidence["mating_fold_orientation"])
     assert dict(orientation["sign_by_end"]) == {"MIN_Y": -1.0, "MAX_Y": 0.0}
-    assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl2"
+    assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl1"
     assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
 
     # Collision remains a separate true-thickness witness, not the final
@@ -541,3 +541,11 @@ def test_issue74_inverse_full_solid_reprojection_matches_final_material():
         test_issue1702_independent_full_thickness_reverse_cut_probe,
     )
     test_issue1702_independent_full_thickness_reverse_cut_probe()
+
+
+def test_receiving_left_first22_X_and_C_notch_source_regression():
+    """Canonical suite executes the correct X-only 22mm witness, not Z."""
+    from tests.test_receiving_C_slot_22mm_real_world_debug import (
+        test_first_22mm_left_fold_has_actual_X_contact_at_C_notched_end,
+    )
+    test_first_22mm_left_fold_has_actual_X_contact_at_C_notched_end()

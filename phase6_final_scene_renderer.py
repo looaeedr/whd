@@ -37,6 +37,7 @@ from phase6_final_scene_projection import (
     _phase6_box_body_piece_world_mapper,
     _phase6_box_body_piece_dimension_lines,
     _phase6_box_body_structure_meshes,
+    _phase6_box_body_true_world_piece_meshes,
     format_operator_info_text,
     _phase6_place_assembly_triangles,
 )
@@ -122,8 +123,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 part_visible = visible_part_keys is None or part_key in visible_part_keys
                 part_data = part.render_data
                 diagnostic_relief_delta = None
+                physical_piece_world = ()
                 if getattr(part_data, "pieces", None):
                     piece_meshes = _phase6_box_body_structure_meshes(part_data, thickness=request.thickness)
+                    physical_piece_world = _phase6_box_body_true_world_piece_meshes(
+                        part, dimensions=request.finished_dimensions,
+                        thickness=request.thickness,
+                    )
                     local = [tri for _piece, piece_tris in piece_meshes for tri in piece_tris]
                     part_material = tuple(piece.render_data.material for piece in part_data.pieces)
                     if part_visible:
@@ -177,17 +183,21 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     continue
                 placed_piece_meshes = ()
                 if getattr(part_data, "pieces", None):
-                    rows = []
-                    cursor = 0
-                    for piece, piece_tris in piece_meshes:
-                        count = len(piece_tris)
-                        rows.append((piece, tuple(placed[cursor:cursor + count])))
-                        cursor += count
-                    placed_piece_meshes = tuple(rows)
+                    if physical_piece_world:
+                        # Actual true-thickness piece skins; never re-center.
+                        placed_piece_meshes = physical_piece_world
+                    else:
+                        rows = []
+                        cursor = 0
+                        for piece, piece_tris in piece_meshes:
+                            count = len(piece_tris)
+                            rows.append((piece, tuple(placed[cursor:cursor + count])))
+                            cursor += count
+                        placed_piece_meshes = tuple(rows)
                 if part_key == "box_body":
                     box_body_world = tuple(placed)
                     if part_visible:
-                        if getattr(part_data, "pieces", None):
+                        if getattr(part_data, "pieces", None) and not physical_piece_world:
                             self._draw_box_body_structure_bends(
                                 part_data, thickness=request.thickness, local_reference=local,
                                 placement=placement, dimensions=request.finished_dimensions, offset=offset,
@@ -205,8 +215,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         from ae_engine.assembly_geometry import thicken_triangle_surface
                         if getattr(part_data, "pieces", None):
                             collision = []
-                            for _piece, piece_tris in piece_meshes:
-                                collision.extend(thicken_triangle_surface(piece_tris, request.thickness))
+                            for _piece, piece_tris in placed_piece_meshes:
+                                # Already true-thickness world meshes; applying
+                                # thicken again creates false collision volumes.
+                                collision.extend(
+                                    piece_tris if physical_piece_world else
+                                    thicken_triangle_surface(piece_tris, request.thickness)
+                                )
                             box_body_collision_mesh = tuple(collision)
                         else:
                             box_body_collision_mesh = thicken_triangle_surface(

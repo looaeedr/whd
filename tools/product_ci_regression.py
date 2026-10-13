@@ -122,6 +122,8 @@ PYTEST_PATHS = (
     "tests/test_issue63_regression_red.py",
     "tests/test_issue71_divider_relief_components.py",
     "tests/test_issue74_divider_side_front_penetration.py",
+    # /debug: 7mm C slot / real first-22 Z witness must be truly selected.
+    "tests/test_receiving_C_slot_22mm_real_world_debug.py",
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
     # Tk/Xvfb contract: real mapped modal windows, highlights and multi-Bay apply.
     "tests/test_receiving_multi_settings_stage_20261010.py::test_modal_fullscreen_strict_controls_apply_and_highlight",

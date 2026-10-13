@@ -234,10 +234,25 @@ def _divider_object_mating_fold_signs(divider, box_body):
     # beyond FW in flat traversal. Physical 3D contact is zl2, not the
     # preceding 340-mm D web. The same certified CROSS rule applies; only
     # the input topology-to-object-fold mapping changes.
-    left_offset = +1 if left_keys == (
+    reflected = left_keys == (
         "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
-    ) else -1
-    min_y = adjacent(left_profile, "fw_left", left_offset)
+    )
+    if reflected:
+        # The C divider's 7mm U-notch is specified to avoid LEFT's
+        # actual first 22mm/-90 Fold (zl1). Picking the fold adjacent to
+        # FW chose zl2 while still taking zl1's 24mm formed length for
+        # notch depth: contradictory source identities that could pass
+        # even with no actual zl1/C world-Z encounter.
+        matching = [row for row in left_profile if str(row.phase6_key) == "zl1"]
+        if len(matching) != 1 or abs(float(matching[0].length) - 22.0) > 1e-6:
+            raise ValueError("RECEIVING_C_U_SLOT_22MM_SOURCE_NOT_UNIQUE")
+        angle = matching[0].angle
+        min_y = {
+            "phase6_key": "zl1", "angle": float(angle),
+            "sign": _fold_sign(angle),
+        }
+    else:
+        min_y = adjacent(left_profile, "fw_left", -1)
     max_y = adjacent(by_role["right_side"].fold_profile, "fw_right", +1)
     return {
         "sign_by_end": {
