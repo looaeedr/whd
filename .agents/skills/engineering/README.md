@@ -24,7 +24,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 - **[拆解任務工單](./拆解任務工單/SKILL.md)**: 未決需求先釐清；已核准規格直接按 `APPROVED_REQUIREMENT_FAST_PATH` 拆工單，不再要求第二次需求核准。
 - **[執行開發任務](./執行開發任務/SKILL.md)**: 明確 `/接手` 才允許 RC 產品施工；`/派工` 仍須使用 GitHub／雲端施工及 exact CI，不能混用施工權限。
 - **[寫技能](./寫技能/SKILL.md)**: 建立、修改、驗證與改善 Skill。
-- **[派工](./派工/SKILL.md)**: GitHub／雲端施工、測試及交付至 `localX`；原 `/派工` 授權即包含 exact CI SUCCESS 後的預設 `LOCALX_INTEGRATION`，執行者須用 DC 做本機安全合併、驗證／同步／回讀，不需每張 PR 另下合併指令；禁止本機施工（含透過 DC 修改產品程式）。**當次對同一 Issue／PR 明確授權 GitHub-only 遠端合併且禁止 DC 時**，改依 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1` 在 GitHub 整合，回報 `LOCALX_SYNC_PENDING`，不能先探測 DC；正式 X 產品發布仍需當次 `/推推`。
+- **[派工](./派工/SKILL.md)**：GitHub／雲端施工、PR、exact CI 後預設 `GITHUB_LOCALX_FIRST` 合併遠端 `localX`，不需逐 PR 再索合併命令，也**不能先探測 DC**。記 `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`，Windows `Z:\localX` 由使用者更新與人工 GUI 驗收；正式產品 X 仍需當次 `/推推`。
 - **[wayfinder](./wayfinder/SKILL.md)**: Plan large multi-session work as decision tickets。
 
 ## Model- or user-reachable navigation
