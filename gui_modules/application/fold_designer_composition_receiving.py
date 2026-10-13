@@ -67,6 +67,9 @@ from phase6_registry_diagnostics_panel import (
     registry_source_raw,
 )
 from phase6_settings_panel import Phase6SettingsPanel
+from gui_modules.application.receiving_base_plate_settings_transaction import (
+    commit_receiving_base_plate_settings,
+)
 from phase6_workspace_shell import (
     WorkspaceShellActions,
     WorkspaceShellOwner,
@@ -760,6 +763,12 @@ def settings_panel(self, namespace):
         part_labels=required("PART_LABELS"),
         context_extension_projection=lambda context: self.settings_context_extension_projection(
             namespace, context
+        ),
+        receiving_base_plate_commit=lambda config: commit_receiving_base_plate_settings(
+            input_snapshot=app._phase6_input_snapshot,
+            settings_values=app._settings_values,
+            submit_geometry_update=lambda: app.submit_update_intent("geometry", commit=True),
+            config=config,
         ),
         endcap_fw_value_selected=lambda part_key, value_var: required(
             "_phase6_on_endcap_fw_value_selected"

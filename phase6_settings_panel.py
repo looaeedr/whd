@@ -134,6 +134,7 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         render_context_extensions: Callable[[object, str, int], SettingsPanelExtensionResult] | None = None,
         sync_context_extension: Callable[[object, str], object] | None = None,
         context_extension_projection: Callable[[str], Mapping[str, object]] | None = None,
+        receiving_base_plate_commit: Callable[[Mapping[str, object] | None], object] | None = None,
         endcap_fw_value_selected: Callable[[str, object], object] | None = None,
         box_structure_numeric_changed: Callable[[object, str, object], object] | None = None,
         box_back_panel_mode_changed: Callable[[object], object] | None = None,
@@ -163,6 +164,7 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         self._render_context_extensions = render_context_extensions
         self._sync_context_extension = sync_context_extension
         self._context_extension_projection = context_extension_projection
+        self._receiving_base_plate_commit = receiving_base_plate_commit
         self._endcap_fw_value_selected = endcap_fw_value_selected
         self._box_structure_numeric_changed = box_structure_numeric_changed
         self._box_back_panel_mode_changed = box_back_panel_mode_changed

@@ -500,7 +500,19 @@ def settings_context_extension_projection(self, namespace, context):
         }
 
     context = str(context)
+    base_snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    is_receiving_base = (
+        context == "base_plate"
+        and str(base_snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
+    )
     return {
+        "receiving_base_plate": (
+            {
+                "configured": base_snapshot.get("receiving_base_plate") is not None,
+                "values": deepcopy(base_snapshot.get("receiving_base_plate") or {}),
+            }
+            if is_receiving_base else None
+        ),
         "box_structure": (
             box_structure_projection()
             if context == "box_body"
