@@ -203,3 +203,29 @@ def test_fixing_plate_derived_selector_and_parent_stable_ids():
     assert set(ws.available_parts) >= {"base_plate:fixing_plate:left","base_plate:fixing_plate:right"}
     ws.sync_derived_parts(namespace="base_plate:fixing_plate:",part_profiles={})
     assert all(not p.startswith("base_plate:fixing_plate:") for p in ws.available_parts)
+
+
+def test_independent_unformed_fixing_plates_do_not_poison_whole_cabinet_export():
+    from types import SimpleNamespace
+    from ae_engine.manufacturing_export import resolved_physical_render_parts
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        build_fixing_plate_source_render_data,
+    )
+    left_id="base_plate:fixing_plate:left"
+    source=build_fixing_plate_source_render_data(left_id)
+    real_base=SimpleNamespace(part_key="base_plate",
+                              placement="offset",render_data=SimpleNamespace(metadata={}))
+    source_part=SimpleNamespace(part_key=left_id,
+                                placement="standalone",render_data=source)
+    rows=resolved_physical_render_parts(
+        SimpleNamespace(parts=(real_base,source_part)))
+    assert [key for key,_ in rows]==["base_plate"]
+    # The separate flat source is still a complete geometry object; it is
+    # excluded only from the *whole-cabinet* production DXF inventory.
+    assert source.material.area > 0
+    assert source.metadata["quantity_of_this_part"] == 1
+    # A forged unsupported part with the same key must not disappear silently.
+    forged=SimpleNamespace(part_key=left_id,placement="offset",render_data=source)
+    assert resolved_physical_render_parts(SimpleNamespace(parts=(forged,))) == (
+        (left_id,source),
+    )
