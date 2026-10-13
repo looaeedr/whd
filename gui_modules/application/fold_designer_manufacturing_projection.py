@@ -187,9 +187,11 @@ def _authoritative_render_data(self, spec, context=None):
 
 def _require_verified_baseline_sources_for_manufacturing(self):
     """Fail closed when a baseline-backed manufacturing source is not freshly verified."""
-    model = self._baseline_source_model() if hasattr(self, "_baseline_source_model") else ""
-    if not model:
+    family_model = self._baseline_source_model() if hasattr(self, "_baseline_source_model") else ""
+    if not family_model:
         return True
+    # Verify the actual certified feature source, not the formula-family name.
+    model = cabinet_family_policy.baseline_feature_model_name(family_model)
     for filename in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
         path = ae.baseline_part_path(model, filename)
         if not path:
