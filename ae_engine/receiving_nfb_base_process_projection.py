@@ -69,6 +69,7 @@ class NfbProjectedBaseProcess:
     status: str = _STATUS
     manufacturing_ready: bool = False
     native_fixing_aliases: tuple[NfbNativeFixingAlias, ...] = ()
+    verified_hole_locations: tuple[tuple[str, float, int, int, int], ...] = ()
 
     def source_process_scene(self) -> DrawingScene:
         """Process overlay for the existing scene composer; never a full blank."""
@@ -315,6 +316,7 @@ def project_verified_nfb_base_process(
         cutting=tuple(cutting.primitives),
         marking=tuple(marking.primitives),
         native_fixing_aliases=tuple(aliases),
+        verified_hole_locations=placements,
     )
 
 
