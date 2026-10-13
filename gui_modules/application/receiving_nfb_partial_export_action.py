@@ -22,6 +22,7 @@ from ae_engine.receiving_nfb_partial_export_writer import (
 )
 from ae_engine.receiving_nfb_ui1b_bridge import NfbVerifiedDraftSubmission
 from ae_engine.receiving_switch_model_catalog import INDEX_PATH
+from ae_engine.receiving_nfb_editable_source import resolve_editable_nfb_source_profile
 
 
 _GEOMETRY_KEYS = (
@@ -116,7 +117,6 @@ def export_verified_receiving_nfb_inner_door(
     # Historical CSV SHA is an editable-source observation, not a lock.
     # The current bytes must still match THIS Bay's submitted proof: if an
     # operator edits the DXF, reverify against the new format before export.
-    from ae_engine.receiving_nfb_editable_source import resolve_editable_nfb_source_profile
     try:
         profile = resolve_editable_nfb_source_profile(bundle.source_path, profile=matching[0])
     except OSError as exc:
