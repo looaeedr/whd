@@ -568,9 +568,11 @@ def group_quantity_physical_demands(demands, parameters_by_source):
 
 def save_quantity_manufacturing_groups_dxf(
     groups, output_dir, *, overwrite=False, render_data_transform=None,
+    part_only: bool = False,
 ):
     return _manufacturing_export.save_quantity_manufacturing_groups_dxf(
         groups, output_dir, save_part_render_data_dxf=save_part_render_data_dxf,
         verify_part_dxf=verify_saved_part_render_data_dxf,
         overwrite=overwrite, render_data_transform=render_data_transform,
+        part_only=part_only,
     )
