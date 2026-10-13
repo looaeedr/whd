@@ -213,11 +213,16 @@ def test_w800x3_source_sha_and_existing_hole_owner_fail_without_output(tmp_path)
     idx, src, profile = _source(tmp_path)
     dst = tmp_path / "must-not-be-written.dxf"
     kwargs = dict(index_path=idx, source_path=src, rows=(_row(),))
-    with pytest.raises(ValueError, match="SHA"):
-        save_w800_three_nfb_inner_door_dxf(
-            _state(), "upper", dst,
-            profile=replace(profile, source_sha256="0" * 64), **kwargs,
-        )
+    # A historical source digest in a mutable catalog is not an approval
+    # lock: the actual current source is inspected and remapped by format.
+    rebound = configured_w800_three_nfb_inner_door_render_data(
+        _state(), "upper", rows=(_row(),),
+        profile=replace(profile, source_sha256="0" * 64), **{
+            k: v for k, v in kwargs.items() if k != "rows"
+        },
+    )
+    assert rebound.manufacturing_ready
+    assert rebound.source_sha256 == profile.source_sha256
     assert not dst.exists()
 
     old_hole = NfbExistingCuttingClaim(
