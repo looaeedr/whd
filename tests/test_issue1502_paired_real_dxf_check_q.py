@@ -11,6 +11,7 @@ from ae_engine import manufacturing_api as api
 from ae_engine.manufacturing_equivalence import ManufacturingParameters
 from gui_modules.application.receiving_nfb_pair_quantity_check_action import (
     NfbPairedQuantityInput, group_reopened_nfb_pair_check_q,
+    save_checked_reopened_nfb_pair_q_dxf,
 )
 from tests.test_issue1502_atomic_door_base_pair_dxf import _ready, _write
 
@@ -55,7 +56,12 @@ def test_real_pair_same_geometry_different_source_sha_groups_exact_q(tmp_path):
     assert all(len(g.members) == 2 for g in checked.groups)
     output = tmp_path / "check"
     output.mkdir()
-    paths = api.save_quantity_manufacturing_groups_dxf(checked.groups, output)
+    # Ordinary full CHECK remains forbidden even though the two physical
+    # parts have valid source evidence. Only the scoped paired route opts in.
+    with pytest.raises(ValueError, match="NFB_BASE_MFG2_NOT_RELEASED"):
+        api.save_quantity_manufacturing_groups_dxf(checked.groups, output)
+    assert list(output.iterdir()) == []
+    paths = save_checked_reopened_nfb_pair_q_dxf(checked, output)
     assert len(paths) == 2
     labels = []
     for path in paths.values():
