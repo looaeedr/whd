@@ -138,7 +138,10 @@ def expected_baseline_path_for(
             return _indicator_shared_expected_path("小門.dxf", ctx)
         return _expected_baseline_path(_door_baseline_model_name(spec.model_name), "門.dxf", ctx)
     if isinstance(spec, BoxBodyPartSpec):
-        return _expected_baseline_path(spec.model_name, "箱身.dxf", ctx)
+        # BoxBody geometry belongs to the selected family; only fixed DXF
+        # processing features may come from its certified shared model.
+        feature_model = cabinet_family_policy.baseline_feature_model_name(spec.model_name)
+        return _expected_baseline_path(feature_model, "箱身.dxf", ctx)
     if isinstance(spec, EndCapPartSpec):
         return _expected_baseline_path(spec.model_name, "封頭尾.dxf", ctx)
     if isinstance(spec, IndicatorBoxPartSpec):
