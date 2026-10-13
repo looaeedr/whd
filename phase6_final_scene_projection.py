@@ -368,6 +368,37 @@ def _phase6_box_body_piece_dimension_lines(render_data) -> tuple[str, ...]:
     return tuple(rows)
 
 
+def _phase6_box_body_true_world_piece_meshes(part, *, dimensions, thickness):
+    """Actual assembled true-T world skins shared by manufacturing and viewers.
+
+    The old visual-only piece strips did NOT receive Manufacturing's physical
+    FW-material-to-outside and terminal-fold transforms. Do not apply the
+    scene placement twice: these skin triangles are already in world XYZ.
+    Only the physical box_body aggregate is eligible; other parts keep their
+    existing placement and Head/Tail mating path.
+    """
+    pieces = tuple(getattr(getattr(part, "render_data", None), "pieces", ()) or ())
+    if not pieces:
+        return ()
+    if str(getattr(part, "part_key", "")) != "box_body":
+        raise ValueError("multi-piece world skins must originate in box_body")
+    if dimensions is None or len(dimensions) != 3:
+        raise ValueError("box_body true-world mesh requires assembled W/H/D")
+    from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+
+    world = _phase6_build_joint_world_geometry(
+        (part,), tuple(float(value) for value in dimensions), float(thickness)
+    )["world_triangles_by_part"]
+    rows = []
+    for piece in pieces:
+        key = "box_body:" + str(getattr(piece, "role", "") or "")
+        actual = tuple(world.get(key, ()) or ())
+        if not actual:
+            raise ValueError(f"missing physical mesh for {key}")
+        rows.append((piece, actual))
+    return tuple(rows)
+
+
 def _phase6_box_body_structure_meshes(render_data, *, thickness):
     """Return assembled Box Body structure meshes in structure-local coordinates."""
     pieces = tuple(getattr(render_data, "pieces", ()) or ())

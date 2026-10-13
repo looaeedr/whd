@@ -53,7 +53,7 @@ def _assembly_world_meshes(request):
     """
     from phase6_final_scene_projection import (
         _phase6_folded_mesh_from_polygon, _phase6_box_body_structure_meshes,
-        _phase6_place_assembly_triangles,
+        _phase6_box_body_true_world_piece_meshes, _phase6_place_assembly_triangles,
     )
     from ae_engine.assembly_geometry import (
         place_endcap_against_box_body, thicken_triangle_surface,
@@ -63,9 +63,17 @@ def _assembly_world_meshes(request):
     for part in tuple(getattr(request.render_data, "assembly_parts", ()) or ()):
         data = part.render_data
         pieces = tuple(getattr(data, "pieces", ()) or ())
+        physical_world = ()
         if pieces:
+            # Keep the original placed mid-surface as the EndCap Head/Tail
+            # mating reference; only the visible piece meshes switch to the
+            # manufacturing-owned actual assembled physical skins.
             meshes = tuple(_phase6_box_body_structure_meshes(
                 data, thickness=request.thickness))
+            physical_world = _phase6_box_body_true_world_piece_meshes(
+                part, dimensions=request.finished_dimensions,
+                thickness=request.thickness,
+            )
             local = [triangle for _piece, mesh in meshes for triangle in mesh]
         else:
             meshes = ()
@@ -96,9 +104,13 @@ def _assembly_world_meshes(request):
             yield (_role_group(part.part_key), str(part.part_key), tuple(placed))
             continue
         cursor = 0
+        actual_by_role = {
+            str(piece.role): world_mesh for piece, world_mesh in physical_world
+        }
         for piece, piece_mesh in meshes:
             count = len(piece_mesh)
-            world_piece = tuple(placed[cursor:cursor + count])
+            world_piece = tuple(actual_by_role.get(str(piece.role), ()) or
+                               placed[cursor:cursor + count])
             cursor += count
             if world_piece:
                 role = _role_group(piece.role)
