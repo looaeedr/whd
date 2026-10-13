@@ -572,3 +572,44 @@ def test_receiving_real_Z_mating_requires_7mm_C_slot_to_see_left_22():
         f"left Z={left_z}, divider C Z={c_z}. "
         "Correct assembly datum before certified cut or post-cut verification."
     )
+
+
+def test_debug_C_slot_22mm_source_owner_world_evidence():
+    """TEMP /debug probe: compare A-left frame and side sheet 22 to physical C.
+
+    This intentionally prints a single, attributable record in canonical CI.
+    Remove this probe after source identity is resolved; do not make it a
+    source for production compensation.
+    """
+    from tests.test_issue1050_receiving_mother_plate_marking import (
+        _snapshot as receiving_snapshot, _full_receiving_geometry,
+    )
+    from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+
+    snap = receiving_snapshot()
+    parts = _full_receiving_geometry(snap).parts
+    scene = _phase6_build_joint_world_geometry(parts, (800.,1600.,350.), 2.)
+    left_frame = next(p for p in parts if p.part_key=="inner_door:upper:left_frame")
+    divider = next(p for p in parts if str(p.part_key).startswith("box_body:divider:"))
+    skins = scene["mapped_skin_triangles_by_part"][left_frame.part_key]
+    sizes = [float(p.length) for p in left_frame.x_profile]
+    bands = [(0.,sizes[0]),(sum(sizes[:-1]),sum(sizes))]
+    def bounds(verts):
+        if not verts:
+            return None
+        return tuple((round(min(q[i] for q in verts),4),
+                      round(max(q[i] for q in verts),4)) for i in range(3))
+    a22s = []
+    for u0,u1 in bands:
+        a22s.append(bounds(
+            [v for tri in skins
+             if u0+1e-5 < sum(q[0] for q in tri.flat)/3 < u1-1e-5
+             for v in tri.world]
+        ))
+    c = bounds([v for tri in scene["mapped_skin_triangles_by_part"][divider.part_key]
+               for v in tri.world])
+    raise AssertionError(
+        "[DEBUG-1742-SLOT-OWNER] A-frame first/last22 worlds="
+        f"{a22s}; C={c}; primary first22 side=(-168,-166) Z. "
+        "Source identity must be proven before remapping the C notch."
+    )
