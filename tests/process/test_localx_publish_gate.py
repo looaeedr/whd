@@ -12,13 +12,54 @@ class PublishGateTests(unittest.TestCase):
               pr={"head":{"ref":"localX","sha":"a"*40},"base":{"ref":"cleanup/2d-3d-sync","sha":"b"*40}},
               head_sha="a"*40,target_sha="b"*40,comments=[])
 
-    def test_exact_approval_is_allowed(self):
-        require_publish_approval(repo="looaeedr/whd",pr_number=12,
-          pr={"head":{"ref":"localX","sha":"a"*40},"base":{"ref":"cleanup/2d-3d-sync","sha":"b"*40}},
-          head_sha="a"*40,target_sha="b"*40,
-          comments=[{"user":{"login":"looaeedr","type":"User"},
-          "body":"/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\nrepo=looaeedr/whd\npr=12\nsource=localX\nhead="+("a"*40)+"\ntarget=cleanup/2d-3d-sync\nbase="+("b"*40)}])
+    def _approval(self, *, uat_head="a"*40, test_site="WINDOWS",
+                  order=(100, 101), uat_owner="looaeedr"):
+        fields = ("repo=looaeedr/whd\\npr=12\\nsource=localX\\n"
+                  "head=" + ("a"*40) + "\\ntarget=cleanup/2d-3d-sync\\n"
+                  "base=" + ("b"*40))
+        return [
+            {"id": order[0], "user": {"login": uat_owner, "type": "User"},
+             "body": "/驗收通過\\nWHD_WINDOWS_LOCALX_UAT_V1\\n"
+                     + fields + "\\ntest_site=" + test_site
+                     + "\\nwindows_head=" + uat_head},
+            {"id": order[1], "user": {"login": "looaeedr", "type": "User"},
+             "body": "/推推\\nWHD_LOCALX_PUBLISH_AUTH_V1\\n" + fields},
+        ]
 
+    def _publish(self, comments):
+        return require_publish_approval(
+            repo="looaeedr/whd", pr_number=12,
+            pr={"head":{"ref":"localX","sha":"a"*40},
+                "base":{"ref":"cleanup/2d-3d-sync","sha":"b"*40}},
+            head_sha="a"*40, target_sha="b"*40, comments=comments)
+
+    def test_exact_approval_is_allowed(self):
+        self._publish(self._approval())
+
+    def test_push_without_windows_uat_fails(self):
+        with self.assertRaisesRegex(LocalXPublishDenied, "WINDOWS_LOCALX_MANUAL_UAT_REQUIRED"):
+            self._publish(self._approval()[1:])
+
+    def test_windows_uat_without_push_fails(self):
+        with self.assertRaisesRegex(LocalXPublishDenied, "EXPLICIT_USER_SLASH_PUSH"):
+            self._publish(self._approval()[:1])
+
+    def test_wrong_windows_head_or_site_fails(self):
+        for args in ({"uat_head": "f"*40}, {"test_site": "COREELEC"},
+                     {"uat_owner":"github-actions[bot]"}):
+            with self.subTest(args=args), self.assertRaises(LocalXPublishDenied):
+                self._publish(self._approval(**args))
+
+    def test_uat_must_precede_push(self):
+        with self.assertRaisesRegex(LocalXPublishDenied, "MUST_PRECEDE"):
+            self._publish(self._approval(order=(102,101)))
+
+    def test_missing_github_comment_ids_fail_closed(self):
+        comments = self._approval()
+        for item in comments:
+            item.pop("id")
+        with self.assertRaises(LocalXPublishDenied):
+            self._publish(comments)
 
 
 class ConversationBugfixIntegrationTests(unittest.TestCase):
