@@ -48,5 +48,48 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
                 self.assertIn(required, agents)
 
 
+    def test_open_pr_head_and_base_refs_fail_closed(self):
+        """An OPEN PR protects its head AND base refs from cleanup."""
+        from tools.branch_cleanup_ref_guard import (
+            BranchCleanupGuardError,
+            assert_delete_candidates_safe,
+            protected_open_pr_refs,
+        )
+
+        pulls = [
+            {"head": {"ref": "feature/test"}, "base": {"ref": "cleanup/2d-3d-sync"}},
+            {"head": {"ref": "refs/heads/docs/clean"}, "base": {"ref": "localX"}},
+        ]
+        self.assertEqual(
+            protected_open_pr_refs(pulls),
+            {"feature/test", "docs/clean", "cleanup/2d-3d-sync", "localX"},
+        )
+        for protected in (
+            "feature/test", "docs/clean", "cleanup/2d-3d-sync",
+            "refs/heads/localX",
+        ):
+            with self.subTest(protected=protected):
+                with self.assertRaisesRegex(BranchCleanupGuardError, "protected ref"):
+                    assert_delete_candidates_safe([protected], pulls)
+        assert_delete_candidates_safe(["feature/unrelated"], pulls)
+        for malformed in (
+            [{"head": {"ref": "feature/test"}}],
+            [{"head": {"ref": "feature/test"}, "base": {"ref": ""}}],
+        ):
+            with self.subTest(malformed=malformed):
+                with self.assertRaises(BranchCleanupGuardError):
+                    assert_delete_candidates_safe(["feature/unrelated"], malformed)
+
+
+    def test_knowledge_authority_suite_is_wired_to_bootstrap(self):
+        workflow = (
+            ROOT / ".github/workflows/knowledge-governance-bootstrap.yml"
+        ).read_text(encoding="utf-8")
+        suite = "tests/knowledge/test_current_history_authority_contract.py"
+        self.assertIn("- '" + suite + "'", workflow)
+        self.assertIn("python -m pytest -q " + suite, workflow)
+
+
+
 if __name__ == "__main__":
     unittest.main()

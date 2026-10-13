@@ -6,9 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Deterministic repo migration 踩坑庫
 
-## Deterministic 不等於可以旁路 root-local-first
+## 舊 workspace-first 假設與現行 GitHub 權限的區分（HISTORICAL）
 
-Drive/shared-zero 已退役；有無 historical drift 都固定 WORKSPACE_DEFAULT，不得啟動 shared-zero fallback、merge/freeze 或 /推推 前置。 repository-content 修改先在 executor-local repo workspace + fresh cleanup/2d-3d-sync baseline 完成 author/test，再以 exact tested diff delivery。
+> **2026-10-11 現行權責提醒**：此文為 `REFERENCE` 事故庫，不能授予 DC／RC、本機 shell 或舊 `root-local-first` 施工權限；不得把舊 `WORKSPACE_DEFAULT` 當作每件 WHD 任務的強制入口。現行 `/派工`、當次明確 `/接手`、治理直送 X 及 `localX`→X 發布分流，均以正式 X `AGENTS.md`／CURRENT Skills 和 GitHub exact HEAD readback 為準。
+
+**當時的工作區規則（HISTORICAL／SUPERSEDED）**：Drive/shared-zero 已退役；舊流程曾要求 executor-local workspace、fresh `cleanup/2d-3d-sync` baseline、exact-tested-diff delivery。這是舊事故背景，不得重建 `WORKSPACE_DEFAULT` 或把使用者本機當預設施工地點。
 
 ## Validator 不是 authority
 
@@ -26,23 +28,23 @@ Migration 的 desired state 必須來自已釘住 SHA 的 authoritative matrix/r
 
 如果邊掃邊改，就無法證明 governed inventory 完整，也容易漏掉 role/path。先固定 inventory count 與 mapping，再一次套用；任何 changed-file set 超出計畫都由 drift audit 擋下。
 
-## T6 實際踩坑：strict FAIL 不能反推 authority
+## T6 實際踩坑：strict FAIL 不能反推 authority（HISTORICAL／已驗收）
 
 #252 第一次 full regression 出現 4 個 FAIL 時，根因是 pre-T6 stale test contract / legacy marker，而不是 strict metadata authority 錯誤。正確處理方式是回查 frozen T1 matrix + #255 resolution overlay，證明舊測試已 stale 後只更新測試；禁止為了讓測試變綠而改 authority metadata。
 
 T6 accepted evidence：migrated HEAD `2ef002cc6cc9476fc36eccbbe6b8b64acda6a777`，governed/mapped `398/398`，second pass `CHANGED_COUNT=0`，focused `29 PASS`，full `tests/knowledge` `102 PASS / 0 FAIL`，remote run `34905919429` / job `104182413876`，scope drift `0`。
 
-後續 T7 不得重新分類這批 metadata；只能在 accepted strict-mode state 上增加永久 governance guard。
+**當時 T7 的限制（HISTORICAL）**：當次 accepted strict-mode state 保留 T6 的 frozen metadata／matrix；不能憑這句話限制今日合法更新的 CURRENT 權威或新增另一個 gate。
 
-## T8 Combined Acceptance 必須驗同一 tested HEAD
+## T8 當次 Combined Acceptance 必須驗同一 tested HEAD（HISTORICAL）
 
 #235 的 combined acceptance 固定同時驗：R1–R7 permanent governance、完整 `tests/knowledge`、durable Skill/AI readback、`config.ini`、`基準檔/**` byte manifest，以及 working-tree clean。不可把不同 branch／不同 run 的綠燈拼成 Combined Acceptance。
 
 第一輪 combined run `34907199320` / job `104186513540` 證明 accepted T7 head 上：permanent governance `GREEN governed=398`、`tests/knowledge` `107 PASS / 0 FAIL`、durable readback GREEN、`config.ini` SHA256 `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67` 不變、protected `基準檔/**` 共 `24` files manifest 不變、working tree clean。
 
-T8 最終驗收仍必須在包含本 durable writeback 的 exact HEAD 重新跑同一 Combined Acceptance；第一輪 run 只能作 pre-write evidence，不能代替 final tested-head proof。
+**當時的 T8 final acceptance（HISTORICAL）**：該次 durable writeback 要求以 final exact HEAD 重跑 Combined Acceptance，第一輪 run 僅是 pre-write 證據。這不代表今日任務須重新執行 T8／舊 combined workflow；目前驗收依當次適用 CI 與 GitHub 回讀。
 
-## T9 Production Integration：外部 drift 先 reconcile，再 non-force
+## T9 當次 Production Integration：drift reconcile 與 non-force（HISTORICAL）
 
 #236 refetch production 時，`cleanup/2d-3d-sync @ 591a7127e09f8ab537e6de4ca84d5ec8c148c237` 與 #225 work-order T8 lineage 發生預期 divergence。production-only 淨變更來自已完成的 #256 execution-claim hard gate；禁止 force 覆蓋，也禁止直接拿 production 舊版 `派工/SKILL.md` 覆掉 T6 metadata-aware Skill。
 

@@ -2,7 +2,7 @@
   "schema": "receiving-nfb-x-evidence-v1",
   "issue": 1494,
   "purpose": "EVIDENCE_ONLY_NOT_MANUFACTURING_CAPABILITY_REGISTRY",
-  "revision": "v1.4-evidence-2",
+  "revision": "v1.4-evidence-5-w800-three-whd-physical-x-datum",
   "references": [
     {
       "path": "docs/specs/WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
@@ -52,7 +52,11 @@
         "PHYSICAL_PART_ID_AND_X_DIRECTION",
         "BLANK_ORIGIN_IDENTITY",
         "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+      ],
+      "canonical_whd_inner_door_blank_width_mm": 523,
+      "canonical_whd_inner_door_finished_width_mm": 489,
+      "canonical_blank_dimension_source": "ACTUAL_WHD_RECEIVING_INNER_DOOR_FAMILY_FOLDING",
+      "original_dxf_outline_is_manufacturing_dimension_authority": false
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-750-1",
@@ -80,7 +84,11 @@
         "PHYSICAL_PART_ID_AND_X_DIRECTION",
         "BLANK_ORIGIN_IDENTITY",
         "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+      ],
+      "canonical_whd_inner_door_blank_width_mm": 673,
+      "canonical_whd_inner_door_finished_width_mm": 639,
+      "canonical_blank_dimension_source": "ACTUAL_WHD_RECEIVING_INNER_DOOR_FAMILY_FOLDING",
+      "original_dxf_outline_is_manufacturing_dimension_authority": false
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-800-1",
@@ -108,7 +116,11 @@
         "PHYSICAL_PART_ID_AND_X_DIRECTION",
         "BLANK_ORIGIN_IDENTITY",
         "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+      ],
+      "canonical_whd_inner_door_blank_width_mm": 723,
+      "canonical_whd_inner_door_finished_width_mm": 689,
+      "canonical_blank_dimension_source": "ACTUAL_WHD_RECEIVING_INNER_DOOR_FAMILY_FOLDING",
+      "original_dxf_outline_is_manufacturing_dimension_authority": false
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-600-2",
@@ -126,8 +138,11 @@
       "x_status": "PREVIEW_ONLY",
       "certified_x_revision": null,
       "actual_inner_door_part_id": null,
-      "source_dxf_sha256": null,
-      "source_outline_handles": [],
+      "source_dxf_sha256": "cb6f200eb5339bd8abd994eee01ad405c7e0bd004984ac5b4f1be3a2b6e1bc76",
+      "source_outline_handles": [
+        "9E",
+        "9D"
+      ],
       "source_main_hole_handles": [],
       "x_direction": null,
       "blank_x_origin": null,
@@ -136,12 +151,38 @@
       "blank_to_finished_face_x": null,
       "finished_face_to_box_world_x": null,
       "missing_evidence": [
-        "OWNER_APPROVED_X_RULE_REVISION",
-        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
-        "PHYSICAL_PART_ID_AND_X_DIRECTION",
-        "BLANK_ORIGIN_IDENTITY",
-        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+        "SOURCE_LAYOUT_OUTER_EDGE_TO_WHD_MANUFACTURED_CUTTING_IDENTITY",
+        "SOURCE_CUTOUT_TO_SELECTED_NFB_MAIN_HOLE_IDENTITY",
+        "PHYSICAL_PART_X_DIRECTION_AND_ORIGIN",
+        "REVERSIBLE_BLANK_FACE_BOX_WORLD_X_MAP"
+      ],
+      "source_layout_observation": {
+        "fixture": "tests/fixtures/receiving_nfb_nominal_x_native_observations.json",
+        "source_filename": "600x2.dxf",
+        "observed_outer_vertical_edge_span_mm": 524,
+        "observed_two_cutout_centers_relative_to_left_mm": [
+          172,
+          352
+        ],
+        "observed_center_pitch_mm": 180,
+        "sampled_cutout_side_widths_mm": [
+          57,
+          57
+        ],
+        "conditional_current_t2_gap35_width_delta_mm": 1,
+        "physical_blank_to_source_identical": false,
+        "model_main_hole_authenticated": false,
+        "status": "SOURCE_PITCH_OBSERVED_ONLY",
+        "source_span_is_dimension_authority": false,
+        "source_span_difference_is_release_blocker": false,
+        "may_derive_absolute_x_from_source_left": false,
+        "manufacturing_cutting_blank_width_mm": 523,
+        "source_span_difference_is_provenance_only": true
+      },
+      "canonical_whd_inner_door_blank_width_mm": 523,
+      "canonical_whd_inner_door_finished_width_mm": 489,
+      "canonical_blank_dimension_source": "ACTUAL_WHD_RECEIVING_INNER_DOOR_FAMILY_FOLDING",
+      "original_dxf_outline_is_manufacturing_dimension_authority": false
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-750-2",
@@ -159,8 +200,11 @@
       "x_status": "PREVIEW_ONLY",
       "certified_x_revision": null,
       "actual_inner_door_part_id": null,
-      "source_dxf_sha256": null,
-      "source_outline_handles": [],
+      "source_dxf_sha256": "892cd8a391e41937e6cff74696294342d06894c1b4c47d51874da1309075da49",
+      "source_outline_handles": [
+        "6F",
+        "70"
+      ],
       "source_main_hole_handles": [],
       "x_direction": null,
       "blank_x_origin": null,
@@ -169,12 +213,38 @@
       "blank_to_finished_face_x": null,
       "finished_face_to_box_world_x": null,
       "missing_evidence": [
-        "OWNER_APPROVED_X_RULE_REVISION",
-        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
-        "PHYSICAL_PART_ID_AND_X_DIRECTION",
-        "BLANK_ORIGIN_IDENTITY",
-        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+        "SOURCE_LAYOUT_OUTER_EDGE_TO_WHD_MANUFACTURED_CUTTING_IDENTITY",
+        "SOURCE_CUTOUT_TO_SELECTED_NFB_MAIN_HOLE_IDENTITY",
+        "PHYSICAL_PART_X_DIRECTION_AND_ORIGIN",
+        "REVERSIBLE_BLANK_FACE_BOX_WORLD_X_MAP"
+      ],
+      "source_layout_observation": {
+        "fixture": "tests/fixtures/receiving_nfb_nominal_x_native_observations.json",
+        "source_filename": "750X2.dxf",
+        "observed_outer_vertical_edge_span_mm": 674,
+        "observed_two_cutout_centers_relative_to_left_mm": [
+          182,
+          492
+        ],
+        "observed_center_pitch_mm": 310,
+        "sampled_cutout_side_widths_mm": [
+          50,
+          50
+        ],
+        "conditional_current_t2_gap35_width_delta_mm": 1,
+        "physical_blank_to_source_identical": false,
+        "model_main_hole_authenticated": false,
+        "status": "SOURCE_PITCH_OBSERVED_ONLY",
+        "source_span_is_dimension_authority": false,
+        "source_span_difference_is_release_blocker": false,
+        "may_derive_absolute_x_from_source_left": false,
+        "manufacturing_cutting_blank_width_mm": 673,
+        "source_span_difference_is_provenance_only": true
+      },
+      "canonical_whd_inner_door_blank_width_mm": 673,
+      "canonical_whd_inner_door_finished_width_mm": 639,
+      "canonical_blank_dimension_source": "ACTUAL_WHD_RECEIVING_INNER_DOOR_FAMILY_FOLDING",
+      "original_dxf_outline_is_manufacturing_dimension_authority": false
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-800-2",
@@ -192,8 +262,11 @@
       "x_status": "PREVIEW_ONLY",
       "certified_x_revision": null,
       "actual_inner_door_part_id": null,
-      "source_dxf_sha256": null,
-      "source_outline_handles": [],
+      "source_dxf_sha256": "a2de69b4dba64ee8d22d42d79b7a67bdc94f561181bc232d3193f6ce9afc41e7",
+      "source_outline_handles": [
+        "8D",
+        "8E"
+      ],
       "source_main_hole_handles": [],
       "x_direction": null,
       "blank_x_origin": null,
@@ -202,16 +275,42 @@
       "blank_to_finished_face_x": null,
       "finished_face_to_box_world_x": null,
       "missing_evidence": [
-        "OWNER_APPROVED_X_RULE_REVISION",
-        "SOURCE_DXF_OUTLINE_AND_MAIN_HOLES",
-        "PHYSICAL_PART_ID_AND_X_DIRECTION",
-        "BLANK_ORIGIN_IDENTITY",
-        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
-      ]
+        "SOURCE_LAYOUT_OUTER_EDGE_TO_WHD_MANUFACTURED_CUTTING_IDENTITY",
+        "SOURCE_CUTOUT_TO_SELECTED_NFB_MAIN_HOLE_IDENTITY",
+        "PHYSICAL_PART_X_DIRECTION_AND_ORIGIN",
+        "REVERSIBLE_BLANK_FACE_BOX_WORLD_X_MAP"
+      ],
+      "source_layout_observation": {
+        "fixture": "tests/fixtures/receiving_nfb_nominal_x_native_observations.json",
+        "source_filename": "800x2.dxf",
+        "observed_outer_vertical_edge_span_mm": 723,
+        "observed_two_cutout_centers_relative_to_left_mm": [
+          216.5,
+          541.5
+        ],
+        "observed_center_pitch_mm": 325,
+        "sampled_cutout_side_widths_mm": [
+          57,
+          28
+        ],
+        "conditional_current_t2_gap35_width_delta_mm": 0,
+        "physical_blank_to_source_identical": false,
+        "model_main_hole_authenticated": false,
+        "status": "SOURCE_PITCH_OBSERVED_ONLY",
+        "source_span_is_dimension_authority": false,
+        "source_span_difference_is_release_blocker": false,
+        "may_derive_absolute_x_from_source_left": false,
+        "manufacturing_cutting_blank_width_mm": 723,
+        "source_span_difference_is_provenance_only": true
+      },
+      "canonical_whd_inner_door_blank_width_mm": 723,
+      "canonical_whd_inner_door_finished_width_mm": 689,
+      "canonical_blank_dimension_source": "ACTUAL_WHD_RECEIVING_INNER_DOOR_FAMILY_FOLDING",
+      "original_dxf_outline_is_manufacturing_dimension_authority": false
     },
     {
       "rule_id": "RECEIVING-NFB-OPEN-X-800-3",
-      "revision": "v1.4-evidence-2",
+      "revision": "v1.4-evidence-5-whd-datum",
       "gate": "OPEN-X-ROW",
       "box_outer_width_mm": 800,
       "nfb_count": 3,
@@ -258,10 +357,8 @@
       "blank_to_finished_face_x": null,
       "finished_face_to_box_world_x": null,
       "missing_evidence": [
-        "OWNER_APPROVED_X_RULE_REVISION",
-        "PHYSICAL_CUTTING_LEFT_EDGE_IDENTITY",
-        "PHYSICAL_PART_ID_AND_X_DIRECTION",
-        "REVERSIBLE_BLANK_FACE_BOX_X_MAP"
+        "NFB_MODEL_MAIN_HOLE_AND_ROTATION_NOT_WHD_X_DATUM",
+        "NFB_Y_PLACEMENT_AND_FEATURE_OWNER_BELONG_TO_1497"
       ],
       "source_geometry_observation": {
         "status": "DXF_LOCAL_X_VERIFIED_PHYSICAL_MAP_PENDING",
@@ -285,6 +382,63 @@
         "units_basis": "approved v1.4 mm dimensions; DXF unit header is unspecified",
         "closed_outer_outline": false,
         "manufacturing_cutting_identity_approved": false
+      },
+      "canonical_whd_inner_door_blank_width_mm": 723,
+      "canonical_whd_inner_door_finished_width_mm": 689,
+      "canonical_blank_dimension_source": "ACTUAL_WHD_RECEIVING_INNER_DOOR_FAMILY_FOLDING",
+      "original_dxf_outline_is_manufacturing_dimension_authority": false,
+      "physical_x_datum": {
+        "status": "WHD_PANEL_X_DATUM_VERIFIED_NOT_NFB_CUTTING",
+        "rule_id": "RECEIVING-NFB-OPEN-X-800-3",
+        "revision": "WHD-NFB-OPEN-X-800-3-WHD-DATUM-V1",
+        "implementation": "ae_engine/receiving_nfb_x_projection.py::resolve_w800_three_whd_x",
+        "reverse": "ae_engine/receiving_nfb_x_projection.py::reverse_w800_three_whd_x",
+        "actual_cutting_origin": "MIN_X_OF_UNIQUE_CLOSED_CUTTING_OUTLINE_FROM_BUILD_INNER_DOOR_PANEL_RENDER_DATA",
+        "x_direction": "WHD_CUTTING_POSITIVE_X_EQUALS_BOX_WORLD_POSITIVE_X",
+        "physical_panel_id": "inner_door:<inner_door_id>:panel",
+        "scope": {
+          "box_outer_width_mm": 800,
+          "thickness_mm": 2,
+          "cell_row_index": 0,
+          "cell_height_mm": 1100,
+          "folded_left_flange_mm": 19,
+          "folded_right_flange_mm": 19,
+          "finished_face_width_mm": 689,
+          "folded_core_width_mm": 685,
+          "manufactured_cutting_width_mm": 723,
+          "inner_door_placement_rotation": [
+            0,
+            0,
+            0
+          ]
+        },
+        "blank_centers_from_actual_cutting_left_mm": [
+          181.5,
+          361.5,
+          541.5
+        ],
+        "face_centers_from_finished_face_left_mm": [
+          164.5,
+          344.5,
+          524.5
+        ],
+        "box_world_centers_example_single_column_mm": [
+          -180,
+          0,
+          180
+        ],
+        "box_world_centers_example_400_left_neighbor_mm": [
+          20,
+          200,
+          380
+        ],
+        "blank_to_world_x_formula": "world_x=placement.world_offset[0]+(blank_from_cutting_left-19-685/2)",
+        "face_x_formula": "finished_face_left=689/2+(blank_from_cutting_left-19-685/2)",
+        "source_dxf_used_as_coordinate_origin": false,
+        "user_approved_manufacturing_width_formula": "T2/3.5gap/19fold=>W800 blank723",
+        "fully_reverse_verified": true,
+        "manufacturing_ready": false,
+        "certified_nfb_cutting_revision": null
       }
     }
   ],
@@ -294,11 +448,12 @@
       "thickness_mm": 2,
       "nfb_count": 3
     },
-    "status": "DXF_LOCAL_X_VERIFIED_PHYSICAL_MAP_PENDING",
+    "status": "WHD_X_DATUM_VERIFIED_SOURCE_DXF_NOT_DIMENSION_AUTHORITY",
     "approved_dimensions_mm": {
       "body_inner_clear_width": 796,
       "finished_door_width": 689,
-      "cutting_blank_width": 723
+      "cutting_blank_width": 723,
+      "width_authority": "WHD_RECEIVING_INNER_DOOR_ACTUAL_PANEL_FOLDING"
     },
     "reported_centers_from_drawing_left_mm": [
       181.5,
@@ -334,6 +489,51 @@
       "reference_blank_height_mm": 1075,
       "height_mismatch_mm": 0,
       "manufactured_height_resolution": "CELL_HEIGHT_MINUS_TOP_FRAME_PLUS_T_AND_TWO_GAPS__SHARED_DOOR_FOLD"
-    }
+    },
+    "source_outline_is_manufacturing_dimension_authority": false,
+    "source_723_match_is_not_authorization_to_replace_wHD_blank": true,
+    "whd_origin_is_generated_cutting_left": true,
+    "whd_x_datum_revision": "WHD-NFB-OPEN-X-800-3-WHD-DATUM-V1",
+    "whd_x_datum_scope": "W800_T2_TOP_1100_THREE_SLOTS_PHYSICAL_INNER_DOOR",
+    "source_outline_is_723_cutting_left_required_for_whd_datum": false,
+    "manufacturing_cutting_ready": false,
+    "remaining_authorities": [
+      "NFB_MAIN_HOLE_MODEL_AND_ROTATION_1497",
+      "NFB_Y_PHYSICAL_HOLE_AND_OWNER_1497"
+    ]
+  },
+  "manufacturing_blank_width_authority": {
+    "rule": "RECEIVING_INNER_DOOR_ACTUAL_PANEL_FOLDING",
+    "implementation": "ae_engine/cabinet_types/receiving.py::derive_inner_door_panels -> ae_engine/inner_door_panels.py::InnerDoorPanelPart.unfolded_width",
+    "source_of_truth": "REAL_WHD_GENERATED_CUTTING_NOT_CUSTOMER_DXF_SPAN",
+    "approved_example": {
+      "outer_width_mm": 800,
+      "thickness_mm": 2,
+      "inner_frame_formed_occupation_each_side_mm": 50,
+      "gap_each_side_mm": 3.5,
+      "fold_each_side_mm": 19,
+      "finished_width_mm": 689,
+      "cutting_blank_width_mm": 723
+    },
+    "same_context_width_examples": [
+      {
+        "outer_width_mm": 600,
+        "finished_width_mm": 489,
+        "cutting_blank_width_mm": 523
+      },
+      {
+        "outer_width_mm": 750,
+        "finished_width_mm": 639,
+        "cutting_blank_width_mm": 673
+      },
+      {
+        "outer_width_mm": 800,
+        "finished_width_mm": 689,
+        "cutting_blank_width_mm": 723
+      }
+    ],
+    "source_dxf_dimensions_may_be_incorrect": true,
+    "source_dxf_width_difference_is_never_manufacturing_blocker": true,
+    "source_pitch_only_observation_not_approved_absolute_x": true
   }
 }

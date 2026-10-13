@@ -1,0 +1,40 @@
+{
+  "schema": "WHD_NFB_SHIHLIN400_ORIGINAL_BYTE_IDENTITY_V1",
+  "indexed_name": "400_140X257_107.dxf",
+  "download_name": "400_140X257_107(1).dxf",
+  "source_sha256": "8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3",
+  "each_size_bytes": 123089,
+  "byte_identical": true,
+  "modelspace_entity_count": 41,
+  "upper_reference": {
+    "dxf_handle": "585",
+    "dxf_type": "LWPOLYLINE",
+    "effective_aci": 150,
+    "closed": true,
+    "width_mm": 57,
+    "height_mm": 96,
+    "center_xy_mm": [
+      3771.967233573938,
+      2608.8091805827453
+    ]
+  },
+  "lower_reference_excluded": {
+    "dxf_handle": "597",
+    "effective_aci": 3,
+    "reason": "LOWER_PAD_GEOMETRY_DEFERRED"
+  },
+  "color_entity_counts": {
+    "3": 5,
+    "30": 8,
+    "150": 1,
+    "212": 27
+  },
+  "source": "2026-10-11 actual byte comparison of the two existing user Library DXF files; files not committed",
+  "not_approval": [
+    "WORLD_X_POSITION",
+    "INNER_DOOR_CUTTING_PLACEMENT",
+    "MIDDLE_PLATE_MFG2",
+    "BASE_PLATE_MFG2",
+    "WHOLE_SET_EXPORT"
+  ]
+}

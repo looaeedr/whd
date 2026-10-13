@@ -62,3 +62,53 @@ def model_filenames(brand: str, *, path: str | Path | None = None) -> tuple[str,
 def model_choices(brand: str, *, path: str | Path | None = None) -> tuple[str, ...]:
     """Names displayed to the user; never return .dxf to the UI."""
     return tuple(display_model(name) for name in model_filenames(brand, path=path))
+
+
+def model_depth_mm(
+    brand: str, filename: str, *, path: str | Path | None = None,
+) -> float | None:
+    """Read the *adjacent* 深 column for this exact brand + DXF filename.
+
+    CSV is user-editable and read afresh on every request. No filename-suffix
+    inference, cross-brand fallback, unapproved alias or hardcoded 400 models.
+    Blank/missing values remain unknown; conflicting duplicate rows fail
+    closed instead of making a physically incorrect PAD decision.
+    """
+    from math import isfinite
+
+    if brand not in BRANDS:
+        return None
+    if not isinstance(filename, str) or not filename.strip():
+        return None
+    key = filename.strip().casefold()
+    if "/" in key or "\\" in key or not key.endswith(".dxf"):
+        return None
+    source = Path(path) if path is not None else INDEX_PATH
+    values: set[float | None] = set()
+    with source.open("r", encoding="utf-8-sig", newline="") as stream:
+        rows = csv.reader(stream)
+        columns = next(rows, None)
+        if tuple(columns or ()) != HEADER:
+            raise ValueError("開關索引.csv 欄位不符，應為圖塊名稱／各品牌與深度")
+        idx = columns.index(brand)
+        if idx + 1 >= len(columns) or columns[idx + 1] != "深":
+            raise ValueError("開關索引.csv 廠牌深度欄位錯位")
+        for number, row in enumerate(rows, start=2):
+            if len(row) != len(HEADER):
+                raise ValueError(f"開關索引.csv 第 {number} 行欄位數錯誤")
+            if row[idx].strip().casefold() != key:
+                continue
+            raw = row[idx + 1].strip()
+            if not raw:
+                values.add(None)
+                continue
+            try:
+                value = float(raw)
+            except ValueError as exc:
+                raise ValueError(f"開關索引.csv 第 {number} 行深度不是數字") from exc
+            if not isfinite(value) or value <= 0:
+                raise ValueError(f"開關索引.csv 第 {number} 行深度必須為正的有限數值")
+            values.add(value)
+    if len(values) > 1:
+        raise ValueError(f"開關索引.csv {brand}/{filename} 重複深度不一致")
+    return next(iter(values)) if values else None

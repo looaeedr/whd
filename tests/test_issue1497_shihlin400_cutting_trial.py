@@ -166,4 +166,4 @@ def test_other_brand_models_are_only_a_new_source_profile_not_hardcoded_branch(t
     profiles = read_nfb_upper_source_profiles(PROFILE)
     assert len(profiles) == 1
     assert profiles[0].indexed_filename == "400_140X257_107.dxf"
-    assert profiles[0].source_alias_status == "SOURCE_ALIAS_UNCERTIFIED"
+    assert profiles[0].source_alias_status == "SOURCE_ALIAS_SHA256_IDENTICAL"

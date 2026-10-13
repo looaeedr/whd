@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 產品程式、GUI、幾何、DXF、製造資料、產品測試及混合變更，預設依 `/派工`（雲端施工）或 `/接手`（RC 施工）路線驗證並先整合至**本機** `localX`，再同步 GitHub `localX`；只有使用者**當次明確指定 GitHub-only 發布及本機同步待辦**時，才適用下方 `GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1`。未收到當次 `/推推` 授權，不得發布產品至正式 X。
 產品正式發布仍驗證 exact PR、head SHA、target SHA 及 GitHub owner comment，由 `tools/localx_publish_gate.py` 判斷。
-**純治理直送例外**：只有 `tools/change_lane_gate.py` 判定為 `GOVERNANCE_DIRECT_X` 的非產品修改，不需要 `/推推`。從最新 X 建立 `governance/*`、`docs/*` 或 `skills/*` 本地分支，檢查後直接 push/PR/merge 至 X；禁止與產品變更混合。
+**純治理直送例外**：只有 `tools/change_lane_gate.py` 判定為 `GOVERNANCE_DIRECT_X` 的非產品修改，不需要 `/推推`。從最新正式 X 以 GitHub／雲端建立 `governance/*`、`docs/*` 或 `skills/*` 治理分支，檢查後直接 push/PR/merge 至 X；禁止與產品變更混合。
 不得用任意的「文檔」文字標籤繞過機器路徑檢查；unknown/mixed = 產品通道。
 `/推推 文檔` 和 `/推推 主體` 為相容命令，不能放寬產品通道的人工授權。
 

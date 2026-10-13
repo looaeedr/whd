@@ -303,6 +303,8 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
 
 def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: ManufacturingContext):
     is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+    if is_receiving and spec.receiving_bend_pattern is None:
+        raise ValueError("RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING")
     # Receiving base plate uses final_scene path to preserve nominal blank
     # geometry and apply local seam reliefs consistently with 2D/render.
     if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:
@@ -460,15 +462,17 @@ def save_resolved_manufacturing_geometry_dxf(
     output_dir: str | os.PathLike[str],
     *,
     overwrite: bool = False,
+    part_only: bool = False,
     instance_namespace: str | None = None,
 ) -> dict[str, str]:
-    """Export exact canonical physical parts to stable per-part DXF files."""
+    """Export physical DXF; part_only permits independently verified NFB base CUTTING, not full assembly."""
     return _manufacturing_export.save_resolved_manufacturing_geometry_dxf(
         resolved_geometry,
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
         overwrite=overwrite,
+        part_only=part_only,
         instance_namespace=instance_namespace,
     )
 
@@ -478,14 +482,16 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     output_dir: str | os.PathLike[str],
     *,
     overwrite: bool = False,
+    part_only: bool = False,
 ) -> dict[str, str]:
-    """Atomically export a stable multi-instance physical DXF inventory."""
+    """Export multi-Bay DXF; part_only never certifies incomplete EAR/box assembly."""
     return _manufacturing_export.save_resolved_manufacturing_geometry_batch_dxf(
         instances,
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
         overwrite=overwrite,
+        part_only=part_only,
     )
 
 
@@ -562,9 +568,11 @@ def group_quantity_physical_demands(demands, parameters_by_source):
 
 def save_quantity_manufacturing_groups_dxf(
     groups, output_dir, *, overwrite=False, render_data_transform=None,
+    part_only: bool = False,
 ):
     return _manufacturing_export.save_quantity_manufacturing_groups_dxf(
         groups, output_dir, save_part_render_data_dxf=save_part_render_data_dxf,
         verify_part_dxf=verify_saved_part_render_data_dxf,
         overwrite=overwrite, render_data_transform=render_data_transform,
+        part_only=part_only,
     )

@@ -20,14 +20,18 @@ LOWER_TERMINAL_FACE = "LOWER_TERMINAL_FACE"
 # physical Box Body mother plate (top -> head EndCap, left -> left side plate,
 # right -> right side plate). The common 46-mm web is NOT the mating flange.
 # The formed outside occupation is 46 + 2*T (50 mm when T=2); this is a
-# dimension, NOT "move 50 mm inward from the outer door". Preserve the left
-# frame's asymmetric -22/20 entry chain and the final 22-mm mating flange.
-# Installation and MARKING must be validated against the actual folded skins.
+# dimension, NOT "move 50 mm inward from the outer door".
+# Receiving dedicated 框.dxf A/B/C/D identity (user-confirmed 2026-10-13):
+# A LEFT 22/46/22 (90), B RIGHT 22/20/46/22 (110),
+# C DIVIDER (separate part, NOT a fourth inner-door frame),
+# D TOP 22/46/22 (90). The signed first B-22 keeps the pre-existing
+# asymmetric frame turning convention after correcting the mistaken side.
+# Installation and MARKING must still be tested against real folded skins.
 _FRAME_SIGNED_CHAINS = {
     "top": (22.0, 46.0, 22.0),
-    "bottom": (22.0, 46.0, 22.0),
-    "right": (22.0, 46.0, 22.0),
-    "left": (-22.0, 20.0, 46.0, 22.0),
+    "bottom": (22.0, 46.0, 22.0),  # optional generic side; not a Receiving physical part
+    "left": (22.0, 46.0, 22.0),
+    "right": (-22.0, 20.0, 46.0, 22.0),
 }
 
 

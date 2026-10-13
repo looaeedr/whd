@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """#1498 NFB per-physical-part readiness / partial export regression."""
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -45,12 +46,15 @@ def _inner(*, sha=SHA, part="inner_door:upper:panel", status=VALIDATED):
         part_id=part, indexed_model_key=("士林","400_140X257_107.dxf"),
         source_sha256=sha,
         physical_hole_ids=("nfb:upper:1",),
+        verified_hole_locations=(("nfb:upper:1", 0.0, 1, 0, 90),),
     )
 
 
 def test_unconfigured_preserves_legacy_even_when_nfb_source_absent():
     result=derive_nfb_part_readiness(_scope(submitted=False))
-    assert result.can_submit
+    # Legacy output remains usable, but UNCONFIGURED is not a verified NFB
+    # submission and cannot authorize an NFB manufacturing transaction.
+    assert not result.can_submit
     assert all(item.status==LEGACY for item in result.decisions)
     assert result.filter_export_part_ids((
         "inner_door:upper:panel","base_plate:upper",
@@ -123,12 +127,49 @@ def test_missing_real_plate_id_is_scope_blocker_not_an_invented_part():
     )
     assert result.for_part("inner_door:upper:panel").status==READY
     assert "BASE_PLATE_PHYSICAL_ID_UNRESOLVED" in result.scope_reasons
-    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" in result.scope_reasons
+    assert "MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED" not in result.scope_reasons
     assert result.can_submit  # only the genuinely verified MFG-1 door
     with pytest.raises(ValueError,match="dependencies unresolved"):
         result.filter_export_part_ids(("side_panel:left",))
     assert result.filter_export_part_ids(("side_panel:left",),partial=True)[0]==(
         "side_panel:left",)
+
+
+def test_issue1502_one_authority_inner_door_NFB_no_base_from_illustration():
+    # User-shown base DXFs are illustrative. They cannot create a real
+    # physical Base Plate, a lower-layer plate or new switch coordinates.
+    # The verified inner-door NFB configuration is the only hole-position
+    # authority. Downstream parts remain blocked until independently
+    # verified against actual manufacturing geometry.
+    scope=NfbPhysicalScope(
+        set_id="setA", bay_id="bayA", version_id="v1", submitted=True,
+        inner_door_part_id="inner_door:upper:panel",
+        base_plate_part_ids=(), middle_plate_part_ids=(),
+    )
+    result=derive_nfb_part_readiness(
+        scope, source_inventory=_inventory(color30=16, color150=1, color212=26),
+        verified_inner_door=_inner(),
+    )
+    assert result.can_submit
+    assert result.for_part("inner_door:upper:panel").status==READY
+    assert tuple(row.part_id for row in result.decisions)==(
+        "inner_door:upper:panel",
+    )
+    assert set(result.scope_reasons)=={
+        "BASE_PLATE_PHYSICAL_ID_UNRESOLVED",
+    }
+    assert result.filter_export_part_ids(
+        ("inner_door:upper:panel",), partial=True,
+    )[0]==("inner_door:upper:panel",)
+    with pytest.raises(ValueError, match="physical dependencies unresolved"):
+        result.filter_export_part_ids(("inner_door:upper:panel",))
+    # Missing source-verified inner door must block even this partial scope.
+    not_verified=derive_nfb_part_readiness(
+        scope, source_inventory=_inventory(color30=16, color150=1, color212=26),
+        verified_inner_door=None,
+    )
+    assert not not_verified.can_submit
+    assert not_verified.for_part("inner_door:upper:panel").status==BLOCKED
 
 
 def test_each_set_bay_version_independent_and_no_cross_scope_ready_cache():
@@ -160,3 +201,92 @@ def test_duplicate_or_ambiguous_physical_ids_fail_closed():
     )
     with pytest.raises(ValueError,match="duplicate"):
         result.filter_export_part_ids(("side_panel:left","side_panel:left"))
+
+
+def test_duplicate_process_color_rows_cannot_hide_real_base_holes():
+    original=_inventory(color30=1)
+    poisoned=replace(original,process_aci_entity_counts=(
+        (30,1),(150,1),(212,0),(30,0),
+    ))
+    status=derive_nfb_part_readiness(
+        _scope(),source_inventory=poisoned,verified_inner_door=_inner(),
+    )
+    assert not status.can_submit
+    assert status.for_part("inner_door:upper:panel").status==BLOCKED
+    assert status.for_part("base_plate:upper").status==BLOCKED
+    assert status.for_part("middle_plate:upper").status==BLOCKED
+    assert "NFB_SOURCE_COLOR_SCOPE_UNKNOWN" in status.scope_reasons
+
+
+@pytest.mark.parametrize("bad_counts",(
+    ((30,False),(150,1),(212,0)),
+    ((30,0),(150,1)),
+    ((30,0),(150,1),(212,-1)),
+    ((30,0),(150,0),(150,1),(212,0)),
+))
+def test_missing_or_malformed_color_evidence_is_unknown_not_zero(bad_counts):
+    inventory=replace(_inventory(),process_aci_entity_counts=bad_counts)
+    state=derive_nfb_part_readiness(
+        _scope(),source_inventory=inventory,verified_inner_door=_inner(),
+    )
+    assert state.for_part("base_plate:upper").status==BLOCKED
+    assert "NFB_SOURCE_COLOR_SCOPE_UNKNOWN" in state.scope_reasons
+
+
+def test_unique_out_of_order_color_counts_do_not_change_valid_readiness():
+    reordered=replace(_inventory(),process_aci_entity_counts=(
+        (212,0),(150,1),(30,0),
+    ))
+    state=derive_nfb_part_readiness(
+        _scope(),source_inventory=reordered,verified_inner_door=_inner(),
+    )
+    assert state.can_submit
+    assert state.for_part("base_plate:upper").status==UNAFFECTED
+    assert state.for_part("middle_plate:upper").status==BLOCKED
+
+
+@pytest.mark.parametrize("hole_locations", (
+    (),
+    (("nfb:upper:1", float("nan"), 1, 0, 90),),
+    (("nfb:upper:1", float("inf"), 1, 0, 90),),
+    (("nfb:upper:1", 0.0, 0, 0, 90),),
+    (("nfb:upper:1", 0.0, 1, 1, 90),),
+    (("nfb:upper:1", 0.0, 1, 0, 45),),
+    (("nfb:unknown:1", 0.0, 1, 0, 90),),
+    (("nfb:upper:1", 0.0, 1, 0, 90),
+     ("nfb:upper:1", 1.0, 1, 0, 90)),
+    (("nfb:upper:1", True, 1, 0, 90),),
+))
+def test_ready_requires_actual_per_hole_x_y_and_rotation_proof(hole_locations):
+    """No metadata-only READY; missing or malformed #1497 location proof blocks."""
+    fake=replace(_inner(),verified_hole_locations=hole_locations)
+    result=derive_nfb_part_readiness(
+        _scope(),source_inventory=_inventory(),verified_inner_door=fake,
+    )
+    assert not result.can_submit
+    assert result.for_part("inner_door:upper:panel").status==BLOCKED
+    assert "INNER_DOOR_SOURCE_OR_CUTTING_NOT_VERIFIED" in (
+        result.for_part("inner_door:upper:panel").reasons
+    )
+    assert result.for_part("side_panel:left").status==UNAFFECTED
+
+
+def test_verified_w800_three_upper_six_holes_are_valid_with_repeated_layer_slots():
+    ids=tuple(f"nfb:upper:layer:{i}:unit:{j}" for i in range(2) for j in range(3))
+    observed=tuple(
+        (ids[i*3+j], float((-180, 0, 180)[j]), 2, i, (0, 90, 270)[j])
+        for i in range(2) for j in range(3)
+    )
+    render=replace(_inner(),physical_hole_ids=ids,
+                   verified_hole_locations=observed)
+    good=derive_nfb_part_readiness(
+        _scope(),source_inventory=_inventory(),verified_inner_door=render,
+    )
+    assert good.can_submit
+    assert good.for_part("inner_door:upper:panel").status==READY
+    # Physical owner collision must not be hidden behind a duplicate-ID tuple.
+    duplicated=replace(render,physical_hole_ids=ids[:-1]+(ids[0],))
+    rejected=derive_nfb_part_readiness(
+        _scope(),source_inventory=_inventory(),verified_inner_door=duplicated,
+    )
+    assert rejected.for_part("inner_door:upper:panel").status==BLOCKED

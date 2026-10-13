@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from tools.knowledge_governance import parse_doc_metadata
@@ -18,7 +19,7 @@ ROLE_MARKERS = {
     "AI_HANDOFF.md": "<!-- WHD_DOC_ROLE role=REFERENCE contract=handoff-ledger -->",
     "AGENTS.md": "<!-- WHD_DOC_ROLE role=CURRENT contract=agent-startup-process -->",
     "handoff/00_AI_HANDOFF_README.md": "<!-- WHD_DOC_ROLE role=MIRROR contract=agent-startup-process POINTER_ONLY -->",
-    "handoff/01_ARCHITECTURE.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=architecture-snapshot -->",
+    "handoff/01_ARCHITECTURE.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=manufacturing-architecture -->",
     "handoff/05_NEXT_STEPS.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=roadmap-snapshot -->",
     "目前主要任務.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=task-roadmap-snapshot -->",
     "docs/superpowers/CURRENT_API_INVENTORY_20260818.md": "<!-- WHD_DOC_ROLE role=HISTORICAL contract=api-inventory-snapshot snapshot=2026-08-18 -->",
@@ -30,7 +31,8 @@ ROLE_MARKERS = {
 
 def test_t7_documents_have_machine_readable_roles() -> None:
     # The current owner is WHD_DOC_META_V1 YAML; legacy HTML markers are optional.
-    # Keep the older expected-role list as an independent regression oracle.
+    # Preserve role expectations, but follow the canonical YAML contract for the
+    # historical architecture snapshot rather than its old HTML label.
     for path, marker in ROLE_MARKERS.items():
         metadata = parse_doc_metadata(read(path), path=path)
         assert f"role={metadata.role} contract={metadata.contract}" in marker, path
@@ -152,6 +154,20 @@ def test_current_skill_authority_rows_match_frontmatter() -> None:
         path = fields.get("path", "")
         if not path.startswith(".agents/skills/"):
             continue
+        if path.endswith(".json"):
+            # The registry/catalog are machine-readable CURRENT owners, but
+            # JSON must not be parsed as Markdown YAML frontmatter.
+            expected_lists = {
+                ".agents/skills/skill_registry.json": "routes",
+                ".agents/skills/skill_catalog.json": "ordered_rules",
+            }
+            assert path in expected_lists, path
+            payload = json.loads(read(path))
+            assert payload["schema_version"] == 1, path
+            rows = payload[expected_lists[path]]
+            assert isinstance(rows, list) and rows, path
+            continue
+        assert path.endswith("/SKILL.md"), path
         metadata = parse_doc_metadata(read(path), path=path)
         assert metadata.role == "CURRENT", path
         assert metadata.contract == fields["contract"], path
@@ -166,7 +182,7 @@ def test_dm7_current_skill_does_not_restore_retired_preflight_gate() -> None:
     assert "## 現行施工入口與來源查核" in skill
     assert "由 GitHub／排程／雲端執行器施工" in skill
     assert "只有使用者當次明確 `/接手`" in skill
-    assert "不得要求已退役的 preflight 重跑" in skill
+    assert "**不得**要求已退役的 preflight 重跑" in skill
     assert "先跑 `tools/phase6_skill_preflight.py" not in skill
     assert "並留下 `READ_REFERENCE:` evidence" not in skill
     assert "再以全部 changed files 重跑 preflight" not in skill
@@ -250,18 +266,14 @@ def test_beta_skill_navigation_does_not_resurrect_retired_preflight() -> None:
     assert "no local-machine permission" in text
 
 
-def test_remote_qa_route_checks_explicit_github_only_approval_before_dc() -> None:
-    text = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
+def test_remote_qa_route_is_github_localx_first_and_does_not_grant_dc() -> None:
+    qa = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
     dispatch = read(".agents/skills/engineering/派工/SKILL.md")
-    assert "整合路線先看使用者當次授權範圍，再決定是否可用 DC" in text
-    assert "不得先試探、連線或要求 DC 斷線證據" in text
-    assert "按當次授權選路" in text
-    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in text
-    assert "GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING" in text
-    assert "LOCALX_INTEGRATION_PENDING" in text
-    assert "不可假記" in text
-    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in dispatch
-
+    assert "GITHUB_LOCALX_FIRST" in qa and "GITHUB_LOCALX_FIRST" in dispatch
+    assert "expected_head_sha" in qa
+    assert "不呼叫 DC" in dispatch
+    assert "WINDOWS_LOCALX_SYNC_PENDING" in qa
+    assert "不要求每張 PR 重複授權" in qa
 
 def test_ci_qa_reference_does_not_resurrect_legacy_merge_or_fresh_branch_rule() -> None:
     contract = read(".agents/skills/engineering/monitoring-remote-qa/CI_SHARDING_ACCEPTANCE_CONTRACT.md")
@@ -273,16 +285,15 @@ def test_ci_qa_reference_does_not_resurrect_legacy_merge_or_fresh_branch_rule() 
     assert "Neither sentence is a current WHD" in contract
     assert "Product PRs target `localX`" in contract
     assert "requires a fresh `/推推`" in contract
-    assert "specific user approval for that Issue/PR" in contract
+    assert "specific user approval for that Issue/PR" not in contract
     assert "FULL_COLLECTION == UNIQUE_SHARD_UNION" in contract
     assert "FLAKY-WARNING" in contract
-    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in nav
-    assert "LOCALX_SYNC_PENDING" in nav
+    assert "GITHUB_LOCALX_FIRST" in nav
+    assert "WINDOWS_LOCALX_SYNC_PENDING" in nav
     assert "不能先探測 DC" in nav
 
 def test_dispatch_default_localx_integration_is_continuation_not_extra_user_approval() -> None:
     import json
-
     agents = read("AGENTS.md")
     dispatch = read(".agents/skills/engineering/派工/SKILL.md")
     qa = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
@@ -290,15 +301,56 @@ def test_dispatch_default_localx_integration_is_continuation_not_extra_user_appr
     gate = json.loads(read(".agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json"))
     assert "DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1" in agents
     assert "DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1" in dispatch
-    assert "不要求使用者每張 PR 再下合併命令" in dispatch
-    assert "不得要求每張 PR 另下一次合併指令" in qa
-    assert "不需每張 PR 另下合併指令" in nav
-    assert gate["default_integration_route"] == "DC_LOCALX_FIRST"
-    assert gate["integration_routes"]["DC_LOCALX_FIRST"]["on_success"] == "LOCALX_SYNCED"
-    assert "local and GitHub readback" in gate["route_readback_invariants"]["DC_LOCALX_FIRST"]
-    assert "LOCALX_SYNC_PENDING" in gate["integration_routes"]["GITHUB_ONLY_EXPLICIT_SCOPE"]["on_success"]
-    assert "verified_dc_connection_failure" in gate["integration_routes"]["DC_UNREACHABLE_FALLBACK"]["requires"]
-    assert "兩條路徑均不能聲稱本機已合併或同步" not in agents
-    assert "兩者均記錄 `LOCALX_SYNC_PENDING`" not in dispatch
-    assert "先由 DC 最終整合到本機 `localX`" in dispatch
+    assert "不需要另下一張 PR 合併口令" in dispatch
+    assert "不要求每張 PR 重複授權" in qa
+    assert "GITHUB_LOCALX_FIRST" in nav
+    assert gate["default_integration_route"] == "GITHUB_LOCALX_FIRST"
+    assert "WINDOWS_LOCALX_SYNC_PENDING" in gate["integration_routes"]["GITHUB_LOCALX_FIRST"]["on_success"]
+    assert "external_dc_approval" in gate["integration_routes"]["EXPLICIT_DC_LOCALX"]["requires"]
+    assert "DC_LOCALX_FIRST" not in agents
+    assert "DC_LOCALX_FIRST" not in dispatch
+    assert "DC_LOCALX_FIRST" not in qa
     assert "不豁免" in agents
+
+def test_retired_continuity_pitfalls_do_not_present_removed_machine_guards_as_current() -> None:
+    """Archived failure evidence must not offer removed control-plane executables."""
+    continuous = read("個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md")
+    closure = read("個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md")
+    assert "whd_doc_role: REFERENCE" in continuous[:250]
+    assert "whd_doc_role: REFERENCE" in closure[:250]
+    assert "現在是**反向 anti-regrowth tests**" not in continuous
+    assert "CURRENT fix 是 `tools/execution_invocation_exit.py" not in continuous
+    assert "已不存在" in continuous and "HISTORICAL" in continuous
+    assert "### 當時的 fail-closed 規則（HISTORICAL／已退役）" in closure
+    assert "**當時的 semantic owners（HISTORICAL）**" in closure
+    assert "Canonical semantic owners remain single-source" not in closure
+    assert "當時的 finalization 規則（HISTORICAL／已退役）" in closure
+    assert "AGENTS.md" in continuous and "AGENTS.md" in closure
+    entry = read("個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md")
+    assert "現行糾偏（不恢復歷史入口）" in entry
+    assert "不得因讀到本段就呼叫 root-local-first 或 DC／RC" in entry
+
+
+def test_reference_pitfalls_cannot_reactivate_workspace_or_phase6_preflight() -> None:
+    """Optional legacy diagnostics and historical migration notes are not work gates."""
+    migration = read("個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md")
+    keyword = read("個人AI檔案庫/踩坑庫/preflight_keyword_boundary_pitfall.md")
+    for text in (migration, keyword):
+        assert "whd_doc_role: REFERENCE" in text[:200]
+        assert "AGENTS.md" in text
+    assert "當時的工作區規則（HISTORICAL／SUPERSEDED）" in migration
+    assert "不得把舊 `WORKSPACE_DEFAULT` 當作每件 WHD 任務的強制入口" in migration
+    assert "不能作為 Git／施工／PR／DC／CI 前置授權或阻擋門檻" in keyword
+    assert "相容診斷工具的字詞比對正確性規則" in keyword
+    assert "## 永久規則" not in keyword
+
+
+def test_retired_pitfall_subsections_do_not_advertise_active_owners() -> None:
+    """History-only subheadings must not masquerade as CURRENT routing."""
+    closure = read("個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md")
+    continuity = read("個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md")
+    assert "當時的 Canonical Skill（HISTORICAL／已退役）" in closure
+    assert "當時的 Machine guards（HISTORICAL；不可作今日必經驗收）" in closure
+    assert "當時的 Registry route（HISTORICAL；不代表現行啟用）" in closure
+    assert continuity.count("當時的事故防錯規則（HISTORICAL；今日依 CURRENT Skill／GitHub 回讀）") == 3
+    assert "\n永久規則：\n" not in continuity

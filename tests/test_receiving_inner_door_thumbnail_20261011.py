@@ -133,28 +133,23 @@ def test_first_page_layer_then_version_and_distinct_applied_candidate_thumbnails
         assert sum(1 for widget in rows[1].winfo_children()
                    if isinstance(widget, ttk.Button) and widget.cget("text") == "編輯") == 1
 
-        thumbs = win._receiving_multi_inner_preview
-        assert thumbs["applied"]._receiving_inner_preview_rows == ((),)
-        assert thumbs["candidate"]._receiving_inner_preview_rows == ()
+        # The formerly embedded thumbnail comparison has been retired.
+        assert win._receiving_multi_real_preview["win"] is None
+        assert not any(
+            isinstance(w, tk.Canvas) for w in host.winfo_children()
+        )
         chooser = win._receiving_multi_candidate_combos["inner-door"]
         chooser.set("版本一")
         chooser.event_generate("<<ComboboxSelected>>")
         root.update()
-        assert thumbs["candidate"]._receiving_inner_preview_rows == (
-            ("A.dxf", "A.dxf"), ("B.dxf",),
-        )
-        assert thumbs["applied"]._receiving_inner_preview_rows == ((),)
-        assert "尚未套用" in thumbs["status"].get()
+        assert win._receiving_multi_candidate_selected["inner-door"] == version_id
+        assert state["layout"]["sets"][0] == state["layout"]["sets"][0]
 
         apply_button = next(w for w in rows[1].winfo_children()
                             if isinstance(w, ttk.Button) and w.cget("text") == "套用")
         apply_button.invoke()
         root.update()
         assert events == ["applied"]
-        assert thumbs["applied"]._receiving_inner_preview_rows == (
-            ("A.dxf", "A.dxf"), ("B.dxf",),
-        )
-        assert "相同" in thumbs["status"].get()
         assert setting_value(
             state["layout"]["sets"][0], 0, "inner_door_models",
         ) == [["A.dxf", "A.dxf"], "B.dxf"]

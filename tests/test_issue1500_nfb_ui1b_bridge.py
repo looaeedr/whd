@@ -237,3 +237,57 @@ def test_live_copy_requires_submitted_source_and_exact_target_bundle(tmp_path,mo
             current_snapshot=kwargs["snapshot"],confirm=lambda _:True,
         )
     assert len(calls)==1
+
+
+@pytest.mark.parametrize("changed_value", (
+    ("operator_offset_mm", 999.0),
+    ("manual_x_mm", 20.0),
+    ("rotation_deg", 180),
+    ("datum_revision", "stale-datum"),
+    ("model_filename", "other.dxf"),
+))
+def test_staged_nfb_bundle_mutation_fails_before_transaction_write(
+    tmp_path, monkeypatch, changed_value,
+):
+    kwargs,_,_=_setup(tmp_path,monkeypatch)
+    bundle=verify_nfb_ui1a_for_submit(**kwargs)
+    key,replacement=changed_value
+    bundle.config["holes"][0][key]=replacement
+    writes=[]
+    class Adapter:
+        layout=kwargs["layout"]
+        def submit_nfb_to_bays(self,**arguments):
+            writes.append(arguments)
+            return SimpleNamespace(changed=True)
+    adapter=Adapter()
+    with pytest.raises(ValueError,match="staged config changed"):
+        assert_live_verified_nfb(
+            adapter,bundle,current_snapshot=kwargs["snapshot"],
+        )
+    with pytest.raises(ValueError,match="staged config changed"):
+        submit_live_verified_nfb(
+            adapter,bundle,current_snapshot=kwargs["snapshot"],
+            confirm=lambda _:True,
+        )
+    assert not writes
+    assert "nfb_config" not in kwargs["layout"]["sets"][0]["bays"][0]
+
+
+def test_staged_nfb_added_follow_field_and_nested_datum_mutation_fail_closed(
+    tmp_path,monkeypatch,
+):
+    kwargs,_,_=_setup(tmp_path,monkeypatch)
+    good=verify_nfb_ui1a_for_submit(**kwargs)
+    class Adapter:
+        layout=kwargs["layout"]
+    assert assert_live_verified_nfb(Adapter(),good,
+                                    current_snapshot=kwargs["snapshot"])
+    good.config["holes"][0]["brand_follow_mode"]="FORCE"
+    with pytest.raises(ValueError,match="staged config changed"):
+        assert_live_verified_nfb(Adapter(),good,
+                                 current_snapshot=kwargs["snapshot"])
+    fresh=verify_nfb_ui1a_for_submit(**kwargs)
+    fresh.config["holes"][0]["datum_snapshot"]["bay_width_mm"]=750
+    with pytest.raises(ValueError,match="staged config changed"):
+        assert_live_verified_nfb(Adapter(),fresh,
+                                 current_snapshot=kwargs["snapshot"])

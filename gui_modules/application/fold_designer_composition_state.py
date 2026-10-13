@@ -357,7 +357,40 @@ def commit_output_draw_stock(self, namespace):
     )
 
 def export_selected_dxf_from_3d(self):
-    """Delegate project export to a bounded project capability, not an app bag."""
+    """Export regular parts normally, or a fixing plate's *source-flat* DXF.
+
+    Source-flat is independently selectable but is not a certified finished
+    welded/formed assembly. This path never enables the whole-assembly EAR gate.
+    """
+    key = str(getattr(getattr(self.app, "designer_workspace", None), "active_part", "") or "")
+    if key.startswith("base_plate:fixing_plate:"):
+        from tkinter import filedialog, messagebox
+        from ae_engine.receiving_base_fixing_plate_geometry import (
+            save_independent_source_flat_dxf,
+        )
+        if not messagebox.askokcancel(
+            "底板固定片｜來源平面圖",
+            "只匯出原始 DXF 的獨立平面 CUTTING／參考線。"
+            "\\n本廠不使用折彎補償；大片來源未有正式折線，折向／焊接接觸及 Z 尚待驗證，不能當作正式加工圖。"
+            "\\n是否繼續匯出來源平面圖？",
+        ):
+            return None
+        side = key.rsplit(":", 1)[-1]
+        path = filedialog.asksaveasfilename(
+            title="底板固定片｜來源平面 DXF",
+            defaultextension=".dxf",
+            initialfile="底板固定片_" + ("左" if side == "left" else "右") + "_來源平面.dxf",
+            filetypes=(("DXF files", "*.dxf"),),
+        )
+        if not path:
+            return None
+        try:
+            saved = save_independent_source_flat_dxf(key, path)
+        except Exception as exc:
+            messagebox.showerror("來源 DXF 匯出失敗", str(exc))
+            return None
+        messagebox.showinfo("已匯出來源平面圖", "檔案：" + str(saved) + "\\n未核准為正式折彎／焊接加工圖。")
+        return saved
     return self._capabilities.project.export_selected_dxf()
 
 def collect_workspace_state(self, namespace):

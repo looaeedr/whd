@@ -117,7 +117,7 @@ def test_gate_b_status_and_receiver_owned_policy_are_production_active():
     assert status.gate_state == GATE_B_STATE
     assert status.activation_enabled is True
     assert status.export_disposition == DISPOSITION
-    assert status.production_policy_count == 1
+    assert status.production_policy_count == 2
     policy = marking.RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY
     assert policy.locator_selector == "RECEIVING_MOTHER_PLATE"
     assert policy.footprint_mode == "ACTUAL_CONTACT_BOUNDARY"

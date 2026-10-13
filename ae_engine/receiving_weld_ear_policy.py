@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Receiving 800-mm cabinet: large side-weld ear / bottom-plate hole contract.
 
-Factory policy only. It does NOT build a new outline or a compensated press-
-brake program. Raw source: user-supplied 受電耳朵.dxf and 受電箱底板.dxf
+Factory positioning policy only. This shop does NOT use bend
+compensation; no K-factor, bend deduction or bend allowance is a release gate.
+This policy does not invent a new cutting outline or bend line. Raw source: user-supplied 受電耳朵.dxf and 受電箱底板.dxf
 (2026-10-09); see docs/manufacturing/receiving-large-weld-ear.md.
 
 The 670-mm assembled cross-cabinet fixing pitch belongs to BOTH plate
@@ -54,8 +55,11 @@ def resolve_receiving_large_weld_ear_fit(
     All distances above are physical finished-position datums. 23 mm is the
     NOMINAL layout dimension from the selected long welding edge to the bend
     reference, not an approved unfolded bend allowance or press-brake setting.
-    Do not automatically generate BEND / DXF from this number until the
-    mounting leg face, inside radius, K-factor and bend datum are certified.
+    Actual factory process uses no bend compensation. Do not require an
+    inside-radius/K-factor/bend-allowance signoff to calculate this fit.
+    Do not invent a BEND line or alter native CUTTING from this nominal
+    number alone: verify the existing fold direction/line, real welding
+    contact face/Z and the assembled hole centers independently.
     """
     values = (
         box_outer_width_mm, box_side_thickness_mm,
