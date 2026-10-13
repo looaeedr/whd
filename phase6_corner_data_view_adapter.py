@@ -159,6 +159,7 @@ class Phase6CornerDataViewAdapter:
         label_for,
         on_select,
         on_refresh_back_panel_mode,
+        on_double_click=None,
     ) -> tuple[str, ...]:
         """Own Corner Data parts-list widget rebuild while preserving selection authority."""
         keys = tuple(str(key) for key in tuple(keys or ()))
@@ -187,6 +188,16 @@ class Phase6CornerDataViewAdapter:
                 command=lambda k=key: on_select(k),
             )
             button.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            if (
+                callable(on_double_click)
+                and key.startswith("inner_door:")
+                and key.endswith(":panel")
+            ):
+                def open_original_editor(_event, selected_key=key):
+                    on_double_click(selected_key)
+                    return "break"
+
+                button.bind("<Double-Button-1>", open_original_editor)
             owner.corner_data_part_rows[key] = row
             owner.corner_data_part_buttons[key] = button
             owner.corner_data_part_depths[key] = depth
