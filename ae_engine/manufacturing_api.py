@@ -228,7 +228,8 @@ def _door_export(spec: DoorPartSpec, filepath: str, context: ManufacturingContex
 
 
 def _box_body_export(spec: BoxBodyPartSpec, filepath: str, context: ManufacturingContext):
-    expected = _expected_baseline_path(spec.model_name, "箱身.dxf", context)
+    feature_model = cabinet_family_policy.baseline_feature_model_name(spec.model_name)
+    expected = _expected_baseline_path(feature_model, "箱身.dxf", context)
     baseline = expected if expected is not None and expected.is_file() else None
     _call(
         ae.export_box_body_dxf,
