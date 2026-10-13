@@ -11,10 +11,14 @@ whd_schema: WHD_DOC_META_V1
 
 ## 退出前 CI 狀態查核 `DISPATCH_TURN_EXIT_GATE_V1`
 
-依 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json` 做 exact PR HEAD 判斷：`requested/queued/waiting/pending/in_progress` 一律 `CONTINUE_POLL`；找不到 run 或 SHA 不符 `RECONCILE_ONLY`；同 SHA `completed/success` 必須續做 `LOCALX_INTEGRATION_PENDING`；`failure/cancelled/timed_out/action_required` → `REPAIR_AND_RETEST`。`localX` 整合後仍要完成 Issue 回讀和下一張工單查找 `CONTINUE_FINALIZATION`，不是 GREEN 即 `RELEASED`。只有真實 API/權限/環境阻塞時回報 `BLOCKED_WITH_EVIDENCE` 或 `RUNTIME_LIMIT_UNRESOLVED` 和 `head_sha/run_id/next_exact_action`，不得稱 DONE 或背景會繼續；本規則不具跨回合喚醒能力。
+本技能只負責 exact PR SHA 的 GitHub Actions run/job/check 讀取、RED 分析、GREEN 判定；不是另一層 DC 授權、不是另一份 QA，也不發布正式 X。`requested/queued/waiting/pending/in_progress` → `CONTINUE_POLL`；無 SHA 對應 → `RECONCILE_ONLY`；RED → `REPAIR_AND_RETEST`；GREEN → 讓本工單交付流程直接 `GITHUB_LOCALX_FIRST`，不重跑已 GREEN 測試。
 
-**整合路線先看使用者當次授權範圍，再決定是否可用 DC**：既有合法 `/派工` 的同一工單交付已包含預設本機 `localX` 整合；沒有 GitHub-only 明確覆寫時，CI SUCCESS 就續行 `DC_LOCALX_FIRST`，**不得要求每張 PR 另下一次合併指令**。使用者對同一 Issue／PR 明確授權 GitHub-only 遠端 `localX` 合併且禁止 DC 時，exact HEAD CI SUCCESS 後直接走 `GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1`，**不得先試探、連線或要求 DC 斷線證據**；執行者自己在 PR 寫的「不使用 DC」不能代替使用者授權。若只禁止 DC、沒有遠端合併核准，保持 `LOCALX_INTEGRATION_PENDING` 並明列缺口；不可假記 `DC_UNREACHABLE`。
+## QA 輪詢與交付閘門
 
+- 成功時核對 PR base=`localX`、工作 scope、mergeable、exact SHA 與最新 base 影響，GitHub 合併（`expected_head_sha`）後 readback `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`。**不先用 DC、不要求每張 PR 重複授權**。
+- Windows `Z:\localX` fast-forward 與實際 GUI 人工驗收由使用者另行完成；沒本機回讀就不能報 `LOCALX_SYNCED` 或 UAT GREEN。
+- GitHub 平台拒絕 merge／CI RED，記錄真實 blocker／job／run_id／SHA，不繞過外部審查或改用 DC。
+- 合併後續行 Issue close/readback、下一張工單尋找；產品正式 X 仍限當次 `/推推`。
 ## QA 輪詢與交付閘門
 
 - `queued / waiting / pending / in_progress` → **CONTINUE_POLL**。輪詢 exact SHA 的 checks + job；工作仍可執行時不得「CI 跑著就結束」；每 2–3 操作回報，不能用回報代替續作。
