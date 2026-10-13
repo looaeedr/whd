@@ -581,6 +581,19 @@ def refresh_corner_data_parts_panel(self, namespace):
     app = self.app
     required = lambda name: self._required(namespace, name)
     keys = self.corner_data_part_keys()
+
+    def open_existing_inner_door_editor(key):
+        # Reuse the existing Vault Door Hole Editor without activating a part.
+        from .receiving_inner_door_hole_editor import (
+            is_inner_door_sheet, open_inner_door_hole_editor,
+        )
+        if not is_inner_door_sheet(key):
+            return None
+        selected = self.select_corner_data_part(namespace, key, refresh_view=False)
+        if selected != key:
+            return None
+        return open_inner_door_hole_editor(app, key, from_corner_data=True)
+
     return self.corner_data_view().refresh_parts_panel(
         app,
         keys=keys,
@@ -595,6 +608,7 @@ def refresh_corner_data_parts_panel(self, namespace):
         on_refresh_back_panel_mode=lambda: self.refresh_corner_data_back_panel_mode_control(
             namespace
         ),
+        on_double_click=open_existing_inner_door_editor,
     )
 
 def on_corner_data_mousewheel(self, namespace, event):

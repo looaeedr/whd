@@ -12,15 +12,21 @@ def is_inner_door_sheet(part_key: object) -> bool:
     return key.startswith("inner_door:") and key.endswith(":panel")
 
 
-def open_inner_door_hole_editor(app, part_key: str):
-    """Edit only the selected physical inner-door panel and persist its features."""
+def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False):
+    """Open the existing Vault Door hole editor; preserve view-only Corner Data selection."""
     if not is_inner_door_sheet(part_key):
         raise ValueError("不是可開孔編輯的內門門板")
     workspace = app.designer_workspace
     if part_key not in workspace.available_parts:
         raise ValueError("內門門板目前不在有效板件清單")
     if str(workspace.active_part) != part_key:
-        raise ValueError("請先選取要開孔的內門門板")
+        corner_selected = (
+            from_corner_data
+            and str(getattr(app, "_phase6_3d_display_mode", "") or "") == "corner_data"
+            and str(getattr(app, "_phase6_corner_data_selected_part_key", "") or "") == part_key
+        )
+        if not corner_selected:
+            raise ValueError("請先選取要開孔的內門門板")
 
     host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
     if host is None or not callable(getattr(host, "_open_unified_hole_editor", None)):
@@ -67,8 +73,17 @@ def open_inner_door_hole_editor(app, part_key: str):
     def commit():
         # Workspace is authoritative; original outer Door holes remain separate.
         workspace.stash_features(part_key, features)
-        app._load_part_holes(part_key)
+        # A Corner Data editor must not overwrite another active part's hole preview.
+        if str(workspace.active_part) == part_key:
+            app._load_part_holes(part_key)
         app.submit_update_intent("geometry", commit=True)
+        if (
+            from_corner_data
+            and str(getattr(app, "_phase6_3d_display_mode", "") or "") == "corner_data"
+        ):
+            refresh = getattr(app, "_phase6_refresh_corner_data_unfold_view", None)
+            if callable(refresh):
+                refresh()
 
     title = "內門門板：" + str(panel.inner_door_id)
     window = host._open_unified_hole_editor(

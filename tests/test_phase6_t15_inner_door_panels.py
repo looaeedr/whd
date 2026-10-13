@@ -351,3 +351,113 @@ def test_inner_door_editor_reuses_original_vault_hole_editor_and_stashes_per_pan
     with pytest.raises(ValueError, match="請先選取"):
         workspace.active_part = "box_body"
         open_inner_door_hole_editor(app, key)
+
+def test_corner_data_inner_door_existing_editor_keeps_active_part_and_feature_owner():
+    """View-only selection may open the ORIGINAL editor without swapping parts."""
+    from types import SimpleNamespace
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    from gui_modules.application.receiving_inner_door_hole_editor import open_inner_door_hole_editor
+
+    snapshot = _receiving_snapshot()
+    key = cabinet_family_policy.derive_inner_door_panels(snapshot)[0].stable_id
+    workspace = Phase6DesignerWorkspace.from_snapshot({
+        **snapshot, "existing_parts": ["box_body", "head", key],
+        "active_part": "head",
+    })
+    calls = []
+
+    class OriginalHost:
+        def scene_query(self, *args):
+            return None
+
+        def _open_unified_hole_editor(self, *args, **kwargs):
+            calls.append(("existing", args, kwargs))
+            return "original-vault-hole-editor"
+
+    host = OriginalHost()
+    app = SimpleNamespace(
+        designer_workspace=workspace, _phase6_input_snapshot=snapshot,
+        _scene_query_callback=host.scene_query,
+        _phase6_3d_display_mode="corner_data",
+        _phase6_corner_data_selected_part_key=key,
+        _load_part_holes=lambda part: calls.append(("active-holes", part)),
+        submit_update_intent=lambda reason, commit: calls.append(("update", reason, commit)),
+        _phase6_refresh_corner_data_unfold_view=lambda: calls.append(("corner-refresh",)),
+    )
+    assert open_inner_door_hole_editor(
+        app, key, from_corner_data=True
+    ) == "original-vault-hole-editor"
+    assert calls[0][0] == "existing"
+    assert calls[0][1][0] == key
+    feature = CircleFeature(
+        diameter=8.0, anchor=FeatureAnchor.PANEL_CENTER, offset=Vec2(0.0, 0.0)
+    )
+    calls[0][2]["feature_list_override"].append(feature)
+    calls[0][2]["sync_callback"]()
+    assert workspace.features_for(key) == [feature]
+    assert workspace.features_for("head") == []
+    assert workspace.active_part == "head"
+    assert ("active-holes", key) not in calls
+    assert ("update", "geometry", True) in calls
+    assert ("corner-refresh",) in calls
+
+    app._phase6_corner_data_selected_part_key = "head"
+    with pytest.raises(ValueError, match="請先選取"):
+        open_inner_door_hole_editor(app, key, from_corner_data=True)
+    app._phase6_corner_data_selected_part_key = key
+    app._phase6_3d_display_mode = "assembly"
+    with pytest.raises(ValueError, match="請先選取"):
+        open_inner_door_hole_editor(app, key, from_corner_data=True)
+
+
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+def test_corner_data_inner_door_double_click_opens_original_hole_editor(monkeypatch):
+    """Real ttk double-click routes to the existing main-GUI editor."""
+    import tkinter as tk
+    import gui
+    import fold_designer_bridge as bridge
+
+    root = tk.Tk()
+    root.withdraw()
+    app = gui.BoxCalculatorGUI(root)
+    calls = []
+    try:
+        app.baseline_var.set("受電箱")
+        root.update_idletasks()
+        root.update()
+        designer = app.open_original_fold_designer()
+        root.update_idletasks()
+        root.update()
+        designer.activate_part("head")
+        bridge._phase6_show_corner_data(designer)
+        root.update_idletasks()
+        root.update()
+        key = "inner_door:upper:panel"
+        button = designer.corner_data_part_buttons[key]
+        assert button.bind("<Double-Button-1>")
+
+        monkeypatch.setattr(
+            app, "_open_unified_hole_editor",
+            lambda *args, **kwargs: calls.append((args, kwargs)) or "existing-editor",
+        )
+        before = designer.designer_workspace.active_part
+        button.invoke()  # One click only selects the Corner Data part.
+        assert designer._phase6_corner_data_selected_part_key == key
+        button.event_generate("<Double-Button-1>")
+        root.update_idletasks()
+        root.update()
+        assert len(calls) == 1
+        assert calls[0][0][0] == key
+        assert calls[0][1]["baseline_scene"] is not None
+        assert designer.designer_workspace.active_part == before
+        assert designer._phase6_3d_display_mode == "corner_data"
+    finally:
+        try:
+            if app.fold_designer_window is not None:
+                app.fold_designer_window.destroy()
+        except Exception:
+            pass
+        root.destroy()
