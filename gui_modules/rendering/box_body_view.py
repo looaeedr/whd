@@ -5,6 +5,7 @@ records. It does not build part specs or derive manufacturing geometry.
 """
 
 import tkinter as tk
+from ae_engine.cabinet_types import policy as cabinet_family_policy
 
 from ae_engine.sheetmetal_geometry import Vec2
 
@@ -261,7 +262,7 @@ def draw_end_cap_preview(
 
 
 def box_body_baseline_faces(host, val, *, ae_module):
-    model = host._baseline_source_model()
+    model = cabinet_family_policy.baseline_feature_model_name(host._baseline_source_model())
     if not model or not ae_module.has_baseline_part(model, "箱身.dxf"):
         return {"left": [], "back": [], "right": []}
 
