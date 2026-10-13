@@ -97,3 +97,66 @@ def test_optional_nonreceiving_bottom_is_not_invented_from_part_D():
     data=build_inner_door_frame_render_data(frame)
     assert data.metadata.get("receiving_frame_source_tag") is None
     assert data.material.bounds==pytest.approx((0,0,90,700))
+
+
+def test_receiving_1100_upper_bay_side_frames_reach_head_and_divider_in_actual_3d():
+    """Independent DXF vs installation oracle: no 50-mm top-frame deduction."""
+    from ae_engine.cabinet_types import receiving
+    from ae_engine.cabinet_types import policy as family_policy
+    from ae_engine.inner_door_frames import derive_all_inner_door_frames
+    from ae_engine.assembly_placement import resolve_inner_door_frame_placement
+    from ae_engine.contracts import FoldProfileSegment, ResolvedManufacturingPart
+    from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+
+    snapshot = receiving.apply_family_defaults({
+        "model": "受電箱", "w": 800.0, "h": 1600.0,
+        "d": 350.0, "t": 2.0, "fw": 29.0,
+    })
+    sample = certified_source_catalog()
+    frames = derive_all_inner_door_frames(receiving.derive_inner_door_frame_sets(snapshot))
+    side_frames = tuple(frame for frame in frames if frame.side in ("left", "right"))
+    assert len(side_frames) == 2
+    frame_by_side = {frame.side: frame for frame in frames}
+
+    for side, source_id, width in (("left", "A", 90.0), ("right", "B", 110.0)):
+        frame = frame_by_side[side]
+        assert frame.span == pytest.approx(1098.0)
+        assert frame.span == pytest.approx(sample[source_id]["sample_span"])
+        assert frame.blank_width == pytest.approx(width)
+        data = build_inner_door_frame_render_data(frame)
+        assert data.material.bounds == pytest.approx((0, 0, width, 1098.0))
+
+    upper = receiving.inner_door_vertical_frame_contract(snapshot, "upper")
+    assert upper["top_terminal_y"] == pytest.approx(798.0)  # Head inside face = H/2 - T
+    assert upper["lower_terminal_y"] == pytest.approx(-300.0)  # Shared Divider boundary
+    assert upper["span"] == pytest.approx(1098.0)
+
+    physical_parts = []
+    for frame in frames:
+        assembly = resolve_inner_door_frame_placement(snapshot, "upper", frame.side)
+        physical_parts.append(ResolvedManufacturingPart(
+            part_key=frame.stable_id,
+            render_data=build_inner_door_frame_render_data(frame),
+            x_profile=frame.fold_profile,
+            y_profile=(FoldProfileSegment(length=frame.span),),
+            placement=assembly.placement_kind,
+            offset=assembly.world_offset,
+        ))
+
+    geometry = _phase6_build_joint_world_geometry(
+        tuple(physical_parts), (800.0, 1600.0, 350.0), 2.0,
+    )
+    for frame in side_frames:
+        skins = geometry["mapped_skin_triangles_by_part"][frame.stable_id]
+        vertices = [point for skin in skins for point in skin.world]
+        assert vertices
+        assert min(p[1] for p in vertices) == pytest.approx(-300.0)
+        assert max(p[1] for p in vertices) == pytest.approx(798.0)
+        assert max(p[1] for p in vertices) - min(p[1] for p in vertices) == pytest.approx(1098.0)
+
+    top = frame_by_side["top"]
+    assert top.span == pytest.approx(sample["D"]["sample_span"])
+    top_skins = geometry["mapped_skin_triangles_by_part"][top.stable_id]
+    top_vertices = [point for skin in top_skins for point in skin.world]
+    assert min(p[1] for p in top_vertices) == pytest.approx(750.0)
+    assert max(p[1] for p in top_vertices) == pytest.approx(798.0)
