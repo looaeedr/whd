@@ -27,6 +27,7 @@ def test_receiving_fixed_box_features_read_certified_vault_dxf(monkeypatch):
     receiving = ae.get_box_body_baseline_unfolded_features("受電箱", **kwargs)
     vault = ae.get_box_body_baseline_unfolded_features("金庫型", **kwargs)
     assert receiving == vault
+    assert receiving, "Receiving must load actual certified DXF features, not two empty lists"
     assert ("金庫型", "箱身.dxf") in calls
     assert ("受電箱", "箱身.dxf") not in calls
     assert ae.box_body_baseline_source_label("受電箱") == (
