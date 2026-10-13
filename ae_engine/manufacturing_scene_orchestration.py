@@ -648,13 +648,55 @@ def build_box_body_structure_render_data(
         w=float(spec.width), h=float(spec.height), d=float(spec.depth), t=float(spec.thickness),
         head_corner_policy=spec.head_corner_policy, tail_corner_policy=spec.tail_corner_policy,
     )
+    # Dedicated Receiving source files own physical-piece fixed processing,
+    # not the Vault's generic integral BoxBody feature layer.
+    receiving_physical = (
+        str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+        and str(structure.structure_type.value) == "three_piece_side_back_split"
+    )
     pieces = []
     for piece in structure.pieces:
         scene = DrawingScene()
         if ctx.draw_stock:
             scene.add(ae.build_stock_outline(piece.structural.width, piece.structural.height))
         scene.extend(structural_result_to_primitives(piece.structural))
-        if piece.role == "back" and spec.back_panel_contract:
+        source_metadata = {}
+        if receiving_physical:
+            from .receiving_panel_baselines import (
+                ROLE_FILES, receiving_piece_baseline_features,
+            )
+            if piece.role not in ROLE_FILES:
+                raise ValueError("RECEIVING_EXPECTS_THREE_DEDICATED_PHYSICAL_PIECES")
+            # A caller-owned resource_root must control source selection.
+            # The legacy AE resolver can silently ignore scoped roots.
+            source_path = (
+                Path(ctx.resource_root) / "基準檔" / "受電箱" / ROLE_FILES[piece.role]
+                if ctx.resource_root is not None
+                else _expected_baseline_path("受電箱", ROLE_FILES[piece.role], ctx)
+            )
+            features, source_metadata = receiving_piece_baseline_features(
+                piece.role, expected_path=source_path,
+                width=float(piece.structural.width),
+                height=float(piece.structural.height),
+                back_contract=(spec.back_panel_contract if piece.role == "back" else None),
+            )
+            scene.extend(features)
+            # Reference bends are audit evidence only. Receiving's physical
+            # Fold Profile stays authoritative even when a sample DXF differs.
+            ref_bends = tuple(source_metadata["baseline_reference_bend_positions"])
+            actual_bends = tuple(sorted(round(float(row.p1.x), 6)
+                for row in piece.structural.bends
+                if abs(float(row.p1.x) - float(row.p2.x)) < 1e-6))
+            sample_size = source_metadata["baseline_reference_dimensions"]
+            sample_matches_geometry = (
+                abs(float(sample_size[0]) - float(piece.structural.width)) < 1e-6
+                and abs(float(sample_size[1]) - float(piece.structural.height)) < 1e-6
+            )
+            source_metadata["baseline_effective_bend_positions"] = actual_bends
+            source_metadata["baseline_sample_bends_match"] = (
+                ref_bends == actual_bends if sample_matches_geometry else None
+            )
+        if not receiving_physical and piece.role == "back" and spec.back_panel_contract:
             contract = dict(spec.back_panel_contract or {})
             for profile in tuple(contract.get("fixed_slot_profiles") or ()):
                 scene.add_polyline(profile, layer="CUTTING", closed=True)
@@ -678,7 +720,7 @@ def build_box_body_structure_render_data(
             y_segments=(MaterialSegment("Y", "piece_height", float(piece.structural.height), "BOX_BODY_STRUCTURAL_RESULT"),),
             source="BOX_BODY_PHYSICAL_PIECE", revision=1,
         )
-        metadata = {}
+        metadata = dict(source_metadata)
         if piece.role == "back" and spec.back_panel_contract:
             metadata["back_panel_contract"] = dict(spec.back_panel_contract)
             metadata["back_panel_mode"] = str(spec.back_panel_contract.get("mode") or "FULL")
@@ -731,10 +773,13 @@ def generate_box_body_structure_parts(
             serializer=save_scene_dxf,
             overwrite=bool(ctx.overwrite),
         )
+        source = piece.render_data.metadata.get("baseline_source_path")
         results.append(PartExportResult(
             part_kind=piece.key, output_path=str(path),
-            exporter_name="final_scene_box_body_structure_export", used_baseline=False,
-            baseline_path=None, expected_baseline_path=None,
+            exporter_name="final_scene_box_body_structure_export",
+            used_baseline=bool(source),
+            baseline_path=source,
+            expected_baseline_path=source,
         ))
     return tuple(results)
 

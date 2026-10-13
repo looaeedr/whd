@@ -64,12 +64,17 @@ def draw_box_body_piece_preview(
         else ""
     )
 
+    source = render_data.metadata.get("baseline_source_path")
+    source_hint = f"\n專用基準：{str(source).rsplit('/', 1)[-1]}" if source else ""
+    reference_bends_match = render_data.metadata.get("baseline_sample_bends_match")
+    if reference_bends_match is False:
+        source_hint += "\n⚠ 來源 DXF 折彎線與目前展開折彎鏈不同；目前折彎依程式，尚待對齊"
     canvas.create_text(
         25,
         25,
         anchor=tk.NW,
         text=(
-            f"{label}展開預覽（箱身子板件）{dimension_text}"
+            f"{label}展開預覽（箱身子板件）{dimension_text}{source_hint}"
             "\n外輪廓 (CUTTING): 綠色實線  折彎線 (BEND): 藍色虛線"
             f"\n雙擊畫布編輯此片開孔{warning_text}"
         ),
