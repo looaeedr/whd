@@ -199,6 +199,15 @@ def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
                        "nominal_y_from_top_mm":ys[i] if ys is not None else None,
                        "adjacent_x_mm":pitch, "absolute_x_mm":None,
                        "slots":values})
+    from .receiving_nfb_pad_depth_policy import preview_nfb_pad_depth
+    pad = preview_nfb_pad_depth(draft)
     return {"status":PREVIEW_ONLY, "can_manufacture":False,
             "has_absolute_x":False, "is_1100_y_known":ys is not None,
-            "layers":layers}
+            "layers":layers,
+            "pad_depth_preview": {
+                "status":pad.status,
+                "depth_mm":pad.depth_mm,
+                "candidate_delta_mm":pad.candidate_delta_mm,
+                "shallower_unit_index":pad.shallower_unit_index,
+                "manufacturing_ready":False,
+            }}
