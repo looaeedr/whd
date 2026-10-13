@@ -15,6 +15,7 @@ from phase6_hole_editor_session import Phase6HoleEditorSession
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
+from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.contracts import ManufacturingContext
 from ae_engine.corner_type_ui import is_unknown_model
 from ae_engine.sheetmetal_features import (
@@ -735,7 +736,9 @@ def _door_context(host, values):
     )
     baseline_scene = None
     baseline_status_text = "未使用基準檔（程式計算生成）"
-    model = host._baseline_source_model()
+    model = cabinet_family_policy.baseline_feature_model_name(
+        host._baseline_source_model()
+    )
     if model and ae.has_baseline_part(model, "門.dxf"):
         try:
             data = ae.get_stretched_door_data(
