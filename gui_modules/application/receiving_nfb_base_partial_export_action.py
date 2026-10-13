@@ -28,6 +28,8 @@ from ae_engine.receiving_nfb_ui1b_bridge import (
 )
 from ae_engine.receiving_switch_model_catalog import INDEX_PATH
 from .receiving_nfb_partial_export_action import nfb_verification_geometry_changed
+from ae_engine.receiving_nfb_transactions import _verify_hole_locations
+from ae_engine.receiving_nfb_pair_acceptance import validate_nfb_door_base_pair
 
 
 def export_verified_receiving_nfb_base_plate(
@@ -67,6 +69,9 @@ def export_verified_receiving_nfb_base_plate(
             or saved != bundle.config
             or (tuple(scope.base_plate_part_ids) and "base_plate" not in scope.base_plate_part_ids)):
         raise ValueError("NFB base current submitted owner/config does not match proof")
+    # A saved Config matching the session cache is insufficient: it must
+    # match the ACTUAL source-verified machining positions and rotations.
+    _verify_hole_locations(saved, bundle.verified_door)
     if not isinstance(base_spec, BasePlatePartSpec):
         raise TypeError("NFB base must use existing BasePlatePartSpec")
     physical = receiving_base_plate_values(current_snapshot)
@@ -123,6 +128,15 @@ def export_verified_receiving_nfb_base_plate(
         base_spec=base_spec, verified_inner_door=bundle.verified_door,
         source_path=source, profile=profile, lower_reference_handle=lower,
     )
+    # Verify both real physical parts on every export, not a cached READY tag.
+    # This receipt counts the 4 native screws/NFB but NEVER grants EAR-Z/PAD
+    # or full-box CHECK/Q manufacturing approval.
+    pair_receipt = validate_nfb_door_base_pair(
+        snapshot=current_snapshot, inner_door_id=panels[0].inner_door_id,
+        verified_door=bundle.verified_door, composed_base=composed,
+    )
+    if pair_receipt.approval_scope != 'PAIR_PART_ONLY_EVIDENCE_NOT_WHOLE_MFG2':
+        raise ValueError('NFB_PAIR_SCOPE_NOT_PART_ONLY')
     root = Path(output_directory)
     if not root.is_dir():
         raise ValueError("NFB base partial destination must already be a directory")
