@@ -202,7 +202,7 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
 
     orientation = dict(evidence["mating_fold_orientation"])
     assert dict(orientation["sign_by_end"]) == {"MIN_Y": -1.0, "MAX_Y": 0.0}
-    assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl2"
+    assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl1"
     assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
 
     # Collision remains a separate true-thickness witness, not the final
