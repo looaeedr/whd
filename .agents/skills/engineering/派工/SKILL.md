@@ -8,6 +8,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # /派工
 
+**產品修改先讀再寫**：GitHub／雲端施工者同樣受正式 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1` 約束。先讀相關程式實際函式及呼叫鏈、CURRENT 文檔／基準資料與測試，回報 `SOURCE_READ_EVIDENCE`；未完成即 `SOURCE_READ_PRECONDITION_FAILED`，只准續查、不准先改後補證據。不得因此改走 DC／RC。
+
 ## 全域 DC 預設禁止（施工與整合皆不預設呼叫）
 
 `/派工` 施工及 CI GREEN 後的 `localX` 整合預設只使用 GitHub／雲端，**不因此自動授權 DC**。不要呼叫 `list_devices`、`ping` 探測本機；Windows `Z:\localX` 由使用者以 fast-forward 更新及 GUI 驗收。只有當次明確授權 DC 目的／裝置／路徑／操作且外部核准，才能在指定範圍使用；拒絕不得繞過。

@@ -482,6 +482,19 @@
       ]
     },
     {
+      "id": "explicit-debug-command",
+      "keywords": [
+        "/debug"
+      ],
+      "file_globs": [],
+      "required_skills": [
+        "diagnosing-bugs",
+        "tdd"
+      ],
+      "required_references": [],
+      "description": "Explicit /debug alias to the canonical diagnosing-bugs + tdd workflow; source-read gate applies before edits."
+    },
+    {
       "id": "bugfix-tdd",
       "keywords": [
         "bug",

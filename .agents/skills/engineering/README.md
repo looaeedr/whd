@@ -33,7 +33,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 - **[monitoring-remote-qa](./monitoring-remote-qa/SKILL.md)**
 - **[deterministic-repo-migration](./deterministic-repo-migration/SKILL.md)**: authority-driven repository migration；先 inventory，再 deterministic apply、strict validation、idempotence 與 drift audit，validator 不得成為 authority。
 - **[long-log-context-safe-execution](./long-log-context-safe-execution/SKILL.md)**: 超長 pytest/Xvfb/remote CI 輸出的落檔、bounded tail、failure slice、cursor 與 Runtime-cut 續接規則。
-- **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**
+- **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**：`/debug` 正式入口；先讀真實程式與 CURRENT 規格，再以 RED→GREEN 修復。
 - **[research](./research/SKILL.md)**
 - **[tdd](./tdd/SKILL.md)**
 - **[Python測試實務](./Python測試實務/SKILL.md)**
