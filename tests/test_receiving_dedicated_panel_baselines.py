@@ -202,10 +202,13 @@ def test_split_left_divider_joint_selects_only_real_upper_contact_boundary():
     )
     assert actual.locator_part_id == "box_body:left_side"
     assert actual.attached_part_id == divider.stable_id
-    # 1100 upper-bay boundary is world Y=-300. Do not select the
-    # tiny detached relief-side island at Y=-325..-327.
+    # The real assembled contact polygon includes source relief edges
+    # all the way to the lower terminal -327, while its upper physical
+    # bay boundary remains Y=-300. This full contour is not a fake flat
+    # rectangular contact drawn just at the Y=-300 reference plane.
     assert any(abs(point[1]+300.) < 1e-6 for point in actual.overlap_world)
-    assert all(float(point[1]) >= -317. for point in actual.overlap_world)
+    assert min(float(point[1]) for point in actual.overlap_world) == pytest.approx(-327.)
+    assert max(float(point[1]) for point in actual.overlap_world) == pytest.approx(-300.)
 
     part = geometry.part(divider.stable_id)
     terminal = resolve_physical_mating_region(

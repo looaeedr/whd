@@ -237,8 +237,9 @@ def test_receiving_production_resolver_uses_certified_cross_registry_not_collisi
     assert relief["rule_id"] == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
     assert relief["corner_type"] == "CROSS"
     assert evidence["manufacturing_dimensions_source"] == "CERTIFIED_REGISTRY_CROSS_PARAMETERS"
-    assert formula["slotted_fold_u"] == pytest.approx(66.0)
+    assert formula["slotted_fold_u"] == pytest.approx(68.0)
     assert formula["plain_fold_u"] == pytest.approx(60.0)
+    assert evidence["registry_variables"]["receiving_left_reflected_terminal_extra"] == pytest.approx(2.0)
     assert formula["fold_v"] == pytest.approx(27.0)
     assert formula["slot_width"] == pytest.approx(7.0)
     assert formula["slot_straight_depth"] == pytest.approx(24.0)
@@ -262,3 +263,38 @@ def test_divider_cross_slot_end_requires_exactly_one_negative_object_fold():
             variables=_receiving_reference_variables(),
             mating_fold_sign_by_end={"MIN_Y": -1.0, "MAX_Y": -1.0},
         )
+
+
+
+def test_reflected_receiving_cross_parameter_keeps_history_and_real_t():
+    """The original source C shape remains valid on its historical topology."""
+    from ae_engine.certified_relief_formula_io import load_external_relief_rule_records
+    from ae_engine.certified_relief_registry import lookup_certified_divider_cross_relief
+
+    records = [
+        r for r in load_external_relief_rule_records()
+        if r.get("rule_id") == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
+    ]
+    assert [(r["revision"],r["active"]) for r in records] == [(1,False),(2,True)]
+    original = _receiving_reference_variables()
+    old = lookup_certified_divider_cross_relief(
+        cabinet_family="受電箱",variables=original,
+        mating_fold_sign_by_end={"MIN_Y":-1.,"MAX_Y":0.},
+    )
+    assert old.min_y.primary_u == pytest.approx(66.)
+    assert old.rule.revision == 2
+    reflected = dict(original, receiving_left_reflected_terminal_extra=original["T"])
+    new = lookup_certified_divider_cross_relief(
+        cabinet_family="受電箱",variables=reflected,
+        mating_fold_sign_by_end={"MIN_Y":-1.,"MAX_Y":0.},
+    )
+    assert new.min_y.primary_u == pytest.approx(68.)
+    assert new.max_y.primary_u == pytest.approx(old.max_y.primary_u)
+    # The exact parameter is T rather than an independent fixed 2mm.
+    reflected["T"]=1.5
+    reflected["receiving_left_reflected_terminal_extra"]=1.5
+    thin=lookup_certified_divider_cross_relief(
+        cabinet_family="受電箱",variables=reflected,
+        mating_fold_sign_by_end={"MIN_Y":-1.,"MAX_Y":0.},
+    )
+    assert thin.min_y.primary_u == pytest.approx(67.5)

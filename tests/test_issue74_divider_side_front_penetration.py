@@ -144,8 +144,14 @@ def test_issue74_presolve_mating_fw_and_d_are_single_skin_contacts():
 
     # The actual regression witnesses are likewise identified by source Fold
     # identity + both-skin physical crossing, never by hard-coded 62/61/57.
-    assert left["zl1"]["through"] is True
+    # Source-reflected LEFT panel crosses at zl2 + rear terminal, not
+    # the original zl1 inboard end. The first 22mm segment itself remains
+    # a true folded side-leg but cannot be mislabeled an interference.
+    left_piece = next(p for p in body.render_data.pieces if p.role=="left_side")
+    assert left_piece.fold_profile[0].length == pytest.approx(22.)
+    assert left["zl1"]["through"] is False
     assert left["zl2"]["through"] is True
+    assert left["side_rear_bend_left"]["through"] is True
     assert right["zr2"]["through"] is True
 
 
@@ -186,7 +192,7 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     assert evidence["slot_end_selector"] == "OBJECT_MATING_FOLD_SIGN_NEGATIVE"
     assert evidence["slot_end"] == "MIN_Y"
     assert formula == pytest.approx({
-        "slotted_fold_u": 66.0,
+        "slotted_fold_u": 68.0,  # 66-mm sample base + T outside terminal
         "plain_fold_u": 60.0,
         "fold_v": 27.0,
         "slot_width": 7.0,
@@ -199,22 +205,24 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl2"
     assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
 
-    # Collision remains available as validation evidence but is not the
-    # manufacturing dimension source.  The old backprojected widths differ
-    # from the certified 66/60 mm CROSS widths by design.
+    # Collision remains a separate true-thickness witness, not the final
+    # 68/60 mm certified CUTTING parameter source. The left source rear
+    # terminal occupies the extra T outside the old 66mm sample.
     shadow = dict(evidence["collision_shadow"])
     by_source = dict(shadow["projection_by_source"])
     left_stages = dict(by_source["box_body:left_side"]["physical_stages"])
     right_stages = dict(by_source["box_body:right_side"]["physical_stages"])
-    assert float(left_stages["zl2"]["stage_u_span"]) == pytest.approx(61.0, abs=1e-5)
+    assert float(left_stages["zl2"]["stage_u_span"]) == pytest.approx(67.0, abs=1e-5)
+    assert float(left_stages["side_rear_bend_left"]["cut_bounds"][2]) == pytest.approx(68.0, abs=1e-5)
     assert float(right_stages["zr2"]["stage_u_span"]) == pytest.approx(57.0, abs=1e-5)
     assert float(left_stages["zl2"]["stage_u_span"]) != pytest.approx(formula["slotted_fold_u"])
     assert float(right_stages["zr2"]["stage_u_span"]) != pytest.approx(formula["plain_fold_u"])
 
     # Independent pre-solve collision witness still proves the same physical
     # source folds are the ones that would penetrate without the certified cut.
-    assert pre["box_body:left_side"]["zl1"]["through"] is True
+    assert pre["box_body:left_side"]["zl1"]["through"] is False
     assert pre["box_body:left_side"]["zl2"]["through"] is True
+    assert pre["box_body:left_side"]["side_rear_bend_left"]["through"] is True
     assert pre["box_body:right_side"]["zr2"]["through"] is True
 
 
@@ -282,7 +290,8 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
     CUTTING depth is measured from final material against the DXF below.
     A thickness-derived ad-hoc correction to make them match is forbidden.
     """
-    REFERENCE_ZL1_STEP_LENGTH = 22.0
+    REFERENCE_ZL1_MATERIAL_LENGTH = 22.0
+    REFERENCE_TRUE_THICKNESS = 2.0
 
     snap = _snapshot()
     body = _body_part(snap)
@@ -299,10 +308,15 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
         "box_body:left_side",
         bands["box_body:left_side"],
     )
-    zl1 = left["zl1"]["physical_footprint"]
-    assert zl1 is not None
-    _x0, y0, _x1, y1 = map(float, zl1.bounds)
-    observed_zl1_step = y1 - y0
+    # Source DXF flip keeps physical zl1 at 22mm, but it no longer
+    # penetrates the Divider. Real crossing is the reflected zl2 solid.
+    first = next(row for row in body.render_data.pieces if row.role=="left_side").fold_profile[0]
+    assert first.length == pytest.approx(REFERENCE_ZL1_MATERIAL_LENGTH)
+    assert left["zl1"]["physical_footprint"] is None
+    crossing = left["zl2"]["physical_footprint"]
+    assert crossing is not None
+    _x0,y0,_x1,y1 = map(float,crossing.bounds)
+    observed_solid_thickness = y1-y0
 
     def band_world_x_bounds(source_key, band_name):
         u0, u1 = next(
@@ -334,7 +348,8 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
     projected_right = overlap_1d(right_fw, divider_bounds)
 
     observed = {
-        "zl1_step_length": observed_zl1_step,
+        "zl1_material_length": first.length,
+        "true_thickness_collision_band": observed_solid_thickness,
         "divider_x_bounds": divider_bounds,
         "left_fw_x_bounds": left_fw,
         "right_fw_x_bounds": right_fw,
@@ -344,8 +359,8 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
     }
     print("RECEIVING_REFERENCE_22_27_ORACLE=", observed)
 
-    assert observed_zl1_step == pytest.approx(
-        REFERENCE_ZL1_STEP_LENGTH, abs=1.0e-5
+    assert observed_solid_thickness == pytest.approx(
+        REFERENCE_TRUE_THICKNESS, abs=1.0e-5
     )
     # Both values are projections in the PRE-RELIEF world, not a claim about
     # the post-solve physical contact or cutting depth.  In particular do not
@@ -358,7 +373,10 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
 
 def test_receiving_reference_fixture_final_cutting_matches_certified_dxf_oracle():
     """Validation-only OUTER CUTTING oracle for certified 中隔.dxf end shapes."""
-    SLOTTED_W = 66.0
+    # In the corrected LEFT source, the outside rear terminal extends
+    # one actual thickness beyond the original certified 66mm C sample.
+    # This independent manufactured outline witness is 66 + T = 68.
+    SLOTTED_W = 68.0
     PLAIN_W = 60.0
     PRIMARY_D = 27.0
     SLOT_W = 7.0
