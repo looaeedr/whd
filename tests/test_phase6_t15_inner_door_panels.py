@@ -190,6 +190,15 @@ def test_3d_workspace_generates_panels_only_for_checked_outer_doors_and_keeps_gu
             for i in range(int(menu.index("end")) + 1)
         )
         assert "上層內門門板" in menu_labels
+        designer.activate_part("inner_door:upper:panel")
+        root.update_idletasks(); root.update()
+        hole_button = getattr(designer, "_phase6_inner_door_hole_button", None)
+        assert hole_button is not None
+        assert hole_button.winfo_exists()
+        assert hole_button.cget("text") == "內門開孔編輯"
+        designer.activate_part("box_body")
+        root.update_idletasks(); root.update()
+        assert getattr(designer, "_phase6_inner_door_hole_button", None) is None
         assert "inner_door:upper:panel" not in menu_labels
         assert "inner_door:upper:top_frame" in designer.designer_workspace.available_parts
         divider_keys = {k for k in designer.designer_workspace.available_parts if k.startswith("box_body:divider:")}
@@ -221,3 +230,119 @@ def test_3d_workspace_generates_panels_only_for_checked_outer_doors_and_keeps_gu
             root.destroy()
         except tk.TclError:
             pass
+
+
+
+def test_inner_door_reuses_exact_vault_baseline_and_not_outer_fold_inputs():
+    from pathlib import Path
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.contracts import DoorPartSpec, ManufacturingContext
+    from ae_engine.manufacturing_api import (
+        build_inner_door_panel_render_data, build_part_render_data,
+    )
+    from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
+
+    snapshot = _receiving_snapshot()
+    snapshot.update({
+        "door_fold_l": 40.0, "door_fold_r": 30.0,
+        "door_fold_t": 21.0, "door_fold_b": 25.0,
+    })
+    panel = cabinet_family_policy.derive_inner_door_panels(snapshot)[0]
+    assert (panel.fold_left, panel.fold_right, panel.fold_top, panel.fold_bottom) == (19.0,) * 4
+    context = ManufacturingContext(resource_root=Path(__file__).resolve().parents[1])
+    built = build_inner_door_panel_render_data(panel, context=context)
+    vault = build_part_render_data(
+        DoorPartSpec(
+            width=panel.width, height=panel.height,
+            thickness=panel.thickness, frame_width=0.0,
+            model_name="金庫型", gap_w=0.0, gap_h=0.0,
+            fold_left=19.0, fold_right=19.0, fold_top=19.0, fold_bottom=19.0,
+            frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),
+        ), context,
+    )
+    assert tuple(built.scene.primitives) == tuple(vault.scene.primitives)
+    assert built.metadata["baseline_model"] == "金庫型"
+    assert built.metadata["baseline_part"] == "門.dxf"
+
+
+def test_inner_door_hole_features_reach_real_vault_cutting_and_dxf(tmp_path):
+    from pathlib import Path
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.manufacturing_api import (
+        build_inner_door_panel_render_data, save_part_render_data_dxf,
+    )
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    import ezdxf
+
+    panel = cabinet_family_policy.derive_inner_door_panels(_receiving_snapshot())[0]
+    ctx = ManufacturingContext(resource_root=Path(__file__).resolve().parents[1])
+    baseline = build_inner_door_panel_render_data(panel, context=ctx)
+    feature = CircleFeature(
+        diameter=9.0, anchor=FeatureAnchor.PANEL_CENTER, offset=Vec2(0.0, 0.0),
+    )
+    edited = build_inner_door_panel_render_data(
+        panel, features=(feature,), context=ctx,
+    )
+    original = [p for p in baseline.scene.primitives if isinstance(p, CirclePrimitive)]
+    circles = [p for p in edited.scene.primitives if isinstance(p, CirclePrimitive)]
+    assert len(circles) == len(original) + 1
+    assert edited.metadata["hole_feature_count"] == 1
+    assert tuple(edited.fold_guides) == tuple(baseline.fold_guides)
+    path = save_part_render_data_dxf(edited, tmp_path / "inner-door-with-user-hole.dxf")
+    doc = ezdxf.readfile(path)
+    cutting_circles = [
+        obj for obj in doc.modelspace()
+        if obj.dxftype() == "CIRCLE" and obj.dxf.layer == "CUTTING"
+    ]
+    assert len(cutting_circles) >= len(original) + 1
+
+
+def test_inner_door_editor_reuses_original_vault_hole_editor_and_stashes_per_panel():
+    from types import SimpleNamespace
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    from gui_modules.application.receiving_inner_door_hole_editor import (
+        open_inner_door_hole_editor,
+    )
+
+    snapshot = _receiving_snapshot()
+    key = cabinet_family_policy.derive_inner_door_panels(snapshot)[0].stable_id
+    workspace = Phase6DesignerWorkspace.from_snapshot({
+        **snapshot, "existing_parts": ["box_body", key],
+        "active_part": key,
+    })
+    calls = []
+    class EditorHost:
+        def scene_query(self, *args):  # A bound source for the host bridge.
+            return None
+        def _open_unified_hole_editor(self, part_key, title, surface, width, height, **kwargs):
+            calls.append((part_key, title, surface, width, height, kwargs))
+            return "opened-vault-editor"
+
+    host = EditorHost()
+    app = SimpleNamespace(
+        designer_workspace=workspace, _phase6_input_snapshot=snapshot,
+        _scene_query_callback=host.scene_query,
+        _load_part_holes=lambda key: calls.append(("reload", key)),
+        submit_update_intent=lambda reason, commit: calls.append(("update", reason, commit)),
+    )
+    assert open_inner_door_hole_editor(app, key) == "opened-vault-editor"
+    part_key, title, surface, width, height, kwargs = calls[0]
+    assert part_key == key and title.startswith("內門門板")
+    assert width == pytest.approx(723.0) and height == pytest.approx(1075.0)
+    assert kwargs["baseline_scene"] is not None
+    assert kwargs["door_thickness"] == pytest.approx(2.0)
+    feature = CircleFeature(diameter=8.0, anchor=FeatureAnchor.PANEL_CENTER, offset=Vec2(0.0, 0.0))
+    kwargs["feature_list_override"].append(feature)
+    kwargs["sync_callback"]()
+    assert workspace.features_for(key) == [feature]
+    assert workspace.features_for("box_body") == []
+    assert ("update", "geometry", True) in calls
+    with pytest.raises(ValueError, match="請先選取"):
+        workspace.active_part = "box_body"
+        open_inner_door_hole_editor(app, key)
