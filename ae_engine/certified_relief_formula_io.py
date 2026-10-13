@@ -21,6 +21,7 @@ _ALLOWED_GEOMETRY_INPUTS = frozenset({
     "BOTTOM_RELIEF_RESERVE_U", "BOTTOM_RELIEF_RESERVE_V",
     "DIVIDER_CORE_START", "DIVIDER_FIRST_OUTSIDE", "DIVIDER_FW_OUTSIDE",
     "DIVIDER_FW_MATERIAL", "DIVIDER_LAST_OUTSIDE", "BOX_ZL1_FORMED",
+    "RECEIVING_LEFT_REFLECTED_TERMINAL_EXTRA",
 })
 
 _ALLOWED_FORMULA_NAMES = frozenset({
@@ -29,6 +30,7 @@ _ALLOWED_FORMULA_NAMES = frozenset({
     "reserve_u", "reserve_v",
     "core_start", "divider_first_outside", "divider_fw_outside",
     "divider_fw_material", "divider_last_outside", "box_zl1_formed",
+    "receiving_left_reflected_terminal_extra",
 })
 _ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.Div)
 _ALLOWED_UNARYOPS = (ast.UAdd, ast.USub)
@@ -176,8 +178,11 @@ def evaluate_divider_cross_formula_record(
         raise CertifiedReliefRegistryError(
             "Divider CROSS formula missing: " + ", ".join(missing)
         )
+    # Older standalone/historic callers predate the reflected Receiving
+    # left-side source. Their outside terminal has no extra material.
+    inputs = {"receiving_left_reflected_terminal_extra": 0.0, **variables}
     result = {
-        name: evaluate_relief_formula_expression(str(formula[name]), variables)
+        name: evaluate_relief_formula_expression(str(formula[name]), inputs)
         for name in required
     }
     for key, value in result.items():

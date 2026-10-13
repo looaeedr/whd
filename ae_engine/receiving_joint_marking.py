@@ -632,6 +632,57 @@ def _divider_contact(
 
 
 
+def _divider_boundary_contact_patches(mother, terminal, *, junction_y):
+    """Find real opposed-skin contact touching the Divider's upper bay datum.
+
+    The dedicated left-side DXF has a relief cut which can split a Divider
+    terminal overlap into separate islands. For the receiver mother-plate
+    MARKING, only the physical patch reaching the divider's true upper mating
+    skin is the primary joint boundary. Secondary islands remain in 3D and
+    flat manufacturing material: this routine never changes part geometry.
+    Multiple touching patches still fail closed as non-unique.
+    """
+    from .assembly_contact import (
+        _plane_basis as _contact_plane_basis,
+        _project_polygon,
+        _world_polygon_from_plane,
+        resolve_legal_coplanar_contact,
+    )
+
+    mother_origin, mother_normal = mother.supporting_plane
+    u, v = _contact_plane_basis(mother_normal, tolerance=1e-9)
+    locator_poly = Polygon(_project_polygon(
+        mother.world_polygon, mother_origin, u, v,
+    ))
+    attached_poly = Polygon(_project_polygon(
+        terminal.world_polygon, mother_origin, u, v,
+    ))
+    if not locator_poly.is_valid:
+        locator_poly = locator_poly.buffer(0)
+    if not attached_poly.is_valid:
+        attached_poly = attached_poly.buffer(0)
+    overlap = locator_poly.intersection(attached_poly)
+    if overlap.geom_type != "MultiPolygon":
+        return ()
+
+    touching = []
+    for island in overlap.geoms:
+        if island.geom_type != "Polygon" or float(island.area) <= 1e-8:
+            continue
+        world_outline = _world_polygon_from_plane(
+            island, mother_origin, u, v,
+        )
+        if min(abs(float(point[1]) - float(junction_y)) for point in world_outline) > 1e-6:
+            continue
+        # Recheck actual normals and coplanarity through the general legal
+        # contact gate; do not turn a MultiPolygon into a forged enclosure.
+        clipped_terminal = replace(terminal, world_polygon=world_outline)
+        verified = resolve_legal_coplanar_contact(mother, clipped_terminal)
+        if verified.status == "LEGAL_CONTACT" and verified.contact is not None:
+            touching.append(verified.contact)
+    return tuple(touching)
+
+
 def _divider_side_contact(
     *, geometry, world, divider, locator_id, dimensions, sheet_thickness
 ):
@@ -672,6 +723,13 @@ def _divider_side_contact(
         )
         for boundary in ("MIN", "MAX")
     )
+    # Real folded Divider core top skin is the bay's Y boundary, not the
+    # former -286.5 mid-core assumption. Use its actual resolved 3D datum.
+    from .assembly_geometry import folded_profile_segment_center_from_full_envelope
+    _core_u, core_z = folded_profile_segment_center_from_full_envelope(
+        divider.fold_profile, divider.core_segment_index,
+    )
+    junction_y = float(part.offset[1]) + float(core_z) + float(sheet_thickness) / 2.0
     contacts = []
     probes = []
     for group in _mapped_plane_groups(mapped):
@@ -703,6 +761,13 @@ def _divider_side_contact(
             ))
             if candidate.status == "LEGAL_CONTACT" and candidate.contact is not None:
                 contacts.append(candidate.contact)
+            elif candidate.diagnostic_code == "CONTACT_NOT_UNIQUE":
+                # A true source relief may produce detached secondary skins.
+                # Accept only a single VERIFIED contact island that actually
+                # touches the divider's physical upper assembly boundary.
+                contacts.extend(_divider_boundary_contact_patches(
+                    mother, terminal, junction_y=junction_y,
+                ))
 
     if len(contacts) != 1:
         raise ValueError(

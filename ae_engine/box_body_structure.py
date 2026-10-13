@@ -280,6 +280,76 @@ def _side_back_rows(profile, *, rear_bend):
     return left, right
 
 
+def _receiving_left_side_correct_bend_side(rows):
+    """Mirror ONLY the middle two left-panel bend stations into the right side.
+
+    Operator outside dimensions, source sample blank, outermost bends and
+    material length remain unchanged. The corrected Receiving left-side DXF
+    confirms x=22,362,387,413 for W800/D350/T2, whereas the old program
+    wrongly put the two inside bends at x=42 and x=67.
+
+    Update the complete physical Fold Chain, not a decorative BEND overlay:
+    manufacturing 2D, independent part 3D, assembly and DXF export must all
+    consume exactly the same corrected physical segment topology.
+    """
+    expected = ("zl1", "zl2", "fw_left", "d_left", "side_rear_bend_left")
+    actual = tuple(str(x.get("phase6_key") or "") for x in rows)
+    if actual != expected:
+        raise ValueError("RECEIVING_LEFT_SIDE_FOLD_PROFILE_ORDER_INVALID")
+    original = [deepcopy(row) for row in rows]
+    a, b, fw, depth, rear = (float(row["len"]) for row in original)
+    total = a + b + fw + depth + rear
+    corrected_bends = (a, total - (a + b + fw), total - (a + b), total - rear)
+    positions = (0.0,) + corrected_bends + (total,)
+    lengths = tuple(positions[i+1] - positions[i] for i in range(5))
+    if min(lengths) <= 1e-7:
+        raise ValueError("RECEIVING_LEFT_SIDE_REVERSED_BENDS_OVERLAP")
+    # First and last folds remain at the same material edges.
+    # After side inversion, the D core precedes FW and the far-side
+    # secondary/front flange in physical left-to-right traversal.
+    order = (0, 3, 2, 1, 4)
+    result = []
+    for index, source_index in enumerate(order):
+        row = deepcopy(original[source_index])
+        row["len"] = lengths[index]
+        if index == 0:
+            # Left outer 22-mm leg folds INTO the enclosure. Keeping +90
+            # when the DXF's two middle bend stations were reflected sends
+            # this leg 22mm outside the nominal left skin, re-centering the
+            # entire multi-piece 3D assembly by 11mm and shifting BOTH side
+            # FW 29-mm mating bands away from the Divider.
+            row["angle"] = -90.0
+        # The effective material interval is the authority for this
+        # reflected physical piece; stale formed-length overrides belong
+        # only to the operator's original full-box Fold Chain.
+        # The FW material interval is 25 mm, but the certified OUTSIDE
+        # occupation remains 29 mm for the W800/T2 reference. Moving this
+        # flange in the left-side fold chain must not discard formed_length.
+        # All other reflected intervals use their new material-only spans.
+        if row.get("phase6_key") != "fw_left":
+            row.pop("formed_length", None)
+        row.pop("ui_len_add", None)
+        if str(row.get("phase6_key") or "") in {"fw_left", "zl1"}:
+            # Preserve the operator's outside-length authority even when the
+            # physical flat traversal swaps D/FW/inner bends. FW material25
+            # is formed29, and zl1 material22 is formed24 in the T2 sample.
+            # The certified Divider CROSS rule consumes zl1's genuine
+            # outside size, never the shifted flat bend-station coordinate.
+            key = str(row["phase6_key"])
+            source_segment = original[source_index]
+            source_formed = source_segment.get("formed_length")
+            if source_formed is None and source_segment.get("ui_len_add") is not None:
+                source_formed = (
+                    float(source_segment["len"]) +
+                    abs(float(source_segment["ui_len_add"]))
+                )
+            if source_formed is None or float(source_formed) <= float(row["len"]):
+                raise ValueError(f"RECEIVING_LEFT_{key.upper()}_FORMED_OUTSIDE_SOURCE_MISSING")
+            row["formed_length"] = float(source_formed)
+        result.append(row)
+    return result
+
+
 def _merge_side_back_piece_override(base_rows, override_rows, *, shared_keys):
     """Keep piece-local topology while rebasing shared cabinet dimensions."""
     if not override_rows:
@@ -391,6 +461,11 @@ def resolve_box_body_structure(
             right_rows, piece_overrides.get("right_side"),
             shared_keys={"d_right", "fw_right", "zr2"},
         )
+        # This family-only selector is absent from generic BoxBody states.
+        # The original Receiving left-panel sketch had its two middle BENDs
+        # drawn on the wrong side; preserve the corrected dedicated DXF order.
+        if "back_panel_mode" in cfg:
+            left_rows = _receiving_left_side_correct_bend_side(left_rows)
 
         offset = (float(w) - back_width) / 2.0
         formed_depth = _formed_depth_from_profile(profile, thickness=float(t), explicit_depth=d)

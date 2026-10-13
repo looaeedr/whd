@@ -57,11 +57,20 @@ def test_receiving_outside_defaults_derive_material_once_without_becoming_ui_aut
 
     assert [(row.phase6_key, row.length) for row in left.fold_profile] == [
         ("zl1", 22.0),
-        ("zl2", 20.0),
+        ("d_left", 340.0),
         ("fw_left", 25.0),
-        ("d_left", 346.0),
+        ("zl2", 26.0),
         ("side_rear_bend_left", 16.0),
     ]
+    assert [round(bend.p1.x, 6) for bend in left.structural.bends] == [
+        22.0, 362.0, 387.0, 413.0,
+    ]
+    # The reflected 25-mm FW stock still occupies the certified 29-mm
+    # outside envelope. Dropping this formed datum breaks real 3D contacts.
+    assert next(s.formed_length for s in left.fold_profile
+                if s.phase6_key == "fw_left") == pytest.approx(29.0)
+    assert next(s.formed_length for s in right.fold_profile
+                if s.phase6_key == "fw_right") == pytest.approx(29.0)
     # Manufacturing-local right-side traversal is rear -> front.
     assert [(row.phase6_key, row.length) for row in right.fold_profile] == [
         ("side_rear_bend_right", 16.0),

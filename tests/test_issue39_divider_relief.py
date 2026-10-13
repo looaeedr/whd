@@ -167,7 +167,7 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     assert relief["trust_level"] == "CERTIFIED"
     assert relief["core_start"] == pytest.approx(41.0)
     formula_values = dict(relief["cut_depths"])
-    assert formula_values["slotted_fold_u"] == pytest.approx(66.0)
+    assert formula_values["slotted_fold_u"] == pytest.approx(68.0)  # source-reflected terminal outside +T
     assert formula_values["plain_fold_u"] == pytest.approx(60.0)
     assert formula_values["fold_v"] == pytest.approx(27.0)
     inverse = dict(relief["evidence"]["independent_physical_inverse"])
@@ -184,11 +184,13 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     assert set(projections) == {"MIN_Y", "MAX_Y"}
     for measured in projections.values():
         assert 0.0 < float(measured) < float(snapshot["fw"])
-    # Receiving front Fold topology is intentionally asymmetric:
-    # left has penetrating zl1/zl2 bands while right has penetrating zr2.
-    # Do not force their physical relief depths to be numerically symmetric.
+    # The corrected source DXF places FW-adjacent side collision on the
+    # physical zl2 + rear terminal after fold-station reflection. zl1 is
+    # still 22mm flat material but does not collide with this Divider.
     projection_by_source = dict(dict(relief["evidence"])["projection_by_source"])
-    assert tuple(projection_by_source["box_body:left_side"]["penetrating_bands"]) == ("zl1", "zl2")
+    assert tuple(projection_by_source["box_body:left_side"]["penetrating_bands"]) == (
+        "zl2", "side_rear_bend_left",
+    )
     assert tuple(projection_by_source["box_body:right_side"]["penetrating_bands"]) == ("zr2",)
     placement = dict(dict(relief["evidence"]).get("placement") or {})
     assert placement.get("contract") == "DIVIDER_FW_FACE_FLUSH_V1"

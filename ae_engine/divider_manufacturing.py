@@ -228,7 +228,16 @@ def _divider_object_mating_fold_signs(divider, box_body):
             "sign": _fold_sign(angle),
         }
 
-    min_y = adjacent(by_role["left_side"].fold_profile, "fw_left", -1)
+    left_profile = tuple(by_role["left_side"].fold_profile or ())
+    left_keys = tuple(str(row.phase6_key) for row in left_profile)
+    # Corrected Receiving left-side DXF places its FW-adjacent terminal
+    # beyond FW in flat traversal. Physical 3D contact is zl2, not the
+    # preceding 340-mm D web. The same certified CROSS rule applies; only
+    # the input topology-to-object-fold mapping changes.
+    left_offset = +1 if left_keys == (
+        "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
+    ) else -1
+    min_y = adjacent(left_profile, "fw_left", left_offset)
     max_y = adjacent(by_role["right_side"].fold_profile, "fw_right", +1)
     return {
         "sign_by_end": {
@@ -272,6 +281,23 @@ def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: flo
     if left_side is None:
         raise ValueError("Divider certified CROSS requires the Receiving left-side Fold profile")
     box_zl1_formed = _formed_profile_length(left_side.fold_profile, phase6_key="zl1")
+    left_order = tuple(str(seg.phase6_key) for seg in left_side.fold_profile)
+    # Material fold-station inversion moves the secondary left terminal to
+    # the OUTER face of the Divider CROSS slit, one true sheet-thickness
+    # beyond core_start+FW. This is the extra outside-terminal cutting width,
+    # NOT a change to operator FW or the sample 66-mm base formula.
+    reflected = left_order == (
+        "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
+    )
+    if reflected:
+        physical = tuple(left_side.fold_profile)
+        if not (
+            physical[3].angle is not None and float(physical[3].angle) < 0
+            and float(physical[4].length) > t
+            and float(physical[0].angle) < 0
+        ):
+            raise ValueError("RECEIVING_LEFT_REFLECTED_TERMINAL_NOT_CERTIFIED")
+    terminal_extra = t if reflected else 0.0
 
     return {
         "T": t,
@@ -281,6 +307,7 @@ def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: flo
         "divider_fw_material": float(fw_material),
         "divider_last_outside": abs(float(signed[-1])),
         "box_zl1_formed": float(box_zl1_formed),
+        "receiving_left_reflected_terminal_extra": float(terminal_extra),
     }
 
 
@@ -472,6 +499,9 @@ def resolve_divider_final_geometry(
                 variables=registry_variables,
                 mating_fold_sign_by_end=mating_fold_orientation["sign_by_end"],
             )
+            # No family bypass: certified CROSS parameters remain the
+            # manufacturing source of truth, with physical inverse + post-
+            # refold check required before exporting the result.
     except Exception:
         # A certified Receiving HORIZONTAL Divider must fail closed. Other
         # families/axes retain the provisional discovery path.

@@ -121,7 +121,15 @@ def reconstruct_receiving_divider_cross(*, divider, box_body, candidate, thickne
 
     # Complete CROSS cut envelope follows real Divider fold boundaries,
     # not just the narrow source/target triangle intersection.
-    slotted_u = core_start + fw_material
+    # Independent physical outside-terminal witness. In the corrected
+    # left DXF, the reflected side-rear terminal reaches one sheet
+    # thickness beyond the base core+FW slit. The slot/corner must cover
+    # that actual true-thickness band, while old Fold order has no extra.
+    left_keys = tuple(str(seg.phase6_key) for seg in pieces["left_side"].fold_profile)
+    mirrored = left_keys == (
+        "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
+    )
+    slotted_u = core_start + fw_material + (t if mirrored else 0.0)
     plain_u = core_start + abs(signed[-1]) + t
     first_outside = abs(signed[0])
     slot_width = fw_material - first_outside
@@ -137,6 +145,15 @@ def reconstruct_receiving_divider_cross(*, divider, box_body, candidate, thickne
         if str(getattr(seg, "phase6_key", "")) == key
         and getattr(seg, "formed_length", None) is not None
     ]
+    if len(matches) != 1 and key == "zl2":
+        # The mirrored left sheet's actual negative Fold is zl2, but the
+        # registry's U-slot straight parameter remains the original outer
+        # 22-mm leg formed-length authority (zl1). Preserve that operator
+        # value after remapping the topology; do not infer it from D=340.
+        matches = [
+            float(seg.formed_length) for seg in negative_source.fold_profile
+            if str(seg.phase6_key) == "zl1" and seg.formed_length is not None
+        ]
     if len(matches) != 1:
         raise ValueError("negative mating Fold has no authoritative formed length")
     slot_straight = abs(matches[0])
