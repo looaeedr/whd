@@ -229,3 +229,95 @@ def test_independent_unformed_fixing_plates_do_not_poison_whole_cabinet_export()
     assert resolved_physical_render_parts(SimpleNamespace(parts=(forged,))) == (
         (left_id,source),
     )
+
+
+@pytest.mark.parametrize(
+    "pattern,chosen_pair,expected_y",
+    [
+        ("LEFT_FLAT_SIDE", (0, 3), (-105.0, 105.0)),
+        ("RIGHT_FLAT_SIDE", (0, 3), (-105.0, 105.0)),
+        ("CENTER_DOUBLE_SIDE_FOLD", (1, 2), (-70.0, 70.0)),
+    ],
+)
+def test_original_large_fixing_plate_left_right_xy_mates_both_base_patterns(
+    pattern, chosen_pair, expected_y,
+):
+    from ae_engine.receiving_base_fixing_plate_mating import (
+        resolve_base_fixing_pair_xy_mating,
+    )
+    snapshot = {"model": "受電箱", "w": 800.0, "t": 2.0,
+                "receiving_base_plate": {"pattern": pattern}}
+    left, right = resolve_base_fixing_pair_xy_mating(snapshot)
+    assert left.part_id == "base_plate:fixing_plate:left"
+    assert right.part_id == "base_plate:fixing_plate:right"
+    assert (left.inside_skin_world_x_mm, right.inside_skin_world_x_mm) == (-398.0, 398.0)
+    assert (left.selected_fixing_world_x_mm, right.selected_fixing_world_x_mm) == (-335.0, 335.0)
+    assert left.slot_world_y_mm == right.slot_world_y_mm == (-105.0, -70.0, 70.0, 105.0)
+    assert left.selected_slot_indexes == right.selected_slot_indexes == chosen_pair
+    assert left.selected_fixing_world_y_mm == right.selected_fixing_world_y_mm == expected_y
+    assert right.selected_fixing_world_x_mm - left.selected_fixing_world_x_mm == 670.0
+    assert left.selected_fixing_world_y_mm[1] - left.selected_fixing_world_y_mm[0] == (
+        140.0 if chosen_pair == (1, 2) else 210.0
+    )
+    for part in (left, right):
+        assert part.nominal_fold_from_weld_edge_mm == 23.0
+        assert part.source_weld_edge_to_slot_center_mm == 86.0
+        assert part.factory_bend_compensation_mm == 0.0
+        assert part.xy_mating_proven is True
+        assert part.manufacturing_approved is False
+        assert not part.bend_line_confirmed
+        assert not part.formed_direction_confirmed
+        assert not part.weld_z_confirmed
+
+
+def test_unconfigured_base_does_not_guess_xy_mating_or_enable_mfg():
+    from ae_engine.receiving_base_fixing_plate_mating import (
+        resolve_base_fixing_pair_xy_mating,
+    )
+    from ae_engine.receiving_base_fixing_plate_geometry import build_fixing_plate_source_render_data
+    snapshot = {"model": "受電箱", "w": 800, "t": 2}
+    with pytest.raises(ValueError, match="CONFIGURED_BASE_PATTERN"):
+        resolve_base_fixing_pair_xy_mating(snapshot)
+    flat = build_fixing_plate_source_render_data(
+        "base_plate:fixing_plate:left", snapshot=snapshot,
+    )
+    assert flat.metadata["xy_mating_proven"] is False
+    assert flat.metadata["nominal_base_fixing_hole_world_y_mm"] == ()
+    assert flat.metadata["formed_geometry_verified"] is False
+    assert flat.metadata["factory_bend_compensation_required"] is False
+
+
+@pytest.mark.parametrize("bad", [
+    {"model": "金庫型", "w": 800.0, "t": 2.0},
+    {"model": "受電箱", "w": 750.0, "t": 2.0},
+    {"model": "受電箱", "w": 800.0, "t": 3.0},
+])
+def test_fixing_plate_x_y_mating_rejects_unproven_cabinets(bad):
+    from ae_engine.receiving_base_fixing_plate_mating import (
+        resolve_base_fixing_pair_xy_mating,
+    )
+    from ae_engine.receiving_base_fixing_plate_geometry import build_fixing_plate_source_render_data
+    snap = {**bad, "receiving_base_plate": {"pattern": "CENTER_DOUBLE_SIDE_FOLD"}}
+    with pytest.raises(ValueError, match="W800_T2"):
+        resolve_base_fixing_pair_xy_mating(snap)
+    with pytest.raises(ValueError, match="CABINET_MISMATCH"):
+        build_fixing_plate_source_render_data(
+            "base_plate:fixing_plate:left", snapshot=snap,
+        )
+
+
+def test_correct_mating_evidence_flows_into_physical_render_data():
+    from ae_engine.receiving_base_fixing_plate_geometry import build_fixing_plate_source_render_data
+    s = {"model": "受電箱", "w": 800.0, "t": 2.0,
+         "receiving_base_plate": {"pattern": "CENTER_DOUBLE_SIDE_FOLD"}}
+    left = build_fixing_plate_source_render_data("base_plate:fixing_plate:left", snapshot=s)
+    right = build_fixing_plate_source_render_data("base_plate:fixing_plate:right", snapshot=s)
+    assert left.metadata["nominal_weld_inside_skin_x_mm"] == -398.0
+    assert left.metadata["nominal_base_fixing_hole_world_x_mm"] == -335.0
+    assert right.metadata["nominal_weld_inside_skin_x_mm"] == 398.0
+    assert right.metadata["nominal_base_fixing_hole_world_x_mm"] == 335.0
+    assert left.metadata["nominal_base_fixing_hole_world_y_mm"] == (-70.0,70.0)
+    assert right.metadata["nominal_slot_pair_indexes"] == (1,2)
+    assert all(part.metadata["xy_mating_proven"] for part in (left, right))
+    assert all(not part.metadata["manufacturing_ready"] for part in (left, right))
+    assert all(part.metadata["thickness"] == 3.0 for part in (left, right))
