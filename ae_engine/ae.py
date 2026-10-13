@@ -199,7 +199,10 @@ def _box_body_baseline_mapping_context(model_name, total_length, total_height,
                                        zl1=15.0, zl2=20.0, zr1=15.0, zr2=20.0, z_comp=-10.0,
                                        w=500.0, d=150.0, t=2.0, fw=25.0):
     """Read Box Body baseline once and return its modelspace plus point mapper."""
-    dxf_path = baseline_part_path(model_name, "箱身.dxf")
+    # Fixed baseline features are shared; the family-specific fold topology is not.
+    from .cabinet_types import policy as cabinet_family_policy
+    feature_model = cabinet_family_policy.baseline_feature_model_name(model_name)
+    dxf_path = baseline_part_path(feature_model, "箱身.dxf")
     if not dxf_path:
         return None, None
 
@@ -500,7 +503,8 @@ def get_mapped_circles_from_baseline(model_name, total_length, total_height,
 
 def box_body_baseline_source_label(model_name):
     """Describe the real Box Body source without implying structural baseline stretching."""
-    model = (model_name or "").strip()
+    from .cabinet_types import policy as cabinet_family_policy
+    model = cabinet_family_policy.baseline_feature_model_name(model_name)
     if model and has_baseline_part(model, "箱身.dxf"):
         return f"基準檔：{model}/箱身.dxf（固定特徵映射）"
     return "未使用基準檔（程式計算生成）"
