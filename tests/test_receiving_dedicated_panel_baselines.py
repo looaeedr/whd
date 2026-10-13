@@ -140,3 +140,25 @@ def test_corrected_left_bends_fold_inward_in_authoritative_3d_and_keep_dimension
     assert max(point[0] for point in coords) > -399.0
     # Sample outside dimensions do not change when two inner folds are mirrored.
     assert max(point[1] for point in coords) - min(point[1] for point in coords) == pytest.approx(1596.0)
+
+
+def test_undersized_receiving_preview_is_diagnostic_but_cannot_export(tmp_path):
+    from ae_engine.manufacturing_api import save_part_render_data_dxf
+    spec = spec_for_mode(d=40.0)
+    render = build_box_body_structure_render_data(spec)
+    left = _piece(render, "left_side").render_data
+    assert left.metadata["baseline_fit_valid"] is False
+    assert "RECEIVING_BASELINE_FIXED_HOLE_OUTSIDE_MATERIAL" in left.metadata["baseline_fit_error"]
+    assert left.metadata["baseline_feature_count"] == 0
+    assert not any(
+        isinstance(p, CirclePrimitive) and p.source_type=="receiving_dedicated_baseline"
+        for p in left.scene.primitives
+    )
+    with pytest.raises(ValueError, match="RECEIVING_BASELINE_FIXED_HOLE_OUTSIDE_MATERIAL"):
+        generate_box_body_structure_parts(
+            spec, tmp_path, ManufacturingContext(overwrite=True),
+        )
+    assert list(tmp_path.glob("*.dxf")) == []
+    with pytest.raises(ValueError, match="RECEIVING_BASELINE_FIXED_HOLE_OUTSIDE_MATERIAL"):
+        save_part_render_data_dxf(left, tmp_path/"invalid-left.dxf")
+    assert not (tmp_path/"invalid-left.dxf").exists()

@@ -154,6 +154,9 @@ def save_part_render_data_dxf(
     overwrite: bool = False,
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
+    blocked = (getattr(render_data, "metadata", None) or {}).get("baseline_fit_error")
+    if blocked:
+        raise ValueError(str(blocked))
     return _manufacturing_export.save_part_render_data_dxf(
         render_data.scene,
         output_path,

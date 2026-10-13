@@ -66,6 +66,9 @@ def draw_box_body_piece_preview(
 
     source = render_data.metadata.get("baseline_source_path")
     source_hint = f"\n專用基準：{str(source).rsplit('/', 1)[-1]}" if source else ""
+    fit_error = render_data.metadata.get("baseline_fit_error")
+    if fit_error:
+        source_hint += "\n⚠ 基準孔位超出材料範圍，此板件不可匯出製造 DXF"
     reference_bends_match = render_data.metadata.get("baseline_sample_bends_match")
     if reference_bends_match is False:
         source_hint += "\n⚠ 來源 DXF 折彎線與目前展開折彎鏈不同；目前折彎依程式，尚待對齊"

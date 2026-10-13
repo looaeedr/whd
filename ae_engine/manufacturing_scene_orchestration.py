@@ -763,6 +763,15 @@ def generate_box_body_structure_parts(
         "left_side": "左側板", "right_side": "右側板", "back": "後面板",
         "integral": "箱身",
     }
+    # The renderer may show an invalid shallow cabinet for diagnosis, but a
+    # real CUTTING DXF can never omit a source-certified hole to make it fit.
+    blocked = [
+        (piece.role, piece.render_data.metadata.get("baseline_fit_error"))
+        for piece in data.pieces
+        if piece.render_data.metadata.get("baseline_fit_error")
+    ]
+    if blocked:
+        raise ValueError("; ".join(f"{role}: {reason}" for role, reason in blocked))
     results = []
     for piece in data.pieces:
         name = labels.get(piece.role, piece.key) + ".dxf"

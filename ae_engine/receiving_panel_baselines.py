@@ -118,6 +118,7 @@ def receiving_piece_baseline_features(role, *, expected_path: Path, width: float
         raise ValueError("RECEIVING_BASELINE_TARGET_DIMENSIONS_INVALID")
 
     emitted = []
+    blocked_reason = None
     if role in ("left_side", "right_side"):
         for item in msp.query("CIRCLE"):
             layer = str(item.dxf.layer).upper()
@@ -128,13 +129,21 @@ def receiving_piece_baseline_features(role, *, expected_path: Path, width: float
             radius = float(item.dxf.radius)
             if (radius <= 0 or x-radius < -EPS or x+radius > width+EPS
                     or y-radius < -EPS or y+radius > height+EPS):
-                raise ValueError(f"RECEIVING_BASELINE_FIXED_HOLE_OUTSIDE_MATERIAL: {path}")
+                # An undersized *preview* still needs to exist for the
+                # separate pairing/fit validator to report BLOCKED. Do not
+                # clip, move, or silently discard any certified source hole.
+                # The whole fixed-hole group becomes unavailable and BOTH
+                # manufacturing export entrypoints must reject it.
+                blocked_reason = f"RECEIVING_BASELINE_FIXED_HOLE_OUTSIDE_MATERIAL: {path}"
+                continue
             emitted.append(CirclePrimitive(
                 Vec2(x, y), radius, layer, _source_color(item, layer),
                 source_type="receiving_dedicated_baseline",
                 source_id=f"{role}:{item.dxf.handle}",
             ))
-        if len(emitted) != 9:
+        if blocked_reason:
+            emitted.clear()
+        elif len(emitted) != 9:
             raise ValueError(f"RECEIVING_BASELINE_SIDE_FEATURES_INCOMPLETE: {path}")
     elif back_contract:
         contract = dict(back_contract)
@@ -161,6 +170,8 @@ def receiving_piece_baseline_features(role, *, expected_path: Path, width: float
     data = path.read_bytes()
     metadata = {
         "baseline_reference_bend_positions": source_bends,
+        "baseline_fit_error": blocked_reason,
+        "baseline_fit_valid": blocked_reason is None,
         "baseline_source_path": str(path),
         "baseline_source_sha256": sha256(data).hexdigest(),
         "baseline_source_role": role,
