@@ -261,7 +261,10 @@ def test_receiving_left_right_and_divider_fw_are_truly_assembled_not_only_coplan
     assert placement.expected_fw_formed_occupation == pytest.approx(29.)
     assert placement.box_body_left_fw_planes == pytest.approx((172., 174.))
     assert placement.box_body_right_fw_planes == pytest.approx((172., 174.))
-    assert placement.divider_fw_planes == pytest.approx((172., 174.))
+    # Divider 29-mm FW touches the INNER side skin at Z=172.
+    # Equal (172,174) skin bands would mean overlapping sheet volumes.
+    assert placement.divider_fw_planes == pytest.approx((170., 172.))
+    assert placement.divider_fw_planes[-1] == pytest.approx(placement.box_body_left_fw_planes[0])
 
     bands = _piece_bands(body)
     all_points = []
