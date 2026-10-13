@@ -81,6 +81,7 @@ PYTEST_PATHS = (
     "tests/test_issue1502_receiving_base_family_routing.py",
     "tests/test_issue1502_receiving_gui_base_bridge.py",
     "tests/test_issue1502_live_nfb_base_partial_export.py",
+    "tests/test_issue1502_nfb_door_base_pair_receipt.py",
     "tests/test_issue1502_receiving_single_base_workspace.py",
     "tests/test_issue1502_nfb_base_source_projection.py",
     "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
