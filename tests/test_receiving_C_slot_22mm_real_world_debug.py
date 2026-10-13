@@ -71,9 +71,12 @@ def test_first_22mm_left_fold_has_actual_X_contact_at_C_notched_end():
     c_left_x = min(p[0] for p in c)
     notch_x = (c_left_x, c_left_x + notch_offset)
     first_x = (min(p[0] for p in first), max(p[0] for p in first))
-    # A 22mm component may legally only TOUCH at a material boundary.
-    # It is NOT required to span the Divider's full depth on Z.
-    assert max(first_x[0], notch_x[0]) <= min(first_x[1], notch_x[1]) + 1e-6, (
+    # Before CUTTING the certified 7-mm C relief, the first 22-mm
+    # left-side component must actually OVERLAP the notched end on X.
+    # Merely sharing an X boundary does not prove that the notch is needed.
+    # This is an X-only pre-cut witness; the FW29 Z mating and post-cut
+    # no-penetration must be independently verified in their own tests.
+    assert max(first_x[0], notch_x[0]) < min(first_x[1], notch_x[1]) - 1e-6, (
         "Left 22mm does not reach C's 7mm notched END on X: "
         f"left22 X={first_x}, notch X={notch_x}, C X="
         f"{(c_left_x, max(p[0] for p in c))}"
