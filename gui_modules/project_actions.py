@@ -68,11 +68,30 @@ def open_phase6_project(self):
 
 def load_phase6_project(self, path, *, open_designer=True):
         """載入 .p6fold 專案，並可選擇進入其保存的 3D 板件。"""
+        previous_designer = getattr(self, "fold_designer_app", None)
         payload, committed = self.project_controller.load(path)
         snapshot = self._apply_phase6_project_snapshot(committed)
         if not open_designer:
             return payload
         designer = self.open_original_fold_designer()
+        from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+        if designer is previous_designer and is_receiving_snapshot(snapshot):
+            # The primary application already owns an open designer. Reusing
+            # its window must still replace the loaded project's canonical
+            # workspace and refresh the real physical-part navigation.
+            import fold_designer_bridge as bridge
+            from gui_modules.application.fold_designer_composition_receiving import _apply_mode_snapshot
+
+            previous_guard = designer._phase6_baseline_guard
+            designer._phase6_baseline_guard = True
+            try:
+                designer.baseline_model_var.set(snapshot["model"])
+                designer._phase6_baseline_last_model = snapshot["model"]
+            finally:
+                designer._phase6_baseline_guard = previous_guard
+            _apply_mode_snapshot(bridge._phase6_composition(designer), vars(bridge), snapshot)
+            designer._refresh_part_buttons()
+            designer._phase6_current_project_path = str(Path(path))
         active = snapshot.get("active_part") or (snapshot.get("workspace") or {}).get("active_part")
         if active in getattr(designer, "available_parts", ()):
             designer.activate_part(active)
