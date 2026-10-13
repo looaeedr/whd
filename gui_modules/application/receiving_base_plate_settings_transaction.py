@@ -32,6 +32,27 @@ def commit_receiving_base_plate_settings(
         probe["receiving_base_plate"] = dict(config)
         receiving_base_plate_blank_dimensions(probe)
 
+        # Validate the true EAR mounting holes through their manufacturing
+        # owner, BEFORE accepting a new pattern.  LEFT/RIGHT blanks cannot
+        # silently reuse the CENTER fold's shrink dimensions.
+        from ae_engine.sheetmetal_part_adapters import build_receiving_base_plate_result
+        from ae_engine.ae import _receiving_base_weld_ear_mount_slots
+        from ae_engine.sheetmetal_drawing import DrawingScene
+
+        result = build_receiving_base_plate_result(
+            w=float(probe["w"]), h=float(config["height"]), t=float(probe["t"]),
+            shrink_top=float(config["shrink_top"]),
+            shrink_bottom=float(config["shrink_bottom"]),
+            shrink_left=float(config["shrink_left"]),
+            shrink_right=float(config["shrink_right"]),
+            bend=float(config["bend"]),
+            pattern=str(config["pattern"]),
+        )
+        _receiving_base_weld_ear_mount_slots(
+            DrawingScene(), result=result, pattern=str(config["pattern"]),
+            box_w=float(probe["w"]), t=float(probe["t"]),
+        )
+
     existed = "receiving_base_plate" in input_snapshot
     previous = deepcopy(input_snapshot.get("receiving_base_plate"))
     try:
