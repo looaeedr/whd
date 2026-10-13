@@ -285,7 +285,13 @@ class Phase6FinalSceneViewAdapter:
             part_key=active_part,
             alpha_bend=alpha_bend,
             finished_dimensions=dimensions(None),
-            thickness=thickness,
+            thickness=(
+                float(render_data.metadata["thickness"])
+                if active_part.startswith("base_plate:fixing_plate:")
+                and isinstance(getattr(render_data, "metadata", None), dict)
+                and "thickness" in render_data.metadata
+                else thickness
+            ),
             corner_dimension_text=dependencies.corner_dimension_text(
                 render_data
             ),
