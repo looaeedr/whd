@@ -417,6 +417,95 @@ class Phase6SettingsPanelOwnedRenderMixin:
                             entry.bind("<FocusOut>", lambda _e, p=context, t=target_key: self._corner_target_changed(p, t))
         return start_row + 1
 
+    def _render_owned_receiving_base_plate(self, parent, start_row, projection, state):
+        """Receiving-only operator choice for the EXISTING physical Base Plate."""
+        from ae_engine.sheetmetal_part_adapters import (
+            RECEIVING_BASE_PATTERN_LEFT,
+            RECEIVING_BASE_PATTERN_CENTER,
+            RECEIVING_BASE_PATTERN_RIGHT,
+        )
+
+        frame = ttk.LabelFrame(parent, text="受電箱實體底板選型", padding=5)
+        frame.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
+        values = dict(projection.get("values") or {})
+        pattern_var = tk.StringVar(master=frame, value=str(values.get("pattern") or ""))
+        ttk.Label(frame, text="型式（必須指定，不自動推測）").grid(
+            row=0, column=0, columnspan=3, sticky="w"
+        )
+        choices = (
+            ("左片：上下折彎", RECEIVING_BASE_PATTERN_LEFT),
+            ("中片：上下＋雙側折彎", RECEIVING_BASE_PATTERN_CENTER),
+            ("右片：上下折彎", RECEIVING_BASE_PATTERN_RIGHT),
+        )
+        for index, (label, value) in enumerate(choices):
+            ttk.Radiobutton(
+                frame, text=label, value=value, variable=pattern_var,
+            ).grid(row=1, column=index, sticky="w", padx=(0, 5), pady=(2, 5))
+
+        fields = (
+            ("height", "實體標稱高度"),
+            ("shrink_top", "上縮邊"),
+            ("shrink_bottom", "下縮邊"),
+            ("shrink_left", "左縮邊"),
+            ("shrink_right", "右縮邊"),
+            ("bend", "上下折彎"),
+        )
+        vars_by_key = {"pattern": pattern_var}
+        for index, (key, label) in enumerate(fields):
+            row, col = divmod(index, 3)
+            cell = ttk.Frame(frame)
+            cell.grid(row=2 + row, column=col, sticky="ew", padx=(0, 5), pady=2)
+            ttk.Label(cell, text=label + " (mm)").pack(anchor="w")
+            raw = values.get(key)
+            var = tk.StringVar(
+                master=cell, value=setting_number_text(raw) if raw is not None else "",
+            )
+            ttk.Entry(cell, textvariable=var, width=12, justify=tk.CENTER).pack(fill="x")
+            vars_by_key[key] = var
+
+        status_var = tk.StringVar(
+            master=frame,
+            value=("已配置實體板型" if projection.get("configured")
+                   else "未配置：僅允許預覽，正式製造仍阻擋"),
+        )
+        ttk.Label(frame, textvariable=status_var).grid(
+            row=4, column=0, columnspan=3, sticky="w", pady=(5, 0),
+        )
+
+        def submit():
+            if self._receiving_base_plate_commit is None:
+                status_var.set("沒有可用的底板設定交易入口")
+                return
+            try:
+                payload = {"pattern": pattern_var.get()}
+                payload.update({key: float(vars_by_key[key].get()) for key, _ in fields})
+                self._receiving_base_plate_commit(payload)
+            except (ValueError, TypeError, KeyError, RuntimeError) as exc:
+                status_var.set("套用失敗：" + str(exc))
+                return
+            status_var.set("已套用實體底板；2D／3D 與專案保存使用相同配置")
+
+        def restore_unconfigured():
+            if self._receiving_base_plate_commit is None:
+                status_var.set("沒有可用的底板設定交易入口")
+                return
+            try:
+                self._receiving_base_plate_commit(None)
+            except (ValueError, TypeError, KeyError, RuntimeError) as exc:
+                status_var.set("還原失敗：" + str(exc))
+                return
+            status_var.set("已還原未配置；正式製造保持阻擋")
+
+        apply_button = ttk.Button(frame, text="套用實體底板", command=submit)
+        apply_button.grid(row=5, column=1, sticky="e", pady=(5, 0))
+        reset_button = ttk.Button(frame, text="還原為未配置", command=restore_unconfigured)
+        reset_button.grid(row=5, column=2, sticky="e", pady=(5, 0))
+        state["receiving_base_plate_vars"] = vars_by_key
+        state["receiving_base_plate_status_var"] = status_var
+        state["receiving_base_plate_apply_button"] = apply_button
+        state["receiving_base_plate_reset_button"] = reset_button
+        return start_row + 1
+
     def render_context_extensions(self, parent, context, start_row):
         """Dispatch Settings context extensions through the canonical panel owner."""
         if self._context_extension_projection is not None:
@@ -452,6 +541,11 @@ class Phase6SettingsPanelOwnedRenderMixin:
             "bottom_wrap_widget": None,
         }
         next_row = int(start_row)
+        base_projection = projection.get("receiving_base_plate")
+        if base_projection is not None:
+            next_row = self._render_owned_receiving_base_plate(
+                parent, next_row, dict(base_projection), state
+            )
         box_projection = projection.get("box_structure")
         if box_projection:
             next_row = self._render_owned_box_structure(
