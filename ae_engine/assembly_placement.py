@@ -543,7 +543,6 @@ def resolve_divider_placement(snapshot: Mapping[str, object], stable_id: str) ->
         # Place the entire physical Divider so that the REAL skin,
         # after folding and true-sheet-thickness expansion, owns that
         # boundary. This also preserves the divider-side joint mapping.
-        from .cabinet_types import policy as cabinet_family_policy
         from .door_dividers import derive_box_body_dividers
         from .assembly_geometry import folded_profile_segment_center_from_full_envelope
 
