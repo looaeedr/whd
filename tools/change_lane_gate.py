@@ -558,17 +558,10 @@ def evaluate_pr(
     lane = classify_changes(
         changed_paths, verified_ci_scheduling=verified_ci_scheduling,
     )
-    if lane == "GOVERNANCE_DIRECT_X":
-        if not isinstance(head_ref, str) or not head_ref.startswith(GOVERNANCE_BRANCH_PREFIXES):
-            raise ChangeLaneDenied("GOVERNANCE_REQUIRES_DEDICATED_BRANCH")
-        return {
-            "status": "PASS", "lane": lane,
-            "reason": "PURE_NON_PRODUCT_GOVERNANCE",
-            "path_count": len(changed_paths),
-            "head_sha": head_sha, "base_sha": base_sha,
-        }
+    # After bootstrap, governance and product changes share one X boundary.
+    # No governance/*, docs/* or skills/* direct-X bypass is permitted.
     if head_ref != INTEGRATION_BRANCH:
-        raise ChangeLaneDenied("PRODUCT_OR_MIXED_REQUIRES_LOCALX")
+        raise ChangeLaneDenied("ALL_X_CHANGES_REQUIRE_LOCALX")
     try:
         require_publish_approval(
             repo=repo, pr_number=int(pr["number"]),
@@ -581,7 +574,7 @@ def evaluate_pr(
         raise ChangeLaneDenied(f"PRODUCT_REQUIRES_EXACT_USER_SLASH_PUSH:{exc}") from exc
     return {
         "status": "PASS", "lane": lane,
-        "reason": "LOCALX_USER_SLASH_PUSH_VERIFIED",
+        "reason": "WINDOWS_LOCALX_UAT_AND_SLASH_PUSH_VERIFIED",
         "path_count": len(changed_paths),
         "head_sha": head_sha, "base_sha": base_sha,
     }
@@ -606,12 +599,10 @@ def main() -> int:
         checked = require_new_code_taipei(
             opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
         )
-        comments = None
-        if lane != "GOVERNANCE_DIRECT_X":
-            comments = _comments(
-                event["repository"]["full_name"], int(pr["number"]),
-                os.environ.get("GITHUB_TOKEN", ""),
-            )
+        comments = _comments(
+            event["repository"]["full_name"], int(pr["number"]),
+            os.environ.get("GITHUB_TOKEN", ""),
+        )
         result = evaluate_pr(
             event=event, changed_paths=paths, comments=comments,
             verified_ci_scheduling=(
@@ -621,12 +612,10 @@ def main() -> int:
         )
         result["timezone"] = TAIWAN_ZONE
         result["new_python_lines_checked"] = checked
-        if lane != "GOVERNANCE_DIRECT_X":
-            # Trusted X workflow gate: allow X to be ahead of localX only
-            # when *every* X-only commit is pure non-product governance.
-            result["x_only_governance_commit_count"] = require_x_only_governance_history(
-                opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
-            )
+        # X-only historical governance is a readback exception, not a new bypass.
+        result["x_only_governance_commit_count"] = require_x_only_governance_history(
+            opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
+        )
     except (ChangeLaneDenied, KeyError, TypeError, ValueError, OSError) as exc:
         print(json.dumps({
             "status": "DENY", "reason": str(exc),
