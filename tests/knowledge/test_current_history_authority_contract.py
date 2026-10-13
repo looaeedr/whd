@@ -266,18 +266,14 @@ def test_beta_skill_navigation_does_not_resurrect_retired_preflight() -> None:
     assert "no local-machine permission" in text
 
 
-def test_remote_qa_route_checks_explicit_github_only_approval_before_dc() -> None:
-    text = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
+def test_remote_qa_route_is_github_localx_first_and_does_not_grant_dc() -> None:
+    qa = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
     dispatch = read(".agents/skills/engineering/派工/SKILL.md")
-    assert "整合路線先看使用者當次授權範圍，再決定是否可用 DC" in text
-    assert "不得先試探、連線或要求 DC 斷線證據" in text
-    assert "按當次授權選路" in text
-    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in text
-    assert "GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING" in text
-    assert "LOCALX_INTEGRATION_PENDING" in text
-    assert "不可假記" in text
-    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in dispatch
-
+    assert "GITHUB_LOCALX_FIRST" in qa and "GITHUB_LOCALX_FIRST" in dispatch
+    assert "expected_head_sha" in qa
+    assert "不呼叫 DC" in dispatch
+    assert "WINDOWS_LOCALX_SYNC_PENDING" in qa
+    assert "不要求每張 PR 重複授權" in qa
 
 def test_ci_qa_reference_does_not_resurrect_legacy_merge_or_fresh_branch_rule() -> None:
     contract = read(".agents/skills/engineering/monitoring-remote-qa/CI_SHARDING_ACCEPTANCE_CONTRACT.md")
@@ -289,16 +285,15 @@ def test_ci_qa_reference_does_not_resurrect_legacy_merge_or_fresh_branch_rule() 
     assert "Neither sentence is a current WHD" in contract
     assert "Product PRs target `localX`" in contract
     assert "requires a fresh `/推推`" in contract
-    assert "specific user approval for that Issue/PR" in contract
+    assert "specific user approval for that Issue/PR" not in contract
     assert "FULL_COLLECTION == UNIQUE_SHARD_UNION" in contract
     assert "FLAKY-WARNING" in contract
-    assert "GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1" in nav
-    assert "LOCALX_SYNC_PENDING" in nav
+    assert "GITHUB_LOCALX_FIRST" in nav
+    assert "WINDOWS_LOCALX_SYNC_PENDING" in nav
     assert "不能先探測 DC" in nav
 
 def test_dispatch_default_localx_integration_is_continuation_not_extra_user_approval() -> None:
     import json
-
     agents = read("AGENTS.md")
     dispatch = read(".agents/skills/engineering/派工/SKILL.md")
     qa = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
@@ -306,19 +301,16 @@ def test_dispatch_default_localx_integration_is_continuation_not_extra_user_appr
     gate = json.loads(read(".agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json"))
     assert "DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1" in agents
     assert "DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1" in dispatch
-    assert "不要求使用者每張 PR 再下合併命令" in dispatch
-    assert "不得要求每張 PR 另下一次合併指令" in qa
-    assert "不需每張 PR 另下合併指令" in nav
-    assert gate["default_integration_route"] == "DC_LOCALX_FIRST"
-    assert gate["integration_routes"]["DC_LOCALX_FIRST"]["on_success"] == "LOCALX_SYNCED"
-    assert "local and GitHub readback" in gate["route_readback_invariants"]["DC_LOCALX_FIRST"]
-    assert "LOCALX_SYNC_PENDING" in gate["integration_routes"]["GITHUB_ONLY_EXPLICIT_SCOPE"]["on_success"]
-    assert "verified_dc_connection_failure" in gate["integration_routes"]["DC_UNREACHABLE_FALLBACK"]["requires"]
-    assert "兩條路徑均不能聲稱本機已合併或同步" not in agents
-    assert "兩者均記錄 `LOCALX_SYNC_PENDING`" not in dispatch
-    assert "先由 DC 最終整合到本機 `localX`" in dispatch
+    assert "不需要另下一張 PR 合併口令" in dispatch
+    assert "不要求每張 PR 重複授權" in qa
+    assert "GITHUB_LOCALX_FIRST" in nav
+    assert gate["default_integration_route"] == "GITHUB_LOCALX_FIRST"
+    assert "WINDOWS_LOCALX_SYNC_PENDING" in gate["integration_routes"]["GITHUB_LOCALX_FIRST"]["on_success"]
+    assert "external_dc_approval" in gate["integration_routes"]["EXPLICIT_DC_LOCALX"]["requires"]
+    assert "DC_LOCALX_FIRST" not in agents
+    assert "DC_LOCALX_FIRST" not in dispatch
+    assert "DC_LOCALX_FIRST" not in qa
     assert "不豁免" in agents
-
 
 def test_retired_continuity_pitfalls_do_not_present_removed_machine_guards_as_current() -> None:
     """Archived failure evidence must not offer removed control-plane executables."""
