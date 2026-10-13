@@ -708,7 +708,7 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 
 ## 三份 localX 與人工驗收發布規則 (LOCALX_THREE_COPY_UAT_V1)
 
-- 只有一個 GitHub 整合來源：`origin/localX`。CoreELEC `whd-dev:/workspace/whd` 的 `localX` 是 AI 施工、整合與開發測試的工作區；Windows `Z:\新WHD` 的 `localX` 是使用者自行更新、親自操作、測試及最終驗收的唯一使用者測試區。三者不是三條發布分支，也都不是正式 `X=cleanup/2d-3d-sync`。
+- 只有一個 GitHub 整合來源：`origin/localX`。CoreELEC `whd-dev:/workspace/whd` 的 `localX` 是 AI 施工、整合與開發測試的工作區；Windows `Z:\localX` 的 `localX` 是使用者自行更新、親自操作、測試及最終驗收的唯一使用者測試區。三者不是三條發布分支，也都不是正式 `X=cleanup/2d-3d-sync`。
 - 工作成果經 exact HEAD 必要測試後，自動、安全、非強制合入 GitHub `localX`；CoreELEC 作為施工區負責將已測試成果整合回 GitHub，Windows 從 GitHub 安全快轉更新，不得用任一個副本的舊狀態強制覆蓋其他副本。Windows 同步由使用者自行執行。
 - 正式 X 的所有新修改（含治理/文件/CI）一律先經 `localX`；舊的 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 僅能用於此規則正式部署前的歷史解讀，不能作為後續直送 X 的執行授權。
 - GitHub CI GREEN、PR merged、CoreELEC 開發測試與同步成功，都不代表使用者已實測；只有使用者在 Windows 測試區的實際驗收才可記為 MANUAL_UAT_PASS。正式 X 發布必須有使用者針對當下 exact `origin/localX` SHA 的人工驗收通過，再有之後的當次 `/推推`；若驗收後 localX HEAD 變更，必須重新確認新的版本，禁止沿用舊驗收或舊 `/推推`。
