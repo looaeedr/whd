@@ -32,21 +32,15 @@ from ae_engine.receiving_nfb_transactions import _verify_hole_locations
 from ae_engine.receiving_nfb_pair_acceptance import validate_nfb_door_base_pair
 
 
-def export_verified_receiving_nfb_base_plate(
+def prepare_verified_receiving_nfb_base_plate(
     bundle: NfbVerifiedDraftSubmission, *,
     layout: Mapping[str, object],
     current_snapshot: Mapping[str, object],
     base_spec: BasePlatePartSpec,
-    output_directory,
     index_path=INDEX_PATH,
     profile_path=None,
 ):
-    """Return (absolute DXF path, typed composition), from one real physical Bay.
-
-    A caller's previous PART_ONLY green result never authorizes a later export.
-    The saved NFBConfig and actual physical plate must still match this
-    operation's source evidence and manufacturing metadata.
-    """
+    """Reverify one saved NFB pair without writing; shared by single and pair DXF."""
     if not isinstance(bundle, NfbVerifiedDraftSubmission) or not bundle.can_submit:
         raise ValueError("NFB base needs current source-verified submitted proof")
     if not isinstance(layout, Mapping) or not isinstance(current_snapshot, Mapping):
@@ -140,6 +134,23 @@ def export_verified_receiving_nfb_base_plate(
     )
     if pair_receipt.approval_scope != 'PAIR_PART_ONLY_EVIDENCE_NOT_WHOLE_MFG2':
         raise ValueError('NFB_PAIR_SCOPE_NOT_PART_ONLY')
+    return composed, pair_receipt, panels[0], profile
+
+
+def export_verified_receiving_nfb_base_plate(
+    bundle: NfbVerifiedDraftSubmission, *,
+    layout: Mapping[str, object],
+    current_snapshot: Mapping[str, object],
+    base_spec: BasePlatePartSpec,
+    output_directory,
+    index_path=INDEX_PATH,
+    profile_path=None,
+):
+    """Export one currently verified physical Base Plate PART_ONLY DXF."""
+    composed, _pair_receipt, _panel, _profile = prepare_verified_receiving_nfb_base_plate(
+        bundle, layout=layout, current_snapshot=current_snapshot,
+        base_spec=base_spec, index_path=index_path, profile_path=profile_path,
+    )
     root = Path(output_directory)
     if not root.is_dir():
         raise ValueError("NFB base partial destination must already be a directory")
