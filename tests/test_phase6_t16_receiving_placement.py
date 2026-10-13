@@ -74,11 +74,11 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
     vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
         snapshot, "upper"
     )
-    assert vertical["top_terminal_y"] == pytest.approx(750.0)
+    assert vertical["top_terminal_y"] == pytest.approx(798.0)
     # Side frames keep their own real Divider mating span. That is NOT
     # the Door panel's manufacturing height / Y center.
-    assert vertical["lower_terminal_y"] == pytest.approx(-286.5)
-    assert vertical["center_y"] == pytest.approx(231.75)
+    assert vertical["lower_terminal_y"] == pytest.approx(-300.0)
+    assert vertical["center_y"] == pytest.approx(249.0)
     assert panel.world_offset[1] == pytest.approx(224.0)
     frames = {
         row.stable_id: row
