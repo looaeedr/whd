@@ -2,7 +2,7 @@
 import unittest
 from tools.localx_publish_gate import (
     require_publish_approval, LocalXPublishDenied,
-    require_conversational_bugfix_localx_integration, LocalXIntegrationDenied,
+    require_conversational_bugfix_localx_integration, require_github_localx_integration, LocalXIntegrationDenied,
 )
 
 class PublishGateTests(unittest.TestCase):
@@ -79,9 +79,11 @@ class ConversationBugfixIntegrationTests(unittest.TestCase):
             "ci_conclusion": "SUCCESS", "required_tests_complete": True,
         }
 
-    def test_explicit_conversation_fix_flows_to_localx_without_second_dc_approval(self):
+    def test_dc_is_never_implicit_in_bugfix_authorization(self):
+        with self.assertRaises(LocalXIntegrationDenied):
+            require_conversational_bugfix_localx_integration(authorization=self.auth, delivery=self.delivery)
         require_conversational_bugfix_localx_integration(
-            authorization=self.auth, delivery=self.delivery)
+            authorization=dict(self.auth, dc_explicitly_authorized=True), delivery=self.delivery)
 
     def test_discussing_a_bug_does_not_grant_dc(self):
         self.auth["intent"] = "DISCUSS_BUG"
@@ -117,6 +119,38 @@ class ConversationBugfixIntegrationTests(unittest.TestCase):
             with self.subTest(stage=stage), self.assertRaises(LocalXIntegrationDenied):
                 require_conversational_bugfix_localx_integration(
                     authorization=self.auth, delivery=item)
+
+    def test_default_github_localx_after_ci_green_without_dc(self):
+        delivery = dict(self.delivery, mergeable=True, base_change_impact_checked=True)
+        require_github_localx_integration(authorization=self.auth, delivery=delivery)
+        require_github_localx_integration(
+            authorization=dict(self.auth, github_only=True, dc_forbidden=True),
+            delivery=delivery,
+        )
+
+    def test_default_github_route_requires_exact_success_and_safe_pr(self):
+        delivery = dict(self.delivery, mergeable=True, base_change_impact_checked=True)
+        for delta in (
+            {"mergeable": False}, {"base_change_impact_checked": False},
+            {"ci_conclusion": "FAILURE"}, {"ci_head_sha": "b" * 40},
+            {"pr_base": "cleanup/2d-3d-sync"}, {"stage": "PUBLISH_X"},
+        ):
+            with self.subTest(delta=delta), self.assertRaises(LocalXIntegrationDenied):
+                require_github_localx_integration(
+                    authorization=self.auth, delivery=dict(delivery, **delta))
+
+    def test_default_github_route_blocks_scope_drift_and_revocation(self):
+        delivery = dict(self.delivery, mergeable=True, base_change_impact_checked=True)
+        for delta in (
+            {"revoked": True}, {"localx_merge_forbidden": True},
+            {"source": "MEMORY_SUMMARY"}, {"intent": "DISCUSS_BUG"},
+        ):
+            with self.subTest(delta=delta), self.assertRaises(LocalXIntegrationDenied):
+                require_github_localx_integration(
+                    authorization=dict(self.auth, **delta), delivery=delivery)
+        with self.assertRaises(LocalXIntegrationDenied):
+            require_github_localx_integration(
+                authorization=self.auth, delivery=dict(delivery, scope="another task"))
 
     def test_untrusted_context_is_rejected(self):
         item = dict(self.auth, source="MEMORY_SUMMARY")
