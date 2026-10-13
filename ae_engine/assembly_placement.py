@@ -476,9 +476,16 @@ def _divider_fw_face_flush_contract(
     if abs(outward_sign) != 1.0:
         raise ValueError("family outward_sign must be +1 or -1")
     body_front_skin = float(coordinate["body_front_skin"])
-    body_fw_midplane = body_front_skin - outward_sign * thickness / 2.0
+    # Distinct 2-mm sheets cannot occupy identical FRONT FW solid volume.
+    # The BoxBody FW occupies [front-2T, front] in the folded world in
+    # the Receiving reference. Attach the Divider FW OUTSIDE skin to the
+    # BoxBody FW INSIDE skin, rather than overlaying both full-thickness
+    # skins at exactly the same Z planes. Same-plane equalities previously
+    # passed tests while hiding a physical overlap (false mating).
+    body_fw_inside_skin = body_front_skin - outward_sign * thickness
+    divider_fw_midplane = body_fw_inside_skin - outward_sign * thickness / 2.0
     world_fw_relative = axis_to_world_z_sign * float(fw_axis)
-    return float(body_fw_midplane - world_fw_relative), axis_to_world_z_sign
+    return float(divider_fw_midplane - world_fw_relative), axis_to_world_z_sign
 
 def _divider_position(snapshot: Mapping[str, object], stable_id: str, axis: str, boundary: str, depth_offset: float):
     columns, cells = _topology(snapshot)
