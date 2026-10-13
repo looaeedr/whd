@@ -120,6 +120,17 @@ def test_receiving_operator_base_settings_submit_reset_and_real_scene(tmp_path):
         assert app._phase6_input_snapshot["receiving_base_plate"] == physical
         assert "失敗" in state["receiving_base_plate_status_var"].get()
         fields["shrink_left"].set("85")
+        fields["pattern"].set(RECEIVING_BASE_PATTERN_LEFT)
+        state["receiving_base_plate_apply_button"].invoke()
+        # CENTER's 772-mm blank cannot be submitted as a flat plate with
+        # 670-mm weld-ear holes.  This must fail BEFORE mutating the source.
+        assert app._phase6_input_snapshot["receiving_base_plate"] == physical
+        assert "失敗" in state["receiving_base_plate_status_var"].get()
+
+        # The flat left/right pattern uses a 710-mm blank at W800:
+        # two existing EAR mounts span 670 with the native 20-mm edge inset.
+        fields["shrink_left"].set("45")
+        fields["shrink_right"].set("45")
         for new_pattern in (RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT):
             fields["pattern"].set(new_pattern)
             state["receiving_base_plate_apply_button"].invoke()
