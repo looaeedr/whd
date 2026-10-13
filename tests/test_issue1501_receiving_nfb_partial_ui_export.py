@@ -58,6 +58,10 @@ def _case(monkeypatch, *, changed_source=False):
         action,"read_nfb_runtime_source_profiles_csv",
         lambda path: (profile,),
     )
+    # This action contract mocks DXF I/O; actual format rebinding is tested
+    # separately against real saved ezdxf bytes in #1502.
+    monkeypatch.setattr(action,"resolve_editable_nfb_source_profile",
+                        lambda path, *, profile: profile)
     hits=[]
     def exporter(snapshot, inner_id, output_path, **kwargs):
         hits.append((snapshot,inner_id,output_path,kwargs))
