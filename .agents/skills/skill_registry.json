@@ -553,15 +553,10 @@
         "遠端QA",
         "同步遠端QA",
         "remote QA",
-        "GitHub Actions",
-        "workflow run",
-        "workflow job",
-        "run_id",
-        "remote CI"
+        "monitoring-remote-qa"
       ],
       "file_globs": [
-        ".github/workflows/*qa*.yml",
-        ".github/workflows/*qa*.yaml"
+        ".agents/skills/engineering/monitoring-remote-qa/**"
       ],
       "required_skills": [
         "monitoring-remote-qa",
@@ -631,8 +626,7 @@
         "phase6_project_*.py"
       ],
       "required_skills": [
-        "驗證板件與DXF",
-        "monitoring-remote-qa"
+        "驗證板件與DXF"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",

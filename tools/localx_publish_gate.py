@@ -91,7 +91,7 @@ class LocalXIntegrationDenied(ValueError):
 def require_conversational_bugfix_localx_integration(
     *, authorization: dict, delivery: dict,
 ) -> None:
-    """Validate scoped continuation to DC LOCALX_INTEGRATION, never X publish.
+    """Validate explicitly authorized DC continuation only, never X publish.
 
     The caller must source authorization from the authenticated user
     conversation and delivery from fresh GitHub PR/CI readback. Untrusted
@@ -113,7 +113,8 @@ def require_conversational_bugfix_localx_integration(
     ):
         raise LocalXIntegrationDenied("NO_EXPLICIT_CONVERSATION_BUGFIX_AUTH")
     if (
-        authorization.get("github_only") is True
+        authorization.get("dc_explicitly_authorized") is not True
+        or authorization.get("github_only") is True
         or authorization.get("dc_forbidden") is True
         or authorization.get("revoked") is True
     ):
@@ -137,3 +138,48 @@ def require_conversational_bugfix_localx_integration(
         or delivery["work_branch"] in (INTEGRATION_BRANCH, PRODUCTION_X)
     ):
         raise LocalXIntegrationDenied("LOCALX_EXACT_HEAD_REQUIRED")
+
+
+def require_github_localx_integration(*, authorization: dict, delivery: dict) -> None:
+    """Validate authorized same-scope GitHub localX merge, never DC or X.
+
+    Calling code must verify authentic conversation authority and exact GH
+    PR/CI readback; supplying dicts does not authenticate the claimed source.
+    """
+    import re
+
+    if not isinstance(authorization, dict) or not isinstance(delivery, dict):
+        raise LocalXIntegrationDenied("UNVERIFIED_CONVERSATION_OR_DELIVERY")
+    if (
+        authorization.get("source") != "AUTHENTICATED_USER_CONVERSATION"
+        or authorization.get("intent") not in ("EXECUTE_BUGFIX", "DISPATCH_ISSUE")
+        or not isinstance(authorization.get("instruction_id"), str)
+        or not authorization["instruction_id"].strip()
+        or not isinstance(authorization.get("scope"), str)
+        or not authorization["scope"].strip()
+        or authorization.get("repo") != "looaeedr/whd"
+        or authorization.get("revoked") is True
+        or authorization.get("localx_merge_forbidden") is True
+    ):
+        raise LocalXIntegrationDenied("NO_SCOPED_GITHUB_LOCALX_AUTH")
+    if (
+        delivery.get("repo") != authorization["repo"]
+        or delivery.get("scope") != authorization["scope"]
+        or delivery.get("stage") != "LOCALX_INTEGRATION"
+        or delivery.get("pr_base") != INTEGRATION_BRANCH
+        or delivery.get("ci_conclusion") != "SUCCESS"
+        or delivery.get("required_tests_complete") is not True
+        or delivery.get("mergeable") is not True
+        or delivery.get("base_change_impact_checked") is not True
+    ):
+        raise LocalXIntegrationDenied("GITHUB_LOCALX_SCOPE_OR_CI_NOT_VERIFIED")
+    sha = delivery.get("head_sha")
+    if (
+        not isinstance(sha, str)
+        or not re.fullmatch(r"[0-9a-f]{40}", sha)
+        or delivery.get("ci_head_sha") != sha
+        or not isinstance(delivery.get("work_branch"), str)
+        or not delivery["work_branch"].strip()
+        or delivery["work_branch"] in (INTEGRATION_BRANCH, PRODUCTION_X)
+    ):
+        raise LocalXIntegrationDenied("GITHUB_LOCALX_EXACT_HEAD_REQUIRED")
