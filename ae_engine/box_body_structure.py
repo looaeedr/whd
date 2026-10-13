@@ -320,7 +320,12 @@ def _receiving_left_side_correct_bend_side(rows):
         # The effective material interval is the authority for this
         # reflected physical piece; stale formed-length overrides belong
         # only to the operator's original full-box Fold Chain.
-        row.pop("formed_length", None)
+        # The FW material interval is 25 mm, but the certified OUTSIDE
+        # occupation remains 29 mm for the W800/T2 reference. Moving this
+        # flange in the left-side fold chain must not discard formed_length.
+        # All other reflected intervals use their new material-only spans.
+        if row.get("phase6_key") != "fw_left":
+            row.pop("formed_length", None)
         row.pop("ui_len_add", None)
         result.append(row)
     return result
