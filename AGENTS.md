@@ -699,3 +699,12 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - GitHub CI GREEN、PR merged、CoreELEC 開發測試與同步成功，都不代表使用者已實測；只有使用者在 Windows 測試區的實際驗收才可記為 MANUAL_UAT_PASS。正式 X 發布必須有使用者針對當下 exact `origin/localX` SHA 的人工驗收通過，再有之後的當次 `/推推`；若驗收後 localX HEAD 變更，必須重新確認新的版本，禁止沿用舊驗收或舊 `/推推`。
 - `/推推` 前應回報此次包含的產品/治理修改及 localX、CoreELEC、Windows 各自已證實的 SHA。未驗證的副本標 UNKNOWN，不得假稱已同步。無驗收證據時只准停在待驗收狀態，不得將其當作授權請求反覆重問。
 - 以上政策不變更 `main` 歷史隔離、不准 reset/force-push、不准清除未提交修改、不授權未指定的本機操作。平台層須要求 X PR 通過 `WHD Change Lane Gate` 且禁止直接推送 X；只有文檔或工作流不能替代分支保護。
+
+## /推推 最終新版本發布硬閘門 (LOCALX_PUBLISH_OFFICIAL_RELEASE_V1)
+
+- **/推推 最後一步是建立正式 GitHub Release，不是 PR merge**：依 LOCALX_THREE_COPY_UAT_V1，使用者先於 Windows 測試區人工驗收精確 localX SHA、再下達當次 /推推。通過必要 CI、正式 X PR 已合併、GitHub localX 安全回同步後，核對 HEAD(X) = HEAD(GitHub localX) = X merge SHA，才可發布新的正式 Git tag 和 GitHub Release。Windows／CoreELEC 若尚未同步仍獨立標記待辦，不得聲稱已同步。
+- **自動完成而不誤發布**：新增 .github/workflows/whd-official-release.yml 僅對 GitHub localX push 進行檢查。localX 與正式 X 不同，或 X 最新提交不是來自已驗收、已 /推推 的 localX→X 產品合併 PR，均不得發布。由 X merge commit 兩個不可變 parent 取回原 X/base 與 localX/head，驗證 GitHub owner 的 WHD_WINDOWS_LOCALX_UAT_V1 與 WHD_LOCALX_PUBLISH_AUTH_V1 精確 SHA 留言，以及 UAT 先於 /推推；不得信任合併後會漂移的分支 SHA。
+- **版本與稽核**：命名為 vYYYY.MM.DD-x-<merge SHA 前12碼>，日期以 GitHub merged_at 轉為 Asia/Taipei。Tag 的目標必須是完整 40 位 X 合併 SHA。Release 內容須列來源 PR、正式 SHA、授權與發布說明。重跑只可確認並重用相同 tag/SHA/Release；衝突時失敗，不重寫或移動舊 tag。version.txt 依 .gitignore 保持不進 Git、不得為發版改寫。
+- **最後完成硬閘門**：只有 Release 公開發布（不是 draft、不是 prerelease）、tag SHA 精確對齊 X merge、URL 存在且已回讀，才可回報 OFFICIAL_RELEASED。否則 OFFICIAL_RELEASE_PENDING／OFFICIAL_RELEASE_FAILED；PR merged、CI GREEN、GitHub branches synced 都不等於 /推推 完成。權限或 API 失敗時原工作流必須保留失敗並可重跑；不重新合併 X，也不再索取一次 /推推。
+- **不擴權**：此自動化僅對規則部署後、實際具備上述證據的 /推推 生效，不追溯歷史提交、不觸碰 main、不取消 Windows 人工驗收及本機資料保護。
+
