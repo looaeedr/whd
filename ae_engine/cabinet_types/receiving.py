@@ -241,6 +241,7 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
     source 框.dxf A/B. Do not use the Divider web/core as the Y terminal.
     """
     from ae_engine.assembly_placement import resolve_divider_placement
+    from ae_engine.assembly_geometry import folded_profile_segment_center_from_full_envelope
     from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
     from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
 
@@ -300,10 +301,15 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
     if placement.placement_kind not in {'divider_horizontal', 'divider_horizontal_inward'}:
         raise ValueError("Receiving lower-frame Divider has unsupported assembly orientation")
 
-    # Divider assembly boundary is the shared lower end of this upper bay.
-    # Its inward folded web/core belongs to the Divider part and must not
-    # shorten the vertical A/B frame stock by 13.5 mm.
-    lower_support_y = float(placement.world_offset[1])
+    # Use the *real physical* upper skin of the folded shared Divider.
+    # resolve_divider_placement aligns this skin with the Door layout
+    # boundary, so it is -300 for H1600/upper-bay 1100/T2, not -286.5.
+    _core_u, core_z = folded_profile_segment_center_from_full_envelope(
+        divider.fold_profile, divider.core_segment_index
+    )
+    lower_support_y = (
+        float(placement.world_offset[1]) + float(core_z) + t / 2.0
+    )
     span = float(top_y) - float(lower_support_y)
     if span <= 0.0:
         raise ValueError("Receiving vertical frame physical terminal datums do not define a positive span")

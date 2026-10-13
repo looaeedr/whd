@@ -531,7 +531,44 @@ def resolve_divider_placement(snapshot: Mapping[str, object], stable_id: str) ->
     axis = match.group("axis")
     boundary = match.group("boundary")
     depth_offset, depth_axis_sign = _divider_fw_face_flush_contract(snapshot, stable_id)
-    position = _divider_position(snapshot, stable_id, axis, boundary, depth_offset)
+    boundary_position = _divider_position(snapshot, stable_id, axis, boundary, depth_offset)
+    position = boundary_position
+    if axis == "HORIZONTAL" and str(
+        snapshot.get("model") or snapshot.get("cabinet_type") or ""
+    ).strip().upper() in {"受電箱", "RECEIVING"}:
+        # Door-layout H=1100 denotes the installed UPPER mating face of
+        # the horizontal Divider, not the centre of its folded D core.
+        # The receiving inner-door A/B frame runs from Head inside face
+        # to this actual physical core upper skin (A/B source H=1098).
+        # Place the entire physical Divider so that the REAL skin,
+        # after folding and true-sheet-thickness expansion, owns that
+        # boundary. This also preserves the divider-side joint mapping.
+        from .cabinet_types import policy as cabinet_family_policy
+        from .door_dividers import derive_box_body_dividers
+        from .assembly_geometry import folded_profile_segment_center_from_full_envelope
+
+        columns, _cells = _topology(snapshot)
+        t = float(snapshot.get("t", 2.0))
+        d = float(snapshot.get("d", 350.0))
+        dividers = derive_box_body_dividers(
+            columns, depth=d, thickness=t,
+            frame_width=float(snapshot.get("fw", 29.0)),
+            layout_scope=str(snapshot.get("door_layout_scope") or "main"),
+            handle_edges=dict(snapshot.get("door_handle_edges") or {}),
+            model_name="受電箱",
+        )
+        divider = next((row for row in dividers if row.stable_id == stable_id), None)
+        if divider is None:
+            raise ValueError("Receiving horizontal divider missing from layout")
+        _core_u, core_z = folded_profile_segment_center_from_full_envelope(
+            divider.fold_profile, divider.core_segment_index
+        )
+        physical_upper_skin_local_y = float(core_z) + t / 2.0
+        position = (
+            float(boundary_position[0]),
+            float(boundary_position[1]) - physical_upper_skin_local_y,
+            float(boundary_position[2]),
+        )
     if axis == "VERTICAL":
         placement_kind = "divider_vertical_inward" if depth_axis_sign < 0.0 else "divider_vertical"
     else:
@@ -545,7 +582,7 @@ def resolve_divider_placement(snapshot: Mapping[str, object], stable_id: str) ->
         mate_target="box_body:door_layout",
         relationship="SHARED_STRUCTURAL_DIVIDER",
         placement_kind=placement_kind,
-        semantic_position=position,
+        semantic_position=boundary_position,
     )
 
 
