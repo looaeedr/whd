@@ -59,6 +59,31 @@ def project_common_box(snapshot):
     from ae_engine.receiving_shared_settings import normalize_set_settings
     result = deepcopy(dict(snapshot))
     box = normalize_common_box(result.get(BOX_KEY))
+    if "door_state" not in box:
+        # Older quantity files saved the common dimensions but omitted its Door
+        # authority. Cached Fold profiles and Set/Bay aliases are not authority:
+        # initialize the same Family topology as a fresh quantity cabinet.
+        from ae_engine.cabinet_types import receiving
+        from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
+        from ae_engine.sheetmetal_part_adapters import complete_partition
+
+        defaults = receiving.apply_family_defaults({"t": result.get("t", 2.0)})
+        result.setdefault("t", defaults["t"])
+        family_columns = receiving.default_door_layout_columns()
+        widths = complete_partition([row[0] for row in family_columns[:-1]], box["w"])
+        if not widths.valid or len(widths.values) != len(family_columns):
+            raise ValueError("W 不符合 Family 門分割")
+        columns = []
+        for width, (_, heights) in zip(widths.values, family_columns):
+            partition = complete_partition(heights[:-1], box["h"])
+            if not partition.valid or len(partition.values) != len(heights):
+                raise ValueError("H 不符合 Family 門分割")
+            columns.append([width, list(partition.values)])
+        defaults["door_layout_columns"] = columns
+        box["door_state"] = {
+            key: deepcopy(defaults[key])
+            for key in RECEIVING_DOOR_STATE_KEYS if key in defaults
+        }
     result[BOX_KEY] = box
     result.update({axis: box[axis] for axis in ("w", "h", "d")})
     if "door_state" in box:
