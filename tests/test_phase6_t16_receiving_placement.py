@@ -87,8 +87,11 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
         )
     }
     expected = {
-        "inner_door:upper:left_frame": (-363.0, "box_body:left_side"),
-        "inner_door:upper:right_frame": (374.0, "box_body:right_side"),
+        # A = 22/46/22 mm frame from the original verified Receiving DXF.
+        "inner_door:upper:left_frame": (-374.0, "box_body:left_side"),
+        # B = 22/20/46/22 mm folded right frame; source and physical
+        # skin contact are checked independently by mother-plate tests.
+        "inner_door:upper:right_frame": (363.0, "box_body:right_side"),
     }
     for stable_id, (x, mother_plate) in expected.items():
         placement = resolve_assembly_placement(snapshot, stable_id)

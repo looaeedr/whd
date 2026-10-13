@@ -20,9 +20,12 @@ def test_one_inner_door_derives_four_stable_frame_parts():
     )
     assert frames[0].signed_fold_chain == (22.0, 46.0, 22.0)
     assert frames[1].signed_fold_chain == (22.0, 46.0, 22.0)
-    assert frames[3].signed_fold_chain == (22.0, 46.0, 22.0)
-    assert frames[2].signed_fold_chain == (-22.0, 20.0, 46.0, 22.0)
-    assert frames[2].material_lengths == (22.0, 20.0, 46.0, 22.0)
+    assert frames[2].signed_fold_chain == (22.0, 46.0, 22.0)
+    assert frames[2].material_lengths == (22.0, 46.0, 22.0)
+    assert frames[2].blank_width == pytest.approx(90.0)
+    assert frames[3].signed_fold_chain == (-22.0, 20.0, 46.0, 22.0)
+    assert frames[3].material_lengths == (22.0, 20.0, 46.0, 22.0)
+    assert frames[3].blank_width == pytest.approx(110.0)
     assert all(length > 0 for frame in frames for length in frame.material_lengths)
 
 
@@ -54,7 +57,7 @@ def test_frame_render_data_has_own_blank_bends_and_fold_profile():
 
     frame = derive_inner_door_frames(
         "door-A", spans={"top": 500, "bottom": 500, "left": 800, "right": 800}, thickness=2
-    )[2]
+    )[3]
     data = build_inner_door_frame_render_data(frame)
     blank = measure_unfolded_blanks(data, part_key=frame.stable_id)[0]
     assert blank.width == pytest.approx(sum(frame.material_lengths))
