@@ -613,6 +613,22 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
+            # Restore the existing per-Bay linkage without bringing back the
+            # removed layer-count Edit button. The 2D highlight is authority.
+            link_row = ttk.Frame(settings_host)
+            link_row.pack(anchor="w", pady=3)
+            ttk.Button(
+                link_row, text="連動選取的連",
+                command=lambda: perform(lambda: ports["share"](
+                    "inner_door_layers", targets(),
+                )) if targets() else None,
+            ).pack(side="left", padx=(0, 5))
+            ttk.Button(
+                link_row, text="解除本連連動",
+                command=lambda: perform(lambda: ports["unlink"](
+                    "inner_door_layers",
+                )),
+            ).pack(side="left")
             # #1501: ONLY a genuinely READY current highlighted Set/Bay
             # gets the explicit partial manufacturing action. The existing
             # physical writer is still revalidated after folder selection.
