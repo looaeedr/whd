@@ -127,7 +127,7 @@ def test_submitted_nfb_to_existing_base_is_real_part_only_dxf(pattern, tmp_path)
     ("wrong_saved_config", "owner/config does not match"),
     ("source_corrupt", "source bytes changed"),
     ("no_submitted", "owner/config does not match"),
-    ("wrong_source_profile", "profile is missing or changed"),
+    ("wrong_source_profile", "model profile is missing"),
     ("missing_original", None),
 ))
 def test_reject_changed_nfb_source_or_plate_before_manufacturing(tmp_path, mutation, reason):
@@ -146,8 +146,10 @@ def test_reject_changed_nfb_source_or_plate_before_manufacturing(tmp_path, mutat
     elif mutation == "no_submitted":
         v.layout["sets"][0]["bays"][0]["nfb_config_submitted"] = False
     elif mutation == "wrong_source_profile":
+        # The editable checksum is not a manufacturing lock. A truly wrong
+        # brand/model mapping remains invalid instead.
         v.profile.write_text(v.profile.read_text(encoding="utf-8-sig").replace(
-            v.bundle.source_inventory.source_sha256, "a" * 64
+            "400_140X257_107.dxf", "not_this_model.dxf"
         ), encoding="utf-8")
     elif mutation == "missing_original":
         v.original.unlink()
