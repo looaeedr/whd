@@ -89,7 +89,7 @@ def _slot(cx, cy, length, diameter):
 
 
 def build_fixing_plate_source_render_data(
-    part_id: str, *, source_kind: str = LARGE_SOURCE,
+    part_id: str, *, source_kind: str = LARGE_SOURCE, snapshot=None,
 ):
     """Real standalone PartRenderData from source CUTTING, never fake BEND.
 
@@ -135,9 +135,23 @@ def build_fixing_plate_source_render_data(
         y_segments=(MaterialSegment("Y", "source_flat_height", pattern.height, "ORIGINAL_EAR_DXF"),),
         source="ORIGINAL_EAR_DXF", revision=1,
     )
-    return PartRenderData(
-        scene=scene, material=material, unfolded_topology=topology,
-        metadata={
+    mating = None
+    if snapshot is not None and source_kind == LARGE_SOURCE:
+        from .receiving_base_fixing_plate_mating import (
+            resolve_base_fixing_plate_xy_mating,
+        )
+        from .receiving_base_fixing_plate import receiving_base_fixing_plate_previews
+        data = dict(snapshot or {})
+        candidates = receiving_base_fixing_plate_previews(
+            data, available_parts=("base_plate",),
+        )
+        if key not in {row.part_id for row in candidates}:
+            raise ValueError("BASE_FIXING_PLATE_CABINET_MISMATCH")
+        if any(row.part_id == key and row.applicable_slot_pair_indexes is not None for row in candidates):
+            mating = resolve_base_fixing_plate_xy_mating(
+                data, key.rsplit(":", 1)[-1],
+            )
+    metadata = {
             "stable_id": key,
             "physical_part_role": "BASE_FIXING_PLATE",
             "source_profile": pattern.key,
@@ -154,7 +168,25 @@ def build_fixing_plate_source_render_data(
             "source_cutting_verified": True,
             "formed_geometry_verified": False,
             "weld_z_verified": False,
-        },
+            "factory_bend_compensation_required": False,
+            "xy_mating_proven": mating is not None,
+            "nominal_weld_inside_skin_x_mm": (
+                mating.inside_skin_world_x_mm if mating is not None else None
+            ),
+            "nominal_base_fixing_hole_world_x_mm": (
+                mating.selected_fixing_world_x_mm if mating is not None else None
+            ),
+            "nominal_base_fixing_hole_world_y_mm": (
+                mating.selected_fixing_world_y_mm if mating is not None else ()
+            ),
+            "nominal_slot_pair_indexes": (
+                mating.selected_slot_indexes if mating is not None else None
+            ),
+            "manufacturing_ready": False,
+        }
+    return PartRenderData(
+        scene=scene, material=material, unfolded_topology=topology,
+        metadata=metadata,
     )
 
 
