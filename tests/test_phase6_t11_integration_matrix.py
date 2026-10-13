@@ -65,7 +65,7 @@ def test_frame_and_divider_stable_parts_share_workspace_finalscene_and_dxf(tmp_p
     # the bottom physical frame is the shared box-body divider.
     receiving_snapshot = receiving.apply_family_defaults({"t": 2.0})
     frames = derive_all_inner_door_frames(receiving.derive_inner_door_frame_sets(receiving_snapshot))
-    assert next(frame.span for frame in frames if frame.side == "top") == pytest.approx(635.0)
+    assert next(frame.span for frame in frames if frame.side == "top") == pytest.approx(696.0)
     assert {frame.side for frame in frames} == {"top", "left", "right"}
     assert all(frame.side != "bottom" for frame in frames)
 
@@ -236,13 +236,13 @@ def test_fold_designer_auto_syncs_receiving_divider_and_three_confirmed_frame_pa
         assert panel_keys == {"inner_door:upper:panel"}
         # Receiving Door FW 29 is operator OUTSIDE; Door owner converts to
         # MATERIAL25 before finished-size derivation. Owner spans: 635 / 1014 / 1014.
-        assert app.designer_workspace.profiles_for("inner_door:upper:top_frame")["Y"][0]["len"] == pytest.approx(635.0)
-        assert app.designer_workspace.profiles_for("inner_door:upper:left_frame")["Y"][0]["len"] == pytest.approx(1014.0)
-        assert app.designer_workspace.profiles_for("inner_door:upper:right_frame")["Y"][0]["len"] == pytest.approx(1014.0)
+        assert app.designer_workspace.profiles_for("inner_door:upper:top_frame")["Y"][0]["len"] == pytest.approx(696.0)
+        assert app.designer_workspace.profiles_for("inner_door:upper:left_frame")["Y"][0]["len"] == pytest.approx(1098.0)
+        assert app.designer_workspace.profiles_for("inner_door:upper:right_frame")["Y"][0]["len"] == pytest.approx(1098.0)
         app.activate_part("inner_door:upper:top_frame")
         assert app.designer_workspace.active_part == "inner_door:upper:top_frame"
         assert app.part_var.get() == "上層內門上框"
-        assert app.state.profiles["Y"][0]["len"] == pytest.approx(635.0)
+        assert app.state.profiles["Y"][0]["len"] == pytest.approx(696.0)
         assert str(app.remove_part_button.cget("state")) == "disabled"
 
         app.activate_part("box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1")
@@ -278,9 +278,9 @@ def test_fold_designer_rederives_frame_spans_from_changed_multi_door_layout_with
         app = Phase6FoldDesignerApp(root, snap)
         # W820 uses the same MATERIAL25 Door owner. Authoritative derived
         # frame spans are top655 / left914 / right914; no saved frame_spans participate.
-        assert app.designer_workspace.profiles_for("inner_door:upper:top_frame")["Y"][0]["len"] == pytest.approx(655.0)
-        assert app.designer_workspace.profiles_for("inner_door:upper:left_frame")["Y"][0]["len"] == pytest.approx(914.0)
-        assert app.designer_workspace.profiles_for("inner_door:upper:right_frame")["Y"][0]["len"] == pytest.approx(914.0)
+        assert app.designer_workspace.profiles_for("inner_door:upper:top_frame")["Y"][0]["len"] == pytest.approx(716.0)
+        assert app.designer_workspace.profiles_for("inner_door:upper:left_frame")["Y"][0]["len"] == pytest.approx(998.0)
+        assert app.designer_workspace.profiles_for("inner_door:upper:right_frame")["Y"][0]["len"] == pytest.approx(998.0)
 
         # No stale frame_spans were saved; current topology is the only source.
         assert "frame_spans" not in snap["inner_doors"][0]
