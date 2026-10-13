@@ -233,3 +233,58 @@ def test_split_left_divider_joint_selects_only_real_upper_contact_boundary():
     # Adversarial interface: none of the two real patches reaches Y=-200.
     # The solver MUST fail closed, not choose a random island.
     assert _divider_boundary_contact_patches(mother,terminal,junction_y=-200.) == ()
+
+
+def test_receiving_left_right_and_divider_fw_are_truly_assembled_not_only_coplanar():
+    """Actual 3D oracle: both 29-mm flanges align, 22-mm LEFT bends inward.
+
+    A reflected left panel previously sent its first 22-mm leg OUTSIDE W,
+    moving the multi-piece scene centroid by 11mm. All three 29mm flanges
+    could pass a Z-only coplanarity check while the cabinet was misassembled.
+    """
+    from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+    from tests.test_issue74_divider_side_front_penetration import _piece_bands
+    from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+    from ae_engine.divider_manufacturing import resolve_divider_placement_evidence
+
+    snapshot = _snapshot()
+    body = _body_part(snapshot)
+    _divider, divider = _divider_part(snapshot)
+    world = _phase6_build_joint_world_geometry(
+        (body, divider), (800., 1600., 350.), 2.,
+    )
+    placement = resolve_divider_placement_evidence(divider, body, world)
+    assert placement.valid and placement.fw_face_flush
+    assert placement.expected_fw_formed_occupation == pytest.approx(29.)
+    assert placement.box_body_left_fw_planes == pytest.approx((172., 174.))
+    assert placement.box_body_right_fw_planes == pytest.approx((172., 174.))
+    assert placement.divider_fw_planes == pytest.approx((172., 174.))
+
+    bands = _piece_bands(body)
+    all_points = []
+    expected_bands = (
+        ("left_side", "fw_left", (-400., -371.), "zl1"),
+        ("right_side", "fw_right", (371., 400.), "zr2"),
+    )
+    for role, fw_key, expected, _terminal in expected_bands:
+        skins = world["mapped_skin_triangles_by_part"]["box_body:"+role]
+        all_points.extend(point for skin in skins for point in skin.world)
+        a, b = next((a,b) for name,a,b in bands["box_body:"+role] if name==fw_key)
+        points = [point for skin in skins
+                  if a+1e-6 < sum(p[0] for p in skin.flat)/3 < b-1e-6
+                  for point in skin.world]
+        assert points
+        observed = (min(p[0] for p in points), max(p[0] for p in points))
+        assert observed == pytest.approx(expected,abs=1e-5)
+        assert observed[1] - observed[0] == pytest.approx(29.)
+        assert {round(p[2],6) for p in points} == {172.,174.}
+
+    # Entire finished cabinet is W800; reflecting the left 22mm OUTSIDE
+    # would shift all assembled X by 11mm despite Z planes staying flush.
+    outside = (min(p[0] for p in all_points),max(p[0] for p in all_points))
+    assert outside == pytest.approx((-400.,400.),abs=1e-5)
+    left_piece = next(p for p in body.render_data.pieces if p.role=="left_side")
+    assert left_piece.fold_profile[0].angle == pytest.approx(-90.)
+    assert [round(bend.position,5) for bend in left_piece.render_data.fold_guides] == [
+        22.,362.,387.,413.,
+    ]

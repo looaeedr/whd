@@ -313,15 +313,34 @@ def _receiving_left_side_correct_bend_side(rows):
         row = deepcopy(original[source_index])
         row["len"] = lengths[index]
         if index == 0:
-            # The left edge is now adjacent to the D core. Its material
-            # flange must turn INTO the enclosure like the right-side edge;
-            # keeping the old +90 would push the left solid outside W.
+            # Left outer 22-mm leg folds INTO the enclosure. Keeping +90
+            # when the DXF's two middle bend stations were reflected sends
+            # this leg 22mm outside the nominal left skin, re-centering the
+            # entire multi-piece 3D assembly by 11mm and shifting BOTH side
+            # FW 29-mm mating bands away from the Divider.
             row["angle"] = -90.0
         # The effective material interval is the authority for this
         # reflected physical piece; stale formed-length overrides belong
         # only to the operator's original full-box Fold Chain.
         row.pop("formed_length", None)
         row.pop("ui_len_add", None)
+        if str(row.get("phase6_key") or "") in {"fw_left", "zl1"}:
+            # Preserve the operator's outside-length authority even when the
+            # physical flat traversal swaps D/FW/inner bends. FW material25
+            # is formed29, and zl1 material22 is formed24 in the T2 sample.
+            # The certified Divider CROSS rule consumes zl1's genuine
+            # outside size, never the shifted flat bend-station coordinate.
+            key = str(row["phase6_key"])
+            source_segment = original[source_index]
+            source_formed = source_segment.get("formed_length")
+            if source_formed is None and source_segment.get("ui_len_add") is not None:
+                source_formed = (
+                    float(source_segment["len"]) +
+                    abs(float(source_segment["ui_len_add"]))
+                )
+            if source_formed is None or float(source_formed) <= float(row["len"]):
+                raise ValueError(f"RECEIVING_LEFT_{key.upper()}_FORMED_OUTSIDE_SOURCE_MISSING")
+            row["formed_length"] = float(source_formed)
         result.append(row)
     return result
 

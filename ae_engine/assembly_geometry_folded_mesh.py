@@ -76,8 +76,35 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
         base_len = _as_float(_segment_value(segs[base_index], "len", 0.0)) if segs else 0.0
         d_half = base_len / 2.0
         if role == "left_side":
+            # The dedicated Receiving LEFT DXF reverses the inside bend
+            # stations into x=22/362/387/413. Its D core now precedes the
+            # FW/front stages in flat traversal. Reverse the longitudinal
+            # placement direction as well: the FW must still mate the FRONT
+            # divider at +Z and the first 22-mm leg must remain at the REAR.
+            # Generic side/back-split left pieces keep the legacy traversal.
+            roles = tuple(str(_segment_value(row, "phase6_key", "") or "")
+                          for row in segs)
+            flipped = roles == (
+                "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
+            )
+            if flipped:
+                # The source-corrected left D flat core is shorter than the
+                # conventional nominal D-2T material core. Keep the actual
+                # 340-mm flat D, but anchor its FRONT FW to the SAME finished
+                # outside-depth datum as the right side, rather than centering
+                # unequal flat cores and pulling FW 6 mm behind the mother.
+                formed_d = float(getattr(piece, "formed_outer_width", 0.0))
+                nominal_core = formed_d - 2.0 * t
+                if nominal_core <= 0:
+                    raise ValueError("Receiving left formed depth must exceed 2T")
+                depth_reanchor = nominal_core - base_len
+            else:
+                depth_reanchor = 0.0
             return tuple((
-                sides.mid_surface(-1) + float(p[2]), float(p[1]) + formed_y_offset, d_half - float(p[0])
+                sides.mid_surface(-1) + float(p[2]),
+                float(p[1]) + formed_y_offset,
+                (d_half + depth_reanchor + float(p[0])
+                 if flipped else d_half - float(p[0])),
             ) for p in (points or ()))
         return tuple((
             sides.mid_surface(+1) - float(p[2]), float(p[1]) + formed_y_offset, float(p[0]) + d_half

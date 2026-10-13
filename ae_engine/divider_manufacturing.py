@@ -472,6 +472,28 @@ def resolve_divider_final_geometry(
                 variables=registry_variables,
                 mating_fold_sign_by_end=mating_fold_orientation["sign_by_end"],
             )
+            left_fold = next(
+                (piece.fold_profile for piece in getattr(box_body.render_data, "pieces", ())
+                 if getattr(piece, "role", None) == "left_side"), ()
+            )
+            if tuple(str(seg.phase6_key) for seg in left_fold) == (
+                "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
+            ):
+                # Vault's certified CROSS rule assumes the former zl1/zl2/FW/D
+                # geometry and can over/undercut this dedicated Receiving
+                # structure. The user-provided C drawing is the independently
+                # identifiable part; its sample CUTTING is not permission to
+                # reuse Vault's old fold-end inverse for changed dimensions.
+                # The real assembled penetration / post-refold check must own
+                # this Receiving part's dynamic clearance.
+                from .receiving_frame_baseline import certified_source_catalog
+                c = certified_source_catalog()["C"]
+                if (
+                    c["role"] != "divider"
+                    or abs(float(c["blank_width"]) - float(divider.render_data.material.bounds[2])) > 1e-5
+                ):
+                    raise ValueError("RECEIVING_C_DIVIDER_SOURCE_GEOMETRY_MISMATCH")
+                certified = None
     except Exception:
         # A certified Receiving HORIZONTAL Divider must fail closed. Other
         # families/axes retain the provisional discovery path.
