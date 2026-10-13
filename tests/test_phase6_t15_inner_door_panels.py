@@ -89,9 +89,18 @@ def test_inner_door_panel_has_real_manufacturing_render_data(tmp_path):
         if isinstance(item, PolylinePrimitive)
         and str(item.layer).upper() == "CUTTING"
     ]
-    assert len(cutting_outlines) == 1
-    cutting_x = [float(point.x) for point in cutting_outlines[0].points]
-    cutting_y = [float(point.y) for point in cutting_outlines[0].points]
+    # Vault baseline can contain inner CUTTING apertures as additional
+    # contours. Exactly ONE contour has the finished blank's full extent.
+    outer = [
+        shape for shape in cutting_outlines
+        if max(p.x for p in shape.points) - min(p.x for p in shape.points)
+           == pytest.approx(panel.unfolded_width)
+        and max(p.y for p in shape.points) - min(p.y for p in shape.points)
+           == pytest.approx(panel.unfolded_height)
+    ]
+    assert len(outer) == 1
+    cutting_x = [float(point.x) for point in outer[0].points]
+    cutting_y = [float(point.y) for point in outer[0].points]
     assert max(cutting_x) - min(cutting_x) == pytest.approx(723.0)
     assert max(cutting_y) - min(cutting_y) == pytest.approx(1075.0)
 
@@ -297,7 +306,8 @@ def test_inner_door_hole_features_reach_real_vault_cutting_and_dxf(tmp_path):
         obj for obj in doc.modelspace()
         if obj.dxftype() == "CIRCLE" and obj.dxf.layer == "CUTTING"
     ]
-    assert len(cutting_circles) >= len(original) + 1
+    original_cutting = [row for row in original if row.layer == "CUTTING"]
+    assert len(cutting_circles) >= len(original_cutting) + 1
 
 
 def test_inner_door_editor_reuses_original_vault_hole_editor_and_stashes_per_panel():

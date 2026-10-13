@@ -414,8 +414,28 @@ def build_inner_door_panel_render_data(
         raise ValueError("Vault Door baseline inner-door CUTTING width mismatch")
     if abs((bounds[3] - bounds[1]) - panel.unfolded_height) > 1e-6:
         raise ValueError("Vault Door baseline inner-door CUTTING height mismatch")
+    # The NFB X/Y authority consumes these named real folded segments.
+    # Vault baseline owns the contours/holes, but the Receiving stable ID
+    # and physical 19/core/19 topology must not revert to generic Door IDs.
+    xcore = panel.unfolded_width - panel.fold_left - panel.fold_right
+    ycore = panel.unfolded_height - panel.fold_bottom - panel.fold_top
+    topology = UnfoldedBlankTopology(
+        piece_id=str(panel.stable_id),
+        x_segments=(
+            MaterialSegment("X", "inner_door_fold_left", panel.fold_left, "DOOR_FOUR_SIDE_FLANGE"),
+            MaterialSegment("X", "inner_door_face_width", xcore, "DOOR_FOUR_SIDE_FLANGE"),
+            MaterialSegment("X", "inner_door_fold_right", panel.fold_right, "DOOR_FOUR_SIDE_FLANGE"),
+        ),
+        y_segments=(
+            MaterialSegment("Y", "inner_door_fold_bottom", panel.fold_bottom, "DOOR_FOUR_SIDE_FLANGE"),
+            MaterialSegment("Y", "inner_door_face_height", ycore, "DOOR_FOUR_SIDE_FLANGE"),
+            MaterialSegment("Y", "inner_door_fold_top", panel.fold_top, "DOOR_FOUR_SIDE_FLANGE"),
+        ),
+        source="DOOR_FOUR_SIDE_FLANGE", revision=2,
+    )
     return replace(
         built,
+        unfolded_topology=topology,
         metadata={
             **dict(built.metadata or {}),
             "stable_id": str(panel.stable_id),
