@@ -162,3 +162,74 @@ def test_undersized_receiving_preview_is_diagnostic_but_cannot_export(tmp_path):
     with pytest.raises(ValueError, match="RECEIVING_BASELINE_FIXED_HOLE_OUTSIDE_MATERIAL"):
         save_part_render_data_dxf(left, tmp_path/"invalid-left.dxf")
     assert not (tmp_path/"invalid-left.dxf").exists()
+
+
+def test_split_left_divider_joint_selects_only_real_upper_contact_boundary():
+    """A source relief must not suppress a genuine mating line or forge one."""
+    from tests.test_issue1050_receiving_mother_plate_marking import (
+        _snapshot, _full_receiving_geometry,
+    )
+    from ae_engine.cabinet_types import receiving
+    from ae_engine.door_dividers import derive_box_body_dividers
+    from ae_engine.receiving_joint_marking import (
+        _divider_side_contact, _divider_boundary_contact_patches,
+        _mapped_plane_groups, _outward_normal, _group_world_polygon,
+        _polygon_world_exterior, _plane_basis, _unit,
+    )
+    from ae_engine.assembly_geometry import resolve_physical_mating_region
+    from ae_engine.door_dividers import divider_terminal_mating_region
+    from ae_engine.contracts import ResolvedPhysicalMatingRegion
+    from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+
+    snap = _snapshot()
+    geometry = _full_receiving_geometry(snap)
+    world = _phase6_build_joint_world_geometry(
+        geometry.parts, (800., 1600., 350.), 2.,
+    )
+    divider = derive_box_body_dividers(
+        snap["door_layout_columns"], depth=350., thickness=2.,
+        model_name="受電箱", frame_width=29., layout_scope=snap["door_layout_scope"],
+    )[0]
+    left = next(piece for piece in geometry.part("box_body").render_data.pieces
+                if piece.role == "left_side")
+    assert len(left.render_data.material.interiors) == 8
+    assert left.render_data.metadata["baseline_sample_bends_match"] is True
+
+    actual = _divider_side_contact(
+        geometry=geometry, world=world, divider=divider,
+        locator_id="box_body:left_side", dimensions=(800., 1600., 350.),
+        sheet_thickness=2.,
+    )
+    assert actual.locator_part_id == "box_body:left_side"
+    assert actual.attached_part_id == divider.stable_id
+    # 1100 upper-bay boundary is world Y=-300. Do not select the
+    # tiny detached relief-side island at Y=-325..-327.
+    assert any(abs(point[1]+300.) < 1e-6 for point in actual.overlap_world)
+    assert all(float(point[1]) >= -317. for point in actual.overlap_world)
+
+    part = geometry.part(divider.stable_id)
+    terminal = resolve_physical_mating_region(
+        part_id=divider.stable_id,
+        semantic=divider_terminal_mating_region(divider, "MIN"),
+        render_data=part.render_data, x_profile=part.x_profile,
+        y_profile=part.y_profile, placement=part.placement,
+        dimensions=(800.,1600.,350.), offset=part.offset, sheet_thickness=2.,
+    )
+    group = next(g for g in _mapped_plane_groups(
+        world["mapped_skin_triangles_by_part"]["box_body:left_side"]
+    ) if abs(float(g[0].world[0][0])+398.) < 1e-6 and
+             tuple(round(v,4) for v in _unit(_outward_normal(g[0]))) == (1.,0.,0.))
+    origin=tuple(float(v) for v in group[0].world[0])
+    n=(1.,0.,0.); u,v=_plane_basis(n)
+    polygon=_group_world_polygon(group,origin=origin,u=u,v=v)
+    mother=ResolvedPhysicalMatingRegion(
+        part_id="box_body:left_side",
+        region_id="ACTUAL_SOURCE_SKIN",region_role="LOCATOR_SUPPORT_FACE",
+        physical_face_kind="MAPPED_SKIN",
+        supporting_plane=(origin,n),outward_normal=n,
+        world_polygon=_polygon_world_exterior(polygon,origin=origin,u=u,v=v),
+        flat_mapping=tuple(group),
+    )
+    # Adversarial interface: none of the two real patches reaches Y=-200.
+    # The solver MUST fail closed, not choose a random island.
+    assert _divider_boundary_contact_patches(mother,terminal,junction_y=-200.) == ()
