@@ -9,6 +9,8 @@ whd_schema: WHD_DOC_META_V1
 
 # 執行開發任務
 
+**改程式前的必做條件**：執行 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1`；先實際讀受影響程式完整函式／呼叫鏈、CURRENT 規格與資料檔及既有測試，交代 `SOURCE_READ_EVIDENCE` 後才可寫產品程式或測試。若來源或正確判準缺失，回報 `SOURCE_READ_PRECONDITION_FAILED`，繼續只讀查證，**不可看檔名就直接改、不得憑測試輸出猜幾何公式**。此條不擴大 RC/DC 權限。
+
 使用使用者指定的 Issue 或明確開發任務，先依 `AGENTS.md` 判定入口：只有使用者當次明確 `/接手` 才可經 DC 於 CoreELEC `whd-dev:/workspace/whd` 進行產品施工、測試與提交；`/派工` 的施工、測試與提交只能使用 GitHub／排程／雲端執行器，DC 僅在 exact CI SUCCESS 後的 `LOCALX_INTEGRATION` 階段可用來最終整合本機 `localX`。純治理修改優先走 GitHub／雲端治理分支直送 X，沒有當次明確授權不得使用 DC／本機。產品成果依現行 `localX` 整合規則交付，正式 X 產品發布仍需當次 `/推推`。
 
 使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。

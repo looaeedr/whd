@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
+description: /debug and diagnosing-bugs route for bugs or performance regressions; read the real source code, call chain, CURRENT specifications and tests before any edits, then reproduce RED, fix and verify GREEN.
 whd_doc_role: CURRENT
 whd_contract: diagnosing-bugs
 whd_canonical: null
@@ -16,6 +16,19 @@ Use the tightest loop the current runtime can actually execute. Specialized brow
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
 When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
+
+## Phase 0: SOURCE_READ_BEFORE_MUTATION_V1（`/debug` 前置必讀）
+
+`/debug` is an explicit invocation alias of this **existing** `diagnosing-bugs` Skill, not a second independent debug implementation. It does not grant local/RC/DC execution permission.
+
+**Before changing product source code, tests, fixtures or expected values:**
+
+1. Fresh-read official `X` `AGENTS.md`, the exact working ref/HEAD, the actual implicated source modules, and the authoritative CURRENT requirements (including relevant diagrams / CSV / JSON / DXF and customer-approved rules). Search hits, file names, issue summaries and a previous agent's claims are **not** proof that a file has been read.
+2. Follow and inspect the **real entrypoint → caller/callee → intermediate coordinate and state transforms → 2D/3D/collision/manufacturing/output** path. Read complete affected functions and all necessary adjacent code before deciding what to replace; inspect existing regression tests, version differences, and product data. Scope reading to relevant modules rather than blindly opening the entire repository.
+3. Show a concise `SOURCE_READ_EVIDENCE` summary: source ref/HEAD, code paths and functions actually read, document/data authority, factual symptom and RED-capable test plan, and proposed minimal touched paths. Reading a passing test, existing screen output or code-derived constant never establishes manufacturing truth.
+4. If required sources or a normative rule cannot be verified, return `SOURCE_READ_PRECONDITION_FAILED`. Continue read-only investigation and ask about genuinely missing domain authority only; **do not patch product code or fabricate regression expected values**. Once evidence is available, proceed directly within the already-authorized scope.
+
+This prerequisite is for **source grounding**, not permission to speculate about the fix. Next build a targeted test that fails on the user's *actual* symptom (Phase 1/2) before attempting a repair. A GUI crash being absent is not proof that collision, alignment or geometry was fixed.
 
 ## Redact
 
@@ -71,7 +84,7 @@ Phase 1 is done when the loop is **tight** and **red-capable**: you can name **o
 - [ ] **Fast**: seconds, not minutes.
 - [ ] **Runnable in the available environment**: unattended when possible; if a human is unavoidable, use the self-contained HITL guide described above and keep the pass/fail signal explicit.
 
-If you catch yourself reading code to build a theory before this command exists, **stop: jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.
+Phase 0 source/spec reading is mandatory. If, after that grounding, you keep reading code only to justify a speculative patch instead of constructing a real red-capable check, **stop**. No red-capable command, no Phase 2.
 
 ## Phase 2: Reproduce + minimise
 

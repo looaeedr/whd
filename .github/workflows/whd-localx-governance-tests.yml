@@ -10,6 +10,7 @@ on:
       - tools/localx_publish_gate.py
       - tests/process/test_localx_publish_gate.py
       - tests/knowledge/test_current_history_authority_contract.py
+      - tests/knowledge/test_debug_source_read_gate_contract.py
       - .github/workflows/whd-localx-governance-tests.yml
 
 permissions:
@@ -32,4 +33,4 @@ jobs:
       - name: Governance tests
         run: |
           python -m pip install --disable-pip-version-check -q pytest
-          python -m pytest -q tests/process/test_localx_publish_gate.py tests/knowledge/test_current_history_authority_contract.py
+          python -m pytest -q tests/process/test_localx_publish_gate.py tests/knowledge/test_current_history_authority_contract.py tests/knowledge/test_debug_source_read_gate_contract.py

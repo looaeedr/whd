@@ -7,6 +7,14 @@ whd_schema: WHD_DOC_META_V1
 
 # WHD 開發與本地整合規則
 
+## 所有產品修改前先讀程式與文檔硬閘門 `SOURCE_READ_BEFORE_MUTATION_V1`
+
+- **適用所有入口**：`/debug`、`/派工`、`/接手` 與一般 BUG／功能修改。任何產品程式碼、幾何公式、GUI、3D、DXF、製造路徑、測試或 fixture 寫入前，都必須先完成真實來源閱讀；僅只讀診斷可先繼續，不得把「已搜尋到檔名」當作「已讀程式」。
+- **讀取範圍以真實影響鏈為準，不是無限制掃完整倉庫**：fresh-read 正式 `X=cleanup/2d-3d-sync` 的 `AGENTS.md`、目前施工分支的精確 ref/HEAD、與本問題直接相關的 CURRENT 規格／資料來源，接著讀完受影響函式的**實際內容**及入口 → 呼叫者／被呼叫者 → 資料轉換 → 2D/3D／製造輸出／保存等相關鏈路，並核對現有測試、資料檔、版本差異。需要時擴展到完整相關模組；不得只看片段就擅自寫公式或覆蓋現有邏輯。
+- **讀後要有可核對的 `SOURCE_READ_EVIDENCE`**：在第一筆程式／測試修改前簡短交代 (1) repo、來源 ref/HEAD；(2) 已讀程式檔與實際函式／呼叫路徑；(3) CURRENT 規格／CSV／JSON／DXF 等根據與衝突；(4) 使用者要修的真實症狀及可判斷 RED 的測試／重現方式；(5) 最小修改範圍。這是同輪事實摘要，不另要求使用者核准、也不建立工作槽／新憑證。不得虛構閱讀或測試證據。
+- **材料／座標錯誤的專項條件**：對折彎、截角、中隔與側板、裝配、孔位、碰撞，還須核對相應基準檔與座標系（尤其 Z 基準、變換、正反面、折向、避讓關係），以及資料進入 GUI、3D、碰撞檢查和製造輸出的實際路徑；不得以當前畫面／既有錯誤輸出／測試 fixture 反推規格。
+- **Fail closed**：缺任一必要原始碼／CURRENT 文檔、無法核對分支、讀到規格衝突或未取得可重現的正確性判準時，標 `SOURCE_READ_PRECONDITION_FAILED`，先補讀／查證／只讀診斷，**禁止猜測後直接寫產品程式或回歸期待值**。確認來源後直接續作，不用重問已授權的同範圍工作；此閘門不擴充 DC／本機權限，也不跳過 exact SHA CI、`localX` 與人工驗收。
+
 - **預設 `main` 歷史隔離（`MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY`）**：`main` 保持原狀，視為非現行歷史分支；**不清理、不縮成 tombstone、不自動合併、鏡像、同步或刪除**。正式執行／治理唯一權威是 `X=cleanup/2d-3d-sync`。凡 GitHub／Agent／Skill／CI 查詢現行 WHD 規則，必須明確指定 `ref=cleanup/2d-3d-sync`；未指定 ref、工具默認落到 `main` 或無法確定所讀 HEAD 時，禁止把結果當 CURRENT，須重新以 X ref 讀取或 fail closed。舊 `WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1` 的 `MAIN_MINIMAL_TOMBSTONE_TREE` 要求已退役，不得再次啟動 `main` 清理；使用者另有當次明確指令才可另行規劃 `main` 變更。
 - **舊工單交易、工作槽與 lease 控制系統已退役**；不得要求其憑證、工作槽、Preflight receipt 或其他管控才能執行修改、測試、Git commit。
 - **入口及階段分流**：`/派工` 的施工、測試、commit、PR、CI 僅可在 GitHub／排程／雲端進行；同工單 exact SHA CI SUCCESS 後，**預設透過 GitHub PR 合併到遠端 `localX`（`GITHUB_LOCALX_FIRST`）**，不先進 DC。Windows `Z:\localX` 使用既有 Fast-forward 更新腳本並手動 GUI 驗收；`/接手` 需當次明確指令才能 RC 施工。
