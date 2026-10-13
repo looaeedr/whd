@@ -175,6 +175,18 @@ def refresh_structure_tree(
                 open=(key == "box_body"),
             )
 
+        # A read-only child in the inspection tree: not an exportable part.
+        from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
+        for preview in receiving_base_fixing_plate_previews(
+            snapshot, available_parts=available_parts
+        ):
+            tree.insert(
+                "part:base_plate", "end",
+                iid="preview:" + preview.part_id,
+                text=preview.display_name,
+                values=("待驗證",),
+            )
+
         mode = str(getattr(host, "_phase6_3d_display_mode", "assembly") or "assembly")
         active = str(getattr(workspace, "active_part", "") or "")
         selected_iid = (
@@ -328,6 +340,15 @@ def on_structure_tree_select(
         show_corner_data()
     elif iid.startswith("part:"):
         activate_part(iid[5:])
+    elif iid.startswith("preview:"):
+        from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
+        snapshot = dict(getattr(host, "_phase6_input_snapshot", {}) or {})
+        workspace = getattr(host, "designer_workspace", None)
+        parts = getattr(workspace, "available_parts", ()) or ()
+        for preview in receiving_base_fixing_plate_previews(snapshot, available_parts=parts):
+            if preview.part_id == iid[len("preview:"):]:
+                show_receiving_base_fixing_plate_preview(host, preview)
+                break
     return refresh_tree()
 
 
