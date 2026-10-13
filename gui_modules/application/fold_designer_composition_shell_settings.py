@@ -425,6 +425,29 @@ def sync_authoritative_derived_parts(
     plan = build_derived_part_sync_plan(request)
     navigation.apply_derived_sync_plan(plan)
 
+    # #1503: this is a real derived physical Part, not a menu-only label.
+    # Synchronize the W800/T2 left/right fixing plates into the authoritative
+    # workspace. Replacing the namespace also removes stale plates on Family
+    # or cabinet-dimension switches. A short source drawing is catalog-only.
+    from ae_engine.receiving_base_fixing_plate import (
+        BASE_FIXING_PLATE_PREFIX, receiving_base_fixing_plate_previews,
+    )
+    plate_previews = receiving_base_fixing_plate_previews(
+        snapshot, available_parts=workspace.available_parts,
+    )
+    navigation.sync_derived_parts(
+        namespace=BASE_FIXING_PLATE_PREFIX,
+        part_profiles={
+            part.part_id: {
+                "X": [{"len": part.nominal_source_outline_mm[0],
+                       "phase6_key": "base_fixing_source_x"}],
+                "Y": [{"len": part.nominal_source_outline_mm[1],
+                       "phase6_key": "base_fixing_source_y"}],
+            }
+            for part in plate_previews
+        },
+    )
+
     return (
         tuple(divider_profiles),
         tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
