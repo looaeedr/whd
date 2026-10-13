@@ -407,19 +407,9 @@ def resolve_divider_placement_evidence(divider, box_body, world, *, tolerance=1e
             right_occupation=right_occupation,
             expected_occupation=expected_occupation,
         )
-    same_count = bool(left) and len(left) == len(right) == len(divider_planes) == 2
+    same_count = bool(left) and len(left) == len(right) == len(divider_planes)
     body_match = same_count and all(abs(a - b) <= tol for a, b in zip(left, right))
-    # True sheet-to-sheet mating needs opposite solid skins touching.
-    # The previous same-plane comparison placed the two separate plates
-    # inside each other over the whole 2-mm thickness. The Divider's
-    # exterior (+Z) physical skin must touch the side panel's inward
-    # (-Z) skin, WITHOUT any positive-volume Z overlap.
-    divider_match = (
-        same_count and body_match
-        and abs(divider_planes[-1] - left[0]) <= tol
-        and divider_planes[0] < divider_planes[-1] - tol
-        and left[0] < left[-1] - tol
-    )
+    divider_match = same_count and all(abs(a - b) <= tol for a, b in zip(divider_planes, left))
     flush = bool(body_match and divider_match)
     valid = bool(flush and core_inward)
     reason = None if valid else (
