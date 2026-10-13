@@ -135,3 +135,26 @@ def test_real_native_lower_source_is_trace_only_not_a_pad_blank(tmp_path):
     assert not hasattr(observed.lower,"render_data")
     assert not hasattr(observed.lower,"manufacturing_scene")
     assert path.read_bytes()==original
+
+
+@pytest.mark.parametrize("part_key,metadata", [
+    ("base_plate:fixing_plate:left", {"manufacturing_ready": True}),
+    ("base_plate:fixing_plate:right", {"nfb_pad_mfg2_release_approved": True}),
+    ("fake", {"stable_id": "base_plate:fixing_plate:left",
+              "receiving_base_ear_weld_z_verified": True}),
+    ("fake", {"nfb_deferred_manufacturing_role": "BASE_FIXING_PLATE"}),
+])
+@pytest.mark.parametrize("part_only", [False, True])
+def test_new_visible_base_fixing_plate_never_bypasses_mfg_evidence(
+    tmp_path,part_key,metadata,part_only,
+):
+    out = tmp_path / "no_faked_fixing_plate"
+    calls = []
+    with pytest.raises(ValueError, match="BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED"):
+        save_resolved_manufacturing_geometry_dxf(
+            _geometry((part_key, metadata)), out,
+            save_part_render_data_dxf=_serializer(calls),
+            box_body_physical_piece_roles=(), part_only=part_only,
+        )
+    assert calls == []
+    assert not out.exists()

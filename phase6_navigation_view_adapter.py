@@ -175,6 +175,18 @@ def refresh_structure_tree(
                 open=(key == "box_body"),
             )
 
+        # A read-only child in the inspection tree: not an exportable part.
+        from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
+        for preview in receiving_base_fixing_plate_previews(
+            snapshot, available_parts=available_parts
+        ):
+            tree.insert(
+                "part:base_plate", "end",
+                iid="preview:" + preview.part_id,
+                text=preview.display_name,
+                values=("待驗證",),
+            )
+
         mode = str(getattr(host, "_phase6_3d_display_mode", "assembly") or "assembly")
         active = str(getattr(workspace, "active_part", "") or "")
         selected_iid = (
@@ -328,6 +340,15 @@ def on_structure_tree_select(
         show_corner_data()
     elif iid.startswith("part:"):
         activate_part(iid[5:])
+    elif iid.startswith("preview:"):
+        from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
+        snapshot = dict(getattr(host, "_phase6_input_snapshot", {}) or {})
+        workspace = getattr(host, "designer_workspace", None)
+        parts = getattr(workspace, "available_parts", ()) or ()
+        for preview in receiving_base_fixing_plate_previews(snapshot, available_parts=parts):
+            if preview.part_id == iid[len("preview:"):]:
+                show_receiving_base_fixing_plate_preview(host, preview)
+                break
     return refresh_tree()
 
 
@@ -467,6 +488,87 @@ def on_structure_tree_click(
     return "break"
 
 
+def show_receiving_base_fixing_plate_preview(host, preview):
+    """Show the user's original large-ear flat source, never a fake formed blank.
+
+    Deliberately separate from Part activation/export: the source silhouette
+    is valid for review, but its BEND, weld contact/Z and complete manufacturing
+    result are not approved.
+    """
+    import math
+    import tkinter as tk
+
+    win = tk.Toplevel(getattr(host, "root", None))
+    win.title(preview.display_name + "｜來源 2D 預覽（製造待驗證）")
+    win.resizable(False, False)
+    tk.Label(
+        win,
+        text=preview.display_name + "　來源平面外形｜板厚 T3",
+        font=("Microsoft JhengHei", 11, "bold"),
+    ).pack(padx=14, pady=(12, 4))
+    w, h = preview.nominal_source_outline_mm
+    scale, margin = 1.8, 35
+    canvas = tk.Canvas(
+        win, width=int(w * scale + 2 * margin),
+        height=int(h * scale + 2 * margin),
+        background="white", highlightthickness=1,
+    )
+    canvas.pack(padx=14, pady=6)
+
+    def screen(x, y):
+        return (margin + scale * x, margin + scale * (h - y))
+
+    r = preview.source_top_corner_radius_mm
+    outline = [(0., 0.), (w, 0.), (w, h-r)]
+    outline += [
+        (w-r + r*math.cos(math.radians(a)),
+         h-r + r*math.sin(math.radians(a)))
+        for a in range(0, 91, 10)
+    ]
+    outline.append((r, h))
+    outline += [
+        (r + r*math.cos(math.radians(a)),
+         h-r + r*math.sin(math.radians(a)))
+        for a in range(90, 181, 10)
+    ]
+    canvas.create_polygon(
+        *(coord for xy in outline for coord in screen(*xy)),
+        fill="#f8fafc", outline="#334155", width=2,
+    )
+    slot_length, slot_width = preview.source_slot_size_mm
+    radius = slot_width / 2
+    half_separation = (slot_length - slot_width) / 2
+    for cx, cy in preview.nominal_source_slot_centers_mm:
+        slot = []
+        slot += [
+            (cx + half_separation + radius*math.cos(math.radians(a)),
+             cy + radius*math.sin(math.radians(a)))
+            for a in range(-90, 91, 10)
+        ]
+        slot += [
+            (cx - half_separation + radius*math.cos(math.radians(a)),
+             cy + radius*math.sin(math.radians(a)))
+            for a in range(90, 271, 10)
+        ]
+        canvas.create_polygon(
+            *(coord for xy in slot for coord in screen(*xy)),
+            fill="white", outline="#334155", width=2,
+        )
+    pair = preview.applicable_slot_pair_indexes
+    pitch = "210 mm" if pair == (0, 3) else "140 mm" if pair == (1, 2) else "待配置（210／140 擇一）"
+    tk.Label(
+        win, text=f"原圖 256×105 mm｜長圓孔 25×11 mm｜本底板對孔 {pitch}",
+    ).pack(padx=12, pady=(3, 4))
+    tk.Label(
+        win,
+        text="名義折線 23 mm 尚非核准展開；焊接接觸／Z 待驗證。\\n"
+             "此為來源 2D 檢視，不能作為正式下料或折彎圖。",
+        fg="#9a3412", justify="center",
+    ).pack(padx=12, pady=(0, 8))
+    tk.Button(win, text="關閉", command=win.destroy).pack(pady=(0, 12))
+    return win
+
+
 def refresh_part_selector(
     host,
     *,
@@ -500,6 +602,18 @@ def refresh_part_selector(
                 label=label, variable=host.part_var, value=label,
                 command=lambda k=key: activate_part(k),
             )
+            if key == "base_plate":
+                # The source-drawn fixing plates are real independent parts, not
+                # Base Plate cutting. They remain read-only until bend/Z is
+                # certified; do not add them to manufacturing available_parts.
+                from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
+                for preview in receiving_base_fixing_plate_previews(
+                    snapshot, available_parts=getattr(host, "available_parts", ())
+                ):
+                    menu.add_command(
+                        label="　" + preview.display_name + "｜待驗證",
+                        command=lambda part=preview: show_receiving_base_fixing_plate_preview(host, part),
+                    )
         menu.add_radiobutton(
             label="截角資料", variable=host.part_var, value="截角資料", command=show_corner_data
         )

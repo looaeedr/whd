@@ -175,6 +175,12 @@ def _reject_unapproved_nfb_pad_ear_manufacturing(rows) -> None:
             str(key).startswith(('nfb_pad_', 'nfb_ear_'))
             for key in metadata
         )
+        # Preview part identities are not certified formed blanks. Deny
+        # direct DXF even when a caller provides a fake ready metadata flag.
+        if any(value.casefold().startswith((
+                'base_plate:fixing_plate:', 'base_fixing_plate:',
+                'bottom_fixing_plate:')) for value in ids) or role == 'BASE_FIXING_PLATE':
+            raise ValueError('BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED')
         if role in {'PAD', 'EAR'} or nfb_part or nfb_markers:
             raise ValueError('NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED')
 
