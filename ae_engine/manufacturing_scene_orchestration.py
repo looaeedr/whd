@@ -377,46 +377,69 @@ from .manufacturing_render_data import (
 def build_inner_door_panel_render_data(
     panel, *, features=(), context: ManufacturingContext | None = None,
 ) -> PartRenderData:
-    """Manufacture an inner panel through the certified Vault Door path.
+    """Reuse the Vault four-sided Door topology for Receiving inner doors.
 
-    The input W/H are already finished inner-door face dimensions.  The frame edges and gaps are disabled so its finished W/H are
-    not deducted a second time. The Vault material FW remains positive. Reuse Vault
-    門.dxf and its standard holes/reliefs; only the inner panel fold sizes
-    are 19 mm. User hole features are scoped to this physical stable ID.
+    The panel.width/height are FINISHED faces. The manufacturing blank is
+    finished - 2*T + both fold lengths; at W800/T2/folds19: 689 -> 723.
+    Never export the finished face as an unfolded, unbent CUTTING rectangle.
     """
     from .inner_door_panels import InnerDoorPanelPart
-    from .sheetmetal_part_adapters import DoorFrameEdges
+    from .sheetmetal_part_adapters import build_door_result, DoorFrameEdges, build_finished_reference_guide
+    from .sheetmetal_drawing import DrawingScene, structural_result_to_primitives, resolved_features_to_primitives
 
     if not isinstance(panel, InnerDoorPanelPart):
         raise TypeError("panel must be InnerDoorPanelPart")
+    # The canonical shared Door geometry uses the certified Vault corner rule.
+    # The outer Vault door's *fixed apertures* are NOT automatically owned by
+    # a Receiving inner door: NFB CUTTING and each inner-door feature list own
+    # those holes independently, preventing duplicate manufacturing holes.
     if any(abs(float(v) - 19.0) > 1e-8 for v in (
         panel.fold_left, panel.fold_right, panel.fold_top, panel.fold_bottom,
     )):
-        raise ValueError("Receiving inner door must use four 19-mm Vault Door folds")
-    ctx = context or ManufacturingContext()
-    if _baseline_path("金庫型", "門.dxf", ctx) is None:
-        raise ValueError("受電箱內門缺少金庫型/門.dxf 基準檔；不得以程式矩形替代")
-    spec = DoorPartSpec(
-        width=float(panel.width), height=float(panel.height),
-        thickness=float(panel.thickness), frame_width=25.0,
-        model_name="金庫型", gap_w=0.0, gap_h=0.0,
-        fold_left=19.0, fold_right=19.0,
-        fold_top=19.0, fold_bottom=19.0,
-        frame_edges=DoorFrameEdges(
-            left=False, right=False, top=False, bottom=False,
-        ),
-        features=tuple(features or ()),
-        feature_space="finished_face",
+        raise ValueError('Receiving inner door requires four 19-mm folds')
+    # The incoming dimensions are already the inner frame opening less gaps.
+    # Do NOT subtract the enclosure's outer frame or door gap again.
+    structural = build_door_result(
+        w=float(panel.width), h=float(panel.height),
+        t=float(panel.thickness), fw=0.0, gap_w=0.0, gap_h=0.0,
+        fold_left=float(panel.fold_left), fold_right=float(panel.fold_right),
+        fold_top=float(panel.fold_top), fold_bottom=float(panel.fold_bottom),
+        frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),
     )
-    built = build_part_render_data(spec, ctx)
-    bounds = tuple(float(v) for v in built.material.bounds)
-    if abs((bounds[2] - bounds[0]) - panel.unfolded_width) > 1e-6:
-        raise ValueError("Vault Door baseline inner-door CUTTING width mismatch")
-    if abs((bounds[3] - bounds[1]) - panel.unfolded_height) > 1e-6:
-        raise ValueError("Vault Door baseline inner-door CUTTING height mismatch")
-    # The NFB X/Y authority consumes these named real folded segments.
-    # Vault baseline owns the contours/holes, but the Receiving stable ID
-    # and physical 19/core/19 topology must not revert to generic Door IDs.
+    scene = DrawingScene()
+    scene.extend(structural_result_to_primitives(structural))
+    if features:
+        # Reuse the standard Door finished-face geometry/anchor for editor
+        # Features.  The generated 3D, 2D, NFB and DXF must all consume this
+        # same physical final-scene and leave other door stores untouched.
+        from .manufacturing_endcap_compat import _as_feature
+        from .sheetmetal_geometry import Vec2
+        from .sheetmetal_features import (
+            FeatureAnchor, feature_finished_point, feature_surface_from_structural_result,
+            resolve_surface_features,
+        )
+        guide = build_finished_reference_guide(
+            "door", structural, finished_width=float(panel.width),
+            finished_height=float(panel.height),
+        )
+        mapped = []
+        for raw in tuple(features):
+            feature = _as_feature(raw)
+            local = feature_finished_point(feature, float(panel.width), float(panel.height))
+            mapped.append(replace(
+                feature,
+                anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                offset=Vec2(guide.min_point.x + local.x, guide.min_point.y + local.y),
+            ))
+        surface = feature_surface_from_structural_result("door", structural)
+        scene.extend(resolved_features_to_primitives(resolve_surface_features(
+            surface, mapped, structural.width, structural.height,
+        )))
+    if abs(float(structural.width) - panel.unfolded_width) > 1e-7:
+        raise ValueError("inner-door blank width diverges from standard Door manufacturing")
+    if abs(float(structural.height) - panel.unfolded_height) > 1e-7:
+        raise ValueError("inner-door blank height diverges from standard Door manufacturing")
+
     xcore = panel.unfolded_width - panel.fold_left - panel.fold_right
     ycore = panel.unfolded_height - panel.fold_bottom - panel.fold_top
     topology = UnfoldedBlankTopology(
@@ -433,12 +456,15 @@ def build_inner_door_panel_render_data(
         ),
         source="DOOR_FOUR_SIDE_FLANGE", revision=2,
     )
-    return replace(
-        built,
-        unfolded_topology=topology,
+    return PartRenderData(
+        scene=scene,
+        material=material_polygon_from_final_scene(scene),
+        fold_guides=fold_guides_from_final_scene(scene),
         metadata={
-            **dict(built.metadata or {}),
             "stable_id": str(panel.stable_id),
+            "source_cabinet_family": "金庫型",
+            "door_corner_rule": "VAULT_CERTIFIED_FOUR_SIDE",
+            "inner_door_hole_feature_count": len(tuple(features or ())),
             "inner_door_id": str(panel.inner_door_id),
             "cell_key": str(panel.cell_key),
             "thickness": float(panel.thickness),
@@ -446,12 +472,14 @@ def build_inner_door_panel_render_data(
             "finished_height": float(panel.height),
             "unfolded_width": float(panel.unfolded_width),
             "unfolded_height": float(panel.unfolded_height),
-            "folds": (19.0, 19.0, 19.0, 19.0),
-            "baseline_model": "金庫型",
-            "baseline_part": "門.dxf",
-            "hole_feature_count": len(tuple(features or ())),
+            "folds": (
+                float(panel.fold_left), float(panel.fold_right),
+                float(panel.fold_top), float(panel.fold_bottom),
+            ),
         },
+        unfolded_topology=topology,
     )
+
 
 def build_inner_door_frame_render_data(frame) -> PartRenderData:
     """Build one inner-door frame FinalScene from its canonical physical part.
