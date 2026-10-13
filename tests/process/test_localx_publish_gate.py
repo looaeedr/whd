@@ -14,16 +14,16 @@ class PublishGateTests(unittest.TestCase):
 
     def _approval(self, *, uat_head="a"*40, test_site="WINDOWS",
                   order=(100, 101), uat_owner="looaeedr"):
-        fields = ("repo=looaeedr/whd\\npr=12\\nsource=localX\\n"
-                  "head=" + ("a"*40) + "\\ntarget=cleanup/2d-3d-sync\\n"
+        fields = ("repo=looaeedr/whd\npr=12\nsource=localX\n"
+                  "head=" + ("a"*40) + "\ntarget=cleanup/2d-3d-sync\n"
                   "base=" + ("b"*40))
         return [
             {"id": order[0], "user": {"login": uat_owner, "type": "User"},
-             "body": "/驗收通過\\nWHD_WINDOWS_LOCALX_UAT_V1\\n"
-                     + fields + "\\ntest_site=" + test_site
-                     + "\\nwindows_head=" + uat_head},
+             "body": "/驗收通過\nWHD_WINDOWS_LOCALX_UAT_V1\n"
+                     + fields + "\ntest_site=" + test_site
+                     + "\nwindows_head=" + uat_head},
             {"id": order[1], "user": {"login": "looaeedr", "type": "User"},
-             "body": "/推推\\nWHD_LOCALX_PUBLISH_AUTH_V1\\n" + fields},
+             "body": "/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\n" + fields},
         ]
 
     def _publish(self, comments):
