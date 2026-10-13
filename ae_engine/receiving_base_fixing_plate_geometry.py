@@ -144,7 +144,13 @@ def build_fixing_plate_source_render_data(
             "source_dxf_sha256": SOURCE_DXF_SHA256,
             "thickness": pattern.thickness,
             "source_flat_dimensions": (pattern.width, pattern.height),
-            "part_count_per_w800_cabinet": 2 if source_kind == LARGE_SOURCE else None,
+            # One materialized physical instance per stable ID. The long
+            # profile has two separate installed instances (left and right);
+            # they must not each be counted twice in a BOM.
+            "quantity_of_this_part": 1,
+            "source_profile_total_installed_per_w800": (
+                2 if source_kind == LARGE_SOURCE else None
+            ),
             "source_cutting_verified": True,
             "formed_geometry_verified": False,
             "weld_z_verified": False,
