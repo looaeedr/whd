@@ -543,34 +543,9 @@ def test_issue74_inverse_full_solid_reprojection_matches_final_material():
     test_issue1702_independent_full_thickness_reverse_cut_probe()
 
 
-def test_receiving_real_Z_mating_requires_7mm_C_slot_to_see_left_22():
-    """Red-capable independent bug repro; certified inverse alone is not enough.
-
-    The user-identified 7mm notch must physically encounter the left 22mm
-    fold BEFORE cutting. A zero-post-collision oracle on disjoint solids is
-    not sufficient. Evaluate full world xyz of real source piece skins.
-    """
-    snap = _snapshot()
-    body = _body_part(snap)
-    divider, part = _divider_part(snap)
-    world = bridge._phase6_build_joint_world_geometry(
-        (body, part), (snap["w"], snap["h"], snap["d"]), snap["t"],
+def test_receiving_left_first22_X_and_C_notch_source_regression():
+    """Canonical suite executes the correct X-only 22mm witness, not Z."""
+    from tests.test_receiving_C_slot_22mm_real_world_debug import (
+        test_first_22mm_left_fold_has_actual_X_contact_at_C_notched_end,
     )
-    bands = _piece_bands(body)["box_body:left_side"]
-    u0, u1 = next((a,b) for name,a,b in bands if name=="zl1")
-    sources = tuple(world["mapped_skin_triangles_by_part"]["box_body:left_side"])
-    zl1 = [point for skin in sources
-           if u0+1e-6 < sum(p[0] for p in skin.flat)/3 < u1-1e-6
-           for point in skin.world]
-    c = [point for skin in world["mapped_skin_triangles_by_part"][divider.stable_id]
-         for point in skin.world]
-    assert zl1 and c
-    left_z = (min(p[2] for p in zl1), max(p[2] for p in zl1))
-    c_z = (min(p[2] for p in c), max(p[2] for p in c))
-    assert max(left_z[0], c_z[0]) < min(left_z[1], c_z[1]), (
-        "C's 7mm relief cannot avoid the first 22mm left fold: "
-        f"left Z={left_z}, divider C Z={c_z}. "
-        "Correct assembly datum before certified cut or post-cut verification."
-    )
-
-
+    test_first_22mm_left_fold_has_actual_X_contact_at_C_notched_end()

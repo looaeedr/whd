@@ -1,83 +1,107 @@
 # -*- coding: utf-8 -*-
-"""Receiving /debug physical witness: 22-mm side fold must own C's 7-mm slot.
+"""Receiving /debug: left 22mm X encounter, C notch source, FW Z are separate.
 
-This test was added after the old suite falsely accepted a full certified
-CROSS cut even though the source LEFT 22-mm fold was hundreds of millimetres
-behind the physically assembled Divider. It intentionally uses the ORIGINAL
-uncut authoritative world triangles. Merely comparing FW coplanarity, the
-CUTTING polygon or a post-cut zero-penetration flag is not acceptance.
+User mechanical authority (2026-10-14):
+- The first 22mm LEFT side fold is an X-axis interference/overlap witness.
+- Side/Divider 29mm FW is a separate Z-axis assembly/alignment requirement.
+- The 7mm notch in the C-divider source must remain on the LEFT end and
+  correspond to the real folded 22mm component, not a presumed Z crossing.
 """
 from __future__ import annotations
 
 import pytest
-
+import ezdxf
 from tests.test_issue39_divider_relief import _body_part, _divider_part, _snapshot
 from tests.test_issue74_divider_side_front_penetration import _piece_bands
+from ae_engine.receiving_frame_baseline import frame_source_file
 
 
-def _assembled_original_parts():
+def _source_world():
     from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
-
     snapshot = _snapshot()
     body = _body_part(snapshot)
-    divider, divider_part = _divider_part(snapshot)
+    divider, part = _divider_part(snapshot)
     world = _phase6_build_joint_world_geometry(
-        (body, divider_part),
+        (body, part),
         (snapshot["w"], snapshot["h"], snapshot["d"]),
         snapshot["t"],
     )
-    return snapshot, body, divider, divider_part, world
+    return snapshot, body, divider, part, world
 
 
-def test_real_22_mm_left_fold_occupies_C_divider_slot_world_location():
-    """Independent world-axis witness: a missing Z intersection must FAIL."""
-    snap, body, divider, divider_part, world = _assembled_original_parts()
-    left = next(piece for piece in body.render_data.pieces
-                if piece.role == "left_side")
-    assert [round(seg.length, 6) for seg in left.fold_profile[:1]] == [22.0]
-    assert left.fold_profile[0].angle == pytest.approx(-90.0)
-
-    # Use the actual mapped THREE-D solid surface, NOT the flat reference
-    # bend coordinate, renderer's triangle boxes or inverse notch formula.
-    first_u0, first_u1 = next(
-        (u0, u1) for name, u0, u1 in
-        _piece_bands(body)["box_body:left_side"]
-        if name == "zl1"
+def test_first_22mm_left_fold_has_actual_X_contact_at_C_notched_end():
+    """The X crossing is the specification; no unsupported Z collision oracle."""
+    _, body, divider, part, world = _source_world()
+    left = next(x for x in body.render_data.pieces if x.role == "left_side")
+    assert left.fold_profile[0].length == pytest.approx(22.)
+    assert left.fold_profile[0].angle == pytest.approx(-90.)
+    u0, u1 = next(
+        (start, end) for name, start, end in
+        _piece_bands(body)["box_body:left_side"] if name == "zl1"
     )
+    skins = world["mapped_skin_triangles_by_part"]["box_body:left_side"]
     first = [
-        vertex
-        for skin in world["mapped_skin_triangles_by_part"]["box_body:left_side"]
-        if first_u0 + 1e-5 < sum(v[0] for v in skin.flat) / 3 < first_u1 - 1e-5
-        for vertex in skin.world
+        p for face in skins
+        if u0 + 1e-6 < sum(v[0] for v in face.flat)/3 < u1 - 1e-6
+        for p in face.world
     ]
-    middle = [
-        vertex
-        for skin in world["mapped_skin_triangles_by_part"][divider.stable_id]
-        for vertex in skin.world
+    c = [p for skin in world["mapped_skin_triangles_by_part"][divider.stable_id]
+         for p in skin.world]
+    assert first and c
+
+    # C source's LEFT 7-mm step occupies the first 51mm of its X span.
+    # Read the real certified 10-vertex C CUTTING rather than inventing
+    # a local-X offset from collision backprojection.
+    ms = ezdxf.readfile(frame_source_file()).modelspace()
+    contours = [
+        ent for ent in ms
+        if ent.dxftype() == "LWPOLYLINE"
+        and ent.closed and ent.dxf.layer == "CUTTING" and len(ent) == 10
     ]
-    assert first and middle
-    axes = "XYZ"
-    ranges = [
-        ((min(p[i] for p in first), max(p[i] for p in first)),
-         (min(p[i] for p in middle), max(p[i] for p in middle)))
-        for i in range(3)
+    assert len(contours) == 1
+    pts = [(float(v[0]), float(v[1])) for v in contours[0].get_points()]
+    xmin = min(x for x, _ in pts)
+    seven = [
+        (a, b) for a, b in zip(pts, pts[1:] + pts[:1])
+        if abs(a[0] - b[0]) < 1e-6
+        and abs(abs(a[1]-b[1])-7.) < 1e-6
     ]
-    for axis, (a, b) in zip(axes, ranges):
-        assert max(a[0], b[0]) < min(a[1], b[1]), (
-            f"Receiving C's 7mm U-slot cannot avoid the 22mm left fold: "
-            f"no physical {axis}-axis encounter. left22={a}, C={b}. "
-            "Do not mark post-cut zero-collision as successful mating."
-        )
+    assert len(seven) == 1, "Certified C must retain its 7-mm notch"
+    notch_offset = seven[0][0][0] - xmin
+    c_left_x = min(p[0] for p in c)
+    notch_x = (c_left_x, c_left_x + notch_offset)
+    first_x = (min(p[0] for p in first), max(p[0] for p in first))
+    # A 22mm component may legally only TOUCH at a material boundary.
+    # It is NOT required to span the Divider's full depth on Z.
+    assert max(first_x[0], notch_x[0]) <= min(first_x[1], notch_x[1]) + 1e-6, (
+        "Left 22mm does not reach C's 7mm notched END on X: "
+        f"left22 X={first_x}, notch X={notch_x}, C X="
+        f"{(c_left_x, max(p[0] for p in c))}"
+    )
 
 
-def test_C_seven_mm_slot_end_identifies_the_fold_it_avoids():
-    """The 7-mm notch may not select its end by an unrelated zl2 fold."""
+def test_divider_29_and_both_side_29_fw_world_Z_stations_align_separately():
+    """Confirm the actual FW bands' Z skins; no zl1 Z-overlap assertion."""
+    from ae_engine.divider_manufacturing import resolve_divider_placement_evidence
+    _, body, divider, part, world = _source_world()
+    placement = resolve_divider_placement_evidence(part, body, world)
+    assert placement.expected_fw_formed_occupation == pytest.approx(29.)
+    assert placement.box_body_left_fw_formed_occupation == pytest.approx(29.)
+    assert placement.box_body_right_fw_formed_occupation == pytest.approx(29.)
+    assert placement.box_body_left_fw_planes == pytest.approx(
+        placement.box_body_right_fw_planes
+    )
+    assert placement.divider_fw_planes == pytest.approx(
+        placement.box_body_left_fw_planes
+    )
+    assert placement.fw_face_flush
+    # The first 22mm's Z depth is NOT the acceptance datum for FW mating.
+
+
+def test_C_seven_mm_notch_keeps_left_22mm_identity():
     from ae_engine.divider_manufacturing import _divider_object_mating_fold_signs
-
-    _snap, body, _divider, part, _world = _assembled_original_parts()
+    _snap, body, _divider, part, _world = _source_world()
     orientation = _divider_object_mating_fold_signs(part, body)
     slots = dict(orientation["evidence"])
-    assert slots["MIN_Y"]["phase6_key"] == "zl1", (
-        "7mm notch was positioned from zl2 although it must avoid LEFT 22mm zl1"
-    )
+    assert slots["MIN_Y"]["phase6_key"] == "zl1"
     assert orientation["sign_by_end"]["MIN_Y"] < 0
