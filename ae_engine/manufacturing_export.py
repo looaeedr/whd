@@ -340,9 +340,16 @@ def resolved_manufacturing_nc_capability() -> dict[str, object]:
 
 def save_quantity_manufacturing_groups_dxf(
     groups, output_dir, *, save_part_render_data_dxf, verify_part_dxf, overwrite=False,
-    render_data_transform=None,
+    render_data_transform=None, part_only: bool = False,
 ):
-    """Serialize one sheet per validated group through the existing atomic sink."""
+    """Serialize one sheet per validated group through the existing atomic sink.
+
+    PART_ONLY remains explicitly opt-in: the base's genuine source/FinalScene
+    evidence is still checked by the existing _validate_nfb_base_part_scope.
+    It does NOT release full NFB MFG-2 or PAD/EAR assembly.
+    """
+    if type(part_only) is not bool:
+        raise TypeError("CHECK/Q part_only must be an explicit boolean")
     rows = []
     keys = set()
     filenames = set()
@@ -376,5 +383,5 @@ def save_quantity_manufacturing_groups_dxf(
 
     return _save_resolved_rows_atomic(
         rows, output_dir, save_part_render_data_dxf=save_verified,
-        overwrite=overwrite,
+        overwrite=overwrite, part_only=part_only,
     )
