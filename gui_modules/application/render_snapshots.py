@@ -111,7 +111,9 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
         "val": val,
         "selected_key": host.door_layout_selected_var.get(),
         "cell_payloads": cell_payloads,
-        "baseline_status": ae.baseline_source_label(baseline_model, "門.dxf"),
+        "baseline_status": ae.baseline_source_label(
+            cabinet_family_policy.baseline_feature_model_name(baseline_model), "門.dxf"
+        ),
     }
 
 
