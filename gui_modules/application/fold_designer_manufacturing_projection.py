@@ -243,7 +243,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
         )
         if key not in {part.part_id for part in physical}:
             raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
-        return build_fixing_plate_source_render_data(key)
+        return build_fixing_plate_source_render_data(key, snapshot=dict(payload or {}))
     if key.startswith("box_body:divider:"):
         from ae_engine.door_dividers import derive_box_body_dividers
 

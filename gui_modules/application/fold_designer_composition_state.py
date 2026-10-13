@@ -371,7 +371,7 @@ def export_selected_dxf_from_3d(self):
         if not messagebox.askokcancel(
             "底板固定片｜來源平面圖",
             "只匯出原始 DXF 的獨立平面 CUTTING／參考線。"
-            "\\n尚未確認折彎補償、焊接接觸和 Z，不能當作正式加工圖。"
+            "\\n本廠不使用折彎補償；大片來源未有正式折線，折向／焊接接觸及 Z 尚待驗證，不能當作正式加工圖。"
             "\\n是否繼續匯出來源平面圖？",
         ):
             return None

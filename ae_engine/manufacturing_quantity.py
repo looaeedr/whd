@@ -57,7 +57,8 @@ def resolved_quantity_physical_demands(versions, *, per_box_counts=None):
             # Use the export owner's physical enumeration, including multipart
             # sheets, rather than maintaining another physical BOM list.
             for physical_id, render_data in resolved_physical_render_parts(
-                SimpleNamespace(parts=(part,))
+                SimpleNamespace(parts=(part,)),
+                include_unreleased_source_flats=True,
             ):
                 if physical_id in seen_physical:
                     raise ValueError(f"duplicate physical identity: {physical_id}")

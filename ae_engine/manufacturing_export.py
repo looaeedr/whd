@@ -59,7 +59,13 @@ def resolved_physical_dxf_stem(part_id: str, *, box_body_physical_piece_roles) -
     return safe_dxf_part_stem(value)
 
 
-def resolved_physical_render_parts(resolved_geometry):
+def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_source_flats=False):
+    """Project ordinary DXF parts or full physical BOM inventory.
+
+    Source-flat fixing plates count as real independent BOM items even when
+    their bent/welded form cannot yet enter a production DXF batch.
+    Full-cabinet export and verification keep the conservative default.
+    """
     rows = []
     for part in tuple(getattr(resolved_geometry, 'parts', ()) or ()):
         key = str(getattr(part, 'part_key', '') or '').strip()
@@ -78,7 +84,8 @@ def resolved_physical_render_parts(resolved_geometry):
                 and getattr(part, 'placement', None) == 'standalone'
                 and isinstance(meta, Mapping)
                 and meta.get('physical_part_role') == 'BASE_FIXING_PLATE'
-                and meta.get('formed_geometry_verified') is False):
+                and meta.get('formed_geometry_verified') is False
+                and not include_unreleased_source_flats):
             continue
         pieces = tuple(getattr(render_data, 'pieces', ()) or ())
         if pieces:
