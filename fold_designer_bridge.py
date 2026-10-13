@@ -343,6 +343,27 @@ def _phase6_box_body_piece_part_profiles(
         ]
         if role == "right_side":
             rows = _phase6_reverse_fold_traversal(rows)
+        # A corrected Receiving physical left panel mirrors its inner folds,
+        # but the OPERATOR retains the original outside dimension semantics
+        # (zl1, zl2, FW, D, rear), not a confusing reordered control layout.
+        # Reconstruct from the invertible material-chain transformation rather
+        # than reusing the now-physical D/FW/zl2 traversal verbatim.
+        if role == "left_side" and tuple(row.get("phase6_key") for row in rows) == (
+            "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
+        ):
+            a, new_d, fw, new_b, rear = [float(row["len"]) for row in rows]
+            b = new_b - a + rear
+            original_d = a + new_d + fw + new_b + rear - a - b - fw - rear
+            if b <= 0 or original_d <= 0:
+                raise ValueError("RECEIVING_LEFT_SIDE_OPERATOR_INVERSE_INVALID")
+            by_key = {row["phase6_key"]: dict(row) for row in rows}
+            rows = [
+                dict(by_key["zl1"], len=a),
+                dict(by_key["zl2"], len=b),
+                dict(by_key["fw_left"], len=fw),
+                dict(by_key["d_left"], len=original_d),
+                dict(by_key["side_rear_bend_left"], len=rear),
+            ]
         if role == "left_side" and float(source_snapshot.get("zl1", 0.0) or 0.0) < 0.0:
             for row in rows:
                 if str(row.get("phase6_key") or "") == "zl1":

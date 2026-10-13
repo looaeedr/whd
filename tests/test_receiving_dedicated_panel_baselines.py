@@ -73,13 +73,13 @@ def test_source_cutting_blind_and_marking_holes_stay_on_the_correct_side():
     ]
 
 
-def test_source_bend_disagreement_is_reported_and_not_silently_applied():
+def test_corrected_left_bends_are_actually_applied_to_2d_and_manufacturing():
     render = build_box_body_structure_render_data(spec_for_mode())
     left = _piece(render,"left_side").render_data.metadata
     right = _piece(render,"right_side").render_data.metadata
     assert left["baseline_reference_bend_positions"] == (22.,362.,387.,413.)
-    assert left["baseline_effective_bend_positions"] == (22.,42.,67.,413.)
-    assert left["baseline_sample_bends_match"] is False
+    assert left["baseline_effective_bend_positions"] == (22.,362.,387.,413.)
+    assert left["baseline_sample_bends_match"] is True
     assert right["baseline_sample_bends_match"] is True
 
 
@@ -118,3 +118,25 @@ def test_export_reports_actual_per_piece_baseline_and_reopens(tmp_path):
         assert Path(result.output_path).exists()
         doc=ezdxf.readfile(result.output_path)
         assert len(doc.modelspace())>0
+
+
+def test_corrected_left_bends_fold_inward_in_authoritative_3d_and_keep_dimensions():
+    from phase6_final_scene_projection import _phase6_box_body_structure_meshes
+    data = build_box_body_structure_render_data(spec_for_mode())
+    left = _piece(data, "left_side")
+    assert left.material_dimensions == pytest.approx((429.0, 1596.0))
+    assert left.render_data.metadata["baseline_sample_bends_match"] is True
+    assert [round(row.position, 4) for row in left.render_data.fold_guides] == [
+        22.0, 362.0, 387.0, 413.0,
+    ]
+    meshes = _phase6_box_body_structure_meshes(data, thickness=2.0)
+    assert len(meshes) == 3
+    triangles = next(t for piece, t in meshes if piece.role == "left_side")
+    assert triangles, "The corrected panel must produce a real 3D mesh"
+    coords = [point for triangle in triangles for point in triangle]
+    # Left side must remain at the left box skin and fold inward, not out
+    # beyond the nominal -W/2 finished skin.
+    assert min(point[0] for point in coords) == pytest.approx(-399.0)
+    assert max(point[0] for point in coords) > -399.0
+    # Sample outside dimensions do not change when two inner folds are mirrored.
+    assert max(point[1] for point in coords) - min(point[1] for point in coords) == pytest.approx(1596.0)

@@ -57,10 +57,13 @@ def test_receiving_outside_defaults_derive_material_once_without_becoming_ui_aut
 
     assert [(row.phase6_key, row.length) for row in left.fold_profile] == [
         ("zl1", 22.0),
-        ("zl2", 20.0),
+        ("d_left", 340.0),
         ("fw_left", 25.0),
-        ("d_left", 346.0),
+        ("zl2", 26.0),
         ("side_rear_bend_left", 16.0),
+    ]
+    assert [round(bend.p1.x, 6) for bend in left.structural.bends] == [
+        22.0, 362.0, 387.0, 413.0,
     ]
     # Manufacturing-local right-side traversal is rear -> front.
     assert [(row.phase6_key, row.length) for row in right.fold_profile] == [
