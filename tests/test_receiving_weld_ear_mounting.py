@@ -74,7 +74,7 @@ def test_bottom_fixing_plate_part_identity_and_original_2d_source():
         receiving_base_fixing_plate_previews, MANUFACTURING_STATUS,
     )
     snapshot = {"model": "受電箱", "w": 800, "t": 2,
-                "receiving_base_plate": {"pattern": "LEFT"}}
+                "receiving_base_plate": {"pattern": "LEFT_FLAT_SIDE"}}
     parts = receiving_base_fixing_plate_previews(
         snapshot, available_parts=("box_body", "base_plate"),
     )
@@ -99,7 +99,7 @@ def test_bottom_fixing_plate_part_identity_and_original_2d_source():
         assert part.manufacturing_ready is False
     # Same physical fixing plate, only an alternative hole pair for center base.
     center = receiving_base_fixing_plate_previews(
-        {**snapshot, "receiving_base_plate": {"pattern": "CENTER"}},
+        {**snapshot, "receiving_base_plate": {"pattern": "CENTER_DOUBLE_SIDE_FOLD"}},
         available_parts=("box_body", "base_plate"),
     )
     assert [p.part_id for p in center] == [p.part_id for p in parts]
