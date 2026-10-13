@@ -117,3 +117,14 @@ def test_bottom_fixing_plate_not_invented_for_other_families_or_unknown_geometry
 ):
     from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
     assert receiving_base_fixing_plate_previews(snapshot, available_parts=available) == ()
+
+
+def test_fixing_plate_unconfigured_base_does_not_invent_mounting_pair():
+    from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
+    plates = receiving_base_fixing_plate_previews(
+        {"model": "受電箱", "w": 800, "t": 2},
+        available_parts=("box_body", "base_plate"),
+    )
+    assert len(plates) == 2
+    assert all(p.applicable_slot_pair_indexes is None for p in plates)
+    assert all(not p.manufacturing_ready for p in plates)
