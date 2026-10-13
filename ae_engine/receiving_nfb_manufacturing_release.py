@@ -136,6 +136,8 @@ def configured_nfb_inner_door_render_data(
         raise ValueError("NFB model absent or ambiguous in operator switch index")
 
     source = _validate_source_path(source_path, profile)
+    from .receiving_nfb_editable_source import resolve_editable_nfb_source_profile
+    profile = resolve_editable_nfb_source_profile(source, profile=profile)
     inventory = inspect_nfb_dxf_source(source)
     if inventory.source_sha256 != profile.source_sha256:
         raise ValueError("NFB original DXF SHA differs from indexed source profile")
