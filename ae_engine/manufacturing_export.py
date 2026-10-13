@@ -251,11 +251,18 @@ def _save_resolved_rows_atomic(
             filenames.add(filename)
             stage_path = stage_dir / filename
             save_part_render_data_dxf(render_data, stage_path, overwrite=True)
-            if str(output_key) in verified_nfb_parts:
+            metadata = getattr(render_data, "metadata", None)
+            paired_door = (isinstance(metadata, Mapping)
+                           and metadata.get("nfb_pair_roundtrip_required") is True
+                           and metadata.get("nfb_trial_export_approved") is True)
+            if str(output_key) in verified_nfb_parts or paired_door:
                 from .manufacturing_verification import verify_saved_part_render_data_dxf
                 verified = verify_saved_part_render_data_dxf(render_data, stage_path)
                 if not verified.ok:
-                    raise ValueError("NFB_BASE_PART_STAGED_DXF_ROUNDTRIP_FAILED")
+                    raise ValueError(
+                        "NFB_PAIR_DOOR_STAGED_DXF_ROUNDTRIP_FAILED"
+                        if paired_door else "NFB_BASE_PART_STAGED_DXF_ROUNDTRIP_FAILED"
+                    )
             staged[str(output_key)] = stage_path
         return _atomic_commit_staged_dxfs(staged, root, overwrite=overwrite)
     finally:
