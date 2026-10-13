@@ -183,3 +183,75 @@ def require_github_localx_integration(*, authorization: dict, delivery: dict) ->
         or delivery["work_branch"] in (INTEGRATION_BRANCH, PRODUCTION_X)
     ):
         raise LocalXIntegrationDenied("GITHUB_LOCALX_EXACT_HEAD_REQUIRED")
+
+
+class OfficialReleaseDenied(ValueError):
+    """GitHub Release is not the verified final /推推 delivery step."""
+
+
+def official_release_tag(merge_sha: str, merged_at: str) -> str:
+    """Stable, Taiwan-local release version bound to the exact X merge SHA.
+
+    version.txt is intentionally ignored; do not commit, rewrite or use it.
+    """
+    import re
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    if not isinstance(merge_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", merge_sha):
+        raise OfficialReleaseDenied("OFFICIAL_RELEASE_INVALID_X_SHA")
+    if not isinstance(merged_at, str):
+        raise OfficialReleaseDenied("OFFICIAL_RELEASE_MISSING_MERGE_TIME")
+    try:
+        instant = datetime.fromisoformat(merged_at.replace("Z", "+00:00"))
+        if instant.tzinfo is None or instant.utcoffset() is None:
+            raise ValueError("timestamp must have an offset")
+        taipei = instant.astimezone(ZoneInfo("Asia/Taipei"))
+    except (ValueError, TypeError, KeyError) as exc:
+        raise OfficialReleaseDenied("OFFICIAL_RELEASE_INVALID_MERGE_TIME") from exc
+    return f"v{taipei:%Y.%m.%d}-x-{merge_sha[:12]}"
+
+
+def require_official_release_proof(
+    *, repo: str, pushed_sha: str, production_sha: str,
+    pr: dict, merge_parents: list[str], comments: list,
+) -> str:
+    """Authorize a release *after* X equals GitHub localX.
+
+    PR's mutable branch ref SHAs are not evidence after merge. The two
+    immutable merge parents recover the exact source head and X base used
+    by the original user-signed UAT and /推推 comments.
+    """
+    import re
+
+    if (repo != "looaeedr/whd"
+            or not isinstance(pushed_sha, str)
+            or not re.fullmatch(r"[0-9a-f]{40}", pushed_sha)
+            or pushed_sha != production_sha):
+        raise OfficialReleaseDenied("OFFICIAL_RELEASE_REQUIRES_GITHUB_X_LOCALX_SYNC")
+    if not isinstance(pr, dict) or pr.get("merged") is not True:
+        raise OfficialReleaseDenied("OFFICIAL_RELEASE_REQUIRES_MERGED_PR")
+    head = pr.get("head") or {}
+    base = pr.get("base") or {}
+    if (pr.get("merge_commit_sha") != pushed_sha
+            or head.get("ref") != INTEGRATION_BRANCH
+            or base.get("ref") != PRODUCTION_X
+            or (head.get("repo") or {}).get("full_name") != repo
+            or (base.get("repo") or {}).get("full_name") != repo):
+        raise OfficialReleaseDenied("OFFICIAL_RELEASE_NOT_LOCALX_TO_X")
+    if (not isinstance(merge_parents, list) or len(merge_parents) != 2
+            or any(not isinstance(x, str)
+                   or not re.fullmatch(r"[0-9a-f]{40}", x)
+                   for x in merge_parents)):
+        raise OfficialReleaseDenied("OFFICIAL_RELEASE_REQUIRES_TWO_PARENT_MERGE")
+    number = pr.get("number")
+    if not isinstance(number, int) or number <= 0:
+        raise OfficialReleaseDenied("OFFICIAL_RELEASE_INVALID_PR")
+    before_x, before_localx = merge_parents
+    require_publish_approval(
+        repo=repo, pr_number=number,
+        pr={"head": {"ref": INTEGRATION_BRANCH, "sha": before_localx},
+            "base": {"ref": PRODUCTION_X, "sha": before_x}},
+        head_sha=before_localx, target_sha=before_x, comments=comments,
+    )
+    return official_release_tag(pushed_sha, pr.get("merged_at"))

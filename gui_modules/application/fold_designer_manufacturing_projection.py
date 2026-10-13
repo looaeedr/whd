@@ -272,7 +272,9 @@ def _query_fold_designer_render_data(self, part_key, payload):
         panel = next((item for item in panels if item.stable_id == key), None)
         if panel is None:
             raise ValueError(f"內門板 stable_id 不存在於 authoritative topology: {key}")
-        return manufacturing_api.build_inner_door_panel_render_data(panel)
+        return manufacturing_api.build_inner_door_panel_render_data(
+            panel, features=tuple(data.get("features") or ()),
+        )
 
     if key.startswith("inner_door:") and key.endswith("_frame"):
         from ae_engine.inner_door_frames import (

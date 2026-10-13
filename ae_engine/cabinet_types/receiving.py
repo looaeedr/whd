@@ -408,10 +408,10 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
         )["finished_height"]
         result.append(derive_inner_door_panel(
             stable_id, cell_key=cell_key, width=panel_w, height=panel_h, thickness=t,
-            fold_left=float(data.get("door_fold_l", DOOR_DEFAULTS["door_fold_l"])),
-            fold_right=float(data.get("door_fold_r", DOOR_DEFAULTS["door_fold_r"])),
-            fold_top=float(data.get("door_fold_t", DOOR_DEFAULTS["door_fold_t"])),
-            fold_bottom=float(data.get("door_fold_b", DOOR_DEFAULTS["door_fold_b"])),
+            # Inner Door is a Vault Door panel with its own fixed 19-mm folds.
+            # Do not inherit modified outer-door fold inputs from this family.
+            fold_left=19.0, fold_right=19.0,
+            fold_top=19.0, fold_bottom=19.0,
         ))
     return tuple(result)
 
