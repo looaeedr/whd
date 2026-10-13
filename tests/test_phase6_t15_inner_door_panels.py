@@ -254,7 +254,7 @@ def test_inner_door_reuses_exact_vault_baseline_and_not_outer_fold_inputs():
     vault = build_part_render_data(
         DoorPartSpec(
             width=panel.width, height=panel.height,
-            thickness=panel.thickness, frame_width=0.0,
+            thickness=panel.thickness, frame_width=25.0,
             model_name="金庫型", gap_w=0.0, gap_h=0.0,
             fold_left=19.0, fold_right=19.0, fold_top=19.0, fold_bottom=19.0,
             frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),

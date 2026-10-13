@@ -45,7 +45,7 @@ def open_inner_door_hole_editor(app, part_key: str):
     # independent of the outer door's FW, gaps, and bending settings.
     structural = build_door_result(
         w=panel.width, h=panel.height, t=panel.thickness,
-        fw=0.0, gap_w=0.0, gap_h=0.0,
+        fw=25.0, gap_w=0.0, gap_h=0.0,
         fold_left=19.0, fold_right=19.0,
         fold_top=19.0, fold_bottom=19.0,
         frame_edges=DoorFrameEdges(

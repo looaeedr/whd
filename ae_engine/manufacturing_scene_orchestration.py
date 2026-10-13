@@ -379,8 +379,8 @@ def build_inner_door_panel_render_data(
 ) -> PartRenderData:
     """Manufacture an inner panel through the certified Vault Door path.
 
-    The input W/H are already finished inner-door face dimensions.  A zero
-    enclosure frame/gap means do not deduct them a second time. Reuse Vault
+    The input W/H are already finished inner-door face dimensions.  The frame edges and gaps are disabled so its finished W/H are
+    not deducted a second time. The Vault material FW remains positive. Reuse Vault
     門.dxf and its standard holes/reliefs; only the inner panel fold sizes
     are 19 mm. User hole features are scoped to this physical stable ID.
     """
@@ -398,7 +398,7 @@ def build_inner_door_panel_render_data(
         raise ValueError("受電箱內門缺少金庫型/門.dxf 基準檔；不得以程式矩形替代")
     spec = DoorPartSpec(
         width=float(panel.width), height=float(panel.height),
-        thickness=float(panel.thickness), frame_width=0.0,
+        thickness=float(panel.thickness), frame_width=25.0,
         model_name="金庫型", gap_w=0.0, gap_h=0.0,
         fold_left=19.0, fold_right=19.0,
         fold_top=19.0, fold_bottom=19.0,
