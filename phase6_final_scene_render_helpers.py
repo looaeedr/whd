@@ -72,14 +72,14 @@ class Phase6FinalSceneRenderHelpersMixin:
                 )
             )
 
-    def _add_mesh_boundary_and_crease_lines(self, triangles, color):
-        """Draw formed-sheet perimeter, through-hole edges, and real fold creases.
+    def _add_mesh_boundary_and_crease_lines(self, triangles, color, *, creases_only=False):
+        """Draw real folded-sheet creases without exposing triangulation seams.
 
-        A thickened sheet is a closed solid, so its CUTTING-hole perimeter and
-        mid-surface fold crease are no longer open mesh boundaries.  Assembly
-        rendering therefore derives these diagnostic/visual edges from the
-        already-folded authoritative mid-surface before physical thickening.
-        Coplanar triangulation diagonals are excluded.
+        In smooth mode, unmatched triangle sides are not reliable physical
+        boundaries: fragmented tessellation exposed them as diagonal artifacts.
+        Draw only edges shared by different physical face normals, while BEND,
+        MARKING and CUTTING retain their original source geometry.  Legacy
+        mode continues to support drawing actual open mesh perimeters.
         """
         import math
         from collections import defaultdict
@@ -117,7 +117,11 @@ class Phase6FinalSceneRenderHelpersMixin:
 
         segments = []
         for edge, normals in edges.items():
-            visible = len(normals) == 1
+            # Unmatched polygon/triangulation edges are NOT proof of a
+            # real external outline.  In smooth 3D mode draw ONLY crease
+            # edges shared by genuine non-coplanar faces.  Authoritative
+            # BEND, CUTTING, and MARKING geometry remains separate.
+            visible = not creases_only and len(normals) == 1
             if not visible and len(normals) >= 2:
                 base = normals[0]
                 for other in normals[1:]:
@@ -342,6 +346,57 @@ class Phase6FinalSceneRenderHelpersMixin:
                 alpha=1.0,
                 zorder=20,
             )
+
+    def _draw_endcap_cutting_hole_rims(
+        self, material, x_profile, y_profile, fold_guides,
+        local_surface, placed_surface, placement, color,
+    ):
+        """Project only actual CUTTING inner rings into the finished 3D.
+
+        Unlike raw triangulation boundaries this never shows T-junction mesh
+        seams. The mapping uses the SAME local Fold Profile and actual paired
+        local/world EndCap placement as the shaded manufactured surface.
+        """
+        if not local_surface or not placed_surface or material is None:
+            return
+        from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
+        plane = str(placement or "").lower()
+        if plane not in {"head", "top", "tail", "bottom"}:
+            return
+        # EndCap placement is rigid: worldX=localX+offset,
+        # head worldY=-localZ+offset / worldZ=-localY+offset,
+        # tail worldY=+localZ+offset / worldZ=+localY+offset.
+        # Reference both origins from the actual triangulated model, never a
+        # guessed finished-width/height center.
+        p0 = tuple(float(x) for x in local_surface[0][0])
+        w0 = tuple(float(x) for x in placed_surface[0][0])
+        sign = -1 if plane in {"head", "top"} else 1
+        polys = ([material] if getattr(material, "geom_type", "") == "Polygon"
+                 else tuple(getattr(material, "geoms", ()) or ()))
+        segments = []
+        for poly in polys:
+            if getattr(poly, "geom_type", "") != "Polygon":
+                continue
+            for inner_ring in poly.interiors:
+                positions = []
+                for x, y in inner_ring.coords:
+                    local = self._map_xy(
+                        x, y, x_profile, y_profile, fold_guides,
+                    )
+                    positions.append((
+                        w0[0] + float(local[0]) - p0[0],
+                        w0[1] + sign * (float(local[2]) - p0[2]),
+                        w0[2] + sign * (float(local[1]) - p0[1]),
+                    ))
+                segments.extend(
+                    (a, b) for a, b in zip(positions, positions[1:])
+                    if any(abs(a[i] - b[i]) > 1e-9 for i in range(3))
+                )
+        if segments:
+            self.renderer.ax3d.add_collection3d(Line3DCollection(
+                segments, colors=color, linewidths=1.4, linestyles="solid",
+            ))
 
     def _draw_assembly_scene_markings(
         self,

@@ -12,6 +12,47 @@ def is_inner_door_sheet(part_key: object) -> bool:
     return key.startswith("inner_door:") and key.endswith(":panel")
 
 
+
+def inner_door_work_area_guide(snapshot, panel, structural):
+    """Project the source door-layout cell into the local inner-door editor.
+
+    The outer 800×1100 (or selected cell W/H) is a measurement/display guide,
+    NOT a new CUTTING surface or feature-local coordinate system. Door feature
+    coordinates and manufacturing remain in the real 19-mm folded sheet.
+    """
+    from ae_engine.cabinet_types.receiving import (
+        DOOR_DEFAULTS, inner_door_panel_vertical_contract,
+    )
+    from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+    from ae_engine.sheetmetal_features import RectGuide, Vec2
+
+    columns = tuple(snapshot.get("door_layout_columns") or ())
+    cells = derive_door_layout_cells(columns)
+    cell_key = str(panel.cell_key)
+    cell = next((item for item in cells
+                 if f"{item.column_index}:{item.row_index}" == cell_key), None)
+    if cell is None:
+        raise ValueError(f"內門 {panel.inner_door_id} 找不到所屬作業區 {cell_key}")
+
+    vertical = inner_door_panel_vertical_contract(
+        cell_height=cell.start_height,
+        thickness=panel.thickness,
+        gap_h=float(snapshot.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"])),
+    )
+    # Panel is vertically lower inside its work-area cell by half the top-frame
+    # occupation. In local unfolded-door coordinates the CELL center is higher
+    # than the panel center; X stays symmetrically centered between side frames.
+    cx = float(structural.width) / 2.0
+    cy = float(structural.height) / 2.0 - vertical["center_offset_y"]
+    half_w = float(cell.start_width) / 2.0
+    half_h = float(cell.start_height) / 2.0
+    return RectGuide(
+        Vec2(cx - half_w, cy - half_h),
+        Vec2(cx + half_w, cy + half_h),
+        "receiving_inner_door_work_area",
+    )
+
+
 def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, from_part_preview=False):
     """Open the existing Vault Door hole editor; preserve view-only Corner Data selection."""
     if not is_inner_door_sheet(part_key):
@@ -38,7 +79,7 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
 
     from ae_engine.cabinet_types import policy as cabinet_family_policy
     from ae_engine.sheetmetal_part_adapters import (
-        build_door_result, build_finished_reference_guide, DoorFrameEdges,
+        build_door_result, DoorFrameEdges,
     )
     from ae_engine.sheetmetal_features import feature_surface_from_structural_result
     from ae_engine import manufacturing_api
@@ -63,10 +104,7 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         ),
     )
     surface = feature_surface_from_structural_result("door", structural)
-    guide = build_finished_reference_guide(
-        "door", structural,
-        finished_width=panel.width, finished_height=panel.height,
-    )
+    guide = inner_door_work_area_guide(snapshot, panel, structural)
     # The inner-door hole UI must show the same physical CUTTING/BEND as
     # its produced DXF. Reuse Vault certified folding/corner rules without
     # importing the OUTER Vault Door's fixed handle/nameplate holes into a

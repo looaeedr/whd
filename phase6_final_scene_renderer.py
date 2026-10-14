@@ -290,7 +290,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                     # do not restore BEND/joint/wireframe overlays.
                                     self._add_mesh_feature_lines(piece_placed, edge)
                                 else:
-                                    self._add_mesh_boundary_lines(piece_placed, edge)
+                                    # Render the actual solid without an extra
+                                    # triangulation border overlay.  Real BEND
+                                    # and joint MARKING come from source data.
                                     self._draw_joint_marking_world_rows(piece.render_data)
                                 triangles.extend(piece_placed)
                             if visible_rows:
@@ -384,23 +386,20 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     # bend/miter edges live on the visible skins.  Keep the
                     # authoritative mid-surface crease overlay as a fallback
                     # for long fold spans that do not coincide with a skin rim.
-                    self._add_mesh_feature_lines(placed, edge)
                     self._add_mesh_boundary_and_crease_lines(
-                        formed_surface_for_edges, edge
+                        formed_surface_for_edges, edge, creases_only=True
                     )
-                else:
-                    if divider_presentation is not None:
-                        # Only real formed edges (not triangulation diagonals),
-                        # emphatic enough to distinguish the C divider in 3D.
-                        from mpl_toolkits.mplot3d.art3d import Line3DCollection
-                        from phase6_final_scene_projection import _phase6_mesh_feature_segments
-                        outlines = _phase6_mesh_feature_segments(placed)
-                        if outlines:
-                            ax.add_collection3d(Line3DCollection(
-                                outlines, colors=edge, linewidths=2.7, alpha=1.0,
-                            ))
-                    else:
-                        self._add_mesh_boundary_lines(placed, edge)
+                    self._draw_endcap_cutting_hole_rims(
+                        part_material, part.x_profile, part.y_profile,
+                        tuple(getattr(part_data, "fold_guides", ()) or ()),
+                        local, formed_surface_for_edges, placement, edge,
+                    )
+                elif divider_presentation is not None:
+                    # Show only shared physical creases, never triangulation
+                    # boundaries; preserve the real C-divider solid and holes.
+                    self._add_mesh_boundary_and_crease_lines(
+                        placed, edge, creases_only=True
+                    )
                 triangles.extend(placed)
                 materials.append(part_material)
             # On-demand WHOLE ASSEMBLY physical audit, independent of legacy
@@ -573,10 +572,11 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     edgecolor="none", linewidths=0.0,
                 )
                 self.renderer.ax3d.add_collection3d(poly)
+                # Back panel rim is a true physical feature. For all other
+                # pieces, BEND comes from the underlying manufacturing scene,
+                # not triangulation boundaries.
                 if str(getattr(_piece, "role", "") or "").strip() == "back":
                     self._add_mesh_feature_lines(piece_tris, edge)
-                else:
-                    self._add_mesh_boundary_lines(piece_tris, edge)
             self._draw_box_body_structure_bends(
                 render_data, thickness=request.thickness
             )
@@ -652,7 +652,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             linewidths=0.0,
         )
         self.renderer.ax3d.add_collection3d(poly)
-        self._add_mesh_boundary_lines(triangles, edge)
+        # A shaded solid has no triangulation grid. Explicit source BEND and
+        # MARKING stay visible independently of the physical mesh tessellation.
         self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
         self._draw_scene_markings(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
         self._draw_operator_dimensions(request, triangles)
