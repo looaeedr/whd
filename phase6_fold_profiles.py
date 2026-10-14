@@ -74,9 +74,12 @@ def _outside_profile_to_material(profile: Sequence[dict], thickness, *, preserve
     rows = apply_outside_dimension_compensation([dict(row) for row in profile], t)
     for seg in rows:
         outside = abs(_num(seg.get("len")))
-        number = _num if preserve_precision or preserve_core_precision and seg.get("core") else _ui_len
-        # 3D UI 包外是輸入來源：正算扣除實際 BEND 相鄰 T 得料長；反算加回相同 T 應還原原值。
-        seg["len"] = number(max(0.0, outside - abs(_num(seg.get("ui_len_add")))))
+        # Operator-facing fold inputs are integers; internal flat/material
+        # spans are NOT.  Keep fractional T here (e.g. 24 outside - 1.5T =
+        # 22.5 material), or an early int(round(...)) silently changes 24 to
+        # 23.5 when the mesh later restores formed/outside metadata.
+        # 3D UI 包外是唯一輸入；料長保持精度，不把 material 取整。
+        seg["len"] = _num(max(0.0, outside - abs(_num(seg.get("ui_len_add")))))
     return apply_outside_dimension_compensation(rows, t)
 
 def build_box_body_profile(snapshot: Mapping[str, object]) -> list[dict]:

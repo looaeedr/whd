@@ -463,12 +463,32 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         scene = render_data.scene
         material = render_data.material
         fold_guides = tuple(getattr(render_data, "fold_guides", ()) or ())
-        triangles = _phase6_folded_mesh_from_polygon(
-            material,
-            request.x_profile,
-            request.y_profile,
-            fold_guides=fold_guides,
-        )
+        if str(request.part_key) == "box_body:left_side":
+            # This independent 3D input sink must depict the FINISHED solid,
+            # not a zero-thickness material midplane.  Use the same pure
+            # formed/outside correction as the assembly collision mesh,
+            # but fold the ACTIVE operator profile (never copy world assembly).
+            from ae_engine.assembly_geometry import (
+                folded_mesh_with_flat_uv_from_polygon, thicken_triangle_surface,
+            )
+            from ae_engine.assembly_geometry_folded_mesh import (
+                fit_receiving_left_zl1_formed_outside,
+            )
+            mapped = folded_mesh_with_flat_uv_from_polygon(
+                material, request.x_profile, request.y_profile,
+                fold_guides=fold_guides,
+            )
+            formed = fit_receiving_left_zl1_formed_outside(
+                request.x_profile, mapped,
+                tuple(item.local for item in mapped),
+                thickness=request.thickness, axis=2,
+            )
+            triangles = thicken_triangle_surface(formed, request.thickness)
+        else:
+            triangles = _phase6_folded_mesh_from_polygon(
+                material, request.x_profile, request.y_profile,
+                fold_guides=fold_guides,
+            )
         if not triangles:
             raise ValueError("3D CUTTING mesh is empty")
         self._remove_original_bend_surfaces()
