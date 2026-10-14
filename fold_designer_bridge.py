@@ -1997,6 +1997,19 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
         profiles = self.designer_workspace.profiles_for(key, {}) or {}
     x_prof = list(profiles.get("X", ()))
     y_prof = list(profiles.get("Y", ()))
+    if key in {"box_body:left_side", "box_body:right_side", "box_body:back"}:
+        # 3D INPUT is the source. Convert operator material folds to physical
+        # folds BEFORE rendering the independent piece 3D. Assembly consumes
+        # the same forward projection, NEVER the reverse.
+        from ae_engine.box_body_structure import project_side_back_3d_input_fold_to_physical
+        source = getattr(self, "_phase6_input_snapshot", {}) or {}
+        settings = getattr(self, "_settings_values", {}) or {}
+        thickness = _num(settings.get("t", source.get("t", 2.0)), 2.0)
+        receiving = cabinet_family_policy.box_body_profile_uses_outside_dimensions(source)
+        x_prof = project_side_back_3d_input_fold_to_physical(
+            x_prof, role=key.split(":", 1)[1],
+            receiving=receiving, thickness=thickness,
+        )
     if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith("_frame")):
         minx, miny, maxx, maxy = material.bounds
         if x_prof and not y_prof:
