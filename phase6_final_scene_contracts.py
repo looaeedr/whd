@@ -41,6 +41,8 @@ class FinalSceneViewRequest:
     thickness: float = 2.0
     corner_dimension_text: str | None = None
     unfolded_blank_text: str | None = None
+    # Single physical piece previews share manufacturing world skins.
+    physical_world_triangles: tuple[object, ...] = ()
 
 
 @dataclass(frozen=True)
