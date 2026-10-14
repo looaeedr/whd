@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# WHD 尺寸硬契約（CURRENT：個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md）：
+# 3D 操作輸入為唯一資料來源，輸入的是折後包外尺寸及折彎方向；不可用下游組合體回寫輸入。
+# 同一拓樸／板厚 T：料長 = 包外 − 實際相鄰 BEND 數(0/1/2)*T；包外 = 料長 + 同一折彎數*T。
+# 展開 BEND = 料長前綴和；由展開邊界與 BEND 差分得料長，再按拓樸/T 可反算包外，正反算須一致。
+# 單板3D、組合3D、2D及製造/DXF都由這份輸入推導；角度正負只定折彎方向，WRAP/OVERLAY 是裝配語意.
+
 """Phase6 Fold Profile 與 linked EndCap mating chain 的單一所有權模組。"""
 from __future__ import annotations
 
@@ -69,6 +75,7 @@ def _outside_profile_to_material(profile: Sequence[dict], thickness, *, preserve
     for seg in rows:
         outside = abs(_num(seg.get("len")))
         number = _num if preserve_precision or preserve_core_precision and seg.get("core") else _ui_len
+        # 3D UI 包外是輸入來源：正算扣除實際 BEND 相鄰 T 得料長；反算加回相同 T 應還原原值。
         seg["len"] = number(max(0.0, outside - abs(_num(seg.get("ui_len_add")))))
     return apply_outside_dimension_compensation(rows, t)
 

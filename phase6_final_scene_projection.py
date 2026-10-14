@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# WHD 製造／3D 共用尺寸不變式（CURRENT：個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md）：
+# 包外是折後外側面的成形尺寸；料段 len = 其包外段尺寸 −（實際相鄰折彎數 0/1/2 × T），已轉成料長的資料不得重扣 T。
+# 展開 CUTTING = 料段累加；BEND 線位 = 同一料鏈的前綴和，不可直接拿包外尺寸充當展開折彎座標。
+# 3D 須依相同 Fold Profile／料鏈／BEND 與角度成形；角度正負只決定方向，禁止從 3D bbox 反推料長。
+# 這是板厚尺寸語意，非折彎展開補償；WRAP／OVERLAY 是裝配關係，不等於包外。
+
 """Pure Final Scene geometry/projection helpers for Phase 4 T5.
 
 This module owns calculation and projection only. It does not mutate renderer
@@ -219,6 +225,8 @@ def _phase6_fitted_limits_from_vertices(vertices, padding=0.06):
 
 def _phase6_scene_fold_boundaries(scene, material):
     """Use final BEND primitives as unfolded fold positions."""
+    # 3D 輸入/Fold Profile 是上游；製造 scene BEND 為展開料長線位，FinalScene 僅投影成形。
+    # BEND/料長與包外在完整拓樸/T 下可雙向驗算；禁止由組合渲染資料回寫 3D 操作輸入。
     from ae_engine.sheetmetal_drawing import LinePrimitive
     minx, miny, maxx, maxy = (float(v) for v in material.bounds)
     xs, ys = [], []

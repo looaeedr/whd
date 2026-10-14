@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# WHD 尺寸硬契約（CURRENT：個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md）：
+# 3D 操作輸入為唯一資料來源，輸入的是折後包外尺寸及折彎方向；不可用下游組合體回寫輸入。
+# 同一拓樸／板厚 T：料長 = 包外 − 實際相鄰 BEND 數(0/1/2)*T；包外 = 料長 + 同一折彎數*T。
+# 展開 BEND = 料長前綴和；由展開邊界與 BEND 差分得料長，再按拓樸/T 可反算包外，正反算須一致。
+# 單板3D、組合3D、2D及製造/DXF都由這份輸入推導；角度正負只定折彎方向，WRAP/OVERLAY 是裝配語意.
+
 """Resolved box-body multi-structure geometry.
 
 This is the public geometry seam for box-body structure modes.  It deliberately
@@ -101,6 +107,8 @@ def _to_contract(rows) -> tuple[FoldProfileSegment, ...]:
 
 
 def _generic_strip_result(rows, *, height) -> StructuralGeometryResult:
+    # 先取每段已解析的 material len；下游的 CUTTING/BEND 只沿這份料鏈累加。
+    # 各 physical piece 的 formed outside 是另一層尺寸，不是這裡展開 X 的額外補償。
     segments = []
     for index, row in enumerate(rows):
         name = str(row.get("phase6_key") or row.get("core") or f"fold_{index}")

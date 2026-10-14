@@ -28,6 +28,15 @@ def test_invalid_shard_fails_closed(index, count):
         shard_paths(index, count)
 
 
+def test_outside_bend_bidirectional_gate_cannot_be_omitted_from_product_ci():
+    mandatory = {
+        "tests/test_outside_bend_bidirectional_hard_gate.py",
+        "tests/test_final_scene_input_to_assembly_direction.py::test_physical_3d_input_preview_never_reads_back_from_assembly",
+        "tests/test_final_scene_input_to_assembly_direction.py::test_manufacturing_adapter_reads_active_3d_input_not_assembly_result",
+    }
+    assert mandatory.issubset(set(PYTEST_PATHS))
+
+
 def _report(path: Path, names, *, failing=False):
     root = ET.Element("testsuites")
     suite = ET.SubElement(root, "testsuite")

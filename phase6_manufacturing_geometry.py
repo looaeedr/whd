@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# WHD 尺寸硬契約（CURRENT：個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md）：
+# 3D 操作輸入為唯一資料來源，輸入的是折後包外尺寸及折彎方向；不可用下游組合體回寫輸入。
+# 同一拓樸／板厚 T：料長 = 包外 − 實際相鄰 BEND 數(0/1/2)*T；包外 = 料長 + 同一折彎數*T。
+# 展開 BEND = 料長前綴和；由展開邊界與 BEND 差分得料長，再按拓樸/T 可反算包外，正反算須一致。
+# 單板3D、組合3D、2D及製造/DXF都由這份輸入推導；角度正負只定折彎方向，WRAP/OVERLAY 是裝配語意.
+
 """Canonical Phase 1 manufacturing helper owner extracted move-only from fold_designer_bridge."""
 
 from __future__ import annotations
@@ -318,6 +324,8 @@ def _phase6_expand_box_body_fw_world_mid(
     band = None
     core_bands = []
     target = None
+    # flat cursor 走料長累計 BEND；formed_length 是折後包外證據，僅供外側實體面貼齊。
+    # 同樣可用 BEND 差分料長再還原 formed_length 做驗算；不得把組合結果改寫 3D 輸入。
     for row in tuple(getattr(piece, "fold_profile", ()) or ()):
         length = float(getattr(row, "length", 0.0) or 0.0)
         end = cursor + length

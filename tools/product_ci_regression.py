@@ -147,6 +147,10 @@ PYTEST_PATHS = (
     "tests/test_dxf_acceptance.py::test_saved_dxf_acceptance_passes_exact_roundtrip",
     "tests/test_multipart_dxf_acceptance.py::test_resolved_saved_dxf_acceptance_reopens_every_physical_part",
     "tests/test_resolved_manufacturing_export.py::test_resolved_dxf_export_uses_exact_canonical_render_data_without_rebuilding",
+    # Mandatory 3D operator OUTSIDE -> material BEND -> OUTSIDE round-trip gate.
+    "tests/test_outside_bend_bidirectional_hard_gate.py",
+    "tests/test_final_scene_input_to_assembly_direction.py::test_physical_3d_input_preview_never_reads_back_from_assembly",
+    "tests/test_final_scene_input_to_assembly_direction.py::test_manufacturing_adapter_reads_active_3d_input_not_assembly_result",
     "tests/test_phase6_3d_single_source_renderer.py::test_2d_and_3d_equal_door_state_share_exact_render_data_object",
     "tests/test_phase6_assembly_3d_view.py::test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum",
     "tests/test_phase6_project_file.py::test_project_round_trip_preserves_verified_joint_relief_state",
@@ -171,6 +175,17 @@ def _tracked_invariants() -> dict[str, str]:
 
 
 def _source_authority_scan() -> None:
+    # Hard gate also guards canonical selector removal: every product PR run
+    # MUST exercise the inverse dimensional contract and 3D-input precedence.
+    required = (
+        "tests/test_outside_bend_bidirectional_hard_gate.py",
+        "tests/test_final_scene_input_to_assembly_direction.py::test_physical_3d_input_preview_never_reads_back_from_assembly",
+        "tests/test_final_scene_input_to_assembly_direction.py::test_manufacturing_adapter_reads_active_3d_input_not_assembly_result",
+    )
+    missing = sorted(set(required).difference(PYTEST_PATHS))
+    if missing:
+        raise RuntimeError(f"OUTSIDE_BEND_BIDIRECTIONAL_HARD_GATE_MISSING: {missing}")
+
     text = (ROOT / "ae_engine/assembly_collision.py").read_text(encoding="utf-8")
     stale = (
         "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2",
