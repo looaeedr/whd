@@ -226,7 +226,7 @@ def _phase6_fitted_limits_from_vertices(vertices, padding=0.06):
 def _phase6_scene_fold_boundaries(scene, material):
     """Use final BEND primitives as unfolded fold positions."""
     # 3D 輸入/Fold Profile 是上游；製造 scene BEND 為展開料長線位，FinalScene 僅投影成形。
-    # 不准將組合體尺寸或 renderer bbox 反投射為 3D 輸入、包外料長或新的 BEND 位置。
+    # BEND/料長與包外在完整拓樸/T 下可雙向驗算；禁止由組合渲染資料回寫 3D 操作輸入。
     from ae_engine.sheetmetal_drawing import LinePrimitive
     minx, miny, maxx, maxy = (float(v) for v in material.bounds)
     xs, ys = [], []
