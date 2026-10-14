@@ -150,3 +150,56 @@ def test_project_workspace_export_preserves_deleted_id_history():
     assert exported["custom_parts"]["items"] == {}
     restored=Phase6DesignerWorkspace.from_snapshot({"workspace":exported})
     assert restored.add_custom_part(display_name="新板",fold_axis="Y",transverse_length=90) != key
+
+
+
+@pytest.mark.parametrize("screen_w,screen_h,expected_max", [
+    (1024, 768, (1000, 688)),
+    (1366, 768, (1342, 688)),
+    (1920, 1080, (1450, 1000)),
+    (800, 600, (776, 520)),
+])
+def test_custom_designer_window_uses_monitor_boundaries(screen_w, screen_h, expected_max):
+    """Do not open an offscreen 1450x1000 designer on smaller monitors."""
+    from fold_designer_original import designer_screen_bounded_geometry
+    geometry = designer_screen_bounded_geometry(screen_w, screen_h)
+    dimensions, x, y = geometry.split("+")
+    width, height = (int(v) for v in dimensions.split("x"))
+    assert (width, height) == expected_max
+    assert int(x) == int(y) == 0
+    assert width <= screen_w and height <= screen_h
+
+
+def test_compact_custom_settings_keep_buttons_accessible_in_small_viewport():
+    """Creation modal remains unchanged; active custom settings are compact."""
+    import tkinter as tk
+    from tkinter import ttk
+    from gui_modules.application.custom_part_controls import (
+        build_custom_part_editor, open_custom_part_creation,
+    )
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        parent = ttk.Frame(root)
+        parent.pack()
+        form = build_custom_part_editor(
+            parent,
+            descriptor={"display_name":"加強板","fold_axis":"X",
+                        "transverse_length":"350","per_box_count":1},
+            update_part=lambda **v: bool(v),
+            on_changed=lambda: None,
+            open_holes=lambda: None,
+        )
+        form.pack()
+        root.update_idletasks()
+        assert form.winfo_reqwidth() <= 365
+        assert form.winfo_reqheight() <= 265
+        assert any(child.cget("text") == "套用設定" for child in form.winfo_children()
+                   if isinstance(child, ttk.Button))
+        assert any(child.cget("text") == "2D 孔位設定" for child in form.winfo_children()
+                   if isinstance(child, ttk.Button))
+        assert set(form._custom_values) == {
+            "display_name","fold_axis","transverse_length","per_box_count"
+        }
+    finally:
+        root.destroy()
