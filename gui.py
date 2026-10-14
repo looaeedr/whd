@@ -1626,7 +1626,18 @@ class Phase6ApplicationHost:
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return
-        features = self.door_layout_features.setdefault(key, [])
+        designer = getattr(self, 'fold_designer_app', None)
+        physical_key = f'door_c{cell.column_index + 1}_r{cell.row_index + 1}'
+        workspace = getattr(designer, 'designer_workspace', None)
+        features = (workspace.features_for(physical_key) if workspace is not None
+                    and physical_key in workspace.available_parts
+                    else self.door_layout_features.setdefault(key, []))
+
+        def sync_features():
+            self.door_layout_features[key] = list(features)
+            if workspace is not None and physical_key in workspace.available_parts:
+                workspace.stash_features(physical_key, features)
+                designer.submit_update_intent('geometry', commit=True)
         indicator_state = self._door_layout_indicator_state_for_key(key)
         indicator_context = DoorIndicatorContext(
             finished_width=finished_w, finished_height=finished_h,
@@ -1638,6 +1649,7 @@ class Phase6ApplicationHost:
             surface, result.width, result.height,
             reference_guide=reference_guide,
             feature_list_override=features,
+            sync_callback=sync_features,
             door_indicator_state=indicator_state,
             door_indicator_context=indicator_context,
             door_indicator_commit=lambda state, key=key: self._apply_multi_door_indicator_state(key, state),

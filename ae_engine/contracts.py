@@ -127,6 +127,7 @@ class BoxBodyPartSpec:
     # Actual EndCap/Tail lower flange values drive multi-piece end relief.
     head_ybottom1: float = 15.0
     tail_ybottom1: float = 15.0
+    physical_piece_features: Mapping[str, Sequence[FeatureLike]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

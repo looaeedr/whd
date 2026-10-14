@@ -582,17 +582,17 @@ def refresh_corner_data_parts_panel(self, namespace):
     required = lambda name: self._required(namespace, name)
     keys = self.corner_data_part_keys()
 
-    def open_existing_inner_door_editor(key):
-        # Reuse the existing Vault Door Hole Editor without activating a part.
-        from .receiving_inner_door_hole_editor import (
-            is_inner_door_sheet, open_inner_door_hole_editor,
-        )
-        if not is_inner_door_sheet(key):
-            return None
+    def open_existing_part_editor(key):
         selected = self.select_corner_data_part(namespace, key, refresh_view=False)
         if selected != key:
             return None
-        return open_inner_door_hole_editor(app, key, from_corner_data=True)
+        from .receiving_inner_door_hole_editor import is_inner_door_sheet, open_inner_door_hole_editor
+        if is_inner_door_sheet(key):
+            return open_inner_door_hole_editor(app, key, from_corner_data=True)
+        host = getattr(app._scene_query_callback, '__self__', None)
+        if host is None:
+            raise ValueError('未連接板件開孔編輯器')
+        return host.open_part_hole_editor(key)
 
     return self.corner_data_view().refresh_parts_panel(
         app,
@@ -608,7 +608,7 @@ def refresh_corner_data_parts_panel(self, namespace):
         on_refresh_back_panel_mode=lambda: self.refresh_corner_data_back_panel_mode_control(
             namespace
         ),
-        on_double_click=open_existing_inner_door_editor,
+        on_double_click=open_existing_part_editor,
     )
 
 def on_corner_data_mousewheel(self, namespace, event):

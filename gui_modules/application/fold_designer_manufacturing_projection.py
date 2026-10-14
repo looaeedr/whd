@@ -227,6 +227,10 @@ def _export_authoritative_part(self, spec, output_path, context=None):
     )
 
 def _query_fold_designer_render_data(self, part_key, payload):
+    from ae_engine.physical_sheet_features import with_physical_sheet_features
+
+    def sheet(render):
+        return with_physical_sheet_features(str(part_key), render, (payload or {}).get('features', ()))
     if str(part_key or "").startswith("indicator"):
         payload = collect_indicator_box_input(payload)
     if str(part_key or "").startswith("box_body:part:"):
@@ -249,7 +253,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
         )
         if key not in {part.part_id for part in physical}:
             raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
-        return build_fixing_plate_source_render_data(key, snapshot=dict(payload or {}))
+        return sheet(build_fixing_plate_source_render_data(key, snapshot=dict(payload or {})))
     if key.startswith("box_body:divider:"):
         from ae_engine.door_dividers import derive_box_body_dividers
 
@@ -270,7 +274,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
         divider = next((item for item in dividers if item.stable_id == key), None)
         if divider is None:
             raise ValueError(f"中隔 stable_id 不存在於 authoritative topology: {key}")
-        return manufacturing_api.build_box_body_divider_render_data(divider)
+        return sheet(manufacturing_api.build_box_body_divider_render_data(divider))
 
     if key.startswith("inner_door:") and key.endswith(":panel"):
         data = dict(payload or {})
@@ -314,7 +318,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
         frame = next((item for item in frames if item.stable_id == key), None)
         if frame is None:
             raise ValueError(f"內門框 stable_id 不存在於 authoritative topology: {key}")
-        return manufacturing_api.build_inner_door_frame_render_data(frame)
+        return sheet(manufacturing_api.build_inner_door_frame_render_data(frame))
 
     spec, context = self._fold_designer_part_spec_from_payload(part_key, payload)
     if isinstance(spec, BoxBodyPartSpec):

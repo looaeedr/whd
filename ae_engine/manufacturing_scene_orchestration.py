@@ -790,6 +790,11 @@ def build_box_body_structure_render_data(
             metadata=metadata,
             unfolded_topology=topology,
         )
+        from .physical_sheet_features import with_physical_sheet_features
+        render_data = with_physical_sheet_features(
+            f'box_body:{piece.role}', render_data,
+            spec.physical_piece_features.get(f'box_body:{piece.role}', ()),
+        )
         pieces.append(BoxBodyPieceRenderData(
             key=piece.key, role=piece.role,
             formed_w_start=float(piece.formed_w_start), formed_w_end=float(piece.formed_w_end),

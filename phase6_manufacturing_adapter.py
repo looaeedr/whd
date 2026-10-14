@@ -264,6 +264,12 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
     values["face_features"] = (
         face_features_for(key) if callable(face_features_for) else {}
     )
+    if key == 'box_body' and workspace is not None:
+        values['physical_piece_features'] = {
+            child: workspace.features_for(child)
+            for child in workspace.available_parts
+            if is_box_body_physical_piece_key(child)
+        }
     values["box_body_structure"] = (
         structure_state() if callable(structure_state) else {}
     )

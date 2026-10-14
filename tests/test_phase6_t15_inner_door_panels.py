@@ -52,6 +52,179 @@ def _receiving_snapshot():
     })
 
 
+@pytest.mark.skipif(not os.environ.get('DISPLAY'), reason='requires Tk display')
+@pytest.mark.parametrize('family,mode,structure', [
+    ('受電箱', 'quantity', None), ('受電箱', 'set_bay', None),
+    ('金庫型', 'quantity', None), ('分電箱', 'quantity', None),
+    ('自由箱型', 'quantity', None),
+    ('受電箱', 'quantity', 'two_piece_w_split'),
+    ('受電箱', 'quantity', 'three_piece_w_split'),
+])
+def test_all_receiving_physical_previews_open_real_hole_editors(tmp_path, monkeypatch, family, mode, structure):
+    import tkinter as tk
+    import gui
+    from gui_modules.editors import hole_editor
+    from phase6_project_file import PROJECT_SCHEMA_V2, write_project
+    from phase6_receiving_modes import fresh_receiving_mode
+
+    if family == '受電箱':
+        snapshot = fresh_receiving_mode(mode, {'w': 800, 'h': 1600, 'd': 350, 't': 2})
+    else:
+        from ae_engine.cabinet_types import policy
+        snapshot = policy.apply_fresh_family_defaults({'w': 800, 'h': 1600, 'd': 350, 't': 2}, family)
+        snapshot['existing_parts'] = ['box_body', 'head', 'tail', 'door', 'base_plate', 'indicator_box', 'indicator_door']
+        snapshot['door_indicator_box_enabled'] = True
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    workspace = Phase6DesignerWorkspace.from_snapshot(snapshot)
+    workspace.add_custom_part(display_name='自訂補強板', fold_axis='X', transverse_length=150)
+    snapshot.update(workspace.snapshot())
+    if structure is not None:
+        from phase6_box_body_structure import normalize_box_body_structure_state
+        state = normalize_box_body_structure_state(snapshot.get('box_body_structure'))
+        state['active_type'] = structure
+        snapshot['box_body_structure'] = state
+    from phase6_project_file import PROJECT_SCHEMA_V1
+    path = write_project(tmp_path / 'all-parts.p6fold',
+                         {'schema': PROJECT_SCHEMA_V2 if family == '受電箱' else PROJECT_SCHEMA_V1,
+                          'snapshot': snapshot})
+    errors = []
+    monkeypatch.setattr(hole_editor.messagebox, 'showerror', lambda *a, **kw: errors.append(a))
+    root = tk.Tk()
+    host = gui.Phase6PrimaryApplication(root)
+    failures = []
+    try:
+        designer = host.load_phase6_project(path)
+        active = designer.designer_workspace.active_part
+        import fold_designer_bridge as bridge
+        import re
+        designer._phase6_3d_display_mode = 'corner_data'
+        # Mount the real lazy list panel before rebuilding its real widgets.
+        from tkinter import ttk
+        designer.corner_data_panel = ttk.Frame(root)
+        bridge._phase6_refresh_corner_data_parts_panel(designer)
+        for key in designer.designer_workspace.available_parts:
+            errors.clear()
+            try:
+                host.open_part_hole_editor(key)
+                window = getattr(host, 'last_unified_hole_editor', None)
+                assert not errors, errors
+                assert window is not None and window.winfo_exists()
+                assert designer.designer_workspace.active_part == active
+                window.destroy()
+                button = designer.corner_data_part_buttons[key]
+                binding = button.bind('<Double-Button-1>')
+                command = re.search(r'\[([^\s]+) ', binding)
+                assert command is not None, f'缺少板件清單雙擊入口：{key}'
+                root.tk.call(command.group(1), 'event')
+                window = host.last_unified_hole_editor
+                assert window.winfo_exists()
+                assert not errors, errors
+                assert designer.designer_workspace.active_part == active
+            except Exception as exc:
+                failures.append((key, str(exc)))
+            finally:
+                window = getattr(host, 'last_unified_hole_editor', None)
+                if window is not None and window.winfo_exists():
+                    window.destroy()
+        assert not failures, failures
+    finally:
+        root.destroy()
+
+
+@pytest.mark.skipif(not os.environ.get('DISPLAY'), reason='requires Tk display')
+def test_derived_sheet_holes_confirm_cancel_reload_and_real_dxf(tmp_path, monkeypatch):
+    import tkinter as tk
+    import ezdxf
+    import gui
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    from ae_engine.manufacturing_api import save_part_render_data_dxf
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+    from phase6_project_file import PROJECT_SCHEMA_V2, write_project, read_project
+    from phase6_receiving_modes import fresh_receiving_mode
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+
+    snapshot = fresh_receiving_mode('quantity', {'w': 800, 'h': 1600, 'd': 350, 't': 2})
+    ws = Phase6DesignerWorkspace.from_snapshot(snapshot)
+    ws.add_custom_part(display_name='補強板', fold_axis='Y', transverse_length=150)
+    snapshot.update(ws.snapshot())
+    path = write_project(tmp_path / 'source.p6fold', {'schema': PROJECT_SCHEMA_V2, 'snapshot': snapshot})
+    root = tk.Tk()
+    host = gui.Phase6PrimaryApplication(root)
+    original_open = host._open_unified_hole_editor
+    contexts = []
+    def capture(*args, **kwargs):
+        contexts.append((args, kwargs))
+        return original_open(*args, **kwargs)
+    monkeypatch.setattr(host, '_open_unified_hole_editor', capture)
+    def button(window, text):
+        for child in window.winfo_children():
+            if isinstance(child, tk.Button) and child.cget('text') == text:
+                return child
+            found = button(child, text)
+            if found is not None:
+                return found
+        return None
+    try:
+        app = host.load_phase6_project(path)
+        workspace = app.designer_workspace
+        keys = [k for k in workspace.available_parts if
+                k == 'base_plate' or k.startswith(('custom:', 'box_body:divider:', 'base_plate:fixing_plate:'))
+                or k in {'box_body:left_side', 'box_body:back', 'box_body:right_side'}
+                or (k.startswith('inner_door:') and k.endswith('_frame'))]
+        assert len(keys) >= 8
+        def render_for(key):
+            if key in {'box_body:left_side', 'box_body:back', 'box_body:right_side'}:
+                body = host._query_fold_designer_render_data('box_body', build_scene_payload_for_app(app, 'box_body'))
+                return next(p.render_data for p in body.pieces if f'box_body:{p.role}' == key)
+            return host._query_fold_designer_render_data(key, build_scene_payload_for_app(app, key))
+        for key in keys:
+            baseline = render_for(key)
+            point = baseline.material.representative_point()
+            feature = CircleFeature(diameter=1, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                                    offset=Vec2(point.x, point.y))
+            host.open_part_hole_editor(key)
+            contexts[-1][1]['feature_list_override'].append(feature)
+            button(host.last_unified_hole_editor, '確定全部').invoke()
+            assert workspace.features_for(key) == [feature], key
+            edited = render_for(key)
+            count = lambda render: sum(isinstance(p, CirclePrimitive) and p.layer == 'CUTTING'
+                                       for p in render.scene.primitives)
+            assert count(edited) == count(baseline) + 1, key
+            assert not edited.material.contains(point), key
+            assert tuple(edited.fold_guides) == tuple(baseline.fold_guides)
+            exported = save_part_render_data_dxf(edited, tmp_path / f'{keys.index(key)}.dxf')
+            circles = [e for e in ezdxf.readfile(exported).modelspace()
+                       if e.dxftype() == 'CIRCLE' and e.dxf.layer == 'CUTTING']
+            assert any(e.dxf.radius == pytest.approx(.5) and e.dxf.center.x == pytest.approx(point.x)
+                       and e.dxf.center.y == pytest.approx(point.y) for e in circles), key
+            host.open_part_hole_editor(key)
+            contexts[-1][1]['feature_list_override'].clear()
+            button(host.last_unified_hole_editor, '取消全部').invoke()
+            assert workspace.features_for(key) == [feature], key
+        saved = write_project(tmp_path / 'edited.p6fold',
+                              {'schema': PROJECT_SCHEMA_V2,
+                               'snapshot': host._compose_phase6_project_snapshot_from_main_gui()})
+        restored = Phase6DesignerWorkspace.from_snapshot(read_project(saved)['snapshot'])
+        for key in keys:
+            assert restored.features_for(key) == workspace.features_for(key), key
+        assert workspace.features_for('door_c1_r1') == []
+        assert workspace.features_for('inner_door:upper:panel') == []
+        from phase6_manufacturing_adapter import resolve_for_app
+        resolved = resolve_for_app(app)
+        for key in keys:
+            if key.startswith('box_body:') and not key.startswith('box_body:divider:'):
+                final = next(p.render_data for p in resolved.part('box_body').render_data.pieces
+                             if f'box_body:{p.role}' == key)
+            else:
+                final = resolved.part(key).render_data
+            assert any(isinstance(p, CirclePrimitive) and p.radius == pytest.approx(.5)
+                       for p in final.scene.primitives), key
+    finally:
+        root.destroy()
+
+
 def test_enabled_inner_doors_derive_real_panel_parts_with_stable_ids():
     from ae_engine.cabinet_types import policy as cabinet_family_policy
 
