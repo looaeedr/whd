@@ -213,7 +213,7 @@ def test_parameter_unlock_shows_assembly_diagnostics_while_assembly_is_selected(
         assert app.assembly_diagnostics_frame.winfo_manager() == "pack"
         assert app.settings_center.winfo_manager() == ""
         assert app.assembly_ignore_fixed_corner_var.get() is True
-        assert app.assembly_show_interference_var.get() is True
+        assert app.assembly_show_interference_var.get() is False
     finally:
         root.destroy()
 
