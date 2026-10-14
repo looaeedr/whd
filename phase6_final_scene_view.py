@@ -272,7 +272,63 @@ class Phase6FinalSceneViewAdapter:
             if callable(provider)
             else self.query_final_render_data()
         )
-        if getattr(render_data, "pieces", None):
+        physical_world_triangles = ()
+        if dependencies.is_physical_piece_key(active_part):
+            # Operator-facing profiles can reverse the actual fold stations.
+            # Use the SAME manufactured true-thickness world skins as Assembly
+            # rather than re-folding the editor profile.
+            resolved = dependencies.resolve_geometry()
+            body = next(
+                (part for part in resolved.parts if part.part_key == "box_body"),
+                None,
+            )
+            if body is None or not getattr(body.render_data, "pieces", None):
+                raise ValueError(
+                    f"physical BoxBody source missing for {active_part}"
+                )
+            scene_body = dependencies.assembly_part_cls(
+                part_key=body.part_key,
+                render_data=body.render_data,
+                x_profile=tuple(dict(row) for row in body.x_profile or ()),
+                y_profile=tuple(dict(row) for row in body.y_profile or ()),
+                placement=body.placement,
+                offset=body.offset,
+            )
+            from phase6_final_scene_projection import (
+                _phase6_box_body_true_world_piece_meshes,
+            )
+            finished = tuple(float(x) for x in dimensions(None))
+            # The resolved manufacturing render object changes when geometry
+            # changes. Reuse its world skins on repeat draws or panel switches.
+            # This avoids re-solving the full cabinet on every visual redraw.
+            cache_key = (
+                finished, thickness, scene_body.placement, scene_body.offset,
+                scene_body.x_profile, scene_body.y_profile,
+            )
+            cached = getattr(self, "_physical_world_mesh_cache", None)
+            if (cached is not None
+                    and cached[0] is scene_body.render_data
+                    and cached[1] == cache_key):
+                world_pieces = cached[2]
+            else:
+                world_pieces = _phase6_box_body_true_world_piece_meshes(
+                    scene_body, dimensions=finished, thickness=thickness,
+                )
+                self._physical_world_mesh_cache = (
+                    scene_body.render_data, cache_key, world_pieces,
+                )
+            role = active_part.partition(":")[2]
+            physical_world_triangles = next(
+                (tuple(triangles) for piece, triangles in world_pieces
+                 if str(piece.role) == role),
+                (),
+            )
+            if not physical_world_triangles:
+                raise ValueError(
+                    f"manufacturing physical mesh missing for {active_part}"
+                )
+            x_profile, y_profile = (), ()
+        elif getattr(render_data, "pieces", None):
             x_profile, y_profile = (), ()
         else:
             x_profile, y_profile = dependencies.active_mesh_profiles(
@@ -299,6 +355,7 @@ class Phase6FinalSceneViewAdapter:
                 render_data,
                 part_key=active_part,
             ),
+            physical_world_triangles=physical_world_triangles,
         )
 
     def render_cutting_mesh(self):

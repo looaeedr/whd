@@ -403,6 +403,41 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             self.last_cutting_mesh = triangles
             self.last_cutting_material = tuple(materials)
             return triangles
+        if request.physical_world_triangles:
+            # Physical side/back panel = one selection from Assembly's
+            # manufactured true-T mesh. Do not re-fold operator dimensions.
+            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+            triangles = list(request.physical_world_triangles)
+            self._remove_original_bend_surfaces()
+            ax = self.renderer.ax3d
+            for line in list(getattr(ax, "lines", ())):
+                try:
+                    line.remove()
+                except Exception:
+                    pass
+            face, edge = self._COLORS["box_body"]
+            ax.add_collection3d(Poly3DCollection(
+                triangles, alpha=float(request.alpha_bend),
+                facecolor=face, edgecolor="none", linewidths=0.0,
+            ))
+            if str(request.part_key) == "box_body:back":
+                self._add_mesh_feature_lines(triangles, edge)
+            else:
+                self._add_mesh_boundary_lines(triangles, edge)
+            vertices = [point for triangle in triangles for point in triangle]
+            xlim, ylim, zlim = _phase6_fitted_limits_from_vertices(vertices)
+            ax.set_xlim3d(*xlim)
+            ax.set_ylim3d(*ylim)
+            ax.set_zlim3d(*zlim)
+            spans = [max(1e-9, lim[1] - lim[0]) for lim in (xlim, ylim, zlim)]
+            try:
+                ax.set_box_aspect(spans, zoom=1.05)
+            except TypeError:
+                ax.set_box_aspect(spans)
+            self.last_cutting_mesh = triangles
+            self.last_cutting_material = render_data.material
+            return triangles
         if getattr(render_data, "pieces", None):
             meshes = _phase6_box_body_structure_meshes(render_data, thickness=request.thickness)
             triangles = [tri for _piece, piece_tris in meshes for tri in piece_tris]
