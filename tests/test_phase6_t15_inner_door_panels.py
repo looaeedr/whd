@@ -5,6 +5,40 @@ import os
 import pytest
 
 
+@pytest.mark.skipif(not os.environ.get('DISPLAY'), reason='requires Tk display')
+def test_main_inner_door_preview_opens_real_hole_editor(tmp_path, monkeypatch):
+    """The physical preview opens the editable inner door without switching 3D parts."""
+    import tkinter as tk
+    import gui
+    from gui_modules.editors import hole_editor
+    from phase6_project_file import PROJECT_SCHEMA_V2, write_project
+    from phase6_receiving_modes import fresh_receiving_mode
+
+    snapshot = fresh_receiving_mode('quantity', {'w': 800, 'h': 1600, 'd': 350, 't': 2})
+    path = write_project(tmp_path / 'inner-door.p6fold',
+                         {'schema': PROJECT_SCHEMA_V2, 'snapshot': snapshot})
+    errors = []
+    monkeypatch.setattr(hole_editor.messagebox, 'showerror', lambda *args, **kw: errors.append(args))
+    root = tk.Tk()
+    app = gui.Phase6PrimaryApplication(root)
+    try:
+        designer = app.load_phase6_project(path)
+        key = 'inner_door:upper:panel'
+        assert key in designer.designer_workspace.available_parts
+        active_before = designer.designer_workspace.active_part
+        # Same public callback bound to the physical preview's double-click.
+        app.open_part_hole_editor(key)
+        root.update_idletasks()
+        root.update()
+        assert errors == [], errors
+        window = app.last_unified_hole_editor
+        assert window.winfo_exists()
+        assert '內門門板' in window.title()
+        assert designer.designer_workspace.active_part == active_before
+    finally:
+        root.destroy()
+
+
 def _receiving_snapshot():
     from ae_engine.cabinet_types.receiving import apply_family_defaults
 
