@@ -29,29 +29,28 @@ def test_receiving_left_zl1_finished_solid_measures_operator_outside(thickness):
     snap["t"] = thickness
     body = _body_part(snap)
     left = next(piece for piece in body.render_data.pieces if piece.role == "left_side")
-    zl1, core = left.fold_profile[:2]
+    zl1, adjacent = left.fold_profile[:2]
     assert zl1.phase6_key == "zl1"
-    assert zl1.angle == pytest.approx(-90)
+    assert zl1.angle == pytest.approx(90)
     assert zl1.formed_length == pytest.approx(abs(snap["zl1"]))
     assert zl1.length == pytest.approx(abs(snap["zl1"]) - thickness)
-    assert core.phase6_key == "d_left"
+    assert adjacent.phase6_key == "zl2"
 
     world = _phase6_build_joint_world_geometry(
         (body,), (snap["w"], snap["h"], snap["d"]), thickness
     )
     key = "box_body:left_side"
-    core_min, core_max = _world_skin_band_bounds(
-        world, key, zl1.length, zl1.length + core.length
+    adjacent_min, adjacent_max = _world_skin_band_bounds(
+        world, key, zl1.length, zl1.length + adjacent.length
     )
     _tip_min, tip_max = _world_skin_band_bounds(world, key, 0.0, zl1.length)
 
-    # Real-world measurement from the D sheet's true outside skin (-W/2)
-    # to the inward 22-material leg's farthest physical solid point.
-    assert core_min == pytest.approx(-snap["w"] / 2.0, abs=1e-5)
-    assert core_max - core_min == pytest.approx(thickness, abs=1e-5)
-    assert tip_max - core_min == pytest.approx(
+    # Physical formed/outside of first FRONT leg is measured from zl2's
+    # actual outer skin, not the D main plane (-W/2) nor a BEND midline.
+    assert adjacent_max - adjacent_min == pytest.approx(thickness, abs=1e-5)
+    assert tip_max - adjacent_min == pytest.approx(
         abs(snap["zl1"]), abs=1e-5
-    ), ("formed outside differs from 3D skin", tip_max, core_min)
+    ), ("formed outside differs from 3D skin", tip_max, adjacent_min)
 
 
 def test_receiving_left_formed_outside_keeps_certified_divider_collision_clear():
@@ -106,8 +105,15 @@ def test_receiving_active_3d_editor_render_is_thick_formed_solid_not_22_flat_ski
         if sum(p[0] for p in item.flat) / 3 < x[0]["len"] - 1e-6
         for point in tri
     ]
-    # The D core is at local Z=0, its outside skin at -T/2.
-    assert max(first) + snap["t"] / 2 == pytest.approx(
+    # In original non-mirrored local 3D, zl2 is the actual folded datum.
+    # The reference is its OUTER sheet skin, not local zero.
+    second = [
+        pt[2] for item, tri in zip(mapped, fitted)
+        if x[0]["len"] + 1e-6 < sum(p[0] for p in item.flat) / 3
+        < x[0]["len"] + x[1]["len"] - 1e-6
+        for pt in tri
+    ]
+    assert max(first) - (min(second) - snap["t"] / 2) == pytest.approx(
         abs(snap["zl1"]), abs=1e-6
     )
 

@@ -58,7 +58,7 @@ def test_left_input_controls_physical_bend_locations_not_assembled_world_mesh():
     physical = project_side_back_3d_input_fold_to_physical(
         input_rows, role='left_side', receiving=True, thickness=2.0)
     assert [sum(row['len'] for row in physical[:i]) for i in range(1, 5)] == [
-        22.0, 362.0, 387.0, 413.0]
+        22.0, 42.0, 67.0, 413.0]
     input_rows[3]['len'] += 1.0
     altered = project_side_back_3d_input_fold_to_physical(
         input_rows, role='left_side', receiving=True, thickness=2.0)

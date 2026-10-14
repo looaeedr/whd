@@ -257,6 +257,16 @@ def _divider_object_mating_fold_signs(divider, box_body):
             "phase6_key": "zl1", "angle": float(angle),
             "sign": _fold_sign(angle),
         }
+    elif left_keys[:4] == ("zl1", "zl2", "fw_left", "d_left"):
+        # Original program-generated Receiving 3D, before the baseline DXF
+        # and the 73951d283 mirror: zl1 is the actual +X-directed first leg
+        # at the FRONT. Local +90 maps to negative world mating sign after
+        # left-side placement reverses the depth axis.
+        first = left_profile[0]
+        if first.angle is None or float(first.angle) <= 0.0:
+            raise ValueError("RECEIVING_ORIGINAL_ZL1_LOCAL_FOLD_SIGN_INVALID")
+        min_y = {"phase6_key": "zl1", "angle": float(first.angle),
+                 "sign": -_fold_sign(first.angle)}
     else:
         min_y = adjacent(left_profile, "fw_left", -1)
     max_y = adjacent(by_role["right_side"].fold_profile, "fw_right", +1)

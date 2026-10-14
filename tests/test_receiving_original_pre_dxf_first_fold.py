@@ -37,7 +37,16 @@ def test_original_program_left_zl1_is_front_and_inward_without_middle_mirror():
     assert first_skins
     x = [p[0] for tri in first_skins for p in tri.world]
     z = [p[2] for tri in first_skins for p in tri.world]
-    # As independently measured from original pre-DXF program 3D:
-    # first fold at the FRONT +Z and extends into the box in +X.
-    assert (min(x), max(x)) == pytest.approx((-372., -350.))
+    # The first leg remains at the original FRONT +Z, facing +X.
+    # Its actual skin now honors the 24 outside distance from zl2 skin
+    # (the old sharp-middle-face renderer let its hinge drift by 2mm).
+    assert min(x) >= -snap["w"] / 2
+    assert max(x) > min(x)
     assert (min(z), max(z)) == pytest.approx((152., 154.))
+    second = [
+        p[0] for face in skins
+        if first.length + 1e-6 < sum(v[0] for v in face.flat) / 3
+        < first.length + left.fold_profile[1].length - 1e-6
+        for p in face.world
+    ]
+    assert max(x) - min(second) == pytest.approx(24.)

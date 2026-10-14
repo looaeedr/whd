@@ -294,9 +294,9 @@ def project_side_back_3d_input_fold_to_physical(
     """One-way projection: 3D editor material chain -> physical part fold chain.
 
     Operator outside values are already converted to MATERIAL len on input;
-    do not subtract thickness again. For the Receiving left side, the
-    user-facing front-to-rear chain has two BEND stations mirrored for
-    manufacturing. The editor and assembly use the same forward mapping;
+    do not subtract thickness again. Receiving LEFT retains the original
+    pre-DXF user-facing front-to-rear bend order, without the 73951d mirror.
+    The editor and assembly consume the same forward mapping;
     assembled world coordinates must NEVER become the input source.
     """
     rows = _copy_profile_rows(profile)
@@ -306,7 +306,15 @@ def project_side_back_3d_input_fold_to_physical(
         # Do not mirror left-side zl1/zl2/FW/D BEND stations.  Preserve
         # operator formed/outside input with one thickness compensation.
         from phase6_fold_profiles import apply_outside_dimension_compensation
-        return apply_outside_dimension_compensation(rows, thickness)
+        physical = apply_outside_dimension_compensation(rows, thickness)
+        # Keep formed/outside metadata through the 3D editor -> physical
+        # projection. The UI source owns ui_len_add; no reverse mesh writes.
+        for segment in physical:
+            if segment.get("formed_length") is None and segment.get("ui_len_add") is not None:
+                segment["formed_length"] = (
+                    float(segment["len"]) + abs(float(segment["ui_len_add"]))
+                )
+        return physical
 
     if key == "right_side":
         # Operator front->rear; manufacturing rear->front. Transfer bend

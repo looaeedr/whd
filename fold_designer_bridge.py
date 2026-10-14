@@ -343,11 +343,10 @@ def _phase6_box_body_piece_part_profiles(
         ]
         if role == "right_side":
             rows = _phase6_reverse_fold_traversal(rows)
-        # A corrected Receiving physical left panel mirrors its inner folds,
-        # but the OPERATOR retains the original outside dimension semantics
-        # (zl1, zl2, FW, D, rear), not a confusing reordered control layout.
-        # Reconstruct from the invertible material-chain transformation rather
-        # than reusing the now-physical D/FW/zl2 traversal verbatim.
+        # Legacy mirrored Receiving panels are supported for readback only.
+        # New Receiving geometry uses the original pre-DXF source order
+        # zl1/zl2/FW/D/rear, without this inverse or any re-mirroring.
+        # Keep operator dimensions unchanged on both code paths.
         if role == "left_side" and tuple(row.get("phase6_key") for row in rows) == (
             "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
         ):

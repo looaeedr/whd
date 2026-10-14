@@ -144,14 +144,15 @@ def test_issue74_presolve_mating_fw_and_d_are_single_skin_contacts():
 
     # The actual regression witnesses are likewise identified by source Fold
     # identity + both-skin physical crossing, never by hard-coded 62/61/57.
-    # Source-reflected LEFT panel crosses at zl2 + rear terminal, not
-    # the original zl1 inboard end. The first 22mm segment itself remains
-    # a true folded side-leg but cannot be mislabeled an interference.
+    # Original, program-generated +90 first fold and adjacent zl2 BOTH
+    # physically cross the Divider before the 7mm U-notch is machined.
+    # This is verified from both thickness skins, not a profile name alone.
     left_piece = next(p for p in body.render_data.pieces if p.role=="left_side")
     assert left_piece.fold_profile[0].length == pytest.approx(22.)
-    assert left["zl1"]["through"] is False
+    assert left_piece.fold_profile[0].angle == pytest.approx(90.)
+    assert left["zl1"]["through"] is True
     assert left["zl2"]["through"] is True
-    assert left["side_rear_bend_left"]["through"] is True
+    assert left["side_rear_bend_left"]["through"] is False
     assert right["zr2"]["through"] is True
 
 
@@ -192,7 +193,7 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     assert evidence["slot_end_selector"] == "OBJECT_MATING_FOLD_SIGN_NEGATIVE"
     assert evidence["slot_end"] == "MIN_Y"
     assert formula == pytest.approx({
-        "slotted_fold_u": 68.0,  # 66-mm sample base + T outside terminal
+        "slotted_fold_u": 66.0,  # original pre-DXF physical fold, no mirrored terminal +T
         "plain_fold_u": 60.0,
         "fold_v": 27.0,
         "slot_width": 7.0,
@@ -203,7 +204,7 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     orientation = dict(evidence["mating_fold_orientation"])
     assert dict(orientation["sign_by_end"]) == {"MIN_Y": -1.0, "MAX_Y": 0.0}
     assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl1"
-    assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
+    assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(90.0)
 
     # Collision remains a separate true-thickness witness, not the final
     # 68/60 mm certified CUTTING parameter source. The left source rear
@@ -212,17 +213,19 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     by_source = dict(shadow["projection_by_source"])
     left_stages = dict(by_source["box_body:left_side"]["physical_stages"])
     right_stages = dict(by_source["box_body:right_side"]["physical_stages"])
-    assert float(left_stages["zl2"]["stage_u_span"]) == pytest.approx(67.0, abs=1e-5)
-    assert float(left_stages["side_rear_bend_left"]["cut_bounds"][2]) == pytest.approx(68.0, abs=1e-5)
+    assert float(left_stages["zl2"]["stage_u_span"]) == pytest.approx(61.0, abs=1e-5)
+    assert float(left_stages["zl1"]["stage_v_span"]) == pytest.approx(23.0, abs=1e-5)
     assert float(right_stages["zr2"]["stage_u_span"]) == pytest.approx(57.0, abs=1e-5)
+    # Collision shadow spans are independent diagnostics, never the 66mm
+    # source-certified CUTTING width or its 7mm slot dimension.
     assert float(left_stages["zl2"]["stage_u_span"]) != pytest.approx(formula["slotted_fold_u"])
     assert float(right_stages["zr2"]["stage_u_span"]) != pytest.approx(formula["plain_fold_u"])
 
-    # Independent pre-solve collision witness still proves the same physical
-    # source folds are the ones that would penetrate without the certified cut.
-    assert pre["box_body:left_side"]["zl1"]["through"] is False
+    # Independent pre-cut both-skin positive footprint witnesses. Neither
+    # original first fold is incorrectly classified as legal/no-collision.
+    assert pre["box_body:left_side"]["zl1"]["through"] is True
     assert pre["box_body:left_side"]["zl2"]["through"] is True
-    assert pre["box_body:left_side"]["side_rear_bend_left"]["through"] is True
+    assert pre["box_body:left_side"]["side_rear_bend_left"]["through"] is False
     assert pre["box_body:right_side"]["zr2"]["through"] is True
 
 
@@ -308,11 +311,12 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
         "box_body:left_side",
         bands["box_body:left_side"],
     )
-    # Source DXF flip keeps physical zl1 at 22mm, but it no longer
-    # penetrates the Divider. Real crossing is the reflected zl2 solid.
+    # The pre-DXF original program's first 22mm panel leg is a TRUE
+    # interference before cutting. Check its independent positive area.
     first = next(row for row in body.render_data.pieces if row.role=="left_side").fold_profile[0]
     assert first.length == pytest.approx(REFERENCE_ZL1_MATERIAL_LENGTH)
-    assert left["zl1"]["physical_footprint"] is None
+    first_footprint = left["zl1"]["physical_footprint"]
+    assert first_footprint is not None and first_footprint.area > 0
     crossing = left["zl2"]["physical_footprint"]
     assert crossing is not None
     _x0,y0,_x1,y1 = map(float,crossing.bounds)
@@ -373,10 +377,10 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
 
 def test_receiving_reference_fixture_final_cutting_matches_certified_dxf_oracle():
     """Validation-only OUTER CUTTING oracle for certified 中隔.dxf end shapes."""
-    # In the corrected LEFT source, the outside rear terminal extends
-    # one actual thickness beyond the original certified 66mm C sample.
-    # This independent manufactured outline witness is 66 + T = 68.
-    SLOTTED_W = 68.0
+    # Independent certified C source, prior to the left-panel DXF mirror:
+    # original first fold -> 66mm slotted C profile with 7mm relief.
+    # No reflected rear terminal exists to justify +T=68.
+    SLOTTED_W = 66.0
     PLAIN_W = 60.0
     PRIMARY_D = 27.0
     SLOT_W = 7.0

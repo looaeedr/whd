@@ -73,13 +73,17 @@ def test_source_cutting_blind_and_marking_holes_stay_on_the_correct_side():
     ]
 
 
-def test_corrected_left_bends_are_actually_applied_to_2d_and_manufacturing():
+def test_original_program_bends_remain_authoritative_and_source_dxf_mismatch_is_explicit():
+    """Imported DXF is evidence/features, NOT a directive to mirror 3D."""
     render = build_box_body_structure_render_data(spec_for_mode())
-    left = _piece(render,"left_side").render_data.metadata
-    right = _piece(render,"right_side").render_data.metadata
+    left = _piece(render, "left_side").render_data.metadata
+    right = _piece(render, "right_side").render_data.metadata
+    # This DXF was added AFTER the original program worked; its different
+    # BEND positions are preserved for audit instead of silently copied.
     assert left["baseline_reference_bend_positions"] == (22.,362.,387.,413.)
-    assert left["baseline_effective_bend_positions"] == (22.,362.,387.,413.)
-    assert left["baseline_sample_bends_match"] is True
+    assert left["baseline_effective_bend_positions"] == (22.,42.,67.,413.)
+    assert left["baseline_sample_bends_match"] is False
+    assert left["baseline_stock_and_bends"] == "CANONICAL_FOLD_PROFILE_NOT_SAMPLE_DXF"
     assert right["baseline_sample_bends_match"] is True
 
 
@@ -125,9 +129,9 @@ def test_corrected_left_bends_fold_inward_in_authoritative_3d_and_keep_dimension
     data = build_box_body_structure_render_data(spec_for_mode())
     left = _piece(data, "left_side")
     assert left.material_dimensions == pytest.approx((429.0, 1596.0))
-    assert left.render_data.metadata["baseline_sample_bends_match"] is True
+    assert left.render_data.metadata["baseline_sample_bends_match"] is False
     assert [round(row.position, 4) for row in left.render_data.fold_guides] == [
-        22.0, 362.0, 387.0, 413.0,
+        22.0, 42.0, 67.0, 413.0,
     ]
     meshes = _phase6_box_body_structure_meshes(data, thickness=2.0)
     assert len(meshes) == 3
@@ -138,7 +142,7 @@ def test_corrected_left_bends_fold_inward_in_authoritative_3d_and_keep_dimension
     # beyond the nominal -W/2 finished skin.
     assert min(point[0] for point in coords) == pytest.approx(-399.0)
     assert max(point[0] for point in coords) > -399.0
-    # Sample outside dimensions do not change when two inner folds are mirrored.
+    # Sample outside dimensions do not change when original bend order is restored.
     assert max(point[1] for point in coords) - min(point[1] for point in coords) == pytest.approx(1596.0)
 
 
@@ -193,7 +197,7 @@ def test_split_left_divider_joint_selects_only_real_upper_contact_boundary():
     left = next(piece for piece in geometry.part("box_body").render_data.pieces
                 if piece.role == "left_side")
     assert len(left.render_data.material.interiors) == 8
-    assert left.render_data.metadata["baseline_sample_bends_match"] is True
+    assert left.render_data.metadata["baseline_sample_bends_match"] is False
 
     actual = _divider_side_contact(
         geometry=geometry, world=world, divider=divider,
@@ -287,7 +291,7 @@ def test_receiving_left_right_and_divider_fw_are_truly_assembled_not_only_coplan
     outside = (min(p[0] for p in all_points),max(p[0] for p in all_points))
     assert outside == pytest.approx((-400.,400.),abs=1e-5)
     left_piece = next(p for p in body.render_data.pieces if p.role=="left_side")
-    assert left_piece.fold_profile[0].angle == pytest.approx(-90.)
+    assert left_piece.fold_profile[0].angle == pytest.approx(90.)
     assert [round(bend.position,5) for bend in left_piece.render_data.fold_guides] == [
-        22.,362.,387.,413.,
+        22.,42.,67.,413.,
     ]
