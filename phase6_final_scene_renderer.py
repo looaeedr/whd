@@ -42,6 +42,8 @@ from phase6_final_scene_projection import (
     _phase6_contract_profile_rows,
     _phase6_box_body_piece_world_mapper,
     _phase6_box_body_piece_dimension_lines,
+    _phase6_assembly_physical_dimension_lines,
+    _phase6_assembly_part_presentation,
     _phase6_box_body_structure_meshes,
     _phase6_box_body_true_world_piece_meshes,
     format_operator_info_text,
@@ -112,6 +114,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             triangles = []
             materials = []
             box_body_piece_dimension_lines = []
+            physical_dimension_lines = []
             box_body_world = None
             box_body_collision_mesh = None
             interference_targets = []
@@ -120,6 +123,11 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             interference_pairs = 0
             self.last_interference_diagnostic = None
             ax = self.renderer.ax3d
+            divider_in_view = any(
+                str(getattr(p, "part_key", "") or "").startswith("box_body:divider:")
+                and (visible_part_keys is None or str(p.part_key) in visible_part_keys)
+                for p in assembly_parts
+            )
             probe_parts = {
                 str(getattr(item, "part_key", "")): item
                 for item in tuple(getattr(render_data, "interference_probe_parts", ()) or ())
@@ -128,6 +136,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 part_key = str(getattr(part, "part_key", ""))
                 part_visible = visible_part_keys is None or part_key in visible_part_keys
                 part_data = part.render_data
+                if part_visible:
+                    physical_dimension_lines.extend(
+                        _phase6_assembly_physical_dimension_lines(part, thickness=request.thickness)
+                    )
                 diagnostic_relief_delta = None
                 physical_piece_world = ()
                 if getattr(part_data, "pieces", None):
@@ -246,7 +258,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                     continue
                                 poly = Poly3DCollection(
                                     piece_placed,
-                                    alpha=float(request.alpha_bend),
+                                    alpha=(min(0.32, float(request.alpha_bend))
+                                           if divider_in_view else float(request.alpha_bend)),
                                     facecolor=face,
                                     edgecolor="none",
                                     linewidths=0.0,
@@ -334,9 +347,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     joint_marking_signatures=self._joint_marking_flat_signatures(part_data),
                 )
                 face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
+                opacity = float(request.alpha_bend)
+                divider_presentation = _phase6_assembly_part_presentation(part_key, opacity)
+                if divider_presentation is not None:
+                    face, edge, opacity = divider_presentation
                 poly = Poly3DCollection(
                     placed,
-                    alpha=float(request.alpha_bend),
+                    alpha=opacity,
                     facecolor=face,
                     edgecolor="none",
                     linewidths=0.0,
@@ -403,6 +420,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     0.015, 0.985,
                     f"組合體 3D：W × H × D = {text} mm{warning_text}{collision_text}"
                     + (("\n" + "\n".join(box_body_piece_dimension_lines)) if box_body_piece_dimension_lines else "")
+                    + (("\n" + "\n".join(physical_dimension_lines)) if physical_dimension_lines else "")
                     + (f"\n{request.unfolded_blank_text}" if request.unfolded_blank_text else ""),
                     transform=ax.transAxes, ha="left", va="top", color=WHD_THEME["text"],
                 )

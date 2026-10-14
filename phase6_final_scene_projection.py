@@ -376,6 +376,66 @@ def _phase6_box_body_piece_dimension_lines(render_data) -> tuple[str, ...]:
     return tuple(rows)
 
 
+
+def _phase6_assembly_physical_dimension_lines(part, *, thickness):
+    """Presentation-only dimensions from the resolved source, never a new solve.
+
+    Material spans and formed/outside lengths are deliberately named separately
+    so a 22 mm first-fold material length cannot be mistaken for 24 mm outside.
+    """
+    key = str(getattr(part, "part_key", "") or "")
+    if key != "box_body":
+        if not key.startswith("box_body:divider:"):
+            return ()
+        material = getattr(getattr(part, "render_data", None), "material", None)
+        if material is None or getattr(material, "is_empty", True):
+            return ()
+        minx, miny, maxx, maxy = map(float, material.bounds)
+        contract = dict((getattr(part.render_data, "metadata", {}) or {}).get("physical_geometry_contract") or {})
+        fw = dict(contract.get("fw_physical_face") or {}).get("outside_dimension")
+        core = dict(contract.get("core_physical_segment") or {}).get("outside_dimension")
+        detail = []
+        if fw is not None:
+            detail.append(f"FW包外 {_default_number_text(fw)}")
+        if core is not None:
+            detail.append(f"核心包外 {_default_number_text(core)}")
+        suffix = ("；" + "、".join(detail)) if detail else ""
+        return (f"中隔：展開外框 {_default_number_text(maxx-minx)} × {_default_number_text(maxy-miny)} mm{suffix}",)
+
+    result = []
+    from phase6_fold_profiles import apply_outside_dimension_compensation
+    for piece in tuple(getattr(getattr(part, "render_data", None), "pieces", ()) or ()):
+        role = str(getattr(piece, "role", "") or "")
+        if role not in ("left_side", "right_side"):
+            continue
+        segs = tuple(piece.fold_profile or ())
+        rows = [
+            {
+                "len": float(seg.length),
+                **({"angle": float(seg.angle)} if seg.angle is not None else {}),
+            }
+            for seg in segs
+        ]
+        apply_outside_dimension_compensation(rows, thickness)
+        outside = [
+            (float(seg.formed_length) if seg.formed_length is not None else
+             float(row["len"]) + float(row.get("ui_len_add", 0.0)))
+            for seg, row in zip(segs, rows)
+        ]
+        label = "左側板" if role == "left_side" else "右側板"
+        formatted = " / ".join(_default_number_text(v) for v in outside)
+        result.append(f"{label}：折後各段包外 {formatted} mm（依展開順序）")
+    return tuple(result)
+
+
+def _phase6_assembly_part_presentation(part_key, opacity):
+    """Return shared-theme visual role and visible opacity, never edit material."""
+    from whd_theme import WHD_THEME
+    if str(part_key).startswith("box_body:divider:"):
+        return WHD_THEME["divider_face"], WHD_THEME["divider_edge"], 1.0
+    return None
+
+
 def _phase6_box_body_true_world_piece_meshes(part, *, dimensions, thickness):
     """Actual assembled true-T world skins shared by manufacturing and viewers.
 
