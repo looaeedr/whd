@@ -297,9 +297,26 @@ class Phase6FinalSceneViewAdapter:
             from phase6_final_scene_projection import (
                 _phase6_box_body_true_world_piece_meshes,
             )
-            world_pieces = _phase6_box_body_true_world_piece_meshes(
-                scene_body, dimensions=dimensions(None), thickness=thickness,
+            finished = tuple(float(x) for x in dimensions(None))
+            # The resolved manufacturing render object changes when geometry
+            # changes. Reuse its world skins on repeat draws or panel switches.
+            # This avoids re-solving the full cabinet on every visual redraw.
+            cache_key = (
+                finished, thickness, scene_body.placement, scene_body.offset,
+                scene_body.x_profile, scene_body.y_profile,
             )
+            cached = getattr(self, "_physical_world_mesh_cache", None)
+            if (cached is not None
+                    and cached[0] is scene_body.render_data
+                    and cached[1] == cache_key):
+                world_pieces = cached[2]
+            else:
+                world_pieces = _phase6_box_body_true_world_piece_meshes(
+                    scene_body, dimensions=finished, thickness=thickness,
+                )
+                self._physical_world_mesh_cache = (
+                    scene_body.render_data, cache_key, world_pieces,
+                )
             role = active_part.partition(":")[2]
             physical_world_triangles = next(
                 (tuple(triangles) for piece, triangles in world_pieces
