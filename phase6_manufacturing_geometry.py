@@ -519,6 +519,22 @@ def _phase6_shift_multistage_terminal_fold_world_mid(piece, mapped, world_mid_pi
     return tuple(rows)
 
 
+def _phase6_fit_receiving_left_zl1_outside_world_mid(
+    piece, mapped, world_mid_piece, *, sheet_thickness, tolerance=1e-7,
+):
+    """Use the SAME source-defined formed/outside skin contract as single 3D."""
+    if str(getattr(piece, "role", "") or "") != "left_side":
+        return tuple(world_mid_piece or ())
+    from ae_engine.assembly_geometry_folded_mesh import (
+        fit_receiving_left_zl1_formed_outside,
+    )
+    return fit_receiving_left_zl1_formed_outside(
+        tuple(getattr(piece, "fold_profile", ()) or ()),
+        mapped, world_mid_piece, thickness=sheet_thickness, axis=0,
+        tolerance=tolerance,
+    )
+
+
 def _phase6_joint_relief_state_item_matches(item, joint, source_material):
     """Return True only when a persisted provisional cut still targets the same raw geometry."""
     if not isinstance(item, dict):
@@ -750,6 +766,9 @@ def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickne
                 )
                 world_mid_piece = _phase6_shift_multistage_terminal_fold_world_mid(
                     piece, mapped, world_mid_piece
+                )
+                world_mid_piece = _phase6_fit_receiving_left_zl1_outside_world_mid(
+                    piece, mapped, world_mid_piece, sheet_thickness=sheet_thickness,
                 )
                 skins = []
                 for item, world_mid in zip(mapped, world_mid_piece):

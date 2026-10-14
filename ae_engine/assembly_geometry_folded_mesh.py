@@ -276,6 +276,80 @@ def _profile_map_with_guides(position, cross_position, profile, *, axis, fold_gu
     return _profile_map(position, boundaries, folded)
 
 
+def fit_receiving_left_zl1_formed_outside(
+    segments, mapped, mid_triangles, *, thickness, axis,
+    tolerance=1e-7,
+):
+    """Project operator formed/outside onto REAL physical sheet skin.
+
+    The operator enters -24 outside while the unfolding owns 22 material at
+    T2.  The true bent solid must occupy 24 from the D panel's outside skin,
+    not 22 from BEND nor 23 from the sharp mid-surface model.  Both standalone
+    and assembled 3D use this source-driven fitting; no 3D geometry writes
+    back into source profiles/BEND/DXF.  Axis 2 is part-local; axis 0 is
+    Receiving assembly world X.  The inward first leg is +axis in both.
+    """
+    segs = tuple(segments or ())
+    def val(seg, key, default=None):
+        return seg.get(key, default) if isinstance(seg, dict) else getattr(seg, key, default)
+
+    if len(segs) < 2 or (
+        val(segs[0], "phase6_key") != "zl1"
+        or val(segs[1], "core") != "D"
+        or abs(float(val(segs[0], "angle", 0.0) or 0.0) + 90.0) > tolerance
+    ):
+        return tuple(mid_triangles or ())
+    formed = val(segs[0], "formed_length")
+    if formed is None:
+        return tuple(mid_triangles or ())
+    length = float(val(segs[0], "length", val(segs[0], "len", 0.0)))
+    core_length = float(val(segs[1], "length", val(segs[1], "len", 0.0)))
+    t = float(thickness)
+    if length <= tolerance or t <= tolerance or float(formed) <= length:
+        raise ValueError("RECEIVING_ZL1_OUTSIDE_MATERIAL_OR_THICKNESS_INVALID")
+
+    mapped = tuple(mapped or ())
+    tris = tuple(mid_triangles or ())
+    if len(mapped) != len(tris):
+        raise ValueError("RECEIVING_ZL1_MAPPED_MESH_MISMATCH")
+
+    tip = []
+    core = []
+    terminal_indices = []
+    for index, (skin, tri) in enumerate(zip(mapped, tris)):
+        uv = tuple(getattr(skin, "flat", ()) or ())
+        if len(uv) != 3:
+            continue
+        u_mid = sum(float(p[0]) for p in uv) / 3.0
+        if tolerance < u_mid < length - tolerance:
+            terminal_indices.append(index)
+            tip.extend(float(p[axis]) for flat, p in zip(uv, tri)
+                       if abs(float(flat[0])) <= tolerance)
+        elif length + tolerance < u_mid < length + core_length - tolerance:
+            core.extend(float(p[axis]) for p in tri)
+    if not terminal_indices or not tip or not core:
+        raise ValueError("RECEIVING_ZL1_OUTSIDE_SOLID_DATUM_MISSING")
+
+    # D outer skin is one half thickness toward -axis from its mid-surface.
+    # Fit to the actual formed envelope, not a hardcoded 1 mm correction.
+    core_outside = (min(core) + max(core)) / 2.0 - t / 2.0
+    delta = (core_outside + float(formed)) - max(tip)
+    if abs(delta) <= tolerance:
+        return tris
+    result = list(tris)
+    for index in terminal_indices:
+        result[index] = tuple(
+            tuple(
+                float(point[coord]) + (
+                    delta * max(0.0, min(1.0, 1.0 - float(flat[0]) / length))
+                    if coord == axis else 0.0
+                )
+                for coord in range(3)
+            )
+            for flat, point in zip(mapped[index].flat, tris[index])
+        )
+    return tuple(result)
+
 def folded_mesh_from_polygon(
     material,
     x_profile,
