@@ -896,6 +896,17 @@ def _indicator_door_context(host, values):
 def open_part_hole_editor(host, part_key):
     """Route one physical-part editor while preserving existing authority seams."""
     host.workspace_controller.set_active_part(part_key)
+    if str(part_key).startswith("inner_door:") and str(part_key).endswith(":panel"):
+        from gui_modules.application.receiving_inner_door_hole_editor import open_inner_door_hole_editor
+
+        try:
+            app = getattr(host, "fold_designer_app", None)
+            if app is None:
+                raise ValueError("未連接內門門板編輯器")
+            return open_inner_door_hole_editor(app, part_key, from_part_preview=True)
+        except ValueError as exc:
+            messagebox.showerror("開孔失敗", str(exc))
+            return None
     if part_key == "door" and host.multi_door_enabled_var.get():
         cell = host.get_selected_door_layout_cell()
         host.open_door_layout_cell_editor(cell.column_index, cell.row_index)
