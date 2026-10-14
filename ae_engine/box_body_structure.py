@@ -358,6 +358,44 @@ def _receiving_left_side_correct_bend_side(rows):
     return result
 
 
+
+def project_side_back_3d_input_fold_to_physical(
+    profile, *, role: str, receiving: bool, thickness: float,
+):
+    """One-way projection: 3D editor material chain -> physical part fold chain.
+
+    Operator outside values are already converted to MATERIAL len on input;
+    do not subtract thickness again. For the Receiving left side, the
+    user-facing front-to-rear chain has two BEND stations mirrored for
+    manufacturing. The editor and assembly use the same forward mapping;
+    assembled world coordinates must NEVER become the input source.
+    """
+    rows = _copy_profile_rows(profile)
+    key = str(role or "")
+    if key == "left_side" and bool(receiving):
+        # The mirror computes physical BEND coordinates from the input chain.
+        # Recreate topology-based outside metadata when editor rows lack it.
+        from phase6_fold_profiles import apply_outside_dimension_compensation
+        rows = apply_outside_dimension_compensation(rows, thickness)
+        return _receiving_left_side_correct_bend_side(rows)
+
+    if key == "right_side":
+        # Operator front->rear; manufacturing rear->front. Transfer bend
+        # ownership to the same boundary during the reversal.
+        result = []
+        for index, original in enumerate(reversed(rows)):
+            item = {k: v for k, v in original.items() if k != "angle"}
+            bend_index = len(rows) - index - 2
+            if bend_index >= 0 and "angle" in rows[bend_index]:
+                item["angle"] = float(rows[bend_index]["angle"])
+            result.append(item)
+        if result:
+            result[-1].pop("angle", None)
+        return result
+
+    return rows
+
+
 def _merge_side_back_piece_override(base_rows, override_rows, *, shared_keys):
     """Keep piece-local topology while rebasing shared cabinet dimensions."""
     if not override_rows:
