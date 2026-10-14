@@ -71,18 +71,29 @@ def test_source_cutting_blind_and_marking_holes_stay_on_the_correct_side():
     assert sorted(round(p.center.y,3) for p in circles(left,"CUTTING") if p.radius==5.25) == [
         98.0,98.0,798.0,798.0,1498.0,1498.0
     ]
+    # Source-backed new LEFT DXF: entire left pattern was mirrored around
+    # its actual material width 429, not just the BEND layers.
+    assert sorted(round(p.center.x,3) for p in circles(left,"CUTTING") if p.radius==5.25) == [
+        106.0,106.0,106.0,386.0,386.0,386.0
+    ]
+    assert sorted(round(p.center.x,3) for p in circles(left,"CUTTING") if p.radius==2.55) == [6.0,6.0]
+    assert [round(p.center.x,3) for p in circles(left,"BLIND_HOLE")] == [116.0]
+    # DXF must not inadvertently reverse the independent RIGHT panel.
+    assert sorted(round(p.center.x,3) for p in circles(right,"CUTTING") if p.radius==5.25) != [
+        106.0,106.0,106.0,386.0,386.0,386.0
+    ]
 
 
-def test_original_program_bends_remain_authoritative_and_source_dxf_mismatch_is_explicit():
+def test_corrected_source_dxf_bends_match_original_program_without_3d_mirror():
     """Imported DXF is evidence/features, NOT a directive to mirror 3D."""
     render = build_box_body_structure_render_data(spec_for_mode())
     left = _piece(render, "left_side").render_data.metadata
     right = _piece(render, "right_side").render_data.metadata
-    # This DXF was added AFTER the original program worked; its different
-    # BEND positions are preserved for audit instead of silently copied.
-    assert left["baseline_reference_bend_positions"] == (22.,362.,387.,413.)
+    # Latest user-corrected DXF now agrees with the original nonmirrored
+    # program's first-to-fourth BEND stations, without changing 3D source.
+    assert left["baseline_reference_bend_positions"] == (22.,42.,67.,413.)
     assert left["baseline_effective_bend_positions"] == (22.,42.,67.,413.)
-    assert left["baseline_sample_bends_match"] is False
+    assert left["baseline_sample_bends_match"] is True
     assert left["baseline_stock_and_bends"] == "CANONICAL_FOLD_PROFILE_NOT_SAMPLE_DXF"
     assert right["baseline_sample_bends_match"] is True
 
@@ -129,7 +140,7 @@ def test_corrected_left_bends_fold_inward_in_authoritative_3d_and_keep_dimension
     data = build_box_body_structure_render_data(spec_for_mode())
     left = _piece(data, "left_side")
     assert left.material_dimensions == pytest.approx((429.0, 1596.0))
-    assert left.render_data.metadata["baseline_sample_bends_match"] is False
+    assert left.render_data.metadata["baseline_sample_bends_match"] is True
     assert [round(row.position, 4) for row in left.render_data.fold_guides] == [
         22.0, 42.0, 67.0, 413.0,
     ]
@@ -197,7 +208,7 @@ def test_split_left_divider_joint_selects_only_real_upper_contact_boundary():
     left = next(piece for piece in geometry.part("box_body").render_data.pieces
                 if piece.role == "left_side")
     assert len(left.render_data.material.interiors) == 8
-    assert left.render_data.metadata["baseline_sample_bends_match"] is False
+    assert left.render_data.metadata["baseline_sample_bends_match"] is True
 
     actual = _divider_side_contact(
         geometry=geometry, world=world, divider=divider,
