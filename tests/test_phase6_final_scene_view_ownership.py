@@ -191,11 +191,17 @@ def test_assembly_endcap_keeps_cut_hole_outline_visible_after_physical_thickenin
         head_y_profile=_flat_profile(60),
     )
 
-    # Box Body contributes its own outline.  The physical EndCap must also draw
-    # the pre-thickening surface boundary, which includes both outer perimeter
-    # and the through-hole perimeter.  A closed solid alone has no open edge.
-    # 4 BoxBody outline edges + at least 8 EndCap outer/hole perimeter edges.
-    assert len(segments) >= 12
+    # Smooth 3D no longer paints the triangulation/outer mesh outline. Only
+    # genuine inner CUTTING loops remain (this square hole has four sides).
+    # These points are derived from real material and fitted EndCap placement.
+    assert len(segments) == 4
+    assert all(len(edge)==2 for edge in segments)
+    blank = _assembly_line_segments(
+        head_material=box(0,0,100,60),
+        head_x_profile=_flat_profile(100),
+        head_y_profile=_flat_profile(60),
+    )
+    assert blank == []
 
 
 def test_assembly_endcap_keeps_real_first_fold_crease_visible_after_physical_thickening():
