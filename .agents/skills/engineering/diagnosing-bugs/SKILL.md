@@ -180,11 +180,11 @@ When the user corrects the diagnosis, clarifies a product rule, or identifies a 
 
 ## WHD bug-fix execution and delivery boundary
 
-本 Skill 只提供診斷與 RED→GREEN 方法，**不會授權 DC／本機施工**。每次修復依正式 X `AGENTS.md` 判斷：
+本 Skill 只提供診斷與 RED→GREEN 方法，**不會授權 DC／本機施工**。每次修復依 GitHub `localX` 最新 HEAD 的 `AGENTS.md` 與相應 CURRENT Skill 判斷；正式 X 的舊工作規則不可反向覆蓋：
 
-1. `/派工`：由 GitHub／排程／雲端執行器完成 BUILD／TEST／COMMIT／PR／CI，PR base=`localX`；只有 exact HEAD CI SUCCESS 後的 `LOCALX_INTEGRATION` 可依規定透過 DC 做本機 `localX` 最終合併／必要驗證／同步，不可用來修改產品；DC 真正無法連線的備援必須註明 `LOCALX_SYNC_PENDING`。
+1. `/派工`：由 GitHub／排程／雲端執行器以最新 `localX` 建工作分支，完成 BUILD／TEST／COMMIT／PR／CI；PR base=`localX`，exact HEAD CI GREEN 後預設 `GITHUB_LOCALX_FIRST` 合回遠端 `localX`，readback 並標 Windows 同步待辦。不可自動連 RC／DC／CoreELEC。
 2. `/接手`：僅使用者當次明確指示，才允許 RC → `whd-dev:/workspace/whd` 的產品施工、測試與交付。
-3. 純非產品治理／技能／治理專用測試：依受信任 `tools/change_lane_gate.py` 分流，優先 GitHub／雲端治理分支直接 PR／CI 合併 X；未經當次明確授權不得使用 DC 或使用者本機。產品、未知或混合變更走 `localX`，正式 X 的產品發布仍需當次 `/推推`。
+3. 純非產品治理／技能／治理專用測試：同樣以 GitHub `localX` 建分支並 PR 合回 `localX`，使用治理專項 CI；不得按舊治理直送 X 的指示 bypass `localX`。正式 X 發布仍需人工驗收與當次 `/推推`。
 4. 每次記錄診斷重現證據、規格來源、source/tested SHA、exact diff、適用測試及最終回讀。CI 失敗必須回到合法施工路線修復並重新驗證新 SHA；target/touched-path drift 應重驗。
 5. 舊 `WORKSPACE_DELIVERY`、Drive/shared-zero、claim／lease／工作槽及 `FINALIZE` 交易要求已退役，不能當作啟動或交付前置；更不能以此放寬平台安全審查。不得直接 patch 正式 X 或 `main`。
 
