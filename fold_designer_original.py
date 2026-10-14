@@ -504,12 +504,26 @@ class HolesUI:
 # ==========================================
 # 模組 5：主程式控制器 (MainApp)
 # ==========================================
+def designer_screen_bounded_geometry(screen_width, screen_height):
+    """Fit Fold Designer within the current monitor, including window chrome.
+
+    The old 1450x1000 forced the custom-part setting fields outside the
+    visible desktop on 1366x768 and 1024x768 displays. Screen geometry
+    governs WINDOW layout only; it must never change part dimensions.
+    """
+    width = max(1, min(1450, int(screen_width) - 24))
+    height = max(1, min(1000, int(screen_height) - 80))
+    return f"{width}x{height}+0+0"
+
+
 class MainApp:
     def __init__(self, root):
         self.root = root
         self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)
         self.root.title("雙重架構設計系統：標準型與金庫型")
-        self.root.geometry("1450x1000")
+        self.root.geometry(designer_screen_bounded_geometry(
+            root.winfo_screenwidth(), root.winfo_screenheight()
+        ))
         
         try:
             if os.path.exists("mycad.ico"): self.root.iconbitmap("mycad.ico")
