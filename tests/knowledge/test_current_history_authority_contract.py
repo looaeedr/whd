@@ -328,6 +328,24 @@ def test_localx_is_development_authority_and_x_is_release_only() -> None:
     assert "預設由 GitHub／雲端將已測試成果直接合回" in agents
 
 
+def test_no_active_governance_route_can_bypass_localx() -> None:
+    agents = read("AGENTS.md")
+    dispatch = read(".agents/skills/engineering/派工/SKILL.md")
+    for obsolete in (
+        "直接走治理 PR 至正式 X",
+        "治理變更走既有 governance 直送 X 通道",
+        "照既有 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直送 X",
+    ):
+        assert obsolete not in agents
+    for obsolete in (
+        "照治理通道直接由 GitHub PR 合併 X",
+        "純治理文件必須優先 GitHub 直送 X",
+    ):
+        assert obsolete not in dispatch
+    assert "治理與產品測試分流、施工來源一致" in dispatch
+    assert "非本體治理修訂從 GitHub `localX` 開分支" in agents
+
+
 def test_localx_qa_and_execution_skills_cannot_fallback_to_coreelec() -> None:
     """Check the actual QA success path, not just the presence of a green keyword."""
     qa = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
