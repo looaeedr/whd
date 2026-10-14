@@ -85,6 +85,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         self.base_renderer_render = None
         self.scroll_cid = None
         self.last_interference_diagnostic = None
+        self.last_all_parts_collision_audit = None
+        self._all_parts_collision_cache = None
 
     def render(self, request: FinalSceneViewRequest | None):
         if request is None:
@@ -122,6 +124,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             interference_segments = []
             interference_pairs = 0
             self.last_interference_diagnostic = None
+            self.last_all_parts_collision_audit = None
             ax = self.renderer.ax3d
             # Manufacturing-model preview: axes/grid are visual noise, not measurements.
             # Keep physical dimensions as explicit part labels instead.
@@ -400,6 +403,73 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         self._add_mesh_boundary_lines(placed, edge)
                 triangles.extend(placed)
                 materials.append(part_material)
+            # On-demand WHOLE ASSEMBLY physical audit, independent of legacy
+            # EndCap restored-delta visualization. Include all side pieces,
+            # divider, inner-door frames, head/tail and future generated parts.
+            # Explicit toggle only: do not make ordinary navigation slower.
+            unresolved_segments = ()
+            if (
+                bool(getattr(render_data, "show_interference", False))
+                and request.finished_dimensions
+                and any(
+                    str(p.part_key) == "box_body"
+                    and tuple(getattr(p.render_data, "pieces", ()) or ())
+                    for p in assembly_parts
+                )
+            ):
+                from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+                from ae_engine.assembly_all_parts_collision import (
+                    audit_all_physical_part_pairs, collision_part_display_name,
+                )
+                # A renderer instance persists across 3D redraws: reuse a verified
+                # result for the SAME immutable scene objects and user controls.
+                scene_key = (
+                    tuple((str(p.part_key), id(p), id(p.render_data)) for p in assembly_parts),
+                    tuple(float(v) for v in request.finished_dimensions),
+                    float(request.thickness),
+                    visible_part_keys, visible_box_body_piece_keys,
+                )
+                if self._all_parts_collision_cache is not None and (
+                    self._all_parts_collision_cache[0] == scene_key
+                ):
+                    audit = self._all_parts_collision_cache[1]
+                else:
+                    physical = _phase6_build_joint_world_geometry(
+                        assembly_parts, request.finished_dimensions, request.thickness,
+                    )
+                    world_parts = physical["world_triangles_by_part"]
+                    selected = (
+                        {key for key in world_parts if key != "box_body"}
+                        if visible_part_keys is None else
+                        {key for key in world_parts if (
+                            (key.startswith("box_body:") and "box_body" in visible_part_keys)
+                            or key in visible_part_keys
+                        )}
+                    )
+                    if visible_box_body_piece_keys is not None:
+                        selected = {
+                            key for key in selected
+                            if not key.startswith("box_body:")
+                            or key.startswith("box_body:divider:")
+                            or key in visible_box_body_piece_keys
+                        }
+                    audit = audit_all_physical_part_pairs(
+                        world_parts, visible_part_keys=selected,
+                        certified_relief_diagnostics=tuple(
+                            getattr(render_data, "collision_certification_diagnostics", ()) or ()
+                        ),
+                    )
+                    self._all_parts_collision_cache = (scene_key, audit)
+                self.last_all_parts_collision_audit = audit
+                unresolved_segments = tuple(
+                    segment for row in audit.unresolved for segment in row.segments
+                )
+                if unresolved_segments:
+                    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+                    ax.add_collection3d(Line3DCollection(
+                        unresolved_segments, colors="#ff9900",
+                        linewidths=3.6, alpha=0.95,
+                    ))
             if interference_segments:
                 from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
                 from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
@@ -422,6 +492,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             else:
                 from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
                 self.last_interference_diagnostic = MeshInterferenceDiagnostic((), (), 0, ())
+            # Preserve the legacy RED certified-interference diagnostic.
+            # Amber unverified crossings are a separate audit, not a forged
+            # positive-volume collision result.
             self._draw_joint_diagnostic_overlays(render_data)
             if not triangles:
                 raise ValueError("3D assembly CUTTING mesh is empty")
@@ -441,8 +514,35 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 collision_text = ""
                 if bool(getattr(render_data, "show_interference", False)):
                     count = len(tuple(getattr(diagnostic, "intersection_segments", ()) or ()))
-                    collision_text = (f"\n加工前截角交集：{count} 段（非成品碰撞）"
-                                      if count else "\n加工前截角交集：無；成品碰撞請依3D驗證狀態判斷")
+                    # PR #1756: RED is a pre-cut EndCap probe only, NOT proof
+                    # of a finished part collision. Keep its wording intact.
+                    collision_text = (
+                        f"\n加工前截角交集：{count} 段（非成品碰撞）"
+                        if count else
+                        "\n加工前截角交集：無；成品碰撞請依3D驗證狀態判斷"
+                    )
+                    # PR #1757: independent FINAL physical-pair crossings.
+                    # Orange is unresolved, not a manufactured penetration
+                    # certificate; verified C relief may legitimately touch.
+                    audit = self.last_all_parts_collision_audit
+                    if audit is not None:
+                        if audit.unresolved:
+                            collision_text += (
+                                f"\n⚠ 全板件配對 {audit.evaluated_pair_count} 組："
+                                f"{len(audit.unresolved)} 組有未證實合法交線（橘色），不可判定為零碰撞"
+                            )
+                            collision_text += "".join(
+                                f"\n  {collision_part_display_name(row.left)} ↔ "
+                                f"{collision_part_display_name(row.right)}："
+                                f"{row.pair_count} 組交線；"
+                                f"X{row.region_xyz[0]} Y{row.region_xyz[1]} Z{row.region_xyz[2]} mm"
+                                for row in audit.unresolved[:5]
+                            )
+                        else:
+                            collision_text += (
+                                f"\n全板件表面配對 {audit.evaluated_pair_count} 組："
+                                f"無待確認交線；非實體體積零穿透證明"
+                            )
                 ax.text2D(
                     0.015, 0.985,
                     f"組合體 3D：W × H × D = {text} mm{warning_text}{collision_text}"

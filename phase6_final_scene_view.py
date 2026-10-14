@@ -138,6 +138,7 @@ class Phase6FinalSceneViewAdapter:
         ignore_fixed_corner_relief=False,
         interference_probe_parts=(),
         joint_diagnostics=(),
+        collision_certification_diagnostics=(),
         selected_joint_id=None,
         preserve_endcap_core_origin=False,
         render_data_cls=None,
@@ -150,6 +151,7 @@ class Phase6FinalSceneViewAdapter:
             ignore_fixed_corner_relief=ignore_fixed_corner_relief,
             interference_probe_parts=interference_probe_parts,
             joint_diagnostics=joint_diagnostics,
+            collision_certification_diagnostics=collision_certification_diagnostics,
             selected_joint_id=selected_joint_id,
             preserve_endcap_core_origin=preserve_endcap_core_origin,
             render_data_cls=render_data_cls,
@@ -234,6 +236,9 @@ class Phase6FinalSceneViewAdapter:
             ignore_fixed_corner_relief=False,
             interference_probe_parts=visible_probe_parts,
             joint_diagnostics=(),
+            collision_certification_diagnostics=tuple(
+                getattr(resolved, "diagnostics", ()) or ()
+            ),
             selected_joint_id=None,
             preserve_endcap_core_origin=(cabinet_family == "受電箱"),
             render_data_cls=dependencies.assembly_render_data_cls,
