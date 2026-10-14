@@ -44,9 +44,6 @@ def publish_comment():
         "head=" + HEAD, "target=cleanup/2d-3d-sync", "base=" + BASE,
     ])
     return [
-        {"id": 501, "user": {"login": "looaeedr", "type": "User"},
-         "body": "/驗收通過\nWHD_WINDOWS_LOCALX_UAT_V1\n"
-                 + fields + "\ntest_site=WINDOWS\nwindows_head=" + HEAD},
         {"id": 502, "user": {"login": "looaeedr", "type": "User"},
          "body": "/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\n" + fields},
     ]
@@ -183,7 +180,7 @@ class ChangeLaneTests(unittest.TestCase):
     def test_protected_acceptance_workflow_requires_localx_and_slash_push(self):
         with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
             evaluate_pr(event=pr_event(), changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW])
-        with self.assertRaisesRegex(ChangeLaneDenied, "WINDOWS_LOCALX_MANUAL_UAT_REQUIRED"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "EXPLICIT_USER_SLASH_PUSH"):
             evaluate_pr(event=pr_event(branch="localX"),
                         changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW])
         passed = evaluate_pr(event=pr_event(branch="localX"),
@@ -214,13 +211,14 @@ class ChangeLaneTests(unittest.TestCase):
 
     def test_localx_product_requires_owner_slash_push(self):
         event = pr_event(branch="localX")
-        with self.assertRaisesRegex(ChangeLaneDenied, "WINDOWS_LOCALX_MANUAL_UAT_REQUIRED"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "EXPLICIT_USER_SLASH_PUSH"):
             evaluate_pr(event=event, changed_paths=["gui.py"], comments=[])
         with self.assertRaisesRegex(ChangeLaneDenied, "EXACT_USER_SLASH_PUSH"):
             evaluate_pr(event=event, changed_paths=["gui.py"],
-                        comments=publish_comment()[:1])
+                        comments=[{"id": 501, "user": {"login": "looaeedr", "type": "User"}, "body": "/驗收通過"}])
         r = evaluate_pr(event=event, changed_paths=["gui.py"], comments=publish_comment())
         self.assertEqual(r["lane"], "PRODUCT_LOCALX_ONLY")
+        self.assertEqual(r["reason"], "EXACT_OWNER_SLASH_PUSH_ACCEPTANCE_VERIFIED")
 
     def test_invalid_or_stale_owner_approval_is_denied(self):
         event = pr_event(branch="localX")
@@ -437,7 +435,7 @@ class ChangeLaneTests(unittest.TestCase):
         self.assertIn("不需每張另下 `/推推`", policy)
         # These assertions only protect the documentation scope. The trusted
         # X-target gate below still requires an exact owner publish approval.
-        with self.assertRaisesRegex(ChangeLaneDenied, "WINDOWS_LOCALX_MANUAL_UAT_REQUIRED"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "EXPLICIT_USER_SLASH_PUSH"):
             evaluate_pr(
                 event=pr_event(branch="localX"),
                 changed_paths=["gui.py"],
