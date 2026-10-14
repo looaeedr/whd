@@ -312,6 +312,43 @@ def test_dispatch_default_localx_integration_is_continuation_not_extra_user_appr
     assert "DC_LOCALX_FIRST" not in qa
     assert "不豁免" in agents
 
+
+def test_localx_is_development_authority_and_x_is_release_only() -> None:
+    """Never let the stale production branch become the next development baseline."""
+    agents = read("AGENTS.md")
+    source_block = agents.split("## 所有產品修改前先讀程式與文檔硬閘門", 1)[1].split("\n## ", 1)[0]
+    assert "LOCALX_DEVELOPMENT_SOURCE_AUTHORITY_V1" in agents
+    assert "唯一日常施工與治理修改基準是 GitHub `localX`" in agents
+    assert "新工作分支從此 HEAD 建立" in agents
+    assert "fresh-read GitHub `localX` 最新 HEAD 的 `AGENTS.md`" in source_block
+    assert "fresh-read 正式 `X=cleanup/2d-3d-sync`" not in source_block
+    assert "正式執行／治理唯一權威是 `X=cleanup/2d-3d-sync`" not in agents
+    assert "X-only 提交不得默默 merge" in agents
+    assert "不是因為 `localX` 需要本機 checkout" in agents
+    assert "預設由 GitHub／雲端將已測試成果直接合回" in agents
+
+
+def test_localx_qa_and_execution_skills_cannot_fallback_to_coreelec() -> None:
+    """Check the actual QA success path, not just the presence of a green keyword."""
+    qa = read(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
+    diagnosis = read(".agents/skills/engineering/diagnosing-bugs/SKILL.md")
+    execution = read(".agents/skills/engineering/執行開發任務/SKILL.md")
+    root = read(".agents/skills/engineering/root-local-first/SKILL.md")
+    assert qa.count("## QA 輪詢與交付閘門") == 1
+    success = qa.split("`completed / success` →", 1)[1].split("\n- ", 1)[0]
+    assert "`GITHUB_LOCALX_FIRST`" in success
+    assert "`expected_head_sha`" in success
+    assert "不先用 DC" in success
+    assert "用 DC 僅安全整合本機" not in qa
+    assert "DC_UNREACHABLE" not in qa
+    assert "正式 X `AGENTS.md` 判斷" not in diagnosis
+    assert "以最新 `localX` 建工作分支" in diagnosis
+    assert "不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC" in execution
+    assert "CI GREEN／`LOCALX_INTEGRATION`" in root
+    for body in (diagnosis, execution, root):
+        assert "治理分支直接 PR／CI 合併 X" not in body
+        assert "治理分支 → X PR/merge" not in body
+
 def test_retired_continuity_pitfalls_do_not_present_removed_machine_guards_as_current() -> None:
     """Archived failure evidence must not offer removed control-plane executables."""
     continuous = read("個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md")

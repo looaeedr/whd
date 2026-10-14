@@ -11,13 +11,13 @@ whd_schema: WHD_DOC_META_V1
 
 **改程式前的必做條件**：執行 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1`；先實際讀受影響程式完整函式／呼叫鏈、CURRENT 規格與資料檔及既有測試，交代 `SOURCE_READ_EVIDENCE` 後才可寫產品程式或測試。若來源或正確判準缺失，回報 `SOURCE_READ_PRECONDITION_FAILED`，繼續只讀查證，**不可看檔名就直接改、不得憑測試輸出猜幾何公式**。此條不擴大 RC/DC 權限。
 
-使用使用者指定的 Issue 或明確開發任務，先依 `AGENTS.md` 判定入口：只有使用者當次明確 `/接手` 才可經 DC 於 CoreELEC `whd-dev:/workspace/whd` 進行產品施工、測試與提交；`/派工` 的施工、測試與提交只能使用 GitHub／排程／雲端執行器，DC 僅在 exact CI SUCCESS 後的 `LOCALX_INTEGRATION` 階段可用來最終整合本機 `localX`。純治理修改優先走 GitHub／雲端治理分支直送 X，沒有當次明確授權不得使用 DC／本機。產品成果依現行 `localX` 整合規則交付，正式 X 產品發布仍需當次 `/推推`。
+使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` 精確 HEAD 的 `AGENTS.md`，再依入口分流：一般修復、`/派工` 與治理修改從最新 `localX` 建工作分支，在 GitHub／排程／雲端施工並通過 CI 後 PR 合回遠端 `localX`。僅使用者當次明確 `/接手` 選用 RC 的任務可以使用 CoreELEC；不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC。正式 X 只在 Windows 人工驗收及當次 `/推推` 後發布。
 
 使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
 
 ## 全域 DC 硬閘門
 
-依 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`，只有當前使用者明確下達本次 `/接手`、`/派工` 最後 exact HEAD CI SUCCESS 的 `LOCALX_INTEGRATION`，或使用者另行明確允許特定 DC 目的時才能調用 DC。**單純要求改程式、修改治理、檢查 GitHub、核准 push 或「繼續」均不授予 DC 存取**；不論 `list_devices`、`ping`、讀取檔案或執行命令，未先滿足豁免都禁止。若別的任務確有需求，回報原因、裝置／路徑、操作及影響，標記 `DC_AUTHORIZATION_REQUIRED`，先取得明確核准。任何 CI 或外部工具拒絕都不能繞過。
+依 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`，只有使用者當次明確 `/接手` 選用 RC，或明確允許指定 DC 裝置／路徑／操作時才能調用 DC，且外部平台審查仍須核准；一般 `/派工` 的 CI GREEN 與 `localX` 整合都不是 DC 授權。**單純要求改程式、修改治理、檢查 GitHub、核准 push 或「繼續」均不授予 DC 存取**；不論 `list_devices`、`ping`、讀取檔案或執行命令，未先滿足豁免都禁止。若別的任務確有需求，回報原因、裝置／路徑、操作及影響，標記 `DC_AUTHORIZATION_REQUIRED`，先取得明確核准。任何 CI 或外部工具拒絕都不能繞過。
 
 ## `/接手` 的遠端 Git 交付授權（產品通道）
 
@@ -27,17 +27,17 @@ whd_schema: WHD_DOC_META_V1
 
 授權嚴格限於 `looaeedr/whd`、指定工作分支及 `localX`；禁止變更正式 X、跨專案推送、擴大變更範圍或對未驗證提交宣稱 CI GREEN。不得捏造已核准的工具操作：若 GitHub／Remote Desktop／自動批准系統在工具層拒絕實際 push／merge，必須回報**哪個實際工具操作**被拒及具體阻塞，不能用技能文字繞過平台權限，亦不得將本地 commit 說成已遠端交付。
 
-**入口分流硬閘門**：本 Skill 是使用者明確下達 `/接手` 的 RC 施工入口，才可用 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd`。**`/派工` 不是本機施工授權，也不可自行接到本 Skill／RC。** 兩個入口共用指定倉庫 `looaeedr/whd`、base=`localX` PR、exact CI、合併與回讀的交付邊界；`/派工` 的施工／測試仍只能在雲端／GitHub executor，**唯一 DC 例外是 CI 通過後最後合併本機 `localX` 的 `LOCALX_INTEGRATION`**（DC 不通才遠端 `localX` 備援，標記 `LOCALX_SYNC_PENDING`），不能用例外做本機施工。`/接手` 經使用者明確指示才允許在本機施工。不得要求退役的 remote token／receipt／unlock 或第二次專案內部批准。**平台安全審查仍有效**：公開推送若需更明確確認或工具拒絕，保留本地提交並回報實際拒絕，不得換工具繞過。
+**入口分流硬閘門**：本 Skill 是使用者明確下達 `/接手` 的 RC 施工入口，才可用 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd`。**`/派工` 不是本機施工授權，也不可自行接到本 Skill／RC。** 兩個入口共用指定倉庫 `looaeedr/whd`、base=`localX` PR、exact CI、合併與回讀的交付邊界；`/派工` 的施工／測試仍只能在雲端／GitHub executor，**預設 CI 成功後直接在 GitHub 合併遠端 `localX`，不要求 DC 連線或斷線證據**，不能用例外做本機施工。`/接手` 經使用者明確指示才允許在本機施工。不得要求退役的 remote token／receipt／unlock 或第二次專案內部批准。**平台安全審查仍有效**：公開推送若需更明確確認或工具拒絕，保留本地提交並回報實際拒絕，不得換工具繞過。
 
 ## `/接手` 同工單授權與新 SHA
 
 依 `AGENTS.md` 的 `ISSUE_SCOPE_AUTHORIZATION_REUSE`，同一個已明確授權的 Issue，沿原工作分支將範圍內的 CI 修復或測試修復做成新 commit SHA，仍屬原本 push → PR → exact CI → `localX` 整合許可。**SHA 是追蹤版本及驗收的依據，不應每更新一次 SHA 就重問原核准**；但如果原授權明示僅限固定 SHA，則不得擴張。每次更新均需檢查 diff 沒有跨出工單、repo、分支、base，並對新 SHA 重測。
 
-此規則不能用於別張 Issue、無關功能或正式 X 產品發布（須當次 `/推推`）。若平台推送安全審查拒絕，保留本地提交並報明 `PUBLIC_UPLOAD_REVIEW_BLOCKED` 的實際拒絕點，不換工具繞過、不假稱成功、不無限重問相同核准。純治理工作優先 GitHub 遠端直送 X，**未經另外明確授權不得用 DC**。
+此規則不能用於別張 Issue、無關功能或正式 X 產品發布（須當次 `/推推`）。若平台推送安全審查拒絕，保留本地提交並報明 `PUBLIC_UPLOAD_REVIEW_BLOCKED` 的實際拒絕點，不換工具繞過、不假稱成功、不無限重問相同核准。純治理工作優先 GitHub `localX` 工作分支與治理 CI，先合 `localX`，**未經另外明確授權不得用 DC**。
 
 保留必要的產品測試、程式碼 review、現場 DXF 驗收，實際交付狀態以 Git HEAD 與 Issue/PR 反讀為準。
 
-產品或混合檔案仍須 localX 與使用者當次 /推推 才可正式發布 X。純非產品文檔、治理、技能及其專用測試，由 tools/change_lane_gate.py 判定後優先直接 GitHub／雲端治理分支 → X PR/merge，不走一般產品流程；未明確授權不得使用 DC／本機。
+產品或混合檔案仍須 localX 與使用者當次 /推推 才可正式發布 X。純非產品文檔、治理、技能及其專用測試，由現行治理專項 CI 判定後先走 GitHub／雲端工作分支 → `localX` PR/merge，不走一般產品 QA；正式 X 仍需人工驗收與 `/推推`；未明確授權不得使用 DC／本機。
 
 ## 工作結束前的交付驗證
 

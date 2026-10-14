@@ -9,18 +9,18 @@ whd_schema: WHD_DOC_META_V1
 
 # root-local-first
 
-此 Skill 僅適用於**使用者明確 `/接手`** 的本機施工路線：GitHub Git 供應來源，Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 工作，測試後依 `localX` 整合規則交付。**`/派工` 不得讀此 Skill 作為本機施工授權**：其 BUILD/TEST/COMMIT 必須 GitHub／雲端執行；只在 exact CI 通過後的 `LOCALX_INTEGRATION` 才能由 DC 進 RC 做**本機 `localX` 最終合併／驗證／同步**，不准施工。DC 實際無法連線時才能備援遠端 `localX` 並標示 `LOCALX_SYNC_PENDING`；不能用遠端施工能力不足當成使用本機的藉口。不要回退 Google Drive 或 .unpushed 當工作根目錄。
+此 Skill 僅適用於**使用者當次明確 `/接手` 選用 RC** 的施工路線；來源必須是最新 GitHub `localX`，Remote Desktop Commander → CoreELEC `whd-dev:/workspace/whd` 只是明確選擇的 executor 工作副本，不是 canonical 基準。一般任務／`/派工` 的 BUILD／TEST／COMMIT、CI GREEN 後 PR merge `localX` 都預設 GitHub／雲端，不以 RC 為必要整合前置；DC 權限需當次操作與平台核准。不得退回 Google Drive／`.unpushed` 當工作根目錄。
 
 Registry 選路僅在明確 `/接手` 或直接查改本 Skill 時提示此路線；不得用任意 `changed_file`、通用 Bug 修復、治理任務或 `/派工` 自動載入 `root-local-first` 作為本機權限來源。Registry 的路由提示本身也不等於使用者 DC 授權。
 
 ## DC 呼叫前的強制判斷
 
-本 Skill 遵循 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`：只有使用者在當次明確 `/接手`、`/派工` 最後的 `LOCALX_INTEGRATION` exact CI SUCCESS、一般對話中明確授權的 BUG 修復在 exact CI 成功後同範圍 `LOCALX_INTEGRATION`、當次 `/推推` 的既定本機優先產品發布／X 回同步，或使用者明確授權本次 DC 用途才能使用。一般對話的 BUG 討論不等於修復指令，具體許可依 `AGENTS.md::CONVERSATIONAL_BUGFIX_LOCALX_CONTINUITY_V1` 和 `tools/localx_publish_gate.py::require_conversational_bugfix_localx_integration` 判斷；不得提前使用 DC 在本機施工。`/推推` 不需第二次 DC 授權，但不得擴張為本機施工；當次明確 GitHub-only 時禁止 DC。**預設 `DC_ACCESS_DENIED_BY_DEFAULT`**，連 `list_devices`／`ping` 都不得探測。其餘需求先說明必要原因、裝置／路徑、預計操作與影響，回報 `DC_AUTHORIZATION_REQUIRED`，取得當次明確核准前完全禁止 DC 或其他本機繞道。
+本 Skill 遵循 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`：只有使用者當次明確 `/接手` 選用 RC，或另行明確指定 DC 用途、裝置／路徑／操作且經外部核准才能使用。`/派工`、一般 BUG 修復的 CI GREEN／`LOCALX_INTEGRATION` 與治理任務都不構成 RC／DC 授權；`/推推` 仍需遵守其正式發布與 Windows UAT 規則，不能轉換成 CoreELEC 施工許可。其他情境預設 `DC_ACCESS_DENIED_BY_DEFAULT`，連 `list_devices`／`ping` 都不得探測；受阻時不得換本機通道繞過。
 
 公開交付按 `AGENTS.md` 的 `ISSUE_SCOPE_AUTHORIZATION_REUSE`：同一已核准 Issue、工作分支、`localX` 及施工範圍內的修正 commit 不因 SHA 改變重問；新 SHA 的 diff／CI 仍須核實，不可繞過平台安全審查或擴權至正式 X。
 
 本 Skill 不得新增啟動授權檢查、claim、lease、工作槽、紀錄或協調交易；程式測試和 Git diff 才是修改成果證據.
 
-產品工作先整合 localX；origin/localX 只作備份，正式 X 需使用者當次 /推推。純非產品文檔、治理、技能及治理專用測試，優先由 GitHub／雲端從最新 X 開獨立 governance/docs/skills 分支並直接 PR merge X；需通過 tools/change_lane_gate.py 白名單，不得夾帶產品檔案。**此 root-local-first Skill 不得當成治理任務存取 DC 的授權**；未經使用者本次明確允許，不得存取 CoreELEC／whd-dev。
+產品與治理修改一律從最新 GitHub `localX` 開工並先合回遠端 `localX`；正式 `X=cleanup/2d-3d-sync` 必須使用者人工驗收及當次 `/推推` 才發布。`main` 為歷史分支，不可作施工來源。此 root-local-first Skill 不能為一般任務或治理工作取得 DC 權限，未經當次明確允許不得存取 CoreELEC／whd-dev。
 
 合併後測試採 `AGENTS.md::MERGE_TEST_REUSE_HARD_GATE`：使用 `tools/change_test_profile.py --merge-test-reuse` read-only 比對 exact tested 與整合 Git tree；完全一致且必要測試有有效 GREEN 收據，直接沿用測試，不重跑 GUI；有差異只針對受影響範圍補測，無法定界才全面回歸。
