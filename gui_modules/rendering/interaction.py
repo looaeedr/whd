@@ -239,6 +239,12 @@ def open_box_body_face_editor(
         "right": "箱身右側",
     }[face_key]
     host.box_body_face_selected_var.set(face_key)
+    def sync_features():
+        app = getattr(host, 'fold_designer_app', None)
+        if app is not None:
+            app.designer_workspace.stash_face_features('box_body', host.box_body_face_features)
+            app.submit_update_intent('geometry', commit=True)
+
     return host._open_unified_hole_editor(
         f"box_body_{face_key}",
         title,
@@ -247,6 +253,7 @@ def open_box_body_face_editor(
         height,
         reference_guide=reference_guide,
         feature_list_override=host.box_body_face_features[face_key],
+        sync_callback=sync_features,
         baseline_scene=host._box_body_face_baseline_scene(face_key, val),
         baseline_status_text=baseline_label_fn(host.baseline_var.get()),
         on_close=lambda: _refresh_box_body_after_hole_editor(host),

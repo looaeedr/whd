@@ -142,6 +142,10 @@ def _box_body_part_spec_from_values(
         ),
         features=tuple(features or ()),
         face_features={k: tuple(v) for k, v in dict(face_features or {}).items()},
+        physical_piece_features=deepcopy(dict((snapshot or {}).get('physical_piece_features', {
+            k: v for k, v in getattr(self.workspace_controller, 'part_features_snapshot', lambda: {})().items()
+            if str(k).startswith('box_body:') and not str(k).startswith('box_body:divider:')
+        }))),
         head_corner_policy=head_corner_policy, tail_corner_policy=tail_corner_policy,
         structure_state=deepcopy(dict(structure_state or {})),
         back_panel_contract=deepcopy(dict(back_panel_contract or {})),

@@ -667,6 +667,12 @@ def open_hole_editor(host, key):
         messagebox.showerror("開孔失敗", f"未知板面: {key}")
         return
 
+    app = getattr(host, 'fold_designer_app', None)
+    if app is not None and app.designer_workspace.quantity_model is not None:
+        from gui_modules.application.quantity_version_ports import quantity_ports
+        import fold_designer_bridge
+        return quantity_ports(fold_designer_bridge._phase6_composition(app), vars(fold_designer_bridge))['holes'](key)
+
     try:
         values = host.get_float_values()
     except ValueError:
@@ -684,13 +690,19 @@ def open_hole_editor(host, key):
     )
 
     legacy = host.tail_holes if key == "tail" else host.head_holes
-    host.surface_features[key] = [legacy_hole_to_feature(hole) for hole in legacy]
+    app = getattr(host, 'fold_designer_app', None)
+    workspace = getattr(app, 'designer_workspace', None)
+    host.surface_features[key] = (workspace.features_for(key) if workspace is not None
+                                 else [legacy_hole_to_feature(hole) for hole in legacy])
 
     def sync_legacy():
         legacy[:] = [
             feature_to_legacy_hole(feature, width, height)
             for feature in host.surface_features[key]
         ]
+        if workspace is not None:
+            workspace.stash_features(key, host.surface_features[key])
+            app.submit_update_intent('geometry', commit=True)
 
     reference_guide = RectGuide(
         Vec2(0.0, 0.0),
@@ -896,6 +908,29 @@ def _indicator_door_context(host, values):
 def open_part_hole_editor(host, part_key):
     """Route one physical-part editor while preserving existing authority seams."""
     host.workspace_controller.set_active_part(part_key)
+    app = getattr(host, 'fold_designer_app', None)
+    if part_key in {'head', 'tail'}:
+        return open_hole_editor(host, part_key)
+    import re
+    from phase6_part_navigation import is_box_body_physical_piece_key
+    match = re.fullmatch(r'door_c(\d+)_r(\d+)', str(part_key))
+    if match:
+        return host.open_door_layout_cell_editor(int(match[1]) - 1, int(match[2]) - 1)
+    if (str(part_key).startswith(('box_body:divider:', 'base_plate:fixing_plate:', 'base_plate_c', 'custom:'))
+            or is_box_body_physical_piece_key(part_key)
+            or (part_key == 'base_plate' and app is not None and host.baseline_var.get() == '受電箱')
+            or (str(part_key).startswith('inner_door:') and str(part_key).endswith('_frame'))):
+        from gui_modules.application.physical_part_hole_editor import open_workspace_sheet_editor
+        try:
+            return open_workspace_sheet_editor(host, part_key)
+        except ValueError as exc:
+            messagebox.showerror('開孔失敗', str(exc))
+            return None
+    if part_key == 'box_body':
+        face = host.box_body_face_selected_var.get() or 'back'
+        for name in ('left', 'back', 'right'):
+            host.box_body_face_features.setdefault(name, [])
+        return host.open_box_body_face_editor(face)
     if str(part_key).startswith("inner_door:") and str(part_key).endswith(":panel"):
         from gui_modules.application.receiving_inner_door_hole_editor import open_inner_door_hole_editor
 
@@ -910,9 +945,6 @@ def open_part_hole_editor(host, part_key):
     if part_key == "door" and host.multi_door_enabled_var.get():
         cell = host.get_selected_door_layout_cell()
         host.open_door_layout_cell_editor(cell.column_index, cell.row_index)
-        return
-    if part_key == "box_body":
-        host.open_box_body_face_editor(host.box_body_face_selected_var.get() or "back")
         return
     try:
         values = host.get_float_values()
@@ -932,6 +964,16 @@ def open_part_hole_editor(host, part_key):
     editor_context = builder(host, values)
     if editor_context is None:
         return
+    if app is not None and part_key in app.designer_workspace.available_parts:
+        features = app.designer_workspace.features_for(part_key)
+
+        def sync_features():
+            app.designer_workspace.stash_features(part_key, features)
+            host.surface_features[part_key] = list(features)
+            app.submit_update_intent('geometry', commit=True)
+
+        editor_context['feature_list_override'] = features
+        editor_context['sync_callback'] = sync_features
     host._open_unified_hole_editor(
         part_key,
         editor_context.pop("title"),

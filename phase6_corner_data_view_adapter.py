@@ -188,11 +188,7 @@ class Phase6CornerDataViewAdapter:
                 command=lambda k=key: on_select(k),
             )
             button.pack(side=tk.LEFT, fill=tk.X, expand=True)
-            if (
-                callable(on_double_click)
-                and key.startswith("inner_door:")
-                and key.endswith(":panel")
-            ):
+            if callable(on_double_click):
                 def open_original_editor(_event, selected_key=key):
                     on_double_click(selected_key)
                     return "break"
