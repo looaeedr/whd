@@ -123,6 +123,14 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             interference_pairs = 0
             self.last_interference_diagnostic = None
             ax = self.renderer.ax3d
+            # Manufacturing-model preview: axes/grid are visual noise, not measurements.
+            # Keep physical dimensions as explicit part labels instead.
+            grid = getattr(ax, "grid", None)
+            if callable(grid):
+                grid(False)
+            hide_axes = getattr(ax, "set_axis_off", None)
+            if callable(hide_axes):
+                hide_axes()
             divider_in_view = any(
                 str(getattr(p, "part_key", "") or "").startswith("box_body:divider:")
                 and (visible_part_keys is None or str(p.part_key) in visible_part_keys)
@@ -258,7 +266,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                     continue
                                 poly = Poly3DCollection(
                                     piece_placed,
-                                    alpha=(min(0.32, float(request.alpha_bend))
+                                    alpha=(min(0.17, float(request.alpha_bend))
                                            if divider_in_view else float(request.alpha_bend)),
                                     facecolor=face,
                                     edgecolor="none",
@@ -371,7 +379,50 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         formed_surface_for_edges, edge
                     )
                 else:
-                    self._add_mesh_boundary_lines(placed, edge)
+                    if divider_presentation is not None:
+                        # Only real formed edges (not triangulation diagonals),
+                        # emphatic enough to distinguish the C divider in 3D.
+                        from mpl_toolkits.mplot3d.art3d import Line3DCollection
+                        from phase6_final_scene_projection import _phase6_mesh_feature_segments
+                        outlines = _phase6_mesh_feature_segments(placed)
+                        if outlines:
+                            ax.add_collection3d(Line3DCollection(
+                                outlines, colors=edge, linewidths=2.7, alpha=1.0,
+                            ))
+                        # Label anchored to the ACTUAL folded part, not a screen
+                        # coordinate or an invented 3D dimension/bounding width.
+                        # Unfolded values come from its authoritative cutting data.
+                        flat_labels = _phase6_assembly_physical_dimension_lines(
+                            part, thickness=request.thickness,
+                        )
+                        if flat_labels:
+                            points = [pt for tri in placed for pt in tri]
+                            center = [sum(float(p[i]) for p in points) / len(points)
+                                      for i in range(3)]
+                            label = flat_labels[0].replace('中隔：', '中隔\n')
+                            label = label.replace('；', '\n').replace('、', ' · ')
+                            # Offset the reading away from the skin. A small
+                            # pointer connects the annotation to the REAL part.
+                            label_z = center[2] + max(
+                                24.0, float(request.finished_dimensions[2]) * 0.17
+                                if request.finished_dimensions else 40.0
+                            )
+                            ax.plot(
+                                (center[0], center[0]),
+                                (center[1], center[1]),
+                                (center[2], label_z),
+                                color=edge, linewidth=1.8, alpha=0.95,
+                            )
+                            ax.text(
+                                center[0], center[1], label_z,
+                                label, color='#fff2ce', fontsize=11, weight='bold',
+                                zorder=50, ha='center', va='bottom',
+                                bbox={'boxstyle': 'round,pad=0.35',
+                                      'facecolor': '#1c1810', 'edgecolor': edge,
+                                      'linewidth': 1.5, 'alpha': 0.94},
+                            )
+                    else:
+                        self._add_mesh_boundary_lines(placed, edge)
                 triangles.extend(placed)
                 materials.append(part_material)
             if interference_segments:

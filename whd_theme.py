@@ -22,8 +22,8 @@ WHD_THEME = MappingProxyType({
     "canvas": "#0d0d0f",
     "corner_data_canvas": "#000000",
     # Neutral-warm assembly role: distinguish the mid-divider from blue box skins.
-    "divider_face": "#bfa06d",
-    "divider_edge": "#ead3a3",
+    "divider_face": "#e0a532",
+    "divider_edge": "#ffe39a",
 })
 
 # Semantic accents remain role-specific; they are deliberately not flattened
