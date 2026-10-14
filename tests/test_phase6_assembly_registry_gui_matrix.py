@@ -62,7 +62,7 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
         designer = app.open_original_fold_designer()
         designer.preview_3d_enabled = False
         designer._phase6_3d_display_mode = "assembly"
-        bundle = bridge._phase6_query_assembly_render_data(designer)
+        bundle = bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
 
         assert dict(getattr(designer, "_phase6_last_relief_errors", {}) or {}) == {}
         solutions = dict(getattr(designer, "_phase6_last_relief_solutions", {}) or {})
@@ -79,27 +79,34 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
         assert {part.part_key for part in bundle.interference_probe_parts} >= {"head", "tail"}
 
         assembly_by_key = {part.part_key: part.render_data for part in bundle.assembly_parts}
-        val = app.get_float_values()
+        # Resolving an assembly for display is intentionally read-only. The
+        # primary GUI's persisted independent PartSpec is only the *pre-solve*
+        # source until a normal editor transition publishes certified relief.
+        # Compare only material from the SAME committed assembly state.
         expected_material = {}
         for key, is_tail in (("head", False), ("tail", True)):
+            designer.activate_part(key)  # normal UI transition/publish
+            val = app.get_float_values()
+            spec = app._end_cap_part_spec(val, is_tail=is_tail)
+            assert len(spec.resolved_assembly_relief_cuts) >= 2
             main_2d = app._authoritative_render_data(
-                app._end_cap_part_spec(val, is_tail=is_tail),
-                app._manufacturing_context(draw_stock=False),
+                spec, app._manufacturing_context(draw_stock=False)
             )
             expected_material[key] = main_2d.material
             assert main_2d.material.symmetric_difference(assembly_by_key[key].material).area <= 1e-6
-
-            designer.activate_part(key)
             single_3d = bridge._phase6_query_final_render_data(designer)
             assert single_3d.material.symmetric_difference(main_2d.material).area <= 1e-6
 
-        # Actual assembly renderer must show the pre-solve collision evidence,
-        # even though the displayed EndCaps are already the verified solved parts.
+        # Pre-solve relief collision evidence is an OPT-IN diagnostic, not a
+        # post-solve failure or a mandatory red overlay on the finished model.
         designer._phase6_3d_display_mode = "assembly"
+        assert designer.assembly_show_interference_var.get() is False
+        designer.assembly_show_interference_var.set(True)
         bridge._phase6_final_scene_adapter(designer).render_cutting_mesh()
         diagnostic = designer.final_scene_view.last_interference_diagnostic
         assert diagnostic.has_interference is True
         assert len(diagnostic.intersection_segments) > 0
+        designer.assembly_show_interference_var.set(False)
 
         app.project_controller.save(
             save_path,
