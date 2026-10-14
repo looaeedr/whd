@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# WHD 製造／3D 共用尺寸不變式（CURRENT：個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md）：
+# 包外是折後外側面的成形尺寸；料段 len = 其包外段尺寸 −（實際相鄰折彎數 0/1/2 × T），已轉成料長的資料不得重扣 T。
+# 展開 CUTTING = 料段累加；BEND 線位 = 同一料鏈的前綴和，不可直接拿包外尺寸充當展開折彎座標。
+# 3D 須依相同 Fold Profile／料鏈／BEND 與角度成形；角度正負只決定方向，禁止從 3D bbox 反推料長。
+# 這是板厚尺寸語意，非折彎展開補償；WRAP／OVERLAY 是裝配關係，不等於包外。
+
 """Canonical Phase 1 manufacturing helper owner extracted move-only from fold_designer_bridge."""
 
 from __future__ import annotations
@@ -318,6 +324,8 @@ def _phase6_expand_box_body_fw_world_mid(
     band = None
     core_bands = []
     target = None
+    # flat cursor 走料長累計 BEND；formed_length 是折後包外證據，僅供外側實體面貼齊。
+    # 不得拿 formed_length 取代展開 hinge，也不得在 3D 投影階段重算 CUTTING。
     for row in tuple(getattr(piece, "fold_profile", ()) or ()):
         length = float(getattr(row, "length", 0.0) or 0.0)
         end = cursor + length
