@@ -1117,7 +1117,7 @@ class Phase6RegistryDiagnosticsPanel:
         )
         self._publish(
             "assembly_show_interference_var",
-            tk.BooleanVar(master=frame, value=True),
+            tk.BooleanVar(master=frame, value=False),
         )
         self._publish(
             "assembly_relief_clearance_var",
@@ -1151,7 +1151,7 @@ class Phase6RegistryDiagnosticsPanel:
 
         ttk.Checkbutton(
             frame,
-            text="顯示干涉碰撞區",
+            text="顯示加工前截角交集（非成品碰撞）",
             variable=self.assembly_show_interference_var,
             command=self._on_diagnostic_changed,
         ).pack(side=tk.LEFT, padx=(0, 10))

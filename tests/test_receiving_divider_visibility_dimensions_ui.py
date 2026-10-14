@@ -68,8 +68,47 @@ def test_real_assembly_renderer_draws_opaque_divider_with_legible_dimensions():
         assert alphas.count(1.0) >= 1
         assert alphas.count(.17) >= 1
         assert not ax.axison, '3D grid/axes should not obscure physical divider'
-        anchored = [t for t in ax.texts if t.get_text().startswith('中隔\n')]
-        assert len(anchored) == 1
-        assert '展開外框 158 × 796 mm' in anchored[0].get_text()
+        # The size is available in the information area, not in a floating
+        # 3D label blocking the FW mating seam.
+        assert not any(t.get_text().startswith('中隔\n') for t in ax.texts)
+        assert "中隔：展開外框 158 × 796 mm" in texts
+    finally:
+        fig.clear()
+
+def test_assembly_divider_display_solid_reaches_same_real_front_FW_skin_as_sides():
+    from ae_engine.assembly_geometry import thicken_triangle_surface
+    from ae_engine.assembly_geometry_primitives import triangle_bounds
+    from phase6_final_scene_projection import (
+        _phase6_folded_mesh_from_polygon, _phase6_place_assembly_triangles,
+    )
+    snap = _snapshot()
+    body = _body_part(snap)
+    _source, divider = _divider_part(snap)
+    dims = (snap["w"], snap["h"], snap["d"])
+    mid = _phase6_place_assembly_triangles(
+        _phase6_folded_mesh_from_polygon(
+            divider.render_data.material,
+            tuple(dict(x) for x in divider.x_profile),
+            tuple(dict(y) for y in divider.y_profile),
+            fold_guides=tuple(divider.render_data.fold_guides or ()),
+        ),
+        divider.placement, dims, divider.offset,
+    )
+    assert triangle_bounds(mid)[2][1] == pytest.approx(173.)
+    solid = thicken_triangle_surface(mid, snap["t"])
+    assert triangle_bounds(solid)[2][1] == pytest.approx(174.)
+    fig = Figure(figsize=(12, 8), dpi=80)
+    ax = fig.add_subplot(111, projection="3d")
+    try:
+        renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax))
+        tris = renderer.render(FinalSceneViewRequest(
+            render_data=AssemblySceneRenderData(assembly_parts=(body, divider)),
+            x_profile=(), y_profile=(), part_key="assembly",
+            finished_dimensions=dims, thickness=snap["t"], alpha_bend=.45,
+        ))
+        # The last mesh in the scene is the visible physical divider.
+        assert tuple(tris[-len(solid):]) == tuple(solid)
+        assert triangle_bounds(tris[-len(solid):])[2][1] == pytest.approx(174.)
+        assert not any(t.get_text().startswith("中隔\n") for t in ax.texts)
     finally:
         fig.clear()

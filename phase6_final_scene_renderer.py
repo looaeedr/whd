@@ -207,6 +207,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 if not placed:
                     continue
+                if part_key.startswith("box_body:divider:"):
+                    # The certified FW contact uses physical sheet skins.
+                    # Display that same T-thick solid rather than the
+                    # zero-thickness mid-surface (front is T/2 too far back).
+                    # No geometry or manufacturing input is modified.
+                    from ae_engine.assembly_geometry import thicken_triangle_surface
+                    placed = thicken_triangle_surface(placed, request.thickness)
                 placed_piece_meshes = ()
                 if getattr(part_data, "pieces", None):
                     if physical_piece_world:
@@ -389,38 +396,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                             ax.add_collection3d(Line3DCollection(
                                 outlines, colors=edge, linewidths=2.7, alpha=1.0,
                             ))
-                        # Label anchored to the ACTUAL folded part, not a screen
-                        # coordinate or an invented 3D dimension/bounding width.
-                        # Unfolded values come from its authoritative cutting data.
-                        flat_labels = _phase6_assembly_physical_dimension_lines(
-                            part, thickness=request.thickness,
-                        )
-                        if flat_labels:
-                            points = [pt for tri in placed for pt in tri]
-                            center = [sum(float(p[i]) for p in points) / len(points)
-                                      for i in range(3)]
-                            label = flat_labels[0].replace('中隔：', '中隔\n')
-                            label = label.replace('；', '\n').replace('、', ' · ')
-                            # Offset the reading away from the skin. A small
-                            # pointer connects the annotation to the REAL part.
-                            label_z = center[2] + max(
-                                24.0, float(request.finished_dimensions[2]) * 0.17
-                                if request.finished_dimensions else 40.0
-                            )
-                            ax.plot(
-                                (center[0], center[0]),
-                                (center[1], center[1]),
-                                (center[2], label_z),
-                                color=edge, linewidth=1.8, alpha=0.95,
-                            )
-                            ax.text(
-                                center[0], center[1], label_z,
-                                label, color='#fff2ce', fontsize=11, weight='bold',
-                                zorder=50, ha='center', va='bottom',
-                                bbox={'boxstyle': 'round,pad=0.35',
-                                      'facecolor': '#1c1810', 'edgecolor': edge,
-                                      'linewidth': 1.5, 'alpha': 0.94},
-                            )
                     else:
                         self._add_mesh_boundary_lines(placed, edge)
                 triangles.extend(placed)
@@ -431,13 +406,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 if interference_targets:
                     ax.add_collection3d(Poly3DCollection(
                         interference_targets,
-                        facecolor="#ef4444",
+                        facecolor="#eab308",
                         edgecolor="none",
                         linewidths=0.0,
                         alpha=0.42,
                     ))
                 ax.add_collection3d(Line3DCollection(
-                    interference_segments, colors="#ef4444", linewidths=3.2,
+                    interference_segments, colors="#eab308", linewidths=2.5,
                     linestyles="solid", alpha=0.95,
                 ))
                 self.last_interference_diagnostic = MeshInterferenceDiagnostic(
@@ -466,7 +441,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 collision_text = ""
                 if bool(getattr(render_data, "show_interference", False)):
                     count = len(tuple(getattr(diagnostic, "intersection_segments", ()) or ()))
-                    collision_text = f"\n干涉碰撞區：{count} 段交線" if count else "\n干涉碰撞區：未偵測到穿越"
+                    collision_text = (f"\n加工前截角交集：{count} 段（非成品碰撞）"
+                                      if count else "\n加工前截角交集：無；成品碰撞請依3D驗證狀態判斷")
                 ax.text2D(
                     0.015, 0.985,
                     f"組合體 3D：W × H × D = {text} mm{warning_text}{collision_text}"
