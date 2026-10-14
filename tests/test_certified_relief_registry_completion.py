@@ -113,8 +113,12 @@ def test_certified_rule_revision_lookup_is_explicit():
 def test_registry_rejects_ambiguous_corner_policy_rules(monkeypatch):
     import ae_engine.certified_relief_registry as registry
 
+    from ae_engine import certified_relief_corner_policy as corner_owner
+
     rule = registry.registered_certified_corner_policy_rules()[0]
-    monkeypatch.setattr(registry, "_CORNER_POLICY_RULES", (rule, rule))
+    # lookup_certified_corner_state is implemented in this module; patch the
+    # actual rule owner rather than the registry's re-exported snapshot.
+    monkeypatch.setattr(corner_owner, "_CORNER_POLICY_RULES", (rule, rule))
     with pytest.raises(registry.CertifiedReliefRegistryAmbiguityError):
         registry.lookup_certified_corner_state(cabinet_family=rule.cabinet_family, part_keys=(rule.part_roles[0],))
 
