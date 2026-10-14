@@ -3,7 +3,7 @@
 PRODUCTION_X = "cleanup/2d-3d-sync"
 INTEGRATION_BRANCH = "localX"
 PUBLISH_MARKER = "WHD_LOCALX_PUBLISH_AUTH_V1"
-UAT_MARKER = "WHD_WINDOWS_LOCALX_UAT_V1"
+UAT_MARKER = "WHD_WINDOWS_LOCALX_UAT_V1"  # Historical/optional record, not a release prerequisite
 
 
 class LocalXPublishDenied(ValueError):
@@ -59,7 +59,7 @@ def require_publish_approval(
         "base": target_sha,
     }
     owner = repo.split("/", 1)[0]
-    acceptance, publication = [], []
+    publication = []
     for comment in comments:
         if not isinstance(comment, dict):
             continue
@@ -69,19 +69,12 @@ def require_publish_approval(
                 or not isinstance(comment_id, int) or comment_id <= 0):
             continue
         body = str(comment.get("body") or "")
-        manual_expected = dict(expected, test_site="WINDOWS",
-                               windows_head=head_sha)
-        if _exact_command(body, manual_expected,
-                          command="/驗收通過", marker=UAT_MARKER):
-            acceptance.append(comment_id)
         if _exact_command(body, expected):
             publication.append(comment_id)
-    if not acceptance:
-        raise LocalXPublishDenied("WINDOWS_LOCALX_MANUAL_UAT_REQUIRED")
+    # User's exact /推推 is both acceptance of the release candidate
+    # and the authorization to publish. Never claim a Windows test was run.
     if not publication:
         raise LocalXPublishDenied("LOCALX_PUBLISH_REQUIRES_EXPLICIT_USER_SLASH_PUSH")
-    if not any(a < p for a in acceptance for p in publication):
-        raise LocalXPublishDenied("WINDOWS_UAT_MUST_PRECEDE_SLASH_PUSH")
 
 
 class LocalXIntegrationDenied(ValueError):
@@ -220,7 +213,7 @@ def require_official_release_proof(
 
     PR's mutable branch ref SHAs are not evidence after merge. The two
     immutable merge parents recover the exact source head and X base used
-    by the original user-signed UAT and /推推 comments.
+    by the original owner-issued /推推 approval.
     """
     import re
 

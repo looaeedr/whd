@@ -7,25 +7,15 @@ from tools.localx_publish_gate import (
 )
 
 class PublishGateTests(unittest.TestCase):
-    def test_absent_approval_is_denied(self):
-        with self.assertRaises(LocalXPublishDenied):
-            require_publish_approval(repo="looaeedr/whd",pr_number=12,
-              pr={"head":{"ref":"localX","sha":"a"*40},"base":{"ref":"cleanup/2d-3d-sync","sha":"b"*40}},
-              head_sha="a"*40,target_sha="b"*40,comments=[])
-
-    def _approval(self, *, uat_head="a"*40, test_site="WINDOWS",
-                  order=(100, 101), uat_owner="looaeedr"):
+    def _approval(self, *, head="a"*40, base="b"*40,
+                  owner="looaeedr", marker="WHD_LOCALX_PUBLISH_AUTH_V1",
+                  command="/推推", comment_id=101):
         fields = ("repo=looaeedr/whd\npr=12\nsource=localX\n"
-                  "head=" + ("a"*40) + "\ntarget=cleanup/2d-3d-sync\n"
-                  "base=" + ("b"*40))
-        return [
-            {"id": order[0], "user": {"login": uat_owner, "type": "User"},
-             "body": "/驗收通過\nWHD_WINDOWS_LOCALX_UAT_V1\n"
-                     + fields + "\ntest_site=" + test_site
-                     + "\nwindows_head=" + uat_head},
-            {"id": order[1], "user": {"login": "looaeedr", "type": "User"},
-             "body": "/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\n" + fields},
-        ]
+                  + "head=" + head + "\ntarget=cleanup/2d-3d-sync\n"
+                  + "base=" + base)
+        return [{"id": comment_id,
+                 "user": {"login": owner, "type": "User"},
+                 "body": command + "\n" + marker + "\n" + fields}]
 
     def _publish(self, comments):
         return require_publish_approval(
@@ -34,34 +24,35 @@ class PublishGateTests(unittest.TestCase):
                 "base":{"ref":"cleanup/2d-3d-sync","sha":"b"*40}},
             head_sha="a"*40, target_sha="b"*40, comments=comments)
 
-    def test_exact_approval_is_allowed(self):
+    def test_absent_owner_push_is_denied(self):
+        with self.assertRaisesRegex(LocalXPublishDenied, "EXPLICIT_USER_SLASH_PUSH"):
+            self._publish([])
+
+    def test_slash_push_itself_is_release_acceptance(self):
+        # No second /驗收通過 or fictional test_site=WINDOWS claim.
         self._publish(self._approval())
 
-    def test_push_without_windows_uat_fails(self):
-        with self.assertRaisesRegex(LocalXPublishDenied, "WINDOWS_LOCALX_MANUAL_UAT_REQUIRED"):
-            self._publish(self._approval()[1:])
-
-    def test_windows_uat_without_push_fails(self):
-        with self.assertRaisesRegex(LocalXPublishDenied, "EXPLICIT_USER_SLASH_PUSH"):
-            self._publish(self._approval()[:1])
-
-    def test_wrong_windows_head_or_site_fails(self):
-        for args in ({"uat_head": "f"*40}, {"test_site": "COREELEC"},
-                     {"uat_owner":"github-actions[bot]"}):
-            with self.subTest(args=args), self.assertRaises(LocalXPublishDenied):
-                self._publish(self._approval(**args))
-
-    def test_uat_must_precede_push(self):
-        with self.assertRaisesRegex(LocalXPublishDenied, "MUST_PRECEDE"):
-            self._publish(self._approval(order=(102,101)))
-
-    def test_missing_github_comment_ids_fail_closed(self):
-        comments = self._approval()
-        for item in comments:
-            item.pop("id")
+    def test_historical_windows_acceptance_is_optional(self):
+        historical = {"id": 100, "user": {"login": "looaeedr", "type": "User"},
+                      "body": "/驗收通過\nWHD_WINDOWS_LOCALX_UAT_V1"}
         with self.assertRaises(LocalXPublishDenied):
-            self._publish(comments)
+            self._publish([historical])
+        self._publish([historical] + self._approval())
 
+    def test_wrong_owner_sha_target_command_or_marker_is_denied(self):
+        for mutation in (
+            {"owner": "github-actions[bot]"}, {"head": "f"*40},
+            {"base": "f"*40}, {"marker": "WRONG_MARKER"},
+            {"command": "/驗收通過"}, {"comment_id": None},
+        ):
+            with self.subTest(mutation=mutation), self.assertRaises(LocalXPublishDenied):
+                self._publish(self._approval(**mutation))
+
+    def test_untrusted_duplicate_fields_and_hidden_extra_lines_rejected(self):
+        comment = self._approval()
+        comment[0]["body"] += "\nhead=" + "a"*40
+        with self.assertRaises(LocalXPublishDenied):
+            self._publish(comment)
 
 class ConversationBugfixIntegrationTests(unittest.TestCase):
     def setUp(self):
@@ -179,14 +170,9 @@ class OfficialReleaseTests(unittest.TestCase):
         fields = ("repo=looaeedr/whd\npr=12\nsource=localX\n"
                   "head=" + self.SOURCE + "\ntarget=cleanup/2d-3d-sync\n"
                   "base=" + self.X)
-        owner = {"login": "looaeedr", "type": "User"}
-        return [
-            {"id": 100, "user": owner,
-             "body": "/驗收通過\nWHD_WINDOWS_LOCALX_UAT_V1\n"
-                     + fields + "\ntest_site=WINDOWS\nwindows_head=" + self.SOURCE},
-            {"id": 101, "user": owner,
-             "body": "/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\n" + fields},
-        ]
+        return [{"id": 101,
+                 "user": {"login": "looaeedr", "type": "User"},
+                 "body": "/推推\nWHD_LOCALX_PUBLISH_AUTH_V1\n" + fields}]
 
     def _check(self, *, x=None, pr=None, parents=None, comments=None):
         return require_official_release_proof(
@@ -226,9 +212,11 @@ class OfficialReleaseTests(unittest.TestCase):
         with self.assertRaises(LocalXPublishDenied):
             self._check(parents=[self.SOURCE, self.X])
 
-    def test_release_needs_windows_acceptance_and_later_exact_push(self):
-        comments = self._comments()
-        for subset in ([], comments[:1], comments[1:]):
+    def test_release_needs_exact_owner_push_but_no_second_uat(self):
+        # A single authenticated /推推 is sufficient even if no Windows test is asserted.
+        self._check(comments=self._comments())
+        for subset in ([], [{"id": 100, "user": {"login": "looaeedr", "type": "User"},
+                             "body": "/驗收通過\nWHD_WINDOWS_LOCALX_UAT_V1"}]):
             with self.subTest(subset=subset), self.assertRaises(LocalXPublishDenied):
                 self._check(comments=subset)
         wrong = self._comments()
