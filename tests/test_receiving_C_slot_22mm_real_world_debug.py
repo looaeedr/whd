@@ -34,7 +34,7 @@ def test_first_22mm_left_fold_has_actual_X_contact_at_C_notched_end():
     _, body, divider, part, world = _source_world()
     left = next(x for x in body.render_data.pieces if x.role == "left_side")
     assert left.fold_profile[0].length == pytest.approx(22.)
-    assert left.fold_profile[0].angle == pytest.approx(-90.)
+    assert left.fold_profile[0].angle == pytest.approx(90.)  # original front-facing local fold
     u0, u1 = next(
         (start, end) for name, start, end in
         _piece_bands(body)["box_body:left_side"] if name == "zl1"

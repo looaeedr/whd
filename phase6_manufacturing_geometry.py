@@ -451,6 +451,16 @@ def _phase6_shift_multistage_terminal_fold_world_mid(piece, mapped, world_mid_pi
     if len(outward) < 2 or terminal_index not in outward:
         return tuple(world_mid_piece or ())
 
+    # The pre-DXF Receiving first fold is zl1(+90) followed by zl2 and
+    # FW: it is at the FRONT and its first-bend outside must be resolved
+    # against the adjacent zl2 skin. The old tangent-only translation
+    # displaced the ENTIRE fold, including its hinge, by formed-material
+    # thickness. Let the shared skin fitter move only the free end instead.
+    if role == "left_side" and tuple(str(getattr(r, "phase6_key", "")) for r in segs[:4]) == (
+        "zl1", "zl2", "fw_left", "d_left",
+    ):
+        return tuple(world_mid_piece or ())
+
     terminal = segs[terminal_index]
     material_len = float(getattr(terminal, "length", 0.0) or 0.0)
     raw_formed = getattr(terminal, "formed_length", None)

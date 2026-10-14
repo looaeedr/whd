@@ -167,7 +167,7 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     assert relief["trust_level"] == "CERTIFIED"
     assert relief["core_start"] == pytest.approx(41.0)
     formula_values = dict(relief["cut_depths"])
-    assert formula_values["slotted_fold_u"] == pytest.approx(68.0)  # source-reflected terminal outside +T
+    assert formula_values["slotted_fold_u"] == pytest.approx(66.0)  # original certified C sample, no mirror +T
     assert formula_values["plain_fold_u"] == pytest.approx(60.0)
     assert formula_values["fold_v"] == pytest.approx(27.0)
     inverse = dict(relief["evidence"]["independent_physical_inverse"])
@@ -184,12 +184,11 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     assert set(projections) == {"MIN_Y", "MAX_Y"}
     for measured in projections.values():
         assert 0.0 < float(measured) < float(snapshot["fw"])
-    # The corrected source DXF places FW-adjacent side collision on the
-    # physical zl2 + rear terminal after fold-station reflection. zl1 is
-    # still 22mm flat material but does not collide with this Divider.
+    # Original nonmirrored first fold requires the real zl1 X crossing
+    # to be removed by the 7mm C notch, alongside the adjacent zl2.
     projection_by_source = dict(dict(relief["evidence"])["projection_by_source"])
     assert tuple(projection_by_source["box_body:left_side"]["penetrating_bands"]) == (
-        "zl2", "side_rear_bend_left",
+        "zl1", "zl2",
     )
     assert tuple(projection_by_source["box_body:right_side"]["penetrating_bands"]) == ("zr2",)
     placement = dict(dict(relief["evidence"]).get("placement") or {})

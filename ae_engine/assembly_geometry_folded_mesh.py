@@ -283,9 +283,11 @@ def fit_receiving_left_zl1_formed_outside(
     """Project operator formed/outside onto REAL physical sheet skin.
 
     The operator enters -24 outside while the unfolding owns 22 material at
-    T2.  The true bent solid must occupy 24 from the D panel's outside skin,
-    not 22 from BEND nor 23 from the sharp mid-surface model.  Both standalone
-    and assembled 3D use this source-driven fitting; no 3D geometry writes
+    T2.  The true bent solid must occupy 24 from the ADJACENT sheet's
+    outside skin: zl2 in the original pre-DXF front bend, D in the mirrored
+    legacy chain.  Neither BEND nor the sharp mid-surface alone is the datum.
+    Both standalone and assembled 3D use this source-driven fitting;
+    no 3D geometry writes
     back into source profiles/BEND/DXF.  Axis 2 is part-local; axis 0 is
     Receiving assembly world X.  The inward first leg is +axis in both.
     """
@@ -293,11 +295,17 @@ def fit_receiving_left_zl1_formed_outside(
     def val(seg, key, default=None):
         return seg.get(key, default) if isinstance(seg, dict) else getattr(seg, key, default)
 
-    if len(segs) < 2 or (
-        val(segs[0], "phase6_key") != "zl1"
-        or val(segs[1], "core") != "D"
-        or abs(float(val(segs[0], "angle", 0.0) or 0.0) + 90.0) > tolerance
-    ):
+    original_pre_dxf = len(segs) >= 4 and (
+        tuple(val(r, "phase6_key") for r in segs[:4])
+        == ("zl1", "zl2", "fw_left", "d_left")
+        and abs(float(val(segs[0], "angle", 0.0) or 0.0) - 90.0) <= tolerance
+    )
+    mirrored = len(segs) >= 2 and (
+        val(segs[0], "phase6_key") == "zl1"
+        and val(segs[1], "core") == "D"
+        and abs(float(val(segs[0], "angle", 0.0) or 0.0) + 90.0) <= tolerance
+    )
+    if not (original_pre_dxf or mirrored):
         return tuple(mid_triangles or ())
     formed = val(segs[0], "formed_length")
     if formed is None:
@@ -330,8 +338,10 @@ def fit_receiving_left_zl1_formed_outside(
     if not terminal_indices or not tip or not core:
         raise ValueError("RECEIVING_ZL1_OUTSIDE_SOLID_DATUM_MISSING")
 
-    # D outer skin is one half thickness toward -axis from its mid-surface.
-    # Fit to the actual formed envelope, not a hardcoded 1 mm correction.
+    # With the original +90 chain, the datum is zl2's outer skin.
+    # With the mirrored -90 chain, the datum is D's outer skin.
+    # Both use the TRUE adjacent physical skin, not material station 22.
+    # Fit only the free tip, leaving the shared hinge/fold station fixed.
     core_outside = (min(core) + max(core)) / 2.0 - t / 2.0
     delta = (core_outside + float(formed)) - max(tip)
     if abs(delta) <= tolerance:
