@@ -324,7 +324,7 @@ def test_localx_is_development_authority_and_x_is_release_only() -> None:
     assert "fresh-read 正式 `X=cleanup/2d-3d-sync`" not in source_block
     assert "正式執行／治理唯一權威是 `X=cleanup/2d-3d-sync`" not in agents
     assert "X-only 提交不得默默 merge" in agents
-    assert "不因 `localX` 需要本機 checkout" in agents
+    assert "不是因為 `localX` 需要本機 checkout" in agents
     assert "預設由 GitHub／雲端將已測試成果直接合回" in agents
 
 
@@ -342,7 +342,7 @@ def test_localx_qa_and_execution_skills_cannot_fallback_to_coreelec() -> None:
     assert "用 DC 僅安全整合本機" not in qa
     assert "DC_UNREACHABLE" not in qa
     assert "正式 X `AGENTS.md` 判斷" not in diagnosis
-    assert "從最新 `localX` 建工作分支" in diagnosis
+    assert "以最新 `localX` 建工作分支" in diagnosis
     assert "不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC" in execution
     assert "CI GREEN／`LOCALX_INTEGRATION`" in root
     for body in (diagnosis, execution, root):
