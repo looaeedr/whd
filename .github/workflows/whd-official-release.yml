@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Exact UAT, publish proof, Taiwan tag and rejection regression
+      - name: Exact user /推推, Taiwan tag and rejection regression
         run: python -m unittest discover -s tests/process -p 'test_localx_publish_gate.py' -v
 
   official-release:
@@ -56,7 +56,7 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
           fetch-depth: 0
-      - name: Verify exact published X merge, manual UAT and /推推
+      - name: Verify exact published X merge, owner /推推 acceptance and authorization
         id: verify
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -122,7 +122,7 @@ jobs:
           )
           with open(output, "a", encoding="utf-8") as f:
               f.write(f"eligible=true\ntag={tag}\npr={pr['number']}\n")
-          print(f"Exact Windows UAT and /推推 verified; release {tag}, PR #{pr['number']}")
+          print(f"Exact owner /推推 accepted and verified; release {tag}, PR #{pr['number']}")
           PY
       - name: Create immutable tag and GitHub Release after /推推
         if: steps.verify.outputs.eligible == 'true'
@@ -149,7 +149,7 @@ jobs:
               echo
               echo "- Published X merge commit: \`$RELEASE_SHA\`"
               echo "- GitHub localX at release: \`$RELEASE_SHA\`"
-              echo "- Verified Windows manual UAT and exact /推推: PR #$RELEASE_PR"
+              echo "- Verified owner /推推 acceptance and release authority: PR #$RELEASE_PR"
               echo "- Source PR: https://github.com/$GITHUB_REPOSITORY/pull/$RELEASE_PR"
               echo "- GitHub Actions exact HEAD verification: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
               echo
