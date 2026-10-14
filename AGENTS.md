@@ -28,7 +28,7 @@ whd_schema: WHD_DOC_META_V1
 - **產品施工通道**：已授權的同 Issue／BUG 修復範圍含施工、PR、exact HEAD CI 與 GitHub 遠端 `localX` 最終合併，不需每張 PR 再問合併許可。合併前核對當前 PR head/base、scope、全部必要 CI、mergeable、base 演進與測試覆蓋；用 `expected_head_sha` 且不得 force/reset。合併後 readback PR merged 與 GitHub HEAD，回報 `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`；未取得 Windows 真實 SHA 不得稱同步成功，更不得跳過人工 UAT。GitHub 平台拒絕時不得改用 DC 繞過；正式產品 X 仍限當次 `/推推`。
 - **治理變更與正式 X 現行硬閘門（`NON_PRODUCT_GOVERNANCE_DIRECT_X` 歷史分類）**：純治理／技能／流程測試可以獨立於產品本體施工與產品 QA，但現行正式 X 的受信任 `tools/change_lane_gate.py::evaluate_pr` 已限制所有 X PR 必須 head=`localX` 且具 Windows UAT、當次 `/推推` 的 owner 精確證據；**不能僅憑治理分類直合 X**。治理先透過 GitHub PR 整合 `localX`，發布 X 遵守受信任 X 閘門；若另行合法修改正式 X gate，必須配套更新 tests 與規則，不可只修改 Skill 宣稱已放行。
 - **非本體 CI 排程／驗收權威硬分流（`CI_SCHEDULING_ONLY_V1`）**：純 CI 排程數字、既有 Runner 選型可依 `tools/change_lane_gate.py` 的**受信任 base X → PR HEAD 實際 blob 差異**執行 CI 調度分類驗證，不需本機 `localX`／DC／完整產品回歸。產品驗收主 workflow `.github/workflows/whd-product-regression.yml` **不得僅憑副檔名或 `.github/workflows/` 目錄判定治理**：只有對既有行的 `runs-on`、`timeout-minutes`、`max-parallel`、`retention-days` 且舊值、新值均符合白名單的替換能例外直送。增刪行、修改觸發 paths、matrix shards、jobs/if、測試指令、必跑步驟、CI 名稱、artifact 集合、完整性檢查一律產品通道；`tools/product_ci_regression.py`、`tools/product_ci_green_reuse.py`、`tools/whd_v15_acceptance_evidence.py`、產品測試清單／驗收矩陣與相關測試，永遠不能只靠 CI 調度名義豁免產品回歸與 `/推推`。GitHub X 的 required `WHD Change Lane Gate` 必須由**受信任 X 版本**執行這項判定。未知／缺少 git diff 證據 fail closed，不得自行改走本機。 **此分類不是從 X 開發或繞過 `localX → 人工驗收 → /推推 → X` 的授權。**
-- **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得走治理直送；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
+- **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得以治理分類豁免產品 QA 或正式 X 發布閘門；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
 - GitHub 正式硬閘門必須在 X 的 Ruleset 把 `WHD Change Lane Gate` 設為 required status check，否則只能算 CI 檢查、不能宣稱平台端不可繞過；直接 push X 應由分支 Ruleset 禁止。
 - 禁止遺失使用者本地未發布修改，禁止用 X 覆蓋 localX。保留程式碼 review、製造幾何與產品回歸檢查；無需工單交易硬閘門。
 - 本地工作不需 Google Drive 工作根目錄，也不需調用舊協調分支。
@@ -44,7 +44,7 @@ whd_schema: WHD_DOC_META_V1
 4. **已在執行時不中斷**：風險提示不等於停止施工。CI／工單狀態沿用現有 exact `HEAD`／`run_id` 與已取得的結果；只補讀缺口，不因對話濃縮而重新觸發測試、重做工單接取或要求使用者再輸入「繼續」。重大合併前回讀現況，不把過期摘要當權威。
 5. **誠實提示但不假裝預知**：只有觀察到內容截斷、資訊矛盾或真實銜接困難才簡短提醒，並說明正在核對的具體項目；`/上下文` 可以要求現在的可觀察風險評估，但不是原生容量計量器。不得把「對話很長」推論成某個剩餘百分比或自動提醒已啟動。
 
-本規則僅改善本體處理資訊的方式，不擴充 DC／本機權限，不新增 GitHub 施工前置硬閘門；非本體治理修訂依 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直接走治理 PR 至正式 X。
+本規則僅改善本體處理資訊的方式，不擴充 DC／本機權限，也不新增 GitHub 施工前置硬閘門；非本體治理修訂從 GitHub `localX` 開分支並經治理 CI 合回 `localX`。歷史 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 不是今日直送正式 X 的授權。
 
 ## `/推推` 發布先行、X 回同步硬閘門 `LOCALX_PUBLISH_THEN_X_BACKSYNC`
 
@@ -68,7 +68,7 @@ whd_schema: WHD_DOC_META_V1
 - **CI 強制執行**：關鍵 GitHub Actions jobs 必須設 `TZ=Asia/Taipei`，`tools/change_lane_gate.py` 檢查明確的環境設定與 ZoneInfo offset；任一不符即 `TAIWAN_TIMEZONE_HARD_GATE_FAILED`。增修 Python 日期時間產生點時，不得加入無時區的 `datetime.now()`、`datetime.today()`、`datetime.utcnow()`、`datetime.astimezone()` 或使用執行機器本地時間的 `time.localtime()`。新改動由 CI diff guard 驗證；歷史既有日期來源需分批補上精確的產品回歸，不以文字規則冒稱已改好。
 - **排程換算**：需求的日／週／幾點一律先用台灣時間解析；若 GitHub Actions cron 或第三方 API **僅接受 UTC**，則只在傳輸層轉換成等價 UTC（例如台灣 08:00 對應 UTC 00:00），顯示與排程權威仍為 `Asia/Taipei`；不得因 runner 預設 UTC 造成日期跨日錯誤。
 - **外部格式例外不等於使用 UTC 操作**：GitHub 事件 ISO UTC、Unix epoch、Git commit 與 API 明定 UTC 的儲存／簽名／傳輸欄位保留原格式，不擅自改寫證據；在回報、呈現或作本地日界判斷前必須換算台灣時間。保證同一瞬間不因格式轉換而改變。
-- **禁止藉時區門檻擴權**：不修改舊工單交易規則、既有排程啟停、產品幾何與 DC 權限；此硬閘門的治理變更走既有 governance 直送 X 通道。`AGENTS.md` 與 `.agents/contracts/WHD_TAIPEI_TIMEZONE_HARD_GATE_V1.json` 為時間權威，後續 SOP／技能需從此契約繼承。
+- **禁止藉時區門檻擴權**：不修改舊工單交易規則、既有排程啟停、產品幾何與 DC 權限；此硬閘門的治理變更一樣先由 GitHub `localX` 開分支及 PR 合回，不准藉時區治理直送 X。`AGENTS.md` 與 `.agents/contracts/WHD_TAIPEI_TIMEZONE_HARD_GATE_V1.json` 為時間權威，後續 SOP／技能需從此契約繼承。
 
 ## 全域 DC 硬閘門 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`
 
@@ -132,7 +132,7 @@ whd_schema: WHD_DOC_META_V1
 - **CI 終態**：`success` → `LOCALX_INTEGRATION_PENDING`，立即走 GitHub remote `localX` 合併及 readback（預設不需 DC）；`failure/cancelled/timed_out/action_required` → `REPAIR_AND_RETEST`，不可將 GREEN 誤報產品 X 已發布。
 - **CI 成功仍未完成交付**：本機／遠端 `localX` 整合回讀、Issue close/readback 及 `NEXT_ISSUE_DISCOVERY_REQUIRED` 等既有義務未處理 → `CONTINUE_FINALIZATION`；達到所有必要驗收與追蹤義務、讀回證據後才可標 `RELEASED`。正式 X 仍限使用者當次 `/推推`。
 - **允許當回合非完成式退出的真實例外**：有可追溯 API 錯誤／權限拒絕／無合法執行途徑 → `BLOCKED_WITH_EVIDENCE`，或執行環境真實中斷／當回合工具資源限制 → `RUNTIME_LIMIT_UNRESOLVED`；回報當時 `Issue/PR/head_sha/run_id/last_observation/blocker/next_exact_action`，**不得標示 DONE、已完成、背景自動續作**，不得假造阻塞來取代仍可做的輪詢。
-- **不擴權**：本規則只對現有 `/派工` 回合施加退出前的決策檢查；不啟動新排程／`workflow_run` 自動施工、不重建舊 Flow v2、不增設 GitHub 分支保護，不允許提早使用 DC／RC／本機，純治理文件照既有 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直送 X。
+- **不擴權**：本規則只對現有 `/派工` 回合施加退出前的決策檢查；不啟動新排程／`workflow_run` 自動施工、不重建舊 Flow v2、不增設 GitHub 分支保護，不允許提早使用 DC／RC／本機；純治理文件先從 `localX` 建工作分支、跑治理測試、PR 合回 `localX`。正式 X 的任何發布仍需人工驗收和當次 `/推推`。
 
 ## /派工 產品交付不中斷閘門（執行者責任）
 
