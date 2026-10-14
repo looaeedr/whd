@@ -479,7 +479,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                             or key in visible_box_body_piece_keys
                         }
                     audit = audit_all_physical_part_pairs(
-                        world_parts, visible_part_keys=selected
+                        world_parts, visible_part_keys=selected,
+                        certified_relief_diagnostics=tuple(
+                            getattr(render_data, "collision_certification_diagnostics", ()) or ()
+                        ),
                     )
                     self._all_parts_collision_cache = (scene_key, audit)
                 self.last_all_parts_collision_audit = audit

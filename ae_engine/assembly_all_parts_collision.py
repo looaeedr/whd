@@ -34,7 +34,9 @@ class AssemblyPhysicalCollisionAudit:
 
     @property
     def contacts(self):
-        return tuple(row for row in self.pairs if row.status == "VERIFIED_TERMINAL_CONTACT")
+        return tuple(row for row in self.pairs if row.status in {
+            "VERIFIED_TERMINAL_CONTACT", "VERIFIED_CERTIFIED_RELIEF_CONTACT",
+        })
 
     @property
     def evaluated_pair_count(self):
@@ -126,8 +128,30 @@ def _frame_terminal_contact(key_a, key_b, a_bounds, b_bounds, intersections, tol
     return False
 
 
+def _certified_pair_allowances(diagnostics):
+    """Only accept explicit post-solve TRUE-THICKNESS evidence, not a status guess."""
+    approved = set()
+    for row in tuple(diagnostics or ()):
+        if (
+            str(getattr(row, "candidate_status", "")) != "CERTIFIED_REGISTRY_VERIFIED"
+            or bool(getattr(row, "illegal_penetration", True))
+            or str(getattr(row, "target_part", "")) != "box_body"
+        ):
+            continue
+        divider = str(getattr(row, "subject_part", ""))
+        post = dict((getattr(row, "evidence", {}) or {}).get("post") or {})
+        if not divider.startswith("box_body:divider:"):
+            continue
+        if int(post.get("true_thickness_penetrating_band_count", -1)) != 0:
+            continue
+        for side in ("box_body:left_side", "box_body:right_side"):
+            approved.add(frozenset((divider,side)))
+    return frozenset(approved)
+
+
 def audit_all_physical_part_pairs(world_triangles_by_part, *,
-                                  visible_part_keys=None, tolerance=1e-5):
+                                  visible_part_keys=None, tolerance=1e-5,
+                                  certified_relief_diagnostics=()):
     """Check every unordered distinct piece pair with broad-phase AABB pruning.
 
     Composite 'box_body' is excluded in favor of its independent, named pieces.
@@ -145,6 +169,7 @@ def audit_all_physical_part_pairs(world_triangles_by_part, *,
     meshes = {key: tuple(raw[key]) for key in keys}
     bounds = {key: _bounds(meshes[key]) for key in keys}
     result = []
+    certified_pairs = _certified_pair_allowances(certified_relief_diagnostics)
     for a, b in combinations(keys, 2):
         ba, bb = bounds[a], bounds[b]
         if not _bbox_touch(ba, bb, float(tolerance)):
@@ -155,6 +180,10 @@ def audit_all_physical_part_pairs(world_triangles_by_part, *,
         if not crossing.pair_count:
             # NO_NONCOPLANAR_CROSSING is not a proof of no 3D overlap.
             status = "NO_NONCOPLANAR_CROSSING"
+        elif frozenset((a,b)) in certified_pairs:
+            # Existing post-cut 7mm certified C sample demonstrates zero
+            # positive-thickness penetrating bands for BOTH physical sides.
+            status = "VERIFIED_CERTIFIED_RELIEF_CONTACT"
         elif _frame_terminal_contact(
             a,b,ba,bb,crossing.intersection_points,float(tolerance)):
             status = "VERIFIED_TERMINAL_CONTACT"

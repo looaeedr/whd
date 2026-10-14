@@ -38,6 +38,7 @@ def test_actual_receiving_scene_collision_toggle_exposes_all_frame_head_pairs():
     request=FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(
             assembly_parts=scene_parts,show_interference=True,
+            collision_certification_diagnostics=tuple(diagnostics),
             preserve_endcap_core_origin=True,
         ),
         part_key="assembly",x_profile=(),y_profile=(),

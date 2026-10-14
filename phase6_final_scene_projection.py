@@ -539,6 +539,7 @@ def make_assembly_scene_render_data(
     ignore_fixed_corner_relief=False,
     interference_probe_parts=(),
     joint_diagnostics=(),
+    collision_certification_diagnostics=(),
     selected_joint_id=None,
     preserve_endcap_core_origin=False,
     render_data_cls=None,
@@ -563,6 +564,9 @@ def make_assembly_scene_render_data(
         "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
         "interference_probe_parts": tuple(interference_probe_parts or ()),
         "joint_diagnostics": tuple(joint_diagnostics or ()),
+        "collision_certification_diagnostics": tuple(
+            collision_certification_diagnostics or ()
+        ),
         "selected_joint_id": (
             None if selected_joint_id is None else str(selected_joint_id)
         ),

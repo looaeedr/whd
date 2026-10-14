@@ -32,6 +32,7 @@ class AssemblySceneRenderData:
     ignore_fixed_corner_relief: bool = False
     interference_probe_parts: tuple[AssemblyScenePart, ...] = ()
     joint_diagnostics: tuple[object, ...] = ()
+    collision_certification_diagnostics: tuple[object, ...] = ()
     selected_joint_id: str | None = None
     preserve_endcap_core_origin: bool = False
 

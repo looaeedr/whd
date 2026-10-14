@@ -58,7 +58,10 @@ def test_receiving_actual_all_part_world_includes_head_frames_and_divider():
         g.parts,finished_dimensions=(s["w"],s["h"],s["d"]),sheet_thickness=s["t"])
     assert len(d)==1 and not d[0].illegal_penetration
     w=_phase6_build_joint_world_geometry(parts,(s["w"],s["h"],s["d"]),s["t"])
-    audit=audit_all_physical_part_pairs(w["world_triangles_by_part"])
+    audit=audit_all_physical_part_pairs(
+        w["world_triangles_by_part"],
+        certified_relief_diagnostics=tuple(d),
+    )
     pairs={(r.left,r.right):r for r in audit.pairs}
     def select(a,b):
         return pairs[tuple(sorted((a,b)))]
@@ -66,6 +69,8 @@ def test_receiving_actual_all_part_world_includes_head_frames_and_divider():
     left="inner_door:upper:left_frame"
     right="inner_door:upper:right_frame"
     assert select(left,divider).status == "VERIFIED_TERMINAL_CONTACT"
+    assert select("box_body:left_side",divider).status == "VERIFIED_CERTIFIED_RELIEF_CONTACT"
+    assert select("box_body:right_side",divider).status == "VERIFIED_CERTIFIED_RELIEF_CONTACT"
     assert select(right,divider).status == "VERIFIED_TERMINAL_CONTACT"
     assert select("head","box_body:left_side").status == "UNRESOLVED_CROSSING"
     assert select("head","box_body:right_side").status == "UNRESOLVED_CROSSING"
