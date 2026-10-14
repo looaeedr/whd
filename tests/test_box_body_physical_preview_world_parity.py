@@ -97,3 +97,31 @@ def test_nonphysical_door_still_renders_its_editor_fold_draft():
     ).build_request()
     assert request.x_profile == profile
     assert request.physical_world_triangles == ()
+
+
+def test_repeat_panel_redraw_reuses_same_resolved_manufacturing_world(monkeypatch):
+    import phase6_final_scene_projection as projection
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    piece = next(item for item in body.render_data.pieces
+                 if item.role == "left_side")
+    dims = (snap["w"], snap["h"], snap["d"])
+    adapter = _view(
+        active="box_body:left_side", material=piece.render_data,
+        body=body, dims=dims, thickness=snap["t"],
+    )
+
+    compute = projection._phase6_box_body_true_world_piece_meshes
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(1)
+        return compute(*args, **kwargs)
+
+    monkeypatch.setattr(projection, "_phase6_box_body_true_world_piece_meshes", counted)
+    first = adapter.build_request()
+    second = adapter.build_request()
+    assert first.physical_world_triangles
+    assert second.physical_world_triangles == first.physical_world_triangles
+    assert len(calls) == 1, "view-only redraw must not recompute every sheet"
