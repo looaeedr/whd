@@ -66,6 +66,10 @@ def test_real_assembly_renderer_draws_opaque_divider_with_legible_dimensions():
         assert len(collections) >= 4
         alphas = [col.get_alpha() for col in collections if col.get_alpha() is not None]
         assert alphas.count(1.0) >= 1
-        assert alphas.count(.32) >= 1
+        assert alphas.count(.17) >= 1
+        assert not ax.axison, '3D grid/axes should not obscure physical divider'
+        anchored = [t for t in ax.texts if t.get_text().startswith('中隔\n')]
+        assert len(anchored) == 1
+        assert '展開外框 158 × 796 mm' in anchored[0].get_text()
     finally:
         fig.clear()
