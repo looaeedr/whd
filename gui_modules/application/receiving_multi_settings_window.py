@@ -13,6 +13,32 @@ from ae_engine.receiving_hole_candidates import version_label
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
 
+class _IdleCanvasRedraw:
+    """Coalesce Configure bursts without delaying explicit selection redraws."""
+
+    def __init__(self, canvas, draw):
+        self.canvas = canvas
+        self.draw = draw
+        self.job = None
+
+    def request(self, _event=None):
+        if self.job is None and self.canvas.winfo_exists():
+            self.job = self.canvas.after_idle(self._run)
+
+    def _run(self):
+        self.job = None
+        if self.canvas.winfo_exists():
+            self.draw()
+
+    def cancel(self):
+        job, self.job = self.job, None
+        if job is not None:
+            try:
+                self.canvas.after_cancel(job)
+            except tk.TclError:
+                pass
+
+
 def display_dimension(value):
     number = float(value)
     return str(int(number)) if number.is_integer() else f"{number:g}"
@@ -247,6 +273,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_changed = {"value": False}
 
     def close():
+        sketch_redraw.cancel()
         close_real_preview()
         close_manager()
         if win.grab_current() is win:
@@ -832,6 +859,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def close_manager():
         nonlocal quantity_ui
+        pending_redraw = manager_widgets.get("redraw_queue")
+        if pending_redraw is not None:
+            pending_redraw.cancel()
+        manager_widgets["redraw_queue"] = None
         manager = manager_window["win"]
         if manager is None or not manager.winfo_exists():
             manager_window["win"] = None
@@ -997,7 +1028,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             warn=warn,
         )
         diagram.bind("<Button-1>", quantity_ui.click)
-        diagram.bind("<Configure>", lambda _event: render_manager_diagram())
+        manager_redraw = _IdleCanvasRedraw(diagram, render_manager_diagram)
+        manager_widgets["redraw_queue"] = manager_redraw
+        diagram.bind("<Configure>", manager_redraw.request)
         def scroll_quantity(event):
             if manager_state["page"] != "quantity":
                 return
@@ -1490,7 +1523,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # The Version Manager still owns its separate 數量配置 page.
 
     canvas.bind("<Button-1>", click_bay)
-    canvas.bind("<Configure>", lambda _event: render())
+    sketch_redraw = _IdleCanvasRedraw(canvas, render)
+    canvas.bind("<Configure>", sketch_redraw.request)
     refresh_rows()
     render()
 
