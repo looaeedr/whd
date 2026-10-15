@@ -24,6 +24,7 @@ from .sheetmetal_part_adapters import derive_door_layout_cells
 
 RULE_ID = "OPEN-Y-PROJECTION"
 REVISION = "WHD-RECEIVING-NFB-Y-1100-V1"
+OPERATOR_HEIGHT_REVISION = "WHD-RECEIVING-NFB-Y-OPERATOR-HEIGHT-V1"
 _STATUS = "GEOMETRY_ONLY_NOT_NFB_CUTTING_CERTIFIED"
 _NOMINAL_TOP_Y_MM = {
     1: (550.0,),
@@ -134,7 +135,15 @@ def project_nfb_inner_door_nominal_y(
     Translation is physical assembly placement; fold lengths come from the
     actual manufacturing topology, without a new 36.5/50/80-mm offset.
     """
-    nominal = approved_nominal_y_mm(layer_count)
+    heights = snapshot.get("receiving_inner_door_layer_heights_mm")
+    if heights is not None:
+        from .receiving_shared_settings import validate_setting
+        checked = validate_setting("inner_door_layer_heights_mm", heights)
+        nominal = tuple(checked[:layer_count])
+        revision = OPERATOR_HEIGHT_REVISION
+    else:
+        nominal = approved_nominal_y_mm(layer_count)
+        revision = REVISION
     if isinstance(slot_index, bool) or not isinstance(slot_index, int) or not 0 <= slot_index < len(nominal):
         raise ValueError("OPEN-Y-PROJECTION invalid NFB layer slot")
     part, placement, cell_key, full_h, t, lower_fold, core, blank_h = (
@@ -148,7 +157,7 @@ def project_nfb_inner_door_nominal_y(
     flat_uv_y = lower_fold + core / 2.0 + core_local_y
     finished_y_from_bottom = float(part.height) / 2.0 + core_local_y
     return NfbInnerDoorYProjection(
-        rule_id=RULE_ID, revision=REVISION, status=_STATUS,
+        rule_id=RULE_ID, revision=revision, status=_STATUS,
         part_id=part.stable_id, cell_key=cell_key,
         layer_count=layer_count, slot_index=slot_index,
         nominal_y_from_box_top_mm=from_top,
