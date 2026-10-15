@@ -135,6 +135,7 @@ def project_nfb_inner_door_nominal_y(
     Translation is physical assembly placement; fold lengths come from the
     actual manufacturing topology, without a new 36.5/50/80-mm offset.
     """
+    approved = approved_nominal_y_mm(layer_count)  # keep the 1/2-layer hard gate
     heights = snapshot.get("receiving_inner_door_layer_heights_mm")
     if heights is not None:
         from .receiving_shared_settings import validate_setting
@@ -142,7 +143,7 @@ def project_nfb_inner_door_nominal_y(
         nominal = tuple(checked[:layer_count])
         revision = OPERATOR_HEIGHT_REVISION
     else:
-        nominal = approved_nominal_y_mm(layer_count)
+        nominal = approved
         revision = REVISION
     if isinstance(slot_index, bool) or not isinstance(slot_index, int) or not 0 <= slot_index < len(nominal):
         raise ValueError("OPEN-Y-PROJECTION invalid NFB layer slot")
