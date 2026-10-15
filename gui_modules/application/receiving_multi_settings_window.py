@@ -338,11 +338,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     minus_set = ttk.Button(
         set_actions, text="－套", width=5, command=lambda: adjust_sets(-1)
     )
-    minus_set.pack(side="left", padx=(0, 3))
+    if dialog_kind != "single":
+        minus_set.pack(side="left", padx=(0, 3))
     plus_set = ttk.Button(
         set_actions, text="＋套", width=5, command=lambda: adjust_sets(1)
     )
-    plus_set.pack(side="left")
+    if dialog_kind != "single":
+        plus_set.pack(side="left")
 
     applied = {"set_index": None, "count": 1, "selected": None,
                "selected_bays": (), "mode": initial_mode}
@@ -1123,11 +1125,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         entry_row = ttk.Frame(size_groups_host)
         entry_row.pack(anchor="w", pady=3)
         if not size_input:
+            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
             size_input.update({
-                key: tk.StringVar(master=win, value=value)
-                for key, value in (("width", "800"), ("height", "1600"),
-                                   ("depth", "350"), ("count", "1"))
+                key: tk.StringVar(master=win, value=display_dimension(BOX_BODY_DEFAULTS[axis]))
+                for key, axis in (("width", "w"), ("height", "h"), ("depth", "d"))
             })
+            size_input["count"] = tk.StringVar(master=win, value="1")
         for label, key in (("W", "width"), ("H", "height"), ("D", "depth"), ("數量", "count")):
             ttk.Label(entry_row, text=label).pack(side="left", padx=(2, 0))
             ttk.Entry(entry_row, textvariable=size_input[key], width=6).pack(side="left", padx=2)
@@ -1204,6 +1207,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     bay_rows = []
 
     def refresh_rows():
+        if single_mode:
+            set_actions.pack_forget()
+            for entry in bay_rows:
+                entry["frame"].destroy()
+            bay_rows.clear()
+            build_single_dimensions()
+            return
         if mode_var.get() != "set_bay":
             set_actions.pack_forget()
             for entry in bay_rows:
@@ -1300,6 +1310,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     show_setting_controls()
                     render()
                 refresh_rows()
+                if applied["set_index"] is not None:
+                    refresh_dimension_rows()
             return result
         except (ValueError, IndexError, RuntimeError) as exc:
             return warn(exc)
@@ -1331,6 +1343,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             show_setting_controls()
             if select_bay is not None:
                 select_bay(index, 0)
+            refresh_dimension_rows()
             render()
             return True
         except (ValueError, IndexError, RuntimeError) as exc:
@@ -1353,6 +1366,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         select_bay(applied["set_index"], active)
                     applied["selected"] = active
                     applied["selected_bays"] = tuple(sorted(selected_bays))
+                    selected_count.set(f"右側高亮 {len(applied['selected_bays'])} 連")
                     if selected_setting["kind"] is not None and active is not None:
                         if on_setting_selected is not None:
                             on_setting_selected(applied["set_index"], active,
@@ -1431,6 +1445,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host
+    win._receiving_dimension_groups_host = size_groups_host
+    win._receiving_dimension_group_input = size_input
+    win._receiving_dimension_group_confirm = confirm_dimension_group
     win._receiving_multi_setting_list = setting_list
     win._receiving_multi_selected_setting = selected_setting
     win._receiving_multi_canvas = canvas
