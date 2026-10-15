@@ -168,7 +168,13 @@ def operator_finished_dimensions_for_app(
     """Tk/app adapter to the shared finished-dimension provider."""
     key = str(part_key or getattr(app, "active_part_key", "") or "")
     snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-    settings = getattr(app, "_settings_values", {}) or {}
+    settings = dict(getattr(app, "_settings_values", {}) or {})
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        # Manufactured dimensions are the active project/Bay W/H/D, while
+        # Settings W/H/D remain read-only seeds. Never let default W/H/D
+        # override a real Receiving door/layout/body.
+        whd = getattr(app, "_phase6_box_whd", {}) or {}
+        settings.update({axis: whd[axis] for axis in ("w", "h", "d") if axis in whd})
     head_policy = tail_policy = None
     if key == "box_body":
         head_policy = _corner_policy_for_app(app, "head")
@@ -539,6 +545,12 @@ def build_manufacturing_request(
     snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
     settings = _mapping(getattr(app, "_settings_values", {}) or {})
     box_dimensions = _mapping(getattr(app, "_phase6_box_whd", {}) or {})
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        # Detached Manufacturing request. Defaults are never modified.
+        settings.update({
+            axis: box_dimensions[axis] for axis in ("w", "h", "d")
+            if axis in box_dimensions
+        })
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
