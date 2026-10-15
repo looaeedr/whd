@@ -669,7 +669,7 @@ def save_project_file(self, namespace, *, save_as=False):
             # flush before any Save / Save As snapshot is built.
             messagebox.showerror(
                 "存檔失敗",
-                f"尚有設定未能完成同步，專案未儲存：\\n{exc}",
+                f"尚有設定未能完成同步，專案未儲存：\n{exc}",
                 parent=app.root,
             )
             return None
