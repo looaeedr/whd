@@ -94,46 +94,56 @@ class DispatchTurnExitContract(unittest.TestCase):
             self.assertIn("next_exact_action", result["requires"])
 
     def test_contract_applies_to_all_active_instruction_surfaces(self):
+        common_markers = (
+            "DISPATCH_TURN_EXIT_GATE_V1", "CONTINUE_POLL",
+            "RECONCILE_ONLY", "REPAIR_AND_RETEST",
+            "BLOCKED_WITH_EVIDENCE", "RUNTIME_LIMIT_UNRESOLVED",
+        )
         for path in (AGENTS, DISPATCH, MONITOR):
             content = path.read_text(encoding="utf-8")
             with self.subTest(path=str(path)):
-                for marker in (
-                    "DISPATCH_TURN_EXIT_GATE_V1",
-                    "CONTINUE_POLL",
-                    "RECONCILE_ONLY",
-                    "REPAIR_AND_RETEST",
-                    "LOCALX_INTEGRATION_PENDING",
-                    "CONTINUE_FINALIZATION",
-                    "BLOCKED_WITH_EVIDENCE",
-                    "RUNTIME_LIMIT_UNRESOLVED",
-                ):
+                for marker in common_markers:
                     self.assertIn(marker, content)
-                self.assertIn("run_id", content)
                 self.assertIn("SHA", content)
+                self.assertIn("GITHUB_LOCALX_FIRST", content)
+        # Orchestration/Issue close belongs to the dispatch contract; QA
+        # observes exact SHA CI and must not create a second routing policy.
+        for path in (AGENTS, DISPATCH):
+            content = path.read_text(encoding="utf-8")
+            for marker in ("LOCALX_INTEGRATION_PENDING", "CONTINUE_FINALIZATION", "run_id"):
+                self.assertIn(marker, content)
         self.assertIn("不會在回合結束後自行喚醒", AGENTS.read_text(encoding="utf-8"))
         self.assertIn("沒有可由此文件攔截", DISPATCH.read_text(encoding="utf-8"))
+        self.assertIn("未建立排程的聊天不具背景輪詢能力", MONITOR.read_text("utf-8"))
 
-    def test_github_only_integration_requires_scope_and_does_not_claim_dc_failure(self):
+    def test_github_first_integration_and_explicit_dc_are_scoped(self):
         modes = POLICY["integration_routes"]
-        self.assertEqual(set(modes), {
-            "DC_LOCALX_FIRST", "DC_UNREACHABLE_FALLBACK", "GITHUB_ONLY_EXPLICIT_SCOPE"
-        })
-        github = modes["GITHUB_ONLY_EXPLICIT_SCOPE"]
-        self.assertIn("user_explicit_remote_localX_merge_authorization_for_same_issue_pr",
-                      github["requires"])
-        self.assertIn("expected_head_sha", github["requires"])
-        self.assertIn("GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING",
+        self.assertEqual(set(modes), {"GITHUB_LOCALX_FIRST", "EXPLICIT_DC_LOCALX"})
+        self.assertEqual(POLICY["default_integration_route"], "GITHUB_LOCALX_FIRST")
+        github = modes["GITHUB_LOCALX_FIRST"]
+        for requirement in (
+            "same_issue_execution_authorization", "exact_ci_success",
+            "pr_base_localX", "mergeable_pr", "base_change_impact_checked",
+            "expected_head_sha",
+        ):
+            self.assertIn(requirement, github["requires"])
+        self.assertIn("GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING",
                       github["on_success"])
-        self.assertIn("fabricated_dc_disconnection", github["forbids"])
-        self.assertIn("assuming_local_localX_head", github["forbids"])
-        self.assertIn("verified_dc_connection_failure",
-                      modes["DC_UNREACHABLE_FALLBACK"]["requires"])
+        for forbidden in (
+            "unapproved_dc_probe", "pretending_windows_is_synced",
+            "publishing_product_x", "force_reset",
+        ):
+            self.assertIn(forbidden, github["forbids"])
+        explicit = modes["EXPLICIT_DC_LOCALX"]
+        self.assertIn("explicit_current_dc_device_and_operation_authorization",
+                      explicit["requires"])
+        self.assertIn("external_dc_approval", explicit["requires"])
+        self.assertEqual(POLICY["route_selection_order"][0].startswith("Use EXPLICIT_DC_LOCALX only"), True)
         for path in (AGENTS, DISPATCH, MONITOR):
-            text = path.read_text(encoding="utf-8")
-            self.assertIn("GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1", text)
-            self.assertIn("LOCALX_SYNC_PENDING", text)
-            self.assertIn("DC_UNREACHABLE", text)
-        self.assertIn("執行者自己在 PR 寫的", MONITOR.read_text("utf-8"))
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("GITHUB_LOCALX_FIRST", content)
+            self.assertNotIn("DC_LOCALX_FIRST", content)
+            self.assertNotIn("DC_UNREACHABLE_FALLBACK", content)
 
     def test_machine_contract_and_governance_scope(self):
         self.assertEqual(POLICY["contract"], "WHD_DISPATCH_TURN_EXIT_GATE_V1")
