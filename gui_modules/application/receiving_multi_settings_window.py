@@ -300,7 +300,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     right_host = ttk.Frame(win)
     right_host.grid(row=0, column=1, sticky="nsew", padx=24, pady=16)
     right_host.columnconfigure(0, weight=1)
-    right_host.rowconfigure(1, weight=1)
+    right_host.rowconfigure(2, weight=1)
 
     # Reflect the authoritative mode instead of deferring a hidden mode switch
     # (and its complete geometry rebuild) to the first connection edit.
@@ -352,13 +352,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                "selected_bays": (), "mode": initial_mode}
     single_mode = dialog_kind == "single"
 
-    # Right TOP: original Listbox and its selected category controls.
-    # Right BOTTOM: the independent diagram region, never commandeered
-    # by quantity version management.
+    # Right TOP: cabinet dimensions and quantities stay visible at full width.
+    # Function controls sit below, with the independently resizable 2D diagram.
     function_scroll, function_content, function_scroll_canvas = make_scrollable_frame(
         right_host, tk=tk, ttk=ttk, width=610, height=250,
     )
-    function_scroll.grid(row=0, column=0, sticky="new")
+    function_scroll.grid(row=1, column=0, sticky="new", pady=(8, 0))
     function_host = ttk.Frame(
         function_content, padding=8, relief="groove", borderwidth=1,
     )
@@ -375,7 +374,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     settings_host.grid(row=0, column=1, sticky="new")
 
     diagram_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
-    diagram_host.grid(row=1, column=0, sticky="nsew", pady=(12, 0))
+    diagram_host.grid(row=2, column=0, sticky="nsew", pady=(12, 0))
     diagram_host.columnconfigure(0, weight=1)
     diagram_host.rowconfigure(0, weight=1)
     canvas = tk.Canvas(diagram_host, width=525, height=310, background="#1a2734",
@@ -386,8 +385,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     rows_host.pack(anchor="nw", pady=(8, 0))
     actions_host = ttk.Frame(rows_host)
     actions_host.pack(anchor="w")
-    size_groups_host = ttk.Frame(rows_host)
-    size_groups_host.pack(anchor="w", fill="x", pady=(6, 0))
+    # W/H/D, quantity and Confirm cannot fit inside the 280px Set/Bay sidebar.
+    size_groups_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
+    size_groups_host.grid(row=0, column=0, sticky="ew")
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
@@ -1170,7 +1170,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         for key in ("width", "height", "depth", "count"):
             size_input[key].set(display_dimension(values[key]))
         size_controls["status"].set(
-            f"總數量 {values['total_count']}｜孔型版本 {values['version_count']}"
+            f"總數量 {values['total_count']}"
         )
 
     def confirm_single_dimensions():
