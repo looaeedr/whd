@@ -1,4 +1,4 @@
-"""Enforce /派工 cloud-only BUILD and Desktop Commander final localX integration."""
+"""Enforce /派工 GitHub-first development, CI and localX delivery without implicit DC."""
 from pathlib import Path
 import unittest
 
@@ -12,53 +12,41 @@ QA = ROOT / ".agents/skills/engineering/monitoring-remote-qa/SKILL.md"
 
 class DispatchRemoteOnlyContract(unittest.TestCase):
     def test_cloud_only_build_and_ci(self):
-        for path in (AGENTS, DISPATCH):
-            text = path.read_text("utf-8")
-            for marker in (
-                "DISPATCH_CLOUD_BUILD_DC_LOCALX_ONLY",
-                "execution_location=GITHUB|SCHEDULER|REMOTE_ACTION",
-                "DISPATCH_LOCAL_EXECUTION_DENIED",
-                "REMOTE_EXECUTOR_UNAVAILABLE",
-            ):
-                with self.subTest(path=path.name, marker=marker):
-                    self.assertIn(marker, text)
+        agents = AGENTS.read_text("utf-8")
         dispatch = DISPATCH.read_text("utf-8")
-        self.assertIn("絕不能在使用者本機施工", dispatch)
-        self.assertNotIn("能直接完成時直接修改、測試", dispatch)
-        self.assertNotIn("本機測試與 commit", dispatch)
+        for text in (agents, dispatch):
+            self.assertIn("DISPATCH_CLOUD_BUILD_GITHUB_LOCALX_ONLY", text)
+            self.assertIn("GITHUB_LOCALX_FIRST", text)
+            self.assertIn("/派工", text)
+            self.assertNotIn("DC_LOCALX_FIRST", text)
+        self.assertIn("execution_location=GITHUB|SCHEDULER|REMOTE_ACTION", dispatch)
+        self.assertIn("不因此自動授權 DC", dispatch)
+        self.assertIn("ref=localX", agents)
+        self.assertIn("只有正式發布查核才使用精確 `ref=cleanup/2d-3d-sync`", agents)
 
-    def test_dc_allowed_only_during_final_localx_integration(self):
-        for path in (AGENTS, DISPATCH, QA):
-            text = path.read_text("utf-8")
-            with self.subTest(path=path.name):
-                self.assertIn("LOCALX_INTEGRATION", text)
-                self.assertIn("CI", text)
-                self.assertIn("DC", text)
-                self.assertIn("本機", text)
-                self.assertIn("localX", text)
+    def test_github_localx_is_default_after_ci_without_dc(self):
+        agents = AGENTS.read_text("utf-8")
         dispatch = DISPATCH.read_text("utf-8")
-        self.assertIn("CI SUCCESS 之前禁止用 DC", dispatch)
-        self.assertIn("只有 exact HEAD CI SUCCESS 後", dispatch)
-        self.assertIn("GITHUB_ONLY_LOCALX_EXPLICIT_SCOPE_V1", dispatch)
-        self.assertIn("不得在這個階段直接改產品程式", dispatch)
-        self.assertIn("非強制同步 GitHub", dispatch)
+        qa = QA.read_text("utf-8")
+        for text in (agents, dispatch, qa):
+            self.assertIn("GITHUB_LOCALX_FIRST", text)
+            self.assertIn("WINDOWS_LOCALX_SYNC_PENDING", text)
+            self.assertNotIn("DC_LOCALX_FIRST", text)
+            self.assertIn("DC", text)
+        self.assertIn("expected_head_sha", dispatch)
+        self.assertIn("不先用 DC", qa)
+        self.assertIn("不需要 DC", dispatch)
 
-    def test_dc_unreachable_fallback_is_distinct_from_authorized_github_only(self):
-        for path in (AGENTS, DISPATCH, QA):
-            text = path.read_text("utf-8")
-            for marker in ("DC_UNREACHABLE", "LOCALX_SYNC_PENDING"):
-                with self.subTest(path=path.name, marker=marker):
-                    self.assertIn(marker, text)
-            self.assertIn("無法連線", text)
+    def test_dc_fallback_is_not_a_default_requirement(self):
+        agents = AGENTS.read_text("utf-8")
         dispatch = DISPATCH.read_text("utf-8")
-        self.assertIn("衝突", dispatch)
-        self.assertIn("不能", dispatch)
-        self.assertIn("不得宣稱本機", dispatch)
-        self.assertIn("實際無法連線或逾時", dispatch)
-        self.assertIn("DC 斷線備援", dispatch)
-        self.assertIn("對本工單明確授權遠端 GitHub", dispatch)
-        self.assertIn("GITHUB_ONLY_LOCALX_MERGED + LOCALX_SYNC_PENDING", dispatch)
-        self.assertIn("不可替使用者虛構遠端合併授權", dispatch)
+        qa = QA.read_text("utf-8")
+        self.assertIn("不要求 DC 斷線證據", agents)
+        self.assertIn("不需要 DC", dispatch)
+        self.assertIn("不先用 DC", qa)
+        self.assertIn("GITHUB_LOCALX_FIRST", dispatch)
+        self.assertNotIn("用 DC 僅安全整合本機", qa)
+        self.assertNotIn("DC_UNREACHABLE", qa)
 
     def test_slash_takeover_remains_distinct_from_dispatch_dc_exception(self):
         for path in (TAKEOVER, LOCAL):
@@ -76,7 +64,8 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         dispatch = DISPATCH.read_text("utf-8")
         self.assertIn("/推推", agents)
         self.assertIn("/推推", dispatch)
-        self.assertIn("本機已整合", dispatch)
+        self.assertIn("WINDOWS_LOCALX_SYNC_PENDING", dispatch)
+        self.assertIn("GITHUB_LOCALX_FIRST", dispatch)
         self.assertIn("回讀", dispatch)
         self.assertIn("NEXT_ISSUE_DISCOVERY_REQUIRED", dispatch)
 
@@ -154,7 +143,7 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
             ROOT / ".agents/skills/engineering/README.md"
         ).read_text("utf-8")
         handoff = (ROOT / "AI_HANDOFF.md").read_text("utf-8")
-        for marker in ("/派工", "/接手", "LOCALX_INTEGRATION", "禁止本機施工"):
+        for marker in ("/派工", "/接手", "GITHUB_LOCALX_FIRST", "WINDOWS_LOCALX_SYNC_PENDING"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, nav)
         self.assertNotIn("派工與本地施工", nav)
