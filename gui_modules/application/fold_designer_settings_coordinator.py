@@ -323,6 +323,7 @@ class Phase6FoldDesignerSettingsCoordinator:
             return None
 
         committed = {}
+        derived_synced_by_profile = False
         if plan is not None:
             if getattr(plan, "family_values", None):
                 committed = dict(
@@ -338,13 +339,20 @@ class Phase6FoldDesignerSettingsCoordinator:
                 old_editable=bool(old_editable),
             )
             if committed:
-                self._ports.apply_profile_plan(
+                profile_plan = self._ports.apply_profile_plan(
                     committed,
                     reset_box_profile=True,
                     # A known family owns its complete preset profile set.
                     # Do not merge Receiving-only segment lengths into Vault
                     # (or vice versa) during a baseline-family transition.
                     reset_all_profiles=not bool(new_editable),
+                )
+                # The profile application already synchronizes derived physical
+                # parts when its plan requests it. Do not immediately re-run
+                # that same expensive geometry/topology pass on first family
+                # selection; keep a fallback for plans without derived sync.
+                derived_synced_by_profile = bool(
+                    getattr(profile_plan, "derived_sync_required", False)
                 )
 
         self._ports.project_ui_values(
@@ -356,7 +364,8 @@ class Phase6FoldDesignerSettingsCoordinator:
             new_editable=bool(new_editable),
             old_editable=bool(old_editable),
         )
-        self._ports.sync_derived_parts()
+        if not derived_synced_by_profile:
+            self._ports.sync_derived_parts()
         self._ports.refresh_topology(reason="baseline")
         self._ports.refresh_persistent_controls()
         self._ports.project_ui_values(

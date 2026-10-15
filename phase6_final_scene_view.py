@@ -270,7 +270,11 @@ class Phase6FinalSceneViewAdapter:
                 y_profile=(),
                 part_key="assembly",
                 alpha_bend=alpha_bend,
-                finished_dimensions=dimensions(None),
+                # Assembly must use the canonical cabinet's W/H/D, never
+                # the previously selected single Door's W/H (2D tuple).
+                # Passing dimensions(None) silently reused active_part_key,
+                # then true-world Box Body mesh crashed on return to Assembly.
+                finished_dimensions=dimensions("box_body"),
                 thickness=thickness,
                 unfolded_blank_text=dependencies.assembly_blank_text(
                     assembly_render_data

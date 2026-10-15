@@ -188,6 +188,9 @@ def _build_sidebar_workspace_state(s):
     )
     s.toggle_fullscreen = fullscreen_actions.toggle_fullscreen
     s.fullscreen_btn.configure(command=s.toggle_fullscreen)
+    header_fullscreen = getattr(s.editor, "_hole_header_fullscreen", None)
+    if header_fullscreen is not None:
+        header_fullscreen.configure(command=s.toggle_fullscreen)
     s.indicator_fit_error = [None]
     indicator_fit_validation = d._HoleEditorIndicatorFitValidation(
         door_indicator_state_provider=lambda: s.door_indicator_state,
@@ -254,6 +257,26 @@ def _build_reference_stack(s):
     s.form_row_builders.add_group_entry(y_group, s.lbl_y_edge, s.var_y_edge, "y", "edge")
     s.form_row_builders.add_group_entry(y_group, s.lbl_y_neighbor, s.var_y_neighbor, "y", "neighbor")
     s.overlay_widgets.extend([x_group, y_group])
+    locator = getattr(s.editor, "_hole_cabinet_positioning", None)
+    s.cabinet_locator_reference_entries = {}
+    if locator is not None:
+        # These are REAL editable references sharing the same model variables
+        # and commit path as the original on-canvas X/Y controls.
+        for caption, var, axis, mode in (
+            ("X 距箱邊", s.var_x_edge, "x", "edge"),
+            ("X 距鄰孔", s.var_x_neighbor, "x", "neighbor"),
+            ("Y 距箱邊", s.var_y_edge, "y", "edge"),
+            ("Y 距鄰孔", s.var_y_neighbor, "y", "neighbor"),
+        ):
+            row = d.tk.Frame(locator, bg=s.host.COLOR_PANEL)
+            row.pack(fill=d.tk.X, padx=6, pady=2)
+            d.tk.Label(
+                row, text=caption, bg=s.host.COLOR_PANEL,
+                fg=s.host.COLOR_TEXT, width=9, anchor=d.tk.W,
+            ).pack(side=d.tk.LEFT)
+            field = d.tk.Entry(row, textvariable=var, width=11)
+            field.pack(side=d.tk.LEFT, fill=d.tk.X, expand=True)
+            s.cabinet_locator_reference_entries[(axis, mode)] = field
     ref_panel = d.tk.Frame(s.canvas, bg="#1f1f27", bd=2, relief=d.tk.RIDGE)
     d.tk.Label(
         ref_panel, text="右鍵切換基準", bg="#1f1f27", fg="#ffd60a",
@@ -500,7 +523,11 @@ def _build_reference_selection_actions(s):
     s.set_reference_anchor = reference_actions.set_reference_anchor
     s.apply_reference_value = reference_actions.apply_reference_value
     s.schedule_reference_value = reference_actions.schedule_reference_value
-    for (axis, mode), entry in s.ref_entries.items():
+    reference_entries = (
+        tuple(s.ref_entries.items())
+        + tuple(s.cabinet_locator_reference_entries.items())
+    )
+    for (axis, mode), entry in reference_entries:
         entry.bind(
             "<KeyRelease>",
             lambda event, a=axis, m=mode: s.schedule_reference_value(a, m),

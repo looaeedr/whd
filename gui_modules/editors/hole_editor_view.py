@@ -79,8 +79,8 @@ class HoleEditorCenterWorkspaceBuilder:
         tk.Label(
             toolbar, text="雙擊已開孔：切穿 ⇄ 盲孔　右鍵孔：選十字基準",
             bg=host.COLOR_PANEL, fg=host.COLOR_TEXT_MUTED,
-            font=('Microsoft JhengHei', 10),
-        ).pack(side=tk.RIGHT, padx=10)
+            font=('Microsoft JhengHei', 9), wraplength=220,
+        ).pack(side=tk.RIGHT, padx=6)
 
         canvas = tk.Canvas(center, bg=host.COLOR_CANVAS_BG, highlightthickness=0)
         canvas.pack(fill=tk.BOTH, expand=True)
@@ -328,8 +328,10 @@ class HoleEditorWindowShellBuilder:
 
     @staticmethod
     def window_geometry(screen_w, screen_h):
-        win_w = max(720, min(1280, screen_w - 80))
-        win_h = max(560, min(820, screen_h - 120))
+        # Hard minimum sizes used to exceed small operator screens.
+        # Keep the window within the monitor; overflowing controls scroll.
+        win_w = min(1280, max(320, int(screen_w) - 40))
+        win_h = min(820, max(300, int(screen_h) - 80))
         pos_x = max(0, (screen_w - win_w) // 2)
         pos_y = max(0, (screen_h - win_h) // 2)
         return win_w, win_h, pos_x, pos_y, f"{win_w}x{win_h}+{pos_x}+{pos_y}"
@@ -353,6 +355,13 @@ class HoleEditorWindowShellBuilder:
         editor.geometry(geometry)
         editor.minsize(min(760, win_w), min(560, win_h))
 
+        # Keep fullscreen accessible when the canvas/toolbars overflow on
+        # smaller displays, rather than relying on the center toolbar.
+        window_actions = ttk.Frame(editor)
+        window_actions.pack(fill=tk.X, padx=8, pady=(5, 0))
+        header_fullscreen = ttk.Button(window_actions, text="全螢幕 F11")
+        header_fullscreen.pack(side=tk.RIGHT)
+        editor._hole_header_fullscreen = header_fullscreen
         body = tk.Frame(editor, bg=host.COLOR_BG)
         body.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         # Inner-door NFB settings live in a second page of THIS existing
@@ -375,6 +384,25 @@ class HoleEditorWindowShellBuilder:
         left.pack_propagate(False)
         left_insert_bar = tk.Frame(left, bg=host.COLOR_PANEL)
         left_insert_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        # A fixed-height sidebar previously clipped the created-hole list and
+        # positioning controls. Scroll only the sidebar, not the 3D/2D canvas.
+        sidebar = tk.Canvas(left, bg=host.COLOR_PANEL, highlightthickness=0)
+        sidebar_scroll = ttk.Scrollbar(left, orient=tk.VERTICAL, command=sidebar.yview)
+        sidebar.configure(yscrollcommand=sidebar_scroll.set)
+        sidebar_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        sidebar.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        sidebar_content = tk.Frame(sidebar, bg=host.COLOR_PANEL)
+        sidebar_window = sidebar.create_window((0, 0), window=sidebar_content, anchor=tk.NW)
+        sidebar_content.bind(
+            "<Configure>",
+            lambda _event: sidebar.configure(scrollregion=sidebar.bbox("all")),
+        )
+        sidebar.bind(
+            "<Configure>",
+            lambda event: sidebar.itemconfigure(sidebar_window, width=event.width),
+        )
+        editor._hole_sidebar_scroll = sidebar
+        left = sidebar_content
         center = tk.Frame(work_area, bg=host.COLOR_BG)
         center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -413,6 +441,23 @@ class HoleEditorWindowShellBuilder:
                 justify=tk.LEFT, wraplength=285,
             )
             baseline_status_label.pack(fill=tk.X, padx=10, pady=(7, 2))
+        if str(part_key).startswith("inner_door:") and str(part_key).endswith(":panel"):
+            # Actual X/Y reference controls remain the original on-canvas
+            # editor controls. Restore their cabinet-positioning entry here
+            # so it isn't hidden behind the Receiving/NFB configuration tab.
+            locator = tk.LabelFrame(
+                left, text="箱體定位設定", bg=host.COLOR_PANEL,
+                fg=host.COLOR_TEXT,
+                font=("Microsoft JhengHei", 10, "bold"),
+            )
+            locator.pack(fill=tk.X, padx=10, pady=(5, 4))
+            tk.Label(
+                locator,
+                text="選取孔後，使用圖面 X／Y 定位欄設定箱體基準距離",
+                bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+                wraplength=250, justify=tk.LEFT,
+            ).pack(fill=tk.X, padx=6, pady=5)
+            editor._hole_cabinet_positioning = locator
 
         return (
             editor, fullscreen_state, fullscreen_restore_geometry,

@@ -783,3 +783,40 @@ def test_primary_receiving_inner_door_is_visible_selectable_and_real_panel_witho
         assert any(str(item.layer).upper() == "CUTTING" for item in render.scene.primitives)
     finally:
         _close(tk, root, designer)
+
+
+def test_receiving_part_switch_back_to_assembly_still_renders_true_3d():
+    """A standalone sheet preview must not poison the following Assembly view."""
+    import fold_designer_bridge as bridge
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        renderer = designer.final_scene_view
+        available = tuple(designer.designer_workspace.available_parts)
+        # Receiving's outer Door is dynamically split into door_cN_rN,
+        # so test a REAL available Door, not Vault's standalone `door` key.
+        outer_door = next(
+            key for key in available
+            if key == "door" or key.startswith("door_c")
+        )
+        side = "box_body:left_side" if "box_body:left_side" in available else "box_body"
+        for part in (outer_door, side, "head"):
+            assert part in available
+            designer.activate_part(part)
+            _pump(root, 3)
+            assert renderer.cutting_mesh_error is None, (
+                part, renderer.cutting_mesh_error
+            )
+            bridge._phase6_show_assembly(designer)
+            _pump(root, 5)
+            assert designer._phase6_3d_display_mode == "assembly"
+            assert designer.part_var.get() == "組合體"
+            assert renderer.cutting_mesh_error is None, (
+                part, renderer.cutting_mesh_error
+            )
+            assert renderer.last_cutting_mesh, (
+                "組合體 must not be blank after returning from a standalone 3D part"
+            )
+    finally:
+        _close(tk, root, designer)
