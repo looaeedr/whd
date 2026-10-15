@@ -1,0 +1,104 @@
+name: WHD Official Release Completion
+on:
+  push:
+    branches: [cleanup/2d-3d-sync]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  publish:
+    if: github.repository == 'looaeedr/whd' && github.ref == 'refs/heads/cleanup/2d-3d-sync'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      APPROVED_SHA: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+      APPROVED_TAG: v2026.10.15-x-7c1d6f59e358
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify published X, localX, merged PR and release-only diff
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          x="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/cleanup/2d-3d-sync" --jq '.object.sha')"
+          localx="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/localX" --jq '.object.sha')"
+          if [ "$x" != "$GITHUB_SHA" ] || [ "$localx" != "$x" ]; then
+            echo "X and localX are not at the triggering SHA; skip."
+            exit 0
+          fi
+          git merge-base --is-ancestor "$APPROVED_SHA" "$GITHUB_SHA"
+          python - <<'PY'
+          import os, subprocess
+          approved = os.environ["APPROVED_SHA"]
+          head = os.environ["GITHUB_SHA"]
+          paths = set(subprocess.check_output(
+              ["git", "diff", "--name-only", approved, head], text=True,
+          ).splitlines())
+          allow = {
+              ".github/workflows/whd-official-release-completion.yml",
+              ".github/workflows/whd-localx-governance-tests.yml",
+              "tests/process/test_release_completion_workflow.py",
+          }
+          if not paths or not paths.issubset(allow):
+              raise SystemExit("RELEASE_COMPLETION_REQUIRES_ONLY_INFRA_DIFF: " + repr(sorted(paths)))
+          print("Verified release-only change set:", sorted(paths))
+          PY
+          pr="$(gh api "repos/$GITHUB_REPOSITORY/pulls/1764")"
+          echo "$pr" | jq -e --arg sha "$APPROVED_SHA" '.merged == true and .merge_commit_sha == $sha and .head.ref == "localX" and .base.ref == "cleanup/2d-3d-sync"' >/dev/null
+          merged_at="$(echo "$pr" | jq -r .merged_at)"
+          actual_tag="$(python - "$APPROVED_SHA" "$merged_at" <<'PY'
+          import sys
+          from tools.localx_publish_gate import official_release_tag
+          print(official_release_tag(sys.argv[1], sys.argv[2]))
+          PY
+          )"
+          test "$actual_tag" = "$APPROVED_TAG"
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+      - name: Create and verify official GitHub Release
+        if: steps.verify.outputs.eligible == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$APPROVED_TAG" --jq '.object.sha' 2>/dev/null || true)"
+          if [ -n "$existing_sha" ] && [ "$existing_sha" != "$APPROVED_SHA" ]; then
+            echo "::error::OFFICIAL_TAG_WRONG_SHA"; exit 1
+          fi
+          if ! gh release view "$APPROVED_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            {
+              echo "Official WHD version published from the user-accepted 2026-10-15 /推推 revision."
+              echo
+              echo "- Published product SHA: $APPROVED_SHA"
+              echo "- Published PR: https://github.com/$GITHUB_REPOSITORY/pull/1764"
+              echo "- Formal X and GitHub localX parity verified; post-approval changes are release-only infrastructure."
+              echo "- Readback: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              echo
+              echo "Windows/CoreELEC local worktrees have not been verified synchronized."
+            } > "$RUNNER_TEMP/release-notes.md"
+            gh release create "$APPROVED_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$APPROVED_SHA" \
+              --title "WHD $APPROVED_TAG" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --latest
+          fi
+          tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$APPROVED_TAG" --jq '.object.sha')"
+          test "$tag_sha" = "$APPROVED_SHA"
+          gh release view "$APPROVED_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,isPrerelease,targetCommitish,url > "$RUNNER_TEMP/readback.json"
+          python - "$RUNNER_TEMP/readback.json" <<'PY'
+          import json, os, sys
+          release = json.load(open(sys.argv[1], encoding="utf-8"))
+          if (release.get("tagName") != os.environ["APPROVED_TAG"]
+                  or release.get("targetCommitish") != os.environ["APPROVED_SHA"]
+                  or release.get("isDraft") or release.get("isPrerelease")
+                  or not release.get("url")):
+              raise SystemExit("RELEASE_READBACK_FAILED")
+          print("OFFICIAL_RELEASED:", release["url"])
+          PY
+          echo "Official release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$APPROVED_TAG" >> "$GITHUB_STEP_SUMMARY"
