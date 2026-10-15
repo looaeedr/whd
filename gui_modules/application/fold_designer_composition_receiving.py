@@ -845,8 +845,15 @@ def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
         app._phase6_input_snapshot.clear()
         app._phase6_input_snapshot.update(deepcopy(source))
         self.settings_transactions().restore_common_context(source)
-        settings = {key: source.get(key, value) for key, value in app._settings_values.items()}
-        settings.update({axis: source[axis] for axis in ("w", "h", "d")})
+        # Receiving single/Set-Bay dimensions are project-local operator
+        # inputs. Settings W/H/D are *default seeds*, not the working Bay
+        # dimensions. Never reverse-publish confirmed operator sizes into the
+        # Settings defaults (and then accidentally persist them to config.ini).
+        # Other Family Settings such as T/FW still follow the usual owner.
+        settings = {
+            key: (value if key in ("w", "h", "d") else source.get(key, value))
+            for key, value in app._settings_values.items()
+        }
         app._settings_values.clear()
         app._settings_values.update(settings)
         app._phase6_box_whd.clear()
