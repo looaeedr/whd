@@ -86,7 +86,7 @@ def extract_original_door_marks(scene):
     return {"nameplate": nameplate, "handle": handle}
 
 
-def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None):
+def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None, bay_dimensions=None):
     """Cheap front-elevation sketch: touching bays with basic upper/lower doors.
 
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
@@ -108,14 +108,30 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     height = max(int(canvas.winfo_height()), int(canvas.cget("height")))
     usable_w = max(40, width - 24)
     usable_h = max(50, height - 24)
-    bay_w = min(usable_w / count, usable_h * 0.5)
-    bay_h = min(usable_h, bay_w * 2.0)
-    left = (width - bay_w * count) / 2
-    top = (height - bay_h) / 2
-    split = top + bay_h * 1100.0 / 1600.0
-    hitboxes = []
+    # Draw from the canonical physical Bay W/H proportions, rather than an
+    # equal-width placeholder that stays unchanged after size confirmation.
+    # D is a depth axis: show it in the size summary, not as a false 2D width.
+    source = tuple(bay_dimensions or ())
+    physical = []
     for index in range(count):
-        x0, x1 = left + index * bay_w, left + (index + 1) * bay_w
+        item = source[index] if index < len(source) else (800.0, 1600.0, 350.0)
+        if isinstance(item, dict):
+            w, h = float(item["width"]), float(item["height"])
+        else:
+            w, h = float(item[0]), float(item[1])
+        physical.append((max(1.0, w), max(1.0, h)))
+    scale = min(usable_w / sum(w for w, _ in physical),
+                usable_h / max(h for _, h in physical))
+    left = (width - sum(w for w, _ in physical) * scale) / 2
+    bottom = (height + max(h for _, h in physical) * scale) / 2
+    cursor_x = left
+    hitboxes = []
+    for index, (physical_w, physical_h) in enumerate(physical):
+        x0, x1 = cursor_x, cursor_x + physical_w * scale
+        cursor_x = x1
+        top, bay_h = bottom - physical_h * scale, physical_h * scale
+        bay_w = x1 - x0
+        split = top + bay_h * min(1100.0 / physical_h, 0.999)
         active = index in selected_bays
         outline = "#42bdf4" if active else "#8faec4"
         fill = "#315775" if active else "#263a4d"
@@ -355,9 +371,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # Right TOP: cabinet dimensions and quantities stay visible at full width.
     # Function controls sit below, with the independently resizable 2D diagram.
     function_scroll, function_content, function_scroll_canvas = make_scrollable_frame(
-        right_host, tk=tk, ttk=ttk, width=610, height=250,
+        right_host, tk=tk, ttk=ttk, width=610, height=110,
     )
-    function_scroll.grid(row=1, column=0, sticky="new", pady=(8, 0))
+    function_scroll.grid(row=1, column=0, sticky="new", pady=(2, 0))
     function_host = ttk.Frame(
         function_content, padding=8, relief="groove", borderwidth=1,
     )
@@ -374,7 +390,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     settings_host.grid(row=0, column=1, sticky="new")
 
     diagram_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
-    diagram_host.grid(row=2, column=0, sticky="nsew", pady=(12, 0))
+    diagram_host.grid(row=2, column=0, sticky="nsew", pady=(2, 0))
     diagram_host.columnconfigure(0, weight=1)
     diagram_host.rowconfigure(0, weight=1)
     canvas = tk.Canvas(diagram_host, width=525, height=310, background="#1a2734",
@@ -385,6 +401,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     rows_host.pack(anchor="nw", pady=(8, 0))
     actions_host = ttk.Frame(rows_host)
     actions_host.pack(anchor="w")
+    # Committed size/quantity rows belong under left Set/Bay operations.
+    confirmed_groups_host = ttk.Frame(left_host)
+    confirmed_groups_host.pack(anchor="nw", fill="x", pady=(4, 0))
     # W/H/D, quantity and Confirm cannot fit inside the 280px Set/Bay sidebar.
     size_groups_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
     size_groups_host.grid(row=0, column=0, sticky="ew")
@@ -1087,7 +1106,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 applied["set_index"] is not None and
                 get_applied_version_labels is not None):
             labels = get_applied_version_labels(applied["set_index"])
-        paint_connected_bays(canvas, count, selected, marks, labels)
+        bay_dimensions = ()
+        if applied["set_index"] is not None and applied["mode"] == "set_bay":
+            source = get_switch()
+            layout = getattr(source, "layout", None)
+            if layout is not None:
+                bay_dimensions = tuple(
+                    layout["sets"][applied["set_index"]]["bays"]
+                )
+        paint_connected_bays(canvas, count, selected, marks, labels,
+                             bay_dimensions=bay_dimensions)
         canvas._receiving_selected_bay = (
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
@@ -1108,15 +1136,17 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def refresh_dimension_rows():
         for widget in size_groups_host.winfo_children():
             widget.destroy()
+        for widget in confirmed_groups_host.winfo_children():
+            widget.destroy()
         if single_mode or applied["set_index"] is None or get_dimension_group is None:
             return
         set_index = applied["set_index"]
         layout = get_switch().layout
         bays = layout["sets"][set_index]["bays"]
         ttk.Label(
-            size_groups_host, text=f"第{set_index + 1}套｜尺寸與連數（毫米）",
+            confirmed_groups_host, text=f"第{set_index + 1}套｜已確定尺寸／數量",
         ).pack(anchor="w")
-        group_table = ttk.Frame(size_groups_host)
+        group_table = ttk.Frame(confirmed_groups_host)
         group_table.pack(anchor="w", pady=4)
         for column, label in enumerate(("W", "H", "D", "數量")):
             ttk.Label(group_table, text=label, width=7).grid(
@@ -1141,8 +1171,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             ttk.Label(entry_row, text=label).pack(side="left", padx=(2, 0))
             ttk.Entry(entry_row, textvariable=size_input[key], width=6).pack(side="left", padx=2)
         ttk.Button(entry_row, text="確定", command=confirm_dimension_group).pack(side="left", padx=4)
-        selected_count.set(f"右側高亮 {len(applied['selected_bays'])} 連")
-        ttk.Label(size_groups_host, textvariable=selected_count).pack(anchor="w")
+        # No duplicate selected-count message below the size entry row.
+
+    # Tracks EXPLICIT confirmations, not "non-default" sizes. A confirmed
+    # 800x1600x350 Bay is configured, too; no extra project data is invented.
+    confirmed_indices_by_set = {}
 
     def confirm_dimension_group():
         if applied["set_index"] is None or get_dimension_group is None:
@@ -1152,16 +1185,39 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             indices = tuple(applied["selected_bays"])
             if len(indices) != dims["count"]:
                 raise ValueError(f"請在右側圖面高亮剛好 {dims['count']} 個箱體")
+            set_index = applied["set_index"]
             get_dimension_group(
-                applied["set_index"], indices,
+                set_index, indices,
                 dims["width"], dims["height"], dims["depth"], dims["count"],
             )
-            # Recompute all size groups from canonical per-Bay dimensions.
-            # Supports 3rd, 4th ... groups without a persisted grouping table.
+            confirmed = confirmed_indices_by_set.setdefault(set_index, set())
+            confirmed.update(indices)
+            # Drop the whole old multi-selection. Focus exactly the next Bay
+            # that has NOT been explicitly confirmed during this edit session.
+            count = len(get_switch().layout["sets"][set_index]["bays"])
+            next_index = next((
+                candidate
+                for step in range(1, count + 1)
+                for candidate in ((max(indices) + step) % count,)
+                if candidate not in confirmed
+            ), None)
+            applied.update(selected=None, selected_bays=())
+            if next_index is not None:
+                applied.update(selected=next_index, selected_bays=(next_index,))
+                if select_bay is not None:
+                    select_bay(set_index, next_index)
+            # Recompute the committed grouping from canonical per-Bay W/H/D.
             refresh_dimension_rows()
+            if next_index is not None:
+                bay = get_switch().layout["sets"][set_index]["bays"][next_index]
+                for field in ("width", "height", "depth"):
+                    size_input[field].set(display_dimension(bay[field]))
+                size_input["count"].set("1")
             render()
+            return True
         except (ValueError, IndexError, RuntimeError) as exc:
             warn(exc)
+            return False
 
     def refresh_single_dimensions():
         if get_single_size_quantity is None:
@@ -1205,8 +1261,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         ttk.Button(entry_row, text="確定", command=confirm_single_dimensions).pack(side="left", padx=4)
         ttk.Label(root, textvariable=size_controls["status"]).pack(anchor="w", pady=4)
         refresh_single_dimensions()
-
-    selected_count = tk.StringVar(master=win, value="右側高亮 0 連")
 
     # Retain button identity while a +連/−連 callback is executing.
     # Destroying its own Tk button mid-invoke is a first-click freeze risk.
@@ -1263,6 +1317,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             bay_rows.append({"frame": row, "count": count_label})
         for entry, count in zip(bay_rows, counts):
             entry["count"].configure(text=str(count))
+        for index, count in enumerate(counts):
+            confirmed_indices_by_set.setdefault(index, set()).intersection_update(
+                range(count)
+            )
+        for index in tuple(confirmed_indices_by_set):
+            if index >= len(counts):
+                del confirmed_indices_by_set[index]
         # Topology invalidates an in-progress child-window allocation.
         # Schedule after idle so the invoking +連 button remains alive.
         if quantity_ui is not None and manager_window["win"] is not None:
@@ -1330,8 +1391,17 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if result:
                 topology_changed["value"] = True
                 refresh_rows()
-            # Intentionally do not redraw: only 套用 projects the current
-            # number of bays into the 2D diagram.
+                if applied["set_index"] == index:
+                    # Changes to +連/-連 must invalidate the old hitboxes.
+                    applied["count"] = get_switch().connection_counts()[index]
+                    applied["selected_bays"] = tuple(
+                        i for i in applied["selected_bays"] if i < applied["count"]
+                    )
+                    applied["selected"] = (
+                        applied["selected_bays"][0] if applied["selected_bays"] else None
+                    )
+                    refresh_dimension_rows()
+                    render()
             return result
         except (ValueError, IndexError, RuntimeError) as exc:
             return warn(exc)
@@ -1372,7 +1442,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         select_bay(applied["set_index"], active)
                     applied["selected"] = active
                     applied["selected_bays"] = tuple(sorted(selected_bays))
-                    selected_count.set(f"右側高亮 {len(applied['selected_bays'])} 連")
                     if selected_setting["kind"] is not None and active is not None:
                         if on_setting_selected is not None:
                             on_setting_selected(applied["set_index"], active,
@@ -1452,6 +1521,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host
     win._receiving_dimension_groups_host = size_groups_host
+    win._receiving_confirmed_groups_host = confirmed_groups_host
+    win._receiving_confirmed_indices = confirmed_indices_by_set
     win._receiving_dimension_group_input = size_input
     win._receiving_dimension_group_confirm = confirm_dimension_group
     win._receiving_multi_setting_list = setting_list
