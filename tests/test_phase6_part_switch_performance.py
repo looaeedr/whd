@@ -134,3 +134,61 @@ def test_switching_back_to_box_body_is_display_only_and_does_not_schedule_full_u
         assert counts == {'update': 0, 'renderer': 1}
     finally:
         root.destroy()
+
+
+def test_issue1793_part_switches_coalesce_scheduler_flushes(monkeypatch, record_property):
+    """Record route attempts separately from effective flushes for 12 real Tk switches."""
+    root, win, app = _make_app(monkeypatch)
+    try:
+        scheduler = app._phase6_update_scheduler
+        original_submit = scheduler.submit
+        original_flush = scheduler.flush_now
+        original_render = app.renderer.render
+        reasons, attempts, renders = [], [], []
+
+        def observed_submit(reason="geometry", *, immediate=False, debounce_ms=None):
+            reasons.append((str(reason), bool(immediate)))
+            return original_submit(
+                reason, immediate=immediate, debounce_ms=debounce_ms
+            )
+
+        def observed_flush():
+            attempts.append(tuple(sorted(scheduler.dirty)))
+            return original_flush()
+
+        def observed_render(*args, **kwargs):
+            renders.append(1)
+            return original_render(*args, **kwargs)
+
+        scheduler.submit = observed_submit
+        scheduler.flush_now = observed_flush
+        app.renderer.render = observed_render
+        rows = []
+        for part in ("door", "head", "tail", "box_body") * 3:
+            before = scheduler.metrics_snapshot()
+            prev_attempts, prev_render = len(attempts), len(renders)
+            start = time.perf_counter()
+            app.activate_part(part)
+            _drain(root, 0.2)
+            after = scheduler.metrics_snapshot()
+            rows.append({
+                "part": part,
+                "attempts": len(attempts) - prev_attempts,
+                "flush": after["flushes"] - before["flushes"],
+                "solve": after["calculation_flushes"] - before["calculation_flushes"],
+                "display": after["display_flushes"] - before["display_flushes"],
+                "render": len(renders) - prev_render,
+                "elapsed_ms": round((time.perf_counter() - start) * 1000, 2),
+            })
+        record_property("issue1793_switch_metrics", repr(rows))
+        record_property("issue1793_submit_reasons", repr(reasons))
+        record_property("issue1793_flush_dirty", repr(attempts))
+
+        assert all(row["solve"] == 0 for row in rows), (rows, reasons)
+        assert all(row["flush"] <= 1 for row in rows), (rows, reasons)
+        assert all(row["attempts"] <= 1 for row in rows), (rows, attempts)
+        assert all(row["render"] <= 1 for row in rows), (rows, reasons)
+        assert scheduler.dirty == set(), (rows, reasons)
+        assert scheduler._after_job is None, (rows, reasons)
+    finally:
+        root.destroy()
