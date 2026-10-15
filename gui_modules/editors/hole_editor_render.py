@@ -80,7 +80,9 @@ class HoleEditorCanvasRenderer:
             features=context["feature_list"],
             width=context["width"],
             height=context["height"],
-            reference_guide=context["reference_guide"],
+            reference_guide=(self.measure_guide_provider()
+                             if context.get("cabinet_reference_enabled")
+                             else context["reference_guide"]),
             selected_index=self.selected_index_provider(),
             reference_distances=self.reference_distances_provider(),
             measure_guide=self.measure_guide_provider(),
