@@ -146,11 +146,26 @@ class ReceivingSetBayAdapter:
             self._confirm_if_required(removed)
             self._persisted_ids.difference_update(removed)
             self._session_dirty_ids.difference_update(removed)
-        self._layout = resize_receiving_bays(
+        candidate = resize_receiving_bays(
             self._layout,
             set_index=self._selection.set_index,
             bay_count=wanted,
         )
+        if wanted > current:
+            # New Bay dimensions originate from the Receiving Family authority,
+            # not from the previously selected Bay's possibly custom size.
+            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+            defaults = tuple(float(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d"))
+            if any(not value.is_integer() or value <= 0 for value in defaults):
+                raise ValueError("受電箱預設 W/H/D 必須為正整數毫米")
+            builder = ReceivingSetBayAdapter(candidate)
+            builder.apply_dimensions_to_bays(
+                self._selection.set_index, tuple(range(current, wanted)),
+                width=int(defaults[0]), height=int(defaults[1]),
+                depth=int(defaults[2]), expected_count=wanted - current,
+            )
+            candidate = builder.layout
+        self._layout = candidate
         new_count = self.bay_count()
         self._selection = ReceivingSelection(
             set_index=self._selection.set_index,
@@ -172,6 +187,48 @@ class ReceivingSetBayAdapter:
             len(self._layout["sets"][set_index]["bays"]) - 1,
         )
         self._selection = ReceivingSelection(set_index=set_index, bay_index=bay_index)
+
+    def apply_dimensions_to_bays(self, set_index, bay_indices, *, width, height, depth, expected_count):
+        """Apply W/H/D to explicitly highlighted real Bays, atomically."""
+        from ae_engine.sheetmetal_part_adapters import complete_partition
+        index = int(set_index)
+        if index < 0 or index >= len(self._layout["sets"]):
+            raise IndexError("套不存在")
+        for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
+            if type(value) is not int or value <= 0:
+                raise ValueError(f"{label} 必須為正整數")
+        selected = tuple(bay_indices)
+        bay_count = len(self._layout["sets"][index]["bays"])
+        if (len(selected) != expected_count or len(set(selected)) != len(selected)
+                or any(type(i) is not int or not 0 <= i < bay_count for i in selected)):
+            raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
+        candidate, dirty = self._layout, []
+        for bay_index in selected:
+            current = candidate["sets"][index]["bays"][bay_index]
+            changes = {"width": width, "height": height, "depth": depth}
+            if all(float(current[k]) == v for k, v in changes.items()):
+                continue
+            door = current.get("door_state")
+            if door and (float(current["width"]) != width or float(current["height"]) != height):
+                columns = door.get("door_layout_columns") or ()
+                if door.get("multi_door_enabled") and not columns:
+                    raise ValueError(f"第{bay_index + 1}連門分割資料不完整")
+                if columns:
+                    widths = complete_partition([item[0] for item in columns[:-1]], width)
+                    if not widths.valid or len(widths.values) != len(columns):
+                        raise ValueError(f"第{bay_index + 1}連 W 不符合門分割")
+                    new_cols = []
+                    for new_w, (_, heights) in zip(widths.values, columns):
+                        sizes = complete_partition(heights[:-1], height)
+                        if not sizes.valid or len(sizes.values) != len(heights):
+                            raise ValueError(f"第{bay_index + 1}連 H 不符合門分割")
+                        new_cols.append([new_w, list(sizes.values)])
+                    changes["door_state"] = {**deepcopy(door), "door_layout_columns": new_cols}
+            candidate = update_receiving_bay(candidate, set_index=index, bay_index=bay_index, **changes)
+            dirty.append(str(current["stable_id"]))
+        self._layout = candidate
+        self._session_dirty_ids.update(dirty)
+        return len(dirty)
 
     def update_current_bay(self, **changes: object) -> bool:
         before = self.current_bay()

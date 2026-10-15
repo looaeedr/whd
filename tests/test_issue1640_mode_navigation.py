@@ -52,7 +52,8 @@ def test_mode_toggle_and_manager_stay_operable_without_forced_window_exit():
         )
         root.update()
         assert single.title() == "單只設定"
-        assert single._receiving_multi_applied["mode"] == "set_bay"
+        assert single._receiving_multi_applied["mode"] == "quantity"
+        assert not any(button.winfo_ismapped() for button in single._receiving_multi_set_buttons)
         single._receiving_multi_close()
     finally:
         root.destroy()

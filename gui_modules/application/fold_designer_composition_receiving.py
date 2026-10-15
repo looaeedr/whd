@@ -1090,6 +1090,22 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         ports["select"](int(bay_index))
         return setting_value(ports["row"](), int(bay_index), kind)
 
+    def single_brand():
+        from ae_engine.receiving_quantity_box import normalize_common_box
+        source = _current_mode_snapshot(self, namespace)
+        return normalize_common_box(source.get("receiving_quantity_box"))["switch_brand"]
+
+    def set_single_brand(value):
+        from ae_engine.receiving_quantity_box import update_common_box
+        source = _current_mode_snapshot(self, namespace)
+        if source.get("active_mode") != "quantity":
+            raise ValueError("單只品牌需在單箱體模式設定")
+        if single_brand() == value:
+            return False
+        candidate = update_common_box(source, {"switch_brand": value})
+        _apply_mode_snapshot(self, namespace, candidate)
+        return True
+
     def set_global_brand(value):
         # The original Receiving layout is the one NFB authority. In the
         # modal, edit data only; geometry rebuild on ComboboxSelected blocks
@@ -1178,6 +1194,52 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             return False
         self.mark_receiving_switch_layout_dirty(namespace, switch)
         return True
+
+    def dimension_group(set_index, highlighted, width, height, depth, count):
+        adapter = self.receiving_adapter(namespace)
+        changed = adapter.apply_dimensions_to_bays(
+            set_index, highlighted, width=width, height=height, depth=depth,
+            expected_count=count,
+        )
+        if changed:
+            self.mark_receiving_switch_layout_dirty(namespace, adapter)
+            self.sync_receiving_current_bay(namespace, refresh_controls=False)
+            self.app.submit_update_intent("geometry", commit=True)
+        return changed
+
+    def single_size_quantity():
+        from ae_engine.receiving_quantity_box import normalize_common_box
+        from phase6_quantity_model import QuantityModel
+        snapshot = _current_mode_snapshot(self, namespace)
+        if snapshot.get("active_mode") != "quantity":
+            raise ValueError("單只設定必須使用單箱體數量模式")
+        box = normalize_common_box(snapshot.get("receiving_quantity_box"))
+        model = QuantityModel.from_payload(snapshot.get("quantity"))
+        return {"width": box["w"], "height": box["h"], "depth": box["d"],
+                "count": model.selected_piece_count,
+                "total_count": model.total_piece_count,
+                "version_count": model.version_count}
+
+    def set_single_size_quantity(width, height, depth, count):
+        from ae_engine.receiving_quantity_box import (
+            update_common_box, require_valid_quantity_features,
+        )
+        from phase6_quantity_model import QuantityModel, positive_piece_count
+        new_count = positive_piece_count(count)
+        snapshot = _current_mode_snapshot(self, namespace)
+        if snapshot.get("active_mode") != "quantity":
+            raise ValueError("單只設定必須使用單箱體數量模式")
+        model = QuantityModel.from_payload(snapshot.get("quantity"))
+        model.set_piece_count(new_count)
+        candidate = update_common_box(snapshot, {"w": width, "h": height, "d": depth})
+        candidate["quantity"] = model.snapshot()
+        require_valid_quantity_features(candidate)
+        _apply_mode_snapshot(self, namespace, candidate)
+        return True
+
+    def edit_single_holes(role):
+        from .quantity_version_ports import quantity_ports
+        return quantity_ports(self, namespace)["holes"](role)
 
     # Candidate versions are project-wide and separate from QuantityModel and
     # per-Bay shared settings.  Only Apply copies a candidate into highlighted
@@ -2671,9 +2733,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     return open_multi_settings(
         self.app.root,
-        # Modal ownership needs only the Set/Bay mode. A full mode snapshot
-        # deep-copies the complete workspace/part-feature graph and delayed
-        # the FIRST 單只/多連 opening even when no editor was selected.
+        # Avoid copying the entire workspace merely to read the mode.
         get_snapshot=lambda: {
             "active_mode": self.app.designer_workspace.active_mode,
         },
@@ -2688,14 +2748,19 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_nfb_transaction_ports=nfb_transaction_ports,
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
-        get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
-        set_brand=set_global_brand,
+        get_brand=(single_brand if single else
+                   lambda: self.receiving_switch_adapter(namespace).brand),
+        set_brand=set_single_brand if single else set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_original_door_marks=existing_door_marks,
         get_initial_door_marks=cached_initial_door_marks,
         get_applied_version_labels=applied_version_labels,
         get_real_cut_preview_request=real_cut_preview_request,
-        on_brand_close=finalize_global_brand,
+        get_dimension_group=dimension_group,
+        get_single_size_quantity=single_size_quantity,
+        set_single_size_quantity=set_single_size_quantity,
+        edit_single_holes=edit_single_holes,
+        on_brand_close=None if single else finalize_global_brand,
         on_close=lambda: _restore_receiving_assembly_after_modal(self, namespace),
         dialog_kind="single" if single else "multi",
     )
@@ -2714,11 +2779,6 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
         else:
             raise RuntimeError("原組合體導覽入口尚未連接")
     else:
-        # A Set/Bay refresh can remount the single-part input widgets while
-        # display_mode still says "assembly". Re-project the actual shared
-        # content slot, not only the text of the part selector.
-        # This is display-only: closing an unchanged modal must NOT trigger
-        # expensive assembly manufacturing or live-state publication.
         mount = namespace.get("_phase6_mount_shared_content")
         if callable(mount):
             mount(designer, "assembly")
