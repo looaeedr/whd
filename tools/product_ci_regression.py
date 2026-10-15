@@ -257,7 +257,7 @@ def _pytest_command(junit_path=None, paths=None) -> list[str]:
     selected = tuple(PYTEST_PATHS if paths is None else paths)
     if not selected:
         raise ValueError("product regression shard cannot be empty")
-    command = [sys.executable, "-m", "pytest", "-q", "--disable-warnings",
+    command = [sys.executable, "-m", "pytest", "-vv", "--disable-warnings",
                "--durations=15", *selected]
     if junit_path is not None:
         command.extend(("--junitxml", str(junit_path), "-o", "junit_logging=system-out"))
@@ -309,7 +309,14 @@ def run(index: int = 0, count: int = 1, junit_out: Path | None = None) -> int:
     with tempfile.TemporaryDirectory(prefix="whd-v15-acceptance-") as tmp:
         report = junit_out or (Path(tmp) / "product-regression.xml")
         report.parent.mkdir(parents=True, exist_ok=True)
-        rc = subprocess.call(_pytest_command(report, selected), cwd=ROOT)
+        # Verbose case names identify a stalled selector. Bound a complete
+        # shard to 15 minutes rather than leaving the runner stuck until its
+        # 50-minute job cancellation; timeout remains a hard CI failure.
+        try:
+            rc = subprocess.call(_pytest_command(report, selected), cwd=ROOT, timeout=900)
+        except subprocess.TimeoutExpired:
+            print(f"WHD_SHARD_TIMEOUT shard={index}/{count} limit=900s", flush=True)
+            rc = 124
         if rc == 0:
             if count == 1:
                 _verify_full_receipt(report)

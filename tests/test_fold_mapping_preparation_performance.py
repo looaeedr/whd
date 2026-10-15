@@ -67,8 +67,47 @@ def test_new_mesh_uses_current_angles_lengths_and_guide_spans(monkeypatch, mappe
     assert after == build(material, xp, yp, fold_guides=guides)
 
 
+@pytest.fixture
+def _receiving_switch_deadlock_guard(monkeypatch):
+    """Fail an unattended modal or stalled real-Tk operation with its stage."""
+    import faulthandler
+    import signal
+    from tkinter import messagebox
+
+    stage = {"name": "initialize"}
+    def checkpoint(name):
+        stage["name"] = name
+        print("WHD_SWITCH_STAGE=" + name, flush=True)
+
+    def unexpected_dialog(*args, **kwargs):
+        raise AssertionError(
+            f"unexpected interactive dialog at {stage['name']}: "
+            f"args={args!r} kwargs={kwargs!r}"
+        )
+    for name in ("showwarning", "showerror", "showinfo", "askyesno",
+                 "askokcancel", "askretrycancel", "askquestion"):
+        monkeypatch.setattr(messagebox, name, unexpected_dialog)
+
+    # Dump the true Tk/Python stack even if the main thread is inside Tcl.
+    faulthandler.dump_traceback_later(40, repeat=False)
+    alarm_available = hasattr(signal, "SIGALRM")
+    previous_handler = signal.getsignal(signal.SIGALRM) if alarm_available else None
+    if alarm_available:
+        def on_timeout(_signal, _frame):
+            raise TimeoutError("WHD_SWITCH_STALLED at " + stage["name"])
+        signal.signal(signal.SIGALRM, on_timeout)
+        signal.alarm(120)
+    try:
+        yield checkpoint
+    finally:
+        faulthandler.cancel_dump_traceback_later()
+        if alarm_available:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous_handler)
+
+
 @pytest.mark.skipif(not os.environ.get('DISPLAY'), reason='requires Tk display')
-def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets(tmp_path, monkeypatch):
+def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets(tmp_path, monkeypatch, _receiving_switch_deadlock_guard):
     import hashlib
     import tkinter as tk
     import gui
@@ -77,6 +116,7 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
     from phase6_project_file import PROJECT_SCHEMA_V2, write_project
     from phase6_receiving_modes import fresh_receiving_mode
 
+    _receiving_switch_deadlock_guard('create Tk/root and host')
     root = tk.Tk()
     host = gui.Phase6PrimaryApplication(root)
     path = write_project(tmp_path / 'latency.p6fold', {
@@ -84,7 +124,9 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
         'snapshot': fresh_receiving_mode('quantity', {'w': 800, 'h': 1600, 'd': 350, 't': 2}),
     })
     try:
+        _receiving_switch_deadlock_guard('load saved Receiving project')
         app = host.load_phase6_project(path)
+        _receiving_switch_deadlock_guard('first Tk event loop update')
         root.update()
         counts = {'bends': 0, 'solve': 0}
         original_geometry, original_solve = folding._profile_geometry, service.resolve
@@ -108,26 +150,33 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
                     digest.update(repr(tuple(render.scene.primitives)).encode())
                     digest.update(repr(tuple(render.fold_guides)).encode())
             return digest.hexdigest()
+        _receiving_switch_deadlock_guard('hash manufacturing geometry')
         receiving = signature()
         for mode, opener in [('set_bay', bridge._phase6_open_receiving_multi_settings),
                              ('quantity', bridge._phase6_open_receiving_single_settings)]:
             counts.update(bends=0, solve=0)
+            _receiving_switch_deadlock_guard('open Receiving mode ' + mode)
             window = opener(app)
+            _receiving_switch_deadlock_guard('Tk update after mode ' + mode)
             root.update()
             assert app.designer_workspace.active_mode == mode
             assert counts['bends'] < 1000, counts
             assert counts['solve'] <= 1, counts
             assert signature() == receiving
+            _receiving_switch_deadlock_guard('close mode ' + mode)
             window._receiving_multi_close()
             root.update()
             assert root.grab_current() is None
         for family in ['金庫型', '受電箱']:
             counts.update(bends=0, solve=0)
+            _receiving_switch_deadlock_guard('switch family to ' + family)
             app.baseline_model_var.set(family)
+            _receiving_switch_deadlock_guard('Tk update after family ' + family)
             root.update()
             assert counts['bends'] < 1000, counts
             assert counts['solve'] <= 1, counts
             assert app._phase6_input_snapshot['model'] == family
             assert (signature() == receiving) == (family == '受電箱')
     finally:
+        _receiving_switch_deadlock_guard('destroy root')
         root.destroy()

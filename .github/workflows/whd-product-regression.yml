@@ -24,6 +24,11 @@ on:
       - 'docs/superpowers/checkpoints/issue532-c0-final-classification.json'
       - '.github/workflows/whd-product-regression.yml'
 
+# Keep independent PRs parallel; superseded SHA runs of one PR are obsolete.
+concurrency:
+  group: whd-product-regression-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 env:
   TZ: Asia/Taipei
 

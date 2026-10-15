@@ -545,9 +545,21 @@ def refresh_profiles_from_settings(
     app = self.app
     required = lambda name: self._required(namespace, name)
     workspace = app.designer_workspace
+    snapshot = getattr(app, "_phase6_input_snapshot", {})
+    settings = dict(getattr(app, "_settings_values", {}) or {})
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        # The pure Settings projection overlays settings onto the current
+        # snapshot. Supply live Receiving W/H/D to this *detached request* so
+        # geometry, CUTTING and 3D track the active Bay/Quantity without
+        # mutating or using up the operator's saved default W/H/D.
+        current_box = getattr(app, "_phase6_box_whd", {}) or {}
+        settings.update({
+            axis: current_box[axis] for axis in ("w", "h", "d")
+            if axis in current_box
+        })
     request = required("SettingsProfileProjectionRequest")(
-        settings_values=getattr(app, "_settings_values", {}),
-        input_snapshot=getattr(app, "_phase6_input_snapshot", {}),
+        settings_values=settings,
+        input_snapshot=snapshot,
         available_parts=tuple(workspace.available_parts),
         existing_profiles=workspace.part_profiles_snapshot(),
         box_body_profile=app.state.profiles_vault.get("箱身", []),

@@ -1613,6 +1613,21 @@ class Phase6ApplicationHost:
         key = self._door_layout_cell_key(cell)
         try:
             val = self.get_float_values()
+            # The host's main-Settings W/H/D may intentionally differ from
+            # the active Receiving designer. Project current Bay/Quantity
+            # geometry into this one editor request; never change host defaults.
+            live = _door_layout_host_adapter._receiving_live_door_layout_source(self)
+            if live is not None:
+                snapshot, whd = live
+                val.update({
+                    key: snapshot[key]
+                    for key in (
+                        "t", "fw", "door_gap_w", "door_gap_h",
+                        "door_fold_l", "door_fold_r", "door_fold_t", "door_fold_b",
+                    )
+                    if key in snapshot
+                })
+                val.update({axis: float(whd[axis]) for axis in ("w", "h", "d")})
             result = self._door_layout_cell_result(cell, val)
             surface = feature_surface_from_structural_result("door", result)
             material_fw = self._door_material_frame_width(val['fw'], val['t'])
