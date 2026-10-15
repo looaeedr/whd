@@ -574,7 +574,7 @@ def evaluate_pr(
         raise ChangeLaneDenied(f"PRODUCT_REQUIRES_EXACT_USER_SLASH_PUSH:{exc}") from exc
     return {
         "status": "PASS", "lane": lane,
-        "reason": "WINDOWS_LOCALX_UAT_AND_SLASH_PUSH_VERIFIED",
+        "reason": "EXACT_OWNER_SLASH_PUSH_ACCEPTANCE_VERIFIED",
         "path_count": len(changed_paths),
         "head_sha": head_sha, "base_sha": base_sha,
     }
