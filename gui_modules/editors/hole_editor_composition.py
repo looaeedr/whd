@@ -188,6 +188,9 @@ def _build_sidebar_workspace_state(s):
     )
     s.toggle_fullscreen = fullscreen_actions.toggle_fullscreen
     s.fullscreen_btn.configure(command=s.toggle_fullscreen)
+    header_fullscreen = getattr(s.editor, "_hole_header_fullscreen", None)
+    if header_fullscreen is not None:
+        header_fullscreen.configure(command=s.toggle_fullscreen)
     s.indicator_fit_error = [None]
     indicator_fit_validation = d._HoleEditorIndicatorFitValidation(
         door_indicator_state_provider=lambda: s.door_indicator_state,

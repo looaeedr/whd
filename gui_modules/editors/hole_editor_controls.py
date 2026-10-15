@@ -460,7 +460,10 @@ class HoleEditorFullscreenActions:
         self.fullscreen_button.configure(
             text=("還原視窗" if self.fullscreen_state[0] else "全螢幕")
         )
-        self.editor.after_idle(self.redraw_provider())
+        # after_idle must receive the callback, not its immediate result.
+        # Immediate full-canvas redraw during F11 made the editor freeze.
+        if callable(self.redraw_provider):
+            self.editor.after_idle(self.redraw_provider)
         return "break"
 
 class HoleEditorCreatedListPresentation:
