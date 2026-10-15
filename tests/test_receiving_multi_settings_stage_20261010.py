@@ -781,7 +781,8 @@ def test_issue1791_main_sketch_configure_burst_coalesces_one_idle_paint(monkeypa
         root.update_idletasks()
         record_property("configure_paint_count", len(paints))
         assert 1 <= len(paints) <= 2, paints
-        assert len(canvas._receiving_bay_hitboxes) == 2
+        # No Set is selected yet, so the preview intentionally shows one Bay.
+        assert len(canvas._receiving_bay_hitboxes) == 1
         assert canvas._receiving_selected_bays == frozenset()
         assert canvas.winfo_exists()
         win._receiving_multi_close()
