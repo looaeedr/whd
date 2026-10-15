@@ -34,6 +34,12 @@ whd_schema: WHD_DOC_META_V1
 - 本地工作不需 Google Drive 工作根目錄，也不需調用舊協調分支。
 - **兩入口共享交付範圍、不共享施工權限**：`/派工` 與 `/接手` 共用 Issue、PR、產品驗收標準，但前者預設 GitHub 施工與 GitHub `localX` 合併，不以 PR GREEN 自動授權 DC。`/接手` 僅當次明確允許 RC；DC 必須有特定目的／裝置／操作授權且經外部審查。治理變更也先整合 `localX`，正式 X 仍限驗收後的 `/推推`。
 
+## 新增功能入口 `/功能` — `FEATURE_FLOW_V1`
+
+- `/功能` 路由至唯一 CURRENT `.agents/skills/engineering/新增功能/SKILL.md`；支援 `/功能 設計`（只讀）、`/功能 新增`（合法 GitHub 功能施工與 localX 整合）、`/功能 繼續 #Issue`（沿用原工單／PR）。`/debug` 仍由 `diagnosing-bugs` 處理既有錯誤；不建立第二套派工、lease、測試或發布系統。
+- 施工前遵守 `SOURCE_READ_BEFORE_MUTATION_V1`，依真實影響核對 GUI、資料、Save→Reload、2D、3D、碰撞、製造及舊功能；不適用領域可有理由 N/A。`WHD_CHANGE_TEST_PROFILE_V1` 的 FEATURE、UI／GEOMETRY 與 final gate、`GITHUB_LOCALX_FIRST`、Windows 人工 GUI UAT 均維持原權威。
+- 同範圍功能之 PR exact SHA CI SUCCESS 後可整合 GitHub 遠端 `localX`；Windows 同步／人工驗收是獨立待辦，正式 `X=cleanup/2d-3d-sync` 仍須使用者驗收及當次 `/推推`，不得修改 RC／DC 權限或以 X 作日常施工來源。
+
 ## WHD 長對話上下文損耗防護 `WHD_CONTEXT_LOSS_PREVENTION_V1`
 
 **目的：降低本體因對話過長、重複工具輸出或系統壓縮而遺失已決定事項的機率。這不是交接流程。** 平台不提供可直接讀取的「剩餘 Token 百分比」或下一次自動壓縮時點，無法保證不被截斷，也不能主動清除既有上下文；禁止捏造容量、倒數或「已開啟背景監控」。

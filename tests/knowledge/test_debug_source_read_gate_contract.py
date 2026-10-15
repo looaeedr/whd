@@ -68,3 +68,48 @@ def test_direct_execution_and_dispatch_inherit_same_precondition() -> None:
         assert "SOURCE_READ_BEFORE_MUTATION_V1" in body
         assert "SOURCE_READ_EVIDENCE" in body
         assert "SOURCE_READ_PRECONDITION_FAILED" in body
+
+
+def test_feature_command_routes_single_canonical_skill_without_shadowing_debug() -> None:
+    registry = json.loads(_text(SKILLS / "skill_registry.json"))
+    route = next(row for row in registry["routes"] if row["id"] == "explicit-feature-command")
+    assert route["keywords"] == ["/功能"]
+    assert route["required_skills"] == ["新增功能"]
+    for task in ("/功能 設計 受電箱第三層", "/功能 新增 受電箱第三層", "/功能 繼續 #1783"):
+        assert "新增功能" in required_skills_for(task=task)
+    for task in ("/debug 受電箱卡住", "請 /派工 修復 GUI"):
+        assert "新增功能" not in required_skills_for(task=task)
+
+
+def test_feature_skill_inherits_existing_gate_and_covers_full_function_chain() -> None:
+    feature = _text(SKILLS / "engineering" / "新增功能" / "SKILL.md")
+    assert "name: 新增功能" in feature
+    for token in (
+        "SOURCE_READ_EVIDENCE", "SOURCE_READ_PRECONDITION_FAILED",
+        "CONFIRMED PRODUCT RULE", "FEATURE_ACCEPTANCE", "AFFECTED_SUBSYSTEM",
+        "GITHUB_LOCALX_FIRST", "WINDOWS_UAT_PENDING", "VISUAL_ACCEPTANCE_PENDING",
+        "Save → Reload", "N/A", "/推推", "不得治理直送 X", "不得修改程式", "不得猜測",
+    ):
+        assert token in feature
+    assert "./新增功能/SKILL.md" in _text(SKILLS / "engineering" / "README.md")
+    agents = _text(AGENTS)
+    assert "FEATURE_FLOW_V1" in agents and "新增功能/SKILL.md" in agents
+
+
+def test_old_skill_entrypoints_respect_localx_first_and_no_governance_direct_x() -> None:
+    writing = _text(SKILLS / "engineering" / "寫技能" / "SKILL.md")
+    publishing = _text(SKILLS / "engineering" / "推推" / "SKILL.md")
+    design = _text(SKILLS / "engineering" / "UI設計與去AI味" / "SKILL.md")
+    diagnosing = _text(SKILLS / "engineering" / "diagnosing-bugs" / "SKILL.md")
+    reference = _text(ROOT / "個人AI檔案庫" / "第二層_專案與SOP" / "08_WHD技能建立與修改規則.md")
+    assert "先從最新 X 取得 baseline" not in writing
+    assert "PR 合併 X。" not in writing
+    assert "以正式 X 的 `AGENTS.md`" not in writing
+    assert "純治理直送例外" not in publishing
+    assert "不經 localX、不使用 /推推" not in publishing
+    assert "先整合至**本機**" not in publishing
+    assert "正式 X 的 `AGENTS.md`" not in design
+    assert "Fresh-read official `X`" not in diagnosing
+    assert "從最新 X 建立" not in reference
+    for source in (writing, publishing, design, diagnosing, reference):
+        assert "localX" in source
