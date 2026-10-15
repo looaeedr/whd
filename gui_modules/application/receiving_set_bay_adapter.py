@@ -173,6 +173,80 @@ class ReceivingSetBayAdapter:
         )
         self._selection = ReceivingSelection(set_index=set_index, bay_index=bay_index)
 
+    def apply_dimension_groups(self, set_index: int, groups) -> int:
+        """Assign ordered W/H/D groups to real Bays, atomically.
+
+        Group counts are Bay allocation counts, NOT manufacturing QuantityModel
+        piece counts.  No secondary persisted list is introduced.
+        """
+        from collections.abc import Mapping
+        from ae_engine.sheetmetal_part_adapters import complete_partition
+
+        index = int(set_index)
+        if index < 0 or index >= len(self._layout["sets"]):
+            raise IndexError("套不存在")
+        bays = self._layout["sets"][index]["bays"]
+        if not isinstance(groups, (list, tuple)) or not groups:
+            raise ValueError("至少需要一組尺寸與數量")
+
+        expanded = []
+        for number, group in enumerate(groups, start=1):
+            if not isinstance(group, Mapping):
+                raise ValueError(f"第{number}組尺寸資料錯誤")
+            values = {}
+            for field in ("width", "height", "depth", "count"):
+                value = group.get(field)
+                if type(value) is not int or value <= 0:
+                    raise ValueError(f"第{number}組 {field} 必須為正整數")
+                values[field] = value
+            if len(expanded) + values["count"] > len(bays):
+                raise ValueError("尺寸數量總和不可超過本套連數")
+            expanded.extend(
+                (values["width"], values["height"], values["depth"])
+                for _ in range(values["count"])
+            )
+        if len(expanded) != len(bays):
+            raise ValueError(f"尺寸數量合計 {len(expanded)} 必須等於本套 {len(bays)} 連")
+
+        candidate = self._layout
+        changed_ids = []
+        for bay_index, (width, height, depth) in enumerate(expanded):
+            existing = candidate["sets"][index]["bays"][bay_index]
+            new_dimensions = {"width": width, "height": height, "depth": depth}
+            if all(float(existing[key]) == value for key, value in new_dimensions.items()):
+                continue
+            door_state = existing.get("door_state")
+            if isinstance(door_state, Mapping) and (
+                float(existing["width"]) != width or float(existing["height"]) != height
+            ):
+                columns = door_state.get("door_layout_columns") or ()
+                if not columns and door_state.get("multi_door_enabled"):
+                    raise ValueError(f"第{bay_index + 1}連缺少門分割來源，不能變更尺寸")
+                if columns:
+                    widths = complete_partition(
+                        [row[0] for row in columns[:-1]], width
+                    )
+                    if not widths.valid or len(widths.values) != len(columns):
+                        raise ValueError(f"第{bay_index + 1}連 W 不符合目前門分割")
+                    adapted = []
+                    for part_width, (_old_width, heights) in zip(widths.values, columns):
+                        partition = complete_partition(heights[:-1], height)
+                        if not partition.valid or len(partition.values) != len(heights):
+                            raise ValueError(f"第{bay_index + 1}連 H 不符合目前門分割")
+                        adapted.append([part_width, list(partition.values)])
+                    new_dimensions["door_state"] = {
+                        **deepcopy(dict(door_state)), "door_layout_columns": adapted,
+                    }
+            candidate = update_receiving_bay(
+                candidate, set_index=index, bay_index=bay_index, **new_dimensions,
+            )
+            changed_ids.append(str(existing["stable_id"]))
+
+        # No partial commit if any later group or Bay fails validation.
+        self._layout = candidate
+        self._session_dirty_ids.update(changed_ids)
+        return len(changed_ids)
+
     def update_current_bay(self, **changes: object) -> bool:
         before = self.current_bay()
         updated = update_receiving_bay(
