@@ -197,6 +197,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         get_original_door_marks=None,
                         get_applied_version_labels=None,
                         get_real_cut_preview_request=None,
+                        get_dimension_group=None,
+                        get_single_size_quantity=None,
+                        set_single_size_quantity=None,
+                        edit_single_holes=None,
                         on_close=None, on_brand_close=None,
                         dialog_kind="multi"):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
@@ -291,10 +295,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # (and its complete geometry rebuild) to the first connection edit.
     # The obsolete Quantity main mode has been removed from this window.
     # Preserve the independent quantity allocation inside Version Manager.
-    initial_mode = "set_bay"
-    if get_snapshot().get("active_mode", "set_bay") != "set_bay":
-        if not switch_mode("set_bay"):
-            raise ValueError("無法切換為套／連模式")
+    initial_mode = "quantity" if dialog_kind == "single" else "set_bay"
+    if get_snapshot().get("active_mode", "set_bay") != initial_mode:
+        if not switch_mode(initial_mode):
+            raise ValueError("無法切換設定模式")
     mode_var = tk.StringVar(master=win, value=initial_mode)
     top_left = ttk.Frame(left_host)
     top_left.pack(anchor="nw")
@@ -333,6 +337,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     applied = {"set_index": None, "count": 1, "selected": None,
                "selected_bays": (), "mode": initial_mode}
+    single_mode = dialog_kind == "single"
 
     # Right TOP: original Listbox and its selected category controls.
     # Right BOTTOM: the independent diagram region, never commandeered
@@ -368,6 +373,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     rows_host.pack(anchor="nw", pady=(8, 0))
     actions_host = ttk.Frame(rows_host)
     actions_host.pack(anchor="w")
+    size_groups_host = ttk.Frame(rows_host)
+    size_groups_host.pack(anchor="w", fill="x", pady=(6, 0))
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
