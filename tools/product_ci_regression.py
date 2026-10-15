@@ -124,6 +124,8 @@ PYTEST_PATHS = (
     "tests/test_issue63_regression_red.py",
     "tests/test_issue71_divider_relief_components.py",
     "tests/test_issue74_divider_side_front_penetration.py",
+    # Retired mirrored-LEFT +T relief must never silently re-enter CUTTING.
+    "tests/test_issue83_divider_cross_registry.py",
     # /debug: 7mm C slot / real first-22 Z witness must be truly selected.
     "tests/test_receiving_C_slot_22mm_real_world_debug.py",
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py",

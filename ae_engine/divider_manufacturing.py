@@ -236,39 +236,17 @@ def _divider_object_mating_fold_signs(divider, box_body):
 
     left_profile = tuple(by_role["left_side"].fold_profile or ())
     left_keys = tuple(str(row.phase6_key) for row in left_profile)
-    # Corrected Receiving left-side DXF places its FW-adjacent terminal
-    # beyond FW in flat traversal. Physical 3D contact is zl2, not the
-    # preceding 340-mm D web. The same certified CROSS rule applies; only
-    # the input topology-to-object-fold mapping changes.
-    reflected = left_keys == (
-        "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
-    )
-    if reflected:
-        # The C divider's 7mm U-notch is specified to avoid LEFT's
-        # actual first 22mm/-90 Fold (zl1). Picking the fold adjacent to
-        # FW chose zl2 while still taking zl1's 24mm formed length for
-        # notch depth: contradictory source identities that could pass
-        # even with no actual zl1/C world-Z encounter.
-        matching = [row for row in left_profile if str(row.phase6_key) == "zl1"]
-        if len(matching) != 1 or abs(float(matching[0].length) - 22.0) > 1e-6:
-            raise ValueError("RECEIVING_C_U_SLOT_22MM_SOURCE_NOT_UNIQUE")
-        angle = matching[0].angle
-        min_y = {
-            "phase6_key": "zl1", "angle": float(angle),
-            "sign": _fold_sign(angle),
-        }
-    elif left_keys[:4] == ("zl1", "zl2", "fw_left", "d_left"):
-        # Original program-generated Receiving 3D, before the baseline DXF
-        # and the 73951d283 mirror: zl1 is the actual +X-directed first leg
-        # at the FRONT. Local +90 maps to negative world mating sign after
-        # left-side placement reverses the depth axis.
-        first = left_profile[0]
-        if first.angle is None or float(first.angle) <= 0.0:
-            raise ValueError("RECEIVING_ORIGINAL_ZL1_LOCAL_FOLD_SIGN_INVALID")
-        min_y = {"phase6_key": "zl1", "angle": float(first.angle),
-                 "sign": -_fold_sign(first.angle)}
-    else:
-        min_y = adjacent(left_profile, "fw_left", -1)
+    # Only the restored pre-DXF LEFT front-first fold is certified.
+    # The withdrawn mirrored DXF traversal is NOT another valid model.
+    if left_keys[:4] != ("zl1", "zl2", "fw_left", "d_left"):
+        raise ValueError("RECEIVING_LEFT_FOLD_TOPOLOGY_NOT_CERTIFIED")
+    # The first material leg is at the FRONT. Its +90 local fold maps to
+    # negative world mating sign after placement reverses the depth axis.
+    first = left_profile[0]
+    if first.angle is None or float(first.angle) <= 0.0:
+        raise ValueError("RECEIVING_ORIGINAL_ZL1_LOCAL_FOLD_SIGN_INVALID")
+    min_y = {"phase6_key": "zl1", "angle": float(first.angle),
+             "sign": -_fold_sign(first.angle)}
     max_y = adjacent(by_role["right_side"].fold_profile, "fw_right", +1)
     return {
         "sign_by_end": {
@@ -313,22 +291,8 @@ def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: flo
         raise ValueError("Divider certified CROSS requires the Receiving left-side Fold profile")
     box_zl1_formed = _formed_profile_length(left_side.fold_profile, phase6_key="zl1")
     left_order = tuple(str(seg.phase6_key) for seg in left_side.fold_profile)
-    # Material fold-station inversion moves the secondary left terminal to
-    # the OUTER face of the Divider CROSS slit, one true sheet-thickness
-    # beyond core_start+FW. This is the extra outside-terminal cutting width,
-    # NOT a change to operator FW or the sample 66-mm base formula.
-    reflected = left_order == (
-        "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
-    )
-    if reflected:
-        physical = tuple(left_side.fold_profile)
-        if not (
-            physical[3].angle is not None and float(physical[3].angle) < 0
-            and float(physical[4].length) > t
-            and float(physical[0].angle) < 0
-        ):
-            raise ValueError("RECEIVING_LEFT_REFLECTED_TERMINAL_NOT_CERTIFIED")
-    terminal_extra = t if reflected else 0.0
+    if left_order[:4] != ("zl1", "zl2", "fw_left", "d_left"):
+        raise ValueError("RECEIVING_LEFT_FOLD_TOPOLOGY_NOT_CERTIFIED")
 
     return {
         "T": t,
@@ -338,7 +302,6 @@ def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: flo
         "divider_fw_material": float(fw_material),
         "divider_last_outside": abs(float(signed[-1])),
         "box_zl1_formed": float(box_zl1_formed),
-        "receiving_left_reflected_terminal_extra": float(terminal_extra),
     }
 
 
