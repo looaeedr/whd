@@ -1047,7 +1047,7 @@ def _refresh_mode_controls(self, namespace):
     return True
 
 
-def open_receiving_multi_settings(self, namespace):
+def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inner_parent=None):
     """Route one Assembly dialog to existing Set/Bay and quantity owners."""
     if not self.receiving_layout_applicable():
         return False
@@ -2586,5 +2586,21 @@ def open_receiving_multi_settings(self, namespace):
         get_applied_version_labels=applied_version_labels,
         get_real_cut_preview_request=real_cut_preview_request,
         on_brand_close=finalize_global_brand,
-        on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
+        on_close=lambda: _restore_receiving_assembly_after_modal(self, namespace),
+        dialog_kind="single" if single else "multi",
     )
+
+
+def _restore_receiving_assembly_after_modal(owner, namespace):
+    """Do not let a Receiving modal's Set/Bay refresh navigate to Box Body."""
+    owner.refresh_receiving_set_bay_control(namespace)
+    host = getattr(getattr(owner.app, "_scene_query_callback", None), "__self__", None)
+    if host is None:
+        return
+    if getattr(host, "_phase6_3d_display_mode", None) != "assembly":
+        from fold_designer_bridge import _phase6_show_assembly
+        _phase6_show_assembly(host)
+    else:
+        selection = getattr(host, "part_var", None)
+        if selection is not None:
+            selection.set("組合體")

@@ -368,6 +368,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 )
                 face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
                 opacity = float(request.alpha_bend)
+                # Outer Door is intentionally readable even when the shared
+                # sheet transparency is lowered to inspect the cabinet internals.
+                if part_key == "door" or (part_key.startswith("door_c") and "_r" in part_key):
+                    opacity = max(opacity, 0.96)
                 divider_presentation = _phase6_assembly_part_presentation(part_key, opacity)
                 if divider_presentation is not None:
                     face, edge, opacity = divider_presentation

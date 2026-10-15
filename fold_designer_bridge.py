@@ -2419,6 +2419,7 @@ def _phase6_install_part_editor_compatibility(self):
         actions=AssemblyPanelActions(
             on_visibility_changed=lambda: _phase6_on_assembly_part_visibility_changed(self),
             on_multi_settings=lambda: _phase6_open_receiving_multi_settings(self),
+            on_single_settings=lambda: _phase6_open_receiving_single_settings(self),
         ),
     )
     _phase6_install_assembly_panel_aliases(self, self._phase6_assembly_panel_owner)
@@ -2736,6 +2737,12 @@ def _phase6_open_receiving_multi_settings(self):
     """Bridge entry only; Receiving composition owns mode and editing ports."""
     from gui_modules.application.fold_designer_composition_receiving import open_receiving_multi_settings
     return open_receiving_multi_settings(_phase6_composition(self), globals())
+
+
+def _phase6_open_receiving_single_settings(self):
+    """Initial single-cabinet entry reuses the canonical Receiving Set/Bay editor."""
+    from gui_modules.application.fold_designer_composition_receiving import open_receiving_multi_settings
+    return open_receiving_multi_settings(_phase6_composition(self), globals(), single=True)
 
 
 def _phase6_show_assembly(self, initial=False):
