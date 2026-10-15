@@ -31,7 +31,7 @@ class ReleaseCompletionContract(unittest.TestCase):
     def test_idempotent_tag_and_release_are_verified(self):
         src = WORKFLOW.read_text(encoding="utf-8")
         for required in (
-            'existing_sha', 'OFFICIAL_TAG_WRONG_SHA',
+            'existing_sha', "'"+'.object.sha // empty'+"'", 'OFFICIAL_TAG_WRONG_SHA',
             'gh release create "$APPROVED_TAG"',
             '--target "$APPROVED_SHA"',
             'isDraft,isPrerelease,targetCommitish,url',
