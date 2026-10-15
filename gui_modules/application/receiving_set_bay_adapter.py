@@ -146,11 +146,26 @@ class ReceivingSetBayAdapter:
             self._confirm_if_required(removed)
             self._persisted_ids.difference_update(removed)
             self._session_dirty_ids.difference_update(removed)
-        self._layout = resize_receiving_bays(
+        candidate = resize_receiving_bays(
             self._layout,
             set_index=self._selection.set_index,
             bay_count=wanted,
         )
+        if wanted > current:
+            # New Bay dimensions originate from the Receiving Family authority,
+            # not from the previously selected Bay's possibly custom size.
+            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+            defaults = tuple(float(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d"))
+            if any(not value.is_integer() or value <= 0 for value in defaults):
+                raise ValueError("受電箱預設 W/H/D 必須為正整數毫米")
+            builder = ReceivingSetBayAdapter(candidate)
+            builder.apply_dimensions_to_bays(
+                self._selection.set_index, tuple(range(current, wanted)),
+                width=int(defaults[0]), height=int(defaults[1]),
+                depth=int(defaults[2]), expected_count=wanted - current,
+            )
+            candidate = builder.layout
+        self._layout = candidate
         new_count = self.bay_count()
         self._selection = ReceivingSelection(
             set_index=self._selection.set_index,
