@@ -235,8 +235,8 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         mode_row = win._receiving_multi_mode_controls
         setting_list = win._receiving_multi_setting_list
         controls_column = rows_host.master
-        # Two columns: Set/Bay stays LEFT; category/function selection is
-        # RIGHT TOP, and a separate diagram container occupies RIGHT BOTTOM.
+        # Two columns: Set/Bay stays LEFT; always-visible dimensions/count
+        # sit RIGHT TOP, followed by function selection and diagram.
         left = win._receiving_multi_left_host
         right = win._receiving_multi_right_host
         function = win._receiving_multi_function_host
@@ -248,8 +248,9 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert mode_row.master.master is left
         assert controls_column.master is left
         assert function.master is win._receiving_multi_function_scroll._receiving_scroll_content
-        assert win._receiving_multi_function_scroll.grid_info()["row"] == 0
-        assert diagram.master is right and diagram.grid_info()["row"] == 1
+        assert win._receiving_dimension_groups_host.grid_info()["row"] == 0
+        assert win._receiving_multi_function_scroll.grid_info()["row"] == 1
+        assert diagram.master is right and diagram.grid_info()["row"] == 2
         assert canvas.master is diagram and canvas.grid_info()["row"] == 0
         assert win._receiving_multi_settings_host.master is function
         assert abs(controls_column.winfo_rootx() - mode_row.winfo_rootx()) <= 2
