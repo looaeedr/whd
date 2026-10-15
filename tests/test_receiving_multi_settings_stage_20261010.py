@@ -221,13 +221,13 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert brand_calls == ["東元"]
         assert brand_commit == []  # no synchronous 3D/geometry redraw
         assert brand_picker.master.master is win._receiving_multi_mode_controls.master
-        assert win.title() == "多只設定"
+        assert win.title() == "多連設定"
         assert win.grab_current() is win
         assert win.winfo_width() >= win.winfo_screenwidth() - 2
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"NFB", "套／連", "數量", "－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
+        assert set(texts) == {"NFB", "－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas
@@ -364,21 +364,11 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win._receiving_multi_applied["selected"] == 0
         assert canvas._receiving_selected_bays == frozenset({0})
 
-        # Two choices are mutually exclusive; no quantity-version table or
-        # common-box affordance is exposed until explicitly requested.
+        # Quantity is no longer a primary multi-connection mode.
+        # Version Manager retains its separate quantity allocation page.
         choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
                    if isinstance(w, ttk.Radiobutton)]
-        assert len(choices) == 2
-        choices[1].invoke()
-        root.update()
-        assert mode["value"] == "quantity"
-        assert not win._receiving_multi_rows_host.winfo_children()
-        assert setting_list.winfo_ismapped()
-        assert tuple(setting_list.get(0, tk.END)) == ("封頭尾",)
-        assert len(canvas._receiving_bay_hitboxes) == 1
-        assert set(_visible_texts(win)) == {"NFB", "套／連", "數量"}
-        choices[0].invoke()
-        root.update()
+        assert choices == []
         assert mode["value"] == "set_bay"
         assert "第1套" in _visible_texts(win)
         assert setting_list.winfo_ismapped()
@@ -427,20 +417,12 @@ def test_multi_settings_does_not_expose_postponed_version_ui():
         assert not any("版本" in label for label in _visible_texts(panel))
         assert not any(isinstance(child, ttk.Treeview)
                        for child in panel.winfo_children())
-        # Switching to 數量 must not silently add an unfinished version UI.
+        # Removed main Quantity mode must not mutate the QuantityModel.
         choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
                    if isinstance(w, ttk.Radiobutton)]
-        choices[1].invoke()
-        root.update()
-        assert mode["value"] == "quantity"
-        listing.selection_set(0)
-        listing.event_generate("<<ListboxSelect>>")
-        root.update()
-        assert not panel.winfo_children()
-        assert model.snapshot() == original
-        choices[0].invoke()
-        root.update()
+        assert choices == []
         assert mode["value"] == "set_bay"
+        assert model.snapshot() == original
         win._receiving_multi_close()
     finally:
         root.destroy()

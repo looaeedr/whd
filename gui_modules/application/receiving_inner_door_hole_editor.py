@@ -148,9 +148,16 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         build_receiving_tab = getattr(
             host, "_phase6_open_embedded_receiving_inner_editor", None,
         )
-        if not callable(build_receiving_tab):
-            raise ValueError("受電箱內門編輯尚未連接到既有組合體功能")
-        build_receiving_tab(receiving_page)
+        if callable(build_receiving_tab):
+            build_receiving_tab(receiving_page)
+        else:
+            # Legacy preview/test hosts do not always mount the Assembly
+            # coordinator. They must still open the original Hole Editor.
+            # Production Bridge installs this port before any navigation.
+            from tkinter import ttk
+            ttk.Label(
+                receiving_page, text="目前未提供受電箱設定入口",
+            ).pack(anchor="w", padx=12, pady=12)
     return editor
 
 
