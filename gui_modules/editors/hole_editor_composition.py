@@ -119,6 +119,20 @@ def _build_shell_and_indicator(s):
     s.indicator_offset_x_var = None
     s.indicator_offset_y_var = None
     s.indicator_box_dist_var = None
+    s.cabinet_locator_var = None
+    if s.cabinet_reference_guide is not None:
+        # Use the original release's "箱體定位距離" checkbox interaction,
+        # not duplicate editable X/Y distance fields. This merely changes
+        # the measurement guide, never the physical hole coordinates.
+        s.cabinet_locator_var = d.tk.BooleanVar(master=s.editor, value=False)
+        d.tk.Checkbutton(
+            s.left, text="箱體定位距離", variable=s.cabinet_locator_var,
+            bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+            selectcolor=host.COLOR_INPUT_BG,
+            activebackground=host.COLOR_PANEL,
+            command=lambda: (s.refresh_reference_fields(), s.redraw()),
+        ).pack(fill=d.tk.X, padx=10, pady=(5, 4))
+        s.editor._hole_cabinet_positioning = s.cabinet_locator_var
     indicator_ui_actions = d._HoleEditorIndicatorUiActions(
         editor_tabs=s.editor_tabs,
         indicator_page=s.indicator_page,
@@ -301,6 +315,10 @@ def _build_reference_stack(s):
         selection_provider=lambda: (s.hole_session.selected_index, s.live_context.feature_list),
         context_provider=lambda: {
             "reference_guide": s.live_context.reference_guide,
+            "cabinet_reference_guide": s.cabinet_reference_guide,
+            "cabinet_locator_enabled": bool(
+                s.cabinet_locator_var is not None and s.cabinet_locator_var.get()
+            ),
             "active_part_key": s.active_part_key[0],
             "indicator_box_dist_enabled": bool(
                 s.indicator_box_dist_var is not None and s.indicator_box_dist_var.get()
@@ -345,6 +363,9 @@ def _build_renderer_and_catalog_actions(s):
             "width": s.live_context.width,
             "height": s.live_context.height,
             "reference_guide": s.live_context.reference_guide,
+            "cabinet_reference_enabled": bool(
+                s.cabinet_locator_var is not None and s.cabinet_locator_var.get()
+            ),
             "baseline_scene": s.live_context.baseline_scene,
             "active_part_key": s.active_part_key[0],
             "indicator_box_dist_enabled": bool(
@@ -703,12 +724,14 @@ def open_unified_hole_editor(
     door_indicator_context=None, door_indicator_commit=None, door_frame_edges=None,
     door_gap_w=None, door_gap_h=None, door_frame_width=None, door_thickness=None,
     on_close=None, on_confirm=None, baseline_scene=None, baseline_status_text=None,
-    indicator_component_context_provider=None, *, dependencies,
+    indicator_component_context_provider=None, cabinet_reference_guide=None,
+    *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
         width=width, height=height, sync_callback=sync_callback,
-        reference_guide=reference_guide, feature_list_override=feature_list_override,
+        reference_guide=reference_guide, cabinet_reference_guide=cabinet_reference_guide,
+        feature_list_override=feature_list_override,
         door_indicator_state=door_indicator_state,
         door_indicator_context=door_indicator_context,
         door_indicator_commit=door_indicator_commit, door_frame_edges=door_frame_edges,
