@@ -866,6 +866,8 @@ def test_receiving_modal_first_entry_defers_baselines_and_close_mounts_assembly(
     try:
         designer.baseline_model_var.set("受電箱")
         _pump(root, 6)
+        # Seed the exact committed scene that the real Assembly 3D uses.
+        bridge._phase6_resolve_manufacturing_geometry(designer)
         calls = []
         old = app._door_layout_baseline_scene
 
@@ -882,6 +884,9 @@ def test_receiving_modal_first_entry_defers_baselines_and_close_mounts_assembly(
             win = button(designer)
             _pump(root, 3)
             assert calls == [], "unapplied modal must not parse Door DXF"
+            assert win._receiving_multi_canvas.find_withtag("receiving_nameplate"), (
+                "cached real Door nameplate mounts must show on initial sketch"
+            )
             assert win._receiving_multi_applied["set_index"] is None
             # Reproduce the reported desync: mode/selection says Assembly,
             # but the shared slot still shows Box Body's input content.

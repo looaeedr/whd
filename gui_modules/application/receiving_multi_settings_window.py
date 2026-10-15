@@ -158,7 +158,8 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                 px, py = fx0 + cx * dw, fy0 + cy * dh
                 sx, sy = max(1.0, rx * dw), max(1.0, ry * dh)
                 canvas.create_oval(px - sx, py - sy, px + sx, py + sy,
-                                  outline="#f7c66f", width=1)
+                                  outline="#f7c66f", width=1,
+                                  tags=("receiving_nameplate",))
         labels = (version_labels or ())
         by_role = labels[index] if index < len(labels) else {}
         if by_role:
