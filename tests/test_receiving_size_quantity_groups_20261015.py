@@ -228,3 +228,27 @@ def test_new_height_fields_live_in_receiving_editor_without_extra_store():
     assert "persist_inner(saved)" in source
     assert 'adapter.update_setting(kind, value)' in source
     assert "if bay.get(\"nfb_config_submitted\") is True:" in source
+
+
+def test_old_nfb_setting_absence_preserves_previous_y_until_explicit_change():
+    from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
+    from ae_engine.receiving_nfb_y_projection import approved_nominal_y_mm
+
+    fresh = new_receiving_layout(width=800, height=1600, depth=350)
+    assert setting_value(fresh["sets"][0], 0, "inner_door_layer_heights_mm") == [330., 830.]
+
+    legacy = new_receiving_layout(width=800, height=1600, depth=350)
+    row = legacy["sets"][0]
+    row["settings"] = normalize_set_settings(None, row["bays"])
+    del row["settings"]["inner_door_layer_heights_mm"]
+    migrated = normalize_receiving_layout(legacy)
+    assert setting_value(migrated["sets"][0], 0, "inner_door_layer_heights_mm") is None
+    assert approved_nominal_y_mm(2) == (290.0, 790.0)
+    # Applying an old two-key candidate must NOT secretly move old NFB holes.
+    adapter = ReceivingSetBayAdapter(migrated)
+    adapter.apply_inner_door_candidate_to_bays(
+        {"layers": 2, "models": ["", ""]}, 0, (0,),
+    )
+    assert setting_value(
+        adapter.layout["sets"][0], 0, "inner_door_layer_heights_mm"
+    ) is None
