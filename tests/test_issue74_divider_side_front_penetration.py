@@ -207,8 +207,8 @@ def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
     assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(90.0)
 
     # Collision remains a separate true-thickness witness, not the final
-    # 68/60 mm certified CUTTING parameter source. The left source rear
-    # terminal occupies the extra T outside the old 66mm sample.
+    # 66/60 mm certified CUTTING parameter source. No reflected +T
+    # terminal is present in the restored canonical left fold.
     shadow = dict(evidence["collision_shadow"])
     by_source = dict(shadow["projection_by_source"])
     left_stages = dict(by_source["box_body:left_side"]["physical_stages"])

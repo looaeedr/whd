@@ -372,7 +372,7 @@
       "rule_id": "RECEIVING_DIVIDER_CROSS_STANDARD_V1",
       "revision": 1,
       "trust_level": "CERTIFIED",
-      "active": false,
+      "active": true,
       "cabinet_family": "受電箱",
       "part_role": "DIVIDER",
       "joint_face": "ENDS",
@@ -424,66 +424,6 @@
         "DIVIDER_LAST_OUTSIDE",
         "BOX_ZL1_FORMED",
         "SHEET_THICKNESS"
-      ],
-      "rule_domain": "DIVIDER_CROSS"
-    },
-    {
-      "rule_id": "RECEIVING_DIVIDER_CROSS_STANDARD_V1",
-      "revision": 2,
-      "trust_level": "CERTIFIED",
-      "active": true,
-      "cabinet_family": "受電箱",
-      "part_role": "DIVIDER",
-      "joint_face": "ENDS",
-      "assembly_intent": "ANY",
-      "corner_type": "CROSS",
-      "joint_signature": [],
-      "topology_levels": 1,
-      "preconditions": [
-        "receiving_divider_four_segment",
-        "cross_slot_min_y"
-      ],
-      "formula": {
-        "slotted_fold_u": "core_start + divider_fw_material + receiving_left_reflected_terminal_extra",
-        "plain_fold_u": "core_start + divider_last_outside + T",
-        "fold_v": "divider_fw_outside - T",
-        "slot_width": "divider_fw_material - divider_first_outside",
-        "slot_straight_depth": "box_zl1_formed",
-        "slot_radius": "(divider_fw_material - divider_first_outside) / 2"
-      },
-      "cross_parameters": {
-        "slot_end_selector": "OBJECT_MATING_FOLD_SIGN_NEGATIVE",
-        "slot_anchor": "PRIMARY_U_INNER_EDGE",
-        "slot_depth_semantics": "STRAIGHT_TO_RADIUS_TANGENCY"
-      },
-      "display_formula_x": "有槽端 fold_u = core_start + Divider FW料 + 左側反轉終端外皮額外厚度（原型0；受電箱修正後反轉折彎為T）；無槽端不變",
-      "display_formula_y": "fold_v = Divider FW包外 - T",
-      "display_formula_secondary": "對象 mating Fold 為負折時套用有槽端；slot_width = Divider FW料 - Divider首段包外；straight_depth = BoxBody zl1成形；R = slot_width / 2",
-      "source": "基準檔/金庫型/中隔.dxf 正規化認證；CROSS 主體沿用 fold_u/fold_v，槽為附加參數；2026-10-14 保留原始認證公式與資料庫，受電箱左側DXF反轉拓樸以獨立參數增加終端外皮 T，3D完整厚度回折驗收。",
-      "standard_ref": "DIVIDER_CROSS_STANDARD_V1",
-      "affected_zone": "Divider MIN_Y / MAX_Y end relief",
-      "dimension_space": "MATERIAL",
-      "target_semantics": "CROSS 端型不綁 MIN/MAX；對象 mating Fold sign<0 的端套用 66×27 + 圓底U槽，另一端套用 60×27",
-      "adjustment_type": "STANDARD",
-      "adjustment_amount": {
-        "basis": "DIVIDER_CROSS_STANDARD_V1",
-        "primary": "fold_u/fold_v only",
-        "slot": "slot_width + slot_straight_depth + slot_radius"
-      },
-      "certification_evidence": {
-        "baseline": "基準檔/金庫型/中隔.dxf",
-        "normalized_reference": "有槽端 66×27 + U-slot width7 straight24 R3.5；無槽端 60×27；端向由對象 Fold sign 決定",
-        "reference_blank": "158×596；596 只作 reference-span validation"
-      },
-      "geometry_inputs": [
-        "DIVIDER_CORE_START",
-        "DIVIDER_FIRST_OUTSIDE",
-        "DIVIDER_FW_OUTSIDE",
-        "DIVIDER_FW_MATERIAL",
-        "DIVIDER_LAST_OUTSIDE",
-        "BOX_ZL1_FORMED",
-        "SHEET_THICKNESS",
-        "RECEIVING_LEFT_REFLECTED_TERMINAL_EXTRA"
       ],
       "rule_domain": "DIVIDER_CROSS"
     }

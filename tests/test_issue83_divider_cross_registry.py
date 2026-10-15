@@ -237,9 +237,10 @@ def test_receiving_production_resolver_uses_certified_cross_registry_not_collisi
     assert relief["rule_id"] == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
     assert relief["corner_type"] == "CROSS"
     assert evidence["manufacturing_dimensions_source"] == "CERTIFIED_REGISTRY_CROSS_PARAMETERS"
-    assert formula["slotted_fold_u"] == pytest.approx(68.0)
+    assert formula["slotted_fold_u"] == pytest.approx(66.0)
     assert formula["plain_fold_u"] == pytest.approx(60.0)
-    assert evidence["registry_variables"]["receiving_left_reflected_terminal_extra"] == pytest.approx(2.0)
+    assert "receiving_left_reflected_terminal_extra" not in evidence["registry_variables"]
+    assert relief["rule_revision"] == 1
     assert formula["fold_v"] == pytest.approx(27.0)
     assert formula["slot_width"] == pytest.approx(7.0)
     assert formula["slot_straight_depth"] == pytest.approx(24.0)
@@ -247,7 +248,7 @@ def test_receiving_production_resolver_uses_certified_cross_registry_not_collisi
     orientation = dict(evidence["mating_fold_orientation"])
     assert dict(orientation["sign_by_end"]) == {"MIN_Y": -1.0, "MAX_Y": 0.0}
     assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl1"
-    assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
+    assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(90.0)
     assert evidence["slot_end"] == "MIN_Y"
     assert diagnostics and diagnostics[0].illegal_penetration is False
     assert diagnostics[0].registry_status == "HIT"
@@ -264,37 +265,51 @@ def test_divider_cross_slot_end_requires_exactly_one_negative_object_fold():
             mating_fold_sign_by_end={"MIN_Y": -1.0, "MAX_Y": -1.0},
         )
 
-
-
-def test_reflected_receiving_cross_parameter_keeps_history_and_real_t():
-    """The original source C shape remains valid on its historical topology."""
+def test_only_restored_pre_dxf_divider_rule_is_active():
+    """The withdrawn reversed-left 68 mm formula must not re-enter CUTTING."""
     from ae_engine.certified_relief_formula_io import load_external_relief_rule_records
-    from ae_engine.certified_relief_registry import lookup_certified_divider_cross_relief
 
     records = [
-        r for r in load_external_relief_rule_records()
-        if r.get("rule_id") == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
+        record for record in load_external_relief_rule_records()
+        if record.get("rule_id") == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
     ]
-    assert [(r["revision"],r["active"]) for r in records] == [(1,False),(2,True)]
-    original = _receiving_reference_variables()
-    old = lookup_certified_divider_cross_relief(
-        cabinet_family="受電箱",variables=original,
-        mating_fold_sign_by_end={"MIN_Y":-1.,"MAX_Y":0.},
+    assert len(records) == 1
+    assert (records[0]["revision"], records[0]["active"]) == (1, True)
+    assert "receiving_left_reflected_terminal_extra" not in str(records[0]["formula"])
+    assert records[0]["formula"]["slotted_fold_u"] == "core_start + divider_fw_material"
+
+
+def test_withdrawn_left_fold_traversal_fails_closed_instead_of_manufacturing_68():
+    from copy import deepcopy
+    from ae_engine.divider_manufacturing import _divider_cross_registry_variables
+    from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    actual = _divider_cross_registry_variables(
+        divider_part, body, sheet_thickness=snap["t"],
     )
-    assert old.min_y.primary_u == pytest.approx(66.)
-    assert old.rule.revision == 2
-    reflected = dict(original, receiving_left_reflected_terminal_extra=original["T"])
-    new = lookup_certified_divider_cross_relief(
-        cabinet_family="受電箱",variables=reflected,
-        mating_fold_sign_by_end={"MIN_Y":-1.,"MAX_Y":0.},
+    assert "receiving_left_reflected_terminal_extra" not in actual
+    assert actual["core_start"] + actual["divider_fw_material"] == pytest.approx(66.0)
+
+    # Do not silently reinterpret a withdrawn left-panel mirror as a
+    # certified source; this is a safety gate, not an alternate product.
+    from dataclasses import replace
+    old_pieces = tuple(body.render_data.pieces)
+    mirrored_left = next(part for part in old_pieces if part.role == "left_side")
+    reversed_order = (
+        "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left"
     )
-    assert new.min_y.primary_u == pytest.approx(68.)
-    assert new.max_y.primary_u == pytest.approx(old.max_y.primary_u)
-    # The exact parameter is T rather than an independent fixed 2mm.
-    reflected["T"]=1.5
-    reflected["receiving_left_reflected_terminal_extra"]=1.5
-    thin=lookup_certified_divider_cross_relief(
-        cabinet_family="受電箱",variables=reflected,
-        mating_fold_sign_by_end={"MIN_Y":-1.,"MAX_Y":0.},
+    new_fold = tuple(
+        replace(row, phase6_key=key)
+        for row, key in zip(mirrored_left.fold_profile, reversed_order)
     )
-    assert thin.min_y.primary_u == pytest.approx(67.5)
+    altered_left = replace(mirrored_left, fold_profile=new_fold)
+    altered_render = replace(
+        body.render_data,
+        pieces=tuple(altered_left if part.role == "left_side" else part for part in old_pieces),
+    )
+    old_body = replace(body, render_data=altered_render)
+    with pytest.raises(ValueError, match="RECEIVING_LEFT_FOLD_TOPOLOGY_NOT_CERTIFIED"):
+        _divider_cross_registry_variables(divider_part, old_body, sheet_thickness=snap["t"])
