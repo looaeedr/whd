@@ -162,14 +162,48 @@ def test_multi_dialog_uses_sketch_highlight_for_second_and_third_size():
         assert applied[-1] == (0, (1, 4), 750, 1600, 350, 2)
         assert sorted(len(indices) for _, indices in
                       dimension_group_summary(adapter.layout["sets"][0]["bays"])) == [2, 3]
-        click(1)
-        click(4)
+        # Old multi-selection is cleared, next unconfigured Bay is now the
+        # ONLY highlight. The dimension rows live in LEFT Set/Bay children.
+        assert win._receiving_multi_applied["selected_bays"] == (0,)
+        assert canvas._receiving_selected_bays == frozenset({0})
+        assert win._receiving_confirmed_indices[0] == {1, 4}
+        assert win._receiving_confirmed_groups_host.winfo_manager()
+        assert "右側高亮" not in " ".join(
+            str(getattr(item, "cget", lambda x: "")("text"))
+            for item in win._receiving_dimension_groups_host.winfo_children()
+            if "text" in item.keys()
+        )
+        # The sketch now reflects real W/H geometry, not five equal boxes.
+        boxes = canvas._receiving_bay_hitboxes
+        widths = [box[2] - box[0] for box in boxes]
+        assert widths[0] > widths[1] > 0
+        assert widths[1] == pytest.approx(widths[4])
+        assert inputs["width"].get() == "800"
+        assert inputs["count"].get() == "1"
+        click(0)  # clear the auto-next focus before selecting another Bay
         click(2)
         inputs["width"].set("700")
-        inputs["count"].set("1")
+        inputs["height"].set("1700")
+        inputs["depth"].set("400")
         win._receiving_dimension_group_confirm()
-        assert applied[-1] == (0, (2,), 700, 1600, 350, 1)
+        assert applied[-1] == (0, (2,), 700, 1700, 400, 1)
+        assert win._receiving_multi_applied["selected_bays"] == (3,)
+        assert canvas._receiving_selected_bays == frozenset({3})
         assert len(dimension_group_summary(adapter.layout["sets"][0]["bays"])) == 3
+        boxes = canvas._receiving_bay_hitboxes
+        assert (boxes[2][3] - boxes[2][1]) > (boxes[0][3] - boxes[0][1])
+        # Explicitly confirming the final unconfigured Bays leaves nothing
+        # highlighted rather than accidentally reselecting an old multi-set.
+        click(3)
+        click(0)
+        click(3)
+        inputs["width"].set("800")
+        inputs["height"].set("1600")
+        inputs["depth"].set("350")
+        inputs["count"].set("2")
+        assert win._receiving_dimension_group_confirm() is True
+        assert win._receiving_multi_applied["selected_bays"] == ()
+        assert canvas._receiving_selected_bays == frozenset()
         win._receiving_multi_close()
     finally:
         root.destroy()
