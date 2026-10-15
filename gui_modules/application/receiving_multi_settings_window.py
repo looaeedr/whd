@@ -187,6 +187,15 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
     return paint_connected_bays(canvas, 1)
 
 
+def dimension_group_summary(bays):
+    """Derive arbitrary-sized W/H/D groups from canonical physical Bays."""
+    rows = {}
+    for index, bay in enumerate(bays):
+        key = tuple(float(bay[field]) for field in ("width", "height", "depth"))
+        rows.setdefault(key, []).append(index)
+    return tuple((dimensions, tuple(indices)) for dimensions, indices in rows.items())
+
+
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, resize_sets=None,
                         get_candidate_ports=None, get_inner_candidate_ports=None,
@@ -479,10 +488,29 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             win.after_idle(show_setting_controls)
             win.after_idle(refresh_manager_controls)
 
+    def safe_single_holes(role):
+        try:
+            edit_single_holes(role)
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
         active_ports["ports"] = None
+        if single_mode:
+            if selected_setting["kind"] == "head_features":
+                if edit_single_holes is not None:
+                    for role, label in (("head", "封頭孔"), ("tail", "封尾孔")):
+                        ttk.Button(
+                            settings_host, text=label + "編輯",
+                            command=lambda role=role: safe_single_holes(role),
+                        ).pack(side="left", padx=4)
+            elif selected_setting["kind"] == "inner_door_layers":
+                ttk.Label(
+                    settings_host, text="內門開孔請使用原開孔編輯器的受電箱頁籤"
+                ).pack(anchor="w")
+            return
         if selected_setting["kind"] is None or applied["mode"] == "quantity":
             # Version feature design will be handled separately. Preserve the
             # existing QuantityModel but do not render a version editor here.
