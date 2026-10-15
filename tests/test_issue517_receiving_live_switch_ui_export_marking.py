@@ -793,8 +793,16 @@ def test_receiving_part_switch_back_to_assembly_still_renders_true_3d():
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
         renderer = designer.final_scene_view
-        for part in ("door", "head"):
-            assert part in designer.designer_workspace.available_parts
+        available = tuple(designer.designer_workspace.available_parts)
+        # Receiving's outer Door is dynamically split into door_cN_rN,
+        # so test a REAL available Door, not Vault's standalone `door` key.
+        outer_door = next(
+            key for key in available
+            if key == "door" or key.startswith("door_c")
+        )
+        side = "box_body:left_side" if "box_body:left_side" in available else "box_body"
+        for part in (outer_door, side, "head"):
+            assert part in available
             designer.activate_part(part)
             _pump(root, 3)
             assert renderer.cutting_mesh_error is None, (
