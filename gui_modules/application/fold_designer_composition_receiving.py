@@ -1054,8 +1054,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     from .receiving_multi_settings_window import open_multi_settings
     # Verified source/panel evidence is per currently edited Set/Bay, ephemeral.
     # Nothing here is saved to the project or allowed to bypass #1500.
-    pending_verified_nfb = {}
-    committed_nfb_evidence = {}  # session-only proof, NEVER persisted or blanket approved
+    # Reuse session-only verification between the embedded Hole Editor tab
+    # and Multi-connection operator view. Every consumer still revalidates
+    # the exact saved Bay/source before manufacturing actions.
+    evidence = getattr(self.app, "_receiving_nfb_ui_session_evidence", None)
+    if evidence is None:
+        evidence = {"pending": {}, "committed": {}}
+        self.app._receiving_nfb_ui_session_evidence = evidence
+    pending_verified_nfb = evidence["pending"]
+    committed_nfb_evidence = evidence["committed"]  # NEVER serialized
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
