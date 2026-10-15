@@ -97,6 +97,11 @@ class Phase6DesignerWorkspace:
             self.mark_dirty()
 
     @property
+    def active_mode(self) -> str:
+        """O(1) read of the authoritative Receiving mode, no workspace copy."""
+        return str(self._active_mode)
+
+    @property
     def quantity_model(self) -> QuantityModel | None:
         return self._quantity_model
 
