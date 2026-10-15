@@ -398,11 +398,37 @@ def test_invalid_unselected_feature_blocks_before_manufacturing_cache_lookup():
         resolve_manufacturing_for_app(app)
 
 
+@pytest.fixture
+def receiving_gui_stall_guard():
+    """Fail a stuck headless GUI test with its last operator action, not CI timeout."""
+    import signal
+
+    state = {"stage": "setup"}
+    def checkpoint(stage):
+        state["stage"] = stage
+
+    if not hasattr(signal, "SIGALRM"):
+        yield checkpoint
+        return
+
+    prior_handler = signal.getsignal(signal.SIGALRM)
+    def expired(_signum, _frame):
+        raise TimeoutError("Receiving Tk regression stalled for 300s at " + state["stage"])
+
+    signal.signal(signal.SIGALRM, expired)
+    signal.alarm(300)
+    try:
+        yield checkpoint
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, prior_handler)
+
+
 @pytest.mark.skipif(
     not __import__("os").environ.get("DISPLAY"),
     reason="Receiving settings defaults regression needs a real Tk/Xvfb",
 )
-def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypatch):
+def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypatch, receiving_gui_stall_guard):
     """Operator sizes belong to current Quantity/Set-Bay, NOT Settings defaults.
 
     The existing global Settings values (including config.ini save payload)
@@ -425,8 +451,10 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         _open_vault_designer, _pump, _close,
     )
 
+    receiving_gui_stall_guard("open designer")
     tk, root, _main, designer = _open_vault_designer()
     try:
+        receiving_gui_stall_guard("switch to receiving")
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
         defaults = {
@@ -436,6 +464,7 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         family_defaults = tuple(BOX_BODY_DEFAULTS[axis] for axis in ("w", "h", "d"))
         assert family_defaults == (800.0, 1600.0, 350.0)
 
+        receiving_gui_stall_guard("open single settings")
         single = bridge._phase6_open_receiving_single_settings(designer)
         _pump(root, 2)
         single_values = single._receiving_dimension_group_input
@@ -444,6 +473,7 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         single_values["depth"].set("410")
         single_values["count"].set("3")
         row = single._receiving_dimension_groups_host.winfo_children()[0].winfo_children()[0]
+        receiving_gui_stall_guard("confirm single cabinet dimensions")
         next(item for item in row.winfo_children()
              if item.winfo_class() == "TButton").invoke()
         _pump(root, 2)
@@ -452,10 +482,13 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         assert designer._phase6_box_whd["d"] == pytest.approx(410.)
         assert designer.designer_workspace.snapshot()["receiving_quantity_box"]["w"] == pytest.approx(875.)
         assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
+        receiving_gui_stall_guard("close single settings")
         single._receiving_multi_close()
 
+        receiving_gui_stall_guard("open multi settings")
         multi = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 2)
+        receiving_gui_stall_guard("apply set 0")
         assert multi._receiving_multi_apply(0)
         _pump(root, 2)
         multi_values = multi._receiving_dimension_group_input
@@ -463,6 +496,7 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         multi_values["width"].set("735")
         multi_values["depth"].set("375")
         multi_values["count"].set("1")
+        receiving_gui_stall_guard("confirm multi cabinet dimensions")
         assert multi._receiving_dimension_group_confirm() is True
         _pump(root, 2)
 
@@ -476,10 +510,12 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         assert designer._phase6_box_whd["w"] == pytest.approx(735.)
         assert designer._phase6_input_snapshot["w"] == pytest.approx(735.)
         assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
+        receiving_gui_stall_guard("close multi settings")
         multi._receiving_multi_close()
 
         # Reopen the single mode: retain the previous Quantity W/H/D while
         # the shared operator defaults stay untouched across both editors.
+        receiving_gui_stall_guard("reopen single settings")
         single_again = bridge._phase6_open_receiving_single_settings(designer)
         _pump(root, 2)
         restored = single_again._receiving_dimension_group_input
@@ -488,4 +524,5 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
         single_again._receiving_multi_close()
     finally:
+        receiving_gui_stall_guard("close root")
         _close(tk, root, designer)
