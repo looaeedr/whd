@@ -791,3 +791,27 @@ def test_issue1791_main_sketch_configure_burst_coalesces_one_idle_paint(monkeypa
         if win is not None and win.winfo_exists():
             win._receiving_multi_close()
         root.destroy()
+
+
+def test_issue1791_cancelled_idle_redraw_never_paints_destroyed_canvas():
+    """No orphan after callback after the sketch window is destroyed."""
+    from gui_modules.application.receiving_multi_settings_window import _IdleCanvasRedraw
+
+    root = tk.Tk()
+    root.geometry("350x280+0+0")
+    canvas = tk.Canvas(root, width=200, height=120)
+    canvas.pack()
+    root.update()
+    paints = []
+    try:
+        redraw = _IdleCanvasRedraw(canvas, lambda: paints.append(canvas.winfo_width()))
+        for _ in range(20):
+            redraw.request()
+        assert redraw.job is not None
+        redraw.cancel()
+        assert redraw.job is None
+        canvas.destroy()
+        root.update_idletasks()
+        assert paints == []
+    finally:
+        root.destroy()
