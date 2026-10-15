@@ -19,6 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    # #1792: canonical full-file GUI/3D runtime performance acceptance.
+    "tests/test_phase6_gui_performance_contract.py",
+    "tests/test_phase6_part_switch_performance.py",
     "tests/test_manufacturing_mesh_reuse.py",
     "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",
