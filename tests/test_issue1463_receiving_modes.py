@@ -510,7 +510,10 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         # Confirm intentionally advances focus to the next unconfigured Bay.
         # The applied Bay retains 735, while current W/H/D describe the newly
         # selected Bay; the global Settings defaults remain unchanged.
-        active_index = multi._receiving_multi_applied["selected"]
+        # The dialog clears its highlight when no unconfigured Bay remains.
+        # The authoritative adapter still tracks the last browsing selection.
+        adapter = composition.receiving_adapter(vars(bridge))
+        active_index = adapter.selection.bay_index
         active_bay = working["receiving_layout"]["sets"][0]["bays"][active_index]
         assert designer._phase6_box_whd["w"] == pytest.approx(active_bay["width"])
         assert designer._phase6_input_snapshot["w"] == pytest.approx(active_bay["width"])

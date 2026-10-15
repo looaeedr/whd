@@ -662,6 +662,14 @@ def _phase6_rebuild_linked_endcaps(self):
     box_profile = self.state.profiles_vault.get("箱身", [])
     snapshot = dict(self._phase6_input_snapshot)
     snapshot.update(getattr(self, "_settings_values", {}) or {})
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        # Settings dimensions are seeds, not the active Receiving Bay. Linked
+        # EndCaps must use the same live W/H/D as the committed BoxBody.
+        snapshot.update({
+            axis: value for axis, value in
+            dict(getattr(self, "_phase6_box_whd", {}) or {}).items()
+            if axis in ("w", "h", "d")
+        })
     snapshot["corner_state"] = deepcopy(getattr(self, "_phase6_corner_state", {}) or {})
     snapshot["corner_pair_same"] = deepcopy(getattr(self, "_phase6_corner_pair_same", {}) or {})
     snapshot["assembly_type"] = assembly_intent_value(getattr(
@@ -3266,7 +3274,6 @@ def _fix11_do_update(self):
         # active_bend="箱身" only as a visual highlight flag; mutating the shared
         # editor state here can race Tk notebook callbacks and makes the custom
         # X-only profile get indexed by "箱身" (KeyError).
-        result = _FIX10_DO_UPDATE(self)
         _phase6_replace_mapping(self, "_phase6_box_whd", {
             "w": original.get_int(self.v_w.get()),
             "h": original.get_int(self.v_h.get()),
@@ -3274,13 +3281,16 @@ def _fix11_do_update(self):
         })
         if not _phase6_receiving_layout_applicable(self):
             self._phase6_input_snapshot.update(self._phase6_box_whd)
+        # Resolve dimension-linked profiles BEFORE the one renderer/manufacturing
+        # pass; doing this afterwards invalidates its just-committed signature
+        # and forced a duplicate full solve during Receiving mode switches.
         _propagate_endcap_derived_cores(self, self._phase6_box_whd["w"], self._phase6_box_whd["d"])
         # The inherited MainApp constructor briefly owns an unannotated legacy
         # 5-row visual profile before load_phase6_snapshot() installs D-W-D
         # semantic metadata. Do not derive end caps from that bootstrap state.
         if getattr(self, "_phase6_sync_ready", False):
             _phase6_rebuild_linked_endcaps(self)
-        return result
+        return _FIX10_DO_UPDATE(self)
     if key in {"head", "tail"}:
         _sync_active_endcap_and_global_whd(self)
         return original.MainApp.do_update(self)
