@@ -18,6 +18,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
+      - name: Checkout Traditional Chinese release documents
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Checkout pinned released product
         uses: actions/checkout@v4
         with:
@@ -70,12 +74,24 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path output | Out-Null
+          $guide = 'docs/releases/WHD_Windows_使用說明.md'
+          $notes = 'docs/releases/WHD_v2026.10.15_更新紀錄.md'
+          if (!(Test-Path $guide) -or !(Test-Path $notes)) {
+            throw '缺少繁體中文使用說明或版本更新紀錄'
+          }
+          Copy-Item -LiteralPath $guide -Destination 'product/dist/WHD/使用說明.md'
+          Copy-Item -LiteralPath $notes -Destination 'product/dist/WHD/本次更新.md'
+          Copy-Item -LiteralPath 'product/使用說明書.md' -Destination 'product/dist/WHD/功能操作參考.md'
+          Copy-Item -LiteralPath $guide -Destination 'output/使用說明.md'
+          Copy-Item -LiteralPath $notes -Destination 'output/版本更新說明.md'
           $name = 'WHD_Windows_x64_v2026.10.15-x-7c1d6f59e358.zip'
           @"
-          WHD Windows portable application
-          Official source commit: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
-          Extract all contents, then run WHD/WHD.exe.
-          Keep the editable WHD/config.ini and WHD/基準檔 alongside WHD.exe.
+          WHD Windows 64 位元可攜式執行版
+          正式產品來源：7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          請先完整解壓縮，再開啟 WHD 資料夾並執行 WHD.exe。
+          請保留與 WHD.exe 同一資料夾內的 config.ini、基準檔及其他程式檔案。
+          下載、安裝與使用方法請參閱 使用說明.md。
+          本次功能更新請參閱 本次更新.md。
           "@ | Set-Content -Encoding utf8 'product/dist/WHD/BUILD_SOURCE.txt'
           Compress-Archive -LiteralPath 'product/dist/WHD' -DestinationPath "output/$name"
           $hash = (Get-FileHash "output/$name" -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -114,22 +130,26 @@ jobs:
           archive="WHD_Windows_x64_$RELEASE_TAG.zip"
           test -s "$archive"
           test -s SHA256.txt
+          test -s 使用說明.md
+          test -s 版本更新說明.md
+          grep -q '本次主要更新' 版本更新說明.md
+          grep -q '如何下載' 使用說明.md
           sha256sum --check SHA256.txt
           release_json="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,targetCommitish,isDraft,isPrerelease)"
           printf '%s' "$release_json" | jq -e \
             --arg tag "$RELEASE_TAG" --arg sha "$RELEASE_SHA" \
             '.tagName == $tag and .targetCommitish == $sha and .isDraft == false and .isPrerelease == false' >/dev/null
-          for filename in "$archive" "SHA256.txt"; do
-            if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
-              | jq -e --arg name "$filename" '.assets[] | select(.name == $name and .size > 0)' >/dev/null; then
-              echo "Existing release asset verified: $filename"
-            else
-              gh release upload "$RELEASE_TAG" "$filename" --repo "$GITHUB_REPOSITORY"
-            fi
+          # Same approved product version, new ZIP includes Traditional Chinese documentation.
+          for filename in "$archive" "SHA256.txt" "使用說明.md" "版本更新說明.md"; do
+            gh release upload "$RELEASE_TAG" "$filename" --clobber --repo "$GITHUB_REPOSITORY"
           done
-          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "版本更新說明.md"
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets,body \
             | jq -e --arg archive "$archive" '
                 ([.assets[] | select(.name == $archive and .size > 0)] | length) == 1
                 and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "使用說明.md" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "版本更新說明.md" and .size > 0)] | length) == 1
+                and (.body | contains("本次主要更新"))
               ' >/dev/null
           echo "OFFICIAL_WINDOWS_EXE_RELEASED: https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
