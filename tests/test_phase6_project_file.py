@@ -637,3 +637,114 @@ def test_p6fold_round_trip_preserves_receiving_bottom_wrap_linkage_and_reserves(
     loaded = project.read_project(path)
 
     assert loaded["snapshot"]["endcap_bottom_wrap"] == state
+
+
+# #1790: standalone designer persistence must not commit stale pending settings.
+def _issue1790_standalone_save_owner(path, *, initial_width=400):
+    from gui_modules.application import fold_designer_composition_state as state
+    settings = {"w": initial_width}
+    events = []
+    errors = []
+    app = SimpleNamespace(
+        root=None,
+        _phase6_pending_settings={"w": 500},
+        _phase6_current_project_path=str(path),
+        _project_save_callback=None,
+        active_part_key="box_body",
+        settings_status_var=SimpleNamespace(set=lambda value: events.append(("status", value))),
+    )
+
+    def flush():
+        events.append(("flush", None))
+        settings["w"] = app._phase6_pending_settings.pop("w")
+        return {"w": settings["w"]}
+
+    app.flush_pending_settings = flush
+
+    class Composition:
+        def __init__(self):
+            self.app = app
+
+        def _required(self, namespace, key):
+            assert key == "_phase6_project_file"
+            return project
+
+        def build_project_snapshot(self, namespace):
+            events.append(("snapshot", settings["w"]))
+            return {
+                "schema": project.PROJECT_SCHEMA,
+                "snapshot": {
+                    "model": "金庫型", "w": settings["w"],
+                    "h": 600, "d": 200, "t": 2,
+                },
+                "final_geometry": {},
+            }
+
+    return state, Composition(), app, settings, events, errors
+
+
+def test_issue1790_fallback_save_flush_failure_keeps_existing_file_bytes(tmp_path, monkeypatch):
+    from tkinter import messagebox
+
+    path = tmp_path / "existing.p6fold"
+    original = b"existing committed project file must remain untouched"
+    path.write_bytes(original)
+    state, comp, app, settings, events, errors = _issue1790_standalone_save_owner(path)
+
+    def fail_flush():
+        events.append(("flush", None))
+        raise RuntimeError("pending settings cannot be committed")
+
+    app.flush_pending_settings = fail_flush
+    monkeypatch.setattr(messagebox, "showerror", lambda title, message, **kw: errors.append((title, message)))
+
+    assert state.save_project_file(comp, {}) is None
+    assert path.read_bytes() == original
+    assert app._phase6_pending_settings == {"w": 500}
+    assert events == [("flush", None)]
+    assert errors and "pending settings cannot be committed" in errors[0][1]
+
+
+def test_issue1790_fallback_save_flush_failure_does_not_create_new_file(tmp_path, monkeypatch):
+    from tkinter import messagebox
+
+    path = tmp_path / "new.p6fold"
+    state, comp, app, settings, events, errors = _issue1790_standalone_save_owner(path)
+    app._phase6_current_project_path = ""
+    app.baseline_model_var = SimpleNamespace(get=lambda: "金庫型")
+
+    def fail_flush():
+        raise RuntimeError("settings transaction failed before Save As")
+
+    app.flush_pending_settings = fail_flush
+    monkeypatch.setattr(messagebox, "showerror", lambda title, message, **kw: errors.append((title, message)))
+    monkeypatch.setattr("tkinter.filedialog.asksaveasfilename", lambda **kw: str(path))
+
+    assert state.save_project_file(comp, {}, save_as=True) is None
+    assert not path.exists()
+    assert app._phase6_pending_settings == {"w": 500}
+    assert errors and "settings transaction failed" in errors[0][1]
+    assert events == []
+
+
+def test_issue1790_fallback_success_flushes_last_settings_before_save_reload(tmp_path):
+    path = tmp_path / "current.p6fold"
+    state, comp, app, settings, events, errors = _issue1790_standalone_save_owner(path)
+    saved = state.save_project_file(comp, {})
+
+    assert saved == str(path)
+    assert events[:2] == [("flush", None), ("snapshot", 500)]
+    assert app._phase6_pending_settings == {}
+    assert project.read_project(path)["snapshot"]["w"] == pytest.approx(500)
+
+
+def test_issue1790_host_callback_save_preserves_existing_owner(tmp_path):
+    path = tmp_path / "host-owned.p6fold"
+    state, comp, app, settings, events, errors = _issue1790_standalone_save_owner(path)
+    captured = []
+    app._project_save_callback = lambda **kw: captured.append(kw) or "HOST_COMMITTED"
+
+    assert state.save_project_file(comp, {}, save_as=True) == "HOST_COMMITTED"
+    assert captured == [{"save_as": True, "active_part": "box_body"}]
+    assert events == []
+    assert not path.exists()
