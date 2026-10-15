@@ -79,7 +79,7 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
 
     from ae_engine.cabinet_types import policy as cabinet_family_policy
     from ae_engine.sheetmetal_part_adapters import (
-        build_door_result, DoorFrameEdges,
+        build_door_result, build_finished_reference_guide, DoorFrameEdges,
     )
     from ae_engine.sheetmetal_features import feature_surface_from_structural_result
     from ae_engine import manufacturing_api
@@ -104,7 +104,13 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         ),
     )
     surface = feature_surface_from_structural_result("door", structural)
-    guide = inner_door_work_area_guide(snapshot, panel, structural)
+    # Original checkbox: OFF measures from the real inner-door finished face;
+    # ON measures from its authoritative full work-area (e.g. 800 x 1100).
+    door_guide = build_finished_reference_guide(
+        "door", structural, finished_width=panel.width,
+        finished_height=panel.height,
+    )
+    work_area_guide = inner_door_work_area_guide(snapshot, panel, structural)
     # The inner-door hole UI must show the same physical CUTTING/BEND as
     # its produced DXF. Reuse Vault certified folding/corner rules without
     # importing the OUTER Vault Door's fixed handle/nameplate holes into a
@@ -130,7 +136,8 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
     title = "內門門板：" + str(panel.inner_door_id)
     window = host._open_unified_hole_editor(
         part_key, title, surface, structural.width, structural.height,
-        reference_guide=guide,
+        reference_guide=door_guide,
+        cabinet_reference_guide=work_area_guide,
         feature_list_override=features,
         sync_callback=commit,
         door_frame_edges=DoorFrameEdges(
