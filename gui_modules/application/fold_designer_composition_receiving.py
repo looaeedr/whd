@@ -1434,9 +1434,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             }
         else:
             initial = inner_config(inner_library(), version_id)
-        initial.setdefault(
-            "layer_heights_mm", list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
-        )
+        if initial.get("layer_heights_mm") is None:
+            # Legacy already-verified NFB stays at its old Y until the
+            # operator explicitly saves the 330/830 editor defaults.
+            initial["layer_heights_mm"] = list(
+                SETTING_DEFAULTS["inner_door_layer_heights_mm"]
+            )
         parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
         multi_entry = bool(
             parent_modal is not None and parent_modal.winfo_exists()
