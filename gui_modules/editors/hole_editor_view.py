@@ -328,8 +328,10 @@ class HoleEditorWindowShellBuilder:
 
     @staticmethod
     def window_geometry(screen_w, screen_h):
-        win_w = max(720, min(1280, screen_w - 80))
-        win_h = max(560, min(820, screen_h - 120))
+        # Hard minimum sizes used to exceed small operator screens.
+        # Keep the window within the monitor; overflowing controls scroll.
+        win_w = min(1280, max(320, int(screen_w) - 40))
+        win_h = min(820, max(300, int(screen_h) - 80))
         pos_x = max(0, (screen_w - win_w) // 2)
         pos_y = max(0, (screen_h - win_h) // 2)
         return win_w, win_h, pos_x, pos_y, f"{win_w}x{win_h}+{pos_x}+{pos_y}"
