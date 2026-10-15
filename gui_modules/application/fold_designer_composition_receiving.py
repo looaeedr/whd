@@ -1090,6 +1090,22 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         ports["select"](int(bay_index))
         return setting_value(ports["row"](), int(bay_index), kind)
 
+    def single_brand():
+        from ae_engine.receiving_quantity_box import normalize_common_box
+        source = _current_mode_snapshot(self, namespace)
+        return normalize_common_box(source.get("receiving_quantity_box"))["switch_brand"]
+
+    def set_single_brand(value):
+        from ae_engine.receiving_quantity_box import update_common_box
+        source = _current_mode_snapshot(self, namespace)
+        if source.get("active_mode") != "quantity":
+            raise ValueError("單只品牌需在單箱體模式設定")
+        if single_brand() == value:
+            return False
+        candidate = update_common_box(source, {"switch_brand": value})
+        _apply_mode_snapshot(self, namespace, candidate)
+        return True
+
     def set_global_brand(value):
         # The original Receiving layout is the one NFB authority. In the
         # modal, edit data only; geometry rebuild on ComboboxSelected blocks
@@ -2732,8 +2748,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_nfb_transaction_ports=nfb_transaction_ports,
         select_bay=select_bay,
         on_setting_selected=select_existing_setting,
-        get_brand=lambda: self.receiving_switch_adapter(namespace).brand,
-        set_brand=set_global_brand,
+        get_brand=(single_brand if single else
+                   lambda: self.receiving_switch_adapter(namespace).brand),
+        set_brand=set_single_brand if single else set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_original_door_marks=existing_door_marks,
         get_initial_door_marks=cached_initial_door_marks,
@@ -2743,7 +2760,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_single_size_quantity=single_size_quantity,
         set_single_size_quantity=set_single_size_quantity,
         edit_single_holes=edit_single_holes,
-        on_brand_close=finalize_global_brand,
+        on_brand_close=None if single else finalize_global_brand,
         on_close=lambda: _restore_receiving_assembly_after_modal(self, namespace),
         dialog_kind="single" if single else "multi",
     )
