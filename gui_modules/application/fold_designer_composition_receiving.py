@@ -2640,7 +2640,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     return open_multi_settings(
         self.app.root,
-        get_snapshot=lambda: _current_mode_snapshot(self, namespace),
+        # Modal ownership needs only the Set/Bay mode. A full mode snapshot
+        # deep-copies the complete workspace/part-feature graph and delayed
+        # the FIRST 單只/多連 opening even when no editor was selected.
+        get_snapshot=lambda: {
+            "active_mode": self.app._phase6_input_snapshot.get(
+                "active_mode", "set_bay"
+            ),
+        },
         get_switch=lambda: self.receiving_switch_adapter(namespace),
         switch_mode=lambda mode: _switch_mode(self, namespace, mode),
         resize_connections=lambda index, delta: self.resize_receiving_bays(
