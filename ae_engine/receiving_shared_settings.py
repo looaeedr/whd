@@ -2,6 +2,7 @@
 """Receiving 每連設定的獨立共享關係；UI 只保存選取，不擁有設定值。"""
 from copy import deepcopy
 from collections.abc import Mapping
+from math import isfinite
 
 SETTING_DEFAULTS = {
     "back_panel_mode": "FULL",
@@ -11,6 +12,8 @@ SETTING_DEFAULTS = {
     # Two independent layers; each slot accepts a legacy single filename or
     # multiple switch instances (including repeated identical DXF filenames).
     "inner_door_models": ["", ""],
+    # NFB opening-row centers measured from the TOP edge of the selected work area.
+    "inner_door_layer_heights_mm": [330.0, 830.0],
     # Per-Bay display provenance. None=never applied, ""=explicit 即時.
     "head_version_id": None,
     "tail_version_id": None,
@@ -73,6 +76,13 @@ def validate_setting(kind, value):
             raise ValueError("內門層數必須為 1 或 2")
     elif kind == "inner_door_models":
         value = switch_model_layers(value)
+    elif kind == "inner_door_layer_heights_mm":
+        if (not isinstance(value, (list, tuple)) or len(value) != 2
+                or any(type(v) not in (int, float) or not isfinite(float(v))
+                       or float(v) <= 0 for v in value)
+                or float(value[0]) >= float(value[1])):
+            raise ValueError("第一層／第二層高度須為正數、由上往下遞增（mm）")
+        value = [float(v) for v in value]
     elif not isinstance(value, (list, tuple)):
         raise ValueError("封頭尾設定必須是 Hole Editor feature 清單")
     return deepcopy(value)
