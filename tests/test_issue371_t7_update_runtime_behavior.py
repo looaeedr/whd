@@ -261,7 +261,7 @@ def test_issue1789_nested_transaction_reentrant_immediate_final_intent():
 
     def execute(reasons):
         events.append(frozenset(reasons))
-        if reasons == {"geometry"}:
+        if "geometry" in reasons:
             scheduler.begin()
             scheduler.submit("annotation", immediate=True)
             scheduler.submit("camera")
