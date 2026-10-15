@@ -65,7 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          existing_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$APPROVED_TAG" --jq '.object.sha' 2>/dev/null || true)"
+          existing_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$APPROVED_TAG" 2>/dev/null | jq -r '.object.sha // empty' || true)"
           if [ -n "$existing_sha" ] && [ "$existing_sha" != "$APPROVED_SHA" ]; then
             echo "::error::OFFICIAL_TAG_WRONG_SHA"; exit 1
           fi
