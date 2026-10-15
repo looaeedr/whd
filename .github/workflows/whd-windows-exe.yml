@@ -88,3 +88,48 @@ jobs:
           path: output/*
           if-no-files-found: error
           retention-days: 30
+
+  publish-release:
+    name: Attach verified Windows ZIP to official WHD Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/localX' && github.repository == 'looaeedr/whd'
+    needs: windows-package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download successful Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: WHD-Windows-x64
+          path: windows-package
+      - name: Verify and upload official Windows portable build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: v2026.10.15-x-7c1d6f59e358
+          RELEASE_SHA: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd windows-package
+          archive="WHD_Windows_x64_$RELEASE_TAG.zip"
+          test -s "$archive"
+          test -s SHA256.txt
+          sha256sum --check SHA256.txt
+          release_json="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,targetCommitish,isDraft,isPrerelease)"
+          printf '%s' "$release_json" | jq -e \
+            --arg tag "$RELEASE_TAG" --arg sha "$RELEASE_SHA" \
+            '.tagName == $tag and .targetCommitish == $sha and .isDraft == false and .isPrerelease == false' >/dev/null
+          for filename in "$archive" "SHA256.txt"; do
+            if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+              | jq -e --arg name "$filename" '.assets[] | select(.name == $name and .size > 0)' >/dev/null; then
+              echo "Existing release asset verified: $filename"
+            else
+              gh release upload "$RELEASE_TAG" "$filename" --repo "$GITHUB_REPOSITORY"
+            fi
+          done
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            | jq -e --arg archive "$archive" '
+                ([.assets[] | select(.name == $archive and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
+              ' >/dev/null
+          echo "OFFICIAL_WINDOWS_EXE_RELEASED: https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
