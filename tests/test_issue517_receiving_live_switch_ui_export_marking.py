@@ -900,3 +900,79 @@ def test_receiving_modal_first_entry_defers_baselines_and_close_mounts_assembly(
             assert not designer.input_content_host.winfo_manager()
     finally:
         _close(tk, root, designer)
+
+
+def test_issue1796_real_tk_vault_receiving_single_setbay_modal_roundtrip_without_orphans(
+    monkeypatch, record_property,
+):
+    """Cross-mode GUI acceptance: receipt, visible Assembly, focus and cleanup stay in sync."""
+    import time
+    from tkinter import messagebox
+    import fold_designer_bridge as bridge
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    def unexpected_dialog(*args, **kwargs):
+        raise AssertionError(
+            f"unexpected blocking Tk dialog during #1796 mode roundtrip: {args!r} {kwargs!r}"
+        )
+
+    for name in ("showwarning", "showerror", "showinfo"):
+        monkeypatch.setattr(messagebox, name, unexpected_dialog)
+
+    tk, root, _app, designer = _open_vault_designer()
+    rows = []
+    try:
+        scene = designer.final_scene_view
+        vault_mesh = _mesh_bounds(scene.last_cutting_mesh)
+        vault_parts = _assembly_part_signatures(designer)
+
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        assert designer.designer_workspace.active_mode == "set_bay"
+        receiving_mesh = _mesh_bounds(scene.last_cutting_mesh)
+        receiving_parts = _assembly_part_signatures(designer)
+        assert receiving_mesh != vault_mesh
+
+        for expected_mode, opener in (
+            ("quantity", bridge._phase6_open_receiving_single_settings),
+            ("set_bay", bridge._phase6_open_receiving_multi_settings),
+        ):
+            started = time.perf_counter()
+            window = opener(designer)
+            try:
+                _pump(root, 5)
+                assert window.winfo_exists()
+                assert designer.designer_workspace.active_mode == expected_mode
+                assert window._receiving_multi_applied["mode"] == expected_mode
+                # Do not force a new solve just to pass the test. The existing
+                # committed manufacturing receipt must match the working state.
+                current_key = build_manufacturing_cache_key(designer).fingerprint
+                assert current_key == designer._phase6_last_resolved_manufacturing_signature
+                assert designer._phase6_last_resolved_manufacturing_geometry is not None
+                assert _assembly_part_signatures(designer)
+            finally:
+                if window.winfo_exists():
+                    window._receiving_multi_close()
+                _pump(root, 3)
+            assert designer.root.grab_current() is None
+            assert getattr(designer.root, "_receiving_multi_settings_window", None) is None
+            scheduler = designer._phase6_update_scheduler
+            assert not scheduler.dirty
+            assert scheduler._after_job is None
+            assert designer.part_var.get() == "組合體"
+            assert scene.cutting_mesh_error is None
+            rows.append((expected_mode, round((time.perf_counter() - started) * 1000, 2)))
+
+        # Returning to the preserved Set/Bay session cannot silently replace
+        # its physical 2D/3D scene with the temporary Quantity session.
+        assert _mesh_bounds(scene.last_cutting_mesh) == receiving_mesh
+        assert _assembly_part_signatures(designer) == receiving_parts
+
+        designer.baseline_model_var.set("金庫型")
+        _pump(root, 8)
+        assert _mesh_bounds(scene.last_cutting_mesh) == vault_mesh
+        assert _assembly_part_signatures(designer) == vault_parts
+        assert designer.root.grab_current() is None
+        record_property("issue1796_real_tk_modal_mode_wall_ms", repr(rows))
+    finally:
+        _close(tk, root, designer)
