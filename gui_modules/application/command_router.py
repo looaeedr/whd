@@ -125,6 +125,12 @@ class _Phase6UpdateScheduler:
                     render = getattr(self.owner, "draw_preview", None)
                     if callable(render):
                         render()
+                # A trace that republishes the reason currently being handled
+                # belongs to this same calculation transaction. It is already
+                # covered by the just-finished authoritative update, so avoid
+                # re-entering an identical full solve on every Tk callback.
+                # Distinct reasons remain queued for the next bounded pass.
+                self.dirty.difference_update(reasons)
             if self.depth == 0 and self.dirty:
                 exceeded_limit = True
                 raise RuntimeError(
