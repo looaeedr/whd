@@ -1,0 +1,135 @@
+name: Build WHD Windows EXE
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-windows-exe.yml'
+  push:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-windows-exe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-package:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout pinned released product
+        uses: actions/checkout@v4
+        with:
+          ref: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          path: product
+          persist-credentials: false
+      - name: Python 3.12 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Verify exact source and dependencies
+        shell: pwsh
+        working-directory: product
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne '7c1d6f59e3582bdff10af1c3d432d375341c0bea') {
+            throw 'Unexpected product SHA'
+          }
+          if (!(Test-Path '基準檔') -or !(Test-Path 'config.ini')) {
+            throw 'Missing required editable DXF/config data'
+          }
+          python -m pip install --disable-pip-version-check -r requirements.txt 'pyinstaller==6.16.0' matplotlib pillow
+          python -c "import tkinter,ezdxf,shapely,matplotlib,gui; print('WHD_IMPORT_OK')"
+      - name: Build portable Windows application
+        shell: pwsh
+        working-directory: product
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --contents-directory . --name WHD --collect-submodules ae_engine --collect-submodules gui_modules --add-data '基準檔;基準檔' --add-data 'config.ini;.' --add-data 'config;config' gui.py
+          if (!(Test-Path 'dist/WHD/WHD.exe')) { throw 'Missing WHD.exe' }
+          if (!(Test-Path 'dist/WHD/config.ini')) { throw 'Missing external config.ini' }
+          if (!(Test-Path 'dist/WHD/基準檔')) { throw 'Missing DXF baseline directory' }
+          if (!(Get-ChildItem 'dist/WHD/基準檔' -Recurse -Filter '*.dxf' | Select-Object -First 1)) {
+            throw 'DXF baseline contents missing'
+          }
+      - name: Smoke-test launched WHD.exe
+        shell: pwsh
+        working-directory: product
+        run: |
+          $folder = (Resolve-Path 'dist/WHD').Path
+          $exe = Join-Path $folder 'WHD.exe'
+          $process = Start-Process -FilePath $exe -WorkingDirectory $folder -PassThru
+          try {
+            Start-Sleep -Seconds 12
+            $process.Refresh()
+            if ($process.HasExited) { throw "WHD.exe exited during startup: $($process.ExitCode)" }
+          } finally {
+            if (!$process.HasExited) { Stop-Process -Id $process.Id -Force }
+          }
+      - name: Create portable ZIP and SHA256
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path output | Out-Null
+          $name = 'WHD_Windows_x64_v2026.10.15-x-7c1d6f59e358.zip'
+          @"
+          WHD Windows portable application
+          Official source commit: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          Extract all contents, then run WHD/WHD.exe.
+          Keep the editable WHD/config.ini and WHD/基準檔 alongside WHD.exe.
+          "@ | Set-Content -Encoding utf8 'product/dist/WHD/BUILD_SOURCE.txt'
+          Compress-Archive -LiteralPath 'product/dist/WHD' -DestinationPath "output/$name"
+          $hash = (Get-FileHash "output/$name" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $name" | Set-Content -Encoding ascii 'output/SHA256.txt'
+          Write-Host "PACKAGED $name SHA256 $hash"
+      - name: Upload Windows package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WHD-Windows-x64
+          path: output/*
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-release:
+    name: Attach verified Windows ZIP to official WHD Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/localX' && github.repository == 'looaeedr/whd'
+    needs: windows-package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download successful Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: WHD-Windows-x64
+          path: windows-package
+      - name: Verify and upload official Windows portable build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: v2026.10.15-x-7c1d6f59e358
+          RELEASE_SHA: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd windows-package
+          archive="WHD_Windows_x64_$RELEASE_TAG.zip"
+          test -s "$archive"
+          test -s SHA256.txt
+          sha256sum --check SHA256.txt
+          release_json="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,targetCommitish,isDraft,isPrerelease)"
+          printf '%s' "$release_json" | jq -e \
+            --arg tag "$RELEASE_TAG" --arg sha "$RELEASE_SHA" \
+            '.tagName == $tag and .targetCommitish == $sha and .isDraft == false and .isPrerelease == false' >/dev/null
+          for filename in "$archive" "SHA256.txt"; do
+            if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+              | jq -e --arg name "$filename" '.assets[] | select(.name == $name and .size > 0)' >/dev/null; then
+              echo "Existing release asset verified: $filename"
+            else
+              gh release upload "$RELEASE_TAG" "$filename" --repo "$GITHUB_REPOSITORY"
+            fi
+          done
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            | jq -e --arg archive "$archive" '
+                ([.assets[] | select(.name == $archive and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
+              ' >/dev/null
+          echo "OFFICIAL_WINDOWS_EXE_RELEASED: https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
