@@ -136,7 +136,10 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
     title = "內門門板：" + str(panel.inner_door_id)
     window = host._open_unified_hole_editor(
         part_key, title, surface, structural.width, structural.height,
-        reference_guide=door_guide,
+        # The operator editor always DISPLAYS the full work area (800x1100).
+        # The checkbox changes measurement authority, not the shown size.
+        reference_guide=work_area_guide,
+        local_reference_guide=door_guide,
         cabinet_reference_guide=work_area_guide,
         feature_list_override=features,
         sync_callback=commit,
