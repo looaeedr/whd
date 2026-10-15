@@ -928,7 +928,20 @@ def test_issue1796_real_tk_vault_receiving_single_setbay_modal_roundtrip_without
 
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
+        # Baseline switching may correctly preserve the active Quantity
+        # session; enter Set/Bay via the actual operator modal, not an
+        # invented default-mode assumption.
+        if designer.designer_workspace.active_mode != "set_bay":
+            initial = bridge._phase6_open_receiving_multi_settings(designer)
+            try:
+                _pump(root, 4)
+                assert designer.designer_workspace.active_mode == "set_bay"
+            finally:
+                if initial.winfo_exists():
+                    initial._receiving_multi_close()
+                _pump(root, 3)
         assert designer.designer_workspace.active_mode == "set_bay"
+        assert designer.root.grab_current() is None
         receiving_mesh = _mesh_bounds(scene.last_cutting_mesh)
         receiving_parts = _assembly_part_signatures(designer)
         assert receiving_mesh != vault_mesh
