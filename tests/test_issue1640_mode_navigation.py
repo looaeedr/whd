@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from gui_modules.application.receiving_multi_settings_window import open_multi_settings
 
 
-def test_removed_main_quantity_mode_keeps_set_bay_editor_and_modal_grab():
+def test_mode_toggle_and_manager_stay_operable_without_forced_window_exit():
     root = tk.Tk()
     root.geometry("800x600+0+0")
     root.update()
