@@ -1385,7 +1385,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     )
     from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
     from ae_engine.receiving_hole_candidates import version_label
-    from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer
+    from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
     from ae_engine.receiving_switch_model_catalog import model_filenames, display_model, INDEX_PATH
 
     def inner_library():
@@ -1430,10 +1430,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             initial = {
                 "layers": setting_value(set_row, bi, "inner_door_layers"),
                 "models": setting_value(set_row, bi, "inner_door_models"),
+                "layer_heights_mm": setting_value(set_row, bi, "inner_door_layer_heights_mm"),
             }
         else:
             initial = inner_config(inner_library(), version_id)
+        initial.setdefault(
+            "layer_heights_mm", list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
+        )
         parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
+        multi_entry = bool(
+            parent_modal is not None and parent_modal.winfo_exists()
+            and self.app.designer_workspace.active_mode == "set_bay"
+        )
+        # The Set/Bay version editor (standalone) writes candidate X;
+        # ordinary Hole Editor tab entries update the currently drawn Bay.
+        direct_to_drawing = embed_parent is not None and not multi_entry
         owner = parent_modal if (parent_modal is not None
                                  and parent_modal.winfo_exists()) else self.app.root
         if embed_parent is None:
@@ -1460,6 +1471,28 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # DIFFERENT concepts. The #1491 draft must not rewrite either owner.
         layers = tk.IntVar(master=modal, value=initial["layers"])
         nfb_physical_layers = tk.IntVar(master=modal, value=initial["layers"])
+        layer_height_vars = tuple(
+            tk.StringVar(master=modal, value=f"{float(v):g}")
+            for v in initial["layer_heights_mm"]
+        )
+        def read_layer_heights():
+            try:
+                heights = [float(field.get().strip()) for field in layer_height_vars]
+            except (TypeError, ValueError) as exc:
+                raise ValueError("請輸入有效的第一層、第二層高度（mm）") from exc
+            heights = validate_setting("inner_door_layer_heights_mm", heights)
+            snapshot = _current_mode_snapshot(self, namespace)
+            columns = snapshot.get("door_layout_columns") or ()
+            from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+            cells = derive_door_layout_cells(columns) if columns else ()
+            upper_cells = [item for item in cells if item.row_index == 0]
+            work_height = (
+                float(upper_cells[0].start_height) if len(upper_cells) == 1
+                else float(snapshot.get("h", 0.0))
+            )
+            if work_height <= 0 or heights[layers.get()-1] >= work_height:
+                raise ValueError("層高必須在目前內門作業區內，且第一層須在第二層上方")
+            return heights
         summary_row = ttk.Frame(frame)
         summary_row.pack(fill="x", pady=(4, 6))
         controls = ttk.Frame(summary_row)
@@ -1520,7 +1553,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             return effective_nfb_layer_brand(d, index)
 
         def paint_draft_preview():
+            try:
+                staged_heights = read_layer_heights()
+            except (ValueError, TypeError, KeyError) as exc:
+                preview_status.set(str(exc))
+                return
             config = {
+                "layer_heights_mm": staged_heights,
                 "layers": layers.get(),
                 "models": [
                     pack_switch_layer(chosen[0]),
@@ -1528,6 +1567,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 ],
             }
             before = {
+                "layer_heights_mm": initial["layer_heights_mm"],
                 "layers": initial["layers"],
                 "models": [
                     pack_switch_layer(switch_filenames_in_layer(initial["models"][0])),
@@ -1552,6 +1592,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 projection = nfb_ui1a_preview(
                     draft_state["draft"], bay_width_mm=width,
                     upper_cell_height_mm=height,
+                    layer_heights_mm=staged_heights,
                 )
                 segments = []
                 for entry in projection["layers"]:
@@ -1844,6 +1885,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         for idx in range(2):
             section = ttk.LabelFrame(slot_columns, text=f"第 {idx+1} 層開關")
             section.pack(fill="x", pady=(4, 6))
+            height_row = ttk.Frame(section)
+            height_row.grid(row=5, column=0, columnspan=3, sticky="w", padx=6, pady=(5, 7))
+            ttk.Label(height_row, text=f"第 {idx+1} 層高度（距作業區上緣 mm）").pack(side="left")
+            height_entry = ttk.Entry(
+                height_row, textvariable=layer_height_vars[idx], width=10,
+            )
+            height_entry.pack(side="left", padx=(8, 0))
+            height_entry.bind("<Return>", lambda _event: paint_draft_preview())
+            height_entry.bind("<FocusOut>", lambda _event: paint_draft_preview())
             section.columnconfigure(0, weight=1)
             section.columnconfigure(2, weight=1)
             ttk.Label(section, text="CSV 型號").grid(
@@ -2022,6 +2072,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         refresh_source(force=True)
         modal.after(1800, poll_source)
         modal._receiving_inner_switch_state = {
+            "layer_heights_mm": layer_height_vars,
+            "direct_to_drawing": direct_to_drawing,
             "chosen": chosen, "layers": layers,
             "edit_session": edit_session,
             "nfb_physical_layers": nfb_physical_layers,
@@ -2212,20 +2264,47 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     raise ValueError("開關索引.csv 已變動或來源型號失效")
                 config = {
                     "layers": layers.get(),
+                    "layer_heights_mm": read_layer_heights(),
                     "models": [
                         pack_switch_layer(chosen[0]),
                         pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
                     ],
                 }
-                if version_id is None:
-                    saved, vid = create_inner_candidate(inner_library(), config)
+                if direct_to_drawing:
+                    # No candidate/version creation on Single or ordinary Hole
+                    # Editor entry. Commit existing current-Bay shared settings
+                    # and re-project the graph through the normal scheduler.
+                    adapter = candidate_adapter()
+                    sel = adapter.selection
+                    bay = adapter.layout["sets"][sel.set_index]["bays"][sel.bay_index]
+                    if bay.get("nfb_config_submitted") is True:
+                        raise ValueError("此連 NFB 已驗證提交，請先取消／重新驗證實體孔位，不能偷偷移動已認證的孔")
+                    for kind, value in (
+                        ("inner_door_layers", config["layers"]),
+                        ("inner_door_models", config["models"]),
+                        ("inner_door_layer_heights_mm", config["layer_heights_mm"]),
+                        ("inner_door_version_id", ""),
+                    ):
+                        adapter.unlink_setting(kind)
+                        adapter.update_setting(kind, value)
+                    self.mark_receiving_switch_layout_dirty(namespace, adapter)
+                    self.sync_receiving_current_bay(namespace, refresh_controls=False)
+                    self.app._phase6_input_snapshot[
+                        "receiving_inner_door_layer_heights_mm"
+                    ] = list(config["layer_heights_mm"])
+                    self.app.designer_workspace.mark_dirty()
+                    self.app.submit_update_intent("geometry", commit=True)
+                    after_saved(None)
                 else:
-                    saved = update_inner_candidate(
-                        inner_library(), version_id, config,
-                    )
-                    vid = version_id
-                persist_inner(saved)
-                after_saved(vid)
+                    if version_id is None:
+                        saved, vid = create_inner_candidate(inner_library(), config)
+                    else:
+                        saved = update_inner_candidate(
+                            inner_library(), version_id, config,
+                        )
+                        vid = version_id
+                    persist_inner(saved)
+                    after_saved(vid)
                 close_editor(saved=True)
             except (ValueError, OSError, UnicodeError) as exc:
                 warning.set(str(exc))
@@ -2691,9 +2770,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         )
         ids = {item["id"] for item in inner_versions(inner_library())}
         state = {"version": stored if stored in ids else None}
+        if self.app.designer_workspace.active_mode != "set_bay":
+            state["version"] = None
         bar = ttk.Frame(container)
         bar.pack(fill="x", padx=8, pady=(5, 3))
-        status = ttk.Label(bar, text="受電箱內門｜沿用目前連的設定")
+        status = ttk.Label(
+            bar,
+            text=("受電箱內門｜直接套用目前圖面" if self.app.designer_workspace.active_mode != "set_bay"
+                  else "受電箱內門｜版本 X 另行套用到連"),
+        )
         status.pack(side="left")
         def apply_saved_version():
             version = state["version"]
@@ -2711,7 +2796,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             bar, text="套用到目前連", command=apply_saved_version,
             state="normal" if state["version"] is not None else "disabled",
         )
-        apply_button.pack(side="right")
+        if self.app.designer_workspace.active_mode == "set_bay":
+            apply_button.pack(side="right")
         editor_host = ttk.Frame(container)
         editor_host.pack(fill="both", expand=True)
         def mount_inner_editor():
@@ -2724,9 +2810,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 embed_parent=editor_host, after_closed=mount_inner_editor,
             )
         def saved_inner_version(version_id):
-            state["version"] = version_id
-            apply_button.configure(state="normal")
-            status.configure(text="內門版本已儲存；按「套用到目前連」才會改變配置")
+            if version_id is None:
+                state["version"] = None
+                status.configure(text="高度已套用目前圖面；未建立版本 X")
+            else:
+                state["version"] = version_id
+                apply_button.configure(state="normal")
+                status.configure(text="內門版本已儲存；按「套用到目前連」才會改變配置")
             editor_host.after_idle(mount_inner_editor)
         mount_inner_editor()
         return container
