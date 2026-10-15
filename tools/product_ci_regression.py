@@ -133,6 +133,7 @@ PYTEST_PATHS = (
     "tests/test_receiving_C_slot_22mm_real_world_debug.py",
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
     # Tk/Xvfb contract: real mapped modal windows, highlights and multi-Bay apply.
+    "tests/test_receiving_multi_settings_stage_20261010.py::test_issue1791_main_sketch_configure_burst_coalesces_one_idle_paint",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_modal_fullscreen_strict_controls_apply_and_highlight",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_compact_candidates_and_set_controls_use_original_combobox",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_sketch_multi_highlights_drive_existing_endcap_edits_without_link_buttons",
