@@ -105,8 +105,11 @@ class HoleEditorReferencePresentation:
 
     def active_reference_guide(self):
         context = self.context_provider()
-        if context.get("cabinet_locator_enabled") and context.get("cabinet_reference_guide") is not None:
-            return context["cabinet_reference_guide"]
+        if context.get("cabinet_reference_guide") is not None:
+            if context.get("cabinet_locator_enabled"):
+                return context["cabinet_reference_guide"]
+            if context.get("local_reference_guide") is not None:
+                return context["local_reference_guide"]
         if (
             context["active_part_key"] == "door"
             and context["indicator_box_dist_enabled"]
