@@ -868,20 +868,25 @@ def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
         app.submit_update_intent("geometry", commit=True)
     finally:
         previous_executor = scheduler.executor
-        def execute_without_preview(reasons):
+        def execute_with_committed_receiving_geometry(reasons):
             result = previous_executor(reasons)
-            # Manufacturing is independent of whether the user displays 3D.
-            # This remains inside the sole Scheduler calculation executor.
-            from phase6_manufacturing_adapter import resolve_for_app
-            try:
-                resolve_for_app(app)
-            except ValueError as exc:
-                if require_committed:
-                    raise
-                app.settings_status_var.set(str(exc))
+            # A 2D/3D view update may leave the Manufacturing receipt at the
+            # previous Set/Bay. Resolve only when its semantic signature differs,
+            # within the same single Scheduler calculation flush. Never treat a
+            # display-only mesh as evidence of a committed manufacturing result.
+            from phase6_manufacturing_adapter import (
+                build_manufacturing_cache_key, resolve_for_app,
+            )
+            current = build_manufacturing_cache_key(app).fingerprint
+            if current != getattr(app, "_phase6_last_resolved_manufacturing_signature", None):
+                try:
+                    resolve_for_app(app)
+                except ValueError as exc:
+                    if require_committed:
+                        raise
+                    app.settings_status_var.set(str(exc))
             return result
-        if not getattr(app, "preview_3d_enabled", True):
-            scheduler.executor = execute_without_preview
+        scheduler.executor = execute_with_committed_receiving_geometry
         try:
             scheduler.end()
             scheduler.flush_now()

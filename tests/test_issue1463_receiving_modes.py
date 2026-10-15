@@ -507,8 +507,13 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
         working = _current_mode_snapshot(composition, vars(bridge))
         assert working["receiving_layout"]["sets"][0]["bays"][0]["width"] == 735
         assert working["receiving_layout"]["sets"][0]["bays"][0]["depth"] == 375
-        assert designer._phase6_box_whd["w"] == pytest.approx(735.)
-        assert designer._phase6_input_snapshot["w"] == pytest.approx(735.)
+        # Confirm intentionally advances focus to the next unconfigured Bay.
+        # The applied Bay retains 735, while current W/H/D describe the newly
+        # selected Bay; the global Settings defaults remain unchanged.
+        active_index = multi._receiving_multi_applied["selected"]
+        active_bay = working["receiving_layout"]["sets"][0]["bays"][active_index]
+        assert designer._phase6_box_whd["w"] == pytest.approx(active_bay["width"])
+        assert designer._phase6_input_snapshot["w"] == pytest.approx(active_bay["width"])
         assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
         receiving_gui_stall_guard("close multi settings")
         multi._receiving_multi_close()
