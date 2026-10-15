@@ -663,8 +663,16 @@ def save_project_file(self, namespace, *, save_as=False):
     if getattr(app, "_phase6_pending_settings", None):
         try:
             app.flush_pending_settings()
-        except Exception:
-            pass
+        except Exception as exc:
+            # A failed Settings commit must not persist an older snapshot.
+            # Preserve the current project bytes and require a successful
+            # flush before any Save / Save As snapshot is built.
+            messagebox.showerror(
+                "存檔失敗",
+                f"尚有設定未能完成同步，專案未儲存：\n{exc}",
+                parent=app.root,
+            )
+            return None
 
     current = str(
         getattr(app, "_phase6_current_project_path", "") or ""
