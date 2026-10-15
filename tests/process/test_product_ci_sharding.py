@@ -48,6 +48,17 @@ def test_issue1795_sync_envelope_real_tk_suite_is_mandatory():
     assert "tests/test_phase6_sync_envelope.py" in PYTEST_PATHS
 
 
+def test_issue1796_main_and_designer_project_roundtrip_is_canonical():
+    """Final acceptance must really exercise both global and Designer Save paths."""
+    required = {
+        "tests/test_phase6_project_file.py::test_global_save_save_as_and_open_round_trip_project_without_forcing_3d",
+        "tests/test_phase6_project_file.py::test_main_connected_designer_project_save_as_persists_current_live_canonical_state",
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+    }
+    assert required.issubset(set(PYTEST_PATHS))
+    assert all(PYTEST_PATHS.count(selector) == 1 for selector in required)
+
+
 def test_outside_bend_bidirectional_gate_cannot_be_omitted_from_product_ci():
     mandatory = {
         "tests/test_outside_bend_bidirectional_hard_gate.py",

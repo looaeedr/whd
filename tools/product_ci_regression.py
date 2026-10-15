@@ -168,6 +168,9 @@ PYTEST_PATHS = (
     "tests/test_phase6_assembly_registry_gui_matrix.py",
     # Corner-policy rule duplicates must fail closed, using the real policy owner.
     "tests/test_certified_relief_registry_completion.py",
+    # #1796: real Tk Main GUI and connected Designer persistence boundaries.
+    "tests/test_phase6_project_file.py::test_global_save_save_as_and_open_round_trip_project_without_forcing_3d",
+    "tests/test_phase6_project_file.py::test_main_connected_designer_project_save_as_persists_current_live_canonical_state",
     "tests/test_phase6_project_file.py::test_project_round_trip_preserves_verified_joint_relief_state",
     "tests/test_phase6_project_file.py::test_p6fold_round_trip_preserves_receiving_bottom_wrap_linkage_and_reserves",
 )
