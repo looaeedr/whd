@@ -2644,9 +2644,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # deep-copies the complete workspace/part-feature graph and delayed
         # the FIRST 單只/多連 opening even when no editor was selected.
         get_snapshot=lambda: {
-            "active_mode": self.app._phase6_input_snapshot.get(
-                "active_mode", "set_bay"
-            ),
+            "active_mode": self.app.designer_workspace.active_mode,
         },
         get_switch=lambda: self.receiving_switch_adapter(namespace),
         switch_mode=lambda mode: _switch_mode(self, namespace, mode),
