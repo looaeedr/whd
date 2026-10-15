@@ -27,6 +27,7 @@ from phase6_assembly_presentation import (
 class AssemblyPanelActions:
     on_visibility_changed: Callable[[], None]
     on_multi_settings: Callable[[], object] | None = None
+    on_single_settings: Callable[[], object] | None = None
 
 
 class Phase6AssemblyPanel:
@@ -39,8 +40,13 @@ class Phase6AssemblyPanel:
 
         self.host = ttk.Frame(parent, padding=6)
         self.multi_settings_entry = ttk.Frame(self.host)
+        self.single_settings_button = ttk.Button(
+            self.multi_settings_entry, text="單只設定",
+            command=self.actions.on_single_settings,
+        )
+        self.single_settings_button.pack(side=tk.LEFT, padx=(0, 6))
         self.multi_settings_button = ttk.Button(
-            self.multi_settings_entry, text="多只設定",
+            self.multi_settings_entry, text="多連設定",
             command=self.actions.on_multi_settings,
         )
         self.multi_settings_button.pack(side=tk.LEFT)
@@ -85,6 +91,8 @@ class Phase6AssemblyPanel:
         self.detail_frames: dict[str, ttk.Frame] = {}
         self.detail_buttons: dict[str, ttk.Button] = {}
 
+        self.group_visible_vars: dict[str, tk.BooleanVar] = {}
+        self.group_children: dict[str, tuple[str, ...]] = {}
         self.group_sections: dict[str, ttk.Frame] = {}
         self.group_detail_frames: dict[str, ttk.Frame] = {}
         self.group_detail_buttons: dict[str, ttk.Button] = {}
@@ -233,6 +241,8 @@ class Phase6AssemblyPanel:
             self.detail_frames,
             self.detail_buttons,
             self.group_sections,
+            self.group_visible_vars,
+            self.group_children,
             self.group_detail_frames,
             self.group_detail_buttons,
         ):
@@ -292,7 +302,7 @@ class Phase6AssemblyPanel:
             header,
             text=str(row_data.label),
             variable=visible,
-            command=self.actions.on_visibility_changed,
+            command=self._on_part_visibility_changed,
         )
         check.pack(side=tk.LEFT, anchor=tk.W, fill=tk.X, expand=True)
 
@@ -343,6 +353,14 @@ class Phase6AssemblyPanel:
         self.detail_buttons[key] = button
         self.bind_scroll(row)
 
+    def _on_part_visibility_changed(self) -> None:
+        for key, children in self.group_children.items():
+            selected = self.group_visible_vars.get(key)
+            if selected is not None:
+                selected.set(all(self.visible_vars[part].get() for part in children
+                                 if part in self.visible_vars))
+        self.actions.on_visibility_changed()
+
     def _build_group(
         self,
         group_data: AssemblySyntheticGroup,
@@ -359,10 +377,25 @@ class Phase6AssemblyPanel:
         group.pack(fill=tk.X, pady=(0, 4))
         header = ttk.Frame(group)
         header.pack(fill=tk.X)
-        ttk.Label(
-            header,
-            text=str(group_data.label),
-            anchor=tk.W,
+        children = tuple(str(child.part_key) for child in group_data.children)
+        group_visible = tk.BooleanVar(
+            master=header,
+            value=all(old_visible.get(part, True) for part in children),
+        )
+        self.group_visible_vars[key] = group_visible
+        self.group_children[key] = children
+
+        def set_group_visible():
+            value = bool(group_visible.get())
+            for part in children:
+                visible = self.visible_vars.get(part)
+                if visible is not None:
+                    visible.set(value)
+            self.actions.on_visibility_changed()
+
+        ttk.Checkbutton(
+            header, text=str(group_data.label), variable=group_visible,
+            command=set_group_visible,
         ).pack(side=tk.LEFT, anchor=tk.W, fill=tk.X, expand=True)
 
         details = ttk.Frame(group)

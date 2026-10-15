@@ -462,19 +462,17 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         assert owner.multi_settings_button.winfo_ismapped()
         win = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 3)
-        assert win.title() == "多只設定"
-        # The dialog reflects the current canonical mode. Select Set/Bay
-        # explicitly before asserting its controls, rather than relying on a
-        # mismatched display that switches modes on the first connection edit.
+        assert win.title() == "多連設定"
+        # The main Quantity mode was removed; Set/Bay is selected on entry.
         mode_buttons = win._receiving_multi_mode_controls.winfo_children()
-        next(button for button in mode_buttons
-             if button.cget("value") == "set_bay").invoke()
+        assert not mode_buttons
+        assert win._receiving_multi_mode_var.get() == "set_bay"
         _pump(root, 3)
         # Only user-specified elements are exposed, no legacy editor or
         # extra brand/common-box/quantity-version controls.
         texts = _mapped_widget_texts(win)
         for expected in (
-            "套／連", "數量", "－套", "＋套", "第1套", "－連", "＋連", "套用",
+            "－套", "＋套", "第1套", "－連", "＋連", "套用",
         ):
             assert expected in texts, (expected, texts)
         assert [w.cget("text") for w in win._receiving_multi_set_buttons] == [
@@ -677,12 +675,10 @@ def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
         current = _current_mode_snapshot(composition, vars(bridge))['active_mode']
         win = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 4)
-        assert win._receiving_multi_mode_var.get() == current
-        assert win._receiving_multi_applied['mode'] == current
-        if current != 'set_bay':
-            radios = win._receiving_multi_mode_controls.winfo_children()
-            next(button for button in radios if button.cget('value') == 'set_bay').invoke()
-            _pump(root, 4)
+        assert win._receiving_multi_mode_var.get() == "set_bay"
+        assert win._receiving_multi_applied['mode'] == "set_bay"
+        assert _current_mode_snapshot(composition, vars(bridge))['active_mode'] == 'set_bay'
+        assert win._receiving_multi_mode_controls.winfo_children() == []
         row = win._receiving_multi_rows_host.winfo_children()[0]
         plus = next(button for button in row.winfo_children()
                     if button.winfo_class() == 'TButton' and button.cget('text') == '＋連')

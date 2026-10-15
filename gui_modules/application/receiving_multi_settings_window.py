@@ -197,7 +197,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         get_original_door_marks=None,
                         get_applied_version_labels=None,
                         get_real_cut_preview_request=None,
-                        on_close=None, on_brand_close=None):
+                        on_close=None, on_brand_close=None,
+                        dialog_kind="multi"):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -206,7 +207,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         return old
 
     win = tk.Toplevel(parent)
-    win.title("多只設定")
+    title = "單只設定" if dialog_kind == "single" else "多連設定"
+    win.title(title)
     # The primary application is not interactive while multi-settings is open.
     win.transient(parent)
     parent._receiving_multi_settings_window = win
@@ -222,10 +224,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         win.destroy()
         # Reconcile the original (hidden) controls only once on exit,
         # never from inside the +連 button's Tk callback.
-        if (topology_changed["value"] or brand_changed["value"]) and on_close is not None:
-            on_close()
         if brand_changed["value"] and on_brand_close is not None:
             on_brand_close()
+        # Always restore the originating Assembly page, even without edits.
+        if on_close is not None:
+            on_close()
 
     win.protocol("WM_DELETE_WINDOW", close)
     win._receiving_multi_close = close
@@ -286,7 +289,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     # Reflect the authoritative mode instead of deferring a hidden mode switch
     # (and its complete geometry rebuild) to the first connection edit.
-    initial_mode = get_snapshot().get("active_mode", "set_bay")
+    # The obsolete Quantity main mode has been removed from this window.
+    # Preserve the independent quantity allocation inside Version Manager.
+    initial_mode = "set_bay"
+    if get_snapshot().get("active_mode", "set_bay") != "set_bay":
+        if not switch_mode("set_bay"):
+            raise ValueError("無法切換為套／連模式")
     mode_var = tk.StringVar(master=win, value=initial_mode)
     top_left = ttk.Frame(left_host)
     top_left.pack(anchor="nw")
@@ -998,7 +1006,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             warn(exc)
 
     def warn(exc):
-        messagebox.showwarning("多只設定", str(exc), parent=win)
+        messagebox.showwarning(title, str(exc), parent=win)
         return False
 
     def ensure_set_mode():
@@ -1242,10 +1250,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         finally:
             mode_transition["busy"] = False
 
-    for text, value in (("套／連", "set_bay"), ("數量", "quantity")):
-        ttk.Radiobutton(mode_row, text=text, value=value,
-                        variable=mode_var, command=change_mode).pack(
-                            side="left", padx=(0, 16))
+    # No main mode radio buttons: this window edits Set/Bay only.
+    # The Version Manager still owns its separate 數量配置 page.
 
     canvas.bind("<Button-1>", click_bay)
     canvas.bind("<Configure>", lambda _event: render())

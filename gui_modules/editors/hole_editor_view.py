@@ -355,14 +355,27 @@ class HoleEditorWindowShellBuilder:
 
         body = tk.Frame(editor, bg=host.COLOR_BG)
         body.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        # Inner-door NFB settings live in a second page of THIS existing
+        # Unified Hole Editor, not a competing popup or a second hole owner.
+        work_area = body
+        if str(part_key).startswith("inner_door:") and str(part_key).endswith(":panel"):
+            receiving_tabs = ttk.Notebook(body)
+            receiving_tabs.pack(fill=tk.BOTH, expand=True)
+            holes_page = tk.Frame(receiving_tabs, bg=host.COLOR_BG)
+            receiving_page = ttk.Frame(receiving_tabs)
+            receiving_tabs.add(holes_page, text="  開孔編輯  ")
+            receiving_tabs.add(receiving_page, text="  受電箱  ")
+            editor._receiving_config_tabs = receiving_tabs
+            editor._receiving_config_frame = receiving_page
+            work_area = holes_page
         left = tk.Frame(
-            body, bg=host.COLOR_PANEL, width=min(320, max(270, win_w // 4))
+            work_area, bg=host.COLOR_PANEL, width=min(320, max(270, win_w // 4))
         )
         left.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 8))
         left.pack_propagate(False)
         left_insert_bar = tk.Frame(left, bg=host.COLOR_PANEL)
         left_insert_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        center = tk.Frame(body, bg=host.COLOR_BG)
+        center = tk.Frame(work_area, bg=host.COLOR_BG)
         center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         editor_tabs = None

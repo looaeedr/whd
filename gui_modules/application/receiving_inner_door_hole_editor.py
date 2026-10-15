@@ -140,7 +140,25 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         baseline_scene=render.scene,
         baseline_status_text="金庫型門板共用折彎／截角；內門孔位獨立",
     )
-    return window or getattr(host, "last_unified_hole_editor", None)
+    editor = window or getattr(host, "last_unified_hole_editor", None)
+    receiving_page = getattr(editor, "_receiving_config_frame", None)
+    if receiving_page is not None:
+        # Reuse the existing Receiving Set/Bay candidate/NFB data authority,
+        # placing its widgets inside the original Hole Editor's 受電箱 tab.
+        build_receiving_tab = getattr(
+            host, "_phase6_open_embedded_receiving_inner_editor", None,
+        )
+        if callable(build_receiving_tab):
+            build_receiving_tab(receiving_page)
+        else:
+            # Legacy preview/test hosts do not always mount the Assembly
+            # coordinator. They must still open the original Hole Editor.
+            # Production Bridge installs this port before any navigation.
+            from tkinter import ttk
+            ttk.Label(
+                receiving_page, text="目前未提供受電箱設定入口",
+            ).pack(anchor="w", padx=12, pady=12)
+    return editor
 
 
 def sync_inner_door_hole_editor_button(app, part_key: str) -> None:

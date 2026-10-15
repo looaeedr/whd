@@ -1047,15 +1047,22 @@ def _refresh_mode_controls(self, namespace):
     return True
 
 
-def open_receiving_multi_settings(self, namespace):
+def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inner_parent=None):
     """Route one Assembly dialog to existing Set/Bay and quantity owners."""
     if not self.receiving_layout_applicable():
         return False
     from .receiving_multi_settings_window import open_multi_settings
     # Verified source/panel evidence is per currently edited Set/Bay, ephemeral.
     # Nothing here is saved to the project or allowed to bypass #1500.
-    pending_verified_nfb = {}
-    committed_nfb_evidence = {}  # session-only proof, NEVER persisted or blanket approved
+    # Reuse session-only verification between the embedded Hole Editor tab
+    # and Multi-connection operator view. Every consumer still revalidates
+    # the exact saved Bay/source before manufacturing actions.
+    evidence = getattr(self.app, "_receiving_nfb_ui_session_evidence", None)
+    if evidence is None:
+        evidence = {"pending": {}, "committed": {}}
+        self.app._receiving_nfb_ui_session_evidence = evidence
+    pending_verified_nfb = evidence["pending"]
+    committed_nfb_evidence = evidence["committed"]  # NEVER serialized
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
@@ -1301,7 +1308,8 @@ def open_receiving_multi_settings(self, namespace):
         if workspace is not None:
             workspace.mark_dirty()
 
-    def inner_edit(role, version_id, after_saved):
+    def inner_edit(role, version_id, after_saved, *, embed_parent=None,
+                   after_closed=None):
         if role != INNER_ROLE:
             raise ValueError("內門版本權責錯誤")
         from tkinter import ttk, messagebox
@@ -1335,11 +1343,17 @@ def open_receiving_multi_settings(self, namespace):
         parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
         owner = parent_modal if (parent_modal is not None
                                  and parent_modal.winfo_exists()) else self.app.root
-        modal = tk.Toplevel(owner)
-        modal.title("內門版本編輯")
-        modal.transient(owner)
+        if embed_parent is None:
+            modal = tk.Toplevel(owner)
+            modal.title("內門版本編輯")
+            modal.transient(owner)
+            modal.geometry("820x750")
+        else:
+            # Use a removable frame so Confirm/Cancel can replace this draft
+            # without closing the parent Unified Hole Editor.
+            modal = ttk.Frame(embed_parent)
+            modal.pack(fill="both", expand=True)
         from .receiving_scroll_view import make_scrollable_frame
-        modal.geometry("820x750")
         modal_scroll, modal_content, modal_viewport = make_scrollable_frame(
             modal, tk=tk, ttk=ttk, width=790, height=680,
         )
@@ -2138,27 +2152,32 @@ def open_receiving_multi_settings(self, namespace):
                     and not messagebox.askyesno(
                         "捨棄未提交的 NFB 草稿？",
                         "目前 NFB 物理層、空槽或品牌選型的預覽尚未提交。確定捨棄？",
-                        parent=modal,
+                        parent=modal.winfo_toplevel(),
                     )):
                 return
             if modal.grab_current() is modal:
                 modal.grab_release()
             modal.destroy()
-            if parent_modal is not None and parent_modal.winfo_exists():
+            if embed_parent is not None:
+                if not saved and callable(after_closed) and embed_parent.winfo_exists():
+                    embed_parent.after_idle(after_closed)
+            elif parent_modal is not None and parent_modal.winfo_exists():
                 if parent_modal.grab_current() is None:
                     parent_modal.grab_set()
                 parent_modal.lift()
                 parent_modal.focus_set()
-        modal.protocol("WM_DELETE_WINDOW", close_editor)
-        modal.bind("<Escape>",lambda _event:close_editor())
+        if embed_parent is None:
+            modal.protocol("WM_DELETE_WINDOW", close_editor)
+            modal.bind("<Escape>",lambda _event:close_editor())
         for widget in buttons.winfo_children():
             if widget.cget("text") == "取消":
                 widget.configure(command=close_editor)
-        if owner.grab_current() is owner:
-            owner.grab_release()
-        modal.grab_set()
-        modal.lift()
-        modal.focus_set()
+        if embed_parent is None:
+            if owner.grab_current() is owner:
+                owner.grab_release()
+            modal.grab_set()
+            modal.lift()
+            modal.focus_set()
         return modal
 
     def inner_copy(role, version_id, destination):
@@ -2565,6 +2584,60 @@ def open_receiving_multi_settings(self, namespace):
             )
         } for bi in range(len(selected_set["bays"])))
 
+    if embedded_inner_parent is not None:
+        # The unified Hole Editor already owns the window and its modal grab.
+        # Reuse the same inner candidate editor inside the 受電箱 tab.
+        from tkinter import ttk, messagebox
+        from ae_engine.receiving_shared_settings import setting_value
+        container = embedded_inner_parent
+        adapter = candidate_adapter()
+        selection = adapter.selection
+        stored = setting_value(
+            adapter.layout["sets"][selection.set_index],
+            selection.bay_index, "inner_door_version_id",
+        )
+        ids = {item["id"] for item in inner_versions(inner_library())}
+        state = {"version": stored if stored in ids else None}
+        bar = ttk.Frame(container)
+        bar.pack(fill="x", padx=8, pady=(5, 3))
+        status = ttk.Label(bar, text="受電箱內門｜沿用目前連的設定")
+        status.pack(side="left")
+        def apply_saved_version():
+            version = state["version"]
+            if version is None:
+                messagebox.showwarning("內門版本", "請先確認並儲存內門版本", parent=container.winfo_toplevel())
+                return
+            try:
+                selected = candidate_adapter().selection
+                inner_apply(INNER_ROLE, version, selected.set_index,
+                            (selected.bay_index,))
+                status.configure(text="已套用到目前選取的內門")
+            except (ValueError, IndexError, RuntimeError) as exc:
+                messagebox.showwarning("內門版本", str(exc), parent=container.winfo_toplevel())
+        apply_button = ttk.Button(
+            bar, text="套用到目前連", command=apply_saved_version,
+            state="normal" if state["version"] is not None else "disabled",
+        )
+        apply_button.pack(side="right")
+        editor_host = ttk.Frame(container)
+        editor_host.pack(fill="both", expand=True)
+        def mount_inner_editor():
+            if not editor_host.winfo_exists():
+                return
+            for child in editor_host.winfo_children():
+                child.destroy()
+            inner_edit(
+                INNER_ROLE, state["version"], saved_inner_version,
+                embed_parent=editor_host, after_closed=mount_inner_editor,
+            )
+        def saved_inner_version(version_id):
+            state["version"] = version_id
+            apply_button.configure(state="normal")
+            status.configure(text="內門版本已儲存；按「套用到目前連」才會改變配置")
+            editor_host.after_idle(mount_inner_editor)
+        mount_inner_editor()
+        return container
+
     return open_multi_settings(
         self.app.root,
         get_snapshot=lambda: _current_mode_snapshot(self, namespace),
@@ -2586,5 +2659,24 @@ def open_receiving_multi_settings(self, namespace):
         get_applied_version_labels=applied_version_labels,
         get_real_cut_preview_request=real_cut_preview_request,
         on_brand_close=finalize_global_brand,
-        on_close=lambda: self.refresh_receiving_set_bay_control(namespace),
+        on_close=lambda: _restore_receiving_assembly_after_modal(self, namespace),
+        dialog_kind="single" if single else "multi",
     )
+
+
+def _restore_receiving_assembly_after_modal(owner, namespace):
+    """Do not let a Receiving modal's Set/Bay refresh navigate to Box Body."""
+    owner.refresh_receiving_set_bay_control(namespace)
+    # Use the Fold Designer that owns the Assembly mode, not the unrelated
+    # GUI scene callback host (whose identity lacks designer_workspace).
+    designer = owner.app
+    if getattr(designer, "_phase6_3d_display_mode", None) != "assembly":
+        show_assembly = namespace.get("_phase6_show_assembly")
+        if callable(show_assembly):
+            show_assembly(designer)
+        else:
+            raise RuntimeError("原組合體導覽入口尚未連接")
+    else:
+        selection = getattr(designer, "part_var", None)
+        if selection is not None:
+            selection.set("組合體")
