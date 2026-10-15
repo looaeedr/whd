@@ -14,6 +14,8 @@ transform so an assembled part has one world-coordinate definition.
 """
 from __future__ import annotations
 
+from .assembly_mesh_reuse import reuse_local_mesh
+
 from dataclasses import dataclass
 
 
@@ -268,6 +270,7 @@ class MappedSkinTriangle:
     side: int
 
 
+@reuse_local_mesh
 def folded_mesh_with_flat_uv_from_polygon(
     material,
     x_profile,

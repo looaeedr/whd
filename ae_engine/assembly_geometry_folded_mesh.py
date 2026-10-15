@@ -8,6 +8,8 @@
 """Fold-profile mapping and folded-mesh construction for assembly geometry."""
 from __future__ import annotations
 
+from .assembly_mesh_reuse import reuse_local_mesh
+
 from .assembly_geometry_primitives import place_assembly_points, place_assembly_triangles
 
 def _segment_value(segment, key, default=None):
@@ -386,6 +388,7 @@ def fit_receiving_left_zl1_formed_outside(
         )
     return tuple(result)
 
+@reuse_local_mesh
 def folded_mesh_from_polygon(
     material,
     x_profile,
