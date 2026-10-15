@@ -226,3 +226,105 @@ def test_deferred_input_publish_keeps_final_manufacturing_publication_enabled():
     )
     assert events == ["full", "committed manufacturing"]
     assert not getattr(owner, "_phase6_live_sync_guard", False)
+
+
+# #1789: dirty intents raised by a running executor must not be lost.
+def test_issue1789_reentrant_display_does_not_leave_save_flush_stale():
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        if reasons == {"geometry"}:
+            # A trace fires while the full update is still executing.
+            scheduler.submit("display")
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    owner._phase6_update_scheduler = scheduler
+    scheduler.submit("geometry")  # a pending Tk callback must be cancelled
+    assert owner.root.jobs
+
+    # The same explicit boundary is used by Save / DXF Export.
+    assert command_router._flush_phase6_authoritative_state(owner) is True
+    assert events == [frozenset({"geometry"}), frozenset({"display"})]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 1
+    assert scheduler.metrics_snapshot()["display_flushes"] == 1
+
+
+def test_issue1789_nested_transaction_reentrant_immediate_final_intent():
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        if "geometry" in reasons:
+            scheduler.begin()
+            scheduler.submit("annotation", immediate=True)
+            scheduler.submit("camera")
+            scheduler.end()
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    scheduler.begin()
+    scheduler.submit("geometry")
+    scheduler.submit("assembly")
+    assert events == []
+    scheduler.end()
+    assert owner.root.jobs
+    owner.root.fire_latest()
+    assert events == [
+        frozenset({"geometry", "assembly"}),
+        frozenset({"annotation", "camera"}),
+    ]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 1
+
+
+def test_issue1789_exception_preserves_new_intent_for_next_tk_flush():
+    import pytest
+
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        if reasons == {"geometry"}:
+            scheduler.submit("display")
+            raise RuntimeError("simulated paint failure")
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    with pytest.raises(RuntimeError, match="simulated paint failure"):
+        scheduler.submit("geometry", immediate=True)
+
+    # The executor may fail, but a new committed user intent cannot disappear.
+    assert scheduler.dirty == {"display"}
+    assert owner.root.jobs
+    owner.root.fire_latest()
+    assert events == [frozenset({"geometry"}), frozenset({"display"})]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+
+
+def test_issue1789_same_reason_trace_echo_is_coalesced_within_one_transaction():
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        # Canonical GUI computations may synchronously fire a Tk write trace
+        # for the identical geometry reason while projecting calculated state.
+        if reasons == {"geometry"}:
+            scheduler.submit("geometry")
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    assert scheduler.submit("geometry", immediate=True)
+    assert events == [frozenset({"geometry"})]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 1
