@@ -392,11 +392,25 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 )
                 ax.add_collection3d(poly)
                 if is_outer_door or is_inner_panel:
+                    # CUTTING holes must be real material interiors, not
+                    # tessellation outlines. Folded-door crease/BEND geometry
+                    # must likewise remain visible after the opaque door skin
+                    # is drawn; other parts intentionally keep smooth skins.
                     self._draw_cutting_hole_rims(
                         part_material, part.x_profile, part.y_profile,
                         tuple(getattr(part_data, "fold_guides", ()) or ()),
                         local_reference=local, placement=placement,
                         dimensions=request.finished_dimensions, offset=offset,
+                    )
+                    self._add_mesh_boundary_and_crease_lines(
+                        placed, edge, creases_only=True,
+                    )
+                    self._draw_assembly_box_body_bends(
+                        part_data.scene,
+                        tuple(dict(seg) for seg in part.x_profile),
+                        tuple(dict(seg) for seg in part.y_profile),
+                        tuple(getattr(part_data, "fold_guides", ()) or ()),
+                        local, placement, request.finished_dimensions, offset,
                     )
                 if formed_surface_for_edges is not None:
                     # The folded mid-surface sits inside the physical T-thick
@@ -681,6 +695,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         if is_door:
             self._draw_cutting_hole_rims(
                 material, request.x_profile, request.y_profile, fold_guides,
+            )
+            self._add_mesh_boundary_and_crease_lines(
+                triangles, edge, creases_only=True,
             )
         # A shaded solid has no triangulation grid. Explicit source BEND and
         # MARKING stay visible independently of the physical mesh tessellation.
