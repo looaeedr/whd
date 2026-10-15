@@ -1137,6 +1137,37 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             result.append(extract_original_door_marks(scene))
         return tuple(result)
 
+    def cached_initial_door_marks():
+        """Show original handle/nameplate from committed Assembly, no DXF read.
+
+        The pre-rendered scenes are only a preview source. Never use a stale
+        scene from another family or invent positions from nominal sizes.
+        Applied Set/Bay sketches continue to load their exact source through
+        existing_door_marks().
+        """
+        from .receiving_multi_settings_window import extract_original_door_marks
+
+        if str(self.app._phase6_input_snapshot.get("model") or "") not in {
+            "受電箱", "RECEIVING"
+        }:
+            return ()
+        resolved = getattr(
+            self.app, "_phase6_last_resolved_manufacturing_geometry", None
+        )
+        parts = {
+            str(part.part_key): getattr(part.render_data, "scene", None)
+            for part in tuple(getattr(resolved, "parts", ()) or ())
+            if str(getattr(part, "part_key", "") or "") in {
+                "door_c1_r1", "door_c1_r2"
+            }
+        }
+        if any(parts.get(key) is None for key in ("door_c1_r1", "door_c1_r2")):
+            return ()
+        return ((
+            extract_original_door_marks(parts["door_c1_r1"]),
+            extract_original_door_marks(parts["door_c1_r2"]),
+        ),)
+
     def resize_sets(delta):
         switch = self.receiving_switch_adapter(namespace)
         if delta > 0:
@@ -2686,7 +2717,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     return open_multi_settings(
         self.app.root,
-        get_snapshot=lambda: _current_mode_snapshot(self, namespace),
+        # Avoid copying the entire workspace merely to read the mode.
+        get_snapshot=lambda: {
+            "active_mode": self.app.designer_workspace.active_mode,
+        },
         get_switch=lambda: self.receiving_switch_adapter(namespace),
         switch_mode=lambda mode: _switch_mode(self, namespace, mode),
         resize_connections=lambda index, delta: self.resize_receiving_bays(
@@ -2702,6 +2736,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         set_brand=set_global_brand,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_original_door_marks=existing_door_marks,
+        get_initial_door_marks=cached_initial_door_marks,
         get_applied_version_labels=applied_version_labels,
         get_real_cut_preview_request=real_cut_preview_request,
         get_dimension_group=dimension_group,
@@ -2727,6 +2762,11 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
         else:
             raise RuntimeError("原組合體導覽入口尚未連接")
     else:
+        mount = namespace.get("_phase6_mount_shared_content")
+        if callable(mount):
+            mount(designer, "assembly")
+        else:
+            raise RuntimeError("組合體左側內容掛載入口尚未連接")
         selection = getattr(designer, "part_var", None)
         if selection is not None:
             selection.set("組合體")
