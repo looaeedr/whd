@@ -409,3 +409,20 @@ def test_retired_pitfall_subsections_do_not_advertise_active_owners() -> None:
     assert "當時的 Registry route（HISTORICAL；不代表現行啟用）" in closure
     assert continuity.count("當時的事故防錯規則（HISTORICAL；今日依 CURRENT Skill／GitHub 回讀）") == 3
     assert "\n永久規則：\n" not in continuity
+
+
+def test_issue1796_partial_gui_acceptance_checkpoint_stays_historical_and_blocked() -> None:
+    """A dated GUI checkpoint cannot silently become release or CURRENT authority."""
+    body = read("docs/superpowers/verification/2026-10-16-issue1796-gui-integrity-checkpoint.md")
+    assert "whd_doc_role: HISTORICAL" in body[:250]
+    assert "whd_contract: verification-provenance" in body[:250]
+    assert "部分驗收" in body
+    assert "CURRENT" in body and "phase6-gui-performance-integrity" in body
+    for required in (
+        "#1794", "#1796", "#1805", "#1806",
+        "WINDOWS_LOCALX_SYNC_PENDING",
+        "WINDOWS_UAT_PENDING",
+        "AI_LIBRARY_WRITEBACK_PENDING",
+        "正式 X",
+    ):
+        assert required in body, required
