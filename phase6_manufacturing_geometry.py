@@ -619,6 +619,16 @@ def _phase6_manufacturing_state_signature(self):
     # Typography is UI-only and must never invalidate canonical manufacturing.
     settings.pop("ui_text_size", None)
     snapshot = deepcopy(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        # Receiving Settings W/H/D only seed NEW cabinets. Both the
+        # manufacturing DTO and physical preview already consume live Bay/
+        # Quantity dimensions; the cache key must use that same authority.
+        # Never write working dimensions back to persisted Settings defaults.
+        working_box = dict(getattr(self, "_phase6_box_whd", {}) or {})
+        settings.update({
+            axis: working_box[axis] for axis in ("w", "h", "d")
+            if axis in working_box
+        })
     # These fields are either owned independently below or derived/persistence
     # mirrors. Saving an unchanged editor may materialize them, but that is not a
     # manufacturing mutation and must not destroy an otherwise valid cache hit.

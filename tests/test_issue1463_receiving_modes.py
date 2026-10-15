@@ -526,3 +526,43 @@ def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypa
     finally:
         receiving_gui_stall_guard("close root")
         _close(tk, root, designer)
+
+
+def test_receiving_cache_key_ignores_settings_defaults_but_tracks_working_whd():
+    """Default seed changes must not invalidate already-resolved Receiving geometry."""
+    from types import SimpleNamespace
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "受電箱", "w": 800, "h": 1600, "d": 350},
+        _settings_values={"w": 900, "h": 1700, "d": 400, "t": 2},
+        _phase6_box_whd={"w": 800, "h": 1600, "d": 350},
+    )
+    before = build_manufacturing_cache_key(app).fingerprint
+    app._settings_values.update(w=950, h=1800, d=450)
+    assert build_manufacturing_cache_key(app).fingerprint == before
+    app._phase6_box_whd["w"] = 875
+    assert build_manufacturing_cache_key(app).fingerprint != before
+    # Non-Receiving families still own their dimensions through Settings.
+    app._phase6_input_snapshot["model"] = "金庫型"
+    vault = build_manufacturing_cache_key(app).fingerprint
+    app._settings_values["w"] = 1000
+    assert build_manufacturing_cache_key(app).fingerprint != vault
+
+
+def test_missing_quantity_door_state_resizes_with_existing_family_partition():
+    """Legacy no-Door-authority Quantity edits reuse Family, never bypass validation."""
+    from ae_engine.receiving_quantity_box import update_common_box
+    from phase6_receiving_modes import fresh_receiving_mode
+    source = fresh_receiving_mode("quantity", {"w": 800, "h": 1600, "d": 350})
+    source["receiving_quantity_box"].pop("door_state", None)
+    before = deepcopy(source)
+    result = update_common_box(source, {"w": 875, "h": 1700})
+    assert source == before
+    assert result["receiving_quantity_box"]["w"] == 875
+    assert result["door_layout_columns"] == [[875.0, [1100.0, 600.0]]]
+    # Explicitly invalid topology must not silently fall back to Family.
+    invalid = deepcopy(source)
+    invalid["receiving_quantity_box"]["door_state"] = {"door_layout_columns": []}
+    with pytest.raises(ValueError, match="W 不符合目前門分割"):
+        update_common_box(invalid, {"w": 875})

@@ -111,7 +111,15 @@ def update_common_box(snapshot, changes):
     current = normalize_common_box(result.get(BOX_KEY))
     box = normalize_common_box({**current, **deepcopy(dict(changes))})
     if "door_state" not in changes and (box["w"], box["h"]) != (current["w"], current["h"]):
-        door = deepcopy(box.get("door_state", {}))
+        # Older/default Quantity workspaces can omit their own Door authority
+        # even though the Family topology exists. Resolve that existing
+        # canonical Family partition BEFORE resizing; never guess a new split.
+        # An explicitly supplied but invalid Door authority remains an error.
+        if "door_state" not in current:
+            family = project_common_box({**result, BOX_KEY: current})
+            door = deepcopy(family[BOX_KEY]["door_state"])
+        else:
+            door = deepcopy(current["door_state"])
         old_columns = door.get("door_layout_columns", [])
         widths = complete_partition([row[0] for row in old_columns[:-1]], box["w"])
         if not old_columns or not widths.valid or len(widths.values) != len(old_columns):
