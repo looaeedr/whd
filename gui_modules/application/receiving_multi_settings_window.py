@@ -1074,6 +1074,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         return True
 
     mark_cache = {"key": None, "values": ()}
+    size_cache = {"set_index": None, "dimensions": ()}
 
     def render():
         # The main sketch always remains a Set/Bay highlighter. Quantity
@@ -1106,16 +1107,20 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 applied["set_index"] is not None and
                 get_applied_version_labels is not None):
             labels = get_applied_version_labels(applied["set_index"])
-        bay_dimensions = ()
-        if applied["set_index"] is not None and applied["mode"] == "set_bay":
+        # Geometry dimensions are cached per applied Set. Canvas Configure
+        # redraws can fire repeatedly; don't deep-copy the complete Receiving
+        # layout (including switch/NFB payloads) on every pixel resize.
+        if (applied["set_index"] is not None and applied["mode"] == "set_bay"
+                and size_cache["set_index"] != applied["set_index"]):
             source = get_switch()
             layout = getattr(source, "layout", None)
-            if layout is not None:
-                bay_dimensions = tuple(
-                    layout["sets"][applied["set_index"]]["bays"]
-                )
+            size_cache["dimensions"] = (
+                tuple(layout["sets"][applied["set_index"]]["bays"])
+                if layout is not None else ()
+            )
+            size_cache["set_index"] = applied["set_index"]
         paint_connected_bays(canvas, count, selected, marks, labels,
-                             bay_dimensions=bay_dimensions)
+                             bay_dimensions=size_cache["dimensions"])
         canvas._receiving_selected_bay = (
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
@@ -1143,6 +1148,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         set_index = applied["set_index"]
         layout = get_switch().layout
         bays = layout["sets"][set_index]["bays"]
+        size_cache.update(set_index=set_index, dimensions=tuple(bays))
         ttk.Label(
             confirmed_groups_host, text=f"第{set_index + 1}套｜已確定尺寸／數量",
         ).pack(anchor="w")
@@ -1391,17 +1397,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if result:
                 topology_changed["value"] = True
                 refresh_rows()
-                if applied["set_index"] == index:
-                    # Changes to +連/-連 must invalidate the old hitboxes.
-                    applied["count"] = get_switch().connection_counts()[index]
-                    applied["selected_bays"] = tuple(
-                        i for i in applied["selected_bays"] if i < applied["count"]
-                    )
-                    applied["selected"] = (
-                        applied["selected_bays"][0] if applied["selected_bays"] else None
-                    )
-                    refresh_dimension_rows()
-                    render()
+            # Existing contract: +連/−連 changes canonical topology, but
+            # the operator's sketch is projected only after 套用.
             return result
         except (ValueError, IndexError, RuntimeError) as exc:
             return warn(exc)
