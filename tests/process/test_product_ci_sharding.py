@@ -42,6 +42,12 @@ def test_gui_performance_and_reentrant_save_contracts_cannot_be_omitted_from_ci(
         assert not any(item.startswith(path + "::") for item in PYTEST_PATHS)
 
 
+def test_issue1795_sync_envelope_real_tk_suite_is_mandatory():
+    # External revision, startup precedence and anti-echo are live Tk
+    # acceptance contracts; static source checks cannot replace execution.
+    assert "tests/test_phase6_sync_envelope.py" in PYTEST_PATHS
+
+
 def test_outside_bend_bidirectional_gate_cannot_be_omitted_from_product_ci():
     mandatory = {
         "tests/test_outside_bend_bidirectional_hard_gate.py",
