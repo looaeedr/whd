@@ -67,7 +67,7 @@ whd_schema: WHD_DOC_META_V1
 1. `PR_OPEN / CI_QUEUED / CI_IN_PROGRESS / CI_PENDING` 一律 `CONTINUE_POLL`，**不是可結束的交付狀態**；在當前回合持續輪詢 exact PR SHA 與對應 run，不得把「正在測試」當成派工完成。
 2. `CI_SUCCESS` 且 PR 可整合，**直接 GitHub PR merge `localX`**，回讀 PR/remote HEAD，工單留言、close/readback；Windows 手動更新與 UAT 待完成，記 `WINDOWS_LOCALX_SYNC_PENDING`，不能虛構 `LOCALX_SYNCED` 或 DC 斷線。整段不必使用者再喊「繼續」。
    **重要先後次序**：GitHub `localX` merge＋遠端 SHA 回讀成功（本機待 Windows 同步）後，**立刻啟動 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，同步完成原 Issue 留言／close/readback；**不得等 Issue CLOSED 才找下一張**，也不得以 Issue close/readback 為流程終點。
-   搜尋下一張 OPEN 且前置工單已完成的可執行 Issue；檢查相同工作是否已有 owner/PR，避免重複；可施工就建立真實工作分支、寫入派工留言並繼續執行。找不到則輸出已核查清單與 `NO_ELIGIBLE_ISSUE`，不得假報成功派工。
+   搜尋下一張 OPEN 且前置工單已完成的可執行 Issue；檢查相同工作是否已有 owner/PR，避免重複；可施工就建立真實工作分支、寫入派工留言並**完成首個真實施工動作**，持續執行下一張。**只找到 Issue 號碼、只寫派工留言或只建立分支都不等於接取成功，更不是退出條件**。已有下一張但未開工 → `NEXT_ISSUE_START_REQUIRED`；已有下一張且接取證據可回讀 → `NEXT_ISSUE_ALREADY_STARTED / CONTINUE_NEXT_ISSUE`，仍不能正常結束回合。只有實際核查 OPEN 工單及前置／owner／PR 後無可執行者，附可追溯清單與 `NO_ELIGIBLE_ISSUE` 證據，才允許整條派工佇列正常結束；不得假報成功派工。
 
 3. `CI_FAILURE / CANCELLED / TIMED_OUT`：讀取 job/step/log，定位和修復後再次測試；若 run 完全缺席，先修正 workflow branch/path 接線並觸發，不得聲稱已驗收。
 4. 回報至少每 2–3 次實質操作一次；回報不構成退出。只有**實際無法繼續的外部阻塞**或回合／工具限制造成無法續跑時，才能清楚報出已驗證 blocker、last exact PR/SHA 與下一步，**不可聲稱 DONE**。ChatGPT 回合結束後不會自行輪詢，除非另有正式排程。

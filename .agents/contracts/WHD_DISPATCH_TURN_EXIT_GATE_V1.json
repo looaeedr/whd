@@ -12,7 +12,9 @@
     "run_status",
     "run_conclusion",
     "last_observation",
-    "next_exact_action"
+    "next_exact_action",
+    "next_issue_discovery_outcome",
+    "next_issue_evidence"
   ],
   "nonterminal_statuses": [
     "requested",
@@ -55,11 +57,6 @@
       "normal_completion": false,
       "may_end_turn_without_completion": false
     },
-    "FULL_DELIVERY_READBACK": {
-      "action": "RELEASED",
-      "normal_completion": true,
-      "may_end_turn_without_completion": false
-    },
     "VERIFIED_EXTERNAL_BLOCKER": {
       "action": "BLOCKED_WITH_EVIDENCE",
       "normal_completion": false,
@@ -79,6 +76,29 @@
         "last_observation",
         "next_exact_action"
       ]
+    },
+    "NEXT_ISSUE_DISCOVERY_REQUIRED": {
+      "action": "DISCOVER_NEXT_ISSUE",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "NEXT_ISSUE_START_REQUIRED": {
+      "action": "START_NEXT_ISSUE",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "NEXT_ISSUE_ALREADY_STARTED": {
+      "action": "CONTINUE_NEXT_ISSUE",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "FULL_DELIVERY_READBACK": {
+      "action": "RELEASED",
+      "normal_completion": true,
+      "may_end_turn_without_completion": false,
+      "requires": [
+        "verified_no_eligible_issue_evidence"
+      ]
     }
   },
   "ordering": [
@@ -89,6 +109,9 @@
     "CI_TERMINAL_RED",
     "CI_EXACT_SUCCESS_LOCALX_PENDING",
     "CI_EXACT_SUCCESS_REMAINING_DELIVERY",
+    "NEXT_ISSUE_DISCOVERY_REQUIRED",
+    "NEXT_ISSUE_START_REQUIRED",
+    "NEXT_ISSUE_ALREADY_STARTED",
     "FULL_DELIVERY_READBACK"
   ],
   "restrictions": [
@@ -99,7 +122,8 @@
     "No DC access (including list_devices or ping) without explicit current device/operation authorization and external approval",
     "Same-issue default GitHub localX merge requires exact CI GREEN, mergeability, verified base change impact and expected HEAD",
     "Windows localX sync and manual UAT remain independently pending unless verified",
-    "No force/reset and no product X publish without user /推推"
+    "No force/reset and no product X publish without user /推推",
+    "PR merge, Issue close/readback or next_issue_checked alone MUST NOT finish /派工: eligible next issue must be started and CONTINUE_NEXT_ISSUE; only verified NO_ELIGIBLE_ISSUE permits normal queue exit"
   ],
   "integration_routes": {
     "GITHUB_LOCALX_FIRST": {

@@ -16,8 +16,9 @@ POLICY = json.loads(CONTRACT.read_text(encoding="utf-8"))
 def turn_exit_decision(*, pr_head="a" * 40, run_head="a" * 40,
                        run_status="completed", conclusion="success",
                        localx_integrated=False, issue_closed=False,
-                       next_issue_checked=False, blocker=None,
-                       limit_evidence=None):
+                       next_issue_checked=False, next_issue_found=False,
+                       next_issue_start_evidence=None, no_eligible_evidence=None,
+                       blocker=None, limit_evidence=None):
     """Executable contract fixture, not a production ChatGPT runtime interceptor."""
     if limit_evidence:
         return "REAL_RUNTIME_LIMIT"
@@ -35,9 +36,18 @@ def turn_exit_decision(*, pr_head="a" * 40, run_head="a" * 40,
         return "RUN_OR_HEAD_MISSING_OR_MISMATCH"
     if not localx_integrated:
         return "CI_EXACT_SUCCESS_LOCALX_PENDING"
-    if not issue_closed or not next_issue_checked:
+    # Discovery starts at localX merge readback, not at Issue close.
+    if not next_issue_checked:
+        return "NEXT_ISSUE_DISCOVERY_REQUIRED"
+    if not issue_closed:
         return "CI_EXACT_SUCCESS_REMAINING_DELIVERY"
-    return "FULL_DELIVERY_READBACK"
+    if next_issue_found:
+        if next_issue_start_evidence:
+            return "NEXT_ISSUE_ALREADY_STARTED"
+        return "NEXT_ISSUE_START_REQUIRED"
+    if no_eligible_evidence:
+        return "FULL_DELIVERY_READBACK"
+    return "NEXT_ISSUE_DISCOVERY_REQUIRED"
 
 
 class DispatchTurnExitContract(unittest.TestCase):
@@ -68,11 +78,24 @@ class DispatchTurnExitContract(unittest.TestCase):
     def test_ci_success_does_not_allow_exit_before_delivery(self):
         cases = [
             ({}, "LOCALX_INTEGRATION_PENDING"),
-            ({"localx_integrated": True}, "CONTINUE_FINALIZATION"),
+            ({"localx_integrated": True}, "DISCOVER_NEXT_ISSUE"),
             ({"localx_integrated": True, "issue_closed": True},
+             "DISCOVER_NEXT_ISSUE"),
+            ({"localx_integrated": True, "next_issue_checked": True},
              "CONTINUE_FINALIZATION"),
             ({"localx_integrated": True, "issue_closed": True,
-              "next_issue_checked": True}, "RELEASED"),
+              "next_issue_checked": True}, "DISCOVER_NEXT_ISSUE"),
+            ({"localx_integrated": True, "issue_closed": True,
+              "next_issue_checked": True, "next_issue_found": True},
+             "START_NEXT_ISSUE"),
+            ({"localx_integrated": True, "issue_closed": True,
+              "next_issue_checked": True, "next_issue_found": True,
+              "next_issue_start_evidence": "#1800 / branch / real first action"},
+             "CONTINUE_NEXT_ISSUE"),
+            ({"localx_integrated": True, "issue_closed": True,
+              "next_issue_checked": True,
+              "no_eligible_evidence": "OPEN issue list checked; none eligible"},
+             "RELEASED"),
         ]
         for kwargs, expected in cases:
             with self.subTest(kwargs=kwargs):
@@ -151,6 +174,12 @@ class DispatchTurnExitContract(unittest.TestCase):
         self.assertEqual([key for key, spec in POLICY["decisions"].items()
                           if spec["normal_completion"]],
                          ["FULL_DELIVERY_READBACK"])
+        self.assertIn("verified_no_eligible_issue_evidence",
+                      POLICY["decisions"]["FULL_DELIVERY_READBACK"]["requires"])
+        for key in ("NEXT_ISSUE_DISCOVERY_REQUIRED",
+                    "NEXT_ISSUE_START_REQUIRED", "NEXT_ISSUE_ALREADY_STARTED"):
+            self.assertFalse(POLICY["decisions"][key]["normal_completion"])
+            self.assertFalse(POLICY["decisions"][key]["may_end_turn_without_completion"])
         self.assertIn("test_dispatch_turn_exit_gate_contract.py",
                       WORKFLOW.read_text(encoding="utf-8"))
         from tools.change_lane_gate import classify_changes
