@@ -34,6 +34,12 @@ whd_schema: WHD_DOC_META_V1
 - 本地工作不需 Google Drive 工作根目錄，也不需調用舊協調分支。
 - **兩入口共享交付範圍、不共享施工權限**：`/派工` 與 `/接手` 共用 Issue、PR、產品驗收標準，但前者預設 GitHub 施工與 GitHub `localX` 合併，不以 PR GREEN 自動授權 DC。`/接手` 僅當次明確允許 RC；DC 必須有特定目的／裝置／操作授權且經外部審查。治理變更也先整合 `localX`，正式 X 仍限驗收後的 `/推推`。
 
+## 新增功能入口 `/功能` — `FEATURE_FLOW_V1`
+
+- `/功能` 路由至唯一 CURRENT `.agents/skills/engineering/新增功能/SKILL.md`；支援 `/功能 設計`（只讀）、`/功能 新增`（合法 GitHub 功能施工與 localX 整合）、`/功能 繼續 #Issue`（沿用原工單／PR）。`/debug` 仍由 `diagnosing-bugs` 處理既有錯誤；不建立第二套派工、lease、測試或發布系統。
+- 施工前遵守 `SOURCE_READ_BEFORE_MUTATION_V1`，依真實影響核對 GUI、資料、Save→Reload、2D、3D、碰撞、製造及舊功能；不適用領域可有理由 N/A。`WHD_CHANGE_TEST_PROFILE_V1` 的 FEATURE、UI／GEOMETRY 與 final gate、`GITHUB_LOCALX_FIRST`、Windows 人工 GUI UAT 均維持原權威。
+- 同範圍功能之 PR exact SHA CI SUCCESS 後可整合 GitHub 遠端 `localX`；Windows 同步／人工驗收是獨立待辦，正式 `X=cleanup/2d-3d-sync` 仍須使用者驗收及當次 `/推推`，不得修改 RC／DC 權限或以 X 作日常施工來源。
+
 ## WHD 長對話上下文損耗防護 `WHD_CONTEXT_LOSS_PREVENTION_V1`
 
 **目的：降低本體因對話過長、重複工具輸出或系統壓縮而遺失已決定事項的機率。這不是交接流程。** 平台不提供可直接讀取的「剩餘 Token 百分比」或下一次自動壓縮時點，無法保證不被截斷，也不能主動清除既有上下文；禁止捏造容量、倒數或「已開啟背景監控」。
@@ -139,7 +145,7 @@ whd_schema: WHD_DOC_META_V1
 - `/派工` 不以「已建立 PR」「CI queued/in_progress/pending」作為交付完成。這些都是 **CONTINUE_POLL**，不能以「等 CI 完成」作最終答覆來退出當輪任務。
 - 一旦已建立指向 `localX` 的產品 PR，就應在**當次可執行回合**追蹤 exact PR HEAD、base 與 Canonical Product Regression 的 GitHub Actions run；短間隔再次查詢。每 2–3 次操作回報實質進度，但**回報本身不是停止訊號**。
 - exact HEAD 的 Product Regression `SUCCESS` 且 PR 可整合 → **GitHub PR merge `localX`**，核對 head/base/scope/CI、最新 base diff，merge 後遠端 SHA/PR 回讀，標記 `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`，回寫 Issue 與 close/readback 並查找下一張。Windows 以 `Z:\localX` 腳本自行更新與人工驗收；不再預設 DC，也不冒稱 Windows 同步成功。產品 X 仍必須當次 `/推推`。
-- **下一張工單觸發點**：GitHub 遠端 `localX` PR 合併及 HEAD／PR readback 成功即 `NEXT_ISSUE_DISCOVERY_REQUIRED`，不要求 DC、CoreELEC 斷線證據或 Windows 已同步；原工單留言／close/readback 仍要完成。搜尋 OPEN Issue、排除衝突／已接取及未滿足前置；找不到符合條件則回報 `NO_ELIGIBLE_ISSUE`。不得把 Issue CLOSED 當作唯一觸發條件。
+- **下一張工單觸發點**：GitHub 遠端 `localX` PR 合併及 HEAD／PR readback 成功即 `NEXT_ISSUE_DISCOVERY_REQUIRED`，不要求 DC、CoreELEC 斷線證據或 Windows 已同步；原工單留言／close/readback 仍要完成。搜尋 OPEN Issue、排除衝突／已接取及未滿足前置；找到可執行下一單不能只登記或留言，須接取、建立工作分支並開始真實施工，進入 `CONTINUE_NEXT_ISSUE`，而非 `RELEASED`。只找到 Issue／僅完成當前 PR merge 或 Issue close/readback 均不可當作整條派工完成。只有無下一張時，出具已檢查清單與 `NO_ELIGIBLE_ISSUE` 證據才可正常退出；不得把 Issue CLOSED 當作唯一觸發條件。
 
 - CI 失敗 → 查該 run 的 job/step/log，修復並重測；沒有執行中的 run → 檢查 workflow branch/path 觸發與權限，修接線並重新觸發。不得將其他 SHA、舊 local GREEN 或 pending 冒充目前 PR GREEN。
 - 若實際 API/權限/機器或當次執行限制阻止繼續，必須留下**可驗證的阻塞證據及續作點**，不得寫「派工交付完成」。聊天回合結束後**沒有自動背景輪詢**，除非另有明確建立的排程監控；不得宣稱本規則能自行喚醒模型。

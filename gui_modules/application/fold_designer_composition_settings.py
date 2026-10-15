@@ -726,16 +726,42 @@ def on_baseline_model_changed(self, namespace, *_args):
 
 def apply_external_settings(self, namespace, updates):
     app = self.app
+    updates = dict(updates or {})
+    # UI text scale is a presentation preference, not a manufacturing
+    # SettingSpec. Preserve its existing UI owner instead of silently
+    # dropping it in normalize_updates(). External changes are runtime-only.
+    ui_text_size = updates.pop("ui_text_size", None)
     app._phase6_external_apply_guard = True
     try:
+        ui_result = {}
+        if ui_text_size is not None:
+            required = lambda name: self._required(namespace, name)
+            key = required("normalize_ui_text_size")(ui_text_size)
+            if app._settings_values.get("ui_text_size") != key:
+                applied = self.apply_ui_text_size(namespace, key)
+                if applied is not None:
+                    # Updating the selector must not publish an echo; traces
+                    # are guarded while the external transaction is active.
+                    ui_var = getattr(app, "ui_text_size_var", None)
+                    label = required("ui_text_size_label")(key)
+                    if ui_var is not None and ui_var.get() != label:
+                        app._phase6_settings_guard = True
+                        try:
+                            ui_var.set(label)
+                        finally:
+                            app._phase6_settings_guard = False
+                    ui_result["ui_text_size"] = applied
+        if not updates:
+            return ui_result
         coordinator = self.settings_coordinator(
             self.settings_application_ports(namespace)
         )
-        return coordinator.apply_updates(
+        result = coordinator.apply_updates(
             updates,
             notify=False,
             external_apply_guard=True,
         )
+        return {**ui_result, **result}
     finally:
         app._phase6_external_apply_guard = False
 

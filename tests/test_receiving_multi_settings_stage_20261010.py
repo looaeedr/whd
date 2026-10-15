@@ -743,3 +743,76 @@ def test_two_doors_in_every_touching_bay_and_one_selection():
         assert canvas.itemcget(body, "outline") == "#42bdf4"
     finally:
         root.destroy()
+
+
+def test_issue1791_main_sketch_configure_burst_coalesces_one_idle_paint(monkeypatch, record_property):
+    """Real Tk: resize events are display-only and keep the final hitboxes."""
+    import gui_modules.application.receiving_multi_settings_window as module
+
+    root = tk.Tk()
+    root.geometry("900x640+0+0")
+    root.update()
+    paints = []
+    actual_paint = module.paint_connected_bays
+
+    def count_paints(*args, **kwargs):
+        paints.append(args[0].winfo_width())
+        return actual_paint(*args, **kwargs)
+
+    monkeypatch.setattr(module, "paint_connected_bays", count_paints)
+    win = None
+    try:
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda target: True,
+            resize_connections=lambda index, delta: True,
+            get_brand=lambda: "士林",
+        )
+        root.update()
+        canvas = win._receiving_multi_canvas
+        assert canvas.winfo_exists()
+        paints.clear()
+        # These Configure callbacks are delivered without running the idle
+        # queue in between; only the final canvas size needs to be painted.
+        for _ in range(20):
+            canvas.event_generate("<Configure>")
+        root.update_idletasks()
+        record_property("configure_paint_count", len(paints))
+        assert 1 <= len(paints) <= 2, paints
+        # No Set is selected yet, so the preview intentionally shows one Bay.
+        assert len(canvas._receiving_bay_hitboxes) == 1
+        assert canvas._receiving_selected_bays == frozenset()
+        assert canvas.winfo_exists()
+        win._receiving_multi_close()
+        win = None
+        root.update_idletasks()  # no redraw callback may survive close
+    finally:
+        if win is not None and win.winfo_exists():
+            win._receiving_multi_close()
+        root.destroy()
+
+
+def test_issue1791_cancelled_idle_redraw_never_paints_destroyed_canvas():
+    """No orphan after callback after the sketch window is destroyed."""
+    from gui_modules.application.receiving_multi_settings_window import _IdleCanvasRedraw
+
+    root = tk.Tk()
+    root.geometry("350x280+0+0")
+    canvas = tk.Canvas(root, width=200, height=120)
+    canvas.pack()
+    root.update()
+    paints = []
+    try:
+        redraw = _IdleCanvasRedraw(canvas, lambda: paints.append(canvas.winfo_width()))
+        for _ in range(20):
+            redraw.request()
+        assert redraw.job is not None
+        redraw.cancel()
+        assert redraw.job is None
+        canvas.destroy()
+        root.update_idletasks()
+        assert paints == []
+    finally:
+        root.destroy()

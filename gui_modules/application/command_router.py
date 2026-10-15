@@ -10,6 +10,7 @@ class _Phase6UpdateScheduler:
     DEFAULT_DEBOUNCE_MS = 75
     MIN_DEBOUNCE_MS = 50
     MAX_DEBOUNCE_MS = 100
+    MAX_REENTRANT_FLUSH_PASSES = 16
     _DISPLAY_ONLY_REASONS = frozenset({"display", "annotation", "camera"})
     _FULL_REASONS = frozenset({"geometry", "assembly", "baseline"})
 
@@ -96,29 +97,57 @@ class _Phase6UpdateScheduler:
             except Exception:
                 pass
             self._after_job = None
-        reasons = set(self.dirty)
-        self.dirty.clear()
+
+        # The executor may trigger a Tk trace that submits another intent.
+        # Drain those intents before returning to a Save/DXF flush boundary;
+        # never call the executor recursively while it is already running.
         self._flushing = True
+        exceeded_limit = False
         try:
-            self._metrics["flushes"] += 1
-            requires_calculation = self._requires_calculation(reasons)
-            metric_key = (
-                "calculation_flushes"
-                if requires_calculation
-                else "display_flushes"
-            )
-            self._metrics[metric_key] += 1
-            if callable(self.executor):
-                self.executor(reasons)
-            elif requires_calculation:
-                self.owner.update_calculations()
-            else:
-                render = getattr(self.owner, "draw_preview", None)
-                if callable(render):
-                    render()
+            for _ in range(self.MAX_REENTRANT_FLUSH_PASSES):
+                if self.depth > 0 or not self.dirty:
+                    break
+                reasons = set(self.dirty)
+                self.dirty.clear()
+                self._metrics["flushes"] += 1
+                requires_calculation = self._requires_calculation(reasons)
+                metric_key = (
+                    "calculation_flushes"
+                    if requires_calculation
+                    else "display_flushes"
+                )
+                self._metrics[metric_key] += 1
+                if callable(self.executor):
+                    self.executor(reasons)
+                elif requires_calculation:
+                    self.owner.update_calculations()
+                else:
+                    render = getattr(self.owner, "draw_preview", None)
+                    if callable(render):
+                        render()
+                # A trace that republishes the reason currently being handled
+                # belongs to this same calculation transaction. It is already
+                # covered by the just-finished authoritative update, so avoid
+                # re-entering an identical full solve on every Tk callback.
+                # Distinct reasons remain queued for the next bounded pass.
+                self.dirty.difference_update(reasons)
+            if self.depth == 0 and self.dirty:
+                exceeded_limit = True
+                raise RuntimeError(
+                    "GUI update did not settle within the bounded flush; "
+                    "refusing to persist or export stale state"
+                )
         finally:
             self._flushing = False
-        return bool(reasons)
+            if self.depth == 0 and self.dirty and not exceeded_limit:
+                # If an executor raises, preserve newly queued intents and
+                # schedule them on Tk rather than silently losing the last edit.
+                # Without an event loop leave dirty for an explicit later flush,
+                # avoiding recursive execution in headless callers.
+                root = getattr(self.owner, "root", None)
+                if root is not None and hasattr(root, "after"):
+                    self.request_flush()
+        return True
 
     def cancel_pending(self):
         if self._after_job is not None:

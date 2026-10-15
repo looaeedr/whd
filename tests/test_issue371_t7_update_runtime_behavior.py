@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+import phase6_project_file as project
+
 from gui_modules.application import command_router
 
 
@@ -226,3 +229,216 @@ def test_deferred_input_publish_keeps_final_manufacturing_publication_enabled():
     )
     assert events == ["full", "committed manufacturing"]
     assert not getattr(owner, "_phase6_live_sync_guard", False)
+
+
+# #1789: dirty intents raised by a running executor must not be lost.
+def test_issue1789_reentrant_display_does_not_leave_save_flush_stale():
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        if reasons == {"geometry"}:
+            # A trace fires while the full update is still executing.
+            scheduler.submit("display")
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    owner._phase6_update_scheduler = scheduler
+    scheduler.submit("geometry")  # a pending Tk callback must be cancelled
+    assert owner.root.jobs
+
+    # The same explicit boundary is used by Save / DXF Export.
+    assert command_router._flush_phase6_authoritative_state(owner) is True
+    assert events == [frozenset({"geometry"}), frozenset({"display"})]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 1
+    assert scheduler.metrics_snapshot()["display_flushes"] == 1
+
+
+def test_issue1789_nested_transaction_reentrant_immediate_final_intent():
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        if "geometry" in reasons:
+            scheduler.begin()
+            scheduler.submit("annotation", immediate=True)
+            scheduler.submit("camera")
+            scheduler.end()
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    scheduler.begin()
+    scheduler.submit("geometry")
+    scheduler.submit("assembly")
+    assert events == []
+    scheduler.end()
+    assert owner.root.jobs
+    owner.root.fire_latest()
+    assert events == [
+        frozenset({"geometry", "assembly"}),
+        frozenset({"annotation", "camera"}),
+    ]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 1
+
+
+def test_issue1789_exception_preserves_new_intent_for_next_tk_flush():
+    import pytest
+
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        if reasons == {"geometry"}:
+            scheduler.submit("display")
+            raise RuntimeError("simulated paint failure")
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    with pytest.raises(RuntimeError, match="simulated paint failure"):
+        scheduler.submit("geometry", immediate=True)
+
+    # The executor may fail, but a new committed user intent cannot disappear.
+    assert scheduler.dirty == {"display"}
+    assert owner.root.jobs
+    owner.root.fire_latest()
+    assert events == [frozenset({"geometry"}), frozenset({"display"})]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+
+
+def test_issue1789_same_reason_trace_echo_is_coalesced_within_one_transaction():
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        # Canonical GUI computations may synchronously fire a Tk write trace
+        # for the identical geometry reason while projecting calculated state.
+        if reasons == {"geometry"}:
+            scheduler.submit("geometry")
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    assert scheduler.submit("geometry", immediate=True)
+    assert events == [frozenset({"geometry"})]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 1
+
+
+# #1790: standalone designer persistence must not commit stale pending settings.
+def _issue1790_standalone_save_owner(path, *, initial_width=400):
+    from gui_modules.application import fold_designer_composition_state as state
+    settings = {"w": initial_width}
+    events = []
+    errors = []
+    app = SimpleNamespace(
+        root=None,
+        _phase6_pending_settings={"w": 500},
+        _phase6_current_project_path=str(path),
+        _project_save_callback=None,
+        active_part_key="box_body",
+        settings_status_var=SimpleNamespace(set=lambda value: events.append(("status", value))),
+    )
+
+    def flush():
+        events.append(("flush", None))
+        settings["w"] = app._phase6_pending_settings.pop("w")
+        return {"w": settings["w"]}
+
+    app.flush_pending_settings = flush
+
+    class Composition:
+        def __init__(self):
+            self.app = app
+
+        def _required(self, namespace, key):
+            assert key == "_phase6_project_file"
+            return project
+
+        def build_project_snapshot(self, namespace):
+            events.append(("snapshot", settings["w"]))
+            return {
+                "schema": project.PROJECT_SCHEMA,
+                "snapshot": {
+                    "model": "金庫型", "w": settings["w"],
+                    "h": 600, "d": 200, "t": 2,
+                },
+                "final_geometry": {},
+            }
+
+    return state, Composition(), app, settings, events, errors
+
+
+def test_issue1790_fallback_save_flush_failure_keeps_existing_file_bytes(tmp_path, monkeypatch):
+    from tkinter import messagebox
+
+    path = tmp_path / "existing.p6fold"
+    original = b"existing committed project file must remain untouched"
+    path.write_bytes(original)
+    state, comp, app, settings, events, errors = _issue1790_standalone_save_owner(path)
+
+    def fail_flush():
+        events.append(("flush", None))
+        raise RuntimeError("pending settings cannot be committed")
+
+    app.flush_pending_settings = fail_flush
+    monkeypatch.setattr(messagebox, "showerror", lambda title, message, **kw: errors.append((title, message)))
+
+    assert state.save_project_file(comp, {}) is None
+    assert path.read_bytes() == original
+    assert app._phase6_pending_settings == {"w": 500}
+    assert events == [("flush", None)]
+    assert errors and "pending settings cannot be committed" in errors[0][1]
+
+
+def test_issue1790_fallback_save_flush_failure_does_not_create_new_file(tmp_path, monkeypatch):
+    from tkinter import messagebox
+
+    path = tmp_path / "new.p6fold"
+    state, comp, app, settings, events, errors = _issue1790_standalone_save_owner(path)
+    app._phase6_current_project_path = ""
+    app.baseline_model_var = SimpleNamespace(get=lambda: "金庫型")
+
+    def fail_flush():
+        raise RuntimeError("settings transaction failed before Save As")
+
+    app.flush_pending_settings = fail_flush
+    monkeypatch.setattr(messagebox, "showerror", lambda title, message, **kw: errors.append((title, message)))
+    monkeypatch.setattr("tkinter.filedialog.asksaveasfilename", lambda **kw: str(path))
+
+    assert state.save_project_file(comp, {}, save_as=True) is None
+    assert not path.exists()
+    assert app._phase6_pending_settings == {"w": 500}
+    assert errors and "settings transaction failed" in errors[0][1]
+    assert events == []
+
+
+def test_issue1790_fallback_success_flushes_last_settings_before_save_reload(tmp_path):
+    path = tmp_path / "current.p6fold"
+    state, comp, app, settings, events, errors = _issue1790_standalone_save_owner(path)
+    saved = state.save_project_file(comp, {})
+
+    assert saved == str(path)
+    assert events[:2] == [("flush", None), ("snapshot", 500)]
+    assert app._phase6_pending_settings == {}
+    assert project.read_project(path)["snapshot"]["w"] == pytest.approx(500)
+
+
+def test_issue1790_host_callback_save_preserves_existing_owner(tmp_path):
+    path = tmp_path / "host-owned.p6fold"
+    state, comp, app, settings, events, errors = _issue1790_standalone_save_owner(path)
+    captured = []
+    app._project_save_callback = lambda **kw: captured.append(kw) or "HOST_COMMITTED"
+
+    assert state.save_project_file(comp, {}, save_as=True) == "HOST_COMMITTED"
+    assert captured == [{"save_as": True, "active_part": "box_body"}]
+    assert events == []
+    assert not path.exists()

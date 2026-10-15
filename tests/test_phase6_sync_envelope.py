@@ -215,3 +215,55 @@ def test_initialization_resolves_manufacturing_at_most_once(monkeypatch):
         assert published == []
     finally:
         root.destroy()
+
+
+def test_issue1795_main_revision_burst_stays_runtime_only_and_preserves_ini(monkeypatch, tmp_path):
+    from ae_engine import ae
+
+    published = []
+    root, win, app = _make_app(monkeypatch, published)
+    ini = tmp_path / "config.ini"
+    baseline = b"[operator]\\r\\nkeep_this_exact = yes\\r\\n"
+    ini.write_bytes(baseline)
+    monkeypatch.setattr(ae, "INI_PATH", str(ini))
+    try:
+        first = float(app._settings_values["w"])
+        revisions = ((4, first + 44), (2, first + 22),
+                     (3, first + 33), (5, first + 55), (1, first + 11))
+        for revision, width in revisions:
+            app.apply_external_sync({
+                "origin": "main_gui",
+                "revision": revision,
+                "transaction_id": f"main_gui:{revision}",
+                "delta": {"settings": {"w": width}},
+                "fingerprint": f"main:{revision}",
+            })
+        root.update_idletasks()
+
+        assert float(app._settings_values["w"]) == first + 55
+        assert float(app.left_global_vars["w"].get()) == first + 55
+        assert published == []
+        assert ini.read_bytes() == baseline
+        assert app._phase6_sync_revision == 0
+    finally:
+        root.destroy()
+
+
+def test_issue1795_external_text_scale_updates_child_without_host_echo(monkeypatch, tmp_path):
+    from ae_engine import ae
+
+    published = []
+    root, win, app = _make_app(monkeypatch, published)
+    ini = tmp_path / "config.ini"
+    baseline = b"[operator]\\r\\ntext_defaults = untouched\\r\\n"
+    ini.write_bytes(baseline)
+    monkeypatch.setattr(ae, "INI_PATH", str(ini))
+    try:
+        app.apply_external_settings({"ui_text_size": "large"})
+        root.update_idletasks()
+        assert app._settings_values["ui_text_size"] == "large"
+        assert app._ui_text_controller.factor > 1.0
+        assert published == []
+        assert ini.read_bytes() == baseline
+    finally:
+        root.destroy()

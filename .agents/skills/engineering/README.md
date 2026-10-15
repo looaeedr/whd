@@ -24,6 +24,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 - **[拆解任務工單](./拆解任務工單/SKILL.md)**: 未決需求先釐清；已核准規格直接按 `APPROVED_REQUIREMENT_FAST_PATH` 拆工單，不再要求第二次需求核准。
 - **[執行開發任務](./執行開發任務/SKILL.md)**: 明確 `/接手` 才允許 RC 產品施工；`/派工` 仍須使用 GitHub／雲端施工及 exact CI，不能混用施工權限。
 - **[寫技能](./寫技能/SKILL.md)**: 建立、修改、驗證與改善 Skill。
+- **[新增功能](./新增功能/SKILL.md)**：`/功能` 設計／新增／繼續；追真實來源與功能影響鏈，沿用現有測試、GitHub localX 整合與 `/推推` 發布規則。
 - **[派工](./派工/SKILL.md)**：GitHub／雲端施工、PR、exact CI 後預設 `GITHUB_LOCALX_FIRST` 合併遠端 `localX`，不需逐 PR 再索合併命令，也**不能先探測 DC**。記 `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`，Windows `Z:\localX` 由使用者更新與人工 GUI 驗收；正式產品 X 仍需當次 `/推推`。
 - **[wayfinder](./wayfinder/SKILL.md)**: Plan large multi-session work as decision tickets。
 

@@ -64,10 +64,17 @@ def test_live_settings_only_sets_tk_vars_that_actually_change():
 
 def test_external_designer_apply_has_explicit_anti_echo_guard_contract():
     apply_src = inspect.getsource(bridge._phase6_apply_external_settings)
-    from gui_modules.application import command_router
+    from gui_modules.application import (
+        command_router, fold_designer_composition_settings,
+    )
+    # The bridge delegates; guard ownership moved to the composition.
+    apply_owner_src = inspect.getsource(
+        fold_designer_composition_settings.apply_external_settings
+    )
     execute_src = inspect.getsource(command_router.execute_fold_designer_update_reasons)
     wrapper_src = inspect.getsource(bridge._phase6_preview_aware_do_update)
-    assert "_phase6_external_apply_guard" in apply_src
+    assert "_phase6_composition" in apply_src
+    assert "_phase6_external_apply_guard" in apply_owner_src
     # T06 centralizes publish/anti-echo ownership in the orchestration executor;
     # compatibility wrappers must delegate instead of duplicating the guard.
     assert "_phase6_external_apply_guard" in execute_src
@@ -91,3 +98,34 @@ def test_main_input_traces_never_call_full_recalculation_directly():
     assert 'self.update_calculations()' not in total_src
     assert '_phase6_update_scheduler' in setting_src
     assert '.mark_dirty(' in setting_src
+
+
+def test_external_guard_runtime_suppresses_echo_without_dropping_scene_refresh():
+    # #1792: assert real publish/render callbacks, not inspect.getsource().
+    from types import SimpleNamespace
+    from gui_modules.application import command_router
+
+    calls = []
+    owner = SimpleNamespace(
+        _phase6_sync_ready=True,
+        _phase6_initializing=False,
+        _phase6_external_apply_guard=True,
+        _phase6_defer_input_publish=False,
+        _live_sync_callback=lambda payload=None: None,
+    )
+
+    def run():
+        command_router.execute_fold_designer_update_reasons(
+            owner,
+            {"display", "camera"},
+            full_update=lambda: calls.append("full"),
+            render_committed=lambda: calls.append("scene"),
+            publish_if_changed=lambda: calls.append("echo"),
+        )
+
+    run()
+    assert calls == ["scene"]  # external apply updates scene, not host echo
+    owner._phase6_external_apply_guard = False
+    calls.clear()
+    run()
+    assert calls == ["echo", "scene"]  # genuine local edit still publishes

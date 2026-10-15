@@ -28,6 +28,26 @@ def test_invalid_shard_fails_closed(index, count):
         shard_paths(index, count)
 
 
+def test_gui_performance_and_reentrant_save_contracts_cannot_be_omitted_from_ci():
+    # #1792: whole-file selectors prevent the test-selection blind spot
+    # uncovered while validating the #1790 Save regression.
+    mandatory = {
+        "tests/test_phase6_gui_performance_contract.py",
+        "tests/test_phase6_part_switch_performance.py",
+        "tests/test_issue371_t7_update_runtime_behavior.py",
+    }
+    assert mandatory.issubset(set(PYTEST_PATHS))
+    assert len(PYTEST_PATHS) == len(set(PYTEST_PATHS))
+    for path in mandatory:
+        assert not any(item.startswith(path + "::") for item in PYTEST_PATHS)
+
+
+def test_issue1795_sync_envelope_real_tk_suite_is_mandatory():
+    # External revision, startup precedence and anti-echo are live Tk
+    # acceptance contracts; static source checks cannot replace execution.
+    assert "tests/test_phase6_sync_envelope.py" in PYTEST_PATHS
+
+
 def test_outside_bend_bidirectional_gate_cannot_be_omitted_from_product_ci():
     mandatory = {
         "tests/test_outside_bend_bidirectional_hard_gate.py",
