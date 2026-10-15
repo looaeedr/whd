@@ -2145,7 +2145,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     and not messagebox.askyesno(
                         "捨棄未提交的 NFB 草稿？",
                         "目前 NFB 物理層、空槽或品牌選型的預覽尚未提交。確定捨棄？",
-                        parent=modal,
+                        parent=modal.winfo_toplevel(),
                     )):
                 return
             if modal.grab_current() is modal:
