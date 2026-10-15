@@ -276,6 +276,32 @@ def _profile_map_with_guides(position, cross_position, profile, *, axis, fold_gu
     return _profile_map(position, boundaries, folded)
 
 
+def _prepare_profile_mapper(profile, *, axis, fold_guides, geometry):
+    """Reuse bend masks/chains within ONE mesh build, never across input edits.
+
+    Thousands of triangle vertices share a small number of enabled-fold masks.
+    Keep the original finite-guide and coordinate arithmetic as the authority.
+    """
+    rows = tuple(profile or ())
+    guides = tuple(fold_guides or ())
+    masks = {}
+    chains = {(True,) * max(0, len(rows) - 1): geometry}
+
+    def map_point(position, cross_position):
+        cross = float(cross_position)
+        mask = masks.get(cross)
+        if mask is None:
+            mask = _fold_mask_for_cross_coordinate(rows, axis, cross, guides)
+            masks[cross] = mask
+        chain = chains.get(mask)
+        if chain is None:
+            chain = _profile_geometry(rows, enabled_folds=mask)
+            chains[mask] = chain
+        return _profile_map(position, *chain)
+
+    return map_point
+
+
 def fit_receiving_left_zl1_formed_outside(
     segments, mapped, mid_triangles, *, thickness, axis,
     tolerance=1e-7,
@@ -379,6 +405,8 @@ def folded_mesh_from_polygon(
 
     xb, xf = _profile_geometry(x_profile)
     yb, yf = _profile_geometry(y_profile)
+    x_mapper = _prepare_profile_mapper(x_profile, axis="x", fold_guides=fold_guides, geometry=(xb, xf))
+    y_mapper = _prepare_profile_mapper(y_profile, axis="y", fold_guides=fold_guides, geometry=(yb, yf))
     total_x, total_y = float(xb[-1]), float(yb[-1])
     display_material = material.simplify(0.05, preserve_topology=True)
     clipped_material = display_material.intersection(box(0.0, 0.0, total_x, total_y))
@@ -434,18 +462,14 @@ def folded_mesh_from_polygon(
                         if "x" in flags:
                             ux, zx = _profile_flat_map(x, xb, profile=x_profile)
                         elif fold_guides:
-                            ux, zx = _profile_map_with_guides(
-                                x, y, x_profile, axis="x", fold_guides=fold_guides
-                            )
+                            ux, zx = x_mapper(x, y)
                         else:
                             ux, zx = _profile_map(x, xb, xf)
 
                         if "y" in flags:
                             uy, zy = _profile_flat_map(y, yb, profile=y_profile)
                         elif fold_guides:
-                            uy, zy = _profile_map_with_guides(
-                                y, x, y_profile, axis="y", fold_guides=fold_guides
-                            )
+                            uy, zy = y_mapper(y, x)
                         else:
                             uy, zy = _profile_map(y, yb, yf)
                         mapped.append((float(ux), float(uy), float(zx + zy)))

@@ -38,6 +38,7 @@ from .assembly_geometry_folded_mesh import (
     _profile_flat_map,
     _fold_mask_for_cross_coordinate,
     _profile_map_with_guides,
+    _prepare_profile_mapper,
     folded_mesh_from_polygon,
     folded_world_mesh_from_render_data,
 )
@@ -287,6 +288,8 @@ def folded_mesh_with_flat_uv_from_polygon(
 
     xb, xf = _profile_geometry(x_profile)
     yb, yf = _profile_geometry(y_profile)
+    x_mapper = _prepare_profile_mapper(x_profile, axis="x", fold_guides=fold_guides, geometry=(xb, xf))
+    y_mapper = _prepare_profile_mapper(y_profile, axis="y", fold_guides=fold_guides, geometry=(yb, yf))
     total_x, total_y = float(xb[-1]), float(yb[-1])
     display_material = material.simplify(0.05, preserve_topology=True)
     clipped_material = display_material.intersection(box(0.0, 0.0, total_x, total_y))
@@ -345,18 +348,14 @@ def folded_mesh_with_flat_uv_from_polygon(
                         if "x" in flags:
                             ux, zx = _profile_flat_map(x, xb, profile=x_profile)
                         elif fold_guides:
-                            ux, zx = _profile_map_with_guides(
-                                x, y, x_profile, axis="x", fold_guides=fold_guides
-                            )
+                            ux, zx = x_mapper(x, y)
                         else:
                             ux, zx = _profile_map(x, xb, xf)
 
                         if "y" in flags:
                             uy, zy = _profile_flat_map(y, yb, profile=y_profile)
                         elif fold_guides:
-                            uy, zy = _profile_map_with_guides(
-                                y, x, y_profile, axis="y", fold_guides=fold_guides
-                            )
+                            uy, zy = y_mapper(y, x)
                         else:
                             uy, zy = _profile_map(y, yb, yf)
                         local.append((float(ux), float(uy), float(zx + zy)))

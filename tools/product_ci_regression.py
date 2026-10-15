@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",
     "tests/test_issue1464_custom_manufacturing.py",
     "tests/test_issue1465_quantity_ui.py",
