@@ -192,3 +192,93 @@ def test_issue1793_part_switches_coalesce_scheduler_flushes(monkeypatch, record_
         assert scheduler._after_job is None, (rows, reasons)
     finally:
         root.destroy()
+
+
+def test_issue1796_combined_whdt_twenty_input_burst_commits_latest_without_dxf_reread(
+    monkeypatch, record_property,
+):
+    """One real Tk transaction: 20 updates each W/H/D/T, one committed final state."""
+    from ae_engine import ae
+
+    root, win, app = _make_app(monkeypatch)
+    try:
+        reads = []
+        original_readfile = ae.ezdxf.readfile
+
+        def readfile(*args, **kwargs):
+            reads.append(str(args[0]))
+            return original_readfile(*args, **kwargs)
+
+        monkeypatch.setattr(ae.ezdxf, "readfile", readfile)
+        scheduler = app._phase6_update_scheduler
+        baseline = scheduler.metrics_snapshot()
+        final = {}
+        started = time.perf_counter()
+        for key, increment in (("w", 1.0), ("h", 1.0), ("d", 1.0), ("t", 0.01)):
+            initial = float(app._settings_values[key])
+            for i in range(1, 21):
+                value = round(initial + increment * i, 3)
+                app.left_global_vars[key].set(str(value))
+            final[key] = value
+
+        # Save/Export must not observe pending text-entry state.
+        app.flush_pending_settings()
+        _drain(root, 0.2)
+        after = scheduler.metrics_snapshot()
+        deltas = {key: after[key] - baseline[key] for key in baseline}
+        record_property("issue1796_whdt_burst_scheduler", repr(deltas))
+        record_property("issue1796_whdt_burst_wall_ms", round((time.perf_counter() - started) * 1000, 2))
+        record_property("issue1796_whdt_burst_dxf_reads", repr(reads))
+
+        for key, expected in final.items():
+            assert float(app._settings_values[key]) == expected
+            assert float(app.left_global_vars[key].get()) == expected
+        assert deltas["calculation_flushes"] <= 1, deltas
+        assert len(reads) == 0, reads
+        assert scheduler.dirty == set()
+        assert scheduler._after_job is None
+    finally:
+        root.destroy()
+
+
+def test_issue1796_combined_five_3d_toggles_with_part_switches_have_no_offscreen_render(
+    monkeypatch, record_property,
+):
+    """Real Tk display navigation cannot trigger an offscreen full resolve."""
+    root, win, app = _make_app(monkeypatch)
+    try:
+        scheduler = app._phase6_update_scheduler
+        original_render = app.renderer.render
+        renders = []
+
+        def tracked_render(*args, **kwargs):
+            renders.append(1)
+            return original_render(*args, **kwargs)
+
+        app.renderer.render = tracked_render
+        rows = []
+        for index, part in enumerate(("door", "head", "tail", "box_body", "door")):
+            app.set_3d_preview_enabled(False)
+            _drain(root, 0.1)
+            before = scheduler.metrics_snapshot()
+            offscreen_before = len(renders)
+            started = time.perf_counter()
+            app.activate_part(part)
+            _drain(root, 0.2)
+            after = scheduler.metrics_snapshot()
+            row = {
+                "part": part,
+                "solve": after["calculation_flushes"] - before["calculation_flushes"],
+                "render_off": len(renders) - offscreen_before,
+                "elapsed_ms": round((time.perf_counter() - started) * 1000, 2),
+            }
+            rows.append(row)
+            assert row["solve"] == 0, rows
+            assert row["render_off"] == 0, rows
+            app.set_3d_preview_enabled(True)
+            _drain(root, 0.1)
+        record_property("issue1796_toggle_switch_metrics", repr(rows))
+        assert scheduler.dirty == set()
+        assert scheduler._after_job is None
+    finally:
+        root.destroy()
