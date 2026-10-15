@@ -1025,10 +1025,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         count = applied["count"] if applied["mode"] == "set_bay" else 1
         selected = applied["selected_bays"] if applied["mode"] == "set_bay" else None
         marks = ()
-        if applied["mode"] == "set_bay" and get_original_door_marks is not None:
+        if (applied["mode"] == "set_bay"
+                and applied["set_index"] is not None
+                and get_original_door_marks is not None):
+            # The initial sketch has no applied Set/Bay. Resolving two
+            # stretched baseline Door DXFs *before showing the window* blocked
+            # first entry for both 單只 and 多連, even without a selection.
             set_index = applied["set_index"]
-            if set_index is None:
-                set_index = 0
             key = (set_index, count)
             if mark_cache["key"] != key:
                 # The baseline is requested once per applied Set/connection

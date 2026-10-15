@@ -2677,6 +2677,16 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
         else:
             raise RuntimeError("原組合體導覽入口尚未連接")
     else:
+        # A Set/Bay refresh can remount the single-part input widgets while
+        # display_mode still says "assembly". Re-project the actual shared
+        # content slot, not only the text of the part selector.
+        # This is display-only: closing an unchanged modal must NOT trigger
+        # expensive assembly manufacturing or live-state publication.
+        mount = namespace.get("_phase6_mount_shared_content")
+        if callable(mount):
+            mount(designer, "assembly")
+        else:
+            raise RuntimeError("組合體左側內容掛載入口尚未連接")
         selection = getattr(designer, "part_var", None)
         if selection is not None:
             selection.set("組合體")
