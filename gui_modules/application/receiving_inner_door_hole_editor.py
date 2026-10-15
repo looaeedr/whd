@@ -140,7 +140,20 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         baseline_scene=render.scene,
         baseline_status_text="金庫型門板共用折彎／截角；內門孔位獨立",
     )
-    return window or getattr(host, "last_unified_hole_editor", None)
+    editor = window or getattr(host, "last_unified_hole_editor", None)
+    receiving_page = getattr(editor, "_receiving_config_frame", None)
+    if receiving_page is not None:
+        # Reuse the existing Receiving Set/Bay candidate/NFB data authority,
+        # placing its widgets inside the original Hole Editor's 受電箱 tab.
+        from fold_designer_bridge import _phase6_composition
+        from gui_modules.application.fold_designer_composition_receiving import (
+            open_receiving_multi_settings,
+        )
+        open_receiving_multi_settings(
+            _phase6_composition(host), vars(__import__("fold_designer_bridge")),
+            embedded_inner_parent=receiving_page,
+        )
+    return editor
 
 
 def sync_inner_door_hole_editor_button(app, part_key: str) -> None:
