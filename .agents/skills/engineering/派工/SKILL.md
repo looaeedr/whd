@@ -15,7 +15,7 @@ whd_schema: WHD_DOC_META_V1
 `/派工` 施工及 CI GREEN 後的 `localX` 整合預設只使用 GitHub／雲端，**不因此自動授權 DC**。不要呼叫 `list_devices`、`ping` 探測本機；Windows `Z:\localX` 由使用者以 fast-forward 更新及 GUI 驗收。只有當次明確授權 DC 目的／裝置／路徑／操作且外部核准，才能在指定範圍使用；拒絕不得繞過。
 ## 硬閘門：`DISPATCH_CLOUD_BUILD_GITHUB_LOCALX_ONLY`
 
-施工階段 `DISCOVERY/BUILD/TEST/COMMIT/PUSH/PR/CI` 僅 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`，不可用 DC/RC/local shell。PR base=`localX`、exact SHA CI 成功後，**預設在 GitHub 合併 localX**；不能擅自發布正式 X，也不因缺雲端執行器轉本機施工。
+施工倉庫固定為 GitHub `looaeedr/whd`，不由預設 `main` 或 CoreELEC checkout 推斷來源；施工階段 `DISCOVERY/BUILD/TEST/COMMIT/PUSH/PR/CI` 僅 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`，不可用 DC/RC/local shell。PR base=`localX`、exact SHA CI 成功後，**預設在 GitHub 合併 localX**；不能擅自發布正式 X，也不因缺雲端執行器轉本機施工。
 ## 本體直接施工優先 `DISPATCH_SELF_EXECUTION_FIRST`
 
 **本體有合法 GitHub 施工能力就直接動手，不走尋找外部代理的前置流程。** 已有指定 Issue、原 PR／工作分支、GitHub 讀寫／提交／PR 和雲端 CI 能力時，由當前 AI 本體直接完成 `BUILD→TEST→COMMIT→CI`，不需要 Codex 雲端程式代理外掛、子代理或獨立 task ID。
