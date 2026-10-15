@@ -482,6 +482,17 @@
       ]
     },
     {
+      "id": "explicit-feature-command",
+      "keywords": [
+        "/功能"
+      ],
+      "required_skills": [
+        "新增功能"
+      ],
+      "required_references": [],
+      "description": "Explicit /功能 feature design/implementation/resume route to canonical 新增功能; no duplicate debug or release authority."
+    },
+    {
       "id": "explicit-debug-command",
       "keywords": [
         "/debug"
