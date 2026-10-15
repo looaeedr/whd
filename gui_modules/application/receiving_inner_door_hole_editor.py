@@ -145,8 +145,11 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
     if receiving_page is not None:
         # Reuse the existing Receiving Set/Bay candidate/NFB data authority,
         # placing its widgets inside the original Hole Editor's 受電箱 tab.
+        # The receiving tab's composition owner is the Fold Designer `app`.
+        # `host` is the primary GUI owning the generic hole editor, and
+        # must never be used for Receiving-specific navigation ports.
         build_receiving_tab = getattr(
-            host, "_phase6_open_embedded_receiving_inner_editor", None,
+            app, "_phase6_open_embedded_receiving_inner_editor", None,
         )
         if callable(build_receiving_tab):
             build_receiving_tab(receiving_page)
