@@ -134,3 +134,42 @@ def test_switching_back_to_box_body_is_display_only_and_does_not_schedule_full_u
         assert counts == {'update': 0, 'renderer': 1}
     finally:
         root.destroy()
+
+
+def test_issue1793_part_switches_coalesce_scheduler_flushes(monkeypatch):
+    """Measure 12 real Tk switches without conflating flush with full solve."""
+    root, win, app = _make_app(monkeypatch)
+    try:
+        scheduler = app._phase6_update_scheduler
+        original_submit = scheduler.submit
+        reasons = []
+
+        def observed_submit(reason="geometry", *, immediate=False, debounce_ms=None):
+            reasons.append((str(reason), bool(immediate)))
+            return original_submit(
+                reason, immediate=immediate, debounce_ms=debounce_ms
+            )
+
+        scheduler.submit = observed_submit
+        rows = []
+        for part in ("door", "head", "tail", "box_body") * 3:
+            before = scheduler.metrics_snapshot()
+            start = time.perf_counter()
+            app.activate_part(part)
+            _drain(root, 0.2)
+            after = scheduler.metrics_snapshot()
+            rows.append({
+                "part": part,
+                "flush": after["flushes"] - before["flushes"],
+                "solve": after["calculation_flushes"] - before["calculation_flushes"],
+                "display": after["display_flushes"] - before["display_flushes"],
+                "elapsed_ms": (time.perf_counter() - start) * 1000,
+            })
+
+        # A view-only change may render once but may not re-solve geometry.
+        assert all(row["solve"] == 0 for row in rows), (rows, reasons)
+        assert all(row["flush"] <= 1 for row in rows), (rows, reasons)
+        assert scheduler.dirty == set(), (rows, reasons)
+        assert scheduler._after_job is None, (rows, reasons)
+    finally:
+        root.destroy()
