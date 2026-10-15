@@ -1064,7 +1064,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         count = applied["count"] if applied["mode"] == "set_bay" else 1
         selected = applied["selected_bays"] if applied["mode"] == "set_bay" else None
         marks = ()
-        if (applied["mode"] == "set_bay"
+        if (applied["mode"] in ("set_bay", "quantity")
                 and applied["set_index"] is None
                 and get_initial_door_marks is not None):
             marks = tuple(get_initial_door_marks() or ())
