@@ -195,6 +195,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         set_brand=None, get_settings_ports=None,
                         get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
+                        get_initial_door_marks=None,
                         get_applied_version_labels=None,
                         get_real_cut_preview_request=None,
                         on_close=None, on_brand_close=None,
@@ -1025,6 +1026,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         count = applied["count"] if applied["mode"] == "set_bay" else 1
         selected = applied["selected_bays"] if applied["mode"] == "set_bay" else None
         marks = ()
+        if (applied["mode"] == "set_bay"
+                and applied["set_index"] is None
+                and get_initial_door_marks is not None):
+            # The selected Assembly's already-committed scenes can display
+            # original holes immediately, without opening/parsing Door DXFs.
+            marks = tuple(get_initial_door_marks() or ())
         if (applied["mode"] == "set_bay"
                 and applied["set_index"] is not None
                 and get_original_door_marks is not None):
