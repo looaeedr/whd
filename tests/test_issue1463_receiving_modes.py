@@ -396,3 +396,85 @@ def test_invalid_unselected_feature_blocks_before_manufacturing_cache_lookup():
     app = SimpleNamespace(_phase6_input_snapshot=source,designer_workspace=workspace)
     with pytest.raises(ValueError,match=second):
         resolve_manufacturing_for_app(app)
+
+
+@pytest.mark.skipif(
+    not __import__("os").environ.get("DISPLAY"),
+    reason="Receiving settings defaults regression needs a real Tk/Xvfb",
+)
+def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults():
+    """Operator sizes belong to current Quantity/Set-Bay, NOT Settings defaults.
+
+    The existing global Settings values (including config.ini save payload)
+    are independent of the factory-size seed for a new Receiving cabinet.
+    """
+    import fold_designer_bridge as bridge
+    from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+    from tests.test_issue517_receiving_live_switch_ui_export_marking import (
+        _open_vault_designer, _pump, _close,
+    )
+
+    tk, root, _main, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        defaults = {
+            axis: designer._settings_values[axis]
+            for axis in ("w", "h", "d")
+        }
+        family_defaults = tuple(BOX_BODY_DEFAULTS[axis] for axis in ("w", "h", "d"))
+        assert family_defaults == (800.0, 1600.0, 350.0)
+
+        single = bridge._phase6_open_receiving_single_settings(designer)
+        _pump(root, 2)
+        single_values = single._receiving_dimension_group_input
+        assert tuple(float(single_values[key].get()) for key in ("width", "height", "depth")) == family_defaults
+        single_values["width"].set("875")
+        single_values["depth"].set("410")
+        single_values["count"].set("3")
+        row = single._receiving_dimension_groups_host.winfo_children()[0].winfo_children()[0]
+        next(item for item in row.winfo_children()
+             if item.winfo_class() == "TButton").invoke()
+        _pump(root, 2)
+
+        assert designer._phase6_box_whd["w"] == pytest.approx(875.)
+        assert designer._phase6_box_whd["d"] == pytest.approx(410.)
+        assert designer.designer_workspace.snapshot()["receiving_quantity_box"]["w"] == pytest.approx(875.)
+        assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
+        single._receiving_multi_close()
+
+        multi = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 2)
+        assert multi._receiving_multi_apply(0)
+        _pump(root, 2)
+        multi_values = multi._receiving_dimension_group_input
+        assert tuple(float(multi_values[key].get()) for key in ("width", "height", "depth")) == family_defaults
+        multi_values["width"].set("735")
+        multi_values["depth"].set("375")
+        multi_values["count"].set("1")
+        assert multi._receiving_dimension_group_confirm() is True
+        _pump(root, 2)
+
+        from gui_modules.application.fold_designer_composition_receiving import (
+            _current_mode_snapshot,
+        )
+        composition = bridge._phase6_composition(designer)
+        working = _current_mode_snapshot(composition, vars(bridge))
+        assert working["receiving_layout"]["sets"][0]["bays"][0]["width"] == 735
+        assert working["receiving_layout"]["sets"][0]["bays"][0]["depth"] == 375
+        assert designer._phase6_box_whd["w"] == pytest.approx(735.)
+        assert designer._phase6_input_snapshot["w"] == pytest.approx(735.)
+        assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
+        multi._receiving_multi_close()
+
+        # Reopen the single mode: retain the previous Quantity W/H/D while
+        # the shared operator defaults stay untouched across both editors.
+        single_again = bridge._phase6_open_receiving_single_settings(designer)
+        _pump(root, 2)
+        restored = single_again._receiving_dimension_group_input
+        assert float(restored["width"].get()) == pytest.approx(875.)
+        assert float(restored["depth"].get()) == pytest.approx(410.)
+        assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
+        single_again._receiving_multi_close()
+    finally:
+        _close(tk, root, designer)
