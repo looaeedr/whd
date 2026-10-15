@@ -86,10 +86,12 @@ jobs:
           Copy-Item -LiteralPath $notes -Destination 'output/版本更新說明.md'
           $name = 'WHD_Windows_x64_v2026.10.15-x-7c1d6f59e358.zip'
           @"
-          WHD Windows portable application
-          Official source commit: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
-          Extract all contents, then run WHD/WHD.exe.
-          Keep the editable WHD/config.ini and WHD/基準檔 alongside WHD.exe.
+          WHD Windows 64 位元可攜式執行版
+          正式產品來源：7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          請先完整解壓縮，再開啟 WHD 資料夾並執行 WHD.exe。
+          請保留與 WHD.exe 同一資料夾內的 config.ini、基準檔及其他程式檔案。
+          下載、安裝與使用方法請參閱 使用說明.md。
+          本次功能更新請參閱 本次更新.md。
           "@ | Set-Content -Encoding utf8 'product/dist/WHD/BUILD_SOURCE.txt'
           Compress-Archive -LiteralPath 'product/dist/WHD' -DestinationPath "output/$name"
           $hash = (Get-FileHash "output/$name" -Algorithm SHA256).Hash.ToLowerInvariant()
