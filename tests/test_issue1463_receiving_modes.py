@@ -402,12 +402,23 @@ def test_invalid_unselected_feature_blocks_before_manufacturing_cache_lookup():
     not __import__("os").environ.get("DISPLAY"),
     reason="Receiving settings defaults regression needs a real Tk/Xvfb",
 )
-def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults():
+def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypatch):
     """Operator sizes belong to current Quantity/Set-Bay, NOT Settings defaults.
 
     The existing global Settings values (including config.ini save payload)
     are independent of the factory-size seed for a new Receiving cabinet.
     """
+    # A modal warning inside Tk/Xvfb would otherwise block the CI runner until
+    # the job is cancelled, hiding the originating exception and losing JUnit.
+    # This is a contract test: an unexpected dialog is a real test failure.
+    from tkinter import messagebox
+
+    def unexpected_dialog(*args, **kwargs):
+        raise AssertionError(f"unexpected Receiving modal dialog: {args!r} {kwargs!r}")
+
+    for dialog in ("showwarning", "showerror", "showinfo", "askyesno"):
+        monkeypatch.setattr(messagebox, dialog, unexpected_dialog)
+
     import fold_designer_bridge as bridge
     from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
     from tests.test_issue517_receiving_live_switch_ui_export_marking import (
