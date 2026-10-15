@@ -1148,6 +1148,52 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         self.mark_receiving_switch_layout_dirty(namespace, switch)
         return True
 
+    def dimension_group(set_index, highlighted, width, height, depth, count):
+        adapter = self.receiving_adapter(namespace)
+        changed = adapter.apply_dimensions_to_bays(
+            set_index, highlighted, width=width, height=height, depth=depth,
+            expected_count=count,
+        )
+        if changed:
+            self.mark_receiving_switch_layout_dirty(namespace, adapter)
+            self.sync_receiving_current_bay(namespace, refresh_controls=False)
+            self.app.submit_update_intent("geometry", commit=True)
+        return changed
+
+    def single_size_quantity():
+        from ae_engine.receiving_quantity_box import normalize_common_box
+        from phase6_quantity_model import QuantityModel
+        snapshot = _current_mode_snapshot(self, namespace)
+        if snapshot.get("active_mode") != "quantity":
+            raise ValueError("單只設定必須使用單箱體數量模式")
+        box = normalize_common_box(snapshot.get("receiving_quantity_box"))
+        model = QuantityModel.from_payload(snapshot.get("quantity"))
+        return {"width": box["w"], "height": box["h"], "depth": box["d"],
+                "count": model.selected_piece_count,
+                "total_count": model.total_piece_count,
+                "version_count": model.version_count}
+
+    def set_single_size_quantity(width, height, depth, count):
+        from ae_engine.receiving_quantity_box import (
+            update_common_box, require_valid_quantity_features,
+        )
+        from phase6_quantity_model import QuantityModel, positive_piece_count
+        new_count = positive_piece_count(count)
+        snapshot = _current_mode_snapshot(self, namespace)
+        if snapshot.get("active_mode") != "quantity":
+            raise ValueError("單只設定必須使用單箱體數量模式")
+        model = QuantityModel.from_payload(snapshot.get("quantity"))
+        model.set_piece_count(new_count)
+        candidate = update_common_box(snapshot, {"w": width, "h": height, "d": depth})
+        candidate["quantity"] = model.snapshot()
+        require_valid_quantity_features(candidate)
+        _apply_mode_snapshot(self, namespace, candidate)
+        return True
+
+    def edit_single_holes(role):
+        from .quantity_version_ports import quantity_ports
+        return quantity_ports(self, namespace)["holes"](role)
+
     # Candidate versions are project-wide and separate from QuantityModel and
     # per-Bay shared settings.  Only Apply copies a candidate into highlighted
     # receiving_layout Bays.
@@ -2658,6 +2704,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_original_door_marks=existing_door_marks,
         get_applied_version_labels=applied_version_labels,
         get_real_cut_preview_request=real_cut_preview_request,
+        get_dimension_group=dimension_group,
+        get_single_size_quantity=single_size_quantity,
+        set_single_size_quantity=set_single_size_quantity,
+        edit_single_holes=edit_single_holes,
         on_brand_close=finalize_global_brand,
         on_close=lambda: _restore_receiving_assembly_after_modal(self, namespace),
         dialog_kind="single" if single else "multi",
