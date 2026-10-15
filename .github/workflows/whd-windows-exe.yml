@@ -82,8 +82,8 @@ jobs:
           Copy-Item -LiteralPath $guide -Destination 'product/dist/WHD/使用說明.md'
           Copy-Item -LiteralPath $notes -Destination 'product/dist/WHD/本次更新.md'
           Copy-Item -LiteralPath 'product/使用說明書.md' -Destination 'product/dist/WHD/功能操作參考.md'
-          Copy-Item -LiteralPath $guide -Destination 'output/使用說明.md'
-          Copy-Item -LiteralPath $notes -Destination 'output/版本更新說明.md'
+          Copy-Item -LiteralPath $guide -Destination 'output/WHD_Windows_Guide_zh-TW.md'
+          Copy-Item -LiteralPath $notes -Destination 'output/WHD_Release_Notes_zh-TW.md'
           $name = 'WHD_Windows_x64_v2026.10.15-x-7c1d6f59e358.zip'
           @"
           WHD Windows 64 位元可攜式執行版
@@ -130,26 +130,31 @@ jobs:
           archive="WHD_Windows_x64_$RELEASE_TAG.zip"
           test -s "$archive"
           test -s SHA256.txt
-          test -s 使用說明.md
-          test -s 版本更新說明.md
-          grep -q '本次主要更新' 版本更新說明.md
-          grep -q '如何下載' 使用說明.md
+          test -s WHD_Windows_Guide_zh-TW.md
+          test -s WHD_Release_Notes_zh-TW.md
+          grep -q '本次主要更新' WHD_Release_Notes_zh-TW.md
+          grep -q '如何下載' WHD_Windows_Guide_zh-TW.md
           sha256sum --check SHA256.txt
           release_json="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,targetCommitish,isDraft,isPrerelease)"
           printf '%s' "$release_json" | jq -e \
             --arg tag "$RELEASE_TAG" --arg sha "$RELEASE_SHA" \
             '.tagName == $tag and .targetCommitish == $sha and .isDraft == false and .isPrerelease == false' >/dev/null
           # Same approved product version, new ZIP includes Traditional Chinese documentation.
-          for filename in "$archive" "SHA256.txt" "使用說明.md" "版本更新說明.md"; do
+          for filename in "$archive" "SHA256.txt" "WHD_Windows_Guide_zh-TW.md" "WHD_Release_Notes_zh-TW.md"; do
             gh release upload "$RELEASE_TAG" "$filename" --clobber --repo "$GITHUB_REPOSITORY"
           done
-          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "版本更新說明.md"
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "WHD_Release_Notes_zh-TW.md"
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets,body \
             | jq -e --arg archive "$archive" '
                 ([.assets[] | select(.name == $archive and .size > 0)] | length) == 1
                 and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
-                and ([.assets[] | select(.name == "使用說明.md" and .size > 0)] | length) == 1
-                and ([.assets[] | select(.name == "版本更新說明.md" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Windows_Guide_zh-TW.md" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Release_Notes_zh-TW.md" and .size > 0)] | length) == 1
                 and (.body | contains("本次主要更新"))
               ' >/dev/null
+          # 先確認新的附件與中文版說明均存在，再清除先前 GitHub 將中文檔名轉成 default.md 的錯誤附件。
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            | jq -e '.assets[] | select(.name == "default.md")' >/dev/null; then
+            gh release delete-asset "$RELEASE_TAG" "default.md" --repo "$GITHUB_REPOSITORY" --yes
+          fi
           echo "OFFICIAL_WINDOWS_EXE_RELEASED: https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
