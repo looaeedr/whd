@@ -24,6 +24,7 @@ def paired_bay_parts(layout, *, set_index, bay_index):
         "inner_door": {
             "layers": setting_value(set_row, bay_index, "inner_door_layers"),
             "models": setting_value(set_row, bay_index, "inner_door_models"),
+            "layer_heights_mm": setting_value(set_row, bay_index, "inner_door_layer_heights_mm"),
         },
     }
 

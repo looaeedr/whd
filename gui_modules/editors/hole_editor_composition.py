@@ -119,6 +119,20 @@ def _build_shell_and_indicator(s):
     s.indicator_offset_x_var = None
     s.indicator_offset_y_var = None
     s.indicator_box_dist_var = None
+    s.cabinet_locator_var = None
+    if s.cabinet_reference_guide is not None:
+        # Use the original release's "箱體定位距離" checkbox interaction,
+        # not duplicate editable X/Y distance fields. This merely changes
+        # the measurement guide, never the physical hole coordinates.
+        s.cabinet_locator_var = d.tk.BooleanVar(master=s.editor, value=False)
+        d.tk.Checkbutton(
+            s.left, text="箱體定位距離", variable=s.cabinet_locator_var,
+            bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+            selectcolor=host.COLOR_INPUT_BG,
+            activebackground=host.COLOR_PANEL,
+            command=lambda: (s.refresh_reference_fields(), s.redraw()),
+        ).pack(fill=d.tk.X, padx=10, pady=(5, 4))
+        s.editor._hole_cabinet_positioning = s.cabinet_locator_var
     indicator_ui_actions = d._HoleEditorIndicatorUiActions(
         editor_tabs=s.editor_tabs,
         indicator_page=s.indicator_page,
@@ -257,26 +271,6 @@ def _build_reference_stack(s):
     s.form_row_builders.add_group_entry(y_group, s.lbl_y_edge, s.var_y_edge, "y", "edge")
     s.form_row_builders.add_group_entry(y_group, s.lbl_y_neighbor, s.var_y_neighbor, "y", "neighbor")
     s.overlay_widgets.extend([x_group, y_group])
-    locator = getattr(s.editor, "_hole_cabinet_positioning", None)
-    s.cabinet_locator_reference_entries = {}
-    if locator is not None:
-        # These are REAL editable references sharing the same model variables
-        # and commit path as the original on-canvas X/Y controls.
-        for caption, var, axis, mode in (
-            ("X 距箱邊", s.var_x_edge, "x", "edge"),
-            ("X 距鄰孔", s.var_x_neighbor, "x", "neighbor"),
-            ("Y 距箱邊", s.var_y_edge, "y", "edge"),
-            ("Y 距鄰孔", s.var_y_neighbor, "y", "neighbor"),
-        ):
-            row = d.tk.Frame(locator, bg=s.host.COLOR_PANEL)
-            row.pack(fill=d.tk.X, padx=6, pady=2)
-            d.tk.Label(
-                row, text=caption, bg=s.host.COLOR_PANEL,
-                fg=s.host.COLOR_TEXT, width=9, anchor=d.tk.W,
-            ).pack(side=d.tk.LEFT)
-            field = d.tk.Entry(row, textvariable=var, width=11)
-            field.pack(side=d.tk.LEFT, fill=d.tk.X, expand=True)
-            s.cabinet_locator_reference_entries[(axis, mode)] = field
     ref_panel = d.tk.Frame(s.canvas, bg="#1f1f27", bd=2, relief=d.tk.RIDGE)
     d.tk.Label(
         ref_panel, text="右鍵切換基準", bg="#1f1f27", fg="#ffd60a",
@@ -321,6 +315,11 @@ def _build_reference_stack(s):
         selection_provider=lambda: (s.hole_session.selected_index, s.live_context.feature_list),
         context_provider=lambda: {
             "reference_guide": s.live_context.reference_guide,
+            "cabinet_reference_guide": s.cabinet_reference_guide,
+            "local_reference_guide": s.local_reference_guide,
+            "cabinet_locator_enabled": bool(
+                s.cabinet_locator_var is not None and s.cabinet_locator_var.get()
+            ),
             "active_part_key": s.active_part_key[0],
             "indicator_box_dist_enabled": bool(
                 s.indicator_box_dist_var is not None and s.indicator_box_dist_var.get()
@@ -365,6 +364,9 @@ def _build_renderer_and_catalog_actions(s):
             "width": s.live_context.width,
             "height": s.live_context.height,
             "reference_guide": s.live_context.reference_guide,
+            "cabinet_reference_enabled": bool(
+                s.cabinet_locator_var is not None and s.cabinet_locator_var.get()
+            ),
             "baseline_scene": s.live_context.baseline_scene,
             "active_part_key": s.active_part_key[0],
             "indicator_box_dist_enabled": bool(
@@ -523,11 +525,7 @@ def _build_reference_selection_actions(s):
     s.set_reference_anchor = reference_actions.set_reference_anchor
     s.apply_reference_value = reference_actions.apply_reference_value
     s.schedule_reference_value = reference_actions.schedule_reference_value
-    reference_entries = (
-        tuple(s.ref_entries.items())
-        + tuple(s.cabinet_locator_reference_entries.items())
-    )
-    for (axis, mode), entry in reference_entries:
+    for (axis, mode), entry in s.ref_entries.items():
         entry.bind(
             "<KeyRelease>",
             lambda event, a=axis, m=mode: s.schedule_reference_value(a, m),
@@ -727,12 +725,15 @@ def open_unified_hole_editor(
     door_indicator_context=None, door_indicator_commit=None, door_frame_edges=None,
     door_gap_w=None, door_gap_h=None, door_frame_width=None, door_thickness=None,
     on_close=None, on_confirm=None, baseline_scene=None, baseline_status_text=None,
-    indicator_component_context_provider=None, *, dependencies,
+    indicator_component_context_provider=None, cabinet_reference_guide=None,
+    local_reference_guide=None, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
         width=width, height=height, sync_callback=sync_callback,
-        reference_guide=reference_guide, feature_list_override=feature_list_override,
+        reference_guide=reference_guide, cabinet_reference_guide=cabinet_reference_guide,
+        local_reference_guide=local_reference_guide,
+        feature_list_override=feature_list_override,
         door_indicator_state=door_indicator_state,
         door_indicator_context=door_indicator_context,
         door_indicator_commit=door_indicator_commit, door_frame_edges=door_frame_edges,

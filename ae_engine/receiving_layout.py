@@ -605,6 +605,9 @@ def project_receiving_bay_legacy_aliases(
         result["receiving_inner_door_models"] = setting_value(
             selected, bay_index, "inner_door_models"
         )
+        result["receiving_inner_door_layer_heights_mm"] = setting_value(
+            selected, bay_index, "inner_door_layer_heights_mm"
+        )
     if validate_common:
         try:
             _validate_common_receiving_state(result)

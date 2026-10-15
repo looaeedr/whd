@@ -369,6 +369,7 @@ class ReceivingSetBayAdapter:
             for kind, value in (
                 ("inner_door_layers", source["layers"]),
                 ("inner_door_models", source["models"]),
+                ("inner_door_layer_heights_mm", source.get("layer_heights_mm")),
                 ("inner_door_version_id", version_id),
             ):
                 candidate = unlink_setting(
@@ -430,6 +431,7 @@ class ReceivingSetBayAdapter:
             for kind, value in (
                 ("inner_door_layers", config["layers"]),
                 ("inner_door_models", config["models"]),
+                ("inner_door_layer_heights_mm", config.get("layer_heights_mm")),
                 ("inner_door_version_id", assigned[(si, bi)]),
             ):
                 candidate = unlink_setting(

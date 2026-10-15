@@ -441,23 +441,6 @@ class HoleEditorWindowShellBuilder:
                 justify=tk.LEFT, wraplength=285,
             )
             baseline_status_label.pack(fill=tk.X, padx=10, pady=(7, 2))
-        if str(part_key).startswith("inner_door:") and str(part_key).endswith(":panel"):
-            # Actual X/Y reference controls remain the original on-canvas
-            # editor controls. Restore their cabinet-positioning entry here
-            # so it isn't hidden behind the Receiving/NFB configuration tab.
-            locator = tk.LabelFrame(
-                left, text="箱體定位設定", bg=host.COLOR_PANEL,
-                fg=host.COLOR_TEXT,
-                font=("Microsoft JhengHei", 10, "bold"),
-            )
-            locator.pack(fill=tk.X, padx=10, pady=(5, 4))
-            tk.Label(
-                locator,
-                text="選取孔後，使用圖面 X／Y 定位欄設定箱體基準距離",
-                bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
-                wraplength=250, justify=tk.LEFT,
-            ).pack(fill=tk.X, padx=6, pady=5)
-            editor._hole_cabinet_positioning = locator
 
         return (
             editor, fullscreen_state, fullscreen_restore_geometry,

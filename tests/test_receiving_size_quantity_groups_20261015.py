@@ -173,3 +173,82 @@ def test_multi_dialog_uses_sketch_highlight_for_second_and_third_size():
         win._receiving_multi_close()
     finally:
         root.destroy()
+
+
+def test_receiving_heights_are_independent_and_persist_with_candidate_version():
+    from ae_engine.receiving_inner_door_candidates import (
+        create_inner_candidate, inner_config, normalize_inner_candidates,
+    )
+    from ae_engine.receiving_shared_settings import setting_value, validate_setting
+
+    assert validate_setting("inner_door_layer_heights_mm", [330, 830]) == [330., 830.]
+    for bad in ([830, 330], [330, 330], [330, -1], [330], [330, float("nan")]):
+        with pytest.raises(ValueError):
+            validate_setting("inner_door_layer_heights_mm", bad)
+    library, version = create_inner_candidate(None, {
+        "layers": 2, "models": ["", ""], "layer_heights_mm": [330, 830],
+    })
+    assert inner_config(normalize_inner_candidates(library), version)["layer_heights_mm"] == [330., 830.]
+    adapter = adapter_with_bays(3)
+    adapter.apply_inner_door_candidate_to_bays(
+        inner_config(library, version), 0, (0, 2), version_id=version,
+    )
+    owner = adapter.layout["sets"][0]
+    assert setting_value(owner, 0, "inner_door_layer_heights_mm") == [330., 830.]
+    assert setting_value(owner, 1, "inner_door_version_id") is None
+    assert setting_value(owner, 2, "inner_door_version_id") == version
+    assert setting_value(owner, 2, "inner_door_layer_heights_mm") == [330., 830.]
+
+
+def test_nfb_preview_uses_operator_heights_instead_of_hardcoded_old_y():
+    from ae_engine.receiving_nfb_ui1a import new_nfb_ui1a_draft, nfb_ui1a_preview
+
+    draft = new_nfb_ui1a_draft(set_brand="士林", layer_count=2)
+    preview = nfb_ui1a_preview(
+        draft, bay_width_mm=800, upper_cell_height_mm=1100,
+        layer_heights_mm=[330, 830],
+    )
+    assert [row["nominal_y_from_top_mm"] for row in preview["layers"]] == [330., 830.]
+    assert preview["can_manufacture"] is False
+    with pytest.raises(ValueError):
+        nfb_ui1a_preview(
+            draft, bay_width_mm=800, upper_cell_height_mm=800,
+            layer_heights_mm=[330, 830],
+        )
+
+
+def test_new_height_fields_live_in_receiving_editor_without_extra_store():
+    import inspect
+    import gui_modules.application.fold_designer_composition_receiving as bridge
+
+    source = inspect.getsource(bridge.open_receiving_multi_settings)
+    assert 'text=f"第 {idx+1} 層高度（距作業區上緣 mm）"' in source
+    assert '"layer_heights_mm": read_layer_heights()' in source
+    assert "if direct_to_drawing:" in source
+    assert "persist_inner(saved)" in source
+    assert 'adapter.update_setting(kind, value)' in source
+    assert "if bay.get(\"nfb_config_submitted\") is True:" in source
+
+
+def test_old_nfb_setting_absence_preserves_previous_y_until_explicit_change():
+    from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
+    from ae_engine.receiving_nfb_y_projection import approved_nominal_y_mm
+
+    fresh = new_receiving_layout(width=800, height=1600, depth=350)
+    assert setting_value(fresh["sets"][0], 0, "inner_door_layer_heights_mm") == [330., 830.]
+
+    legacy = new_receiving_layout(width=800, height=1600, depth=350)
+    row = legacy["sets"][0]
+    row["settings"] = normalize_set_settings(None, row["bays"])
+    del row["settings"]["inner_door_layer_heights_mm"]
+    migrated = normalize_receiving_layout(legacy)
+    assert setting_value(migrated["sets"][0], 0, "inner_door_layer_heights_mm") is None
+    assert approved_nominal_y_mm(2) == (290.0, 790.0)
+    # Applying an old two-key candidate must NOT secretly move old NFB holes.
+    adapter = ReceivingSetBayAdapter(migrated)
+    adapter.apply_inner_door_candidate_to_bays(
+        {"layers": 2, "models": ["", ""]}, 0, (0,),
+    )
+    assert setting_value(
+        adapter.layout["sets"][0], 0, "inner_door_layer_heights_mm"
+    ) is None
