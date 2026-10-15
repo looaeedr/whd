@@ -91,3 +91,34 @@ def test_main_input_traces_never_call_full_recalculation_directly():
     assert 'self.update_calculations()' not in total_src
     assert '_phase6_update_scheduler' in setting_src
     assert '.mark_dirty(' in setting_src
+
+
+def test_external_guard_runtime_suppresses_echo_without_dropping_scene_refresh():
+    # #1792: assert real publish/render callbacks, not inspect.getsource().
+    from types import SimpleNamespace
+    from gui_modules.application import command_router
+
+    calls = []
+    owner = SimpleNamespace(
+        _phase6_sync_ready=True,
+        _phase6_initializing=False,
+        _phase6_external_apply_guard=True,
+        _phase6_defer_input_publish=False,
+        _live_sync_callback=lambda payload=None: None,
+    )
+
+    def run():
+        command_router.execute_fold_designer_update_reasons(
+            owner,
+            {"display", "camera"},
+            full_update=lambda: calls.append("full"),
+            render_committed=lambda: calls.append("scene"),
+            publish_if_changed=lambda: calls.append("echo"),
+        )
+
+    run()
+    assert calls == ["scene"]  # external apply updates scene, not host echo
+    owner._phase6_external_apply_guard = False
+    calls.clear()
+    run()
+    assert calls == ["echo", "scene"]  # genuine local edit still publishes
