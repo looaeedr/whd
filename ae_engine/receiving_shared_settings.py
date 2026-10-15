@@ -77,6 +77,10 @@ def validate_setting(kind, value):
     elif kind == "inner_door_models":
         value = switch_model_layers(value)
     elif kind == "inner_door_layer_heights_mm":
+        # Old saved NFB projects have no operator-height authority; None
+        # retains their original certified nominal 290/790 Y until edited.
+        if value is None:
+            return None
         if (not isinstance(value, (list, tuple)) or len(value) != 2
                 or any(type(v) not in (int, float) or not isfinite(float(v))
                        or float(v) <= 0 for v in value)
@@ -91,6 +95,10 @@ def validate_setting(kind, value):
 def normalize_set_settings(raw, bays):
     """每項設定各自有 refs/values；只保留仍被實體連引用的值。"""
     source = dict(raw or {})
+    legacy_height_absent = (
+        "inner_door_layer_heights_mm" not in source
+        and (bool(source) or any(bay.get("nfb_config_submitted") is True for bay in bays))
+    )
     unknown = set(source) - set(SETTING_DEFAULTS)
     if unknown:
         raise ValueError(f"不支援的每連設定：{sorted(unknown)}")
@@ -106,7 +114,11 @@ def normalize_set_settings(raw, bays):
             ref = refs.get(bay_id)
             if ref is None:
                 ref = f"{bay_id}:{kind}"
-                value = bay.get(kind, default)
+                value = bay.get(
+                    kind,
+                    None if legacy_height_absent and kind == "inner_door_layer_heights_mm"
+                    else default,
+                )
             else:
                 if not isinstance(ref, str) or not ref or ref not in values:
                     raise ValueError("共享設定引用不存在")
