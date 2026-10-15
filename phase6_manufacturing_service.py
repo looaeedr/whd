@@ -12,6 +12,8 @@ publication, cache lookup, and compatibility mirrors live outside this module.
 """
 from __future__ import annotations
 
+from ae_engine.assembly_mesh_reuse import mesh_build_scope
+
 from copy import deepcopy
 from dataclasses import replace
 
@@ -98,6 +100,7 @@ def _replay_endcap_render(part_input, solution):
     return solved
 
 
+@mesh_build_scope()
 def resolve(request):
     """Resolve one canonical manufacturing result from immutable domain input."""
     if not isinstance(request, ManufacturingResolveRequest):

@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    "tests/test_manufacturing_mesh_reuse.py",
     "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",
     "tests/test_issue1464_custom_manufacturing.py",
@@ -123,9 +124,7 @@ PYTEST_PATHS = (
     "tests/test_issue63_regression_red.py",
     "tests/test_issue71_divider_relief_components.py",
     "tests/test_issue74_divider_side_front_penetration.py",
-    # Keep the certified Divider CROSS 66-mm production oracle in EVERY
-    # canonical suite; otherwise an obsolete mirrored +T/68 regression can
-    # survive as a non-gating "extra" test after its geometry was withdrawn.
+    # Retired mirrored-LEFT +T relief must never silently re-enter CUTTING.
     "tests/test_issue83_divider_cross_registry.py",
     # /debug: 7mm C slot / real first-22 Z witness must be truly selected.
     "tests/test_receiving_C_slot_22mm_real_world_debug.py",
