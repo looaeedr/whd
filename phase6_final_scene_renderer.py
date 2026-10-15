@@ -650,7 +650,11 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
         poly = Poly3DCollection(
             triangles,
-            alpha=float(request.alpha_bend),
+            alpha=(max(0.96, float(request.alpha_bend))
+                   if str(request.part_key) == "door"
+                   or (str(request.part_key).startswith("door_c")
+                       and "_r" in str(request.part_key))
+                   else float(request.alpha_bend)),
             facecolor=face,
             edgecolor="none",
             linewidths=0.0,
