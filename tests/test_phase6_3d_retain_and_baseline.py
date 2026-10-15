@@ -136,3 +136,25 @@ def test_removed_second_engine_helpers_stay_absent():
         "_phase6_align_baseline_scene_to_current",
     ):
         assert not hasattr(bridge, name), name
+
+
+def test_door_cutting_hole_rims_only_use_true_material_inner_rings():
+    """Rendering never promotes arbitrary triangle sides into visible holes."""
+    from matplotlib.figure import Figure
+    from shapely.geometry import Point, box
+    from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+    from types import SimpleNamespace
+
+    fig = Figure(figsize=(5, 4))
+    ax = fig.add_subplot(111, projection="3d")
+    owner = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax))
+    profile = ({"len": 100.0},)
+
+    assert owner._draw_cutting_hole_rims(box(0, 0, 100, 100), profile, profile) == 0
+    assert len(ax.collections) == 0
+
+    material = box(0, 0, 100, 100).difference(Point(50, 50).buffer(9, resolution=12))
+    ring_count = owner._draw_cutting_hole_rims(material, profile, profile)
+    assert ring_count >= 40
+    assert len(ax.collections) == 1
+    assert len(ax.collections[0]._segments3d) == ring_count
