@@ -2667,16 +2667,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 def _restore_receiving_assembly_after_modal(owner, namespace):
     """Do not let a Receiving modal's Set/Bay refresh navigate to Box Body."""
     owner.refresh_receiving_set_bay_control(namespace)
-    host = getattr(getattr(owner.app, "_scene_query_callback", None), "__self__", None)
-    if host is None:
-        return
-    if getattr(host, "_phase6_3d_display_mode", None) != "assembly":
+    # Use the Fold Designer that owns the Assembly mode, not the unrelated
+    # GUI scene callback host (whose identity lacks designer_workspace).
+    designer = owner.app
+    if getattr(designer, "_phase6_3d_display_mode", None) != "assembly":
         show_assembly = namespace.get("_phase6_show_assembly")
         if callable(show_assembly):
-            show_assembly(host)
+            show_assembly(designer)
         else:
             raise RuntimeError("原組合體導覽入口尚未連接")
     else:
-        selection = getattr(host, "part_var", None)
+        selection = getattr(designer, "part_var", None)
         if selection is not None:
             selection.set("組合體")
