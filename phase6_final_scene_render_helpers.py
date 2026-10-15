@@ -72,6 +72,51 @@ class Phase6FinalSceneRenderHelpersMixin:
                 )
             )
 
+    def _draw_cutting_hole_rims(
+        self, material, x_profile, y_profile, fold_guides=(), *,
+        local_reference=None, placement=None, dimensions=None,
+        offset=(0.0, 0.0, 0.0),
+    ):
+        """Highlight ONLY authoritative CUTTING inner rings on Door solids.
+
+        Using material polygon interiors rather than triangle sides avoids
+        tessellation diagonals without hiding real circular/rectangular holes.
+        Mapping follows the same folding/assembly placement as the solid.
+        """
+        from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
+        polygons = (
+            (material,) if getattr(material, "geom_type", "") == "Polygon"
+            else tuple(getattr(material, "geoms", ()) or ())
+        )
+        segments = []
+        for polygon in polygons:
+            if getattr(polygon, "geom_type", "") != "Polygon":
+                continue
+            for ring in polygon.interiors:
+                local_points = tuple(
+                    self._map_xy(x, y, x_profile, y_profile, fold_guides)
+                    for x, y in ring.coords
+                )
+                if local_reference is not None:
+                    from ae_engine.assembly_geometry import place_assembly_points
+                    points = place_assembly_points(
+                        local_points, local_reference, placement,
+                        dimensions, offset,
+                    )
+                else:
+                    points = local_points
+                segments.extend(
+                    (u, v) for u, v in zip(points, points[1:])
+                    if any(abs(u[i] - v[i]) > 1e-9 for i in range(3))
+                )
+        if segments:
+            self.renderer.ax3d.add_collection3d(Line3DCollection(
+                segments, colors="#22d3ee", linewidths=2.2,
+                linestyles="solid", zorder=20,
+            ))
+        return len(segments)
+
     def _add_mesh_boundary_and_crease_lines(self, triangles, color, *, creases_only=False):
         """Draw real folded-sheet creases without exposing triangulation seams.
 

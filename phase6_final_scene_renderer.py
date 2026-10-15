@@ -370,8 +370,15 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 opacity = float(request.alpha_bend)
                 # Outer Door is intentionally readable even when the shared
                 # sheet transparency is lowered to inspect the cabinet internals.
-                if part_key == "door" or (part_key.startswith("door_c") and "_r" in part_key):
-                    opacity = max(opacity, 0.96)
+                is_outer_door = (
+                    part_key == "door" or
+                    (part_key.startswith("door_c") and "_r" in part_key)
+                )
+                is_inner_panel = (
+                    part_key.startswith("inner_door:") and part_key.endswith(":panel")
+                )
+                if is_outer_door or is_inner_panel:
+                    opacity = 1.0
                 divider_presentation = _phase6_assembly_part_presentation(part_key, opacity)
                 if divider_presentation is not None:
                     face, edge, opacity = divider_presentation
@@ -381,8 +388,16 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     facecolor=face,
                     edgecolor="none",
                     linewidths=0.0,
+                    antialiaseds=False,
                 )
                 ax.add_collection3d(poly)
+                if is_outer_door or is_inner_panel:
+                    self._draw_cutting_hole_rims(
+                        part_material, part.x_profile, part.y_profile,
+                        tuple(getattr(part_data, "fold_guides", ()) or ()),
+                        local_reference=local, placement=placement,
+                        dimensions=request.finished_dimensions, offset=offset,
+                    )
                 if formed_surface_for_edges is not None:
                     # The folded mid-surface sits inside the physical T-thick
                     # sheet and can be depth-occluded.  Draw the feature edges
@@ -648,18 +663,25 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 pass
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
         face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
+        part_key = str(request.part_key)
+        is_door = (
+            part_key == "door"
+            or (part_key.startswith("door_c") and "_r" in part_key)
+            or (part_key.startswith("inner_door:") and part_key.endswith(":panel"))
+        )
         poly = Poly3DCollection(
             triangles,
-            alpha=(max(0.96, float(request.alpha_bend))
-                   if str(request.part_key) == "door"
-                   or (str(request.part_key).startswith("door_c")
-                       and "_r" in str(request.part_key))
-                   else float(request.alpha_bend)),
+            alpha=1.0 if is_door else float(request.alpha_bend),
             facecolor=face,
             edgecolor="none",
             linewidths=0.0,
+            antialiaseds=False,
         )
         self.renderer.ax3d.add_collection3d(poly)
+        if is_door:
+            self._draw_cutting_hole_rims(
+                material, request.x_profile, request.y_profile, fold_guides,
+            )
         # A shaded solid has no triangulation grid. Explicit source BEND and
         # MARKING stay visible independently of the physical mesh tessellation.
         self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
