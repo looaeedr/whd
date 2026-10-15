@@ -1084,6 +1084,121 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
 
+    size_input = {}
+    size_controls = {"single": None}
+
+    def input_dimensions(values):
+        import re
+        parsed = {}
+        for name, label in (("width", "W"), ("height", "H"), ("depth", "D"), ("count", "數量")):
+            raw = values[name].get().strip()
+            if re.fullmatch(r"[0-9]+", raw) is None or int(raw) <= 0:
+                raise ValueError(f"{label} 必須為正整數")
+            parsed[name] = int(raw)
+        return parsed
+
+    def refresh_dimension_rows():
+        for widget in size_groups_host.winfo_children():
+            widget.destroy()
+        if single_mode or applied["set_index"] is None or get_dimension_group is None:
+            return
+        set_index = applied["set_index"]
+        layout = get_switch().layout
+        bays = layout["sets"][set_index]["bays"]
+        ttk.Label(
+            size_groups_host, text=f"第{set_index + 1}套｜尺寸與連數（毫米）",
+        ).pack(anchor="w")
+        group_table = ttk.Frame(size_groups_host)
+        group_table.pack(anchor="w", pady=4)
+        for column, label in enumerate(("W", "H", "D", "數量")):
+            ttk.Label(group_table, text=label, width=7).grid(
+                row=0, column=column, padx=2,
+            )
+        for row_index, (dimensions, indices) in enumerate(dimension_group_summary(bays), start=1):
+            for column, text in enumerate((*dimensions, len(indices))):
+                ttk.Label(
+                    group_table, text=display_dimension(text), width=7,
+                ).grid(row=row_index, column=column, padx=2, pady=1)
+        ttk.Label(size_groups_host, text="其他尺寸：高亮右圖相對箱體，再輸入尺寸及數量").pack(anchor="w")
+        entry_row = ttk.Frame(size_groups_host)
+        entry_row.pack(anchor="w", pady=3)
+        if not size_input:
+            size_input.update({
+                key: tk.StringVar(master=win, value=value)
+                for key, value in (("width", "800"), ("height", "1600"),
+                                   ("depth", "350"), ("count", "1"))
+            })
+        for label, key in (("W", "width"), ("H", "height"), ("D", "depth"), ("數量", "count")):
+            ttk.Label(entry_row, text=label).pack(side="left", padx=(2, 0))
+            ttk.Entry(entry_row, textvariable=size_input[key], width=6).pack(side="left", padx=2)
+        ttk.Button(entry_row, text="確定", command=confirm_dimension_group).pack(side="left", padx=4)
+        selected_count.set(f"右側高亮 {len(applied['selected_bays'])} 連")
+        ttk.Label(size_groups_host, textvariable=selected_count).pack(anchor="w")
+
+    def confirm_dimension_group():
+        if applied["set_index"] is None or get_dimension_group is None:
+            return
+        try:
+            dims = input_dimensions(size_input)
+            indices = tuple(applied["selected_bays"])
+            if len(indices) != dims["count"]:
+                raise ValueError(f"請在右側圖面高亮剛好 {dims['count']} 個箱體")
+            get_dimension_group(
+                applied["set_index"], indices,
+                dims["width"], dims["height"], dims["depth"], dims["count"],
+            )
+            # Recompute all size groups from canonical per-Bay dimensions.
+            # Supports 3rd, 4th ... groups without a persisted grouping table.
+            refresh_dimension_rows()
+            render()
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
+    def refresh_single_dimensions():
+        if get_single_size_quantity is None:
+            return
+        values = get_single_size_quantity()
+        for key in ("width", "height", "depth", "count"):
+            size_input[key].set(display_dimension(values[key]))
+        size_controls["status"].set(
+            f"總數量 {values['total_count']}｜孔型版本 {values['version_count']}"
+        )
+
+    def confirm_single_dimensions():
+        if set_single_size_quantity is None:
+            return
+        try:
+            dims = input_dimensions(size_input)
+            set_single_size_quantity(
+                dims["width"], dims["height"], dims["depth"], dims["count"],
+            )
+            refresh_single_dimensions()
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
+    def build_single_dimensions():
+        if size_controls["single"] is not None:
+            return
+        root = ttk.LabelFrame(size_groups_host, text="單只｜尺寸與數量", padding=8)
+        root.pack(anchor="w", fill="x")
+        size_controls["single"] = root
+        size_controls["status"] = tk.StringVar(master=win)
+        if get_single_size_quantity is None:
+            ttk.Label(root, text="單只尺寸來源尚未連接").pack(anchor="w")
+            return
+        entry_row = ttk.Frame(root)
+        entry_row.pack(anchor="w")
+        values = get_single_size_quantity()
+        for key, label in (("width", "W"), ("height", "H"), ("depth", "D"), ("count", "數量")):
+            ttk.Label(entry_row, text=label).pack(side="left", padx=(2, 0))
+            size_input[key] = tk.StringVar(master=win, value=display_dimension(values[key]))
+            ttk.Entry(entry_row, textvariable=size_input[key], width=7).pack(side="left", padx=3)
+        ttk.Button(entry_row, text="確定", command=confirm_single_dimensions).pack(side="left", padx=4)
+        ttk.Label(root, textvariable=size_controls["status"]).pack(anchor="w", pady=4)
+        refresh_single_dimensions()
+
+    selected_count = tk.StringVar(master=win, value="右側高亮 0 連")
+
     # Retain button identity while a +連/−連 callback is executing.
     # Destroying its own Tk button mid-invoke is a first-click freeze risk.
     bay_rows = []
