@@ -316,6 +316,7 @@ def _build_reference_stack(s):
         context_provider=lambda: {
             "reference_guide": s.live_context.reference_guide,
             "cabinet_reference_guide": s.cabinet_reference_guide,
+            "local_reference_guide": s.local_reference_guide,
             "cabinet_locator_enabled": bool(
                 s.cabinet_locator_var is not None and s.cabinet_locator_var.get()
             ),
@@ -725,12 +726,13 @@ def open_unified_hole_editor(
     door_gap_w=None, door_gap_h=None, door_frame_width=None, door_thickness=None,
     on_close=None, on_confirm=None, baseline_scene=None, baseline_status_text=None,
     indicator_component_context_provider=None, cabinet_reference_guide=None,
-    *, dependencies,
+    local_reference_guide=None, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
         width=width, height=height, sync_callback=sync_callback,
         reference_guide=reference_guide, cabinet_reference_guide=cabinet_reference_guide,
+        local_reference_guide=local_reference_guide,
         feature_list_override=feature_list_override,
         door_indicator_state=door_indicator_state,
         door_indicator_context=door_indicator_context,
