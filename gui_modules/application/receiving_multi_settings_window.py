@@ -158,7 +158,8 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                 px, py = fx0 + cx * dw, fy0 + cy * dh
                 sx, sy = max(1.0, rx * dw), max(1.0, ry * dh)
                 canvas.create_oval(px - sx, py - sy, px + sx, py + sy,
-                                  outline="#f7c66f", width=1)
+                                  outline="#f7c66f", width=1,
+                                  tags=("receiving_nameplate",))
         labels = (version_labels or ())
         by_role = labels[index] if index < len(labels) else {}
         if by_role:
@@ -195,6 +196,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         set_brand=None, get_settings_ports=None,
                         get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
+                        get_initial_door_marks=None,
                         get_applied_version_labels=None,
                         get_real_cut_preview_request=None,
                         on_close=None, on_brand_close=None,
@@ -1025,10 +1027,19 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         count = applied["count"] if applied["mode"] == "set_bay" else 1
         selected = applied["selected_bays"] if applied["mode"] == "set_bay" else None
         marks = ()
-        if applied["mode"] == "set_bay" and get_original_door_marks is not None:
+        if (applied["mode"] == "set_bay"
+                and applied["set_index"] is None
+                and get_initial_door_marks is not None):
+            # The selected Assembly's already-committed scenes can display
+            # original holes immediately, without opening/parsing Door DXFs.
+            marks = tuple(get_initial_door_marks() or ())
+        if (applied["mode"] == "set_bay"
+                and applied["set_index"] is not None
+                and get_original_door_marks is not None):
+            # The initial sketch has no applied Set/Bay. Resolving two
+            # stretched baseline Door DXFs *before showing the window* blocked
+            # first entry for both 單只 and 多連, even without a selection.
             set_index = applied["set_index"]
-            if set_index is None:
-                set_index = 0
             key = (set_index, count)
             if mark_cache["key"] != key:
                 # The baseline is requested once per applied Set/connection
