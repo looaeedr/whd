@@ -2423,6 +2423,11 @@ def _phase6_install_part_editor_compatibility(self):
         ),
     )
     _phase6_install_assembly_panel_aliases(self, self._phase6_assembly_panel_owner)
+    # Explicit Bridge port keeps feature/app modules independent of the
+    # giant bridge implementation; the original Receiving owner is reused.
+    self._phase6_open_embedded_receiving_inner_editor = (
+        lambda parent: _phase6_open_receiving_inner_editor_tab(self, parent)
+    )
 
     _phase6_refresh_assembly_parts_panel(self)
 
@@ -2737,6 +2742,13 @@ def _phase6_open_receiving_multi_settings(self):
     """Bridge entry only; Receiving composition owns mode and editing ports."""
     from gui_modules.application.fold_designer_composition_receiving import open_receiving_multi_settings
     return open_receiving_multi_settings(_phase6_composition(self), globals())
+
+
+def _phase6_open_receiving_inner_editor_tab(self, parent):
+    from gui_modules.application.fold_designer_composition_receiving import open_receiving_multi_settings
+    return open_receiving_multi_settings(
+        _phase6_composition(self), globals(), embedded_inner_parent=parent,
+    )
 
 
 def _phase6_open_receiving_single_settings(self):

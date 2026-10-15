@@ -145,14 +145,12 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
     if receiving_page is not None:
         # Reuse the existing Receiving Set/Bay candidate/NFB data authority,
         # placing its widgets inside the original Hole Editor's 受電箱 tab.
-        import fold_designer_bridge as bridge
-        from gui_modules.application.fold_designer_composition_receiving import (
-            open_receiving_multi_settings,
+        build_receiving_tab = getattr(
+            host, "_phase6_open_embedded_receiving_inner_editor", None,
         )
-        open_receiving_multi_settings(
-            bridge._phase6_composition(host), vars(bridge),
-            embedded_inner_parent=receiving_page,
-        )
+        if not callable(build_receiving_tab):
+            raise ValueError("受電箱內門編輯尚未連接到既有組合體功能")
+        build_receiving_tab(receiving_page)
     return editor
 
 

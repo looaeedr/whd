@@ -2671,8 +2671,11 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
     if host is None:
         return
     if getattr(host, "_phase6_3d_display_mode", None) != "assembly":
-        from fold_designer_bridge import _phase6_show_assembly
-        _phase6_show_assembly(host)
+        show_assembly = namespace.get("_phase6_show_assembly")
+        if callable(show_assembly):
+            show_assembly(host)
+        else:
+            raise RuntimeError("原組合體導覽入口尚未連接")
     else:
         selection = getattr(host, "part_var", None)
         if selection is not None:
