@@ -308,3 +308,23 @@ def test_issue1789_exception_preserves_new_intent_for_next_tk_flush():
     assert events == [frozenset({"geometry"}), frozenset({"display"})]
     assert scheduler.dirty == set()
     assert owner.root.jobs == {}
+
+
+def test_issue1789_same_reason_trace_echo_is_coalesced_within_one_transaction():
+    events = []
+    owner = _owner(events)
+    scheduler = None
+
+    def execute(reasons):
+        events.append(frozenset(reasons))
+        # Canonical GUI computations may synchronously fire a Tk write trace
+        # for the identical geometry reason while projecting calculated state.
+        if reasons == {"geometry"}:
+            scheduler.submit("geometry")
+
+    scheduler = command_router._Phase6UpdateScheduler(owner, executor=execute)
+    assert scheduler.submit("geometry", immediate=True)
+    assert events == [frozenset({"geometry"})]
+    assert scheduler.dirty == set()
+    assert owner.root.jobs == {}
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 1
