@@ -820,3 +820,78 @@ def test_receiving_part_switch_back_to_assembly_still_renders_true_3d():
             )
     finally:
         _close(tk, root, designer)
+
+
+def test_receiving_dynamic_outer_doors_retain_real_nameplate_mount_cutting():
+    """Certified Vault nameplate mounts must survive Receiving's split Door topology."""
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    from shapely.geometry import Point
+    import fold_designer_bridge as bridge
+
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 7)
+        resolved = bridge._phase6_resolve_manufacturing_geometry(designer)
+        doors = {
+            part.part_key: part.render_data
+            for part in resolved.parts
+            if part.part_key.startswith("door_c")
+        }
+        assert set(doors) == {"door_c1_r1", "door_c1_r2"}
+        for part_key, data in doors.items():
+            mounts = [
+                primitive for primitive in data.scene.primitives
+                if isinstance(primitive, CirclePrimitive)
+                and str(getattr(primitive, "source_type", "")) == "nameplate_mount"
+                and str(getattr(primitive, "layer", "")).upper() == "CUTTING"
+            ]
+            assert len(mounts) == 2, (part_key, mounts)
+            assert {
+                str(getattr(mount, "source_id", "")) for mount in mounts
+            } == {"door:nameplate_mount:left", "door:nameplate_mount:right"}
+            # They are actual through-holes in manufacturing material, not
+            # preview-only decoration or an overlay added by Matplotlib.
+            for mount in mounts:
+                center = Point(float(mount.center.x), float(mount.center.y))
+                assert not data.material.covers(center), (part_key, mount.center)
+    finally:
+        _close(tk, root, designer)
+
+
+def test_receiving_modal_first_entry_defers_baselines_and_close_mounts_assembly(monkeypatch):
+    """Opening with no Set selection must neither stretch DXF nor hide Assembly."""
+    import fold_designer_bridge as bridge
+    tk, root, app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 6)
+        calls = []
+        old = app._door_layout_baseline_scene
+
+        def count_baseline(*args, **kwargs):
+            calls.append((args, kwargs))
+            return old(*args, **kwargs)
+
+        monkeypatch.setattr(app, "_door_layout_baseline_scene", count_baseline)
+        for button in (
+            bridge._phase6_open_receiving_single_settings,
+            bridge._phase6_open_receiving_multi_settings,
+        ):
+            calls.clear()
+            win = button(designer)
+            _pump(root, 3)
+            assert calls == [], "unapplied modal must not parse Door DXF"
+            assert win._receiving_multi_applied["set_index"] is None
+            # Reproduce the reported desync: mode/selection says Assembly,
+            # but the shared slot still shows Box Body's input content.
+            bridge._phase6_mount_shared_content(designer, "single")
+            assert designer.input_content_host.winfo_manager()
+            win._receiving_multi_close()
+            _pump(root, 2)
+            assert designer._phase6_3d_display_mode == "assembly"
+            assert designer.part_var.get() == "組合體"
+            assert designer.assembly_parts_panel.winfo_manager()
+            assert not designer.input_content_host.winfo_manager()
+    finally:
+        _close(tk, root, designer)
