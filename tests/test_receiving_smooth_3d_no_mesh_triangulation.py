@@ -120,3 +120,35 @@ def test_real_receiving_all_panels_shaded_without_triangle_edges(monkeypatch):
     # thousands of side/head/frame/divider triangle edges are all hidden.
     assert features == [4]
     assert renderer.last_all_parts_collision_audit is None
+
+
+def test_outer_door_assembly_renders_real_cutting_rim_and_source_bend():
+    """Do not hide the real door cutout or fold behind the opaque 3D skin."""
+    from shapely.geometry import box
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from phase6_final_scene_contracts import AssemblyScenePart, AssemblySceneRenderData
+
+    material = box(0, 0, 100, 80).difference(box(40, 25, 60, 35))
+    scene = DrawingScene()
+    scene.add_line((10, 0), (10, 80), layer="BEND")
+    door = AssemblyScenePart(
+        part_key="door_c1_r1",
+        render_data=SimpleNamespace(scene=scene, material=material, fold_guides=()),
+        x_profile=({"len": 100., "core": True},),
+        y_profile=({"len": 80., "core": True},),
+        placement="front", offset=(0., 0., 0.),
+    )
+    fig = Figure()
+    ax = fig.add_subplot(111, projection="3d")
+    view = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax))
+    request = FinalSceneViewRequest(
+        part_key="assembly", render_data=AssemblySceneRenderData(
+            assembly_parts=(door,), show_interference=False,
+        ),
+        x_profile=(), y_profile=(), finished_dimensions=(100., 80., 100.),
+        thickness=2.,
+    )
+    view.render(request)
+    assert any(isinstance(item, Line3DCollection) and len(item._segments3d) >= 4
+               for item in ax.collections)  # actual physical inner-hole boundary
+    assert "#2563eb" in {str(item.get_color()) for item in ax.lines}
