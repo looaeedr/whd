@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    # #1795: live Tk Main GUI / 3D revision, initialization, runtime-only sync.
+    "tests/test_phase6_sync_envelope.py",
     # #1792: canonical full-file GUI/3D runtime performance acceptance.
     "tests/test_phase6_gui_performance_contract.py",
     "tests/test_phase6_part_switch_performance.py",
