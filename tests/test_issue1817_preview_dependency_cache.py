@@ -186,6 +186,15 @@ def test_issue1817_real_preview_method_hits_cached_object_for_far_bay_edit(monke
     }
     assert signature() == old_signature
     assert receiving_bay_preview_request(owner, None, 0, 0) is cached
+    # Real append of a distant tail Bay also must NOT call manufacturing.
+    app._phase6_input_snapshot = {
+        **canonical,
+        "receiving_layout":resize_receiving_bays(
+            app._phase6_input_snapshot["receiving_layout"],
+            set_index=0,bay_count=5),
+    }
+    assert signature() == old_signature
+    assert receiving_bay_preview_request(owner, None, 0, 0) is cached
     # Right-neighbor Bay2 changes Bay1's certified side-lock geometry:
     # bypass must be impossible; even an isolated fake app must enter resolve.
     app._phase6_input_snapshot = {
