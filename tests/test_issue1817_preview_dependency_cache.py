@@ -98,3 +98,16 @@ def test_issue1817_noop_and_global_geometry_inputs_preserve_cache_key_policy():
     assert _key(original, 0, t=2) != _key(original, 0, t=3)
     assert _key(original, 0, assembly_joints=[]) != (
         _key(original, 0, assembly_joints=[{"subject_part":"head"}]))
+
+
+def test_issue1817_actual_joint_side_features_match_full_rebuild_for_untouched_bay():
+    # This is the real certified joint-hole projection, not a drawn mock.
+    from ae_engine.receiving_layout import receiving_bay_joint_face_features
+    original = _layout()
+    changed = update_receiving_bay(
+        original, set_index=0, bay_index=3, width=1010, height=1810, depth=460)
+    args = dict(set_index=0, bay_index=0, thickness=2, frame_width=29)
+    original_faces = receiving_bay_joint_face_features(original, **args)
+    fully_recomputed_faces = receiving_bay_joint_face_features(changed, **args)
+    assert original_faces == fully_recomputed_faces
+    assert _key(original, 0) == _key(changed, 0)
