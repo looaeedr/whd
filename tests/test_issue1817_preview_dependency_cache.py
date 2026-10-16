@@ -160,7 +160,8 @@ def test_issue1817_real_preview_method_hits_cached_object_for_far_bay_edit(monke
         projected["part_dimensions"] = project_part_dimensions(projected)
         return stable_fingerprint({
             "snapshot":_receiving_bay_preview_fingerprint_snapshot(
-                projected, set_index=0, bay_index=0),
+                projected, set_index=0, bay_index=0,
+                allow_suffix_topology_reuse=True),
             "profiles":workspace.part_profiles_snapshot(),
             "features":workspace.part_features_snapshot(),
             "face_features":workspace.part_face_features_snapshot(),
@@ -369,3 +370,77 @@ def test_issue1817_real_preview_method_rebases_far_prefix_without_rebuilding(mon
     app._phase6_input_snapshot={**canonical,"receiving_layout":neighbor}
     with pytest.raises(LookupError,match="unexpected full solve"):
         receiving_bay_preview_request(owner,None,0,3)
+
+
+def test_issue1817_tail_append_reuses_earlier_preview_but_not_old_terminal_bay():
+    original = _layout(3)
+    grown = resize_receiving_bays(original, set_index=0, bay_count=4)
+    def key(layout, index):
+        projected = project_receiving_bay_legacy_aliases(
+            {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":layout},
+            set_index=0, bay_index=index, validate_common=False)
+        return stable_fingerprint(_receiving_bay_preview_fingerprint_snapshot(
+            projected,set_index=0,bay_index=index,
+            allow_suffix_topology_reuse=True))
+    assert _key(original,0) != _key(grown,0)  # original full key invalidated
+    assert key(original,0) == key(grown,0)
+    assert key(original,1) == key(grown,1)
+    assert key(original,2) != key(grown,2)
+    assert receiving_bay_assembly_offsets(original) == (
+        receiving_bay_assembly_offsets(grown)[:3])
+    reduced = resize_receiving_bays(grown, set_index=0, bay_count=3)
+    assert key(grown,0) == key(reduced,0)
+    assert key(grown,1) == key(reduced,1)
+    assert key(grown,2) != key(reduced,2)
+
+
+def test_issue1817_tail_settings_values_trim_only_when_not_shared_with_front():
+    from ae_engine.receiving_shared_settings import (
+        normalize_set_settings, edit_setting, share_setting)
+    from ae_engine.receiving_layout import normalize_receiving_layout
+    original = _layout(3)
+    row = original["sets"][0]
+    row["settings"] = normalize_set_settings(None,row["bays"])
+    original = normalize_receiving_layout(original)
+    grown = resize_receiving_bays(original,set_index=0,bay_count=4)
+    def key(layout):
+        projected = project_receiving_bay_legacy_aliases(
+            {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":layout},
+            set_index=0,bay_index=0,validate_common=False)
+        return stable_fingerprint(_receiving_bay_preview_fingerprint_snapshot(
+            projected,set_index=0,bay_index=0,
+            allow_suffix_topology_reuse=True))
+    assert key(original) == key(grown)
+    isolated_edit = edit_setting(
+        grown,set_index=0,bay_index=3,kind="back_panel_mode",value="HALF")
+    assert key(grown) == key(isolated_edit)  # no shared ref to Bay1
+    linked = share_setting(
+        grown,set_index=0,bay_indices=(0,3),source_bay_index=0,
+        kind="back_panel_mode")
+    shared_value_change=edit_setting(
+        linked,set_index=0,bay_index=3,kind="back_panel_mode",value="HALF")
+    assert key(linked) != key(shared_value_change)  # Bay1's own value changed
+
+
+def test_issue1817_tail_key_preserves_joint_and_nearest_bay_mutations():
+    original = _layout(4)
+    def key(layout):
+        projected = project_receiving_bay_legacy_aliases(
+            {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":layout},
+            set_index=0,bay_index=0,validate_common=False)
+        return stable_fingerprint(_receiving_bay_preview_fingerprint_snapshot(
+            projected,set_index=0,bay_index=0,
+            allow_suffix_topology_reuse=True))
+    baseline=key(original)
+    touching=update_receiving_bay(
+        original,set_index=0,bay_index=1,width=1010)
+    assert baseline != key(touching)
+    joint_edit=update_receiving_bay(
+        original,set_index=0,bay_index=1,depth=410)
+    joint_edit=update_receiving_joint_alignment(
+        joint_edit,set_index=0,joint_index=0,depth_alignment="REAR")
+    assert baseline != key(joint_edit)
+    other_set=deepcopy(original)
+    other_set["sets"][0]["switch_brand"]="三菱"
+    from ae_engine.receiving_layout import normalize_receiving_layout
+    assert baseline != key(normalize_receiving_layout(other_set))
