@@ -2872,11 +2872,28 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
 
 def _restore_receiving_assembly_after_modal(owner, namespace):
-    """Do not let a Receiving modal's Set/Bay refresh navigate to Box Body."""
+    """Commit changed Receiving geometry before restoring the Assembly view."""
+    # Modal +連/−連 edits the canonical Receiving layout without forcing a
+    # heavyweight 3D solve on every click.  On exit, project the final selected
+    # Set/Bay once so Assembly never consumes geometry from the previous topology.
+    owner.sync_receiving_current_bay(namespace, refresh_controls=False)
+
+    # Dimension confirmation may already have committed this exact geometry.
+    # Compare the semantic manufacturing signature before scheduling work so a
+    # no-edit/equivalent close remains display-only rather than re-solving 3D.
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    designer = owner.app
+    current_signature = build_manufacturing_cache_key(designer).fingerprint
+    if current_signature != getattr(
+        designer, "_phase6_last_resolved_manufacturing_signature", None
+    ):
+        designer.submit_update_intent("geometry", commit=True)
+        designer._phase6_update_scheduler.flush_now()
+
     owner.refresh_receiving_set_bay_control(namespace)
     # Use the Fold Designer that owns the Assembly mode, not the unrelated
     # GUI scene callback host (whose identity lacks designer_workspace).
-    designer = owner.app
     if getattr(designer, "_phase6_3d_display_mode", None) != "assembly":
         show_assembly = namespace.get("_phase6_show_assembly")
         if callable(show_assembly):
