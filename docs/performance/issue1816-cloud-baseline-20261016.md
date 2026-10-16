@@ -143,3 +143,40 @@
 - `part_materialization` 仍只代表 adapter 輸入建構。world-skin 的返回 physical keys 證明了重新產生 world-coordinate 表面，但**不能直接當作 2D 下料圖板件重新求解或 mesh cache miss**。下一階段 #1817 應另建材質依賴／快取 miss 的精確鑑別器，且不修改幾何準確性。
 
 **驗收狀態：** #1816 對 DXF 私人原圖及 world-skin 重建數均已有真實測試；完整 Windows UAT、比 30-cycle 更長的穩態、瞬時真峰值及精確 flat-material cache miss 仍未證實，#1816 保持 OPEN，正式 X 不發布。
+
+## 2026-10-16｜真實 2D 材質工廠執行與整組製造快取（PR #1834）
+
+- 精確量測 HEAD `a8c5a6dcb8c93743ca3c65b5e40ae088ec494911`，[Product Regression run 38922927630](https://github.com/looaeedr/whd/actions/runs/38922927630) SUCCESS（所有 shards 與 canonical aggregator）、[真 Tk baseline run 38922927376](https://github.com/looaeedr/whd/actions/runs/38922927376) SUCCESS；原始 artifact ID `12055552909`（14 日保留），內含 JSON/JSONL、worker log、environment metadata。固定這次 GitHub Linux Runner 環境；**不可和不同 Runner 的其他輪次當作配對加速改善證據**。
+- 1 連與 3 連各 3 個新 Python 程序 × 5 輪暖 GUI 操作，總計 **222 筆成功／0 失敗**；`material_factory_rebuild_calls` 合計 2,106 次。此總數為五類主要 2D 材質**工廠成功呼叫**，不是 2,106 塊不同實體板件，也不是每次都寫 DXF。
+- 真實 `ManufacturingCacheService.lookup` 回傳的 receipt 共 **177 次 hit、141 次 miss**；兩種計數為不同層級與觸發條件，**不能拿 miss 與工廠呼叫數相減**或把每個 miss 說成只重建一片。工具包裝原函式，未停用或更動任何快取、幾何、鈑金製造。
+- 以下暖樣本每 topology 各 n=15；由於 1 連與 3 連結果分布相同，合併顯示每操作 n=30 分布，不代表整個三連專案所有 Bay 的板件都已逐一計數。
+
+| 真 GUI 操作 | 主要材質工廠呼叫數（n=30） | 製造 cache lookup hit 合計 | 製造 cache lookup miss 合計 |
+|---|---|---:|---:|
+| 開啟多連設定（暖） | 0 × 30 | 0 | 0 |
+| 在設定視窗確認一連尺寸 | 13 × 12、19 × 18 | 12 | 48 |
+| 修改後關閉、更新組合體 | 16 × 30 | 30 | 30 |
+| 增加連數套用關閉 | 16 × 30 | 30 | 30 |
+| 減少連數套用關閉 | 16 × 30 | 30 | 30 |
+| 開啟真實封頭 2D 預覽 | 0 × 18、7 × 12 | 0 | 0 |
+| 從 2D 返回組合 3D | 1 × 30 | 60 | 0 |
+
+**五類工廠成功呼叫的整體分類（所有 222 操作）**：
+
+| 工廠＋實際輸入 Spec | 執行次數 |
+|---|---:|
+| `build_part_render_data:EndCapPartSpec` | 555 |
+| `build_inner_door_frame_render_data:InnerDoorFramePart` | 459 |
+| `build_box_body_structure_render_data:BoxBodyPartSpec` | 417 |
+| `build_part_render_data:DoorPartSpec` | 246 |
+| `build_box_body_divider_render_data:BoxBodyDividerPart` | 153 |
+| `build_inner_door_panel_render_data:InnerDoorPanelPart` | 153 |
+| `build_part_render_data:BasePlatePartSpec` | 123 |
+| **合計** | **2,106** |
+
+### 觀測修復與精度界限
+
+- 最初 PR #1834 HEAD `358d202b08375982af3887d026f460469ca08eaf` 真 Tk 失敗：測試工具錯認 `_authoritative_render_data` 位於 Designer 實例；現行架構已將該方法移至 GUI manufacturing projection，不能直接掛到 Designer。本次刪除該無效觀測 seam，不改產品程式；測試經修正到上述 HEAD，重跑並成功，舊失敗結果未重用。
+- **未取得可證實的第二級 authoritative render-cache hit/miss**：不能把不存在的觀測欄位說成 0 命中，也不以 manufacturing cache receipt 冒充每一個 PartSpec cache。
+- 部分獨立 fixing-plate、特殊衍生來源、service collision relief replay 路徑可能不由上述五個 `manufacturing_api` 工廠產生，故 **2,106 是這五種工廠的真實執行數，不是 100% 系統所有原始 2D 空白重算數**。上述 13/19/16 等值也不代表同樣多的*不同*物理板件。
+- 這些結果已提供 #1817 對實際回傳、快取 ownership 與重建依賴進一步切分的基準，但**不解鎖 #1817 的產品施工門檻**：完整 Windows GUI 人工 UAT 與未經量測的特定製造來源仍須依 #1816 驗收；正式產品 `X` 需當次使用者 `/推推`。
