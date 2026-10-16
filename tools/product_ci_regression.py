@@ -26,6 +26,9 @@ PYTEST_PATHS = (
     # #1794: immutable DXF reload/source-fail gate + derived invalidation.
     "tests/test_phase6_derived_cache_owner.py",
     "tests/test_phase6_part_switch_performance.py",
+    # #1817: cached per-Bay Receiving preview must track adjacent Joint and
+    # preceding world placements, but not unrelated trailing W/H/D.
+    "tests/test_issue1817_preview_dependency_cache.py",
     "tests/test_manufacturing_mesh_reuse.py",
     "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",
