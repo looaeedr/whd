@@ -1,0 +1,101 @@
+name: WHD Performance Baseline Evidence
+
+on:
+  pull_request:
+    branches:
+      - localX
+    paths:
+      - '.github/workflows/whd-performance-baseline-evidence.yml'
+      - 'tools/whd_performance_baseline.py'
+      - 'docs/performance/issue1816-baseline.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-performance-evidence-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  measured-tk-baseline:
+    name: Measured Tk baseline (Linux cloud reference)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      TZ: Asia/Taipei
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+      MPLBACKEND: TkAgg
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install GUI and benchmark dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt matplotlib pytest psutil
+      - name: Record environment and immutable inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/perf
+          {
+            echo "kind=LINUX_CLOUD_REFERENCE_NOT_WINDOWS_UAT"
+            echo "repo=looaeedr/whd"
+            echo "head_sha=$(git rev-parse HEAD)"
+            echo "runner_os=$RUNNER_OS"
+            echo "runner_arch=$RUNNER_ARCH"
+            uname -a
+            lscpu
+            python -V
+            python -m pip freeze
+            sha256sum config.ini tools/whd_performance_baseline.py
+          } > work/perf/environment.txt
+      - name: Observe real Tk latency in isolated runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/whd_performance_baseline.py \
+            --samples 3 --cycles 5 --output work/perf/baseline.json
+      - name: Print sample counts median and P95 without inventing missing data
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('work/perf/baseline.json')
+          if not p.exists():
+              print('BASELINE_REPORT_MISSING; inspect worker logs and artifact')
+          else:
+              result = json.loads(p.read_text(encoding='utf-8'))
+              print('BASELINE_HEAD_SHA:', result['metadata']['source_sha'])
+              print('BASELINE_KIND: LINUX_CLOUD_REFERENCE, not Windows UAT')
+              print('BASELINE_PENDING:', result['metadata']['pending'])
+              for row in result['summary']:
+                  print(json.dumps(row, ensure_ascii=False, sort_keys=True))
+              failures = [x for x in result['rows'] if x['status'] != 'ok']
+              print('FAILED_SAMPLES:', len(failures))
+              for item in failures[:10]:
+                  print('FAIL:', item['bays'], item['operation'], item['error'])
+          PY
+      - name: Keep raw measurement journals and evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-issue1816-tk-baseline-raw
+          path: work/perf/
+          if-no-files-found: error
+          retention-days: 14
