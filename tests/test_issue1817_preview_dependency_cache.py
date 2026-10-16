@@ -196,3 +196,176 @@ def test_issue1817_real_preview_method_hits_cached_object_for_far_bay_edit(monke
     assert signature() != old_signature
     with pytest.raises(LookupError, match="full geometry rebuild required"):
         receiving_bay_preview_request(owner, None, 0, 0)
+
+
+def test_issue1817_distant_prefix_edit_keeps_local_geometry_key_but_moves_anchor():
+    original = _layout()
+    modified = update_receiving_bay(
+        original, set_index=0, bay_index=0, width=920, height=1800, depth=420)
+    old_snap = project_receiving_bay_legacy_aliases(
+        {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":original},
+        set_index=0, bay_index=3, validate_common=False)
+    new_snap = project_receiving_bay_legacy_aliases(
+        {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":modified},
+        set_index=0, bay_index=3, validate_common=False)
+    def key(snap, rebase):
+        return stable_fingerprint(_receiving_bay_preview_fingerprint_snapshot(
+            snap, set_index=0, bay_index=3, allow_upstream_translation=rebase))
+    assert key(old_snap, False) != key(new_snap, False)
+    assert key(old_snap, True) == key(new_snap, True)
+    assert receiving_bay_assembly_offsets(original)[3] != (
+        receiving_bay_assembly_offsets(modified)[3])
+    # A touching Bay3 edit still demands full geometry, never just a shift.
+    neighbor = update_receiving_bay(
+        original, set_index=0, bay_index=2, width=920, depth=420)
+    neighbor_snap = project_receiving_bay_legacy_aliases(
+        {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":neighbor},
+        set_index=0, bay_index=3, validate_common=False)
+    assert key(old_snap, True) != key(neighbor_snap, True)
+
+
+def test_issue1817_immutable_world_translation_matches_canonical_full_placement():
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_rebase_preview_world_offsets,
+    )
+    original = _layout()
+    changed = update_receiving_bay(
+        original, set_index=0, bay_index=0, width=930, height=1740, depth=390)
+    before = receiving_bay_assembly_offsets(original)[3]
+    after = receiving_bay_assembly_offsets(changed)[3]
+    material = object()
+    local=(3.0, -6.0, 11.0)
+    scene_part=AssemblyScenePart(
+        part_key="box_body", render_data=material, x_profile=(), y_profile=(),
+        offset=tuple(x+y for x,y in zip(local,before)))
+    request=FinalSceneViewRequest(
+        render_data=AssemblySceneRenderData(
+            assembly_parts=(scene_part,), preserve_endcap_core_origin=True),
+        x_profile=(),y_profile=(),part_key="assembly",thickness=2.0)
+    rebased=_receiving_rebase_preview_world_offsets(request,before,after)
+    assert rebased is not None and rebased is not request
+    updated=rebased.render_data.assembly_parts[0]
+    assert updated is not scene_part and updated.render_data is material
+    assert updated.offset == tuple(x+y for x,y in zip(local,after))
+    assert scene_part.offset == tuple(x+y for x,y in zip(local,before))
+    # Equivalent scene content, no changed material / 2D sheet or spec.
+    assert rebased.finished_dimensions == request.finished_dimensions
+    assert rebased.thickness == request.thickness
+    assert rebased.render_data.preserve_endcap_core_origin
+
+
+def test_issue1817_unsafe_preview_envelopes_cannot_be_translated():
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_rebase_preview_world_offsets,
+    )
+    part=AssemblyScenePart(part_key="box_body",render_data=object(),
+                           x_profile=(),y_profile=())
+    for scene in (
+        AssemblySceneRenderData(assembly_parts=(part,),show_interference=True,
+                                preserve_endcap_core_origin=True),
+        AssemblySceneRenderData(assembly_parts=(part,),
+                                preserve_endcap_core_origin=False),
+        AssemblySceneRenderData(
+            assembly_parts=(part,),joint_diagnostics=("unresolved",),
+            preserve_endcap_core_origin=True),
+        AssemblySceneRenderData(
+            assembly_parts=(AssemblyScenePart(
+                part_key="custom", render_data=object(),x_profile=(),y_profile=(),
+                placement="standalone"),),preserve_endcap_core_origin=True),
+    ):
+        request=FinalSceneViewRequest(
+            render_data=scene,x_profile=(),y_profile=(),part_key="assembly")
+        assert _receiving_rebase_preview_world_offsets(
+            request,(0,0,0),(10,10,10)) is None
+
+
+def test_issue1817_real_preview_method_rebases_far_prefix_without_rebuilding(monkeypatch):
+    """Actual preview method returns new world positions with identical materials."""
+    from types import SimpleNamespace
+    import pytest
+    from ae_engine.cabinet_types import receiving
+    from gui_modules.application.fold_designer_composition_receiving import (
+        receiving_bay_preview_request,
+    )
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    from phase6_settings_profile_projection import project_part_dimensions
+    import phase6_fold_profiles
+
+    canonical = receiving.apply_family_defaults({"t":2.0})
+    canonical.update(model="受電箱",active_mode="set_bay",receiving_layout=_layout())
+    for field in ("assembly_joints","custom_parts","joint_relief_state"):
+        canonical.pop(field,None)
+    workspace=SimpleNamespace(
+        part_profiles_snapshot=lambda: {},
+        part_features_snapshot=lambda: {},
+        part_face_features_snapshot=lambda: {},
+    )
+    app=SimpleNamespace(
+        _phase6_input_snapshot=canonical, _settings_values={},
+        designer_workspace=workspace,_phase6_corner_state={},
+        state=SimpleNamespace(profiles_vault={"箱身": ()}))
+    def signature():
+        projected=project_receiving_bay_legacy_aliases(
+            dict(app._phase6_input_snapshot), set_index=0, bay_index=3)
+        settings={**dict(app._settings_values),
+                  **{k:projected[k] for k in ("w","h","d")}}
+        projected.update(settings)
+        projected["part_dimensions"]=project_part_dimensions(projected)
+        return stable_fingerprint({
+            "snapshot":_receiving_bay_preview_fingerprint_snapshot(
+                projected,set_index=0,bay_index=3,allow_upstream_translation=True),
+            "profiles":workspace.part_profiles_snapshot(),
+            "features":workspace.part_features_snapshot(),
+            "face_features":workspace.part_face_features_snapshot(),
+            "box_profile":app.state.profiles_vault.get("箱身",()),
+            "corners":app._phase6_corner_state,
+        })
+    old_sig=signature()
+    old_anchor=receiving_bay_assembly_offsets(canonical["receiving_layout"])[3]
+    material=object()
+    local=(8.0, 3.0, -5.0)
+    body=AssemblyScenePart(
+        part_key="box_body",render_data=material,x_profile=(),y_profile=(),
+        offset=tuple(a+b for a,b in zip(local,old_anchor)))
+    prior=FinalSceneViewRequest(
+        render_data=AssemblySceneRenderData(
+            assembly_parts=(body,),preserve_endcap_core_origin=True),
+        x_profile=(),y_profile=(),part_key="assembly")
+    def prefix(layout):
+        return tuple((float(b["width"]),float(b["height"]),float(b["depth"]))
+                     for b in layout["sets"][0]["bays"][:4])
+    owner=SimpleNamespace(
+        app=app,
+        _receiving_bay_preview_cache={
+            (0,3):(old_sig,prior,old_anchor,prefix(canonical["receiving_layout"]))})
+    def cannot_solve(*args,**kwargs):
+        raise LookupError("unexpected full solve")
+    monkeypatch.setattr(
+        phase6_fold_profiles, "merge_box_body_profile",cannot_solve)
+    changed=update_receiving_bay(
+        canonical["receiving_layout"],set_index=0,bay_index=0,
+        width=900,height=1760,depth=430)
+    app._phase6_input_snapshot={**canonical,"receiving_layout":changed}
+    new_anchor=receiving_bay_assembly_offsets(changed)[3]
+    assert new_anchor != old_anchor and signature() == old_sig
+    result=receiving_bay_preview_request(owner,None,0,3)
+    assert result is not prior
+    new_part=result.render_data.assembly_parts[0]
+    assert new_part.render_data is material
+    assert new_part.offset == tuple(a+b for a,b in zip(local,new_anchor))
+    assert body.offset == tuple(a+b for a,b in zip(local,old_anchor))
+    assert receiving_bay_preview_request(owner,None,0,3) is result
+    # Editing immediately adjacent Bay3 destroys the local-geometry key.
+    neighbor=update_receiving_bay(
+        canonical["receiving_layout"],set_index=0,bay_index=2,width=900)
+    app._phase6_input_snapshot={**canonical,"receiving_layout":neighbor}
+    with pytest.raises(LookupError,match="unexpected full solve"):
+        receiving_bay_preview_request(owner,None,0,3)
