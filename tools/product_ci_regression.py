@@ -23,6 +23,8 @@ PYTEST_PATHS = (
     "tests/test_phase6_sync_envelope.py",
     # #1792: canonical full-file GUI/3D runtime performance acceptance.
     "tests/test_phase6_gui_performance_contract.py",
+    # #1794: immutable DXF reload/source-fail gate + derived invalidation.
+    "tests/test_phase6_derived_cache_owner.py",
     "tests/test_phase6_part_switch_performance.py",
     "tests/test_manufacturing_mesh_reuse.py",
     "tests/test_fold_mapping_preparation_performance.py",

@@ -197,3 +197,66 @@ def test_issue1794_identical_authoritative_part_presence_keeps_derived_cache(
     assert all(not cache.cache(p) for p in cache.PRODUCTS)
     assert refreshed[-1] == frozenset(without_door)
     record_property("issue1794_noop_authoritative_presence_wall_ms", repr(wall_ms))
+
+
+def test_issue1794_same_presence_but_changed_geometry_revision_invalidates():
+    """A changed Designer payload is not an equivalent presence-only repeat."""
+    from types import SimpleNamespace
+    from gui_modules.application.lifecycle import _apply_existing_parts_from_fold_workspace
+    from phase6_workspace_controller import Phase6WorkspaceController
+
+    class Flag:
+        def set(self, _value):
+            pass
+
+    owner = gui._Phase6DerivedCacheOwner()
+    host = SimpleNamespace(
+        workspace_controller=Phase6WorkspaceController(),
+        _derived_cache_owner=owner,
+        is_indicator_box_var=Flag(),
+        is_door_indicator_var=Flag(),
+        _manual_corner_part_override=None,
+    )
+    parts = ("box_body", "head", "door")
+    _apply_existing_parts_from_fold_workspace(host, parts, state_fingerprint="geometry-A")
+    first = owner.metrics_snapshot()
+    for product in owner.PRODUCTS:
+        owner.cache(product)["old"] = True
+
+    # Same geometry revision is an actual no-op.
+    _apply_existing_parts_from_fold_workspace(host, parts, state_fingerprint="geometry-A")
+    assert owner.metrics_snapshot() == first
+    assert all(owner.cache(product) for product in owner.PRODUCTS)
+
+    # New PartSpec/Joint/holes revision with same presence must clear the
+    # old material and 3D rendering, never return stale cached geometry.
+    _apply_existing_parts_from_fold_workspace(host, parts, state_fingerprint="geometry-B")
+    assert all(owner.metrics_snapshot()[p] == first[p] + 1 for p in owner.PRODUCTS)
+    assert all(not owner.cache(p) for p in owner.PRODUCTS)
+
+    for product in owner.PRODUCTS:
+        owner.cache(product)["previous-project"] = True
+    before_reload = owner.metrics_snapshot()
+    _apply_existing_parts_from_fold_workspace(
+        host, parts, state_fingerprint="geometry-B", force_invalidate=True
+    )
+    assert all(owner.metrics_snapshot()[p] == before_reload[p] + 1 for p in owner.PRODUCTS)
+    assert all(not owner.cache(p) for p in owner.PRODUCTS)
+
+
+def test_issue1794_changed_keys_precise_display_noop_but_unknown_geometry_fails_closed():
+    owner = gui._Phase6DerivedCacheOwner()
+    for name in owner.PRODUCTS:
+        owner.cache(name)["sentinel"] = name
+    before = owner.metrics_snapshot()
+    assert owner.invalidate("geometry", changed_keys={"camera", "ui_text_size"}) == ()
+    assert owner.metrics_snapshot() == before
+    assert all(owner.cache(p)["sentinel"] == p for p in owner.PRODUCTS)
+
+    # Physical dimensions remain real geometry dependencies.
+    assert set(owner.invalidate("geometry", changed_keys={"w", "h", "d", "t", "fw"})) == set(owner.PRODUCTS)
+    assert all(not owner.cache(p) for p in owner.PRODUCTS)
+    for name in owner.PRODUCTS:
+        owner.cache(name)["sentinel"] = name
+    assert set(owner.invalidate("geometry", changed_keys={"unrecognized_joint_key"})) == set(owner.PRODUCTS)
+    assert all(not owner.cache(p) for p in owner.PRODUCTS)
