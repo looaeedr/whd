@@ -222,7 +222,7 @@ def _source_authority_scan() -> None:
 
 def _run_bridge_guard() -> None:
     # This guard compares against an immutable historical Git baseline using
-    # ``git show``.  The canonical Drive root intentionally has no .git
+    # ``git show``.  A non-Git external-storage root may intentionally have no .git
     # metadata, so root verification runs the same behavioral regression test
     # but defers this Git-history-only proof to clean PR CI.
     if not (ROOT / ".git").exists():
