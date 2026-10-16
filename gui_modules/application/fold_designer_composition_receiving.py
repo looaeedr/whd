@@ -2932,11 +2932,18 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
         signature_changed = current_signature != receipt_signature
         pending_dirty = bool(getattr(scheduler, "dirty", ()))
 
-        # submit_update_intent(commit=True) flushes immediately, which is too
-        # early if close-time navigation still has queued work. Queue only, then
-        # drain exactly once after *all* close-boundary state has settled.
+        # Do not route this final queue through designer.submit_update_intent():
+        # that public facade rebinds scheduler.executor to the normal executor,
+        # which would discard the receipt wrapper installed for this close
+        # transaction. Queue on the already-owned Scheduler instead, then drain
+        # exactly once after *all* close-boundary state has settled.
         if signature_changed:
-            designer.submit_update_intent("geometry", commit=False)
+            submit = getattr(scheduler, "submit", None)
+            if callable(submit):
+                submit("geometry", immediate=False)
+            else:
+                # Compatibility for focused legacy/test schedulers only.
+                designer.submit_update_intent("geometry", commit=False)
         if signature_changed or pending_dirty:
             scheduler.flush_now()
     finally:
