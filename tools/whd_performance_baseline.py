@@ -188,6 +188,8 @@ class Probe:
         self.parts = Counter()
         self.world_skin_parts = Counter()
         self.flat_material_builds = Counter()
+        self.supplemental_material_builds = Counter()
+        self.authoritative_cache_parts = Counter()
         self.stack = ExitStack()
 
     def wrap(self, owner, name, label, part_arg=None):
@@ -231,6 +233,55 @@ class Probe:
                 self.milliseconds['material_factory_calls'] += (time.perf_counter()-started)*1000
         self.stack.enter_context(patch.object(owner, name, measured))
 
+    def observe_primary_authoritative_render(self, primary_app):
+        """Read the real Phase6ApplicationHost PartSpec/Context render cache.
+
+        The method is owned by the *primary application*, not Fold Designer.
+        Classification uses the exact key evaluated by the production owner.
+        """
+        from ae_engine.contracts import ManufacturingContext
+        original = getattr(primary_app, '_authoritative_render_data')
+        if not callable(original):
+            raise TypeError('primary application render cache method unavailable')
+        @wraps(original)
+        def measured(spec, context=None):
+            ctx = context or ManufacturingContext(draw_stock=False)
+            cache = getattr(primary_app, '_authoritative_part_render_cache', None)
+            key = (repr(spec), repr(ctx))
+            cached = cache is not None and key in cache
+            result = original(spec, context)
+            label = ('authoritative_render_cache_hit' if cached
+                     else 'authoritative_render_cache_miss')
+            self.counts[label] += 1
+            self.authoritative_cache_parts[f'{label}:{type(spec).__name__}'] += 1
+            return result
+        self.stack.enter_context(patch.object(
+            primary_app, '_authoritative_render_data', measured))
+
+    def observe_supplemental_material_factory(self, owner, name, label, *, part_id=False):
+        """Read a distinct *real* special material build seam without changing old totals.
+
+        For per-part source-flat factories, retain exact stable_id; for service
+        aliases, retain the input Spec class. Exceptions propagate unchanged.
+        """
+        original = getattr(owner, name)
+        if not callable(original):
+            raise TypeError(f'noncallable supplemental material factory: {label}')
+        @wraps(original)
+        def measured(*args, **kwargs):
+            started = time.perf_counter()
+            try:
+                result = original(*args, **kwargs)
+                identity = (str(args[0]) if part_id and args else
+                            type(args[0]).__name__ if args else 'unknown')
+                self.supplemental_material_builds[f'{label}:{identity}'] += 1
+                self.counts['supplemental_material_factory_calls'] += 1
+                return result
+            finally:
+                self.milliseconds['supplemental_material_factory_calls'] += (
+                    time.perf_counter() - started) * 1000
+        self.stack.enter_context(patch.object(owner, name, measured))
+
     def observe_world_skin(self, owner, name):
         """Wrap the real Receiving world-coordinate materializer, no fake mesh."""
         original = getattr(owner, name)
@@ -253,6 +304,8 @@ class Probe:
         self.parts.clear()
         self.world_skin_parts.clear()
         self.flat_material_builds.clear()
+        self.supplemental_material_builds.clear()
+        self.authoritative_cache_parts.clear()
 
 
 def settle(root, owners, timeout=30):
@@ -302,6 +355,7 @@ def worker(args):
     import phase6_manufacturing_adapter as adapter
     import phase6_manufacturing_service as service
     from ae_engine import manufacturing_api
+    from ae_engine import receiving_base_fixing_plate_geometry as fixing_plate_geometry
     from phase6_manufacturing_cache import ManufacturingCacheService
     from phase6_final_scene_renderer import Phase6FinalSceneRenderer
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -329,6 +383,18 @@ def worker(args):
         settle(root, owners)
         probe.wrap(service, 'resolve', 'manufacturing_solve')
         probe.observe_manufacturing_cache(ManufacturingCacheService)
+        # gui.Phase6ApplicationHost owns this exact cache method; the
+        # FoldDesigner child does not. The previous wrong owner raised an
+        # AttributeError before any true GUI benchmark could begin.
+        probe.observe_primary_authoritative_render(app)
+        # Specialty source-flat fixing plates and the service's imported replay
+        # alias are not covered by the five manufacturing_api entrypoints.
+        probe.observe_supplemental_material_factory(
+            fixing_plate_geometry, 'build_fixing_plate_source_render_data',
+            'fixing_plate_source_flat', part_id=True)
+        probe.observe_supplemental_material_factory(
+            service, 'build_part_render_data', 'service_relief_replay_material')
+        probe.wrap(service, '_replay_endcap_render', 'relief_replay_requests')
         for factory in ('build_part_render_data',
                         'build_box_body_structure_render_data',
                         'build_box_body_divider_render_data',
@@ -376,12 +442,20 @@ def worker(args):
                        status=status, error=error, wall_ms=elapsed_ms if elapsed_ms is not None else (time.perf_counter()-started)*1000,
                        counts=dict(probe.counts), inclusive_ms=dict(probe.milliseconds),
                        materialized_parts=dict(probe.parts),
+                       authoritative_render_cache_lookups={
+                           'hit': probe.counts['authoritative_render_cache_hit'],
+                           'miss': probe.counts['authoritative_render_cache_miss'],
+                           'spec_types': dict(probe.authoritative_cache_parts),
+                       },
                        manufacturing_cache_lookups={
                            'hit': probe.counts['manufacturing_cache_hit'],
                            'miss': probe.counts['manufacturing_cache_miss'],
                        },
                        material_factory_rebuilds=dict(probe.flat_material_builds),
                        material_factory_rebuild_calls=probe.counts['material_factory_calls'],
+                       supplemental_material_builds=dict(probe.supplemental_material_builds),
+                       supplemental_material_factory_calls=probe.counts[
+                           'supplemental_material_factory_calls'],
                        world_skin_physical_pieces=dict(probe.world_skin_parts),
                        world_skin_physical_rematerializations=sum(probe.world_skin_parts.values()),
                        rss_before=before,

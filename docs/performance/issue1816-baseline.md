@@ -92,3 +92,30 @@ python tools/whd_performance_baseline.py --samples 3 --cycles 10 --output work/p
 - `inclusive_ms.material_factory_calls` 是工廠巢狀 inclusive 時間；含內部依賴呼叫時不能加總當 wall time。某些固定片、碰撞後回放或特殊直接產出路徑不透過上列五個 factories，必須在後續範圍擴展時另列，不得把這份覆蓋率宣稱為全產品 100%。
 
 量測包裝保留返回物件 identity、真實錯誤、原本快取失效與 geometry 檢查。不為了讓數字好看而阻止 rebuild，也不在 GUI 上增加 cache。
+
+
+## 特殊材質路徑增量計數（#1816 擴展）
+
+原 `material_factory_rebuild_calls`／`material_factory_rebuilds` **維持原本五個 `manufacturing_api` 工廠定義**，不得把擴展數字算進去造成與歷史基準不相容。新增獨立欄位：
+
+- `supplemental_material_factory_calls`：下列**實際成功返回**的補充材料工廠呼叫數。
+- `supplemental_material_builds`：以來源階段、`part_id` 或 Spec 型別分組的真實呼叫分布。
+
+讀取的兩個實際 seam：
+
+1. `ae_engine.receiving_base_fixing_plate_geometry.build_fixing_plate_source_render_data`：原始來源平片底板固定片，以**實際 stable part_id** 標註 left／right；本項只證明來源材料實際生成，不把來源平片誤稱已認證折彎／焊接。
+2. `phase6_manufacturing_service.build_part_render_data`：`_replay_endcap_render` 對 `ManufacturingPartInput.part_spec` 的服務端**已匯入別名**。記錄真實 replay 後建材結果，與 GUI `manufacturing_api.build_part_render_data` 的先前計數分流。另有 `counts.relief_replay_requests` 記錄 replay 入口的呼叫，即使兼容退回既有 `solution.solved_render_data`、未重建，也不填入假的工廠成功數。
+
+若目前 GUI 的 `on_scene_query` 不進其中一個 seam，觀測為 0 是「該操作未走這個已核實的入口」，不是「整套產品沒有此材質」。兩個補充欄位不等同互斥 2D 實體數、cache miss 或總製造 BOM。測試用真正固定片材料及原始 alias，包裝方法保留返回、例外及 Context，不更動來源裁切／定位。
+
+## 第二級原始 2D／3D PartSpec/Context 材質快取的真實 owner
+
+精讀 `gui.py::Phase6ApplicationHost` 已證實 `_authoritative_render_data = _phase6_fold_adapter._authoritative_render_data`，而 `Phase6PrimaryApplication` 繼承此入口；**不是** Fold Designer 子視窗實例。實際來源函式在 `gui_modules/application/fold_designer_manufacturing_projection.py`，正式快取鍵是 `(repr(spec), repr(ctx))`、`ctx = context or ManufacturingContext(draw_stock=False)`。只有透過主 GUI 實例可得到正確的 owner 與 scope。
+
+新增只讀 `Probe.observe_primary_authoritative_render(app)`，在呼叫真正主 GUI 原方法**之前**核對當時快取是否含同一個 key，在原方法成功返回後記下：
+
+- `authoritative_render_cache_lookups.hit/miss/spec_types`：真實 PartSpec/Context render cache pre-call hit/miss 與 Spec 類別分布。
+- 不以 `ManufacturingCacheService` 整組 cache 的 hit/miss 代替，不將未走過此入口的其他直接板件工廠計入本層。
+- 未回傳成功的例外不計 hit 或 miss；wrapper 不預先分配 cache、不清 cache，也不改官方 `_authoritative_render_data` 的 geometry／state。
+
+這次修正的是前一回合錯誤以 Designer 為 owner 的量測器接線，**不修改正式 GUI 函式的 owner／組合行為**。只有同 HEAD 實際 Tk GUI 原始紀錄顯示命中及構建資料、必要產品 regression 全成功後，才可把它寫為完成的雲端基準。
