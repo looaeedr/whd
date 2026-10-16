@@ -683,6 +683,7 @@ def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
     import time
     import fold_designer_bridge as bridge
     from gui_modules.application.fold_designer_composition_receiving import _current_mode_snapshot
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
     tk, root, _app, designer = _open_vault_designer()
     try:
         designer.baseline_model_var.set('受電箱')
@@ -708,7 +709,52 @@ def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
             counts.append(composition.receiving_switch_adapter(vars(bridge)).connection_counts()[0])
         assert counts == [2, 3]
         assert max(durations) < 1.0, durations
+        # Exact Windows UAT repro: topology changed, then close immediately.
+        # The modal click path stays fast; the one required manufacturing flush
+        # happens at the close boundary before Assembly is remounted.
         win._receiving_multi_close()
+        _pump(root, 6)
+        assert designer._phase6_last_resolved_manufacturing_signature == (
+            build_manufacturing_cache_key(designer).fingerprint
+        )
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.final_scene_view.last_cutting_mesh
+        assert designer.part_var.get() == "組合體"
+    finally:
+        _close(tk, root, designer)
+
+
+def test_issue1796_multi_dimension_change_close_commits_finalscene():
+    """Real Tk: change one Bay W/H/D and close immediately; Assembly consumes the new receipt."""
+    import fold_designer_bridge as bridge
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        win = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 4)
+        assert win._receiving_multi_apply(0) is True
+        values = win._receiving_dimension_group_input
+        values["width"].set("820")
+        values["height"].set("1600")
+        values["depth"].set("350")
+        values["count"].set("1")
+
+        # Do not pump Tk between confirmation and close. This is the reported
+        # operator sequence that previously let Assembly race stale geometry.
+        assert win._receiving_dimension_group_confirm() is True
+        win._receiving_multi_close()
+        _pump(root, 6)
+
+        assert float(designer._phase6_box_whd["w"]) == 820.0
+        assert designer._phase6_last_resolved_manufacturing_signature == (
+            build_manufacturing_cache_key(designer).fingerprint
+        )
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.final_scene_view.last_cutting_mesh
+        assert designer.part_var.get() == "組合體"
     finally:
         _close(tk, root, designer)
 
