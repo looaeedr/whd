@@ -668,3 +668,53 @@ def test_issue1816_genuine_fixing_plate_factory_builds_real_material_unchanged()
     finally:
         probe.stack.close()
     assert module.build_fixing_plate_source_render_data is build_fixing_plate_source_render_data
+
+
+def test_issue1816_actual_primary_gui_owns_authoritative_render_method():
+    import gui
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _authoritative_render_data,
+    )
+    assert gui.Phase6ApplicationHost._authoritative_render_data is _authoritative_render_data
+    assert gui.Phase6PrimaryApplication._authoritative_render_data is _authoritative_render_data
+
+
+def test_issue1816_primary_render_cache_receipt_tracks_exact_spec_context_key():
+    from types import SimpleNamespace
+    from tools.whd_performance_baseline import Probe
+    class ExampleSpec:
+        pass
+    spec = ExampleSpec()
+    ctx = SimpleNamespace(draw_stock=False)
+    original_result = object()
+    class TestPrimaryApplication:
+        def __init__(self):
+            self._authoritative_part_render_cache = {}
+            self.builder_calls = 0
+        def _authoritative_render_data(self, spec, context=None):
+            key = (repr(spec), repr(context))
+            cache = self._authoritative_part_render_cache
+            if key not in cache:
+                self.builder_calls += 1
+                cache[key] = original_result
+            return cache[key]
+    app = TestPrimaryApplication()
+    original = app._authoritative_render_data.__func__
+    probe = Probe()
+    try:
+        probe.observe_primary_authoritative_render(app)
+        assert app._authoritative_render_data(spec, ctx) is original_result
+        assert app._authoritative_render_data(spec, ctx) is original_result
+        assert app.builder_calls == 1
+        assert probe.counts['authoritative_render_cache_miss'] == 1
+        assert probe.counts['authoritative_render_cache_hit'] == 1
+        assert probe.authoritative_cache_parts[
+            'authoritative_render_cache_hit:ExampleSpec'] == 1
+        assert probe.counts['material_factory_calls'] == 0
+        probe.reset()
+        assert not probe.authoritative_cache_parts
+        assert app._authoritative_render_data(spec,ctx) is original_result
+        assert probe.counts['authoritative_render_cache_hit'] == 1
+    finally:
+        probe.stack.close()
+    assert app._authoritative_render_data.__func__ is original
