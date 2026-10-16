@@ -1,0 +1,78 @@
+name: WHD Three-Bay Cold Project Baseline
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-threebay-cold-project.yml'
+      - 'tools/whd_performance_cold_reload.py'
+
+permissions:
+  contents: read
+
+jobs:
+  measured-three-bay-cold:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      TZ: Asia/Taipei
+      MPLBACKEND: TkAgg
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install benchmark GUI dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt matplotlib pytest psutil
+      - name: Capture environment
+        run: |
+          mkdir -p work/perf/threebay
+          {
+            echo "kind=LINUX_CLOUD_REFERENCE_NOT_WINDOWS_UAT"
+            git rev-parse HEAD
+            uname -a
+            lscpu
+            python -V
+            python -m pip freeze
+            sha256sum config.ini tools/whd_performance_cold_reload.py
+          } > work/perf/threebay/environment.txt
+      - name: Create real 3-bay .p6fold then reload in three fresh Python processes
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/whd_performance_cold_reload.py \
+            --samples 3 --output work/perf/threebay/cold.json
+      - name: Print actual results, including failure status
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('work/perf/threebay/cold.json')
+          if not p.exists():
+              print('THREEBAY_COLD_MISSING; see logs')
+          else:
+              result=json.loads(p.read_text())
+              print('SOURCE_HEAD:',result['metadata']['source_sha'])
+              print('CACHE_DEFINITION:',result['metadata']['cache_state'])
+              for name,stat in result['summary'].items():
+                  print(name,stat)
+              print('FAILURES:',sum(r['status']!='ok' for r in result['rows']))
+          PY
+      - name: Upload all cold process logs and saved project
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-issue1816-threebay-cold-raw
+          path: work/perf/threebay/
+          if-no-files-found: error
+          retention-days: 14
