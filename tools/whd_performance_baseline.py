@@ -21,6 +21,7 @@ import importlib.metadata
 import statistics
 import subprocess
 import sys
+import threading
 import time
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -58,6 +59,81 @@ def rss_bytes():
         if sys.platform.startswith('linux'):
             return int(Path('/proc/self/statm').read_text().split()[1]) * os.sysconf('SC_PAGE_SIZE')
         return None
+
+
+class RSSSampler:
+    """Sample process RSS independently of Tk; no claiming exact high-water peak.
+
+    The sampler never touches GUI objects. Short operations may contain zero
+    periodic samples and must report null rather than fabricated zero.
+    """
+
+    def __init__(self, interval_ms=50, *, reader=rss_bytes, clock=time.perf_counter):
+        if not 10 <= interval_ms <= 1000:
+            raise ValueError('RSS interval must be between 10 and 1000 milliseconds')
+        self.interval_ms = interval_ms
+        self.reader = reader
+        self.clock = clock
+        self.samples = []
+        self.error = None
+        self._stop = threading.Event()
+        self._thread = None
+
+    def _capture(self):
+        try:
+            rss = self.reader()
+            if rss is not None:
+                self.samples.append((self.clock(), int(rss)))
+        except (OSError, ValueError, RuntimeError) as exc:
+            self.error = f'{type(exc).__name__}: {exc}'
+            self._stop.set()
+
+    def _loop(self):
+        while not self._stop.wait(self.interval_ms / 1000):
+            self._capture()
+
+    def start(self):
+        if self._thread is not None:
+            raise RuntimeError('RSS sampler already started')
+        self._capture()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+        return self
+
+    def stop(self):
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2)
+            if self._thread.is_alive():
+                raise RuntimeError('RSS sampler thread did not finish')
+        self._capture()
+
+    def window(self, started, ended):
+        values = [rss for ts, rss in self.samples if started <= ts <= ended]
+        return dict(rss_peak_sampled_bytes=max(values) if values else None,
+                    rss_samples_in_operation=len(values),
+                    rss_sample_error=self.error)
+
+
+def memory_trends(rows):
+    """One-program RSS checkpoints; observational growth, NOT leak diagnosis."""
+    by_worker = defaultdict(list)
+    for row in rows:
+        if (row.get('operation') == 'return_3d'
+                and row.get('status') == 'ok'
+                and row.get('rss_after') is not None):
+            by_worker[(row['bays'], row.get('worker_sample', 0))].append(
+                int(row['rss_after']))
+    result = []
+    for (bays, sample), rss_values in sorted(by_worker.items()):
+        result.append(dict(bays=bays, worker_sample=sample,
+                           completed_cycles=len(rss_values),
+                           first_rss_bytes=rss_values[0],
+                           last_rss_bytes=rss_values[-1],
+                           delta_bytes=rss_values[-1]-rss_values[0],
+                           max_checkpoint_rss_bytes=max(rss_values),
+                           interpretation='same_process_observation_not_leak_proof'))
+    return result
 
 
 class Probe:
@@ -141,6 +217,7 @@ def worker(args):
     errors = []
     probe = Probe()
     root = tk.Tk()
+    sampler = RSSSampler(args.memory_interval_ms).start()
     root.geometry('1400x900+0+0')
     root.report_callback_exception = lambda typ, value, tb: errors.append(str(value))
     def dialog(*a, **kw):
@@ -186,11 +263,14 @@ def worker(args):
                     validate(value)
             except Exception as exc:
                 status, error = 'failed', f'{type(exc).__name__}: {exc}'
-            row = dict(bays=args.bays, operation=operation, cache_state=cache,
+            ended = time.perf_counter()
+            rss_window = sampler.window(started, ended)
+            row = dict(bays=args.bays, worker_sample=args.worker_sample,
+                       operation=operation, cache_state=cache,
                        status=status, error=error, wall_ms=elapsed_ms if elapsed_ms is not None else (time.perf_counter()-started)*1000,
                        counts=dict(probe.counts), inclusive_ms=dict(probe.milliseconds),
                        materialized_parts=dict(probe.parts), rss_before=before,
-                       rss_after=rss_bytes(), calculation_flushes=sum(
+                       rss_after=rss_bytes(), **rss_window, calculation_flushes=sum(
                            s._metrics['calculation_flushes'] for s in schedulers if s)-calc_before)
             rows.append(row)
             with Path(args.output).open('a', encoding='utf-8') as f:
@@ -285,6 +365,7 @@ def worker(args):
             panel_window.destroy()
         return rows
     finally:
+        sampler.stop()
         probe.stack.close()
         root.destroy()
 
@@ -294,6 +375,9 @@ def main():
     parser.add_argument('--output', required=True)
     parser.add_argument('--samples', type=int, default=3)
     parser.add_argument('--cycles', type=int, default=10)
+    parser.add_argument('--memory-interval-ms', type=int, default=50,
+                        help='RSS polling interval; sampled maximum is NOT exact peak')
+    parser.add_argument('--worker-sample', type=int, default=0)
     parser.add_argument('--worker', action='store_true')
     parser.add_argument('--bays', type=int, choices=(1,3), default=1)
     parser.add_argument('--dxf-index')
@@ -302,6 +386,8 @@ def main():
     args = parser.parse_args()
     if min(args.samples, args.cycles) < 1:
         parser.error('samples and cycles must be positive')
+    if not 10 <= args.memory_interval_ms <= 1000:
+        parser.error('memory-interval-ms must be between 10 and 1000')
     output = Path(args.output).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     if args.worker:
@@ -315,6 +401,8 @@ def main():
                     config_sha256=hashlib.sha256((ROOT/'config.ini').read_bytes()).hexdigest(),
                     harness_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                     samples=args.samples, cycles=args.cycles,
+                    memory_interval_ms=args.memory_interval_ms,
+                    memory_peak_definition='maximum sampled RSS, not instantaneous peak',
                     cold_definition='fresh Python process; OS file cache not cleared',
                     pending=[] if args.dxf_index else ['DXF source index/path not supplied; no DXF latency claim'],
                     windows_uat='PENDING', workers=[])
@@ -323,14 +411,19 @@ def main():
         for sample in range(args.samples):
             journal=output.with_name(f'{output.stem}-b{bays}-s{sample}.jsonl')
             journal.write_text('',encoding='utf-8')
-            command=[sys.executable,__file__,'--worker','--bays',str(bays),'--cycles',str(args.cycles),'--output',str(journal)]
+            command=[sys.executable,__file__,'--worker','--bays',str(bays),
+                     '--worker-sample',str(sample),'--cycles',str(args.cycles),
+                     '--memory-interval-ms',str(args.memory_interval_ms),
+                     '--output',str(journal)]
             if args.dxf_index:
                 command += ['--dxf-index',args.dxf_index,'--brand',args.brand,'--filename',args.filename]
             with journal.with_suffix('.log').open('w',encoding='utf-8') as log:
                 run=subprocess.run(command,cwd=ROOT,stdout=log,stderr=subprocess.STDOUT,timeout=900)
             all_rows.extend(json.loads(line) for line in journal.read_text(encoding='utf-8').splitlines())
             metadata['workers'].append(dict(bays=bays,sample=sample,returncode=run.returncode,journal=journal.name))
-            output.write_text(json.dumps(dict(metadata=metadata,summary=summarize(all_rows),rows=all_rows),ensure_ascii=False,indent=2),encoding='utf-8')
+            output.write_text(json.dumps(dict(metadata=metadata,summary=summarize(all_rows),
+                                              memory_trends=memory_trends(all_rows),
+                                              rows=all_rows),ensure_ascii=False,indent=2),encoding='utf-8')
             print(f'bays={bays} sample={sample} exit={run.returncode}',flush=True)
             if run.returncode:
                 raise SystemExit(run.returncode)

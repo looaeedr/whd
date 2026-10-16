@@ -44,3 +44,15 @@ python tools/whd_performance_baseline.py --samples 3 --cycles 10 --output work/p
 結構驗收依 GUI 效能完整性規則：單一幾何 transaction 目標 calculation≤1、FinalScene rebuild≤1、render≤1、相同 DXF disk reread=0、live-state echo=0。現有基準可能不符合，必須如實記錄，不能為讓基準通過而降低產品檢查。不同操作（編輯、關閉）分別計數，不合併偽造一次更新。
 
 本輪不涉及製造算法修改。Save→Reload、2D／3D、板件與 DXF 正確性由既有正式產品回歸驗證；基準工具自身不能取代這些回歸或 Windows 人工驗收。原始 DXF、真正多連冷載入、記憶體長時間穩態未完成前，#1816 保持開啟，不解鎖依賴其完整驗收的後續工單。
+
+
+## 同程序記憶體取樣（#1816 後續增補）
+
+新工具以獨立 daemon sampler **僅讀取目前 Python 程序 RSS，不操作 Tk**，預設每 50ms 取樣，可用 `--memory-interval-ms 50` 調整（合法 10–1000ms）。每筆操作新增：
+
+- `rss_peak_sampled_bytes`：該操作期間 **有實際讀到的 RSS 最大值**，不是精確瞬間峰值。操作短於取樣間隔時可能為 `null`，絕不偽造零或用操作前後值冒充取樣峰值。
+- `rss_samples_in_operation`：實際落在操作時間窗內的取樣數，取樣不足的結果不可聲稱已覆蓋尖峰。
+- `rss_sample_error`：讀取失敗原因，不能把缺測當成正常零。
+- `worker_sample`：單一程序的樣本編號；產生 `memory_trends` 以該程序每一輪 `return_3d` 之 `rss_after` 作 checkpoint，記錄首末值、最大 checkpoint、差值與完成輪數。
+
+`memory_trends` 只能陳述同一程序跨輪次記憶體觀測，不得把不同程序的 RSS 串成成長曲線，也不得以差值直接宣稱 memory leak／穩態。若要評估長時間穩態，可在**隔離 checkout**用固定 `--samples 1 --cycles 30` 進行，仍需記錄 GUI 操作一致、程序是否完成、採樣間隔與執行環境；短時間雲端 Runner 不取代 Windows 使用者實機驗收。
