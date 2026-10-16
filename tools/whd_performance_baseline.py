@@ -187,6 +187,8 @@ class Probe:
         self.milliseconds = Counter()
         self.parts = Counter()
         self.world_skin_parts = Counter()
+        self.flat_material_builds = Counter()
+        self.authoritative_cache_parts = Counter()
         self.stack = ExitStack()
 
     def wrap(self, owner, name, label, part_arg=None):
@@ -201,6 +203,50 @@ class Probe:
                 return original(*args, **kwargs)
             finally:
                 self.milliseconds[label] += (time.perf_counter()-started)*1000
+        self.stack.enter_context(patch.object(owner, name, measured))
+
+    def observe_manufacturing_cache(self, cache_class):
+        """Read *actual* ManufacturingCacheService receipt, no guessed hit."""
+        original = cache_class.lookup
+        @wraps(original)
+        def measured(instance, key):
+            result = original(instance, key)
+            label = ('manufacturing_cache_hit' if result.receipt.hit
+                     else 'manufacturing_cache_miss')
+            self.counts[label] += 1
+            return result
+        self.stack.enter_context(patch.object(cache_class, 'lookup', measured))
+
+    def observe_authoritative_render(self, designer):
+        """Record true PartSpec/Context cache hit vs rebuild at GUI seam."""
+        from ae_engine.contracts import ManufacturingContext
+        original = getattr(designer, '_authoritative_render_data')
+        @wraps(original)
+        def measured(spec, context=None):
+            ctx = context or ManufacturingContext(draw_stock=False)
+            cache = getattr(designer, '_authoritative_part_render_cache', None)
+            key = (repr(spec), repr(ctx))
+            hit = cache is not None and key in cache
+            value = original(spec, context)
+            label = 'authoritative_render_cache_hit' if hit else 'authoritative_render_cache_miss'
+            self.counts[label] += 1
+            self.authoritative_cache_parts[f"{label}:{type(spec).__name__}"] += 1
+            return value
+        self.stack.enter_context(patch.object(designer, '_authoritative_render_data', measured))
+
+    def observe_material_factory(self, owner, name):
+        """Actual invoked factory; counts 2D PartRenderData rebuild requests."""
+        original = getattr(owner, name)
+        @wraps(original)
+        def measured(*args, **kwargs):
+            started = time.perf_counter()
+            try:
+                value = original(*args, **kwargs)
+                self.counts['material_factory_calls'] += 1
+                self.flat_material_builds[f"{name}:{type(args[0]).__name__ if args else 'unknown'}"] += 1
+                return value
+            finally:
+                self.milliseconds['material_factory_calls'] += (time.perf_counter()-started)*1000
         self.stack.enter_context(patch.object(owner, name, measured))
 
     def observe_world_skin(self, owner, name):
@@ -224,6 +270,8 @@ class Probe:
         self.milliseconds.clear()
         self.parts.clear()
         self.world_skin_parts.clear()
+        self.flat_material_builds.clear()
+        self.authoritative_cache_parts.clear()
 
 
 def settle(root, owners, timeout=30):
@@ -272,6 +320,8 @@ def worker(args):
     import ezdxf
     import phase6_manufacturing_adapter as adapter
     import phase6_manufacturing_service as service
+    from ae_engine import manufacturing_api
+    from phase6_manufacturing_cache import ManufacturingCacheService
     from phase6_final_scene_renderer import Phase6FinalSceneRenderer
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
     from gui_modules.application.receiving_nfb_source_preview import NfbDxfSourcePreviewPanel
@@ -297,6 +347,14 @@ def worker(args):
         designer.baseline_model_var.set('受電箱')
         settle(root, owners)
         probe.wrap(service, 'resolve', 'manufacturing_solve')
+        probe.observe_manufacturing_cache(ManufacturingCacheService)
+        probe.observe_authoritative_render(designer)
+        for factory in ('build_part_render_data',
+                        'build_box_body_structure_render_data',
+                        'build_box_body_divider_render_data',
+                        'build_inner_door_panel_render_data',
+                        'build_inner_door_frame_render_data'):
+            probe.observe_material_factory(manufacturing_api, factory)
         probe.observe_world_skin(service, '_phase6_build_joint_world_geometry')
         probe.wrap(adapter, '_domain_inputs_for_part', 'part_materialization', part_arg=1)
         probe.wrap(Phase6FinalSceneRenderer, 'render', 'scene_render')
@@ -338,6 +396,17 @@ def worker(args):
                        status=status, error=error, wall_ms=elapsed_ms if elapsed_ms is not None else (time.perf_counter()-started)*1000,
                        counts=dict(probe.counts), inclusive_ms=dict(probe.milliseconds),
                        materialized_parts=dict(probe.parts),
+                       manufacturing_cache_lookups={
+                           'hit': probe.counts['manufacturing_cache_hit'],
+                           'miss': probe.counts['manufacturing_cache_miss'],
+                       },
+                       authoritative_render_cache_lookups={
+                           'hit': probe.counts['authoritative_render_cache_hit'],
+                           'miss': probe.counts['authoritative_render_cache_miss'],
+                           'spec_types': dict(probe.authoritative_cache_parts),
+                       },
+                       material_factory_rebuilds=dict(probe.flat_material_builds),
+                       material_factory_rebuild_calls=probe.counts['material_factory_calls'],
                        world_skin_physical_pieces=dict(probe.world_skin_parts),
                        world_skin_physical_rematerializations=sum(probe.world_skin_parts.values()),
                        rss_before=before,
