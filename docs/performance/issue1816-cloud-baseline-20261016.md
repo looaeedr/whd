@@ -1,6 +1,6 @@
 # #1816｜WHD Phase6 效能基準：Linux 雲端參考量測（2026-10-16）
 
-> **證據狀態：部分基準已取得，Issue #1816 尚未完成驗收。** 本報告是 Linux Runner 的 *before* 觀測，不代表 Windows 實機效能，也不是改善後的百分比。真實 NFB DXF、三連冷載入、長期記憶體及 Windows UAT 仍待驗。
+> **證據狀態：部分基準已取得，Issue #1816 尚未完成驗收。** 本報告是 Linux Runner 的 *before* 觀測，不代表 Windows 實機效能，也不是改善後的百分比。真正的 NFB DXF 封閉環境預覽、長期記憶體及 Windows UAT 仍待驗；已另外完成正式三連專案 fresh-process 重開的雲端量測。
 
 ## 來源及可重複方法
 
@@ -62,9 +62,55 @@
 
 未驗項目：
 
-1. 正式保存並重開三連專案之真冷程序量測；本次三連僅 topology setup 後 first open。
-2. 真實士林 NFB `400_140X257_107.dxf` 的 `dxf_load/dxf_zoom/dxf_pan`；GitHub `基準檔/開孔/NFB/開關索引.csv` 有索引，該資料夾未見原始 DXF，不能假圖代測。
-3. 真正的記憶體操作間峰值、長時間穩態與 Windows `Z:\\localX` 實機 UAT；雲端樣本不得跨實體 Runner 當成受控 before/after。
+1. 正式三連 `.p6fold` 保存與新 Python 程序載入已由後述 2026-10-16 補充證據完成（未清 OS cache）；Windows 完全冷機仍未驗。
+2. 真實士林 NFB `400_140X257_107.dxf` 的 `dxf_load/dxf_zoom/dxf_pan`：GitHub 索引存在而 public repo 沒有原始檔。使用者私人 ChatGPT 檔案庫已核實擁有同名原件（123,089 bytes，41 modelspace entities），**不得為了公用 CI 自動公開上傳**；需受控私有 GUI 環境測。
+3. 已有 30 輪同程序 RSS 趨勢（見下），但**準確瞬間峰值、更長時間穩態與 Windows 實機 UAT**仍未完成；跨 Runner 樣本不可當成受控前後對照。
 4. 本輪沒有量到完整 Save→Reload／DXF 匯出的耗時，其製造正確性由現行正式產品回歸另行驗證；不可冒稱本基準工具涵蓋所有入口。
 
 **結論：** 已有可重現的第一版 Linux 雲端 before 基準與 222 筆成功樣本，最明顯的成本落在關閉設定後重新產出組合體（約 2.2–2.3 秒 median）。完整 #1816 未完；不得以此直接核准 #1817 或當成正式 X 發布驗收。正式 X 須另有當次 `/推推`。
+
+## 2026-10-16 後續實證：RSS 取樣與真三連專案讀檔
+
+### RSS 原位取樣（PR #1825）
+
+- 量測 HEAD `0b919cd12a475fd5e9d83597af8f96ba52093a5b`，正式 [Tk run 38909856648](https://github.com/looaeedr/whd/actions/runs/38909856648) SUCCESS、[Canonical Product Regression 38909856417](https://github.com/looaeedr/whd/actions/runs/38909856417) SUCCESS；原始 Artifact ID `12049667974`，均為雲端 Linux 參考值。
+- 222 筆操作成功、失敗 0；200 筆操作有時間窗內 RSS 取樣，22 筆短操作取樣數為 0，工具正確保留 `null`，不編造峰值；讀取錯誤 0。
+- 所有 worker 的最大 **已取樣** RSS 約 186.58 MiB，這不是準確瞬時峰值、不是 Windows 峰值。六個獨立程序各包含五輪，成長幅度不能被當成同一程序延伸的洩漏訊號。
+- 指標 `rss_peak_sampled_bytes`、`rss_samples_in_operation`、`rss_sample_error`，`memory_trends` 的首／末／最大 RSS checkpoint 將作長循環對照；詳細取樣定義請見量測操作文件。
+
+### 真正三連 .p6fold 載入（PR #1826）
+
+- 量測 HEAD `65fbb4502ea3d22ec6d574642483323e10114af0`，[Actions run 38910700963](https://github.com/looaeedr/whd/actions/runs/38910700963) SUCCESS，原始 Artifact `12049623168`。
+- 經正式受電箱 UI 新增兩連、以 `Phase6ProjectController.save` 保存 `phase6-fold-project-v2` 專案，回讀核對保存內容有三連；以 **三個獨立的新 Python 程序** 分別走官方 `load_phase6_project(open_designer=True)`、確認三連與非空 3D mesh，待 Tk scheduler/畫布提交完成後再開一次多連設定；無失敗，n=3。
+- 專案 SHA256 `c0563f1cd72e679815db5988f1fa5c5f1c201117cda7cbe9f32ee7c694dc6146`；所有程序使用同份檔案，但 OS 檔案快取未清，不能稱為完全冷機。
+
+| 三連真專案重開階段（n=3） | Median | P95 |
+|---|---:|---:|
+| 主 GUI 初始化 | 870.1 ms | 945.1 ms |
+| 正式讀檔到 3D 更新完成 | 2209.7 ms | 2258.7 ms |
+| 讀檔完成後首次開多連設定 | 18.8 ms | 19.1 ms |
+
+**此讀檔測試不是上方舊壓測的 topology-setup first open**：前者確實跨越正式儲存與新 Python 程序。主要耗時出現在實際讀檔與 3D 建立階段，而非資料已載入後再次開啟多連設定；不同 CI Runner 的絕對延遲不應直接當成前後改善比較。
+
+### 資料保密邊界
+
+`looaeedr/whd` 為 PUBLIC GitHub repository。私人檔案庫中發現士林同名原始 DXF，與 `開關索引.csv` 士林欄對應，可用正式 `NfbDxfSourcePreviewPanel.show/zoom/_move` 路徑驗證。但原 DXF 並未存在 GitHub `基準檔/開孔/NFB`，不應為方便公開 CI 而 commit 原始製造 CAD。雲端未實際量測 `dxf_load/dxf_zoom/dxf_pan`，維持待驗。
+
+### 30 輪連續操作之同程序記憶體趨勢（PR #1827）
+
+- 專項量測 HEAD `dd39c26bd77de0fe08d2e254f63242540a39d82d`，[Actions 38911264600](https://github.com/looaeedr/whd/actions/runs/38911264600) `completed / success`，GitHub artifact `whd-issue1816-extended-rss`（ID `12050663455`，14 日保留）。僅雲端 Linux Runner，比對必須固定同一真實機器、樣本與狀態。
+- 受電箱 1 連、3 連**各一個獨立持續執行的 Python 程序**，每個跑完 30 輪修改、增減連數、2D/3D 預覽；全程 424 筆真 GUI 操作，失敗 0。與既有 5 輪 run 使用不同 worker/Runner，故不計算跨 runner 的百分比改善。
+- 下表為相同程序在每輪 `return_3d` 完成後的 RSS checkpoint（MiB），不是瞬間最高水位、不是被宣告的 memory-leak verdict：
+
+| 同程序、30 次 checkpoint | 1 連 | 3 連 |
+|---|---:|---:|
+| 第一輪 RSS | 181.125 MiB | 171.918 MiB |
+| 第三十輪 RSS | 184.980 MiB | 183.742 MiB |
+| 首十輪 RSS 中位數 | 183.436 MiB | 182.230 MiB |
+| 末十輪 RSS 中位數 | 184.975 MiB | 183.736 MiB |
+| 末十輪最大－最小 | 0.316 MiB | 0.016 MiB |
+| 首末差值 | +3.855 MiB | +11.824 MiB |
+
+- 在本次程序的**末十輪**中，RSS 變動範圍很小，表示該測試期間接近平台期；三連的首末累積增長更多，但在最後十輪也沒有持續線性累增的直接證據。此結論嚴格限定本次 30 輪、同一程序的觀測窗，並不證明不會有更長時間洩漏或 Windows 狀態相同。
+- 取樣值、操作檢查點、測試源 HEAD、環境 metadata 及工作日誌保留於 GitHub Artifact。原始 ZIP 過期後不得只根據本文冒稱原始資料尚可取得。
+
