@@ -202,6 +202,11 @@ class ReceivingSetBayAdapter:
         if (len(selected) != expected_count or len(set(selected)) != len(selected)
                 or any(type(i) is not int or not 0 <= i < bay_count for i in selected)):
             raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
+        # One operator confirmation is one atomic topology transaction. The
+        # old loop called update_receiving_bay() for every highlighted Bay;
+        # that helper normalizes the *entire* Set/Bay/Joint layout twice on
+        # each call, rebuilding even untouched Bays. Keep the same per-Bay
+        # door-partition checks but validate the final candidate only once.
         candidate, dirty = self._layout, []
         for bay_index in selected:
             current = candidate["sets"][index]["bays"][bay_index]
@@ -224,9 +229,22 @@ class ReceivingSetBayAdapter:
                             raise ValueError(f"第{bay_index + 1}連 H 不符合門分割")
                         new_cols.append([new_w, list(sizes.values)])
                     changes["door_state"] = {**deepcopy(door), "door_layout_columns": new_cols}
-            candidate = update_receiving_bay(candidate, set_index=index, bay_index=bay_index, **changes)
+            if not dirty:
+                candidate = deepcopy(self._layout)
+            # Existing update_receiving_bay() casts numeric inputs to float
+            # before canonical normalization; preserve that data contract.
+            candidate["sets"][index]["bays"][bay_index] = {
+                **current, **{axis: float(value) for axis, value in changes.items()
+                              if axis in ("width", "height", "depth")},
+                **({"door_state": changes["door_state"]} if "door_state" in changes else {}),
+            }
             dirty.append(str(current["stable_id"]))
-        self._layout = candidate
+        if not dirty:
+            return 0
+        # Normalize and check *all* dependencies/Joints once. Any failure
+        # leaves both the canonical layout and dirty bookkeeping unchanged.
+        validated = normalize_receiving_layout(candidate)
+        self._layout = validated
         self._session_dirty_ids.update(dirty)
         return len(dirty)
 
