@@ -500,3 +500,84 @@ def test_issue1816_linux_kernel_hwm_is_an_os_peak_not_sampled_rss():
     peak = rss_highwater_bytes()
     assert peak is not None and peak > 0
     assert peak >= rss_bytes() * .90  # independent consecutive reads can change
+
+
+def test_issue1816_observe_real_cache_receipt_hits_and_misses():
+    from types import SimpleNamespace
+    from tools.whd_performance_baseline import Probe
+    class RealLikeCache:
+        def lookup(self, key):
+            return SimpleNamespace(receipt=SimpleNamespace(hit=(key == 'known')))
+    service=RealLikeCache()
+    original=RealLikeCache.lookup
+    probe=Probe()
+    try:
+        probe.observe_manufacturing_cache(RealLikeCache)
+        assert service.lookup('unknown').receipt.hit is False
+        assert service.lookup('known').receipt.hit is True
+        assert probe.counts['manufacturing_cache_hit'] == 1
+        assert probe.counts['manufacturing_cache_miss'] == 1
+        probe.reset()
+        assert probe.counts['manufacturing_cache_hit'] == 0
+    finally:
+        probe.stack.close()
+    assert RealLikeCache.lookup is original
+
+
+def test_issue1816_render_material_cache_and_build_count_are_independent():
+    from types import SimpleNamespace
+    from tools.whd_performance_baseline import Probe
+    cache={}
+    class Spec:
+        pass
+    spec=Spec()
+    context=SimpleNamespace(draw_stock=False)
+    def build_part_render_data(spec, ctx):
+        return dict(material='real_created')
+    factory=SimpleNamespace(build_part_render_data=build_part_render_data)
+    def authoritative(spec, context=None):
+        key=(repr(spec),repr(context))
+        if key not in cache:
+            cache[key]=factory.build_part_render_data(spec,context)
+        return cache[key]
+    designer=SimpleNamespace(_authoritative_part_render_cache=cache,
+                             _authoritative_render_data=authoritative)
+    probe=Probe()
+    try:
+        probe.observe_material_factory(factory,'build_part_render_data')
+        probe.observe_authoritative_render(designer)
+        first=designer._authoritative_render_data(spec,context)
+        second=designer._authoritative_render_data(spec,context)
+        assert first is second
+        assert probe.counts['authoritative_render_cache_miss'] == 1
+        assert probe.counts['authoritative_render_cache_hit'] == 1
+        assert probe.counts['material_factory_calls'] == 1
+        assert probe.flat_material_builds['build_part_render_data:Spec'] == 1
+        probe.reset()
+        assert not probe.flat_material_builds
+        assert designer._authoritative_render_data(spec,context) is first
+        assert probe.counts['authoritative_render_cache_hit'] == 1
+        assert probe.counts['material_factory_calls'] == 0
+    finally:
+        probe.stack.close()
+    assert designer._authoritative_render_data is authoritative
+    assert factory.build_part_render_data is build_part_render_data
+
+
+def test_issue1816_material_factory_errors_are_not_counted_as_success():
+    from types import SimpleNamespace
+    import pytest
+    from tools.whd_performance_baseline import Probe
+    def failing(_spec):
+        raise ValueError('real solver failure')
+    factory=SimpleNamespace(build_part_render_data=failing)
+    probe=Probe()
+    try:
+        probe.observe_material_factory(factory,'build_part_render_data')
+        with pytest.raises(ValueError,match='real solver failure'):
+            factory.build_part_render_data(object())
+        assert probe.counts['material_factory_calls'] == 0
+        assert probe.milliseconds['material_factory_calls'] >= 0
+    finally:
+        probe.stack.close()
+    assert factory.build_part_render_data is failing
