@@ -683,6 +683,7 @@ def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
     import time
     import fold_designer_bridge as bridge
     from gui_modules.application.fold_designer_composition_receiving import _current_mode_snapshot
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
     tk, root, _app, designer = _open_vault_designer()
     try:
         designer.baseline_model_var.set('受電箱')
@@ -708,7 +709,64 @@ def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
             counts.append(composition.receiving_switch_adapter(vars(bridge)).connection_counts()[0])
         assert counts == [2, 3]
         assert max(durations) < 1.0, durations
+        # Exact Windows UAT repro: topology changed, then close immediately.
+        # The modal click path stays fast; the one required manufacturing flush
+        # happens at the close boundary before Assembly is remounted.
         win._receiving_multi_close()
+        _pump(root, 6)
+        assert designer._phase6_last_resolved_manufacturing_signature == (
+            build_manufacturing_cache_key(designer).fingerprint
+        )
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.final_scene_view.last_cutting_mesh
+        assert designer.part_var.get() == "組合體"
+    finally:
+        _close(tk, root, designer)
+
+
+def test_issue1796_multi_dimension_change_close_commits_finalscene():
+    """Real Tk: change one Bay W/H/D and close immediately; Assembly consumes the new receipt."""
+    import fold_designer_bridge as bridge
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        win = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 4)
+        assert win._receiving_multi_apply(0) is True
+        values = win._receiving_dimension_group_input
+        values["width"].set("820")
+        values["height"].set("1600")
+        values["depth"].set("350")
+        values["count"].set("1")
+
+        # Do not pump Tk between confirmation and close. This is the reported
+        # operator sequence that previously let Assembly race stale geometry.
+        assert win._receiving_dimension_group_confirm() is True
+        win._receiving_multi_close()
+        _pump(root, 6)
+
+        assert float(designer._phase6_box_whd["w"]) == 820.0
+        assert float(designer.v_w.get()) == 820.0
+        assert float(designer._phase6_last_w) == 820.0
+        width_core = next(
+            segment for segment in designer.state.profiles_vault["箱身"]
+            if segment.get("core") == "W"
+        )
+        from phase6_fold_profiles import engine_segment_length_to_ui
+        assert float(engine_segment_length_to_ui(width_core)) == 820.0
+        assert not any(
+            key.startswith("base_plate:fixing_plate:")
+            for key in designer.designer_workspace.available_parts
+        ), "W800/T2-only fixing plates must be removed after Bay width changes"
+        assert designer._phase6_last_resolved_manufacturing_signature == (
+            build_manufacturing_cache_key(designer).fingerprint
+        )
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.final_scene_view.last_cutting_mesh
+        assert designer.part_var.get() == "組合體"
     finally:
         _close(tk, root, designer)
 
@@ -1085,3 +1143,107 @@ def test_issue1796_absent_vault_door_stays_absent_after_receiving_modals(monkeyp
         assert not scheduler.dirty and scheduler._after_job is None
     finally:
         _close(tk, root, designer)
+
+
+def test_issue1796_receiving_modal_close_flushes_changed_geometry_before_assembly(monkeypatch):
+    """Windows UAT regression: changed Set/Bay state must commit before Assembly remount."""
+    from types import SimpleNamespace
+
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _restore_receiving_assembly_after_modal,
+    )
+    import phase6_manufacturing_adapter as manufacturing_adapter
+
+    events = []
+
+    class Scheduler:
+        def flush_now(self):
+            events.append("flush")
+            app._phase6_last_resolved_manufacturing_signature = "new"
+
+    app = SimpleNamespace(
+        _phase6_3d_display_mode="assembly",
+        _phase6_last_resolved_manufacturing_signature="old",
+        _phase6_update_scheduler=Scheduler(),
+        submit_update_intent=lambda reason, commit=False: events.append(
+            ("submit", reason, commit)
+        ),
+        part_var=SimpleNamespace(set=lambda value: events.append(("part", value))),
+    )
+    owner = SimpleNamespace(
+        app=app,
+        refresh_receiving_set_bay_control=lambda _ns: events.append("refresh"),
+        sync_receiving_current_bay=lambda _ns, refresh_controls=False: events.append(
+            "sync"
+        ),
+        sync_authoritative_derived_parts=lambda _ns: events.append("derived"),
+    )
+    monkeypatch.setattr(
+        manufacturing_adapter,
+        "build_manufacturing_cache_key",
+        lambda _app: SimpleNamespace(fingerprint="new"),
+    )
+    namespace = {
+        "_phase6_mount_shared_content": lambda _app, mode: events.append(
+            ("mount", mode)
+        )
+    }
+
+    _restore_receiving_assembly_after_modal(owner, namespace)
+
+    assert "sync" in events
+    assert "derived" in events
+    assert ("submit", "geometry", False) in events
+    assert "flush" in events
+    assert events.index("sync") < events.index("derived")
+    assert events.index("derived") < events.index(("mount", "assembly"))
+    assert events.index(("mount", "assembly")) < events.index("flush")
+
+
+def test_issue1796_receiving_modal_close_equivalent_geometry_is_noop(monkeypatch):
+    """No-edit close may restore Assembly but must not manufacture the same state again."""
+    from types import SimpleNamespace
+
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _restore_receiving_assembly_after_modal,
+    )
+    import phase6_manufacturing_adapter as manufacturing_adapter
+
+    events = []
+
+    class Scheduler:
+        def flush_now(self):
+            raise AssertionError("equivalent close must not flush")
+
+    app = SimpleNamespace(
+        _phase6_3d_display_mode="assembly",
+        _phase6_last_resolved_manufacturing_signature="same",
+        _phase6_update_scheduler=Scheduler(),
+        submit_update_intent=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("equivalent close must not submit geometry")
+        ),
+        part_var=SimpleNamespace(set=lambda value: events.append(("part", value))),
+    )
+    owner = SimpleNamespace(
+        app=app,
+        refresh_receiving_set_bay_control=lambda _ns: events.append("refresh"),
+        sync_receiving_current_bay=lambda _ns, refresh_controls=False: events.append(
+            "sync"
+        ),
+        sync_authoritative_derived_parts=lambda _ns: events.append("derived"),
+    )
+    monkeypatch.setattr(
+        manufacturing_adapter,
+        "build_manufacturing_cache_key",
+        lambda _app: SimpleNamespace(fingerprint="same"),
+    )
+    namespace = {
+        "_phase6_mount_shared_content": lambda _app, mode: events.append(
+            ("mount", mode)
+        )
+    }
+
+    _restore_receiving_assembly_after_modal(owner, namespace)
+
+    assert "sync" in events
+    assert events.index("sync") < events.index(("mount", "assembly"))

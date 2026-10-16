@@ -212,8 +212,11 @@ def sync_receiving_current_bay(
     app.state.w = number(projected["w"])
     app.state.h = number(projected["h"])
     app.state.d = number(projected["d"])
-    app._phase6_last_w = app.state.w
-    app._phase6_last_d = app.state.d
+    # Do NOT advance _phase6_last_w/_phase6_last_d here. Those fields are the
+    # Fold-profile synchronization baseline used by Phase6FoldDesignerApp.do_update().
+    # Advancing them before the profile is rebuilt makes a newly selected/resized
+    # Receiving Bay look "unchanged" and lets the stale old profile overwrite
+    # the new operator W/D on the following authoritative update.
     app._phase6_receiving_set_bay_guard = True
     try:
         for var, value in (
@@ -2872,23 +2875,85 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
 
 def _restore_receiving_assembly_after_modal(owner, namespace):
-    """Do not let a Receiving modal's Set/Bay refresh navigate to Box Body."""
-    owner.refresh_receiving_set_bay_control(namespace)
-    # Use the Fold Designer that owns the Assembly mode, not the unrelated
-    # GUI scene callback host (whose identity lacks designer_workspace).
+    """Settle Receiving + Assembly state, then commit one final close-boundary update."""
+    # Modal +連/−連 intentionally avoids a heavyweight 3D solve on every click.
+    # Project the final selected Set/Bay first, but do not manufacture yet:
+    # restoring Assembly/navigation can itself queue or materialize canonical
+    # state, so an earlier receipt can become stale before close() returns.
+    owner.sync_receiving_current_bay(namespace, refresh_controls=False)
+    # Reconcile all topology-derived physical identities against the now-current
+    # Receiving Bay before manufacturing. This existing owner replaces derived
+    # namespaces (including W800/T2-only base fixing plates), so a dimension
+    # change cannot leave an ineligible stale physical part for FinalScene.
+    owner.sync_authoritative_derived_parts(namespace)
+
+    from phase6_manufacturing_adapter import (
+        build_manufacturing_cache_key,
+        resolve_for_app,
+    )
+
     designer = owner.app
-    if getattr(designer, "_phase6_3d_display_mode", None) != "assembly":
-        show_assembly = namespace.get("_phase6_show_assembly")
-        if callable(show_assembly):
-            show_assembly(designer)
+    scheduler = designer._phase6_update_scheduler
+    previous_executor = getattr(scheduler, "executor", None)
+
+    # Any calculation that does run during this close transaction must leave a
+    # manufacturing receipt for the post-calculation semantic state. Equivalent
+    # state remains a cache/no-op and does not manufacture a second time.
+    if callable(previous_executor):
+        def execute_with_receiving_receipt(reasons):
+            result = previous_executor(reasons)
+            if build_manufacturing_cache_key(designer).fingerprint != getattr(
+                designer, "_phase6_last_resolved_manufacturing_signature", None
+            ):
+                resolve_for_app(designer)
+            return result
+        scheduler.executor = execute_with_receiving_receipt
+
+    try:
+        owner.refresh_receiving_set_bay_control(namespace)
+        # Use the Fold Designer that owns the Assembly mode, not the unrelated
+        # GUI scene callback host (whose identity lacks designer_workspace).
+        if getattr(designer, "_phase6_3d_display_mode", None) != "assembly":
+            show_assembly = namespace.get("_phase6_show_assembly")
+            if callable(show_assembly):
+                show_assembly(designer)
+            else:
+                raise RuntimeError("原組合體導覽入口尚未連接")
         else:
-            raise RuntimeError("原組合體導覽入口尚未連接")
-    else:
-        mount = namespace.get("_phase6_mount_shared_content")
-        if callable(mount):
-            mount(designer, "assembly")
-        else:
-            raise RuntimeError("組合體左側內容掛載入口尚未連接")
-        selection = getattr(designer, "part_var", None)
-        if selection is not None:
-            selection.set("組合體")
+            mount = namespace.get("_phase6_mount_shared_content")
+            if callable(mount):
+                mount(designer, "assembly")
+            else:
+                raise RuntimeError("組合體左側內容掛載入口尚未連接")
+            selection = getattr(designer, "part_var", None)
+            if selection is not None:
+                current = getattr(selection, "get", None)
+                # Tk traces fire even on an equal StringVar.set(). Avoid
+                # inventing a new intent when Assembly is already selected.
+                if not callable(current) or current() != "組合體":
+                    selection.set("組合體")
+
+        current_signature = build_manufacturing_cache_key(designer).fingerprint
+        receipt_signature = getattr(
+            designer, "_phase6_last_resolved_manufacturing_signature", None
+        )
+        signature_changed = current_signature != receipt_signature
+        pending_dirty = bool(getattr(scheduler, "dirty", ()))
+
+        # Do not route this final queue through designer.submit_update_intent():
+        # that public facade rebinds scheduler.executor to the normal executor,
+        # which would discard the receipt wrapper installed for this close
+        # transaction. Queue on the already-owned Scheduler instead, then drain
+        # exactly once after *all* close-boundary state has settled.
+        if signature_changed:
+            submit = getattr(scheduler, "submit", None)
+            if callable(submit):
+                submit("geometry", immediate=False)
+            else:
+                # Compatibility for focused legacy/test schedulers only.
+                designer.submit_update_intent("geometry", commit=False)
+        if signature_changed or pending_dirty:
+            scheduler.flush_now()
+    finally:
+        if callable(previous_executor):
+            scheduler.executor = previous_executor
