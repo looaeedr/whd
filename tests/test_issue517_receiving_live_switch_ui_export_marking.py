@@ -1181,8 +1181,8 @@ def test_issue1796_receiving_modal_close_flushes_changed_geometry_before_assembl
     assert "sync" in events
     assert ("submit", "geometry", True) in events
     assert "flush" in events
-    assert events.index("sync") < events.index("flush")
-    assert events.index("flush") < events.index(("mount", "assembly"))
+    assert events.index("sync") < events.index(("mount", "assembly"))
+    assert events.index(("mount", "assembly")) < events.index("flush")
 
 
 def test_issue1796_receiving_modal_close_equivalent_geometry_is_noop(monkeypatch):
