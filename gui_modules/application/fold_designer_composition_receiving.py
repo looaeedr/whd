@@ -503,8 +503,9 @@ def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_inde
     model and global geometry authority remain included and fail closed.
     NEVER use this deliberately incomplete copy as a saved/solved layout.
     """
-    from copy import deepcopy
-    fingerprint_snapshot = deepcopy(snapshot)
+    # Copy-on-write only the key's suffix path. Deep-copying the entire
+    # projected project on every display refresh would itself be a slowdown.
+    fingerprint_snapshot = dict(snapshot)
     if fingerprint_snapshot.get("model") not in ("受電箱", "RECEIVING"):
         return fingerprint_snapshot
     if fingerprint_snapshot.get("active_mode", "set_bay") != "set_bay":
@@ -529,11 +530,23 @@ def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_inde
     if not all(isinstance(row, dict) and row.get("stable_id")
                for row in bays):
         return fingerprint_snapshot
-    for later in bays[bay_index + 2:]:
-        # A suffix edit is safe ONLY for these three scalar dimensions;
-        # every other future-Bay field remains a true invalidation input.
+    if bay_index + 2 >= len(bays):
+        return fingerprint_snapshot
+    # No mutation to snapshot or its nested persisted layout: the *only*
+    # detached rows are the distant suffix Bays whose scalar W/H/D is masked.
+    shallow_layout = dict(layout)
+    shallow_sets = list(sets)
+    shallow_set = dict(selected)
+    shallow_bays = list(bays)
+    for position in range(bay_index + 2, len(bays)):
+        later = dict(bays[position])
         for axis in ("width", "height", "depth"):
             later.pop(axis, None)
+        shallow_bays[position] = later
+    shallow_set["bays"] = shallow_bays
+    shallow_sets[set_index] = shallow_set
+    shallow_layout["sets"] = shallow_sets
+    fingerprint_snapshot["receiving_layout"] = shallow_layout
     return fingerprint_snapshot
 
 
