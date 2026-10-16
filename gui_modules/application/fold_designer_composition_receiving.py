@@ -491,7 +491,45 @@ def confirm_receiving_opening(
         submit("geometry", commit=True)
     return True
 
-def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_index):
+def _receiving_rebase_preview_world_offsets(request, old_anchor, new_anchor):
+    """Translate an immutable FinalScene preview; never rebuild or mutate sheets.
+
+    This is valid only after the local PartSpec/Joint fingerprint matches.
+    Unsupported/custom scene envelopes fail closed to the full solve caller.
+    """
+    from dataclasses import replace
+    from math import isfinite
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    if not isinstance(request, FinalSceneViewRequest):
+        return None
+    scene = request.render_data
+    if (not isinstance(scene, AssemblySceneRenderData)
+            or not scene.preserve_endcap_core_origin
+            or scene.interference_probe_parts or scene.show_interference
+            or scene.joint_diagnostics or scene.collision_certification_diagnostics):
+        return None
+    if len(old_anchor) != 3 or len(new_anchor) != 3:
+        return None
+    delta = tuple(float(b) - float(a) for a, b in zip(old_anchor, new_anchor))
+    if not all(isfinite(v) for v in delta):
+        return None
+    parts = []
+    for part in scene.assembly_parts:
+        if (not isinstance(part, AssemblyScenePart)
+                or part.placement == "standalone" or len(part.offset) != 3):
+            return None
+        offset = tuple(float(v) + shift for v, shift in zip(part.offset, delta))
+        if not all(isfinite(v) for v in offset):
+            return None
+        parts.append(replace(part, offset=offset))
+    return replace(request, render_data=replace(
+        scene, assembly_parts=tuple(parts)))
+
+
+def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_index,
+                                                 allow_upstream_translation=False):
     """Read-only key projection for provably unrelated *trailing* Bay dimensions.
 
     The requesting Bay's own W/H/D, its left/right Joint participants and
@@ -530,15 +568,22 @@ def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_inde
     if not all(isinstance(row, dict) and row.get("stable_id")
                for row in bays):
         return fingerprint_snapshot
-    if bay_index + 2 >= len(bays):
+    # Custom/user-defined joints may introduce non-adjacent geometry
+    # dependencies. For those projects, keep *all* upstream dimensions.
+    if (allow_upstream_translation and any(fingerprint_snapshot.get(field)
+            for field in ("assembly_joints", "custom_parts", "joint_relief_state"))):
+        allow_upstream_translation = False
+    hidden = tuple(range(bay_index + 2, len(bays)))
+    if allow_upstream_translation and bay_index >= 2:
+        hidden += tuple(range(0, bay_index - 1))
+    if not hidden:
         return fingerprint_snapshot
-    # No mutation to snapshot or its nested persisted layout: the *only*
-    # detached rows are the distant suffix Bays whose scalar W/H/D is masked.
+    # Copy-on-write: leave all persisted Bay rows and local materials intact.
     shallow_layout = dict(layout)
     shallow_sets = list(sets)
     shallow_set = dict(selected)
     shallow_bays = list(bays)
-    for position in range(bay_index + 2, len(bays)):
+    for position in hidden:
         later = dict(bays[position])
         for axis in ("width", "height", "depth"):
             later.pop(axis, None)
@@ -573,8 +618,16 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     snapshot.update(settings)
     snapshot["part_dimensions"] = project_part_dimensions(snapshot)
     from phase6_sync_envelope import stable_fingerprint
+    # Only normal committed Bay previews may rebase world placement. Candidate
+    # editors and user-defined/cross-part joints keep the full prefix key.
+    allow_rebase = (preview_layout is None and bay_index >= 2
+                    and snapshot.get("model") in ("受電箱", "RECEIVING")
+                    and snapshot.get("active_mode", "set_bay") == "set_bay"
+                    and not any(snapshot.get(k) for k in (
+                        "assembly_joints", "custom_parts", "joint_relief_state")))
     fingerprint = stable_fingerprint({"snapshot": _receiving_bay_preview_fingerprint_snapshot(
         snapshot, set_index=set_index, bay_index=bay_index,
+        allow_upstream_translation=allow_rebase,
     ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
@@ -582,8 +635,27 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     virtual_key = (set_index, bay_index, fingerprint)
     if preview_layout is not None and virtual_key in virtual_cache:
         return virtual_cache[virtual_key]
+    prefix = tuple(
+        (float(bay["width"]), float(bay["height"]), float(bay["depth"]))
+        for bay in snapshot["receiving_layout"]["sets"][set_index]["bays"][:bay_index + 1]
+    )
     if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
-        return cache[cache_key][1]
+        hit = cache[cache_key]
+        if not allow_rebase:
+            return hit[1]
+        if len(hit) >= 4:
+            if hit[3] == prefix:
+                return hit[1]
+            from ae_engine.receiving_layout import receiving_bay_assembly_offsets
+            current_anchor = receiving_bay_assembly_offsets(
+                snapshot["receiving_layout"], set_index=set_index)[bay_index]
+            rebased = _receiving_rebase_preview_world_offsets(
+                hit[1], hit[2], current_anchor)
+            if rebased is not None:
+                cache[cache_key] = (fingerprint, rebased, current_anchor, prefix)
+                return rebased
+        # Missing prior world-anchor proof or unsupported render envelope:
+        # do not reuse, use the real canonical manufacturing calculation.
     box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
     profile_map = {key: build_endcap_xy_profiles(snapshot, part_key=key) for key in ("head", "tail")}
     workspace = app.designer_workspace
@@ -641,7 +713,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         finished_dimensions=dimensions(), thickness=float(snapshot.get("t", 2)),
     )
     if preview_layout is None:
-        cache[cache_key] = (fingerprint, result)
+        cache[cache_key] = (fingerprint, result, bay_offset, prefix)
         self._receiving_bay_preview_cache = cache
     else:
         # Small bounded cache prevents every preview-version switch from
