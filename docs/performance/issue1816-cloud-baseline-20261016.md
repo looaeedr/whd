@@ -64,7 +64,7 @@
 
 1. 正式三連 `.p6fold` 保存與新 Python 程序載入已由後述 2026-10-16 補充證據完成（未清 OS cache）；Windows 完全冷機仍未驗。
 2. 真實士林 NFB `400_140X257_107.dxf` 的 `dxf_load/dxf_zoom/dxf_pan`：GitHub 索引存在而 public repo 沒有原始檔。使用者私人 ChatGPT 檔案庫已核實擁有同名原件（123,089 bytes，41 modelspace entities），**不得為了公用 CI 自動公開上傳**；需受控私有 GUI 環境測。
-3. 真正的記憶體操作間峰值、長時間穩態與 Windows `Z:\\localX` 實機 UAT；雲端樣本不得跨實體 Runner 當成受控 before/after。
+3. 已有 30 輪同程序 RSS 趨勢（見下），但**準確瞬間峰值、更長時間穩態與 Windows 實機 UAT**仍未完成；跨 Runner 樣本不可當成受控前後對照。
 4. 本輪沒有量到完整 Save→Reload／DXF 匯出的耗時，其製造正確性由現行正式產品回歸另行驗證；不可冒稱本基準工具涵蓋所有入口。
 
 **結論：** 已有可重現的第一版 Linux 雲端 before 基準與 222 筆成功樣本，最明顯的成本落在關閉設定後重新產出組合體（約 2.2–2.3 秒 median）。完整 #1816 未完；不得以此直接核准 #1817 或當成正式 X 發布驗收。正式 X 須另有當次 `/推推`。
