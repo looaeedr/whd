@@ -749,6 +749,14 @@ def test_issue1796_multi_dimension_change_close_commits_finalscene():
         _pump(root, 6)
 
         assert float(designer._phase6_box_whd["w"]) == 820.0
+        assert float(designer.v_w.get()) == 820.0
+        assert float(designer._phase6_last_w) == 820.0
+        width_core = next(
+            segment for segment in designer.state.profiles_vault["箱身"]
+            if segment.get("core") == "W"
+        )
+        from phase6_fold_profiles import engine_segment_length_to_ui
+        assert float(engine_segment_length_to_ui(width_core)) == 820.0
         assert not any(
             key.startswith("base_plate:fixing_plate:")
             for key in designer.designer_workspace.available_parts
