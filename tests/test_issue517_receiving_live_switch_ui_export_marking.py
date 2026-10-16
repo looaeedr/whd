@@ -312,6 +312,22 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
             f"actual={sorted(p.name for p in actual_files)!r} "
             f"canonical_count={len(expected)}"
         )
+        # Equal file counts are not manufacturing acceptance. Reopen the
+        # ACTUAL operator-exported DXFs and use the canonical verifier to
+        # compare filenames, entity/layer counts, CUTTING material, BEND
+        # guides and CUTTING holes against the same committed physical parts.
+        # This detects wrong shapes even when GUI export count looks right.
+        from ae_engine.manufacturing_api import (
+            verify_saved_resolved_manufacturing_geometry_dxf,
+        )
+        verified = verify_saved_resolved_manufacturing_geometry_dxf(
+            resolved, tmp_path
+        )
+        assert verified.ok, [
+            (issue.part_id, issue.category, issue.detail)
+            for issue in verified.issues
+        ]
+        assert len(verified.part_results) == len(expected)
     finally:
         _close(tk, root, designer)
 
