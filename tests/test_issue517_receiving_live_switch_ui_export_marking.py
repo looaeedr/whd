@@ -1002,3 +1002,67 @@ def test_issue1796_real_tk_vault_receiving_single_setbay_modal_roundtrip_without
         record_property("issue1796_real_tk_modal_mode_wall_ms", repr(rows))
     finally:
         _close(tk, root, designer)
+
+
+def test_issue1796_removed_vault_door_stays_absent_after_receiving_modal_roundtrip(
+    monkeypatch, record_property,
+):
+    """Real Tk: a user-removed Vault Door is not recreated by mode-buffer defaults."""
+    import time
+    from tkinter import messagebox
+    import fold_designer_bridge as bridge
+
+    def unexpected_dialog(*args, **kwargs):
+        raise AssertionError(
+            f"unexpected dialog during absent-door mode roundtrip: {args!r} {kwargs!r}"
+        )
+
+    for name in ("showwarning", "showerror", "showinfo"):
+        monkeypatch.setattr(messagebox, name, unexpected_dialog)
+
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        assert "door" in designer.designer_workspace.available_parts
+        # Use the real editor removal path, not a hand-edited snapshot. It
+        # publishes the authoritative physical presence to the host.
+        assert designer.remove_part("door") is True
+        _pump(root, 8)
+        original_presence = set(designer.designer_workspace.available_parts)
+        assert "door" not in original_presence
+        original_scene = _assembly_part_signatures(designer)
+        assert "door" not in original_scene
+
+        started = time.perf_counter()
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        for opener in (
+            bridge._phase6_open_receiving_single_settings,
+            bridge._phase6_open_receiving_multi_settings,
+        ):
+            window = opener(designer)
+            try:
+                _pump(root, 5)
+                assert window.winfo_exists()
+            finally:
+                if window.winfo_exists():
+                    window._receiving_multi_close()
+                _pump(root, 3)
+            assert designer.root.grab_current() is None
+
+        designer.baseline_model_var.set("金庫型")
+        _pump(root, 8)
+        assert designer._phase6_input_snapshot.get("model") == "金庫型"
+        assert set(designer.designer_workspace.available_parts) == original_presence
+        assert "door" not in designer.designer_workspace.available_parts
+        assert _assembly_part_signatures(designer) == original_scene
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.root.grab_current() is None
+        scheduler = designer._phase6_update_scheduler
+        assert scheduler.dirty == set()
+        assert scheduler._after_job is None
+        record_property(
+            "issue1796_absent_door_roundtrip_wall_ms",
+            round((time.perf_counter() - started) * 1000, 2),
+        )
+    finally:
+        _close(tk, root, designer)
