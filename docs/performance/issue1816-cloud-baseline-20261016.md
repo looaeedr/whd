@@ -94,7 +94,7 @@
 
 ### 資料保密邊界
 
-`looaeedr/whd` 為 PUBLIC GitHub repository。私人檔案庫中發現士林同名原始 DXF，與 `開關索引.csv` 士林欄對應，可用正式 `NfbDxfSourcePreviewPanel.show/zoom/_move` 路徑驗證。但原 DXF 並未存在 GitHub `基準檔/開孔/NFB`，不應為方便公開 CI 而 commit 原始製造 CAD。雲端未實際量測 `dxf_load/dxf_zoom/dxf_pan`，維持待驗。
+`looaeedr/whd` 為 PUBLIC GitHub repository。私人檔案庫中發現士林同名原始 DXF，與 `開關索引.csv` 士林欄對應，可用正式 `NfbDxfSourcePreviewPanel.show/zoom/_move` 路徑驗證。但原 DXF 並未存在 GitHub `基準檔/開孔/NFB`，不應為方便公開 CI 而 commit 原始製造 CAD。**2026-10-16 補充：** 已用相同索引與私人原圖於隔離 Linux/Xvfb 真正量測 `dxf_load/dxf_zoom/dxf_pan`，**305 筆全成功**，證據見 [`issue1816-private-nfb-source-preview-20261016.md`](issue1816-private-nfb-source-preview-20261016.md)。原圖並未公開上傳；此結果不取代 Windows UAT。
 
 ### 30 輪連續操作之同程序記憶體趨勢（PR #1827）
 
@@ -114,3 +114,9 @@
 - 在本次程序的**末十輪**中，RSS 變動範圍很小，表示該測試期間接近平台期；三連的首末累積增長更多，但在最後十輪也沒有持續線性累增的直接證據。此結論嚴格限定本次 30 輪、同一程序的觀測窗，並不證明不會有更長時間洩漏或 Windows 狀態相同。
 - 取樣值、操作檢查點、測試源 HEAD、環境 metadata 及工作日誌保留於 GitHub Artifact。原始 ZIP 過期後不得只根據本文冒稱原始資料尚可取得。
 
+
+## 2026-10-16｜真實士林 NFB DXF 原始檔預覽補充
+
+使用使用者私有的 `400_140X257_107.dxf`（SHA-256 `8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3`），在隔離雲端執行 GH `localX` 原版 NFB 真圖 Tk 面板：新程序首次載入（n=5）median/P95 **53.82/69.10ms**；暖載入（n=100）**4.23/19.58ms**；zoom（n=100）**3.07/10.61ms**；pan（n=100）**2.91/11.69ms**。合計 **305 操作成功，0 失敗**，相同原圖的暖載入／縮放／平移磁碟重讀 **0 次**。每次核對 41 真實來源圖元有繪製進 Tk Canvas。原圖未納入公開 GitHub 或 GitHub Artifacts；完整流程／限制見[補充報告](issue1816-private-nfb-source-preview-20261016.md)。
+
+**本項 DXF private cloud benchmark 已補齊，#1816 仍 OPEN**：Windows 本機 GUI 驗收、物理子板件重算層數／快取 miss 精確度、瞬時峰值與長期實機穩態仍缺，不能誤記成全工單完工。原始原圖預覽不構成開孔位置或下游製造認證。
