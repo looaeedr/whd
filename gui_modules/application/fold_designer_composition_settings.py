@@ -708,21 +708,29 @@ def on_baseline_model_changed(self, namespace, *_args):
         "_phase6_non_receiving_structure_state",
         None,
     )
+    # Keep the user's pre-Receiving part-presence choice outside the two
+    # independent Quantity/Set-Bay physical mode buffers. The first fresh
+    # mode intentionally starts with Family physical defaults; returning to
+    # the original family must not silently lose a real part such as Door.
+    remembered_parts = tuple(app.designer_workspace.available_parts)
     coordinator = self.settings_coordinator(
         self.settings_application_ports(namespace)
     )
-    return coordinator.apply_baseline_transition(
+    result = coordinator.apply_baseline_transition(
         new_model=new_model,
         old_model=old_model,
         new_editable=editable,
         old_editable=old_editable,
         fixed_corner_state=fixed_corner_state,
-        available_parts=tuple(
-            getattr(app.designer_workspace, "available_parts", ())
-            or ()
-        ),
+        available_parts=remembered_parts,
         previous_non_receiving_structure=previous_non_receiving_structure,
     )
+    if result is not None and old_model != "受電箱" and new_model == "受電箱":
+        app._phase6_non_receiving_part_presence_state = {
+            "model": old_model,
+            "parts": remembered_parts,
+        }
+    return result
 
 def apply_external_settings(self, namespace, updates):
     app = self.app
