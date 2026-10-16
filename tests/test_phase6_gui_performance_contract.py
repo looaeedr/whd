@@ -129,3 +129,71 @@ def test_external_guard_runtime_suppresses_echo_without_dropping_scene_refresh()
     calls.clear()
     run()
     assert calls == ["echo", "scene"]  # genuine local edit still publishes
+
+
+def test_issue1794_identical_authoritative_part_presence_keeps_derived_cache(
+    record_property,
+):
+    """Exercise the real MainGUI presence handler; first authority commit still invalidates."""
+    from types import SimpleNamespace
+    from time import perf_counter_ns
+
+    from gui_modules.application.lifecycle import _apply_existing_parts_from_fold_workspace
+    from phase6_workspace_controller import Phase6WorkspaceController
+
+    class Flag:
+        def __init__(self):
+            self.values = []
+
+        def set(self, value):
+            self.values.append(bool(value))
+
+    workspace = Phase6WorkspaceController(
+        default_existing_parts={"box_body", "head", "door"}
+    )
+    cache = gui._Phase6DerivedCacheOwner()
+    refreshed = []
+    host = SimpleNamespace(
+        workspace_controller=workspace,
+        _derived_cache_owner=cache,
+        is_indicator_box_var=Flag(),
+        is_door_indicator_var=Flag(),
+        _phase6_refresh_presence_ui=lambda parts: refreshed.append(frozenset(parts)),
+        _manual_corner_part_override=None,
+    )
+    before = cache.metrics_snapshot()
+    first = _apply_existing_parts_from_fold_workspace(host, ("door", "head"))
+    assert first == {"box_body", "head", "door"}
+    assert workspace.has_authoritative_workspace
+    assert all(cache.metrics_snapshot()[p] == before[p] + 1 for p in cache.PRODUCTS)
+
+    for product in cache.PRODUCTS:
+        cache.cache(product)["physical-sentinel"] = product
+    stable_metrics = cache.metrics_snapshot()
+    wall_ms = []
+    for _ in range(5):
+        start = perf_counter_ns()
+        identical = _apply_existing_parts_from_fold_workspace(
+            host, ("head", "door", "box_body")
+        )
+        wall_ms.append((perf_counter_ns() - start) / 1_000_000)
+        assert identical == first
+        assert cache.metrics_snapshot() == stable_metrics, (
+            "equivalent authoritative presence cleared derived geometry cache"
+        )
+        assert all(
+            cache.cache(p).get("physical-sentinel") == p
+            for p in cache.PRODUCTS
+        )
+
+    # A real physical-part removal still invalidates every dependent
+    # product exactly once; the absent door cannot survive in cached scene.
+    without_door = _apply_existing_parts_from_fold_workspace(host, ("head",))
+    assert without_door == {"box_body", "head"}
+    assert all(
+        cache.metrics_snapshot()[p] == stable_metrics[p] + 1
+        for p in cache.PRODUCTS
+    )
+    assert all(not cache.cache(p) for p in cache.PRODUCTS)
+    assert refreshed[-1] == frozenset(without_door)
+    record_property("issue1794_noop_authoritative_presence_wall_ms", repr(wall_ms))
