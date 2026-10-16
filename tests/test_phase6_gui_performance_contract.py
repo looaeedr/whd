@@ -328,3 +328,58 @@ def test_issue1794_real_main_gui_render_cache_hit_scene_sha_and_no_dxf_reread(
         record_property("issue1794_real_main_gui_baseline_dxf_reads", len(reads))
     finally:
         root.destroy()
+
+
+def test_baseline_report_excludes_failed_samples_and_keeps_cache_groups():
+    from tools.whd_performance_baseline import summarize
+    rows = [dict(bays=1, operation='open', cache_state='warm', status='ok', wall_ms=x)
+            for x in range(1, 21)]
+    rows += [dict(bays=1, operation='open', cache_state='warm', status='failed', wall_ms=9999),
+             dict(bays=1, operation='open', cache_state='first_entry', status='ok', wall_ms=100)]
+    report = {r['cache_state']: r for r in summarize(rows)}
+    assert report['warm']['n'] == 20
+    assert report['warm']['failed'] == 1
+    assert report['warm']['median_ms'] == 10.5
+    assert report['warm']['p95_ms'] == 19
+    assert report['first_entry']['median_ms'] == 100
+
+
+def test_baseline_probe_preserves_result_exception_and_restores_callable():
+    from types import SimpleNamespace
+    from tools.whd_performance_baseline import Probe
+    import pytest
+    def operation(key):
+        if key == 'bad':
+            raise ValueError('real error')
+        return key
+    owner = SimpleNamespace(operation=operation)
+    probe = Probe()
+    try:
+        probe.wrap(owner, 'operation', 'actual', part_arg=0)
+        assert owner.operation('head') == 'head'
+        with pytest.raises(ValueError, match='real error'):
+            owner.operation('bad')
+        assert probe.counts['actual'] == 2
+        assert probe.parts == {'head': 1, 'bad': 1}
+    finally:
+        probe.stack.close()
+    assert owner.operation is operation
+
+
+def test_baseline_settle_waits_for_pending_debounce_and_rejects_timeout():
+    from types import SimpleNamespace
+    from tools.whd_performance_baseline import settle
+    import pytest
+    scheduler = SimpleNamespace(dirty={'geometry'}, _after_job='job', _flushing=False)
+    calls = []
+    def update():
+        calls.append(1)
+        if len(calls) == 3:
+            scheduler.dirty.clear()
+            scheduler._after_job = None
+    root = SimpleNamespace(update_idletasks=lambda: None, update=update)
+    settle(root, [SimpleNamespace(_phase6_update_scheduler=scheduler)])
+    assert len(calls) >= 4
+    scheduler.dirty.add('geometry')
+    with pytest.raises(TimeoutError):
+        settle(root, [SimpleNamespace(_phase6_update_scheduler=scheduler)], timeout=.005)
