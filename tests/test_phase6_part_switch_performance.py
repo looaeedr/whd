@@ -54,6 +54,27 @@ def _drain(root, seconds=0.45):
         time.sleep(0.005)
 
 
+
+
+def _issue1796_latency_distribution(rows, key):
+    """Summarize measured handler latency without an arbitrary CI speed gate.
+
+    The existing settled elapsed_ms includes the intentional _drain() delay;
+    dispatch_ms times the real synchronous Tk handler separately.
+    """
+    from statistics import median
+    values = sorted(float(row[key]) for row in rows)
+    assert values, "GUI timing summary requires real measured operations"
+    p95_index = max(0, (95 * len(values) + 99) // 100 - 1)
+    return {
+        "count": len(values),
+        "min_ms": round(values[0], 3),
+        "median_ms": round(median(values), 3),
+        "p95_nearest_rank_ms": round(values[p95_index], 3),
+        "max_ms": round(values[-1], 3),
+        "span_ms": round(values[-1] - values[0], 3),
+    }
+
 def test_equivalent_part_switch_skips_full_update_but_renders_committed_view_once(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
@@ -169,6 +190,7 @@ def test_issue1793_part_switches_coalesce_scheduler_flushes(monkeypatch, record_
             prev_attempts, prev_render = len(attempts), len(renders)
             start = time.perf_counter()
             app.activate_part(part)
+            dispatched = time.perf_counter()
             _drain(root, 0.2)
             after = scheduler.metrics_snapshot()
             rows.append({
@@ -178,9 +200,18 @@ def test_issue1793_part_switches_coalesce_scheduler_flushes(monkeypatch, record_
                 "solve": after["calculation_flushes"] - before["calculation_flushes"],
                 "display": after["display_flushes"] - before["display_flushes"],
                 "render": len(renders) - prev_render,
+                "dispatch_ms": round((dispatched - start) * 1000, 3),
                 "elapsed_ms": round((time.perf_counter() - start) * 1000, 2),
             })
         record_property("issue1793_switch_metrics", repr(rows))
+        record_property(
+            "issue1796_12_part_switch_dispatch_latency_distribution_ms",
+            repr(_issue1796_latency_distribution(rows, "dispatch_ms")),
+        )
+        record_property(
+            "issue1796_12_part_switch_settled_latency_distribution_ms",
+            repr(_issue1796_latency_distribution(rows, "elapsed_ms")),
+        )
         record_property("issue1793_submit_reasons", repr(reasons))
         record_property("issue1793_flush_dirty", repr(attempts))
 
@@ -257,27 +288,50 @@ def test_issue1796_combined_five_3d_toggles_with_part_switches_have_no_offscreen
 
         app.renderer.render = tracked_render
         rows = []
+        toggle_off_dispatch_ms, toggle_on_dispatch_ms = [], []
         for index, part in enumerate(("door", "head", "tail", "box_body", "door")):
+            toggle_started = time.perf_counter()
             app.set_3d_preview_enabled(False)
+            toggle_off_dispatch_ms.append(round((time.perf_counter() - toggle_started) * 1000, 3))
             _drain(root, 0.1)
             before = scheduler.metrics_snapshot()
             offscreen_before = len(renders)
             started = time.perf_counter()
             app.activate_part(part)
+            dispatched = time.perf_counter()
             _drain(root, 0.2)
             after = scheduler.metrics_snapshot()
             row = {
                 "part": part,
                 "solve": after["calculation_flushes"] - before["calculation_flushes"],
                 "render_off": len(renders) - offscreen_before,
+                "dispatch_ms": round((dispatched - started) * 1000, 3),
                 "elapsed_ms": round((time.perf_counter() - started) * 1000, 2),
             }
             rows.append(row)
             assert row["solve"] == 0, rows
             assert row["render_off"] == 0, rows
+            toggle_started = time.perf_counter()
             app.set_3d_preview_enabled(True)
+            toggle_on_dispatch_ms.append(round((time.perf_counter() - toggle_started) * 1000, 3))
             _drain(root, 0.1)
         record_property("issue1796_toggle_switch_metrics", repr(rows))
+        record_property(
+            "issue1796_5_preview_off_part_switch_dispatch_latency_distribution_ms",
+            repr(_issue1796_latency_distribution(rows, "dispatch_ms")),
+        )
+        record_property(
+            "issue1796_5_preview_toggle_off_dispatch_latency_distribution_ms",
+            repr(_issue1796_latency_distribution(
+                [{"ms": value} for value in toggle_off_dispatch_ms], "ms"
+            )),
+        )
+        record_property(
+            "issue1796_5_preview_toggle_on_dispatch_latency_distribution_ms",
+            repr(_issue1796_latency_distribution(
+                [{"ms": value} for value in toggle_on_dispatch_ms], "ms"
+            )),
+        )
         assert scheduler.dirty == set()
         assert scheduler._after_job is None
     finally:
