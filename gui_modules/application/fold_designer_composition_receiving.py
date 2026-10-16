@@ -491,6 +491,65 @@ def confirm_receiving_opening(
         submit("geometry", commit=True)
     return True
 
+def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_index):
+    """Read-only key projection for provably unrelated *trailing* Bay dimensions.
+
+    The requesting Bay's own W/H/D, its left/right Joint participants and
+    every preceding Bay remain part of the key: the left chain controls
+    assembly X/Y/Z, and the immediate right neighbor controls side locks.
+    Only W/H/D of Bays strictly AFTER that right neighbor cannot reach the
+    selected Bay's local sheet or placement in the existing Receiving chain.
+    All IDs, Joint records, Bay door/NFB/feature state, settings, other Sets,
+    model and global geometry authority remain included and fail closed.
+    NEVER use this deliberately incomplete copy as a saved/solved layout.
+    """
+    # Copy-on-write only the key's suffix path. Deep-copying the entire
+    # projected project on every display refresh would itself be a slowdown.
+    fingerprint_snapshot = dict(snapshot)
+    if fingerprint_snapshot.get("model") not in ("受電箱", "RECEIVING"):
+        return fingerprint_snapshot
+    if fingerprint_snapshot.get("active_mode", "set_bay") != "set_bay":
+        return fingerprint_snapshot
+    layout = fingerprint_snapshot.get("receiving_layout")
+    if not isinstance(layout, dict) or layout.get("schema") != "receiving-layout-v1":
+        return fingerprint_snapshot
+    sets = layout.get("sets")
+    if not isinstance(sets, list) or type(set_index) is not int:
+        return fingerprint_snapshot
+    if not 0 <= set_index < len(sets) or type(bay_index) is not int:
+        return fingerprint_snapshot
+    selected = sets[set_index]
+    if not isinstance(selected, dict):
+        return fingerprint_snapshot
+    bays = selected.get("bays")
+    joints = selected.get("joints")
+    if not isinstance(bays, list) or not isinstance(joints, list):
+        return fingerprint_snapshot
+    if not 0 <= bay_index < len(bays) or len(joints) != len(bays) - 1:
+        return fingerprint_snapshot
+    if not all(isinstance(row, dict) and row.get("stable_id")
+               for row in bays):
+        return fingerprint_snapshot
+    if bay_index + 2 >= len(bays):
+        return fingerprint_snapshot
+    # No mutation to snapshot or its nested persisted layout: the *only*
+    # detached rows are the distant suffix Bays whose scalar W/H/D is masked.
+    shallow_layout = dict(layout)
+    shallow_sets = list(sets)
+    shallow_set = dict(selected)
+    shallow_bays = list(bays)
+    for position in range(bay_index + 2, len(bays)):
+        later = dict(bays[position])
+        for axis in ("width", "height", "depth"):
+            later.pop(axis, None)
+        shallow_bays[position] = later
+    shallow_set["bays"] = shallow_bays
+    shallow_sets[set_index] = shallow_set
+    shallow_layout["sets"] = shallow_sets
+    fingerprint_snapshot["receiving_layout"] = shallow_layout
+    return fingerprint_snapshot
+
+
 def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
     """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
     from types import SimpleNamespace
@@ -514,7 +573,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     snapshot.update(settings)
     snapshot["part_dimensions"] = project_part_dimensions(snapshot)
     from phase6_sync_envelope import stable_fingerprint
-    fingerprint = stable_fingerprint({"snapshot": snapshot, "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
+    fingerprint = stable_fingerprint({"snapshot": _receiving_bay_preview_fingerprint_snapshot(
+        snapshot, set_index=set_index, bay_index=bay_index,
+    ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
     virtual_cache = getattr(self, "_receiving_bay_virtual_preview_cache", {})
