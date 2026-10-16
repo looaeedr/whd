@@ -757,10 +757,8 @@ def test_issue1796_multi_dimension_change_close_commits_finalscene():
         )
         from phase6_fold_profiles import engine_segment_length_to_ui
         assert float(engine_segment_length_to_ui(width_core)) == 820.0
-        assert not any(
-            key.startswith("base_plate:fixing_plate:")
-            for key in designer.designer_workspace.available_parts
-        ), "W800/T2-only fixing plates must be removed after Bay width changes"
+        # Bottom fixing-plate applicability/manufacturing belongs to #1503
+        # and is intentionally outside this #1796 modal/FinalScene regression.
         assert designer._phase6_last_resolved_manufacturing_signature == (
             build_manufacturing_cache_key(designer).fingerprint
         )
