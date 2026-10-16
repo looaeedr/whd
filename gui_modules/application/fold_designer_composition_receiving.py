@@ -212,8 +212,11 @@ def sync_receiving_current_bay(
     app.state.w = number(projected["w"])
     app.state.h = number(projected["h"])
     app.state.d = number(projected["d"])
-    app._phase6_last_w = app.state.w
-    app._phase6_last_d = app.state.d
+    # Do NOT advance _phase6_last_w/_phase6_last_d here. Those fields are the
+    # Fold-profile synchronization baseline used by Phase6FoldDesignerApp.do_update().
+    # Advancing them before the profile is rebuilt makes a newly selected/resized
+    # Receiving Bay look "unchanged" and lets the stale old profile overwrite
+    # the new operator W/D on the following authoritative update.
     app._phase6_receiving_set_bay_guard = True
     try:
         for var, value in (
