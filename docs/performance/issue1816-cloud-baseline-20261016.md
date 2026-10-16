@@ -120,3 +120,26 @@
 使用使用者私有的 `400_140X257_107.dxf`（SHA-256 `8daecaacacb9683c1436d29aa75fbba85c09d54536b92945fbaad06e049fadf3`），在隔離雲端執行 GH `localX` 原版 NFB 真圖 Tk 面板：新程序首次載入（n=5）median/P95 **53.82/69.10ms**；暖載入（n=100）**4.23/19.58ms**；zoom（n=100）**3.07/10.61ms**；pan（n=100）**2.91/11.69ms**。合計 **305 操作成功，0 失敗**，相同原圖的暖載入／縮放／平移磁碟重讀 **0 次**。每次核對 41 真實來源圖元有繪製進 Tk Canvas。原圖未納入公開 GitHub 或 GitHub Artifacts；完整流程／限制見[補充報告](issue1816-private-nfb-source-preview-20261016.md)。
 
 **本項 DXF private cloud benchmark 已補齊，#1816 仍 OPEN**：Windows 本機 GUI 驗收、物理子板件重算層數／快取 miss 精確度、瞬時峰值與長期實機穩態仍缺，不能誤記成全工單完工。原始原圖預覽不構成開孔位置或下游製造認證。
+
+## 2026-10-16｜實際 world-skin physical piece 建圖數（PR #1831）
+
+量測 HEAD `9dfc8d94c53db68e93331eaf790aa702ebda9ddd`，真實 [Tk run 38917466465](https://github.com/looaeedr/whd/actions/runs/38917466465) `completed/success`，正式 [Product Regression run 38917466357](https://github.com/looaeedr/whd/actions/runs/38917466357) `completed/success`，原始 [Actions Artifact 12053726898](https://github.com/looaeedr/whd/actions/runs/38917466465)；1／3 連各 3 個 fresh Python worker × 5 次操作輪，共 222 筆成功、0 失敗。source SHA、原始 JSONL 與 per-worker log 在該 artifact；14 日後可能過期。
+
+此次在真正 `phase6_manufacturing_service.resolve → _phase6_build_joint_world_geometry` 的 mapping 返回後，直接計算 `world_triangles_by_part` 中非空 physical keys；箱身拆成 `box_body:...` 時不將 aggregate `box_body` 當成另一塊板件。本表每 topology 各 n=15 暖樣本，單位為**每操作實際 world-coordinate physical skin rematerializations**，不是原始材料幾何 cache misses。
+
+| 操作 | 1 連 physical world-skin 次數分布 | 3 連 physical world-skin 次數分布 | 真 world-map 函式執行 |
+|---|---|---|---|
+| 開啟多連設定 | 0 × 15 | 0 × 15 | 0/15 |
+| 視窗內確認單連尺寸 | 0 × 9、13 × 6 | 0 × 9、13 × 6 | 6/15 |
+| 修改後關閉設定 | 13 × 9、15 × 6 | 13 × 9、15 × 6 | 15/15 |
+| 增連套用關閉 | 13 × 9、15 × 6 | 13 × 9、15 × 6 | 15/15 |
+| 減連套用關閉 | 13 × 9、15 × 6 | 13 × 9、15 × 6 | 15/15 |
+| 開真實封頭 2D 預覽 | 0 × 9、13 × 3、15 × 3 | 0 × 9、13 × 3、15 × 3 | 6/15 |
+| 返回 3D | 0 × 15 | 0 × 15 | 0/15 |
+
+- 13 件是目前作用連的 world-skin 有效實體鍵；其中常見為底板、箱身左／背／右、水平中隔、上下門板、內門板與各框件、封頭、封尾等。部分樣本多出 `base_plate:fixing_plate:left/right` 兩個真實 physical keys 而成 15，不能以固定 13 件覆蓋此差異。
+- 1 連與 3 連的分布相同**不是三連總裝只有 13 件**：此段真實製造呼叫是目前選定連的作用視圖，不能拿來代表整個多連專案所有 Bay 的總實體數。
+- 相同 runner 的 `close_after_edit` 操作中位，1 連 `manufacturing_solve` inclusive 約 **1345.66 ms**、`world_skin_builds` inclusive 約 **51.97 ms**、`scene_render` inclusive 約 **450.27 ms**；3 連依序約 **1376.35 / 50.01 / 463.15 ms**。不同計時層級可能巢狀包含，**不可相加**。數據意味 world-skin stage 並非此筆操作全部耗時；其餘成本須沿真實請求構建、幾何求解、渲染階段分別取證。
+- `part_materialization` 仍只代表 adapter 輸入建構。world-skin 的返回 physical keys 證明了重新產生 world-coordinate 表面，但**不能直接當作 2D 下料圖板件重新求解或 mesh cache miss**。下一階段 #1817 應另建材質依賴／快取 miss 的精確鑑別器，且不修改幾何準確性。
+
+**驗收狀態：** #1816 對 DXF 私人原圖及 world-skin 重建數均已有真實測試；完整 Windows UAT、比 30-cycle 更長的穩態、瞬時真峰值及精確 flat-material cache miss 仍未證實，#1816 保持 OPEN，正式 X 不發布。
