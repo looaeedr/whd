@@ -136,11 +136,27 @@ def memory_trends(rows):
     return result
 
 
+def physical_world_skin_keys(world_map):
+    """Actual world-skin output keys, excluding duplicate BoxBody aggregate.
+
+    This measures rematerialized world-coordinate surfaces per physical piece,
+    NOT flat-material geometry builds, manufacturing cache misses or CNC parts.
+    """
+    if not isinstance(world_map, dict) or not isinstance(world_map.get('world_triangles_by_part'), dict):
+        raise ValueError('world skin result lacks expected physical part evidence')
+    by_part=world_map['world_triangles_by_part']
+    visible={str(key) for key,triangles in by_part.items() if triangles}
+    if any(key.startswith('box_body:') for key in visible):
+        visible.discard('box_body')  # aggregate of physically distinct children
+    return tuple(sorted(visible))
+
+
 class Probe:
     def __init__(self):
         self.counts = Counter()
         self.milliseconds = Counter()
         self.parts = Counter()
+        self.world_skin_parts = Counter()
         self.stack = ExitStack()
 
     def wrap(self, owner, name, label, part_arg=None):
@@ -157,10 +173,27 @@ class Probe:
                 self.milliseconds[label] += (time.perf_counter()-started)*1000
         self.stack.enter_context(patch.object(owner, name, measured))
 
+    def observe_world_skin(self, owner, name):
+        """Wrap the real Receiving world-coordinate materializer, no fake mesh."""
+        original = getattr(owner, name)
+        @wraps(original)
+        def measured(*args, **kwargs):
+            started = time.perf_counter()
+            try:
+                result = original(*args, **kwargs)
+                keys = physical_world_skin_keys(result)
+                self.counts['world_skin_builds'] += 1
+                self.world_skin_parts.update(keys)
+                return result
+            finally:
+                self.milliseconds['world_skin_builds'] += (time.perf_counter()-started)*1000
+        self.stack.enter_context(patch.object(owner, name, measured))
+
     def reset(self):
         self.counts.clear()
         self.milliseconds.clear()
         self.parts.clear()
+        self.world_skin_parts.clear()
 
 
 def settle(root, owners, timeout=30):
@@ -234,6 +267,7 @@ def worker(args):
         designer.baseline_model_var.set('受電箱')
         settle(root, owners)
         probe.wrap(service, 'resolve', 'manufacturing_solve')
+        probe.observe_world_skin(service, '_phase6_build_joint_world_geometry')
         probe.wrap(adapter, '_domain_inputs_for_part', 'part_materialization', part_arg=1)
         probe.wrap(Phase6FinalSceneRenderer, 'render', 'scene_render')
         probe.wrap(FigureCanvasTkAgg, 'draw', 'canvas_draw')
@@ -269,7 +303,10 @@ def worker(args):
                        operation=operation, cache_state=cache,
                        status=status, error=error, wall_ms=elapsed_ms if elapsed_ms is not None else (time.perf_counter()-started)*1000,
                        counts=dict(probe.counts), inclusive_ms=dict(probe.milliseconds),
-                       materialized_parts=dict(probe.parts), rss_before=before,
+                       materialized_parts=dict(probe.parts),
+                       world_skin_physical_pieces=dict(probe.world_skin_parts),
+                       world_skin_physical_rematerializations=sum(probe.world_skin_parts.values()),
+                       rss_before=before,
                        rss_after=rss_bytes(), **rss_window, calculation_flushes=sum(
                            s._metrics['calculation_flushes'] for s in schedulers if s)-calc_before)
             rows.append(row)
