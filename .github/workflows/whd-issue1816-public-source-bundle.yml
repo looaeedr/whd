@@ -1,0 +1,37 @@
+name: WHD Issue1816 Public Source Bundle
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-issue1816-public-source-bundle.yml'
+permissions:
+  contents: read
+jobs:
+  export-public-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Archive checked-out tracked public repository files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1816-source
+          git archive --format=tar.gz --prefix=whd/ HEAD > work/issue1816-source/whd-public-source.tar.gz
+          {
+            echo "repository=looaeedr/whd"
+            echo "source_ref=$(git rev-parse HEAD)"
+            echo "kind=PUBLIC_TRACKED_SOURCE_ONLY_NO_USER_DXF"
+            sha256sum work/issue1816-source/whd-public-source.tar.gz
+          } > work/issue1816-source/provenance.txt
+      - name: Export public-only tracked checkout for isolated private local testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-issue1816-public-source-only
+          path: work/issue1816-source
+          if-no-files-found: error
+          retention-days: 1
