@@ -574,3 +574,40 @@ def test_missing_quantity_door_state_resizes_with_existing_family_partition():
     invalid["receiving_quantity_box"]["door_state"] = {"door_layout_columns": []}
     with pytest.raises(ValueError, match="W 不符合目前門分割"):
         update_common_box(invalid, {"w": 875})
+
+
+def test_first_fresh_mode_preserves_project_family_presets_not_inactive_geometry():
+    """A Quantity session cannot erase Vault's preset needed on family return."""
+    from phase6_receiving_modes import ReceivingModeSession
+    from phase6_settings_transitions import family_model_transition
+    initial = old_multibay()
+    initial["_runtime_family_presets"] = {
+        "金庫型": {"settings": {"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0}}
+    }
+    initial["factory_defaults"] = {"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0}
+    session = ReceivingModeSession(initial)
+    assert session.switch("quantity", dimensions={"w": 800, "h": 1600, "d": 350})
+    active = session.snapshot()
+    assert active["_runtime_family_presets"] == initial["_runtime_family_presets"]
+    assert active["factory_defaults"] == initial["factory_defaults"]
+    # The fresh mode has independent physical dimensions and topology.
+    assert active["active_mode"] == "quantity"
+    assert (active["w"], active["h"], active["d"]) == (800, 1600, 350)
+    assert active["receiving_layout"] != initial["receiving_layout"]
+    # A later edit must not mutate original buffered project-level presets.
+    active["_runtime_family_presets"]["金庫型"]["settings"]["w"] = 999
+    assert session.snapshot()["_runtime_family_presets"]["金庫型"]["settings"]["w"] == 400.0
+
+
+def test_switch_back_to_vault_after_first_quantity_mode_uses_saved_family_settings():
+    """Keep data authority: Vault resolves its own preset, not Receiving W/H/D."""
+    from phase6_receiving_modes import ReceivingModeSession
+    from phase6_settings_transitions import family_model_transition
+    initial = old_multibay()
+    saved = {"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0}
+    initial["_runtime_family_presets"] = {"金庫型": {"settings": dict(saved)}}
+    session = ReceivingModeSession(initial)
+    assert session.switch("quantity", dimensions={"w": 800, "h": 1600, "d": 350})
+    current = session.snapshot()
+    assert current["_runtime_family_presets"]["金庫型"]["settings"] == saved
+    assert current["model"] == "受電箱"
