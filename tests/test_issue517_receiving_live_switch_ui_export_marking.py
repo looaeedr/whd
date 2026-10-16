@@ -1222,6 +1222,7 @@ def test_issue1796_receiving_modal_close_equivalent_geometry_is_noop(monkeypatch
         sync_receiving_current_bay=lambda _ns, refresh_controls=False: events.append(
             "sync"
         ),
+        sync_authoritative_derived_parts=lambda _ns: events.append("derived"),
     )
     monkeypatch.setattr(
         manufacturing_adapter,
