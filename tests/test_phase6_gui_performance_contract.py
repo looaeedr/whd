@@ -383,3 +383,53 @@ def test_baseline_settle_waits_for_pending_debounce_and_rejects_timeout():
     scheduler.dirty.add('geometry')
     with pytest.raises(TimeoutError):
         settle(root, [SimpleNamespace(_phase6_update_scheduler=scheduler)], timeout=.005)
+
+
+def test_baseline_rss_sampler_window_excludes_outside_and_never_fakes_peak():
+    from tools.whd_performance_baseline import RSSSampler
+    values = iter([100, 150, 135])
+    stamps = iter([1.0, 2.0, 3.0])
+    sampler = RSSSampler(50, reader=lambda: next(values),
+                         clock=lambda: next(stamps))
+    for _ in range(3):
+        sampler._capture()
+    assert sampler.window(1.5, 2.5) == {
+        'rss_peak_sampled_bytes': 150,
+        'rss_samples_in_operation': 1,
+        'rss_sample_error': None,
+    }
+    assert sampler.window(4, 5)['rss_peak_sampled_bytes'] is None
+    assert sampler.window(4, 5)['rss_samples_in_operation'] == 0
+
+
+def test_baseline_rss_sampler_bounds_and_unavailable_reader():
+    import pytest
+    from tools.whd_performance_baseline import RSSSampler
+    with pytest.raises(ValueError):
+        RSSSampler(0)
+    with pytest.raises(ValueError):
+        RSSSampler(1001)
+    sampler = RSSSampler(50, reader=lambda: None)
+    sampler._capture()
+    assert sampler.window(0, float('inf'))['rss_peak_sampled_bytes'] is None
+
+
+def test_baseline_memory_trends_never_mix_workers_or_claim_leaks():
+    from tools.whd_performance_baseline import memory_trends
+    def row(bays, worker, rss, operation='return_3d', status='ok'):
+        return dict(bays=bays, worker_sample=worker, operation=operation,
+                    status=status, rss_after=rss)
+    measurements = [
+        row(1, 0, 100), row(1, 1, 600), row(1, 0, 120),
+        row(1, 0, 800, operation='open_multi'),
+        row(1, 0, 900, status='failed'),
+        row(3, 0, 200), row(3, 0, 180),
+    ]
+    trends = memory_trends(measurements)
+    assert len(trends) == 3
+    one = next(t for t in trends if t['bays'] == 1 and t['worker_sample'] == 0)
+    assert one['completed_cycles'] == 2
+    assert one['delta_bytes'] == 20
+    assert one['max_checkpoint_rss_bytes'] == 120
+    assert one['interpretation'].endswith('not_leak_proof')
+    assert next(t for t in trends if t['bays'] == 3)['delta_bytes'] == -20
