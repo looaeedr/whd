@@ -124,3 +124,75 @@ def test_issue1817_real_side_joint_features_same_as_full_rebuild_after_far_edit(
     after_full_rebuild = receiving_bay_joint_face_features(edited, **args)
     assert before == after_full_rebuild
     assert _key(original, 0) == _key(edited, 0)
+
+
+def test_issue1817_real_preview_method_hits_cached_object_for_far_bay_edit(monkeypatch):
+    """Exercise real Receiving preview cache-check call-site, not just helper."""
+    from types import SimpleNamespace
+    import pytest
+    from ae_engine.cabinet_types import receiving
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    from gui_modules.application.fold_designer_composition_receiving import (
+        receiving_bay_preview_request,
+    )
+    from phase6_settings_profile_projection import project_part_dimensions
+    import phase6_fold_profiles
+    canonical = receiving.apply_family_defaults({"t":2.0})
+    canonical.update(model="受電箱", active_mode="set_bay", receiving_layout=_layout())
+
+    workspace = SimpleNamespace(
+        part_profiles_snapshot=lambda: {},
+        part_features_snapshot=lambda: {},
+        part_face_features_snapshot=lambda: {},
+    )
+    app = SimpleNamespace(
+        _phase6_input_snapshot=canonical, _settings_values={},
+        designer_workspace=workspace,
+        _phase6_corner_state={},
+        state=SimpleNamespace(profiles_vault={"箱身": ()}),
+    )
+    def signature():
+        projected = project_receiving_bay_legacy_aliases(
+            dict(app._phase6_input_snapshot), set_index=0, bay_index=0)
+        settings = {**dict(app._settings_values),
+                    **{k:projected[k] for k in ("w", "h", "d")}}
+        projected.update(settings)
+        projected["part_dimensions"] = project_part_dimensions(projected)
+        return stable_fingerprint({
+            "snapshot":_receiving_bay_preview_fingerprint_snapshot(
+                projected, set_index=0, bay_index=0),
+            "profiles":workspace.part_profiles_snapshot(),
+            "features":workspace.part_features_snapshot(),
+            "face_features":workspace.part_face_features_snapshot(),
+            "box_profile":app.state.profiles_vault.get("箱身", ()),
+            "corners":app._phase6_corner_state,
+        })
+    old_signature=signature()
+    cached=object()
+    owner=SimpleNamespace(
+        app=app,
+        _receiving_bay_preview_cache={(0,0):(old_signature,cached)},
+    )
+    def would_be_full_solve(*args, **kwargs):
+        raise LookupError("full geometry rebuild required")
+    monkeypatch.setattr(
+        phase6_fold_profiles, "merge_box_body_profile", would_be_full_solve)
+    app._phase6_input_snapshot = {
+        **canonical,
+        "receiving_layout":update_receiving_bay(
+            canonical["receiving_layout"], set_index=0, bay_index=3,
+            width=950, height=1750, depth=420),
+    }
+    assert signature() == old_signature
+    assert receiving_bay_preview_request(owner, None, 0, 0) is cached
+    # Right-neighbor Bay2 changes Bay1's certified side-lock geometry:
+    # bypass must be impossible; even an isolated fake app must enter resolve.
+    app._phase6_input_snapshot = {
+        **canonical,
+        "receiving_layout":update_receiving_bay(
+            canonical["receiving_layout"], set_index=0, bay_index=1,
+            width=950, height=1750, depth=420),
+    }
+    assert signature() != old_signature
+    with pytest.raises(LookupError, match="full geometry rebuild required"):
+        receiving_bay_preview_request(owner, None, 0, 0)
