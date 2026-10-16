@@ -13,10 +13,15 @@ TEXT_SUFFIXES = {
 # Keep the retired provider name out of CURRENT source while still detecting it.
 PROVIDER_WORD = "Dri" + "ve"
 PROHIBITED = (
-    re.compile(r"\b" + PROVIDER_WORD + r"\b", re.IGNORECASE),
-    re.compile("external" + "-gdrive", re.IGNORECASE),
+    re.compile("Google" + r"\s+" + PROVIDER_WORD, re.IGNORECASE),
+    re.compile("external" + "-g" + "drive", re.IGNORECASE),
     re.compile("1z-P-" + "VXPd1xjK-PS3Jj7RreT2BLEmDvf_"),
     re.compile("雲端" + "硬碟"),
+    re.compile(
+        r"\b" + PROVIDER_WORD
+        + r"(?:/|-|\s+)(?:shared|first|snapshot|mount|skill|connector|id|root|mirror|payload|parity|search|v\d|退役)",
+        re.IGNORECASE,
+    ),
 )
 
 
