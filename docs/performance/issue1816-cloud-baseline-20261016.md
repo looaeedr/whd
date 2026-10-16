@@ -95,3 +95,22 @@
 ### 資料保密邊界
 
 `looaeedr/whd` 為 PUBLIC GitHub repository。私人檔案庫中發現士林同名原始 DXF，與 `開關索引.csv` 士林欄對應，可用正式 `NfbDxfSourcePreviewPanel.show/zoom/_move` 路徑驗證。但原 DXF 並未存在 GitHub `基準檔/開孔/NFB`，不應為方便公開 CI 而 commit 原始製造 CAD。雲端未實際量測 `dxf_load/dxf_zoom/dxf_pan`，維持待驗。
+
+### 30 輪連續操作之同程序記憶體趨勢（PR #1827）
+
+- 專項量測 HEAD `dd39c26bd77de0fe08d2e254f63242540a39d82d`，[Actions 38911264600](https://github.com/looaeedr/whd/actions/runs/38911264600) `completed / success`，GitHub artifact `whd-issue1816-extended-rss`（ID `12050663455`，14 日保留）。僅雲端 Linux Runner，比對必須固定同一真實機器、樣本與狀態。
+- 受電箱 1 連、3 連**各一個獨立持續執行的 Python 程序**，每個跑完 30 輪修改、增減連數、2D/3D 預覽；全程 424 筆真 GUI 操作，失敗 0。與既有 5 輪 run 使用不同 worker/Runner，故不計算跨 runner 的百分比改善。
+- 下表為相同程序在每輪 `return_3d` 完成後的 RSS checkpoint（MiB），不是瞬間最高水位、不是被宣告的 memory-leak verdict：
+
+| 同程序、30 次 checkpoint | 1 連 | 3 連 |
+|---|---:|---:|
+| 第一輪 RSS | 181.125 MiB | 171.918 MiB |
+| 第三十輪 RSS | 184.980 MiB | 183.742 MiB |
+| 首十輪 RSS 中位數 | 183.436 MiB | 182.230 MiB |
+| 末十輪 RSS 中位數 | 184.975 MiB | 183.736 MiB |
+| 末十輪最大－最小 | 0.316 MiB | 0.016 MiB |
+| 首末差值 | +3.855 MiB | +11.824 MiB |
+
+- 在本次程序的**末十輪**中，RSS 變動範圍很小，表示該測試期間接近平台期；三連的首末累積增長更多，但在最後十輪也沒有持續線性累增的直接證據。此結論嚴格限定本次 30 輪、同一程序的觀測窗，並不證明不會有更長時間洩漏或 Windows 狀態相同。
+- 取樣值、操作檢查點、測試源 HEAD、環境 metadata 及工作日誌保留於 GitHub Artifact。原始 ZIP 過期後不得只根據本文冒稱原始資料尚可取得。
+
