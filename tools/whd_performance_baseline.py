@@ -189,6 +189,7 @@ class Probe:
         self.world_skin_parts = Counter()
         self.flat_material_builds = Counter()
         self.supplemental_material_builds = Counter()
+        self.authoritative_cache_parts = Counter()
         self.stack = ExitStack()
 
     def wrap(self, owner, name, label, part_arg=None):
@@ -231,6 +232,31 @@ class Probe:
             finally:
                 self.milliseconds['material_factory_calls'] += (time.perf_counter()-started)*1000
         self.stack.enter_context(patch.object(owner, name, measured))
+
+    def observe_primary_authoritative_render(self, primary_app):
+        """Read the real Phase6ApplicationHost PartSpec/Context render cache.
+
+        The method is owned by the *primary application*, not Fold Designer.
+        Classification uses the exact key evaluated by the production owner.
+        """
+        from ae_engine.contracts import ManufacturingContext
+        original = getattr(primary_app, '_authoritative_render_data')
+        if not callable(original):
+            raise TypeError('primary application render cache method unavailable')
+        @wraps(original)
+        def measured(spec, context=None):
+            ctx = context or ManufacturingContext(draw_stock=False)
+            cache = getattr(primary_app, '_authoritative_part_render_cache', None)
+            key = (repr(spec), repr(ctx))
+            cached = cache is not None and key in cache
+            result = original(spec, context)
+            label = ('authoritative_render_cache_hit' if cached
+                     else 'authoritative_render_cache_miss')
+            self.counts[label] += 1
+            self.authoritative_cache_parts[f'{label}:{type(spec).__name__}'] += 1
+            return result
+        self.stack.enter_context(patch.object(
+            primary_app, '_authoritative_render_data', measured))
 
     def observe_supplemental_material_factory(self, owner, name, label, *, part_id=False):
         """Read a distinct *real* special material build seam without changing old totals.
@@ -279,6 +305,7 @@ class Probe:
         self.world_skin_parts.clear()
         self.flat_material_builds.clear()
         self.supplemental_material_builds.clear()
+        self.authoritative_cache_parts.clear()
 
 
 def settle(root, owners, timeout=30):
@@ -356,6 +383,10 @@ def worker(args):
         settle(root, owners)
         probe.wrap(service, 'resolve', 'manufacturing_solve')
         probe.observe_manufacturing_cache(ManufacturingCacheService)
+        # gui.Phase6ApplicationHost owns this exact cache method; the
+        # FoldDesigner child does not. The previous wrong owner raised an
+        # AttributeError before any true GUI benchmark could begin.
+        probe.observe_primary_authoritative_render(app)
         # Specialty source-flat fixing plates and the service's imported replay
         # alias are not covered by the five manufacturing_api entrypoints.
         probe.observe_supplemental_material_factory(
@@ -411,6 +442,11 @@ def worker(args):
                        status=status, error=error, wall_ms=elapsed_ms if elapsed_ms is not None else (time.perf_counter()-started)*1000,
                        counts=dict(probe.counts), inclusive_ms=dict(probe.milliseconds),
                        materialized_parts=dict(probe.parts),
+                       authoritative_render_cache_lookups={
+                           'hit': probe.counts['authoritative_render_cache_hit'],
+                           'miss': probe.counts['authoritative_render_cache_miss'],
+                           'spec_types': dict(probe.authoritative_cache_parts),
+                       },
                        manufacturing_cache_lookups={
                            'hit': probe.counts['manufacturing_cache_hit'],
                            'miss': probe.counts['manufacturing_cache_miss'],
