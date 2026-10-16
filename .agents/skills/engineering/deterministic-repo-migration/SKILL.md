@@ -39,7 +39,7 @@ Out of scope:
 2. **產品、未知或混合遷移**：依 `/派工` 在 GitHub／雲端完成施工、測試與 PR（base=`localX`）；僅 exact HEAD CI SUCCESS 後才可依 `LOCALX_INTEGRATION` 規定使用 DC 做本機 `localX` 最終整合。只有使用者當次明確 `/接手` 才能在 RC `whd-dev:/workspace/whd` 進行產品施工。產品從 `localX` 發布正式 X 仍需使用者當次 `/推推`。
 3. **DC 預設禁止**：沒有當次符合 `AGENTS.md` 的 DC 授權，不得探測或使用使用者本機；純治理能力不足不得改走 DC／local shell。
 4. 所有路線都要保留 authority SHA、source/target SHA、實際執行的測試、exact diff、idempotence、drift audit、CI 與合併後回讀；不能拿單一 validator PASS 冒充正式交付。
-5. 舊 `WORKSPACE_DELIVERY`、claim／lease／工作槽、Drive/shared-zero 與 `MERGE/FINALIZE` 交易前置已退役；不得要求這些憑證，不得以此繞過現行平台安全審查。已核准相同工作範圍不應重複要求核准，但範圍變動及新 HEAD 仍須核對。
+5. 舊 `WORKSPACE_DELIVERY`、claim／lease／工作槽、已退役外部儲存/shared-zero 與 `MERGE/FINALIZE` 交易前置已退役；不得要求這些憑證，不得以此繞過現行平台安全審查。已核准相同工作範圍不應重複要求核准，但範圍變動及新 HEAD 仍須核對。
 
 ## Mandatory execution contract
 
