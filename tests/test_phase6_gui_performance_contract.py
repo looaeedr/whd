@@ -260,3 +260,71 @@ def test_issue1794_changed_keys_precise_display_noop_but_unknown_geometry_fails_
         owner.cache(name)["sentinel"] = name
     assert set(owner.invalidate("geometry", changed_keys={"unrecognized_joint_key"})) == set(owner.PRODUCTS)
     assert all(not owner.cache(p) for p in owner.PRODUCTS)
+
+
+def test_issue1794_real_main_gui_render_cache_hit_scene_sha_and_no_dxf_reread(
+    monkeypatch, record_property,
+):
+    """Check real GUI/cache/geometry authority, not only an isolated fake owner."""
+    import hashlib
+    import os
+    import time
+
+    from ae_engine import ae
+
+    if not os.environ.get("DISPLAY"):
+        import pytest
+        pytest.skip("real Tk/MainGUI source-integrity proof requires Xvfb")
+
+    root = tk.Tk()
+    root.withdraw()
+    app = gui.BoxCalculatorGUI(root)
+    try:
+        parts = tuple(app.workspace_controller.current_existing_parts())
+        app._apply_existing_parts_from_fold_workspace(parts)
+        owner = app._derived_cache_owner
+
+        values = app.get_float_values()
+        spec = app._end_cap_part_spec(values, is_tail=False)
+        context = app._manufacturing_context(draw_stock=False)
+        initial = app._authoritative_render_data(spec, context)
+        scene_sha = hashlib.sha256(repr(initial.scene).encode("utf-8")).hexdigest()
+        material_sha = hashlib.sha256(initial.material.wkb).hexdigest()
+        before = owner.metrics_snapshot()
+
+        # Count real parser calls after the first verified manufacturing build.
+        reads = []
+        original_read = ae.ezdxf.readfile
+
+        def recorded_read(*args, **kwargs):
+            reads.append(str(args[0]))
+            return original_read(*args, **kwargs)
+
+        monkeypatch.setattr(ae.ezdxf, "readfile", recorded_read)
+        latencies = []
+        for _ in range(5):
+            started = time.perf_counter_ns()
+            app._apply_existing_parts_from_fold_workspace(reversed(parts))
+            actual = app._authoritative_render_data(spec, context)
+            latencies.append(round((time.perf_counter_ns() - started) / 1e6, 3))
+            assert actual is initial, "equivalent GUI part state must hit actual RenderData cache"
+            assert hashlib.sha256(repr(actual.scene).encode("utf-8")).hexdigest() == scene_sha
+            assert hashlib.sha256(actual.material.wkb).hexdigest() == material_sha
+            assert owner.metrics_snapshot() == before
+        assert not reads, "equivalent derived state must not reparse original DXF"
+
+        if "door" in parts:
+            changed = tuple(key for key in parts if key != "door")
+        else:
+            changed = tuple(parts) + ("door",)
+        app._apply_existing_parts_from_fold_workspace(changed)
+        rebuilt = app._authoritative_render_data(spec, context)
+        assert rebuilt is not initial
+        assert all(owner.metrics_snapshot()[p] == before[p] + 1 for p in owner.PRODUCTS)
+        assert not reads, "physical presence invalidation must not clear DXF source"
+        record_property("issue1794_real_main_gui_noop_wall_ms", repr(latencies))
+        record_property("issue1794_real_main_gui_scene_sha256", scene_sha)
+        record_property("issue1794_real_main_gui_material_sha256", material_sha)
+        record_property("issue1794_real_main_gui_baseline_dxf_reads", len(reads))
+    finally:
+        root.destroy()
