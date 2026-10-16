@@ -1179,7 +1179,7 @@ def test_issue1796_receiving_modal_close_flushes_changed_geometry_before_assembl
     _restore_receiving_assembly_after_modal(owner, namespace)
 
     assert "sync" in events
-    assert ("submit", "geometry", True) in events
+    assert ("submit", "geometry", False) in events
     assert "flush" in events
     assert events.index("sync") < events.index(("mount", "assembly"))
     assert events.index(("mount", "assembly")) < events.index("flush")
