@@ -19,7 +19,7 @@ PROHIBITED = (
     re.compile("雲端" + "硬碟"),
     re.compile(
         r"\b" + PROVIDER_WORD
-        + r"(?:/|-|\s+)(?:shared|first|snapshot|mount|skill|connector|id|root|mirror|payload|parity|search|v\d|退役)",
+        + r"(?:/|-|\s+)(?:shared|first|snapshot|mount|skill|connector|id|root|payload|parity|search|v\d|退役)",
         re.IGNORECASE,
     ),
 )
