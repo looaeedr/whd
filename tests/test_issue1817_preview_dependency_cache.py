@@ -196,3 +196,90 @@ def test_issue1817_real_preview_method_hits_cached_object_for_far_bay_edit(monke
     assert signature() != old_signature
     with pytest.raises(LookupError, match="full geometry rebuild required"):
         receiving_bay_preview_request(owner, None, 0, 0)
+
+
+def test_issue1817_distant_prefix_edit_keeps_local_geometry_key_but_moves_anchor():
+    original = _layout()
+    modified = update_receiving_bay(
+        original, set_index=0, bay_index=0, width=920, height=1800, depth=420)
+    old_snap = project_receiving_bay_legacy_aliases(
+        {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":original},
+        set_index=0, bay_index=3, validate_common=False)
+    new_snap = project_receiving_bay_legacy_aliases(
+        {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":modified},
+        set_index=0, bay_index=3, validate_common=False)
+    def key(snap, rebase):
+        return stable_fingerprint(_receiving_bay_preview_fingerprint_snapshot(
+            snap, set_index=0, bay_index=3, allow_upstream_translation=rebase))
+    assert key(old_snap, False) != key(new_snap, False)
+    assert key(old_snap, True) == key(new_snap, True)
+    assert receiving_bay_assembly_offsets(original)[3] != (
+        receiving_bay_assembly_offsets(modified)[3])
+    # A touching Bay3 edit still demands full geometry, never just a shift.
+    neighbor = update_receiving_bay(
+        original, set_index=0, bay_index=2, width=920, depth=420)
+    neighbor_snap = project_receiving_bay_legacy_aliases(
+        {"model":"受電箱", "active_mode":"set_bay", "receiving_layout":neighbor},
+        set_index=0, bay_index=3, validate_common=False)
+    assert key(old_snap, True) != key(neighbor_snap, True)
+
+
+def test_issue1817_immutable_world_translation_matches_canonical_full_placement():
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_rebase_preview_world_offsets,
+    )
+    original = _layout()
+    changed = update_receiving_bay(
+        original, set_index=0, bay_index=0, width=930, height=1740, depth=390)
+    before = receiving_bay_assembly_offsets(original)[3]
+    after = receiving_bay_assembly_offsets(changed)[3]
+    material = object()
+    local=(3.0, -6.0, 11.0)
+    scene_part=AssemblyScenePart(
+        part_key="box_body", render_data=material, x_profile=(), y_profile=(),
+        offset=tuple(x+y for x,y in zip(local,before)))
+    request=FinalSceneViewRequest(
+        render_data=AssemblySceneRenderData(
+            assembly_parts=(scene_part,), preserve_endcap_core_origin=True),
+        x_profile=(),y_profile=(),part_key="assembly",thickness=2.0)
+    rebased=_receiving_rebase_preview_world_offsets(request,before,after)
+    assert rebased is not None and rebased is not request
+    updated=rebased.render_data.assembly_parts[0]
+    assert updated is not scene_part and updated.render_data is material
+    assert updated.offset == tuple(x+y for x,y in zip(local,after))
+    assert scene_part.offset == tuple(x+y for x,y in zip(local,before))
+    # Equivalent scene content, no changed material / 2D sheet or spec.
+    assert rebased.finished_dimensions == request.finished_dimensions
+    assert rebased.thickness == request.thickness
+    assert rebased.render_data.preserve_endcap_core_origin
+
+
+def test_issue1817_unsafe_preview_envelopes_cannot_be_translated():
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_rebase_preview_world_offsets,
+    )
+    part=AssemblyScenePart(part_key="box_body",render_data=object(),
+                           x_profile=(),y_profile=())
+    for scene in (
+        AssemblySceneRenderData(assembly_parts=(part,),show_interference=True,
+                                preserve_endcap_core_origin=True),
+        AssemblySceneRenderData(assembly_parts=(part,),
+                                preserve_endcap_core_origin=False),
+        AssemblySceneRenderData(
+            assembly_parts=(part,),joint_diagnostics=("unresolved",),
+            preserve_endcap_core_origin=True),
+        AssemblySceneRenderData(
+            assembly_parts=(AssemblyScenePart(
+                part_key="custom", render_data=object(),x_profile=(),y_profile=(),
+                placement="standalone"),),preserve_endcap_core_origin=True),
+    ):
+        request=FinalSceneViewRequest(
+            render_data=scene,x_profile=(),y_profile=(),part_key="assembly")
+        assert _receiving_rebase_preview_world_offsets(
+            request,(0,0,0),(10,10,10)) is None
