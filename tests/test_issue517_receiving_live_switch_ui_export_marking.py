@@ -749,6 +749,10 @@ def test_issue1796_multi_dimension_change_close_commits_finalscene():
         _pump(root, 6)
 
         assert float(designer._phase6_box_whd["w"]) == 820.0
+        assert not any(
+            key.startswith("base_plate:fixing_plate:")
+            for key in designer.designer_workspace.available_parts
+        ), "W800/T2-only fixing plates must be removed after Bay width changes"
         assert designer._phase6_last_resolved_manufacturing_signature == (
             build_manufacturing_cache_key(designer).fingerprint
         )
@@ -1164,6 +1168,7 @@ def test_issue1796_receiving_modal_close_flushes_changed_geometry_before_assembl
         sync_receiving_current_bay=lambda _ns, refresh_controls=False: events.append(
             "sync"
         ),
+        sync_authoritative_derived_parts=lambda _ns: events.append("derived"),
     )
     monkeypatch.setattr(
         manufacturing_adapter,
@@ -1179,9 +1184,11 @@ def test_issue1796_receiving_modal_close_flushes_changed_geometry_before_assembl
     _restore_receiving_assembly_after_modal(owner, namespace)
 
     assert "sync" in events
+    assert "derived" in events
     assert ("submit", "geometry", False) in events
     assert "flush" in events
-    assert events.index("sync") < events.index(("mount", "assembly"))
+    assert events.index("sync") < events.index("derived")
+    assert events.index("derived") < events.index(("mount", "assembly"))
     assert events.index(("mount", "assembly")) < events.index("flush")
 
 
