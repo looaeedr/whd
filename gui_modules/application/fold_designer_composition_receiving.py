@@ -2872,65 +2872,73 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
 
 def _restore_receiving_assembly_after_modal(owner, namespace):
-    """Commit changed Receiving geometry before restoring the Assembly view."""
-    # Modal +連/−連 edits the canonical Receiving layout without forcing a
-    # heavyweight 3D solve on every click.  On exit, project the final selected
-    # Set/Bay once so Assembly never consumes geometry from the previous topology.
+    """Settle Receiving + Assembly state, then commit one final close-boundary update."""
+    # Modal +連/−連 intentionally avoids a heavyweight 3D solve on every click.
+    # Project the final selected Set/Bay first, but do not manufacture yet:
+    # restoring Assembly/navigation can itself queue or materialize canonical
+    # state, so an earlier receipt can become stale before close() returns.
     owner.sync_receiving_current_bay(namespace, refresh_controls=False)
 
-    # Dimension confirmation may already have committed this exact geometry.
-    # Compare the semantic manufacturing signature before scheduling work so a
-    # no-edit/equivalent close remains display-only rather than re-solving 3D.
-    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+    from phase6_manufacturing_adapter import (
+        build_manufacturing_cache_key,
+        resolve_for_app,
+    )
 
     designer = owner.app
     scheduler = designer._phase6_update_scheduler
-    current_signature = build_manufacturing_cache_key(designer).fingerprint
-    if current_signature != getattr(
-        designer, "_phase6_last_resolved_manufacturing_signature", None
-    ):
-        # The ordinary full-update executor can finish the 2D/3D redraw
-        # without committing a new manufacturing receipt. Keep the receipt
-        # reconciliation inside the *same* Scheduler calculation transaction,
-        # as on Receiving mode switches; do not solve directly from a Tk
-        # callback or manufacture again for an equivalent close.
-        previous_executor = getattr(scheduler, "executor", None)
-        if callable(previous_executor):
-            def execute_with_receiving_receipt(reasons):
-                result = previous_executor(reasons)
-                from phase6_manufacturing_adapter import resolve_for_app
-                if build_manufacturing_cache_key(designer).fingerprint != getattr(
-                    designer, "_phase6_last_resolved_manufacturing_signature", None
-                ):
-                    resolve_for_app(designer)
-                return result
-            scheduler.executor = execute_with_receiving_receipt
-        try:
-            designer.submit_update_intent("geometry", commit=True)
-            scheduler.flush_now()
-        finally:
-            if callable(previous_executor):
-                scheduler.executor = previous_executor
+    previous_executor = getattr(scheduler, "executor", None)
 
-    owner.refresh_receiving_set_bay_control(namespace)
-    # Use the Fold Designer that owns the Assembly mode, not the unrelated
-    # GUI scene callback host (whose identity lacks designer_workspace).
-    if getattr(designer, "_phase6_3d_display_mode", None) != "assembly":
-        show_assembly = namespace.get("_phase6_show_assembly")
-        if callable(show_assembly):
-            show_assembly(designer)
+    # Any calculation that does run during this close transaction must leave a
+    # manufacturing receipt for the post-calculation semantic state. Equivalent
+    # state remains a cache/no-op and does not manufacture a second time.
+    if callable(previous_executor):
+        def execute_with_receiving_receipt(reasons):
+            result = previous_executor(reasons)
+            if build_manufacturing_cache_key(designer).fingerprint != getattr(
+                designer, "_phase6_last_resolved_manufacturing_signature", None
+            ):
+                resolve_for_app(designer)
+            return result
+        scheduler.executor = execute_with_receiving_receipt
+
+    try:
+        owner.refresh_receiving_set_bay_control(namespace)
+        # Use the Fold Designer that owns the Assembly mode, not the unrelated
+        # GUI scene callback host (whose identity lacks designer_workspace).
+        if getattr(designer, "_phase6_3d_display_mode", None) != "assembly":
+            show_assembly = namespace.get("_phase6_show_assembly")
+            if callable(show_assembly):
+                show_assembly(designer)
+            else:
+                raise RuntimeError("原組合體導覽入口尚未連接")
         else:
-            raise RuntimeError("原組合體導覽入口尚未連接")
-    else:
-        mount = namespace.get("_phase6_mount_shared_content")
-        if callable(mount):
-            mount(designer, "assembly")
-        else:
-            raise RuntimeError("組合體左側內容掛載入口尚未連接")
-        selection = getattr(designer, "part_var", None)
-        if selection is not None:
-            current = getattr(selection, "get", None)
-            # Tk traces fire even on an equal StringVar.set(). Avoid queuing a
-            # spurious geometry intent after the final close-boundary flush.
-            if not callable(current) or current() != "組合體":
-                selection.set("組合體")
+            mount = namespace.get("_phase6_mount_shared_content")
+            if callable(mount):
+                mount(designer, "assembly")
+            else:
+                raise RuntimeError("組合體左側內容掛載入口尚未連接")
+            selection = getattr(designer, "part_var", None)
+            if selection is not None:
+                current = getattr(selection, "get", None)
+                # Tk traces fire even on an equal StringVar.set(). Avoid
+                # inventing a new intent when Assembly is already selected.
+                if not callable(current) or current() != "組合體":
+                    selection.set("組合體")
+
+        current_signature = build_manufacturing_cache_key(designer).fingerprint
+        receipt_signature = getattr(
+            designer, "_phase6_last_resolved_manufacturing_signature", None
+        )
+        signature_changed = current_signature != receipt_signature
+        pending_dirty = bool(getattr(scheduler, "dirty", ()))
+
+        # submit_update_intent(commit=True) flushes immediately, which is too
+        # early if close-time navigation still has queued work. Queue only, then
+        # drain exactly once after *all* close-boundary state has settled.
+        if signature_changed:
+            designer.submit_update_intent("geometry", commit=False)
+        if signature_changed or pending_dirty:
+            scheduler.flush_now()
+    finally:
+        if callable(previous_executor):
+            scheduler.executor = previous_executor
