@@ -524,43 +524,47 @@ def test_issue1816_observe_real_cache_receipt_hits_and_misses():
     assert RealLikeCache.lookup is original
 
 
-def test_issue1816_render_material_cache_and_build_count_are_independent():
+def test_issue1816_material_cache_hit_returns_existing_2d_factory_result():
     from types import SimpleNamespace
     from tools.whd_performance_baseline import Probe
-    cache={}
+    class TestCache:
+        def __init__(self):
+            self.value=None
+        def lookup(self, key):
+            return SimpleNamespace(receipt=SimpleNamespace(hit=self.value is not None),
+                                   result=self.value)
     class Spec:
         pass
     spec=Spec()
-    context=SimpleNamespace(draw_stock=False)
-    def build_part_render_data(spec, ctx):
-        return dict(material='real_created')
+    calls=[]
+    def build_part_render_data(item):
+        calls.append(item)
+        return {'real_material': object()}
     factory=SimpleNamespace(build_part_render_data=build_part_render_data)
-    def authoritative(spec, context=None):
-        key=(repr(spec),repr(context))
-        if key not in cache:
-            cache[key]=factory.build_part_render_data(spec,context)
-        return cache[key]
-    designer=SimpleNamespace(_authoritative_part_render_cache=cache,
-                             _authoritative_render_data=authoritative)
+    cache=TestCache()
     probe=Probe()
     try:
+        probe.observe_manufacturing_cache(TestCache)
         probe.observe_material_factory(factory,'build_part_render_data')
-        probe.observe_authoritative_render(designer)
-        first=designer._authoritative_render_data(spec,context)
-        second=designer._authoritative_render_data(spec,context)
-        assert first is second
-        assert probe.counts['authoritative_render_cache_miss'] == 1
-        assert probe.counts['authoritative_render_cache_hit'] == 1
+        def acquire():
+            found=cache.lookup('key')
+            if found.result is None:
+                cache.value=factory.build_part_render_data(spec)
+            return cache.value
+        first=acquire()
+        assert acquire() is first
+        assert len(calls) == 1
+        assert probe.counts['manufacturing_cache_miss'] == 1
+        assert probe.counts['manufacturing_cache_hit'] == 1
         assert probe.counts['material_factory_calls'] == 1
         assert probe.flat_material_builds['build_part_render_data:Spec'] == 1
         probe.reset()
         assert not probe.flat_material_builds
-        assert designer._authoritative_render_data(spec,context) is first
-        assert probe.counts['authoritative_render_cache_hit'] == 1
+        assert acquire() is first
+        assert probe.counts['manufacturing_cache_hit'] == 1
         assert probe.counts['material_factory_calls'] == 0
     finally:
         probe.stack.close()
-    assert designer._authoritative_render_data is authoritative
     assert factory.build_part_render_data is build_part_render_data
 
 
