@@ -180,3 +180,49 @@
 - **未取得可證實的第二級 authoritative render-cache hit/miss**：不能把不存在的觀測欄位說成 0 命中，也不以 manufacturing cache receipt 冒充每一個 PartSpec cache。
 - 部分獨立 fixing-plate、特殊衍生來源、service collision relief replay 路徑可能不由上述五個 `manufacturing_api` 工廠產生，故 **2,106 是這五種工廠的真實執行數，不是 100% 系統所有原始 2D 空白重算數**。上述 13/19/16 等值也不代表同樣多的*不同*物理板件。
 - 這些結果已提供 #1817 對實際回傳、快取 ownership 與重建依賴進一步切分的基準，但**不解鎖 #1817 的產品施工門檻**：完整 Windows GUI 人工 UAT 與未經量測的特定製造來源仍須依 #1816 驗收；正式產品 `X` 需當次使用者 `/推推`。
+
+## 2026-10-17｜第二級 PartSpec 材質快取與固定片／封頭尾回放精確觀測
+
+### 源碼權威、驗證與真 GUI 證據
+
+- 源碼基準 GitHub `localX` `8ab64cb9c9188d86dfeda60189d8e69e4acf66b9`，真正量測 HEAD `15366480eddef607d40705aabd4beb985f52e507`。PR [#1836](https://github.com/looaeedr/whd/pull/1836) merged `0cc7e54115f31b2777cb4218d7af57b49d7eaead`；[Product Regression 38977229479](https://github.com/looaeedr/whd/actions/runs/38977229479) 與 [Tk Evidence 38977229499](https://github.com/looaeedr/whd/actions/runs/38977229499) 全為 completed/success；原始 JSON／JSONL／環境／worker logs 為 GitHub artifact `12079482727`（14 日保留）。
+- 1 連與 3 連各 3 個 fresh Python 程序 × 5 輪，同份原始 WHD GUI，**222 筆操作成功、0 失敗**；只用觀測包裝，**沒有變更鈑金幾何、製造公式、cache key、任何原始 DXF 或 3D 資料**。此輪與先前不同 worker／runner，延遲不可直接作無配對 before/after 提升比較。
+- **曾經測錯的 owner 已查證修正：** 在 `gui.py::Phase6ApplicationHost`，`_authoritative_render_data = _phase6_fold_adapter._authoritative_render_data`，`Phase6PrimaryApplication` 繼承它；**Fold Designer 子視窗沒有此方法**。同一方法真實權威在 `gui_modules/application/fold_designer_manufacturing_projection.py`，以 `(repr(spec),repr(ctx))` 作共用 2D/3D cache key。觀測器僅在**主 GUI** 方法成功返回後，依原方法執行前的完整 key membership 判定 hit/miss，保留原始返回值／例外；不自動初始化或清除 cache。
+- 固定片以 `ae_engine.receiving_base_fixing_plate_geometry.build_fixing_plate_source_render_data` 真實 stable-id 計數；封頭／封尾碰撞修正後材質由 `phase6_manufacturing_service.build_part_render_data` 的**已匯入別名**計數。兩者新增 `supplemental_material_builds`／`supplemental_material_factory_calls`，與上一批五主要工廠的 `material_factory_rebuild_calls` 獨立，**絕不可合併不同版本的歷史總數**。
+
+### 全部 222 筆觀測（非不同物理板件數）
+
+| 入口／指標 | 真實成功觀測 |
+|---|---:|
+| `authoritative_render_cache_lookups.hit` | 198 |
+| `authoritative_render_cache_lookups.miss` | 1,047 |
+| `service_relief_replay_material:EndCapPartSpec` | 210 次 |
+| `fixing_plate_source_flat:base_plate:fixing_plate:left` | 45 次 |
+| `fixing_plate_source_flat:base_plate:fixing_plate:right` | 45 次 |
+| 補充材料工廠成功呼叫合計 | 300 次 |
+
+主 GUI 材質快取依 Spec 的結果：
+
+| 主 GUI `PartSpec` | Hit | Miss |
+|---|---:|---:|
+| `EndCapPartSpec` | 108 | 555 |
+| `DoorPartSpec` | 60 | 246 |
+| `BasePlatePartSpec` | 30 | 123 |
+| `BoxBodyPartSpec` | 0 | 123 |
+| **合計** | **198** | **1,047** |
+
+以下為 **warm** 樣本各操作 n=30（1 連與 3 連各 n=15），不是所有型號／所有模式：
+
+| 操作 | 主 GUI render cache hit/miss | 補充工廠成功呼叫分布 |
+|---|---:|---|
+| 開啟多連設定 | 0 / 0 | 0 × 30 |
+| 視窗內確認一連尺寸 | 114 / 210 | 0 × 18、2 × 12（封頭尾 replay） |
+| 修改後關閉設定 | 0 / 270 | 2 × 18、4 × 12（每次 2 封頭尾 replay；12 次另有左右固定片） |
+| 增加連數並套用關閉 | 0 / 270 | 2 × 18、4 × 12 |
+| 減少連數並套用關閉 | 0 / 270 | 2 × 18、4 × 12 |
+| 開啟真實封頭 2D 預覽 | 84 / 0 | 0 × 24、2 × 6（左右固定片） |
+| 從 2D 返回 3D | 0 / 0 | 0 × 30 |
+
+**可支持的判斷：** 這批 GUI 操作中，2D 真圖預覽的主 GUI PartSpec cache 觀測為 84 hit、0 miss；但尺寸修改關閉與增減連套用各為 270 miss、0 hit，顯示這些操作重新建立多種 Spec/Context 物件或其鍵確實改變。**此現象不能單靠命中率推論「錯誤地重算」**：必須對照實際 W/H/D/T、Joint、中隔、封頭尾、相鄰連依賴。補充回放 210 次及固定片左右各 45 次均為**工廠成功呼叫**，不等於同數不同物理板件、也不等於快取失效的唯一原因。額外 pre-call `repr(spec)` 有觀測成本，與先前不同儀器／runner 的 wall-time 不可直接做速度改善率比較。
+
+**剩餘驗收：** 私有士林原 DXF、實際 world-skin、五主要工廠、主 GUI 材質 cache、固定片及 relief replay 均已取得 Linux 雲端真實樣本，但 Windows `Z:\\localX` 人工 GUI UAT、全日長時間穩態及細到每件展開 2D 下料成品的完整 cache-miss/失效原因尚未證實。獨立固定片來源為真實 *source-flat*，不能聲稱原始圖已認證折彎、焊接 Z 位置。#1816 保持 OPEN，#1817 不提前視為完成／解鎖，正式 `X` 尚未發布。
