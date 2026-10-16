@@ -111,3 +111,16 @@ def test_issue1817_actual_joint_side_features_match_full_rebuild_for_untouched_b
     fully_recomputed_faces = receiving_bay_joint_face_features(changed, **args)
     assert original_faces == fully_recomputed_faces
     assert _key(original, 0) == _key(changed, 0)
+
+
+def test_issue1817_real_side_joint_features_same_as_full_rebuild_after_far_edit():
+    # Real certified Receiving side locks; no fake/test-only hole positions.
+    from ae_engine.receiving_layout import receiving_bay_joint_face_features
+    original = _layout()
+    edited = update_receiving_bay(
+        original, set_index=0, bay_index=3, width=1010, height=1800, depth=460)
+    args = dict(set_index=0, bay_index=0, thickness=2, frame_width=29)
+    before = receiving_bay_joint_face_features(original, **args)
+    after_full_rebuild = receiving_bay_joint_face_features(edited, **args)
+    assert before == after_full_rebuild
+    assert _key(original, 0) == _key(edited, 0)
