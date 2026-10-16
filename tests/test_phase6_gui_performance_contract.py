@@ -433,3 +433,51 @@ def test_baseline_memory_trends_never_mix_workers_or_claim_leaks():
     assert one['max_checkpoint_rss_bytes'] == 120
     assert one['interpretation'].endswith('not_leak_proof')
     assert next(t for t in trends if t['bays'] == 3)['delta_bytes'] == -20
+
+
+def test_issue1816_world_skin_keys_exclude_box_body_aggregate():
+    from tools.whd_performance_baseline import physical_world_skin_keys
+    from pytest import raises
+    world = {'world_triangles_by_part': {
+        'box_body': [('aggregate',)],
+        'box_body:left': [('left',)],
+        'box_body:right': [('right',)],
+        'head': [('head',)],
+        'tail': [],
+    }}
+    assert physical_world_skin_keys(world) == ('box_body:left','box_body:right','head')
+    assert physical_world_skin_keys({'world_triangles_by_part': {'box_body': [(1,)]}}) == ('box_body',)
+    with raises(ValueError):
+        physical_world_skin_keys({'unrelated': {'box_body': []}})
+
+
+def test_issue1816_world_skin_observer_counts_real_return_and_restores():
+    from types import SimpleNamespace
+    from tools.whd_performance_baseline import Probe
+    import pytest
+    def actual_world_skin(*args, **kwargs):
+        if args and args[0] == 'bad':
+            raise RuntimeError('actual world failure')
+        return {'world_triangles_by_part': {
+            'box_body': [(1,)], 'box_body:left': [(2,)],
+            'box_body:back': [(3,)], 'door': [(4,)], 'tail': []}}
+    service = SimpleNamespace(build=actual_world_skin)
+    probe = Probe()
+    try:
+        probe.observe_world_skin(service, 'build')
+        expected = actual_world_skin()
+        assert service.build() == expected
+        assert probe.counts['world_skin_builds'] == 1
+        assert probe.world_skin_parts == {'box_body:left': 1, 'box_body:back': 1, 'door': 1}
+        assert sum(probe.world_skin_parts.values()) == 3
+        with pytest.raises(RuntimeError, match='actual world failure'):
+            service.build('bad')
+        assert probe.counts['world_skin_builds'] == 1
+        probe.reset()
+        assert sum(probe.world_skin_parts.values()) == 0
+        assert probe.counts['world_skin_builds'] == 0
+        assert service.build() == expected
+        assert probe.counts['world_skin_builds'] == 1
+    finally:
+        probe.stack.close()
+    assert service.build is actual_world_skin
