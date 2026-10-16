@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 > **2026-10-11 現行權責提醒**：此文為 `REFERENCE` 事故庫，不能授予 DC／RC、本機 shell 或舊 `root-local-first` 施工權限；不得把舊 `WORKSPACE_DEFAULT` 當作每件 WHD 任務的強制入口。現行 `/派工`、當次明確 `/接手`、治理直送 X 及 `localX`→X 發布分流，均以正式 X `AGENTS.md`／CURRENT Skills 和 GitHub exact HEAD readback 為準。
 
-**當時的工作區規則（HISTORICAL／SUPERSEDED）**：Drive/shared-zero 已退役；舊流程曾要求 executor-local workspace、fresh `cleanup/2d-3d-sync` baseline、exact-tested-diff delivery。這是舊事故背景，不得重建 `WORKSPACE_DEFAULT` 或把使用者本機當預設施工地點。
+**當時的工作區規則（HISTORICAL／SUPERSEDED）**：外部儲存/shared-zero 已退役；舊流程曾要求 executor-local workspace、fresh `cleanup/2d-3d-sync` baseline、exact-tested-diff delivery。這是舊事故背景，不得重建 `WORKSPACE_DEFAULT` 或把使用者本機當預設施工地點。
 
 ## Validator 不是 authority
 

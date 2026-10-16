@@ -19,7 +19,7 @@ def test_delete_skill_identity_and_semantics():
     assert 'ARCHIVED_NOT_DELETED' in text
     assert 'MOVED_OUT_OF_ACTIVE_SCOPE' in text
     assert 'DELETE_UNSUPPORTED' in text
-    assert 'Google Drive `delete_file`' in text
+    assert 'provider 原生 `delete_file`' in text
     assert '不得把 archive/move 說成 delete' in text
 
 

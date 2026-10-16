@@ -14,7 +14,7 @@ whd_schema: WHD_DOC_META_V1
 - 倉庫：`looaeedr/whd`，正式 X：`cleanup/2d-3d-sync`，本次快照 SHA：`d7a0d4392058be168d9e1fbd13332905af575e47`。
 - 透過 GitHub root Contents 與各個頂層樹的 `git/trees/<sha>?recursive=1` 逐一列舉；**原快照 2,341 個檔案，其中 888 個以 `.md`／`.rst`／`.txt` 結尾**，各子樹均未標記 `truncated`。**此數是建檔前的快照，不是永遠固定的當前 X 檔案數**；清查報告經 #1623 建立、#1624 更新後，正式 X 同類文件為 **889**（新增的正是本份治理清查報告）。不得混用快照計數與更新後的 live tree 計數。
 - `AGENTS.md`、現行治理索引、根目錄導覽、AI Library 核心／SOP、59 份 `SKILL.md` 及高優先設計／驗收規則已做內容或 metadata 層級核對；**888 個文件的路徑全數納入清單，但尚不能宣稱每份正文都完成逐行語意驗收**。
-- `main` 為不管理的歷史分支，不清理、不同步；不使用 Google Drive／DC／RC 代替 GitHub 此次盤點。
+- `main` 為不管理的歷史分支，不清理、不同步；不使用 外部儲存／DC／RC 代替 GitHub 此次盤點。
 
 | 正式 X 位置 | .md / .rst / .txt | 分類與處置界線 |
 | --- | ---: | --- |

@@ -127,7 +127,7 @@ WHD Skill 修改固定：
 5. 經現行 `change_lane_gate.py` 分流後，使用合法分支 push／PR／required checks；驗收後合併至對應目標並回讀實際 GitHub 結果。
 6. 同一已核准任務範圍不得因提交 SHA 改變而無故重問相同授權；若跨 repo、路徑或任務範圍則重新核實權限。
 
-Drive/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 前置。不得直接 patch production target；不得自動 ours/theirs 解決實質衝突。
+已退役外部儲存/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 前置。不得直接 patch production target；不得自動 ours/theirs 解決實質衝突。
 
 ### 4.3 先找真正問題，不要只換句話
 

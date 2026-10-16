@@ -31,7 +31,7 @@ whd_schema: WHD_DOC_META_V1
 - **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得以治理分類豁免產品 QA 或正式 X 發布閘門；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
 - GitHub 正式硬閘門必須在 X 的 Ruleset 把 `WHD Change Lane Gate` 設為 required status check，否則只能算 CI 檢查、不能宣稱平台端不可繞過；直接 push X 應由分支 Ruleset 禁止。
 - 禁止遺失使用者本地未發布修改，禁止用 X 覆蓋 localX。保留程式碼 review、製造幾何與產品回歸檢查；無需工單交易硬閘門。
-- 本地工作不需 Google Drive 工作根目錄，也不需調用舊協調分支。
+- 本地工作不需任何外部儲存工作根目錄，也不需調用舊協調分支。
 - **兩入口共享交付範圍、不共享施工權限**：`/派工` 與 `/接手` 共用 Issue、PR、產品驗收標準，但前者預設 GitHub 施工與 GitHub `localX` 合併，不以 PR GREEN 自動授權 DC。`/接手` 僅當次明確允許 RC；DC 必須有特定目的／裝置／操作授權且經外部審查。治理變更也先整合 `localX`，正式 X 仍限驗收後的 `/推推`。
 
 ## 新增功能入口 `/功能` — `FEATURE_FLOW_V1`
