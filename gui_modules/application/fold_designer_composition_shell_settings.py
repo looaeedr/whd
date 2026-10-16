@@ -670,6 +670,22 @@ def settings_application_project_ui_values(
         if remembered is not None:
             app._phase6_non_receiving_structure_state = deepcopy(remembered)
 
+        # Restore the user's original Family part-presence set *before* the
+        # Settings profile projection and the single Scheduler baseline solve.
+        # Do not force Door present: an intentionally absent Door remains
+        # absent. Do not reuse this set for a different cabinet family.
+        if old_model == "受電箱" and new_model != "受電箱":
+            previous_parts = getattr(
+                app, "_phase6_non_receiving_part_presence_state", None
+            )
+            if (
+                isinstance(previous_parts, dict)
+                and previous_parts.get("model") == new_model
+            ):
+                parts = tuple(previous_parts.get("parts") or ())
+                app.designer_workspace.replace_available_parts(parts)
+                app._phase6_input_snapshot["existing_parts"] = list(parts)
+
         if "fw" in values:
             state = getattr(app, "_phase6_endcap_fw_state", None)
             if isinstance(state, required("MutableMapping")):

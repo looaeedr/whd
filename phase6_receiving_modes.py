@@ -106,6 +106,14 @@ class ReceivingModeSession:
             candidate["custom_parts"] = payload
             if "workspace" in candidate:
                 candidate["workspace"]["custom_parts"] = deepcopy(payload)
+        # The project-wide Family preset registry and factory seed are not
+        # physical sheet data owned by Quantity or Set/Bay. A fresh Receiving
+        # mode intentionally discards inactive sheets, but must retain these
+        # read-only inputs so leaving Receiving can restore the prior Vault
+        # dimensions/structure. Never copy W/H/D or sheet topology here.
+        for global_key in ("_runtime_family_presets", "factory_defaults"):
+            if global_key in current:
+                candidate[global_key] = deepcopy(current[global_key])
         # The operator's head/tail candidate library is project-global,
         # NOT a QuantityModel or Set/Bay buffer. Transfer its one authority
         # on every successful mode switch, including first-time initialization.
