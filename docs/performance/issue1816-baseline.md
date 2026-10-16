@@ -68,3 +68,15 @@ python tools/whd_performance_baseline.py --samples 3 --cycles 10 --output work/p
 **層級界限：** 這是依真正 Returning mapping 見證的 world-coordinate skin rematerialization，**並不直接等於原始板件 2D 下料幾何重新求解、DXF export 次數、mesh cache miss 或 CNC physical output**。不能將其冒稱完整的「子板件求解數」；仍須沿每個 source-to-blank/geometry cache seam 補足實際命中或失效的證據。若實際 mapping 欄位缺失，觀測器 fail-closed，不得用預期數量填補。
 
 此測試只改觀測程式／測試，不修改任何製造演算法。原本的 `part_materialization`／`materialized_parts` 欄位維持原語意且獨立計數。
+
+
+## Linux 核心 RSS 最高水位（VmHWM，不等於單一操作內峰值）
+
+原先的 `rss_peak_sampled_bytes` 是取樣到的 RSS 最大值，50 ms 之間的尖峰可能漏掉。此次新增從 Linux `/proc/self/status` 讀取 OS `VmHWM`，每筆記錄：
+
+- `rss_highwater_before_bytes`：操作開始前，**整個程序自啟動以來**的 Linux kernel 高水位 RSS。
+- `rss_highwater_after_bytes`：操作結束後，程序**累積最高水位**；它是進程級統計，含 Python/Tk 初始化與前面操作，不是該操作的獨立瞬時峰值。
+- `rss_highwater_increment_bytes`：該操作是否提高了進程累積高水位，`max(0, after-before)`。若前次操作已推高峰值，後續操作即使短暫接近也可能得到 0，不可解讀為未配置記憶體。
+- 不支援 `VmHWM` 的平台可按 psutil `peak_wset` / `peak_rss` 可用性回傳，否則是 `null`，不可回填當下 RSS 或預設 0。
+
+此欄位與原來的每 50ms 採樣、每循環 checkpoint 並行，不改製造服務、實體板件或 UI 更新行為。每 worker 的最高 HWM 需獨立比較，不可跨程序直接串成單一記憶體走勢。
