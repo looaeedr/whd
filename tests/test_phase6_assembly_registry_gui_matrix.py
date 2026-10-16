@@ -150,11 +150,42 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
             assert int(reloaded_parts[key]["rule_revision"]) == int(solutions[key].rule_revision)
             assert reloaded_parts[key]["trust_level"] == solutions[key].trust_level
         val2 = app2.get_float_values()
+        reloaded_2d_material = {}
         for key, is_tail in (("head", False), ("tail", True)):
             reloaded = app2._authoritative_render_data(
                 app2._end_cap_part_spec(val2, is_tail=is_tail),
                 app2._manufacturing_context(draw_stock=False),
             )
+            reloaded_2d_material[key] = reloaded.material
             assert reloaded.material.symmetric_difference(expected_material[key]).area <= 1e-6
+
+        # #1796: reload must preserve the *actual* FinalScene manufacturing
+        # material, not merely the independent 2D PartSpec projection.
+        # Reopen the real Tk Designer to exercise the normal assembly and
+        # per-part 3D adapters against the persisted authoritative state.
+        designer2 = app2.open_original_fold_designer()
+        designer2.preview_3d_enabled = False
+        designer2._phase6_3d_display_mode = "assembly"
+        reloaded_bundle = bridge._phase6_final_scene_adapter(
+            designer2
+        ).query_assembly_render_data()
+        reloaded_assembly = {
+            part.part_key: part.render_data for part in reloaded_bundle.assembly_parts
+        }
+        assert set(reloaded_assembly) >= {"head", "tail"}
+        assert dict(getattr(designer2, "_phase6_last_relief_errors", {}) or {}) == {}
+        for key in ("head", "tail"):
+            assembly_3d = reloaded_assembly[key]
+            assert assembly_3d.material.symmetric_difference(
+                reloaded_2d_material[key]
+            ).area <= 1e-6
+            assert assembly_3d.material.symmetric_difference(
+                expected_material[key]
+            ).area <= 1e-6
+            designer2.activate_part(key)
+            single_3d = bridge._phase6_query_final_render_data(designer2)
+            assert single_3d.material.symmetric_difference(
+                reloaded_2d_material[key]
+            ).area <= 1e-6
     finally:
         _destroy(app2, root2)
