@@ -108,4 +108,14 @@ python tools/whd_performance_baseline.py --samples 3 --cycles 10 --output work/p
 
 若目前 GUI 的 `on_scene_query` 不進其中一個 seam，觀測為 0 是「該操作未走這個已核實的入口」，不是「整套產品沒有此材質」。兩個補充欄位不等同互斥 2D 實體數、cache miss 或總製造 BOM。測試用真正固定片材料及原始 alias，包裝方法保留返回、例外及 Context，不更動來源裁切／定位。
 
-第二級 `_authoritative_render_data` 的實際 GUI 執行入口尚未確認，維持 NOT_INSTRUMENTED；不可再猜測方法綁在 Designer 上。
+## 第二級原始 2D／3D PartSpec/Context 材質快取的真實 owner
+
+精讀 `gui.py::Phase6ApplicationHost` 已證實 `_authoritative_render_data = _phase6_fold_adapter._authoritative_render_data`，而 `Phase6PrimaryApplication` 繼承此入口；**不是** Fold Designer 子視窗實例。實際來源函式在 `gui_modules/application/fold_designer_manufacturing_projection.py`，正式快取鍵是 `(repr(spec), repr(ctx))`、`ctx = context or ManufacturingContext(draw_stock=False)`。只有透過主 GUI 實例可得到正確的 owner 與 scope。
+
+新增只讀 `Probe.observe_primary_authoritative_render(app)`，在呼叫真正主 GUI 原方法**之前**核對當時快取是否含同一個 key，在原方法成功返回後記下：
+
+- `authoritative_render_cache_lookups.hit/miss/spec_types`：真實 PartSpec/Context render cache pre-call hit/miss 與 Spec 類別分布。
+- 不以 `ManufacturingCacheService` 整組 cache 的 hit/miss 代替，不將未走過此入口的其他直接板件工廠計入本層。
+- 未回傳成功的例外不計 hit 或 miss；wrapper 不預先分配 cache、不清 cache，也不改官方 `_authoritative_render_data` 的 geometry／state。
+
+這次修正的是前一回合錯誤以 Designer 為 owner 的量測器接線，**不修改正式 GUI 函式的 owner／組合行為**。只有同 HEAD 實際 Tk GUI 原始紀錄顯示命中及構建資料、必要產品 regression 全成功後，才可把它寫為完成的雲端基準。
