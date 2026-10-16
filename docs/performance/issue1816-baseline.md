@@ -56,3 +56,15 @@ python tools/whd_performance_baseline.py --samples 3 --cycles 10 --output work/p
 - `worker_sample`：單一程序的樣本編號；產生 `memory_trends` 以該程序每一輪 `return_3d` 之 `rss_after` 作 checkpoint，記錄首末值、最大 checkpoint、差值與完成輪數。
 
 `memory_trends` 只能陳述同一程序跨輪次記憶體觀測，不得把不同程序的 RSS 串成成長曲線，也不得以差值直接宣稱 memory leak／穩態。若要評估長時間穩態，可在**隔離 checkout**用固定 `--samples 1 --cycles 30` 進行，仍需記錄 GUI 操作一致、程序是否完成、採樣間隔與執行環境；短時間雲端 Runner 不取代 Windows 使用者實機驗收。
+
+## 真正 world-skin 拆片重建觀測（#1816）
+
+為避免把 `_domain_inputs_for_part` 原始輸入計數冒充實體重算，新的 `Probe.observe_world_skin` **只包裝現行 Receiving 製造服務真正呼叫的 `_phase6_build_joint_world_geometry`**，且保留原函式與其例外、結果不變。每筆操作新增：
+
+- `counts.world_skin_builds`：真正建立 world skin 圖的次數，0 代表該操作未進這個製造階段。
+- `world_skin_physical_pieces`：實際返回 `world_triangles_by_part` 中非空 world-mapped physical key 的次數；若存在 `box_body:left`／`box_body:back`／`box_body:right` 等拆片，`box_body` 總合圖只算展示集合，不額外算成另一塊板件。
+- `world_skin_physical_rematerializations`：上述 keyed world-coordinate 實體表面重新產出的總數（同一操作再次建圖會再計一次）。`inclusive_ms.world_skin_builds` 為建圖呼叫 inclusive wall time。
+
+**層級界限：** 這是依真正 Returning mapping 見證的 world-coordinate skin rematerialization，**並不直接等於原始板件 2D 下料幾何重新求解、DXF export 次數、mesh cache miss 或 CNC physical output**。不能將其冒稱完整的「子板件求解數」；仍須沿每個 source-to-blank/geometry cache seam 補足實際命中或失效的證據。若實際 mapping 欄位缺失，觀測器 fail-closed，不得用預期數量填補。
+
+此測試只改觀測程式／測試，不修改任何製造演算法。原本的 `part_materialization`／`materialized_parts` 欄位維持原語意且獨立計數。
