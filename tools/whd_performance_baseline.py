@@ -61,6 +61,36 @@ def rss_bytes():
         return None
 
 
+
+def linux_vmhwm_bytes(proc_status):
+    """Linux kernel lifetime peak RSS, no guessed peak if unavailable."""
+    for line in proc_status.splitlines():
+        if not line.startswith('VmHWM:'):
+            continue
+        parts = line.split()
+        try:
+            if len(parts) == 3 and parts[2] == 'kB':
+                return int(parts[1]) * 1024
+        except ValueError:
+            return None
+    return None
+
+
+def rss_highwater_bytes():
+    """OS lifetime high-water RSS; never claim an operation-only peak."""
+    if sys.platform.startswith('linux'):
+        try:
+            return linux_vmhwm_bytes(Path('/proc/self/status').read_text())
+        except OSError:
+            return None
+    try:
+        import psutil
+        info = psutil.Process().memory_info()
+        return getattr(info, 'peak_wset', getattr(info, 'peak_rss', None))
+    except (ImportError, OSError):
+        return None
+
+
 class RSSSampler:
     """Sample process RSS independently of Tk; no claiming exact high-water peak.
 
@@ -282,6 +312,7 @@ def worker(args):
             probe.reset()
             errors.clear()
             before = rss_bytes()
+            hwm_before = rss_highwater_bytes()
             schedulers = [getattr(o, '_phase6_update_scheduler', None) for o in owners]
             calc_before = sum(s._metrics['calculation_flushes'] for s in schedulers if s)
             started = time.perf_counter()
@@ -299,6 +330,9 @@ def worker(args):
                 status, error = 'failed', f'{type(exc).__name__}: {exc}'
             ended = time.perf_counter()
             rss_window = sampler.window(started, ended)
+            hwm_after = rss_highwater_bytes()
+            hwm_increment = (max(0, hwm_after-hwm_before)
+                             if hwm_after is not None and hwm_before is not None else None)
             row = dict(bays=args.bays, worker_sample=args.worker_sample,
                        operation=operation, cache_state=cache,
                        status=status, error=error, wall_ms=elapsed_ms if elapsed_ms is not None else (time.perf_counter()-started)*1000,
@@ -307,7 +341,11 @@ def worker(args):
                        world_skin_physical_pieces=dict(probe.world_skin_parts),
                        world_skin_physical_rematerializations=sum(probe.world_skin_parts.values()),
                        rss_before=before,
-                       rss_after=rss_bytes(), **rss_window, calculation_flushes=sum(
+                       rss_after=rss_bytes(), **rss_window,
+                       rss_highwater_before_bytes=hwm_before,
+                       rss_highwater_after_bytes=hwm_after,
+                       rss_highwater_increment_bytes=hwm_increment,
+                       calculation_flushes=sum(
                            s._metrics['calculation_flushes'] for s in schedulers if s)-calc_before)
             rows.append(row)
             with Path(args.output).open('a', encoding='utf-8') as f:
@@ -440,6 +478,7 @@ def main():
                     samples=args.samples, cycles=args.cycles,
                     memory_interval_ms=args.memory_interval_ms,
                     memory_peak_definition='maximum sampled RSS, not instantaneous peak',
+                    os_highwater_definition='VmHWM kernel lifetime process RSS peak; not operation-local; null when unsupported',
                     cold_definition='fresh Python process; OS file cache not cleared',
                     pending=[] if args.dxf_index else ['DXF source index/path not supplied; no DXF latency claim'],
                     windows_uat='PENDING', workers=[])
