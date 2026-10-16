@@ -585,3 +585,86 @@ def test_issue1816_material_factory_errors_are_not_counted_as_success():
     finally:
         probe.stack.close()
     assert factory.build_part_render_data is failing
+
+
+
+def test_issue1816_supplemental_factory_does_not_pollute_prior_five_factory_totals():
+    from types import SimpleNamespace
+    from tools.whd_performance_baseline import Probe
+    part_id = 'base_plate:fixing_plate:left'
+    def real_builder(part, *, snapshot=None):
+        return SimpleNamespace(part_id=part, geometry=object(), snapshot=snapshot)
+    owner=SimpleNamespace(build_fixing_plate_source_render_data=real_builder)
+    probe=Probe()
+    try:
+        probe.observe_supplemental_material_factory(
+            owner,'build_fixing_plate_source_render_data','fixing_plate_source_flat',
+            part_id=True)
+        result=owner.build_fixing_plate_source_render_data(part_id, snapshot={'t':2})
+        assert result.part_id == part_id and result.snapshot == {'t':2}
+        assert probe.counts['supplemental_material_factory_calls'] == 1
+        assert probe.supplemental_material_builds[
+            'fixing_plate_source_flat:base_plate:fixing_plate:left'] == 1
+        assert probe.counts['material_factory_calls'] == 0
+        assert not probe.flat_material_builds
+        probe.reset()
+        assert not probe.supplemental_material_builds
+        assert probe.counts['supplemental_material_factory_calls'] == 0
+    finally:
+        probe.stack.close()
+    assert owner.build_fixing_plate_source_render_data is real_builder
+
+
+def test_issue1816_supplemental_service_alias_success_and_failure_not_faked():
+    from types import SimpleNamespace
+    import pytest
+    from tools.whd_performance_baseline import Probe
+    class EndCapPartSpec:
+        pass
+    spec=EndCapPartSpec()
+    result=object()
+    def real_alias(value, context):
+        if context == 'bad':
+            raise ValueError('source relief invalid')
+        return result
+    owner=SimpleNamespace(build_part_render_data=real_alias)
+    probe=Probe()
+    try:
+        probe.observe_supplemental_material_factory(
+            owner,'build_part_render_data','service_relief_replay_material')
+        assert owner.build_part_render_data(spec,'good') is result
+        with pytest.raises(ValueError,match='source relief invalid'):
+            owner.build_part_render_data(spec,'bad')
+        assert probe.counts['supplemental_material_factory_calls'] == 1
+        assert probe.supplemental_material_builds[
+            'service_relief_replay_material:EndCapPartSpec'] == 1
+        assert probe.milliseconds['supplemental_material_factory_calls'] >= 0
+        assert probe.counts['material_factory_calls'] == 0
+    finally:
+        probe.stack.close()
+    assert owner.build_part_render_data is real_alias
+
+
+def test_issue1816_genuine_fixing_plate_factory_builds_real_material_unchanged():
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        build_fixing_plate_source_render_data,
+        BASE_FIXING_PLATE_PREFIX,
+    )
+    from ae_engine import receiving_base_fixing_plate_geometry as module
+    from tools.whd_performance_baseline import Probe
+    key=BASE_FIXING_PLATE_PREFIX+'left'
+    before=build_fixing_plate_source_render_data(key)
+    probe=Probe()
+    try:
+        probe.observe_supplemental_material_factory(
+            module,'build_fixing_plate_source_render_data',
+            'fixing_plate_source_flat',part_id=True)
+        after=module.build_fixing_plate_source_render_data(key)
+        assert after.material.equals(before.material)
+        assert after.material.area > 0
+        assert after.scene is not None
+        assert probe.supplemental_material_builds[
+            f'fixing_plate_source_flat:{key}'] == 1
+    finally:
+        probe.stack.close()
+    assert module.build_fixing_plate_source_render_data is build_fixing_plate_source_render_data
