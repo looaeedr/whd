@@ -80,3 +80,15 @@ python tools/whd_performance_baseline.py --samples 3 --cycles 10 --output work/p
 - 不支援 `VmHWM` 的平台可按 psutil `peak_wset` / `peak_rss` 可用性回傳，否則是 `null`，不可回填當下 RSS 或預設 0。
 
 此欄位與原來的每 50ms 採樣、每循環 checkpoint 並行，不改製造服務、實體板件或 UI 更新行為。每 worker 的最高 HWM 需獨立比較，不可跨程序直接串成單一記憶體走勢。
+
+
+## 2D 原始材質建構與整組製造快取真實計數
+
+只讀觀測工具現在額外記錄三種**不同階段**的真實執行，不改 production `manufacturing_api` 或 cache：
+
+- `manufacturing_cache_lookups.hit/miss`：`ManufacturingCacheService.lookup` 返回的 `receipt.hit`，真實整組製造結果 cache 命中，未呼叫 lookup 時全部為 0，不能憑結果相似虛構命中。
+- **共用 2D/3D render-data cache 並未列入本次已覆蓋計數**：追查確認 `_authoritative_render_data` 不是現行 Designer 上可直接呼叫的權威 seam，不能硬掛在 Designer 上假冒第二級 hit/miss。此部分保留為 `NOT_INSTRUMENTED` 待獨立核對實際 composition owner。
+- `material_factory_rebuild_calls` 和 `material_factory_rebuilds`：`ae_engine.manufacturing_api` 的真實 `build_part_render_data`、`build_box_body_structure_render_data`、`build_box_body_divider_render_data`、`build_inner_door_panel_render_data`、`build_inner_door_frame_render_data` **成功呼叫**次數，依 factory 名與 Spec 型別分類。這是原始 2D 材質重新產出**工廠呼叫**，不是所有子片快取 miss，也不等於原本 `world_skin_physical_rematerializations`。
+- `inclusive_ms.material_factory_calls` 是工廠巢狀 inclusive 時間；含內部依賴呼叫時不能加總當 wall time。某些固定片、碰撞後回放或特殊直接產出路徑不透過上列五個 factories，必須在後續範圍擴展時另列，不得把這份覆蓋率宣稱為全產品 100%。
+
+量測包裝保留返回物件 identity、真實錯誤、原本快取失效與 geometry 檢查。不為了讓數字好看而阻止 rebuild，也不在 GUI 上增加 cache。
