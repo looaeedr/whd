@@ -418,8 +418,16 @@ def _fold_designer_number_text(value):
         return str(int(nearest_int))
     return str(value)
 
-def _apply_existing_parts_from_fold_workspace(self, existing_parts):
-    """Apply one exact physical-presence set across the whole main-GUI chain."""
+def _apply_existing_parts_from_fold_workspace(
+    self, existing_parts, *, state_fingerprint=None, force_invalidate=False
+):
+    """Project physical presence; invalidate only when its authority changed.
+
+    Presence and geometry must not be confused: a live Designer publication
+    can retain the same part list while changing cuts/folds. Its committed
+    state fingerprint is part of the invalidation key. Opening a project
+    explicitly forces new authority even if its part list is identical.
+    """
     existing = set(str(key) for key in (existing_parts or ()))
     # Box body is the mandatory Fold Chain owner.
     existing.add("box_body")
@@ -442,7 +450,16 @@ def _apply_existing_parts_from_fold_workspace(self, existing_parts):
         refresh_presence(existing)
     owner = getattr(self, "_derived_cache_owner", None)
     if owner is not None:
-        owner.invalidate("geometry")
+        # Keep the last *handler-projected* authority, not merely the current
+        # workspace set: the workspace may already have been changed by
+        # _store_fold_designer_workspace before this handler is invoked.
+        current_key = (frozenset(existing), state_fingerprint)
+        if (
+            force_invalidate
+            or getattr(self, "_phase6_derived_presence_cache_key", None) != current_key
+        ):
+            owner.invalidate("geometry", changed_keys=("existing_parts",))
+            self._phase6_derived_presence_cache_key = current_key
     if getattr(self, "_manual_corner_part_override", None) not in existing:
         self._manual_corner_part_override = None
     return existing
@@ -513,7 +530,8 @@ def _apply_phase6_project_snapshot(self, snapshot):
         pass
 
     existing = self._apply_existing_parts_from_fold_workspace(
-        snapshot.get("existing_parts") or workspace.get("existing_parts") or ()
+        snapshot.get("existing_parts") or workspace.get("existing_parts") or (),
+        force_invalidate=True,  # new project is a new manufacturing authority
     )
 
     groups = list(snapshot.get("indicator_layer_groups") or ())
@@ -816,7 +834,15 @@ def _apply_fold_designer_live_snapshot(self, payload):
         workspace = payload.get("workspace")
         if workspace:
             self._store_fold_designer_workspace(workspace)
-            self._apply_existing_parts_from_fold_workspace(workspace.get("existing_parts", ()))
+            # Preserve real edits even if the set of physical parts is unchanged.
+            # Unknown live revisions fail closed rather than treating a changed
+            # feature/hole/fold as a display-only repeat.
+            payload_fingerprint = str(payload.get("fingerprint") or "").strip()
+            self._apply_existing_parts_from_fold_workspace(
+                workspace.get("existing_parts", ()),
+                state_fingerprint=payload_fingerprint or None,
+                force_invalidate=not bool(payload_fingerprint),
+            )
             part_features = dict(workspace.get("part_features") or payload.get("part_features") or {})
             for key, features in part_features.items():
                 self.surface_features[str(key)] = list(features or ())

@@ -51,6 +51,14 @@ class Phase6DerivedCacheOwner:
 
     def invalidate(self, reason, changed_keys=()):
         reason = str(reason or "geometry")
+        keys = frozenset(str(key) for key in (changed_keys or ()) if str(key))
+        # The only dependency-free keys proven by the CURRENT GUI contract
+        # are view/typography state. Unknown, dimensional, Joint, holes and
+        # fold keys continue to fail closed via the original reason matrix.
+        if reason == "geometry" and keys and keys <= {
+            "camera", "display", "annotation", "ui_text_size"
+        }:
+            return ()
         products = self._REASON_PRODUCTS.get(reason)
         if products is None:
             # Unknown state mutation fails closed at the derived layer only.
