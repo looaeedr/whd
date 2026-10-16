@@ -481,3 +481,22 @@ def test_issue1816_world_skin_observer_counts_real_return_and_restores():
     finally:
         probe.stack.close()
     assert service.build is actual_world_skin
+
+
+def test_issue1816_kernel_peak_rss_parsing_does_not_fake_missing_data():
+    from tools.whd_performance_baseline import linux_vmhwm_bytes
+    assert linux_vmhwm_bytes('Name: python\nVmHWM:\t182340 kB\nVmRSS:\t162000 kB\n') == 182340 * 1024
+    assert linux_vmhwm_bytes('VmRSS: 100 kB\n') is None
+    assert linux_vmhwm_bytes('VmHWM: invalid kB\n') is None
+    assert linux_vmhwm_bytes('VmHWM: 123 MB\n') is None
+
+
+def test_issue1816_linux_kernel_hwm_is_an_os_peak_not_sampled_rss():
+    import sys
+    import pytest
+    from tools.whd_performance_baseline import rss_highwater_bytes, rss_bytes
+    if not sys.platform.startswith('linux'):
+        pytest.skip('linux proc VmHWM only')
+    peak = rss_highwater_bytes()
+    assert peak is not None and peak > 0
+    assert peak >= rss_bytes() * .90  # independent consecutive reads can change
