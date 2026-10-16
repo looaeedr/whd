@@ -2878,6 +2878,11 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
     # restoring Assembly/navigation can itself queue or materialize canonical
     # state, so an earlier receipt can become stale before close() returns.
     owner.sync_receiving_current_bay(namespace, refresh_controls=False)
+    # Reconcile all topology-derived physical identities against the now-current
+    # Receiving Bay before manufacturing. This existing owner replaces derived
+    # namespaces (including W800/T2-only base fixing plates), so a dimension
+    # change cannot leave an ineligible stale physical part for FinalScene.
+    owner.sync_authoritative_derived_parts(namespace)
 
     from phase6_manufacturing_adapter import (
         build_manufacturing_cache_key,
