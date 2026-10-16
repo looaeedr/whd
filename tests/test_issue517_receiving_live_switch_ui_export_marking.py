@@ -1002,3 +1002,70 @@ def test_issue1796_real_tk_vault_receiving_single_setbay_modal_roundtrip_without
         record_property("issue1796_real_tk_modal_mode_wall_ms", repr(rows))
     finally:
         _close(tk, root, designer)
+
+
+
+def test_issue1796_absent_vault_door_stays_absent_after_receiving_modals(monkeypatch):
+    """Roundtripping mode buffers must not invent a part the operator removed.
+
+    Regression for the part-presence restore introduced after the #1808 RED:
+    restoring the user's old Vault inventory is different from forcing Door.
+    """
+    from tkinter import messagebox
+    import fold_designer_bridge as bridge
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    def unexpected_dialog(*args, **kwargs):
+        raise AssertionError(
+            f"unexpected blocking GUI dialog during absent-Door roundtrip: "
+            f"{args!r}, {kwargs!r}"
+        )
+
+    for name in ("showwarning", "showerror", "showinfo"):
+        monkeypatch.setattr(messagebox, name, unexpected_dialog)
+
+    tk, root, _host, designer = _open_vault_designer()
+    try:
+        assert "door" in designer.designer_workspace.available_parts
+        assert "door" in _assembly_part_signatures(designer)
+
+        # The actual Designer removal handler is the user's part-presence
+        # authority; do not mutate a detached test fixture's existing_parts.
+        assert designer.remove_part("door") is True
+        designer.submit_update_intent("assembly", commit=True)
+        _pump(root, 8)
+        assert "door" not in designer.designer_workspace.available_parts
+        assert "door" not in _assembly_part_signatures(designer)
+        without_door = _mesh_bounds(designer.final_scene_view.last_cutting_mesh)
+
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        for opener in (
+            bridge._phase6_open_receiving_single_settings,
+            bridge._phase6_open_receiving_multi_settings,
+        ):
+            window = opener(designer)
+            try:
+                _pump(root, 5)
+                assert window.winfo_exists()
+            finally:
+                if window.winfo_exists():
+                    window._receiving_multi_close()
+                _pump(root, 4)
+            assert designer.root.grab_current() is None
+
+        designer.baseline_model_var.set("金庫型")
+        _pump(root, 8)
+        assert designer._phase6_input_snapshot.get("model") == "金庫型"
+        assert "door" not in designer.designer_workspace.available_parts
+        assert "door" not in _assembly_part_signatures(designer)
+        assert _mesh_bounds(designer.final_scene_view.last_cutting_mesh) == without_door
+        assert designer._phase6_last_resolved_manufacturing_signature == (
+            build_manufacturing_cache_key(designer).fingerprint
+        )
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.root.grab_current() is None
+        scheduler = designer._phase6_update_scheduler
+        assert not scheduler.dirty and scheduler._after_job is None
+    finally:
+        _close(tk, root, designer)
