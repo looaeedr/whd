@@ -2884,12 +2884,33 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
     from phase6_manufacturing_adapter import build_manufacturing_cache_key
 
     designer = owner.app
+    scheduler = designer._phase6_update_scheduler
     current_signature = build_manufacturing_cache_key(designer).fingerprint
     if current_signature != getattr(
         designer, "_phase6_last_resolved_manufacturing_signature", None
     ):
-        designer.submit_update_intent("geometry", commit=True)
-        designer._phase6_update_scheduler.flush_now()
+        # The ordinary full-update executor can finish the 2D/3D redraw
+        # without committing a new manufacturing receipt. Keep the receipt
+        # reconciliation inside the *same* Scheduler calculation transaction,
+        # as on Receiving mode switches; do not solve directly from a Tk
+        # callback or manufacture again for an equivalent close.
+        previous_executor = getattr(scheduler, "executor", None)
+        if callable(previous_executor):
+            def execute_with_receiving_receipt(reasons):
+                result = previous_executor(reasons)
+                from phase6_manufacturing_adapter import resolve_for_app
+                if build_manufacturing_cache_key(designer).fingerprint != getattr(
+                    designer, "_phase6_last_resolved_manufacturing_signature", None
+                ):
+                    resolve_for_app(designer)
+                return result
+            scheduler.executor = execute_with_receiving_receipt
+        try:
+            designer.submit_update_intent("geometry", commit=True)
+            scheduler.flush_now()
+        finally:
+            if callable(previous_executor):
+                scheduler.executor = previous_executor
 
     owner.refresh_receiving_set_bay_control(namespace)
     # Use the Fold Designer that owns the Assembly mode, not the unrelated
@@ -2908,4 +2929,8 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
             raise RuntimeError("組合體左側內容掛載入口尚未連接")
         selection = getattr(designer, "part_var", None)
         if selection is not None:
-            selection.set("組合體")
+            current = getattr(selection, "get", None)
+            # Tk traces fire even on an equal StringVar.set(). Avoid queuing a
+            # spurious geometry intent after the final close-boundary flush.
+            if not callable(current) or current() != "組合體":
+                selection.set("組合體")
