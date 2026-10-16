@@ -983,8 +983,21 @@ def test_issue1796_real_tk_vault_receiving_single_setbay_modal_roundtrip_without
 
         designer.baseline_model_var.set("金庫型")
         _pump(root, 8)
-        assert _mesh_bounds(scene.last_cutting_mesh) == vault_mesh
-        assert _assembly_part_signatures(designer) == vault_parts
+        restored_mesh = _mesh_bounds(scene.last_cutting_mesh)
+        restored_parts = _assembly_part_signatures(designer)
+        differing_parts = {
+            key: {"before": vault_parts.get(key), "restored": restored_parts.get(key)}
+            for key in sorted(set(vault_parts) | set(restored_parts))
+            if vault_parts.get(key) != restored_parts.get(key)
+        }
+        assert restored_mesh == vault_mesh, (
+            f"Vault mesh drift after Receiving modal roundtrip: before={vault_mesh}, "
+            f"after={restored_mesh}, changed_parts={differing_parts!r}, "
+            f"model={designer._phase6_input_snapshot.get('model')!r}, "
+            f"active_mode={designer.designer_workspace.active_mode!r}, "
+            f"available_parts={tuple(designer.designer_workspace.available_parts)!r}"
+        )
+        assert restored_parts == vault_parts, differing_parts
         assert designer.root.grab_current() is None
         record_property("issue1796_real_tk_modal_mode_wall_ms", repr(rows))
     finally:
