@@ -188,7 +188,6 @@ class Probe:
         self.parts = Counter()
         self.world_skin_parts = Counter()
         self.flat_material_builds = Counter()
-        self.authoritative_cache_parts = Counter()
         self.stack = ExitStack()
 
     def wrap(self, owner, name, label, part_arg=None):
@@ -216,23 +215,6 @@ class Probe:
             self.counts[label] += 1
             return result
         self.stack.enter_context(patch.object(cache_class, 'lookup', measured))
-
-    def observe_authoritative_render(self, designer):
-        """Record true PartSpec/Context cache hit vs rebuild at GUI seam."""
-        from ae_engine.contracts import ManufacturingContext
-        original = getattr(designer, '_authoritative_render_data')
-        @wraps(original)
-        def measured(spec, context=None):
-            ctx = context or ManufacturingContext(draw_stock=False)
-            cache = getattr(designer, '_authoritative_part_render_cache', None)
-            key = (repr(spec), repr(ctx))
-            hit = cache is not None and key in cache
-            value = original(spec, context)
-            label = 'authoritative_render_cache_hit' if hit else 'authoritative_render_cache_miss'
-            self.counts[label] += 1
-            self.authoritative_cache_parts[f"{label}:{type(spec).__name__}"] += 1
-            return value
-        self.stack.enter_context(patch.object(designer, '_authoritative_render_data', measured))
 
     def observe_material_factory(self, owner, name):
         """Actual invoked factory; counts 2D PartRenderData rebuild requests."""
@@ -271,7 +253,6 @@ class Probe:
         self.parts.clear()
         self.world_skin_parts.clear()
         self.flat_material_builds.clear()
-        self.authoritative_cache_parts.clear()
 
 
 def settle(root, owners, timeout=30):
@@ -348,7 +329,6 @@ def worker(args):
         settle(root, owners)
         probe.wrap(service, 'resolve', 'manufacturing_solve')
         probe.observe_manufacturing_cache(ManufacturingCacheService)
-        probe.observe_authoritative_render(designer)
         for factory in ('build_part_render_data',
                         'build_box_body_structure_render_data',
                         'build_box_body_divider_render_data',
@@ -399,11 +379,6 @@ def worker(args):
                        manufacturing_cache_lookups={
                            'hit': probe.counts['manufacturing_cache_hit'],
                            'miss': probe.counts['manufacturing_cache_miss'],
-                       },
-                       authoritative_render_cache_lookups={
-                           'hit': probe.counts['authoritative_render_cache_hit'],
-                           'miss': probe.counts['authoritative_render_cache_miss'],
-                           'spec_types': dict(probe.authoritative_cache_parts),
                        },
                        material_factory_rebuilds=dict(probe.flat_material_builds),
                        material_factory_rebuild_calls=probe.counts['material_factory_calls'],
