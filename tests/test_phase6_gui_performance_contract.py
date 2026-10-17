@@ -742,3 +742,113 @@ def test_issue1817_paired_true_tk_samples_are_separate_from_general_baseline():
     assert entries[3,'issue1817_bay0_forced_full_comparison']['failed'] == 1
     assert entries[3,'issue1817_bay0_forced_full_comparison']['median_ms'] == 101
     assert entries[1,'open_multi']['n'] == 1
+
+
+def test_issue1817_manufacturing_exact_state_undo_cache_is_bounded_and_fail_closed():
+    from phase6_manufacturing_cache import ManufacturingCacheService, ManufacturingCacheKey
+    from phase6_manufacturing_contracts import (
+        ManufacturingResolveResult, ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult, ManufacturingMutationResult,
+        ManufacturingEffects,
+    )
+    def result(v):
+        return ManufacturingResolveResult(
+            geometry=v, diagnostics=ManufacturingDiagnosticsResult(),
+            mutations=ManufacturingMutationResult(), effects=ManufacturingEffects(),
+            cache=ManufacturingCacheReceipt(signature="", hit=False, stored=False))
+    one = ManufacturingCacheService()
+    a,b,c = (ManufacturingCacheKey(x*64) for x in "abc")
+    one.store(a, result("original"))
+    one.store(b, result("changed"))
+    assert one.lookup(a).result is None, "non-Receiving single-entry behavior remains"
+    service = ManufacturingCacheService(max_entries=2)
+    first, second = result("3 bays"), result("4 bays")
+    service.store(a, first)
+    service.store(b, second)
+    assert service.lookup(a).result is first
+    assert service.lookup(b).result is second
+    service.store(c, result("5 bays"))
+    assert service.lookup(a).result is None, "bounded LRU evicts oldest exact state"
+    assert service.lookup(c).result.geometry == "5 bays"
+    service.clear()
+    assert service.lookup(b).result is None
+    assert service.lookup(c).result is None
+    assert service.key is None and service.result is None
+
+
+def test_issue1817_only_receiving_set_bay_opted_into_short_undo_history():
+    from phase6_manufacturing_adapter import _cache_service_for_app
+    from types import SimpleNamespace
+    receiving = SimpleNamespace(_phase6_input_snapshot={
+        "model":"受電箱", "active_mode":"set_bay"})
+    vault = SimpleNamespace(_phase6_input_snapshot={"model":"金庫型"})
+    quantity = SimpleNamespace(_phase6_input_snapshot={
+        "model":"受電箱", "active_mode":"quantity"})
+    assert _cache_service_for_app(receiving).max_entries == 2
+    assert _cache_service_for_app(vault).max_entries == 1
+    assert _cache_service_for_app(quantity).max_entries == 1
+    receiving._phase6_input_snapshot["active_mode"] = "quantity"
+    assert _cache_service_for_app(receiving).max_entries == 1
+
+
+def test_issue1817_undo_hit_restores_exact_world_collision_diagnostics(monkeypatch):
+    from types import SimpleNamespace
+    import phase6_manufacturing_adapter as adapter
+    from phase6_manufacturing_cache import ManufacturingCacheService, ManufacturingCacheKey
+    from phase6_manufacturing_contracts import (
+        ManufacturingResolveResult, ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult, ManufacturingMutationResult,
+        ManufacturingEffects,
+    )
+    service=ManufacturingCacheService(max_entries=2)
+    a,b = ManufacturingCacheKey("a"*64), ManufacturingCacheKey("b"*64)
+    def result(geometry, probes):
+        return ManufacturingResolveResult(
+            geometry=geometry,
+            diagnostics=ManufacturingDiagnosticsResult(
+                interference_probe_parts=tuple(probes)),
+            mutations=ManufacturingMutationResult(),
+            effects=ManufacturingEffects(),
+            cache=ManufacturingCacheReceipt(signature="",hit=False,stored=False))
+    first=result(object(), ("3bay collision",))
+    second=result(object(), ("4bay collision",))
+    service.store(a,first)
+    service.store(b,second)
+    app=SimpleNamespace(
+        _phase6_input_snapshot={"model":"受電箱","active_mode":"set_bay"},
+        _phase6_last_interference_probe_parts=("4bay collision",),
+        _phase6_last_relief_errors={"old": "stale"},
+        _phase6_last_relief_solutions={"old": "stale"},
+    )
+    monkeypatch.setattr(adapter,"build_manufacturing_cache_key",lambda app:a)
+    monkeypatch.setattr(adapter,"build_manufacturing_request",
+                        lambda *args,**kwargs: (_ for _ in ()).throw(
+                            AssertionError("exact cached undo may not rebuild")))
+    got=adapter.resolve_manufacturing_for_app(app,cache_service=service)
+    assert got is first.geometry
+    assert app._phase6_last_interference_probe_parts==("3bay collision",)
+    assert not app._phase6_last_relief_errors
+    assert not app._phase6_last_relief_solutions
+    assert app._phase6_last_resolved_manufacturing_signature==a.fingerprint
+
+
+def test_issue1817_baseline_reload_evicts_current_and_previous_manufacturing():
+    from types import SimpleNamespace
+    from gui_modules.application.lifecycle import _reload_current_baseline_features
+    from phase6_manufacturing_cache import ManufacturingCacheService,ManufacturingCacheKey
+    from phase6_manufacturing_contracts import (
+        ManufacturingResolveResult,ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult,ManufacturingMutationResult,
+        ManufacturingEffects)
+    service=ManufacturingCacheService(max_entries=2)
+    result=ManufacturingResolveResult(
+        geometry=object(),diagnostics=ManufacturingDiagnosticsResult(),
+        mutations=ManufacturingMutationResult(),effects=ManufacturingEffects(),
+        cache=ManufacturingCacheReceipt(signature="",hit=False,stored=False))
+    a,b=(ManufacturingCacheKey(x*64) for x in "ab")
+    service.store(a,result)
+    service.store(b,result)
+    owner=SimpleNamespace(_derived_cache_owner=None,
+                          _phase6_manufacturing_cache_service=service)
+    _reload_current_baseline_features(owner)
+    assert service.lookup(a).result is None and service.lookup(b).result is None
