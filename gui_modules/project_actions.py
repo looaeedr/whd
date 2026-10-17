@@ -66,11 +66,39 @@ def open_phase6_project(self):
             messagebox.showerror("讀檔失敗", f"無法讀取 Phase6 專案：\n{exc}", parent=self.root)
             return None
 
+def _discard_previous_project_designer_caches(designer):
+        """Retire prior .p6fold scenes, not the immutable DXF source cache."""
+        if designer is None:
+            return
+        composition = getattr(designer, "_phase6_composition_owner", None)
+        if composition is not None:
+            for name in (
+                "_receiving_bay_preview_cache",
+                "_receiving_bay_virtual_preview_cache",
+                "_receiving_raw_divider_history",
+                "_receiving_raw_inner_door_frame_history",
+                "_receiving_raw_inner_door_panel_history",
+            ):
+                cache = getattr(composition, name, None)
+                clear = getattr(cache, "clear", None)
+                if callable(clear):
+                    clear()
+        owner = getattr(designer, "_derived_cache_owner", None)
+        if owner is not None:
+            owner.invalidate("family-structure")
+        manufacturing = getattr(designer, "_phase6_manufacturing_cache_service", None)
+        if manufacturing is not None:
+            manufacturing.clear()
+
+
 def load_phase6_project(self, path, *, open_designer=True):
         """載入 .p6fold 專案，並可選擇進入其保存的 3D 板件。"""
         previous_designer = getattr(self, "fold_designer_app", None)
         payload, committed = self.project_controller.load(path)
         snapshot = self._apply_phase6_project_snapshot(committed)
+        # A reused Designer's geometry cache is scoped to the *previous*
+        # project. Only clear after the new canonical load succeeds.
+        _discard_previous_project_designer_caches(previous_designer)
         if not open_designer:
             return payload
         designer = self.open_original_fold_designer()
