@@ -321,11 +321,11 @@ def _query_fold_designer_render_data(self, part_key, payload):
         return sheet(manufacturing_api.build_inner_door_frame_render_data(frame))
 
     spec, context = self._fold_designer_part_spec_from_payload(part_key, payload)
-    if isinstance(spec, BoxBodyPartSpec):
-        from phase6_box_body_structure import BoxBodyStructureType, normalize_box_body_structure_state
-        state = normalize_box_body_structure_state(spec.structure_state)
-        if state.get("active_type") != BoxBodyStructureType.INTEGRAL.value:
-            return manufacturing_api.build_box_body_structure_render_data(spec, context)
+    # The single authoritative PartSpec cache already dispatches integral
+    # versus multipart BoxBody to the correct manufacturing-owned factory.
+    # Calling build_box_body_structure_render_data directly here bypassed that
+    # exact Spec/Context cache, rebuilding the same physical 2D/3D geometry
+    # multiple times between geometry invalidations.
     return self._authoritative_render_data(spec, context)
 
 def _payload_topology_context(part_key, payload):
