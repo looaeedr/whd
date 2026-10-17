@@ -89,6 +89,22 @@ first_return   = -40                        # 已確認固定
 4. `ae_engine/receiving_nfb_depth_surface_policy.py` 負責純實體面算式、拒絕不合法深度，不能視作已完成裝配畫線／製造。
 5. #1502/#1503 需驗證真 3D、側板雙邊 MARKING、固定孔投影、接觸／碰撞、Save→Reload、DXF export→reopen 與 CI，才可宣稱**交付完成**；純計算測試只證明本節尺寸鏈。
 
+## 四之一、實體 3D 皮面定位的獨立計算
+
+新增 `ae_engine/receiving_nfb_world_skin_datums.py`：先由現有 `build_inner_door_panel_render_data`、內門 19 mm 四邊折彎設定、真實 `fold_guides` 與共享 `world_skin_with_flat_uv` 取得**內門中間 NFB 工作面**的朝外及朝內兩張實體皮面，而不是使用 `resolve_inner_door_panel_placement` 的折後包絡中心 Z。再以箱身世界座標（+Z 朝外，往內是 −Z）計算：
+
+```text
+inner_inside_world_z = folded_inner_door_core_inside_skin
+base_mount_front_z   = inner_inside_world_z - Ddeep
+base_back_z          = base_mount_front_z - Tb
+fixing_contact_z     = base_back_z      # 直接貼合，0 mm 空隙
+fixing_back_z        = fixing_contact_z - Tf
+shallow_front_z      = inner_inside_world_z - Dshallow
+shallow_back_z       = shallow_front_z - Tb
+```
+
+**這是來源 FinalScene 皮面的深度要求／目標，不是已經移動 3D 底板的證明。** `assembly_placement.py::_base_plate_center_plane` 仍有由後側板推 Z 的歷史邏輯；還須將底板的真實折後**NFB 安裝皮面**與上述 `base_mount_front_z` 對齊，並帶動左右固定片及真實側板 MARKING。未完成這個幾何核對時，不能宣稱「3D 已修好」或解除 MFG-2 出圖阻擋。
+
 ## 五、資料與向下相容
 
 - 型號來源必須從 `基準檔/開孔/NFB/開關索引.csv` 或 V5 各品牌 `基準檔/開孔/NFB/數值規格/<品牌>/NFB數值規格.csv` **以被選中的 brand/model 查取深度**。不可從檔名尾碼或其他品牌推斷。
