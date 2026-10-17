@@ -641,10 +641,21 @@ def build_manufacturing_cache_key(app: Any) -> ManufacturingCacheKey:
 
 
 def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
+    # Only the canonical Receiving Set/Bay editor may retain one *previous
+    # complete state* for tail add/remove undo. Other families and quantity
+    # projection retain the legacy single-result cache. No schema/key bypass.
+    snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+    eligible = (
+        isinstance(snapshot, Mapping)
+        and str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}
+        and snapshot.get("active_mode") == "set_bay"
+    )
+    size = 2 if eligible else 1
     service = getattr(app, "_phase6_manufacturing_cache_service", None)
     if isinstance(service, ManufacturingCacheService):
+        service.set_capacity(size)
         return service
-    service = ManufacturingCacheService()
+    service = ManufacturingCacheService(max_entries=size)
     setattr(app, "_phase6_manufacturing_cache_service", service)
     return service
 
