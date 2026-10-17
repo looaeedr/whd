@@ -674,3 +674,81 @@ def test_v5_configured_door_retains_and_respects_existing_native_cutting_holes()
     assert len(safe.render_data.scene.primitives) == len(scene.primitives)+1
     assert tuple(safe.render_data.scene.primitives[:len(scene.primitives)]) == tuple(scene.primitives)
     assert legacy.scene.primitives == scene.primitives
+
+
+def test_v5_live_operator_world_x_routes_to_real_panel_trial_without_dxf_or_submission():
+    from ae_engine.receiving_nfb_ui1a import new_nfb_ui1a_draft
+    from ae_engine.receiving_nfb_ui1a_edits import editable_nfb_draft
+    from ae_engine.receiving_nfb_ui1b_runtime import preview_current_nfb_v5_ui_draft
+    from ae_engine.receiving_nfb_v5_configured_inner_door import STATUS
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    layout["sets"][0]["switch_brand"] = "士林"
+    brand_model = "nfbv5:士林:2P125SN"
+    draft = editable_nfb_draft(new_nfb_ui1a_draft(
+        set_brand="士林", layer_count=2,
+        model_layers=(brand_model, brand_model),
+    ))
+    ids = (draft["layers"][0]["slots"][0]["unit_id"],
+           draft["layers"][1]["slots"][0]["unit_id"])
+    coords = {ids[0]: -90.0, ids[1]: 90.0}
+    state = _v5_configured_w800_inner_door_state()
+    trial = preview_current_nfb_v5_ui_draft(
+        draft, layout=layout, set_index=0, bay_index=0,
+        version_id="inner-door-v1", projected_snapshot=state,
+        world_x_by_unit=coords,
+    )
+    assert trial.status == STATUS
+    assert trial.manufacturing_ready is False
+    assert trial.render_data.metadata["nfb_trial_export_approved"] is False
+    assert len(trial.patterns) == 2
+    assert trial.patterns[0].datum.uv_centre_mm[0] == pytest.approx(723/2 - 90)
+    assert trial.patterns[1].datum.uv_centre_mm[0] == pytest.approx(723/2 + 90)
+    # Read-only invocation must not mutate the canonical user draft or Bay.
+    assert layout["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
+    assert draft["status"] == "UNSUBMITTED_NFB_DRAFT_PREVIEW_ONLY"
+    assert draft["layers"][0]["slots"][0]["filename"] == brand_model
+    with pytest.raises(ValueError, match="全部"):
+        preview_current_nfb_v5_ui_draft(
+            draft, layout=layout, set_index=0, bay_index=0,
+            version_id="inner-door-v1", projected_snapshot=state,
+            world_x_by_unit={ids[0]: -90.0},
+        )
+    wrong = editable_nfb_draft(draft)
+    wrong["layers"][1]["slots"][0]["filename"] = "400_140X257_107.dxf"
+    with pytest.raises(ValueError, match="舊 DXF"):
+        preview_current_nfb_v5_ui_draft(
+            wrong, layout=layout, set_index=0, bay_index=0,
+            version_id="inner-door-v1", projected_snapshot=state,
+            world_x_by_unit=coords,
+        )
+
+
+def test_v5_live_operator_popup_draws_same_real_finalscene_not_numeric_mock():
+    import tkinter as tk
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from gui_modules.application.receiving_nfb_v5_scene_preview import (
+        paint_v5_real_inner_door_trial,
+    )
+    trial = trial_configured_nfb_v5_inner_door_render_data(
+        _v5_configured_w800_inner_door_state(), "upper",
+        holes=(_v5_configured_hole("v5-ui-1", 0.0, layer=0),),
+    )
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        canvas = tk.Canvas(root, width=480, height=350)
+        canvas.pack()
+        root.update_idletasks()
+        strokes = paint_v5_real_inner_door_trial(canvas, trial)
+        assert strokes == len(trial.render_data.scene.primitives)
+        items = canvas.find_withtag("v5-real-part")
+        assert len(items) == strokes+1  # real scene plus status label
+        assert len([x for x in items if canvas.type(x) == "text"]) == 1
+        assert len([x for x in items if canvas.type(x) == "line"]) == strokes
+        # Rerender after an operator change must replace, never stack geometry.
+        assert paint_v5_real_inner_door_trial(canvas, trial) == strokes
+        assert len(canvas.find_withtag("v5-real-part")) == len(items)
+    finally:
+        root.destroy()
