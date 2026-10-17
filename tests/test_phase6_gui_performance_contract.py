@@ -1247,3 +1247,75 @@ def test_issue1817_exact_material_witness_covers_all_physical_panel_sources(
     assert _receiving_baseline_source_stamp(
         "受電箱", context=ctx, include_physical_panels=True,
     ) is None
+
+
+def test_issue1817_complete_undo_cache_tracks_dedicated_three_piece_dxfs(monkeypatch):
+    """RED: exact 3->4->3 global receipts cannot hide physical source changes.
+
+    This exercises the real manufacturing cache-service entry, separately from
+    the raw PartSpec render-material cache established in PR #1849.
+    """
+    from types import SimpleNamespace
+    import phase6_manufacturing_adapter as adapter
+    from phase6_manufacturing_cache import ManufacturingCacheKey
+    from phase6_manufacturing_contracts import (
+        ManufacturingResolveResult, ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult, ManufacturingMutationResult,
+        ManufacturingEffects,
+    )
+    from phase6_box_body_structure import BoxBodyStructureType
+    active_type = BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    generation = ["physical-source-A"]
+    witnesses = []
+    def stamp(model, *, context=None, include_physical_panels=False):
+        witnesses.append((model, include_physical_panels))
+        return ("standard-source", tuple(generation)) if include_physical_panels else ("standard-source",)
+    monkeypatch.setattr(adapter, "_receiving_baseline_source_stamp", stamp)
+    app = SimpleNamespace(
+        _phase6_input_snapshot={
+            "model":"受電箱","active_mode":"set_bay",
+            "box_body_structure":{"active_type": active_type},
+        },
+        designer_workspace=SimpleNamespace(
+            box_body_structure_state=lambda: {"active_type": active_type},
+        ),
+    )
+    cache = adapter._cache_service_for_app(app)
+    assert witnesses[-1] == ("受電箱", True), (
+        "multipart manufacturing undo must witness dedicated left/right/rear DXFs"
+    )
+    result = ManufacturingResolveResult(
+        geometry=object(), diagnostics=ManufacturingDiagnosticsResult(),
+        mutations=ManufacturingMutationResult(), effects=ManufacturingEffects(),
+        cache=ManufacturingCacheReceipt(signature="", hit=False, stored=False),
+    )
+    first, second = (ManufacturingCacheKey(c * 64) for c in "ab")
+    cache.store(first, result)
+    cache.store(second, result)
+    assert cache.lookup(first).result is result
+    generation[:] = ["physical-source-B"]
+    assert adapter._cache_service_for_app(app) is cache
+    assert cache.lookup(first).result is None
+    assert cache.lookup(second).result is None
+    assert cache.max_entries == 2
+
+
+def test_issue1817_integral_undo_does_not_require_dedicated_three_piece_sources(monkeypatch):
+    from types import SimpleNamespace
+    import phase6_manufacturing_adapter as adapter
+    from phase6_box_body_structure import BoxBodyStructureType
+    witnesses = []
+    def stamp(model, *, context=None, include_physical_panels=False):
+        witnesses.append(include_physical_panels)
+        return ("standard-source",)
+    monkeypatch.setattr(adapter, "_receiving_baseline_source_stamp", stamp)
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model":"受電箱", "active_mode":"set_bay"},
+        designer_workspace=SimpleNamespace(
+            box_body_structure_state=lambda: {
+                "active_type": BoxBodyStructureType.INTEGRAL.value,
+            },
+        ),
+    )
+    assert adapter._cache_service_for_app(app).max_entries == 2
+    assert witnesses == [False]
