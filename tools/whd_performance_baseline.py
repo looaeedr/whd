@@ -858,7 +858,43 @@ def worker(args):
 
             def trace_rapid_step(operation):
                 view = designer.final_scene_view
+                # Diagnostic-only source fingerprints: identify precisely
+                # which authoritative object changed during a DISPLAY switch.
+                # Never mutate or suppress any actual collision/solve.
+                from hashlib import sha256
+                def witness(obj):
+                    try:
+                        return sha256(json.dumps(
+                            obj, sort_keys=True, ensure_ascii=False,
+                            default=str,
+                        ).encode('utf-8')).hexdigest()[:12]
+                    except Exception as exc:
+                        return f'UNREADABLE:{type(exc).__name__}'
+                ws = designer.designer_workspace
+                model_snapshot = dict(designer._phase6_input_snapshot or {})
+                setting_mirrors = set(designer._settings_values or ()) | {
+                    'settings','endcap_fw','endcap_bottom_wrap','assembly_type',
+                    'corner_state','corner_pair_same','active_part','part_dimensions',
+                }
                 rapid_trace.append({
+                    'inputs': {
+                        'receiving_layout': witness(model_snapshot.get('receiving_layout')),
+                        'snapshot_physical': witness({
+                            k:v for k,v in model_snapshot.items()
+                            if k not in setting_mirrors
+                        }),
+                        'box_whd': witness(designer._phase6_box_whd),
+                        'settings': witness(designer._settings_values),
+                        'endcap_fw': witness(designer._phase6_endcap_fw_state),
+                        'endcap_wrap': witness(designer._phase6_endcap_bottom_wrap_state),
+                        'corner': witness(designer._phase6_corner_state),
+                        'box_vault_profile': witness(designer.state.profiles_vault.get('箱身')),
+                        'available': witness(ws.available_parts),
+                        'work_profiles': {
+                            str(k): witness(ws.profiles_for(k, {}) or {})
+                            for k in ws.available_parts
+                        },
+                    },
                     'step': operation,
                     'active': str(designer.designer_workspace.active_part),
                     'display_mode': str(getattr(designer, '_phase6_3d_display_mode', '')),
