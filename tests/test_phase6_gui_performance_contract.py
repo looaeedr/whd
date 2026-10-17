@@ -959,3 +959,81 @@ def test_issue1817_fixing_plate_source_cache_cannot_bypass_part_authorization():
     with pytest.raises(ValueError,match="unknown physical large"):
         build_fixing_plate_source_render_data(BASE_FIXING_PLATE_PREFIX+"unverified")
     assert _cached_source_flat_material_wkb.cache_info().currsize==0
+
+
+def test_issue1817_original_fixing_plate_contours_not_retraced_for_sibling_part(monkeypatch):
+    """Real large left/right source scenes stay separate without repeated trig arcs."""
+    from ae_engine import receiving_base_fixing_plate_geometry as source
+    from ae_engine.receiving_base_fixing_plate import BASE_FIXING_PLATE_PREFIX
+    invocations = []
+    original_arc = source._arc
+    def actual_arc(*args, **kwargs):
+        invocations.append((args,kwargs))
+        return original_arc(*args,**kwargs)
+    monkeypatch.setattr(source, "_arc", actual_arc)
+    source._outline.cache_clear()
+    source._slot.cache_clear()
+    try:
+        left = source.build_fixing_plate_source_render_data(
+            BASE_FIXING_PLATE_PREFIX+"left")
+        after_left = len(invocations)
+        assert after_left > 0, "RED signal: first material source must generate real arc points"
+        right = source.build_fixing_plate_source_render_data(
+            BASE_FIXING_PLATE_PREFIX+"right")
+        assert len(invocations) == after_left, (
+            "uncached repeated source-only curved contours rebuild for each sibling")
+        assert left.scene is not right.scene
+        assert left.scene.primitives == right.scene.primitives
+        assert left.scene.primitives is not right.scene.primitives
+        assert left.material is not right.material
+        assert left.material.equals(right.material)
+        assert left.metadata["stable_id"] != right.metadata["stable_id"]
+        right.scene.primitives.pop()
+        assert len(left.scene.primitives) > len(right.scene.primitives)
+    finally:
+        source._outline.cache_clear()
+        source._slot.cache_clear()
+
+
+def test_issue1817_source_contour_cache_key_includes_original_physical_pattern():
+    from dataclasses import replace
+    from ae_engine import receiving_base_fixing_plate_geometry as source
+    source._outline.cache_clear()
+    source._slot.cache_clear()
+    try:
+        original = source.source_pattern(source.LARGE_SOURCE)
+        outline = source._outline(original)
+        assert source._outline(original) is outline
+        changed = replace(original, width=original.width+1)
+        assert source._outline(changed) is not outline
+        assert source._outline(changed) != outline
+        small = source.source_pattern(source.SMALL_SOURCE)
+        assert source._outline(small) != outline
+        assert source._slot(*original.slot_centers[0],
+                            original.slot_length, original.slot_width) == (
+               source._slot(*original.slot_centers[0],
+                            original.slot_length, original.slot_width))
+    finally:
+        source._outline.cache_clear()
+        source._slot.cache_clear()
+
+
+def test_issue1817_cached_contours_keep_source_flat_small_dxf_roundtrip(tmp_path):
+    from ae_engine import receiving_base_fixing_plate_geometry as source
+    from ae_engine.receiving_base_fixing_plate import BASE_FIXING_PLATE_PREFIX
+    source._outline.cache_clear()
+    source._slot.cache_clear()
+    try:
+        small=source.build_fixing_plate_source_render_data(
+            BASE_FIXING_PLATE_PREFIX+"small_source",
+            source_kind=source.SMALL_SOURCE)
+        assert small.material.is_valid and small.material.area > 0
+        assert {p.layer for p in small.scene.primitives} == {
+            "CUTTING", "MARKING"}
+        output=source.save_independent_source_flat_dxf(
+            BASE_FIXING_PLATE_PREFIX+"small_source",tmp_path/"small.dxf")
+        assert output == str(tmp_path/"small.dxf")
+        assert (tmp_path/"small.dxf").is_file()
+    finally:
+        source._outline.cache_clear()
+        source._slot.cache_clear()
