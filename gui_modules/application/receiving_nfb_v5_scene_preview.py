@@ -15,12 +15,7 @@ from ae_engine.sheetmetal_drawing import (
 )
 
 
-def paint_v5_real_inner_door_trial(canvas, trial, *, width=480, height=350):
-    if (not isinstance(trial, NfbV5ConfiguredInnerDoorTrial)
-            or trial.status != STATUS or trial.manufacturing_ready
-            or trial.render_data.metadata.get("nfb_trial_export_approved") is not False):
-        raise ValueError("V5 內門只能繪製尚未驗證的真實 FinalScene 試作")
-    data = trial.render_data
+def _paint_real_finalscene(canvas, data, label, *, width=480, height=350):
     xmin, ymin, xmax, ymax = (float(v) for v in data.material.bounds)
     if xmax <= xmin or ymax <= ymin:
         raise ValueError("V5 實際內門板材展開尺寸不存在")
@@ -64,7 +59,35 @@ def paint_v5_real_inner_door_trial(canvas, trial, *, width=480, height=350):
         raise ValueError("V5 真實內門 FinalScene 未建立圖元")
     canvas.create_text(
         8, 10, anchor="nw", fill="#b0bfcd",
-        text="WHD 真實內門展開｜V5 試作（未核准製造）",
+        text=label,
         tags="v5-real-part",
     )
     return strokes
+
+
+
+def paint_v5_real_inner_door_trial(canvas, trial, *, width=480, height=350):
+    if (not isinstance(trial, NfbV5ConfiguredInnerDoorTrial)
+            or trial.status != STATUS or trial.manufacturing_ready
+            or trial.render_data.metadata.get("nfb_trial_export_approved") is not False):
+        raise ValueError("V5 內門只能繪製尚未驗證的真實 FinalScene 試作")
+    return _paint_real_finalscene(
+        canvas, trial.render_data, "WHD 真實內門展開｜V5 試作（未核准製造）",
+        width=width, height=height,
+    )
+
+
+def paint_v5_real_base_trial(canvas, trial, *, width=480, height=350):
+    """Draw actual EAR-owned base scene, not a diagram of a hole quartet."""
+    from ae_engine.receiving_nfb_v5_actual_base_screws import (
+        NfbV5ActualBaseScrewTrial, STATUS as BASE_STATUS,
+    )
+    if (not isinstance(trial, NfbV5ActualBaseScrewTrial)
+            or trial.status != BASE_STATUS or trial.manufacturing_ready
+            or trial.render_data.metadata.get("nfb_trial_export_approved") is not False
+            or trial.render_data.metadata.get("nfb_base_mfg2_release_approved") is not False):
+        raise ValueError("V5 底板只能顯示原實體 EAR 工作面未核准試作")
+    return _paint_real_finalscene(
+        canvas, trial.render_data, "WHD 真實底板／EAR／螺絲孔｜V5 試作（未核准製造）",
+        width=width, height=height,
+    )
