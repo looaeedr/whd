@@ -38,6 +38,7 @@ class NfbPairedQuantityInput:
 class NfbPairedQuantityCheck:
     gate: NfbQuantityPartGate
     groups: tuple
+    inputs: tuple[NfbPairedQuantityInput, ...] = ()
     scope: str = "PAIR_PART_ONLY_CHECK_Q_NOT_WHOLE_MFG2"
 
     @property
@@ -147,7 +148,7 @@ def group_reopened_nfb_pair_check_q(
     groups = gate.group_checked(parameters)
     if sum(g.quantity for g in groups) != 2 * sum(x.piece_count for x in inputs):
         raise ValueError("NFB_CHECK_Q_GROUP_QUANTITY_NOT_CONSERVED")
-    return NfbPairedQuantityCheck(gate=gate, groups=groups)
+    return NfbPairedQuantityCheck(gate=gate, groups=groups, inputs=inputs)
 
 
 def save_checked_reopened_nfb_pair_q_dxf(
@@ -163,9 +164,20 @@ def save_checked_reopened_nfb_pair_q_dxf(
             or not checked.gate.partial_only or checked.gate.held
             or checked.actual_piece_count < 2):
         raise ValueError("NFB_CHECK_Q_NOT_VERIFIED_PAIRED_PART_ONLY")
-    if sum(g.quantity for g in checked.groups) != checked.actual_piece_count:
+    if not checked.inputs:
+        raise ValueError("NFB_CHECK_Q_ORIGINAL_INPUTS_REQUIRED")
+    # CHECK is a point-in-time observation, not a durable manufacturing permit.
+    # Reopen both physical DXFs and the editable source immediately before Q.
+    refreshed = group_reopened_nfb_pair_check_q(checked.inputs)
+    def signature(groups):
+        return tuple((group.key, group.quantity, tuple(
+            (item.version_id, item.source_part_id, item.physical_id, item.quantity)
+            for item in group.members
+        )) for group in groups)
+    if (refreshed.actual_piece_count != checked.actual_piece_count
+            or signature(refreshed.groups) != signature(checked.groups)):
         raise ValueError("NFB_CHECK_Q_GROUP_COUNT_CHANGED")
     from ae_engine.manufacturing_api import save_quantity_manufacturing_groups_dxf
     return save_quantity_manufacturing_groups_dxf(
-        checked.groups, output_directory, part_only=True, overwrite=False,
+        refreshed.groups, output_directory, part_only=True, overwrite=False,
     )
