@@ -77,7 +77,15 @@ def preview_nfb_pad_depth(
                 or slot.get("source_brand") != brand):
             depths.append(None)
             continue
-        depths.append(model_depth_mm(brand, filename, path=index_path))
+        from .receiving_nfb_model_identity import (
+            parse_numeric_model_ref, selected_numeric_spec,
+        )
+        if filename.startswith("nfbv5:"):
+            parsed = parse_numeric_model_ref(filename)
+            spec = selected_numeric_spec(brand, filename) if parsed else None
+            depths.append(spec.depth_mm if spec is not None else None)
+        else:
+            depths.append(model_depth_mm(brand, filename, path=index_path))
     observed = tuple(depths)
     if any(x is None for x in observed):
         return NfbPadDepthPreview(NEEDS_SOURCE, count, size, observed, None, None, None)
