@@ -522,6 +522,38 @@ def worker(args):
         win = record('open_multi', open_modal, first_state)
         record('close_multi', win._receiving_multi_close, validate=check_mesh)
 
+        # #1818 display-only RED/GREEN: the real Tk canvas has already
+        # painted its current dimensions. A burst of Configure callbacks
+        # with no size change must not repaint the Bay sketch or manufacture.
+        # Keep the widget open while observing; do not include open/close
+        # setup time in the measured operation.
+        sketch_win = open_modal()
+        settle(root, owners)
+        import gui_modules.application.receiving_multi_settings_window as receiving_ui
+        original_painter = receiving_ui.paint_connected_bays
+        paints = []
+
+        def observe_sketch_paint(*args, **kwargs):
+            paints.append(tuple((args[0].winfo_width(), args[0].winfo_height())))
+            return original_painter(*args, **kwargs)
+
+        def redundant_configure_burst():
+            canvas = sketch_win._receiving_multi_canvas
+            with patch.object(receiving_ui, 'paint_connected_bays', observe_sketch_paint):
+                for _ in range(20):
+                    canvas.event_generate('<Configure>')
+                settle(root, owners)
+            if paints:
+                raise AssertionError(f'same-size Configure repainted Bay sketch: {paints!r}')
+            return len(paints)
+
+        record('issue1818_same_size_configure_paints_zero',
+               redundant_configure_burst, cache='display_only')
+        if rows[-1]['counts'].get('manufacturing_solve', 0):
+            raise AssertionError('Configure-only operation manufactured geometry')
+        sketch_win._receiving_multi_close()
+        settle(root, owners)
+
         # #1817: paired same-runner real Tk view hit versus forced real
         # manufacturing solve; never claim this is total user-action speedup.
         if args.bays == 3:
