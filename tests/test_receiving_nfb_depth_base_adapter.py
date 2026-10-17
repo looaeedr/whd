@@ -33,8 +33,18 @@ def test_nfb_107_72_t2_produces_original_33_return_and_matching_real_bends():
     left_first = by_name["receiving_left_40"]
     left_second = by_name["receiving_left_33"]
     assert left_first.p1.x == 40
-    assert left_second.p1.x == 71
-    assert left_second.p1.x - left_first.p1.x == 31
+    assert left_second.p1.x == 73
+    assert left_second.p1.x - left_first.p1.x == 33
+    # Independently measured from user's original source DXF (5):
+    # SHA256 cccf060cf6ff704b717dff0edd01d522c559cbf4ca98f5113ad84c9f4160d29b
+    # center W772; BENDING original x=5308.49589,5341.49589,
+    # 5967.49589,6000.49589, cutter minX=5268.49589.
+    assert by_name["receiving_right_33"].p1.x == 699
+    assert by_name["receiving_right_40"].p1.x == 732
+    assert (by_name["receiving_right_40"].p1.x -
+            by_name["receiving_right_33"].p1.x) == 33
+    # Blank side return was 71, but BEND #2 is x73, not x71.
+    assert (result.width - 630) / 2 == 71
 
 
 def test_alternate_depths_change_base_material_outline_and_second_bend_station():
@@ -43,8 +53,8 @@ def test_alternate_depths_change_base_material_outline_and_second_bend_station()
     assert result.topology[-2:] == ("NFB_DEPTH_RETURN", 28)
     assert result.topology != _base(nfb_depth_pair_mm=(107, 72)).topology
     by_name = {b.name: b for b in result.bends}
-    assert by_name["receiving_left_33"].p1.x == 66
-    assert by_name["receiving_right_33"].p1.x == 762 - 66
+    assert by_name["receiving_left_33"].p1.x == 68
+    assert by_name["receiving_right_33"].p1.x == 762 - 68
 
 
 def test_missing_depth_pair_preserves_explicit_unreleased_legacy_preview():
