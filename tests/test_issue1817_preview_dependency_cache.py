@@ -763,3 +763,117 @@ def test_issue1817_frame_factory_parity_and_source_generation(tmp_path, monkeypa
         owner,frame.stable_id,data,
         lambda: manufacturing_api.build_inner_door_frame_render_data(frame))
     assert reload is not cached
+
+
+def test_issue1817_receiving_divider_requires_two_exact_dxf_witnesses(
+        monkeypatch, tmp_path):
+    """Both Divider and EndCap DXF input versions invalidate raw reuse."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from hashlib import sha256
+    from ae_engine.door_dividers import derive_box_body_dividers
+    from ae_engine.manufacturing_baseline_policy import _baseline_path
+    from ae_engine import manufacturing_baseline_policy as baseline_policy
+    from ae_engine import cabinet_types
+    from gui_modules.application import fold_designer_manufacturing_projection as projection
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_cached_bay_box_body_divider,
+    )
+
+    sources = {name: tmp_path / name for name in ("中隔.dxf", "封頭尾.dxf")}
+    for name, path in sources.items():
+        path.write_bytes(("source:"+name).encode("utf-8"))
+    monkeypatch.setattr(baseline_policy, "_baseline_path",
+        lambda _model, name, _ctx: sources[name] if sources[name].is_file() else None)
+    monkeypatch.setattr(cabinet_types.policy,
+        "divider_uses_endcap_6p4_shared_datum", lambda _model: True)
+    monkeypatch.setattr(cabinet_types.policy, "baseline_feature_model_name",
+                        lambda _model: "受電箱")
+    from ae_engine.door_dividers import BoxBodyDividerPart
+    frame = BoxBodyDividerPart(
+        stable_id="box_body:divider:sample:HORIZONTAL:upper",
+        owner="box_body", axis="HORIZONTAL", boundary_key="upper",
+        span=800, thickness=2, formed_core_depth=350, handle_side=False,
+        signed_fold_chain=(22, 46, 22), material_lengths=(22,46,22),
+        fold_profile=(), adjacent_cells=("upper",), model_name="受電箱")
+    current = [frame]
+    monkeypatch.setattr(projection, "_box_body_divider_from_payload",
+                        lambda key, payload: current[0])
+    owner = SimpleNamespace()
+    produced = []
+    def factory():
+        output = SimpleNamespace(metadata={
+            "stable_id": current[0].stable_id,
+            "baseline_feature_model": "受電箱",
+            "endcap_shared_6p4_mother_rule": {"diameter":6.4}})
+        produced.append(output)
+        return output
+    key = frame.stable_id
+    data = {"model": "受電箱", "active_mode": "set_bay", "features": ()}
+    one = _receiving_cached_bay_box_body_divider(owner,key,data,factory)
+    assert _receiving_cached_bay_box_body_divider(owner,key,data,factory) is one
+    assert len(produced) == 1
+    sources["中隔.dxf"].write_bytes(b"divider source changed")
+    two = _receiving_cached_bay_box_body_divider(owner,key,data,factory)
+    assert two is not one and len(produced) == 2
+    sources["封頭尾.dxf"].write_bytes(b"endcap mother changed")
+    three = _receiving_cached_bay_box_body_divider(owner,key,data,factory)
+    assert three is not two and len(produced) == 3
+    current[:] = [replace(frame, span=801)]
+    assert _receiving_cached_bay_box_body_divider(
+        owner,key,data,factory) is not three
+    current[:] = [frame]
+    altered = {**data, "features": ({"kind":"圓孔","x":12,"y":12,"d1":6.4},)}
+    assert _receiving_cached_bay_box_body_divider(
+        owner,key,altered,factory) is not three
+    sources["封頭尾.dxf"].unlink()
+    assert _receiving_cached_bay_box_body_divider(
+        owner,key,data,factory) is not three
+    bad = {**data, "features": (object(),)}
+    assert _receiving_cached_bay_box_body_divider(owner,key,bad,factory) is not three
+    assert _receiving_cached_bay_box_body_divider(owner,key,bad,factory) is not three
+
+
+def test_issue1817_divider_source_generation_and_real_factory_parity():
+    """Certified Divider source + EndCap mother yield identical 2D material."""
+    from ae_engine import manufacturing_api
+    from ae_engine.cabinet_types import policy
+    from ae_engine.door_dividers import derive_box_body_dividers
+    from gui_modules.application import fold_designer_manufacturing_projection as projection
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_cached_bay_box_body_divider,
+    )
+    from ae_engine.baseline_source import force_reload_baseline_dxf_sources
+    from types import SimpleNamespace
+
+    # Derive the real signed folded physical Divider through the canonical
+    # published door-layout boundary; no invented fold lengths or test mock.
+    divider_keys = derive_box_body_dividers(
+        ((800.0, (1100.0, 500.0)),),
+        depth=350, thickness=2, layout_scope="demo",
+        model_name="受電箱",
+    )
+    if not divider_keys:
+        raise AssertionError("no canonical divider topology")
+    divider = divider_keys[0]
+    original = projection._box_body_divider_from_payload
+    try:
+        projection._box_body_divider_from_payload = lambda _key,_payload:divider
+        target = divider.stable_id
+        raw = manufacturing_api.build_box_body_divider_render_data(divider)
+        owner = SimpleNamespace()
+        data = {"model":"受電箱","active_mode":"set_bay","features":()}
+        first = _receiving_cached_bay_box_body_divider(owner,target,data,
+            lambda: manufacturing_api.build_box_body_divider_render_data(divider))
+        second = _receiving_cached_bay_box_body_divider(owner,target,data,
+            lambda: (_ for _ in ()).throw(AssertionError("recomputed Divider")))
+        assert first is second
+        assert first.material.equals(raw.material)
+        assert first.scene.primitives == raw.scene.primitives
+        assert first.unfolded_topology == raw.unfolded_topology
+        assert first.metadata == raw.metadata
+        force_reload_baseline_dxf_sources()
+        assert _receiving_cached_bay_box_body_divider(owner,target,data,
+            lambda: manufacturing_api.build_box_body_divider_render_data(divider)) is not first
+    finally:
+        projection._box_body_divider_from_payload = original
