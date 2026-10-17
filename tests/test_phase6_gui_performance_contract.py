@@ -1032,7 +1032,8 @@ def test_issue1817_cached_contours_keep_source_flat_small_dxf_roundtrip(tmp_path
             "CUTTING", "MARKING"}
         output=source.save_independent_source_flat_dxf(
             BASE_FIXING_PLATE_PREFIX+"small_source",tmp_path/"small.dxf")
-        assert output.exists()
+        assert output == str(tmp_path/"small.dxf")
+        assert (tmp_path/"small.dxf").is_file()
     finally:
         source._outline.cache_clear()
         source._slot.cache_clear()
