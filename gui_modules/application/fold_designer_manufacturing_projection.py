@@ -9,6 +9,7 @@
 This module adapts application state to existing authoritative manufacturing APIs.
 It owns no project/workspace/navigation state.
 """
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
 
@@ -161,11 +162,13 @@ def _fold_designer_corner_policy_from_payload(corner_state, part_key, fw):
     return policy_from_corner_state(selections, fw=float(fw))
 
 def _authoritative_render_data(self, spec, context=None):
-    """Return one immutable manufacturing render object for an exact PartSpec.
+    """Build raw 2D/3D material from the exact typed manufacturing PartSpec.
 
-    2D and 3D callers share this cache.  Geometry is built only by
-    manufacturing_api; GUI/renderer code may consume scene/material but may
-    not reconstruct CUTTING, baseline or CornerType geometry.
+    The primary authoritative cache is always cleared on a geometry edit.
+    Only certified Receiving Set/Bay BoxBody source-flat material may cross
+    W/H/D edits, and only with an unchanged Spec/Context and DXF source stamp.
+    The complete manufacturing resolver (Joint/collision/placement/relief)
+    still executes after each changed global manufacturing state.
     """
     ctx = context or ManufacturingContext(draw_stock=False)
     cache = getattr(self, "_authoritative_part_render_cache", None)
@@ -174,7 +177,41 @@ def _authoritative_render_data(self, spec, context=None):
         if owner is None:
             owner = self._derived_cache_owner = Phase6DerivedCacheOwner()
         cache = self._authoritative_part_render_cache = owner.cache("authoritative_render")
+    owner = getattr(self, "_derived_cache_owner", None)
     cache_key = (repr(spec), repr(ctx))
+    snapshot = getattr(self, "_phase6_input_snapshot", None)
+    eligible = (
+        isinstance(spec, BoxBodyPartSpec)
+        and isinstance(snapshot, Mapping)
+        and snapshot.get("model") == "受電箱"
+        and snapshot.get("active_mode") == "set_bay"
+        and str(spec.model_name) == "受電箱"
+        and isinstance(owner, Phase6DerivedCacheOwner)
+    )
+    history = (
+        owner._receiving_exact_material_history if eligible else None
+    )
+    source_stamp = None
+    if history is not None:
+        # Same verified baseline source-generation seam used by the complete
+        # manufacturing cache. Missing/unreadable witness forbids reuse.
+        from phase6_manufacturing_adapter import _receiving_baseline_source_stamp
+        source_stamp = _receiving_baseline_source_stamp(str(spec.model_name))
+        if source_stamp is None:
+            history.clear()
+            owner._receiving_exact_material_stamp = None
+            cache.clear()
+        elif owner._receiving_exact_material_stamp != source_stamp:
+            history.clear()
+            cache.clear()
+            owner._receiving_exact_material_stamp = source_stamp
+        if source_stamp is not None and cache_key not in cache and cache_key in history:
+            render_data = history[cache_key]
+            history.move_to_end(cache_key)
+            cache[cache_key] = render_data
+            if len(cache) > 32:
+                cache.pop(next(iter(cache)))
+            return render_data
     if cache_key in cache:
         return cache[cache_key]
     if isinstance(spec, BoxBodyPartSpec):
@@ -189,7 +226,13 @@ def _authoritative_render_data(self, spec, context=None):
     cache[cache_key] = render_data
     if len(cache) > 32:
         cache.pop(next(iter(cache)))
+    if history is not None and source_stamp is not None:
+        history[cache_key] = render_data
+        history.move_to_end(cache_key)
+        if len(history) > 8:
+            history.popitem(last=False)
     return render_data
+
 
 def _require_verified_baseline_sources_for_manufacturing(self):
     """Fail closed when a baseline-backed manufacturing source is not freshly verified."""
