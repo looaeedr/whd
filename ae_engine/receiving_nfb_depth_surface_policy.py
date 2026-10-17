@@ -280,3 +280,86 @@ def committed_receiving_nfb_depth_pair_mm(snapshot) -> tuple[float, float] | Non
         base_plate_thickness_mm=float(snapshot.get("t", 0)),
     )
     return depths
+
+
+def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
+    """Exact single-depth NFB source for LEFT/RIGHT non-side-folded base.
+
+    A flat physical mounting web can share ONE verified depth across its NFB
+    holes. Read the active submitted Bay's actual Set brand and operator model
+    reference, never infer depth from a filename suffix or another Bay. Two
+    different models/depths require independent mounting/PAD certification,
+    so a flat plate cannot claim a certified common NFB face for them.
+    """
+    from collections.abc import Mapping
+    from .receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
+    if not isinstance(snapshot,Mapping):
+        raise TypeError("Receiving flat NFB depth needs physical snapshot")
+    if snapshot.get("nfb_config_submitted") is False:
+        return None
+    layout=snapshot.get("receiving_layout")
+    sets=layout.get("sets") if isinstance(layout,Mapping) else None
+    if not isinstance(sets,(tuple,list)) or not sets:
+        return None
+    runtime=snapshot.get(RECEIVING_RUNTIME_SELECTION_KEY)
+    selected=None
+    if isinstance(runtime,Mapping):
+        si,bi=runtime.get("set_index"),runtime.get("bay_index")
+        if (type(si) is not int or not 0<=si<len(sets)
+                or not isinstance(sets[si],Mapping)
+                or sets[si].get("stable_id")!=runtime.get("set_id")):
+            raise ValueError("RECEIVING_FLAT_NFB_SET_SCOPE_DRIFT")
+        chosen=sets[si]
+        bays=chosen.get("bays")
+        if (not isinstance(bays,(list,tuple)) or type(bi) is not int
+                or not 0<=bi<len(bays) or not isinstance(bays[bi],Mapping)
+                or bays[bi].get("stable_id")!=runtime.get("bay_id")):
+            raise ValueError("RECEIVING_FLAT_NFB_BAY_SCOPE_DRIFT")
+        selected=(chosen,bays[bi])
+    elif (len(sets)==1 and isinstance(sets[0],Mapping)
+          and isinstance(sets[0].get("bays"),(tuple,list))
+          and len(sets[0]["bays"])==1):
+        selected=(sets[0],sets[0]["bays"][0])
+    else:
+        # Ambiguous physical source cannot position a unique flat plate.
+        return None
+    chosen,bay=selected
+    if bay.get("nfb_config_submitted") is not True:
+        return None
+    config=bay.get("nfb_config")
+    if not isinstance(config,Mapping):
+        raise ValueError("RECEIVING_FLAT_NFB_SUBMITTED_CONFIG_MISSING")
+    if ("nfb_config" in snapshot and snapshot["nfb_config"] != config):
+        raise ValueError("RECEIVING_FLAT_NFB_CONFIG_SCOPE_DRIFT")
+    holes=config.get("holes")
+    if not isinstance(holes,(tuple,list)) or not 1<=len(holes)<=2:
+        return None
+    if not all(isinstance(h,Mapping) for h in holes):
+        raise ValueError("RECEIVING_FLAT_NFB_INVALID_HOLE_SOURCE")
+    count=config.get("layer_count")
+    if count!=1 or any(h.get("layer_count",count)!=1 or h.get("slot_index",0)!=0
+                      for h in holes):
+        return None
+    models={str(h.get("model_filename") or "").strip() for h in holes}
+    if len(models)!=1 or not next(iter(models)):
+        return None
+    brand=chosen.get("switch_brand")
+    if not isinstance(brand,str) or not brand:
+        raise ValueError("RECEIVING_FLAT_NFB_SET_BRAND_MISSING")
+    if any(h.get("source_brand",brand)!=brand for h in holes):
+        raise ValueError("RECEIVING_FLAT_NFB_SOURCE_BRAND_DRIFT")
+    filename=next(iter(models))
+    if filename.startswith("nfbv5:"):
+        from .receiving_nfb_model_identity import selected_numeric_spec
+        spec=selected_numeric_spec(brand,filename)
+        depth=spec.depth_mm if spec is not None else None
+    else:
+        from .receiving_switch_model_catalog import model_depth_mm
+        depth=model_depth_mm(brand,filename)
+    if depth is None:
+        raise ValueError("RECEIVING_FLAT_NFB_MODEL_CSV_DEPTH_MISSING")
+    from math import isfinite
+    depth=float(depth)
+    if not isfinite(depth) or depth<=0:
+        raise ValueError("RECEIVING_FLAT_NFB_MODEL_CSV_DEPTH_INVALID")
+    return depth
