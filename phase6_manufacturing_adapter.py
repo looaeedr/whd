@@ -655,11 +655,19 @@ def _receiving_baseline_source_stamp(
     from ae_engine import ae
     pieces = []
     for name in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
-        path = ae.baseline_part_path(model, name)
-        if path is None:
-            pieces.append((name, None))
-            continue
         try:
+            if context is not None:
+                from ae_engine.manufacturing_baseline_policy import _expected_baseline_path
+                path = _expected_baseline_path(model, name, context)
+                if path is not None and not Path(path).is_file():
+                    path = None
+            else:
+                # Preserve existing global complete-manufacturing receipt
+                # semantics for callers without a scoped material Context.
+                path = ae.baseline_part_path(model, name)
+            if path is None:
+                pieces.append((name, None))
+                continue
             pieces.append((name, tuple(ae.baseline_source_fingerprint(path))))
         except (OSError, ValueError):
             return None
