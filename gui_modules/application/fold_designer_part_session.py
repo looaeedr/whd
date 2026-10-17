@@ -241,7 +241,39 @@ class Phase6PartSessionOwner:
             and str((getattr(app, '_phase6_input_snapshot', {}) or {}).get('model') or '') in {'受電箱', 'RECEIVING'}
             and (getattr(app, '_phase6_input_snapshot', {}) or {}).get('active_mode') == 'set_bay'
         )
-        if plan.save_outgoing and not skip_hidden_receiving_assembly_save:
+        # A no-edit Receiving Head/Tail part navigation is also display-
+        # only. Do not persist the legacy projected EndCap editor on every
+        # switch: commit_editor_values would overwrite current Bay W/H/D and
+        # rebuild BasePlate after a purely visual selection. An *actual*
+        # edited fold profile or dimension must still take the real save path.
+        skip_unchanged_receiving_endcap_save = False
+        if (plan.save_outgoing and not skip_hidden_receiving_assembly_save
+                and str(plan.previous_active) in {'head', 'tail'}):
+            snapshot = getattr(app, '_phase6_input_snapshot', {}) or {}
+            if (snapshot.get('model') in {'受電箱', 'RECEIVING'}
+                    and snapshot.get('active_mode') == 'set_bay'):
+                stored = app.designer_workspace.profiles_for(plan.previous_active, {}) or {}
+                live = getattr(app.state, 'profiles', {}) or {}
+                try:
+                    unchanged_fold = all(
+                        bridge.clone_profile(tuple(live.get(axis, ()) or ()))
+                        == bridge.clone_profile(tuple(stored.get(axis, ()) or ()))
+                        for axis in ('X', 'Y')
+                    )
+                    unchanged_whd = all(
+                        abs(float(getattr(app, 'v_'+axis).get())
+                            - float(app._phase6_box_whd[axis])) <= 1e-9
+                        for axis in ('w', 'h', 'd')
+                    )
+                    skip_unchanged_receiving_endcap_save = (
+                        unchanged_fold and unchanged_whd
+                    )
+                except (TypeError, ValueError, KeyError, AttributeError):
+                    # Unknown editor state is not display-only.
+                    skip_unchanged_receiving_endcap_save = False
+        if plan.save_outgoing and not (
+                skip_hidden_receiving_assembly_save
+                or skip_unchanged_receiving_endcap_save):
             self.save_current_part()
             pending = getattr(app, '_job', None)
             if pending:
