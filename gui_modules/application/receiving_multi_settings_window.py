@@ -531,19 +531,35 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         popup.title(f"{role.replace('inner-door', '內門').replace('head', '封頭').replace('tail', '封尾')}｜{label}｜真實截角2D")
         real_preview["status"].set("正在取得既有 FinalScene 真實幾何…")
         def refresh_exact():
-            if (real_preview["generation"] != generation or
-                    not popup.winfo_exists()):
+            def still_current():
+                # The geometry provider may run a nested Tk callback, switch
+                # candidate/version or close the modal before it returns.
+                # Never publish a superseded request or error to a newer view.
+                return (
+                    real_preview["generation"] == generation
+                    and real_preview["win"] is popup
+                    and popup.winfo_exists()
+                    and real_preview["view"] is not None
+                )
+
+            if not still_current():
                 return
             try:
                 request = get_real_cut_preview_request(role, selected_id, si, bi)
+                if not still_current():
+                    return  # A newer operator choice already owns this view.
                 if request is None:
                     raise ValueError("此版本缺少可驗證的實體幾何來源")
                 real_preview["view"].draw_geometry((request,))
+                if not still_current():
+                    return
                 popup._receiving_real_preview_request = request
                 real_preview["status"].set(
                     f"第{si+1}套／第{bi+1}連｜{label}｜實際 FinalScene 投影；滾輪縮放／中鍵平移"
                 )
             except Exception as exc:
+                if not still_current():
+                    return
                 real_preview["view"].invalidate(str(exc))
                 real_preview["status"].set("真實幾何不可用：" + str(exc))
         popup.after_idle(refresh_exact)
