@@ -455,3 +455,69 @@ def test_v5_panel_projection_rejects_unknown_basis_missing_holes_and_mirroring()
             NfbPanelDatum("unknown","manufacturing",(0,0),(1,0),(0,1)),
             feature="opening",
         )
+
+
+def test_v5_trial_cuts_real_inner_door_finalscene_without_export_approval():
+    from ae_engine.receiving_nfb_v5_real_part_cutting import (
+        trial_v5_numeric_cutting_on_real_part, TRIAL_STATUS,
+    )
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    from tools.nfb_v5_cadcraft_crosscheck import _fixture
+    baseline, datum = _fixture()
+    original_primitives = tuple(baseline.scene.primitives)
+    original_area = baseline.material.area
+    result = trial_v5_numeric_cutting_on_real_part(
+        baseline, datum=datum, brand="士林", model="2P125SN", feature="both",
+    )
+    assert result.part_id == datum.part_id
+    assert result.status == TRIAL_STATUS
+    assert result.manufacturing_ready is False
+    assert result.render_data.metadata["nfb_trial_export_approved"] is False
+    assert result.render_data.material.area < original_area
+    assert tuple(baseline.scene.primitives) == original_primitives
+    assert baseline.material.area == original_area
+    appended = result.render_data.scene.primitives[len(original_primitives):]
+    assert len(appended) == 5
+    assert len([p for p in appended
+                if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING" and p.color == 3]) == 1
+    assert len([p for p in appended
+                if isinstance(p, CirclePrimitive) and p.layer == "CUTTING" and p.color == 3]) == 4
+    assert result.render_data.unfolded_topology == baseline.unfolded_topology
+    assert result.render_data.fold_guides == baseline.fold_guides
+    with pytest.raises(ValueError, match="超出實際板材"):
+        from ae_engine.receiving_nfb_numeric_panel_projection import NfbPanelDatum
+        outside = NfbPanelDatum(
+            datum.part_id, "inner-door", (100000, 100000), (1, 0), (0, 1))
+        trial_v5_numeric_cutting_on_real_part(
+            baseline, datum=outside, brand="士林", model="2P125SN", feature="both",
+        )
+    with pytest.raises(ValueError, match="不可疊寫"):
+        trial_v5_numeric_cutting_on_real_part(
+            result.render_data, datum=datum, brand="士林", model="2P125SN",
+            feature="opening",
+        )
+
+
+def test_v5_cadcraft_fixture_uses_actual_cutting_scene_and_detects_modified_dxf(tmp_path):
+    import json
+    import shutil
+    import ezdxf
+    from tools.nfb_v5_cadcraft_crosscheck import emit, verify
+    source = tmp_path / "w.dxf"
+    copy = tmp_path / "cadcraft.dxf"
+    info = tmp_path / "cadcraft-info.json"
+    manifest = tmp_path / "manifest.json"
+    emit(source, manifest)
+    info.write_text(json.dumps({"source": "simulated info for comparator test"}), encoding="utf-8")
+    # Unit check exercises the geometry comparator; actual CadCraft process
+    # invocation is required by the separate GitHub workflow.
+    shutil.copyfile(source, copy)
+    verify(source, copy, manifest, info)
+    d = ezdxf.readfile(copy)
+    circles = [e for e in d.modelspace() if e.dxftype() == "CIRCLE"
+               and e.dxf.layer == "CUTTING"]
+    assert len(circles) == 4
+    circles[0].dxf.radius *= 2
+    d.saveas(copy)
+    with pytest.raises(ValueError, match="CADCRAFT_DXF_GEOMETRY_OR_LAYER_DIFF"):
+        verify(source, copy, manifest, info)
