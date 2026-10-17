@@ -850,6 +850,35 @@ def worker(args):
             if root.grab_current() is not None:
                 raise AssertionError('orphan Tk grab')
 
+            # #1818 actual GUI 2D/3D switching acceptance. Keep all render,
+            # DXF-read, manufacturing and wall-time probes active for the
+            # *same* resident 1-Bay/3-Bay process. No forced geometry
+            # invalidation, fake renderer, or source data replacement.
+            def rapid_view_switches():
+                for part_key in ('door', 'head', 'tail', 'door', 'head', 'tail'):
+                    designer.set_3d_preview_enabled(False)
+                    designer.activate_part(part_key)
+                    designer.set_3d_preview_enabled(True)
+                designer.activate_part('box_body')
+
+            def last_view_check(_):
+                check_mesh()
+                if str(designer.designer_workspace.active_part) != 'box_body':
+                    raise AssertionError(
+                        'rapid view changes did not keep the final BoxBody selection')
+                if not designer.renderer.ax2d.get_visible() is False:
+                    raise AssertionError('3D switch left obsolete 2D axes visible')
+
+            record('issue1818_rapid_2d_3d_final_state',
+                   rapid_view_switches, cache='display_only',
+                   validate=last_view_check)
+            measured = rows[-1]
+            if (measured['calculation_flushes'] != 0
+                    or measured['counts'].get('manufacturing_solve', 0)
+                    or measured['counts'].get('dxf_readfile', 0)):
+                raise AssertionError(
+                    'display-only rapid 2D/3D switch triggered manufacturing or DXF IO')
+
         # True source DXF preview; absence is explicit, not substituted with a toy.
         if args.dxf_index:
             panel_window = tk.Toplevel(root)

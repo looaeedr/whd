@@ -720,6 +720,28 @@ def test_issue1816_primary_render_cache_receipt_tracks_exact_spec_context_key():
     assert app._authoritative_render_data.__func__ is original
 
 
+def test_issue1818_rapid_3d_switch_samples_keep_1bay_and_3bay_separate():
+    """Do not treat failed or mismatched-Bay latency as a measured improvement."""
+    from tools.whd_performance_baseline import summarize
+    op = 'issue1818_rapid_2d_3d_final_state'
+    rows = [
+        dict(bays=1, worker_sample=0, operation=op, cache_state='display_only',
+             status='ok', wall_ms=15),
+        dict(bays=1, worker_sample=1, operation=op, cache_state='display_only',
+             status='ok', wall_ms=25),
+        dict(bays=1, worker_sample=2, operation=op, cache_state='display_only',
+             status='failed', wall_ms=1),
+        dict(bays=3, worker_sample=0, operation=op, cache_state='display_only',
+             status='ok', wall_ms=70),
+    ]
+    summary = {(v['bays'], v['operation']): v for v in summarize(rows)}
+    assert summary[1, op]['n'] == 2
+    assert summary[1, op]['failed'] == 1
+    assert summary[1, op]['median_ms'] == 20
+    assert summary[3, op]['n'] == 1
+    assert summary[3, op]['median_ms'] == 70
+
+
 def test_issue1817_paired_true_tk_samples_are_separate_from_general_baseline():
     """Retain head-to-head sample identity and never treat failed rows as speed."""
     from tools.whd_performance_baseline import summarize
