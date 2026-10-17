@@ -453,3 +453,62 @@ def test_issue1817_tail_key_preserves_joint_and_nearest_bay_mutations():
     other_set["sets"][0]["switch_brand"]="三菱"
     from ae_engine.receiving_layout import normalize_receiving_layout
     assert baseline != key(normalize_receiving_layout(other_set))
+
+
+def test_issue1817_three_bay_tail_whd_edit_selects_only_affected_local_neighbors():
+    """Plain adjacent Set/Bay joints: Bay0 source survives Bay2's dimension edit."""
+    original = _layout(3)
+    edited = update_receiving_bay(
+        original, set_index=0, bay_index=2, width=930, height=1750, depth=410,
+    )
+    def key(layout, index):
+        projected = project_receiving_bay_legacy_aliases(
+            {"model": "受電箱", "active_mode": "set_bay", "receiving_layout": layout},
+            set_index=0, bay_index=index, validate_common=False,
+        )
+        return stable_fingerprint(_receiving_bay_preview_fingerprint_snapshot(
+            projected, set_index=0, bay_index=index,
+            allow_suffix_topology_reuse=True,
+        ))
+    before = tuple(key(original, i) for i in range(3))
+    after = tuple(key(edited, i) for i in range(3))
+    assert before[0] == after[0], "distant untouched Bay0 must keep its local material"
+    assert before[1] != after[1], "Bay1's right Joint depends on edited Bay2"
+    assert before[2] != after[2], "edited Bay2's PartSpec must change"
+
+
+def test_issue1817_unknown_cross_bay_dependencies_never_trim_far_dimensions():
+    """RED: custom Joint / relief may connect distant Bays outside the linear chain."""
+    original = _layout(4)
+    edited = update_receiving_bay(
+        original, set_index=0, bay_index=3, width=1010, height=1750, depth=390,
+    )
+    for source_extension in (
+        {"assembly_joints": [{"joint_id": "custom:cross-bay"}]},
+        {"custom_parts": {"custom:remote-attachment": {"stable_id": "cross"}}},
+        {"joint_relief_state": {"items": {"custom:cross": {"verified": True}}}},
+    ):
+        def projected(layout):
+            return project_receiving_bay_legacy_aliases(
+                {"model": "受電箱", "active_mode": "set_bay",
+                 "receiving_layout": layout, **source_extension},
+                set_index=0, bay_index=0, validate_common=False,
+            )
+        a, b = projected(original), projected(edited)
+        for allow_translation, allow_trim in ((False, False), (True, True)):
+            ka = _receiving_bay_preview_fingerprint_snapshot(
+                a, set_index=0, bay_index=0,
+                allow_upstream_translation=allow_translation,
+                allow_suffix_topology_reuse=allow_trim,
+            )
+            kb = _receiving_bay_preview_fingerprint_snapshot(
+                b, set_index=0, bay_index=0,
+                allow_upstream_translation=allow_translation,
+                allow_suffix_topology_reuse=allow_trim,
+            )
+            assert stable_fingerprint(ka) != stable_fingerprint(kb), (
+                "unknown user cross-Bay dependency incorrectly reused an old FinalScene"
+            )
+            assert ka == a and kb == b, (
+                "unknown user-defined dependency must use full authoritative key"
+            )
