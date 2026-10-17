@@ -1139,6 +1139,9 @@ def test_issue1817_receiving_unchanged_exact_partspec_reuses_material_across_whd
     original = _authoritative_render_data(app, spec, ctx)
     assert _authoritative_render_data(app, spec, ctx) is original
     assert len(calls) == 1
+    derived.invalidate("display")
+    assert _authoritative_render_data(app, spec, ctx) is original
+    assert len(calls) == 1, "display-only edits must not retire geometry material"
 
     # The original authoritative cache is still invalidated. Only an exact,
     # independently witnessed raw render may be returned from bounded history.
