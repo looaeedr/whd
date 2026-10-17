@@ -896,3 +896,108 @@ def test_v5_cadcraft_actual_ear_base_roundtrip_checks_eight_screws_and_bend(tmp_
     doc.saveas(roundtrip)
     with pytest.raises(ValueError, match="CADCRAFT_V5_BASE_DXF_GEOMETRY_OR_LAYER_DIFF"):
         verify_base(source, roundtrip, manifest, info)
+
+
+def test_v5_operator_popup_builds_real_existing_door_and_base_from_one_draft():
+    from ae_engine.contracts import BasePlatePartSpec
+    from ae_engine.receiving_nfb_ui1a import new_nfb_ui1a_draft
+    from ae_engine.receiving_nfb_ui1a_edits import editable_nfb_draft
+    from ae_engine.receiving_nfb_ui1b_runtime import (
+        preview_current_nfb_v5_door_base_ui_draft,
+    )
+    from ae_engine.receiving_nfb_v5_actual_base_screws import STATUS as BASE_STATUS
+    from ae_engine.receiving_nfb_v5_configured_inner_door import STATUS as DOOR_STATUS
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    layout["sets"][0]["switch_brand"] = "士林"
+    identity = "nfbv5:士林:2P125SN"
+    draft = editable_nfb_draft(new_nfb_ui1a_draft(
+        set_brand="士林", layer_count=1, model_layers=([identity, identity], ""),
+    ))
+    ids = [slot["unit_id"] for slot in draft["layers"][0]["slots"]]
+    real_spec = BasePlatePartSpec(
+        width=800., height=340., thickness=2.,
+        shrink_top=20., shrink_bottom=20.,
+        shrink_left=45., shrink_right=45., bend=20.,
+        model_name="受電箱", receiving_bend_pattern="LEFT_FLAT_SIDE",
+        physical_id="base_plate",
+    )
+    state = _v5_configured_w800_inner_door_state()
+    kwargs = dict(layout=layout, set_index=0, bay_index=0,
+                  version_id="v5-door-1", projected_snapshot=state,
+                  world_x_by_unit={ids[0]:-90., ids[1]:90.}, base_spec=real_spec)
+    door, base = preview_current_nfb_v5_door_base_ui_draft(draft, **kwargs)
+    assert door.status == DOOR_STATUS and base.status == BASE_STATUS
+    assert door.hole_ids == base.hole_ids
+    assert not door.manufacturing_ready and not base.manufacturing_ready
+    assert base.render_data.metadata["nfb_trial_export_approved"] is False
+    assert sum(isinstance(x, CirclePrimitive) and x.source_type == "NFB_V5_NUMERIC_BASE_TRIAL"
+               for x in base.render_data.scene.primitives) == 8
+    assert sum(isinstance(x, PolylinePrimitive) and x.layer=="CUTTING" and x.closed
+               for x in base.render_data.scene.primitives) == 5
+    assert len(door.patterns) == 2
+    assert all(pattern.screw_centres_uv_mm is None for pattern in door.patterns)
+    assert all(pattern.opening_uv_mm is None for pattern in base.patterns)
+    assert layout["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
+
+    # Refuse an invented or mismatched base. There is no automatic second plate.
+    from dataclasses import replace
+    with pytest.raises(ValueError, match="底板"):
+        preview_current_nfb_v5_door_base_ui_draft(
+            draft, **{**kwargs, "base_spec":replace(real_spec, width=750.)})
+    second_layer = editable_nfb_draft(new_nfb_ui1a_draft(
+        set_brand="士林", layer_count=2, model_layers=(identity,identity),
+    ))
+    two_ids = [layer["slots"][0]["unit_id"] for layer in second_layer["layers"]]
+    with pytest.raises(ValueError, match="不同層高"):
+        preview_current_nfb_v5_door_base_ui_draft(
+            second_layer, **{
+                **kwargs,
+                "world_x_by_unit":{two_ids[0]:-90.,two_ids[1]:90.},
+            })
+
+
+def test_v5_base_popup_renders_actual_ear_plate_and_replaces_old_strokes():
+    import tkinter as tk
+    from ae_engine.receiving_nfb_v5_live_base_preview import (
+        preview_v5_on_existing_receiving_base,
+    )
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from gui_modules.application.receiving_nfb_v5_scene_preview import (
+        paint_v5_real_base_trial,
+    )
+    from ae_engine.contracts import BasePlatePartSpec
+    state=_v5_configured_w800_inner_door_state()
+    holes=(_v5_configured_hole("v5-1",-90,layer=0),
+           _v5_configured_hole("v5-2",90,layer=0))
+    door=trial_configured_nfb_v5_inner_door_render_data(
+        state,"upper",holes=holes,
+    )
+    base_spec=BasePlatePartSpec(
+        width=800.,height=340.,thickness=2.,
+        shrink_top=20.,shrink_bottom=20.,
+        shrink_left=45.,shrink_right=45.,bend=20.,
+        model_name="受電箱",receiving_bend_pattern="LEFT_FLAT_SIDE",
+        physical_id="base_plate",
+    )
+    base=preview_v5_on_existing_receiving_base(
+        state, "upper",door=door,configured_holes=holes,base_spec=base_spec,
+    )
+    root=tk.Tk()
+    root.withdraw()
+    try:
+        canvas=tk.Canvas(root,width=480,height=350)
+        canvas.pack()
+        root.update_idletasks()
+        count=paint_v5_real_base_trial(canvas,base)
+        assert count == len(base.render_data.scene.primitives)
+        items=canvas.find_withtag("v5-real-part")
+        assert len(items)==count+1
+        assert sum(canvas.type(x)=="oval" for x in items)==8
+        assert paint_v5_real_base_trial(canvas,base)==count
+        assert len(canvas.find_withtag("v5-real-part"))==len(items)
+    finally:
+        root.destroy()
