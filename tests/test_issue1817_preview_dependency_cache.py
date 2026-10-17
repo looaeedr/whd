@@ -736,8 +736,10 @@ def test_issue1817_frame_factory_parity_and_source_generation(tmp_path, monkeypa
     )
     from ae_engine.baseline_source import force_reload_baseline_dxf_sources
 
+    # The actual Receiving physical trio excludes the optional generic
+    # bottom role, whose independent explicit span is not supplied here.
     frames = derive_inner_door_frames("parity", spans={"top":700,"left":1100,
-        "right":1100}, thickness=2)
+        "right":1100}, thickness=2, included_sides=("top", "left", "right"))
     frame = next(item for item in frames if item.side=="top")
     monkeypatch.setattr(projection,"_inner_door_frame_from_payload",
                         lambda key, payload: frame)
