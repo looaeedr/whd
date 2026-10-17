@@ -640,14 +640,18 @@ def build_manufacturing_cache_key(app: Any) -> ManufacturingCacheKey:
     return ManufacturingCacheKey(_legacy_manufacturing_signature(app))
 
 
-def _receiving_baseline_source_stamp(model: str):
-    """Cheap source-stat/reload-generation witness for cached Receiving undo.
+def _receiving_baseline_source_stamp(
+    model: str, *, context=None, include_physical_panels=False,
+):
+    """Source-stat/reload-generation witness for Receiving cached material.
 
-    A previous full-state key is only reusable when every real baseline
-    source used by the cabinet family is the *same generation*. Missing files
-    remain explicit sentinels so a newly added DXF also retires old receipts.
-    Unreadable files have no certifiable stamp and disable history.
+    The original complete manufacturing undo cache uses the three standard
+    BoxBody/EndCap/Door sources. A multipart Receiving BoxBody additionally
+    reads three dedicated physical sheet DXFs; cross-transaction *raw*
+    material reuse is forbidden unless all three dedicated files are
+    source-witnessed at the same paths used by the manufacturing factory.
     """
+    from pathlib import Path
     from ae_engine import ae
     pieces = []
     for name in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
@@ -659,6 +663,30 @@ def _receiving_baseline_source_stamp(model: str):
             pieces.append((name, tuple(ae.baseline_source_fingerprint(path))))
         except (OSError, ValueError):
             return None
+
+    if include_physical_panels:
+        from ae_engine.receiving_panel_baselines import ROLE_FILES
+        from ae_engine.manufacturing_baseline_policy import _expected_baseline_path
+        from ae_engine.contracts import ManufacturingContext
+        ctx = context or ManufacturingContext()
+        for role, filename in sorted(ROLE_FILES.items()):
+            if ctx.resource_root is not None:
+                # Match manufacturing_scene_orchestration's resource-root
+                # authority exactly, rather than the legacy AE global root.
+                path = Path(ctx.resource_root) / "基準檔" / "受電箱" / filename
+            else:
+                path = _expected_baseline_path("受電箱", filename, ctx)
+            if path is None:
+                return None
+            try:
+                path = Path(path)
+                if not path.is_file():
+                    return None
+                pieces.append((
+                    role, filename, tuple(ae.baseline_source_fingerprint(path)),
+                ))
+            except (OSError, ValueError):
+                return None
     return tuple(pieces)
 
 
