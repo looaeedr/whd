@@ -432,6 +432,14 @@ def _base_plate_part_spec_from_values(self, val, *, features, corner_policy=None
             else None
         ),
         physical_id=str(val.get('physical_id') or 'base_plate'),
+        # #1502: one already selected/committed Receiving NFB depth pair.
+        # It is computed in receiving_base_plate_values from the Bay/Set,
+        # not editable as a second independent Base Plate dimension owner.
+        receiving_nfb_depth_pair_mm=(
+            val.get('receiving_nfb_depth_pair_mm')
+            if str(val.get('model', '')).strip() in {'受電箱', 'RECEIVING'}
+            else None
+        ),
     )
 
 def _base_plate_part_spec(self, val):
