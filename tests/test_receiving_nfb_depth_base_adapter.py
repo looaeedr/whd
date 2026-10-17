@@ -31,17 +31,17 @@ def test_nfb_107_72_t2_produces_original_33_return_and_matching_real_bends():
     by_name = {b.name: b for b in result.bends}
     left_first = by_name["receiving_left_40"]
     left_second = by_name["receiving_left_33"]
-    assert left_first.start.x == 40
-    assert left_second.start.x == 71
-    assert left_second.start.x - left_first.start.x == 31
+    assert left_first.p1.x == 40
+    assert left_second.p1.x == 71
+    assert left_second.p1.x - left_first.p1.x == 31
 
 
 def test_alternate_depths_change_base_material_outline_and_second_bend_station():
     result = _base(nfb_depth_pair_mm=(105, 75))
     assert result.width == 762  # 630 + 2 * (40 + 28 - T2)
     by_name = {b.name: b for b in result.bends}
-    assert by_name["receiving_left_33"].start.x == 66
-    assert by_name["receiving_right_33"].start.x == 762 - 66
+    assert by_name["receiving_left_33"].p1.x == 66
+    assert by_name["receiving_right_33"].p1.x == 762 - 66
 
 
 def test_missing_depth_pair_preserves_explicit_unreleased_legacy_preview():
