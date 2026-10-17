@@ -333,16 +333,16 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
         raise ValueError("RECEIVING_FLAT_NFB_CONFIG_SCOPE_DRIFT")
     holes=config.get("holes")
     if not isinstance(holes,(tuple,list)) or not 1<=len(holes)<=2:
-        return None
+        raise ValueError("RECEIVING_FLAT_NFB_REQUIRES_ONE_OR_TWO_HOLES_SAME_ROW")
     if not all(isinstance(h,Mapping) for h in holes):
         raise ValueError("RECEIVING_FLAT_NFB_INVALID_HOLE_SOURCE")
     count=config.get("layer_count")
     if count!=1 or any(h.get("layer_count",count)!=1 or h.get("slot_index",0)!=0
                       for h in holes):
-        return None
+        raise ValueError("RECEIVING_FLAT_NFB_MULTIPLE_ROWS_NEED_DISTINCT_BASE")
     models={str(h.get("model_filename") or "").strip() for h in holes}
     if len(models)!=1 or not next(iter(models)):
-        return None
+        raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
     brand=chosen.get("switch_brand")
     if not isinstance(brand,str) or not brand:
         raise ValueError("RECEIVING_FLAT_NFB_SET_BRAND_MISSING")
