@@ -529,16 +529,20 @@ def _receiving_rebase_preview_world_offsets(request, old_anchor, new_anchor):
 
 
 def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_index,
-                                                 allow_upstream_translation=False):
+                                                 allow_upstream_translation=False,
+                                                 allow_suffix_topology_reuse=False):
     """Read-only key projection for provably unrelated *trailing* Bay dimensions.
 
     The requesting Bay's own W/H/D, its left/right Joint participants and
     every preceding Bay remain part of the key: the left chain controls
     assembly X/Y/Z, and the immediate right neighbor controls side locks.
-    Only W/H/D of Bays strictly AFTER that right neighbor cannot reach the
-    selected Bay's local sheet or placement in the existing Receiving chain.
-    All IDs, Joint records, Bay door/NFB/feature state, settings, other Sets,
-    model and global geometry authority remain included and fail closed.
+    Only distant prefixes (with world-offset rebasing) and Bays strictly
+    AFTER the right neighbor are independent of this Bay's local sheet.
+    For tail-only topology resize, drop distant suffix rows AND the matching
+    unused per-Bay setting refs/values from the key; a SHARED setting value
+    referenced by this Bay or its neighbor is always retained.
+    All relevant IDs, nearby Joints, NFB, features, other Sets, model and
+    global geometry authority remain included and fail closed.
     NEVER use this deliberately incomplete copy as a saved/solved layout.
     """
     # Copy-on-write only the key's suffix path. Deep-copying the entire
@@ -570,25 +574,52 @@ def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_inde
         return fingerprint_snapshot
     # Custom/user-defined joints may introduce non-adjacent geometry
     # dependencies. For those projects, keep *all* upstream dimensions.
-    if (allow_upstream_translation and any(fingerprint_snapshot.get(field)
-            for field in ("assembly_joints", "custom_parts", "joint_relief_state"))):
+    if any(fingerprint_snapshot.get(field)
+           for field in ("assembly_joints", "custom_parts", "joint_relief_state")):
         allow_upstream_translation = False
-    hidden = tuple(range(bay_index + 2, len(bays)))
+        allow_suffix_topology_reuse = False
+    keep_count = min(len(bays), bay_index + 2)
+    trim_suffix = allow_suffix_topology_reuse and keep_count < len(bays)
+    new_settings = None
+    if trim_suffix and "settings" in selected:
+        from collections.abc import Mapping
+        raw = selected["settings"]
+        if not isinstance(raw, Mapping):
+            return fingerprint_snapshot
+        included = tuple(str(row["stable_id"]) for row in bays[:keep_count])
+        new_settings = {}
+        for kind, row in raw.items():
+            if (not isinstance(row, Mapping) or set(row) != {"refs", "values"}
+                    or not isinstance(row["refs"], Mapping)
+                    or not isinstance(row["values"], Mapping)):
+                return fingerprint_snapshot
+            if any(bay_id not in row["refs"] for bay_id in included):
+                return fingerprint_snapshot
+            refs = {bay_id:row["refs"][bay_id] for bay_id in included}
+            if any(ref not in row["values"] for ref in refs.values()):
+                return fingerprint_snapshot
+            values = {ref:row["values"][ref] for ref in refs.values()}
+            new_settings[kind] = {"refs":refs, "values":values}
+    hidden = (() if trim_suffix else tuple(range(bay_index + 2, len(bays))))
     if allow_upstream_translation and bay_index >= 2:
         hidden += tuple(range(0, bay_index - 1))
-    if not hidden:
+    if not hidden and not trim_suffix:
         return fingerprint_snapshot
-    # Copy-on-write: leave all persisted Bay rows and local materials intact.
+    # Copy-on-write: only a derived *cache key*, never an output or saved DTO.
     shallow_layout = dict(layout)
     shallow_sets = list(sets)
     shallow_set = dict(selected)
-    shallow_bays = list(bays)
+    shallow_bays = list(bays[:keep_count] if trim_suffix else bays)
     for position in hidden:
         later = dict(bays[position])
         for axis in ("width", "height", "depth"):
             later.pop(axis, None)
         shallow_bays[position] = later
     shallow_set["bays"] = shallow_bays
+    if trim_suffix:
+        shallow_set["joints"] = list(joints[:keep_count - 1])
+        if new_settings is not None:
+            shallow_set["settings"] = new_settings
     shallow_sets[set_index] = shallow_set
     shallow_layout["sets"] = shallow_sets
     fingerprint_snapshot["receiving_layout"] = shallow_layout
@@ -628,6 +659,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     fingerprint = stable_fingerprint({"snapshot": _receiving_bay_preview_fingerprint_snapshot(
         snapshot, set_index=set_index, bay_index=bay_index,
         allow_upstream_translation=allow_rebase,
+        allow_suffix_topology_reuse=(preview_layout is None),
     ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
