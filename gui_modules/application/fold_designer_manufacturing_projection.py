@@ -16,7 +16,7 @@ from pathlib import Path
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
+from ae_engine.contracts import BoxBodyPartSpec, EndCapPartSpec, ManufacturingContext
 from ae_engine.corner_type_ui import (
     is_unknown_model,
     normalize_custom_model_name,
@@ -165,8 +165,10 @@ def _authoritative_render_data(self, spec, context=None):
     """Build raw 2D/3D material from the exact typed manufacturing PartSpec.
 
     The primary authoritative cache is always cleared on a geometry edit.
-    Only certified Receiving Set/Bay BoxBody source-flat material may cross
-    W/H/D edits, and only with an unchanged Spec/Context and DXF source stamp.
+    Only source-certified Receiving Set/Bay raw material may cross W/H/D
+    edits on an unchanged typed Spec/Context. EndCap raw reuse excludes
+    committed relief cuts and embedded assembly relief; the canonical
+    downstream Joint/collision solver still runs on every changed state.
     The complete manufacturing resolver (Joint/collision/placement/relief)
     still executes after each changed global manufacturing state.
     """
@@ -180,8 +182,16 @@ def _authoritative_render_data(self, spec, context=None):
     owner = getattr(self, "_derived_cache_owner", None)
     cache_key = (repr(spec), repr(ctx))
     snapshot = getattr(self, "_phase6_input_snapshot", None)
+    # EndCap raw material is independent of a different Bay's W/H/D only
+    # when the exact typed inputs are identical and no pre-solved assembly
+    # cuts/embedded relief are present. Do not retain final solved endcaps.
+    raw_endcap = (
+        isinstance(spec, EndCapPartSpec)
+        and not spec.resolved_assembly_relief_cuts
+        and spec.assembly_relief is None
+    )
     eligible = (
-        isinstance(spec, BoxBodyPartSpec)
+        (isinstance(spec, BoxBodyPartSpec) or raw_endcap)
         and isinstance(snapshot, Mapping)
         and snapshot.get("model") == "受電箱"
         and snapshot.get("active_mode") == "set_bay"
@@ -199,8 +209,12 @@ def _authoritative_render_data(self, spec, context=None):
         from phase6_box_body_structure import (
             BoxBodyStructureType, normalize_box_body_structure_state,
         )
+        structure_state = (
+            spec.structure_state if isinstance(spec, BoxBodyPartSpec)
+            else spec.box_body_structure_state
+        )
         is_dedicated_three_piece = (
-            normalize_box_body_structure_state(spec.structure_state).get("active_type")
+            normalize_box_body_structure_state(structure_state).get("active_type")
             == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
         )
         source_stamp = _receiving_baseline_source_stamp(
@@ -208,6 +222,14 @@ def _authoritative_render_data(self, spec, context=None):
             context=ctx,
             include_physical_panels=is_dedicated_three_piece,
         )
+        # Unlike the existing BoxBody fallback, a Receiving EndCap must
+        # have a real witnessed 封頭尾 DXF. A missing optional source never
+        # certifies cross-transaction reuse of EndCap material.
+        if raw_endcap and source_stamp is not None and not any(
+            len(row) >= 2 and row[0] == "封頭尾.dxf" and row[1] is not None
+            for row in source_stamp
+        ):
+            source_stamp = None
         if source_stamp is None:
             history.clear()
             owner._receiving_exact_material_stamp = None

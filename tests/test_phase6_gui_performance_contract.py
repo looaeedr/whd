@@ -1387,3 +1387,101 @@ def test_issue1817_receiving_projected_whd_tk_trace_cannot_echo_full_solve(monke
     host._phase6_receiving_set_bay_guard = False
     assert bridge._phase6_queue_update(host) is True
     assert calls == [host], "genuine operator Tk edits still queue one update"
+
+
+def test_issue1817_receiving_raw_endcap_preserves_only_witnessed_exact_material(monkeypatch):
+    """Reuse only unchanged source-verified raw EndCap, never finished relief."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from ae_engine import manufacturing_api
+    from ae_engine.contracts import (
+        BoxBodyPartSpec, EndCapPartSpec, EndCapAssemblyReliefRequest,
+        ManufacturingContext,
+    )
+    import phase6_manufacturing_adapter as adapter
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _authoritative_render_data,
+    )
+    from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+
+    version = ["source-A"]
+    def witness(model, **kwargs):
+        assert model == "受電箱"
+        assert kwargs["include_physical_panels"] is False
+        return (("箱身.dxf", ("body", version[0])),
+                ("封頭尾.dxf", ("endcap", version[0])),
+                ("門.dxf", ("door", version[0])))
+    monkeypatch.setattr(adapter, "_receiving_baseline_source_stamp", witness)
+    calls = []
+    monkeypatch.setattr(
+        manufacturing_api, "build_part_render_data",
+        lambda spec, ctx: calls.append((spec, ctx)) or object())
+    owner = Phase6DerivedCacheOwner()
+    app = SimpleNamespace(_derived_cache_owner=owner,
+        _phase6_input_snapshot={"model": "受電箱", "active_mode": "set_bay"})
+    spec = EndCapPartSpec(width=800, depth=350, thickness=2,
+                          frame_width=29, model_name="受電箱")
+    context = ManufacturingContext(draw_stock=False)
+    head = _authoritative_render_data(app, spec, context)
+    assert _authoritative_render_data(app, spec, context) is head
+    assert len(calls) == 1
+
+    owner.invalidate("geometry", changed_keys=("w", "h", "d"))
+    assert owner.cache("authoritative_render") == {}
+    assert _authoritative_render_data(app, spec, context) is head
+    assert len(calls) == 1  # untouched raw 2D material was not rebuilt
+    tail = _authoritative_render_data(app, replace(spec, is_tail=True), context)
+    assert tail is not head and len(calls) == 2
+    resized = _authoritative_render_data(app, replace(spec, width=810), context)
+    assert resized is not head and len(calls) == 3
+
+    # A committed relief cut is a different material authority and cannot be
+    # carried across even an unrelated W/H/D edit.
+    committed = replace(
+        spec, resolved_assembly_relief_cuts=(((0, 0), (4, 0), (4, 4)),))
+    first_committed = _authoritative_render_data(app, committed, context)
+    owner.invalidate("geometry", changed_keys=("w",))
+    assert _authoritative_render_data(app, committed, context) is not first_committed
+
+    # A nested assembly relief request is never cross-transaction material.
+    nested = replace(spec, assembly_relief=EndCapAssemblyReliefRequest(
+        BoxBodyPartSpec(width=800, height=1600, depth=350, thickness=2,
+                        frame_width=29, model_name="受電箱")))
+    nested_first = _authoritative_render_data(app, nested, context)
+    owner.invalidate("geometry", changed_keys=("w",))
+    assert _authoritative_render_data(app, nested, context) is not nested_first
+    # Source replacement and unknown dependency both force fresh raw input.
+    version[:] = ["source-B"]
+    assert _authoritative_render_data(app, spec, context) is not head
+    owner.invalidate("geometry", changed_keys=("joint_unknown",))
+    fresh = _authoritative_render_data(app, spec, context)
+    assert fresh is not head
+
+
+def test_issue1817_receiving_endcap_missing_dxf_source_never_reuses_old_material(monkeypatch):
+    from types import SimpleNamespace
+    from ae_engine import manufacturing_api
+    from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
+    import phase6_manufacturing_adapter as adapter
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _authoritative_render_data,
+    )
+    from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+
+    monkeypatch.setattr(adapter, "_receiving_baseline_source_stamp",
+                        lambda _model, **_kw: (("箱身.dxf", ("a",)),
+                                                ("封頭尾.dxf", None),
+                                                ("門.dxf", None)))
+    calls = []
+    monkeypatch.setattr(manufacturing_api, "build_part_render_data",
+                        lambda _spec, _ctx: calls.append(1) or object())
+    owner = Phase6DerivedCacheOwner()
+    app = SimpleNamespace(_derived_cache_owner=owner,
+        _phase6_input_snapshot={"model": "受電箱", "active_mode": "set_bay"})
+    spec = EndCapPartSpec(width=800, depth=350, thickness=2,
+                          frame_width=29, model_name="受電箱")
+    ctx = ManufacturingContext(draw_stock=False)
+    a = _authoritative_render_data(app, spec, ctx)
+    owner.invalidate("geometry", changed_keys=("w",))
+    b = _authoritative_render_data(app, spec, ctx)
+    assert a is not b and len(calls) == 2
