@@ -1319,3 +1319,51 @@ def test_issue1817_integral_undo_does_not_require_dedicated_three_piece_sources(
     )
     assert adapter._cache_service_for_app(app).max_entries == 2
     assert witnesses == [False]
+
+
+def test_issue1817_modal_dimension_stage_does_not_calculate_until_explicit_boundary():
+    """RED: modal dimension edits coalesce, but save/export flush is authoritative."""
+    from types import SimpleNamespace
+    from gui_modules.application.command_router import _Phase6UpdateScheduler
+
+    calls = []
+    owner = SimpleNamespace(root=None)
+    scheduler = _Phase6UpdateScheduler(owner, executor=lambda reasons: calls.append(frozenset(reasons)))
+    scheduler.stage("geometry")  # no idle timer or manufacturing during a modal edit
+    scheduler.stage("geometry")  # second confirmation replaces the first
+    assert not scheduler.dirty
+    assert scheduler.staged == {"geometry"}
+    assert scheduler._after_job is None
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 0
+    assert not calls
+    # Save/Export must explicitly flush the *last* edited state without
+    # waiting for the multi-settings window to close.
+    assert scheduler.flush_now() is True
+    assert calls == [frozenset({"geometry"})]
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 1
+    assert not scheduler.staged and not scheduler.dirty
+    assert scheduler.flush_now() is False  # close after save cannot solve again
+
+    scheduler.stage("geometry")
+    scheduler.submit("annotation", immediate=True)
+    assert calls[-1] == frozenset({"geometry", "annotation"})
+    assert scheduler.metrics_snapshot()["calculation_flushes"] == 2
+    assert not scheduler.staged
+    scheduler.stage("geometry")
+    scheduler.cancel_pending()
+    assert scheduler.staged == set()  # cancelled editor must not leak an update
+
+
+def test_issue1817_modal_dimension_stages_real_scheduler_boundary_not_eager_commit():
+    """Check the production UI callback seam, not a shadow duplicate handler."""
+    import inspect
+    from gui_modules.application.fold_designer_composition_receiving import (
+        open_receiving_multi_settings,
+        _restore_receiving_assembly_after_modal,
+    )
+    body = inspect.getsource(open_receiving_multi_settings)
+    assert 'scheduler.stage("geometry")' in body
+    assert 'submit_update_intent("geometry", commit=True)' not in body
+    close = inspect.getsource(_restore_receiving_assembly_after_modal)
+    assert "scheduler.flush_now()" in close
+    assert "scheduler.staged" in close
