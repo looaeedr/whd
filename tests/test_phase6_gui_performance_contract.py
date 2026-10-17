@@ -1090,3 +1090,115 @@ def test_issue1817_real_multipart_query_uses_authoritative_partspec_cache(monkey
     again=_query_fold_designer_render_data(owner,"box_body",{})
     assert again is not changed and len(calls)==3
     assert calls[-1][0]==repr(owner.spec)
+
+
+def test_issue1817_receiving_unchanged_exact_partspec_reuses_material_across_whd_edit(monkeypatch):
+    """RED: only source-certified identical physical PartSpec survives W/H/D invalidation.
+
+    Raw 2D material reuse must not bypass a new full manufacturing resolver,
+    assembly offset projection, collision or relief computation.
+    """
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    import phase6_manufacturing_adapter
+    from ae_engine import manufacturing_api
+    from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _authoritative_render_data,
+    )
+    from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+    from phase6_box_body_structure import BoxBodyStructureType
+
+    source_generation = ["verified-source-A"]
+    monkeypatch.setattr(
+        phase6_manufacturing_adapter,
+        "_receiving_baseline_source_stamp",
+        lambda model: tuple(source_generation) if model == "受電箱" else None,
+    )
+    calls = []
+    def build(s, c):
+        calls.append((repr(s), repr(c)))
+        return object()
+    monkeypatch.setattr(
+        manufacturing_api, "build_box_body_structure_render_data", build,
+    )
+    spec = BoxBodyPartSpec(
+        width=800.0, height=1600.0, depth=350.0, thickness=2.0,
+        frame_width=29.0, model_name="受電箱",
+        structure_state={
+            "active_type": BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value,
+        },
+    )
+    ctx = ManufacturingContext(draw_stock=False)
+    derived = Phase6DerivedCacheOwner()
+    app = SimpleNamespace(
+        _derived_cache_owner=derived,
+        _phase6_input_snapshot={"model": "受電箱", "active_mode": "set_bay"},
+    )
+    original = _authoritative_render_data(app, spec, ctx)
+    assert _authoritative_render_data(app, spec, ctx) is original
+    assert len(calls) == 1
+
+    # The original authoritative cache is still invalidated. Only an exact,
+    # independently witnessed raw render may be returned from bounded history.
+    derived.invalidate("geometry", changed_keys=("w",))
+    assert derived.cache("authoritative_render") == {}
+    assert _authoritative_render_data(app, spec, ctx) is original
+    assert len(calls) == 1
+
+    different = _authoritative_render_data(app, replace(spec, width=820), ctx)
+    assert different is not original and len(calls) == 2
+    derived.invalidate("geometry", changed_keys=("h", "d"))
+    assert _authoritative_render_data(app, spec, ctx) is original
+    assert len(calls) == 2
+
+    # DXF source generation changes and unknown geometry edits must not reuse
+    # the old physical material, even if the nominal Spec/Context is unchanged.
+    source_generation[:] = ["verified-source-B"]
+    assert _authoritative_render_data(app, spec, ctx) is not original
+    assert len(calls) == 3
+    derived.invalidate("geometry", changed_keys=("unknown_joint",))
+    _authoritative_render_data(app, spec, ctx)
+    assert len(calls) == 4
+    derived.invalidate("baseline", changed_keys=("source_reload",))
+    _authoritative_render_data(app, spec, ctx)
+    assert len(calls) == 5
+
+
+def test_issue1817_cross_edit_retention_is_never_used_outside_receiving_set_bay(monkeypatch):
+    from types import SimpleNamespace
+    import phase6_manufacturing_adapter
+    from ae_engine import manufacturing_api
+    from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _authoritative_render_data,
+    )
+    from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+    from phase6_box_body_structure import BoxBodyStructureType
+
+    monkeypatch.setattr(
+        phase6_manufacturing_adapter,
+        "_receiving_baseline_source_stamp",
+        lambda _model: (("source", "verified"),),
+    )
+    calls = []
+    monkeypatch.setattr(
+        manufacturing_api, "build_box_body_structure_render_data",
+        lambda _s, _c: calls.append(1) or object(),
+    )
+    spec = BoxBodyPartSpec(
+        width=800, height=1600, depth=350, thickness=2,
+        frame_width=29, model_name="受電箱",
+        structure_state={"active_type": BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value},
+    )
+    ctx = ManufacturingContext(draw_stock=False)
+    derived = Phase6DerivedCacheOwner()
+    app = SimpleNamespace(
+        _derived_cache_owner=derived,
+        _phase6_input_snapshot={"model": "受電箱", "active_mode": "quantity"},
+    )
+    _authoritative_render_data(app, spec, ctx)
+    derived.invalidate("geometry", changed_keys=("w",))
+    _authoritative_render_data(app, spec, ctx)
+    assert len(calls) == 2, "quantity mode is not certified for cross-edit reuse"
