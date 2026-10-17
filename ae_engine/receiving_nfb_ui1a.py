@@ -98,10 +98,9 @@ def add_nfb_draft_slot(draft, layer_index, *, filename=None, source_brand=None):
     _check_layer(updated, layer_index)
     if layer_index >= updated["layer_count"]:
         raise ValueError("NFB hidden physical layer cannot accept slots")
-    if filename is not None and (not isinstance(filename,str)
-            or not filename.lower().endswith(".dxf")
-            or "/" in filename or "\\" in filename):
-        raise ValueError("NFB slot filename must be operator-indexed DXF")
+    if filename is not None:
+        from .receiving_nfb_model_identity import validate_stored_model_ref
+        validate_stored_model_ref(filename)
     current = effective_nfb_layer_brand(updated, layer_index)
     source = _brand(source_brand or current) if filename else None
     updated["layers"][layer_index]["slots"].append({
