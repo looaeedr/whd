@@ -53,7 +53,18 @@ def receiving_base_plate_values(snapshot):
     if values["height"] <= 0 or values["bend"] <= 0:
         raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID: dimensions")
     values["receiving_bend_pattern"] = pattern
+    # #1502: selected source depths come from the CURRENT submitted Bay's
+    # NFBConfig and its owning Set brand.  Do NOT persist an independent
+    # Base Plate brand/depth. Legacy or unsubmitted previews keep None.
+    pair = None
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+    if pattern == RECEIVING_BASE_PATTERN_CENTER:
+        from .receiving_nfb_depth_surface_policy import (
+            committed_receiving_nfb_depth_pair_mm,
+        )
+        pair = committed_receiving_nfb_depth_pair_mm(data)
     return {
+        "receiving_nfb_depth_pair_mm": pair,
         "h": values["height"],
         "base_plate_shrink_top": values["shrink_top"],
         "base_plate_shrink_bottom": values["shrink_bottom"],
@@ -78,5 +89,6 @@ def receiving_base_plate_blank_dimensions(snapshot):
         shrink_right=override["base_plate_shrink_right"],
         bend=override["base_plate_bend"],
         pattern=override["receiving_bend_pattern"],
+        nfb_depth_pair_mm=override["receiving_nfb_depth_pair_mm"],
     )
     return float(result.width), float(result.height)
