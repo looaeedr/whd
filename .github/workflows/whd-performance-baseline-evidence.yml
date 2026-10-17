@@ -7,6 +7,9 @@ on:
     paths:
       - '.github/workflows/whd-performance-baseline-evidence.yml'
       - 'tools/whd_performance_baseline.py'
+      # True Tk performance evidence must run when certified physical
+      # source-flat geometry/triangulation costs change, not just harnesses.
+      - 'ae_engine/receiving_base_fixing_plate_geometry.py'
       - 'docs/performance/issue1816-baseline.md'
 
 permissions:
