@@ -572,12 +572,13 @@ def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_inde
     if not all(isinstance(row, dict) and row.get("stable_id")
                for row in bays):
         return fingerprint_snapshot
-    # Custom/user-defined joints may introduce non-adjacent geometry
-    # dependencies. For those projects, keep *all* upstream dimensions.
+    # Custom joints, custom parts and committed Joint relief may connect
+    # non-neighboring Bays. Even with both optimization flags disabled, the
+    # ordinary path below would still hide trailing dimensions. Never reuse
+    # a possibly stale FinalScene: retain the entire authoritative key.
     if any(fingerprint_snapshot.get(field)
            for field in ("assembly_joints", "custom_parts", "joint_relief_state")):
-        allow_upstream_translation = False
-        allow_suffix_topology_reuse = False
+        return fingerprint_snapshot
     keep_count = min(len(bays), bay_index + 2)
     trim_suffix = allow_suffix_topology_reuse and keep_count < len(bays)
     new_settings = None
