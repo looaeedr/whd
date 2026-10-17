@@ -707,7 +707,7 @@ def test_v5_live_operator_world_x_routes_to_real_panel_trial_without_dxf_or_subm
     assert layout["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
     assert draft["status"] == "UNSUBMITTED_NFB_DRAFT_PREVIEW_ONLY"
     assert draft["layers"][0]["slots"][0]["filename"] == brand_model
-    with pytest.raises(ValueError, match="全部"):
+    with pytest.raises(ValueError, match="每顆"):
         preview_current_nfb_v5_ui_draft(
             draft, layout=layout, set_index=0, bay_index=0,
             version_id="inner-door-v1", projected_snapshot=state,
