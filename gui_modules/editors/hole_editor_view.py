@@ -76,6 +76,14 @@ class HoleEditorCenterWorkspaceBuilder:
             font=('Microsoft JhengHei', 11, 'bold'), padx=12, pady=4,
         )
         undo_btn.pack(side=tk.LEFT, padx=(8, 3), pady=4)
+        # Optional external viewer: the original 2D canvas and editing tools
+        # retain focus/authority. CADCraft is never required for normal editing.
+        cadcraft_button = tk.Button(
+            toolbar, text="CADCraft 試看", bg="#484852", fg="white", bd=0,
+            font=('Microsoft JhengHei', 10, 'bold'), padx=9, pady=4,
+        )
+        cadcraft_button.pack(side=tk.LEFT, padx=(6, 3), pady=4)
+        toolbar._cadcraft_preview_button = cadcraft_button
         tk.Label(
             toolbar, text="雙擊已開孔：切穿 ⇄ 盲孔　右鍵孔：選十字基準",
             bg=host.COLOR_PANEL, fg=host.COLOR_TEXT_MUTED,
