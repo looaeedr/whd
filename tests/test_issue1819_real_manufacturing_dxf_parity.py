@@ -20,6 +20,7 @@ def test_issue1819_real_manufacturing_cached_uncached_dxf_parity(
     import gui
     import phase6_manufacturing_service as manufacturing_service
     from ae_engine import manufacturing_api as api
+    from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
     from phase6_manufacturing_cache import ManufacturingCacheKey, ManufacturingCacheService
     from phase6_manufacturing_contracts import manufacturing_request_fingerprint
     from phase6_project_file import PROJECT_SCHEMA_V2, write_project
@@ -37,14 +38,23 @@ def test_issue1819_real_manufacturing_cached_uncached_dxf_parity(
     root = tk.Tk()
     try:
         host = gui.Phase6PrimaryApplication(root)
+        snapshot = fresh_receiving_mode(
+            "quantity", {"w": 800, "h": 1600, "d": 350, "t": 2}
+        )
+        # Physical W800/T2 Receiving plate; match the CURRENT #1502
+        # source-profile fixture, never weaken the DXF manufacturing guard.
+        snapshot["receiving_base_plate"] = {
+            "pattern": RECEIVING_BASE_PATTERN_CENTER,
+            "height": 350.0,
+            "shrink_top": 55.0,
+            "shrink_bottom": 55.0,
+            "shrink_left": 85.0,
+            "shrink_right": 85.0,
+            "bend": 20.0,
+        }
         project = write_project(
             tmp_path / "real-parity.p6fold",
-            {
-                "schema": PROJECT_SCHEMA_V2,
-                "snapshot": fresh_receiving_mode(
-                    "quantity", {"w": 800, "h": 1600, "d": 350, "t": 2}
-                ),
-            },
+            {"schema": PROJECT_SCHEMA_V2, "snapshot": snapshot},
         )
         host.load_phase6_project(project)
         root.update()
@@ -103,7 +113,7 @@ def test_issue1819_real_manufacturing_cached_uncached_dxf_parity(
         assert set(cold_check.part_results) == set(hot_check.part_results)
 
         record_property("issue1819_real_mfg_cache_hit_rate", hits / 80)
-        record_property("issue1819_real_mfg_avoided_resolves", hits)
+        record_property("issue1819_real_mfg_cache_hits", hits)
         record_property("issue1819_real_mfg_uncached_solve_ms", round(uncached_ms, 3))
         record_property("issue1819_real_mfg_repeat_solve_ms", round(warm_solve_ms, 3))
         record_property("issue1819_real_mfg_hit_median_ms", round(statistics.median(hit_ms), 5))
