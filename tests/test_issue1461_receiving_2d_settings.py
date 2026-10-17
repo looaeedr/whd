@@ -168,3 +168,63 @@ def test_committed_scene_syncs_visibility_controls_and_preserves_hidden_parts():
         assert view.status.get()=="" and len(view.tiles)==1
     finally:
         root.destroy()
+
+
+def test_issue1818_2d_overlay_identical_state_does_not_blit_again():
+    """Real Tk artists: equal highlight updates draw nothing; actual changes draw."""
+    from gui_modules.application.receiving_settings_preview_2d import ReceivingSettingsPreview2D
+    from matplotlib.colors import to_rgba
+
+    scene = DrawingScene()
+    scene.add_polyline(((0,0),(100,0),(100,60),(0,60)), layer="CUTTING", closed=True)
+    data = PartRenderData(scene=scene, material=box(0, 0, 100, 60))
+    def bay(x):
+        part = AssemblyScenePart("head", data, (), (), offset=(x,0,0))
+        return FinalSceneViewRequest(AssemblySceneRenderData((part,)), (), (), "assembly")
+    panel = SimpleNamespace(_receiving_pending=frozenset(),
+                            _receiving_matches=(), _receiving_active=0,
+                            _receiving_kind=None)
+    root = tk.Tk()
+    try:
+        view = ReceivingSettingsPreview2D(root, tk=tk, ttk=ttk,
+            requests=(bay(0), bay(100)), panel=panel)
+        root.update()
+        view.update_overlay()
+        base = view.overlay_blit_count
+        baseline_geometry = view.geometry_draw_count
+        for _ in range(25):
+            view.update_overlay()
+        assert view.overlay_blit_count == base, "unchanged selection repeatedly blitted"
+        assert view.geometry_draw_count == baseline_geometry
+
+        panel._receiving_active = 1
+        view.update_overlay()
+        assert view.overlay_blit_count == base + 1
+        assert view._bay_overlays[1].get_edgecolor() == pytest.approx(to_rgba("#facc15"))
+        base = view.overlay_blit_count
+        panel._receiving_pending = frozenset({0})
+        view.update_overlay()
+        assert view.overlay_blit_count == base + 1
+        base = view.overlay_blit_count
+        panel._receiving_matches = (0,)
+        view.update_overlay()
+        assert view.overlay_blit_count == base + 1
+
+        # Geometry/visibility invalidate the Matplotlib background even if
+        # selection flags are identical. Never leave a hidden overlay stale.
+        view.visibility["head"].set(False)
+        view.update_visibility()
+        root.update()
+        assert not any(rect.get_visible() for rect in view._bay_overlays.values())
+        assert view.geometry_draw_count == baseline_geometry
+        view.visibility["head"].set(True)
+        view.update_visibility()
+        root.update()
+        assert any(rect.get_visible() for rect in view._bay_overlays.values())
+        assert view.geometry_draw_count == baseline_geometry
+        view.draw_geometry()
+        root.update()
+        assert view.geometry_draw_count == baseline_geometry + 1
+        assert view._bay_overlays[1].get_edgecolor() == pytest.approx(to_rgba("#facc15"))
+    finally:
+        root.destroy()
