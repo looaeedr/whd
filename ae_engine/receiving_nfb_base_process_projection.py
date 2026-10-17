@@ -532,8 +532,24 @@ def build_existing_receiving_base_with_verified_nfb(
         raise ValueError("NFB base exterior exceeds cabinet width")
 
     fold_y=float(base_spec.bend)
-    side=(71.0 if base_spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_CENTER else 0.0)
-    x0,x1=side,width-side
+    if base_spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_CENTER:
+        # #1502: NEVER infer the mounted NFB face from the nominal 71-mm
+        # unfolded side return. Original user's 受電箱底板(5).dxf has:
+        # BENDING x40/73/699/732, CUTTING shoulders x74/698, T2.
+        # The second BEND lines delimit the inner face with T/2 skins.
+        # Consume the *actual FinalScene* finite guides for THIS part so
+        # an NFB depth-pair edit also changes the mounting face.
+        x_guides = sorted({
+            float(guide.position)
+            for guide in tuple(real.fold_guides or ())
+            if str(guide.axis) == "x"
+        })
+        if len(x_guides) != 4:
+            raise ValueError("NFB center base requires four actual side BEND guides")
+        x0 = x_guides[1] + float(base_spec.thickness)/2.0
+        x1 = x_guides[2] - float(base_spec.thickness)/2.0
+    else:
+        x0,x1=0.0,width
     y0,y1=fold_y,height-fold_y
     if x0 >= x1 or y0 >= y1:
         raise ValueError("NFB physical Base Plate has no central mounting face")
