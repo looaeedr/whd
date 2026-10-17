@@ -572,7 +572,7 @@ RECEIVING_BASE_PATTERNS = frozenset((
 
 def build_receiving_base_plate_result(
     *, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right,
-    bend, pattern,
+    bend, pattern, nfb_depth_pair_mm=None,
 ) -> StructuralGeometryResult:
     """Reuse the Base Plate part owner for the three drawn Receiving patterns.
 
@@ -581,10 +581,14 @@ def build_receiving_base_plate_result(
     actual enclosure/plate dimensions; these offsets are always local UV.
 
     LEFT/RIGHT: straight side edges, TOP and BOTTOM fold only (20 mm).
-    CENTER: top/bottom 20 mm plus TWO side folds of 40,33 mm on each
-    side; sheet T is deducted once per side. The central straight span
-    is therefore W - shrink_left - shrink_right. At W800, shrinks85/85
-    and T2: 630 + 2*(40+33-2) = 772 mm, not 774.
+    CENTER: top/bottom 20 mm, first side fold -40 (fixed), and 2nd
+    fold inferred from real NFB depth pair when supplied. Historic previews
+    used 40/33 for Shihlin 107/72 T2; this MUST NOT become a universal
+    manufacturing rule. The central straight span is W-shrink_left-
+    shrink_right; original W800 shrinks85/85 gives 630+2*(40+33-2)=772.
+    The user inferred 33 from deep NFB FRONT to shallow plate BACK, i.e.
+    107-(72+2)=33, not by counting two T deductions or assuming that
+    33 is the formed outside-to-outside Z step (the NFB face step is 35).
 
     User supplied base sample outlines also show a 35-mm shoulder from
     top/bottom on the center pattern. No drawing's absolute X/Y, holes
@@ -622,9 +626,25 @@ def build_receiving_base_plate_result(
 
     if abs(t-2.0)>1e-6:
         raise ValueError("Receiving center double-side bend drawing is T2 only")
-    first, second=40.0,33.0
-    # Relative dimensional chain in the user's corrected drawing:
-    # (40 + 33 - T)*2 + central straight width.
+    first, second = 40.0, 33.0  # historical preview-only Shihlin 107/72, T2
+    if nfb_depth_pair_mm is not None:
+        # #1502/#1503: compute from the selected brand/model CSV depths.
+        # User's NON-FOLDED thought experiment: reference NFB front face
+        # minus shallow NFB BACK face; never deduct T twice.
+        #   deep 107 / shallow 72, T2 => front-to-front 35, 2nd return 33.
+        # This length is a face-datum TARGET, not measured 3D face parity.
+        if (not isinstance(nfb_depth_pair_mm, (tuple, list))
+                or len(nfb_depth_pair_mm) != 2):
+            raise ValueError("Receiving depth pair requires (deep, shallow)")
+        from .receiving_nfb_depth_surface_policy import receiving_nfb_second_side_fold_mm
+        second = receiving_nfb_second_side_fold_mm(
+            reference_nfb_depth_mm=nfb_depth_pair_mm[0],
+            secondary_nfb_depth_mm=nfb_depth_pair_mm[1],
+            base_plate_thickness_mm=t,
+        )
+    # The drawing's UV blank side return (two folds per side) is still
+    # 40 + second - T. Do not treat BEND-station spacing as the NFB Z gap.
+    # Certified folded skins and the 3D orientation remain a separate gate.
     side_fold=first+second-t
     blank_w=core_w+2*side_fold
     shoulder=35.0
