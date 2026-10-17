@@ -9,8 +9,8 @@ SETTING_DEFAULTS = {
     "head_features": [],
     "tail_features": [],
     "inner_door_layers": 1,
-    # Two independent layers; each slot accepts a legacy single filename or
-    # multiple switch instances (including repeated identical DXF filenames).
+    # Two independent layers; each slot may retain legacy DXF or typed V5
+    # brand/model identities. Repeated physical instances are not deduplicated.
     "inner_door_models": ["", ""],
     # NFB opening-row centers measured from the TOP edge of the selected work area.
     "inner_door_layer_heights_mm": [330.0, 830.0],
@@ -30,12 +30,10 @@ def switch_filenames_in_layer(slot):
         if not names:
             return ()
     else:
-        raise ValueError("每層開關須為 DXF 檔名或檔名清單")
+        raise ValueError("每層開關須為型號或型號清單")
+    from .receiving_nfb_model_identity import validate_stored_model_ref
     for name in names:
-        if (not isinstance(name, str) or len(name) <= 4
-                or not name.lower().endswith(".dxf")
-                or "/" in name or chr(92) in name or chr(0) in name):
-            raise ValueError("每層開關必須為合法 DXF 檔名")
+        validate_stored_model_ref(name)
     return names
 
 

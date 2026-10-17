@@ -78,9 +78,9 @@ def insert_nfb_slot(draft, layer_index, position, *, filename=None, brand=None):
     layer=_get_layer(state,layer_index)
     if type(position) is not int or not 0<=position<=len(layer["slots"]):
         raise ValueError("NFB insertion position invalid")
-    if filename is not None and (not isinstance(filename,str) or
-            not filename.endswith(".dxf") or "/" in filename or "\\" in filename):
-        raise ValueError("NFB selected source filename invalid")
+    if filename is not None:
+        from .receiving_nfb_model_identity import validate_stored_model_ref
+        validate_stored_model_ref(filename)
     uid=f"nfb:ui1a:unit:{state['_next_unit_number']}"
     state["_next_unit_number"]+=1
     layer["slots"].insert(position,{
