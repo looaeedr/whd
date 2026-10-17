@@ -408,9 +408,11 @@ def build_standard_part_profiles(
                 # Fold station X coordinates remain the SAME as 2D/DXF.
                 xprofile = [
                     {"len": lengths[0], "angle": 90, "phase6_key": "receiving_left_first_40"},
-                    {"len": lengths[1], "angle": -90, "phase6_key": "receiving_left_second"},
+                    {"len": lengths[1], "formed_length": lengths[1] + float(snapshot["t"]),
+                     "angle": -90, "phase6_key": "receiving_left_second"},
                     {"len": lengths[2], "angle": -90, "core": "W", "phase6_key": "receiving_nfb_deep_base_face"},
-                    {"len": lengths[3], "angle": 90, "phase6_key": "receiving_right_second"},
+                    {"len": lengths[3], "formed_length": lengths[3] + float(snapshot["t"]),
+                     "angle": 90, "phase6_key": "receiving_right_second"},
                     {"len": lengths[4], "phase6_key": "receiving_right_first_40"},
                 ]
             else:
