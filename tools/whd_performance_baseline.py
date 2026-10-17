@@ -594,6 +594,16 @@ def worker(args):
                 if win._receiving_dimension_group_confirm() is not True:
                     raise AssertionError('dimension edit rejected')
             record('edit_one_bay_in_modal', edit)
+            # #1817 true Tk: operator Confirm updates canonical dimensions
+            # and the lightweight modal sketch, but may not manufacture a
+            # hidden 3D scene immediately. Save/Export may flush explicitly;
+            # normal Close consumes the staged dirty state exactly once.
+            if (rows[-1]['calculation_flushes'] != 0
+                    or rows[-1]['counts'].get('manufacturing_solve', 0)):
+                raise AssertionError(
+                    'Bay size Confirm eagerly solved manufacturing inside modal')
+            if 'geometry' not in designer._phase6_update_scheduler.staged:
+                raise AssertionError('Confirmed Bay size lost pending save/close dirty state')
             def close_check(_):
                 check_mesh()
                 if float(designer._phase6_box_whd['w']) != width:
