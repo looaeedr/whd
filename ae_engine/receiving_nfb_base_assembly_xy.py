@@ -66,15 +66,20 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
         raise ValueError("NFB_BASE_XY_REQUIRES_ONE_PAIR")
     y_values=[]
     x_values=[]
+    projections={}
     for row in rows:
         if not isinstance(row,Mapping):
             raise ValueError("NFB_BASE_XY_HOLE_INVALID")
         count=row.get("layer_count",config.get("layer_count"))
         slot=row.get("slot_index",0)
-        projection=project_nfb_inner_door_nominal_y(
-            snapshot,inner_door_id,layer_count=count,slot_index=slot,
-        )
-        y_values.append(float(projection.box_world_y_mm))
+        # Both same-row models share ONE geometry solve. Do not rebuild the
+        # full inner-door FinalScene for every hole on a normal two-NFB row.
+        key=(count,slot)
+        if key not in projections:
+            projections[key]=project_nfb_inner_door_nominal_y(
+                snapshot,inner_door_id,layer_count=count,slot_index=slot,
+            )
+        y_values.append(float(projections[key].box_world_y_mm))
         x=row.get("manual_x_mm")
         confirmed=(
             row.get("manual_x_state")=="CONFIRMED"
