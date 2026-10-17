@@ -877,3 +877,70 @@ def test_issue1817_divider_source_generation_and_real_factory_parity():
             lambda: manufacturing_api.build_box_body_divider_render_data(divider)) is not first
     finally:
         projection._box_body_divider_from_payload = original
+
+
+def test_issue1817_output_parity_reads_real_dxf_and_detects_changed_sheet(tmp_path):
+    """A successful comparison must read exported CUTTING/BEND entities."""
+    import pytest
+    from ae_engine import manufacturing_api
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    from tools.issue1817_output_parity import assert_preview_output_parity
+
+    def view(extra_hole=False, offset=(0.0, 0.0, 0.0)):
+        scene = DrawingScene()
+        scene.add_polyline(((0,0),(100,0),(100,60),(0,60)),
+                           layer="CUTTING", closed=True)
+        scene.add_line((20,0),(20,60),layer="BEND")
+        if extra_hole:
+            scene.add_circle((30,30), 3, layer="CUTTING")
+        render = manufacturing_api.PartRenderData(
+            scene=scene,
+            material=manufacturing_api.material_polygon_from_final_scene(scene),
+            fold_guides=manufacturing_api.fold_guides_from_final_scene(scene),
+            metadata={"part": "real-authority"},
+        )
+        part = AssemblyScenePart(
+            part_key="box_body", render_data=render, x_profile=(),
+            y_profile=(), placement="offset", offset=offset)
+        return FinalSceneViewRequest(
+            render_data=AssemblySceneRenderData(assembly_parts=(part,)),
+            x_profile=(), y_profile=(), part_key="assembly",
+        )
+
+    original = view()
+    assert assert_preview_output_parity(original, view(), tmp_path, label="same") == 1
+    with pytest.raises(AssertionError, match="material|cutting"):
+        assert_preview_output_parity(original, view(extra_hole=True), tmp_path,
+                                     label="hole-change")
+    with pytest.raises(AssertionError, match="3D/world"):
+        assert_preview_output_parity(original, view(offset=(5,0,0)), tmp_path,
+                                     label="world-change")
+
+
+def test_issue1817_actual_p6fold_save_reload_preserves_three_bay_joint_authority(tmp_path):
+    from ae_engine.receiving_layout import (
+        new_receiving_layout, resize_receiving_bays, update_receiving_bay,
+        normalize_receiving_layout,
+    )
+    from tools.issue1817_output_parity import save_reload_receiving_authority
+
+    layout = resize_receiving_bays(
+        new_receiving_layout(width=800, height=1600, depth=350),
+        set_index=0, bay_count=3,
+    )
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=2,
+        width=900, height=1700, depth=400,
+    )
+    original = {
+        "model":"受電箱", "active_mode":"set_bay",
+        "w":800.0,"h":1600.0,"d":350.0,"t":2.0,"fw":29.0,
+        "receiving_layout":layout,
+    }
+    reopened = save_reload_receiving_authority(original, tmp_path)
+    assert normalize_receiving_layout(reopened["receiving_layout"]) == (
+        normalize_receiving_layout(layout))
+    assert reopened["receiving_layout"]["sets"][0]["bays"][2]["width"] == 900.0

@@ -714,6 +714,56 @@ def worker(args):
                     or rows[-1]['counts'].get('manufacturing_solve', 0) < 1):
                 raise AssertionError('forced full Bay0 did not run independent resolve')
 
+            # #1817 output acceptance: compare *every* physical sheet,
+            # 3D placement/profile, and independently reopened real DXF.
+            # Persist actual Receiving state as .p6fold and independently
+            # manufacture both affected Bays from the reloaded authority.
+            # This verification is not counted as an operator latency claim.
+            def verify_full_dxf_and_project_reload():
+                from tempfile import TemporaryDirectory
+                from tools.issue1817_output_parity import (
+                    assert_preview_output_parity,
+                    save_reload_receiving_authority,
+                )
+                with TemporaryDirectory(prefix="issue1817-parity-") as folder:
+                    checked = assert_preview_output_parity(
+                        untouched, forced, folder, label="unaffected-bay0")
+                    expected_views = {1: adjacent, 2: changed}
+                    for index, selective_view in expected_views.items():
+                        composition._receiving_bay_preview_cache.pop((0, index), None)
+                        authoritative_full = bay_request(index)
+                        checked += assert_preview_output_parity(
+                            selective_view, authoritative_full, folder,
+                            label=f"affected-bay{index}-fresh-full")
+                    # Write the actual project through WHD's production writer;
+                    # never persist manufactured/render cache data as authority.
+                    original_snapshot = composition.app._phase6_input_snapshot
+                    restored_snapshot = save_reload_receiving_authority(
+                        original_snapshot, folder)
+                    saved_cache = composition._receiving_bay_preview_cache
+                    try:
+                        composition.app._phase6_input_snapshot = restored_snapshot
+                        composition._receiving_bay_preview_cache = {}
+                        for index, selective_view in expected_views.items():
+                            reloaded = bay_request(index)
+                            checked += assert_preview_output_parity(
+                                selective_view, reloaded, folder,
+                                label=f"affected-bay{index}-p6fold-reload")
+                    finally:
+                        composition.app._phase6_input_snapshot = original_snapshot
+                        composition._receiving_bay_preview_cache = saved_cache
+                    if not checked:
+                        raise AssertionError("no real manufactured sheets checked")
+                    return checked
+
+            sheets_checked = record(
+                'issue1817_full_vs_selective_dxf_p6fold_reload_parity',
+                verify_full_dxf_and_project_reload, cache='verification')
+            if (sheets_checked < 3
+                    or rows[-1]['counts'].get('manufacturing_solve', 0) < 4):
+                raise AssertionError(
+                    'full manufacturing/export/reload verification bypassed')
+
         for cycle in range(args.cycles):
             win = record('open_multi', open_modal)
             win._receiving_multi_apply(0)
