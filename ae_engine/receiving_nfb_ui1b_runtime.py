@@ -197,6 +197,7 @@ def preview_current_nfb_v5_ui_draft(
     version_id: str,
     projected_snapshot: Mapping[str, object],
     world_x_by_unit: Mapping[str, float],
+    _with_holes: bool = False,
 ):
     """Physical V5 operator preview; never stage or submit a manufactured NFB.
 
@@ -268,6 +269,41 @@ def preview_current_nfb_v5_ui_draft(
         raise ValueError("NFB V5 世界 X 必須與全部已選實體開關一一對應")
     # Actual final geometry and collisions are re-evaluated on every preview.
     # Nothing here writes the project's NFBConfig, source proof or DXF file.
-    return trial_configured_nfb_v5_inner_door_render_data(
+    door = trial_configured_nfb_v5_inner_door_render_data(
         projected_snapshot, inner_door_id, holes=tuple(entries),
     )
+    if _with_holes:
+        return door, tuple(entries), inner_door_id
+    return door
+
+
+
+def preview_current_nfb_v5_door_base_ui_draft(
+    draft, *,
+    layout: Mapping[str, object],
+    set_index: int,
+    bay_index: int,
+    version_id: str,
+    projected_snapshot: Mapping[str, object],
+    world_x_by_unit: Mapping[str, float],
+    base_spec,
+):
+    """Operator's single action produces real door AND original EAR-base scenes.
+
+    No source-file selection, project mutation, dummy base, manufactured DXF
+    or unwarranted second-layer base. A distinct real base owner is required
+    for each separate switch Y row, exactly as in existing #1502.
+    """
+    from .receiving_nfb_v5_live_base_preview import (
+        preview_v5_on_existing_receiving_base,
+    )
+    door, entries, inner_door_id = preview_current_nfb_v5_ui_draft(
+        draft, layout=layout, set_index=set_index, bay_index=bay_index,
+        version_id=version_id, projected_snapshot=projected_snapshot,
+        world_x_by_unit=world_x_by_unit, _with_holes=True,
+    )
+    base = preview_v5_on_existing_receiving_base(
+        projected_snapshot, inner_door_id, door=door,
+        configured_holes=entries, base_spec=base_spec,
+    )
+    return door, base

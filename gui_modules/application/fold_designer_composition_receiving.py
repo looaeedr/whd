@@ -2566,7 +2566,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 warning.set("同一次實體開孔不可混合 V5 數值型號與舊 DXF 來源")
                 return
             popup=tk.Toplevel(modal)
-            popup.title("NFB V5 真實內門開孔試作｜不可製造" if v5_mode
+            popup.title("NFB V5 內門／底板真實孔位試作｜不可製造" if v5_mode
                         else "NFB 物理世界 X｜正式提交前驗證")
             popup.geometry("540x440")
             from .receiving_scroll_view import make_scrollable_frame
@@ -2583,8 +2583,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             ).pack(anchor="w",pady=(0,7))
             ttk.Label(
                 body,text=(
-                    "V5 使用各廠牌數值 CSV，不要求舊 DXF；將以真實內門"
-                    " CUTTING／層高與碰撞檢查預覽。此路徑不會提交製造。"
+                    "V5 讀廠牌數值 CSV，不要求舊 DXF。核對真實內門主孔、"
+                    "原底板 EAR／螺絲孔與層高；不同 Y 需另有實體底板。"
+                    "試作不會提交製造。"
                     if v5_mode else
                     "舊 DXF 來源需驗證 SHA、內門板、1100 Y 與孔位碰撞，"
                     "通過後才能準備提交。"
@@ -2660,12 +2661,24 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 anchor="w",pady=(8,4),
             )
             v5_canvas=None
+            v5_base_canvas=None
             if v5_mode:
-                v5_canvas=tk.Canvas(body,width=480,height=350,
+                panels=ttk.Notebook(body)
+                panels.pack(fill="x",pady=(4,8))
+                door_tab=ttk.Frame(panels)
+                base_tab=ttk.Frame(panels)
+                panels.add(door_tab,text="內門 CUTTING")
+                panels.add(base_tab,text="底板 EAR／螺絲孔")
+                v5_canvas=tk.Canvas(door_tab,width=480,height=350,
                                     background="#101820",highlightthickness=0)
-                v5_canvas.pack(fill="x",pady=(4,8))
+                v5_canvas.pack(fill="x")
+                v5_base_canvas=tk.Canvas(base_tab,width=480,height=350,
+                                         background="#101820",highlightthickness=0)
+                v5_base_canvas.pack(fill="x")
                 popup._receiving_v5_trial=None
+                popup._receiving_v5_base_trial=None
                 popup._receiving_v5_trial_canvas=v5_canvas
+                popup._receiving_v5_base_trial_canvas=v5_base_canvas
 
             def close_world_dialog():
                 if popup.grab_current() is popup:
@@ -2687,25 +2700,32 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     selected=adapter.selection
                     if v5_mode:
                         from ae_engine.receiving_nfb_ui1b_runtime import (
-                            preview_current_nfb_v5_ui_draft,
+                            preview_current_nfb_v5_door_base_ui_draft,
                         )
                         from .receiving_nfb_v5_scene_preview import (
                             paint_v5_real_inner_door_trial,
+                            paint_v5_real_base_trial,
                         )
-                        trial=preview_current_nfb_v5_ui_draft(
+                        physical=nfb_physical_bay_snapshot(
+                            selected.set_index,selected.bay_index,
+                        )
+                        base_spec,_=self.app._part_spec_query_callback(
+                            "base_plate",physical,
+                        )
+                        trial,base_trial=preview_current_nfb_v5_door_base_ui_draft(
                             edit_session.current,layout=adapter.layout,
                             set_index=selected.set_index,
                             bay_index=selected.bay_index,
                             version_id=version_id,
-                            projected_snapshot=nfb_physical_bay_snapshot(
-                                selected.set_index,selected.bay_index,
-                            ),
-                            world_x_by_unit=coords,
+                            projected_snapshot=physical,
+                            world_x_by_unit=coords,base_spec=base_spec,
                         )
                         paint_v5_real_inner_door_trial(v5_canvas,trial)
+                        paint_v5_real_base_trial(v5_base_canvas,base_trial)
                         popup._receiving_v5_trial=trial
-                        outcome.set("V5 真實內門開孔／碰撞試作通過；"
-                                    "可在下方核對展開圖，但尚不可提交製造。")
+                        popup._receiving_v5_base_trial=base_trial
+                        outcome.set("內門主孔＋原底板 EAR／螺絲孔幾何檢查通過；"
+                                    "可切頁核對。仍不可製造或提交。")
                         return
                     bundle=verify_current_nfb_ui_draft(
                         edit_session.current,layout=adapter.layout,
@@ -2732,7 +2752,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 side="left",padx=5,
             )
             ttk.Button(actions,text=(
-                "檢查真實內門（V5 試作）" if v5_mode else "驗證實體來源"
+                "檢查內門＋底板（V5 試作）" if v5_mode else "驗證實體來源"
             ),command=prepare).pack(side="left")
             popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
             popup.lift()
