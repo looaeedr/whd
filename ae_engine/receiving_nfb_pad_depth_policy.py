@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """#1503 NFB PAD eligibility, using the user's editable switch-depth CSV.
 
-The Base Plate and Base Fixing Plates remain completely fixed in every case.
+The PAD *preview* never moves a Base Plate or creates an ear. This old
+module must not override the later #1502/#1503 physical mounting contract:
+inner-door Z stays fixed, while the Base Plate and its two fixing plates
+translate TOGETHER with selected NFB depth; see receiving_nfb_depth_surface_policy.
 Only one physical NFB layer with exactly two selected switches of *unequal*
 known depth qualifies for a PAD proposal. This makes no manufacturing PAD
 part, thickness, BEND/DXF or automatic welding/Z adjustment.
