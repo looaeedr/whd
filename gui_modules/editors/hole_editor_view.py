@@ -76,14 +76,6 @@ class HoleEditorCenterWorkspaceBuilder:
             font=('Microsoft JhengHei', 11, 'bold'), padx=12, pady=4,
         )
         undo_btn.pack(side=tk.LEFT, padx=(8, 3), pady=4)
-        # Optional external viewer: the original 2D canvas and editing tools
-        # retain focus/authority. CADCraft is never required for normal editing.
-        cadcraft_button = tk.Button(
-            toolbar, text="CADCraft 試看", bg="#484852", fg="white", bd=0,
-            font=('Microsoft JhengHei', 10, 'bold'), padx=9, pady=4,
-        )
-        cadcraft_button.pack(side=tk.LEFT, padx=(6, 3), pady=4)
-        toolbar._cadcraft_preview_button = cadcraft_button
         tk.Label(
             toolbar, text="雙擊已開孔：切穿 ⇄ 盲孔　右鍵孔：選十字基準",
             bg=host.COLOR_PANEL, fg=host.COLOR_TEXT_MUTED,
@@ -370,6 +362,10 @@ class HoleEditorWindowShellBuilder:
         header_fullscreen = ttk.Button(window_actions, text="全螢幕 F11")
         header_fullscreen.pack(side=tk.RIGHT)
         editor._hole_header_fullscreen = header_fullscreen
+        # Leave the original 2D toolbar/canvas untouched on small screens.
+        cadcraft_button = ttk.Button(window_actions, text="CADCraft 試看")
+        cadcraft_button.pack(side=tk.RIGHT, padx=(0, 8))
+        editor._hole_header_cadcraft = cadcraft_button
         body = tk.Frame(editor, bg=host.COLOR_BG)
         body.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         # Inner-door NFB settings live in a second page of THIS existing
