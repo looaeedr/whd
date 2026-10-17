@@ -944,3 +944,61 @@ def test_issue1817_actual_p6fold_save_reload_preserves_three_bay_joint_authority
     assert normalize_receiving_layout(reopened["receiving_layout"]) == (
         normalize_receiving_layout(layout))
     assert reopened["receiving_layout"]["sets"][0]["bays"][2]["width"] == 900.0
+
+
+def test_issue1819_committed_bay_preview_history_is_bounded_and_recent_first():
+    """Repeated add/remove and set switching cannot retain unbounded scenes."""
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _retain_committed_receiving_bay_preview,
+    )
+
+    cache = {}
+    identity = [object() for _ in range(48)]
+    for number, receipt in enumerate(identity):
+        assert _retain_committed_receiving_bay_preview(
+            cache, (number // 6, number % 6), receipt
+        ) is receipt
+    assert len(cache) == 32
+    assert (0, 0) not in cache
+    assert (7, 5) in cache
+
+    # Most recently selected committed Bay stays resident. Eviction never
+    # fabricates its value or aliases another Bay's physical render request.
+    warm = cache[(3, 0)]
+    assert _retain_committed_receiving_bay_preview(cache, (3, 0), warm) is warm
+    for i in range(20):
+        _retain_committed_receiving_bay_preview(
+            cache, (100 + i, 0), object(),
+        )
+    assert len(cache) == 32
+    assert cache[(3, 0)] is warm
+    # Replacing the same Bay with a changed exact fingerprint is a *new*
+    # receipt; callers still require exact fingerprint matching before hits.
+    replacement = object()
+    _retain_committed_receiving_bay_preview(cache, (3, 0), replacement)
+    assert cache[(3, 0)] is replacement
+    assert replacement is not warm
+    # Old evicted Bay must be rebuilt by the full canonical path on access.
+    assert (0, 0) not in cache
+
+
+def test_issue1819_committed_bay_preview_capacity_limits_cache_memory_references():
+    from weakref import ref
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _retain_committed_receiving_bay_preview,
+    )
+
+    class PhysicalResult:
+        pass
+
+    cache = {}
+    first = PhysicalResult()
+    probe = ref(first)
+    _retain_committed_receiving_bay_preview(cache, (0, 0), first)
+    del first
+    for index in range(1, 48):
+        _retain_committed_receiving_bay_preview(
+            cache, (0, index), PhysicalResult(),
+        )
+    assert len(cache) == 32
+    assert probe() is None, "evicted Result still retained by this cache"

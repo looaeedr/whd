@@ -844,6 +844,20 @@ def _receiving_cached_bay_box_body_divider(owner, part_key, payload, factory):
     return result
 
 
+def _retain_committed_receiving_bay_preview(cache, key, receipt):
+    """Bound immutable exact-state Bay preview receipts by recent use.
+
+    This does not decide validity: the caller must still check the entire
+    semantic fingerprint, source witness and world-anchor before any hit.
+    Eviction only forces a future canonical re-solve, never weakens accuracy.
+    """
+    cache.pop(key, None)
+    cache[key] = receipt
+    while len(cache) > 32:
+        cache.pop(next(iter(cache)))
+    return receipt
+
+
 def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
     """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
     from types import SimpleNamespace
@@ -894,7 +908,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         for bay in snapshot["receiving_layout"]["sets"][set_index]["bays"][:bay_index + 1]
     )
     if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
-        hit = cache[cache_key]
+        hit = _retain_committed_receiving_bay_preview(
+            cache, cache_key, cache[cache_key],
+        )
         if not allow_rebase:
             return hit[1]
         if len(hit) >= 4:
@@ -906,7 +922,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
             rebased = _receiving_rebase_preview_world_offsets(
                 hit[1], hit[2], current_anchor)
             if rebased is not None:
-                cache[cache_key] = (fingerprint, rebased, current_anchor, prefix)
+                _retain_committed_receiving_bay_preview(
+                    cache, cache_key, (fingerprint, rebased, current_anchor, prefix),
+                )
                 return rebased
         # Missing prior world-anchor proof or unsupported render envelope:
         # do not reuse, use the real canonical manufacturing calculation.
@@ -985,7 +1003,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         finished_dimensions=dimensions(), thickness=float(snapshot.get("t", 2)),
     )
     if preview_layout is None:
-        cache[cache_key] = (fingerprint, result, bay_offset, prefix)
+        _retain_committed_receiving_bay_preview(
+            cache, cache_key, (fingerprint, result, bay_offset, prefix),
+        )
         self._receiving_bay_preview_cache = cache
     else:
         # Small bounded cache prevents every preview-version switch from
