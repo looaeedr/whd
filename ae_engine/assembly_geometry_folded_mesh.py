@@ -141,11 +141,26 @@ def _profile_geometry(profile, *, enabled_folds=None):
         length = max(0.0, _as_float(
             _segment_value(seg, "length", _segment_value(seg, "len", 0.0))
         ))
+        # #1502: the source BEND interval is material length (Shihlin 33),
+        # but the corresponding *formed* vertical NFB face step is 35.
+        # Keep these two datums separate WITHOUT K-factor compensation:
+        # original flat UV/cumulative BEND continues to use material len,
+        # while ONLY the Receiving source-owned second folded leg can supply
+        # its independently derived real formed length.
+        formed = length
+        formed_raw = _segment_value(seg, "formed_length", None)
+        if formed_raw is not None:
+            identity = str(_segment_value(seg, "phase6_key", "") or "")
+            if identity not in {"receiving_left_second", "receiving_right_second"}:
+                raise ValueError("FORMED_LENGTH_REQUIRES_RECEIVING_NFB_SECOND_SIDE_OWNER")
+            formed = _as_float(formed_raw)
+            if not math.isfinite(formed) or formed <= 0 or formed < length:
+                raise ValueError("RECEIVING_NFB_FORMED_LENGTH_INVALID")
         angles.append(current_angle)
         rad = math.radians(current_angle)
-        raw_u.append(raw_u[-1] + length * math.cos(rad))
-        raw_z.append(raw_z[-1] + length * math.sin(rad))
-        # 展開折彎站位只累計上游 material len；包外留給折後實體外側面，不當作展開線位。
+        raw_u.append(raw_u[-1] + formed * math.cos(rad))
+        raw_z.append(raw_z[-1] + formed * math.sin(rad))
+        # Unfolded DXF/BEND uses actual material len, never formed length.
         cumulative.append(cumulative[-1] + length)
         angle = _segment_value(seg, "angle", None)
         if index < len(segs) - 1 and angle is not None:
