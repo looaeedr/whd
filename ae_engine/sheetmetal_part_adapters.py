@@ -642,10 +642,16 @@ def build_receiving_base_plate_result(
             secondary_nfb_depth_mm=nfb_depth_pair_mm[1],
             base_plate_thickness_mm=t,
         )
-    # The drawing's UV blank side return (two folds per side) is still
-    # 40 + second - T. Do not treat BEND-station spacing as the NFB Z gap.
-    # Certified folded skins and the 3D orientation remain a separate gate.
+    # The unfolded BLANK return and the two BEND station locations are
+    # DIFFERENT measured values. The user's 受電箱底板(5).dxf has W772,
+    # BENDING left stations x=(40,73) and right x=(699,732), measured
+    # relative to the center example's cutting min-X. So their physical
+    # station-to-station spacing is 33, NOT 31. The blank return is still
+    # 40 + 33 - T2 = 71 on each side; that is NOT the 2nd BEND station.
+    # For variable selected NFB depth second, preserve this distinction.
+    # This does not certify the 3D folded skins or release manufacturing.
     side_fold=first+second-t
+    second_bend_station=first+second
     blank_w=core_w+2*side_fold
     shoulder=35.0
     if blank_h<=2*shoulder or core_w<=0:
@@ -665,11 +671,11 @@ def build_receiving_base_plate_result(
         BendLine("receiving_top_20",
                  Vec2(x0,blank_h-bend),Vec2(x1,blank_h-bend)),
         BendLine("receiving_left_40",Vec2(first,y0),Vec2(first,y1)),
-        BendLine("receiving_left_33",Vec2(side_fold,y0),Vec2(side_fold,y1)),
+        BendLine("receiving_left_33",Vec2(second_bend_station,y0),Vec2(second_bend_station,y1)),
         BendLine("receiving_right_40",
                  Vec2(blank_w-first,y0),Vec2(blank_w-first,y1)),
         BendLine("receiving_right_33",
-                 Vec2(blank_w-side_fold,y0),Vec2(blank_w-side_fold,y1)),
+                 Vec2(blank_w-second_bend_station,y0),Vec2(blank_w-second_bend_station,y1)),
     )
     # Keep topology/fingerprint sensitive to an actual source-selected
     # NFB depth pair. Reusing the old fixed-33 topology key for a changed
