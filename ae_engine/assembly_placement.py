@@ -233,8 +233,31 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
             if model in {"受電箱","RECEIVING"} else None
         )
         verified_source=source_z is not None
-        position=(0.0,0.0,
-                  float(source_z) if verified_source else _base_plate_center_plane(snapshot))
+        if verified_source:
+            # SAME active inner Door and submitted NFB source as the Z owner:
+            # no independent box-centered Y/guessed X overlay. The common
+            # physical Base Plate must follow the exact NFB installation row.
+            upper = [
+                row for row in tuple(snapshot.get("inner_doors") or ())
+                if isinstance(row, Mapping)
+                and str(row.get("cell_key") or "").split(":")[-1] == "0"
+                and str(row.get("stable_id") or "").strip()
+            ]
+            if len(upper) != 1:
+                raise ValueError("RECEIVING_NFB_BASE_XY_REQUIRES_UNIQUE_UPPER_DOOR")
+            from .receiving_nfb_base_assembly_xy import receiving_source_nfb_base_assembly_xy
+            group = receiving_source_nfb_base_assembly_xy(
+                snapshot, str(upper[0]["stable_id"])
+            )
+            if group is None:
+                raise ValueError("RECEIVING_NFB_BASE_SOURCE_Y_MISSING")
+            position = (
+                float(group.verified_world_x_mm)
+                if group.verified_world_x_mm is not None else 0.0,
+                float(group.world_y_mm), float(source_z),
+            )
+        else:
+            position = (0.0,0.0,_base_plate_center_plane(snapshot))
         return AssemblyPlacement(
             stable_id=stable_id,
             parent_assembly_node="box_body",
