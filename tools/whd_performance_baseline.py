@@ -809,7 +809,10 @@ def main():
                     pending=[] if args.dxf_index else ['DXF source index/path not supplied; no DXF latency claim'],
                     windows_uat='PENDING', workers=[])
     all_rows=[]
-    for bays in (1,3):
+    #1817: run the dependency-sensitive 3-Bay worker first so a RED
+    # assertion fails before paying for three unrelated 1-Bay samples.
+    # Both worker families and all samples/cycles still execute on GREEN.
+    for bays in (3,1):
         for sample in range(args.samples):
             journal=output.with_name(f'{output.stem}-b{bays}-s{sample}.jsonl')
             journal.write_text('',encoding='utf-8')

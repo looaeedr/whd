@@ -528,6 +528,35 @@ def _receiving_rebase_preview_world_offsets(request, old_anchor, new_anchor):
         scene, assembly_parts=tuple(parts)))
 
 
+def _receiving_bay_preview_face_features_key(face_features):
+    """Ignore only transient Joint locks which the real per-Bay solver replaces.
+
+    receiving_bay_joint_face_features removes the source_type below from
+    existing BoxBody faces and reconstructs the selected Bay's locks using
+    receiving_layout and the actual W/H/D/T/FW. Both remain in the preview
+    fingerprint. Authored faces and all non-BoxBody features still invalidate.
+    Never mutate the Designer workspace or the manufacturing input.
+    """
+    if not isinstance(face_features, dict):
+        return face_features
+    box_faces = face_features.get("box_body")
+    if not isinstance(box_faces, dict):
+        return face_features
+    if not all(isinstance(values, (list, tuple))
+               for values in box_faces.values()):
+        return face_features  # unknown schema: preserve full key
+    retained = {
+        face: remaining
+        for face, values in box_faces.items()
+        if (remaining := [feature for feature in values
+                         if getattr(feature, "source_type", "") !=
+                         "receiving_joint_side_lock"])
+    }
+    if retained == box_faces:
+        return face_features
+    return {**face_features, "box_body": retained}
+
+
 def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_index,
                                                  allow_upstream_translation=False,
                                                  allow_suffix_topology_reuse=False):
@@ -661,7 +690,11 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         snapshot, set_index=set_index, bay_index=bay_index,
         allow_upstream_translation=allow_rebase,
         allow_suffix_topology_reuse=(preview_layout is None),
-    ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": app.designer_workspace.part_face_features_snapshot(), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
+    ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": (_receiving_bay_preview_face_features_key(
+        app.designer_workspace.part_face_features_snapshot())
+        if snapshot.get("model") in ("受電箱", "RECEIVING")
+        and snapshot.get("active_mode", "set_bay") == "set_bay"
+        else app.designer_workspace.part_face_features_snapshot()), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
     virtual_cache = getattr(self, "_receiving_bay_virtual_preview_cache", {})
