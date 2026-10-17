@@ -175,6 +175,41 @@ def committed_receiving_nfb_depth_pair_mm(snapshot) -> tuple[float, float] | Non
     from .receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
     if not isinstance(snapshot, Mapping):
         raise TypeError("Receiving physical source snapshot must be a mapping")
+    if "nfb_config_submitted" not in snapshot:
+        # Fold Designer's canonical workspace snapshot stores submitted NFBs
+        # under Receiving Set/Bay rather than as a root alias. Project only
+        # a UNIQUE one-Set/one-Bay source (or an explicitly selected Bay).
+        # Multi-Bay with no selection MUST NOT leak another Bay's depth.
+        layout = snapshot.get("receiving_layout")
+        sets = layout.get("sets") if isinstance(layout, Mapping) else None
+        selected_bay = None
+        if isinstance(sets, (list, tuple)) and sets:
+            runtime = snapshot.get("_receiving_runtime_selection")
+            if isinstance(runtime, Mapping):
+                si,bi=runtime.get("set_index"),runtime.get("bay_index")
+                if (type(si) is int and 0<=si<len(sets)
+                        and isinstance(sets[si], Mapping)):
+                    chosen = sets[si]
+                    bays = chosen.get("bays")
+                    if (chosen.get("stable_id")==runtime.get("set_id")
+                            and isinstance(bays, (list, tuple))
+                            and type(bi) is int and 0<=bi<len(bays)
+                            and isinstance(bays[bi], Mapping)
+                            and bays[bi].get("stable_id")==runtime.get("bay_id")):
+                        selected_bay=bays[bi]
+            elif (len(sets)==1 and isinstance(sets[0], Mapping)
+                  and isinstance(sets[0].get("bays"), (list, tuple))
+                  and len(sets[0]["bays"])==1):
+                selected_bay=sets[0]["bays"][0]
+        if not isinstance(selected_bay, Mapping):
+            return None
+        if selected_bay.get("nfb_config_submitted") is not True:
+            return None
+        return committed_receiving_nfb_depth_pair_mm({
+            **snapshot,
+            "nfb_config_submitted": True,
+            "nfb_config": selected_bay.get("nfb_config"),
+        })
     if snapshot.get("nfb_config_submitted") is not True:
         return None
     config = snapshot.get("nfb_config")
