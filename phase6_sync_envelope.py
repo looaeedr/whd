@@ -69,6 +69,13 @@ def navigation_only_change(previous, current) -> bool:
     old, new = deepcopy(dict(previous)), deepcopy(dict(current))
     changed = False
     for payload in (old, new):
+        # This optimization is certified only for Receiving multi-Bay
+        # navigation. Other families (e.g. vault) must publish their derived
+        # EndCap relief during the normal part activation transition; merely
+        # changing active_part is not display-only for those factories.
+        if (payload.get("model") not in ("受電箱", "RECEIVING")
+                or payload.get("active_mode") != "set_bay"):
+            return False
         workspace = payload.get("workspace")
         if not isinstance(workspace, dict):
             return False

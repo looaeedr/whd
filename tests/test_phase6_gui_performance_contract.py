@@ -1620,7 +1620,8 @@ def test_issue1817_real_inner_door_panel_cache_matches_fresh_manufacturing_mater
 def test_issue1818_navigation_only_sync_rejects_real_or_unknown_changes():
     from copy import deepcopy
     from phase6_sync_envelope import navigation_only_change
-    old = {'model': '受電箱', 'active_part': 'box_body', 'w': 800,
+    old = {'model': '受電箱', 'active_mode': 'set_bay',
+           'active_part': 'box_body', 'w': 800,
            'workspace': {'active_part': 'box_body', 'existing_parts': ['box_body', 'head'],
                          'part_features': {}, 'part_profiles': {}}, 'revision': 1}
     new = deepcopy(old)
@@ -1645,7 +1646,7 @@ def test_issue1818_navigation_sync_preserves_committed_selection_without_geometr
     from types import SimpleNamespace
     from gui_modules.application.lifecycle import _apply_fold_designer_live_snapshot
     old = {'origin': 'fold_designer', 'revision': 1, 'fingerprint': 'old',
-           'model': '受電箱', 'active_part': 'box_body',
+           'model': '受電箱', 'active_mode': 'set_bay', 'active_part': 'box_body',
            'workspace': {'active_part': 'box_body', 'existing_parts': ['box_body', 'head']}}
     new = deepcopy(old)
     new.update(revision=2, fingerprint='new', active_part='head')
@@ -1667,3 +1668,41 @@ def test_issue1818_navigation_sync_preserves_committed_selection_without_geometr
     assert host._phase6_last_fold_designer_revision == 2
     assert host._phase6_last_fold_designer_live_payload == new
     assert not _apply_fold_designer_live_snapshot(host, old)
+
+
+def test_issue1818_navigation_only_never_bypasses_non_receiving_relief_publish():
+    """Vault/other families need certified EndCap relief after a part switch."""
+    from copy import deepcopy
+    from phase6_sync_envelope import navigation_only_change
+    base = {
+        'model': '受電箱', 'active_mode': 'set_bay',
+        'active_part': 'box_body', 'revision': 1,
+        'workspace': {
+            'existing_parts': ('box_body', 'head', 'tail'),
+            'active_part': 'box_body',
+            'assembly_joints': (
+                {'joint_id': 'head:box_body:left:INSERT:intent_derived',
+                 'relation': 'INSERT'},
+            ),
+        },
+    }
+    target = deepcopy(base)
+    target['active_part'] = 'head'
+    target['workspace']['active_part'] = 'head'
+    target['revision'] = 2
+    assert navigation_only_change(base, target)
+    # Certified INSERT/OVERLAY endcap relief for vault cabinets must be
+    # published through the full original designer→host path, never skipped.
+    for family in ('金庫型', '一般型', '未知箱型'):
+        before, after = deepcopy(base), deepcopy(target)
+        before['model'] = after['model'] = family
+        assert not navigation_only_change(before, after)
+    for mode in ('quantity', 'set', None):
+        before, after = deepcopy(base), deepcopy(target)
+        before['active_mode'] = after['active_mode'] = mode
+        assert not navigation_only_change(before, after)
+    # A family change between snapshots is not an authoritative display-only
+    # transition either.
+    before, after = deepcopy(base), deepcopy(target)
+    after['model'] = '金庫型'
+    assert not navigation_only_change(before, after)
