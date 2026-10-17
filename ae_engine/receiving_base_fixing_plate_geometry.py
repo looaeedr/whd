@@ -20,6 +20,7 @@ short profile is catalogued, never silently instantiated in that W800 cabinet.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from math import cos, radians, sin
 from pathlib import Path
 
@@ -94,6 +95,40 @@ def _slot(cx, cy, length, diameter):
     )
 
 
+def _source_flat_cutting_scene(pattern):
+    """New independent DrawingScene with exactly the original source contours."""
+    from .sheetmetal_drawing import DrawingScene
+    scene = DrawingScene()
+    scene.add_polyline(_outline(pattern), layer="CUTTING", closed=True)
+    for center in pattern.slot_centers:
+        scene.add_polyline(_slot(*center, pattern.slot_length, pattern.slot_width),
+                           layer="CUTTING", closed=True)
+    if pattern.source_fold_reference is not None:
+        # Uncertified source reference is MARKING only, not BEND.
+        scene.add_line(
+            (0.0, pattern.source_fold_reference),
+            (pattern.width, pattern.source_fold_reference),
+            layer="MARKING", color=150)
+    return scene
+
+
+@lru_cache(maxsize=2)
+def _cached_source_flat_material_wkb(source_kind):
+    """Store only source-SHA-pinned immutable flat CUTTING material bytes.
+
+    The resolved physical PartRenderData, individual scenes, side identity,
+    XY mating, world placement, and unfinished bend/weld proof remain NEW for
+    each request. WKB roundtrip returns a distinct shapely geometry per call.
+    This cache does not parse customer DXF or certify manufacture.
+    """
+    from .manufacturing_render_data import material_polygon_from_final_scene
+    source = _source_flat_cutting_scene(source_pattern(source_kind))
+    material = material_polygon_from_final_scene(source)
+    if material.is_empty or not material.is_valid:
+        raise ValueError("BASE_FIXING_PLATE_SOURCE_INVALID")
+    return material.wkb
+
+
 def build_fixing_plate_source_render_data(
     part_id: str, *, source_kind: str = LARGE_SOURCE, snapshot=None,
 ):
@@ -104,9 +139,8 @@ def build_fixing_plate_source_render_data(
     """
     from .manufacturing_render_data import (
         PartRenderData, UnfoldedBlankTopology, MaterialSegment,
-        material_polygon_from_final_scene,
     )
-    from .sheetmetal_drawing import DrawingScene
+    from shapely import wkb as shapely_wkb
 
     key = str(part_id or "")
     if source_kind == LARGE_SOURCE:
@@ -119,20 +153,10 @@ def build_fixing_plate_source_render_data(
     else:
         raise ValueError("UNKNOWN_BASE_FIXING_PLATE_SOURCE_PROFILE")
     pattern = source_pattern(source_kind)
-    scene = DrawingScene()
-    scene.add_polyline(_outline(pattern), layer="CUTTING", closed=True)
-    for center in pattern.slot_centers:
-        scene.add_polyline(_slot(*center, pattern.slot_length, pattern.slot_width),
-                           layer="CUTTING", closed=True)
-    # Color-150 original source line is an observed reference, NOT a
-    # machine-certified brake line. Show it as marking only.
-    if pattern.source_fold_reference is not None:
-        scene.add_line(
-            (0.0, pattern.source_fold_reference),
-            (pattern.width, pattern.source_fold_reference),
-            layer="MARKING", color=150,
-        )
-    material = material_polygon_from_final_scene(scene)
+    scene = _source_flat_cutting_scene(pattern)
+    # Recreate a distinct, mutable-independent geometry wrapper from a
+    # certified constant source contour; placement/proof stays uncached.
+    material = shapely_wkb.loads(_cached_source_flat_material_wkb(source_kind))
     if material.is_empty or not material.is_valid:
         raise ValueError("BASE_FIXING_PLATE_SOURCE_INVALID")
     topology = UnfoldedBlankTopology(
