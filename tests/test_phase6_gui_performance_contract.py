@@ -1037,3 +1037,56 @@ def test_issue1817_cached_contours_keep_source_flat_small_dxf_roundtrip(tmp_path
     finally:
         source._outline.cache_clear()
         source._slot.cache_clear()
+
+
+def test_issue1817_real_multipart_query_uses_authoritative_partspec_cache(monkeypatch):
+    """RED: multipart Receiving BoxBody must not bypass the existing 2D/3D cache."""
+    from dataclasses import replace
+    from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
+    from ae_engine import manufacturing_api
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _authoritative_render_data, _query_fold_designer_render_data,
+    )
+    from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+    from phase6_box_body_structure import BoxBodyStructureType
+
+    spec=BoxBodyPartSpec(
+        width=800.0,height=1600.0,depth=350.0,thickness=2.0,
+        frame_width=29.0,model_name="受電箱",
+        structure_state={
+            "active_type":BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value,
+        })
+    context=ManufacturingContext(draw_stock=False)
+    calls=[]
+    def actual_factory(s,c):
+        calls.append((repr(s),repr(c)))
+        return object()
+    monkeypatch.setattr(
+        manufacturing_api,"build_box_body_structure_render_data",actual_factory)
+    class ActualQueryOwner:
+        def __init__(self):
+            self.spec=spec
+            self._derived_cache_owner=Phase6DerivedCacheOwner()
+            self._authoritative_part_render_cache=(
+                self._derived_cache_owner.cache("authoritative_render"))
+        def _fold_designer_part_spec_from_payload(self, part_key, payload):
+            assert part_key == "box_body"
+            return self.spec,context
+        def _authoritative_render_data(self,s,c=None):
+            return _authoritative_render_data(self,s,c)
+    owner=ActualQueryOwner()
+    first=_query_fold_designer_render_data(owner,"box_body",{})
+    second=_query_fold_designer_render_data(owner,"box_body",{})
+    assert second is first
+    assert len(calls)==1, "multipart query bypasses authoritative PartSpec cache"
+    assert (repr(spec),repr(context)) in owner._authoritative_part_render_cache
+    # Exact changed source dimensions invalidate by typed PartSpec signature.
+    owner.spec=replace(spec,width=820)
+    changed=_query_fold_designer_render_data(owner,"box_body",{})
+    assert changed is not first and len(calls)==2
+    # A real geometry invalidation must still force a subsequent build.
+    assert owner._derived_cache_owner.invalidate(
+        "geometry",changed_keys=("w",))
+    again=_query_fold_designer_render_data(owner,"box_body",{})
+    assert again is not changed and len(calls)==3
+    assert calls[-1][0]==repr(owner.spec)
