@@ -640,6 +640,28 @@ def build_manufacturing_cache_key(app: Any) -> ManufacturingCacheKey:
     return ManufacturingCacheKey(_legacy_manufacturing_signature(app))
 
 
+def _receiving_baseline_source_stamp(model: str):
+    """Cheap source-stat/reload-generation witness for cached Receiving undo.
+
+    A previous full-state key is only reusable when every real baseline
+    source used by the cabinet family is the *same generation*. Missing files
+    remain explicit sentinels so a newly added DXF also retires old receipts.
+    Unreadable files have no certifiable stamp and disable history.
+    """
+    from ae_engine import ae
+    pieces = []
+    for name in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
+        path = ae.baseline_part_path(model, name)
+        if path is None:
+            pieces.append((name, None))
+            continue
+        try:
+            pieces.append((name, tuple(ae.baseline_source_fingerprint(path))))
+        except (OSError, ValueError):
+            return None
+    return tuple(pieces)
+
+
 def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
     # Only the canonical Receiving Set/Bay editor may retain one *previous
     # complete state* for tail add/remove undo. Other families and quantity
@@ -652,11 +674,19 @@ def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
     )
     size = 2 if eligible else 1
     service = getattr(app, "_phase6_manufacturing_cache_service", None)
-    if isinstance(service, ManufacturingCacheService):
+    if not isinstance(service, ManufacturingCacheService):
+        service = ManufacturingCacheService(max_entries=size)
+        setattr(app, "_phase6_manufacturing_cache_service", service)
+    else:
         service.set_capacity(size)
-        return service
-    service = ManufacturingCacheService(max_entries=size)
-    setattr(app, "_phase6_manufacturing_cache_service", service)
+    if eligible:
+        # The complete semantic fingerprint does not include a raw DXF file's
+        # mtime/size/reload epoch. Before accepting *any* current or previous
+        # cached result, retire both when its source witness has changed.
+        stamp = _receiving_baseline_source_stamp(str(snapshot.get("model")))
+        if stamp is None or getattr(service, "_receiving_baseline_stamp", None) != stamp:
+            service.clear()
+        service._receiving_baseline_stamp = stamp
     return service
 
 
