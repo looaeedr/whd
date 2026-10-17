@@ -658,3 +658,108 @@ def test_issue1817_cached_bay_panel_is_exact_source_free_manufacturing_material(
     assert one.fold_guides == built.fold_guides
     assert one.unfolded_topology == built.unfolded_topology
     assert one.metadata == built.metadata
+
+
+def test_issue1817_exact_frame_source_and_authoring_dependencies(monkeypatch, tmp_path):
+    """An A/B/D raw-frame cache needs identical certified source + typed part."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from ae_engine.inner_door_frames import derive_inner_door_frames
+    from ae_engine import receiving_frame_baseline
+    from gui_modules.application import fold_designer_manufacturing_projection as projection
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_cached_bay_inner_door_frame,
+    )
+
+    source = tmp_path / "框.dxf"
+    source.write_bytes(b"certified-source-1")
+    monkeypatch.setattr(receiving_frame_baseline, "frame_source_file", lambda: source)
+    original = derive_inner_door_frames("demo", spans={"top": 700, "left": 1100,
+        "right": 1100, "bottom": 700}, thickness=2)
+    active = [next(frame for frame in original if frame.side == "top")]
+    monkeypatch.setattr(projection, "_inner_door_frame_from_payload",
+                        lambda key, payload: active[0])
+    owner = SimpleNamespace()
+    produced = []
+    from hashlib import sha256
+    def factory():
+        material = SimpleNamespace(
+            metadata={
+                "receiving_frame_source_sha256": sha256(source.read_bytes()).hexdigest(),
+                "receiving_frame_source_path": str(source),
+            }
+        )
+        produced.append(material)
+        return material
+    data = {"model":"受電箱","active_mode":"set_bay","features":()}
+    key = active[0].stable_id
+    a = _receiving_cached_bay_inner_door_frame(owner, key, data, factory)
+    assert _receiving_cached_bay_inner_door_frame(owner,key,data,factory) is a
+    assert len(produced)==1
+    # Exact source byte edits MUST retire material even if the frame is stable.
+    source.write_bytes(b"certified-source-2")
+    b = _receiving_cached_bay_inner_door_frame(owner,key,data,factory)
+    assert b is not a and len(produced)==2
+    active[0] = replace(active[0], span=701)
+    c = _receiving_cached_bay_inner_door_frame(owner,key,data,factory)
+    assert c is not b and len(produced)==3
+    active[0] = next(frame for frame in original if frame.side == "top")
+    changed_features = {**data, "features":({"kind":"圓孔","x":8,"y":8,"d1":4},)}
+    d = _receiving_cached_bay_inner_door_frame(owner,key,changed_features,factory)
+    assert d is not a and len(produced)==4
+    # Unknown arbitrary feature DTOs are not fingerprinted optimistically.
+    unknown = {**data, "features":(object(),)}
+    e = _receiving_cached_bay_inner_door_frame(owner,key,unknown,factory)
+    assert _receiving_cached_bay_inner_door_frame(owner,key,unknown,factory) is not e
+    assert len(produced)==6
+    # No permitted false hits for missing or unreliable source.
+    source.unlink()
+    sentinel = object()
+    x = _receiving_cached_bay_inner_door_frame(
+        owner,key,data,lambda: sentinel)
+    assert x is sentinel
+
+    active[0] = next(frame for frame in original if frame.side == "bottom")
+    assert _receiving_cached_bay_inner_door_frame(
+        owner, active[0].stable_id, data, lambda: sentinel) is sentinel
+    assert len(owner._receiving_raw_inner_door_frame_history) <= 8
+
+
+def test_issue1817_frame_factory_parity_and_source_generation(tmp_path, monkeypatch):
+    """Actual certified source-backed frame survives only exact source authority."""
+    from types import SimpleNamespace
+    from ae_engine.inner_door_frames import derive_inner_door_frames
+    from ae_engine import manufacturing_api
+    from gui_modules.application import fold_designer_manufacturing_projection as projection
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_cached_bay_inner_door_frame,
+    )
+    from ae_engine.baseline_source import force_reload_baseline_dxf_sources
+
+    # The actual Receiving physical trio excludes the optional generic
+    # bottom role, whose independent explicit span is not supplied here.
+    frames = derive_inner_door_frames("parity", spans={"top":700,"left":1100,
+        "right":1100}, thickness=2, included_sides=("top", "left", "right"))
+    frame = next(item for item in frames if item.side=="top")
+    monkeypatch.setattr(projection,"_inner_door_frame_from_payload",
+                        lambda key, payload: frame)
+    data = {"model":"受電箱","active_mode":"set_bay","features":()}
+    owner=SimpleNamespace()
+    freshly = manufacturing_api.build_inner_door_frame_render_data(frame)
+    cached=_receiving_cached_bay_inner_door_frame(
+        owner,frame.stable_id,data,
+        lambda: manufacturing_api.build_inner_door_frame_render_data(frame))
+    again=_receiving_cached_bay_inner_door_frame(
+        owner,frame.stable_id,data,
+        lambda: (_ for _ in ()).throw(AssertionError("raw A/B/D rebuilt")))
+    assert again is cached
+    assert cached.material.equals(freshly.material)
+    assert cached.scene.primitives == freshly.scene.primitives
+    assert cached.fold_guides == freshly.fold_guides
+    assert cached.unfolded_topology == freshly.unfolded_topology
+    assert cached.metadata == freshly.metadata
+    force_reload_baseline_dxf_sources()
+    reload = _receiving_cached_bay_inner_door_frame(
+        owner,frame.stable_id,data,
+        lambda: manufacturing_api.build_inner_door_frame_render_data(frame))
+    assert reload is not cached
