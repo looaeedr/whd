@@ -720,6 +720,28 @@ def test_issue1816_primary_render_cache_receipt_tracks_exact_spec_context_key():
     assert app._authoritative_render_data.__func__ is original
 
 
+def test_issue1818_rapid_3d_switch_samples_keep_1bay_and_3bay_separate():
+    """Do not treat failed or mismatched-Bay latency as a measured improvement."""
+    from tools.whd_performance_baseline import summarize
+    op = 'issue1818_rapid_2d_3d_final_state'
+    rows = [
+        dict(bays=1, worker_sample=0, operation=op, cache_state='display_only',
+             status='ok', wall_ms=15),
+        dict(bays=1, worker_sample=1, operation=op, cache_state='display_only',
+             status='ok', wall_ms=25),
+        dict(bays=1, worker_sample=2, operation=op, cache_state='display_only',
+             status='failed', wall_ms=1),
+        dict(bays=3, worker_sample=0, operation=op, cache_state='display_only',
+             status='ok', wall_ms=70),
+    ]
+    summary = {(v['bays'], v['operation']): v for v in summarize(rows)}
+    assert summary[1, op]['n'] == 2
+    assert summary[1, op]['failed'] == 1
+    assert summary[1, op]['median_ms'] == 20
+    assert summary[3, op]['n'] == 1
+    assert summary[3, op]['median_ms'] == 70
+
+
 def test_issue1817_paired_true_tk_samples_are_separate_from_general_baseline():
     """Retain head-to-head sample identity and never treat failed rows as speed."""
     from tools.whd_performance_baseline import summarize
@@ -1593,3 +1615,94 @@ def test_issue1817_real_inner_door_panel_cache_matches_fresh_manufacturing_mater
     assert a.fold_guides == actual.fold_guides
     assert a.unfolded_topology == actual.unfolded_topology
     assert a.metadata == actual.metadata
+
+
+def test_issue1818_navigation_only_sync_rejects_real_or_unknown_changes():
+    from copy import deepcopy
+    from phase6_sync_envelope import navigation_only_change
+    old = {'model': '受電箱', 'active_mode': 'set_bay',
+           'active_part': 'box_body', 'w': 800,
+           'workspace': {'active_part': 'box_body', 'existing_parts': ['box_body', 'head'],
+                         'part_features': {}, 'part_profiles': {}}, 'revision': 1}
+    new = deepcopy(old)
+    new.update(active_part='head', revision=2, delta={'active_part': 'head'})
+    new['workspace']['active_part'] = 'head'
+    assert navigation_only_change(old, new)
+    for mutate in (lambda p: p.update(w=820),
+                   lambda p: p['workspace']['part_features'].update(head=[{'x': 1}]),
+                   lambda p: p['workspace']['part_profiles'].update(head={'X': [1]}),
+                   lambda p: p.update(unknown_geometry_rule=True),
+                   lambda p: p.pop('w'),
+                   lambda p: p['workspace'].update(existing_parts=['head'])):
+        changed = deepcopy(new)
+        mutate(changed)
+        assert not navigation_only_change(old, changed)
+    assert not navigation_only_change(None, new)
+    assert not navigation_only_change(old, old)
+
+
+def test_issue1818_navigation_sync_preserves_committed_selection_without_geometry_work():
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from gui_modules.application.lifecycle import _apply_fold_designer_live_snapshot
+    old = {'origin': 'fold_designer', 'revision': 1, 'fingerprint': 'old',
+           'model': '受電箱', 'active_mode': 'set_bay', 'active_part': 'box_body',
+           'workspace': {'active_part': 'box_body', 'existing_parts': ['box_body', 'head']}}
+    new = deepcopy(old)
+    new.update(revision=2, fingerprint='new', active_part='head')
+    new['workspace']['active_part'] = 'head'
+    selected, committed = [], []
+    host = SimpleNamespace(
+        _phase6_last_fold_designer_live_payload=old,
+        _phase6_last_fold_designer_revision=1,
+        _phase6_last_fold_designer_fingerprint='old',
+        workspace_controller=SimpleNamespace(set_active_part=selected.append),
+        project_controller=SimpleNamespace(capture_committed=committed.append),
+        _compose_phase6_project_snapshot_from_main_gui=lambda: {'active_part': selected[-1]},
+        _sync_fold_designer_manual_corner_context=lambda key: None,
+    )
+    # No geometry/state setters or Scheduler on this host: using any would fail.
+    assert _apply_fold_designer_live_snapshot(host, new)
+    assert selected == ['head']
+    assert committed == [{'active_part': 'head'}]
+    assert host._phase6_last_fold_designer_revision == 2
+    assert host._phase6_last_fold_designer_live_payload == new
+    assert not _apply_fold_designer_live_snapshot(host, old)
+
+
+def test_issue1818_navigation_only_never_bypasses_non_receiving_relief_publish():
+    """Vault/other families need certified EndCap relief after a part switch."""
+    from copy import deepcopy
+    from phase6_sync_envelope import navigation_only_change
+    base = {
+        'model': '受電箱', 'active_mode': 'set_bay',
+        'active_part': 'box_body', 'revision': 1,
+        'workspace': {
+            'existing_parts': ('box_body', 'head', 'tail'),
+            'active_part': 'box_body',
+            'assembly_joints': (
+                {'joint_id': 'head:box_body:left:INSERT:intent_derived',
+                 'relation': 'INSERT'},
+            ),
+        },
+    }
+    target = deepcopy(base)
+    target['active_part'] = 'head'
+    target['workspace']['active_part'] = 'head'
+    target['revision'] = 2
+    assert navigation_only_change(base, target)
+    # Certified INSERT/OVERLAY endcap relief for vault cabinets must be
+    # published through the full original designer→host path, never skipped.
+    for family in ('金庫型', '一般型', '未知箱型'):
+        before, after = deepcopy(base), deepcopy(target)
+        before['model'] = after['model'] = family
+        assert not navigation_only_change(before, after)
+    for mode in ('quantity', 'set', None):
+        before, after = deepcopy(base), deepcopy(target)
+        before['active_mode'] = after['active_mode'] = mode
+        assert not navigation_only_change(before, after)
+    # A family change between snapshots is not an authoritative display-only
+    # transition either.
+    before, after = deepcopy(base), deepcopy(target)
+    after['model'] = '金庫型'
+    assert not navigation_only_change(before, after)

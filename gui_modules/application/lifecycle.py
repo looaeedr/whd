@@ -775,6 +775,22 @@ def _apply_fold_designer_live_snapshot(self, payload):
         from phase6_custom_parts import custom_part_only_change
         from phase6_quantity_model import quantity_only_change
         previous_payload = getattr(self, "_phase6_last_fold_designer_live_payload", None)
+        from phase6_sync_envelope import navigation_only_change
+        if origin == "fold_designer" and navigation_only_change(previous_payload, payload):
+            # Selection is persisted, but unchanged manufacturing inputs must
+            # not invalidate caches or enqueue a host calculation/echo.
+            active = payload["active_part"]
+            self.workspace_controller.set_active_part(active)
+            if active.startswith("box_body:") and not active.startswith("box_body:divider:"):
+                self.box_body_piece_2d_selected_var.set(active)
+            self._sync_fold_designer_manual_corner_context(active)
+            self.project_controller.capture_committed(
+                self._compose_phase6_project_snapshot_from_main_gui()
+            )
+            self._phase6_last_fold_designer_revision = revision
+            self._phase6_last_fold_designer_fingerprint = str(payload.get("fingerprint") or "")
+            self._phase6_last_fold_designer_live_payload = deepcopy(payload)
+            return True
         quantity_changed = quantity_only_change(previous_payload, payload)
         if custom_part_only_change(previous_payload, payload) or quantity_changed:
             self.workspace_controller.commit_workspace(payload["workspace"])
