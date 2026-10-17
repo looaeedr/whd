@@ -77,7 +77,7 @@ jobs:
           print("CADCRAFT_VERIFIED_RELEASE_SHA256", name, digest)
           PY
           tar -xzf "$PACKAGE"
-          CLI="$RUNNER_TEMP/cadcraft/cadcraft-$VERSION-linux-x86_64/usr/bin/cadcraft-cli"
+          CLI="$RUNNER_TEMP/cadcraft/cadcraft-$VERSION-linux-x86_64/bin/cadcraft-cli"
           test -x "$CLI"
           "$CLI" --version
           echo "cli=$CLI" >> "$GITHUB_OUTPUT"
