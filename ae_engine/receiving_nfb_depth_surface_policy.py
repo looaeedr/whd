@@ -127,3 +127,35 @@ def resolve_receiving_nfb_surface_chain(
         nfb_face_step_mm=face_step,
         second_side_fold_mm=return_mm,
     )
+
+
+def selected_receiving_nfb_depth_pair_mm(
+    brand: str, model_refs: tuple[str, str] | list[str],
+) -> tuple[float, float]:
+    """Resolve EXACT brand's two selected NFB references to (deep, shallow).
+
+    Read depths from the operator's current index CSV or typed V5 CSV;
+    do not store a second user-owned depth setting. This is a PURE depth
+    projection, not evidence that two slots own one manufactured base.
+    The caller must associate the selected NFB scope/Bay and the existing
+    BasePlatePartSpec, and verify it is a CENTER_DOUBLE_SIDE_FOLD part.
+    """
+    if (not isinstance(model_refs, (tuple, list))
+            or len(model_refs) != 2
+            or not all(isinstance(ref, str) for ref in model_refs)):
+        raise ValueError("two source-selected NFB model references required")
+    from .receiving_nfb_model_identity import (
+        parse_numeric_model_ref, selected_numeric_spec,
+    )
+    from .receiving_switch_model_catalog import model_depth_mm
+    depths = []
+    for ref in model_refs:
+        if ref.startswith("nfbv5:"):
+            spec = selected_numeric_spec(brand, ref)
+            depth = spec.depth_mm if spec is not None else None
+        else:
+            depth = model_depth_mm(brand, ref)
+        if depth is None:
+            raise ValueError("NFB physical depth unknown for exact brand/model source")
+        depths.append(float(depth))
+    return tuple(sorted(depths, reverse=True))
