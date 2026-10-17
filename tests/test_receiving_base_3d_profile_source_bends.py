@@ -33,10 +33,13 @@ def test_real_center_3d_fold_has_all_original_source_40_73_699_732_bend_stations
     # User-mandated true second return 33, not the old fake 31.
     assert xbound[2]-xbound[1] == 33
     assert xbound[4]-xbound[3] == 33
-    # Two formed horizontal mounting surfaces are separated 33 at the
-    # mid-surface, while the physical NFB opposite skins must differ 35.
-    assert abs(folded[2][1]-folded[1][1]) == pytest.approx(33)
-    assert abs((folded[2][1]-1)-(folded[1][1]+1)) == pytest.approx(35)
+    # 33 mm in the original DXF is only the UNFOLDED material segment.
+    # After formation the two parallel front NFB physical mounting surfaces
+    # are 35 mm apart (107-72), preserving the same T2 skin offset.
+    assert x[1]["formed_length"] == pytest.approx(35)
+    assert x[3]["formed_length"] == pytest.approx(35)
+    assert abs(folded[2][1]-folded[1][1]) == pytest.approx(35)
+    assert abs((folded[2][1]+1)-(folded[1][1]+1)) == pytest.approx(35)
     y=profiles["Y"]
     assert [row["len"] for row in y] == [20.,200.,20.]
     ybounds,_=_profile_geometry(y)
