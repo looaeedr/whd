@@ -1391,7 +1391,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 derived.invalidate("geometry", changed_keys=("w", "h", "d"))
             self.mark_receiving_switch_layout_dirty(namespace, adapter)
             self.sync_receiving_current_bay(namespace, refresh_controls=False)
-            self.app.submit_update_intent("geometry", commit=True)
+            # One modal confirmation only stages manufacturing. Actual
+            # assembly/Joint solve belongs to the final close boundary;
+            # Save/Export flush_now() can still force it early, fail-closed.
+            self.app._phase6_update_scheduler.stage("geometry")
         return changed
 
     def single_size_quantity():
@@ -3110,7 +3113,9 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
             designer, "_phase6_last_resolved_manufacturing_signature", None
         )
         signature_changed = current_signature != receipt_signature
-        pending_dirty = bool(getattr(scheduler, "dirty", ()))
+        pending_dirty = bool(
+            getattr(scheduler, "dirty", ()) or getattr(scheduler, "staged", ())
+        )
 
         # Do not route this final queue through designer.submit_update_intent():
         # that public facade rebinds scheduler.executor to the normal executor,
