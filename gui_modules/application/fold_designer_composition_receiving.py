@@ -1382,6 +1382,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             expected_count=count,
         )
         if changed:
+            # This exact operator action changes only W/H/D inputs. Keep raw
+            # certified PartSpec material for unrelated Bays, but invalidate
+            # all assembled geometry as usual. The manufacturing solver still
+            # rechecks placement, Joint relief and collision on the new state.
+            derived = getattr(self.app, "_derived_cache_owner", None)
+            if derived is not None:
+                derived.invalidate("geometry", changed_keys=("w", "h", "d"))
             self.mark_receiving_switch_layout_dirty(namespace, adapter)
             self.sync_receiving_current_bay(namespace, refresh_controls=False)
             self.app.submit_update_intent("geometry", commit=True)
