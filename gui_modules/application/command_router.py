@@ -19,6 +19,9 @@ class _Phase6UpdateScheduler:
         self.executor = executor
         self.depth = 0
         self.dirty = set()
+        # Modal editor batch: pending work must be visible to explicit
+        # Save/Export flush_now, but not execute on Tk idle during the modal.
+        self.staged = set()
         self._flushing = False
         self._after_job = None
         self._metrics = {
@@ -48,6 +51,15 @@ class _Phase6UpdateScheduler:
 
     def mark_dirty(self, reason="geometry"):
         return self.submit(reason)
+
+    def stage(self, reason="geometry"):
+        """Hold modal changes until close or explicit authoritative Save/Export.
+
+        Unlike submit(), never enqueue a Tk idle timer. An explicit flush_now()
+        always drains staged changes; this is NOT a permanent debounce.
+        """
+        self.staged.add(str(reason or "geometry"))
+        return True
 
     @classmethod
     def _normalize_debounce_ms(cls, debounce_ms):
@@ -87,7 +99,12 @@ class _Phase6UpdateScheduler:
         self.flush_now()
 
     def flush_now(self):
-        if self.depth > 0 or self._flushing or not self.dirty:
+        if self.depth > 0 or self._flushing:
+            return False
+        if self.staged:
+            self.dirty.update(self.staged)
+            self.staged.clear()
+        if not self.dirty:
             return False
         if self._after_job is not None:
             root = getattr(self.owner, "root", None)
@@ -159,6 +176,7 @@ class _Phase6UpdateScheduler:
                 pass
             self._after_job = None
         self.dirty.clear()
+        self.staged.clear()
         self.depth = 0
         return True
 
