@@ -719,7 +719,35 @@ def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
         # The complete semantic fingerprint does not include a raw DXF file's
         # mtime/size/reload epoch. Before accepting *any* current or previous
         # cached result, retire both when its source witness has changed.
-        stamp = _receiving_baseline_source_stamp(str(snapshot.get("model")))
+        # A complete resolved geometry receipt includes all physical BoxBody
+        # pieces, not just the three general BoxBody/Head/Door baselines.
+        # The Receiving 3-piece source-flat factory consumes three *dedicated*
+        # left/right/rear DXFs: changing any one must retire BOTH cached
+        # topology receipts, including 3->4->3 undo. Unknown structure cannot
+        # certify the complete source set, so it disables historical reuse.
+        from phase6_box_body_structure import BoxBodyStructureType
+        structure = _box_body_structure(getattr(app, "designer_workspace", None))
+        if not structure and isinstance(snapshot.get("box_body_structure"), Mapping):
+            structure = snapshot["box_body_structure"]
+        active = (
+            getattr(structure.get("active_type"), "value", structure.get("active_type"))
+            if isinstance(structure, Mapping) else None
+        )
+        recognized = {kind.value for kind in BoxBodyStructureType}
+        if active not in recognized:
+            stamp = None
+        else:
+            make_context = getattr(app, "_manufacturing_context", None)
+            try:
+                ctx = make_context(draw_stock=False) if callable(make_context) else None
+                stamp = _receiving_baseline_source_stamp(
+                    str(snapshot.get("model")), context=ctx,
+                    include_physical_panels=(
+                        active == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+                    ),
+                )
+            except (TypeError, ValueError, OSError):
+                stamp = None
         if stamp is None or getattr(service, "_receiving_baseline_stamp", None) != stamp:
             service.clear()
         service._receiving_baseline_stamp = stamp
