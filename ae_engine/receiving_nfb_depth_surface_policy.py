@@ -159,3 +159,124 @@ def selected_receiving_nfb_depth_pair_mm(
             raise ValueError("NFB physical depth unknown for exact brand/model source")
         depths.append(float(depth))
     return tuple(sorted(depths, reverse=True))
+
+
+def committed_receiving_nfb_depth_pair_mm(snapshot) -> tuple[float, float] | None:
+    """Derive a CENTER base depth pair from an ACTUALLY submitted Bay's holes.
+
+    Do not manufacture from transient NFB draft, a legacy list of filenames,
+    a stale unselected Bay, or a duplicate depth-input field. An exported
+    BasePlatePartSpec must consume the same (Set, Bay) currently being viewed.
+    The Set's switch_brand is the existing brand owner; there is no second
+    editable Base Plate brand. This is only a *depth source resolution*, not
+    whole-box MFG release or Z/weld-face certification.
+    """
+    from collections.abc import Mapping
+    from .receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
+    if not isinstance(snapshot, Mapping):
+        raise TypeError("Receiving physical source snapshot must be a mapping")
+    if "nfb_config_submitted" not in snapshot:
+        # Fold Designer's canonical workspace snapshot stores submitted NFBs
+        # under Receiving Set/Bay rather than as a root alias. Project only
+        # a UNIQUE one-Set/one-Bay source (or an explicitly selected Bay).
+        # Multi-Bay with no selection MUST NOT leak another Bay's depth.
+        layout = snapshot.get("receiving_layout")
+        sets = layout.get("sets") if isinstance(layout, Mapping) else None
+        selected_bay = None
+        if isinstance(sets, (list, tuple)) and sets:
+            runtime = snapshot.get("_receiving_runtime_selection")
+            if isinstance(runtime, Mapping):
+                si,bi=runtime.get("set_index"),runtime.get("bay_index")
+                if (type(si) is int and 0<=si<len(sets)
+                        and isinstance(sets[si], Mapping)):
+                    chosen = sets[si]
+                    bays = chosen.get("bays")
+                    if (chosen.get("stable_id")==runtime.get("set_id")
+                            and isinstance(bays, (list, tuple))
+                            and type(bi) is int and 0<=bi<len(bays)
+                            and isinstance(bays[bi], Mapping)
+                            and bays[bi].get("stable_id")==runtime.get("bay_id")):
+                        selected_bay=bays[bi]
+            elif (len(sets)==1 and isinstance(sets[0], Mapping)
+                  and isinstance(sets[0].get("bays"), (list, tuple))
+                  and len(sets[0]["bays"])==1):
+                selected_bay=sets[0]["bays"][0]
+        if not isinstance(selected_bay, Mapping):
+            return None
+        if selected_bay.get("nfb_config_submitted") is not True:
+            return None
+        return committed_receiving_nfb_depth_pair_mm({
+            **snapshot,
+            "nfb_config_submitted": True,
+            "nfb_config": selected_bay.get("nfb_config"),
+        })
+    if snapshot.get("nfb_config_submitted") is not True:
+        return None
+    config = snapshot.get("nfb_config")
+    if not isinstance(config, Mapping):
+        raise ValueError("submitted NFBConfig missing from live Bay scope")
+    holes = config.get("holes")
+    if not isinstance(holes, (tuple, list)) or not holes:
+        raise ValueError("submitted NFBConfig physical holes missing")
+    # Only TWO distinct NFBs on the SAME physical row can determine one
+    # second side fold; others retain preview and need independent authority.
+    if config.get("layer_count") != 1 or len(holes) != 2:
+        return None
+    if not all(isinstance(row, Mapping) for row in holes):
+        raise ValueError("submitted NFBConfig invalid physical hole")
+    names = tuple(row.get("model_filename") for row in holes)
+    if not all(isinstance(name, str) and name for name in names):
+        raise ValueError("submitted NFBConfig has missing model filename")
+    if names[0] == names[1]:
+        return None
+
+    layout = snapshot.get("receiving_layout")
+    if not isinstance(layout, Mapping):
+        raise ValueError("submitted NFB depth has no owning Receiving Set")
+    sets = layout.get("sets")
+    if not isinstance(sets, (list, tuple)) or not sets:
+        raise ValueError("submitted NFB depth has no physical Receiving Set")
+    runtime = snapshot.get(RECEIVING_RUNTIME_SELECTION_KEY)
+    if isinstance(runtime, Mapping):
+        index = runtime.get("set_index")
+        bay_index = runtime.get("bay_index")
+        if type(index) is not int or not 0 <= index < len(sets):
+            raise ValueError("Receiving selected NFB Set index invalid")
+        chosen = sets[index]
+        if (not isinstance(chosen, Mapping)
+                or chosen.get("stable_id") != runtime.get("set_id")):
+            raise ValueError("Receiving NFB selected Set identity drift")
+        bays = chosen.get("bays")
+        if (not isinstance(bays, (list, tuple))
+                or type(bay_index) is not int or not 0 <= bay_index < len(bays)
+                or not isinstance(bays[bay_index], Mapping)
+                or bays[bay_index].get("stable_id") != runtime.get("bay_id")
+                or bays[bay_index].get("nfb_config_submitted") is not True
+                or bays[bay_index].get("nfb_config") != config):
+            raise ValueError("Receiving NFB selected Bay/config identity drift")
+    elif len(sets) == 1 and isinstance(sets[0], Mapping):
+        chosen = sets[0]
+        bays = chosen.get("bays")
+        if (not isinstance(bays, (tuple, list)) or len(bays) != 1
+                or not isinstance(bays[0], Mapping)
+                or bays[0].get("nfb_config_submitted") is not True
+                or bays[0].get("nfb_config") != config):
+            raise ValueError("Receiving NFB active Bay identity ambiguous")
+    else:
+        raise ValueError("Receiving NFB active Set identity ambiguous")
+    brand = chosen.get("switch_brand")
+    if not isinstance(brand, str) or not brand:
+        raise ValueError("Receiving Set owns no selected NFB switch brand")
+    # Saved per-hole provenance may forbid using the Set brand for this
+    # exact hole; never silently cross-brand-match a filename.
+    if any(row.get("source_brand", brand) != brand for row in holes):
+        raise ValueError("NFB per-hole source brand disagrees with selected Set")
+    depths = selected_receiving_nfb_depth_pair_mm(brand, names)
+    if abs(depths[0] - depths[1]) <= 1e-9:
+        return None
+    receiving_nfb_second_side_fold_mm(
+        reference_nfb_depth_mm=depths[0],
+        secondary_nfb_depth_mm=depths[1],
+        base_plate_thickness_mm=float(snapshot.get("t", 0)),
+    )
+    return depths
