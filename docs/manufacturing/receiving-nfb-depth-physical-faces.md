@@ -105,6 +105,14 @@ shallow_back_z       = shallow_front_z - Tb
 
 **這是來源 FinalScene 皮面的深度要求／目標，不是已經移動 3D 底板的證明。** `assembly_placement.py::_base_plate_center_plane` 仍有由後側板推 Z 的歷史邏輯；還須將底板的真實折後**NFB 安裝皮面**與上述 `base_mount_front_z` 對齊，並帶動左右固定片及真實側板 MARKING。未完成這個幾何核對時，不能宣稱「3D 已修好」或解除 MFG-2 出圖阻擋。
 
+## 四之二、#1502 實際組合體底板 Z：折後 35 不可硬當料長 33
+
+本次串接路徑為 `receiving_base_plate_3d_profiles`（真正 CUTTING/BEND）→ `assembly_geometry_folded_mesh._profile_geometry`（只有 CENTER 第二折持有 `formed_length`，**展開 BEND 站位仍累計原料長**）→ `receiving_base_plate_real_skins`（從同一 FinalScene 與真正 T2 皮面求出 NFB 平行工作面；按來源尺寸快取）→ `receiving_nfb_world_skin_datums`（內門真實內側皮面）→ `assembly_placement.resolve_base_plate_placement`（設定世界 Z）。
+
+- 士林 107／72：料長第二段 **33**，折後兩個 NFB 安裝皮面世界 Z 差 **35**；兩張皮面各離內門實體內側 **107／72**。不得用原先 `-D/2 + T + BEND/2` 當已提交型號的底板 Z；此式僅可留在**未配置預覽**。
+- 型號或內門縮入改變，底板組合位置重新計算；來源尺寸相同時折後皮面網格按不變參數快取，不在每次渲染無意義重建。若第一／第二折真實皮面不共面或失去來源身份，拒絕以舊基準代替。
+- **交付界限**：這一階段計算並實際連接**中間底板本體**的 Z。左右固定片仍是來源輪廓預覽，沒有真 3D 焊接與側板左右 MARKING，不能宣告 #1502/#1503 MFG-2 完工。此位置計算不修改使用者已提交的深度、也不釋出 DXF。
+
 ## 五、資料與向下相容
 
 - 型號來源必須從 `基準檔/開孔/NFB/開關索引.csv` 或 V5 各品牌 `基準檔/開孔/NFB/數值規格/<品牌>/NFB數值規格.csv` **以被選中的 brand/model 查取深度**。不可從檔名尾碼或其他品牌推斷。
