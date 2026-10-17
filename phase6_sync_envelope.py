@@ -58,6 +58,32 @@ class _Unchanged:
 _UNCHANGED = _Unchanged()
 
 
+def navigation_only_change(previous, current) -> bool:
+    """Prove only the selected existing part changed; unknown fields fail closed.
+
+    Compare complete payloads, including removed keys, rather than trusting the
+    sender's delta or geometry cache. Transport metadata is not product state.
+    """
+    if not isinstance(previous, Mapping) or not isinstance(current, Mapping):
+        return False
+    old, new = deepcopy(dict(previous)), deepcopy(dict(current))
+    changed = False
+    for payload in (old, new):
+        workspace = payload.get("workspace")
+        if not isinstance(workspace, dict):
+            return False
+        active = payload.get("active_part")
+        if (not active or workspace.get("active_part") != active
+                or active not in tuple(workspace.get("existing_parts") or ())):
+            return False
+    changed = old["active_part"] != new["active_part"]
+    for payload in (old, new):
+        for name in ("origin", "revision", "fingerprint", "transaction_id", "delta", "active_part"):
+            payload.pop(name, None)
+        payload["workspace"].pop("active_part", None)
+    return changed and old == new
+
+
 def mapping_delta(before, after) -> dict:
     delta = actual_delta(before or {}, after or {})
     return {} if delta is _UNCHANGED else dict(delta)

@@ -1615,3 +1615,55 @@ def test_issue1817_real_inner_door_panel_cache_matches_fresh_manufacturing_mater
     assert a.fold_guides == actual.fold_guides
     assert a.unfolded_topology == actual.unfolded_topology
     assert a.metadata == actual.metadata
+
+
+def test_issue1818_navigation_only_sync_rejects_real_or_unknown_changes():
+    from copy import deepcopy
+    from phase6_sync_envelope import navigation_only_change
+    old = {'model': '受電箱', 'active_part': 'box_body', 'w': 800,
+           'workspace': {'active_part': 'box_body', 'existing_parts': ['box_body', 'head'],
+                         'part_features': {}, 'part_profiles': {}}, 'revision': 1}
+    new = deepcopy(old)
+    new.update(active_part='head', revision=2, delta={'active_part': 'head'})
+    new['workspace']['active_part'] = 'head'
+    assert navigation_only_change(old, new)
+    for mutate in (lambda p: p.update(w=820),
+                   lambda p: p['workspace']['part_features'].update(head=[{'x': 1}]),
+                   lambda p: p['workspace']['part_profiles'].update(head={'X': [1]}),
+                   lambda p: p.update(unknown_geometry_rule=True),
+                   lambda p: p.pop('w'),
+                   lambda p: p['workspace'].update(existing_parts=['head'])):
+        changed = deepcopy(new)
+        mutate(changed)
+        assert not navigation_only_change(old, changed)
+    assert not navigation_only_change(None, new)
+    assert not navigation_only_change(old, old)
+
+
+def test_issue1818_navigation_sync_preserves_committed_selection_without_geometry_work():
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from gui_modules.application.lifecycle import _apply_fold_designer_live_snapshot
+    old = {'origin': 'fold_designer', 'revision': 1, 'fingerprint': 'old',
+           'model': '受電箱', 'active_part': 'box_body',
+           'workspace': {'active_part': 'box_body', 'existing_parts': ['box_body', 'head']}}
+    new = deepcopy(old)
+    new.update(revision=2, fingerprint='new', active_part='head')
+    new['workspace']['active_part'] = 'head'
+    selected, committed = [], []
+    host = SimpleNamespace(
+        _phase6_last_fold_designer_live_payload=old,
+        _phase6_last_fold_designer_revision=1,
+        _phase6_last_fold_designer_fingerprint='old',
+        workspace_controller=SimpleNamespace(set_active_part=selected.append),
+        project_controller=SimpleNamespace(capture_committed=committed.append),
+        _compose_phase6_project_snapshot_from_main_gui=lambda: {'active_part': selected[-1]},
+        _sync_fold_designer_manual_corner_context=lambda key: None,
+    )
+    # No geometry/state setters or Scheduler on this host: using any would fail.
+    assert _apply_fold_designer_live_snapshot(host, new)
+    assert selected == ['head']
+    assert committed == [{'active_part': 'head'}]
+    assert host._phase6_last_fold_designer_revision == 2
+    assert host._phase6_last_fold_designer_live_payload == new
+    assert not _apply_fold_designer_live_snapshot(host, old)

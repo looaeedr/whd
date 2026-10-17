@@ -855,6 +855,7 @@ def worker(args):
             # *same* resident 1-Bay/3-Bay process. No forced geometry
             # invalidation, fake renderer, or source data replacement.
             rapid_trace = []
+            rapid_calc_start = [0]
 
             def trace_rapid_step(operation):
                 view = designer.final_scene_view
@@ -908,6 +909,9 @@ def worker(args):
                 })
 
             def rapid_view_switches():
+                rapid_calc_start[0] = sum(
+                    owner._phase6_update_scheduler._metrics['calculation_flushes']
+                    for owner in owners)
                 trace_rapid_step('initial')
                 for part_key in ('door', 'head', 'tail', 'door', 'head', 'tail'):
                     designer.set_3d_preview_enabled(False)
@@ -934,16 +938,20 @@ def worker(args):
                         'rapid view changes did not keep the final BoxBody selection')
                 if not designer.renderer.ax2d.get_visible() is False:
                     raise AssertionError('3D switch left obsolete 2D axes visible')
+                calculation_flushes = sum(
+                    owner._phase6_update_scheduler._metrics['calculation_flushes']
+                    for owner in owners) - rapid_calc_start[0]
+                if (calculation_flushes or probe.counts.get('manufacturing_solve', 0)
+                        or probe.counts.get('dxf_readfile', 0)):
+                    # Validate before record writes JSONL: a gate failure must
+                    # remain a failed sample, never FAILED_SAMPLES=0 + exit 1.
+                    raise AssertionError(
+                        'display-only rapid 2D/3D switch triggered manufacturing or DXF IO: '
+                        + repr((calculation_flushes, dict(probe.counts), rapid_trace)))
 
             record('issue1818_rapid_2d_3d_final_state',
                    rapid_view_switches, cache='display_only',
                    validate=last_view_check)
-            measured = rows[-1]
-            if (measured['calculation_flushes'] != 0
-                    or measured['counts'].get('manufacturing_solve', 0)
-                    or measured['counts'].get('dxf_readfile', 0)):
-                raise AssertionError(
-                    'display-only rapid 2D/3D switch triggered manufacturing or DXF IO: ' + repr((measured['calculation_flushes'], measured['counts'], rapid_trace)))
 
         # True source DXF preview; absence is explicit, not substituted with a toy.
         if args.dxf_index:
