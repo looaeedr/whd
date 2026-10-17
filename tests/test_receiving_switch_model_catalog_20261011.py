@@ -455,3 +455,222 @@ def test_v5_panel_projection_rejects_unknown_basis_missing_holes_and_mirroring()
             NfbPanelDatum("unknown","manufacturing",(0,0),(1,0),(0,1)),
             feature="opening",
         )
+
+
+def test_v5_trial_cuts_real_inner_door_finalscene_without_export_approval():
+    from ae_engine.receiving_nfb_v5_real_part_cutting import (
+        trial_v5_numeric_cutting_on_real_part, TRIAL_STATUS,
+    )
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    from tools.nfb_v5_cadcraft_crosscheck import _fixture
+    baseline, datum = _fixture()
+    original_primitives = tuple(baseline.scene.primitives)
+    original_area = baseline.material.area
+    result = trial_v5_numeric_cutting_on_real_part(
+        baseline, datum=datum, brand="士林", model="2P125SN", feature="both",
+    )
+    assert result.part_id == datum.part_id
+    assert result.status == TRIAL_STATUS
+    assert result.manufacturing_ready is False
+    assert result.render_data.metadata["nfb_trial_export_approved"] is False
+    assert result.render_data.material.area < original_area
+    assert tuple(baseline.scene.primitives) == original_primitives
+    assert baseline.material.area == original_area
+    appended = result.render_data.scene.primitives[len(original_primitives):]
+    assert len(appended) == 5
+    assert len([p for p in appended
+                if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING" and p.color == 3]) == 1
+    assert len([p for p in appended
+                if isinstance(p, CirclePrimitive) and p.layer == "CUTTING" and p.color == 3]) == 4
+    assert result.render_data.unfolded_topology == baseline.unfolded_topology
+    assert result.render_data.fold_guides == baseline.fold_guides
+    with pytest.raises(ValueError, match="超出實際板材"):
+        from ae_engine.receiving_nfb_numeric_panel_projection import NfbPanelDatum
+        outside = NfbPanelDatum(
+            datum.part_id, "inner-door", (100000, 100000), (1, 0), (0, 1))
+        trial_v5_numeric_cutting_on_real_part(
+            baseline, datum=outside, brand="士林", model="2P125SN", feature="both",
+        )
+    with pytest.raises(ValueError, match="不可疊寫"):
+        trial_v5_numeric_cutting_on_real_part(
+            result.render_data, datum=datum, brand="士林", model="2P125SN",
+            feature="opening",
+        )
+
+
+def test_v5_cadcraft_fixture_uses_actual_cutting_scene_and_detects_modified_dxf(tmp_path):
+    import json
+    import shutil
+    import ezdxf
+    from tools.nfb_v5_cadcraft_crosscheck import emit, verify
+    source = tmp_path / "w.dxf"
+    copy = tmp_path / "cadcraft.dxf"
+    info = tmp_path / "cadcraft-info.json"
+    manifest = tmp_path / "manifest.json"
+    emit(source, manifest)
+    info.write_text(json.dumps({"source": "simulated info for comparator test"}), encoding="utf-8")
+    # Unit check exercises the geometry comparator; actual CadCraft process
+    # invocation is required by the separate GitHub workflow.
+    shutil.copyfile(source, copy)
+    verify(source, copy, manifest, info)
+    d = ezdxf.readfile(copy)
+    circles = [e for e in d.modelspace() if e.dxftype() == "CIRCLE"
+               and e.dxf.layer == "CUTTING"]
+    assert len(circles) == 4
+    circles[0].dxf.radius *= 2
+    d.saveas(copy)
+    with pytest.raises(ValueError, match="CADCRAFT_DXF_GEOMETRY_OR_LAYER_DIFF"):
+        verify(source, copy, manifest, info)
+
+
+def _v5_configured_w800_inner_door_state():
+    from ae_engine.cabinet_types.receiving import apply_family_defaults
+    state = apply_family_defaults({
+        "model": "受電箱", "w": 800.0, "h": 1600.0, "d": 350.0,
+        "t": 2.0, "fw": 29.0, "door_gap_w": 3.5, "door_gap_h": 3.5,
+    })
+    state.update({
+        "multi_door_enabled": True,
+        "door_layout_scope": "receiving-main",
+        "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        "inner_doors": [{
+            "stable_id": "upper", "cell_key": "0:0",
+            "included_frame_sides": ["top", "left", "right"],
+        }],
+        "receiving_inner_door_layer_heights_mm": [330.0, 830.0],
+    })
+    return state
+
+
+def _v5_configured_hole(identifier, world_x, *, layer=0, angle=0,
+                        brand="士林", model="2P125SN"):
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        NfbV5ConfiguredInnerDoorHole,
+    )
+    return NfbV5ConfiguredInnerDoorHole(
+        physical_hole_id=identifier, brand=brand,
+        model_ref=f"nfbv5:{brand}:{model}", world_x_mm=world_x,
+        layer_count=2, slot_index=layer, rotation_deg=angle,
+    )
+
+
+def test_v5_configured_physical_inner_door_uses_real_world_x_operator_y_and_3d_material():
+    from shapely.geometry import Point, Polygon
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.assembly_geometry import folded_mesh_with_flat_uv_from_polygon
+    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
+    from ae_engine.manufacturing_api import (
+        build_inner_door_panel_render_data, save_part_render_data_dxf,
+    )
+    from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data, STATUS,
+    )
+    state = _v5_configured_w800_inner_door_state()
+    part = next(p for p in cabinet_family_policy.derive_inner_door_panels(state)
+                if p.inner_door_id == "upper")
+    before = build_inner_door_panel_render_data(part)
+    assert part.unfolded_width == pytest.approx(723)
+    h0 = _v5_configured_hole("nfb:upper:layer1:unit1", -90, layer=0)
+    h1 = _v5_configured_hole("nfb:upper:layer2:unit1", 90, layer=1, angle=90)
+    trial = trial_configured_nfb_v5_inner_door_render_data(
+        state, "upper", holes=(h0, h1),
+    )
+    assert trial.status == STATUS and trial.manufacturing_ready is False
+    assert trial.hole_ids == (h0.physical_hole_id, h1.physical_hole_id)
+    assert trial.render_data.metadata["nfb_trial_export_approved"] is False
+    assert trial.render_data.unfolded_topology == before.unfolded_topology
+    assert trial.render_data.fold_guides == before.fold_guides
+    assert tuple(trial.render_data.scene.primitives[:len(before.scene.primitives)]) == tuple(before.scene.primitives)
+    assert len(trial.render_data.scene.primitives) == len(before.scene.primitives)+2
+    assert trial.render_data.material.area < before.material.area
+    assert before.material.area > trial.render_data.material.area
+    projections = trial.patterns
+    y0 = project_nfb_inner_door_nominal_y(state, "upper", layer_count=2, slot_index=0)
+    y1 = project_nfb_inner_door_nominal_y(state, "upper", layer_count=2, slot_index=1)
+    assert projections[0].datum.uv_centre_mm == pytest.approx(
+        (723/2 - 90, y0.unfolded_uv_y_mm))
+    assert projections[1].datum.uv_centre_mm == pytest.approx(
+        (723/2 + 90, y1.unfolded_uv_y_mm))
+    assert projections[0].screw_centres_uv_mm is None  # inner door opening only
+    assert projections[1].screw_centres_uv_mm is None
+    assert projections[0].opening_uv_mm[0] == pytest.approx(
+        (723/2 - 90 - 14, y0.unfolded_uv_y_mm-29))
+    assert projections[1].opening_uv_mm[0] == pytest.approx(
+        (723/2 + 90 + 29, y1.unfolded_uv_y_mm-14))
+    # A *real* 3D consumer folds this very FinalScene material, not a second
+    # hand-drawn preview. Interior points of the two physical holes stay cut.
+    prof = inner_door_panel_part_profiles([part])[part.stable_id]
+    mapped = folded_mesh_with_flat_uv_from_polygon(
+        trial.render_data.material, prof["X"], prof["Y"],
+        fold_guides=tuple(trial.render_data.fold_guides),
+    )
+    assert mapped
+    for pattern in projections:
+        uv = Point(*pattern.datum.uv_centre_mm)
+        assert not trial.render_data.material.covers(uv)
+        assert not any(Polygon(row.flat).buffer(-1e-6).covers(uv)
+                       for row in mapped)
+    assert all(len(row.local) == 3 for row in mapped)
+    with pytest.raises(ValueError, match="禁止"):
+        save_part_render_data_dxf(trial.render_data, "do-not-export-v5-trial.dxf")
+
+
+def test_v5_configured_physical_door_invalid_batch_fails_without_side_effects():
+    from dataclasses import replace
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    state = _v5_configured_w800_inner_door_state()
+    first = _v5_configured_hole("one", 0, layer=0)
+    same_id = replace(first, world_x_mm=100)
+    collision = _v5_configured_hole("two", 3, layer=0)
+    wrong_brand = replace(first, brand="東元")
+    missing_x = replace(first, world_x_mm=None)
+    wrong_angle = replace(first, rotation_deg=45)
+    missing_model = replace(first, model_ref="nfbv5:士林:1PBH")
+    for holes in (
+        (first, same_id), (first, collision),
+        (wrong_brand,), (missing_x,), (wrong_angle,), (missing_model,),
+    ):
+        with pytest.raises((ValueError, TypeError)):
+            trial_configured_nfb_v5_inner_door_render_data(
+                state, "upper", holes=holes,
+            )
+
+
+def test_v5_configured_door_retains_and_respects_existing_native_cutting_holes():
+    from dataclasses import replace
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+    from ae_engine.manufacturing_render_data import material_polygon_from_final_scene
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    state = _v5_configured_w800_inner_door_state()
+    part = next(p for p in cabinet_family_policy.derive_inner_door_panels(state)
+                if p.inner_door_id == "upper")
+    base = build_inner_door_panel_render_data(part)
+    hole = _v5_configured_hole("v5", 0, layer=0)
+    first = trial_configured_nfb_v5_inner_door_render_data(
+        state, "upper", holes=(hole,),
+    )
+    centre = first.patterns[0].datum.uv_centre_mm
+    scene = DrawingScene(list(base.scene.primitives))
+    scene.add_circle(centre, 8.0, layer="CUTTING", color=3)
+    legacy = replace(
+        base, scene=scene, material=material_polygon_from_final_scene(scene),
+    )
+    with pytest.raises(ValueError, match="既有"):
+        trial_configured_nfb_v5_inner_door_render_data(
+            state, "upper", holes=(hole,), existing_render_data=legacy,
+        )
+    safe = trial_configured_nfb_v5_inner_door_render_data(
+        state, "upper",
+        holes=(_v5_configured_hole("safe", 180, layer=0),),
+        existing_render_data=legacy,
+    )
+    assert len(safe.render_data.scene.primitives) == len(scene.primitives)+1
+    assert tuple(safe.render_data.scene.primitives[:len(scene.primitives)]) == tuple(scene.primitives)
+    assert legacy.scene.primitives == scene.primitives
