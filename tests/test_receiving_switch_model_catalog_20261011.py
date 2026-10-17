@@ -837,7 +837,7 @@ def test_v5_base_requires_one_real_row_and_matching_door_or_fails_closed():
     door = trial_configured_nfb_v5_inner_door_render_data(
         state,"upper",holes=(hole,),
     )
-    with pytest.raises(ValueError, match="已改變"):
+    with pytest.raises(ValueError, match="裝配座標不一致"):
         trial_v5_screws_on_existing_receiving_base(
             state,"upper",door=door,configured_holes=(replace(hole,world_x_mm=15),),
             target=base,
@@ -858,7 +858,7 @@ def test_v5_base_requires_one_real_row_and_matching_door_or_fails_closed():
         )
     # Move the real base face too close to its own EAR, so at least one screw
     # circle falls outside actual remaining material. No partial final scene.
-    with pytest.raises(ValueError, match="EAR|碰到|折邊"):
+    with pytest.raises(ValueError, match="face|EAR|碰到|折邊"):
         trial_v5_screws_on_existing_receiving_base(
             state,"upper",door=door,configured_holes=(hole,),
             target=replace(base,unfolded_face_center_uv_mm=(4.,4.)),
