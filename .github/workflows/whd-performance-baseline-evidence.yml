@@ -13,6 +13,8 @@ on:
       - 'gui_modules/application/fold_designer_manufacturing_projection.py'
       - 'phase6_manufacturing_adapter.py'
       - 'gui_modules/application/command_router.py'
+      # Changing the active view must never commit hidden Receiving Bay geometry.
+      - 'gui_modules/application/fold_designer_part_session.py'
       - 'gui_modules/application/fold_designer_composition_receiving.py'
       - 'docs/performance/issue1816-baseline.md'
 
