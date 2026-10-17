@@ -150,6 +150,11 @@ PYTEST_PATHS = (
     # #1818: real Tk reentrant preview requests must never render stale
     # geometry or write stale errors after candidate switch / window close.
     "tests/test_receiving_multi_settings_stage_20261010.py::test_issue1818_real_cut_preview_latest_selection_wins_during_reentrant_provider",
+    # #1818: 3D FinalScene last valid operator choice wins after nested Tk
+    # callbacks, and old provider failures must never repaint the newer view.
+    "tests/test_phase6_3d_operator_view.py::test_issue1818_reentrant_3d_render_only_publishes_latest_view",
+    # Real live designer viewport/camera interaction, not a mocked canvas.
+    "tests/test_phase6_3d_view_regressions.py::test_real_tk_3d_only_layout_scroll_zoom_and_unfolded_size_label",
     "tests/test_issue1640_mode_navigation.py::test_mode_toggle_and_manager_stay_operable_without_forced_window_exit",
     "tests/test_issue1640_floating_scroll.py::test_real_popup_reuses_one_nonmodal_toplevel_without_applying_candidate",
     "tests/test_receiving_weld_ear_mounting.py",
