@@ -752,3 +752,120 @@ def test_v5_live_operator_popup_draws_same_real_finalscene_not_numeric_mock():
         assert len(canvas.find_withtag("v5-real-part")) == len(items)
     finally:
         root.destroy()
+
+
+def _v5_actual_base_w800_fixture():
+    from ae_engine.contracts import BasePlatePartSpec
+    from ae_engine.manufacturing_api import build_part_render_data
+    from ae_engine.receiving_nfb_base_process_projection import NfbActualBaseWorkFace
+    spec = BasePlatePartSpec(
+        width=800., height=340., thickness=2.,
+        shrink_top=20., shrink_bottom=20., shrink_left=45., shrink_right=45.,
+        bend=20., model_name="受電箱",
+        receiving_bend_pattern="LEFT_FLAT_SIDE",
+        physical_id="base_plate",
+    )
+    real = build_part_render_data(spec)
+    w, h = float(real.unfolded_topology.width), float(real.unfolded_topology.height)
+    from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    state = _v5_configured_w800_inner_door_state()
+    first_layer = project_nfb_inner_door_nominal_y(
+        state, "upper", layer_count=2, slot_index=0,
+    )
+    return NfbActualBaseWorkFace(
+        physical_part_id="base_plate", actual_render=real,
+        world_face_center_xy_mm=(0., first_layer.box_world_y_mm),
+        unfolded_face_center_uv_mm=(w/2, h/2),
+        face_outline_uv_mm=((0., 20.), (w, 20.),
+                            (w, h-20.), (0., h-20.)),
+    )
+
+
+def test_v5_screws_use_real_base_ear_finalscene_and_same_installed_door_centres():
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.receiving_nfb_v5_actual_base_screws import (
+        trial_v5_screws_on_existing_receiving_base, STATUS,
+    )
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    from ae_engine.manufacturing_api import save_part_render_data_dxf
+    from shapely.geometry import Point
+    state = _v5_configured_w800_inner_door_state()
+    holes = (
+        _v5_configured_hole("nfb:1", -90, layer=0),
+        _v5_configured_hole("nfb:2", 90, layer=0),
+    )
+    door = trial_configured_nfb_v5_inner_door_render_data(
+        state, "upper", holes=holes,
+    )
+    base = _v5_actual_base_w800_fixture()
+    original = base.actual_render
+    result = trial_v5_screws_on_existing_receiving_base(
+        state, "upper", door=door, configured_holes=holes, target=base,
+    )
+    assert result.status == STATUS and result.manufacturing_ready is False
+    assert result.part_id == "base_plate" and result.hole_ids == door.hole_ids
+    assert result.render_data.material.area < original.material.area
+    assert len(result.render_data.scene.primitives) == len(original.scene.primitives)+8
+    assert tuple(result.render_data.scene.primitives[:len(original.scene.primitives)]) == tuple(original.scene.primitives)
+    assert result.render_data.unfolded_topology == original.unfolded_topology
+    assert result.render_data.fold_guides == original.fold_guides
+    assert original.material.area > result.render_data.material.area
+    assert len([p for p in original.scene.primitives
+                if isinstance(p, PolylinePrimitive) and p.layer=="CUTTING" and p.closed]) == 5
+    screws=[p for p in result.render_data.scene.primitives
+            if isinstance(p,CirclePrimitive)
+            and p.source_type=="NFB_V5_NUMERIC_BASE_TRIAL"]
+    assert len(screws) == 8
+    assert len({p.source_id for p in screws}) == 8
+    assert all(p.color == 30 and p.layer == "CUTTING" for p in screws)
+    for circle in screws:
+        assert not result.render_data.material.covers(
+            Point(circle.center.x, circle.center.y))
+    assert result.render_data.metadata["nfb_trial_export_approved"] is False
+    with pytest.raises(ValueError, match="禁止"):
+        save_part_render_data_dxf(result.render_data, "no-v5-base-manufacturing.dxf")
+
+
+def test_v5_base_requires_one_real_row_and_matching_door_or_fails_closed():
+    from dataclasses import replace
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.receiving_nfb_v5_actual_base_screws import (
+        trial_v5_screws_on_existing_receiving_base,
+    )
+    state = _v5_configured_w800_inner_door_state()
+    base = _v5_actual_base_w800_fixture()
+    hole = _v5_configured_hole("one", 0, layer=0)
+    door = trial_configured_nfb_v5_inner_door_render_data(
+        state,"upper",holes=(hole,),
+    )
+    with pytest.raises(ValueError, match="裝配座標不一致"):
+        trial_v5_screws_on_existing_receiving_base(
+            state,"upper",door=door,configured_holes=(replace(hole,world_x_mm=15),),
+            target=base,
+        )
+    with pytest.raises(ValueError, match="EAR"):
+        trial_v5_screws_on_existing_receiving_base(
+            state,"upper",door=door,configured_holes=(hole,),
+            target=replace(base,world_face_center_xy_mm=(0., 0.)),
+        )
+    second = _v5_configured_hole("two",90,layer=1)
+    both = trial_configured_nfb_v5_inner_door_render_data(
+        state,"upper",holes=(hole,second),
+    )
+    with pytest.raises(ValueError, match="不同層高"):
+        trial_v5_screws_on_existing_receiving_base(
+            state,"upper",door=both,configured_holes=(hole,second),
+            target=base,
+        )
+    # Move the real base face too close to its own EAR, so at least one screw
+    # circle falls outside actual remaining material. No partial final scene.
+    with pytest.raises(ValueError, match="face|EAR|碰到|折邊"):
+        trial_v5_screws_on_existing_receiving_base(
+            state,"upper",door=door,configured_holes=(hole,),
+            target=replace(base,unfolded_face_center_uv_mm=(4.,4.)),
+        )
+    assert base.actual_render.metadata.get("nfb_v5_trial_status") is None
