@@ -11,6 +11,7 @@ on:
       # source-flat geometry/triangulation costs change, not just harnesses.
       - 'ae_engine/receiving_base_fixing_plate_geometry.py'
       - 'gui_modules/application/fold_designer_manufacturing_projection.py'
+      - 'phase6_manufacturing_adapter.py'
       - 'docs/performance/issue1816-baseline.md'
 
 permissions:
