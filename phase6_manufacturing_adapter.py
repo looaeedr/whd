@@ -14,7 +14,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import replace
 from typing import Any
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 import re
 
 from phase6_manufacturing_contracts import (
