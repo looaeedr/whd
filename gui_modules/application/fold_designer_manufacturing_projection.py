@@ -196,7 +196,18 @@ def _authoritative_render_data(self, spec, context=None):
         # Same verified baseline source-generation seam used by the complete
         # manufacturing cache. Missing/unreadable witness forbids reuse.
         from phase6_manufacturing_adapter import _receiving_baseline_source_stamp
-        source_stamp = _receiving_baseline_source_stamp(str(spec.model_name))
+        from phase6_box_body_structure import (
+            BoxBodyStructureType, normalize_box_body_structure_state,
+        )
+        is_dedicated_three_piece = (
+            normalize_box_body_structure_state(spec.structure_state).get("active_type")
+            == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+        )
+        source_stamp = _receiving_baseline_source_stamp(
+            str(spec.model_name),
+            context=ctx,
+            include_physical_panels=is_dedicated_three_piece,
+        )
         if source_stamp is None:
             history.clear()
             owner._receiving_exact_material_stamp = None
