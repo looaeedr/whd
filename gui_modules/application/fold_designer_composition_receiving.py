@@ -702,6 +702,77 @@ def _receiving_cached_bay_inner_door_panel(owner, part_key, payload, factory):
     return material
 
 
+def _receiving_cached_bay_inner_door_frame(owner, part_key, payload, factory):
+    """Reuse raw verified A/B/D frame material only with identical source bytes.
+
+    The source parser generation and exact file content both take part in
+    the key. A missing/unreadable/unknown source always uses the canonical
+    factory (which performs the original verified-source checks). Never
+    memoize Divider or the generic bottom side.
+    """
+    key = str(part_key or "")
+    if not (key.startswith("inner_door:") and key.endswith("_frame")
+            and isinstance(payload, Mapping)
+            and payload.get("model") in ("受電箱", "RECEIVING")
+            and payload.get("active_mode") == "set_bay"):
+        return factory()
+    from collections import OrderedDict
+    from hashlib import sha256
+    from ae_engine.baseline_source import baseline_source_fingerprint
+    from ae_engine.receiving_frame_baseline import frame_source_file
+    from phase6_manufacturing_contracts import manufacturing_fingerprint
+    from .fold_designer_manufacturing_projection import _inner_door_frame_from_payload
+
+    # This uses the SAME physical frame derivation as the production factory.
+    frame = _inner_door_frame_from_payload(key, payload)
+    if frame.side not in ("top", "left", "right"):
+        return factory()
+    source = frame_source_file()
+
+    def stamp():
+        fingerprint = baseline_source_fingerprint(source)
+        digest = sha256(source.read_bytes()).hexdigest()
+        return fingerprint, digest
+
+    try:
+        fingerprint, digest = stamp()
+        signature = manufacturing_fingerprint({
+            "frame": frame,
+            "source": fingerprint,
+            "sha256": digest,
+            # The host adds the user's physical-sheet features after making
+            # the source-backed frame. They are part of the final 2D material.
+            "features": tuple(payload.get("features") or ()),
+        })
+    except (OSError, TypeError, ValueError, OverflowError):
+        return factory()
+    history = getattr(owner, "_receiving_raw_inner_door_frame_history", None)
+    if history is None:
+        history = OrderedDict()
+        owner._receiving_raw_inner_door_frame_history = history
+    if signature in history:
+        history.move_to_end(signature)
+        return history[signature]
+
+    material = factory()
+    metadata = dict(getattr(material, "metadata", {}) or {})
+    # Only a successful certified production factory result with matching
+    # origin can authorize a new retained entry, and avoid a source swap
+    # between reading the key and the geometry factory.
+    try:
+        still_same = stamp() == (fingerprint, digest)
+    except OSError:
+        still_same = False
+    if (still_same
+            and metadata.get("receiving_frame_source_sha256") == digest
+            and metadata.get("receiving_frame_source_path") == str(source)):
+        history[signature] = material
+        history.move_to_end(signature)
+        while len(history) > 8:
+            history.popitem(last=False)
+    return material
+
+
 def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
     """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
     from types import SimpleNamespace
@@ -811,6 +882,10 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         if preview_layout is not None:
             # Candidate editing is isolated from committed Bay material reuse.
             return render()
+        if str(key).startswith("inner_door:") and str(key).endswith("_frame"):
+            return _receiving_cached_bay_inner_door_frame(
+                self, key, source_payload, render,
+            )
         return _receiving_cached_bay_inner_door_panel(
             self, key, source_payload, render,
         )

@@ -302,6 +302,41 @@ def _export_authoritative_part(self, spec, output_path, context=None):
         render_data, output_path, overwrite=bool(getattr(ctx, "overwrite", False))
     )
 
+def _inner_door_frame_from_payload(key, payload):
+        from ae_engine.inner_door_frames import (
+            InnerDoorFrameSet,
+            derive_all_inner_door_frames,
+        )
+        data = dict(payload or {})
+        if cabinet_family_policy.has_inner_door_frame_derivation(data):
+            frame_sets = list(cabinet_family_policy.derive_inner_door_frame_sets(data))
+        else:
+            frame_sets = []
+            thickness = float(data.get("t", ae.T))
+            for item in tuple(data.get("inner_doors") or ()):
+                if not isinstance(item, dict):
+                    continue
+                stable_id = str(item.get("stable_id") or "").strip()
+                spans = item.get("frame_spans")
+                if not stable_id or not isinstance(spans, dict) or not spans:
+                    continue
+                included = tuple(
+                    str(side).strip().lower()
+                    for side in tuple(item.get("included_frame_sides") or ("top", "bottom", "left", "right"))
+                )
+                frame_sets.append(InnerDoorFrameSet(
+                    inner_door_id=stable_id,
+                    spans=dict(spans),
+                    thickness=thickness,
+                    included_sides=included,
+                ))
+        frames = derive_all_inner_door_frames(tuple(frame_sets))
+        frame = next((item for item in frames if item.stable_id == key), None)
+        if frame is None:
+            raise ValueError(f"內門框 stable_id 不存在於 authoritative topology: {key}")
+        return frame
+
+
 def _query_fold_designer_render_data(self, part_key, payload):
     from ae_engine.physical_sheet_features import with_physical_sheet_features
 
@@ -397,37 +432,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
         )
 
     if key.startswith("inner_door:") and key.endswith("_frame"):
-        from ae_engine.inner_door_frames import (
-            InnerDoorFrameSet,
-            derive_all_inner_door_frames,
-        )
-        data = dict(payload or {})
-        if cabinet_family_policy.has_inner_door_frame_derivation(data):
-            frame_sets = list(cabinet_family_policy.derive_inner_door_frame_sets(data))
-        else:
-            frame_sets = []
-            thickness = float(data.get("t", ae.T))
-            for item in tuple(data.get("inner_doors") or ()):
-                if not isinstance(item, dict):
-                    continue
-                stable_id = str(item.get("stable_id") or "").strip()
-                spans = item.get("frame_spans")
-                if not stable_id or not isinstance(spans, dict) or not spans:
-                    continue
-                included = tuple(
-                    str(side).strip().lower()
-                    for side in tuple(item.get("included_frame_sides") or ("top", "bottom", "left", "right"))
-                )
-                frame_sets.append(InnerDoorFrameSet(
-                    inner_door_id=stable_id,
-                    spans=dict(spans),
-                    thickness=thickness,
-                    included_sides=included,
-                ))
-        frames = derive_all_inner_door_frames(tuple(frame_sets))
-        frame = next((item for item in frames if item.stable_id == key), None)
-        if frame is None:
-            raise ValueError(f"內門框 stable_id 不存在於 authoritative topology: {key}")
+        frame = _inner_door_frame_from_payload(key, payload)
         return sheet(manufacturing_api.build_inner_door_frame_render_data(frame))
 
     spec, context = self._fold_designer_part_spec_from_payload(part_key, payload)
