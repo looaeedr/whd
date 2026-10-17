@@ -850,6 +850,109 @@ def worker(args):
             if root.grab_current() is not None:
                 raise AssertionError('orphan Tk grab')
 
+            # #1818 actual GUI 2D/3D switching acceptance. Keep all render,
+            # DXF-read, manufacturing and wall-time probes active for the
+            # *same* resident 1-Bay/3-Bay process. No forced geometry
+            # invalidation, fake renderer, or source data replacement.
+            rapid_trace = []
+            rapid_calc_start = [0]
+
+            def trace_rapid_step(operation):
+                view = designer.final_scene_view
+                # Diagnostic-only source fingerprints: identify precisely
+                # which authoritative object changed during a DISPLAY switch.
+                # Never mutate or suppress any actual collision/solve.
+                from hashlib import sha256
+                def witness(obj):
+                    try:
+                        return sha256(json.dumps(
+                            obj, sort_keys=True, ensure_ascii=False,
+                            default=str,
+                        ).encode('utf-8')).hexdigest()[:12]
+                    except Exception as exc:
+                        return f'UNREADABLE:{type(exc).__name__}'
+                ws = designer.designer_workspace
+                model_snapshot = dict(designer._phase6_input_snapshot or {})
+                setting_mirrors = set(designer._settings_values or ()) | {
+                    'settings','endcap_fw','endcap_bottom_wrap','assembly_type',
+                    'corner_state','corner_pair_same','active_part','part_dimensions',
+                }
+                rapid_trace.append({
+                    'inputs': {
+                        'receiving_layout': witness(model_snapshot.get('receiving_layout')),
+                        'snapshot_physical': witness({
+                            k:v for k,v in model_snapshot.items()
+                            if k not in setting_mirrors
+                        }),
+                        'box_whd': witness(designer._phase6_box_whd),
+                        'settings': witness(designer._settings_values),
+                        'endcap_fw': witness(designer._phase6_endcap_fw_state),
+                        'endcap_wrap': witness(designer._phase6_endcap_bottom_wrap_state),
+                        'corner': witness(designer._phase6_corner_state),
+                        'box_vault_profile': witness(designer.state.profiles_vault.get('箱身')),
+                        'available': witness(ws.available_parts),
+                        'work_profiles': {
+                            str(k): witness(ws.profiles_for(k, {}) or {})
+                            for k in ws.available_parts
+                        },
+                    },
+                    'step': operation,
+                    'active': str(designer.designer_workspace.active_part),
+                    'display_mode': str(getattr(designer, '_phase6_3d_display_mode', '')),
+                    'preview_enabled': bool(designer.preview_3d_enabled),
+                    'mesh_error': str(view.cutting_mesh_error or ''),
+                    'mesh_tris': len(view.last_cutting_mesh or ()),
+                    'signature_valid': (
+                        designer._phase6_last_resolved_manufacturing_signature
+                        == adapter.build_manufacturing_cache_key(designer).fingerprint
+                    ),
+                })
+
+            def rapid_view_switches():
+                rapid_calc_start[0] = sum(
+                    owner._phase6_update_scheduler._metrics['calculation_flushes']
+                    for owner in owners)
+                trace_rapid_step('initial')
+                for part_key in ('door', 'head', 'tail', 'door', 'head', 'tail'):
+                    designer.set_3d_preview_enabled(False)
+                    trace_rapid_step('3d_off_before_'+part_key)
+                    designer.activate_part(part_key)
+                    trace_rapid_step('activate_'+part_key)
+                    designer.set_3d_preview_enabled(True)
+                    trace_rapid_step('3d_on_after_'+part_key)
+                designer.activate_part('box_body')
+                trace_rapid_step('final_activate_box_body')
+
+            def last_view_check(_):
+                try:
+                    check_mesh()
+                except Exception as exc:
+                    # Do not suppress actual certified physical collision or
+                    # stale receipt. Identify the first bad UI transition.
+                    raise AssertionError(
+                        f'{exc}; #1818 chronological real Tk view state: '
+                        f'{rapid_trace!r}'
+                    ) from exc
+                if str(designer.designer_workspace.active_part) != 'box_body':
+                    raise AssertionError(
+                        'rapid view changes did not keep the final BoxBody selection')
+                if not designer.renderer.ax2d.get_visible() is False:
+                    raise AssertionError('3D switch left obsolete 2D axes visible')
+                calculation_flushes = sum(
+                    owner._phase6_update_scheduler._metrics['calculation_flushes']
+                    for owner in owners) - rapid_calc_start[0]
+                if (calculation_flushes or probe.counts.get('manufacturing_solve', 0)
+                        or probe.counts.get('dxf_readfile', 0)):
+                    # Validate before record writes JSONL: a gate failure must
+                    # remain a failed sample, never FAILED_SAMPLES=0 + exit 1.
+                    raise AssertionError(
+                        'display-only rapid 2D/3D switch triggered manufacturing or DXF IO: '
+                        + repr((calculation_flushes, dict(probe.counts), rapid_trace)))
+
+            record('issue1818_rapid_2d_3d_final_state',
+                   rapid_view_switches, cache='display_only',
+                   validate=last_view_check)
+
         # True source DXF preview; absence is explicit, not substituted with a toy.
         if args.dxf_index:
             panel_window = tk.Toplevel(root)
