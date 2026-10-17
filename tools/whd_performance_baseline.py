@@ -561,7 +561,11 @@ def worker(args):
             # inspect-only lookup never triggers a solve or GUI state change.
             def read_undo_receipt():
                 key = adapter.build_manufacturing_cache_key(designer)
-                return adapter._cache_service_for_app(designer).lookup(key)
+                service = adapter._cache_service_for_app(designer)
+                if (service.max_entries != 2
+                        or getattr(service, '_receiving_baseline_stamp', None) is None):
+                    raise AssertionError('Receiving source-stamped undo cache unavailable')
+                return service.lookup(key)
             record('issue1817_full_manufacturing_undo_receipt',
                    read_undo_receipt,
                    validate=lambda receipt: None if receipt.receipt.hit else (
