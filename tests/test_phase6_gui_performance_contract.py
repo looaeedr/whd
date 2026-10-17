@@ -918,3 +918,44 @@ def test_issue1817_receiving_source_stamp_unknown_fails_closed(monkeypatch):
     cache.store(key,result)
     _cache_service_for_app(app)
     assert cache.lookup(key).result is None
+
+
+def test_issue1817_fixing_plate_source_material_reuses_exact_immutable_wkb():
+    """Only certified original CUTTING, never unfinished weld/fold metadata."""
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        BASE_FIXING_PLATE_PREFIX, LARGE_SOURCE, SMALL_SOURCE,
+        _cached_source_flat_material_wkb, build_fixing_plate_source_render_data,
+    )
+    from ae_engine.manufacturing_render_data import material_polygon_from_final_scene
+    _cached_source_flat_material_wkb.cache_clear()
+    left=build_fixing_plate_source_render_data(BASE_FIXING_PLATE_PREFIX+"left")
+    right=build_fixing_plate_source_render_data(BASE_FIXING_PLATE_PREFIX+"right")
+    assert _cached_source_flat_material_wkb.cache_info().misses==1
+    assert _cached_source_flat_material_wkb.cache_info().hits==1
+    assert left is not right and left.scene is not right.scene
+    assert left.material is not right.material
+    assert left.material.wkb==right.material.wkb
+    assert material_polygon_from_final_scene(left.scene).wkb==left.material.wkb
+    assert material_polygon_from_final_scene(right.scene).wkb==right.material.wkb
+    assert left.metadata["stable_id"] != right.metadata["stable_id"]
+    assert left.metadata["formed_geometry_verified"] is False
+    assert right.metadata["weld_z_verified"] is False
+    small=build_fixing_plate_source_render_data(
+        BASE_FIXING_PLATE_PREFIX+"small_source",source_kind=SMALL_SOURCE)
+    assert small.material.is_valid and small.material.is_simple
+    assert _cached_source_flat_material_wkb.cache_info().misses==2
+    assert material_polygon_from_final_scene(small.scene).wkb==small.material.wkb
+    assert small.metadata["source_profile"]=="small"
+    assert small.metadata["manufacturing_ready"] is False
+
+
+def test_issue1817_fixing_plate_source_cache_cannot_bypass_part_authorization():
+    import pytest
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        BASE_FIXING_PLATE_PREFIX,
+        _cached_source_flat_material_wkb, build_fixing_plate_source_render_data,
+    )
+    _cached_source_flat_material_wkb.cache_clear()
+    with pytest.raises(ValueError,match="unknown physical large"):
+        build_fixing_plate_source_render_data(BASE_FIXING_PLATE_PREFIX+"unverified")
+    assert _cached_source_flat_material_wkb.cache_info().currsize==0
