@@ -53,7 +53,7 @@ def test_cadcraft_preview_exports_actual_hole_editor_coordinates_without_committ
     assert entities and all(e.dxf.layer == "CHECK" for e in entities)
     circles = [e for e in entities if e.dxftype() == "CIRCLE"]
     assert len(circles) == 1
-    assert tuple(circles[0].dxf.center[:2]) == pytest.approx((25.0, 30.0))
+    assert tuple(circles[0].dxf.center)[:2] == pytest.approx((25.0, 30.0))
     assert circles[0].dxf.radius == 5.0
     assert len([e for e in entities if e.dxftype() == "LWPOLYLINE"]) == 2
     assert tuple(features) == original_features
