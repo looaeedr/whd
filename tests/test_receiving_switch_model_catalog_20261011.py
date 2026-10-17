@@ -869,3 +869,30 @@ def test_v5_base_requires_one_real_row_and_matching_door_or_fails_closed():
             target=replace(base,unfolded_face_center_uv_mm=(4.,4.)),
         )
     assert base.actual_render.metadata.get("nfb_v5_trial_status") is None
+
+
+def test_v5_cadcraft_actual_ear_base_roundtrip_checks_eight_screws_and_bend(tmp_path):
+    import json
+    import shutil
+    import ezdxf
+    from tools.nfb_v5_cadcraft_crosscheck import emit_base, verify_base
+    source = tmp_path / "actual-base.dxf"
+    roundtrip = tmp_path / "resaved.dxf"
+    manifest = tmp_path / "manifest.json"
+    info = tmp_path / "info.json"
+    emit_base(source, manifest)
+    d = json.loads(manifest.read_text(encoding="utf-8"))
+    assert len(d["screws_uv_radius"]) == 8
+    assert d["manufacturing_ready"] is False
+    info.write_text(json.dumps({"drawing": "unit comparator only"}), encoding="utf-8")
+    shutil.copyfile(source, roundtrip)
+    verify_base(source, roundtrip, manifest, info)
+    doc = ezdxf.readfile(roundtrip)
+    holes = [e for e in doc.modelspace()
+             if e.dxftype() == "CIRCLE" and e.dxf.layer == "CUTTING"
+             and e.dxf.color == 30]
+    assert len(holes) == 8
+    holes[0].dxf.radius *= 1.2
+    doc.saveas(roundtrip)
+    with pytest.raises(ValueError, match="CADCRAFT_V5_BASE_DXF_GEOMETRY_OR_LAYER_DIFF"):
+        verify_base(source, roundtrip, manifest, info)
