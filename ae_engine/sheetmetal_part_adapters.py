@@ -671,6 +671,10 @@ def build_receiving_base_plate_result(
         BendLine("receiving_right_33",
                  Vec2(blank_w-side_fold,y0),Vec2(blank_w-side_fold,y1)),
     )
-    return _result(outline,bends,blank_w,blank_h,(
-        "RECEIVING_BASE",pattern,core_w,blank_h,bend,t,
-    ))
+    # Keep topology/fingerprint sensitive to an actual source-selected
+    # NFB depth pair. Reusing the old fixed-33 topology key for a changed
+    # 2nd return could incorrectly retain cached manufacturing geometry.
+    identity = ("RECEIVING_BASE", pattern, core_w, blank_h, bend, t)
+    if nfb_depth_pair_mm is not None:
+        identity += ("NFB_DEPTH_RETURN", float(second))
+    return _result(outline,bends,blank_w,blank_h,identity)
