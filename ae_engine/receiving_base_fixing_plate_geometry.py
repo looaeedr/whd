@@ -72,7 +72,14 @@ def _arc(cx, cy, radius, start, end, segments=96):
     ) for i in range(segments + 1))
 
 
+@lru_cache(maxsize=2)
 def _outline(pattern):
+    """Source-only immutable arc vertices; never cache a DrawingScene or mating.
+
+    Pattern is a frozen dataclass, so a changed physical source geometry
+    cannot accidentally hit an obsolete contour. Original DXF source SHA,
+    arc segmentation and coordinate precision are unchanged.
+    """
     w, h, r = pattern.width, pattern.height, pattern.corner_radius
     return (
         ((0.0, 0.0), (w, 0.0), (w, h-r))
@@ -82,7 +89,9 @@ def _outline(pattern):
     )
 
 
+@lru_cache(maxsize=8)
 def _slot(cx, cy, length, diameter):
+    """Immutable original source-slot vertices, keyed by exact XY/size."""
     r = diameter / 2.0
     half_straight = (length - diameter) / 2.0
     if half_straight <= 0:
