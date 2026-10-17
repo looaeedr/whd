@@ -228,7 +228,20 @@ class Phase6PartSessionOwner:
             except Exception:
                 pass
             app._job = None
-        if plan.save_outgoing:
+        # Leaving the 3D Assembly is a pure view navigation: its BoxBody
+        # fold editor is not active. In Receiving Set/Bay mode the displayed
+        # legacy BoxBody W/H/D can differ from the authoritative selected Bay.
+        # Saving that hidden editor on a display-only switch rewrites the
+        # working Bay dimensions, linked Head/Tail and base-plate profiles,
+        # then invalidates the certified Divider CROSS. Any pending settings
+        # above have already been committed through their own authority.
+        skip_hidden_receiving_assembly_save = (
+            was_non_single
+            and str(getattr(plan, 'previous_active', '') or '') == 'box_body'
+            and str((getattr(app, '_phase6_input_snapshot', {}) or {}).get('model') or '') in {'受電箱', 'RECEIVING'}
+            and (getattr(app, '_phase6_input_snapshot', {}) or {}).get('active_mode') == 'set_bay'
+        )
+        if plan.save_outgoing and not skip_hidden_receiving_assembly_save:
             self.save_current_part()
             pending = getattr(app, '_job', None)
             if pending:
