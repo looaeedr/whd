@@ -494,6 +494,74 @@ def worker(args):
         first_state = 'first_entry' if args.bays == 1 else 'first_after_topology_setup'
         win = record('open_multi', open_modal, first_state)
         record('close_multi', win._receiving_multi_close, validate=check_mesh)
+
+        # #1817: paired same-runner real Tk view hit versus forced real
+        # manufacturing solve; never claim this is total user-action speedup.
+        if args.bays == 3:
+            composition = bridge._phase6_composition(designer)
+            def bay0_request():
+                return composition.receiving_bay_preview_request(
+                    vars(bridge), 0, 0)
+            first = record('issue1817_bay0_first_full_solve',
+                           bay0_request, 'first_entry')
+            def assert_same_parts(actual):
+                if actual is None:
+                    raise AssertionError('per-Bay preview unavailable')
+                expected = first.render_data.assembly_parts
+                received = actual.render_data.assembly_parts
+                if not expected or len(received) != len(expected):
+                    raise AssertionError('Bay0 manufacturing part list differs')
+                for before_part, after_part in zip(expected, received):
+                    if (before_part.part_key != after_part.part_key
+                            or before_part.offset != after_part.offset):
+                        raise AssertionError('Bay0 world part identity/offset differs')
+                    before_material = getattr(before_part.render_data, 'material', None)
+                    after_material = getattr(after_part.render_data, 'material', None)
+                    if (before_material is not None and after_material is not None
+                            and callable(getattr(before_material, 'equals', None))
+                            and not before_material.equals(after_material)):
+                        raise AssertionError('Bay0 flat material is not equivalent')
+            warm = record('issue1817_bay0_cached',
+                          bay0_request, validate=assert_same_parts)
+            if warm is not first or rows[-1]['counts'].get('manufacturing_solve', 0):
+                raise AssertionError('Bay0 warm request rebuilt manufacturing')
+            def forced_full():
+                composition._receiving_bay_preview_cache.pop((0, 0), None)
+                return bay0_request()
+            full = record('issue1817_bay0_forced_full_comparison',
+                          forced_full, validate=assert_same_parts)
+            if rows[-1]['counts'].get('manufacturing_solve', 0) < 1:
+                raise AssertionError('Forced Bay0 miss did not run real manufacturing')
+            if full is first:
+                raise AssertionError('Forced full comparison reused old view object')
+            # Tail addition/removal go through existing real operator UI.
+            win = open_modal()
+            settle(root, owners)
+            def append_tail():
+                button(win._receiving_multi_rows_host, '＋連').invoke()
+                win._receiving_multi_apply(0)
+                win._receiving_multi_close()
+            record('issue1817_append_tail_bay4_actual_ui',
+                   append_tail, validate=check_mesh)
+            after_append = record('issue1817_bay0_after_tail_append',
+                                  bay0_request, validate=assert_same_parts)
+            if (after_append is not full
+                    or rows[-1]['counts'].get('manufacturing_solve', 0)):
+                raise AssertionError('Unaffected Bay0 rebuilt after UI tail append')
+            win = open_modal()
+            settle(root, owners)
+            def remove_tail():
+                button(win._receiving_multi_rows_host, '－連').invoke()
+                win._receiving_multi_apply(0)
+                win._receiving_multi_close()
+            record('issue1817_remove_tail_bay4_actual_ui',
+                   remove_tail, validate=check_mesh)
+            after_remove = record('issue1817_bay0_after_tail_remove',
+                                  bay0_request, validate=assert_same_parts)
+            if (after_remove is not full
+                    or rows[-1]['counts'].get('manufacturing_solve', 0)):
+                raise AssertionError('Unaffected Bay0 rebuilt after UI tail remove')
+
         for cycle in range(args.cycles):
             win = record('open_multi', open_modal)
             win._receiving_multi_apply(0)
