@@ -122,6 +122,11 @@ class _Phase6UpdateScheduler:
         exceeded_limit = False
         try:
             for _ in range(self.MAX_REENTRANT_FLUSH_PASSES):
+                # A modal edit may arrive from a Tk callback within the
+                # current executor; explicit flush must drain that last edit.
+                if self.staged:
+                    self.dirty.update(self.staged)
+                    self.staged.clear()
                 if self.depth > 0 or not self.dirty:
                     break
                 reasons = set(self.dirty)
@@ -148,7 +153,7 @@ class _Phase6UpdateScheduler:
                 # re-entering an identical full solve on every Tk callback.
                 # Distinct reasons remain queued for the next bounded pass.
                 self.dirty.difference_update(reasons)
-            if self.depth == 0 and self.dirty:
+            if self.depth == 0 and (self.dirty or self.staged):
                 exceeded_limit = True
                 raise RuntimeError(
                     "GUI update did not settle within the bounded flush; "
