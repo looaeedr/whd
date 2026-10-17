@@ -363,6 +363,71 @@ def build_standard_part_profiles(
         profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
         return profiles
 
+    if part_key == "base_plate" and str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}:
+        # #1502: ONLY the actual Receiving physical Base Plate consumes the
+        # original FinalScene CUTTING/BEND datum; DO NOT reuse the ordinary
+        # three-segment universal side-fold profile for all three variants.
+        # In the user's source DXF, CENTER W772 has four BEND x40/73/699/732,
+        # top/bottom BEND y20/220. Left/Right have NO side BEND, only Y20.
+        # This profile is computed from the same live Part Adapter and selected
+        # (deep,shallow) source NFB depths, not user-edited sample constants.
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+        from ae_engine.sheetmetal_part_adapters import (
+            RECEIVING_BASE_PATTERN_CENTER, build_receiving_base_plate_result,
+        )
+        physical = receiving_base_plate_values(snapshot)
+        if physical is not None:
+            actual = build_receiving_base_plate_result(
+                w=float(snapshot["w"]), h=float(physical["h"]),
+                t=float(snapshot["t"]),
+                shrink_top=physical["base_plate_shrink_top"],
+                shrink_bottom=physical["base_plate_shrink_bottom"],
+                shrink_left=physical["base_plate_shrink_left"],
+                shrink_right=physical["base_plate_shrink_right"],
+                bend=physical["base_plate_bend"],
+                pattern=physical["receiving_bend_pattern"],
+                nfb_depth_pair_mm=physical["receiving_nfb_depth_pair_mm"],
+            )
+            pattern = physical["receiving_bend_pattern"]
+            if pattern == RECEIVING_BASE_PATTERN_CENTER:
+                xs = sorted({
+                    float(b.p1.x)
+                    for b in actual.bends
+                    if abs(float(b.p1.x)-float(b.p2.x)) <= 1e-8
+                })
+                if len(xs) != 4 or xs[0] <= 0 or xs[-1] >= actual.width:
+                    raise ValueError("Receiving CENTER 3D needs four real side BEND stations")
+                lengths = (
+                    xs[0], xs[1]-xs[0], xs[2]-xs[1],
+                    xs[3]-xs[2], actual.width-xs[3],
+                )
+                if any(value <= 0 for value in lengths):
+                    raise ValueError("Receiving CENTER 3D folded segments invalid")
+                # First -40 return bends inward in Z, second +33 returns
+                # horizontal to the deep NFB base face. Reverse on the right.
+                # Fold station X coordinates remain the SAME as 2D/DXF.
+                xprofile = [
+                    {"len": lengths[0], "angle": 90, "phase6_key": "receiving_left_first_40"},
+                    {"len": lengths[1], "angle": -90, "phase6_key": "receiving_left_second"},
+                    {"len": lengths[2], "angle": -90, "core": "W", "phase6_key": "receiving_nfb_deep_base_face"},
+                    {"len": lengths[3], "angle": 90, "phase6_key": "receiving_right_second"},
+                    {"len": lengths[4], "phase6_key": "receiving_right_first_40"},
+                ]
+            else:
+                # The LEFT and RIGHT source plates have NO side folds.
+                xprofile = [{"len": float(actual.width), "core": "W",
+                             "phase6_key": "receiving_flat_side_face"}]
+            ybend = float(physical["base_plate_bend"])
+            if actual.height <= 2*ybend:
+                raise ValueError("Receiving real base top/bottom bends consume full face")
+            yprofile = [
+                {"len": ybend, "angle": -90, "phase6_key": "receiving_bottom_fold_20"},
+                {"len": actual.height-2*ybend, "angle": -90,
+                 "core": "H", "phase6_key": "receiving_base_face_height"},
+                {"len": ybend, "phase6_key": "receiving_top_fold_20"},
+            ]
+            return {"X": xprofile, "Y": yprofile}
+
     if _is_base_plate_part_key(part_key):
         bend = snapshot.get("base_plate_bend", 20)
         profiles = {
