@@ -854,15 +854,45 @@ def worker(args):
             # DXF-read, manufacturing and wall-time probes active for the
             # *same* resident 1-Bay/3-Bay process. No forced geometry
             # invalidation, fake renderer, or source data replacement.
+            rapid_trace = []
+
+            def trace_rapid_step(operation):
+                view = designer.final_scene_view
+                rapid_trace.append({
+                    'step': operation,
+                    'active': str(designer.designer_workspace.active_part),
+                    'display_mode': str(getattr(designer, '_phase6_3d_display_mode', '')),
+                    'preview_enabled': bool(designer.preview_3d_enabled),
+                    'mesh_error': str(view.cutting_mesh_error or ''),
+                    'mesh_tris': len(view.last_cutting_mesh or ()),
+                    'signature_valid': (
+                        designer._phase6_last_resolved_manufacturing_signature
+                        == adapter.build_manufacturing_cache_key(designer).fingerprint
+                    ),
+                })
+
             def rapid_view_switches():
+                trace_rapid_step('initial')
                 for part_key in ('door', 'head', 'tail', 'door', 'head', 'tail'):
                     designer.set_3d_preview_enabled(False)
+                    trace_rapid_step('3d_off_before_'+part_key)
                     designer.activate_part(part_key)
+                    trace_rapid_step('activate_'+part_key)
                     designer.set_3d_preview_enabled(True)
+                    trace_rapid_step('3d_on_after_'+part_key)
                 designer.activate_part('box_body')
+                trace_rapid_step('final_activate_box_body')
 
             def last_view_check(_):
-                check_mesh()
+                try:
+                    check_mesh()
+                except Exception as exc:
+                    # Do not suppress actual certified physical collision or
+                    # stale receipt. Identify the first bad UI transition.
+                    raise AssertionError(
+                        f'{exc}; #1818 chronological real Tk view state: '
+                        f'{rapid_trace!r}'
+                    ) from exc
                 if str(designer.designer_workspace.active_part) != 'box_body':
                     raise AssertionError(
                         'rapid view changes did not keep the final BoxBody selection')
