@@ -200,3 +200,89 @@ def test_pad_depth_index_remains_editable_and_rejects_conflicting_duplicates(tmp
     )
     with pytest.raises(ValueError, match="重複深度不一致"):
         preview_nfb_pad_depth(_pad_two_brand_draft(), index_path=path)
+
+
+# V5 numeric catalog is independent of the legacy original-DXF model index.
+def test_v5_numeric_model_list_reads_all_supplied_brands_without_dxf_identity():
+    from ae_engine.receiving_nfb_numeric_catalog import (
+        BRANDS as NUMERIC_BRANDS, model_choices as numeric_choices,
+        brand_csv_path, model_spec, NUMERIC_ONLY_UNVERIFIED,
+    )
+    assert NUMERIC_BRANDS == ("士林", "東元", "伍菱")
+    for brand, size in (("士林", 12), ("東元", 9), ("伍菱", 12)):
+        assert brand_csv_path(brand).is_file()
+        names = numeric_choices(brand)
+        assert len(names) == size == len(set(names))
+        assert all(not name.lower().endswith(".dxf") for name in names)
+        assert all(model_spec(brand, name).status == NUMERIC_ONLY_UNVERIFIED
+                   for name in names)
+    assert numeric_choices("三菱") == ()
+    assert model_spec("士林", "absent") is None
+
+
+def test_v5_screw_centres_use_opening_centre_and_only_screw_group_offset():
+    from ae_engine.receiving_nfb_numeric_catalog import model_spec
+    base = model_spec("士林", "2P125SN")
+    assert base.opening_mm == (28, 58)
+    assert base.screw_pitch_mm == (25, 111)
+    assert base.screw_diameter_mm == 3.2
+    assert base.opening_corners_xy_mm == (
+        (-14, -29), (14, -29), (14, 29), (-14, 29),
+    )
+    assert base.screw_centers_xy_mm == (
+        (-12.5, -55.5), (12.5, -55.5),
+        (-12.5, 55.5), (12.5, 55.5),
+    )
+    offset = model_spec("東元", "3P400SN")
+    assert (offset.screw_offset_x_mm, offset.screw_offset_y_mm) == (5, 1)
+    assert offset.opening_corners_xy_mm == (
+        (-25, -49), (25, -49), (25, 49), (-25, 49),
+    )
+    assert offset.screw_centers_xy_mm == (
+        (-17.5, -106), (27.5, -106),
+        (-17.5, 108), (27.5, 108),
+    )
+
+
+def test_v5_missing_numbers_remain_unknown_and_cannot_claim_manufacturability():
+    from ae_engine.receiving_nfb_numeric_catalog import read_numeric_specs, model_spec
+    all_rows = [spec for brand in ("士林", "東元", "伍菱")
+                for spec in read_numeric_specs(brand)]
+    assert len(all_rows) == 33
+    assert sum(spec.dimensionally_complete for spec in all_rows) == 17
+    shihlin = model_spec("士林", "1PBH")
+    assert shihlin.opening_mm is None
+    assert shihlin.opening_corners_xy_mm is None
+    assert shihlin.screw_centers_xy_mm is None
+    assert "NFB深_mm" in shihlin.missing_fields
+    missing_pitch = model_spec("伍菱", "100HN-s")
+    assert missing_pitch.opening_mm == (28, 56)
+    assert missing_pitch.screw_pitch_mm is None
+    assert missing_pitch.screw_centers_xy_mm is None
+    assert all(spec.status.endswith("UNVERIFIED") for spec in all_rows)
+
+
+def test_v5_csv_is_live_editable_and_rejects_conflicting_models_and_bad_numbers(tmp_path):
+    from ae_engine.receiving_nfb_numeric_catalog import (
+        HEADER as NUMERIC_HEADER, model_choices as numeric_choices,
+        model_spec,
+    )
+    source = tmp_path / "nfb.csv"
+    header = ",".join(NUMERIC_HEADER) + "\n"
+    row = "Q100,140,257,107,28X56,25X111,3.4,,\n"
+    source.write_text(header + row, encoding="utf-8-sig")
+    assert numeric_choices("士林", path=source) == ("Q100",)
+    assert model_spec("士林", "Q100", path=source).screw_centers_xy_mm[0] == (-12.5, -55.5)
+    source.write_text(header + row + row, encoding="utf-8-sig")
+    with pytest.raises(ValueError, match="重複"):
+        numeric_choices("士林", path=source)
+    for bad in ("25X", "0X111", "-25X111", "25x111", "NaNX111"):
+        source.write_text(header + row.replace("25X111", bad), encoding="utf-8-sig")
+        with pytest.raises(ValueError):
+            numeric_choices("士林", path=source)
+    source.write_text(header + row.replace(",3.4,", ",inf,"), encoding="utf-8-sig")
+    with pytest.raises(ValueError, match="無效"):
+        numeric_choices("士林", path=source)
+    source.write_text("bad,header\n" + row, encoding="utf-8-sig")
+    with pytest.raises(ValueError, match="欄位"):
+        numeric_choices("士林", path=source)
