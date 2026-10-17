@@ -14,21 +14,42 @@ from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_la
 
 
 class _IdleCanvasRedraw:
-    """Coalesce Configure bursts without delaying explicit selection redraws."""
+    """Coalesce Configure bursts and skip already-painted canvas dimensions.
+
+    Selection redraws remain immediate. A real size change always paints the
+    last observed size; a pending stale Configure is cancelled by an explicit
+    paint. No geometry or state computation occurs inside this scheduler.
+    """
 
     def __init__(self, canvas, draw):
         self.canvas = canvas
         self.draw = draw
         self.job = None
+        self._painted_size = None
+
+    def _size(self):
+        return (self.canvas.winfo_width(), self.canvas.winfo_height())
 
     def request(self, _event=None):
-        if self.job is None and self.canvas.winfo_exists():
+        if not self.canvas.winfo_exists():
+            return
+        if self._painted_size == self._size():
+            return
+        if self.job is None:
             self.job = self.canvas.after_idle(self._run)
 
     def _run(self):
         self.job = None
-        if self.canvas.winfo_exists():
+        if self.canvas.winfo_exists() and self._painted_size != self._size():
             self.draw()
+            self._painted_size = self._size()
+
+    def mark_drawn(self):
+        """The user-selected state has just been painted synchronously."""
+        if not self.canvas.winfo_exists():
+            return
+        self._painted_size = self._size()
+        self.cancel()
 
     def cancel(self):
         job, self.job = self.job, None
@@ -922,6 +943,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if not diagram.master.winfo_manager():
                 diagram.master.pack(fill="both", expand=True, pady=(12, 0))
             quantity_ui.paint()
+            redraw_queue = manager_widgets.get("redraw_queue")
+            if redraw_queue is not None:
+                redraw_queue.mark_drawn()
         else:
             diagram.master.pack_forget()
 
@@ -1157,6 +1181,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         canvas._receiving_selected_bay = (
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
+        # A direct highlight/mode paint supersedes a queued same-size
+        # Configure callback; a future physical size change is still painted.
+        sketch_redraw.mark_drawn()
 
     size_input = {}
     size_controls = {"single": None}

@@ -780,7 +780,7 @@ def test_issue1791_main_sketch_configure_burst_coalesces_one_idle_paint(monkeypa
             canvas.event_generate("<Configure>")
         root.update_idletasks()
         record_property("configure_paint_count", len(paints))
-        assert 1 <= len(paints) <= 2, paints
+        assert paints == [], "same-size Configure after explicit paint repainted sketch"
         # No Set is selected yet, so the preview intentionally shows one Bay.
         assert len(canvas._receiving_bay_hitboxes) == 1
         assert canvas._receiving_selected_bays == frozenset()
@@ -806,11 +806,30 @@ def test_issue1791_cancelled_idle_redraw_never_paints_destroyed_canvas():
     paints = []
     try:
         redraw = _IdleCanvasRedraw(canvas, lambda: paints.append(canvas.winfo_width()))
+        # The initial explicit sketch paint must absorb redundant Configure
+        # events without generating another idle job.
+        redraw.mark_drawn()
         for _ in range(20):
             redraw.request()
+        assert redraw.job is None
+        # A real size change must schedule exactly one latest-size paint.
+        previous_width = canvas.winfo_width()
+        canvas.configure(width=previous_width + 75)
+        root.update_idletasks()
+        redraw.request()
         assert redraw.job is not None
         redraw.cancel()
         assert redraw.job is None
+        # User selection can explicitly paint the new size and cancel an
+        # already-queued obsolete Configure before the event loop flush.
+        redraw.request()
+        assert redraw.job is not None
+        redraw.mark_drawn()
+        assert redraw.job is None
+        for _ in range(20):
+            redraw.request()
+        root.update_idletasks()
+        assert paints == []
         canvas.destroy()
         root.update_idletasks()
         assert paints == []
