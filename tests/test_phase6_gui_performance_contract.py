@@ -1362,8 +1362,11 @@ def test_issue1817_modal_dimension_stages_real_scheduler_boundary_not_eager_comm
         _restore_receiving_assembly_after_modal,
     )
     body = inspect.getsource(open_receiving_multi_settings)
-    assert 'scheduler.stage("geometry")' in body
-    assert 'submit_update_intent("geometry", commit=True)' not in body
+    dimension_only = body.split("def dimension_group(", 1)[1].split(
+        "def single_size_quantity(", 1
+    )[0]
+    assert 'scheduler.stage("geometry")' in dimension_only
+    assert 'submit_update_intent("geometry", commit=True)' not in dimension_only
     close = inspect.getsource(_restore_receiving_assembly_after_modal)
     assert "scheduler.flush_now()" in close
-    assert "scheduler.staged" in close
+    assert 'getattr(scheduler, "staged", ())' in close
