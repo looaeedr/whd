@@ -415,6 +415,7 @@ def worker(args):
         def record(operation, action, cache='warm', validate=None):
             probe.reset()
             errors.clear()
+            fixing_before = fixing_plate_geometry._cached_source_flat_material_wkb.cache_info()
             before = rss_bytes()
             hwm_before = rss_highwater_bytes()
             schedulers = [getattr(o, '_phase6_update_scheduler', None) for o in owners]
@@ -456,6 +457,10 @@ def worker(args):
                        supplemental_material_builds=dict(probe.supplemental_material_builds),
                        supplemental_material_factory_calls=probe.counts[
                            'supplemental_material_factory_calls'],
+                       fixing_plate_flat_wkb_cache={
+                           'hit': fixing_plate_geometry._cached_source_flat_material_wkb.cache_info().hits - fixing_before.hits,
+                           'miss': fixing_plate_geometry._cached_source_flat_material_wkb.cache_info().misses - fixing_before.misses,
+                       },
                        world_skin_physical_pieces=dict(probe.world_skin_parts),
                        world_skin_physical_rematerializations=sum(probe.world_skin_parts.values()),
                        rss_before=before,
