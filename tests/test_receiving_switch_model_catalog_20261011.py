@@ -767,9 +767,14 @@ def _v5_actual_base_w800_fixture():
     )
     real = build_part_render_data(spec)
     w, h = float(real.unfolded_topology.width), float(real.unfolded_topology.height)
+    from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    state = _v5_configured_w800_inner_door_state()
+    first_layer = project_nfb_inner_door_nominal_y(
+        state, "upper", layer_count=2, slot_index=0,
+    )
     return NfbActualBaseWorkFace(
         physical_part_id="base_plate", actual_render=real,
-        world_face_center_xy_mm=(0., 250.),
+        world_face_center_xy_mm=(0., first_layer.box_world_y_mm),
         unfolded_face_center_uv_mm=(w/2, h/2),
         face_outline_uv_mm=((0., 20.), (w, 20.),
                             (w, h-20.), (0., h-20.)),
