@@ -835,3 +835,65 @@ def test_issue1791_cancelled_idle_redraw_never_paints_destroyed_canvas():
         assert paints == []
     finally:
         root.destroy()
+
+
+def test_issue1818_real_cut_preview_latest_selection_wins_during_reentrant_provider(monkeypatch):
+    """Real Tk: stale head callback cannot draw over a newer tail preview."""
+    from gui_modules.application.receiving_settings_preview_2d import ReceivingSettingsPreview2D
+
+    root = tk.Tk()
+    root.geometry("900x640+0+0")
+    root.update()
+    phase = ["switch"]
+    seen = []
+    shown = []
+    errors = []
+    win = None
+
+    def observe_geometry(self, requests=None):
+        if requests:
+            shown.append(tuple(requests))
+
+    def observe_failure(self, message):
+        errors.append(str(message))
+
+    monkeypatch.setattr(ReceivingSettingsPreview2D, "draw_geometry", observe_geometry)
+    monkeypatch.setattr(ReceivingSettingsPreview2D, "invalidate", observe_failure)
+
+    def fetch_cut(role, version, set_index, bay_index):
+        seen.append(role)
+        if role == "head":
+            if phase[0] == "switch":
+                win._receiving_multi_show_real_preview("tail")
+            elif phase[0] == "close":
+                win._receiving_multi_close_real_preview()
+        return ("real", role, version, set_index, bay_index)
+
+    try:
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda _mode: True,
+            resize_connections=lambda *_args: False,
+            get_real_cut_preview_request=fetch_cut,
+        )
+        root.update()
+        win._receiving_multi_show_real_preview("head")
+        root.update()
+        assert seen[:2] == ["head", "tail"]
+        assert len(shown) == 1, "superseded preview reached the GUI painter"
+        assert shown[0][0][1] == "tail"
+        assert win._receiving_multi_real_preview["role"] == "tail"
+        assert not errors
+
+        phase[0] = "close"
+        win._receiving_multi_show_real_preview("head")
+        root.update()
+        assert not win._receiving_multi_real_preview["win"]
+        assert len(shown) == 1, "closed preview was painted after destruction"
+        assert not errors, "stale failure overwrote the closed preview"
+    finally:
+        if win is not None and win.winfo_exists():
+            win._receiving_multi_close()
+        root.destroy()
