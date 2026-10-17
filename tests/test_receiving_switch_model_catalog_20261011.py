@@ -286,3 +286,172 @@ def test_v5_csv_is_live_editable_and_rejects_conflicting_models_and_bad_numbers(
     source.write_text("bad,header\n" + row, encoding="utf-8-sig")
     with pytest.raises(ValueError, match="欄位"):
         numeric_choices("士林", path=source)
+
+
+def test_v5_identity_has_explicit_brand_and_survives_set_bay_version_save_reload():
+    from ae_engine.receiving_nfb_model_identity import (
+        numeric_model_ref, numeric_model_refs, parse_numeric_model_ref,
+        display_model_ref, validate_stored_model_ref, selected_numeric_spec,
+    )
+    from ae_engine.receiving_inner_door_candidates import (
+        KEY, create_inner_candidate, inner_config,
+    )
+    from phase6_quantity_model import normalize_quantity_snapshot
+    from ae_engine.receiving_shared_settings import edit_setting, setting_value
+    model = numeric_model_ref("士林", "2P125SN")
+    assert model == "nfbv5:士林:2P125SN"
+    assert display_model_ref(model) == "2P125SN"
+    assert parse_numeric_model_ref(model) == ("士林", "2P125SN")
+    assert model in numeric_model_refs("士林")
+    assert model not in numeric_model_refs("東元")
+    assert selected_numeric_spec("士林", model).opening_mm == (28, 58)
+    assert selected_numeric_spec("東元", model) is None
+    assert validate_stored_model_ref("BH_25X95.dxf") == "BH_25X95.dxf"
+    for invalid in ("nfbv5:士林:", "nfbv5:錯誤:X", "nfbv5:士林:../bad",
+                    "nfbv5:士林", "random", "../a.dxf"):
+        with pytest.raises(ValueError):
+            validate_stored_model_ref(invalid)
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    layout = resize_receiving_bays(layout, set_index=0, bay_count=2)
+    layout = edit_setting(layout, set_index=0, bay_index=1,
+                          kind="inner_door_models", value=[[model, model], ""])
+    lib, version_id = create_inner_candidate(
+        None, {"layers": 1, "models": [[model, model], ""]},
+    )
+    snapshot = {
+        "cabinet_type": "受電箱", "active_mode": "set_bay",
+        "receiving_layout": layout, KEY: lib,
+    }
+    saved = normalize_quantity_snapshot(snapshot, for_save=True)
+    assert inner_config(saved[KEY], version_id)["models"] == [[model, model], ""]
+    assert setting_value(saved["receiving_layout"]["sets"][0], 1, "inner_door_models") == [
+        [model, model], "",
+    ]
+    assert setting_value(saved["receiving_layout"]["sets"][0], 0, "inner_door_models") == [
+        "", "",
+    ]
+    assert saved["receiving_layout"]["sets"][0]["bays"][1].get(
+        "nfb_config_submitted"
+    ) is not True  # Numeric selection is not a certified manufactured hole.
+
+
+def test_v5_real_tk_numeric_panel_shows_local_holes_without_reading_dxf(monkeypatch):
+    import tkinter as tk
+    from tkinter import ttk
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    from gui_modules.application.receiving_nfb_source_preview import (
+        NfbDxfSourcePreviewPanel,
+    )
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        host = ttk.Frame(root)
+        host.pack(fill="both", expand=True)
+        panel = NfbDxfSourcePreviewPanel(host)
+        def no_dxf(*_args, **_kwargs):
+            raise AssertionError("V5 preview must not read a DXF file")
+        monkeypatch.setattr(panel.cache, "load", no_dxf)
+        panel.canvas.configure(width=396, height=415)
+        root.update_idletasks()
+        model = numeric_model_ref("東元", "3P400SN")
+        panel.show("東元", model)
+        assert panel._numeric_spec.model == "3P400SN"
+        assert "未經實體／製造驗證" in panel.reason.get()
+        assert panel.viewport.preview is None
+        items = panel.canvas.find_withtag("nfb-dxf")
+        types = [panel.canvas.type(item) for item in items]
+        assert types.count("rectangle") == 1
+        assert types.count("oval") == 4
+        panel.zoom(1.25)
+        assert panel._numeric_zoom == 1.25
+        panel.reset()
+        assert panel._numeric_zoom == 1
+        panel.show("士林", numeric_model_ref("士林", "1PBH"))
+        assert panel._numeric_spec.opening_mm is None
+        assert panel.canvas.find_withtag("nfb-dxf")
+        panel.show("東元", numeric_model_ref("士林", "2P125SN"))
+        assert panel._numeric_spec is None
+        assert "不符" in panel.reason.get()
+    finally:
+        root.destroy()
+
+
+def test_v5_same_source_serves_distinct_inner_middle_and_base_panel_datums():
+    from ae_engine.receiving_nfb_numeric_panel_projection import (
+        NfbPanelDatum, project_nfb_v5_to_panel, STATUS,
+    )
+    inner = NfbPanelDatum("inner_door:1", "inner-door", (100, 200),
+                          (1, 0), (0, 1))
+    middle = NfbPanelDatum("box_body:middle:1", "middle-plate", (300, 40),
+                           (0, 1), (-1, 0))
+    base = NfbPanelDatum("base_plate:1", "base-plate", (50, 70),
+                         (1, 0), (0, 1))
+    i = project_nfb_v5_to_panel("士林", "2P125SN", inner, feature="opening")
+    m = project_nfb_v5_to_panel("士林", "2P125SN", middle, feature="opening")
+    b = project_nfb_v5_to_panel("士林", "2P125SN", base, feature="screws")
+    assert i.opening_uv_mm == (
+        (86, 171), (114, 171), (114, 229), (86, 229),
+    )
+    assert i.screw_centres_uv_mm is None
+    assert m.opening_uv_mm == (
+        (329, 26), (329, 54), (271, 54), (271, 26),
+    )
+    assert b.opening_uv_mm is None
+    assert b.screw_centres_uv_mm == (
+        (37.5, 14.5), (62.5, 14.5), (37.5, 125.5), (62.5, 125.5),
+    )
+    assert b.screw_diameter_mm == 3.2
+    assert all(not p.manufacturing_ready and p.status == STATUS
+               for p in (i, m, b))
+    assert {p.datum.part_id for p in (i,m,b)} == {
+        "inner_door:1", "box_body:middle:1", "base_plate:1",
+    }
+
+
+def test_v5_cross_panel_offset_rotates_with_explicit_axis_not_assumed_world_xy():
+    from ae_engine.receiving_nfb_numeric_panel_projection import (
+        NfbPanelDatum, project_nfb_v5_to_panel,
+    )
+    datum=NfbPanelDatum("middle:2", "middle-plate", (100, 200),
+                        (0, 1), (-1, 0))
+    p=project_nfb_v5_to_panel("東元", "3P400SN", datum, feature="both")
+    assert p.opening_uv_mm == (
+        (149, 175), (149, 225), (51, 225), (51, 175),
+    )
+    # Original local screw group is shifted +5,+1; the 90-degree
+    # panel transformation rotates the *entire* pattern consistently.
+    assert p.screw_centres_uv_mm == (
+        (206, 182.5), (206, 227.5),
+        (-8, 182.5), (-8, 227.5),
+    )
+    assert p.screw_diameter_mm == 5.1
+    assert p.manufacturing_ready is False
+
+
+def test_v5_panel_projection_rejects_unknown_basis_missing_holes_and_mirroring():
+    from ae_engine.receiving_nfb_numeric_panel_projection import (
+        NfbPanelDatum, project_nfb_v5_to_panel,
+    )
+    right=NfbPanelDatum("base:1","base-plate",(0,0),(1,0),(0,1))
+    with pytest.raises(ValueError,match="缺失"):
+        project_nfb_v5_to_panel("士林","1PBH",right,feature="screws")
+    with pytest.raises(ValueError,match="不足"):
+        project_nfb_v5_to_panel("伍菱","100HN-s",right,feature="screws")
+    ok=project_nfb_v5_to_panel("伍菱","100HN-s",right,feature="opening")
+    assert ok.screw_centres_uv_mm is None
+    with pytest.raises(ValueError,match="明確"):
+        project_nfb_v5_to_panel("士林","2P125SN",right,feature="unsupported")
+    for bad in (
+        NfbPanelDatum("base:1","base-plate",(0,0),(1,0),(0,-1)),
+        NfbPanelDatum("base:1","base-plate",(0,0),(1,0),(1,0)),
+        NfbPanelDatum("base:1","base-plate",(0,0),(2,0),(0,1)),
+        NfbPanelDatum("base:1","base-plate",(0,0),(0,1),(1,0)),
+    ):
+        with pytest.raises(ValueError,match="禁止鏡射"):
+            project_nfb_v5_to_panel("士林","2P125SN",bad,feature="both")
+    with pytest.raises(ValueError,match="板件用途"):
+        project_nfb_v5_to_panel(
+            "士林","2P125SN",
+            NfbPanelDatum("unknown","manufacturing",(0,0),(1,0),(0,1)),
+            feature="opening",
+        )
