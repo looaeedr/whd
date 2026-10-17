@@ -120,3 +120,41 @@ def test_existing_gui_base_plate_factory_preserves_source_selected_depths():
         dummy, {**values, "model": "金庫型"}, features=()
     )
     assert other.receiving_nfb_depth_pair_mm is None
+
+
+def test_fold_designer_real_workspace_snapshot_one_set_one_bay_reads_saved_nfb():
+    # The GUI snapshot keeps the committed config under receiving_layout, not
+    # always as a projected top-level alias.
+    snap = _snapshot(shallow="100_75X130_68.dxf")
+    snap.pop("nfb_config_submitted")
+    snap.pop("nfb_config")
+    snap.pop("_receiving_runtime_selection")
+    assert committed_receiving_nfb_depth_pair_mm(snap) == (107., 68.)
+    assert receiving_base_plate_values(snap)["receiving_nfb_depth_pair_mm"] == (107., 68.)
+    assert receiving_base_plate_blank_dimensions(snap) == (780., 240.)
+
+
+def test_multiple_bays_without_selection_never_leak_another_bay_model():
+    snap = _snapshot()
+    snap.pop("nfb_config_submitted")
+    snap.pop("nfb_config")
+    snap.pop("_receiving_runtime_selection")
+    snap["receiving_layout"]["sets"][0]["bays"].append({
+        "stable_id": "bayB", "nfb_config_submitted": False,
+    })
+    assert committed_receiving_nfb_depth_pair_mm(snap) is None
+    assert receiving_base_plate_values(snap)["receiving_nfb_depth_pair_mm"] is None
+    assert receiving_base_plate_blank_dimensions(snap) == (772., 240.)
+
+
+def test_multiple_bays_selected_runtime_exact_owner_can_use_its_own_saved_models():
+    snap = _snapshot(shallow="100_75X130_68.dxf")
+    snap.pop("nfb_config_submitted")
+    snap.pop("nfb_config")
+    snap["receiving_layout"]["sets"][0]["bays"].append({
+        "stable_id": "bayB", "nfb_config_submitted": False,
+    })
+    assert committed_receiving_nfb_depth_pair_mm(snap) == (107., 68.)
+    snap["_receiving_runtime_selection"]["bay_id"] = "bayB"
+    # A stale mismatched active Bay selection does not produce a false source.
+    assert committed_receiving_nfb_depth_pair_mm(snap) is None
