@@ -852,3 +852,69 @@ def test_issue1817_baseline_reload_evicts_current_and_previous_manufacturing():
                           _phase6_manufacturing_cache_service=service)
     _reload_current_baseline_features(owner)
     assert service.lookup(a).result is None and service.lookup(b).result is None
+
+
+def test_issue1817_receiving_undo_history_revokes_on_disk_baseline_change(tmp_path, monkeypatch):
+    """Exact app dimensions cannot certify reused material after DXF source changes."""
+    from types import SimpleNamespace
+    from ae_engine import ae
+    from phase6_manufacturing_adapter import _cache_service_for_app
+    from phase6_manufacturing_cache import ManufacturingCacheKey
+    from phase6_manufacturing_contracts import (
+        ManufacturingResolveResult,ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult,ManufacturingMutationResult,
+        ManufacturingEffects,
+    )
+    path=tmp_path/"箱身.dxf"
+    path.write_text("old-source",encoding="utf-8")
+    monkeypatch.setattr(
+        ae,"baseline_part_path",
+        lambda model,filename: str(path) if filename=="箱身.dxf" else None)
+    app=SimpleNamespace(_phase6_input_snapshot={
+        "model":"受電箱", "active_mode":"set_bay"})
+    cache=_cache_service_for_app(app)
+    result=ManufacturingResolveResult(
+        geometry=object(),diagnostics=ManufacturingDiagnosticsResult(),
+        mutations=ManufacturingMutationResult(),effects=ManufacturingEffects(),
+        cache=ManufacturingCacheReceipt(signature="",hit=False,stored=False))
+    a,b=(ManufacturingCacheKey(x*64) for x in "ab")
+    cache.store(a,result);cache.store(b,result)
+    assert cache.lookup(a).result is result
+    # Same pathname, but modified file bytes/stat: neither old receipt is valid.
+    path.write_text("new-source-content-with-different-length",encoding="utf-8")
+    assert _cache_service_for_app(app) is cache
+    assert cache.lookup(a).result is None
+    assert cache.lookup(b).result is None
+    cache.store(a,result)
+    # Explicit source-reload generation matters even if file stat unchanged.
+    ae.force_reload_baseline_dxf_sources()
+    _cache_service_for_app(app)
+    assert cache.lookup(a).result is None
+    assert cache.max_entries == 2
+
+
+def test_issue1817_receiving_source_stamp_unknown_fails_closed(monkeypatch):
+    from types import SimpleNamespace
+    from ae_engine import ae
+    from phase6_manufacturing_adapter import _cache_service_for_app
+    from phase6_manufacturing_cache import ManufacturingCacheKey
+    from phase6_manufacturing_contracts import (
+        ManufacturingResolveResult,ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult,ManufacturingMutationResult,
+        ManufacturingEffects)
+    app=SimpleNamespace(_phase6_input_snapshot={
+        "model":"受電箱", "active_mode":"set_bay"})
+    monkeypatch.setattr(ae,"baseline_part_path",
+        lambda model,filename: "/inaccessible/source.dxf"
+        if filename=="箱身.dxf" else None)
+    monkeypatch.setattr(ae,"baseline_source_fingerprint",
+        lambda path: (_ for _ in ()).throw(PermissionError("source missing")))
+    cache=_cache_service_for_app(app)
+    result=ManufacturingResolveResult(
+        geometry=object(),diagnostics=ManufacturingDiagnosticsResult(),
+        mutations=ManufacturingMutationResult(),effects=ManufacturingEffects(),
+        cache=ManufacturingCacheReceipt(signature="",hit=False,stored=False))
+    key=ManufacturingCacheKey("d"*64)
+    cache.store(key,result)
+    _cache_service_for_app(app)
+    assert cache.lookup(key).result is None
