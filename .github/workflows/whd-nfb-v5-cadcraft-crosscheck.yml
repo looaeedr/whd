@@ -1,0 +1,123 @@
+name: WHD NFB V5 CadCraft DXF Crosscheck
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'ae_engine/receiving_nfb_v5_real_part_cutting.py'
+      - 'ae_engine/receiving_nfb_numeric_catalog.py'
+      - 'ae_engine/receiving_nfb_numeric_panel_projection.py'
+      - 'ae_engine/dxf_serialization.py'
+      - 'tools/nfb_v5_cadcraft_crosscheck.py'
+      - 'tests/test_receiving_switch_model_catalog_20261011.py'
+      - '基準檔/開孔/NFB/數值規格/**'
+      - '.github/workflows/whd-nfb-v5-cadcraft-crosscheck.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TZ: Asia/Taipei
+
+concurrency:
+  group: whd-cadcraft-nfb-v5-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  independent-dxf-roundtrip:
+    name: Independent CadCraft NFB V5 DXF roundtrip
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install WHD geometry dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements.txt ezdxf
+      - name: Install pinned CadCraft CLI with upstream SHA256 verification
+        id: cadcraft
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="0.7.0"
+          PACKAGE="cadcraft-$VERSION-linux-x86_64.tar.gz"
+          BASE="https://github.com/storytold/cadcraft/releases/download/v$VERSION"
+          mkdir -p "$RUNNER_TEMP/cadcraft"
+          curl --fail --location --silent --show-error --retry 3 \
+            "$BASE/SHA256SUMS.txt" -o "$RUNNER_TEMP/cadcraft/SHA256SUMS.txt"
+          curl --fail --location --silent --show-error --retry 3 \
+            "$BASE/$PACKAGE" -o "$RUNNER_TEMP/cadcraft/$PACKAGE"
+          cd "$RUNNER_TEMP/cadcraft"
+          python - "$PACKAGE" <<'PY'
+          from pathlib import Path
+          import hashlib
+          import sys
+          name = sys.argv[1]
+          rows = dict(
+              (row.split(maxsplit=1)[1].lstrip("*"), row.split()[0])
+              for row in Path("SHA256SUMS.txt").read_text().splitlines()
+              if len(row.split()) >= 2
+          )
+          expected = rows.get(name)
+          if expected is None:
+              raise SystemExit("CADCRAFT_RELEASE_SHA256_ENTRY_MISSING")
+          digest = hashlib.sha256(Path(name).read_bytes()).hexdigest()
+          if digest.lower() != expected.lower():
+              raise SystemExit("CADCRAFT_RELEASE_SHA256_MISMATCH")
+          print("CADCRAFT_VERIFIED_RELEASE_SHA256", name, digest)
+          PY
+          tar -xzf "$PACKAGE"
+          CLI="$RUNNER_TEMP/cadcraft/cadcraft-$VERSION-linux-x86_64/usr/bin/cadcraft-cli"
+          test -x "$CLI"
+          "$CLI" --version
+          echo "cli=$CLI" >> "$GITHUB_OUTPUT"
+      - name: Generate genuine WHD NFB V5 panel trial DXF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/nfb-v5-cadcraft
+          PYTHONPATH="$GITHUB_WORKSPACE" python \
+            tools/nfb_v5_cadcraft_crosscheck.py emit \
+            work/nfb-v5-cadcraft/whd-v5-trial.dxf \
+            work/nfb-v5-cadcraft/manifest.json
+      - name: Independently reopen and resave using CadCraft
+        shell: bash
+        env:
+          CADCRAFT_CLI: ${{ steps.cadcraft.outputs.cli }}
+        run: |
+          set -euo pipefail
+          export CADCRAFT_CONFIG_DIR="$RUNNER_TEMP/cadcraft-config"
+          mkdir -p "$CADCRAFT_CONFIG_DIR"
+          "$CADCRAFT_CLI" info work/nfb-v5-cadcraft/whd-v5-trial.dxf \
+            > work/nfb-v5-cadcraft/cadcraft-info.json
+          "$CADCRAFT_CLI" run work/nfb-v5-cadcraft/whd-v5-trial.dxf \
+            --save work/nfb-v5-cadcraft/cadcraft-resaved.dxf
+          test -s work/nfb-v5-cadcraft/cadcraft-resaved.dxf
+      - name: Fail on lost CUTTING circles, opening, bend or process layers
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE" python \
+            tools/nfb_v5_cadcraft_crosscheck.py verify \
+            work/nfb-v5-cadcraft/whd-v5-trial.dxf \
+            work/nfb-v5-cadcraft/cadcraft-resaved.dxf \
+            work/nfb-v5-cadcraft/manifest.json \
+            work/nfb-v5-cadcraft/cadcraft-info.json
+      - name: Retain cross-CAD evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-nfb-v5-cadcraft-crosscheck-evidence
+          path: work/nfb-v5-cadcraft/
+          if-no-files-found: warn
+          retention-days: 7
