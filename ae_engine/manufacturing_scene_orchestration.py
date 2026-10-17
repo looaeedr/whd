@@ -307,6 +307,7 @@ def build_part_scene(
                     shrink_top=st, shrink_bottom=sb,
                     shrink_left=sl, shrink_right=sr,
                     bend=spec.bend, pattern=receiving_pattern,
+                    nfb_depth_pair_mm=spec.receiving_nfb_depth_pair_mm,
                 )
             elif spec.corner_policy is not None:
                 from .sheetmetal_part_adapters import build_unknown_base_plate_result
@@ -981,14 +982,21 @@ def _unfolded_topology_for_spec(spec: PartSpec, *, piece_id: str = "") -> Unfold
             shrink_top=spec.shrink_top,shrink_bottom=spec.shrink_bottom,
             shrink_left=spec.shrink_left,shrink_right=spec.shrink_right,
             bend=spec.bend,pattern=spec.receiving_bend_pattern,
+            nfb_depth_pair_mm=spec.receiving_nfb_depth_pair_mm,
         )
         if spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_CENTER:
+            # #1502: keep unfolded segmentation on the SAME authoritative
+            # actual adapter result. Historic 40+33-T2 => side return 71;
+            # a selected alternate NFB pair changes it, so hardcoded 71
+            # would make 2D/3D and DXF disagree.
+            core_w = spec.width - spec.shrink_left - spec.shrink_right
+            side_return = (actual.width - core_w) / 2.0
             return UnfoldedBlankTopology(
                 piece_id=str(spec.physical_id or piece_id or "base_plate"),
                 x_segments=(
-                    MaterialSegment("X","ear_side_return_left",71.0,"RECEIVING_BASE_BEND"),
-                    MaterialSegment("X","base_face",actual.width-142.0,"RECEIVING_BASE_BEND"),
-                    MaterialSegment("X","ear_side_return_right",71.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","ear_side_return_left",side_return,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","base_face",core_w,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("X","ear_side_return_right",side_return,"RECEIVING_BASE_BEND"),
                 ),
                 y_segments=(
                     MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
