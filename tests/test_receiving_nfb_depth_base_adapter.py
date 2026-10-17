@@ -22,6 +22,7 @@ def test_nfb_107_72_t2_produces_original_33_return_and_matching_real_bends():
     result = _base(nfb_depth_pair_mm=(107, 72))
     assert result.width == 772  # 630 + 2 * (40 + 33 - T2)
     assert result.height == 210
+    assert result.topology[-2:] == ("NFB_DEPTH_RETURN", 33)
     assert {b.name for b in result.bends} == {
         "receiving_bottom_20", "receiving_top_20",
         "receiving_left_40", "receiving_left_33",
@@ -39,6 +40,8 @@ def test_nfb_107_72_t2_produces_original_33_return_and_matching_real_bends():
 def test_alternate_depths_change_base_material_outline_and_second_bend_station():
     result = _base(nfb_depth_pair_mm=(105, 75))
     assert result.width == 762  # 630 + 2 * (40 + 28 - T2)
+    assert result.topology[-2:] == ("NFB_DEPTH_RETURN", 28)
+    assert result.topology != _base(nfb_depth_pair_mm=(107, 72)).topology
     by_name = {b.name: b for b in result.bends}
     assert by_name["receiving_left_33"].p1.x == 66
     assert by_name["receiving_right_33"].p1.x == 762 - 66
