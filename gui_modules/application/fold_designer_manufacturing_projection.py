@@ -358,8 +358,42 @@ def _query_fold_designer_render_data(self, part_key, payload):
         panel = next((item for item in panels if item.stable_id == key), None)
         if panel is None:
             raise ValueError(f"內門板 stable_id 不存在於 authoritative topology: {key}")
+        features = tuple(data.get("features") or ())
+        # The canonical inner-door panel factory consumes only the immutable
+        # physical panel and finished-face features. It reads no DXF/source
+        # file. Do not apply this cross-transaction reuse to frame/divider
+        # factories: those read dedicated physical baseline source data.
+        snapshot = getattr(self, "_phase6_input_snapshot", None)
+        owner = getattr(self, "_derived_cache_owner", None)
+        eligible = (
+            isinstance(snapshot, Mapping)
+            and snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("active_mode") == "set_bay"
+            and isinstance(owner, Phase6DerivedCacheOwner)
+        )
+        if eligible:
+            from phase6_manufacturing_contracts import manufacturing_fingerprint
+            try:
+                # No arbitrary repr fallback: unknown feature/part input must
+                # be manufactured normally instead of guessed equivalent.
+                fingerprint = manufacturing_fingerprint(
+                    {"panel": panel, "features": features})
+            except (TypeError, ValueError, OverflowError):
+                fingerprint = None
+            if fingerprint is not None:
+                history = owner._receiving_inner_door_panel_history
+                if fingerprint in history:
+                    history.move_to_end(fingerprint)
+                    return history[fingerprint]
+                material = manufacturing_api.build_inner_door_panel_render_data(
+                    panel, features=features)
+                history[fingerprint] = material
+                history.move_to_end(fingerprint)
+                while len(history) > 8:
+                    history.popitem(last=False)
+                return material
         return manufacturing_api.build_inner_door_panel_render_data(
-            panel, features=tuple(data.get("features") or ()),
+            panel, features=features,
         )
 
     if key.startswith("inner_door:") and key.endswith("_frame"):

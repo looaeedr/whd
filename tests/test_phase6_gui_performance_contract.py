@@ -1485,3 +1485,111 @@ def test_issue1817_receiving_endcap_missing_dxf_source_never_reuses_old_material
     owner.invalidate("geometry", changed_keys=("w",))
     b = _authoritative_render_data(app, spec, ctx)
     assert a is not b and len(calls) == 2
+
+
+def test_issue1817_exact_receiving_inner_door_panel_reuses_only_frozen_inputs(monkeypatch):
+    """W/H/D of an unrelated Bay must not rematerialize an identical panel."""
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from ae_engine import manufacturing_api
+    from ae_engine.inner_door_panels import InnerDoorPanelPart
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _query_fold_designer_render_data,
+    )
+    from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+    from ae_engine.cabinet_types import policy as family
+
+    panel = InnerDoorPanelPart(
+        stable_id="inner_door:test:panel", inner_door_id="test",
+        cell_key="upper", width=685, height=1040, thickness=2,
+    )
+    current = [panel]
+    monkeypatch.setattr(family, "derive_inner_door_panels",
+                        lambda _data: tuple(current))
+    calls = []
+    monkeypatch.setattr(
+        manufacturing_api, "build_inner_door_panel_render_data",
+        lambda part, *, features=(): calls.append((part, features)) or object())
+    derived = Phase6DerivedCacheOwner()
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "受電箱", "active_mode": "set_bay"},
+        _derived_cache_owner=derived,
+    )
+    def render(features=()):
+        return _query_fold_designer_render_data(
+            app, "inner_door:test:panel",
+            {"model": "受電箱", "features": features})
+
+    first = render()
+    assert render() is first and len(calls) == 1
+    derived.invalidate("geometry", changed_keys=("w", "h", "d"))
+    assert render() is first and len(calls) == 1
+    # Any change to physical PartSpec or authored opening must miss.
+    current[:] = [replace(panel, width=686)]
+    resized = render()
+    assert resized is not first and len(calls) == 2
+    current[:] = [panel]
+    changed_holes = render(({"kind": "圓孔", "x": 16, "y": 8, "d1": 6},))
+    assert changed_holes is not first and len(calls) == 3
+    assert render(({"kind": "圓孔", "x": 16, "y": 8, "d1": 6},)) is changed_holes
+    another_hole = render(({"kind": "圓孔", "x": 18, "y": 8, "d1": 6},))
+    assert another_hole is not changed_holes and len(calls) == 4
+    # Unknown feature representations fail closed, rather than repr-hashing.
+    opaque = object()
+    unknown = render((opaque,))
+    derived.invalidate("geometry", changed_keys=("w",))
+    assert render((opaque,)) is not unknown
+    derived.invalidate("geometry", changed_keys=("joint_unknown",))
+    assert render() is not first
+    derived.invalidate("baseline", changed_keys=("source_reload",))
+    again = render()
+    assert again is not first
+
+    # Product cache history may not leak to other family or quantity mode.
+    app._phase6_input_snapshot["active_mode"] = "quantity"
+    assert render() is not again
+    assert render() is not again
+    app._phase6_input_snapshot["active_mode"] = "set_bay"
+    app._phase6_input_snapshot["model"] = "金庫型"
+    assert render() is not again
+
+
+def test_issue1817_real_inner_door_panel_cache_matches_fresh_manufacturing_material():
+    """A cache hit reuses the exact 2D drawing, metadata and fold topology."""
+    from ae_engine.inner_door_panels import InnerDoorPanelPart
+    from ae_engine import manufacturing_api
+    from types import SimpleNamespace
+    from gui_modules.application import fold_designer_manufacturing_projection as projection
+    from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+    from ae_engine.cabinet_types import policy as family
+
+    panel = InnerDoorPanelPart(
+        stable_id="inner_door:parity:panel", inner_door_id="parity",
+        cell_key="upper", width=689, height=1040, thickness=2)
+    actual = manufacturing_api.build_inner_door_panel_render_data(panel)
+    cached = {
+        "model": "受電箱", "active_mode": "set_bay",
+        "features": (),
+    }
+    # Use a pure panel selection seam, not a fake geometry factory.
+    existing = family.derive_inner_door_panels
+    try:
+        family.derive_inner_door_panels = lambda _source: (panel,)
+        owner = SimpleNamespace(
+            _phase6_input_snapshot={"model": "受電箱", "active_mode": "set_bay"},
+            _derived_cache_owner=Phase6DerivedCacheOwner(),
+        )
+        a = projection._query_fold_designer_render_data(
+            owner, "inner_door:parity:panel", cached)
+        owner._derived_cache_owner.invalidate(
+            "geometry", changed_keys=("w",))
+        b = projection._query_fold_designer_render_data(
+            owner, "inner_door:parity:panel", cached)
+    finally:
+        family.derive_inner_door_panels = existing
+    assert a is b
+    assert a.material.equals(actual.material)
+    assert a.scene.primitives == actual.scene.primitives
+    assert a.fold_guides == actual.fold_guides
+    assert a.unfolded_topology == actual.unfolded_topology
+    assert a.metadata == actual.metadata

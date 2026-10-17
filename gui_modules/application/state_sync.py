@@ -51,6 +51,9 @@ class Phase6DerivedCacheOwner:
         # result or a resolved Joint/collision/placement. Geometry invalidation
         # continues to clear every authoritative product cache as before.
         self._receiving_exact_material_history = OrderedDict()
+        # Exact generated inner-door panel material; no DXF baseline source.
+        # Frame and divider materials are source-backed and excluded.
+        self._receiving_inner_door_panel_history = OrderedDict()
         self._receiving_exact_material_stamp = None
 
     def cache(self, product):
@@ -75,6 +78,7 @@ class Phase6DerivedCacheOwner:
             and not (reason == "geometry" and keys and keys <= {"w", "h", "d"})
         ):
             self._receiving_exact_material_history.clear()
+            self._receiving_inner_door_panel_history.clear()
             self._receiving_exact_material_stamp = None
         products = self._REASON_PRODUCTS.get(reason)
         if products is None:
