@@ -718,3 +718,27 @@ def test_issue1816_primary_render_cache_receipt_tracks_exact_spec_context_key():
     finally:
         probe.stack.close()
     assert app._authoritative_render_data.__func__ is original
+
+
+def test_issue1817_paired_true_tk_samples_are_separate_from_general_baseline():
+    """Retain head-to-head sample identity and never treat failed rows as speed."""
+    from tools.whd_performance_baseline import summarize
+    rows = [
+        dict(bays=3, operation='issue1817_bay0_cached', cache_state='warm',
+             status='ok', wall_ms=11),
+        dict(bays=3, operation='issue1817_bay0_cached', cache_state='warm',
+             status='ok', wall_ms=13),
+        dict(bays=3, operation='issue1817_bay0_forced_full_comparison',
+             cache_state='warm', status='ok', wall_ms=101),
+        dict(bays=3, operation='issue1817_bay0_forced_full_comparison',
+             cache_state='warm', status='failed', wall_ms=1),
+        dict(bays=1, operation='open_multi', cache_state='warm',
+             status='ok', wall_ms=20),
+    ]
+    entries = {(r['bays'],r['operation']):r for r in summarize(rows)}
+    assert entries[3,'issue1817_bay0_cached']['n'] == 2
+    assert entries[3,'issue1817_bay0_cached']['median_ms'] == 12
+    assert entries[3,'issue1817_bay0_forced_full_comparison']['n'] == 1
+    assert entries[3,'issue1817_bay0_forced_full_comparison']['failed'] == 1
+    assert entries[3,'issue1817_bay0_forced_full_comparison']['median_ms'] == 101
+    assert entries[1,'open_multi']['n'] == 1
