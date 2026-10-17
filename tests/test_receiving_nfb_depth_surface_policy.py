@@ -107,3 +107,32 @@ def test_exact_selected_brand_csv_depths_are_source_not_a_global_magic_constant(
         secondary_nfb_depth_mm=shihlin_shallow.depth_mm,
         base_plate_thickness_mm=2,
     ) == 33
+
+
+def test_selected_brand_model_csv_drives_depth_pair_not_fixed_literal():
+    from ae_engine.receiving_nfb_depth_surface_policy import (
+        selected_receiving_nfb_depth_pair_mm,
+    )
+    assert selected_receiving_nfb_depth_pair_mm(
+        "士林", ["400_140X257_107.dxf", "125_90X155_72.dxf"]
+    ) == (107.0, 72.0)
+    assert selected_receiving_nfb_depth_pair_mm(
+        "東元", ["140X260_103.dxf", "90X155_68.dxf"]
+    ) == (103.0, 68.0)
+    assert selected_receiving_nfb_depth_pair_mm(
+        "士林", ["nfbv5:士林:3P400SN", "nfbv5:士林:3P125SN"]
+    ) == (107.0, 72.0)
+
+
+@pytest.mark.parametrize("brand, refs", [
+    ("士林", ["nfbv5:東元:3P400SN", "nfbv5:士林:3P125SN"]),
+    ("東元", ["400_Type.dxf", "90X155_68.dxf"]),  # depth missing
+    ("士林", ["missing.dxf", "125_90X155_72.dxf"]),
+    ("士林", ["400_140X257_107.dxf"]),
+])
+def test_unknown_or_foreign_model_never_auto_selects_other_brand_depth(brand, refs):
+    from ae_engine.receiving_nfb_depth_surface_policy import (
+        selected_receiving_nfb_depth_pair_mm,
+    )
+    with pytest.raises(ValueError):
+        selected_receiving_nfb_depth_pair_mm(brand, refs)
