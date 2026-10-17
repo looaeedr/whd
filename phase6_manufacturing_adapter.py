@@ -705,7 +705,17 @@ def resolve_manufacturing_for_app(
     key = build_manufacturing_cache_key(app)
     lookup = service.lookup(key)
     if lookup.result is not None:
-        # Legacy mirrors remain readers only; they are never cache authority.
+        # Undo history can restore a result from *before* the last GUI update.
+        # Restore its diagnostics as well as geometry; retaining the previous
+        # topology's collision/relief diagnostics would be stale, even though
+        # the full exact-state fingerprint matches the restored geometry.
+        diagnostics = lookup.result.diagnostics
+        app._phase6_last_interference_probe_parts = tuple(
+            diagnostics.interference_probe_parts)
+        app._phase6_last_relief_errors = dict(
+            diagnostics.relief_errors.items())
+        app._phase6_last_relief_solutions = dict(
+            diagnostics.relief_solutions.items())
         app._phase6_last_resolved_manufacturing_geometry = lookup.result.geometry
         app._phase6_last_resolved_manufacturing_signature = key.fingerprint
         return lookup.result.geometry
