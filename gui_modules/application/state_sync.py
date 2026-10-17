@@ -70,7 +70,10 @@ class Phase6DerivedCacheOwner:
         # material history. Joint/fold/hole/unknown edits, baseline reload,
         # presence and family changes must discard it. The authoritative
         # render cache below remains fully invalidated for geometry edits.
-        if not (reason == "geometry" and keys and keys <= {"w", "h", "d"}):
+        if (
+            reason not in {"display", "annotation", "camera"}
+            and not (reason == "geometry" and keys and keys <= {"w", "h", "d"})
+        ):
             self._receiving_exact_material_history.clear()
             self._receiving_exact_material_stamp = None
         products = self._REASON_PRODUCTS.get(reason)
