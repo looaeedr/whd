@@ -92,6 +92,8 @@ first_return   = -40                        # 已確認固定
 ## 五、資料與向下相容
 
 - 型號來源必須從 `基準檔/開孔/NFB/開關索引.csv` 或 V5 各品牌 `基準檔/開孔/NFB/數值規格/<品牌>/NFB數值規格.csv` **以被選中的 brand/model 查取深度**。不可從檔名尾碼或其他品牌推斷。
+- 單層兩顆不同 NFB 的第二折尺寸，從**已提交之目前 Set/Bay** 的 NFBConfig 實際型號，配合該 Set `switch_brand` 的 CSV 深度求得。GUI `receiving_base_plate_values` 傳給**現有** `BasePlatePartSpec`／FinalScene，不額外建立第二種可編輯底板深度或品牌。
+- Fold Designer 若尚未展開根層 NFB alias，只可使用**唯一 Set／唯一 Bay 的已提交資料**，或具身份匹配的指定當前 Set/Bay；多 Bay 未選或模型來源不符禁止跨箱套用。未提交／相同型號保持舊預覽，不能把 preview 33 當製造認證。
 - UI 上未提交的深度配置不得回寫 Family 預設值；沒有明確配置時既有板件可維持預覽，但無憑證不得釋出 NFB 製造 DXF。
 - 本確認覆蓋舊 #1503「底板／固定片位置永遠不動」文字；**內門固定、底板及固定片隨實際深度一起調 Z**。PAD 是另外的情形，不要拿尚未認證的墊高件替代雙折底板。
 
