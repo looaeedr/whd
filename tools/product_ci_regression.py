@@ -32,6 +32,7 @@ PYTEST_PATHS = (
     # #1819: loaded .p6fold projects must retire old Bay scene/material caches.
     "tests/test_phase6_project_controller.py::test_issue1819_loading_project_releases_prior_designer_derived_scenes",
     "tests/test_phase6_project_controller.py::test_issue1819_failed_project_load_preserves_current_valid_cache",
+    "tests/test_issue1819_manufacturing_cache_bounds.py",
     "tests/test_manufacturing_mesh_reuse.py",
     "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",
