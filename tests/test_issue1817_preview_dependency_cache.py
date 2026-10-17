@@ -552,3 +552,109 @@ def test_issue1817_preview_key_discards_only_recomputed_selected_bay_joint_locks
         changed_user_hole)) != stable_fingerprint(before_key)
     unfamiliar = {"box_body": {"left": object()}}
     assert _receiving_bay_preview_face_features_key(unfamiliar) is unfamiliar
+
+
+def test_issue1817_real_bay_panel_material_uses_projected_payload_not_host_snapshot(monkeypatch):
+    """3rd-Bay W/H/D edit must not rematerialize a physically unchanged panel.
+
+    The original GUI callback belongs to a primary host whose active_mode can
+    differ from the projected Bay request. Key against actual typed input.
+    """
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from ae_engine.inner_door_panels import InnerDoorPanelPart
+    from ae_engine.cabinet_types import policy as family
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_cached_bay_inner_door_panel,
+    )
+
+    panel = InnerDoorPanelPart(
+        stable_id="inner_door:upper:panel", inner_door_id="upper",
+        cell_key="upper", width=689, height=1040, thickness=2,
+    )
+    selection = [panel]
+    monkeypatch.setattr(family, "derive_inner_door_panels",
+                        lambda _input: tuple(selection))
+    owner = SimpleNamespace()
+    made = []
+    def factory():
+        token = object()
+        made.append(token)
+        return token
+    data = {"model": "受電箱", "active_mode": "set_bay", "features": ()}
+    original = _receiving_cached_bay_inner_door_panel(
+        owner, panel.stable_id, data, factory)
+    # A real Bay callback may be bound to the primary host in quantity mode.
+    primary_host = SimpleNamespace(active_mode="quantity")
+    assert primary_host.active_mode == "quantity"
+    # The cache authority is the canonical projected source, not this host.
+    assert _receiving_cached_bay_inner_door_panel(
+        owner, panel.stable_id, data, factory) is original
+    assert len(made) == 1
+    selection[:] = [replace(panel, width=690)]
+    assert _receiving_cached_bay_inner_door_panel(
+        owner, panel.stable_id, data, factory) is not original
+    assert len(made) == 2
+    selection[:] = [panel]
+    new_holes = {**data, "features": ({"kind": "圓孔", "x": 9, "y": 15, "d1": 5},)}
+    changed = _receiving_cached_bay_inner_door_panel(
+        owner, panel.stable_id, new_holes, factory)
+    assert changed is not original and len(made) == 3
+    assert _receiving_cached_bay_inner_door_panel(
+        owner, panel.stable_id, new_holes, factory) is changed
+
+    # Unknown feature shapes and unsupported modes cannot hit a past entry.
+    unreadable = {**data, "features": (object(),)}
+    assert _receiving_cached_bay_inner_door_panel(
+        owner, panel.stable_id, unreadable, factory) is not original
+    assert _receiving_cached_bay_inner_door_panel(
+        owner, panel.stable_id, unreadable, factory) is not original
+    assert len(made) == 5
+    for changed_mode in ("quantity", "unknown"):
+        _receiving_cached_bay_inner_door_panel(
+            owner, panel.stable_id, {**data, "active_mode": changed_mode}, factory)
+    _receiving_cached_bay_inner_door_panel(
+        owner, "inner_door:upper:left_frame", data, factory)
+    assert len(made) == 8
+
+    # Bounded scope: only the latest eight distinct canonical raw sheets.
+    for width in range(700, 711):
+        selection[:] = [replace(panel, width=width)]
+        _receiving_cached_bay_inner_door_panel(
+            owner, panel.stable_id, data, factory)
+    assert len(owner._receiving_raw_inner_door_panel_history) == 8
+
+
+def test_issue1817_cached_bay_panel_is_exact_source_free_manufacturing_material():
+    from types import SimpleNamespace
+    from ae_engine import manufacturing_api
+    from ae_engine.inner_door_panels import InnerDoorPanelPart
+    from ae_engine.cabinet_types import policy as family
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_cached_bay_inner_door_panel,
+    )
+
+    panel = InnerDoorPanelPart(
+        stable_id="inner_door:parity:panel", inner_door_id="parity",
+        cell_key="upper", width=689, height=1040, thickness=2,
+    )
+    owner = SimpleNamespace()
+    data = {"model": "受電箱", "active_mode": "set_bay", "features": ()}
+    original = family.derive_inner_door_panels
+    try:
+        family.derive_inner_door_panels = lambda _source: (panel,)
+        built = manufacturing_api.build_inner_door_panel_render_data(panel)
+        one = _receiving_cached_bay_inner_door_panel(
+            owner, panel.stable_id, data,
+            lambda: manufacturing_api.build_inner_door_panel_render_data(panel))
+        two = _receiving_cached_bay_inner_door_panel(
+            owner, panel.stable_id, data,
+            lambda: (_ for _ in ()).throw(AssertionError("material rebuilt")))
+    finally:
+        family.derive_inner_door_panels = original
+    assert one is two
+    assert one.material.equals(built.material)
+    assert one.scene.primitives == built.scene.primitives
+    assert one.fold_guides == built.fold_guides
+    assert one.unfolded_topology == built.unfolded_topology
+    assert one.metadata == built.metadata

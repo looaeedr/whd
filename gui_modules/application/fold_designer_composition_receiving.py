@@ -656,6 +656,52 @@ def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_inde
     return fingerprint_snapshot
 
 
+def _receiving_cached_bay_inner_door_panel(owner, part_key, payload, factory):
+    """Memoize only the exact source-free raw panel used by a real Bay request.
+
+    Per-Bay construction routes its own projected payload through a callback
+    bound to the primary GUI host; that host has a different current snapshot.
+    This cache therefore belongs to the Receiving composition, not the host
+    and not the global manufacturing result. All Joint/relief/collision/world
+    transforms still execute in the downstream full resolver. Frame/Divider
+    material reads certified DXF files and is never served by this helper.
+    """
+    key = str(part_key or "")
+    if not (key.startswith("inner_door:") and key.endswith(":panel")
+            and isinstance(payload, Mapping)
+            and payload.get("model") in ("受電箱", "RECEIVING")
+            and payload.get("active_mode") == "set_bay"):
+        return factory()
+    from collections import OrderedDict
+    from ae_engine.cabinet_types import policy as family_policy
+    from phase6_manufacturing_contracts import manufacturing_fingerprint
+
+    panels = family_policy.derive_inner_door_panels(dict(payload))
+    panel = next((part for part in panels if part.stable_id == key), None)
+    if panel is None:
+        return factory()  # Let the canonical factory raise on invalid topology.
+    features = tuple(payload.get("features") or ())
+    try:
+        signature = manufacturing_fingerprint({
+            "panel": panel, "features": features,
+        })
+    except (TypeError, ValueError, OverflowError):
+        return factory()  # Unknown Feature DTO: never guess equivalence.
+    history = getattr(owner, "_receiving_raw_inner_door_panel_history", None)
+    if history is None:
+        history = OrderedDict()
+        owner._receiving_raw_inner_door_panel_history = history
+    if signature in history:
+        history.move_to_end(signature)
+        return history[signature]
+    material = factory()
+    history[signature] = material
+    history.move_to_end(signature)
+    while len(history) > 8:
+        history.popitem(last=False)
+    return material
+
+
 def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
     """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
     from types import SimpleNamespace
@@ -759,9 +805,19 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         # committed fallback 解凍的 scene payload 是可序列化資料；孔特徵
         # 仍由 workspace 的 typed feature authority 提供，不能送入 legacy hole DTO。
         return {**dict(payload), "features": proxy_workspace.features_for(key), "face_features": proxy_workspace.face_features_for(key)}
+    def render_bay_part(key, payload):
+        source_payload = feature_payload(key, payload)
+        render = lambda: app._scene_query_callback(key, source_payload)
+        if preview_layout is not None:
+            # Candidate editing is isolated from committed Bay material reuse.
+            return render()
+        return _receiving_cached_bay_inner_door_panel(
+            self, key, source_payload, render,
+        )
+
     request = build_manufacturing_request(
         proxy, scene_payload_builder=lambda key: build_scene_payload_for_app(proxy, key),
-        render_data_provider=lambda key, payload: app._scene_query_callback(key, feature_payload(key, payload)),
+        render_data_provider=render_bay_part,
         part_spec_provider=lambda key, payload: app._part_spec_query_callback(key, feature_payload(key, payload)),
         finished_dimensions_provider=dimensions,
     )
