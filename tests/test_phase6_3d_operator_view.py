@@ -125,7 +125,7 @@ def test_issue1818_reentrant_3d_render_only_publishes_latest_view(older_provider
     canvas = FigureCanvasAgg(fig)
     ax3d = fig.add_subplot(121, projection="3d")
     ax2d = fig.add_subplot(122)
-    native = SimpleNamespace(ax3d=ax3d, ax2d=ax2d, canvas=canvas)
+    native = SimpleNamespace(ax3d=ax3d, ax2d=ax2d, canvas=canvas, render=lambda: None)
     owner = Phase6FinalSceneRenderer(native)
     shown = []
     reported = []
