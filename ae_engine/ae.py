@@ -784,8 +784,10 @@ def _receiving_base_weld_ear_mount_slots(scene, *, result, pattern, box_w, t):
 
     The original sample has 11-mm wide ×25-mm long rounded slots, their
     centers 20 mm in from both blank X edges. The MIDDLE sample's UNFOLDED
-    hole X pitch is 732, but after side bends the assembled pitch is 670.
-    The LEFT/RIGHT samples are 670 both before and after folding.
+    hole X pitch is 732 ONLY for W772 with side return 71 (Shihlin 107/72,
+    T2). When the selected second side fold varies, the unfolded hole pitch
+    changes WITH the blank to preserve assembled X pitch 670. The LEFT/RIGHT
+    samples are 670 both before and after folding.
     This draws ear mounting holes, NOT an NFB's four small screw holes.
     """
     from math import cos, sin, pi
@@ -798,9 +800,24 @@ def _receiving_base_weld_ear_mount_slots(scene, *, result, pattern, box_w, t):
         box_outer_width_mm=box_w, box_side_thickness_mm=t,
         fixing_hole_pitch_x_mm=670.0, fixing_hole_pitch_y_mm=y_pitch,
     )
-    unfolded_x_pitch = 732.0 if center_pattern else fit.fixing_hole_pitch_x_mm
-    if abs((result.width - 40.) - unfolded_x_pitch) > 1e-6:
-        raise ValueError("Receiving base pattern does not match native 20-mm ear-hole edge inset")
+    # The mounting slots remain 20 mm from each unfolded blank edge.
+    # For CENTER, 772-40=732 is only the ORIGINAL first40/second33/T2
+    # sample. Any other source-selected depth pair varies second, side
+    # return and blank width together. Check the ASSEMBLED 670 without
+    # imposing the obsolete 732 on all new blank sizes.
+    actual_unfolded_pitch = float(result.width) - 40.0
+    if center_pattern:
+        topo = getattr(result, "topology", None)
+        if (not isinstance(topo, tuple) or len(topo)<3
+                or topo[0] != "RECEIVING_BASE" or topo[1] != pattern):
+            raise ValueError("Receiving center ear-hole pitch requires real source plate topology")
+        central_nominal = float(topo[2])
+        side_return = (float(result.width) - central_nominal)/2.0
+        assembled_pitch = actual_unfolded_pitch - 2.0*(side_return-40.0)
+    else:
+        assembled_pitch = actual_unfolded_pitch
+    if abs(assembled_pitch-fit.fixing_hole_pitch_x_mm) > 1e-6:
+        raise ValueError("Receiving base pattern cannot mate native assembled 670-mm ear holes")
     cx=(20.0,result.width-20.0)
     cy=(result.height/2.0-y_pitch/2.0,
         result.height/2.0+y_pitch/2.0)

@@ -642,34 +642,55 @@ def build_receiving_base_plate_result(
             secondary_nfb_depth_mm=nfb_depth_pair_mm[1],
             base_plate_thickness_mm=t,
         )
-    # The drawing's UV blank side return (two folds per side) is still
-    # 40 + second - T. Do not treat BEND-station spacing as the NFB Z gap.
-    # Certified folded skins and the 3D orientation remain a separate gate.
+    # The unfolded BLANK return and the two BEND station locations are
+    # DIFFERENT measured values. The user's 受電箱底板(5).dxf has W772,
+    # BENDING left stations x=(40,73) and right x=(699,732), measured
+    # relative to the center example's cutting min-X. So their physical
+    # station-to-station spacing is 33, NOT 31. The blank return is still
+    # 40 + 33 - T2 = 71 on each side; that is NOT the 2nd BEND station.
+    # For variable selected NFB depth second, preserve this distinction.
+    # This does not certify the 3D folded skins or release manufacturing.
     side_fold=first+second-t
+    second_bend_station=first+second
     blank_w=core_w+2*side_fold
     shoulder=35.0
-    if blank_h<=2*shoulder or core_w<=0:
+    corner_chamfer=5.0
+    # Physical source CUTTING (受電箱底板(5).dxf, SHA256 cccf060c...4160d29b)
+    # for W772/T2 has inner shoulder x=74 and 698 (20 polygon vertices).
+    # IMPORTANT: unfolded topology's material side return=71 differs from:
+    # 2nd BEND station=73 and CUTTING shoulder=74. The latter is 1 mm
+    # beyond the BEND station for this certified T2 geometry. Do not
+    # project 71 to all three geometrically different reference points.
+    cutting_shoulder=second_bend_station+t/2.0
+    if (blank_h <= 2*(shoulder+corner_chamfer)
+            or cutting_shoulder+corner_chamfer>=blank_w/2.0
+            or core_w<=0):
         raise ValueError("Receiving center base shoulders consume the physical core")
-    x0,x1=side_fold,blank_w-side_fold
+    x0,x1=cutting_shoulder,blank_w-cutting_shoulder
     y0,y1=shoulder,blank_h-shoulder
+    c=corner_chamfer
     outline=(
-        Vec2(x0,0.),Vec2(x1,0.),
-        Vec2(x1,y0),Vec2(blank_w,y0),
-        Vec2(blank_w,y1),Vec2(x1,y1),
-        Vec2(x1,blank_h),Vec2(x0,blank_h),
-        Vec2(x0,y1),Vec2(0.,y1),
-        Vec2(0.,y0),Vec2(x0,y0),
+        Vec2(x0+c,blank_h),Vec2(x1-c,blank_h),
+        Vec2(x1,blank_h-c),Vec2(x1,y1),
+        Vec2(blank_w-c,y1),Vec2(blank_w,y1-c),
+        Vec2(blank_w,y0+c),Vec2(blank_w-c,y0),
+        Vec2(x1,y0),Vec2(x1,c),
+        Vec2(x1-c,0.),Vec2(x0+c,0.),
+        Vec2(x0,c),Vec2(x0,y0),
+        Vec2(c,y0),Vec2(0.,y0+c),
+        Vec2(0.,y1-c),Vec2(c,y1),
+        Vec2(x0,y1),Vec2(x0,blank_h-c),
     )
     bends=(
         BendLine("receiving_bottom_20",Vec2(x0,bend),Vec2(x1,bend)),
         BendLine("receiving_top_20",
                  Vec2(x0,blank_h-bend),Vec2(x1,blank_h-bend)),
         BendLine("receiving_left_40",Vec2(first,y0),Vec2(first,y1)),
-        BendLine("receiving_left_33",Vec2(side_fold,y0),Vec2(side_fold,y1)),
+        BendLine("receiving_left_33",Vec2(second_bend_station,y0),Vec2(second_bend_station,y1)),
         BendLine("receiving_right_40",
                  Vec2(blank_w-first,y0),Vec2(blank_w-first,y1)),
         BendLine("receiving_right_33",
-                 Vec2(blank_w-side_fold,y0),Vec2(blank_w-side_fold,y1)),
+                 Vec2(blank_w-second_bend_station,y0),Vec2(blank_w-second_bend_station,y1)),
     )
     # Keep topology/fingerprint sensitive to an actual source-selected
     # NFB depth pair. Reusing the old fixed-33 topology key for a changed
