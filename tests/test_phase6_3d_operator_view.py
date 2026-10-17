@@ -114,3 +114,40 @@ def test_real_first_door_selection_coalesces_to_one_canvas_draw():
         except Exception:
             pass
         root.destroy()
+
+
+@pytest.mark.parametrize("older_provider_error", [False, True])
+def test_issue1818_reentrant_3d_render_only_publishes_latest_view(older_provider_error):
+    """A nested mode switch supersedes the older pending FinalScene request."""
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+    fig = Figure(figsize=(4, 3))
+    canvas = FigureCanvasAgg(fig)
+    ax3d = fig.add_subplot(121, projection="3d")
+    ax2d = fig.add_subplot(122)
+    native = SimpleNamespace(ax3d=ax3d, ax2d=ax2d, canvas=canvas)
+    owner = Phase6FinalSceneRenderer(native)
+    shown = []
+    reported = []
+    owner.render = lambda request: shown.append(request)
+    owner._error_reporter = lambda error: reported.append(str(error))
+    calls = []
+
+    def request_provider():
+        calls.append(len(calls) + 1)
+        if len(calls) == 1:
+            # The newer operator choice is rendered during the old
+            # provider's nested event-loop callback.
+            native.render()
+            if older_provider_error:
+                raise RuntimeError("superseded old 3d failure")
+            return "old-preview"
+        return "new-preview"
+
+    owner.install(request_provider)
+    native.render()
+    assert calls == [1, 2]
+    assert shown == ["new-preview"], "outdated FinalScene overwrote later view"
+    assert owner.cutting_mesh_error is None
+    assert reported == [], "superseded error leaked into the newer preview"
+    assert not any("載入失敗" in item.get_text() for item in ax3d.texts)
