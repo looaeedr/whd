@@ -195,3 +195,36 @@ def test_sha_identical_numbered_download_keeps_single_source_identity(tmp_path):
     assert composed.projection.source_sha256 == v.bundle.source_inventory.source_sha256
     assert ezdxf.readfile(path).modelspace() is not None
     assert copied.read_bytes() == v.original.read_bytes()
+
+
+def test_real_center_nfb_work_face_follows_original_cutting_shoulder_not_71(tmp_path, monkeypatch):
+    """Source #1502 DXF has mount shoulder 74/698, NOT topology return 71/701."""
+    from ae_engine import receiving_nfb_base_process_projection as projection
+    from gui_modules.application.receiving_nfb_base_partial_export_action import (
+        prepare_verified_receiving_nfb_base_plate,
+    )
+    sample = _live(tmp_path, "CENTER_DOUBLE_SIDE_FOLD")
+    original = projection.project_one_original_nfb_into_actual_base
+    actual_faces = []
+
+    def capture_actual_base_work_face(**kwargs):
+        actual_faces.append(kwargs["target"])
+        return original(**kwargs)
+
+    monkeypatch.setattr(
+        projection, "project_one_original_nfb_into_actual_base",
+        capture_actual_base_work_face,
+    )
+    composed, *_ = prepare_verified_receiving_nfb_base_plate(
+        sample.bundle, layout=sample.layout,
+        current_snapshot=sample.snapshot, base_spec=sample.plate,
+        index_path=sample.index, profile_path=sample.profile,
+    )
+    assert len(actual_faces) == 1
+    face = actual_faces[0]
+    # User source W772/H240, BENDING 40/73/699/732 and T2 skin.
+    assert face.face_outline_uv_mm == (
+        (74.0, 20.0), (698.0, 20.0),
+        (698.0, 220.0), (74.0, 220.0),
+    )
+    assert composed.render_data.metadata["receiving_base_ear_weld_z_verified"] is False
