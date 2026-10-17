@@ -374,3 +374,84 @@ def test_v5_real_tk_numeric_panel_shows_local_holes_without_reading_dxf(monkeypa
         assert "不符" in panel.reason.get()
     finally:
         root.destroy()
+
+
+def test_v5_same_source_serves_distinct_inner_middle_and_base_panel_datums():
+    from ae_engine.receiving_nfb_numeric_panel_projection import (
+        NfbPanelDatum, project_nfb_v5_to_panel, STATUS,
+    )
+    inner = NfbPanelDatum("inner_door:1", "inner-door", (100, 200),
+                          (1, 0), (0, 1))
+    middle = NfbPanelDatum("box_body:middle:1", "middle-plate", (300, 40),
+                           (0, 1), (-1, 0))
+    base = NfbPanelDatum("base_plate:1", "base-plate", (50, 70),
+                         (1, 0), (0, 1))
+    i = project_nfb_v5_to_panel("士林", "2P125SN", inner, feature="opening")
+    m = project_nfb_v5_to_panel("士林", "2P125SN", middle, feature="opening")
+    b = project_nfb_v5_to_panel("士林", "2P125SN", base, feature="screws")
+    assert i.opening_uv_mm == (
+        (86, 171), (114, 171), (114, 229), (86, 229),
+    )
+    assert i.screw_centres_uv_mm is None
+    assert m.opening_uv_mm == (
+        (329, 26), (329, 54), (271, 54), (271, 26),
+    )
+    assert b.opening_uv_mm is None
+    assert b.screw_centres_uv_mm == (
+        (37.5, 14.5), (62.5, 14.5), (37.5, 125.5), (62.5, 125.5),
+    )
+    assert b.screw_diameter_mm == 3.2
+    assert all(not p.manufacturing_ready and p.status == STATUS
+               for p in (i, m, b))
+    assert {p.datum.part_id for p in (i,m,b)} == {
+        "inner_door:1", "box_body:middle:1", "base_plate:1",
+    }
+
+
+def test_v5_cross_panel_offset_rotates_with_explicit_axis_not_assumed_world_xy():
+    from ae_engine.receiving_nfb_numeric_panel_projection import (
+        NfbPanelDatum, project_nfb_v5_to_panel,
+    )
+    datum=NfbPanelDatum("middle:2", "middle-plate", (100, 200),
+                        (0, 1), (-1, 0))
+    p=project_nfb_v5_to_panel("東元", "3P400SN", datum, feature="both")
+    assert p.opening_uv_mm == (
+        (149, 175), (149, 225), (51, 225), (51, 175),
+    )
+    # Original local screw group is shifted +5,+1; the 90-degree
+    # panel transformation rotates the *entire* pattern consistently.
+    assert p.screw_centres_uv_mm == (
+        (206, 182.5), (206, 227.5),
+        (-8, 182.5), (-8, 227.5),
+    )
+    assert p.screw_diameter_mm == 5.1
+    assert p.manufacturing_ready is False
+
+
+def test_v5_panel_projection_rejects_unknown_basis_missing_holes_and_mirroring():
+    from ae_engine.receiving_nfb_numeric_panel_projection import (
+        NfbPanelDatum, project_nfb_v5_to_panel,
+    )
+    right=NfbPanelDatum("base:1","base-plate",(0,0),(1,0),(0,1))
+    with pytest.raises(ValueError,match="缺失"):
+        project_nfb_v5_to_panel("士林","1PBH",right,feature="screws")
+    with pytest.raises(ValueError,match="不足"):
+        project_nfb_v5_to_panel("伍菱","100HN-s",right,feature="screws")
+    ok=project_nfb_v5_to_panel("伍菱","100HN-s",right,feature="opening")
+    assert ok.screw_centres_uv_mm is None
+    with pytest.raises(ValueError,match="明確"):
+        project_nfb_v5_to_panel("士林","2P125SN",right,feature="unsupported")
+    for bad in (
+        NfbPanelDatum("base:1","base-plate",(0,0),(1,0),(0,-1)),
+        NfbPanelDatum("base:1","base-plate",(0,0),(1,0),(1,0)),
+        NfbPanelDatum("base:1","base-plate",(0,0),(2,0),(0,1)),
+        NfbPanelDatum("base:1","base-plate",(0,0),(0,1),(1,0)),
+    ):
+        with pytest.raises(ValueError,match="禁止鏡射"):
+            project_nfb_v5_to_panel("士林","2P125SN",bad,feature="both")
+    with pytest.raises(ValueError,match="板件用途"):
+        project_nfb_v5_to_panel(
+            "士林","2P125SN",
+            NfbPanelDatum("unknown","manufacturing",(0,0),(1,0),(0,1)),
+            feature="opening",
+        )
