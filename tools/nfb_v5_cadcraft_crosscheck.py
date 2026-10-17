@@ -183,6 +183,144 @@ def verify(original: Path, roundtrip: Path, manifest: Path, info_path: Path):
           len(source), "distinct records", sum(source.values()), "entities")
 
 
+
+BASE_KIND = "WHD_NFB_V5_EXISTING_EAR_BASE_CI_UNVERIFIED_CADCRAFT_ROUNDTRIP"
+
+
+def _base_fixture():
+    """Source-backed two-switch row, one original Receiving base/EAR identity."""
+    from ae_engine.contracts import BasePlatePartSpec
+    from ae_engine.manufacturing_api import build_part_render_data
+    from ae_engine.receiving_nfb_base_process_projection import NfbActualBaseWorkFace
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        NfbV5ConfiguredInnerDoorHole, trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.receiving_nfb_v5_actual_base_screws import (
+        trial_v5_screws_on_existing_receiving_base,
+    )
+    from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    state = apply_family_defaults({
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350.,
+        "t": 2., "fw": 29., "door_gap_w": 3.5, "door_gap_h": 3.5,
+    })
+    state.update({
+        "multi_door_enabled": True,
+        "door_layout_scope": "receiving-main",
+        "door_layout_columns": [[800., [1100., 500.]]],
+        "inner_doors": [{"stable_id": "upper", "cell_key": "0:0",
+                         "included_frame_sides": ["top", "left", "right"]}],
+        "receiving_inner_door_layer_heights_mm": [330., 830.],
+    })
+    holes = tuple(NfbV5ConfiguredInnerDoorHole(
+        physical_hole_id=f"nfb:base-ci:{i}", brand=BRAND,
+        model_ref=f"nfbv5:{BRAND}:{MODEL}",
+        world_x_mm=x, layer_count=2, slot_index=0,
+    ) for i, x in enumerate((-90., 90.), start=1))
+    inner = trial_configured_nfb_v5_inner_door_render_data(
+        state, "upper", holes=holes,
+    )
+    original = build_part_render_data(BasePlatePartSpec(
+        width=800., height=340., thickness=2.,
+        shrink_top=20., shrink_bottom=20.,
+        shrink_left=45., shrink_right=45.,
+        bend=20., model_name="受電箱",
+        receiving_bend_pattern="LEFT_FLAT_SIDE",
+        physical_id="base_plate",
+    ))
+    w, h = original.unfolded_topology.width, original.unfolded_topology.height
+    world_y = project_nfb_inner_door_nominal_y(
+        state, "upper", layer_count=2, slot_index=0,
+    ).box_world_y_mm
+    target = NfbActualBaseWorkFace(
+        physical_part_id="base_plate", actual_render=original,
+        world_face_center_xy_mm=(0., world_y),
+        unfolded_face_center_uv_mm=(w/2, h/2),
+        face_outline_uv_mm=((0., 20.), (w, 20.),
+                            (w, h-20.), (0., h-20.)),
+    )
+    trial = trial_v5_screws_on_existing_receiving_base(
+        state, "upper", door=inner, configured_holes=holes, target=target,
+    )
+    return original, trial
+
+
+def emit_base(dxf: Path, manifest: Path):
+    """Serialize the ACTUAL base+EAR+V5 screw FinalScene as a CI-only DXF."""
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    original, trial = _base_fixture()
+    if (trial.manufacturing_ready or
+            trial.render_data.metadata.get("nfb_trial_export_approved") is not False):
+        raise ValueError("NFB V5 Base DXF source must remain NON-MANUFACTURABLE")
+    ears = tuple(row for row in original.scene.primitives
+                 if isinstance(row, PolylinePrimitive)
+                 and row.closed and row.layer == "CUTTING")
+    if len(ears) != 5:
+        raise ValueError("Actual base EAR/CUTTING original must be complete")
+    if trial.render_data.material.area >= original.material.area:
+        raise ValueError("V5 base screws must cut actual material")
+    dxf.parent.mkdir(parents=True, exist_ok=True)
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    save_scene_dxf(dxf, trial.render_data.scene)  # Only a test output; not release.
+    counts = _entities(dxf)
+    expected = []
+    for pattern in trial.patterns:
+        for xy in pattern.screw_centres_uv_mm:
+            circle = (_rounded(xy[0]), _rounded(xy[1]),
+                      _rounded(pattern.screw_diameter_mm / 2))
+            expected.append(circle)
+            if counts[("CIRCLE", "CUTTING", 30, circle)] != 1:
+                raise ValueError("V5 base source lacks expected CUTTING color30 screw")
+    if len(expected) != 8 or len(set(expected)) != 8:
+        raise ValueError("Actual base must contain exactly 2 x 4 V5 screws")
+    if sum(v for (typ, layer, color, shape), v in counts.items()
+           if typ == "LWPOLYLINE" and layer == "CUTTING") != 5:
+        raise ValueError("Existing base exterior/4 EAR holes changed")
+    if not any(layer == "BEND" for _, layer, _, _ in counts):
+        raise ValueError("Existing base BEND geometry missing")
+    manifest.write_text(json.dumps({
+        "kind": BASE_KIND, "part_id": trial.part_id,
+        "brand": BRAND, "model": MODEL, "hole_ids": trial.hole_ids,
+        "dxf_sha256": hashlib.sha256(dxf.read_bytes()).hexdigest(),
+        "screws_uv_radius": expected,
+        "original_entity_count": sum(counts.values()),
+        "manufacturing_ready": False,
+    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print("TEST_ONLY_NFB_V5_ACTUAL_EAR_BASE_DXF", dxf, sum(counts.values()))
+
+
+def verify_base(original: Path, roundtrip: Path, manifest: Path, info_path: Path):
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    if (data.get("kind") != BASE_KIND or data.get("part_id") != "base_plate"
+            or data.get("manufacturing_ready") is not False
+            or data.get("dxf_sha256") != hashlib.sha256(original.read_bytes()).hexdigest()):
+        raise ValueError("V5 base trial source/manifest authority mismatch")
+    info = json.loads(info_path.read_text(encoding="utf-8"))
+    if not isinstance(info, dict) or not info:
+        raise ValueError("CadCraft did not inspect the physical V5 base DXF")
+    source = _entities(original)
+    saved = _entities(roundtrip)
+    if source != saved:
+        raise ValueError("CADCRAFT_V5_BASE_DXF_GEOMETRY_OR_LAYER_DIFF: "
+                         + repr({"lost": list((source - saved).elements())[:6],
+                                 "added": list((saved - source).elements())[:6]}))
+    if sum(source.values()) != data["original_entity_count"]:
+        raise ValueError("V5 actual base DXF modelspace changed")
+    holes = tuple(tuple(_rounded(v) for v in x)
+                  for x in data["screws_uv_radius"])
+    if len(holes) != 8 or len(set(holes)) != 8:
+        raise ValueError("V5 actual base screw set incomplete")
+    for circle in holes:
+        if source[("CIRCLE", "CUTTING", 30, circle)] != 1:
+            raise ValueError("V5 base CUTTING color30 screw missing or duplicated")
+    if sum(v for (typ, layer, _, _), v in source.items()
+           if typ == "LWPOLYLINE" and layer == "CUTTING") != 5:
+        raise ValueError("V5 base physical exterior or 4 EAR slots lost")
+    if not any(layer == "BEND" for _, layer, _, _ in source):
+        raise ValueError("V5 base original BEND lines lost")
+    print("CADCRAFT_V5_ACTUAL_EAR_BASE_ROUNDTRIP_PASS",
+          len(source), "distinct records", sum(source.values()), "entities")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
@@ -194,11 +332,23 @@ def main():
     verifier.add_argument("roundtrip", type=Path)
     verifier.add_argument("manifest", type=Path)
     verifier.add_argument("info_path", type=Path)
+    base_producer = sub.add_parser("emit-base")
+    base_producer.add_argument("dxf", type=Path)
+    base_producer.add_argument("manifest", type=Path)
+    base_verifier = sub.add_parser("verify-base")
+    base_verifier.add_argument("original", type=Path)
+    base_verifier.add_argument("roundtrip", type=Path)
+    base_verifier.add_argument("manifest", type=Path)
+    base_verifier.add_argument("info_path", type=Path)
     args = parser.parse_args()
     if args.action == "emit":
         emit(args.dxf, args.manifest)
-    else:
+    elif args.action == "verify":
         verify(args.original, args.roundtrip, args.manifest, args.info_path)
+    elif args.action == "emit-base":
+        emit_base(args.dxf, args.manifest)
+    else:
+        verify_base(args.original, args.roundtrip, args.manifest, args.info_path)
 
 
 if __name__ == "__main__":
