@@ -1816,7 +1816,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
     from ae_engine.receiving_hole_candidates import version_label
     from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
-    from ae_engine.receiving_switch_model_catalog import model_filenames, display_model, INDEX_PATH
+    from ae_engine.receiving_switch_model_catalog import model_filenames, INDEX_PATH
+    from ae_engine.receiving_nfb_model_identity import (
+        numeric_model_refs, display_model_ref, validate_stored_model_ref,
+    )
+    from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
 
     def inner_library():
         return normalize_inner_candidates(
@@ -2067,7 +2071,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             for slot in slots:
                 entry["assigned"].insert(
                     tk.END,
-                    (display_model(slot["filename"]) if slot["filename"] else "（空槽）")
+                    (display_model_ref(slot["filename"]) if slot["filename"] else "（空槽）")
                 )
             if selected and selected[0] < len(slots):
                 entry["assigned"].selection_set(selected[0])
@@ -2094,28 +2098,28 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 draft_state["draft"] = reconcile_set_brand(
                     draft_state["draft"], current_owner,
                 )
-            try:
-                stat = INDEX_PATH.stat()
-                stamp = (stat.st_mtime_ns, stat.st_size)
-            except OSError:
-                stamp = (None, None)
             for index, entry in enumerate(layer_rows):
                 if index >= draft_state["draft"]["layer_count"]:
                     continue
                 brand = view_source_catalog(index)
+                try:
+                    stat = brand_csv_path(brand).stat()
+                    stamp = (stat.st_mtime_ns, stat.st_size)
+                except OSError:
+                    stamp = (None, None)
                 signature = (brand, *stamp)
                 if not force and signature == source_state["signature"][index]:
                     continue
                 source_state["signature"][index] = signature
                 try:
-                    files = model_filenames(brand)
+                    files = numeric_model_refs(brand)
                 except (ValueError,OSError,UnicodeError) as exc:
                     files = ()
-                    warning.set("開關索引.csv 讀取失敗：" + str(exc))
+                    warning.set("NFB數值規格.csv 讀取失敗：" + str(exc))
                 source_state["files"][index] = files
                 entry["available"].delete(0, tk.END)
                 for filename in files:
-                    entry["available"].insert(tk.END, display_model(filename))
+                    entry["available"].insert(tk.END, display_model_ref(filename))
 
         def poll_source():
             if not modal.winfo_exists():
@@ -2130,7 +2134,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 return
             filename = source_state["files"][index][selected[0]]
             expected_brand = view_source_catalog(index)
-            if filename not in model_filenames(expected_brand):
+            if filename not in numeric_model_refs(expected_brand):
                 warning.set("CSV 已變動，請重新選擇")
                 refresh_source(force=True)
                 return
@@ -2169,7 +2173,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             filename = source_state["files"][index][choice[0]]
             draft_state["draft"] = replace_nfb_slot_model(
                 draft_state["draft"],index,selected[0],filename,
-                catalog={brand:model_filenames(brand)},
+                catalog={brand:numeric_model_refs(brand)},
             )
             sync_chosen()
             repaint(index)
@@ -2688,13 +2692,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
                         if slot["source_brand"] != draft_state["draft"]["set_brand"]:
                             raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
-                latest_files = set(model_filenames(
-                    self.receiving_switch_adapter(namespace).brand
-                ))
+                selected_brand = self.receiving_switch_adapter(namespace).brand
+                latest_files = (set(numeric_model_refs(selected_brand))
+                                | set(model_filenames(selected_brand)))
                 relevant = chosen[:layers.get()]
                 if any(filename not in latest_files
                        for layer_items in relevant for filename in layer_items):
-                    raise ValueError("開關索引.csv 已變動或來源型號失效")
+                    raise ValueError("開關型號已不在廠牌 CSV，請重新選擇")
                 config = {
                     "layers": layers.get(),
                     "layer_heights_mm": read_layer_heights(),
@@ -2798,14 +2802,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         persist_inner(delete_inner_candidate(inner_library(), version_id))
 
     def verify_inner_models(config):
-        allowed = set(model_filenames(
-            self.receiving_switch_adapter(namespace).brand
-        ))
+        selected_brand = self.receiving_switch_adapter(namespace).brand
+        allowed = (set(numeric_model_refs(selected_brand))
+                   | set(model_filenames(selected_brand)))
         for layer_slot in config["models"][:config["layers"]]:
             for name in switch_filenames_in_layer(layer_slot):
                 if name not in allowed:
                     raise ValueError(
-                        "內門版本型號已不在開關索引.csv，請重新編輯選擇：" + name
+                        "內門版本型號已不在廠牌 CSV，請重新編輯選擇：" + name
                     )
 
     def inner_apply(role, version_id, set_index, highlighted):
