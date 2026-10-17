@@ -1370,3 +1370,20 @@ def test_issue1817_modal_dimension_stages_real_scheduler_boundary_not_eager_comm
     close = inspect.getsource(_restore_receiving_assembly_after_modal)
     assert "scheduler.flush_now()" in close
     assert 'getattr(scheduler, "staged", ())' in close
+
+
+def test_issue1817_receiving_projected_whd_tk_trace_cannot_echo_full_solve(monkeypatch):
+    """RED: canonical Receiving W/H/D projection is not a second operator edit."""
+    from types import SimpleNamespace
+    import fold_designer_bridge as bridge
+    calls = []
+    monkeypatch.setattr(
+        bridge, "queue_fold_designer_update",
+        lambda owner, *, executor: calls.append(owner) or True,
+    )
+    host = SimpleNamespace(_phase6_receiving_set_bay_guard=True)
+    assert bridge._phase6_queue_update(host) is False
+    assert calls == []
+    host._phase6_receiving_set_bay_guard = False
+    assert bridge._phase6_queue_update(host) is True
+    assert calls == [host], "genuine operator Tk edits still queue one update"
