@@ -742,3 +742,50 @@ def test_issue1817_paired_true_tk_samples_are_separate_from_general_baseline():
     assert entries[3,'issue1817_bay0_forced_full_comparison']['failed'] == 1
     assert entries[3,'issue1817_bay0_forced_full_comparison']['median_ms'] == 101
     assert entries[1,'open_multi']['n'] == 1
+
+
+def test_issue1817_manufacturing_exact_state_undo_cache_is_bounded_and_fail_closed():
+    from phase6_manufacturing_cache import ManufacturingCacheService, ManufacturingCacheKey
+    from phase6_manufacturing_contracts import (
+        ManufacturingResolveResult, ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult, ManufacturingMutationResult,
+        ManufacturingEffects,
+    )
+    def result(v):
+        return ManufacturingResolveResult(
+            geometry=v, diagnostics=ManufacturingDiagnosticsResult(),
+            mutations=ManufacturingMutationResult(), effects=ManufacturingEffects(),
+            cache=ManufacturingCacheReceipt(signature="", hit=False, stored=False))
+    one = ManufacturingCacheService()
+    a,b,c = (ManufacturingCacheKey(x*64) for x in "abc")
+    one.store(a, result("original"))
+    one.store(b, result("changed"))
+    assert one.lookup(a).result is None, "non-Receiving single-entry behavior remains"
+    service = ManufacturingCacheService(max_entries=2)
+    first, second = result("3 bays"), result("4 bays")
+    service.store(a, first)
+    service.store(b, second)
+    assert service.lookup(a).result is first
+    assert service.lookup(b).result is second
+    service.store(c, result("5 bays"))
+    assert service.lookup(a).result is None, "bounded LRU evicts oldest exact state"
+    assert service.lookup(c).result.geometry == "5 bays"
+    service.clear()
+    assert service.lookup(b).result is None
+    assert service.lookup(c).result is None
+    assert service.key is None and service.result is None
+
+
+def test_issue1817_only_receiving_set_bay_opted_into_short_undo_history():
+    from phase6_manufacturing_adapter import _cache_service_for_app
+    from types import SimpleNamespace
+    receiving = SimpleNamespace(_phase6_input_snapshot={
+        "model":"受電箱", "active_mode":"set_bay"})
+    vault = SimpleNamespace(_phase6_input_snapshot={"model":"金庫型"})
+    quantity = SimpleNamespace(_phase6_input_snapshot={
+        "model":"受電箱", "active_mode":"quantity"})
+    assert _cache_service_for_app(receiving).max_entries == 2
+    assert _cache_service_for_app(vault).max_entries == 1
+    assert _cache_service_for_app(quantity).max_entries == 1
+    receiving._phase6_input_snapshot["active_mode"] = "quantity"
+    assert _cache_service_for_app(receiving).max_entries == 1
