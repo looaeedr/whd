@@ -691,7 +691,7 @@ def _bind_editor_events(s):
     # CADCraft is an opt-in external inspection only. Re-resolve the active
     # editor context on click (including inner-door context switches); never
     # import CADCraft edits or mutate this editor's pending feature session.
-    cadcraft_button = getattr(s.toolbar, "_cadcraft_preview_button", None)
+    cadcraft_button = getattr(s.editor, "_hole_header_cadcraft", None)
     if cadcraft_button is not None:
         def preview_in_cadcraft():
             from .cadcraft_preview_bridge import open_hole_editor_cadcraft_preview
