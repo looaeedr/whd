@@ -254,11 +254,29 @@ def _run_bridge_guard() -> None:
 
 
 
+# #1817: measured 2026-10-17 exact HEAD b7c06bdb full Product Regression
+# run 39015604209 showed round-robin shard pytest durations 346.88/146.53/
+# 101.31 seconds. These are three whole-file heavy suites, never split test
+# cases or modify expectations. Move them by observed cost while preserving
+# every canonical selector exactly once and the existing runner/count contract.
+# Other shard counts continue using the original deterministic interleave.
+_THREE_SHARD_SUITES = {
+    "tests/test_issue517_receiving_live_switch_ui_export_marking.py": 2,
+    "tests/test_issue1463_receiving_modes.py": 1,
+    "tests/test_issue1469_v15_acceptance.py": 0,
+}
+
+
 def shard_paths(index: int, count: int) -> tuple[str, ...]:
     """Partition the exact canonical case selectors, never sample or drop any."""
     if count < 1 or count > len(PYTEST_PATHS) or not 0 <= index < count:
         raise ValueError(f"invalid regression shard {index}/{count}")
-    return PYTEST_PATHS[index::count]
+    if count != 3:
+        return PYTEST_PATHS[index::count]
+    return tuple(
+        path for position, path in enumerate(PYTEST_PATHS)
+        if _THREE_SHARD_SUITES.get(path, position % count) == index
+    )
 
 
 def _pytest_command(junit_path=None, paths=None) -> list[str]:
