@@ -11,6 +11,7 @@ It has no knowledge of Tk, bridge objects, or application identity.
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 
 from phase6_manufacturing_contracts import (
@@ -37,18 +38,36 @@ class ManufacturingCacheLookup:
 
 
 class ManufacturingCacheService:
-    """Single-entry manufacturing cache with explicit hit/miss receipts."""
+    """Exact semantic manufacturing results with a tiny bounded undo history.
 
-    def __init__(self) -> None:
-        self._key: ManufacturingCacheKey | None = None
-        self._result: ManufacturingResolveResult | None = None
+    Legacy/non-Receiving capacity is one. Receiving Set/Bay can retain the
+    immediately preceding *complete* manufacturing result: undoing a tail
+    append must be an exact fingerprint match, never per-part guesswork.
+    No partial/unknown dependencies are silently reused. clear() drops all
+    entries, including previously selected results, for baseline reloads.
+    """
+
+    def __init__(self, *, max_entries: int = 1) -> None:
+        self._entries: OrderedDict[ManufacturingCacheKey, ManufacturingResolveResult] = OrderedDict()
+        self.max_entries = 1
+        self.set_capacity(max_entries)
+
+    def set_capacity(self, max_entries: int) -> None:
+        if type(max_entries) is not int or max_entries not in (1, 2):
+            raise ValueError("manufacturing cache capacity must be exactly 1 or 2")
+        self.max_entries = max_entries
+        while len(self._entries) > max_entries:
+            self._entries.popitem(last=False)
 
     def lookup(self, key: ManufacturingCacheKey) -> ManufacturingCacheLookup:
         if not isinstance(key, ManufacturingCacheKey):
             raise TypeError("key must be ManufacturingCacheKey")
-        hit = self._key == key and self._result is not None
+        result = self._entries.get(key)
+        hit = result is not None
+        if hit:
+            self._entries.move_to_end(key)
         return ManufacturingCacheLookup(
-            result=self._result if hit else None,
+            result=result,
             receipt=ManufacturingCacheReceipt(
                 signature=key.fingerprint,
                 hit=hit,
@@ -65,8 +84,10 @@ class ManufacturingCacheService:
             raise TypeError("key must be ManufacturingCacheKey")
         if not isinstance(result, ManufacturingResolveResult):
             raise TypeError("result must be ManufacturingResolveResult")
-        self._key = key
-        self._result = result
+        self._entries[key] = result
+        self._entries.move_to_end(key)
+        while len(self._entries) > self.max_entries:
+            self._entries.popitem(last=False)
         return ManufacturingCacheReceipt(
             signature=key.fingerprint,
             hit=False,
@@ -74,16 +95,16 @@ class ManufacturingCacheService:
         )
 
     def clear(self) -> None:
-        self._key = None
-        self._result = None
+        self._entries.clear()
 
     @property
     def key(self) -> ManufacturingCacheKey | None:
-        return self._key
+        return next(reversed(self._entries), None)
 
     @property
     def result(self) -> ManufacturingResolveResult | None:
-        return self._result
+        key = self.key
+        return self._entries.get(key) if key is not None else None
 
 
 __all__ = [
