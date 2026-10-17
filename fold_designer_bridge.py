@@ -3347,6 +3347,12 @@ def _phase6_set_3d_preview_enabled(self, enabled):
 
 
 def _phase6_queue_update(self, *args):
+    # Receiving projects the already-committed Bay W/H/D into legacy Tk vars.
+    # Their inherited write traces must not echo back as a second GUI geometry
+    # edit. The canonical owner schedules the one real calculation at the
+    # modal close/save boundary; genuine operator Tk writes remain enabled.
+    if getattr(self, "_phase6_receiving_set_bay_guard", False):
+        return False
     return queue_fold_designer_update(
         self,
         executor=lambda reasons: _phase6_execute_update_intents(self, reasons),
