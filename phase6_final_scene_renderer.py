@@ -751,8 +751,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         self.view_initialized = False
         self.configure_3d_only_figure()
         self.base_renderer_render = self.renderer.render
+        # A request provider can enter a nested Tk event loop. The last
+        # operator view must own the artists, diagnostics and canvas draw.
+        self._view_render_generation = 0
 
         def render_3d_only():
+            self._view_render_generation += 1
+            generation = self._view_render_generation
             canvas = self.renderer.canvas
             requested_draw = getattr(canvas, "draw", None)
             ax = self.renderer.ax3d
@@ -768,9 +773,16 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             apply_mpl_dark_theme(getattr(ax, "figure", None), (ax, ax2d))
             self.configure_3d_only_figure()
             try:
-                self.render(request_provider())
+                request = request_provider()
+                if generation != self._view_render_generation:
+                    return None  # Superseded while querying FinalScene.
+                self.render(request)
+                if generation != self._view_render_generation:
+                    return None
                 self.cutting_mesh_error = None
             except Exception as exc:
+                if generation != self._view_render_generation:
+                    return None  # Do not publish an old error on a newer view.
                 self.last_cutting_mesh = []
                 self.last_cutting_material = None
                 self.cutting_mesh_error = str(exc)
@@ -788,6 +800,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 except Exception:
                     pass
+            if generation != self._view_render_generation:
+                return None
             try:
                 if self.view_initialized:
                     ax.view_init(elev=elev, azim=azim)
@@ -801,6 +815,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 self.scale_current_3d_limits(scale)
             if callable(after_render):
                 after_render()
+            if generation != self._view_render_generation:
+                return None
             if callable(requested_draw):
                 requested_draw()
             return None
