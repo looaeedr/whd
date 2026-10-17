@@ -945,7 +945,12 @@ def _reload_current_baseline_features(self):
     owner = getattr(self, "_derived_cache_owner", None)
     if owner is not None:
         owner.invalidate("baseline")
-    else:
+    # Baseline source reload also retires *all* historical manufacturing
+    # receipts; a matching dimensional fingerprint cannot certify old DXF.
+    manufacturing_cache = getattr(self, "_phase6_manufacturing_cache_service", None)
+    if manufacturing_cache is not None:
+        manufacturing_cache.clear()
+    if owner is None:
         # Compatibility for lightweight/headless consumers constructed via
         # __new__: clear any legacy cache dictionaries in place without
         # creating a second cache owner.
