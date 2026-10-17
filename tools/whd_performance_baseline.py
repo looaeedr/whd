@@ -190,6 +190,7 @@ class Probe:
         self.flat_material_builds = Counter()
         self.supplemental_material_builds = Counter()
         self.authoritative_cache_parts = Counter()
+        self.derived_invalidations = []
         self.stack = ExitStack()
 
     def wrap(self, owner, name, label, part_arg=None):
@@ -232,6 +233,20 @@ class Probe:
             finally:
                 self.milliseconds['material_factory_calls'] += (time.perf_counter()-started)*1000
         self.stack.enter_context(patch.object(owner, name, measured))
+
+    def observe_derived_invalidation(self, owner_type):
+        """Record actual cache invalidation reasons; never modify decisions."""
+        original = owner_type.invalidate
+        @wraps(original)
+        def observed(instance, reason, changed_keys=()):
+            store = getattr(instance, '_receiving_inner_door_panel_history', {})
+            before = len(store)
+            result = original(instance, reason, changed_keys)
+            self.derived_invalidations.append(dict(
+                reason=str(reason), changed_keys=tuple(map(str, changed_keys or ())),
+                panel_history_before=before, panel_history_after=len(store)))
+            return result
+        self.stack.enter_context(patch.object(owner_type, 'invalidate', observed))
 
     def observe_primary_authoritative_render(self, primary_app):
         """Read the real Phase6ApplicationHost PartSpec/Context render cache.
@@ -306,6 +321,7 @@ class Probe:
         self.flat_material_builds.clear()
         self.supplemental_material_builds.clear()
         self.authoritative_cache_parts.clear()
+        self.derived_invalidations.clear()
 
 
 def settle(root, owners, timeout=30):
@@ -387,6 +403,8 @@ def worker(args):
         # FoldDesigner child does not. The previous wrong owner raised an
         # AttributeError before any true GUI benchmark could begin.
         probe.observe_primary_authoritative_render(app)
+        from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+        probe.observe_derived_invalidation(Phase6DerivedCacheOwner)
         # Specialty source-flat fixing plates and the service's imported replay
         # alias are not covered by the five manufacturing_api entrypoints.
         probe.observe_supplemental_material_factory(
@@ -453,6 +471,10 @@ def worker(args):
                            'miss': probe.counts['manufacturing_cache_miss'],
                        },
                        material_factory_rebuilds=dict(probe.flat_material_builds),
+                       derived_invalidations=list(probe.derived_invalidations),
+                       inner_door_panel_history_entries=len(getattr(
+                           getattr(app, '_derived_cache_owner', None),
+                           '_receiving_inner_door_panel_history', ())),
                        material_factory_rebuild_calls=probe.counts['material_factory_calls'],
                        supplemental_material_builds=dict(probe.supplemental_material_builds),
                        supplemental_material_factory_calls=probe.counts[
