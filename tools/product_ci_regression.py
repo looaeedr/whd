@@ -147,6 +147,9 @@ PYTEST_PATHS = (
     "tests/test_receiving_multi_settings_stage_20261010.py::test_sketch_multi_highlights_drive_existing_endcap_edits_without_link_buttons",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_last_highlight_can_be_cleared_without_implicit_reselection",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_inner_door_version_applies_to_both_highlighted_bays",
+    # #1818: real Tk reentrant preview requests must never render stale
+    # geometry or write stale errors after candidate switch / window close.
+    "tests/test_receiving_multi_settings_stage_20261010.py::test_issue1818_real_cut_preview_latest_selection_wins_during_reentrant_provider",
     "tests/test_issue1640_mode_navigation.py::test_mode_toggle_and_manager_stay_operable_without_forced_window_exit",
     "tests/test_issue1640_floating_scroll.py::test_real_popup_reuses_one_nonmodal_toplevel_without_applying_candidate",
     "tests/test_receiving_weld_ear_mounting.py",
