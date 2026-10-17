@@ -943,7 +943,7 @@ def worker(args):
                     or measured['counts'].get('manufacturing_solve', 0)
                     or measured['counts'].get('dxf_readfile', 0)):
                 raise AssertionError(
-                    'display-only rapid 2D/3D switch triggered manufacturing or DXF IO')
+                    'display-only rapid 2D/3D switch triggered manufacturing or DXF IO: ' + repr((measured['calculation_flushes'], measured['counts'], rapid_trace)))
 
         # True source DXF preview; absence is explicit, not substituted with a toy.
         if args.dxf_index:
