@@ -556,6 +556,17 @@ def worker(args):
                 win._receiving_multi_close()
             record('issue1817_remove_tail_bay4_actual_ui',
                    remove_tail, validate=check_mesh)
+            # Verify the actual GUI's full manufacturing cache after the
+            # operator undo, not merely the per-Bay preview cache. This
+            # inspect-only lookup never triggers a solve or GUI state change.
+            def read_undo_receipt():
+                key = adapter.build_manufacturing_cache_key(designer)
+                return adapter._cache_service_for_app(designer).lookup(key)
+            record('issue1817_full_manufacturing_undo_receipt',
+                   read_undo_receipt,
+                   validate=lambda receipt: None if receipt.receipt.hit else (
+                       (_ for _ in ()).throw(AssertionError(
+                           'exact 3-bay manufacturing result not retained after 4→3'))))
             after_remove = record('issue1817_bay0_after_tail_remove',
                                   bay0_request, validate=assert_same_parts)
             if (after_remove is not full
