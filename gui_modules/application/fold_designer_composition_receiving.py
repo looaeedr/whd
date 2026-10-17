@@ -2537,8 +2537,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if not active:
                 warning.set("尚未選擇可驗證的 NFB 型號")
                 return
+            from ae_engine.receiving_nfb_model_identity import (
+                is_numeric_model_ref, display_model_ref,
+            )
+            v5_mode = all(is_numeric_model_ref(row[2]["filename"]) for row in active)
+            if not v5_mode and any(is_numeric_model_ref(row[2]["filename"])
+                                   for row in active):
+                warning.set("同一次實體開孔不可混合 V5 數值型號與舊 DXF 來源")
+                return
             popup=tk.Toplevel(modal)
-            popup.title("NFB 物理世界 X｜正式提交前驗證")
+            popup.title("NFB V5 真實內門開孔試作｜不可製造" if v5_mode
+                        else "NFB 物理世界 X｜正式提交前驗證")
             popup.geometry("540x440")
             from .receiving_scroll_view import make_scrollable_frame
             world_scroll, world_content, _world_view = make_scrollable_frame(
@@ -2553,9 +2562,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 wraplength=490,
             ).pack(anchor="w",pady=(0,7))
             ttk.Label(
-                body,text="僅士林已具備輪廓資料的型號可試；實際 DXF/SHA、內門板、1100 Y"
-                          " 與孔位碰撞全部須通過才會準備提交。",
-                wraplength=490,
+                body,text=(
+                    "V5 使用各廠牌數值 CSV，不要求舊 DXF；將以真實內門"
+                    " CUTTING／層高與碰撞檢查預覽。此路徑不會提交製造。"
+                    if v5_mode else
+                    "舊 DXF 來源需驗證 SHA、內門板、1100 Y 與孔位碰撞，"
+                    "通過後才能準備提交。"
+                ), wraplength=490,
             ).pack(anchor="w",pady=(0,9))
             # Explicit file chooser; a numbered copy still requires real SHA
             # and Color150 matching in the canonical #1497 verifier.
@@ -2573,9 +2586,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 if picked:
                     source_choice["path"]=picked
                     source_caption.set("已指定原始 DXF："+picked)
-            ttk.Button(
+            source_button=ttk.Button(
                 body,text="選取原始 DXF",command=choose_original_dxf,
-            ).pack(anchor="w")
+            )
+            if not v5_mode:
+                source_button.pack(anchor="w")
+            else:
+                source_caption.set("來源：廠牌 NFB數值規格.csv（V5 不需 DXF）")
             ttk.Label(body,textvariable=source_caption,wraplength=500).pack(
                 anchor="w",pady=(2,7),
             )
@@ -2585,7 +2602,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 line.pack(fill="x",anchor="w",pady=3)
                 ttk.Label(
                     line,text=f"第 {layer_i+1} 層 第 {slot_i+1} 顆"
-                              f"｜{slot['filename'][:-4]}",
+                              f"｜{display_model_ref(slot['filename'])}",
                     width=40,
                 ).pack(side="left")
                 var=tk.StringVar(master=popup,value="")
@@ -2622,6 +2639,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             ttk.Label(body,textvariable=outcome,wraplength=500).pack(
                 anchor="w",pady=(8,4),
             )
+            v5_canvas=None
+            if v5_mode:
+                v5_canvas=tk.Canvas(body,width=480,height=350,
+                                    background="#101820",highlightthickness=0)
+                v5_canvas.pack(fill="x",pady=(4,8))
+                popup._receiving_v5_trial=None
+                popup._receiving_v5_trial_canvas=v5_canvas
 
             def close_world_dialog():
                 if popup.grab_current() is popup:
@@ -2641,6 +2665,28 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         coords[unit_id]=float(value)
                     adapter=candidate_adapter()
                     selected=adapter.selection
+                    if v5_mode:
+                        from ae_engine.receiving_nfb_ui1b_runtime import (
+                            preview_current_nfb_v5_ui_draft,
+                        )
+                        from .receiving_nfb_v5_scene_preview import (
+                            paint_v5_real_inner_door_trial,
+                        )
+                        trial=preview_current_nfb_v5_ui_draft(
+                            edit_session.current,layout=adapter.layout,
+                            set_index=selected.set_index,
+                            bay_index=selected.bay_index,
+                            version_id=version_id,
+                            projected_snapshot=nfb_physical_bay_snapshot(
+                                selected.set_index,selected.bay_index,
+                            ),
+                            world_x_by_unit=coords,
+                        )
+                        paint_v5_real_inner_door_trial(v5_canvas,trial)
+                        popup._receiving_v5_trial=trial
+                        outcome.set("V5 真實內門開孔／碰撞試作通過；"
+                                    "可在下方核對展開圖，但尚不可提交製造。")
+                        return
                     bundle=verify_current_nfb_ui_draft(
                         edit_session.current,layout=adapter.layout,
                         set_index=selected.set_index,
@@ -2665,7 +2711,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             ttk.Button(actions,text="取消",command=close_world_dialog).pack(
                 side="left",padx=5,
             )
-            ttk.Button(actions,text="驗證實體來源",command=prepare).pack(side="left")
+            ttk.Button(actions,text=(
+                "檢查真實內門（V5 試作）" if v5_mode else "驗證實體來源"
+            ),command=prepare).pack(side="left")
             popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
             popup.lift()
 

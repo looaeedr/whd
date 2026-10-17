@@ -185,3 +185,89 @@ def verify_current_nfb_ui_draft(
                         else X_REVISION),datum_snapshot=datum,
         index_path=source_index,source_path=real_source,profile=matched[0],
     )
+
+
+
+def preview_current_nfb_v5_ui_draft(
+    draft,
+    *,
+    layout: Mapping[str, object],
+    set_index: int,
+    bay_index: int,
+    version_id: str,
+    projected_snapshot: Mapping[str, object],
+    world_x_by_unit: Mapping[str, float],
+):
+    """Physical V5 operator preview; never stage or submit a manufactured NFB.
+
+    Uses the same original UI-1A effective brand, stable unit IDs, set/Bay
+    identity and world-X entry, then the canonical #1497 inner-door placement,
+    Y projection and real FinalScene; no original DXF required for V5.
+    """
+    from math import isfinite
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_ui1a_edits import effective_nfb_rotation
+    from .receiving_nfb_v5_configured_inner_door import (
+        NfbV5ConfiguredInnerDoorHole,
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+
+    state = editable_nfb_draft(draft)
+    if state["status"] != "UNSUBMITTED_NFB_DRAFT_PREVIEW_ONLY":
+        raise ValueError("NFB V5 預覽必須使用未提交草稿")
+    if not isinstance(version_id, str) or not version_id.strip():
+        raise ValueError("NFB V5 請先儲存內門版本")
+    if (type(set_index) is not int or type(bay_index) is not int
+            or not isinstance(layout, Mapping)):
+        raise ValueError("NFB V5 必須指定目前實體 Set/Bay")
+    try:
+        row = layout["sets"][set_index]
+        bay = row["bays"][bay_index]
+    except (TypeError, KeyError, IndexError) as exc:
+        raise ValueError("NFB V5 指定的實體 Set/Bay 不存在") from exc
+    if row["switch_brand"] != state["set_brand"]:
+        raise ValueError("NFB V5 廠牌與目前實體 Set 不一致")
+    if bay.get("nfb_config_submitted") is True:
+        raise ValueError("NFB V5 已提交設定不可用試作預覽覆蓋")
+    if not isinstance(world_x_by_unit, Mapping):
+        raise ValueError("NFB V5 必須由操作員提供各顆實際世界 X")
+    owners = [
+        p for p in projected_snapshot.get("inner_doors", ())
+        if isinstance(p, Mapping)
+        and isinstance(p.get("stable_id"), str)
+        and str(p.get("cell_key", "")).endswith(":0")
+    ]
+    if len(owners) != 1:
+        raise ValueError("NFB V5 需要唯一的上方實體內門")
+    inner_door_id = owners[0]["stable_id"]
+    entries = []
+    expected_ids: set[str] = set()
+    for layer_index, layer in enumerate(state["layers"][:state["layer_count"]]):
+        for slot_index, unit in enumerate(layer["slots"]):
+            if unit["filename"] is None:
+                continue
+            brand = effective_nfb_slot_brand(state, layer_index, slot_index)
+            parsed = parse_numeric_model_ref(unit["filename"])
+            if parsed is None or parsed[0] != brand or unit.get("source_brand") != brand:
+                raise ValueError("NFB V5 型號需要同廠牌有效數值 CSV；舊 DXF 不可混入")
+            uid = unit["unit_id"]
+            if not isinstance(uid, str) or not uid or uid in expected_ids:
+                raise ValueError("NFB V5 實體 unit ID 缺少或重複")
+            expected_ids.add(uid)
+            x = world_x_by_unit.get(uid)
+            if type(x) not in (int, float) or not isfinite(float(x)):
+                raise ValueError("NFB V5 每顆都必須有有效的世界 X")
+            entries.append(NfbV5ConfiguredInnerDoorHole(
+                physical_hole_id=f"nfb:{row['stable_id']}:{bay['stable_id']}:{uid}",
+                brand=brand, model_ref=unit["filename"],
+                world_x_mm=float(x), layer_count=state["layer_count"],
+                slot_index=layer_index,
+                rotation_deg=effective_nfb_rotation(state, layer_index, slot_index),
+            ))
+    if not entries or set(world_x_by_unit) != expected_ids:
+        raise ValueError("NFB V5 世界 X 必須與全部已選實體開關一一對應")
+    # Actual final geometry and collisions are re-evaluated on every preview.
+    # Nothing here writes the project's NFBConfig, source proof or DXF file.
+    return trial_configured_nfb_v5_inner_door_render_data(
+        projected_snapshot, inner_door_id, holes=tuple(entries),
+    )
