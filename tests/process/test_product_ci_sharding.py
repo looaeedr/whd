@@ -18,7 +18,22 @@ def test_each_selector_appears_in_exactly_one_shard(count):
     assert set(seen) == set(PYTEST_PATHS)
     assert all(n == 1 for n in seen.values())
     assert all(shards)
-    assert shards == [PYTEST_PATHS[i::count] for i in range(count)]
+    if count != 3:
+        assert shards == [PYTEST_PATHS[i::count] for i in range(count)]
+    else:
+        assert all(len(shard) >= 1 for shard in shards)
+        expected = {
+            "tests/test_issue517_receiving_live_switch_ui_export_marking.py": 2,
+            "tests/test_issue1463_receiving_modes.py": 1,
+            "tests/test_issue1469_v15_acceptance.py": 0,
+        }
+        for selector, target in expected.items():
+            assert selector in shards[target]
+            assert all(selector not in shard for n, shard in enumerate(shards)
+                       if n != target)
+        for n, selector in enumerate(PYTEST_PATHS):
+            if selector not in expected:
+                assert selector in shards[n % 3]
 
 
 @pytest.mark.parametrize("index,count", [(-1, 3), (3, 3), (0, 0),
