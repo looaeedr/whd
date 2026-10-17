@@ -1114,7 +1114,9 @@ def test_issue1817_receiving_unchanged_exact_partspec_reuses_material_across_whd
     monkeypatch.setattr(
         phase6_manufacturing_adapter,
         "_receiving_baseline_source_stamp",
-        lambda model: tuple(source_generation) if model == "受電箱" else None,
+        lambda model, **kwargs: tuple(source_generation) if (
+            model == "受電箱" and kwargs["include_physical_panels"]
+        ) else None,
     )
     calls = []
     def build(s, c):
@@ -1183,7 +1185,9 @@ def test_issue1817_cross_edit_retention_is_never_used_outside_receiving_set_bay(
     monkeypatch.setattr(
         phase6_manufacturing_adapter,
         "_receiving_baseline_source_stamp",
-        lambda _model: (("source", "verified"),),
+        lambda _model, **kwargs: (("source", "verified"),) if (
+            kwargs["include_physical_panels"]
+        ) else None,
     )
     calls = []
     monkeypatch.setattr(
@@ -1205,3 +1209,41 @@ def test_issue1817_cross_edit_retention_is_never_used_outside_receiving_set_bay(
     derived.invalidate("geometry", changed_keys=("w",))
     _authoritative_render_data(app, spec, ctx)
     assert len(calls) == 2, "quantity mode is not certified for cross-edit reuse"
+
+
+def test_issue1817_exact_material_witness_covers_all_physical_panel_sources(
+    monkeypatch, tmp_path,
+):
+    """A dedicated left/right/rear DXF mutation retires raw material reuse."""
+    from ae_engine import ae
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.receiving_panel_baselines import ROLE_FILES
+    from phase6_manufacturing_adapter import _receiving_baseline_source_stamp
+
+    root = tmp_path / "基準檔" / "受電箱"
+    root.mkdir(parents=True)
+    for role, name in ROLE_FILES.items():
+        (root / name).write_bytes(("DXF witness:" + role).encode("utf-8"))
+    # Standard legacy files may be absent, but the physical sources are
+    # mandatory for the three-piece Receiving material factory.
+    monkeypatch.setattr(ae, "baseline_part_path", lambda _model, _name: None)
+    monkeypatch.setattr(
+        ae, "baseline_source_fingerprint",
+        lambda p: (str(p), p.stat().st_size, p.stat().st_mtime_ns, "parser-v1"),
+    )
+    ctx = ManufacturingContext(draw_stock=False, resource_root=tmp_path)
+    before = _receiving_baseline_source_stamp(
+        "受電箱", context=ctx, include_physical_panels=True,
+    )
+    assert before is not None
+    assert {row[0] for row in before if len(row) == 3} == set(ROLE_FILES)
+
+    (root / ROLE_FILES["right_side"]).write_bytes(b"DXF modified witness with different size")
+    after = _receiving_baseline_source_stamp(
+        "受電箱", context=ctx, include_physical_panels=True,
+    )
+    assert after is not None and after != before
+    (root / ROLE_FILES["back"]).unlink()
+    assert _receiving_baseline_source_stamp(
+        "受電箱", context=ctx, include_physical_panels=True,
+    ) is None
