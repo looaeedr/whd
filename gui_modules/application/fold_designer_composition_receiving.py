@@ -773,6 +773,77 @@ def _receiving_cached_bay_inner_door_frame(owner, part_key, payload, factory):
     return material
 
 
+def _receiving_cached_bay_box_body_divider(owner, part_key, payload, factory):
+    """Reuse only the exact source-certified raw Divider for this Receiving Bay.
+
+    The Divider's fixed source holes and Ø6.4 shared mother rule depend on
+    *two* DXF baselines. A changed typed part, user feature, parser generation,
+    byte digest or missing source must run the canonical factory again.
+    Cross-part Joint, positioning and final manufacturing still re-resolve.
+    """
+    key = str(part_key or "")
+    if not (key.startswith("box_body:divider:")
+            and isinstance(payload, Mapping)
+            and payload.get("model") in ("受電箱", "RECEIVING")
+            and payload.get("active_mode") == "set_bay"):
+        return factory()
+    from collections import OrderedDict
+    from hashlib import sha256
+    from ae_engine.baseline_source import baseline_source_fingerprint
+    from ae_engine.cabinet_types import policy as family_policy
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.manufacturing_baseline_policy import _baseline_path
+    from phase6_manufacturing_contracts import manufacturing_fingerprint
+    from .fold_designer_manufacturing_projection import _box_body_divider_from_payload
+
+    divider = _box_body_divider_from_payload(key, payload)
+    model = family_policy.baseline_feature_model_name(divider.model_name)
+    if not family_policy.divider_uses_endcap_6p4_shared_datum(divider.model_name):
+        return factory()
+    ctx = ManufacturingContext()
+    required = tuple(_baseline_path(model, filename, ctx)
+                     for filename in ("中隔.dxf", "封頭尾.dxf"))
+    if any(path is None for path in required):
+        return factory()  # Neither missing source is an authorization.
+    def source_stamp():
+        return tuple((
+            str(path), baseline_source_fingerprint(path),
+            sha256(path.read_bytes()).hexdigest(),
+        ) for path in required)
+    try:
+        witness = source_stamp()
+        signature = manufacturing_fingerprint({
+            "divider": divider,
+            "features": tuple(payload.get("features") or ()),
+            "sources": witness,
+        })
+    except (OSError, TypeError, ValueError, OverflowError):
+        return factory()
+    history = getattr(owner, "_receiving_raw_divider_history", None)
+    if history is None:
+        history = OrderedDict()
+        owner._receiving_raw_divider_history = history
+    if signature in history:
+        history.move_to_end(signature)
+        return history[signature]
+
+    result = factory()  # Real source verification and Ø6.4 extraction.
+    metadata = dict(getattr(result, "metadata", {}) or {})
+    try:
+        still_same = source_stamp() == witness
+    except OSError:
+        still_same = False
+    if (still_same
+            and metadata.get("stable_id") == str(divider.stable_id)
+            and metadata.get("baseline_feature_model") == model
+            and metadata.get("endcap_shared_6p4_mother_rule") is not None):
+        history[signature] = result
+        history.move_to_end(signature)
+        while len(history) > 8:
+            history.popitem(last=False)
+    return result
+
+
 def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, preview_layout=None):
     """用獨立 request 重建指定連；不更動 live app 或 manufacturing cache。"""
     from types import SimpleNamespace
@@ -882,6 +953,10 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         if preview_layout is not None:
             # Candidate editing is isolated from committed Bay material reuse.
             return render()
+        if str(key).startswith("box_body:divider:"):
+            return _receiving_cached_bay_box_body_divider(
+                self, key, source_payload, render,
+            )
         if str(key).startswith("inner_door:") and str(key).endswith("_frame"):
             return _receiving_cached_bay_inner_door_frame(
                 self, key, source_payload, render,

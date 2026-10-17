@@ -302,6 +302,28 @@ def _export_authoritative_part(self, spec, output_path, context=None):
         render_data, output_path, overwrite=bool(getattr(ctx, "overwrite", False))
     )
 
+def _box_body_divider_from_payload(key, payload):
+        from ae_engine.door_dividers import derive_box_body_dividers
+
+        divider_input = collect_divider_input(
+            key,
+            payload,
+            default_depth=ae.D,
+            default_thickness=ae.T,
+        )
+        dividers = derive_box_body_dividers(
+            divider_input["columns"],
+            depth=divider_input["depth"],
+            thickness=divider_input["thickness"],
+            layout_scope=divider_input["layout_scope"],
+            handle_edges=divider_input["handle_edges"],
+            model_name=divider_input["model_name"],
+        )
+        divider = next((item for item in dividers if item.stable_id == key), None)
+        if divider is None:
+            raise ValueError(f"中隔 stable_id 不存在於 authoritative topology: {key}")
+        return divider
+
 def _inner_door_frame_from_payload(key, payload):
         from ae_engine.inner_door_frames import (
             InnerDoorFrameSet,
@@ -366,25 +388,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
             raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
         return sheet(build_fixing_plate_source_render_data(key, snapshot=dict(payload or {})))
     if key.startswith("box_body:divider:"):
-        from ae_engine.door_dividers import derive_box_body_dividers
-
-        divider_input = collect_divider_input(
-            key,
-            payload,
-            default_depth=ae.D,
-            default_thickness=ae.T,
-        )
-        dividers = derive_box_body_dividers(
-            divider_input["columns"],
-            depth=divider_input["depth"],
-            thickness=divider_input["thickness"],
-            layout_scope=divider_input["layout_scope"],
-            handle_edges=divider_input["handle_edges"],
-            model_name=divider_input["model_name"],
-        )
-        divider = next((item for item in dividers if item.stable_id == key), None)
-        if divider is None:
-            raise ValueError(f"中隔 stable_id 不存在於 authoritative topology: {key}")
+        divider = _box_body_divider_from_payload(key, payload)
         return sheet(manufacturing_api.build_box_body_divider_render_data(divider))
 
     if key.startswith("inner_door:") and key.endswith(":panel"):
