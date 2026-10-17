@@ -5,6 +5,9 @@ on:
     branches: [localX]
     paths:
       - 'ae_engine/receiving_nfb_v5_real_part_cutting.py'
+      - 'ae_engine/receiving_nfb_v5_actual_base_screws.py'
+      - 'ae_engine/receiving_nfb_v5_configured_inner_door.py'
+      - 'ae_engine/receiving_nfb_base_process_projection.py'
       - 'ae_engine/receiving_nfb_numeric_catalog.py'
       - 'ae_engine/receiving_nfb_numeric_panel_projection.py'
       - 'ae_engine/dxf_serialization.py'
@@ -113,6 +116,36 @@ jobs:
             work/nfb-v5-cadcraft/cadcraft-resaved.dxf \
             work/nfb-v5-cadcraft/manifest.json \
             work/nfb-v5-cadcraft/cadcraft-info.json
+      - name: Generate actual base with original EAR and eight V5 screws
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE" python \
+            tools/nfb_v5_cadcraft_crosscheck.py emit-base \
+            work/nfb-v5-cadcraft/whd-v5-actual-base.dxf \
+            work/nfb-v5-cadcraft/base-manifest.json
+      - name: Independently reopen and resave actual base using CadCraft
+        shell: bash
+        env:
+          CADCRAFT_CLI: ${{ steps.cadcraft.outputs.cli }}
+        run: |
+          set -euo pipefail
+          export CADCRAFT_CONFIG_DIR="$RUNNER_TEMP/cadcraft-config"
+          "$CADCRAFT_CLI" info work/nfb-v5-cadcraft/whd-v5-actual-base.dxf \
+            > work/nfb-v5-cadcraft/base-cadcraft-info.json
+          "$CADCRAFT_CLI" run work/nfb-v5-cadcraft/whd-v5-actual-base.dxf \
+            --save work/nfb-v5-cadcraft/base-cadcraft-resaved.dxf
+          test -s work/nfb-v5-cadcraft/base-cadcraft-resaved.dxf
+      - name: Verify every actual base EAR, BEND and all eight V5 screw circles
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE" python \
+            tools/nfb_v5_cadcraft_crosscheck.py verify-base \
+            work/nfb-v5-cadcraft/whd-v5-actual-base.dxf \
+            work/nfb-v5-cadcraft/base-cadcraft-resaved.dxf \
+            work/nfb-v5-cadcraft/base-manifest.json \
+            work/nfb-v5-cadcraft/base-cadcraft-info.json
       - name: Retain cross-CAD evidence
         if: always()
         uses: actions/upload-artifact@v4
