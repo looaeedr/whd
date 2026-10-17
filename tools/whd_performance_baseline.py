@@ -582,6 +582,116 @@ def worker(args):
                     or rows[-1]['counts'].get('manufacturing_solve', 0)):
                 raise AssertionError('Unaffected Bay0 rebuilt after UI tail remove')
 
+            # Real UI cache-key provenance; diagnostics only, not a bypass.
+            def bay0_key_diagnostics():
+                from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+                from phase6_settings_profile_projection import project_part_dimensions
+                from phase6_sync_envelope import stable_fingerprint
+                from gui_modules.application.fold_designer_composition_receiving import (
+                    _receiving_bay_preview_fingerprint_snapshot)
+                app0 = composition.app
+                snapshot0 = project_receiving_bay_legacy_aliases(
+                    dict(app0._phase6_input_snapshot),set_index=0,bay_index=0)
+                snapshot0.update({**dict(app0._settings_values),
+                                  **{k:snapshot0[k] for k in ('w','h','d')}})
+                snapshot0['part_dimensions']=project_part_dimensions(snapshot0)
+                key0=_receiving_bay_preview_fingerprint_snapshot(
+                    snapshot0,set_index=0,bay_index=0,
+                    allow_suffix_topology_reuse=True)
+                comps={'snapshot':key0,
+                       'profiles':app0.designer_workspace.part_profiles_snapshot(),
+                       'features':app0.designer_workspace.part_features_snapshot(),
+                       'face_features':app0.designer_workspace.part_face_features_snapshot(),
+                       'box_profile':app0.state.profiles_vault.get('箱身',()),
+                       'corners':app0._phase6_corner_state}
+                return ({k:stable_fingerprint(v) for k,v in comps.items()},
+                        {str(k):stable_fingerprint(v) for k,v in key0.items()},
+                        tuple(sorted(map(str,getattr(
+                            composition,'_receiving_bay_preview_cache',{})))))
+
+            # #1817: real three-Bay W/H/D operator edit, not just a synthetic
+            # cache fingerprint. Bay0 is distant, Bay1 owns the adjacent
+            # Joint, and Bay2 owns the changed raw sheet dimensions.
+            def bay_request(index):
+                return composition.receiving_bay_preview_request(
+                    vars(bridge), 0, index)
+            bay1_original = record(
+                'issue1817_bay1_before_tail_whd', lambda: bay_request(1))
+            bay2_original = record(
+                'issue1817_bay2_before_tail_whd', lambda: bay_request(2))
+            cache_before=bay0_key_diagnostics()
+            win = open_modal()
+            settle(root, owners)
+            win._receiving_multi_apply(0)
+
+            def choose_tail_on_real_sketch():
+                canvas = win._receiving_multi_canvas
+                if len(canvas._receiving_bay_hitboxes) != 3:
+                    raise AssertionError('real 3-Bay sketch did not expose hit boxes')
+                # Native click toggles the initial Bay0 selection off, then
+                # selects the third Bay; never edit a hidden test-only row.
+                for index in (0, 2):
+                    x0, y0, x1, y1 = canvas._receiving_bay_hitboxes[index]
+                    canvas.event_generate('<Button-1>',
+                                          x=int((x0 + x1) / 2),
+                                          y=int((y0 + y1) / 2))
+                if tuple(win._receiving_multi_applied['selected_bays']) != (2,):
+                    raise AssertionError('actual UI did not highlight only tail Bay3')
+            record('issue1817_select_tail_bay_ui', choose_tail_on_real_sketch)
+
+            def confirm_tail_whd():
+                values = win._receiving_dimension_group_input
+                for key, value in dict(width=900, height=1700,
+                                       depth=400, count=1).items():
+                    values[key].set(str(value))
+                if win._receiving_dimension_group_confirm() is not True:
+                    raise AssertionError('real tail W/H/D confirmation was rejected')
+            record('issue1817_tail_whd_confirm', confirm_tail_whd)
+            if (rows[-1]['calculation_flushes'] != 0
+                    or rows[-1]['counts'].get('manufacturing_solve', 0)):
+                raise AssertionError('tail Bay dimension Confirm eagerly manufactured')
+            if 'geometry' not in designer._phase6_update_scheduler.staged:
+                raise AssertionError('tail dimension pending authoritative flush was lost')
+            # Before closing, select Bay0 again to stabilize the Assembly
+            # host's currently selected per-Bay projection and inspect its
+            # still-owned exact material cache.
+            win._receiving_multi_apply(0)
+            record('issue1817_tail_whd_close',
+                   win._receiving_multi_close, validate=check_mesh)
+
+            cache_after=bay0_key_diagnostics()
+            untouched = record(
+                'issue1817_untouched_bay0_after_tail_whd',
+                bay0_request, validate=assert_same_parts)
+            if untouched is not full or rows[-1]['counts'].get('manufacturing_solve', 0):
+                changed_sections=sorted(k for k in cache_before[0]
+                    if cache_before[0][k]!=cache_after[0][k])
+                changed_fields=sorted(k for k in set(cache_before[1])|set(cache_after[1])
+                    if cache_before[1].get(k)!=cache_after[1].get(k))
+                raise AssertionError('distant unchanged Bay0 manufactured after tail edit; '
+                    + 'changed_sections='+repr(changed_sections)
+                    + '; changed_fields='+repr(changed_fields)
+                    + '; cache_keys_before='+repr(cache_before[2])
+                    + '; cache_keys_after='+repr(cache_after[2]))
+            adjacent = record(
+                'issue1817_adjacent_bay1_after_tail_whd',
+                lambda: bay_request(1))
+            if (adjacent is bay1_original
+                    or rows[-1]['counts'].get('manufacturing_solve', 0) < 1):
+                raise AssertionError('Bay1 right Joint was not resolved after Bay2 edit')
+            changed = record(
+                'issue1817_changed_bay2_after_tail_whd',
+                lambda: bay_request(2))
+            if (changed is bay2_original
+                    or rows[-1]['counts'].get('manufacturing_solve', 0) < 1):
+                raise AssertionError('edited Bay2 PartSpec was not manufactured')
+            forced = record(
+                'issue1817_forced_full_bay0_after_tail_whd',
+                forced_full, validate=assert_same_parts)
+            if (forced is untouched
+                    or rows[-1]['counts'].get('manufacturing_solve', 0) < 1):
+                raise AssertionError('forced full Bay0 did not run independent resolve')
+
         for cycle in range(args.cycles):
             win = record('open_multi', open_modal)
             win._receiving_multi_apply(0)
@@ -699,7 +809,10 @@ def main():
                     pending=[] if args.dxf_index else ['DXF source index/path not supplied; no DXF latency claim'],
                     windows_uat='PENDING', workers=[])
     all_rows=[]
-    for bays in (1,3):
+    #1817: run the dependency-sensitive 3-Bay worker first so a RED
+    # assertion fails before paying for three unrelated 1-Bay samples.
+    # Both worker families and all samples/cycles still execute on GREEN.
+    for bays in (3,1):
         for sample in range(args.samples):
             journal=output.with_name(f'{output.stem}-b{bays}-s{sample}.jsonl')
             journal.write_text('',encoding='utf-8')

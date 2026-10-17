@@ -512,3 +512,43 @@ def test_issue1817_unknown_cross_bay_dependencies_never_trim_far_dimensions():
             assert ka == a and kb == b, (
                 "unknown user-defined dependency must use full authoritative key"
             )
+
+
+def test_issue1817_preview_key_discards_only_recomputed_selected_bay_joint_locks():
+    """A selection switch cannot invalidate a remote Bay's sheet material."""
+    from dataclasses import dataclass
+    from phase6_sync_envelope import stable_fingerprint
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_bay_preview_face_features_key,
+    )
+
+    @dataclass(frozen=True)
+    class Hole:
+        source_type: str
+        identity: str
+
+    manual = Hole("user_drawn_hole", "explicit")
+    before = {
+        "box_body": {"left": [Hole("receiving_joint_side_lock", "Bay0"), manual]},
+        "head": {"top": [Hole("user_drawn_hole", "head")]}
+    }
+    after_remote_selection = {
+        "box_body": {"right": [Hole("receiving_joint_side_lock", "Bay2")],
+                     "left": [manual]},
+        "head": before["head"],
+    }
+    before_key = _receiving_bay_preview_face_features_key(before)
+    after_key = _receiving_bay_preview_face_features_key(after_remote_selection)
+    assert stable_fingerprint(before_key) == stable_fingerprint(after_key)
+    assert "right" not in after_key["box_body"]
+    assert before["box_body"]["left"][0].identity == "Bay0"
+    assert after_remote_selection["box_body"]["right"][0].identity == "Bay2"
+
+    changed_user_hole = {
+        **after_remote_selection,
+        "box_body": {"left": [Hole("user_drawn_hole", "modified")]},
+    }
+    assert stable_fingerprint(_receiving_bay_preview_face_features_key(
+        changed_user_hole)) != stable_fingerprint(before_key)
+    unfamiliar = {"box_body": {"left": object()}}
+    assert _receiving_bay_preview_face_features_key(unfamiliar) is unfamiliar
