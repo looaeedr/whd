@@ -125,3 +125,27 @@ def test_check_cannot_grant_whole_mfg2_or_ear_pad(tmp_path):
     assert {r.physical_id for r in verified.gate.permitted} == {
         first.receipt.inner_door_part_id, first.receipt.base_plate_part_id,
     }
+
+
+@pytest.mark.parametrize("changed", ("source", "inner_door", "base_plate"))
+def test_check_to_q_rejects_source_or_paired_dxf_changed_after_check(tmp_path, changed):
+    """Q must not reuse CHECK's accepted geometry after any input changes."""
+    _, pair = _paired(tmp_path, "A")
+    checked = group_reopened_nfb_pair_check_q((_input(pair, 2),))
+    output = tmp_path / "after_check"
+    output.mkdir()
+
+    if changed == "source":
+        original = Path(pair.source_path)
+        original.write_bytes(original.read_bytes() + b"\\n")
+    else:
+        target = pair.inner_door_path if changed == "inner_door" else pair.base_plate_path
+        document = ezdxf.readfile(target)
+        document.modelspace().add_circle(
+            (220., 120.), 6., dxfattribs={"layer": "CUTTING"},
+        )
+        document.saveas(target)
+
+    with pytest.raises(ValueError, match="REVERIFY_PAIR|DXF_CHANGED"):
+        save_checked_reopened_nfb_pair_q_dxf(checked, output)
+    assert list(output.iterdir()) == []
