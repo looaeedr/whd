@@ -8,7 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SURFACES = {
-    "AGENTS.md": ["CONTINUE_POLL", "GITHUB_LOCALX_MERGED", "close/readback", "背景輪詢", "/推推"],
+    "AGENTS.md": ["CONTINUE_POLL", "GITHUB_LOCALX_MERGED", "close/readback", "INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1", "/推推"],
     ".agents/skills/engineering/派工/SKILL.md": ["CONTINUE_POLL", "CI_SUCCESS", "CI_FAILURE", "close/readback", "/推推"],
     ".agents/skills/engineering/monitoring-remote-qa/SKILL.md": ["CONTINUE_POLL", "completed / success", "completed / failure", "GITHUB_LOCALX_MERGED", "無 SHA 對應"],
     ".agents/skills/engineering/執行開發任務/SKILL.md": ["pending", "localX", "HEAD", "結案回讀"],
