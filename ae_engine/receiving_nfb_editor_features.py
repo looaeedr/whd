@@ -15,19 +15,6 @@ from .sheetmetal_feature_core import FeatureAnchor, ProfileFeature
 from .sheetmetal_geometry import Vec2
 
 
-def assert_editor_nfb_proof_scope(*, settings_mode, active_mode):
-    """Never import a Set/Bay proof into an independent quantity-mode sheet.
-
-    Quantity has its own physical panel identity and no verified Bay bundle
-    binding yet. This is a guard, NOT proof that Single NFB is implemented.
-    """
-    if settings_mode == "single" and active_mode == "quantity":
-        raise ValueError(
-            "單只數量模式須先取得本片內門的 NFB 原始 DXF 實體驗證；"
-            "不可沿用多連 Bay 的孔位證據"
-        )
-
-
 def verified_nfb_openings_to_editor_features(bundle, *, current_features):
     """Convert only the *additional* source-verified CUTTING geometry.
 
