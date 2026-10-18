@@ -32,6 +32,9 @@ def true_whd_worker(source:Path, output_dir:Path):
 
     output_dir.mkdir(parents=True,exist_ok=True)
     drawing, counts, _=_read_fixture(source)
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    baseline=DrawingScene()
+    baseline.extend(tuple(p for p in drawing.primitives if p.layer != 'CHECK'))
     root=tk.Tk()
     try:
         root.geometry("1600x1000+0+0")
@@ -49,7 +52,7 @@ def true_whd_worker(source:Path, output_dir:Path):
         ]
         app._open_unified_hole_editor(
             "door","WHD 2D 開孔原視窗",surface,100.0,80.0,
-            feature_list_override=features,baseline_scene=drawing,
+            feature_list_override=features,baseline_scene=baseline,
         )
         root.update()
         # The real editor schedules its first render in after(50); wait for
