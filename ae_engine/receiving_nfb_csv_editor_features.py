@@ -166,3 +166,98 @@ def csv_openings_to_editor_features(
             ),
         ))
     return tuple(features)
+
+
+def editor_nfb_features_from_csv(snapshot: Mapping, config):
+    """Build editable CSV NFB hole drafts for the ORIGINAL Hole Editor.
+
+    The operator chooses models and top-edge Y in the Receiving tab; the
+    initial horizontal layout is an EDITOR placement, not a certified X rule.
+    The operator can move each hole in the native editor before Confirm All.
+    Nothing here writes the workspace, candidate, Bay, or manufacturing DXF.
+    """
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_numeric_catalog import model_spec
+    from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    from .receiving_shared_settings import switch_filenames_in_layer, validate_setting
+    from .sheetmetal_feature_surface import feature_is_strictly_within_surface
+    from .sheetmetal_features import feature_surface_from_structural_result
+    from .sheetmetal_part_adapters import build_door_result, DoorFrameEdges
+    from shapely.geometry import Polygon
+    from .cabinet_types import policy
+    from math import isfinite
+
+    layers = validate_setting("inner_door_layers", config["layers"])
+    heights = validate_setting("inner_door_layer_heights_mm", config["layer_heights_mm"])
+    models = validate_setting("inner_door_models", config["models"])
+    if layers == 1 and models[1]:
+        raise ValueError("單層不能將第二層 NFB 帶入編輯器")
+    projected = deepcopy(dict(snapshot))
+    projected["receiving_inner_door_layer_heights_mm"] = list(heights)
+    panels = [p for p in policy.derive_inner_door_panels(projected)
+              if str(p.cell_key).endswith(":0")]
+    if len(panels) != 1:
+        raise ValueError("內門開孔編輯需要唯一的上層實體內門")
+    panel = panels[0]
+    structural = build_door_result(
+        w=panel.width, h=panel.height, t=panel.thickness,
+        fw=25.0, gap_w=0.0, gap_h=0.0,
+        fold_left=19.0, fold_right=19.0,
+        fold_top=19.0, fold_bottom=19.0,
+        frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),
+    )
+    surface = feature_surface_from_structural_result("door", structural)
+    result = []
+    polygons = []
+    source_hashes = {}
+    for layer_index in range(layers):
+        names = switch_filenames_in_layer(models[layer_index])
+        if not names:
+            continue
+        y = project_nfb_inner_door_nominal_y(
+            projected, panel.inner_door_id,
+            layer_count=layers, slot_index=layer_index,
+        )
+        if y.part_id != panel.stable_id:
+            raise ValueError("NFB 開口未對應目前編輯的內門")
+        face_y = y.unfolded_uv_y_mm - (panel.fold_bottom - panel.thickness)
+        for slot_index, ref in enumerate(names):
+            parsed = parse_numeric_model_ref(ref)
+            if parsed is None:
+                raise ValueError("請從目前 CSV 型號清單加入 NFB")
+            brand, model = parsed
+            spec = model_spec(brand, model)
+            if spec is None or spec.opening_corners_xy_mm is None:
+                raise ValueError("NFB CSV 缺少主孔尺寸")
+            if brand not in source_hashes:
+                source_hashes[brand] = sha256(brand_csv_path(brand).read_bytes()).hexdigest()
+            # Initial native-editor positions are only a visual starting point:
+            # they must not be mistaken for a certified manufacturing X datum.
+            face_x = float(panel.width) * (slot_index + 1) / (len(names) + 1)
+            points = tuple(Vec2(face_x + float(x), face_y + float(y))
+                           for x, y in spec.opening_corners_xy_mm)
+            polygon = Polygon([(p.x, p.y) for p in points])
+            feature = ProfileFeature(
+                points=points, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                offset=Vec2(0., 0.), layer="CUTTING",
+                source_type="NFB_CSV_SOURCE",
+                source_params=(
+                    ("part_id", panel.stable_id),
+                    ("brand", brand), ("model", model),
+                    ("layer_index", layer_index),
+                    ("slot_index", slot_index),
+                    ("csv_sha256", source_hashes[brand]),
+                    ("placement", "native_editor_initial"),
+                ),
+            )
+            if (not polygon.is_valid or polygon.area <= 0
+                    or not feature_is_strictly_within_surface(
+                        surface, feature, structural.width, structural.height
+                    ) or any(polygon.intersects(other) for other in polygons)):
+                raise ValueError("NFB 開口初始位置超出內門或互相重疊，請調整配置")
+            polygons.append(polygon)
+            result.append(feature)
+    if any(sha256(brand_csv_path(brand).read_bytes()).hexdigest() != digest
+           for brand, digest in source_hashes.items()):
+        raise ValueError("NFB CSV 在編輯期間已更新，請重新加入")
+    return tuple(result)
