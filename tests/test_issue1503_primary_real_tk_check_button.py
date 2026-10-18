@@ -34,9 +34,13 @@ def test_real_primary_3d_shows_check_only_action_and_click_routes_to_host(monkey
         assert "CHECK DXF" in widget.cget("text")
         assert "非製造" in widget.cget("text")
         assert widget.master.master is app.fold_designer_app.left
-        assert widget.master.pack_info()["before"] == str(
-            app.fold_designer_app.main_nb
-        )
+        # The primary UI deliberately unpacks original.main_nb; CHECK must
+        # be mounted among the ACTUAL packed controls, not that dead widget.
+        assert app.fold_designer_app.main_nb.winfo_manager() != "pack"
+        assert widget.master.winfo_manager() == "pack"
+        packed = app.fold_designer_app.left.pack_slaves()
+        assert widget.master in packed
+        assert widget.master.winfo_viewable()
         assert mount_primary_receiving_ear_side_check(app) is widget
         widget.invoke()
         assert clicks == [app]
