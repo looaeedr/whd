@@ -73,7 +73,7 @@ def test_nfb_horizontal_x_shifts_only_native_screw_cutting_not_670_ear_mount(tmp
     )
     def loops(render):
         return tuple(
-            tuple((float(x),float(y)) for x,y in p.points)
+            tuple((float(x.x),float(x.y)) for x in p.points)
             for p in render.scene.primitives
             if isinstance(p, PolylinePrimitive)
             and p.layer == "CUTTING" and p.closed
