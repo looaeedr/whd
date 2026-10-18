@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """#1503 source-corroborated XY witness for each tier's two side-weld ears.
 
-The *NFB opening group* center owns the tier Base Plate center. Its
-670-mm assembly fixing pitch places the left/right ear slot columns
-at +/-335mm relative to that center. Each large source ear has 4 slots,
+The Base Plate is ALWAYS laterally centered on the CABINET X=0.
+The *NFB opening group height* owns each tier Base Plate's Y, while
+each switch's horizontal offset only locates its NFB screw holes.
+The 670-mm ear support pitch places its left/right columns at X +/-335
+regardless of selected NFB manual X. Each large source ear has 4 slots,
 with the selected 210 or 140mm *longitudinal* pair centered on the same
 tier Y. Left/right side-wall inner skins supply the intended weld X.
 
@@ -36,7 +38,8 @@ class ReceivingTierEarMatingXY:
     layer_index: int
     side: str
     base_center_y_mm: float
-    base_center_x_mm: float | None
+    base_center_x_mm: float
+    nfb_group_x_mm: float | None
     side_inside_weld_x_mm: float
     selected_slot_column_x_mm: float
     selected_slot_pair_world_y_mm: tuple[float, float]
@@ -115,11 +118,9 @@ def resolve_receiving_tier_ear_mating_xy(
         x=center.verified_world_x_mm
         if not isfinite(y) or (x is not None and not isfinite(float(x))):
             raise ValueError("RECEIVING_EAR_XY_NFB_CENTER_INVALID")
-        if x is None:
-            # No reliable world X => refuse the ear's world X entirely;
-            # do not pretend X=0 (a display-only base fallback) is verified.
-            continue
-        cx=float(x)
+        # Cabinet-fixed Base Plate/ear columns do NOT depend on NFB X.
+        # The NFB group X is kept separately for screw-hole CUTTING only.
+        cx=0.0
         fit=None
         for side in ("left","right"):
             ear = by_owner_side.get((owner,side))
@@ -139,11 +140,8 @@ def resolve_receiving_tier_ear_mating_xy(
                 fixing_hole_pitch_x_mm=RECEIVING_ASSEMBLED_FIXING_PITCH_X_MM,
                 fixing_hole_pitch_y_mm=pitch_y,
             )
-            # A moved plate's center X translates the whole support pair.
-            # The side-wall weld X stays fixed at actual side inside skins:
-            # when a moved center no longer fits the 670mm support pitch,
-            # that is a *geometric conflict*, not an invitation to move
-            # the cabinet's side wall or silently claim a mating weld.
+            # Plate/side-wall support is fixed to cabinet center in X.
+            # Operator X changes NFB screw holes, never these columns.
             sign=-1.0 if side=="left" else +1.0
             weld_x=sign*(w/2.0-t)
             slot_x=cx+sign*(fit.fixing_hole_pitch_x_mm/2.0)
@@ -157,6 +155,7 @@ def resolve_receiving_tier_ear_mating_xy(
                 side=side,
                 base_center_y_mm=y,
                 base_center_x_mm=cx,
+                nfb_group_x_mm=float(x) if x is not None else None,
                 side_inside_weld_x_mm=weld_x,
                 selected_slot_column_x_mm=slot_x,
                 selected_slot_pair_world_y_mm=hole_y,
