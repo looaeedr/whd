@@ -82,6 +82,62 @@ class Phase6FinalSceneViewAdapter:
             raise TypeError("renderer must be Phase6FinalSceneRenderer or None")
         self.dependencies = dependencies
         self.renderer = renderer
+        # Cache only the immutable, optional display mesh for identical
+        # source. Do not re-fold two/four EARs on every Tk Configure event.
+        self._formed_ear_display_cache = None
+        self.last_formed_ear_display_blocker = None
+
+    def _formed_ear_assembly_preview(self, snapshot, visible_set):
+        """Source-backed world skins, NEVER extra manufacturing assembly parts.
+
+        Failure leaves the cabinet 3D usable without painting an uncertified
+        EAR. No padding, DXF intermediates, new PartSpec, or production gate.
+        """
+        if snapshot.get("model") != "受電箱" or snapshot.get("nfb_config_submitted") is not True:
+            self.last_formed_ear_display_blocker = None
+            return ()
+        import hashlib
+        from ae_engine.receiving_base_fixing_plate_geometry import SOURCE_DXF_SHA256
+        source_key = hashlib.sha256(
+            (SOURCE_DXF_SHA256 + repr(snapshot)).encode("utf-8")
+        ).hexdigest()
+        cached = self._formed_ear_display_cache
+        if cached is None or cached[0] != source_key:
+            try:
+                from ae_engine.receiving_tier_ear_assembly_xy import (
+                    resolve_receiving_tier_ear_mating_xy,
+                )
+                from ae_engine.receiving_fixed_plate_formed_skins import (
+                    build_receiving_formed_fixing_plate_skins,
+                )
+                owners = resolve_receiving_tier_ear_mating_xy(snapshot)
+                if len(owners) not in (2, 4):
+                    raise ValueError("EAR_ASSEMBLY_DISPLAY_OWNER_COUNT_INVALID")
+                formed = tuple(build_receiving_formed_fixing_plate_skins(
+                    snapshot, entry.ear_id,
+                ) for entry in owners)
+                if (len({row.part_id for row in formed}) != len(formed)
+                        or {row.base_part_id for row in formed}
+                           != {entry.parent_base_id for entry in owners}
+                        or any(row.manufacturing_ready or row.weld_contact_verified
+                               or not row.source_bend_verified for row in formed)):
+                    raise ValueError("EAR_ASSEMBLY_DISPLAY_SOURCE_INCONSISTENT")
+                blocker = None
+            except ValueError as exc:
+                formed = ()
+                blocker = str(exc)
+            self._formed_ear_display_cache = (source_key, formed, blocker)
+        else:
+            formed, blocker = cached[1:]
+        self.last_formed_ear_display_blocker = blocker
+        # Visibility follows parent Base Plate: an EAR must not remain
+        # hovering when the operator hides its owning physical base.
+        return tuple(
+            row for row in formed
+            if row.base_part_id in visible_set
+            or ("base_plate" in visible_set
+                and row.base_part_id.startswith("base_plate:nfb_layer:"))
+        )
 
     def _require_renderer(self) -> Phase6FinalSceneRenderer:
         renderer = self.renderer
@@ -141,6 +197,7 @@ class Phase6FinalSceneViewAdapter:
         collision_certification_diagnostics=(),
         selected_joint_id=None,
         preserve_endcap_core_origin=False,
+        formed_fixing_plate_skins=(),
         render_data_cls=None,
     ):
         return _project_assembly_scene_render_data(
@@ -154,6 +211,7 @@ class Phase6FinalSceneViewAdapter:
             collision_certification_diagnostics=collision_certification_diagnostics,
             selected_joint_id=selected_joint_id,
             preserve_endcap_core_origin=preserve_endcap_core_origin,
+            formed_fixing_plate_skins=formed_fixing_plate_skins,
             render_data_cls=render_data_cls,
         )
 
@@ -241,6 +299,10 @@ class Phase6FinalSceneViewAdapter:
             ),
             selected_joint_id=None,
             preserve_endcap_core_origin=(cabinet_family == "受電箱"),
+            formed_fixing_plate_skins=(
+                self._formed_ear_assembly_preview(snapshot, visible_set)
+                if cabinet_family == "受電箱" else ()
+            ),
             render_data_cls=dependencies.assembly_render_data_cls,
         )
 
