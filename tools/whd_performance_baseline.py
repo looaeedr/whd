@@ -380,6 +380,12 @@ def worker(args):
     rows = []
     errors = []
     probe = Probe()
+    # Optional #1819 attribution; default benchmark behavior unchanged.
+    python_memory_probe = None
+    if getattr(args, 'python_memory_trace', False):
+        from tools.issue1819_python_memory_probe import PythonMemoryAttributionProbe
+        python_memory_probe = PythonMemoryAttributionProbe(
+            cycles=args.cycles, rss_reader=rss_bytes)
     root = tk.Tk()
     sampler = RSSSampler(args.memory_interval_ms).start()
     root.geometry('1400x900+0+0')
@@ -492,6 +498,8 @@ def worker(args):
                        rss_highwater_increment_bytes=hwm_increment,
                        calculation_flushes=sum(
                            s._metrics['calculation_flushes'] for s in schedulers if s)-calc_before)
+            if python_memory_probe is not None:
+                python_memory_probe.capture(row)
             rows.append(row)
             with Path(args.output).open('a', encoding='utf-8') as f:
                 f.write(json.dumps(row, ensure_ascii=False)+'\n')
@@ -973,6 +981,9 @@ def worker(args):
             panel_window.destroy()
         return rows
     finally:
+        if python_memory_probe is not None:
+            python_memory_probe.finalize(
+                Path(args.output).with_suffix('.python-mem.json'))
         sampler.stop()
         probe.stack.close()
         root.destroy()
@@ -987,6 +998,8 @@ def main():
                         help='RSS polling interval; sampled maximum is NOT exact peak')
     parser.add_argument('--worker-sample', type=int, default=0)
     parser.add_argument('--worker', action='store_true')
+    parser.add_argument('--python-memory-trace', action='store_true',
+                        help='diagnostic only: GC/tracemalloc changes timing')
     parser.add_argument('--bays', type=int, choices=(1,3), default=1)
     parser.add_argument('--dxf-index')
     parser.add_argument('--brand', default='士林')
@@ -1009,6 +1022,7 @@ def main():
                     config_sha256=hashlib.sha256((ROOT/'config.ini').read_bytes()).hexdigest(),
                     harness_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                     samples=args.samples, cycles=args.cycles,
+                    python_memory_trace_enabled=bool(args.python_memory_trace),
                     memory_interval_ms=args.memory_interval_ms,
                     memory_peak_definition='maximum sampled RSS, not instantaneous peak',
                     os_highwater_definition='VmHWM kernel lifetime process RSS peak; not operation-local; null when unsupported',
@@ -1027,6 +1041,8 @@ def main():
                      '--worker-sample',str(sample),'--cycles',str(args.cycles),
                      '--memory-interval-ms',str(args.memory_interval_ms),
                      '--output',str(journal)]
+            if args.python_memory_trace:
+                command.append('--python-memory-trace')
             if args.dxf_index:
                 command += ['--dxf-index',args.dxf_index,'--brand',args.brand,'--filename',args.filename]
             with journal.with_suffix('.log').open('w',encoding='utf-8') as log:
