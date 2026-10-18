@@ -680,6 +680,36 @@ def _build_navigation_and_lifecycle(s):
         set_insert_mode=s.set_insert_mode,
         cancel_active_edit=s.cancel_active_edit,
     )
+    if s.on_confirm_features is not None and str(s.part_key).startswith("inner_door:"):
+        def accept_verified_openings(verified):
+            from phase6_hole_editor_session import HoleEditorAction
+            from ae_engine.sheetmetal_features import ProfileFeature
+            from ae_engine.sheetmetal_feature_surface import feature_is_strictly_within_surface
+
+            imported = tuple(verified)
+            if not imported or any(
+                not isinstance(feature, ProfileFeature)
+                or feature.source_type != "NFB_VERIFIED_SOURCE"
+                for feature in imported
+            ):
+                raise ValueError("不能帶入未完成實體來源驗證的 NFB 孔")
+            existing = list(s.live_context.feature_list)
+            if any(getattr(feature, "source_type", "") == "NFB_VERIFIED_SOURCE"
+                   for feature in existing):
+                raise ValueError("此門板已有相同 NFB 來源主孔；請重新開啟編輯驗證")
+            for feature in imported:
+                if not feature_is_strictly_within_surface(
+                    s.live_context.surface, feature,
+                    s.live_context.width, s.live_context.height,
+                ):
+                    raise ValueError("NFB 來源主孔超出內門實體平面")
+            s.hole_session.execute(HoleEditorAction.preview_all(
+                [*existing, *imported],
+            ))
+            s.refresh_created()
+            s.sync_all()
+        s.editor._receiving_accept_verified_openings = accept_verified_openings
+
     s.confirm_reference_edit = modal_lifecycle.confirm_reference_edit
     s.confirm_all = modal_lifecycle.confirm_all
     s.cancel_all = modal_lifecycle.cancel_all
