@@ -2605,9 +2605,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 ]
                 current_numeric_editor = (
                     embed_parent is not None
-                    and getattr(modal.winfo_toplevel(),
-                                "_receiving_settings_mode", None)
-                    in ("single", "candidate")
                     and bool(source_models)
                     and all(is_numeric_model_ref(ref) for ref in source_models)
                 )
