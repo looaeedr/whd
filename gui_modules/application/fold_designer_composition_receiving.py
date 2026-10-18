@@ -2608,6 +2608,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                                    for row in active):
                 warning.set("同一次實體開孔不可混合 V5 數值型號與舊 DXF 來源")
                 return
+            if v5_mode and original_editor is not None:
+                original_editor._receiving_csv_door_proof = None
             popup=tk.Toplevel(modal)
             popup.title("NFB CSV 內門開口／底板孔位核對" if v5_mode
                         else "舊來源 DXF 驗證")
@@ -2733,6 +2735,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 if modal.winfo_exists():
                     modal.lift()
                     modal.focus_set()
+
+            def discard_world_dialog():
+                if v5_mode and original_editor is not None:
+                    original_editor._receiving_csv_door_proof = None
+                close_world_dialog()
 
             def prepare():
                 try:
@@ -2864,13 +2871,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     outcome.set("尚未通過驗證："+str(exc))
             actions=ttk.Frame(body)
             actions.pack(anchor="e",pady=(9,0))
-            ttk.Button(actions,text="取消",command=close_world_dialog).pack(
+            ttk.Button(actions,text="取消",command=discard_world_dialog).pack(
                 side="left",padx=5,
             )
+            if v5_mode:
+                ttk.Button(actions, text="返回受電箱頁籤",
+                           command=close_world_dialog).pack(side="left", padx=5)
             ttk.Button(actions,text=(
                 "檢查 CSV 開口" if v5_mode else "驗證舊 DXF 來源"
             ),command=prepare).pack(side="left")
-            popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
+            popup.protocol("WM_DELETE_WINDOW",discard_world_dialog)
             popup.lift()
 
         def confirm():
