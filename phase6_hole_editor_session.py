@@ -124,6 +124,12 @@ class Phase6HoleEditorSession:
         self._selected_index = -1
         self._active_before: list[Any] | None = None
         self._undo = _UndoHistory(self._max_undo_steps)
+        self._transaction_revision = 0
+
+    @property
+    def transaction_revision(self) -> int:
+        """Monotonic identity for staged editor operations, including ABA changes."""
+        return self._transaction_revision
 
     @property
     def active_features(self) -> MutableSequence[Any]:
@@ -203,6 +209,7 @@ class Phase6HoleEditorSession:
             self._selected_index = index
         else:
             raise ValueError(f"unsupported hole editor action: {kind}")
+        self._transaction_revision += 1
         return self.snapshot()
 
     def activate_context(
@@ -221,6 +228,7 @@ class Phase6HoleEditorSession:
         self._active_before = None
         # 舊版每次切 context 都重建 EditorUndoHistory；保持相同行為。
         self._undo = _UndoHistory(self._max_undo_steps)
+        self._transaction_revision += 1
         return self.snapshot()
 
     def finish(self, *, commit: bool) -> HoleEditorSessionSnapshot:
@@ -233,6 +241,7 @@ class Phase6HoleEditorSession:
                 state.features[:] = state.original
             self._active_before = None
         self._selected_index = -1
+        self._transaction_revision += 1
         return self.snapshot()
 
     def _required_index(self, index: int | None) -> int:
