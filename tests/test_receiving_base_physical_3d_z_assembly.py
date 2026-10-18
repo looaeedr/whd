@@ -130,9 +130,9 @@ def test_operator_opening_center_moves_base_plate_center_without_changing_plate_
                     datum_revision="SOURCE-X-REV1",datum_snapshot={"w":800,"t":2})
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     moved=resolve_assembly_placement(snap,"base_plate")
-    # Both confirmed opening X positions (-130,+70) put this tier's
-    # plate at their group bounding-box centre -30. Y stays 470.
-    assert moved.world_offset[:2]==pytest.approx((-30.,470.))
+    # NFB X offset changes its intended screw-hole coordinates; the
+    # whole Base Plate and its 670-mm support holes stay at cabinet X0.
+    assert moved.world_offset[:2]==pytest.approx((0.,470.))
     assert moved.world_offset[2]==pytest.approx(original.world_offset[2])
 
 
