@@ -52,6 +52,7 @@ from phase6_final_scene_projection import (
 
 
 from phase6_final_scene_render_helpers import Phase6FinalSceneRenderHelpersMixin
+from phase6_final_scene_mesh_display import gridless_mesh_collection
 
 
 class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
@@ -113,7 +114,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     line.remove()
                 except Exception:
                     pass
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
             triangles = []
             materials = []
             box_body_piece_dimension_lines = []
@@ -275,14 +275,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 visible_rows.append(piece)
                                 if not piece_placed:
                                     continue
-                                poly = Poly3DCollection(
-                                    piece_placed,
-                                    alpha=(min(0.17, float(request.alpha_bend))
-                                           if divider_in_view else float(request.alpha_bend)),
-                                    facecolor=face,
-                                    edgecolor="none",
-                                    linewidths=0.0,
-                                    antialiaseds=False,
+                                poly = gridless_mesh_collection(
+                                    piece_placed, facecolor=face,
+                                    opacity=(min(0.17, float(request.alpha_bend))
+                                             if divider_in_view else float(request.alpha_bend)),
                                 )
                                 ax.add_collection3d(poly)
                                 piece_role = str(getattr(piece, "role", "") or "").strip()
@@ -380,13 +376,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 divider_presentation = _phase6_assembly_part_presentation(part_key, opacity)
                 if divider_presentation is not None:
                     face, edge, opacity = divider_presentation
-                poly = Poly3DCollection(
-                    placed,
-                    alpha=opacity,
-                    facecolor=face,
-                    edgecolor="none",
-                    linewidths=0.0,
-                    antialiaseds=False,
+                poly = gridless_mesh_collection(
+                    placed, facecolor=face, opacity=opacity,
                 )
                 ax.add_collection3d(poly)
                 if is_outer_door or is_inner_panel:
@@ -436,10 +427,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 )
                 if not skin_tris:
                     raise ValueError("EAR_3D_FORMED_SKIN_EMPTY")
-                poly = Poly3DCollection(
-                    skin_tris, alpha=0.92,
-                    facecolor="#f97316", edgecolor="none",
-                    linewidths=0.0, antialiaseds=False,
+                poly = gridless_mesh_collection(
+                    skin_tris, facecolor="#f97316", opacity=0.92,
                 )
                 ax.add_collection3d(poly)
                 triangles.extend(skin_tris)
@@ -513,15 +502,11 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         linewidths=3.6, alpha=0.95,
                     ))
             if interference_segments:
-                from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
+                from mpl_toolkits.mplot3d.art3d import Line3DCollection
                 from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
                 if interference_targets:
-                    ax.add_collection3d(Poly3DCollection(
-                        interference_targets,
-                        facecolor="#eab308",
-                        edgecolor="none",
-                        linewidths=0.0,
-                        alpha=0.42,
+                    ax.add_collection3d(gridless_mesh_collection(
+                        interference_targets, facecolor="#eab308", opacity=0.42,
                     ))
                 ax.add_collection3d(Line3DCollection(
                     interference_segments, colors="#eab308", linewidths=2.5,
@@ -607,13 +592,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     line.remove()
                 except Exception:
                     pass
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
             face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
             for _piece, piece_tris in meshes:
-                poly = Poly3DCollection(
-                    piece_tris, alpha=float(request.alpha_bend), facecolor=face,
-                    edgecolor="none", linewidths=0.0,
-                    antialiaseds=False,
+                poly = gridless_mesh_collection(
+                    piece_tris, facecolor=face, opacity=float(request.alpha_bend),
                 )
                 self.renderer.ax3d.add_collection3d(poly)
                 # All Box Body pieces use smooth material skins.
@@ -684,7 +666,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 line.remove()
             except Exception:
                 pass
-        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
         face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
         part_key = str(request.part_key)
         is_door = (
@@ -692,13 +673,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             or (part_key.startswith("door_c") and "_r" in part_key)
             or (part_key.startswith("inner_door:") and part_key.endswith(":panel"))
         )
-        poly = Poly3DCollection(
-            triangles,
-            alpha=1.0 if is_door else float(request.alpha_bend),
-            facecolor=face,
-            edgecolor="none",
-            linewidths=0.0,
-            antialiaseds=False,
+        poly = gridless_mesh_collection(
+            triangles, facecolor=face,
+            opacity=1.0 if is_door else float(request.alpha_bend),
         )
         self.renderer.ax3d.add_collection3d(poly)
         if is_door:

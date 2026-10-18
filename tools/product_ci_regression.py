@@ -219,6 +219,8 @@ PYTEST_PATHS = (
     "tests/test_phase6_3d_single_source_renderer.py::test_2d_and_3d_equal_door_state_share_exact_render_data_object",
     # Real W800, single & assembled doors, and all FinalScene skins must be grid-free.
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_real_receiving_all_panels_shaded_without_triangle_edges",
+    # Real raster check: translucent sheet facets render without seams.
+    "tests/test_phase6_gridless_surface_opacity.py",
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_flat_part_keeps_authoritative_bend_and_marking_with_no_mesh_lines",
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_single_door_cutting_rims_and_bends_without_mesh_edge_overlay",
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_outer_door_assembly_renders_real_cutting_rim_and_source_bend",
