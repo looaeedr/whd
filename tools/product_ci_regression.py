@@ -62,6 +62,8 @@ PYTEST_PATHS = (
     # #1503: actual folded 3D Base Plate skin must match EACH source EAR target.
     "tests/test_issue1503_actual_assembly_ear_contact_receipt.py",
     "tests/test_issue1503_revised_bend_formed_skins.py",
+    # #1503: formed T2 BEND23 actual assembly 3D overlay / no false MFG.
+    "tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
