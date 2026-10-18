@@ -88,6 +88,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         self.last_interference_diagnostic = None
         self.last_all_parts_collision_audit = None
         self._all_parts_collision_cache = None
+        self.last_formed_ear_display_ids = ()
 
     def render(self, request: FinalSceneViewRequest | None):
         if request is None:
@@ -407,6 +408,32 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 triangles.extend(placed)
                 materials.append(part_material)
+            # #1503: show the already source-certified T2/BEND23 folded
+            # fixing plates in the assembled 3D view. The geometry was built
+            # upstream from physical FinalScene and passed as DISPLAY ONLY,
+            # not added to the manufacturing part list/BOM or DXF export.
+            # No triangle-grid edges or invented weld lines.
+            self.last_formed_ear_display_ids = ()
+            visible_ears = []
+            for formed in tuple(getattr(render_data, "formed_fixing_plate_skins", ()) or ()):
+                if (not getattr(formed, "source_bend_verified", False)
+                        or not getattr(formed, "actual_signed_forming_constructed", False)
+                        or getattr(formed, "manufacturing_ready", True)
+                        or getattr(formed, "weld_contact_verified", True)):
+                    raise ValueError("EAR_3D_SOURCE_OR_MANUFACTURING_GATE_FAILED")
+                skin_tris = tuple(
+                    tuple(tuple(float(v) for v in point) for point in face.world)
+                    for face in tuple(formed.mapped_world_skins or ())
+                )
+                if not skin_tris:
+                    raise ValueError("EAR_3D_FORMED_SKIN_EMPTY")
+                poly = gridless_mesh_collection(
+                    skin_tris, facecolor="#f97316", opacity=0.92,
+                )
+                ax.add_collection3d(poly)
+                triangles.extend(skin_tris)
+                visible_ears.append(str(formed.part_id))
+            self.last_formed_ear_display_ids = tuple(visible_ears)
             # On-demand WHOLE ASSEMBLY physical audit, independent of legacy
             # EndCap restored-delta visualization. Include all side pieces,
             # divider, inner-door frames, head/tail and future generated parts.
@@ -639,7 +666,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 line.remove()
             except Exception:
                 pass
-        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
         face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
         part_key = str(request.part_key)
         is_door = (

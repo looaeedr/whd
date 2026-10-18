@@ -56,8 +56,9 @@ def test_opaque_skins_and_opacity_validation():
 def test_all_final_scene_surface_entrances_composite_before_alpha():
     # The production renderer must not re-introduce an old per-triangle path.
     source = (Path(__file__).resolve().parents[1] / "phase6_final_scene_renderer.py").read_text(encoding="utf-8")
-    assert source.count("gridless_mesh_collection(") == 5
+    assert source.count("gridless_mesh_collection(") == 6
     assert "Poly3DCollection(" not in source
+    assert "last_formed_ear_display_ids" in source
     for kept in ("_draw_cutting_hole_rims(", "_draw_endcap_cutting_hole_rims(",
                  "_draw_scene_bends(", "_draw_box_body_structure_bends("):
         assert kept in source
