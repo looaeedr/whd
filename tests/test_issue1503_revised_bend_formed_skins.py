@@ -37,10 +37,12 @@ def test_actual_t2_source_bend23_forms_one_or_two_tiers_with_real_side_wall_axes
         [-335., 335., -335., 335.] if two else [-335., 335.]
     )
     assert [r.fold_station_world_x_mm for r in result] == (
-        [-396., 396., -396., 396.] if two else [-396., 396.]
+        [-397., 397., -397., 397.] if two else [-397., 397.]
     )
     assert all(
         r.source_bend_y_mm == 23.0 and
+        r.actual_mid_surface_hinge_y_mm == 22.0 and
+        r.side_wall_skin_contact_x_verified and
         r.source_sheet_t_mm == 2.0 and
         r.signed_source_fold_degrees == 90.0 and
         r.source_bend_verified and
@@ -65,8 +67,20 @@ def test_actual_t2_source_bend23_forms_one_or_two_tiers_with_real_side_wall_axes
         assert min(pt[1] for pt in uv) == pytest.approx(0.0, abs=0.02)
         assert max(pt[1] for pt in uv) == pytest.approx(105.0, abs=0.02)
         mid_z = [p[2] for face in row.mapped_world_middle for p in face.local]
-        assert min(mid_z) == pytest.approx(row.parent_base_back_skin_world_z_mm-24.)
+        assert min(mid_z) == pytest.approx(row.parent_base_back_skin_world_z_mm-23.)
         assert max(mid_z) == pytest.approx(row.parent_base_back_skin_world_z_mm-1.)
+        # The vertical fold's physical 2mm skin touches the side-wall
+        # inside skin exactly; the original source y=23 BEND stays intact.
+        flange_skin_x = [
+            pt[0] for tri in row.mapped_world_skins
+            for uv, pt in zip(tri.flat, tri.world)
+            if uv[1] < 21.99
+        ]
+        assert flange_skin_x
+        assert row.side_wall_inside_world_x_mm == pytest.approx(
+            min(flange_skin_x) if row.side == "left" else max(flange_skin_x),
+            abs=1e-6,
+        )
 
 
 def test_real_source_flange_points_back_from_base_not_through_perforated_face():
