@@ -82,11 +82,28 @@ def _inventory(doc):
         if block.name.upper() not in {"*MODEL_SPACE", "*PAPER_SPACE"}
         for e in block
     )
-    layers = Counter(
-        json.dumps({k: _value(v) for k, v in layer.dxfattribs().items()
-                    if k not in IGNORED}, sort_keys=True, ensure_ascii=False)
-        for layer in doc.layers
-    )
+    layers = Counter()
+    for layer in doc.layers:
+        attrs = {k: _value(v) for k, v in layer.dxfattribs().items()
+                 if k not in IGNORED}
+        for key in ("material_handle", "plotstyle_handle"):
+            handle = layer.dxf.get(key, None)
+            if handle is None:
+                continue
+            referenced = doc.entitydb.get(handle)
+            if referenced is None:
+                raise ValueError(f"UNRESOLVED_LAYER_REFERENCE {layer.dxf.name} {key}")
+            # Handles are allocator IDs, not process/layer semantics.
+            # Resolve referenced MATERIAL / plot-style object identity and
+            # attributes, rather than treating handle renumbering as geometry.
+            attrs[key] = {
+                "entity_type": referenced.dxftype(),
+                "attributes": {
+                    k: _value(v) for k, v in referenced.dxfattribs().items()
+                    if k not in IGNORED
+                },
+            }
+        layers[json.dumps(attrs, sort_keys=True, ensure_ascii=False)] += 1
     return {"model": model, "blocks": blocks, "layers": layers}
 
 
