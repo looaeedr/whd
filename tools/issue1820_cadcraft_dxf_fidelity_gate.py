@@ -20,7 +20,9 @@ SUPPORTED = frozenset({
     "LINE", "ARC", "CIRCLE", "LWPOLYLINE", "POLYLINE", "POINT",
     "TEXT", "MTEXT", "INSERT", "ATTRIB", "ATTDEF", "DIMENSION", "VERTEX", "SOLID",
 })
-# DXF version and declared codepage affect text decoding and block support.\n# Do not accept a CADCraft resave merely because its entity counts agree.\nHEADER_KEYS = ("$INSUNITS", "$MEASUREMENT", "$ACADVER", "$DWGCODEPAGE")
+# DXF version and declared codepage affect text decoding and block support.
+# Do not accept a CADCraft resave merely because its entity counts agree.
+HEADER_KEYS = ("$INSUNITS", "$MEASUREMENT", "$ACADVER", "$DWGCODEPAGE")
 IGNORED = frozenset({"handle", "owner", "paperspace"})
 
 
