@@ -362,6 +362,10 @@ class HoleEditorWindowShellBuilder:
         header_fullscreen = ttk.Button(window_actions, text="全螢幕 F11")
         header_fullscreen.pack(side=tk.RIGHT)
         editor._hole_header_fullscreen = header_fullscreen
+        # Leave the original 2D toolbar/canvas untouched on small screens.
+        cadcraft_button = ttk.Button(window_actions, text="CADCraft 試看")
+        cadcraft_button.pack(side=tk.RIGHT, padx=(0, 8))
+        editor._hole_header_cadcraft = cadcraft_button
         body = tk.Frame(editor, bg=host.COLOR_BG)
         body.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         # Inner-door NFB settings live in a second page of THIS existing

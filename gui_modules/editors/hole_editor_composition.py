@@ -688,6 +688,32 @@ def _build_navigation_and_lifecycle(s):
 
 
 def _bind_editor_events(s):
+    # CADCraft is an opt-in external inspection only. Re-resolve the active
+    # editor context on click (including inner-door context switches); never
+    # import CADCraft edits or mutate this editor's pending feature session.
+    cadcraft_button = getattr(s.editor, "_hole_header_cadcraft", None)
+    if cadcraft_button is not None:
+        def preview_in_cadcraft():
+            from .cadcraft_preview_bridge import open_hole_editor_cadcraft_preview
+            try:
+                saved = open_hole_editor_cadcraft_preview(
+                    surface=s.live_context.surface,
+                    features=s.live_context.feature_list,
+                    width=s.live_context.width,
+                    height=s.live_context.height,
+                    baseline_scene=s.live_context.baseline_scene,
+                )
+            except (OSError, ValueError, TypeError) as exc:
+                s.d.messagebox.showerror("CADCraft 試看", str(exc), parent=s.editor)
+            else:
+                s.d.messagebox.showinfo(
+                    "CADCraft 試看",
+                    "已在 CADCraft 開啟暫存檢視圖：\n"
+                    + str(saved)
+                    + "\nCADCraft 內修改不會回寫 WHD；請繼續使用原 2D 開孔編輯器儲存孔位。",
+                    parent=s.editor,
+                )
+        cadcraft_button.configure(command=preview_in_cadcraft)
     s.editor.bind("<F11>", s.toggle_fullscreen)
     s.editor.bind("<Control-z>", s.undo_last_action)
     s.editor.bind("<Control-Z>", s.undo_last_action)
