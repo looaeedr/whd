@@ -1,0 +1,117 @@
+name: WHD #1820 Paired Real Desktop GUI Evidence
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-issue1820-same-runner-desktop.yml'
+      - 'tools/issue1820_same_runner_gui_compare.py'
+      - 'docs/performance/issue1820-same-runner-gui.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-1820-paired-gui-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  paired-native-real-gui:
+    name: Identical DXF and runner, 3 WHD and CADCraft real native GUI first frames
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      TZ: Asia/Taipei
+      MPLBACKEND: TkAgg
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      WINIT_UNIX_BACKEND: x11
+      XDG_SESSION_TYPE: x11
+    steps:
+      - name: Checkout exact tested candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real WHD Tk and CADCraft X11 desktop dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk libxkbcommon-x11-0 libgl1-mesa-dri libegl1 libfontconfig1
+          python -m pip install -r requirements.txt psutil matplotlib pillow ezdxf
+      - name: Download upstream CADCraft pinned native 0.7.0 binary and verify release hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=0.7.0
+          PACKAGE="cadcraft-$VERSION-linux-x86_64.tar.gz"
+          BASE="https://github.com/storytold/cadcraft/releases/download/v$VERSION"
+          mkdir -p "$RUNNER_TEMP/cadcraft"
+          curl -fLsS --retry 3 "$BASE/SHA256SUMS.txt" -o "$RUNNER_TEMP/cadcraft/SHA256SUMS.txt"
+          curl -fLsS --retry 3 "$BASE/$PACKAGE" -o "$RUNNER_TEMP/cadcraft/$PACKAGE"
+          cd "$RUNNER_TEMP/cadcraft"
+          python - "$PACKAGE" <<'PY'
+          import hashlib,sys
+          from pathlib import Path
+          name=sys.argv[1]
+          table=dict((line.split(maxsplit=1)[1].lstrip("*"),line.split()[0])
+                     for line in Path("SHA256SUMS.txt").read_text().splitlines() if len(line.split()) >= 2)
+          assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==table.get(name),"CADCRAFT_UPSTREAM_SHA256_INVALID"
+          print("CADCRAFT_SHA256_VALID",name)
+          PY
+          tar -xzf "$PACKAGE"
+          test -x "$RUNNER_TEMP/cadcraft/cadcraft-$VERSION-linux-x86_64/bin/cadcraft"
+      - name: Emit exactly one WHD 2D inspection DXF for both real GUI systems
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1820-paired
+          PYTHONPATH="$GITHUB_WORKSPACE" python tools/cadcraft_hole_editor_preview_crosscheck.py emit work/issue1820-paired/source.dxf
+          python - <<'PY'
+          import hashlib,ezdxf
+          from pathlib import Path
+          p=Path("work/issue1820-paired/source.dxf")
+          doc=ezdxf.readfile(p)
+          assert doc.units==ezdxf.units.MM
+          assert {x.dxftype() for x in doc.modelspace()}=={"LINE","LWPOLYLINE","CIRCLE"}
+          print("IDENTICAL_DXF_SHA256",hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: Run both actual GUIs under ONE Xvfb server, alternating order
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime"
+          export CADCRAFT_CONFIG_DIR="$RUNNER_TEMP/cadcraft-private"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          export CADCRAFT_NATIVE_GUI="$RUNNER_TEMP/cadcraft/cadcraft-0.7.0-linux-x86_64/bin/cadcraft"
+          xvfb-run -a -s "-screen 0 1600x1000x24" bash -euo pipefail -c '
+            for i in 0 1 2; do
+              if [ "$i" = "1" ]; then
+                python tools/issue1820_cadcraft_native_gui_control_probe.py "$CADCRAFT_NATIVE_GUI" work/issue1820-paired/source.dxf "work/issue1820-paired/cadcraft-$i" --port "$((19779+i))"
+                python tools/issue1820_whd_real_editor_gui_probe.py run work/issue1820-paired/source.dxf "work/issue1820-paired/whd-$i"
+              else
+                python tools/issue1820_whd_real_editor_gui_probe.py run work/issue1820-paired/source.dxf "work/issue1820-paired/whd-$i"
+                python tools/issue1820_cadcraft_native_gui_control_probe.py "$CADCRAFT_NATIVE_GUI" work/issue1820-paired/source.dxf "work/issue1820-paired/cadcraft-$i" --port "$((19779+i))"
+              fi
+            done
+          '
+      - name: Verify actual screenshots, same source and every paired measurement
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/issue1820_same_runner_gui_compare.py work/issue1820-paired
+      - name: Upload full per-trial desktop screenshots, raw trace and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-1820-real-desktop-same-runner-paired-evidence
+          path: work/issue1820-paired/
+          if-no-files-found: warn
+          retention-days: 14
