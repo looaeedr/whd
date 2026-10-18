@@ -16,3 +16,17 @@ WHD：隔離 Python 程序 → 正式 `Phase6PrimaryApplication` → 原 `_open_
 - 真 Windows 同機、同大型受電箱 DXF、完整原 WHD 開孔、CADCraft 外掛全部成本、滑鼠縮放平移與最終 DXF/單位/圖層驗證仍是 #1820 最終採用判定的門檻。
 
 如果最終效益不夠，就保留現有可選「CADCraft 試看」而不取代 WHD 原本操作。**正式 X 不動，也不額外授權 DC 操作 Windows。**
+
+
+## 首次實測讀回（2026-10-18，同 Linux runner）
+
+- Exact-head [GitHub Actions #39097745805](https://github.com/looaeedr/whd/actions/runs/39097745805) SUCCESS，artifact 名稱 `whd-1820-real-desktop-same-runner-paired-evidence`。
+- 同一張 WHD DXF 實際 SHA256：`bcb52fb441f461b0b76b88853dbc88f320e03031b3da3748e602dd03cbaa0c12`；三輪各自檢查兩邊讀取的是相同位元組，不拿各自另存圖來比。
+- 真 WHD 主程式 → 原統一開孔編輯器可見首幀：三輪 **4126.95 / 2301.77 / 2289.91 ms**；中位 **2301.77 ms**。其中主程式就緒後到原編輯器首幀：**153.76 / 151.48 / 149.45 ms**；中位 **151.48 ms**。
+- 真 CADCraft 0.7.0 原生桌面 GUI → 第一張已呈現畫面：**3918.13 / 616.56 / 617.22 ms**；中位 **617.22 ms**；其中 GUI 控制器 ping 就緒中位 **143.49 ms**。
+- 50ms RSS 取樣：WHD peak **157044736 / 158949376 / 154890240 bytes**；CADCraft peak **194023424 / 187428864 / 187502592 bytes**。**不是**操作結束後殘留記憶體或精確 peak，且進程工作內容不同。
+- 執行順序：WHD→CADCraft；CADCraft→WHD；WHD→CADCraft。第一輪在兩邊都受程序與圖形環境冷啟動影響，後兩輪較快；不忽略第一輪。
+- 各輪 `whd-real-editor-first-frame.png`、`first-actual-desktop-frame.png`、CADCraft 縮放後圖片、JSON、stderr 已保存。驗證真 2D 畫布與 CADCraft 真桌面畫面、相同 DXF SHA256 和原生 PNG。
+- 目前 4 個圖元的小圖場景顯示 CADCraft native viewer 的後續啟動較快，但不能據此推論接入 WHD 後使用者更快：輸出暫存 DXF、跨程序切窗、外部程式裝載、主程式正在使用的狀態、真正編輯／滑鼠互動、Windows 大型工件與大量圖層尚未實測。
+
+**階段結論：繼續保持 CADCraft 可選試看，暫不採用為 WHD 2D 正式編輯器。** 此結論是目前證據不足時的預設，不是 CADCraft 功能不可行。#1820 完整產品效能與幾何驗收仍 OPEN。
