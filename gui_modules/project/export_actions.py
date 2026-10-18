@@ -501,6 +501,61 @@ def _commit_staged_project_export(stage_folder, output_folder):
     finally:
         shutil.rmtree(backup_root, ignore_errors=True)
 
+def export_receiving_ear_side_check_dxf(self):
+    """W800/T2 SIDE contact CHECK-only export, isolated from production DXF."""
+    try:
+        self._flush_phase6_authoritative_state()
+        designer = getattr(self, "fold_designer_app", None)
+        resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+        if not callable(resolver):
+            raise ValueError("固定片側板 CHECK 缺少現行製造幾何")
+        snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+        if (snapshot.get("model") != "受電箱"
+                or snapshot.get("nfb_config_submitted") is not True
+                or snapshot.get("active_mode") == "quantity"):
+            raise ValueError("固定片 CHECK 限受電箱已提交的單只／套連實體；數量版本須逐版驗證")
+        dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
+        thickness = float(snapshot["t"])
+        if dimensions[0] != 800.0 or thickness != 2.0:
+            raise ValueError("固定片側板 CHECK 目前只認證 W800/T2")
+        geometry = resolver()
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        messagebox.showerror("固定片 CHECK 不可用", str(exc))
+        return None
+
+    folder = filedialog.askdirectory(
+        title="選擇固定片側板 CHECK 專用資料夾（非製造）",
+    )
+    if not folder:
+        return None
+
+    try:
+        from ae_engine.receiving_fixed_plate_side_check_dxf import (
+            export_receiving_ear_side_check_only_dxf,
+        )
+        receipt = export_receiving_ear_side_check_only_dxf(
+            snapshot, geometry, folder,
+            dimensions=dimensions, sheet_thickness=thickness,
+            overwrite=False,
+        )
+    except (ValueError, FileExistsError, OSError, TypeError) as exc:
+        messagebox.showerror(
+            "固定片側板 CHECK 未通過",
+            str(exc) + "\n未放行正式製造 DXF。",
+        )
+        return None
+
+    messagebox.showinfo(
+        "固定片側板 CHECK 輸出成功（非製造）",
+        "左右側板 CHECK 專用 DXF 已逐檔回讀驗證。"
+        "\n此檔案不可作為焊道或正式製造放行。"
+        f"\n接觸片數：{len(receipt.part_ids)}"
+        f"\nMARKING 線段：{receipt.marking_lines_verified}"
+        + "\n" + "\n".join(path for _owner, path in receipt.output_paths),
+    )
+    return receipt
+
+
 def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
     self._flush_phase6_authoritative_state()
