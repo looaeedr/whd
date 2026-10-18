@@ -85,12 +85,17 @@ def check_csv_v5_base_part_only_groups(
             raise ValueError("CSV V5 底板缺少同源實體與未放行狀態")
         csv_sources = tuple(info.get("nfb_v5_source_csv_sha256") or ())
         active_brands = {pattern.brand for pattern in part.patterns}
-        if {brand for brand, _ in csv_sources} != active_brands:
+        csv_brands = {brand for brand, _ in csv_sources}
+        # An actual physical tier may use one brand even when the full
+        # verified inner-door proof contains other tiers with other brands.
+        # Retain and validate *all* full-proof source hashes.
+        if (not active_brands.issubset(csv_brands)
+                or len(csv_sources) != len(csv_brands)):
             raise ValueError("CSV V5 底板缺少來源 CSV SHA")
         try:
             fresh = tuple(sorted(
                 (brand, sha256(brand_csv_path(brand).read_bytes()).hexdigest())
-                for brand in active_brands
+                for brand in csv_brands
             ))
         except OSError as exc:
             raise ValueError("CSV V5 檢查時來源資料不可讀") from exc
