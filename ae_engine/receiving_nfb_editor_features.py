@@ -36,9 +36,10 @@ def verified_nfb_openings_to_editor_features(bundle, *, current_features):
     rather than duplicating manufactured CUTTING or silently using a V5 trial.
     """
     from .receiving_nfb_ui1b_bridge import NfbVerifiedDraftSubmission
+    from .receiving_nfb_quantity_editor import NfbVerifiedQuantityDoorProof
     from .cabinet_types import policy as cabinet_family_policy
 
-    if not isinstance(bundle, NfbVerifiedDraftSubmission):
+    if not isinstance(bundle, (NfbVerifiedDraftSubmission, NfbVerifiedQuantityDoorProof)):
         raise TypeError("受電箱主孔只能帶入來源已驗證的 NFB")
     if not bundle.verified_door.manufacturing_ready:
         raise ValueError("NFB 來源尚未通過實體與孔位驗證")
@@ -46,7 +47,9 @@ def verified_nfb_openings_to_editor_features(bundle, *, current_features):
     panel_id = bundle.verified_door.part_id
     panels = [p for p in cabinet_family_policy.derive_inner_door_panels(snapshot)
               if p.stable_id == panel_id]
-    if len(panels) != 1 or bundle.scope.inner_door_part_id != panel_id:
+    scoped_id = (bundle.scope.inner_door_part_id
+                 if isinstance(bundle, NfbVerifiedDraftSubmission) else bundle.part_id)
+    if len(panels) != 1 or scoped_id != panel_id:
         raise ValueError("來源驗證與當前實體內門板件不一致")
     panel = panels[0]
     expected = tuple((snapshot.get("part_features") or {}).get(panel_id, ()))
