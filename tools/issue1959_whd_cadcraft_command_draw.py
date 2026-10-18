@@ -187,7 +187,7 @@ def demo_instructions() -> tuple[DrawInstruction, ...]:
     from ae_engine.sheetmetal_features import Vec2
     return from_whd_resolved((
         ResolvedCircle(center=Vec2(25, 30), radius=5),
-        ResolvedRect(center=Vec2(70, 45), width=20, height=12, rotation_deg=30),
+        ResolvedRect(center=Vec2(70, 45), width=20, height=12, rotation_deg=90),
         ResolvedProfile(points=(
             Vec2(-20, 5), Vec2(-7, 4), Vec2(-5, 16), Vec2(-24, 20),
         )),
