@@ -541,7 +541,10 @@ def test_all_final_scene_parts_do_not_restore_triangle_grid_overlays():
     assert "self._draw_cutting_hole_rims(" in source
     assert "self._draw_endcap_cutting_hole_rims(" in source
     assert "self._draw_box_body_structure_bends(" in source
-    assert 'edgecolor="none"' in source
+    # Edge policy now lives in the shared transparency-compositing renderer.
+    mesh_helper = Path("phase6_final_scene_mesh_display.py").read_text(encoding="utf-8")
+    assert 'edgecolor="none"' in mesh_helper
+    assert 'gridless_mesh_collection(' in source
     # Four physical-skin paths: assembled pieces, assembly other parts,
     # standalone pieces, and standalone part.
     assert source.count("antialiaseds=False") >= 4
