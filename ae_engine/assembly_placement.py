@@ -257,12 +257,12 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
             if len(centers) != 1:
                 raise ValueError("RECEIVING_NFB_BASE_NEEDS_ONE_PHYSICAL_PART_PER_TIER")
             center = centers[0]
-            position = (
-                float(center.verified_world_x_mm)
-                if center.verified_world_x_mm is not None else 0.0,
-                float(center.world_y_mm),
-                float(source_z),
-            )
+            # Base Plate is ALWAYS centered laterally on the cabinet.
+            # NFB manual X changes ONLY that switch's screw-hole machining
+            # relative to the installed Base Plate, never the Base Plate's
+            # left/right installation, 670-mm support holes or welded ears.
+            # The NFB tier's opening HEIGHT still locates plate world Y.
+            position = (0.0, float(center.world_y_mm), float(source_z))
         else:
             # Legacy preview without a source-verified NFB mounting depth.
             # Never claim this unconfigured placeholder is a certified plate.
