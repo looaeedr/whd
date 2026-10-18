@@ -17,6 +17,7 @@
 - 現有 2D 開孔定位、拖拉、撤銷、畫布、儲存與 3D/製造流程均**不變**。
 - 按鈕只在使用者點擊時，透過 WHD 原有 `resolve_surface_features` 的定位結果產生檢視副本，**不重新推導折彎或製造幾何**。
 - 有權威 `DrawingScene` 時保留其已存在的圖層／線條；目前編輯孔位額外標在 `CHECK`，不輸出為製造用 `CUTTING`。若沒有圖面，僅以 `CHECK` 畫出工作板面外輪廓與孔位。
+- 暫存 DXF 明確設定 `$INSUNITS=4`（毫米）；真正 CADCraft CLI 往返測試同時驗證座標、圖層及單位，避免外部 CAD 把毫米當成公尺。
 - CADCraft 是**外部獨立視窗**，不是內嵌在 Tkinter；CADCraft 改的暫存檔**不會回寫** WHD、專案、任何基準 DXF 或製造結果。暫存檔留在系統 Temporary 目錄供外部程式讀取。
 - 沒有裝 CADCraft 時不必下載、安裝，也不會在 WHD 啟動或一般 2D 操作時執行外部程式。
 - 目前只有 Python/Tk 接線與模擬啟動測試；**真正的 Windows CADCraft GUI、複雜圖塊顯示、編輯後雙向導回、效能優劣尚未驗收**。
