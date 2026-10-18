@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""#1502 NFB opening Y is not the left/right welded-ear Base Plate assembly Y."""
+"""#1502 one Base Plate per NFB layer, opening-group centre-to-centre."""
 from copy import deepcopy
 
 import pytest
@@ -20,18 +20,16 @@ def _state():
     return cabinet
 
 
-def test_two_selected_nfb_openings_own_hole_y250_not_plate_installation_y():
+def test_two_selected_nfb_opening_group_and_plate_share_y250():
     owner=receiving_source_nfb_base_assembly_xy(_state(),"upper")
     assert owner.world_y_mm == pytest.approx(250)
     assert owner.verified_world_x_mm is None
     assert owner.source_hole_count==2
-    # These values are for projecting NFB holes; they do not place
-    # the receiving Base Plate bolted to side-wall welded ears.
     from ae_engine.assembly_placement import resolve_assembly_placement
-    assert resolve_assembly_placement(_state(), "base_plate").world_offset[:2] == pytest.approx((0.,0.))
+    assert resolve_assembly_placement(_state(), "base_plate").world_offset[:2] == pytest.approx((0.,250.))
 
 
-def test_validated_manual_hole_x_does_not_certify_base_plate_installation_x():
+def test_confirmed_nfb_opening_group_x_is_plate_center_x():
     snap=_state()
     for row,x in zip(snap["nfb_config"]["holes"],(-100.,100.)):
         row.update(manual_x_state="CONFIRMED", manual_x_mm=x,
@@ -44,16 +42,18 @@ def test_validated_manual_hole_x_does_not_certify_base_plate_installation_x():
     assert receiving_source_nfb_base_assembly_xy(snap,"upper").verified_world_x_mm is None
 
 
-def test_operator_updated_hole_height_changes_nfb_projection_only():
+def test_operator_updated_hole_height_moves_this_tier_plate_center():
     snap=_state()
     snap["receiving_inner_door_layer_heights_mm"]=[330,830]
     selected=receiving_source_nfb_base_assembly_xy(snap,"upper")
     assert selected.world_y_mm == pytest.approx(470)
+    from ae_engine.assembly_placement import resolve_assembly_placement
+    assert resolve_assembly_placement(snap,"base_plate").world_offset[1] == pytest.approx(470)
 
 
 def test_single_row_projection_rejects_mixed_nfb_layers_without_rejecting_cabinet():
     snap=_state()
-    snap["nfb_config"]["holes"][1].update(layer_count=2,slot_index=1)
+    snap["nfb_config"]["holes"][1].update(layer_count=2,layer_index=1,slot_index=0)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     # This helper resolves ONE NFB hole row; reject mixing row coords.
     # It is NOT a whole-cabinet rule forbidding two NFB layers/plates.
