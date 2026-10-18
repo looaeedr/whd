@@ -29,7 +29,7 @@ def test_two_selected_nfb_opening_group_and_plate_share_y250():
     assert resolve_assembly_placement(_state(), "base_plate").world_offset[:2] == pytest.approx((0.,250.))
 
 
-def test_confirmed_nfb_opening_group_x_is_plate_center_x():
+def test_confirmed_nfb_opening_group_x_is_only_screw_center_not_plate_center_x():
     snap=_state()
     for row,x in zip(snap["nfb_config"]["holes"],(-100.,100.)):
         row.update(manual_x_state="CONFIRMED", manual_x_mm=x,
@@ -37,6 +37,12 @@ def test_confirmed_nfb_opening_group_x_is_plate_center_x():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     owner=receiving_source_nfb_base_assembly_xy(snap,"upper")
     assert owner.verified_world_x_mm == pytest.approx(0)
+    for row, x in zip(snap["nfb_config"]["holes"], (-120., 80.)):
+        row["manual_x_mm"]=x
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
+    assert receiving_source_nfb_base_assembly_xy(snap,"upper").verified_world_x_mm == pytest.approx(-20)
+    from ae_engine.assembly_placement import resolve_assembly_placement
+    assert resolve_assembly_placement(snap, "base_plate").world_offset[0] == pytest.approx(0)
     snap["nfb_config"]["holes"][1]["manual_x_state"]="RECONFIRM_REQUIRED"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     assert receiving_source_nfb_base_assembly_xy(snap,"upper").verified_world_x_mm is None

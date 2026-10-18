@@ -445,14 +445,13 @@ def build_existing_receiving_base_with_verified_nfb(
     profile,
     lower_reference_handle: str,
 ) -> NfbComposedActualBase:
-    """Assemble the existing physical Base Plate on verified NFB/ear center.
+    """Assemble cabinet-X-centered Base Plate, project verified NFB screws.
 
-    The 1100-mm upper Door CELL owns the NFB Y datum, NOT the height of a
-    base plate. A BasePlatePartSpec already describes the actual physical
-    plate's own blank and fold pattern (e.g. an approximately 300-mm-tall
-    sample). Its mounting ear-hole GROUP center mates to the NFB row's
-    source-verified physical installation center. Never create a lower plate
-    or use a sketch's on-paper X/Y to position the base.
+    The upper Door NFB height owns the Base Plate Y placement, NOT plate
+    finished height. BasePlatePartSpec retains the original physical blank
+    and folded 670-mm fixing pattern, permanently cabinet X-centered. Per-
+    NFB horizontal X shifts ONLY native screw CUTTING coordinates into
+    that fixed plate's work-face UV. Outer Door lower compartment has no plate.
     """
     from .contracts import BasePlatePartSpec
     from .manufacturing_api import build_part_render_data
@@ -510,10 +509,15 @@ def build_existing_receiving_base_with_verified_nfb(
         centers.append((float(x),float(yy.box_world_y_mm)))
     if max(y for _,y in centers)-min(y for _,y in centers)>_TOL:
         raise ValueError("NFB distinct installation heights require distinct actual ear/base groups")
-    group_world_center=(
+    # Physical Base Plate/ear mount X is invariant at the cabinet centre.
+    # Only each source NFB's screw CUTTING uses its individual opening X in
+    # project_one_original_nfb_into_actual_base(world_hole=...). Never
+    # translate 670-mm fixed ear slots because one NFB is shifted.
+    nfb_group_world_center=(
         (min(x for x,_ in centers)+max(x for x,_ in centers))/2.0,
         centers[0][1],
     )
+    group_world_center=(0.0, centers[0][1])
     # The real plate must physically fit its owning upper cell. This uses
     # actual manufactured face dimensions, not the sample-DXF paper origin.
     real=build_part_render_data(base_spec)
@@ -580,7 +584,7 @@ def build_existing_receiving_base_with_verified_nfb(
     from dataclasses import replace
     metadata=dict(composed.render_data.metadata)
     metadata["receiving_base_ear_mount_center_world_xy_mm"]=group_world_center
-    metadata["receiving_base_nfb_row_center_world_xy_mm"]=group_world_center
+    metadata["receiving_base_nfb_row_center_world_xy_mm"]=nfb_group_world_center
     metadata["receiving_base_upper_cell_key"]=f"{column}:{row}"
     metadata["receiving_base_ear_weld_z_verified"]=False
     return replace(
@@ -632,7 +636,12 @@ def validate_nfb_base_part_cutting(
         nfb_center = _xy(metadata["receiving_base_nfb_row_center_world_xy_mm"], "NFB")
     except (KeyError, ValueError) as exc:
         raise ValueError("NFB_BASE_PART_MATING_XY_UNVERIFIED") from exc
-    if max(abs(a-b) for a, b in zip(ear_center, nfb_center)) > _TOL:
+    # The base/ear X MUST stay at the cabinet centre. NFB source-group X
+    # is a screw-hole machining offset, not the physical plate centre, so
+    # it MAY differ. Only the owning tier's Y must agree for the same plate.
+    # Remaining native screw outlines are independently checked below.
+    if (abs(ear_center[0]) > _TOL
+            or abs(ear_center[1]-nfb_center[1]) > _TOL):
         raise ValueError("NFB_BASE_PART_MATING_XY_UNVERIFIED")
 
     primitives = render_data.scene.primitives

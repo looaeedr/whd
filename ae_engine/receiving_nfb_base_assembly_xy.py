@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
-"""#1502: CENTER-to-CENTER NFB opening-group and per-tier Base Plate placement.
+"""#1502: per-tier NFB opening Y and cabinet-centered physical Base Plates.
 
-User product rule: each NFB tier within the UPPER outer-door compartment
-has ONE independently installed Base Plate with left/right fixing plates;
-the plate centre follows the tier's NFB opening-group centre. This
-placement DOES NOT change the plate's physical finished W/H. The OUTER
-door's lower compartment has no NFB Base Plate.
+Each NFB tier within the UPPER outer-door compartment owns ONE independently
+installed Base Plate and its left/right fixing plates. The plate's WORLD Y
+matches that tier's NFB opening height, but the plate and 670-mm support
+fixing holes ALWAYS remain cabinet-centered WORLD X=0. Confirmed per-NFB X
+adjustments affect ONLY that NFB's screw-hole machining coordinates. The
+return field verified_world_x_mm refers to NFB opening/screw-group X, NOT
+the physical Base Plate X. Plate stock W/H and true mounting Z are separate.
+The OUTER door lower compartment has no NFB Base Plate.
 
-The actual welded fixing-plate side-sheet MARKING remains non-certified.
-Unknown/unconfirmed NFB X never becomes verified manufacturing evidence.
+Original ear BEND/contact and side-sheet MARKING are not certified by this
+placement projection; never infer them from unverified NFB screw X.
 """
 from __future__ import annotations
 
@@ -20,7 +23,7 @@ from typing import Mapping
 @dataclass(frozen=True)
 class ReceivingNfbBaseAssemblyXY:
     world_y_mm: float
-    verified_world_x_mm: float | None
+    verified_world_x_mm: float | None  # NFB screw/opening X; NOT Base Plate X
     source_hole_count: int
     inner_door_id: str
 
@@ -28,9 +31,9 @@ class ReceivingNfbBaseAssemblyXY:
 def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
     """Legacy one-row convenience projection; per-tier ownership below.
 
-    For one tier, the NFB opening group's XY also anchors the installed
-    Base Plate's centre (CENTER-to-CENTER), not its finished height. Multiple
-    tiers each require their own Base Plate; never mix rows into one result.
+    For one tier, the NFB opening-group Y anchors the Base Plate Y, but its
+    horizontal X is ONLY a hole-machining offset. The physical plate X stays
+    cabinet-centered. Multiple tiers own separate plates and fixing ears.
     """
     from .receiving_nfb_depth_surface_policy import (
         committed_receiving_nfb_depth_pair_mm,
