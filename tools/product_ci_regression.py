@@ -57,6 +57,8 @@ PYTEST_PATHS = (
     # #1503: per-tier physical Base Plate skin + EAR target Z unified regression.
     "tests/test_receiving_tier_ear_assembly_xy.py",
     "tests/test_receiving_tier_ear_z_targets.py",
+    # #1503: every source-defined layer ear must be its own real geometry and XY/Z owner.
+    "tests/test_receiving_tier_fixing_plate_owner_ids.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
