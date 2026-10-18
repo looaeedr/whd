@@ -155,7 +155,10 @@ def _profile_geometry(profile, *, enabled_folds=None):
             # formed_length=24 for source 22) ALREADY carry this metadata.
             # Those have a separate certified skin-fitting path; do NOT
             # reinterpret or reject them in the common folding engine.
-            if identity in {"receiving_left_second", "receiving_right_second"}:
+            if identity in {
+                "receiving_left_first_40", "receiving_left_second",
+                "receiving_right_second", "receiving_right_first_40",
+            }:
                 formed = _as_float(formed_raw)
                 if not math.isfinite(formed) or formed <= 0 or formed < length:
                     raise ValueError("RECEIVING_NFB_FORMED_LENGTH_INVALID")
