@@ -107,7 +107,8 @@ def test_multi_current_set_schema_without_legacy_switch_brand_uses_csv():
     draft = new_nfb_ui1a_draft(
         set_brand="士林", layer_count=1, model_layers=[[model], []],
     )
-    unit = draft["layers"][0]["slots"][0]["unit_id"]
+    from ae_engine.receiving_nfb_ui1a_edits import editable_nfb_draft
+    unit = editable_nfb_draft(draft)["layers"][0]["slots"][0]["unit_id"]
     physical = project_receiving_bay_legacy_aliases(
         snap, set_index=0, bay_index=0, validate_common=False,
     )
