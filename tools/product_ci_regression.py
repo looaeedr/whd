@@ -81,6 +81,9 @@ PYTEST_PATHS = (
     "tests/test_issue1503_ear_side_check_gui_e2e_save_reload.py",
     # #1503: actual Primary 3D Tk startup must SHOW the operator button.
     "tests/test_issue1503_primary_real_tk_check_button.py",
+    # #1503 real physical SIDE sheet-only manufacturing marking (not full box/PAD).
+    "tests/test_issue1503_side_only_production_marking.py",
+    "tests/test_issue1503_side_only_mfg_gui.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",

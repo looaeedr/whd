@@ -501,6 +501,63 @@ def _commit_staged_project_export(stage_folder, output_folder):
     finally:
         shutil.rmtree(backup_root, ignore_errors=True)
 
+def export_receiving_ear_side_manufacturing_dxf(self):
+    """#1503: signed geometry-only production MARKING for TWO side sheets.
+
+    Normal full cabinet manufacturing, unverified PAD/EAR parts and NC remain
+    blocked by the existing export. Only physical LEFT/RIGHT side DXFs get
+    the genuine 3D-contact-derived, backprojected MARKING coordinates.
+    """
+    try:
+        self._flush_phase6_authoritative_state()
+        designer = getattr(self, "fold_designer_app", None)
+        resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+        if not callable(resolver):
+            raise ValueError("側板正式 MARKING 缺少現行製造幾何")
+        snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+        if (snapshot.get("model") != "受電箱"
+                or snapshot.get("nfb_config_submitted") is not True
+                or snapshot.get("active_mode") == "quantity"):
+            raise ValueError("側板製造 MARKING 限已提交 W800/T2 單只／套連的來源實體，數量版本須逐版核對")
+        dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
+        thickness = float(snapshot["t"])
+        if dimensions[0] != 800.0 or thickness != 2.0:
+            raise ValueError("側板 MARKING 目前僅適用已驗證 W800/T2 來源")
+        geometry = resolver()
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
+        return None
+
+    folder = filedialog.askdirectory(
+        title="選擇左右側板正式 MARKING DXF 資料夾（僅側板，非整箱）",
+    )
+    if not folder:
+        return None
+    try:
+        from ae_engine.receiving_ear_side_manufacturing_marking import (
+            export_receiving_ear_side_manufacturing_marking_dxf,
+        )
+        receipt = export_receiving_ear_side_manufacturing_marking_dxf(
+            snapshot, geometry, folder, dimensions=dimensions,
+            sheet_thickness=thickness, overwrite=False,
+        )
+    except (ValueError, FileExistsError, OSError, TypeError) as exc:
+        messagebox.showerror(
+            "側板製造 MARKING 驗證失敗",
+            str(exc) + "\n任一側板驗證失敗，整組側板 DXF 不發布。",
+        )
+        return None
+    messagebox.showinfo(
+        "左右側板正式 MARKING DXF 已驗證（僅側板）",
+        "已驗證來源物理貼合、展開 UV、MARKING 及 DXF 回讀。"
+        "\n僅左右側板正式製造圖；整箱、EAR 獨立件、PAD 和焊接工藝不因此放行。"
+        f"\nEAR 接觸片數：{len(receipt.physical_ear_ids)}"
+        f"\nMARKING：{receipt.marking_lines_verified} 線"
+        + "\n" + "\n".join(path for _side, path in receipt.output_paths),
+    )
+    return receipt
+
+
 def export_receiving_ear_side_check_dxf(self):
     """W800/T2 SIDE contact CHECK-only export, isolated from production DXF."""
     try:

@@ -168,5 +168,14 @@ def build_left_panel(host, ctrl_pad_frame):
         command=host.export_receiving_ear_side_check_dxf,
     )
     host.btn_ear_side_check_dxf.pack(fill=tk.X, pady=(4, 0))
+    host.btn_ear_side_mfg_dxf = tk.Button(
+        ctrl_pad_frame,
+        text="側板正式 MARKING DXF（僅左右側板）",
+        font=('Microsoft JhengHei', 9),
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+        bd=1, height=2, cursor="hand2",
+        command=host.export_receiving_ear_side_manufacturing_dxf,
+    )
+    host.btn_ear_side_mfg_dxf.pack(fill=tk.X, pady=(4, 0))
 
     # ==========================================
