@@ -39,9 +39,11 @@ def test_two_nfb_tiers_eight_symmetric_source_ear_fixing_slot_centers():
     assert [r.side_inside_weld_x_mm for r in rows]==pytest.approx(
         [-398.,398.,-398.,398.]
     )
-    assert [r.selected_slot_pair_world_y_mm for r in rows]==pytest.approx([
-        (400.,540.),(400.,540.),(-100.,40.),(-100.,40.),
-    ])
+    for actual, expected in zip(
+        (r.selected_slot_pair_world_y_mm for r in rows),
+        ((400.,540.),(400.,540.),(-100.,40.),(-100.,40.)),
+    ):
+        assert actual == pytest.approx(expected)
     assert rows[0].all_source_slots_world_y_mm == pytest.approx((365,400,540,575))
     assert rows[2].all_source_slots_world_y_mm == pytest.approx((-135,-100,40,75))
     assert all(r.selected_fixing_pitch_y_mm==pytest.approx(140) for r in rows)
@@ -57,9 +59,8 @@ def test_one_nfb_tier_outer_210_slot_pair_follows_opening_group_y():
     assert [r.ear_id for r in rows]==[
         "base_plate:fixing_plate:left","base_plate:fixing_plate:right",
     ]
-    assert [r.selected_slot_pair_world_y_mm for r in rows]==pytest.approx([
-        (145.,355.),(145.,355.),
-    ])
+    for actual in (r.selected_slot_pair_world_y_mm for r in rows):
+        assert actual == pytest.approx((145.,355.))
     assert all(r.selected_fixing_pitch_y_mm==pytest.approx(210) for r in rows)
 
 
