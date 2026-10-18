@@ -44,11 +44,11 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb python3-tk libxkbcommon-x11-0 libgl1-mesa-dri libegl1 libfontconfig1
           python -m pip install -r requirements.txt psutil matplotlib pillow ezdxf
-      - name: Download upstream CADCraft pinned native 0.7.0 binary and verify release hash
+      - name: Download upstream CADCraft pinned native 0.8.0 binary and verify release hash
         shell: bash
         run: |
           set -euo pipefail
-          VERSION=0.7.0
+          VERSION=0.8.0
           PACKAGE="cadcraft-$VERSION-linux-x86_64.tar.gz"
           BASE="https://github.com/storytold/cadcraft/releases/download/v$VERSION"
           mkdir -p "$RUNNER_TEMP/cadcraft"
@@ -90,7 +90,7 @@ jobs:
           export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime"
           export CADCRAFT_CONFIG_DIR="$RUNNER_TEMP/cadcraft-private"
           export PYTHONPATH="$GITHUB_WORKSPACE"
-          export CADCRAFT_NATIVE_GUI="$RUNNER_TEMP/cadcraft/cadcraft-0.7.0-linux-x86_64/bin/cadcraft"
+          export CADCRAFT_NATIVE_GUI="$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft"
           xvfb-run -a -s "-screen 0 1600x1000x24" bash -euo pipefail -c '
             for i in 0 1 2; do
               if [ "$i" = "1" ]; then
