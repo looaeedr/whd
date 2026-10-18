@@ -138,6 +138,12 @@ jobs:
     name: Windows x64 official CADCraft native CLI and real WHD manufacturing parity
     runs-on: windows-2022
     timeout-minutes: 30
+    # The hosted English Windows console is CP1252 by default; the existing
+    # WHD door exporter prints Traditional Chinese. This is an output-channel
+    # setting only, not a change to DXF units, contents or manufacturing rules.
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
     steps:
       - name: Checkout exact WHD PR head
         uses: actions/checkout@v4
