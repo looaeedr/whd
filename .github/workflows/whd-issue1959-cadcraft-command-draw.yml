@@ -6,9 +6,13 @@ on:
     paths:
       - "tools/issue1959_whd_cadcraft_command_draw.py"
       - "tests/test_issue1959_whd_cadcraft_command_draw.py"
-      - "tests/test_issue1959_cadcraft_command_session_bridge.py"
+      - "tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py"
       - "gui_modules/editors/cadcraft_command_session_bridge.py"
       - "tools/issue1959_cadcraft_session_trial.py"
+      - "gui_modules/editors/cadcraft_command_preview_bridge.py"
+      - "gui_modules/editors/hole_editor_composition.py"
+      - "gui_modules/editors/hole_editor_view.py"
+      - "tests/test_issue1959_cadcraft_command_preview_button.py"
       - ".github/workflows/whd-issue1959-cadcraft-command-draw.yml"
   workflow_dispatch:
 
