@@ -749,6 +749,74 @@ def _bind_editor_events(s):
                     parent=s.editor,
                 )
         cadcraft_button.configure(command=preview_in_cadcraft)
+
+    trial_button = getattr(s.editor, "_hole_header_cadcraft_draw", None)
+    if trial_button is not None:
+        def draw_new_cadcraft_picture():
+            """Opt-in new CADCraft drawing from WHD coordinates, never a save."""
+            from queue import Empty, Queue
+            from threading import Thread
+            from .cadcraft_command_preview_bridge import (
+                find_cadcraft_cli, prepare_whd_cadcraft_commands,
+                draw_whd_commands_with_cadcraft,
+            )
+            try:
+                context = s.live_context
+                old_snapshot = s.hole_session.snapshot()
+                instructions = prepare_whd_cadcraft_commands(
+                    surface=context.surface,
+                    features=tuple(context.feature_list),
+                    width=context.width, height=context.height,
+                )
+                executable = find_cadcraft_cli()
+            except (OSError, ValueError, TypeError) as exc:
+                s.d.messagebox.showerror("CADCraft 指令繪圖試作", str(exc), parent=s.editor)
+                return
+
+            trial_button.configure(state="disabled")
+            result_queue = Queue(maxsize=1)
+
+            def worker():
+                try:
+                    result = draw_whd_commands_with_cadcraft(
+                        instructions=instructions, executable=executable)
+                    result_queue.put(("ok", result))
+                except Exception as exc:
+                    result_queue.put(("error", str(exc)))
+
+            def poll_for_result():
+                try:
+                    if not s.editor.winfo_exists():
+                        return
+                    status, outcome = result_queue.get_nowait()
+                except Empty:
+                    s.editor.after(100, poll_for_result)
+                    return
+                trial_button.configure(state="normal")
+                if status != "ok":
+                    s.d.messagebox.showerror(
+                        "CADCraft 指令繪圖試作", str(outcome), parent=s.editor)
+                elif s.hole_session.snapshot() != old_snapshot:
+                    s.d.messagebox.showwarning(
+                        "CADCraft 指令繪圖試作",
+                        "WHD 開孔已變更，本次 CADCraft 出圖僅供舊版對照：\n"
+                        + str(outcome.preview_png),
+                        parent=s.editor,
+                    )
+                else:
+                    s.d.messagebox.showinfo(
+                        "CADCraft 指令繪圖試作",
+                        "已由 WHD 座標指令產生 CADCraft 新圖，幾何校驗通過。\n"
+                        "PNG：" + str(outcome.preview_png)
+                        + "\nDXF：" + str(outcome.output_dxf)
+                        + "\n這是獨立試作，不會修改 WHD 開孔或製造圖。",
+                        parent=s.editor,
+                    )
+
+            Thread(target=worker, name="whd-cadcraft-command-draw", daemon=True).start()
+            s.editor.after(100, poll_for_result)
+
+        trial_button.configure(command=draw_new_cadcraft_picture)
     s.editor.bind("<F11>", s.toggle_fullscreen)
     s.editor.bind("<Control-z>", s.undo_last_action)
     s.editor.bind("<Control-Z>", s.undo_last_action)
