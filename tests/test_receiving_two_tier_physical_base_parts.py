@@ -127,14 +127,14 @@ def test_two_tier_missing_original_base_part_fails_instead_of_one_plate_illusion
 
 def test_real_mode_switch_stale_selection_does_not_break_one_tier_or_draft():
     snap=_assembled()
+    p=_source(snap)  # Build a legitimate source before simulating stale UI.
     snap["_receiving_runtime_selection"]["set_id"]="obsolete-view"
-    p=_source(snap)
     assert expand_receiving_nfb_layer_parts(snap,(p,))==(p,)
     snap=_two_tier()
-    snap["_receiving_runtime_selection"]["set_id"]="obsolete-view"
     p=_source(snap)
+    snap["_receiving_runtime_selection"]["set_id"]="obsolete-view"
     assert expand_receiving_nfb_layer_parts(snap,(p,))==(p,)
     snap=_two_tier()
+    p=_source(snap)
     snap["nfb_config_submitted"]=False
-    p=_source(snap)
     assert expand_receiving_nfb_layer_parts(snap,(p,))==(p,)
