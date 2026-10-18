@@ -65,7 +65,7 @@ def test_tier_centers_use_own_confirmed_opening_x_never_cross_tiers():
     assert rows[1].verified_world_x_mm is None
 
 
-def test_same_tier_two_openings_share_one_plate_at_group_centre():
+def test_nfb_group_x_shifts_only_screws_while_one_plate_stays_cabinet_center():
     snap = _assembled()
     for hole, x in zip(snap["nfb_config"]["holes"], (-130., 70.)):
         hole.update(
@@ -78,7 +78,8 @@ def test_same_tier_two_openings_share_one_plate_at_group_centre():
     assert len(centres) == 1
     assert centres[0].verified_world_x_mm == pytest.approx(-30)
     plate = resolve_assembly_placement(snap, "base_plate")
-    assert plate.world_offset[:2] == pytest.approx((-30, 250))
+    assert plate.world_offset[:2] == pytest.approx((0, 250))
+    # -30 is the NFB screw-hole group X only, NOT a plate/ear X shift.
 
 
 def test_changes_in_hole_height_change_plate_center_not_plate_dimensions():
