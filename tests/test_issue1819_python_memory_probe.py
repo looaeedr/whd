@@ -13,7 +13,7 @@ def test_issue1819_python_memory_attribution_checkpoints_and_summary(tmp_path):
         allocated.append(bytes([cycle]) * 1024)
         row = {"operation": "return_3d", "status": "ok"}
         probe.capture(row)
-        if cycle in (3, 6):
+        if cycle in (4, 6):
             assert row["python_memory_probe"]["return_3d_cycle"] == cycle
             assert row["python_memory_probe"]["rss_bytes_after_forced_gc"] == 987654321
             assert row["python_memory_probe"]["gc_tracked_object_count"] > 0
@@ -25,10 +25,12 @@ def test_issue1819_python_memory_attribution_checkpoints_and_summary(tmp_path):
     result = probe.finalize(target)
     assert result["complete"]
     assert result["cycles_seen"] == 6
-    assert result["warm_cycle"] == 3
-    assert set(result["checkpoints"]) == {3, 6}
+    assert result["warm_cycle"] == 4
+    assert set(result["checkpoints"]) == {4, 6}
     assert "top_python_heap_file_growth" in result
     assert "surviving_object_count_delta" in result
+    assert "top_still_alive_gc_types" in result
+    assert "top_alive_allocation_lines" in result
     assert "actual_gui_owner_cache_entry_delta" in result
     assert "rss_bytes_after_forced_gc_delta" in result
     assert json.loads(target.read_text())["kind"].startswith("PYTHON_TRACEMALLOC")
