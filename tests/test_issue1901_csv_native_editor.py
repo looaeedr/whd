@@ -7,6 +7,7 @@ import pytest
 from ae_engine.cabinet_types import policy
 from ae_engine.receiving_nfb_csv_editor_features import (
     stage_csv_openings, csv_openings_to_editor_features,
+    invalidate_csv_editor_proof, csv_checked_world_values_match,
 )
 from ae_engine.receiving_nfb_model_identity import numeric_model_ref
 from ae_engine.receiving_nfb_ui1a import new_nfb_ui1a_draft
@@ -121,3 +122,49 @@ def test_multi_current_set_schema_without_legacy_switch_brand_uses_csv():
     assert preview.patterns[0].model == "2P400"
     assert preview.patterns[0].opening_uv_mm is not None
 
+
+
+def test_new_csv_check_invalidates_prior_success_and_any_cached_preview():
+    from types import SimpleNamespace
+    snapshot, _panel, trial, draft = _real_csv_door()
+    old = stage_csv_openings(
+        trial, snapshot=snapshot, draft=draft, current_features=(),
+    )
+    owner = SimpleNamespace(_receiving_csv_door_proof=old)
+    popup = SimpleNamespace(
+        _receiving_v5_trial=trial, _receiving_v5_base_trial=object(),
+    )
+    invalidate_csv_editor_proof(owner, popup)
+    assert owner._receiving_csv_door_proof is None
+    assert popup._receiving_v5_trial is None
+    assert popup._receiving_v5_base_trial is None
+    with pytest.raises(ValueError, match="尚未驗證 NFB CSV"):
+        csv_openings_to_editor_features(
+            owner._receiving_csv_door_proof,
+            snapshot=snapshot, draft=draft, current_features=(),
+        )
+    # A genuinely successful repeat check may restage current real geometry.
+    owner._receiving_csv_door_proof = stage_csv_openings(
+        trial, snapshot=snapshot, draft=draft, current_features=(),
+    )
+    assert len(csv_openings_to_editor_features(
+        owner._receiving_csv_door_proof,
+        snapshot=snapshot, draft=draft, current_features=(),
+    )) == 1
+
+
+@pytest.mark.parametrize("entry,accepted", [
+    ("0", True), ("0.0", True), ("35", False), ("", False),
+    ("nan", False), ("inf", False), ("-inf", False), ("unexpected", False),
+])
+def test_editing_world_x_after_csv_check_revokes_old_proof(entry, accepted):
+    from types import SimpleNamespace
+    field = SimpleNamespace(get=lambda: entry)
+    assert csv_checked_world_values_match(
+        {"nfb:quantity:unit1": 0.0},
+        {"nfb:quantity:unit1": field},
+    ) is accepted
+    assert not csv_checked_world_values_match(
+        {"nfb:quantity:unit1": 0.0},
+        {"different:unit": field},
+    )
