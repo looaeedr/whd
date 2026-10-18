@@ -10,7 +10,6 @@ on:
       - "gui_modules/editors/cadcraft_command_session_bridge.py"
       - "gui_modules/editors/cadcraft_manual_hole_return_bridge.py"
       - "gui_modules/editors/cadcraft_new_hole_import.py"
-      - "tests/test_issue1959_cadcraft_append_holes.py"
       - "tests/test_issue1959_cadcraft_manual_return.py"
       - "tests/test_issue1959_cadcraft_append_holes.py"
       - "tools/issue1959_cadcraft_session_trial.py"
