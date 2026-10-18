@@ -30,7 +30,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $branch = (git branch --show-current).Trim()
+          $branch = [string](git branch --show-current)
+          $branch = $branch.Trim()
           if ($branch -eq 'localX') {
             throw 'Unsafe fixture: test checkout unexpectedly owns localX branch'
           }
