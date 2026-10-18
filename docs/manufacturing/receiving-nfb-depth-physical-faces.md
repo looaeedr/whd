@@ -135,6 +135,15 @@ shallow_back_z       = shallow_front_z - Tb
 - **平底板兩顆不同型號**或**兩列**不能偷用最深一顆並聲稱全都貼合。若需要 PAD／其他實體底板，必須由其真實孔列及裝配來源驗證；缺項拒絕，不退回箱體後側 preview 冒充有來源的配置。
 - 上述仍不代表大片固定片已擁有正式原圖 BEND。此固定片與側板兩側打標需獨立通過真實折向、物理接觸與回投影驗證後才准放行。
 
+## 四之五、上下兩層分開建立真正 FinalScene 底板實體
+
+`phase6_manufacturing_service.resolve()` 是組合 3D 的 `ResolvedManufacturingPart` 正式產生入口。已提交、來源唯一的外門上層 NFB 配置如有兩層，新增 `receiving_nfb_layer_physical_parts.expand_receiving_nfb_layer_parts`：
+
+- 由既有 `receiving_nfb_layer_centers` 取得上下層各自的 NFB 開孔群中心及 `base_plate:nfb_layer:0/1` 來源身份；不可把 `slot_index`（同層第幾顆）冒充 `layer_index`（第幾層）。
+- 每一層各自建立一個**新的** `BasePlatePartSpec`（原受電箱來源樣式和下料尺寸，不另造尺寸表）→ `build_part_render_data`，取得**兩個不同的真 FinalScene 材料、BEND 與 unfolded topology identity**；用該層孔群世界 X/Y 中心放置，移除單一根 `base_plate` 以免多畫一片。
+- 原有 `base_plate` 可見性核選同時控制兩片來源實體。**板材成品高度由底板板件規格提供**，不被 330／830 的開孔高度覆蓋；外門下層不新增板件。
+- **嚴格交付界限**：目前這是**兩個真實、身份分離的板材 FinalScene 源圖／3D 毛胚**，其 `metadata.manufacturing_ready=False`，`nfb_layer_manufacturing_status=NFB_TIER_BASE_EAR_AND_HOLES_UNVERIFIED`；尚未把每層實際 NFB 螺絲孔／全部耳片裝配孔製造結果接入新身份，也未完成每層獨立 Z 深度／左右固定片真折向、焊接貼合與側板 MARKING。兩片真實毛胚的出現**不是兩張已核准的製造圖**。不能以同一層原孔位鏡像到另一層或把第一層 CSV 深度套在第二層。
+
 ## 五、資料與向下相容
 
 - 型號來源必須從 `基準檔/開孔/NFB/開關索引.csv` 或 V5 各品牌 `基準檔/開孔/NFB/數值規格/<品牌>/NFB數值規格.csv` **以被選中的 brand/model 查取深度**。不可從檔名尾碼或其他品牌推斷。
