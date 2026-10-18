@@ -134,3 +134,37 @@ def test_check_q_rejects_modified_screw_radius_and_forged_model_metadata():
     ))
     with pytest.raises(ValueError, match="型號來源"):
         check_csv_v5_base_part_only_groups((_row(wrong_metadata),))
+
+
+@pytest.mark.parametrize("foreign_type", (
+    "UNOWNED_CUTTING_CIRCLE",
+    "LEGACY_NFB_SOURCE_CIRCLE",
+))
+def test_check_q_rejects_extra_unowned_cutting_circle_even_with_matching_material(
+    foreign_type,
+):
+    """Real FinalScene extra holes must not escape the CSV screw-owner check."""
+    from ae_engine.manufacturing_render_data import material_polygon_from_final_scene
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    snap, door, holes, bases = _setup()
+    first, _ = _run(snap, door, holes, bases)
+    # Add an actual extra circular CUTTING, then make material internally
+    # consistent. Old logic only counted recognized NFB_V5 circles and
+    # would ignore this unowned machining hole.
+    pt = first.render_data.material.representative_point()
+    scene = DrawingScene(list(first.render_data.scene.primitives))
+    scene.add_circle(
+        (float(pt.x), float(pt.y)), 0.2,
+        layer="CUTTING", color=30, source_type=foreign_type,
+        source_id="unexpected-extra-base-cut",
+    )
+    forged = replace(first, render_data=replace(
+        first.render_data, scene=scene,
+        material=material_polygon_from_final_scene(scene),
+    ))
+    assert forged.render_data.material.symmetric_difference(
+        material_polygon_from_final_scene(scene)
+    ).area == pytest.approx(0)
+    with pytest.raises(ValueError, match="額外 CUTTING 圓孔"):
+        check_csv_v5_base_part_only_groups((_row(forged),))

@@ -102,10 +102,22 @@ def check_csv_v5_base_part_only_groups(
             raise ValueError("CSV V5 檢查時來源資料不可讀") from exc
         if csv_sources != fresh:
             raise ValueError("CSV V5 檢查時來源 CSV 已變更")
-        screws = [primitive for primitive in render.scene.primitives
-                  if isinstance(primitive, CirclePrimitive)
-                  and primitive.layer == "CUTTING"
-                  and primitive.source_type == "NFB_V5_NUMERIC_BASE_TRIAL"]
+        # The original real Base Plate has one outer CUTTING contour and
+        # four EAR mount slots, all represented as closed polylines. Its
+        # V5-added CUTTING circles may ONLY be the NFB screws for this exact
+        # source trial. Counting recognized screws alone misses an injected
+        # foreign circular cut (and can mistakenly certify extra machining).
+        cutting_circles = [
+            primitive for primitive in render.scene.primitives
+            if isinstance(primitive, CirclePrimitive)
+            and primitive.layer == "CUTTING"
+        ]
+        screws = [
+            primitive for primitive in cutting_circles
+            if primitive.source_type == "NFB_V5_NUMERIC_BASE_TRIAL"
+        ]
+        if len(cutting_circles) != len(screws):
+            raise ValueError("CSV V5 底板含非所屬 NFB 的額外 CUTTING 圓孔")
         native = [primitive for primitive in render.scene.primitives
                   if isinstance(primitive, PolylinePrimitive)
                   and primitive.closed and primitive.layer == "CUTTING"]
