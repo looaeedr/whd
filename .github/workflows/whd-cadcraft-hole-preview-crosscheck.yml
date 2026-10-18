@@ -5,6 +5,8 @@ on:
     branches: [localX]
     paths:
       - 'gui_modules/editors/cadcraft_preview_bridge.py'
+      - 'gui_modules/editors/cadcraft_paths.py'
+      - 'tests/test_issue1959_cadcraft_relative_location.py'
       - 'gui_modules/editors/hole_editor_composition.py'
       - 'gui_modules/editors/hole_editor_view.py'
       - 'tests/test_cadcraft_hole_editor_preview.py'
@@ -40,7 +42,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install WHD dependencies
-        run: python -m pip install -r requirements.txt ezdxf
+        run: python -m pip install -r requirements.txt ezdxf pytest
+      - name: Verify app-relative GUI and CLI lookup without env/PATH
+        run: python -m pytest -q tests/test_issue1959_cadcraft_relative_location.py tests/test_cadcraft_hole_editor_preview.py
       - name: Download CADCraft pinned v0.8.0 CLI with SHA256 verification
         shell: bash
         run: |
