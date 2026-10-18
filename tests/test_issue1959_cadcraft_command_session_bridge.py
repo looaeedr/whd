@@ -101,7 +101,7 @@ def test_output_tampering_between_preview_and_confirm_is_fail_closed(tmp_path):
     path.write_bytes(path.read_bytes()+b"tampered")
     with pytest.raises(CadcraftCommandProofError,match="CADCRAFT_OUTPUT_CHANGED_AFTER_VALIDATION"):
         pending.confirm()
-    pending.cancel()
+    assert not pending.active
     assert len(features)==1 and not session.has_active_edit
 
 
