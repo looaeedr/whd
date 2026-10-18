@@ -54,6 +54,7 @@ def test_current_uploaded_fixed_plate_has_real_bend_line_and_moved_holes(kind):
     assert part.metadata["source_bend_verified"] is True
     assert part.metadata["source_bend_line_mm"] == 23.0
     assert part.metadata["source_bend_rule"] == "21+EAR_T"
+    assert part.metadata["source_derived_formed_hole_center_mm"] == (63.0 if kind == "large" else 48.0)
     assert part.metadata["factory_bend_compensation_required"] is False
     lines = [p for p in part.scene.primitives
              if isinstance(p, LinePrimitive) and p.layer == "BEND"]
