@@ -64,7 +64,7 @@ def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction(
     assert "model_spec" in calls
     assert "current_numeric_editor" in ast.unparse(confirm)
     source = _ui_source()
-    assert 'ttk.Button(buttons, text="確認", command=confirm)' in source
+    assert 'ttk.Button(buttons, text="確定", command=confirm)' in source
     assert 'ttk.Button(buttons, text="取消"' in source
 
 
