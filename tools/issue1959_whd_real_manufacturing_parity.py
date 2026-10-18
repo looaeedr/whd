@@ -159,15 +159,22 @@ def prove(cli: Path, work: Path):
     guide=build_finished_reference_guide(
         "door",result,finished_width=finished_w,finished_height=finished_h)
     shift_x,shift_y=guide.min_point.x,guide.min_point.y
+    # ae_engine.ae_door_indicator.export_door_dxf() mirrors the *entire*
+    # unfolded door horizontally before serialization. Validate against
+    # that established manufacturing convention, not against CADCraft XY.
+    blank_w,_blank_h=ae.calculate_door_blank_size(
+        500,600,2,25,3.5,3.5,19,19,19,19)
+    if abs(blank_w-(guide.min_point.x+guide.max_point.x))>1e-5:
+        raise AssertionError("WHD_DOOR_UNFOLDED_MIRROR_DATUM_INCONSISTENT")
     circle=next(e for e in added_entities if e.dxftype()=="CIRCLE")
-    if (not _point_close(circle.dxf.center,110+shift_x,130+shift_y)
+    if (not _point_close(circle.dxf.center,blank_w-(110+shift_x),130+shift_y)
             or abs(circle.dxf.radius-5)>1e-5):
         raise AssertionError(
             "WHD_MANUFACTURING_CIRCLE_COORDINATE_DRIFT "
             + json.dumps({
                 "source_finished_xy": [110,130],
                 "expected_finished_face_to_unfolded_shift": [shift_x,shift_y],
-                "expected_exported_xy": [110+shift_x,130+shift_y],
+                "expected_exported_xy": [blank_w-(110+shift_x),130+shift_y],
                 "actual_exported_xyz": list(circle.dxf.center),
                 "actual_exported_radius": circle.dxf.radius,
                 "finished_dimensions": [finished_w,finished_h],
@@ -187,7 +194,7 @@ def prove(cli: Path, work: Path):
     got_polygons=[tuple((float(x),float(y)) for x,y,*_ in e.get_points("xy"))
                   for e in added_entities if e.dxftype()=="LWPOLYLINE"]
     for expected in expected_polygons:
-        shifted=tuple((x+shift_x,y+shift_y) for x,y in expected)
+        shifted=tuple((blank_w-(x+shift_x),y+shift_y) for x,y in expected)
         if not any(len(poly)==len(shifted) and all(
                 _point_close(p,*v) for p,v in zip(poly,shifted))
                 for poly in got_polygons):
@@ -204,6 +211,8 @@ def prove(cli: Path, work: Path):
         "new_cutting_holes":len(added_entities),
         "types":sorted(e.dxftype() for e in added_entities),
         "finished_face_shift_mm":[shift_x,shift_y],
+        "manufacturing_x_mirrored_by_existing_door_export":True,
+        "unfolded_mirror_span_mm":blank_w,
         "manufacturing_cutting_from_whd":True,
         "cadcraft_dxf_used_as_manufacturing_source":False,
         "installed_cadcraft_modified":False,
