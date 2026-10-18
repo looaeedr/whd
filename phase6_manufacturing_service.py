@@ -173,6 +173,17 @@ def resolve(request):
                 offset=offset,
             )
         )
+    # A configured upper Door with two NFB tiers owns TWO physical Base
+    # Plate blanks (plus future pair of welded fixing plates per tier).
+    # The root one-plate render is not duplicated as a fake third plate.
+    # Each source blank carries its own FinalScene identity and remains
+    # manufacturing-blocked until per-layer screw holes and ear weld
+    # contact/MARKING are independently certified.
+    from ae_engine.receiving_nfb_layer_physical_parts import (
+        expand_receiving_nfb_layer_parts,
+    )
+    parts = list(expand_receiving_nfb_layer_parts(snapshot, parts))
+
     if not parts:
         raise ValueError("no parts available for assembly 3D display")
 
