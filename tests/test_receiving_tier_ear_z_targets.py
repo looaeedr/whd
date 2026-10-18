@@ -6,7 +6,7 @@ import pytest
 from ae_engine.assembly_placement import resolve_base_plate_placement
 from ae_engine.receiving_base_plate_config import receiving_base_plate_values
 from ae_engine.receiving_base_plate_real_skins import receiving_base_actual_local_nfb_skins
-from ae_engine.receiving_tier_ear_z_targets import resolve_receiving_tier_ear_contact_targets
+from ae_engine.receiving_tier_ear_z_targets import (\n    resolve_receiving_tier_ear_contact_targets,\n    resolve_receiving_tier_base_z_targets,\n)
 from tests.test_receiving_base_physical_3d_z_assembly import _assembled
 from tests.test_receiving_two_tier_physical_base_parts import _two_tier
 
@@ -55,7 +55,7 @@ def test_source_skin_z_tracks_inner_door_inset_not_operator_switch_x():
     assert resolve_receiving_tier_ear_contact_targets(changed) == before
 
 
-def test_two_tiers_have_four_independent_ear_owners_but_no_certified_z():
+def test_each_tier_uses_identical_real_skin_z_formula_and_own_source_depth():
     rows = resolve_receiving_tier_ear_contact_targets(_two_tier())
     assert len(rows) == 4
     assert [x.parent_base_id for x in rows] == [
@@ -72,10 +72,25 @@ def test_two_tiers_have_four_independent_ear_owners_but_no_certified_z():
     assert [x.fixing_hole_world_y_mm for x in rows] == [
         (400.,540.),(400.,540.),(-100.,40.),(-100.,40.)
     ]
-    assert all(x.base_back_skin_world_z_mm is None for x in rows)
-    assert all(x.target_ear_contact_world_z_mm is None for x in rows)
-    assert all(not x.base_skin_z_source_verified for x in rows)
-    assert all(not x.source_bend_verified and not x.manufacturing_ready for x in rows)
+    depths = resolve_receiving_tier_base_z_targets(_two_tier())
+    assert [x.layer_index for x in depths] == [0, 1]
+    assert all(x.physical_skin_z_resolved for x in depths)
+    assert all(x.world_offset_z_mm is not None for x in depths)
+    assert len({x.source_depths_mm for x in depths}) == 2
+    assert len({x.world_offset_z_mm for x in depths}) == 2
+    for row in rows:
+        corresponding = depths[row.layer_index]
+        assert row.base_back_skin_world_z_mm == pytest.approx(
+            corresponding.base_back_skin_world_z_mm
+        )
+        assert row.target_ear_contact_world_z_mm == pytest.approx(
+            corresponding.base_back_skin_world_z_mm
+        )
+        assert row.base_skin_z_source_verified
+        assert not row.source_bend_verified
+        assert not row.formed_weld_contact_verified
+        assert not row.side_plate_marking_export_approved
+        assert not row.manufacturing_ready
 
 
 def test_draft_or_stale_selection_never_creates_ear_contact():
@@ -85,3 +100,21 @@ def test_draft_or_stale_selection_never_creates_ear_contact():
     snap = _two_tier()
     snap["_receiving_runtime_selection"]["bay_id"] = "stale"
     assert resolve_receiving_tier_ear_contact_targets(snap) == ()
+
+
+def test_two_tiers_nfb_horizontal_x_does_not_change_either_skin_z():
+    snap = _two_tier()
+    before = resolve_receiving_tier_base_z_targets(snap)
+    for hole, x in zip(snap["nfb_config"]["holes"], (125., -110.)):
+        hole.update(
+            manual_x_state="CONFIRMED", manual_x_mm=x,
+            datum_revision="SOURCE-X-REV1", datum_snapshot={"w": 800, "t": 2},
+        )
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    after = resolve_receiving_tier_base_z_targets(snap)
+    assert [r.world_offset_z_mm for r in before] == pytest.approx(
+        [r.world_offset_z_mm for r in after]
+    )
+    assert all(r.physical_skin_z_resolved for r in after)
