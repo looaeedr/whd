@@ -275,6 +275,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         get_single_size_quantity=None,
                         set_single_size_quantity=None,
                         edit_single_holes=None,
+                        edit_single_inner_door=None, edit_multi_inner_door=None,
                         on_close=None, on_brand_close=None,
                         dialog_kind="multi"):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
@@ -581,6 +582,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         except (ValueError, IndexError, RuntimeError) as exc:
             warn(exc)
 
+    def safe_single_inner_door():
+        try:
+            edit_single_inner_door()
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
@@ -594,9 +601,15 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             command=lambda role=role: safe_single_holes(role),
                         ).pack(side="left", padx=4)
             elif selected_setting["kind"] == "inner_door_layers":
-                ttk.Label(
-                    settings_host, text="內門開孔請使用原開孔編輯器的受電箱頁籤"
-                ).pack(anchor="w")
+                if edit_single_inner_door is not None:
+                    ttk.Button(
+                        settings_host, text="編輯",
+                        command=lambda: safe_single_inner_door(),
+                    ).pack(anchor="w")
+                else:
+                    ttk.Label(
+                        settings_host, text="尚未連接原內門開孔編輯器"
+                    ).pack(anchor="w")
             return
         if selected_setting["kind"] is None or applied["mode"] == "quantity":
             # Version feature design will be handled separately. Preserve the
@@ -691,11 +704,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             def edit_role():
                 try:
                     selected_before = candidate_selected[role]
-                    library["edit"](
-                        role, selected_before,
-                        lambda created, role=role, live=(selected_before is None):
-                            editor_saved(role, created, keep_live=live),
-                    )
+                    callback = (edit_multi_inner_door if role == "inner-door"
+                                and edit_multi_inner_door is not None
+                                else library["edit"])
+                    if callback is edit_multi_inner_door:
+                        callback(
+                            selected_before,
+                            lambda created, role=role, live=(selected_before is None):
+                                editor_saved(role, created, keep_live=live),
+                        )
+                    else:
+                        callback(
+                            role, selected_before,
+                            lambda created, role=role, live=(selected_before is None):
+                                editor_saved(role, created, keep_live=live),
+                        )
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
 
