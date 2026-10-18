@@ -93,3 +93,30 @@ def test_csv_bytes_changed_rejects_old_opening(monkeypatch, tmp_path):
         csv_openings_to_editor_features(
             proof, snapshot=snap, draft=draft, current_features=(),
         )
+
+def test_multi_current_set_schema_without_legacy_switch_brand_uses_csv():
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    from ae_engine.receiving_nfb_ui1b_runtime import preview_current_nfb_v5_ui_draft
+
+    snap = fresh_receiving_mode("set_bay", {
+        "w": 800, "h": 1600, "d": 350, "t": 2,
+    })
+    row = snap["receiving_layout"]["sets"][0]
+    assert "switch_brand" not in row  # actual current Set schema
+    model = numeric_model_ref("士林", "2P400")
+    draft = new_nfb_ui1a_draft(
+        set_brand="士林", layer_count=1, model_layers=[[model], []],
+    )
+    unit = draft["layers"][0]["slots"][0]["unit_id"]
+    physical = project_receiving_bay_legacy_aliases(
+        snap, set_index=0, bay_index=0, validate_common=False,
+    )
+    preview = preview_current_nfb_v5_ui_draft(
+        draft, layout=snap["receiving_layout"],
+        set_index=0, bay_index=0, version_id="inner-door-v1",
+        projected_snapshot=physical, world_x_by_unit={unit: 0.0},
+    )
+    assert len(preview.patterns) == 1
+    assert preview.patterns[0].model == "2P400"
+    assert preview.patterns[0].opening_uv_mm is not None
+
