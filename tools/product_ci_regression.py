@@ -213,6 +213,12 @@ PYTEST_PATHS = (
     "tests/test_final_scene_input_to_assembly_direction.py::test_physical_3d_input_preview_never_reads_back_from_assembly",
     "tests/test_final_scene_input_to_assembly_direction.py::test_manufacturing_adapter_reads_active_3d_input_not_assembly_result",
     "tests/test_phase6_3d_single_source_renderer.py::test_2d_and_3d_equal_door_state_share_exact_render_data_object",
+    # Real W800, single & assembled doors, and all FinalScene skins must be grid-free.
+    "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_real_receiving_all_panels_shaded_without_triangle_edges",
+    "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_flat_part_keeps_authoritative_bend_and_marking_with_no_mesh_lines",
+    "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_single_door_cutting_rims_and_bends_without_mesh_edge_overlay",
+    "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_outer_door_assembly_renders_real_cutting_rim_and_source_bend",
+    "tests/test_phase6_3d_single_source_renderer.py::test_all_final_scene_parts_do_not_restore_triangle_grid_overlays",
     "tests/test_phase6_assembly_3d_view.py::test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum",
     # All certified assembly intents: real Tk/Xvfb 2D/3D, collision-probe opt-in and reload parity.
     "tests/test_phase6_assembly_registry_gui_matrix.py",

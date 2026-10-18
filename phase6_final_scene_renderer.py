@@ -281,18 +281,15 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                     facecolor=face,
                                     edgecolor="none",
                                     linewidths=0.0,
+                                    antialiaseds=False,
                                 )
                                 ax.add_collection3d(poly)
                                 piece_role = str(getattr(piece, "role", "") or "").strip()
-                                if piece_role == "back":
-                                    # Rear panel is a flat operator reference face.  Draw only
-                                    # real physical skin edges (including CUTTING hole rims);
-                                    # do not restore BEND/joint/wireframe overlays.
-                                    self._add_mesh_feature_lines(piece_placed, edge)
-                                else:
-                                    # Render the actual solid without an extra
-                                    # triangulation border overlay.  Real BEND
-                                    # and joint MARKING come from source data.
+                                # Mesh feature extraction can turn individually
+                                # triangulated/nonplanar skins into a visible grid.
+                                # A back panel remains an actual CUTTING solid, but
+                                # has no additional mesh-derived wire overlay.
+                                if piece_role != "back":
                                     self._draw_joint_marking_world_rows(piece.render_data)
                                 triangles.extend(piece_placed)
                             if visible_rows:
@@ -402,9 +399,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         local_reference=local, placement=placement,
                         dimensions=request.finished_dimensions, offset=offset,
                     )
-                    self._add_mesh_boundary_and_crease_lines(
-                        placed, edge, creases_only=True,
-                    )
                     self._draw_assembly_box_body_bends(
                         part_data.scene,
                         tuple(dict(seg) for seg in part.x_profile),
@@ -413,25 +407,12 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         local, placement, request.finished_dimensions, offset,
                     )
                 if formed_surface_for_edges is not None:
-                    # The folded mid-surface sits inside the physical T-thick
-                    # sheet and can be depth-occluded.  Draw the feature edges
-                    # of the thickened solid itself so through-hole rims and
-                    # bend/miter edges live on the visible skins.  Keep the
-                    # authoritative mid-surface crease overlay as a fallback
-                    # for long fold spans that do not coincide with a skin rim.
-                    self._add_mesh_boundary_and_crease_lines(
-                        formed_surface_for_edges, edge, creases_only=True
-                    )
+                    # Only source CUTTING inner rings get a drawn line.
+                    # Never turn triangulation/normal changes into an overlay.
                     self._draw_endcap_cutting_hole_rims(
                         part_material, part.x_profile, part.y_profile,
                         tuple(getattr(part_data, "fold_guides", ()) or ()),
                         local, formed_surface_for_edges, placement, edge,
-                    )
-                elif divider_presentation is not None:
-                    # Show only shared physical creases, never triangulation
-                    # boundaries; preserve the real C-divider solid and holes.
-                    self._add_mesh_boundary_and_crease_lines(
-                        placed, edge, creases_only=True
                     )
                 triangles.extend(placed)
                 materials.append(part_material)
@@ -603,13 +584,12 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 poly = Poly3DCollection(
                     piece_tris, alpha=float(request.alpha_bend), facecolor=face,
                     edgecolor="none", linewidths=0.0,
+                    antialiaseds=False,
                 )
                 self.renderer.ax3d.add_collection3d(poly)
-                # Back panel rim is a true physical feature. For all other
-                # pieces, BEND comes from the underlying manufacturing scene,
-                # not triangulation boundaries.
-                if str(getattr(_piece, "role", "") or "").strip() == "back":
-                    self._add_mesh_feature_lines(piece_tris, edge)
+                # All Box Body pieces use smooth material skins.
+                # Physical BEND comes from the manufacturing scene below,
+                # never from mesh/normal-derived feature segments.
             self._draw_box_body_structure_bends(
                 render_data, thickness=request.thickness
             )
@@ -695,9 +675,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         if is_door:
             self._draw_cutting_hole_rims(
                 material, request.x_profile, request.y_profile, fold_guides,
-            )
-            self._add_mesh_boundary_and_crease_lines(
-                triangles, edge, creases_only=True,
             )
         # A shaded solid has no triangulation grid. Explicit source BEND and
         # MARKING stay visible independently of the physical mesh tessellation.
