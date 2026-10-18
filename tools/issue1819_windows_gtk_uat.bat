@@ -45,25 +45,47 @@ if errorlevel 1 (
 popd
 
 pushd "%ISOLATED%" || (echo Could not enter isolated worktree & exit /b 4)
-python -c "import psutil, tkinter, matplotlib, ezdxf, shapely" >"%RESULTS%\dependencies.log" 2>&1
+rem Keep all UAT-only packages outside the canonical checkout and global Python.
+rem R5-2600 #1819 diagnosed missing psutil in system Python 3.11.
+set "UAT_PY=%RESULTS%\venv\Scripts\python.exe"
+echo [UAT] Create isolated Python environment >"%RESULTS%\env_setup.log"
+python -m venv --system-site-packages "%RESULTS%\venv" >>"%RESULTS%\env_setup.log" 2>&1
 if errorlevel 1 (
-    echo Missing Python GUI/benchmark dependencies. See "%RESULTS%\dependencies.log".
+    echo Cannot create isolated Python environment. See "%RESULTS%\env_setup.log".
     set "STATUS=5"
     goto :cleanup
 )
+"%UAT_PY%" -c "import psutil, tkinter, matplotlib, ezdxf, shapely" >"%RESULTS%\dependencies.log" 2>&1
+if errorlevel 1 (
+    echo [UAT] Install missing benchmark packages in the isolated environment >>"%RESULTS%\env_setup.log"
+    "%UAT_PY%" -m pip install --no-input --disable-pip-version-check -r "%ISOLATED%\requirements.txt" matplotlib psutil >>"%RESULTS%\env_setup.log" 2>&1
+    if errorlevel 1 (
+        echo Failed to install isolated UAT packages. See "%RESULTS%\env_setup.log".
+        set "STATUS=5"
+        goto :cleanup
+    )
+    "%UAT_PY%" -c "import psutil, tkinter, matplotlib, ezdxf, shapely" >"%RESULTS%\dependencies.log" 2>&1
+    if errorlevel 1 (
+        echo Python still cannot import required GUI packages. See "%RESULTS%\dependencies.log".
+        set "STATUS=5"
+        goto :cleanup
+    )
+)
+echo [UAT] Preflight import PASS (isolated Python) >>"%RESULTS%\env_setup.log"
 (
     echo kind=WINDOWS_MANUAL_UAT_NOT_LINUX_CI
     echo head_sha=%SHA%
     echo source_branch=localX
     echo x_published=NO
+    echo uat_python=%UAT_PY%
     echo samples_per_bay=1
     echo cycles_per_bay=30
 ) > "%RESULTS%\manifest.txt"
-python -V >> "%RESULTS%\manifest.txt" 2>&1
+"%UAT_PY%" -V >> "%RESULTS%\manifest.txt" 2>&1
 
 rem The harness creates its own actual GUI application in this isolated worktree.
 rem It writes complete per-worker JSONL, logs and the summarized JSON report.
-python tools\whd_performance_baseline.py --samples 1 --cycles 30 --memory-interval-ms 50 --output "%RESULTS%\windows-real-gui.json" >"%RESULTS%\runner.log" 2>&1
+"%UAT_PY%" tools\whd_performance_baseline.py --samples 1 --cycles 30 --memory-interval-ms 50 --output "%RESULTS%\windows-real-gui.json" >"%RESULTS%\runner.log" 2>&1
 set "STATUS=%ERRORLEVEL%"
 
 :cleanup
@@ -75,6 +97,7 @@ if not errorlevel 1 (
 )
 echo.
 echo UAT result code: %STATUS%
+echo UAT Python/environment setup: "%RESULTS%\env_setup.log"
 echo Real report/logs: "%RESULTS%"
 if not "%STATUS%"=="0" (
     echo UAT is NOT GREEN. Inspect the last completed JSONL and runner.log.
