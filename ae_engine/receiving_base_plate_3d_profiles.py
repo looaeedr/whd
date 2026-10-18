@@ -44,14 +44,16 @@ def receiving_base_plate_3d_profiles(snapshot, physical=None):
         if min(lengths) <= 0:
             raise ValueError("Receiving CENTER invalid source-side material stations")
         rows_x = [
-            {"len":lengths[0], "angle":90, "phase6_key":"receiving_left_first_40"},
+            {"len":lengths[0], "formed_length":lengths[0]+t,
+             "angle":90, "phase6_key":"receiving_left_first_40"},
             {"len":lengths[1], "formed_length": lengths[1]+t, "angle":-90,
              "phase6_key":"receiving_left_second"},
             {"len":lengths[2], "angle":-90, "core":"W",
              "phase6_key":"receiving_nfb_deep_base_face"},
             {"len":lengths[3], "formed_length":lengths[3]+t, "angle":90,
              "phase6_key":"receiving_right_second"},
-            {"len":lengths[4], "phase6_key":"receiving_right_first_40"},
+            {"len":lengths[4], "formed_length":lengths[4]+t,
+             "phase6_key":"receiving_right_first_40"},
         ]
     else:
         rows_x = [{"len":float(actual.width), "core":"W",
