@@ -46,7 +46,7 @@ def prepare_whd_cadcraft_commands(*, surface, features: Sequence,
     if not all(math.isfinite(v) and v>0 for v in (w,h)):
         raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
     originals=tuple(features)
-    if not originals or len(originals)>100:
+    if len(originals)>100:
         raise CadcraftCommandProofError("INVALID_WHD_CUTTING_FEATURE_COUNT")
     if any(getattr(f, "layer", None)!="CUTTING" for f in originals):
         raise CadcraftCommandProofError("CADCRAFT_TRIAL_SUPPORTS_CUTTING_HOLES_ONLY")
@@ -54,7 +54,9 @@ def prepare_whd_cadcraft_commands(*, surface, features: Sequence,
         resolved=tuple(resolve_surface_features(surface,originals,w,h))
     except (ValueError,TypeError,AttributeError) as exc:
         raise CadcraftCommandProofError("WHD_FEATURE_SURFACE_REJECTED") from exc
-    return from_whd_resolved(resolved)
+    # Empty original faces are allowed: WHD emits a fresh blank metric exchange
+    # that CADCraft can open to draw the *first* hole. No manufacturing is made.
+    return from_whd_resolved(resolved) if resolved else ()
 
 
 def draw_whd_commands_with_cadcraft(
@@ -63,8 +65,6 @@ def draw_whd_commands_with_cadcraft(
     runner=run_proof,
 ) -> CadcraftCommandDrawingResult:
     """Run by background GUI worker only; cannot commit holes into WHD."""
-    if not instructions:
-        raise CadcraftCommandProofError("NO_WHD_COMMANDS")
     directory = (Path(output_dir) if output_dir is not None else Path(
         tempfile.mkdtemp(prefix="whd-cadcraft-command-1959-")
     ))
@@ -73,6 +73,32 @@ def draw_whd_commands_with_cadcraft(
     preview=directory/"whd-command-drawing.png"
     if target.exists() or preview.exists():
         raise CadcraftCommandProofError("REFUSE_TO_OVERWRITE_EXISTING_FILE")
+    if not instructions:
+        # CADCraft cannot draw a first hole from nonexistent prior geometry.
+        # WHD creates a disposable empty DXF in mm; CADCraft is then its editor,
+        # never the production drawing author. Both files are new and isolated.
+        import ezdxf
+        import struct
+        import zlib
+        blank = ezdxf.new("R2010", units=ezdxf.units.MM)
+        blank.saveas(target)
+        # Small valid blank PNG, constructed from the Python stdlib; no Pillow
+        # or native CADCraft process required to author the initial empty page.
+        def chunk(kind, payload):
+            return (struct.pack(">I", len(payload)) + kind + payload
+                    + struct.pack(">I", zlib.crc32(kind + payload) & 0xffffffff))
+        w, h = 320, 200
+        pixels = (bytes([0]) + bytes([255, 255, 255]) * w) * h
+        preview.write_bytes(
+            bytes([137, 80, 78, 71, 13, 10, 26, 10])
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(pixels))
+            + chunk(b"IEND", b"")
+        )
+        return CadcraftCommandDrawingResult(
+            output_dxf=target, preview_png=preview,
+            geometry_evidence={"status": "PASS", "scope": "EMPTY_WHD_ISSUED_EXCHANGE"},
+        )
     # run_proof refuses existing target/preview, makes a NEW drawing with
     # --metric and independently verifies exact CADCraft output geometry.
     evidence=runner(str(executable),instructions,target,preview)
