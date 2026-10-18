@@ -3426,6 +3426,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         def go_to_main_tab():
             if tabs is not None and tabs.winfo_exists():
                 tabs.select(0)   # native 開孔編輯 tab, not a new popup
+                # Notebook page was hidden while the NFB list was edited:
+                # repaint the ACTUAL main Canvas once it is visible again.
+                redraw = getattr(editor, "_receiving_redraw_main_holes", None)
+                if callable(redraw):
+                    tabs.after_idle(
+                        lambda: redraw() if tabs.winfo_exists()
+                        and tabs.index(tabs.select()) == 0 else None
+                    )
 
         def stage_inner_config(config, openings=None):
             # Both changes stay inside the original editor's undoable draft.
