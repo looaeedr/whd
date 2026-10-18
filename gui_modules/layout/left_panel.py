@@ -156,4 +156,17 @@ def build_left_panel(host, ctrl_pad_frame):
     )
     host.btn_export.pack(fill=tk.X, pady=(8, 0))
 
+    # #1503: separate, visibly UNRELEASED two-side EAR inspection output.
+    # Never piggyback on selected parts/ordinary DXF manufacturing export.
+    host.btn_ear_side_check_dxf = tk.Button(
+        ctrl_pad_frame,
+        text="受電箱固定片側板 CHECK DXF（非製造）",
+        font=('Microsoft JhengHei', 9),
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_ACCENT_HOVER, activeforeground="#ffffff",
+        bd=1, height=2, cursor="hand2",
+        command=host.export_receiving_ear_side_check_dxf,
+    )
+    host.btn_ear_side_check_dxf.pack(fill=tk.X, pady=(4, 0))
+
     # ==========================================
