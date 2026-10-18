@@ -237,11 +237,12 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
             if model in {"受電箱","RECEIVING"} else None
         )
         verified_source=source_z is not None
-        # #1502 CURRENT user assembly: the CENTER of the NFB opening GROUP
-        # on this layer mates to the CENTER of that layer's Base Plate.
-        # Hole height is a POSITION (not a plate finished height). The welded
-        # LEFT/RIGHT fixing plates follow this same installed Base Plate XY,
-        # while their actual weld skins/MARKING still need certification.
+        # #1502 CURRENT confirmed assembly: the base is ALWAYS cabinet
+        # centered in X; the +/-335mm ear mounting columns never translate.
+        # NFB horizontal X corrections move ONLY NFB screw-hole CUTTING on
+        # the stationary plate. The NFB tier's Y opening height DOES place
+        # that tier's plate in Y, and its real NFB depth controls Z.
+        # Ear BEND / side-sheet MARKING still require physical certification.
         # Do not confuse outer Door lower compartment with NFB second tier.
         if verified_source:
             upper = [
@@ -257,12 +258,7 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
             if len(centers) != 1:
                 raise ValueError("RECEIVING_NFB_BASE_NEEDS_ONE_PHYSICAL_PART_PER_TIER")
             center = centers[0]
-            position = (
-                float(center.verified_world_x_mm)
-                if center.verified_world_x_mm is not None else 0.0,
-                float(center.world_y_mm),
-                float(source_z),
-            )
+            position = (0.0, float(center.world_y_mm), float(source_z))
         else:
             # Legacy preview without a source-verified NFB mounting depth.
             # Never claim this unconfigured placeholder is a certified plate.

@@ -79,7 +79,7 @@ def test_two_source_nfb_layers_produce_two_distinct_real_blank_finalscenes():
     # DO NOT claim verified screw holes or left/right ear manufacture.
 
 
-def test_switch_group_x_is_per_layer_not_taken_from_other_nfb_tier():
+def test_horizontal_nfb_screw_x_cannot_move_either_tier_physical_base():
     snapshot=_two_tier()
     for row,x in zip(snapshot["nfb_config"]["holes"],(-120.,180.)):
         row.update(
@@ -90,7 +90,10 @@ def test_switch_group_x_is_per_layer_not_taken_from_other_nfb_tier():
         snapshot["nfb_config"]
     )
     result=expand_receiving_nfb_layer_parts(snapshot,(_source(snapshot),))
-    assert [p.offset[0] for p in result]==pytest.approx([-120.,180.])
+    # The two NFB screw groups have independent X adjustments, but BOTH
+    # physical plates stay centered in cabinet X for their fixed ear mounts.
+    assert [p.offset[0] for p in result]==pytest.approx([0.,0.])
+    assert [p.offset[1] for p in result]==pytest.approx([470.,-30.])
 
 
 def test_one_tier_keeps_the_existing_independently_verified_real_z_part():
