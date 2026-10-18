@@ -515,6 +515,12 @@ def build_existing_receiving_base_with_verified_nfb(
     # Individual NFB world X positions in verified_hole_locations are
     # untouched; _projection applies ONLY their screw-hole offsets.
     group_world_center=(0.0, centers[0][1])
+    # A DIFFERENT source datum: the NFB group's own X is used only for
+    # per-switch screw-hole cutting, never Base Plate/ear installation.
+    nfb_row_world_center=(
+        (min(x for x,_ in centers)+max(x for x,_ in centers))/2.0,
+        centers[0][1],
+    )
     # The real plate must physically fit its owning upper cell. This uses
     # actual manufactured face dimensions, not the sample-DXF paper origin.
     real=build_part_render_data(base_spec)
@@ -581,7 +587,11 @@ def build_existing_receiving_base_with_verified_nfb(
     from dataclasses import replace
     metadata=dict(composed.render_data.metadata)
     metadata["receiving_base_ear_mount_center_world_xy_mm"]=group_world_center
-    metadata["receiving_base_nfb_row_center_world_xy_mm"]=group_world_center
+    metadata["receiving_base_nfb_row_center_world_xy_mm"]=nfb_row_world_center
+    metadata["receiving_base_nfb_hole_world_x_by_id"]=tuple(sorted(
+        (str(hole_id),float(world_x))
+        for hole_id,world_x,*_ in locations
+    ))
     metadata["receiving_base_upper_cell_key"]=f"{column}:{row}"
     metadata["receiving_base_ear_weld_z_verified"]=False
     return replace(
@@ -633,8 +643,25 @@ def validate_nfb_base_part_cutting(
         nfb_center = _xy(metadata["receiving_base_nfb_row_center_world_xy_mm"], "NFB")
     except (KeyError, ValueError) as exc:
         raise ValueError("NFB_BASE_PART_MATING_XY_UNVERIFIED") from exc
-    if max(abs(a-b) for a, b in zip(ear_center, nfb_center)) > _TOL:
+    # The EAR mounting X must stay at cabinet center; only each validated
+    # NFB hole X may differ. Y must still be the SAME tier installation.
+    if abs(ear_center[0]) > _TOL or abs(ear_center[1]-nfb_center[1]) > _TOL:
         raise ValueError("NFB_BASE_PART_MATING_XY_UNVERIFIED")
+    raw_hole_x = metadata.get("receiving_base_nfb_hole_world_x_by_id")
+    if not isinstance(raw_hole_x, (tuple,list)) or len(raw_hole_x)!=len(hole_ids):
+        raise ValueError("NFB_BASE_PART_SCREW_X_SOURCE_UNVERIFIED")
+    by_id = {}
+    for row in raw_hole_x:
+        if (not isinstance(row,(tuple,list)) or len(row)!=2
+                or not isinstance(row[0],str) or not row[0]
+                or type(row[1]) not in (int,float) or not isfinite(float(row[1]))
+                or row[0] in by_id):
+            raise ValueError("NFB_BASE_PART_SCREW_X_SOURCE_UNVERIFIED")
+        by_id[row[0]]=float(row[1])
+    if set(by_id)!=set(hole_ids) or abs(
+        nfb_center[0] - (min(by_id.values())+max(by_id.values()))/2.0
+    ) > _TOL:
+        raise ValueError("NFB_BASE_PART_SCREW_X_SOURCE_UNVERIFIED")
 
     primitives = render_data.scene.primitives
     screws = tuple(p for p in primitives
