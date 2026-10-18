@@ -57,13 +57,23 @@ def receiving_base_plate_values(snapshot):
     # NFBConfig and its owning Set brand.  Do NOT persist an independent
     # Base Plate brand/depth. Legacy or unsubmitted previews keep None.
     pair = None
+    reference = None
     from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
     if pattern == RECEIVING_BASE_PATTERN_CENTER:
         from .receiving_nfb_depth_surface_policy import (
             committed_receiving_nfb_depth_pair_mm,
         )
         pair = committed_receiving_nfb_depth_pair_mm(data)
+    else:
+        # A flat-sided physical mounting face follows ONE exact submitted
+        # model depth. A mixed-depth / multi-layer NFB row is NOT silently
+        # declared to fit this flat plate; the PAD is separately controlled.
+        from .receiving_nfb_depth_surface_policy import (
+            committed_receiving_flat_nfb_depth_mm,
+        )
+        reference = committed_receiving_flat_nfb_depth_mm(data)
     return {
+        "receiving_nfb_reference_depth_mm": reference,
         "receiving_nfb_depth_pair_mm": pair,
         "h": values["height"],
         "base_plate_shrink_top": values["shrink_top"],
