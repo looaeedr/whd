@@ -183,7 +183,13 @@ def test_current_set_without_switch_brand_reads_two_actual_brand_csv_depths():
     assert committed_receiving_nfb_depth_pair_mm(snap) == (107., 68.)
     values = receiving_base_plate_values(snap)
     assert values["receiving_nfb_depth_pair_mm"] == (107., 68.)
-    assert values["receiving_nfb_second_side_fold_mm"] == pytest.approx(37.)
+    from ae_engine.receiving_nfb_depth_surface_policy import (
+        receiving_nfb_second_side_fold_mm,
+    )
+    assert receiving_nfb_second_side_fold_mm(
+        reference_nfb_depth_mm=107., secondary_nfb_depth_mm=68.,
+        base_plate_thickness_mm=2.,
+    ) == pytest.approx(37.)
 
 
 def test_current_set_without_switch_brand_reads_one_flat_csv_depth():
