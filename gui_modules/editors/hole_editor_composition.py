@@ -750,6 +750,8 @@ def _bind_editor_events(s):
                 )
         cadcraft_button.configure(command=preview_in_cadcraft)
 
+    return_button = getattr(s.editor, "_hole_header_cadcraft_return", None)
+    s.editor._hole_cadcraft_return_ticket = None
     trial_button = getattr(s.editor, "_hole_header_cadcraft_draw", None)
     if trial_button is not None:
         def draw_new_cadcraft_picture():
@@ -773,6 +775,10 @@ def _bind_editor_events(s):
                 s.d.messagebox.showerror("CADCraft 指令繪圖試作", str(exc), parent=s.editor)
                 return
 
+            # Any new drawing invalidates a previous manual-return provenance.
+            s.editor._hole_cadcraft_return_ticket = None
+            if return_button is not None:
+                return_button.configure(state="disabled")
             trial_button.configure(state="disabled")
             result_queue = Queue(maxsize=1)
 
@@ -804,12 +810,38 @@ def _bind_editor_events(s):
                         parent=s.editor,
                     )
                 else:
+                    # Establish a live ticket from the *exact* verified DXF.
+                    # Synthetic GUI tests may intentionally supply only an
+                    # isolated test path, not a physical proof output.
+                    return_denied = "隔離 DXF 檔案不存在"
+                    if outcome.output_dxf.is_file():
+                        from .cadcraft_manual_hole_return_bridge import (
+                            create_manual_return_ticket,
+                        )
+                        try:
+                            ticket = create_manual_return_ticket(
+                                output=outcome.output_dxf,
+                                features=old_snapshot.features,
+                                session=s.hole_session,
+                                surface=context.surface,
+                                width=context.width, height=context.height,
+                            )
+                        except (OSError, ValueError, TypeError) as exc:
+                            return_denied = str(exc)
+                        else:
+                            return_denied = ""
+                            s.editor._hole_cadcraft_return_ticket = ticket
+                            if return_button is not None:
+                                return_button.configure(state="normal")
                     s.d.messagebox.showinfo(
                         "CADCraft 指令繪圖試作",
                         "已由 WHD 座標指令產生 CADCraft 新圖，幾何校驗通過。\n"
                         "PNG：" + str(outcome.preview_png)
                         + "\nDXF：" + str(outcome.output_dxf)
-                        + "\n這是獨立試作，不會修改 WHD 開孔或製造圖。",
+                        + "\n這是獨立試作，不會修改 WHD 開孔或製造圖。"
+                        + ("\n回傳操作：在 CADCraft 開啟上述 DXF，只平移原孔、原檔儲存，"
+                           "再回 WHD 點『CADCraft 改孔回傳』。"
+                           if not return_denied else "\n此圖不可回傳：" + return_denied),
                         parent=s.editor,
                     )
 
@@ -817,6 +849,62 @@ def _bind_editor_events(s):
             s.editor.after(100, poll_for_result)
 
         trial_button.configure(command=draw_new_cadcraft_picture)
+
+    if return_button is not None:
+        def return_manually_moved_holes():
+            """Only import the WHD-issued isolated DXF after human CADCraft save."""
+            from .cadcraft_manual_hole_return_bridge import stage_manual_cadcraft_return
+            ticket = getattr(s.editor, "_hole_cadcraft_return_ticket", None)
+            if ticket is None:
+                s.d.messagebox.showerror(
+                    "CADCraft 改孔回傳", "尚無有效的 WHD→CADCraft 交換圖，請先指令出圖。",
+                    parent=s.editor,
+                )
+                return
+            try:
+                pending = stage_manual_cadcraft_return(ticket)
+            except (OSError, ValueError, TypeError) as exc:
+                s.d.messagebox.showerror("CADCraft 改孔回傳", str(exc), parent=s.editor)
+                return
+            s.refresh_created()
+            s.redraw()
+            details = "\n".join(
+                f"孔 {index + 1}: X {dx:+.3f} mm、Y {dy:+.3f} mm"
+                for index, dx, dy in pending.moves
+            )
+            confirmed = False
+            try:
+                confirmed = s.d.messagebox.askyesno(
+                    "CADCraft 改孔回傳 — WHD 預覽",
+                    f"已驗證 {len(pending.moves)} 個孔的平移（尺寸、孔型不變）：\n"
+                    + details
+                    + "\n\n確認：提交至 WHD 原開孔 Session；"
+                      "取消：復原預覽、不更改原孔。\n"
+                      "製造圖仍由 WHD 原本的主編輯器『確定／儲存』流程產生。",
+                    parent=s.editor,
+                )
+                if confirmed:
+                    pending.confirm()
+                else:
+                    pending.cancel()
+            except Exception as exc:
+                if pending.stage.active:
+                    pending.cancel()
+                s.d.messagebox.showerror("CADCraft 改孔回傳", str(exc), parent=s.editor)
+                return
+            finally:
+                s.refresh_created()
+                s.redraw()
+            if confirmed:
+                s.editor._hole_cadcraft_return_ticket = None
+                return_button.configure(state="disabled")
+                s.d.messagebox.showinfo(
+                    "CADCraft 改孔回傳",
+                    "孔位已確認至 WHD Session。請在原開孔編輯器按『確定』，"
+                    "由 WHD 原流程儲存並重新產生製造圖。",
+                    parent=s.editor,
+                )
+        return_button.configure(command=return_manually_moved_holes)
     s.editor.bind("<F11>", s.toggle_fullscreen)
     s.editor.bind("<Control-z>", s.undo_last_action)
     s.editor.bind("<Control-Z>", s.undo_last_action)
