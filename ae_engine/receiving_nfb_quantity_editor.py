@@ -37,6 +37,7 @@ class NfbVerifiedQuantityDoorProof:
     source_path: str
     source_sha256: str
     world_x_by_unit: tuple[tuple[str, float], ...]
+    draft_at_verification: dict
 
 
 def _quantity_panel(snapshot):
@@ -127,14 +128,22 @@ def verify_quantity_nfb_inner_door_source(
         world_x_by_unit=tuple(sorted(
             (uid, float(value)) for uid, value in world_x_by_unit.items()
         )),
+        draft_at_verification=deepcopy(state),
     )
 
 
-def assert_quantity_nfb_proof_current(proof, *, snapshot):
+def assert_quantity_nfb_proof_current(proof, *, snapshot, draft=None):
     """Reject stale physical geometry, changed source bytes or another door."""
     if not isinstance(proof, NfbVerifiedQuantityDoorProof):
         raise TypeError("單只 NFB 必須提供本片實體內門的原始來源驗證")
     previous = proof.snapshot_at_verification
+    if draft is not None and editable_nfb_draft(draft) != proof.draft_at_verification:
+        raise ValueError("單只 NFB 型號／轉向／層數已修改，須重新驗證原始來源")
+    physical_fields = ("model", "active_mode", "w", "h", "d", "t", "fw",
+                       "multi_door_enabled", "inner_doors",
+                       "receiving_inner_door_layer_heights_mm")
+    if any(snapshot.get(key) != previous.get(key) for key in physical_fields):
+        raise ValueError("單只箱體／內門定位已變更，須重新驗證原始 NFB")
     current = _quantity_panel(snapshot)
     original = _quantity_panel(previous)
     if current != original or current.stable_id != proof.part_id:
