@@ -64,6 +64,8 @@ PYTEST_PATHS = (
     "tests/test_issue1503_revised_bend_formed_skins.py",
     # #1503: formed T2 BEND23 actual assembly 3D overlay / no false MFG.
     "tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py",
+    # #1503: only real bent flange skin may define side-panel weld contact.
+    "tests/test_issue1503_formed_ear_side_contact.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
