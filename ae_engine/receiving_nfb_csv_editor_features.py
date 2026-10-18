@@ -39,7 +39,7 @@ def invalidate_csv_editor_proof(editor, popup=None):
 
 def csv_checked_world_values_match(checked, fields) -> bool:
     """A post-check text change cannot keep the cached physical X proof."""
-    from dataclasses import replace
+    from math import isfinite
 
     if not isinstance(checked, Mapping) or not isinstance(fields, Mapping):
         return False
@@ -185,7 +185,7 @@ def editor_nfb_features_from_csv(snapshot: Mapping, config, *, current_features=
     from .sheetmetal_part_adapters import build_door_result, DoorFrameEdges
     from shapely.geometry import Polygon
     from .cabinet_types import policy
-    from math import isfinite
+    from dataclasses import replace
 
     layers = validate_setting("inner_door_layers", config["layers"])
     heights = validate_setting("inner_door_layer_heights_mm", config["layer_heights_mm"])
