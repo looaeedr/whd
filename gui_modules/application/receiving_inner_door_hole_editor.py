@@ -159,7 +159,9 @@ def open_inner_door_hole_editor(
 
     # Nested settings dialogs may own a grab. The original editor, not the
     # settings dialog, owns interaction until 確定全部／取消全部.
-    parent_modal = getattr(app.root, "_receiving_multi_settings_window", None)
+    root = getattr(app, "root", None)
+    parent_modal = (getattr(root, "_receiving_multi_settings_window", None)
+                    if settings_mode is not None and root is not None else None)
     if settings_mode is not None and parent_modal is not None and parent_modal.winfo_exists():
         if parent_modal.grab_current() is parent_modal:
             parent_modal.grab_release()
