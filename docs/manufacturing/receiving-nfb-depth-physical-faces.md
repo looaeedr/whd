@@ -123,6 +123,15 @@ shallow_back_z       = shallow_front_z - Tb
 - 相同列的兩顆 NFB 共用 Y 幾何求解／FinalScene，以免每次組合 3D 重複重算。
 - **範圍仍有限**：這是已提交雙深度 CENTER 底板之 XYZ，未涵蓋無雙深度的 LEFT／RIGHT 單顆底板、以及左右底板固定片的真實焊接 skin/MARKING。後兩項保持 OPEN，不得完整 MFG-2 放行。
 
+## 四之四、左右平側底板：單一來源型號的實體 Z
+
+前面的「35 mm 面差」只屬於 **CENTER 雙折雙深度** 底板。`LEFT_FLAT_SIDE`、`RIGHT_FLAT_SIDE` **無側折**，但仍各有上／下 20 mm 折邊；不能因為沒有深淺兩顆深度差，就把平底板放回舊的箱體後側 Z。
+
+- 本次只有**已提交的當前 Set/Bay**、單層同一列、唯一來源廠牌／型號深度時，透過 `committed_receiving_flat_nfb_depth_mm` 讀取 `開關索引.csv` 或 nfbv5 數值資料的深度（例如士林 400=107，另一個來源型號可能是 68），不設第二套底板「深度」輸入。
+- 走**同一** `receiving_base_plate_real_skins` 取得平面底板的真 T2 NFB 安裝皮面；`resolve_receiving_nfb_world_skin_datums` 對齊內門朝箱內 skin；`assembly_placement` 套用相同來源的 XY 與 Z。換型號深度時，底板位置與固定片接觸的**目標 Z** 一起改，內門不動。
+- **平底板兩顆不同型號**或**兩列**不能偷用最深一顆並聲稱全都貼合。若需要 PAD／其他實體底板，必須由其真實孔列及裝配來源驗證；缺項拒絕，不退回箱體後側 preview 冒充有來源的配置。
+- 上述仍不代表大片固定片已擁有正式原圖 BEND。此固定片與側板兩側打標需獨立通過真實折向、物理接觸與回投影驗證後才准放行。
+
 ## 五、資料與向下相容
 
 - 型號來源必須從 `基準檔/開孔/NFB/開關索引.csv` 或 V5 各品牌 `基準檔/開孔/NFB/數值規格/<品牌>/NFB數值規格.csv` **以被選中的 brand/model 查取深度**。不可從檔名尾碼或其他品牌推斷。
