@@ -17,6 +17,8 @@ class WorkObservation:
     issue_closed: bool = False
     next_issue_started: bool = False
     operation_rejected: bool = False
+    rejected_actions: Sequence[str] = ()
+    next_issue_checked: bool = False
 
 def next_action(observation: WorkObservation) -> str:
     """Return an executable next action, never a predeclared stop procedure.
@@ -24,14 +26,24 @@ def next_action(observation: WorkObservation) -> str:
     User-supplied authorized actions are attempted in their given priority.
     Permission rejection to one operation never authorizes an unapproved route.
     """
-    if observation.authorized_actions:
-        return observation.authorized_actions[0]
+    denied = set(observation.rejected_actions)
+    for action in observation.authorized_actions:
+        if action not in denied:
+            return action
     if observation.ci_status in {"requested", "queued", "waiting", "pending", "in_progress"}:
         return "CONTINUE_POLL"
-    if observation.ci_status == "completed" and observation.ci_conclusion != "success":
+    if observation.ci_status == "completed" and observation.ci_conclusion in {
+        "failure", "cancelled", "timed_out", "action_required",
+        "startup_failure", "stale",
+    }:
         return "REPAIR_AND_RETEST"
+    if observation.ci_status == "completed" and observation.ci_conclusion != "success":
+        return "RECONCILE_ONLY"
     if observation.ci_status == "completed" and not observation.localx_merged:
         return "LOCALX_INTEGRATION_PENDING" if observation.pr_open else "RECONCILE_ONLY"
+    if (observation.localx_merged and not observation.next_issue_checked
+            and not observation.next_issue_started):
+        return "DISCOVER_NEXT_ISSUE"
     if observation.localx_merged and not observation.issue_closed:
         return "CONTINUE_FINALIZATION"
     if observation.localx_merged and observation.issue_closed:
