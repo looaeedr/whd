@@ -172,3 +172,26 @@ def test_all_function_links_are_only_partial_and_no_factory_approval_is_implied(
         assert row["accepted"] is False
         assert row["identified_test_functions"][0]["accepted"] is False
     assert set(obj["open_gates"]) >= {1500, 1502, 1503, 1504}
+
+
+def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
+    """#1490 owner check: later approved shop datum must win over old AC gloss."""
+    obj = _data()
+    scope = obj["latest_product_scope"]
+    rule = scope["rule"]
+    assert scope["authority_issue"] == 1502
+    assert "PR #1909" in rule and "cabinet X=0" in rule
+    assert "X=-335/+335 (670 mm)" in rule
+    assert "X=-398/+398" in rule
+    assert "ONLY the source-verified NFB screw holes move" in rule
+    assert "Y=470/-30" in rule
+    assert "732-mm" in rule and "Do not infer plate X" in rule
+    assert "remain unapproved" in rule
+    assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
+    assert all(row["accepted"] is False for row in obj["records"])
+
+    # The human review must not silently retain an older X-centering claim.
+    text = MANIFEST.with_suffix(".md").read_text(encoding="utf-8")
+    assert "箱體中心 X=0" in text
+    assert "孔距 **670 mm**" in text
+    assert "固定片折彎、真實焊接 Z 接觸" in text
