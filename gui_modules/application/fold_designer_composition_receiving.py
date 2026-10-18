@@ -2877,10 +2877,25 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 # count cannot be flattened into legacy inner-door layers.
                 if nfb_physical_layers.get() != layers.get():
                     raise ValueError("NFB 物理層與內門版本層數不同，不能覆寫成舊候選")
-                # Existing candidate serializer also lacks physical empty
-                # slots and brand overrides. Fail rather than lose user data.
+                # Current CSV CUTTING is saved as typed physical Hole Editor
+                # Features; no original DXF or lossy legacy brand/rotation
+                # serializer is required for this new settings entry.
+                source_models = [
+                    slot["filename"]
+                    for layer in edit_session.current["layers"][:nfb_physical_layers.get()]
+                    for slot in layer["slots"]
+                    if slot["filename"] is not None
+                ]
+                current_numeric_editor = (
+                    embed_parent is not None
+                    and getattr(modal.winfo_toplevel(),
+                                "_receiving_settings_mode", None)
+                    in ("single", "candidate")
+                    and bool(source_models)
+                    and all(is_numeric_model_ref(ref) for ref in source_models)
+                )
                 active = draft_state["draft"]["layers"][:nfb_physical_layers.get()]
-                for row in active:
+                for row in (() if current_numeric_editor else active):
                     if row["brand"]["mode"] == OVERRIDE:
                         raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
                     if row["rotation_deg"]!=0:
@@ -2894,13 +2909,34 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
                         if slot["source_brand"] != draft_state["draft"]["set_brand"]:
                             raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
-                selected_brand = self.receiving_switch_adapter(namespace).brand
-                latest_files = (set(numeric_model_refs(selected_brand))
-                                | set(model_filenames(selected_brand)))
                 relevant = chosen[:layers.get()]
-                if any(filename not in latest_files
-                       for layer_items in relevant for filename in layer_items):
-                    raise ValueError("開關型號已不在廠牌 CSV，請重新選擇")
+                if current_numeric_editor:
+                    from ae_engine.receiving_nfb_model_identity import parse_numeric_model_ref
+                    from ae_engine.receiving_nfb_numeric_catalog import model_spec
+                    expected_models = []
+                    for li, row in enumerate(active):
+                        for si, slot in enumerate(row["slots"]):
+                            ref = slot["filename"]
+                            if ref is None:
+                                continue
+                            effective_brand = effective_nfb_slot_brand(
+                                edit_session.current, li, si,
+                            )
+                            parsed = parse_numeric_model_ref(ref)
+                            if (parsed is None or parsed[0] != effective_brand
+                                    or model_spec(*parsed) is None):
+                                raise ValueError("NFB 實際廠牌與 CSV 型號不符，請重新選擇")
+                            expected_models.append(ref)
+                    selected_models = [model for group in relevant for model in group]
+                    if sorted(selected_models) != sorted(expected_models):
+                        raise ValueError("NFB CSV 選型與開孔設定不同步，請重新檢查")
+                else:
+                    selected_brand = self.receiving_switch_adapter(namespace).brand
+                    latest_files = (set(numeric_model_refs(selected_brand))
+                                    | set(model_filenames(selected_brand)))
+                    if any(filename not in latest_files
+                           for layer_items in relevant for filename in layer_items):
+                        raise ValueError("開關型號已不在廠牌 CSV，請重新選擇")
                 config = {
                     "layers": layers.get(),
                     "layer_heights_mm": read_layer_heights(),
@@ -2926,7 +2962,27 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         model for group in config["models"][:config["layers"]]
                         for model in switch_filenames_in_layer(group)
                     )
-                    if chosen_models:
+                    if chosen_models and current_numeric_editor:
+                        from ae_engine.receiving_nfb_csv_editor_features import (
+                            csv_openings_to_editor_features,
+                        )
+                        native_editor = modal.winfo_toplevel()
+                        physical = deepcopy(current_inner_editor_snapshot())
+                        current_features = native_editor._receiving_pending_features()
+                        current_part = current_inner_editor_part_key()
+                        physical["part_features"] = {
+                            **dict(physical.get("part_features") or {}),
+                            current_part: list(current_features),
+                        }
+                        inserted = csv_openings_to_editor_features(
+                            getattr(native_editor, "_receiving_csv_door_proof", None),
+                            snapshot=physical, draft=edit_session.current,
+                            current_features=current_features,
+                        )
+                        if len(inserted) != len(chosen_models):
+                            raise ValueError("NFB CSV 開孔數與型號數量不同")
+                        native_editor._receiving_accept_verified_openings(inserted)
+                    elif chosen_models:
                         native_editor = modal.winfo_toplevel()
                         quantity_single = (
                             getattr(native_editor, "_receiving_settings_mode", None)
