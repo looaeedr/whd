@@ -2736,11 +2736,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # #1901: Cancel from a Single/Multi Receiving tab must always
             # discard only this tab's draft and return to the original editor.
             # The unchanged physical-part legacy route retains its old prompt.
-            settings_embedded = (
-                embed_parent is not None
-                and getattr(modal.winfo_toplevel(), "_receiving_settings_mode", None)
-                in ("single", "candidate")
-            )
+            settings_embedded = embed_parent is not None
             if (not saved and not settings_embedded
                     and (draft_state["draft"] != initial_nfb_draft
                          or nfb_source_viewed["value"])
