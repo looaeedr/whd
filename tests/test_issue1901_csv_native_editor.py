@@ -176,12 +176,12 @@ def test_csv_proof_same_size_other_receiving_bay_never_imports_holes():
     snap = fresh_receiving_mode("set_bay", {
         "w": 800, "h": 1600, "d": 350, "t": 2,
     })
-    layout = deepcopy(snap["receiving_layout"])
-    row = layout["sets"][0]
-    other = deepcopy(row["bays"][0])
-    other["stable_id"] = "second-equally-sized-bay"
-    row["bays"].append(other)
-    snap["receiving_layout"] = layout
+    # Use the real Set/Bay adapter to create both the second Bay and its
+    # required joint; direct bays[] appends are invalid WHD topology.
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    adapter = ReceivingSetBayAdapter(snap["receiving_layout"])
+    adapter.set_bay_count(2)
+    snap["receiving_layout"] = adapter.layout
     first = project_receiving_bay_legacy_aliases(
         snap, set_index=0, bay_index=0, validate_common=False,
     )
