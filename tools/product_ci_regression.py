@@ -54,6 +54,10 @@ PYTEST_PATHS = (
     "tests/test_issue1501_live_partial_writer.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+    # #1503: per-tier physical Base Plate skin + EAR target Z unified regression.
+    "tests/test_receiving_tier_ear_assembly_xy.py",
+    "tests/test_receiving_tier_ear_z_targets.py",
+    "tests/test_receiving_two_tier_physical_base_parts.py",
     "tests/test_issue1494_nfb_x_shadow_projection.py",
     "tests/test_issue1496_index_color_evidence.py",
     "tests/test_issue1496_nfb_dxf_source.py",
