@@ -1,0 +1,81 @@
+name: WHD #1820 Actual WHD Original 2D GUI First Frame
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'tools/issue1820_whd_real_editor_gui_probe.py'
+      - '.github/workflows/whd-issue1820-whd-real-gui.yml'
+      - 'docs/performance/issue1820-whd-real-gui.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-1820-real-tk-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-primary-hole-editor:
+    name: Primary WHD app to real Hole Editor first frame and RSS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      TZ: Asia/Taipei
+      MPLBACKEND: TkAgg
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real Tk and WHD application dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt matplotlib psutil pillow ezdxf
+      - name: Produce original WHD Hole Editor test geometry as source DXF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1820-whd-ui
+          PYTHONPATH="$GITHUB_WORKSPACE" python tools/cadcraft_hole_editor_preview_crosscheck.py emit work/issue1820-whd-ui/source.dxf
+      - name: Time exact WHD Phase6PrimaryApplication and original 2D opening
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$GITHUB_WORKSPACE" xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/issue1820_whd_real_editor_gui_probe.py run \
+            work/issue1820-whd-ui/source.dxf work/issue1820-whd-ui
+      - name: Verify full GUI screenshot/first frame/source witness
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("work/issue1820-whd-ui")
+          d=json.loads((p/"whd-real-gui.json").read_text())
+          assert d["kind"]=="REAL_WHD_PRIMARY_APP_ORIGINAL_2D_HOLE_EDITOR"
+          assert d["worker_exit_code"]==0
+          assert d["tk_canvas_item_count"]>=5
+          assert d["contains_real_existing_holes"]
+          assert d["dxf_entities"]=={"LWPOLYLINE":2,"LINE":1,"CIRCLE":1}
+          assert (p/"whd-real-editor-first-frame.png").read_bytes()[:8]==b"\x89PNG\r\n\x1a\n"
+          assert d["subprocess_spawn_to_first_painted_ms"]>0
+          print("WHD_PRIMARY_TO_ORIGINAL_HOLE_EDITOR_FIRST_FRAME_PASS",d["subprocess_spawn_to_first_painted_ms"])
+          PY
+      - name: Retain actual GUI first frame, timings and stderr
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-1820-real-primary-and-editor-first-frame
+          path: work/issue1820-whd-ui/
+          if-no-files-found: warn
+          retention-days: 14
