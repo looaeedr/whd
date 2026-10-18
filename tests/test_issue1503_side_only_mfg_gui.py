@@ -73,32 +73,21 @@ def test_invalid_gui_input_rejected_before_resolving_or_asking_folder(
     assert not list(tmp_path.glob("*"))
 
 
-def test_real_primary_tk_mounts_both_independent_actions_and_routes_mfg(
-    monkeypatch,
-):
+def test_real_primary_has_no_extra_ear_buttons_but_retains_normal_export():
     import tkinter as tk
     import gui
-    called=[]
-    monkeypatch.setattr(
-        gui.Phase6PrimaryApplication,
-        "export_receiving_ear_side_manufacturing_dxf",
-        lambda app: called.append(app),
-    )
-    root=tk.Tk()
+
+    root = tk.Tk()
     try:
         root.geometry("1400x900+20+20")
-        app=gui.Phase6PrimaryApplication(root)
+        app = gui.Phase6PrimaryApplication(root)
         root.update()
         assert app._legacy_2d_compat_host is None
-        check=app.btn_ear_side_check_dxf
-        mfg=app.btn_ear_side_mfg_dxf
-        assert check.winfo_viewable() and mfg.winfo_viewable()
-        assert check.master is mfg.master
-        assert "CHECK" in check.cget("text")
-        assert "正式 MARKING" in mfg.cget("text")
-        assert mfg.winfo_rootx()>=root.winfo_rootx()
-        assert mfg.winfo_rootx()+mfg.winfo_width()<=root.winfo_rootx()+root.winfo_width()
-        mfg.invoke()
-        assert called==[app]
+        assert app.fold_designer_app is not None
+        assert not hasattr(app, "btn_ear_side_check_dxf")
+        assert not hasattr(app, "btn_ear_side_mfg_dxf")
+        assert callable(app.export_selected_dxf)
+        assert callable(app.export_receiving_ear_side_check_dxf)
+        assert callable(app.export_receiving_ear_side_manufacturing_dxf)
     finally:
         root.destroy()

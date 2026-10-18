@@ -36,6 +36,55 @@ class ReceivingEarSideManufacturingMarkingReceipt:
     status: str = "EAR_SIDE_ONLY_MFG_MARKING_VERIFIED"
 
 
+
+def with_verified_receiving_ear_side_markings(
+    snapshot, geometry, *, dimensions, sheet_thickness,
+):
+    """Immutable, source-verified replacement for canonical box-body DXF data.
+
+    Operates *before* ordinary manufacture export: only real left/right SIDE
+    drawing scenes acquire EAR weld-position MARKING; all other physical
+    owners and normal DXF guards remain unchanged. No preview/CHECK scene
+    becomes a release authority and no source geometry is mutated.
+    """
+    from .manufacturing_scene_access import replace_owner_render_data
+    uv, physical, parts, scenes = _verified_pair(
+        snapshot, geometry, dimensions=dimensions,
+        sheet_thickness=sheet_thickness,
+    )
+    side_keys = ("box_body:left_side", "box_body:right_side")
+    if set(parts) != set(side_keys) or set(scenes) != set(side_keys):
+        raise ValueError("EAR_SIDE_NORMAL_EXPORT_SOURCE_SIDE_PAIR_MISSING")
+    if len({row.ear_part_id for row in uv}) != len(uv):
+        raise ValueError("EAR_SIDE_NORMAL_EXPORT_DUPLICATE_SOURCE")
+    result = geometry
+    for side in side_keys:
+        source = parts[side]
+        source_meta = dict(source.metadata or {})
+        if (source_meta.get("receiving_ear_check_only")
+                or source_meta.get("ear_side_mark_preview_only")
+                or source_meta.get("ear_side_mfg2_release_approved")):
+            raise ValueError("EAR_SIDE_NORMAL_EXPORT_TAINTED_SOURCE")
+        segments = sum(
+            len(row.marking_segments) for row in uv if row.side_piece_id == side
+        )
+        if segments not in (4, 8):
+            raise ValueError("EAR_SIDE_NORMAL_EXPORT_INCOMPLETE_SIDE_MARKING")
+        verified = replace(
+            source, scene=scenes[side],
+            metadata={
+                **source_meta,
+                "receiving_ear_side_marking_provenance": "SOURCE_T2_BEND23_3D_CONTACT_UV",
+                "receiving_ear_side_manufacturing_scope": "SIDE_SHEET_MARKING_ONLY",
+                "receiving_ear_side_marking_segment_count": segments,
+                "manufacturing_ready": False,
+                "welding_workmanship_certified": False,
+            },
+        )
+        result = replace_owner_render_data(result, side, verified)
+    return result
+
+
 def export_receiving_ear_side_manufacturing_marking_dxf(
     snapshot,
     geometry,

@@ -305,17 +305,84 @@ def _export_selected_resolved_parts(self, folder, flags):
             self._phase6_nfb_partial_export_report = report
         return (names, [])
 
-    _assert_legacy_nfb_export_scope_safe(self, flags)
+    # #1503: the original selected-DXF action applies authenticated EAR
+    # positioning marks to LEFT/RIGHT physical side plates automatically.
+    # No extra operator button or forged cabinet/PAD release.
+    receiving_snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+    auto_side = (
+        bool(flags.get("box_body"))
+        and receiving_snapshot.get("model") == "受電箱"
+        and receiving_snapshot.get("nfb_config_submitted") is True
+    )
+    if auto_side:
+        if receiving_snapshot.get("active_mode") == "quantity":
+            raise ValueError("EAR_SIDE_NORMAL_EXPORT_QUANTITY_NOT_VERIFIED")
+        # Existing submitted-NFB guards for DOOR and BASE remain mandatory;
+        # only the independently verified BoxBody sides become eligible.
+        _assert_legacy_nfb_export_scope_safe(self, {**flags, "box_body": False})
+    else:
+        _assert_legacy_nfb_export_scope_safe(self, flags)
     resolved = resolver()
+    if auto_side:
+        from ae_engine.receiving_ear_side_manufacturing_marking import (
+            with_verified_receiving_ear_side_markings,
+        )
+        dimensions = tuple(
+            float(receiving_snapshot[key]) for key in ("w", "h", "d")
+        )
+        sheet_thickness = float(receiving_snapshot["t"])
+        unmarked = resolved
+        resolved = with_verified_receiving_ear_side_markings(
+            receiving_snapshot, unmarked,
+            dimensions=dimensions, sheet_thickness=sheet_thickness,
+        )
     selected = _selected_resolved_geometry(resolved, flags)
     if not tuple(getattr(selected, "parts", ()) or ()):
         return ([], ["canonical resolved export: no selected physical parts"])
 
     outputs = manufacturing_api.save_resolved_manufacturing_geometry_dxf(
-        selected,
-        folder,
-        overwrite=True,
+        selected, folder, overwrite=True,
     )
+    if auto_side:
+        # Independently reopen the actual serialized SIDE drawings and compare
+        # every source-world-derived MARKING coordinate before the outer
+        # selected-DXF batch can be committed to the operator's folder.
+        from ae_engine.receiving_fixed_plate_side_check_dxf import (
+            _verified_pair, _readback_marking_lines,
+        )
+        from ae_engine.manufacturing_scene_access import owner_render_data
+        from ae_engine.manufacturing_api import verify_saved_part_render_data_dxf
+        receipts, _, _, _ = _verified_pair(
+            receiving_snapshot, unmarked,
+            dimensions=dimensions, sheet_thickness=sheet_thickness,
+        )
+        for side in ("box_body:left_side", "box_body:right_side"):
+            physical = owner_render_data(resolved, side)
+            # Resolve the actual canonical physical row by its immutable
+            # render-data identity, not by a fabricated part_id/filename:
+            # BoxBody composite role keys are e.g. box_body:box_body_left_side.
+            from ae_engine.manufacturing_export import (
+                resolved_physical_render_parts,
+            )
+            matching_keys = tuple(
+                part_id for part_id, render_data
+                in resolved_physical_render_parts(selected)
+                if render_data is physical and part_id.startswith("box_body:")
+            )
+            if physical is None or len(matching_keys) != 1:
+                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OWNER_AMBIGUOUS")
+            target = outputs.get(matching_keys[0])
+            if not target:
+                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OUTPUT_MISSING")
+            if not verify_saved_part_render_data_dxf(physical, target).ok:
+                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SAVED_DXF_INVALID")
+            _readback_marking_lines(
+                target, (
+                    segment
+                    for row in receipts if row.side_piece_id == side
+                    for segment in row.marking_segments
+                ),
+            )
     return ([os.path.basename(path) for path in outputs.values()], [])
 
 
