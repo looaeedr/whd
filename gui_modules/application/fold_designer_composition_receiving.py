@@ -2727,8 +2727,33 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 popup._receiving_v5_base_trial=None
                 popup._receiving_v5_trial_canvas=v5_canvas
                 popup._receiving_v5_base_trial_canvas=v5_base_canvas
+                # Opening a new verification dialog starts a NEW CSV session;
+                # a previous check must not be silently reused as its result.
+                if original_editor is not None:
+                    from ae_engine.receiving_nfb_csv_editor_features import (
+                        invalidate_csv_editor_proof,
+                    )
+                    invalidate_csv_editor_proof(original_editor, popup)
+
+            checked_csv_world = {"values": None}
 
             def close_world_dialog():
+                # World-X fields are editable AFTER pressing Check. Returning
+                # without rerunning Check must not keep an obsolete proof.
+                if (v5_mode and original_editor is not None
+                        and checked_csv_world["values"] is not None):
+                    try:
+                        now = {
+                            uid: float(var.get().strip())
+                            for uid, var in world_values.items()
+                        }
+                    except (ValueError, TypeError):
+                        now = None
+                    if now != checked_csv_world["values"]:
+                        from ae_engine.receiving_nfb_csv_editor_features import (
+                            invalidate_csv_editor_proof,
+                        )
+                        invalidate_csv_editor_proof(original_editor, popup)
                 if popup.grab_current() is popup:
                     popup.grab_release()
                 popup.destroy()
@@ -2742,6 +2767,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 close_world_dialog()
 
             def prepare():
+                if v5_mode:
+                    # A failed re-check (even invalid input before geometry)
+                    # can NEVER inherit the previous success.
+                    from ae_engine.receiving_nfb_csv_editor_features import (
+                        invalidate_csv_editor_proof,
+                    )
+                    checked_csv_world["values"] = None
+                    invalidate_csv_editor_proof(original_editor, popup)
                 try:
                     coords={}
                     for unit_id,var in world_values.items():
@@ -2828,6 +2861,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                                 trial, snapshot=physical, draft=edit_session.current,
                                 current_features=original_editor._receiving_pending_features(),
                             )
+                            checked_csv_world["values"] = dict(coords)
                         outcome.set("CSV 內門主孔已核對；按受電箱「確認」帶回主頁籤"
                                     + base_warning)
                         return
