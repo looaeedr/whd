@@ -37,6 +37,23 @@ def invalidate_csv_editor_proof(editor, popup=None):
         popup._receiving_v5_base_trial = None
 
 
+def csv_checked_world_values_match(checked, fields) -> bool:
+    """A post-check text change cannot keep the cached physical X proof."""
+    from math import isfinite
+
+    if not isinstance(checked, Mapping) or not isinstance(fields, Mapping):
+        return False
+    if set(checked) != set(fields):
+        return False
+    try:
+        observed = {uid: float(field.get().strip())
+                    for uid, field in fields.items()}
+    except (ValueError, TypeError, AttributeError):
+        return False
+    return (all(isfinite(v) for v in observed.values())
+            and observed == checked)
+
+
 @dataclass(frozen=True)
 class NfbCsvHoleEditorProof:
     trial: NfbV5ConfiguredInnerDoorTrial
