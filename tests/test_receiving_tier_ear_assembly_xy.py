@@ -64,14 +64,34 @@ def test_one_nfb_tier_outer_210_slot_pair_follows_opening_group_y():
     assert all(r.selected_fixing_pitch_y_mm==pytest.approx(210) for r in rows)
 
 
-def test_unconfirmed_x_keeps_weld_and_marking_unpublished():
-    assert resolve_receiving_tier_ear_mating_xy(_two_tier())==()
+def test_unconfirmed_nfb_x_does_not_move_fixed_ears_or_release_marking():
+    rows=resolve_receiving_tier_ear_mating_xy(_two_tier())
+    assert len(rows)==4
+    assert all(row.base_center_x_mm==0 for row in rows)
+    assert [row.selected_slot_column_x_mm for row in rows]==pytest.approx(
+        [-335,335,-335,335]
+    )
+    assert all(row.nfb_group_x_mm is None and not row.manufacturing_ready
+               for row in rows)
 
 
-def test_cabinet_sidewall_does_not_move_to_follow_invalid_nfb_group_x():
-    snap=_certify_center_x(_two_tier(),(10.,10.))
-    with pytest.raises(ValueError,match="SIDE_SKIN_REACH_MISMATCH"):
-        resolve_receiving_tier_ear_mating_xy(snap)
+def test_nfb_horizontal_shift_changes_only_screw_source_not_plate_or_ears():
+    original=resolve_receiving_tier_ear_mating_xy(
+        _certify_center_x(_two_tier(),(0.,0.))
+    )
+    shifted=resolve_receiving_tier_ear_mating_xy(
+        _certify_center_x(_two_tier(),(10.,-25.))
+    )
+    assert len(original)==len(shifted)==4
+    assert [x.base_center_x_mm for x in shifted]==[0.,0.,0.,0.]
+    assert [x.nfb_group_x_mm for x in shifted]==[10.,10.,-25.,-25.]
+    assert [x.selected_slot_column_x_mm for x in shifted]==pytest.approx(
+        [x.selected_slot_column_x_mm for x in original]
+    )
+    assert [x.side_inside_weld_x_mm for x in shifted]==pytest.approx(
+        [x.side_inside_weld_x_mm for x in original]
+    )
+    assert all(not x.manufacturing_ready for x in shifted)
 
 
 def test_switching_or_draft_does_not_create_stale_tier_welds():
