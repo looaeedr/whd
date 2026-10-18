@@ -688,12 +688,13 @@ def _build_navigation_and_lifecycle(s):
             imported = tuple(verified)
             if not imported or any(
                 not isinstance(feature, ProfileFeature)
-                or feature.source_type != "NFB_VERIFIED_SOURCE"
+                or feature.source_type not in ("NFB_VERIFIED_SOURCE", "NFB_CSV_SOURCE")
                 for feature in imported
             ):
                 raise ValueError("不能帶入未完成實體來源驗證的 NFB 孔")
             existing = list(s.live_context.feature_list)
-            if any(getattr(feature, "source_type", "") == "NFB_VERIFIED_SOURCE"
+            if any(getattr(feature, "source_type", "") in
+                   ("NFB_VERIFIED_SOURCE", "NFB_CSV_SOURCE")
                    for feature in existing):
                 raise ValueError("此門板已有相同 NFB 來源主孔；請重新開啟編輯驗證")
             for feature in imported:
