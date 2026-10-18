@@ -2169,11 +2169,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 for filename in files:
                     entry["available"].insert(tk.END, display_model_ref(filename))
 
+        poll_job = {"id": None}
+
         def poll_source():
             if not modal.winfo_exists():
                 return
             refresh_source()
-            modal.after(1800, poll_source)
+            poll_job["id"] = modal.after(1800, poll_source)
 
         def add_switch(index):
             selected = layer_rows[index]["available"].curselection()
@@ -2555,7 +2557,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # Nominal NFB draft/workflow summary is not part of the approved UI.
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
         refresh_source(force=True)
-        modal.after(1800, poll_source)
+        poll_job["id"] = modal.after(1800, poll_source)
         modal._receiving_inner_switch_state = {
             "layer_heights_mm": layer_height_vars,
             "direct_to_drawing": direct_to_drawing,
@@ -2873,6 +2875,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def confirm():
             try:
+                from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
                 # #1491 is transient UI-1A only. Distinct NFB physical layer
                 # count cannot be flattened into legacy inner-door layers.
                 if nfb_physical_layers.get() != layers.get():
@@ -3101,6 +3104,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         parent=modal.winfo_toplevel(),
                     )):
                 return
+            # Cancel the Tk timer before destroying its Tcl callback command.
+            if poll_job["id"] is not None:
+                try:
+                    modal.after_cancel(poll_job["id"])
+                except tk.TclError:
+                    pass
+                poll_job["id"] = None
             if modal.grab_current() is modal:
                 modal.grab_release()
             modal.destroy()
