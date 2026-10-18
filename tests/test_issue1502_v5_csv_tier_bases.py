@@ -109,3 +109,49 @@ def test_door_full_proof_cannot_be_reused_after_other_tier_changes():
     changed = (holes[0], replace(holes[1], world_x_mm=125.))
     with pytest.raises(ValueError, match="已驗證孔位與目前裝配座標不一致"):
         _run(snap, door, changed, specs)
+
+
+def test_single_csv_tier_uses_identical_real_base_algorithm_and_fixed_ears():
+    snap = _snapshot()
+    holes = (
+        NfbV5ConfiguredInnerDoorHole(
+            "nfb:csv:single", "士林", "nfbv5:士林:2P400",
+            35., layer_count=1, slot_index=0,
+        ),
+    )
+    door = trial_configured_nfb_v5_inner_door_render_data(
+        snap, "upper", holes=holes,
+    )
+    base = replace(_upper_base("LEFT_FLAT_SIDE"),
+                   physical_id="base_plate:nfb_layer:0")
+    result = preview_v5_on_existing_receiving_tier_bases(
+        snap, "upper", door=door, configured_holes=holes,
+        base_specs={0: base},
+    )
+    assert len(result) == 1
+    assert result[0].part_id == "base_plate:nfb_layer:0"
+    assert result[0].hole_ids == ("nfb:csv:single",)
+    assert result[0].render_data.metadata["nfb_v5_tier_slot_index"] == 0
+    assert len(_screws(result[0])) == 4
+    assert len(_structural(result[0])) == 5
+    assert result[0].manufacturing_ready is False
+
+
+def test_single_csv_tier_cannot_consume_wrong_actual_plate():
+    snap = _snapshot()
+    holes = (
+        NfbV5ConfiguredInnerDoorHole(
+            "nfb:csv:single", "士林", "nfbv5:士林:2P400",
+            0., layer_count=1, slot_index=0,
+        ),
+    )
+    door = trial_configured_nfb_v5_inner_door_render_data(
+        snap, "upper", holes=holes,
+    )
+    incorrect = replace(_upper_base("LEFT_FLAT_SIDE"),
+                        physical_id="base_plate:nfb_layer:1")
+    with pytest.raises(ValueError, match="不是本層原始"):
+        preview_v5_on_existing_receiving_tier_bases(
+            snap, "upper", door=door, configured_holes=holes,
+            base_specs={0: incorrect},
+        )
