@@ -120,10 +120,10 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
                 "manufacturing_ready": False,
             },
         )
-        # Flat/source X without provenance is preview only, not a machine
-        # validated machining offset. Each individual layer gets its own
-        # physically separate part, even when both use the same blank pattern.
-        x = center.verified_world_x_mm
+        # A physical Base Plate's left/right center NEVER follows the
+        # operator's NFB X edit. The 670-mm support-hole pitch and side-wall
+        # fixing ears are stationary in X. The selected NFB's screw holes
+        # will later be projected with their own independently proven X.
         z = float(root.offset[2])
         generated.append(AssemblyScenePart(
             part_key=identity,
@@ -131,8 +131,7 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
             x_profile=tuple(dict(s) for s in profiles["X"]),
             y_profile=tuple(dict(s) for s in profiles["Y"]),
             placement="offset",
-            offset=(float(x) if x is not None else 0.0,
-                    float(center.world_y_mm), z),
+            offset=(0.0, float(center.world_y_mm), z),
         ))
     if len({p.part_key for p in generated}) != 2:
         raise ValueError("RECEIVING_NFB_TIER_PART_DUPLICATE")
