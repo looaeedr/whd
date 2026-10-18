@@ -20,7 +20,7 @@ SUPPORTED = frozenset({
     "LINE", "ARC", "CIRCLE", "LWPOLYLINE", "POLYLINE", "POINT",
     "TEXT", "MTEXT", "INSERT", "ATTRIB", "ATTDEF", "DIMENSION", "VERTEX", "SOLID",
 })
-HEADER_KEYS = ("$INSUNITS", "$MEASUREMENT")
+# DXF version and declared codepage affect text decoding and block support.\n# Do not accept a CADCraft resave merely because its entity counts agree.\nHEADER_KEYS = ("$INSUNITS", "$MEASUREMENT", "$ACADVER", "$DWGCODEPAGE")
 IGNORED = frozenset({"handle", "owner", "paperspace"})
 
 
@@ -151,7 +151,7 @@ def audit(original: Path, resaved: Path):
         report["failures"].append("SOURCE_MUTATED_DURING_AUDIT")
     report["result"] = "PASS" if not report["failures"] else "FAIL_CLOSED"
     report["scope"] = (
-        "DXF header units, modelspace entity attrs, block contents and layer attrs. "
+        "DXF units, version, codepage, modelspace entity attrs, blocks and layers. "
         "Not a raster-pixel parity test or permission to import into WHD."
     )
     return report
