@@ -121,7 +121,12 @@ def test_operator_layer_height_and_confirmed_X_move_actual_plate_xy_without_wron
                     datum_revision="SOURCE-X-REV1",datum_snapshot={"w":800,"t":2})
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     moved=resolve_assembly_placement(snap,"base_plate")
-    assert moved.world_offset[:2]==pytest.approx((-30.,470.))
+    # Confirmed X moves *NFB hole machining within the base*, not the
+    # whole sheet: the welded fixing plates remain at ±335 bolt centres.
+    from ae_engine.receiving_nfb_base_assembly_xy import receiving_source_nfb_base_assembly_xy
+    source=receiving_source_nfb_base_assembly_xy(snap,"upper")
+    assert source.verified_world_x_mm == pytest.approx(-30)
+    assert moved.world_offset[:2]==pytest.approx((0.,470.))
     assert moved.world_offset[2]==pytest.approx(original.world_offset[2])
 
 
