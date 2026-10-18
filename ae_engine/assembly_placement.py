@@ -255,11 +255,10 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
             )
             if group is None:
                 raise ValueError("RECEIVING_NFB_BASE_SOURCE_Y_MISSING")
-            position = (
-                float(group.verified_world_x_mm)
-                if group.verified_world_x_mm is not None else 0.0,
-                float(group.world_y_mm), float(source_z),
-            )
+            # Large ear's two welded bolt columns stay at ±335 on W800.
+            # The NFB verified X belongs to machining INSIDE that base;
+            # moving the whole sheet would detach both ears from side walls.
+            position = (0.0, float(group.world_y_mm), float(source_z))
         else:
             position = (0.0,0.0,_base_plate_center_plane(snapshot))
         return AssemblyPlacement(
