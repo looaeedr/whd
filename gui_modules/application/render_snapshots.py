@@ -324,11 +324,21 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dime
             None,
         )
         if selected_piece is not None:
+            # #1503: only the selected Receiving physical SIDE gets a
+            # display-only source-world->UV EAR weld footprint. Production
+            # BoxBody data and DXF inventory remain the original render_data.
+            blocker = None
+            if selected_piece_key in {"box_body:left_side", "box_body:right_side"}:
+                from .receiving_ear_side_2d import present_receiving_ear_side_piece_2d
+                selected_piece, blocker = present_receiving_ear_side_piece_2d(
+                    host, render_data, selected_piece, selected_piece_key,
+                )
             return {
                 "mode": "piece",
                 "render_data": render_data,
                 "piece": selected_piece,
                 "piece_key": selected_piece_key,
+                "ear_marking_preview_blocker": blocker,
             }
 
     bounds = tuple(float(v) for v in render_data.material.bounds)
