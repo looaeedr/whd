@@ -2933,8 +2933,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             self.app.root, "_receiving_multi_settings_window", None
         )
         def close_editor(*, saved=False):
-            if (not saved and (draft_state["draft"] != initial_nfb_draft
-                               or nfb_source_viewed["value"])
+            # #1901: Cancel from a Single/Multi Receiving tab must always
+            # discard only this tab's draft and return to the original editor.
+            # The unchanged physical-part legacy route retains its old prompt.
+            settings_embedded = (
+                embed_parent is not None
+                and getattr(modal.winfo_toplevel(), "_receiving_settings_mode", None)
+                in ("single", "candidate")
+            )
+            if (not saved and not settings_embedded
+                    and (draft_state["draft"] != initial_nfb_draft
+                         or nfb_source_viewed["value"])
                     and not messagebox.askyesno(
                         "捨棄未提交的 NFB 草稿？",
                         "目前 NFB 物理層、空槽或品牌選型的預覽尚未提交。確定捨棄？",
