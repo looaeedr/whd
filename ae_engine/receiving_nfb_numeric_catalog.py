@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Uncertified NFB V5 numeric catalog shared by all receiving panel roles.
+"""Current NFB CSV source for model sizes, main openings and screw patterns.
 
 Operator-selected identity is (brand, model), NOT an original DXF filename.
-These local opening/screw coordinates are input data, not any panel's final
-manufacturing or 3D placement. Existing DXF-authoritative workflows remain
-unchanged until independently migrated and verified.
+The per-brand NFB數值規格.csv is the source for NFB opening and screw geometry.
+Physical panel datum, collision, and final manufacturing release remain
+separate validation responsibilities. Legacy DXF readers serve old projects;
+the current Single/Multi original Hole Editor does NOT require DXF.
 """
 from __future__ import annotations
 
