@@ -272,7 +272,9 @@ def test_issue1794_real_main_gui_render_cache_hit_scene_sha_and_no_dxf_reread(
 
     from ae_engine import ae
 
-    if not os.environ.get("DISPLAY"):
+    # Windows native Tk needs no Unix DISPLAY. Keep Linux Xvfb gating, but
+    # execute a real Tk cache proof on Win32 (and surface real Tk errors).
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         import pytest
         pytest.skip("real Tk/MainGUI source-integrity proof requires Xvfb")
 
