@@ -38,6 +38,7 @@ PYTEST_PATHS = (
     "tests/test_issue1819_manufacturing_cache_bounds.py",
     "tests/test_issue1819_real_manufacturing_dxf_parity.py",
     "tests/test_issue1819_manufacturing_cache_rss_plateau.py",
+    "tests/test_issue1819_settings_scroll_callback_lifecycle.py",
     "tests/test_manufacturing_mesh_reuse.py",
     "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",

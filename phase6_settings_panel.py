@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from weakref import WeakSet
 from typing import Iterable, Sequence
 
 from phase6_settings_center import SettingSpec
@@ -181,6 +182,10 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         # 直接跟著顯示，不再需要第二層「顯示進階設定」操作。
         self.advanced_settings_visible = True
         self.page_cache: dict[str, dict[str, object]] = {}
+        # #1819: bind scroll callbacks once per live widget, not on every
+        # render_context() of an already-cached settings page. Weak refs do
+        # not retain destroyed widgets or stale Tk Tcl command registrations.
+        self._scroll_bound_widgets = WeakSet()
         self.current_page: str | None = None
         self.settings_context = GLOBAL_CONTEXT
         self.setting_vars: dict[str, tk.Variable] = {}
@@ -366,16 +371,24 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         return "break"
 
     def _bind_settings_scroll_tree(self, widget):
-        try:
-            widget.bind("<MouseWheel>", self._scroll_settings_fields, add="+")
-            widget.bind("<Button-4>", self._scroll_settings_fields, add="+")
-            widget.bind("<Button-5>", self._scroll_settings_fields, add="+")
-            widget.bind("<Home>", self._scroll_settings_keyboard, add="+")
-            widget.bind("<End>", self._scroll_settings_keyboard, add="+")
-            widget.bind("<Prior>", self._scroll_settings_keyboard, add="+")
-            widget.bind("<Next>", self._scroll_settings_keyboard, add="+")
-        except tk.TclError:
-            pass
+        # This walk runs for every panel render even when page_cache returns
+        # the SAME Tk widget tree. Tkinter bind(add="+") creates a new Tcl
+        # command/CallWrapper every time; repeating it retained thousands of
+        # callbacks and bound methods in a real 8-cycle GUI session (#1819).
+        # WeakSet preserves first-bind behavior without owning widget life.
+        if widget not in self._scroll_bound_widgets:
+            try:
+                widget.bind("<MouseWheel>", self._scroll_settings_fields, add="+")
+                widget.bind("<Button-4>", self._scroll_settings_fields, add="+")
+                widget.bind("<Button-5>", self._scroll_settings_fields, add="+")
+                widget.bind("<Home>", self._scroll_settings_keyboard, add="+")
+                widget.bind("<End>", self._scroll_settings_keyboard, add="+")
+                widget.bind("<Prior>", self._scroll_settings_keyboard, add="+")
+                widget.bind("<Next>", self._scroll_settings_keyboard, add="+")
+            except tk.TclError:
+                pass
+            else:
+                self._scroll_bound_widgets.add(widget)
         for child in tuple(widget.winfo_children()):
             self._bind_settings_scroll_tree(child)
 
