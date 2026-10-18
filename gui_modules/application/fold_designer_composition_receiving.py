@@ -2894,6 +2894,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             bundle = assert_quantity_nfb_proof_current(
                                 getattr(native_editor, "_receiving_quantity_source_proof", None),
                                 snapshot=current_inner_editor_snapshot(),
+                                draft=edit_session.current,
                             )
                         else:
                             selected = candidate_adapter().selection
