@@ -2607,8 +2607,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 warning.set("同一次實體開孔不可混合 V5 數值型號與舊 DXF 來源")
                 return
             popup=tk.Toplevel(modal)
-            popup.title("NFB V5 內門／底板真實孔位試作｜不可製造" if v5_mode
-                        else "NFB 物理世界 X｜正式提交前驗證")
+            popup.title("NFB CSV 內門開口／底板孔位核對" if v5_mode
+                        else "舊來源 DXF 驗證")
             popup.geometry("540x440")
             from .receiving_scroll_view import make_scrollable_frame
             world_scroll, world_content, _world_view = make_scrollable_frame(
@@ -2624,9 +2624,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             ).pack(anchor="w",pady=(0,7))
             ttk.Label(
                 body,text=(
-                    "V5 讀廠牌數值 CSV，不要求舊 DXF。核對真實內門主孔、"
-                    "原底板 EAR／螺絲孔與層高；不同 Y 需另有實體底板。"
-                    "試作不會提交製造。"
+                    "從廠牌 NFB數值規格.csv 產生內門主孔，"
+                    "以真實板件與世界 X／層高驗算。"
+                    "確認僅帶入原開孔編輯器；底板另行檢驗。" 
                     if v5_mode else
                     "舊 DXF 來源需驗證 SHA、內門板、1100 Y 與孔位碰撞，"
                     "通過後才能準備提交。"
@@ -2748,19 +2748,52 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             paint_v5_real_inner_door_trial,
                             paint_v5_real_base_trial,
                         )
+                        # Read the physical inner-door sheet from the ORIGINAL
+                        # editor transaction, never from legacy DXF identity.
+                        physical = (current_inner_editor_snapshot() if quantity_single
+                                    else nfb_physical_bay_snapshot(
+                                        selected.set_index, selected.bay_index,
+                                    ))
+                        if original_editor is not None and getattr(
+                                original_editor, "_receiving_settings_mode", None
+                        ) in ("single", "candidate"):
+                            from copy import deepcopy as _copy_csv_snapshot
+                            physical = _copy_csv_snapshot(physical)
+                            existing = dict(physical.get("part_features") or {})
+                            existing[current_inner_editor_part_key()] = list(
+                                original_editor._receiving_pending_features()
+                            )
+                            physical["part_features"] = existing
                         if quantity_single:
                             from ae_engine.receiving_nfb_quantity_editor import (
                                 preview_quantity_nfb_v5_on_actual_inner_door,
                             )
-                            from ae_engine.receiving_nfb_v5_live_base_preview import (
-                                preview_v5_on_existing_receiving_base,
-                            )
-                            physical = current_inner_editor_snapshot()
                             trial, unit_holes, inner_door_id = (
                                 preview_quantity_nfb_v5_on_actual_inner_door(
                                     edit_session.current, snapshot=physical,
                                     world_x_by_unit=coords,
                                 )
+                            )
+                        else:
+                            from ae_engine.receiving_nfb_ui1b_runtime import (
+                                preview_current_nfb_v5_ui_draft,
+                            )
+                            trial, unit_holes, inner_door_id = preview_current_nfb_v5_ui_draft(
+                                edit_session.current, layout=adapter.layout,
+                                set_index=selected.set_index,
+                                bay_index=selected.bay_index,
+                                version_id=proof_version_id,
+                                projected_snapshot=physical,
+                                world_x_by_unit=coords, _with_holes=True,
+                            )
+                        # CSV data drives this INNER-DOOR edit. Base-plate screws
+                        # belong to another part; absence of a configured base
+                        # must not prevent staging a geometrically valid door.
+                        base_trial = None
+                        base_warning = ""
+                        try:
+                            from ae_engine.receiving_nfb_v5_live_base_preview import (
+                                preview_v5_on_existing_receiving_base,
                             )
                             base_spec, _ = self.app._part_spec_query_callback(
                                 "base_plate", physical,
@@ -2769,30 +2802,25 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                                 physical, inner_door_id, door=trial,
                                 configured_holes=unit_holes, base_spec=base_spec,
                             )
-                        else:
-                            from ae_engine.receiving_nfb_ui1b_runtime import (
-                                preview_current_nfb_v5_door_base_ui_draft,
+                        except (ValueError, TypeError, KeyError, IndexError) as exc:
+                            base_warning = "；底板仍需獨立驗證：" + str(exc)
+                        paint_v5_real_inner_door_trial(v5_canvas, trial)
+                        if base_trial is not None:
+                            paint_v5_real_base_trial(v5_base_canvas, base_trial)
+                        popup._receiving_v5_trial = trial
+                        popup._receiving_v5_base_trial = base_trial
+                        if original_editor is not None and getattr(
+                                original_editor, "_receiving_settings_mode", None
+                        ) in ("single", "candidate"):
+                            from ae_engine.receiving_nfb_csv_editor_features import (
+                                stage_csv_openings,
                             )
-                            physical=nfb_physical_bay_snapshot(
-                                selected.set_index,selected.bay_index,
+                            original_editor._receiving_csv_door_proof = stage_csv_openings(
+                                trial, snapshot=physical, draft=edit_session.current,
+                                current_features=original_editor._receiving_pending_features(),
                             )
-                            base_spec,_=self.app._part_spec_query_callback(
-                                "base_plate",physical,
-                            )
-                            trial,base_trial=preview_current_nfb_v5_door_base_ui_draft(
-                                edit_session.current,layout=adapter.layout,
-                                set_index=selected.set_index,
-                                bay_index=selected.bay_index,
-                                version_id=proof_version_id,
-                                projected_snapshot=physical,
-                                world_x_by_unit=coords,base_spec=base_spec,
-                            )
-                        paint_v5_real_inner_door_trial(v5_canvas,trial)
-                        paint_v5_real_base_trial(v5_base_canvas,base_trial)
-                        popup._receiving_v5_trial=trial
-                        popup._receiving_v5_base_trial=base_trial
-                        outcome.set("內門主孔＋原底板 EAR／螺絲孔幾何檢查通過；"
-                                    "可切頁核對。仍不可製造或提交。")
+                        outcome.set("CSV 內門主孔已核對；按受電箱「確認」帶回主頁籤"
+                                    + base_warning)
                         return
                     if quantity_single:
                         from ae_engine.receiving_nfb_quantity_editor import (
@@ -2838,7 +2866,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 side="left",padx=5,
             )
             ttk.Button(actions,text=(
-                "檢查內門＋底板（V5 試作）" if v5_mode else "驗證實體來源"
+                "檢查 CSV 開口" if v5_mode else "驗證舊 DXF 來源"
             ),command=prepare).pack(side="left")
             popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
             popup.lift()
