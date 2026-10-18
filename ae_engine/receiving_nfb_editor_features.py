@@ -27,7 +27,7 @@ def verified_nfb_openings_to_editor_features(bundle, *, current_features):
 
     if not isinstance(bundle, NfbVerifiedDraftSubmission):
         raise TypeError("受電箱主孔只能帶入來源已驗證的 NFB")
-    if not bundle.can_submit or not bundle.verified_door.manufacturing_ready:
+    if not bundle.verified_door.manufacturing_ready:
         raise ValueError("NFB 來源尚未通過實體與孔位驗證")
     snapshot = bundle.snapshot_at_verification
     panel_id = bundle.verified_door.part_id
