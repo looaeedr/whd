@@ -32,6 +32,16 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
         "受電箱", "RECEIVING"
     ):
         return parts
+    # Assembly may rebuild during a Receiving mode/Set/Bay transition.
+    # Only a FULLY SUBMITTED two-tier configuration authorizes the new
+    # manufacturing source path. Do not interrogate stale Set/Bay selection
+    # for legacy, draft or single-tier snapshots; those legitimately exist
+    # during first entering/cancelling quantity and multi-Bay UI.
+    if snapshot.get("nfb_config_submitted") is not True:
+        return parts
+    active_config = snapshot.get("nfb_config")
+    if not isinstance(active_config, Mapping) or active_config.get("layer_count") != 2:
+        return parts
     from .receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
 
     upper = [
@@ -43,7 +53,20 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
     if len(upper) != 1:
         # No unique source owner; do not manufacture invented second plates.
         return parts
-    centers = receiving_nfb_layer_centers(snapshot, str(upper[0]["stable_id"]))
+    try:
+        centers = receiving_nfb_layer_centers(snapshot, str(upper[0]["stable_id"]))
+    except ValueError as exc:
+        # Identity drift is an ordinary transient state *during UI switching*:
+        # do not crash an unrelated cabinet mode or make false plates. Once
+        # the active source is committed and identities match, this source
+        # creates the two plates; export still has its independent hard gate.
+        if str(exc) in {
+            "RECEIVING_NFB_LAYER_SET_IDENTITY_DRIFT",
+            "RECEIVING_NFB_LAYER_BAY_IDENTITY_DRIFT",
+            "RECEIVING_NFB_LAYER_CONFIG_IDENTITY_DRIFT",
+        }:
+            return parts
+        raise
     if len(centers) <= 1:
         return parts
     if len(centers) != 2 or [x.layer_index for x in centers] != [0, 1]:
