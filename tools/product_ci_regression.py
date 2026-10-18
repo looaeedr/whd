@@ -224,6 +224,8 @@ PYTEST_PATHS = (
     # CSV recheck invalidates old physical GUI scenes and source label.
     "tests/test_issue1901_csv_preview_invalidation.py",
     "tests/test_issue1901_inner_editor_atomic_confirm.py",
+    # User: Receiving inner door holes belong to original Hole Editor; no duplicate CSV opening popups.
+    "tests/test_receiving_inner_editor_no_csv_opening_popup.py",
     "tests/test_phase6_t16_receiving_placement.py",
     "tests/test_phase6_t17_receiving_inner_door_80.py",
     "tests/test_issue1113_receiving_joint_lock_geometry.py",
