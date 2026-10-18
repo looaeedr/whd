@@ -48,7 +48,7 @@ def test_actual_csv_creates_real_57x96_native_door_profile_without_dxf():
     hole = features[0]
     assert hole.source_type == "NFB_CSV_SOURCE"
     assert hole.layer == "CUTTING"
-    assert hole.anchor.value == "ABSOLUTE_FINISHED_FACE"
+    assert hole.anchor.value == "absolute_finished_face"
     assert hole.points[1].x - hole.points[0].x == pytest.approx(57)
     assert hole.points[2].y - hole.points[1].y == pytest.approx(96)
     assert dict(hole.source_params)["model"] == "2P400"
@@ -73,7 +73,7 @@ def test_csv_proof_rejects_new_draft_existing_holes_and_changed_physical_box():
             proof, snapshot=snap, draft=draft, current_features=("old-hole",),
         )
     resized = dict(snap, w=900)
-    with pytest.raises(ValueError, match="已改變"):
+    with pytest.raises(ValueError, match="已變更"):
         csv_openings_to_editor_features(
             proof, snapshot=resized, draft=draft, current_features=(),
         )
