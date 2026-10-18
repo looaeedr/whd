@@ -2816,9 +2816,38 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     if embed_parent is not None else None
                 )
                 if callable(stage_in_editor):
-                    # The 受電箱 tab confirms only its draft into the existing
-                    # Hole Editor. No live Bay or candidate write before the
-                    # editor's separate 確定全部 transaction.
+                    # No inferred X, guessed CUTTING, or trial-only V5 material
+                    # may silently enter the native Hole Editor. An actual
+                    # indexed-DXF/source-verified bundle is mandatory whenever
+                    # this tab requests NFB cutouts.
+                    chosen_models = tuple(
+                        model for group in config["models"][:config["layers"]]
+                        for model in switch_filenames_in_layer(group)
+                    )
+                    if chosen_models:
+                        selected = candidate_adapter().selection
+                        bundle = nfb_transaction_ports()["verified_for_editor"](
+                            selected.set_index, selected.bay_index,
+                        )
+                        brand, indexed_filename = bundle.verified_door.indexed_model_key
+                        if (brand != self.receiving_switch_adapter(namespace).brand
+                                or any(model.casefold() != indexed_filename.casefold()
+                                       for model in chosen_models)
+                                or len(chosen_models) != len(
+                                    bundle.verified_door.physical_hole_ids)):
+                            raise ValueError("NFB 受電箱選型與已驗證的 DXF 實體主孔不一致，請重新驗證")
+                        from ae_engine.receiving_nfb_editor_features import (
+                            verified_nfb_openings_to_editor_features,
+                        )
+                        native_editor = modal.winfo_toplevel()
+                        current_features = native_editor._receiving_pending_features()
+                        inserted = verified_nfb_openings_to_editor_features(
+                            bundle, current_features=current_features,
+                        )
+                        native_editor._receiving_accept_verified_openings(inserted)
+                    # This stage is only an editor transaction; original
+                    # physical Bay or version X remains unchanged until the
+                    # parent Hole Editor 確定全部.
                     stage_in_editor(config)
                     after_saved(version_id)
                     close_editor(saved=True)
