@@ -162,7 +162,7 @@ def preview_v5_on_existing_receiving_tier_bases(
     configured_holes: Sequence[NfbV5ConfiguredInnerDoorHole],
     base_specs: Mapping[int, BasePlatePartSpec],
 ) -> tuple[NfbV5ActualBaseScrewTrial, ...]:
-    """One unchanged CSV source/geometry algorithm on each real NFB tier.
+    """One unchanged CSV source/geometry algorithm for ONE or MANY real NFB tiers.
 
     The FULL inner-door trial is passed unmodified to each tier, not split
     into forged independent certifications. Each existing BasePlatePartSpec
@@ -174,10 +174,10 @@ def preview_v5_on_existing_receiving_tier_bases(
             or not entries or not isinstance(base_specs, Mapping)
             or len(entries) != len(door.hole_ids)
             or tuple(e.physical_hole_id for e in entries) != door.hole_ids):
-        raise ValueError("NFB V5 多層須提供完整原內門孔位試作與實體板件")
+        raise ValueError("NFB V5 每層須提供完整原內門孔位試作與實體板件")
     counts = {e.layer_count for e in entries}
-    if len(counts) != 1 or next(iter(counts)) < 2:
-        raise ValueError("NFB V5 多層請提供一致的實際層數")
+    if len(counts) != 1 or type(next(iter(counts))) is not int or next(iter(counts)) < 1:
+        raise ValueError("NFB V5 必須提供一致且至少一層的實際層數")
     count = next(iter(counts))
     if (any(type(e.slot_index) is not int
             or not 0 <= e.slot_index < count for e in entries)):
@@ -194,6 +194,6 @@ def preview_v5_on_existing_receiving_tier_bases(
         for tier in sorted(active)
     )
     if len({part.part_id for part in results}) != len(results):
-        raise ValueError("NFB V5 多層底板實體 ID 重複")
+        raise ValueError("NFB V5 各層底板實體 ID 重複")
     assert all(not part.manufacturing_ready for part in results)
     return results

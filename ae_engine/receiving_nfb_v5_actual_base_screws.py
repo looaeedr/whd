@@ -9,6 +9,7 @@ second base, automatic PAD, model-derived Z, or manufacturing authority.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from hashlib import sha256
 from math import isfinite
 from typing import Mapping, Sequence
 
@@ -19,6 +20,7 @@ from .manufacturing_render_data import (
     PartRenderData, material_polygon_from_final_scene,
 )
 from .receiving_nfb_base_process_projection import NfbActualBaseWorkFace, _work_face
+from .receiving_nfb_numeric_catalog import brand_csv_path
 from .receiving_nfb_numeric_panel_projection import (
     NfbPanelDatum, NfbV5PanelPattern, project_nfb_v5_to_panel,
 )
@@ -106,6 +108,19 @@ def trial_v5_screws_on_existing_receiving_base(
         raise ValueError("NFB V5 實體底板對應層沒有開關")
     footprints = []
     patterns = []
+    source_brands = {entry.brand for entry in entries}
+    # Bind this current geometry trial to the exact CSV source bytes; later
+    # CHECK Q must reject a stale trial rather than silently reuse old holes.
+    def source_hashes():
+        try:
+            return tuple(sorted(
+                (brand, sha256(brand_csv_path(brand).read_bytes()).hexdigest())
+                for brand in source_brands
+            ))
+        except OSError as exc:
+            raise ValueError("NFB V5 原始 CSV 來源不可讀") from exc
+
+    csv_sha = source_hashes()
     for entry, prior in zip(entries, door.patterns):
         if not isinstance(entry, NfbV5ConfiguredInnerDoorHole):
             raise TypeError("NFB V5 原始孔位識別格式不符")
@@ -165,6 +180,8 @@ def trial_v5_screws_on_existing_receiving_base(
             footprints.append(circ)
         patterns.append(pattern)
 
+    if source_hashes() != csv_sha:
+        raise ValueError("NFB V5 CSV 驗算期間來源資料已變更")
     scene = DrawingScene(list(baseline.scene.primitives))
     for entry, pattern in zip(selected_entries, patterns):
         for index, centre in enumerate(pattern.screw_centres_uv_mm, start=1):
@@ -188,6 +205,7 @@ def trial_v5_screws_on_existing_receiving_base(
             "nfb_v5_hole_ids": tuple(e.physical_hole_id for e in selected_entries),
             "nfb_v5_tier_slot_index": tier_slot_index,
             "nfb_v5_source_models": tuple((x.brand, x.model) for x in patterns),
+            "nfb_v5_source_csv_sha256": csv_sha,
             "nfb_v5_target_role": "base-plate",
             "nfb_base_mfg2_release_approved": False,
             "nfb_trial_export_approved": False,
