@@ -78,10 +78,23 @@ def draw_whd_commands_with_cadcraft(
         # WHD creates a disposable empty DXF in mm; CADCraft is then its editor,
         # never the production drawing author. Both files are new and isolated.
         import ezdxf
-        from PIL import Image
+        import struct
+        import zlib
         blank = ezdxf.new("R2010", units=ezdxf.units.MM)
         blank.saveas(target)
-        Image.new("RGB", (320, 200), color="white").save(preview)
+        # Small valid blank PNG, constructed from the Python stdlib; no Pillow
+        # or native CADCraft process required to author the initial empty page.
+        def chunk(kind, payload):
+            return (struct.pack(">I", len(payload)) + kind + payload
+                    + struct.pack(">I", zlib.crc32(kind + payload) & 0xffffffff))
+        w, h = 320, 200
+        pixels = (bytes([0]) + bytes([255, 255, 255]) * w) * h
+        preview.write_bytes(
+            bytes([137, 80, 78, 71, 13, 10, 26, 10])
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(pixels))
+            + chunk(b"IEND", b"")
+        )
         return CadcraftCommandDrawingResult(
             output_dxf=target, preview_png=preview,
             geometry_evidence={"status": "PASS", "scope": "EMPTY_WHD_ISSUED_EXCHANGE"},
