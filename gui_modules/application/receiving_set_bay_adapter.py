@@ -382,6 +382,13 @@ class ReceivingSetBayAdapter:
         if not selected or any(type(i) is not int or not 0 <= i < count
                                for i in selected):
             raise ValueError("請在簡易圖高亮有效的連")
+        # A native Hole Editor CUTTING Feature and a submitted NFBConfig must
+        # never both own the same physical inner-door opening.
+        if source.get("features") and any(
+            self._layout["sets"][set_index]["bays"][bi].get("nfb_config_submitted") is True
+            for bi in selected
+        ):
+            raise ValueError("此連 NFB 已提交；不得將另一份內門開孔覆寫成重複 CUTTING")
         candidate = self._layout
         for bi in selected:
             for kind, value in (
@@ -443,8 +450,11 @@ class ReceivingSetBayAdapter:
             expected_counts=expected_counts,
         )
         from ae_engine.receiving_shared_settings import validate_setting
-        for si, bi, _config in plan:
+        for si, bi, config in plan:
             validate_setting("inner_door_version_id", assigned[(si, bi)])
+            if (config.get("features")
+                    and self._layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is True):
+                raise ValueError("已提交 NFB 與候選內門開孔不得成為雙重 CUTTING owner")
         candidate = self._layout
         for si, bi, config in plan:
             for kind, value in (
