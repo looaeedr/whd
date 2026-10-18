@@ -514,6 +514,10 @@ def build_existing_receiving_base_with_verified_nfb(
         (min(x for x,_ in centers)+max(x for x,_ in centers))/2.0,
         centers[0][1],
     )
+    # The source NFB machining group may be offset in X, but the ORIGINAL
+    # W800 base's side-welded bolt columns remain fixed at ±335 relative
+    # to the cabinet. The physical BASE assembly origin is therefore X=0.
+    base_world_center=(0.0,group_world_center[1])
     # The real plate must physically fit its owning upper cell. This uses
     # actual manufactured face dimensions, not the sample-DXF paper origin.
     real=build_part_render_data(base_spec)
@@ -528,7 +532,7 @@ def build_existing_receiving_base_with_verified_nfb(
     if (group_world_center[1]-height/2.0 < lower-_TOL
             or group_world_center[1]+height/2.0 > upper+_TOL):
         raise ValueError("NFB actual base extends outside its upper cell")
-    if abs(group_world_center[0])+float(base_spec.width)/2.0 > float(snapshot["w"])/2.0+_TOL:
+    if abs(base_world_center[0])+float(base_spec.width)/2.0 > float(snapshot["w"])/2.0+_TOL:
         raise ValueError("NFB base exterior exceeds cabinet width")
 
     fold_y=float(base_spec.bend)
@@ -561,7 +565,7 @@ def build_existing_receiving_base_with_verified_nfb(
     target=NfbActualBaseWorkFace(
         physical_part_id=stable_id,
         actual_render=real,
-        world_face_center_xy_mm=group_world_center,
+        world_face_center_xy_mm=base_world_center,
         unfolded_face_center_uv_mm=((x0+x1)/2.,(y0+y1)/2.),
         face_outline_uv_mm=((x0,y0),(x1,y0),(x1,y1),(x0,y1)),
     )
@@ -579,7 +583,9 @@ def build_existing_receiving_base_with_verified_nfb(
     # claim that the ear's brand-dependent Z/weld face is approved.
     from dataclasses import replace
     metadata=dict(composed.render_data.metadata)
-    metadata["receiving_base_ear_mount_center_world_xy_mm"]=group_world_center
+    # Both datums must remain DISTINCT when the verified NFB row X is not
+    # zero. Never re-center machining as an excuse to shift the whole plate.
+    metadata["receiving_base_ear_mount_center_world_xy_mm"]=base_world_center
     metadata["receiving_base_nfb_row_center_world_xy_mm"]=group_world_center
     metadata["receiving_base_upper_cell_key"]=f"{column}:{row}"
     metadata["receiving_base_ear_weld_z_verified"]=False
