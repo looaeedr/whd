@@ -66,6 +66,8 @@ PYTEST_PATHS = (
     "tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py",
     # #1503: only real bent flange skin may define side-panel weld contact.
     "tests/test_issue1503_formed_ear_side_contact.py",
+    # #1503: side-owned physical UV contact and CUTTING/BEND conflict proof.
+    "tests/test_issue1503_real_side_uv_backprojection.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
