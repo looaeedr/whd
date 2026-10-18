@@ -109,10 +109,11 @@ def project_receiving_ear_contact_to_side_uv(
     # The common mapping helper allows plane extrapolation. Do NOT accept
     # such extrapolation unless true SIDE mapped physical material covers the
     # entire contact, including folds, cutouts and source material boundaries.
-    actual_mapped_patch = unary_union(
+    # Shapely 2 union_all requires a concrete sequence, not a generator.
+    actual_mapped_patch = unary_union(tuple(
         Polygon(tuple(tuple(map(float, p)) for p in row.flat))
         for row in records
-    )
+    ))
     if not actual_mapped_patch.buffer(_UV_TOL).covers(patch):
         raise ValueError("EAR_SIDE_UV_OUTSIDE_ACTUAL_SIDE_SKIN")
     if side_final_material is None or not side_final_material.covers(patch):
