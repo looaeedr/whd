@@ -59,8 +59,14 @@ def test_candidate_only_becomes_one_real_bay_hole_after_explicit_apply():
     assert setting_value(row, 1, "inner_door_version_id") == version
     projected = project_receiving_bay_legacy_aliases({
         "cabinet_type": "受電箱", "receiving_layout": adapter.layout,
+        "part_features": {PART: [first]},  # root Single must not leak into Bays
     }, set_index=0, bay_index=1, validate_common=False)
     assert projected["part_features"][PART] == [newer]
+    untouched = project_receiving_bay_legacy_aliases({
+        "cabinet_type": "受電箱", "receiving_layout": adapter.layout,
+        "part_features": {PART: [first]},
+    }, set_index=0, bay_index=0, validate_common=False)
+    assert untouched["part_features"][PART] == []
 
 
 def test_candidate_hole_feature_round_trip_and_old_empty_versions():
