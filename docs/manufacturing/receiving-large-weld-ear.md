@@ -1,11 +1,19 @@
 ---
-whd_doc_role: CURRENT
+whd_doc_role: HISTORICAL
 whd_contract: receiving-large-side-weld-ear-670x210-670x140
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-# 受電箱 800 mm 底板固定孔 × 大片受電耳朵：實體焊接與折邊基準
+# 受電箱 800 mm 底板固定孔 × 大片受電耳朵：舊 T3 歷史紀錄
+
+> **歷史資料，不能作現行加工／折彎／施工認證依據。**
+> 現行來源唯一以 [2026-10-18 固定片新版 T2＋正式 BEND23](receiving-fixed-plate-source-20261018.md) 為準：
+> 大片 256×105、T2、四長孔 25×11、孔心距下緣 84、source BEND y=23；
+> 兩片左右共用「21＋T」規則、孔心到側板內面 63 mm。
+> 舊文件的 T3、86、來源缺 BEND、需要重給折線等敘述**均已被取代**。
+> 現行折後網格採原 BEND／組裝關係施工；請勿再要求重交圖或重複核准。
+> 未完成的焊接貼合／側板 UV MARKING 按實際程式測試與製造門檻分開處理。
 
 > **2026-10-18 已有新版固定片原圖（優先適用）：** [receiving-fixed-plate-source-20261018.md](receiving-fixed-plate-source-20261018.md)，原圖實體為 **T2、大片孔心 84、小片孔心 69、正式 BEND23**，T3 時折距 24。以下舊 **T3／86／無正式 BEND** 僅留作歷史基準，不得當現行 #1503 的施工及驗收依據。
 
