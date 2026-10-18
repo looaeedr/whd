@@ -56,6 +56,7 @@ def inner_door_work_area_guide(snapshot, panel, structural):
 def open_inner_door_hole_editor(
     app, part_key: str, *, from_corner_data=False, from_part_preview=False,
     settings_mode=None, initial_features=None, on_settings_confirm=None,
+    selected_candidate_version=None,
 ):
     """Open the existing Vault Door hole editor; preserve view-only Corner Data selection."""
     if not is_inner_door_sheet(part_key):
@@ -155,6 +156,19 @@ def open_inner_door_hole_editor(
                 app._load_part_holes(part_key)
             app.submit_update_intent("geometry", commit=True)
 
+    # Nested settings dialogs may own a grab. The original editor, not the
+    # settings dialog, owns interaction until 確定全部／取消全部.
+    parent_modal = getattr(app.root, "_receiving_multi_settings_window", None)
+    if settings_mode is not None and parent_modal is not None and parent_modal.winfo_exists():
+        if parent_modal.grab_current() is parent_modal:
+            parent_modal.grab_release()
+
+    def restore_settings_dialog():
+        if (parent_modal is not None and parent_modal.winfo_exists()
+                and parent_modal.grab_current() is None):
+            parent_modal.grab_set()
+            parent_modal.lift()
+
     title = "內門門板：" + str(panel.inner_door_id)
     window = host._open_unified_hole_editor(
         part_key, title, surface, structural.width, structural.height,
@@ -165,6 +179,7 @@ def open_inner_door_hole_editor(
         cabinet_reference_guide=work_area_guide,
         feature_list_override=features,
         sync_callback=(commit if settings_mode is None else lambda: None),
+        **({"on_close": restore_settings_dialog} if settings_mode is not None else {}),
         **({"on_confirm_features": confirm_settings} if settings_mode is not None else {}),
         door_frame_edges=DoorFrameEdges(
             left=False, right=False, top=False, bottom=False,
@@ -177,6 +192,7 @@ def open_inner_door_hole_editor(
     if settings_mode is not None:
         editor._receiving_staged_config = None
         editor._receiving_settings_mode = settings_mode
+        editor._receiving_candidate_version = selected_candidate_version
     receiving_page = getattr(editor, "_receiving_config_frame", None)
     if receiving_page is not None:
         # Reuse the existing Receiving Set/Bay candidate/NFB data authority,
