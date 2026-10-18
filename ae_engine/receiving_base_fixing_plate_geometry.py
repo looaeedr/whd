@@ -177,6 +177,20 @@ def build_fixing_plate_source_render_data(
     else:
         raise ValueError("UNKNOWN_BASE_FIXING_PLATE_SOURCE_PROFILE")
     pattern = source_pattern(source_kind)
+    # The user's revised DXF explicitly states y_BEND = 21 + physical
+    # EAR sheet T, and gives the *formed* hole datum for each profile.
+    # Actual source T2: large 84-23+2=63, small 69-23+2=48.
+    if (pattern.source_fold_reference is None
+            or abs(pattern.source_fold_reference - (21.0 + pattern.thickness)) > 1e-7
+            or len({cy for _, cy in pattern.slot_centers}) != 1):
+        raise ValueError("REVISED_FIXED_PLATE_SOURCE_BEND_OR_SLOTS_DRIFT")
+    source_formed_hole = (
+        pattern.slot_centers[0][1]
+        - pattern.source_fold_reference
+        + pattern.thickness
+    )
+    if abs(source_formed_hole - (63.0 if source_kind == LARGE_SOURCE else 48.0)) > 1e-7:
+        raise ValueError("REVISED_FIXED_PLATE_FORMED_HOLE_DATUM_DRIFT")
     scene = _source_flat_cutting_scene(pattern)
     # Recreate a distinct, mutable-independent geometry wrapper from a
     # certified constant source contour; placement/proof stays uncached.
@@ -251,6 +265,7 @@ def build_fixing_plate_source_render_data(
             "source_bend_axis": "y",
             "source_bend_line_mm": pattern.source_fold_reference,
             "source_bend_rule": "21+EAR_T",
+            "source_derived_formed_hole_center_mm": source_formed_hole,
             "formed_direction_verified": False,
             "formed_geometry_verified": False,
             "weld_z_verified": False,
