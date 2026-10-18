@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/whd-issue1819-long-gui-memory.yml'
       - 'docs/performance/issue1819-long-gui-memory.md'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,7 +31,7 @@ jobs:
       - name: Checkout exact candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
