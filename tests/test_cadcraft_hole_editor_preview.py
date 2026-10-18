@@ -49,6 +49,7 @@ def test_cadcraft_preview_exports_actual_hole_editor_coordinates_without_committ
     )
     assert path.exists() and seen == [[str(exe), str(path)]]
     doc = ezdxf.readfile(path)
+    assert doc.header["$INSUNITS"] == ezdxf.units.MM
     entities = tuple(doc.modelspace())
     assert entities and all(e.dxf.layer == "CHECK" for e in entities)
     circles = [e for e in entities if e.dxftype() == "CIRCLE"]
