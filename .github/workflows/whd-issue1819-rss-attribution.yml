@@ -1,0 +1,96 @@
+name: WHD #1819 True Tk Python-vs-Native Memory Attribution
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'tools/issue1819_python_memory_probe.py'
+      - 'tools/whd_performance_baseline.py'
+      - 'tests/test_issue1819_python_memory_probe.py'
+      - '.github/workflows/whd-issue1819-rss-attribution.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-issue1819-rss-attribution-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  python-native-rss-attribution:
+    name: Real Tk traced allocations versus RSS after explicit GC
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      TZ: Asia/Taipei
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      MPLBACKEND: TkAgg
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install actual GUI dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt pytest matplotlib psutil
+      - name: Test diagnostic gate and incomplete-run handling
+        run: python -m pytest -q tests/test_issue1819_python_memory_probe.py
+      - name: Trace genuine Tk multi-bay operations without changing source geometry
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1819-retention
+          {
+            echo "head_sha=$(git rev-parse HEAD)"
+            echo "kind=INSTRUMENTED_TRACE_NOT_PRODUCT_SPEED_BENCHMARK"
+            python -V
+            sha256sum tools/whd_performance_baseline.py tools/issue1819_python_memory_probe.py
+          } > work/issue1819-retention/environment.txt
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/whd_performance_baseline.py \
+            --samples 1 --cycles 12 --python-memory-trace \
+            --memory-interval-ms 50 \
+            --output work/issue1819-retention/tracedgui.json
+      - name: Read two exact-worker Python-trace reports
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          base = Path("work/issue1819-retention")
+          for bays in (1,3):
+              p = base / f"tracedgui-b{bays}-s0.python-mem.json"
+              if not p.is_file():
+                  raise SystemExit(f"TRACE_REPORT_MISSING: {p}")
+              d = json.loads(p.read_text())
+              if not d["complete"] or d["cycles_seen"] != 12:
+                  raise SystemExit(f"TRACE_INCOMPLETE: {p}")
+              print("ISSUE1819_PYTHON_RSS_ATTRIBUTION", bays)
+              print(json.dumps({
+                  "cycles": d["cycles_seen"],
+                  "warm_cycle": d["warm_cycle"],
+                  "tracemalloc_delta_total_bytes": d["tracemalloc_delta_total_bytes"],
+                  "rss_after_forced_gc_bytes_delta": d["rss_bytes_after_forced_gc_delta"],
+                  "gc_tracked_object_count_delta": d["gc_tracked_object_count_delta"],
+                  "top_python_heap_file_growth": d["top_python_heap_file_growth"][:12],
+              }, ensure_ascii=False, indent=2))
+          PY
+      - name: Retain diagnostics and raw worker journals on GREEN or RED
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-issue1819-python-native-rss-attribution
+          path: work/issue1819-retention/
+          retention-days: 14
+          if-no-files-found: warn
