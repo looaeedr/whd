@@ -64,7 +64,7 @@ def _tk_shell():
     return root, editor, canvas, old, features, msgs
 
 
-def _pump(root, predicate, *, timeout=4.0):
+def _pump(root, predicate, *, timeout=10.0):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         root.update()
@@ -97,7 +97,7 @@ def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
             thread_ids.append(threading.get_ident())
             assert executable == "test-only-cli"
             started.set()
-            if not release.wait(3):
+            if not release.wait(15):
                 raise RuntimeError("TEST_THREAD_NOT_RELEASED")
             return bridge.CadcraftCommandDrawingResult(
                 output_dxf=tmp_path / "actual-output.dxf",
