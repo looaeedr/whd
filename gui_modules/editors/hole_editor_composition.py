@@ -864,7 +864,7 @@ def _bind_editor_events(s):
                 return
             s.refresh_created()
             s.redraw()
-            details = "\\n".join(
+            details = "\n".join(
                 f"孔 {index + 1}: X {dx:+.3f} mm、Y {dy:+.3f} mm"
                 for index, dx, dy in pending.moves
             )
@@ -872,10 +872,10 @@ def _bind_editor_events(s):
             try:
                 confirmed = s.d.messagebox.askyesno(
                     "CADCraft 改孔回傳 — WHD 預覽",
-                    f"已驗證 {len(pending.moves)} 個孔的平移（尺寸、孔型不變）：\\n"
+                    f"已驗證 {len(pending.moves)} 個孔的平移（尺寸、孔型不變）：\n"
                     + details
-                    + "\\n\\n確認：提交至 WHD 原開孔 Session；"
-                      "取消：復原預覽、不更改原孔。\\n"
+                    + "\n\n確認：提交至 WHD 原開孔 Session；"
+                      "取消：復原預覽、不更改原孔。\n"
                       "製造圖仍由 WHD 原本的主編輯器『確定／儲存』流程產生。",
                     parent=s.editor,
                 )
