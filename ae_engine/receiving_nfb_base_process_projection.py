@@ -450,9 +450,10 @@ def build_existing_receiving_base_with_verified_nfb(
     The 1100-mm upper Door CELL owns the NFB Y datum, NOT the height of a
     base plate. A BasePlatePartSpec already describes the actual physical
     plate's own blank and fold pattern (e.g. an approximately 300-mm-tall
-    sample). Its mounting ear-hole GROUP center mates to the NFB row's
-    source-verified physical installation center. Never create a lower plate
-    or use a sketch's on-paper X/Y to position the base.
+    sample). The ear-fixing hole GROUP is laterally installed at the
+    CABINET CENTER X=0, while the NFB tier's opening HEIGHT locates plate Y.
+    Only NFB screw-hole CUTTING may follow its verified individual world X;
+    never shift the plate's 670-mm fixing-hole X to follow switch X.
     """
     from .contracts import BasePlatePartSpec
     from .manufacturing_api import build_part_render_data
@@ -510,10 +511,10 @@ def build_existing_receiving_base_with_verified_nfb(
         centers.append((float(x),float(yy.box_world_y_mm)))
     if max(y for _,y in centers)-min(y for _,y in centers)>_TOL:
         raise ValueError("NFB distinct installation heights require distinct actual ear/base groups")
-    group_world_center=(
-        (min(x for x,_ in centers)+max(x for x,_ in centers))/2.0,
-        centers[0][1],
-    )
+    # Left/right ear support holes remain symmetric about the cabinet.
+    # Individual NFB world X positions in verified_hole_locations are
+    # untouched; _projection applies ONLY their screw-hole offsets.
+    group_world_center=(0.0, centers[0][1])
     # The real plate must physically fit its owning upper cell. This uses
     # actual manufactured face dimensions, not the sample-DXF paper origin.
     real=build_part_render_data(base_spec)
