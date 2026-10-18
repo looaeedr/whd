@@ -3339,22 +3339,40 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if mode == "single":
                 adapter = candidate_adapter()
                 selected = adapter.selection
-                bay = adapter.layout["sets"][selected.set_index]["bays"][selected.bay_index]
+                row = adapter.layout["sets"][selected.set_index]
+                bay = row["bays"][selected.bay_index]
                 if bay.get("nfb_config_submitted") is True:
                     raise ValueError("NFB 已驗證提交；不得未經重新驗證直接改動內門開孔")
-                if staged_config is not None:
-                    config = validate_door_config(staged_config)
-                    for kind, value in (
-                        ("inner_door_layers", config["layers"]),
-                        ("inner_door_models", config["models"]),
-                        ("inner_door_layer_heights_mm", config.get("layer_heights_mm")),
-                        ("inner_door_version_id", ""),
-                    ):
-                        adapter.unlink_setting(kind)
-                        adapter.update_setting(kind, validate_setting(kind, value))
-                    self.mark_receiving_switch_layout_dirty(namespace, adapter)
-                    self.sync_receiving_current_bay(namespace, refresh_controls=False)
-                self.app.designer_workspace.stash_features(part_key, features)
+                # Single owns the *existing* physical Bay, never a candidate.
+                # Both settings and actual CUTTING must survive Bay reprojection.
+                current = (validate_door_config(staged_config) if staged_config is not None
+                           else current_inner_editor_config())
+                current = deepcopy(current)
+                current.setdefault("features", {})[part_key] = deepcopy(features)
+                required_values = (
+                    ("inner_door_layers", current["layers"]),
+                    ("inner_door_models", current["models"]),
+                    ("inner_door_layer_heights_mm", current.get("layer_heights_mm")),
+                    ("inner_door_features", current["features"]),
+                    ("inner_door_version_id", ""),
+                )
+                values = [(kind, validate_setting(kind, value)) for kind, value in required_values]
+                # Validate all writes before mutating the canonical live adapter.
+                from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
+                updated_layout = adapter.layout
+                for kind, value in values:
+                    updated_layout = unlink_setting(
+                        updated_layout, set_index=selected.set_index,
+                        bay_index=selected.bay_index, kind=kind,
+                    )
+                    updated_layout = edit_setting(
+                        updated_layout, set_index=selected.set_index,
+                        bay_index=selected.bay_index, kind=kind, value=value,
+                    )
+                adapter._layout = updated_layout
+                adapter.mark_current_bay_dirty()
+                self.mark_receiving_switch_layout_dirty(namespace, adapter)
+                self.sync_receiving_current_bay(namespace, refresh_controls=False)
                 self.app.submit_update_intent("geometry", commit=True)
                 return
             if mode != "candidate":
