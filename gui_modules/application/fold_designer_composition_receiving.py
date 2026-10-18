@@ -3435,7 +3435,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if tabs is not None and tabs.winfo_exists():
                 tabs.select(0)   # native 開孔編輯 tab, not a new popup
 
-        def stage_inner_config(config):
+        def stage_inner_config(config, openings=None):
+            # Both changes stay inside the original editor's undoable draft.
+            # A failed geometry stage cannot leave new settings behind.
+            if openings is not None:
+                accept = getattr(editor, "_receiving_stage_selected_nfb_openings", None)
+                if not callable(accept):
+                    raise ValueError("主開孔編輯器尚未連接 NFB 暫存開孔")
+                accept(openings)
             editor._receiving_staged_config = deepcopy(config)
 
         editor._receiving_stage_config = stage_inner_config
