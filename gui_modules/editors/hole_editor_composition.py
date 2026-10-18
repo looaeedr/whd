@@ -813,7 +813,7 @@ def _bind_editor_events(s):
                     # Establish a live ticket from the *exact* verified DXF.
                     # Synthetic GUI tests may intentionally supply only an
                     # isolated test path, not a physical proof output.
-                    return_denied = ""
+                    return_denied = "隔離 DXF 檔案不存在"
                     if outcome.output_dxf.is_file():
                         from .cadcraft_manual_hole_return_bridge import (
                             create_manual_return_ticket,
@@ -829,6 +829,7 @@ def _bind_editor_events(s):
                         except (OSError, ValueError, TypeError) as exc:
                             return_denied = str(exc)
                         else:
+                            return_denied = ""
                             s.editor._hole_cadcraft_return_ticket = ticket
                             if return_button is not None:
                                 return_button.configure(state="normal")
@@ -837,7 +838,10 @@ def _bind_editor_events(s):
                         "已由 WHD 座標指令產生 CADCraft 新圖，幾何校驗通過。\n"
                         "PNG：" + str(outcome.preview_png)
                         + "\nDXF：" + str(outcome.output_dxf)
-                        + "\n這是獨立試作，不會修改 WHD 開孔或製造圖。",
+                        + "\n這是獨立試作，不會修改 WHD 開孔或製造圖。"
+                        + ("\n回傳操作：在 CADCraft 開啟上述 DXF，只平移原孔、原檔儲存，"
+                           "再回 WHD 點『CADCraft 改孔回傳』。"
+                           if not return_denied else "\n此圖不可回傳：" + return_denied),
                         parent=s.editor,
                     )
 
