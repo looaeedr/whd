@@ -117,6 +117,8 @@ PYTEST_PATHS = (
     "tests/test_issue1502_nfb_base_source_projection.py",
     # V5 CSV is the current source of NFB openings and screw pitches.
     "tests/test_issue1502_v5_csv_base_x_stable.py",
+    # Same V5 CSV source geometry on separate, truly owned NFB-tier plates.
+    "tests/test_issue1502_v5_csv_tier_bases.py",
     "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
     "tests/test_issue1502_nfb_finalscene_composite.py",
     "tests/test_issue1502_lower_four_nfb_mount_source.py::test_only_original_lower_four_circles_are_mounting_screws",

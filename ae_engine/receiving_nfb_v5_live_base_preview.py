@@ -35,6 +35,7 @@ def preview_v5_on_existing_receiving_base(
     *, door: NfbV5ConfiguredInnerDoorTrial,
     configured_holes: Sequence[NfbV5ConfiguredInnerDoorHole],
     base_spec: BasePlatePartSpec,
+    tier_slot_index: int | None = None,
 ) -> NfbV5ActualBaseScrewTrial:
     """Use current application's existing base PartSpec, not a test fixture.
 
@@ -51,6 +52,11 @@ def preview_v5_on_existing_receiving_base(
     physical_id = str(base_spec.physical_id or "").strip()
     if not physical_id or physical_id.startswith("base_plate_c"):
         raise ValueError("NFB V5 不可拿舊內門格子的虛構底板當實體底板")
+    if tier_slot_index is not None:
+        if type(tier_slot_index) is not int or tier_slot_index < 0:
+            raise ValueError("NFB V5 實體層索引不合法")
+        if physical_id != f"base_plate:nfb_layer:{tier_slot_index}":
+            raise ValueError("NFB V5 實體底板不是本層原始 BasePlatePartSpec")
     if (abs(float(snapshot.get("w", 0)) - float(base_spec.width)) > _TOL
             or abs(float(snapshot.get("t", 0)) - float(base_spec.thickness)) > _TOL):
         raise ValueError("NFB V5 底板寬／板厚與目前受電箱不符")
@@ -73,10 +79,17 @@ def preview_v5_on_existing_receiving_base(
     if not (0 < float(base_spec.height) <= float(cell.start_height)):
         raise ValueError("NFB V5 原始底板高度超出上方實體作用區")
     entries = tuple(configured_holes)
-    if not entries or len(entries) != len(door.hole_ids):
+    if (not entries or len(entries) != len(door.hole_ids)
+            or tuple(e.physical_hole_id for e in entries) != door.hole_ids):
         raise ValueError("NFB V5 未取得完整的已配置螺絲孔所屬開關")
+    selected = tuple(
+        e for e in entries
+        if tier_slot_index is None or e.slot_index == tier_slot_index
+    )
+    if not selected:
+        raise ValueError("NFB V5 本層沒有對應的已配置開關")
     world_centres = []
-    for entry in entries:
+    for entry in selected:
         if not isinstance(entry, NfbV5ConfiguredInnerDoorHole):
             raise ValueError("NFB V5 缺少已配置孔位識別")
         if (type(entry.world_x_mm) not in (int, float)
@@ -139,4 +152,48 @@ def preview_v5_on_existing_receiving_base(
     return trial_v5_screws_on_existing_receiving_base(
         snapshot, inner_door_id,
         door=door, configured_holes=entries, target=target,
+        tier_slot_index=tier_slot_index,
     )
+
+
+def preview_v5_on_existing_receiving_tier_bases(
+    snapshot: Mapping[str, object], inner_door_id: str,
+    *, door: NfbV5ConfiguredInnerDoorTrial,
+    configured_holes: Sequence[NfbV5ConfiguredInnerDoorHole],
+    base_specs: Mapping[int, BasePlatePartSpec],
+) -> tuple[NfbV5ActualBaseScrewTrial, ...]:
+    """One unchanged CSV source/geometry algorithm on each real NFB tier.
+
+    The FULL inner-door trial is passed unmodified to each tier, not split
+    into forged independent certifications. Each existing BasePlatePartSpec
+    owns exactly one tier and its four fixed EAR mount holes. This is still
+    an unapproved FinalScene *trial*, never a whole-box MFG-2 export.
+    """
+    entries = tuple(configured_holes)
+    if (not isinstance(door, NfbV5ConfiguredInnerDoorTrial)
+            or not entries or not isinstance(base_specs, Mapping)
+            or len(entries) != len(door.hole_ids)
+            or tuple(e.physical_hole_id for e in entries) != door.hole_ids):
+        raise ValueError("NFB V5 多層須提供完整原內門孔位試作與實體板件")
+    counts = {e.layer_count for e in entries}
+    if len(counts) != 1 or next(iter(counts)) < 2:
+        raise ValueError("NFB V5 多層請提供一致的實際層數")
+    count = next(iter(counts))
+    if (any(type(e.slot_index) is not int
+            or not 0 <= e.slot_index < count for e in entries)):
+        raise ValueError("NFB V5 各顆所屬層索引不合法")
+    active = {e.slot_index for e in entries}
+    if set(base_specs) != active:
+        raise ValueError("NFB V5 實體底板集合與已有開關的層數不一致")
+    results = tuple(
+        preview_v5_on_existing_receiving_base(
+            snapshot, inner_door_id,
+            door=door, configured_holes=entries,
+            base_spec=base_specs[tier], tier_slot_index=tier,
+        )
+        for tier in sorted(active)
+    )
+    if len({part.part_id for part in results}) != len(results):
+        raise ValueError("NFB V5 多層底板實體 ID 重複")
+    assert all(not part.manufacturing_ready for part in results)
+    return results
