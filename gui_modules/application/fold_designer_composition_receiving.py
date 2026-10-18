@@ -2727,7 +2727,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
             side="left", padx=5,
         )
-        ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
+        ttk.Button(buttons, text="確定", command=confirm).pack(side="left")
         # Restore the parent multi-settings grab after this editor closes.
         parent_modal = getattr(
             self.app.root, "_receiving_multi_settings_window", None
@@ -3447,7 +3447,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             go_to_main_tab()
 
         def saved_inner_version(_version_id):
-            status.configure(text="受電箱設定已放入主開孔編輯器草稿；尚未寫入板件或版本")
+            status.configure(text="受電箱 NFB 開孔已放入主編輯器草稿；尚未寫入板件或版本")
             go_to_main_tab()
 
         def mount_inner_editor():
