@@ -8,7 +8,7 @@ pre-verified numeric/DXF source before the ordinary editor can confirm.
 import ast
 from pathlib import Path
 
-from ae_engine.receiving_nfb_model_identity import make_numeric_model_ref
+from ae_engine.receiving_nfb_model_identity import numeric_model_ref
 from ae_engine.receiving_nfb_numeric_catalog import model_spec
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,7 +78,7 @@ def test_original_inner_door_manual_hole_editor_remains_in_place():
 
 def test_current_csv_catalog_still_supplies_model_and_opening_dimensions():
     # Removing a second POPUP must not delete the source CSV itself.
-    ref = make_numeric_model_ref("士林", "2P400")
+    ref = numeric_model_ref("士林", "2P400")
     assert ref == "nfbv5:士林:2P400"
     spec = model_spec("士林", "2P400")
     assert spec is not None
