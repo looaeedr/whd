@@ -237,31 +237,21 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
             if model in {"受電箱","RECEIVING"} else None
         )
         verified_source=source_z is not None
-        if verified_source:
-            # SAME active inner Door and submitted NFB source as the Z owner:
-            # no independent box-centered Y/guessed X overlay. The common
-            # physical Base Plate must follow the exact NFB installation row.
-            upper = [
-                row for row in tuple(snapshot.get("inner_doors") or ())
-                if isinstance(row, Mapping)
-                and str(row.get("cell_key") or "").split(":")[-1] == "0"
-                and str(row.get("stable_id") or "").strip()
-            ]
-            if len(upper) != 1:
-                raise ValueError("RECEIVING_NFB_BASE_XY_REQUIRES_UNIQUE_UPPER_DOOR")
-            from .receiving_nfb_base_assembly_xy import receiving_source_nfb_base_assembly_xy
-            group = receiving_source_nfb_base_assembly_xy(
-                snapshot, str(upper[0]["stable_id"])
-            )
-            if group is None:
-                raise ValueError("RECEIVING_NFB_BASE_SOURCE_Y_MISSING")
-            position = (
-                float(group.verified_world_x_mm)
-                if group.verified_world_x_mm is not None else 0.0,
-                float(group.world_y_mm), float(source_z),
-            )
-        else:
-            position = (0.0,0.0,_base_plate_center_plane(snapshot))
+        # SOURCE_READ_EVIDENCE (#1502): the NFB projected X/Y are HOLE
+        # coordinates on the upper inner door, NOT the welded fixing-plate
+        # position nor the physical Base Plate assembly origin. A Base Plate
+        # mounts to two fixing plates welded to LEFT/RIGHT SIDE-SHEET inner
+        # skins (receiving-large-weld-ear.md, receiving_base_fixing_plate.py).
+        # Until the physical ear-to-base mounting Y / per-layer part identities
+        # are certified, retain the PRE-#1886 XY preview coordinates. Never
+        # translate an entire plate when the operator edits hole Y=330/830 or
+        # one switch's X; doing so falsifies the ear contact / mounting slots.
+        # The independent verified NFB Z skin/depth calculation is retained.
+        # Neither this preview XY nor verified Z certifies a manufactured
+        # fixing ear, per-layer plate or side-sheet weld MARKING.
+        position = (0.0, 0.0,
+                    float(source_z) if verified_source
+                    else _base_plate_center_plane(snapshot))
         return AssemblyPlacement(
             stable_id=stable_id,
             parent_assembly_node="box_body",
