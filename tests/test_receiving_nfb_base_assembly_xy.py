@@ -53,7 +53,7 @@ def test_operator_updated_hole_height_moves_this_tier_plate_center():
 
 def test_single_row_projection_rejects_mixed_nfb_layers_without_rejecting_cabinet():
     snap=_state()
-    snap["nfb_config"]["holes"][1].update(layer_count=2,slot_index=1)
+    snap["nfb_config"]["holes"][1].update(layer_count=2,layer_index=1,slot_index=0)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     # This helper resolves ONE NFB hole row; reject mixing row coords.
     # It is NOT a whole-cabinet rule forbidding two NFB layers/plates.
