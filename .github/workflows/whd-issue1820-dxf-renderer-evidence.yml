@@ -70,6 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
           mkdir -p work/issue1820
           python tools/cadcraft_hole_editor_preview_crosscheck.py emit work/issue1820/source.dxf
           python - <<'PY'
@@ -86,6 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           export CADCRAFT_CONFIG_DIR="$RUNNER_TEMP/cadcraft-sandbox"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
           xvfb-run -a -s "-screen 0 1600x1000x24" \
             python tools/issue1820_whd_cadcraft_dxf_benchmark.py compare \
             work/issue1820/source.dxf \
