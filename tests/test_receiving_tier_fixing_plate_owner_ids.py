@@ -93,3 +93,100 @@ def test_navigation_tier_ears_nested_under_own_plate_not_the_other():
     assert operator_part_label(
         "base_plate:fixing_plate:nfb_layer:1:right"
     )=="底板固定片（第2層右）"
+
+
+def test_two_nfb_tiers_have_four_independent_source_cutting_blanks_and_xyz():
+    """W800 source EARs are already defined, not PAD/unknown geometry."""
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        SOURCE_DXF_SHA256, build_fixing_plate_source_render_data,
+    )
+    from ae_engine.receiving_tier_ear_assembly_xy import (
+        resolve_receiving_tier_ear_mating_xy,
+    )
+    from ae_engine.receiving_tier_ear_z_targets import (
+        resolve_receiving_tier_ear_contact_targets,
+    )
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+
+    snapshot = _two_tier()
+    xy = {row.ear_id: row for row in resolve_receiving_tier_ear_mating_xy(snapshot)}
+    contacts = {
+        row.ear_id: row for row in resolve_receiving_tier_ear_contact_targets(snapshot)
+    }
+    assert len(xy) == len(contacts) == 4
+    renders = {}
+    for part_id, target in xy.items():
+        material = build_fixing_plate_source_render_data(part_id, snapshot=snapshot)
+        renders[part_id] = material
+        meta = material.metadata
+        assert material.unfolded_topology.piece_id == part_id
+        assert meta["stable_id"] == part_id
+        assert meta["source_dxf_sha256"] == SOURCE_DXF_SHA256
+        assert meta["source_cutting_verified"] is True
+        assert meta["thickness"] == 3
+        assert meta["source_flat_dimensions"] == (256, 105)
+        assert meta["xy_mating_proven"] is True
+        assert meta["parent_base_id"] == target.parent_base_id
+        assert meta["nfb_layer_index"] == target.layer_index
+        assert meta["nominal_slot_pair_indexes"] == (1, 2)
+        assert meta["nominal_weld_inside_skin_x_mm"] == pytest.approx(
+            target.side_inside_weld_x_mm,
+        )
+        assert meta["nominal_base_fixing_hole_world_x_mm"] == pytest.approx(
+            target.selected_slot_column_x_mm,
+        )
+        assert meta["nominal_base_fixing_hole_world_y_mm"] == pytest.approx(
+            target.selected_slot_pair_world_y_mm,
+        )
+        assert meta["base_back_skin_world_z_mm"] == pytest.approx(
+            contacts[part_id].base_back_skin_world_z_mm,
+        )
+        assert meta["ear_contact_target_world_z_mm"] == pytest.approx(
+            contacts[part_id].target_ear_contact_world_z_mm,
+        )
+        assert meta["base_skin_z_source_verified"] is True
+        assert meta["formed_geometry_verified"] is False
+        assert meta["weld_z_verified"] is False
+        assert meta["manufacturing_ready"] is False
+        assert len([p for p in material.scene.primitives
+                    if isinstance(p, PolylinePrimitive)
+                    and p.layer == "CUTTING" and p.closed]) == 5
+        assert all(p.layer != "BEND" for p in material.scene.primitives)
+    assert len(renders) == 4
+    assert len({id(p.scene) for p in renders.values()}) == 4
+    assert len({id(p.material) for p in renders.values()}) == 4
+    assert [renders[k].metadata["nfb_layer_index"] for k in renders] == [0, 0, 1, 1]
+    assert [renders[k].metadata["nominal_base_fixing_hole_world_x_mm"]
+            for k in renders] == [-335., 335., -335., 335.]
+
+
+def test_tier_fixing_plate_rejects_stale_or_missing_physical_owner():
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        build_fixing_plate_source_render_data,
+    )
+    valid = _two_tier()
+    part = "base_plate:fixing_plate:nfb_layer:0:left"
+    with pytest.raises(ValueError, match="NEEDS_CURRENT_SOURCE_SNAPSHOT"):
+        build_fixing_plate_source_render_data(part)
+    stale = deepcopy(valid)
+    stale["_receiving_runtime_selection"]["bay_id"] = "stale-bay"
+    with pytest.raises(ValueError, match="CABINET_MISMATCH"):
+        build_fixing_plate_source_render_data(part, snapshot=stale)
+    with pytest.raises(ValueError, match="CABINET_MISMATCH"):
+        build_fixing_plate_source_render_data(
+            "base_plate:fixing_plate:nfb_layer:7:left", snapshot=valid,
+        )
+
+
+def test_single_tier_source_flat_render_still_uses_real_original_one_pair():
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        build_fixing_plate_source_render_data,
+    )
+    snapshot = _assembled()
+    for side, x in (("left", -335.0), ("right", 335.0)):
+        part = f"base_plate:fixing_plate:{side}"
+        render = build_fixing_plate_source_render_data(part, snapshot=snapshot)
+        assert render.metadata["nominal_base_fixing_hole_world_x_mm"] == x
+        assert render.metadata["parent_base_id"] == "base_plate"
+        assert render.metadata["nfb_layer_index"] is None
+        assert not render.metadata["manufacturing_ready"]
