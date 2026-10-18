@@ -161,3 +161,56 @@ def assert_quantity_nfb_proof_current(proof, *, snapshot, draft=None):
             or not proof.verified_door.manufacturing_ready):
         raise ValueError("NFB 來源與目前單只板件驗證失效")
     return proof
+
+
+def preview_quantity_nfb_v5_on_actual_inner_door(
+    draft, *, snapshot: Mapping[str, object],
+    world_x_by_unit: Mapping[str, float],
+):
+    """Read-only numeric V5 trial on the existing Single door; no fake Bay ID.
+
+    Returns the physical trial, its real configured holes and inner door ID.
+    The result is explicitly NOT approved for manufacturing / Hole Editor
+    CUTTING before the separate numeric-source certification requirement.
+    """
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_ui1a import effective_nfb_slot_brand
+    from .receiving_nfb_v5_configured_inner_door import (
+        NfbV5ConfiguredInnerDoorHole, trial_configured_nfb_v5_inner_door_render_data,
+    )
+    state = editable_nfb_draft(draft)
+    if state["status"] != "UNSUBMITTED_NFB_DRAFT_PREVIEW_ONLY":
+        raise ValueError("NFB V5 單只預覽只能用未提交草稿")
+    panel = _quantity_panel(snapshot)
+    entries = []
+    expected = set()
+    for li, layer in enumerate(state["layers"][:state["layer_count"]]):
+        for si, unit in enumerate(layer["slots"]):
+            if unit["filename"] is None:
+                continue
+            brand = effective_nfb_slot_brand(state, li, si)
+            parsed = parse_numeric_model_ref(unit["filename"])
+            if parsed is None or parsed[0] != brand or unit.get("source_brand") != brand:
+                raise ValueError("NFB V5 單只型號必須有符合廠牌的數值 CSV")
+            uid = unit["unit_id"]
+            if not isinstance(uid, str) or not uid or uid in expected:
+                raise ValueError("NFB V5 單只 NFB 身分缺失或重複")
+            expected.add(uid)
+            x = world_x_by_unit.get(uid) if isinstance(world_x_by_unit, Mapping) else None
+            if type(x) not in (int, float) or not isfinite(float(x)):
+                raise ValueError("NFB V5 單只每顆必須指定實際世界 X")
+            entries.append(NfbV5ConfiguredInnerDoorHole(
+                physical_hole_id=f"nfb:quantity:{panel.stable_id}:{uid}",
+                brand=brand, model_ref=unit["filename"],
+                world_x_mm=float(x), layer_count=state["layer_count"],
+                slot_index=li,
+                rotation_deg=effective_nfb_rotation(state, li, si),
+            ))
+    if not entries or not isinstance(world_x_by_unit, Mapping) or set(world_x_by_unit) != expected:
+        raise ValueError("NFB V5 單只實際世界 X 與型號件數不一致")
+    trial = trial_configured_nfb_v5_inner_door_render_data(
+        snapshot, panel.inner_door_id, holes=tuple(entries),
+    )
+    if getattr(trial, "manufacturing_ready", True):
+        raise ValueError("NFB V5 試作不得冒充已通過製造驗證")
+    return trial, tuple(entries), panel.inner_door_id
