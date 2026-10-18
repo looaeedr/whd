@@ -6,6 +6,7 @@ calls exceed the GUI settle timeout and yielded zero owner checkpoints.
 """
 from __future__ import annotations
 
+from collections import Counter
 import gc
 import json
 from pathlib import Path
@@ -60,6 +61,12 @@ def _cache_owners(owners):
     return result
 
 
+def _tracked_type_counts():
+    """Count real GC-tracked objects by fully qualified Python class."""
+    counter = Counter(type(obj).__module__ + "." + type(obj).__name__ for obj in gc.get_objects())
+    return dict(counter)
+
+
 def _alive_object_counts():
     """Count surviving GC-tracked instances in the real process after GC."""
     counts = {key: 0 for key in _WATCHED}
@@ -76,7 +83,12 @@ class PythonMemoryAttributionProbe:
             raise ValueError("diagnostic requires at least 4 return-to-3D cycles")
         self.rss_reader = rss_reader
         self.cycles = cycles
-        self.warm_at = max(3, min(10, cycles // 3))
+        # Compare the same alternating 800/820 Bay width. Prior 3-vs-8
+        # snapshots compared DIFFERENT physical geometry states.
+        candidate = max(3, min(10, cycles // 3))
+        if candidate % 2 != cycles % 2:
+            candidate += 1
+        self.warm_at = min(candidate, cycles - 2)
         self.count = 0
         self.checkpoints = {}
         self.snapshots = {}
@@ -104,6 +116,7 @@ class PythonMemoryAttributionProbe:
             "rss_bytes_after_forced_gc": self.rss_reader(),
             "gc_tracked_object_count": len(gc.get_objects()),
             "surviving_object_counts": _alive_object_counts(),
+            "gc_live_objects_by_qualified_type": _tracked_type_counts(),
             "actual_gui_owner_cache_entries": _cache_owners(self.owners),
             "diagnostic_only_not_comparable_latency": True,
         }
@@ -137,6 +150,29 @@ class PythonMemoryAttributionProbe:
                           "rss_bytes_after_forced_gc", "gc_tracked_object_count"):
                 if first[field] is not None and last[field] is not None:
                     report[field + "_delta"] = last[field] - first[field]
+            counts_first = first["gc_live_objects_by_qualified_type"]
+            counts_last = last["gc_live_objects_by_qualified_type"]
+            type_delta = {
+                key: counts_last.get(key, 0) - counts_first.get(key, 0)
+                for key in set(counts_first) | set(counts_last)
+            }
+            report["top_still_alive_gc_types"] = [
+                {"type": key, "warm_count": counts_first.get(key, 0),
+                 "final_count": counts_last.get(key, 0), "delta": delta}
+                for key, delta in sorted(type_delta.items(), key=lambda pair: pair[1], reverse=True)
+                if delta
+            ][:60]
+            report["top_alive_allocation_lines"] = [
+                {"file": str(stat.traceback[0].filename),
+                 "lineno": stat.traceback[0].lineno,
+                 "size_diff_bytes": stat.size_diff, "count_diff": stat.count_diff}
+                for stat in b.compare_to(a, "lineno")[:45]
+            ]
+            key = "gui_owner_1:Phase6FoldDesignerApp._phase6_last_resolved_manufacturing_signature"
+            report["same_source_geometry_signature"] = (
+                first["actual_gui_owner_cache_entries"].get(key)
+                == last["actual_gui_owner_cache_entries"].get(key)
+            )
             report["surviving_object_count_delta"] = {
                 k: last["surviving_object_counts"].get(k, 0) - first["surviving_object_counts"].get(k, 0)
                 for k in _WATCHED
