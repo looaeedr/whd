@@ -1,6 +1,6 @@
 """#1820 actual CADCraft desktop-egui timing via its pinned native control port.
 
-Uses the public v0.7.0 control protocol; no interaction with WHD project or
+Uses the pinned release's native control protocol (current workflow: v0.8.0); no interaction with WHD project or
 production DXF and no made-up timings. This is Linux Xvfb GUI evidence,
 not Windows operator acceptance and not a replacement for the 2D Hole Editor.
 """
