@@ -134,3 +134,29 @@ CADCraft v0.8.0 原生 GUI 真正載入 8,620 圖元大圖，`app.open` 成功�
 CADCraft v0.8.0 `crates/io/src/dxf_write.rs::code_page` 針對 2007 以後版本寫出 `ANSI_1252`；`crates/io/src/lib.rs::save_version` 對舊版 DXF 使用所支援的最接近版本，寫入器則使用 R2000 結構。因此**這些是可定位的輸出格式變更**，不是只看圖元數能偵測到；R2018 的 codepage 宣告差異不能逕認中文字損壞，也不能在未驗證前逕認完全等價。另有圖塊內 264 處 TEXT 轉碼差異，部分原檔在 ezdxf 解碼時出現替代字元，尚缺 byte-level／正確 CP950 解碼的可核對證據。
 
 `tools/issue1820_cadcraft_dxf_fidelity_gate.py` 除 `$INSUNITS`、`$MEASUREMENT` 外，新增 `$ACADVER` 和 `$DWGCODEPAGE` 作為 **嚴格保真硬閘門**；僅作 fail-closed 診斷，不擅自重寫來源檔頭，不把 CADCraft 另存結果回流 WHD 製造。後續真正修復文字／圖塊時應另設明確證據，若需刻意升版或改字碼頁，應視為版本轉換工作，與「原 DXF 無損另存」分別驗收。
+
+
+---
+
+## #1820 第五階段後的 R5-2600 實測結論（2026-10-18，台灣時間）
+
+**這一節是 #1941、#1942、#1944、#1948、#1951、#1953 之後的最新事實。** 上文官方未修改 CADCraft v0.8.0 CLI 的 read→save FAIL 表格是歷史 RED，不能繼續當成修正版的現況，也不能因為修復單項後便宣稱全圖保真合格。
+
+各版都是以官方 `storytold/cadcraft` v0.8.0 原始碼在隔離環境內施加小範圍實驗修補，Linux／Windows x64 原生 Rust CLI RED→GREEN；修補工具與 CI 工作流整合至 GitHub `localX`，**並非將修改後的 CADCraft 發布成官方版本，也沒有替換 Windows 上原 CADCraft 安裝**。
+
+| 實圖／R5 隔離 read→save | 官方 v0.8.0 首輪 RED | 目前修正版 R5 結果 |
+|---|---|---|
+| 81 圖元、13 個圖塊 | 未引用 `*D1`～`*D4` 消失，13→9；`ANSI_950`→`ANSI_1252` | **81→81；13→13，零圖塊遺失；字碼頁 ANSI_950 保留；單位及既有標註位置/值不變** |
+| 54 圖元、6 個圖塊 | 部分 DIMENSION 資料改寫，字碼頁改為 ANSI_1252 | **54→54；6→6；ANSI_950 保留；4 筆尺寸標註位置與明示值不變** |
+| 8,620 圖元、520 個圖塊 | 單位未指定被改成 inch；489 筆原本缺失 DIMENSION group42 被新增 | **8,620→8,620；520→522 且零舊圖塊遺失；單位未指定仍未指定；489 筆 group42 缺失狀態保留；205 筆 model TEXT 和 823 筆 block TEXT 邏輯內容相同** |
+
+修正版的 Windows x64 test-only CLI 由 [PR #1953](https://github.com/looaeedr/whd/pull/1953) 的 exact SHA `a1286d66b67fc44de180721e70c66dbe31eeff28` GitHub Actions 產出，七項 CI 全部 SUCCESS；PR 已合併 GitHub `localX`，squash SHA `f561be45aebc0c029fbf0cc0b6c85426557e0bc8`。實際 R5 驗證包括三組合成中文 TEXT 的官方版 RED／修正版 GREEN，以及三份原始真實 DXF 的修正版讀存；來源雜湊均不變。驗證檔案：
+`C:\Users\looae\Documents\WHD_1820_CADCraft_UAT\unitless_native_1941\codepage_native_real\R5_codepage_native_real_results.json`；全操作紀錄在 `WHD_1820_CADCraft_UAT\DC_actions.log`。所有原始使用者 DXF 留在 R5，**未提交 GitHub**。
+
+### 仍然不能核准 CADCraft 製造圖回寫
+
+- **DXF R12 格式不保真**：8,620 圖元原圖 `$ACADVER=AC1009`，CADCraft 另存升級為 `AC1015`（R2000），並新增 `$MODEL_SPACE`／`$PAPER_SPACE` 結構圖塊；這是 DXF 版本轉換，沒有原格式輸出與跨 CAD 工具相容的證據。不可只改檔頭冒稱「保留 R12」。
+- **嚴格 gate 仍然 FAIL_CLOSED**：`MODEL_DIFF / BLOCKS_DIFF / LAYERS_DIFF` 類型與預設屬性、資料序列化可能不同。限定座標與文字解碼比較未見漂移，不代表材質、字型視覺、全部圖層、layout 或其他 CAD 讀取器的完整語意通過。
+- **效益不足以取代既有 2D**：R5 的既有 WHD 真開孔主程式約 9.55 秒與 CADCraft 只有 Viewer 首畫面約 1.34 秒，不是同工作量；WHD 已開啟後另起 CADCraft 的 DXF 準備＋首幀約 1.30 秒、雙程式同時峰值約 419.9 MiB，並增加視窗切換與回到 WHD 編輯的步驟。未有可比的端到端開孔工作流改善與全圖保真證據。
+
+**現階段決策：CADCraft 僅保留可選單向唯讀試看，原 WHD 2D 編輯器與製造資料繼續為唯一權威；不啟動取代編輯器或回寫製造圖的整合。** 若以後真的需要 CADCraft 修改 DXF，必須將 R12 writer／文件版式轉換做為獨立產品需求並跑三份真圖、真 GUI 與第三方 CAD 相容驗證。此結論只完成目前評估所能支持的 NO-GO 判斷，**不等於宣稱完整 DXF 保真通過**，也不等於使用者已下 `/推推` 發布正式 X。
