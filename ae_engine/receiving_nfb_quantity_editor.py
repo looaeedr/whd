@@ -73,8 +73,8 @@ def verify_quantity_nfb_inner_door_source(
     if len(set(candidates)) != 1 or not candidates:
         raise ValueError("單次真實 DXF 驗證僅支援同一 NFB 來源型號")
     brand, filename = candidates[0]
-    if brand != state["set_brand"]:
-        raise ValueError("NFB 單只品牌與選取來源不一致")
+    # The one verified source follows the actual slot brand. An explicit
+    # per-slot brand override is valid even when the global brand differs.
     index = Path(index_path)
     profile_file = Path(profile_path) if profile_path is not None else index.parent / "來源輪廓索引.csv"
     profiles = read_nfb_runtime_source_profiles_csv(profile_file)
