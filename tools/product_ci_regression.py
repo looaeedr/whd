@@ -64,6 +64,8 @@ PYTEST_PATHS = (
     "tests/test_issue1503_revised_bend_formed_skins.py",
     # #1503: formed T2 BEND23 actual assembly 3D overlay / no false MFG.
     "tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py",
+    # #1503: only real bent flange skin may define side-panel weld contact.
+    "tests/test_issue1503_formed_ear_side_contact.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
@@ -217,7 +219,7 @@ PYTEST_PATHS = (
     "tests/test_phase6_3d_single_source_renderer.py::test_2d_and_3d_equal_door_state_share_exact_render_data_object",
     # Real W800, single & assembled doors, and all FinalScene skins must be grid-free.
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_real_receiving_all_panels_shaded_without_triangle_edges",
-    # Real raster check: semitransparent parts must not show triangle seams.
+    # Real raster check: translucent sheet facets render without seams.
     "tests/test_phase6_gridless_surface_opacity.py",
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_flat_part_keeps_authoritative_bend_and_marking_with_no_mesh_lines",
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_single_door_cutting_rims_and_bends_without_mesh_edge_overlay",
