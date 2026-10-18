@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
+from math import isfinite
 from typing import Sequence
 
 from .manufacturing_equivalence import (
@@ -118,6 +119,44 @@ def check_csv_v5_base_part_only_groups(
                 or render.material is None or render.material.is_empty
                 or not render.material.is_valid):
             raise ValueError("CSV V5 底板孔數、EAR 固定孔或材料不一致")
+        # A matching source ID/count and internally consistent material alone
+        # cannot prove these are the four CSV-derived screw holes. Compare
+        # every actual CUTTING circle to the current numeric catalog and the
+        # original projected physical face. No DXF or new source is created.
+        from .receiving_nfb_numeric_panel_projection import (
+            NfbV5PanelPattern, project_nfb_v5_to_panel,
+        )
+        if tuple(info.get("nfb_v5_source_models") or ()) != tuple(
+            (pattern.brand, pattern.model) for pattern in part.patterns
+        ):
+            raise ValueError("CSV V5 底板型號來源與孔位模型不一致")
+        actual_screws = {circle.source_id: circle for circle in screws}
+        for hole_id, pattern in zip(part.hole_ids, part.patterns):
+            if (not isinstance(pattern, NfbV5PanelPattern)
+                    or pattern.feature != "screws"
+                    or pattern.datum.part_id != part.part_id
+                    or pattern.datum.role != "base-plate"
+                    or pattern.screw_centres_uv_mm is None):
+                raise ValueError("CSV V5 底板螺絲孔缺少實體來源投影")
+            recalculated = project_nfb_v5_to_panel(
+                pattern.brand, pattern.model, pattern.datum, feature="screws",
+            )
+            if (recalculated.screw_centres_uv_mm
+                    != pattern.screw_centres_uv_mm
+                    or recalculated.screw_diameter_mm != pattern.screw_diameter_mm):
+                raise ValueError("CSV V5 螺絲孔已偏離目前 CSV 數值")
+            diameter = float(recalculated.screw_diameter_mm)
+            if not isfinite(diameter) or diameter <= 0:
+                raise ValueError("CSV V5 螺絲孔直徑無效")
+            for index, (x, y) in enumerate(
+                recalculated.screw_centres_uv_mm, start=1
+            ):
+                observed = actual_screws[f"{hole_id}:screw:{index}"]
+                if (abs(observed.center.x - x) > 1e-6
+                        or abs(observed.center.y - y) > 1e-6
+                        or abs(observed.radius - diameter / 2) > 1e-6
+                        or observed.color != 30):
+                    raise ValueError("CSV V5 CUTTING 螺絲孔與數值規格座標／孔徑不符")
         measured = material_polygon_from_final_scene(render.scene)
         if measured.symmetric_difference(render.material).area > 1e-4:
             raise ValueError("CSV V5 底板 FinalScene 與材料差異")
