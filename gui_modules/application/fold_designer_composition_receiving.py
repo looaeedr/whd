@@ -3359,10 +3359,20 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             config["layer_heights_mm"] = heights
         return config
 
+    def current_inner_editor_snapshot():
+        source = _current_mode_snapshot(self, namespace)
+        if source.get("active_mode") == "set_bay":
+            selected = candidate_adapter().selection
+            return nfb_physical_bay_snapshot(
+                selected.set_index, selected.bay_index,
+            )
+        # Single quantity box W/H/D and inner-door geometry must not
+        # accidentally inherit the currently highlighted multi-Bay size.
+        return source
+
     def current_inner_editor_part_key():
         from ae_engine.cabinet_types import policy as receiving_family_policy
-        selected = candidate_adapter().selection
-        physical = nfb_physical_bay_snapshot(selected.set_index, selected.bay_index)
+        physical = current_inner_editor_snapshot()
         upper = tuple(
             panel.stable_id for panel in receiving_family_policy.derive_inner_door_panels(physical)
             if str(panel.cell_key).endswith(":0")
@@ -3381,6 +3391,26 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         def confirmed(actual_part, features, staged_config):
             if actual_part != part_key:
                 raise ValueError("內門開孔編輯返回錯誤的實體板件")
+            if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
+                if staged_config is not None:
+                    config = validate_door_config(staged_config)
+                    self.app._phase6_input_snapshot["receiving_inner_door_layers"] = (
+                        config["layers"]
+                    )
+                    self.app._phase6_input_snapshot["receiving_inner_door_models"] = (
+                        deepcopy(config["models"])
+                    )
+                    if config.get("layer_heights_mm") is not None:
+                        self.app._phase6_input_snapshot[
+                            "receiving_inner_door_layer_heights_mm"
+                        ] = deepcopy(config["layer_heights_mm"])
+                # Quantity's current physical sheet is the live workspace owner;
+                # it is NOT a Set/Bay candidate or a synthetic version X.
+                self.app.designer_workspace.stash_features(part_key, features)
+                if str(self.app.designer_workspace.active_part) == part_key:
+                    self.app._load_part_holes(part_key)
+                self.app.submit_update_intent("geometry", commit=True)
+                return
             if mode == "single":
                 adapter = candidate_adapter()
                 selected = adapter.selection
@@ -3421,8 +3451,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if callable(after_saved):
                 after_saved(selected_version)
 
-        current = candidate_adapter().selection
-        physical = nfb_physical_bay_snapshot(current.set_index, current.bay_index)
+        physical = current_inner_editor_snapshot()
         return open_inner_door_hole_editor(
             self.app, part_key, settings_mode=mode,
             initial_features=initial_features, physical_snapshot=physical,
