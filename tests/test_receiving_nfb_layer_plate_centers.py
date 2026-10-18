@@ -78,7 +78,8 @@ def test_same_tier_two_openings_share_one_plate_at_group_centre():
     assert len(centres) == 1
     assert centres[0].verified_world_x_mm == pytest.approx(-30)
     plate = resolve_assembly_placement(snap, "base_plate")
-    assert plate.world_offset[:2] == pytest.approx((-30, 250))
+    # Even source-confirmed group X=-30 does not shift the fixed plate X0.
+    assert plate.world_offset[:2] == pytest.approx((0, 250))
 
 
 def test_changes_in_hole_height_change_plate_center_not_plate_dimensions():
