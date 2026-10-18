@@ -21,9 +21,9 @@ from ezdxf.lldxf.encoding import decode_dxf_unicode
 
 UPSTREAM = Path("crates/io/src/dxf_write.rs")
 BEFORE = (
-    "/// \`$DWGCODEPAGE\`: before 2007 the code page read from the file when CADCraft knows it (the text\n"
-    "/// is ASCII with \`\\U+XXXX\` escapes, right in any code page, but the file keeps its declared one);\n"
-    "/// otherwise, and from 2007 (UTF-8 text), \`ANSI_1252\`.\n"
+    "/// `$DWGCODEPAGE`: before 2007 the code page read from the file when CADCraft knows it (the text\n"
+    "/// is ASCII with `\\U+XXXX` escapes, right in any code page, but the file keeps its declared one);\n"
+    "/// otherwise, and from 2007 (UTF-8 text), `ANSI_1252`.\n"
     "fn code_page(d: &Drawing, version: Version) -> String {\n"
     '    let read = d.header.get("DWGCODEPAGE").and_then(HVal::as_str).map(str::trim).unwrap_or_default();\n'
     '    let known = read.is_ascii() && read.len() <= 32 && cadcraft_dxf::decode_code_page(b"", read).is_some();\n'
@@ -31,7 +31,7 @@ BEFORE = (
     "}"
 )
 AFTER = (
-    "/// \`$DWGCODEPAGE\`: preserve a known ASCII codepage label from imported DXF.\n"
+    "/// `$DWGCODEPAGE`: preserve a known ASCII codepage label from imported DXF.\n"
     "/// In R2007+ the text payload is still encoded as UTF-8; the header label\n"
     "/// remains provenance metadata and must not be rewritten unrequested.\n"
     "/// Newly created drawings or invalid labels keep the ANSI_1252 fallback.\n"
