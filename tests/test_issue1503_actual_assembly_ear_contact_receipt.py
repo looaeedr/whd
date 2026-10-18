@@ -139,3 +139,26 @@ def test_horizontal_switch_x_moves_only_screws_not_ear_contacts():
     )
     after = validate_receiving_tier_fixing_contact_receipts(snap, physical)
     assert after == before
+
+
+def test_current_csv_two_tier_brands_keep_own_real_skin_and_four_ear_receipts():
+    """Current NFB source is per-brand CSV, NOT a legacy switch-brand DXF."""
+    snap = _two_tier()
+    snap["receiving_layout"]["sets"][0].pop("switch_brand", None)
+    for row, (brand, model) in zip(
+        snap["nfb_config"]["holes"],
+        (("士林", "nfbv5:士林:2P400"), ("東元", "nfbv5:東元:3P125SN")),
+    ):
+        row.update(source_brand=brand, model_filename=model)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"],
+    )
+    parts = expand_receiving_nfb_layer_parts(snap, (_source(snap),))
+    receipts = validate_receiving_tier_fixing_contact_receipts(snap, parts)
+    assert len(receipts) == 4
+    assert [r.layer_index for r in receipts] == [0, 0, 1, 1]
+    assert [r.fixing_hole_world_x_mm for r in receipts] == [
+        -335., 335., -335., 335.,
+    ]
+    assert len({r.actual_base_back_skin_world_z_mm for r in receipts}) == 2
+    assert all(not r.manufacturing_ready for r in receipts)
