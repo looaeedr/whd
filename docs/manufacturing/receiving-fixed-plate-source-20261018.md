@@ -6,7 +6,7 @@ whd_schema: WHD_DOC_META_V1
 
 # 底板固定片：2026-10-18 新版 `固定片.dxf` 來源（#1503）
 
-本文件覆蓋舊 `receiving-large-weld-ear.md` 內的「固定片 T3、大片孔心距焊接邊 86、小片孔心 68、缺來源 BEND」等過時來源值。不能刪除舊資料作為歷史，但不得再拿它當 CURRENT 大小固定片圖。
+這份新版檔案的「外框尺寸不變」是尺寸相同，但 **CUTTING 四個轉角均是直線頂點**；不能繼承舊輪廓的上角 R5，不可把舊面積當新版認證。\n\n本文件覆蓋舊 `receiving-large-weld-ear.md` 內的「固定片 T3、大片孔心距焊接邊 86、小片孔心 68、缺來源 BEND」等過時來源值。不能刪除舊資料作為歷史，但不得再拿它當 CURRENT 大小固定片圖。
 
 **使用者本回合上傳的實體來源檔** `固定片.dxf`，AutoCAD DXF 2013，mm，SHA-256:
 `dd123595e384b7ce6bf4c444b5af23a11e559de2a715c40ce5d89e2552167cbe`。
@@ -16,7 +16,7 @@ whd_schema: WHD_DOC_META_V1
 
 | 項目 | 大固定片 | 小固定片 |
 | --- | --- | --- |
-| CUTTING 外框 | 256 × 105 mm, handle 98 | 90 × 90 mm, handle 99 |
+| CUTTING 外框 | 256 × 105 mm、四頂點直角（無 R5 bulge），handle 98 | 90 × 90 mm、四頂點直角（無 R5 bulge），handle 99 |
 | 來源板厚 | **T=2 mm** | **T=2 mm** |
 | 長圓孔 | 4 個，25 × 11 mm，handles 94–97 | 2 個，30 × 11 mm，handles 9A–9B |
 | 長向孔心 | 23 / 58 / 198 / 233 mm | 25 / 65 mm |
