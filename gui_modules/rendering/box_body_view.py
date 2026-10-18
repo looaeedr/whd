@@ -24,6 +24,7 @@ def draw_box_body_piece_preview(
     viewport,
     scene_renderer,
     annotation_drawer,
+    ear_marking_preview_blocker=None,
 ):
     canvas = host.canvas_z
     render_data = piece.render_data
@@ -72,6 +73,11 @@ def draw_box_body_piece_preview(
 
     source = render_data.metadata.get("baseline_source_path")
     source_hint = f"\n專用基準：{str(source).rsplit('/', 1)[-1]}" if source else ""
+    if render_data.metadata.get("ear_side_mark_preview_only"):
+        count = int(render_data.metadata.get("ear_side_mark_preview_count") or 0)
+        source_hint += f"\n固定片焊接區：{count} 條 MARKING 預覽（未核准製造）"
+    if ear_marking_preview_blocker:
+        source_hint += f"\n⚠ 固定片打標未顯示：{ear_marking_preview_blocker}"
     fit_error = render_data.metadata.get("baseline_fit_error")
     if fit_error:
         source_hint += "\n⚠ 基準孔位超出材料範圍，此板件不可匯出製造 DXF"
