@@ -45,7 +45,7 @@ def test_csv_opening_world_x_button_and_popup_are_completely_removed():
     assert "stage_csv_openings" not in source
 
 
-def test_receiving_confirm_stages_settings_but_does_not_import_or_autocut_holes():
+def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction():
     functions = _inner_editor_functions()
     confirm = functions["confirm"]
     calls = [
@@ -53,6 +53,8 @@ def test_receiving_confirm_stages_settings_but_does_not_import_or_autocut_holes(
         if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
     ]
     assert "stage_in_editor" in calls
+    assert "editor_nfb_features_from_csv" in calls
+    assert "stage_in_editor(config, openings)" in _ui_source()
     assert "after_saved" in calls
     assert "close_editor" in calls
     assert "csv_openings_to_editor_features" not in calls
