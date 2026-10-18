@@ -9,11 +9,11 @@ from __future__ import annotations
 import math
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import tempfile
 
 import ezdxf
+from .cadcraft_paths import cadcraft_binary
 from ae_engine.dxf_serialization import add_drawing_scene_to_dxf, setup_dxf_layers
 from ae_engine.sheetmetal_drawing import DrawingScene
 from ae_engine.sheetmetal_features import (
@@ -26,20 +26,15 @@ class CadcraftPreviewError(ValueError):
 
 
 def find_cadcraft_gui(*, configured=None):
-    """Only select an installed GUI executable; never download or auto-install."""
-    selection = configured if configured is not None else os.environ.get("WHD_CADCRAFT_GUI")
-    if selection:
-        path = Path(selection).expanduser()
-        if not path.is_file():
-            raise CadcraftPreviewError(f"找不到 CADCraft 程式：{path}")
-        return str(path)
-    for name in ("cadcraft", "cadcraft.exe", "CADCraft.exe"):
-        found = shutil.which(name)
-        if found:
-            return found
-    raise CadcraftPreviewError(
-        "尚未找到 CADCraft。請安裝獨立版並將 WHD_CADCRAFT_GUI 設為 CADCraft.exe 完整路徑。"
-    )
+    """Prefer WHD's local ./cadcraft portable directory, not PATH or env."""
+    path = (Path(configured).expanduser() if configured is not None
+            else cadcraft_binary("gui"))
+    if not path.is_file():
+        raise CadcraftPreviewError(
+            f"找不到 CADCraft 程式：{path}。"
+            "請將 CADCraft 免安裝版放在 WHD 主程式旁的 cadcraft 資料夾。"
+        )
+    return str(path)
 
 
 def _points(points):
