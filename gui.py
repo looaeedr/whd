@@ -1861,8 +1861,8 @@ class Phase6ApplicationHost:
     def on_box_body_piece_double_click(self, event=None):
         return _on_box_body_piece_double_click_impl(self, event)
 
-    def _draw_box_body_piece_preview(self, aggregate_render_data, piece, part_key):
-        return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection)
+    def _draw_box_body_piece_preview(self, aggregate_render_data, piece, part_key, *, ear_marking_preview_blocker=None):
+        return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, ear_marking_preview_blocker=ear_marking_preview_blocker)
 
     def _box_body_render_snapshot(self, val):
         return _box_body_render_snapshot_impl(self, val, face_dimensions_fn=box_body_face_dimensions)
@@ -1872,7 +1872,7 @@ class Phase6ApplicationHost:
         if cw <= 1 or ch <= 1: return
         self.draw_grid(canvas, cw, ch)
         snapshot = self._box_body_render_snapshot(val)
-        if snapshot["mode"] == "piece": return self._draw_box_body_piece_preview(snapshot["render_data"], snapshot["piece"], snapshot["piece_key"])
+        if snapshot["mode"] == "piece": return self._draw_box_body_piece_preview(snapshot["render_data"], snapshot["piece"], snapshot["piece_key"], ear_marking_preview_blocker=snapshot.get("ear_marking_preview_blocker"))
         return _draw_box_body_aggregate_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     def _end_cap_render_snapshot(self, val, *, part_label='封頭/尾', is_tail=False):
