@@ -1899,8 +1899,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             initial = inner_config(inner_library(), version_id)
         if embed_parent is not None:
             owner_editor = embed_parent.winfo_toplevel()
-            if (getattr(owner_editor, "_receiving_settings_mode", None) == "single"
-                    and self.app.designer_workspace.active_mode == "quantity"):
+            if self.app.designer_workspace.active_mode == "quantity":
                 # Quantity single box is NOT a multi-Bay shared setting.
                 # Read its own selected physical box instead of stale Bay UI.
                 quantity = _current_mode_snapshot(self, namespace)
