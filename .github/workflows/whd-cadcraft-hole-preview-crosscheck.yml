@@ -39,11 +39,11 @@ jobs:
           python-version: '3.12'
       - name: Install WHD dependencies
         run: python -m pip install -r requirements.txt ezdxf
-      - name: Download CADCraft pinned v0.7.0 CLI with SHA256 verification
+      - name: Download CADCraft pinned v0.8.0 CLI with SHA256 verification
         shell: bash
         run: |
           set -euo pipefail
-          VERSION=0.7.0
+          VERSION=0.8.0
           PACKAGE="cadcraft-$VERSION-linux-x86_64.tar.gz"
           BASE="https://github.com/storytold/cadcraft/releases/download/v$VERSION"
           mkdir -p "$RUNNER_TEMP/cadcraft"
@@ -79,7 +79,7 @@ jobs:
         run: |
           set -euo pipefail
           export CADCRAFT_CONFIG_DIR="$RUNNER_TEMP/cadcraft-config"
-          CLI="$RUNNER_TEMP/cadcraft/cadcraft-0.7.0-linux-x86_64/bin/cadcraft-cli"
+          CLI="$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft-cli"
           "$CLI" info work/cadcraft-hole-preview/source.dxf > work/cadcraft-hole-preview/info.json
           "$CLI" run work/cadcraft-hole-preview/source.dxf --save work/cadcraft-hole-preview/resaved.dxf
           test -s work/cadcraft-hole-preview/resaved.dxf
