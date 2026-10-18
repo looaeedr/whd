@@ -6,7 +6,10 @@ import pytest
 from ae_engine.assembly_placement import resolve_base_plate_placement
 from ae_engine.receiving_base_plate_config import receiving_base_plate_values
 from ae_engine.receiving_base_plate_real_skins import receiving_base_actual_local_nfb_skins
-from ae_engine.receiving_tier_ear_z_targets import (\n    resolve_receiving_tier_ear_contact_targets,\n    resolve_receiving_tier_base_z_targets,\n)
+from ae_engine.receiving_tier_ear_z_targets import (
+    resolve_receiving_tier_ear_contact_targets,
+    resolve_receiving_tier_base_z_targets,
+)
 from tests.test_receiving_base_physical_3d_z_assembly import _assembled
 from tests.test_receiving_two_tier_physical_base_parts import _two_tier
 
