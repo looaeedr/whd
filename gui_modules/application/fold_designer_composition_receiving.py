@@ -1917,11 +1917,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 from ae_engine.receiving_inner_door_candidates import validate_door_config
                 initial = validate_door_config(staged)
         if initial.get("layer_heights_mm") is None:
-            # Legacy already-verified NFB stays at its old Y until the
-            # operator explicitly saves the 330/830 editor defaults.
+            # Legacy configurations without operator heights keep their
+            # previously saved Y until the user explicitly edits the rows.
             initial["layer_heights_mm"] = list(
                 SETTING_DEFAULTS["inner_door_layer_heights_mm"]
             )
+        if (not any(switch_filenames_in_layer(row) for row in initial["models"])
+                and list(initial["layer_heights_mm"])
+                == list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])):
+            # Fresh receiving-tab draft, not a global migration of old boxes.
+            initial["layer_heights_mm"] = [550.0, 800.0]
         parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
         multi_entry = bool(
             parent_modal is not None and parent_modal.winfo_exists()
@@ -2201,6 +2206,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     mode=OVERRIDE, value=expected_brand,
                 )
             draft_state["draft"] = added
+            if (index == 1 and len(added["layers"][1]["slots"]) == 1
+                    and layer_height_vars[0].get().strip() in ("550", "550.0")):
+                # Two-row NFB layout uses the requested first-row default.
+                # Other operator-entered first-row heights are never reset.
+                layer_height_vars[0].set("300")
             sync_chosen()
             repaint(index)
             warning.set("")
@@ -2372,19 +2382,22 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         for idx in range(2):
             section = ttk.LabelFrame(slot_columns, text=f"第 {idx+1} 層開關")
             section.pack(fill="x", pady=(4, 6))
+            # Height belongs directly beside the CSV model selector, not
+            # a detached control underneath the two source lists.
             height_row = ttk.Frame(section)
-            height_row.grid(row=5, column=0, columnspan=3, sticky="w", padx=6, pady=(5, 7))
-            ttk.Label(height_row, text=f"第 {idx+1} 層高度（距作業區上緣 mm）").pack(side="left")
-            height_entry = ttk.Entry(
-                height_row, textvariable=layer_height_vars[idx], width=10,
+            height_row.grid(row=0, column=0, sticky="w", padx=5)
+            ttk.Label(height_row, text="CSV 型號").pack(side="left")
+            ttk.Label(height_row, text="高度（距上緣 mm）").pack(
+                side="left", padx=(8, 3),
             )
-            height_entry.pack(side="left", padx=(8, 0))
+            height_entry = ttk.Entry(
+                height_row, textvariable=layer_height_vars[idx], width=9,
+            )
+            height_entry.pack(side="left")
             height_entry.bind("<Return>", lambda _event: paint_draft_preview())
             height_entry.bind("<FocusOut>", lambda _event: paint_draft_preview())
             section.columnconfigure(0, weight=1)
             section.columnconfigure(2, weight=1)
-            ttk.Label(section, text="CSV 型號").grid(
-                row=0, column=0, sticky="w", padx=5)
             ttk.Label(section, text="本層開關（可重複）").grid(
                 row=0, column=2, sticky="w", padx=5)
             available = tk.Listbox(section, selectmode=tk.BROWSE,
@@ -2659,12 +2672,19 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         in ("single", "candidate")) else None
                 )
                 if callable(stage_in_editor):
-                    # NFB models and layers are settings only; opening outlines
-                    # are edited directly in the original Hole Editor.
-                    # Never create/import a second CSV or DXF main opening here,
-                    # and never require a separate world-X verification proof.
+                    # Generate editable holes from the selected CSV dimensions
+                    # and operator Y, directly in the original Hole Editor.
+                    # No extra world-X popup, source proof or manufacturing write.
                     # The parent Hole Editor's 確定全部 remains the commit gate.
-                    stage_in_editor(config)
+                    openings = None
+                    if current_numeric_editor or not source_models:
+                        from ae_engine.receiving_nfb_csv_editor_features import (
+                            editor_nfb_features_from_csv,
+                        )
+                        openings = editor_nfb_features_from_csv(
+                            current_inner_editor_snapshot(), config,
+                        )
+                    stage_in_editor(config, openings)
                     after_saved(version_id)
                     close_editor(saved=True)
                     return
