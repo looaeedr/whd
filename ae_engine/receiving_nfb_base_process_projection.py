@@ -510,10 +510,15 @@ def build_existing_receiving_base_with_verified_nfb(
         centers.append((float(x),float(yy.box_world_y_mm)))
     if max(y for _,y in centers)-min(y for _,y in centers)>_TOL:
         raise ValueError("NFB distinct installation heights require distinct actual ear/base groups")
-    group_world_center=(
+    # Physical Base Plate/ear mount X is invariant at the cabinet centre.
+    # Only each source NFB's screw CUTTING uses its individual opening X in
+    # project_one_original_nfb_into_actual_base(world_hole=...). Never
+    # translate 670-mm fixed ear slots because one NFB is shifted.
+    nfb_group_world_center=(
         (min(x for x,_ in centers)+max(x for x,_ in centers))/2.0,
         centers[0][1],
     )
+    group_world_center=(0.0, centers[0][1])
     # The real plate must physically fit its owning upper cell. This uses
     # actual manufactured face dimensions, not the sample-DXF paper origin.
     real=build_part_render_data(base_spec)
@@ -580,7 +585,7 @@ def build_existing_receiving_base_with_verified_nfb(
     from dataclasses import replace
     metadata=dict(composed.render_data.metadata)
     metadata["receiving_base_ear_mount_center_world_xy_mm"]=group_world_center
-    metadata["receiving_base_nfb_row_center_world_xy_mm"]=group_world_center
+    metadata["receiving_base_nfb_row_center_world_xy_mm"]=nfb_group_world_center
     metadata["receiving_base_upper_cell_key"]=f"{column}:{row}"
     metadata["receiving_base_ear_weld_z_verified"]=False
     return replace(
