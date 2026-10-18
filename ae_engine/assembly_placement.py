@@ -237,11 +237,12 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
             if model in {"受電箱","RECEIVING"} else None
         )
         verified_source=source_z is not None
-        # #1502 CURRENT user assembly: the CENTER of the NFB opening GROUP
-        # on this layer mates to the CENTER of that layer's Base Plate.
-        # Hole height is a POSITION (not a plate finished height). The welded
-        # LEFT/RIGHT fixing plates follow this same installed Base Plate XY,
-        # while their actual weld skins/MARKING still need certification.
+        # #1502 CURRENT user assembly: Base Plate X is ALWAYS cabinet
+        # center X=0. The current tier's NFB opening HEIGHT locates its
+        # Base Plate Y (not its finished height). Per-NFB manual X offsets
+        # affect only NFB screw-hole CUTTING on the installed plate.
+        # Left/right fixing plates and 670 mounting-hole X stay fixed;
+        # actual welded skins/MARKING still require certification.
         # Do not confuse outer Door lower compartment with NFB second tier.
         if verified_source:
             upper = [
