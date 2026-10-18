@@ -9,6 +9,11 @@ whd_schema: WHD_DOC_META_V1
 
 # Diagnosing Bugs
 
+## 不得停止程序 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
+
+`/DEBUG` 為既有錯誤的診斷方法；搭配 `/功能 /派工` 時沿用同一 Issue、PR 與原始資料，直接 RED→GREEN→提交→CI→`localX` 接續。**不得預先設停止程序**；單一重現手段不可用時改用其他已授權的資料查證、可重現測試 seam 或獨立施工動作，不得把分析或回報當成完成。所有產品修改前仍必須確實讀原始碼／規格並具備真實驗證依據。
+
+
 ## RUNTIME_CAPABILITY_FALLBACK
 
 Use the tightest loop the current runtime can actually execute. Specialized browser/debugger/subagent helpers are optional; when absent, build the repro and diagnosis as an **inline fallback** with available commands/tests. If a human must perform a step, generate a self-contained checklist or small temporary script from current evidence; do not depend on a missing supporting template.
@@ -73,7 +78,7 @@ The goal is not a clean repro but a **higher reproduction rate**. Loop the trigg
 
 ### When you genuinely cannot build a loop
 
-Stop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a redacted captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.
+Record the exact unavailable reproduction method, then immediately continue other lawful source inspection or independently testable bug paths. Seek specific missing evidence or permission only when it is genuinely indispensable. Do **not** invent a hypothesis without a reproducing signal.
 
 ### Completion criterion: a tight loop that goes red
 
