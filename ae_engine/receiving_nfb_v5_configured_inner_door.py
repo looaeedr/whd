@@ -12,6 +12,7 @@ separately owned by those parts; do not punch them in this door.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from hashlib import sha256
 from math import isfinite
 from typing import Mapping, Sequence
 
@@ -22,6 +23,7 @@ from .manufacturing_api import build_inner_door_panel_render_data
 from .manufacturing_render_data import PartRenderData, material_polygon_from_final_scene
 from .receiving_nfb_legacy_feature_bridge import existing_inner_door_feature_finalscene
 from .receiving_nfb_manufacturing_release import _resolve_physical_panel
+from .receiving_nfb_numeric_catalog import brand_csv_path
 from .receiving_nfb_model_identity import parse_numeric_model_ref
 from .receiving_nfb_numeric_panel_projection import (
     NfbPanelDatum, NfbV5PanelPattern, project_nfb_v5_to_panel,
@@ -76,6 +78,23 @@ def trial_configured_nfb_v5_inner_door_render_data(
     entries = tuple(holes)
     if not entries:
         raise ValueError("NFB V5 內門必須有已配置的開孔")
+    if any(not isinstance(entry, NfbV5ConfiguredInnerDoorHole) for entry in entries):
+        raise TypeError("NFB V5 必須傳入已配置的實體孔位")
+
+    # Verify the same immutable CSV source for the INNER DOOR and every
+    # actual tier Base Plate. The source may change between opening preview
+    # and base screw projection even when the hole centre stays unchanged.
+    source_brands = {entry.brand for entry in entries}
+    def csv_source_hashes():
+        try:
+            return tuple(sorted(
+                (brand, sha256(brand_csv_path(brand).read_bytes()).hexdigest())
+                for brand in source_brands
+            ))
+        except OSError as exc:
+            raise ValueError("NFB V5 內門缺少目前廠牌 CSV 來源") from exc
+
+    source_sha = csv_source_hashes()
     panel, placement = _resolve_physical_panel(snapshot, inner_door_id)
     baseline = existing_inner_door_feature_finalscene(
         snapshot, panel, existing_render_data=existing_render_data,
@@ -151,6 +170,8 @@ def trial_configured_nfb_v5_inner_door_render_data(
         patterns.append(pattern)
         polygons.append(polygon)
 
+    if csv_source_hashes() != source_sha:
+        raise ValueError("NFB V5 內門計算期間 CSV 來源已變更")
     candidate_scene = DrawingScene(list(baseline.scene.primitives))
     for pattern in patterns:
         candidate_scene.add_polyline(
@@ -168,6 +189,7 @@ def trial_configured_nfb_v5_inner_door_render_data(
             **dict(baseline.metadata),
             "nfb_v5_trial_status": STATUS,
             "nfb_v5_source_models": tuple((p.brand, p.model) for p in patterns),
+            "nfb_v5_source_csv_sha256": source_sha,
             "nfb_v5_hole_ids": tuple(entry.physical_hole_id for entry in entries),
             "nfb_trial_export_approved": False,
         },

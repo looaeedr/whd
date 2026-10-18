@@ -155,3 +155,21 @@ def test_single_csv_tier_cannot_consume_wrong_actual_plate():
             snap, "upper", door=door, configured_holes=holes,
             base_specs={0: incorrect},
         )
+
+
+def test_all_csv_tiers_share_exact_door_source_sha_and_reject_stale_door():
+    snap, door, holes, specs = _setup()
+    normal = _run(snap, door, holes, specs)
+    expected = door.render_data.metadata["nfb_v5_source_csv_sha256"]
+    assert expected and len(expected[0][1]) == 64
+    assert all(x.render_data.metadata["nfb_v5_source_csv_sha256"] == expected
+               for x in normal)
+    wrong_source = replace(
+        door.render_data,
+        metadata={
+            **door.render_data.metadata,
+            "nfb_v5_source_csv_sha256": (("士林", "0" * 64),),
+        },
+    )
+    with pytest.raises(ValueError, match="來源版本不同"):
+        _run(snap, replace(door, render_data=wrong_source), holes, specs)

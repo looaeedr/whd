@@ -121,6 +121,11 @@ def trial_v5_screws_on_existing_receiving_base(
             raise ValueError("NFB V5 原始 CSV 來源不可讀") from exc
 
     csv_sha = source_hashes()
+    # The *door* trial was calculated earlier and must describe precisely
+    # the same CSV bytes. Centre/brand/rotation checks alone cannot catch
+    # an altered CSV aperture or screw pitch between these two stages.
+    if tuple(door.render_data.metadata.get("nfb_v5_source_csv_sha256") or ()) != csv_sha:
+        raise ValueError("NFB V5 內門與底板使用的 CSV 來源版本不同，請重新驗證")
     for entry, prior in zip(entries, door.patterns):
         if not isinstance(entry, NfbV5ConfiguredInnerDoorHole):
             raise TypeError("NFB V5 原始孔位識別格式不符")

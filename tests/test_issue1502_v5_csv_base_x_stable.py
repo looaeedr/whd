@@ -72,6 +72,12 @@ def test_v5_csv_two_nfb_x_shift_changes_only_eight_screws_not_base_ear_mounts(pa
     assert all(p.status == "NFB_V5_PANEL_UV_GEOMETRY_UNVERIFIED"
                for p in before.patterns + after.patterns)
     assert door_before.hole_ids == door_after.hole_ids
+    assert door_before.render_data.metadata["nfb_v5_source_csv_sha256"] == (
+        before.render_data.metadata["nfb_v5_source_csv_sha256"]
+    )
+    assert door_after.render_data.metadata["nfb_v5_source_csv_sha256"] == (
+        after.render_data.metadata["nfb_v5_source_csv_sha256"]
+    )
 
 
 def test_v5_csv_one_switch_off_center_still_keeps_base_and_ears_fixed():
