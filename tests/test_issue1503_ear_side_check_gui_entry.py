@@ -146,6 +146,9 @@ def test_gui_binding_and_left_panel_label_is_a_separate_action():
         "_phase6_project_export.export_selected_dxf"
     )
     view = (root / "gui_modules/layout/left_panel.py").read_text(encoding="utf-8")
-    assert "受電箱固定片側板 CHECK DXF（非製造）" in view
-    assert "command=host.export_receiving_ear_side_check_dxf" in view
+    # The historical CHECK tool is still callable for debug but is no
+    # longer a normal operator control. Ordinary selected DXF is the only
+    # production control and automatically owns EAR side MARKING.
+    assert "command=host.export_receiving_ear_side_check_dxf" not in view
+    assert "command=host.export_receiving_ear_side_manufacturing_dxf" not in view
     assert "command=host.export_selected_dxf" in view
