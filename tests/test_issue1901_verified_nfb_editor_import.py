@@ -72,6 +72,34 @@ def test_source_verified_finalscene_becomes_native_finished_face_profile(monkeyp
     assert dict(feature.source_params)["source_sha256"] == "0123456789abcdef"
 
 
+def test_quantity_source_proof_imports_same_native_profile_without_version(monkeypatch):
+    import ae_engine.receiving_nfb_editor_features as adapter
+    from ae_engine.receiving_nfb_quantity_editor import NfbVerifiedQuantityDoorProof
+    from ae_engine.cabinet_types import policy
+
+    panel, canonical, old_bundle = _verified_bundle()
+    actual_single_proof = NfbVerifiedQuantityDoorProof(
+        snapshot_at_verification=old_bundle.snapshot_at_verification,
+        part_id=PART_ID,
+        verified_door=old_bundle.verified_door,
+        source_path="/original/NFB.dxf",
+        source_sha256="0123456789abcdef",
+        world_x_by_unit=(("unit-1", 165.0),),
+        draft_at_verification={},
+    )
+    monkeypatch.setattr(policy, "derive_inner_door_panels", lambda _snap: [panel])
+    monkeypatch.setattr(adapter, "build_inner_door_panel_render_data",
+                        lambda _panel: SimpleNamespace(scene=canonical))
+    monkeypatch.setattr(adapter, "existing_inner_door_feature_finalscene",
+                        lambda *_args: None)
+    features = verified_nfb_openings_to_editor_features(
+        actual_single_proof, current_features=[],
+    )
+    assert len(features) == 1
+    assert features[0].source_type == "NFB_VERIFIED_SOURCE"
+    assert dict(features[0].source_params)["part_id"] == PART_ID
+
+
 @pytest.mark.parametrize("case", ["unverified", "source_drift", "editor_drift"])
 def test_unverified_or_stale_nfb_never_enters_native_editor(monkeypatch, case):
     import ae_engine.receiving_nfb_editor_features as adapter
