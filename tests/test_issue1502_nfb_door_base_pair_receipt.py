@@ -58,7 +58,8 @@ def test_source_verified_real_door_and_real_base_have_same_NFB_and_Q(tmp_path, p
     ("owner", "OWNER_OR_COUNT"),
     ("same_centroid_changed_x", "OWNER_OR_COUNT"),
     ("rotation", "OWNER_OR_COUNT"),
-    ("datum", "MATING_XY_UNVERIFIED"),
+    ("datum", "SCREW_X_SOURCE_UNVERIFIED"),
+    ("ear_mount_y", "MATING_XY_UNVERIFIED"),
     ("pattern", "BEND_PATTERN"),
 ))
 def test_pair_fails_closed_on_mismatched_physical_evidence(tmp_path, mutation, reason):
@@ -81,6 +82,11 @@ def test_pair_fails_closed_on_mismatched_physical_evidence(tmp_path, mutation, r
     elif mutation == "datum":
         metadata = dict(composed.render_data.metadata)
         metadata["receiving_base_nfb_row_center_world_xy_mm"] = (99., 250.)
+        composed = replace(composed, render_data=replace(composed.render_data, metadata=metadata))
+    elif mutation == "ear_mount_y":
+        metadata = dict(composed.render_data.metadata)
+        x, y = metadata["receiving_base_ear_mount_center_world_xy_mm"]
+        metadata["receiving_base_ear_mount_center_world_xy_mm"] = (x, y + 1.)
         composed = replace(composed, render_data=replace(composed.render_data, metadata=metadata))
     elif mutation == "pattern":
         metadata = dict(composed.render_data.metadata)
