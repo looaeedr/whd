@@ -23,7 +23,16 @@ def mount_primary_receiving_ear_side_check(host):
     group = ttk.LabelFrame(
         left, text="受電箱固定片｜側板打標檢查", padding=5,
     )
-    group.pack(fill="x", pady=(0, 5), before=notebook)
+    # The primary bridge intentionally unpacks the legacy main_nb. Tk cannot
+    # pack(before=unpacked_widget). Anchor to an ACTUALLY packed primary panel.
+    live_panels = tuple(
+        child for child in left.winfo_children()
+        if child.winfo_manager() == "pack"
+    )
+    if live_panels:
+        group.pack(fill="x", pady=(0, 5), before=live_panels[-1])
+    else:
+        group.pack(fill="x", pady=(0, 5))
     button = ttk.Button(
         group,
         text="固定片側板 CHECK DXF（非製造）",
