@@ -41,6 +41,10 @@
 
 圖元總數吻合只驗證成功載入數量，**不等於**逐一驗證 ARC／CIRCLE／DIMENSION／INSERT／字體、顏色、標註與尺寸完全正確。特別是 `800x3.dxf` 和大型板件 `$INSUNITS=0`（來源未指定單位），不能偷偷假定毫米並把換算當驗收通過。`400_cn.dxf` 是毫米單位。
 
+## v0.8.0 開孔試看獨立交叉驗證補充
+
+原本的 `.github/workflows/whd-cadcraft-hole-preview-crosscheck.yml` 先前仍固定 v0.7.0，並非只靠 #1926 更新的三套 #1820 工作流就全數對齊。這次另外升級該工作流至 **v0.8.0**：官方 SHA256SUMS 下載校驗 → WHD 原 Hole Editor Feature 產生非製造用 CHECK 暫存 DXF → CADCraft 真正 CLI 讀取／另存 → 使用獨立 `ezdxf` 逐圖元比對孔位 XY、圓半徑、折線、CUTTING/BEND/CHECK、顏色和 mm 單位。這是 CLI DXF 載入與重存的幾何相容性測試，**不是 Windows GUI 實體縮放／平移、文字及所有複雜圖元的渲染驗收**。
+
 ## 測試原始檔與門檻
 
 完整來源／LOG／截圖／量測資料保留在 R5-2600：

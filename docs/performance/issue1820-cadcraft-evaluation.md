@@ -6,7 +6,7 @@
 
 ## CADCraft 版本與授權
 
-來源為 storytold/cadcraft，上游程式採 MIT 或 Apache-2.0 雙授權，字型圖示和品牌需要分開注意。工作流固定 v0.7.0 Linux release，透過上游 SHA256SUMS.txt 校驗。現有整合走暫存 DXF 加獨立桌面程序，不內嵌、不回寫。
+來源為 storytold/cadcraft，上游程式採 MIT 或 Apache-2.0 雙授權，字型圖示和品牌需要分開注意。**歷史第一輪**使用 v0.7.0 Linux release，透過上游 SHA256SUMS.txt 校驗；自 2026-10-18 起，各 #1820 專用工作流及開孔試看交叉驗證皆改用正式 v0.8.0。下述 v0.7.0 數據僅作歷史基準，不代表目前版本。現有整合走暫存 DXF 加獨立桌面程序，不內嵌、不回寫。
 
 ## 量測方法
 
@@ -30,7 +30,7 @@ WHD Tk 畫布繪圖和 CADCraft CLI 的 PNG 生成**不是等價 GUI 操作**。
 比較前需核對圓弧、孔位、折線、顏色、圖層、座標、毫米單位。只有效益明確且正確性通過時才考慮獨立實作工單；沒有明確好處就只保留可選試看，原 WHD 2D 必須保留。
 
 
-## 第一輪實測讀回（2026-10-18，Linux Xvfb）
+## 第一輪歷史實測讀回（2026-10-18，Linux Xvfb；CADCraft v0.7.0）
 
 原始 Actions run：https://github.com/looaeedr/whd/actions/runs/39095210405
 原始 artifact：`whd-1820-identical-dxf-renderer-observations`（SHA256、source.dxf、raw.json、三張全圖及三張指定視野圖）。
