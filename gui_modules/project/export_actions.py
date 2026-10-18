@@ -358,9 +358,17 @@ def _export_selected_resolved_parts(self, folder, flags):
         )
         for side in ("box_body:left_side", "box_body:right_side"):
             physical = owner_render_data(resolved, side)
-            target = outputs.get(side)
-            if physical is None or not target:
+            # Ordinary BoxBody exports use physical composite IDs such as
+            # box_body:box_body:left_side, whereas the old standalone button
+            # used box_body:left_side. Match the saved source-owned suffix,
+            # rejecting ambiguities instead of assuming the old file name.
+            targets = tuple(
+                path for key, path in outputs.items()
+                if str(key).endswith(":" + side)
+            )
+            if physical is None or len(targets) != 1:
                 raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OUTPUT_MISSING")
+            target = targets[0]
             if not verify_saved_part_render_data_dxf(physical, target).ok:
                 raise ValueError("EAR_SIDE_NORMAL_EXPORT_SAVED_DXF_INVALID")
             _readback_marking_lines(
