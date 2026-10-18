@@ -3262,7 +3262,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             flush()
             return receipt
 
+        def verified_for_editor(set_index, bay_index):
+            bundle, reason = eligible_bundle(set_index, bay_index)
+            if bundle is None or not bundle.can_submit:
+                raise ValueError(reason or "沒有已驗證的實體 NFB 來源與開口")
+            return bundle
+
         return {"state": state, "stage_verified": stage_verified,
+                "verified_for_editor": verified_for_editor,
                 "submit": submit, "copy": copy, "manifest": physical_manifest,
                 "partial_export": export_partial_nfb_inner_door,
                 "base_partial_export": export_partial_nfb_base_plate,
