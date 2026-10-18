@@ -358,17 +358,22 @@ def _export_selected_resolved_parts(self, folder, flags):
         )
         for side in ("box_body:left_side", "box_body:right_side"):
             physical = owner_render_data(resolved, side)
-            # Ordinary BoxBody exports use physical composite IDs such as
-            # box_body:box_body:left_side, whereas the old standalone button
-            # used box_body:left_side. Match the saved source-owned suffix,
-            # rejecting ambiguities instead of assuming the old file name.
-            targets = tuple(
-                path for key, path in outputs.items()
-                if str(key).endswith(":" + side)
+            # Resolve the actual canonical physical row by its immutable
+            # render-data identity, not by a fabricated part_id/filename:
+            # BoxBody composite role keys are e.g. box_body:box_body_left_side.
+            from ae_engine.manufacturing_export import (
+                resolved_physical_render_parts,
             )
-            if physical is None or len(targets) != 1:
+            matching_keys = tuple(
+                part_id for part_id, render_data
+                in resolved_physical_render_parts(selected)
+                if render_data is physical and part_id.startswith("box_body:")
+            )
+            if physical is None or len(matching_keys) != 1:
+                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OWNER_AMBIGUOUS")
+            target = outputs.get(matching_keys[0])
+            if not target:
                 raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OUTPUT_MISSING")
-            target = targets[0]
             if not verify_saved_part_render_data_dxf(physical, target).ok:
                 raise ValueError("EAR_SIDE_NORMAL_EXPORT_SAVED_DXF_INVALID")
             _readback_marking_lines(
