@@ -188,11 +188,15 @@ def test_live_tk_cadcraft_manual_position_return_uses_original_session(monkeypat
     image = tmp_path / "operator-preview.png"
     try:
         monkeypatch.setattr(bridge, "find_cadcraft_cli", lambda: "test-only-cli")
+        # ezdxf.new allocates heavily. Build the fixture on the Tk thread:
+        # cyclic GC of Tk widgets on the worker thread can abort Tcl on Win/Xvfb.
+        doc = ezdxf.new("R2010", units=ezdxf.units.MM)
+        doc.modelspace().add_circle((40, 40), 5)
+        doc.saveas(target)
+        image.write_bytes(b"not-a-real-png-test-only")
         def fake_draw(*, instructions, executable):
-            doc = ezdxf.new("R2010", units=ezdxf.units.MM)
-            doc.modelspace().add_circle(instructions[0].points[0], instructions[0].radius)
-            doc.saveas(target)
-            image.write_bytes(b"not-a-real-png-test-only")
+            assert instructions[0].points == ((40.0, 40.0),)
+            assert instructions[0].radius == 5
             return bridge.CadcraftCommandDrawingResult(target, image, {"status": "PASS"})
         monkeypatch.setattr(bridge, "draw_whd_commands_with_cadcraft", fake_draw)
         draw_button = editor._hole_header_cadcraft_draw
