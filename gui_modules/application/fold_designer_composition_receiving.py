@@ -3369,9 +3369,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if callable(after_saved):
                 after_saved(selected_version)
 
+        current = candidate_adapter().selection
+        physical = nfb_physical_bay_snapshot(current.set_index, current.bay_index)
         return open_inner_door_hole_editor(
             self.app, part_key, settings_mode=mode,
-            initial_features=initial_features,
+            initial_features=initial_features, physical_snapshot=physical,
             selected_candidate_version=version_id,
             on_settings_confirm=confirmed,
         )
