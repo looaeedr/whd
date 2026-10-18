@@ -42,6 +42,7 @@ def _tk_shell():
         showinfo=lambda *args, **kwargs: msgs.append(("info", args, kwargs)),
         showerror=lambda *args, **kwargs: msgs.append(("error", args, kwargs)),
         showwarning=lambda *args, **kwargs: msgs.append(("warning", args, kwargs)),
+        askyesno=lambda *args, **kwargs: (msgs.append(("ask", args, kwargs)), True)[1],
     )
     noop = lambda *args, **kwargs: None
     context = SimpleNamespace(
@@ -169,5 +170,48 @@ def test_live_tk_missing_cli_fails_without_starting_draft_or_drawing(
         assert str(button.cget("state")) == "normal"
         assert features == [] and not session.has_active_edit
         assert canvas.winfo_exists() and editor._hole_header_cadcraft.winfo_exists()
+    finally:
+        root.destroy()
+
+
+def test_live_tk_cadcraft_manual_position_return_uses_original_session(monkeypatch, tmp_path):
+    """A real button invoke reviews a modified isolated DXF, not arbitrary CAD."""
+    import ezdxf
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from gui_modules.editors import cadcraft_command_preview_bridge as bridge
+    from phase6_hole_editor_session import HoleEditorAction
+
+    root, editor, canvas, session, features, dialogs = _tk_shell()
+    original = CircleFeature(10, FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(40, 40))
+    features.append(original)
+    target = tmp_path / "operator-exchange.dxf"
+    image = tmp_path / "operator-preview.png"
+    try:
+        monkeypatch.setattr(bridge, "find_cadcraft_cli", lambda: "test-only-cli")
+        def fake_draw(*, instructions, executable):
+            doc = ezdxf.new("R2010", units=ezdxf.units.MM)
+            doc.modelspace().add_circle(instructions[0].points[0], instructions[0].radius)
+            doc.saveas(target)
+            image.write_bytes(b"not-a-real-png-test-only")
+            return bridge.CadcraftCommandDrawingResult(target, image, {"status": "PASS"})
+        monkeypatch.setattr(bridge, "draw_whd_commands_with_cadcraft", fake_draw)
+        draw_button = editor._hole_header_cadcraft_draw
+        return_button = editor._hole_header_cadcraft_return
+        assert str(return_button.cget("state")) == "disabled"
+        draw_button.invoke()
+        _pump(root, lambda: any(row[0] == "info" for row in dialogs))
+        assert str(return_button.cget("state")) == "normal"
+        doc = ezdxf.readfile(target)
+        circle = list(doc.modelspace())[0]
+        circle.dxf.center = (44, 37, 0)
+        doc.saveas(target)
+        return_button.invoke()
+        assert any(row[0] == "ask" and "X +4.000" in row[1][1] for row in dialogs)
+        assert features[0].offset == Vec2(44, 37)
+        assert not session.has_active_edit
+        assert str(return_button.cget("state")) == "disabled"
+        assert canvas.winfo_exists()
+        session.execute(HoleEditorAction.undo())
+        assert features == [original]
     finally:
         root.destroy()
