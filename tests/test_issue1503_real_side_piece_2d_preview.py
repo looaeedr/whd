@@ -23,7 +23,7 @@ def _side_geometry():
     original = _fixture()
     body = original.parts[1].render_data
     pieces = tuple(replace(
-        p, render_data=replace(
+        p, role=str(p.role).lower(), render_data=replace(
             p.render_data,
             material=box(0, 0, 1500, 1500),
             scene=DrawingScene(),
