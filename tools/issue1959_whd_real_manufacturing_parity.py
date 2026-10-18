@@ -162,7 +162,24 @@ def prove(cli: Path, work: Path):
     circle=next(e for e in added_entities if e.dxftype()=="CIRCLE")
     if (not _point_close(circle.dxf.center,110+shift_x,130+shift_y)
             or abs(circle.dxf.radius-5)>1e-5):
-        raise AssertionError("WHD_MANUFACTURING_CIRCLE_COORDINATE_DRIFT")
+        raise AssertionError(
+            "WHD_MANUFACTURING_CIRCLE_COORDINATE_DRIFT "
+            + json.dumps({
+                "source_finished_xy": [110,130],
+                "expected_finished_face_to_unfolded_shift": [shift_x,shift_y],
+                "expected_exported_xy": [110+shift_x,130+shift_y],
+                "actual_exported_xyz": list(circle.dxf.center),
+                "actual_exported_radius": circle.dxf.radius,
+                "finished_dimensions": [finished_w,finished_h],
+                "guide_bounds": [guide.min_point.x,guide.min_point.y,
+                                 guide.max_point.x,guide.max_point.y],
+                "all_cutting_entities": [
+                    [e.dxftype(),e.dxf.layer,
+                     list(e.dxf.center) if e.dxftype()=="CIRCLE"
+                     else list(e.get_points("xy"))[:4]]
+                    for e in added_entities],
+            }, ensure_ascii=False, default=str)
+        )
     expected_polygons=[
         [(200+6,160-10),(200+6,160+10),(200-6,160+10),(200-6,160-10)],
         [(280,230),(295,230),(300,243),(280,248)],
