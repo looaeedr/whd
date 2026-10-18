@@ -46,6 +46,10 @@ def test_gui_performance_skill_locks_the_today_rules():
         'recalculation',
         'DXF disk read',
         'render',
+        '先結算啟動、再量測導航',
+        'Windows 原生 Tk 不等於 Xvfb 缺失',
+        'git archive',
+        'JUnit XML',
     ):
         assert required in text
 

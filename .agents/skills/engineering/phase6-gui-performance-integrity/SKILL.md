@@ -65,6 +65,14 @@ Cache 必須分兩層：
 
 除了自動 regression，必須跑**真 GUI 壓力**：連續 W/H/D/T burst、箱身/封頭/封尾快速切換、Family/Assembly Intent 切換、3D 開關與連續互動。每段驗證最終 state/scene 一致、無事件暴增、無 Tk grab/Xvfb/pytest orphan、無 stale cache。
 
+## Windows 真 Tk 組合驗收防錯（#1796，2026-10-18）
+
+- **先結算啟動、再量測導航**：初次開 GUI 後 Tk `after` 可能尚有 `geometry` dirty；純板件切換的 12 次量測必須在 startup job 已 flush 且 `scheduler.dirty` 空集合後開始，另以 receipt 記錄啟動前 dirty、啟動 calculation/flush 計數。不得把初始化尚未結算的 `geometry` 誤算成 display-only 多算，更不能為求 GREEN 隱藏真正的初始化 calculation。每次純導航仍須 `calculation_flushes=0`、`render<=1`、`flush<=1`。
+- **Windows 原生 Tk 不等於 Xvfb 缺失**：若既有測試以 `DISPLAY` 存在與否判斷是否 skip，Windows 必須先用真 `Tk()`、`root.update()` 驗證環境，獨立程序用當次環境標示再運行原測試，要求 JUnit `skipped=0`。不能永久修改產品程式去適配測試 runner，亦不能把環境 skip 算 PASS。
+- **固定來源驗收**：跨人共享 `localX` 執行長測試時，先保存 exact SHA 的 `git archive` 與 archive SHA256，再從隔離展開目錄跑真 GUI、Save→Reload、DXF 與 collision。報告應區分「測試起點 HEAD」與「跑完後 live localX HEAD」；途中 target 更新必須按 diff 檔案範圍評估，不得將不同 SHA 的測試拼成一個 GREEN。
+- **證據與清理**：保留 JUnit XML、逐階段 log、Median/P95/Max、W/H/D/T burst 的 scheduler 計數、DXF reread 數、完整源檔雜湊、原有 config SHA256 前後比對、Git tracked dirty 與 GUI/pytest orphan 清查。截圖需取得真正 WHD 視窗內容，不能把前景瀏覽器擷取當作 GUI 驗收。
+- **真實案例**：R5-2600 初次 #1793 導航首筆 `dirty=('display','geometry')` 造成 1 次 solve，三次新開 Tk 有兩次 navigation 前仍有 startup geometry；#1970 分開記錄 startup 後，Windows 3×12 次 navigation PASS。#1796 固定版 `ffde9d43` 真 Windows 49 PASS（原始 log 見 #1796 留言），此成功不構成外部 AI Library 指定檔寫回或使用者人工簽收。
+
 ## Durable evidence
 
 長時間 profiling / stress / release 驗證不得只存在對話或臨時工作樹。建立 **durable checkpoint**，至少保存來源包、工作樹/patch hash、collection SHA、completed/pending/failed、journal 路徑、效能計數與下一步命令。任何續跑先讀 durable state，不從聊天文字猜進度。
