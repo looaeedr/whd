@@ -42,6 +42,12 @@ def test_windows_native_tk_is_never_skipped_just_for_missing_x11_display():
     assert 'if not os.environ.get("DISPLAY"):' not in project
 
 
+def test_real_cache_gui_uses_native_windows_tk_without_unix_display():
+    source = (ROOT / "tests" / "test_phase6_gui_performance_contract.py").read_text(encoding="utf-8")
+    assert 'if os.name != "nt" and not os.environ.get("DISPLAY"):' in source
+    assert 'pytest.skip("real Tk/MainGUI source-integrity proof requires Xvfb")' in source
+
+
 def test_gui_performance_skill_locks_the_today_rules():
     text = GUI_SKILL.read_text(encoding='utf-8')
     for required in (
