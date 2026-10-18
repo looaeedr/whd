@@ -723,6 +723,9 @@ def _build_navigation_and_lifecycle(s):
             if any(not isinstance(f, ProfileFeature)
                    or f.source_type != "NFB_CSV_SOURCE" for f in staged):
                 raise ValueError("NFB 頁籤只能暫存合法 CSV 主孔")
+            if any(dict(f.source_params).get("part_id") != s.part_key
+                   for f in staged):
+                raise ValueError("NFB 開孔不可帶入其他實體內門")
             existing = list(s.live_context.feature_list)
             if any(getattr(f, "source_type", None) == "NFB_VERIFIED_SOURCE"
                    for f in existing) and staged:
