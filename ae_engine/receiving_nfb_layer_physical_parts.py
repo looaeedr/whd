@@ -20,6 +20,28 @@ PREVIEW_STATUS = "NFB_TIER_BASE_EAR_AND_HOLES_UNVERIFIED"
 
 
 
+def _source_tier_base_spec(snapshot, values, center, depth):
+    """One pure actual PartSpec builder shared by 3D & GUI; no source reread."""
+    from .contracts import BasePlatePartSpec
+    if depth.parent_base_id != center.layer_part_id:
+        raise ValueError("RECEIVING_TIER_SOURCE_PART_SPEC_IDENTITY_DRIFT")
+    pair = (tuple(depth.source_depths_mm)
+            if len(depth.source_depths_mm) == 2 else None)
+    return BasePlatePartSpec(
+        width=float(snapshot["w"]), height=float(values["h"]),
+        thickness=float(snapshot["t"]),
+        shrink_top=float(values["base_plate_shrink_top"]),
+        shrink_bottom=float(values["base_plate_shrink_bottom"]),
+        shrink_left=float(values["base_plate_shrink_left"]),
+        shrink_right=float(values["base_plate_shrink_right"]),
+        bend=float(values["base_plate_bend"]),
+        model_name="受電箱",
+        receiving_bend_pattern=str(values["receiving_bend_pattern"]),
+        receiving_nfb_depth_pair_mm=pair,
+        physical_id=center.layer_part_id,
+    )
+
+
 def source_receiving_nfb_tier_base_specs(snapshot, *, require_source_z=True):
     """Build the SAME source PartSpec variants used by actual tier FinalScene.
 
@@ -58,20 +80,8 @@ def source_receiving_nfb_tier_base_specs(snapshot, *, require_source_z=True):
         if (depth.parent_base_id != center.layer_part_id
                 or (require_source_z and not depth.physical_skin_z_resolved)):
             raise ValueError("CSV_TIER_BASE_UNVERIFIED_TIER_SOURCE_Z")
-        pair = (tuple(depth.source_depths_mm)
-                if len(depth.source_depths_mm) == 2 else None)
-        specs[center.layer_index] = BasePlatePartSpec(
-            width=float(snapshot["w"]), height=float(values["h"]),
-            thickness=float(snapshot["t"]),
-            shrink_top=float(values["base_plate_shrink_top"]),
-            shrink_bottom=float(values["base_plate_shrink_bottom"]),
-            shrink_left=float(values["base_plate_shrink_left"]),
-            shrink_right=float(values["base_plate_shrink_right"]),
-            bend=float(values["base_plate_bend"]),
-            model_name="受電箱",
-            receiving_bend_pattern=str(values["receiving_bend_pattern"]),
-            receiving_nfb_depth_pair_mm=pair,
-            physical_id=center.layer_part_id,
+        specs[center.layer_index] = _source_tier_base_spec(
+            snapshot, values, center, depth,
         )
     return specs
 
@@ -155,7 +165,9 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
     }
     if set(z_targets) != {0, 1}:
         raise ValueError("RECEIVING_NFB_TIER_DEPTH_TARGET_IDENTITY_MISSING")
-    tier_specs = source_receiving_nfb_tier_base_specs(snapshot, require_source_z=False)
+    # Assembly already has the canonical tier centres, Z targets and base
+    # dimensions. Reuse the pure PartSpec builder without looking them up
+    # again; first entry must not get slower from CSV preview integration.
     generated = []
     for center in centers:
         identity = center.layer_part_id
@@ -173,7 +185,7 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
         if tier_profiles is None:
             raise ValueError("RECEIVING_NFB_TIER_SOURCE_PROFILE_MISSING")
         # One canonical constructor for 3D assembly and CSV V5 GUI preview.
-        spec = tier_specs[center.layer_index]
+        spec = _source_tier_base_spec(snapshot, values, center, depth_target)
         if (spec.physical_id != identity
                 or spec.receiving_nfb_depth_pair_mm != tier_pair):
             raise ValueError("RECEIVING_TIER_SOURCE_PART_SPEC_IDENTITY_DRIFT")
