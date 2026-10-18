@@ -2723,6 +2723,18 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 v5_base_canvas=tk.Canvas(base_tab,width=480,height=350,
                                          background="#101820",highlightthickness=0)
                 v5_base_canvas.pack(fill="x")
+                # Separate real physical tier scenes, not two overlaid
+                # diagrams or a duplicate of the root Base Plate.
+                second_base_tab=ttk.Frame(panels)
+                second_base_canvas=tk.Canvas(
+                    second_base_tab,width=480,height=350,
+                    background="#101820",highlightthickness=0,
+                )
+                second_base_canvas.pack(fill="x")
+                popup._receiving_v5_second_base_tab=second_base_tab
+                popup._receiving_v5_second_base_canvas=second_base_canvas
+                popup._receiving_v5_tabs=panels
+                popup._receiving_v5_base_primary_tab=base_tab
                 popup._receiving_v5_trial=None
                 popup._receiving_v5_base_trial=None
                 popup._receiving_v5_trial_canvas=v5_canvas
@@ -2830,21 +2842,45 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         base_trial = None
                         base_warning = ""
                         try:
-                            from ae_engine.receiving_nfb_v5_live_base_preview import (
-                                preview_v5_on_existing_receiving_base,
+                            from .receiving_nfb_v5_scene_preview import (
+                                preview_v5_real_receiving_base_sources,
                             )
                             base_spec, _ = self.app._part_spec_query_callback(
                                 "base_plate", physical,
                             )
-                            base_trial = preview_v5_on_existing_receiving_base(
+                            base_trial = preview_v5_real_receiving_base_sources(
                                 physical, inner_door_id, door=trial,
-                                configured_holes=unit_holes, base_spec=base_spec,
+                                configured_holes=unit_holes, root_base_spec=base_spec,
                             )
                         except (ValueError, TypeError, KeyError, IndexError) as exc:
                             base_warning = "；底板仍需獨立驗證：" + str(exc)
                         paint_v5_real_inner_door_trial(v5_canvas, trial)
+                        extra_tab = popup._receiving_v5_second_base_tab
+                        visible_extra = str(extra_tab) in panels.tabs()
                         if base_trial is not None:
-                            paint_v5_real_base_trial(v5_base_canvas, base_trial)
+                            if len(base_trial) == 2:
+                                panels.tab(base_tab, text="第一層底板")
+                                paint_v5_real_base_trial(
+                                    v5_base_canvas, base_trial[0], tier_label="第一層",
+                                )
+                                if not visible_extra:
+                                    panels.add(extra_tab, text="第二層底板")
+                                paint_v5_real_base_trial(
+                                    popup._receiving_v5_second_base_canvas,
+                                    base_trial[1], tier_label="第二層",
+                                )
+                            else:
+                                panels.tab(base_tab, text="底板 EAR／螺絲孔")
+                                if visible_extra:
+                                    panels.forget(extra_tab)
+                                paint_v5_real_base_trial(
+                                    v5_base_canvas, base_trial[0],
+                                )
+                        else:
+                            panels.tab(base_tab, text="底板尚未驗證")
+                            if visible_extra:
+                                panels.forget(extra_tab)
+                            v5_base_canvas.delete("v5-real-part")
                         popup._receiving_v5_trial = trial
                         popup._receiving_v5_base_trial = base_trial
                         if original_editor is not None and getattr(
