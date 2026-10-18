@@ -139,8 +139,8 @@ def test_operator_opening_center_moves_base_plate_center_without_changing_plate_
 def test_two_nfb_tiers_do_not_create_one_fake_combined_plate_center():
     snap=_assembled()
     snap["nfb_config"]["layer_count"] = 2
-    snap["nfb_config"]["holes"][0].update(layer_count=2,slot_index=0)
-    snap["nfb_config"]["holes"][1].update(layer_count=2,slot_index=1)
+    snap["nfb_config"]["holes"][0].update(layer_count=2,layer_index=0,slot_index=0)
+    snap["nfb_config"]["holes"][1].update(layer_count=2,layer_index=1,slot_index=0)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     from ae_engine.receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
     layer_centers = receiving_nfb_layer_centers(snap,"upper")
