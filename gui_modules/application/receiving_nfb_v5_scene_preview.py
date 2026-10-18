@@ -152,3 +152,24 @@ def preview_v5_real_receiving_base_sources(
         snapshot, inner_door_id,
         door=door, configured_holes=entries, base_specs=specs,
     )
+
+
+def clear_v5_checked_geometry_preview(
+    popup, *, door_canvas, base_canvas,
+):
+    """Remove obsolete successful canvas geometry before ANY CSV re-check.
+
+    The typed source proof is invalidated by its separate authority owner.
+    This visual guard ensures the GUI cannot still display that discarded
+    physical FinalScene as the current, valid NFB opening or tier base.
+    """
+    for canvas in (
+        door_canvas, base_canvas,
+        popup._receiving_v5_second_base_canvas,
+    ):
+        canvas.delete("v5-real-part")
+    pages = popup._receiving_v5_tabs
+    second = popup._receiving_v5_second_base_tab
+    if str(second) in pages.tabs():
+        pages.forget(second)
+    pages.tab(popup._receiving_v5_base_primary_tab, text="底板尚未驗證")
