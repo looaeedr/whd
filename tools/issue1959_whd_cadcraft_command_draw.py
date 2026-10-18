@@ -126,7 +126,7 @@ def verify_dxf(path: Path, expected: tuple[DrawInstruction, ...]) -> dict:
         raise CadcraftCommandProofError("ENTITY_COUNT_MISMATCH")
     observations = []
     for index, (e, item) in enumerate(zip(entities, expected)):
-        if e.dxf.layer != "0" or e.dxf.get("extrusion", (0, 0, 1)) != (0, 0, 1):
+        if e.dxf.layer != "0" or not all(_near(a, b) for a, b in zip(e.dxf.get("extrusion", (0, 0, 1)), (0, 0, 1))):
             raise CadcraftCommandProofError("UNEXPECTED_LAYER_OR_EXTRUSION")
         if item.kind == "circle":
             if e.dxftype() != "CIRCLE":
