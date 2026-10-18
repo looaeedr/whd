@@ -33,8 +33,9 @@ def test_actual_flat_base_single_400_depth_matches_inner_door_true_skin_world_z(
     assert shallow is None
     p=resolve_assembly_placement(snap,"base_plate")
     assert p.relationship=="RECEIVING_NFB_SKIN_DEPTH"
-    # Hole-row Y250 is not a physical fixing-ear/Base Plate assembly Y.
-    assert p.world_offset[1]==pytest.approx(0)
+    # The single NFB opening and this flat-side Base Plate mate
+    # CENTER-to-CENTER: upper default 550mm from top => world Y250.
+    assert p.world_offset[1]==pytest.approx(250)
     world=resolve_receiving_nfb_world_skin_datums(
         snap,inner_door_id="upper",reference_nfb_depth_mm=107,
     )
