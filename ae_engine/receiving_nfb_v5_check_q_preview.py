@@ -57,6 +57,7 @@ def check_csv_v5_base_part_only_groups(
         raise ValueError("CSV V5 CHECK Q 沒有任何實體底板")
     physical_demands = []
     parameters_by_source = {}
+    verified_csv_sources = set()
     seen = set()
     for row in rows:
         if not isinstance(row, CsvV5BaseCheckDemand):
@@ -102,6 +103,7 @@ def check_csv_v5_base_part_only_groups(
             raise ValueError("CSV V5 檢查時來源資料不可讀") from exc
         if csv_sources != fresh:
             raise ValueError("CSV V5 檢查時來源 CSV 已變更")
+        verified_csv_sources.update(csv_sources)
         # The original real Base Plate has one outer CUTTING contour and
         # four EAR mount slots, all represented as closed polylines. Its
         # V5-added CUTTING circles may ONLY be the NFB screws for this exact
@@ -196,6 +198,17 @@ def check_csv_v5_base_part_only_groups(
     groups = group_quantity_physical_demands(
         physical_demands, parameters_by_source,
     )
+    # Grouping may take time: fail closed if any validated CSV changed
+    # between source verification and the completed CHECK/Q result.
+    try:
+        post_group_sources = tuple(sorted(
+            (brand, sha256(brand_csv_path(brand).read_bytes()).hexdigest())
+            for brand, _ in verified_csv_sources
+        ))
+    except OSError as exc:
+        raise ValueError("CSV V5 分組後來源資料不可讀") from exc
+    if post_group_sources != tuple(sorted(verified_csv_sources)):
+        raise ValueError("CSV V5 分組期間來源 CSV 已變更")
     return CsvV5BaseCheckPreview(
         groups=groups,
         physical_part_ids=tuple(sorted(part.part_id for part in
