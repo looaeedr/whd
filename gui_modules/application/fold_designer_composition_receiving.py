@@ -3293,7 +3293,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def verified_for_editor(set_index, bay_index):
             bundle, reason = eligible_bundle(set_index, bay_index)
-            if bundle is None or not bundle.can_submit:
+            if bundle is None or not bundle.verified_door.manufacturing_ready:
                 raise ValueError(reason or "沒有已驗證的實體 NFB 來源與開口")
             return bundle
 
