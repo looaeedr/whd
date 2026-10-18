@@ -18,7 +18,7 @@ from ezdxf.lldxf.encoding import decode_dxf_unicode
 # accepted. A new kind is an explicit unsupported result, not a silent PASS.
 SUPPORTED = frozenset({
     "LINE", "ARC", "CIRCLE", "LWPOLYLINE", "POLYLINE", "POINT",
-    "TEXT", "MTEXT", "INSERT", "ATTRIB", "ATTDEF", "DIMENSION", "VERTEX",
+    "TEXT", "MTEXT", "INSERT", "ATTRIB", "ATTDEF", "DIMENSION", "VERTEX", "SOLID",
 })
 HEADER_KEYS = ("$INSUNITS", "$MEASUREMENT")
 IGNORED = frozenset({"handle", "owner", "paperspace"})
