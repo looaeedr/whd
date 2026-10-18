@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """Receiving tab -> native Hole Editor NFB staging, no nested CSV popup."""
 from copy import deepcopy
+from dataclasses import replace
 from pathlib import Path
+
+from ae_engine.sheetmetal_geometry import Vec2
 
 import pytest
 
@@ -121,3 +124,19 @@ def test_tab_flow_uses_native_undoable_stage_and_preserves_confirm_owner():
     assert "CSV 開口位置" not in receiving
     assert "檢查 CSV 開口" not in receiving
     assert "open_nfb_world_x_dialog" not in receiving
+
+
+def test_reenter_receiving_tab_preserves_manually_moved_native_hole():
+    physical = _physical()
+    base = editor_nfb_features_from_csv(physical, _config())
+    moved = replace(base[0], offset=Vec2(12.0, 24.0))
+    unchanged = editor_nfb_features_from_csv(
+        physical, _config(), current_features=(moved,),
+    )
+    assert unchanged == (moved,)
+    shifted = editor_nfb_features_from_csv(
+        physical, _config(heights=(500, 800)), current_features=(moved,),
+    )
+    assert shifted[0].offset.x == pytest.approx(12.0)
+    assert shifted[0].offset.y == pytest.approx(74.0)
+    assert dict(shifted[0].source_params)["y_from_top_mm"] == 500.0
