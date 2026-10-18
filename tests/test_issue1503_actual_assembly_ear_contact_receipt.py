@@ -162,3 +162,35 @@ def test_current_csv_two_tier_brands_keep_own_real_skin_and_four_ear_receipts():
     ]
     assert len({r.actual_base_back_skin_world_z_mm for r in receipts}) == 2
     assert all(not r.manufacturing_ready for r in receipts)
+
+
+@pytest.mark.parametrize("contamination", (
+    "open_cutting", "cutting_circle", "marking_line", "extra_bend",
+))
+def test_ear_receipt_rejects_extra_source_primitives_even_with_five_valid_cuts(
+    monkeypatch, contamination,
+):
+    """The source witness must validate the whole scene, not only five closed cuts."""
+    from ae_engine import receiving_base_fixing_plate_geometry as geometry
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    original = geometry.build_fixing_plate_source_render_data
+
+    def contaminated_source(*args, **kwargs):
+        data = original(*args, **kwargs)
+        scene = DrawingScene(list(data.scene.primitives))
+        if contamination == "open_cutting":
+            scene.add_line((0., 2.), (20., 2.), layer="CUTTING")
+        elif contamination == "cutting_circle":
+            scene.add_circle((12., 12.), 2., layer="CUTTING")
+        elif contamination == "marking_line":
+            scene.add_line((0., 5.), (20., 5.), layer="MARKING")
+        else:
+            scene.add_line((0., 24.), (256., 24.), layer="BEND", color=5)
+        return replace(data, scene=scene)
+
+    monkeypatch.setattr(geometry, "build_fixing_plate_source_render_data",
+                        contaminated_source)
+    snapshot, parts = _real_two_tier_parts()
+    with pytest.raises(ValueError, match="EAR_RECEIPT_SOURCE_EAR_CUTTING_OR_BEND_DRIFT"):
+        validate_receiving_tier_fixing_contact_receipts(snapshot, parts)
