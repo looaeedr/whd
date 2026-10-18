@@ -387,6 +387,7 @@ class ReceivingSetBayAdapter:
             for kind, value in (
                 ("inner_door_layers", source["layers"]),
                 ("inner_door_models", source["models"]),
+                ("inner_door_features", source.get("features", {})),
                 ("inner_door_layer_heights_mm", source.get("layer_heights_mm")),
                 ("inner_door_version_id", version_id),
             ):
@@ -449,6 +450,7 @@ class ReceivingSetBayAdapter:
             for kind, value in (
                 ("inner_door_layers", config["layers"]),
                 ("inner_door_models", config["models"]),
+                ("inner_door_features", config.get("features", {})),
                 ("inner_door_layer_heights_mm", config.get("layer_heights_mm")),
                 ("inner_door_version_id", assigned[(si, bi)]),
             ):
