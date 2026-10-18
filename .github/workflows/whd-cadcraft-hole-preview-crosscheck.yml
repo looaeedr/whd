@@ -9,6 +9,8 @@ on:
       - 'gui_modules/editors/hole_editor_view.py'
       - 'tests/test_cadcraft_hole_editor_preview.py'
       - 'tools/cadcraft_hole_editor_preview_crosscheck.py'
+      - 'tools/issue1820_cadcraft_dxf_fidelity_gate.py'
+      - 'tests/test_issue1820_cadcraft_dxf_fidelity_gate.py'
       - '.github/workflows/whd-cadcraft-hole-preview-crosscheck.yml'
   workflow_dispatch:
 
@@ -86,6 +88,12 @@ jobs:
       - name: Compare every primitive, XY and layer with independent ezdxf
         run: |
           PYTHONPATH="$GITHUB_WORKSPACE" python tools/cadcraft_hole_editor_preview_crosscheck.py verify work/cadcraft-hole-preview/source.dxf work/cadcraft-hole-preview/resaved.dxf
+      - name: Refuse DXF header/geometry/block/annotation semantic drift
+        run: |
+          PYTHONPATH="$GITHUB_WORKSPACE" python tools/issue1820_cadcraft_dxf_fidelity_gate.py \
+            work/cadcraft-hole-preview/source.dxf \
+            work/cadcraft-hole-preview/resaved.dxf \
+            --json work/cadcraft-hole-preview/fidelity-gate.json
       - name: Preserve inspection evidence
         if: always()
         uses: actions/upload-artifact@v4
