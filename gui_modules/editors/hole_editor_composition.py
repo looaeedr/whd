@@ -671,11 +671,10 @@ def _build_navigation_and_lifecycle(s):
         editor_closed=s.editor_closed,
         editor=s.editor,
         on_close=s.on_close,
-        on_confirm=(lambda: (
-            s.on_confirm_features(list(s.live_context.feature_list))
-            if s.on_confirm_features is not None else
-            s.on_confirm() if s.on_confirm is not None else None
-        )),
+        before_commit=(lambda: s.on_confirm_features(
+            list(s.live_context.feature_list),
+        )) if s.on_confirm_features is not None else None,
+        on_confirm=(s.on_confirm if s.on_confirm_features is None else None),
         insert_mode=s.insert_mode,
         set_insert_mode=s.set_insert_mode,
         cancel_active_edit=s.cancel_active_edit,
