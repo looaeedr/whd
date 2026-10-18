@@ -2,8 +2,9 @@
 """Regression: Receiving inner door uses the original Hole Editor directly.
 
 The user removed the separate CSV world-X/opening verification workflow.
-Selecting NFB metadata must not secretly import an opening or demand a
-pre-verified numeric/DXF source before the ordinary editor can confirm.
+Selecting NFB metadata does not silently commit. The Receiving tab's own
+Confirm stages user-selected CSV holes in the original editor, without
+a duplicate verification popup. Only Confirm All can persist the result.
 """
 import ast
 from pathlib import Path
