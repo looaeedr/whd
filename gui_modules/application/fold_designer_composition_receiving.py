@@ -3462,6 +3462,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             else:
                 updated = update_inner_candidate(inner_library(), version_id, config)
                 selected_version = version_id
+            # An uncommitted verification uses the future real candidate ID
+            # but cannot mint a different ID (for example after another edit).
+            if any(getattr(f, "source_type", None) == "NFB_VERIFIED_SOURCE"
+                   for f in features):
+                selected = candidate_adapter().selection
+                proof = pending_verified_nfb.get(
+                    (selected.set_index, selected.bay_index)
+                )
+                if proof is None or proof.version_id != selected_version:
+                    raise ValueError("NFB 原始來源驗證與候選版本編號已不同，請重新確認")
             # No changes to a committed Bay before explicit 套用.
             persist_inner(updated)
             if callable(after_saved):
@@ -3486,9 +3496,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # Existing candidates never implicitly consume another Bay's live holes.
         if part_key in typed:
             draft_features = deepcopy(typed[part_key])
-        elif version_id is None:
-            draft_features = self.app.designer_workspace.features_for(part_key)
         else:
+            # A new candidate starts empty. Never borrow the selected Bay or
+            # Single's current physical holes before explicit version Apply.
             draft_features = []
         return launch_inner_editor(
             part_key, mode="candidate", version_id=version_id,
