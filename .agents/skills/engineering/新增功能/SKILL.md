@@ -9,6 +9,11 @@ whd_schema: WHD_DOC_META_V1
 
 # 新增功能 — /功能
 
+## 不得停止程序 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
+
+使用者同時下達 `/功能 /DEBUG /派工` 時，本 Skill 只負責新功能與驗收需求，診斷交給 diagnosing-bugs，直接施工與 `localX` 交付沿用派工；只走一條 Issue／PR 工作鏈。**不得預先設定停止程序**；查到可行動作就直接動手，回報不構成暫停，沒有新授權需求就不重問。來源不足時先查來源，不能猜測製造規格；單一工具被拒就續做其他合法工作。
+
+
 本 Skill 只協調「新增功能完整性」，不創建第二套派工、lease、CI、Git 交付或發布流程。權威為 GitHub `localX` 的 `AGENTS.md`、CURRENT domain 規格／原始資料，以及既有 `派工`、`執行開發任務`、`UI設計與去AI味`、`寫成規格書`、`tdd`、`驗證板件與DXF`、`tools/change_test_profile.py`；`/debug` 仍專責既有 BUG，不由本 Skill 取代。
 
 ## 命令語意
@@ -55,5 +60,5 @@ CI 及 scope、base drift、mergeability 驗證後，依原本 `GITHUB_LOCALX_FI
 
 發現缺漏依原 Issue 補修再重測整合；完整 Issue 收尾沿用原 `派工`，不增第二套工作槽或背景輪詢。**正式 X=cleanup/2d-3d-sync 只在使用者實際驗收及當次 /推推 後發布**；治理／技能也先合 localX，**不得治理直送 X**。
 
-每 2–3 個實質操作回報證據，分別報告功能與測試、PR／run ID／HEAD、Windows 同步與 UAT、正式 X；遇真實平台拒絕報 blocker 與下一合法操作，不得繞過或假稱回合結束後背景會續工。
+每 2–3 個實質操作回報證據，分別報告功能與測試、PR／run ID／HEAD、Windows 同步與 UAT、正式 X；遇單一步驟被拒時，不繞過安全授權，直接改做其他合法可執行動作；記錄錯誤不構成停止程序。
 

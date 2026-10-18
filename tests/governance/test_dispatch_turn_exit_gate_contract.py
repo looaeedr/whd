@@ -1,4 +1,4 @@
-"""Regression for /派工 exit decisions. Static policy/fixture tests, NOT a ChatGPT turn hook."""
+"""Regression for the direct-next-action policy of interactive WHD commands."""
 import json
 from pathlib import Path
 import unittest
@@ -19,7 +19,7 @@ def turn_exit_decision(*, pr_head="a" * 40, run_head="a" * 40,
                        next_issue_checked=False, next_issue_found=False,
                        next_issue_start_evidence=None, no_eligible_evidence=None,
                        blocker=None, limit_evidence=None):
-    """Executable contract fixture, not a production ChatGPT runtime interceptor."""
+    """Executable fixture for choosing the next lawful step."""
     if limit_evidence:
         return "REAL_RUNTIME_LIMIT"
     if blocker:
@@ -112,7 +112,7 @@ class DispatchTurnExitContract(unittest.TestCase):
             key = turn_exit_decision(**kwargs)
             result = POLICY["decisions"][key]
             self.assertEqual(result["action"], expected)
-            self.assertTrue(result["may_end_turn_without_completion"])
+            self.assertFalse(result["may_end_turn_without_completion"])
             self.assertFalse(result["normal_completion"])
             self.assertIn("next_exact_action", result["requires"])
 
@@ -135,8 +135,8 @@ class DispatchTurnExitContract(unittest.TestCase):
             content = path.read_text(encoding="utf-8")
             for marker in ("LOCALX_INTEGRATION_PENDING", "CONTINUE_FINALIZATION", "run_id"):
                 self.assertIn(marker, content)
-        self.assertIn("不會在回合結束後自行喚醒", AGENTS.read_text(encoding="utf-8"))
-        self.assertIn("沒有可由此文件攔截", DISPATCH.read_text(encoding="utf-8"))
+        self.assertIn("INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1", AGENTS.read_text(encoding="utf-8"))
+        self.assertIn("不得停止程序", DISPATCH.read_text(encoding="utf-8"))
         self.assertIn("未建立排程的聊天不具背景輪詢能力", MONITOR.read_text("utf-8"))
 
     def test_github_first_integration_and_explicit_dc_are_scoped(self):

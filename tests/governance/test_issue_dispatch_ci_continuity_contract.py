@@ -41,7 +41,7 @@ class ContinuityContractTests(unittest.TestCase):
                 if path.endswith("/monitoring-remote-qa/SKILL.md"):
                     self.assertIn("未建立排程的聊天不具背景輪詢能力", text)
                 else:
-                    self.assertIn("回合", text)
+                    self.assertIn("INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1", text)
                 self.assertIn("/推推", text)
 
 

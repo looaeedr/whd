@@ -9,6 +9,11 @@ whd_schema: WHD_DOC_META_V1
 
 # 執行開發任務
 
+## 不得停止程序 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
+
+使用者明確下達施工、`/功能`、`/DEBUG`、`/派工` 或 `/接手` 後，在原有授權範圍內直接施工，不得預先設停止程序；能讀真實來源就讀、能修改就提交、能查 CI 就查、GREEN 就依現行授權合併 `localX` 並接下一張。單一操作遭拒只處理該操作，改做其他合法可行工作；不得以狀態報告、建立工單、PR 或單一 blocker 宣稱完成。維持 `SOURCE_READ_BEFORE_MUTATION_V1`、DC/RC 明確授權及正式 X `/推推` 閘門。
+
+
 **改程式前的必做條件**：執行 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1`；先實際讀受影響程式完整函式／呼叫鏈、CURRENT 規格與資料檔及既有測試，交代 `SOURCE_READ_EVIDENCE` 後才可寫產品程式或測試。若來源或正確判準缺失，回報 `SOURCE_READ_PRECONDITION_FAILED`，繼續只讀查證，**不可看檔名就直接改、不得憑測試輸出猜幾何公式**。此條不擴大 RC/DC 權限。
 
 使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` 精確 HEAD 的 `AGENTS.md`，再依入口分流：一般修復、`/派工` 與治理修改從最新 `localX` 建工作分支，在 GitHub／排程／雲端施工並通過 CI 後 PR 合回遠端 `localX`。僅使用者當次明確 `/接手` 選用 RC 的任務可以使用 CoreELEC；不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC。正式 X 只在 Windows 人工驗收及當次 `/推推` 後發布。
@@ -41,5 +46,5 @@ whd_schema: WHD_DOC_META_V1
 
 ## 工作結束前的交付驗證
 
-產品 PR 建立後不表示任務完成。尚在 queued/in_progress/pending 的 CI 只能續查，不可最終回報「已派工」就離開；成功時在同一可執行回合繼續合併 localX、驗證 HEAD、工單留言、結案回讀，失敗時主動查 log 修復並重測。只有不可執行的外部 blocker／回合工具限制才可停止，須明確揭露，不得冒充背景執行；`/推推` 仍是正式 X 發布唯一授權。
+產品 PR 建立後不表示任務完成。尚在 queued/in_progress/pending 的 CI 只能續查，不可最終回報「已派工」就離開；成功時在同一可執行回合繼續合併 localX、驗證 HEAD、工單留言、結案回讀，失敗時主動查 log 修復並重測。單一工具受阻時立即處理其他合法可行動作，不得將 blocker 當整體停止程序；`/推推` 仍是正式 X 發布唯一授權。
 `localX` 成功合併並完成 GitHub SHA 回讀之後立刻 `NEXT_ISSUE_DISCOVERY_REQUIRED`：在原 Issue 結案前／同時查下一張符合依賴、無重複施工、目前 OPEN 的工單，直接切入派工與實作；不能把原 Issue close 當下一張搜尋的先決條件。沒有可執行工單則記錄真實 `NO_ELIGIBLE_ISSUE`。
