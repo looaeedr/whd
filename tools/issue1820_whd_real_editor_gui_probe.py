@@ -130,14 +130,46 @@ def measured_worker(source:Path,dest:Path):
                 stop.wait(.05)
         t=threading.Thread(target=watch,daemon=True);t.start()
         first_visible=None;stdout=[]
-        try:
+        # Read stdout off the supervising thread: a wedged GUI can hold its
+        # pipe open forever, so a wait() placed after a blocking read is inert.
+        def collect_stdout():
+            nonlocal first_visible
             for line in process.stdout:
                 stdout.append(line)
                 if "FIRST_WHD_EDITOR_FRAME_READY" in line and first_visible is None:
                     first_visible=(time.perf_counter_ns()-launched)/1e6
-            rc=process.wait(timeout=15)
+
+        reader=threading.Thread(target=collect_stdout,daemon=True)
+        reader.start()
+        try:
+            remaining=max(0.0,15.0-(time.perf_counter_ns()-launched)/1e9)
+            reader.join(timeout=remaining)
+            if reader.is_alive():
+                # Terminate descendants first, including a Windows venv
+                # redirector's actual Tk process, then reap the launcher.
+                try:
+                    descendants=handle.children(recursive=True)
+                except (psutil.NoSuchProcess,psutil.AccessDenied,psutil.ZombieProcess):
+                    descendants=[]
+                for child in reversed(descendants):
+                    try:
+                        child.kill()
+                    except (psutil.NoSuchProcess,psutil.AccessDenied,psutil.ZombieProcess):
+                        pass
+                if process.poll() is None:
+                    process.kill()
+                try:
+                    process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=3)
+                reader.join(timeout=2)
+                raise TimeoutError("WHD_REAL_EDITOR_TIMEOUT: worker stdout did not close within 15s")
+            rc=process.wait(timeout=3)
         finally:
             stop.set();t.join(timeout=2)
+            if process.stdout is not None:
+                process.stdout.close()
         (dest/"worker-stdout.log").write_text("".join(stdout),encoding="utf-8")
         if rc!=0 or first_visible is None or not (dest/"worker.json").is_file():
             raise RuntimeError(f"WHD_REAL_EDITOR_FAILURE rc={rc} frame={first_visible}; see worker-stderr.log")
