@@ -89,10 +89,11 @@ def preview_v5_on_existing_receiving_base(
         world_centres.append((float(entry.world_x_mm), float(yy.box_world_y_mm)))
     if max(v for _, v in world_centres) - min(v for _, v in world_centres) > _TOL:
         raise ValueError("NFB V5 不同層高必須各有原始實體底板，不可共用")
-    center_world = (
-        (min(x for x, _ in world_centres)+max(x for x, _ in world_centres))/2,
-        world_centres[0][1],
-    )
+    # Receiving Base Plate and its four EAR mounting slots are fixed at
+    # cabinet X=0. Each NFB's world X shifts ONLY its own screw circles.
+    # Averaging the NFB centres here used to move the entire plate and
+    # falsely rejected every legitimately offset NFB row.
+    center_world = (0.0, world_centres[0][1])
     original = build_part_render_data(base_spec)
     topo = original.unfolded_topology
     if (topo is None or topo.piece_id != physical_id
@@ -107,9 +108,19 @@ def preview_v5_on_existing_receiving_base(
         raise ValueError("NFB V5 底板裝配位置超出上方作用區")
     if abs(center_world[0])+float(base_spec.width)/2 > float(snapshot["w"])/2+_TOL:
         raise ValueError("NFB V5 底板整片超出箱體寬度")
-    margin_x = (71.0 if base_spec.receiving_bend_pattern
-                == RECEIVING_BASE_PATTERN_CENTER else 0.0)
-    x0, x1 = margin_x, w-margin_x
+    # Resolve the real source-generated BEND stations, not the old 71-mm
+    # nominal or a second hardcoded unfolded face width.
+    if base_spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_CENTER:
+        x_guides = sorted({
+            float(g.position) for g in tuple(original.fold_guides or ())
+            if str(g.axis) == "x"
+        })
+        if len(x_guides) != 4:
+            raise ValueError("NFB V5 原底板缺少四條真實側折 BEND")
+        x0 = x_guides[1] + float(base_spec.thickness)/2.0
+        x1 = x_guides[2] - float(base_spec.thickness)/2.0
+    else:
+        x0, x1 = 0.0, w
     y0, y1 = float(base_spec.bend), h-float(base_spec.bend)
     if x0 >= x1 or y0 >= y1:
         raise ValueError("NFB V5 原底板沒有有效平面工作區")
