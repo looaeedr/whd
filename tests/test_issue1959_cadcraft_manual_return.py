@@ -27,6 +27,7 @@ def _fixture(tmp_path):
     ]
     session = Phase6HoleEditorSession("manual-1959", features)
     path = tmp_path / "isolated-cadcraft.dxf"
+    path.parent.mkdir(parents=True, exist_ok=True)
     doc = ezdxf.new("R2010", units=ezdxf.units.MM)
     instructions = from_whd_resolved(tuple(
         resolve_surface_features(surface, features, 300, 300)
