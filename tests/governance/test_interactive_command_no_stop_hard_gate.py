@@ -46,5 +46,45 @@ class InteractiveNoStopGate(unittest.TestCase):
             issue_closed=True)), "DISCOVER_NEXT_ISSUE")
         self.assertEqual(next_action(WorkObservation()), "READ_CURRENT_SOURCE_AND_CONTINUE")
 
+
+    def test_denied_tool_skips_only_that_action_without_escalating_permission(self):
+        self.assertEqual(next_action(WorkObservation(
+            authorized_actions=("DENIED_DC", "READ_GITHUB_SOURCE"),
+            rejected_actions=("DENIED_DC",),
+            operation_rejected=True,
+        )), "READ_GITHUB_SOURCE")
+        self.assertEqual(next_action(WorkObservation(
+            authorized_actions=("DENIED_DC",),
+            rejected_actions=("DENIED_DC",),
+            ci_status="in_progress",
+            operation_rejected=True,
+        )), "CONTINUE_POLL")
+        self.assertEqual(next_action(WorkObservation(
+            authorized_actions=("DENIED_DC",),
+            rejected_actions=("DENIED_DC",),
+            operation_rejected=True,
+        )), "READ_CURRENT_SOURCE_AND_CONTINUE")
+
+    def test_unknown_ci_outcome_reconciles_instead_of_inventing_red(self):
+        for outcome in ("", "neutral", "skipped"):
+            with self.subTest(outcome=outcome):
+                self.assertEqual(next_action(WorkObservation(
+                    ci_status="completed", ci_conclusion=outcome,
+                )), "RECONCILE_ONLY")
+        self.assertEqual(next_action(WorkObservation(
+            ci_status="completed", ci_conclusion="failure",
+        )), "REPAIR_AND_RETEST")
+
+    def test_localx_merge_triggers_discovery_before_closure(self):
+        self.assertEqual(next_action(WorkObservation(
+            localx_merged=True, issue_closed=False,
+        )), "DISCOVER_NEXT_ISSUE")
+        self.assertEqual(next_action(WorkObservation(
+            localx_merged=True, issue_closed=False, next_issue_checked=True,
+        )), "CONTINUE_FINALIZATION")
+        self.assertEqual(next_action(WorkObservation(
+            localx_merged=True, issue_closed=True, next_issue_started=True,
+        )), "CONTINUE_NEXT_ISSUE")
+
 if __name__ == "__main__":
     unittest.main()
