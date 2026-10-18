@@ -53,7 +53,10 @@ def inner_door_work_area_guide(snapshot, panel, structural):
     )
 
 
-def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, from_part_preview=False):
+def open_inner_door_hole_editor(
+    app, part_key: str, *, from_corner_data=False, from_part_preview=False,
+    settings_mode=None, initial_features=None, on_settings_confirm=None,
+):
     """Open the existing Vault Door hole editor; preserve view-only Corner Data selection."""
     if not is_inner_door_sheet(part_key):
         raise ValueError("不是可開孔編輯的內門門板")
@@ -61,7 +64,11 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
     if part_key not in workspace.available_parts:
         raise ValueError("內門門板目前不在有效板件清單")
     host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
-    if str(workspace.active_part) != part_key:
+    if settings_mode not in (None, "single", "candidate"):
+        raise ValueError("未知的內門編輯來源")
+    # An explicit settings-button entry already identifies this physical panel;
+    # the old panel-double-click path still requires active-part selection.
+    if settings_mode is None and str(workspace.active_part) != part_key:
         corner_selected = (
             from_corner_data
             and str(getattr(app, "_phase6_3d_display_mode", "") or "") == "corner_data"
@@ -116,7 +123,9 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
     # importing the OUTER Vault Door's fixed handle/nameplate holes into a
     # Receiving inner-door/NFB physical hole owner.
     render = manufacturing_api.build_inner_door_panel_render_data(panel)
-    features = workspace.features_for(part_key)
+    from copy import deepcopy
+    features = (workspace.features_for(part_key) if initial_features is None
+                else deepcopy(list(initial_features)))
 
     def commit():
         # Workspace is authoritative; original outer Door holes remain separate.
@@ -133,6 +142,19 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
             if callable(refresh):
                 refresh()
 
+    def confirm_settings(final_features):
+        # Hole Editor calls this ONLY on 確定全部.  No candidate / Bay writes
+        # occur on its live sync or on 取消全部.
+        editor = getattr(host, "last_unified_hole_editor", None)
+        staged = getattr(editor, "_receiving_staged_config", None)
+        if on_settings_confirm is not None:
+            on_settings_confirm(part_key, deepcopy(list(final_features)), staged)
+        else:
+            workspace.stash_features(part_key, deepcopy(list(final_features)))
+            if str(workspace.active_part) == part_key:
+                app._load_part_holes(part_key)
+            app.submit_update_intent("geometry", commit=True)
+
     title = "內門門板：" + str(panel.inner_door_id)
     window = host._open_unified_hole_editor(
         part_key, title, surface, structural.width, structural.height,
@@ -142,7 +164,8 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         local_reference_guide=door_guide,
         cabinet_reference_guide=work_area_guide,
         feature_list_override=features,
-        sync_callback=commit,
+        sync_callback=(commit if settings_mode is None else lambda: None),
+        **({"on_confirm_features": confirm_settings} if settings_mode is not None else {}),
         door_frame_edges=DoorFrameEdges(
             left=False, right=False, top=False, bottom=False,
         ),
@@ -151,6 +174,9 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         baseline_status_text="金庫型門板共用折彎／截角；內門孔位獨立",
     )
     editor = window or getattr(host, "last_unified_hole_editor", None)
+    if settings_mode is not None:
+        editor._receiving_staged_config = None
+        editor._receiving_settings_mode = settings_mode
     receiving_page = getattr(editor, "_receiving_config_frame", None)
     if receiving_page is not None:
         # Reuse the existing Receiving Set/Bay candidate/NFB data authority,
