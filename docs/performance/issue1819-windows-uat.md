@@ -5,11 +5,11 @@
 ## 操作
 
 1. 先在 Windows 將 GitHub localX 以既有 fast-forward 更新方式同步到本機 `Z:\localX`，切換到 `localX` 分支。此步驟不在腳本內做，不會由腳本 pull、push 或 merge。
-2. 確認 Windows 已安裝 Git、Python、WHD 相依套件及 `psutil`，且能正常啟動 WHD 原有 GUI。
+2. 確認 Windows 有 Git 與可執行 Tkinter 的 Python。批次檔會在當次報告資料夾建立**隔離虛擬環境**（沿用已安裝的 Python GUI 套件）；若缺少 `psutil` 等量測依賴，僅在隔離環境透過 pip 安裝，不更動全域 Python 或原 `localX` 工作區。無法連網或套件安裝失敗時會保留實際錯誤，不能標示成功。
 3. 關閉其他正在使用的 WHD 實例，避免量測數據混入其他工作。
 4. **自行雙擊** `Z:\localX\tools\issue1819_windows_gtk_uat.bat`，確認提示後才開始。腳本會從當下已檢查的 localX HEAD 建立隔離的、detached 的 Git worktree，並在那裡啟動原有真實 Tk/3D 量測工具。
 5. 量測對 3 連與 1 連各跑 30 輪，記錄多連尺寸變動、返回 3D、2D 預覽、解算與快取命中、RSS 檢查點及實際操作延遲。
-6. 報告在 `%USERPROFILE%\Documents\WHD_1819_UAT_<token>\`，包含 `windows-real-gui.json`、各 worker 原始 JSONL、紀錄與 `manifest.txt`；驗收時以此為證據。
+6. 報告在 `%USERPROFILE%\Documents\WHD_1819_UAT_<token>\`，包含 `windows-real-gui.json`、各 worker 原始 JSONL、`dependencies.log`、`env_setup.log`、`runner.log`、`worktree.log` 與 `manifest.txt`；驗收時以此為證據。先檢查 `env_setup.log` 確認 Python 環境，真正 GUI/製造測試結果才以後續原始記錄判定。
 
 ## 安全範圍
 
