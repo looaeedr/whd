@@ -39,6 +39,14 @@ def mount_primary_receiving_ear_side_check(host):
         command=host.export_receiving_ear_side_check_dxf,
     )
     button.pack(fill="x", padx=3, pady=3)
+    # Source-verified manufacturing position marks, SIDE sheets only.
+    # Keep a separate action from the CHECK and full-cabinet export.
+    mfg_button = ttk.Button(
+        group, text="側板正式 MARKING DXF（僅左右側板）",
+        command=host.export_receiving_ear_side_manufacturing_dxf,
+    )
+    mfg_button.pack(fill="x", padx=3, pady=3)
+    host.btn_ear_side_mfg_dxf = mfg_button
     host._receiving_ear_check_primary_group = group
     host.btn_ear_side_check_dxf = button
     return button
