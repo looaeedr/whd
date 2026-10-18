@@ -113,6 +113,16 @@ shallow_back_z       = shallow_front_z - Tb
 - 型號或內門縮入改變，底板組合位置重新計算；來源尺寸相同時折後皮面網格按不變參數快取，不在每次渲染無意義重建。若第一／第二折真實皮面不共面或失去來源身份，拒絕以舊基準代替。
 - **交付界限**：這一階段計算並實際連接**中間底板本體**的 Z。左右固定片仍是來源輪廓預覽，沒有真 3D 焊接與側板左右 MARKING，不能宣告 #1502/#1503 MFG-2 完工。此位置計算不修改使用者已提交的深度、也不釋出 DXF。
 
+## 四之三、已提交 NFB 同一行的真正 Base Plate XYZ
+
+前述 #1502 底板真 Z 雖正確，但舊底板根目錄組合位置 Y=0 並不等於內門已配置 NFB 列。現使用 `receiving_nfb_base_assembly_xy.receiving_source_nfb_base_assembly_xy`，對**同一目前 Set/Bay**、**同一內門上層**、**同一 NFB 安裝列**讀取既有 `project_nfb_inner_door_nominal_y`，並由 `assembly_placement.resolve_base_plate_placement` 把 **XY 與真實 skin Z 一次套到同一底板**。
+
+- H1600，NFB 第一列距箱頂 550：world Y=250；操作高度改為 330：world Y=470。沿用 UI 設定來源，不再自己加減整箱高度。
+- 只有全部 NFB 的 `manual_x_state=CONFIRMED`、X 為有限數值及對應來源 revision/snapshot 齊全時，才以真實 NFB X 範圍的中心設底板世界 X。X 未確認時保持預覽預設 X=0，絕不可標記已通過製造 X。
+- 同一張底板若兩個 NFB 孔列的實際 world Y 不同，**必須 fail-closed**，不能借用第一列的位置讓第二列仍宣稱已符合。
+- 相同列的兩顆 NFB 共用 Y 幾何求解／FinalScene，以免每次組合 3D 重複重算。
+- **範圍仍有限**：這是已提交雙深度 CENTER 底板之 XYZ，未涵蓋無雙深度的 LEFT／RIGHT 單顆底板、以及左右底板固定片的真實焊接 skin/MARKING。後兩項保持 OPEN，不得完整 MFG-2 放行。
+
 ## 五、資料與向下相容
 
 - 型號來源必須從 `基準檔/開孔/NFB/開關索引.csv` 或 V5 各品牌 `基準檔/開孔/NFB/數值規格/<品牌>/NFB數值規格.csv` **以被選中的 brand/model 查取深度**。不可從檔名尾碼或其他品牌推斷。
