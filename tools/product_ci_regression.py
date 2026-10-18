@@ -58,6 +58,8 @@ PYTEST_PATHS = (
     "tests/test_receiving_tier_ear_assembly_xy.py",
     "tests/test_receiving_tier_ear_z_targets.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
+    # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
+    "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
     "tests/test_issue1494_nfb_x_shadow_projection.py",
     "tests/test_issue1496_index_color_evidence.py",
     "tests/test_issue1496_nfb_dxf_source.py",
