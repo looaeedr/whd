@@ -83,11 +83,13 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
         if not isinstance(row,Mapping):
             raise ValueError("NFB_BASE_XY_HOLE_INVALID")
         count=row.get("layer_count",config.get("layer_count"))
-        # In persisted one-layer NFBConfig, slot_index 0/1 can mean two
-        # HORIZONTAL switch slots, not two vertical NFB tiers. Resolve
-        # vertical tier separately; the full two-tier model may carry an
-        # explicit layer_index or legacy vertical slot_index.
-        slot=row.get("layer_index", 0 if count == 1 else row.get("slot_index", 0))
+        # User NFB UI schema: layer_index is VERTICAL tier, while
+        # slot_index is HORIZONTAL switch position within that tier.
+        # One-tier legacy records need no layer_index; multi-tier source
+        # requires explicit layer_index, not an inferred horizontal slot.
+        slot=row.get("layer_index", 0 if count == 1 else None)
+        if type(slot) is not int or not 0 <= slot < count:
+            raise ValueError("NFB_BASE_XY_EXPLICIT_LAYER_INDEX_REQUIRED")
         # Both same-row models share ONE geometry solve. Do not rebuild the
         # full inner-door FinalScene for every hole on a normal two-NFB row.
         key=(count,slot)
@@ -193,10 +195,10 @@ def receiving_nfb_layer_centers(
             raise ValueError("RECEIVING_NFB_LAYER_HOLE_INVALID")
         if row.get("layer_count", count) != count:
             raise ValueError("RECEIVING_NFB_LAYER_HOLE_COUNT_DRIFT")
-        # slot_index is NOT necessarily a tier index: for a one-tier
-        # installation it can enumerate horizontal switch slots 0,1,... .
-        # The actual vertical layer_index is authoritative when supplied.
-        slot = row.get("layer_index", 0 if count == 1 else row.get("slot_index", 0))
+        # UI1A records layer_index as vertical NFB tier and slot_index as
+        # horizontal switch number *inside* that layer. Do not infer layer
+        # from slot_index for 2-layer configurations; require its owner ID.
+        slot = row.get("layer_index", 0 if count == 1 else None)
         if type(slot) is not int or not 0 <= slot < count:
             raise ValueError("RECEIVING_NFB_LAYER_SLOT_OUTSIDE_CURRENT_LAYOUT")
         if not isinstance(row.get("physical_hole_id"), str):
