@@ -24,7 +24,7 @@ ANCHORS = {
         "if !(dm.block.is_some() && dm.imported_group42_absent) {\n                w.f(42, if dm.block.is_some() { dm.measurement } else { g.measurement });\n            }",
     ),
 }
-RX = re.compile(r"\bDimension\s*\{")
+RX = re.compile(r"(?<!struct )(?<!impl )\bDimension\s*\{")
 FIELD_LINE = re.compile(r"(?m)^([ \t]*)measurement\s*:[^\n]*,[ \t]*$")
 
 
