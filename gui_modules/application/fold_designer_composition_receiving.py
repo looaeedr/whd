@@ -197,6 +197,15 @@ def sync_receiving_current_bay(
         for role in ("head", "tail"):
             if role in projected["surface_features"]:
                 app.designer_workspace.stash_features(role, projected["surface_features"][role])
+    if projected.get("active_mode") == "set_bay":
+        # The current physical Bay is now the Hole Editor's live owner;
+        # switching Bays must refresh the actual 2D/3D workspace as well.
+        physical_features = projected.get("part_features") or {}
+        for key in app.designer_workspace.available_parts:
+            if str(key).startswith("inner_door:") and str(key).endswith(":panel"):
+                app.designer_workspace.stash_features(
+                    key, physical_features.get(key, []),
+                )
     from ae_engine.receiving_layout import receiving_bay_joint_face_features
     workspace = app.designer_workspace
     workspace.stash_face_features("box_body", receiving_bay_joint_face_features(
