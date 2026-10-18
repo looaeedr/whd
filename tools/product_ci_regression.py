@@ -183,6 +183,8 @@ PYTEST_PATHS = (
     "tests/test_issue1640_mode_navigation.py::test_mode_toggle_and_manager_stay_operable_without_forced_window_exit",
     "tests/test_issue1640_floating_scroll.py::test_real_popup_reuses_one_nonmodal_toplevel_without_applying_candidate",
     "tests/test_receiving_weld_ear_mounting.py",
+    # Revised uploaded 固定片.dxf T2 actual BEND23 and moved CUTTING slots.
+    "tests/test_issue1503_revised_fixed_plate_source_bend.py",
     "tests/test_issue1050_receiving_mother_plate_marking.py",
     "tests/test_receiving_inner_frame_last_flange_contact.py",
     "tests/test_phase6_t15_inner_door_panels.py",
