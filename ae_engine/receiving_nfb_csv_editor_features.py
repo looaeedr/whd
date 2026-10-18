@@ -122,6 +122,18 @@ def csv_openings_to_editor_features(
             if p.stable_id == trial.part_id]
     if len(original) != 1 or len(live) != 1 or original[0] != live[0]:
         raise ValueError("內門實體尺寸／安裝基準已改變，請重新計算 CSV 孔")
+    # A stable panel ID and identical W/H/T do NOT prove this is the same
+    # physical receiving Bay or quantity box. A same-size cross-Bay switch
+    # must never inherit a previous CSV trial, even if its model and holes
+    # appear geometrically identical. No legacy Set.switch_brand inference.
+    owner_keys = (
+        "_receiving_runtime_selection", "receiving_layout",
+        "receiving_quantity_box", "receiving_quantity_versions",
+        "receiving_quantity_selected_index", "nfb_config",
+        "nfb_config_submitted", "receiving_inner_door_candidates",
+    )
+    if any(snapshot.get(key) != proof.snapshot.get(key) for key in owner_keys):
+        raise ValueError("受電箱 Set／Bay／單只來源身分已變更，請重新檢查 CSV 開口")
     for key in ("model", "active_mode", "w", "h", "d", "t", "fw",
                 "receiving_inner_door_layer_heights_mm", "inner_doors",
                 "door_layout_columns"):
