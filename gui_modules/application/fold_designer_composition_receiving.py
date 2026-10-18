@@ -197,6 +197,15 @@ def sync_receiving_current_bay(
         for role in ("head", "tail"):
             if role in projected["surface_features"]:
                 app.designer_workspace.stash_features(role, projected["surface_features"][role])
+    if projected.get("active_mode") == "set_bay":
+        # The current physical Bay is now the Hole Editor's live owner;
+        # switching Bays must refresh the actual 2D/3D workspace as well.
+        physical_features = projected.get("part_features") or {}
+        for key in app.designer_workspace.available_parts:
+            if str(key).startswith("inner_door:") and str(key).endswith(":panel"):
+                app.designer_workspace.stash_features(
+                    key, physical_features.get(key, []),
+                )
     from ae_engine.receiving_layout import receiving_bay_joint_face_features
     workspace = app.designer_workspace
     workspace.stash_face_features("box_body", receiving_bay_joint_face_features(
@@ -1888,6 +1897,25 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             }
         else:
             initial = inner_config(inner_library(), version_id)
+        if embed_parent is not None:
+            owner_editor = embed_parent.winfo_toplevel()
+            if (getattr(owner_editor, "_receiving_settings_mode", None) == "single"
+                    and self.app.designer_workspace.active_mode == "quantity"):
+                # Quantity single box is NOT a multi-Bay shared setting.
+                # Read its own selected physical box instead of stale Bay UI.
+                quantity = _current_mode_snapshot(self, namespace)
+                initial = {
+                    "layers": quantity.get("receiving_inner_door_layers", 1),
+                    "models": quantity.get("receiving_inner_door_models", ["", ""]),
+                    "layer_heights_mm": quantity.get(
+                        "receiving_inner_door_layer_heights_mm",
+                        SETTING_DEFAULTS["inner_door_layer_heights_mm"],
+                    ),
+                }
+            staged = getattr(owner_editor, "_receiving_staged_config", None)
+            if staged is not None:
+                from ae_engine.receiving_inner_door_candidates import validate_door_config
+                initial = validate_door_config(staged)
         if initial.get("layer_heights_mm") is None:
             # Legacy already-verified NFB stays at its old Y until the
             # operator explicitly saves the 330/830 editor defaults.
@@ -2543,9 +2571,22 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def open_nfb_world_x_dialog():
             """Operator enters absolute world-X; UI-1A draft offset is not X."""
-            if version_id is None:
-                warning.set("請先儲存內門版本，再進行 NFB 實體確認")
-                return
+            original_editor = (embed_parent.winfo_toplevel()
+                               if embed_parent is not None else None)
+            quantity_single = (
+                original_editor is not None
+                and getattr(original_editor, "_receiving_settings_mode", None) == "single"
+                and self.app.designer_workspace.active_mode == "quantity"
+            )
+            proof_version_id = version_id
+            if proof_version_id is None and not quantity_single:
+                if (original_editor is None
+                        or getattr(original_editor, "_receiving_settings_mode", None)
+                           != "candidate"):
+                    warning.set("此入口尚無可驗證的內門版本；不可借用其他連的 NFB 實體孔")
+                    return
+                # Reserve only an in-memory candidate identity (Multi only).
+                proof_version_id = "inner-door-v" + str(inner_library()["next_number"])
             from ae_engine.receiving_nfb_ui1b_runtime import verify_current_nfb_ui_draft
             current=edit_session.current
             active=[
@@ -2638,10 +2679,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 from ae_engine.receiving_nfb_ui1b_runtime import (
                     derive_w800_three_world_x_by_unit,
                 )
-                selection_for_x=candidate_adapter().selection
-                physical_for_x=nfb_physical_bay_snapshot(
-                    selection_for_x.set_index,selection_for_x.bay_index,
-                )
+                if quantity_single:
+                    physical_for_x = current_inner_editor_snapshot()
+                else:
+                    selection_for_x=candidate_adapter().selection
+                    physical_for_x=nfb_physical_bay_snapshot(
+                        selection_for_x.set_index,selection_for_x.bay_index,
+                    )
                 canonical_x=derive_w800_three_world_x_by_unit(
                     edit_session.current,snapshot=physical_for_x,
                 )
@@ -2696,30 +2740,53 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         if not value:
                             raise ValueError("每顆 NFB 的世界 X 都須明確輸入，0 亦可")
                         coords[unit_id]=float(value)
-                    adapter=candidate_adapter()
-                    selected=adapter.selection
+                    if not quantity_single:
+                        adapter=candidate_adapter()
+                        selected=adapter.selection
                     if v5_mode:
-                        from ae_engine.receiving_nfb_ui1b_runtime import (
-                            preview_current_nfb_v5_door_base_ui_draft,
-                        )
                         from .receiving_nfb_v5_scene_preview import (
                             paint_v5_real_inner_door_trial,
                             paint_v5_real_base_trial,
                         )
-                        physical=nfb_physical_bay_snapshot(
-                            selected.set_index,selected.bay_index,
-                        )
-                        base_spec,_=self.app._part_spec_query_callback(
-                            "base_plate",physical,
-                        )
-                        trial,base_trial=preview_current_nfb_v5_door_base_ui_draft(
-                            edit_session.current,layout=adapter.layout,
-                            set_index=selected.set_index,
-                            bay_index=selected.bay_index,
-                            version_id=version_id,
-                            projected_snapshot=physical,
-                            world_x_by_unit=coords,base_spec=base_spec,
-                        )
+                        if quantity_single:
+                            from ae_engine.receiving_nfb_quantity_editor import (
+                                preview_quantity_nfb_v5_on_actual_inner_door,
+                            )
+                            from ae_engine.receiving_nfb_v5_live_base_preview import (
+                                preview_v5_on_existing_receiving_base,
+                            )
+                            physical = current_inner_editor_snapshot()
+                            trial, unit_holes, inner_door_id = (
+                                preview_quantity_nfb_v5_on_actual_inner_door(
+                                    edit_session.current, snapshot=physical,
+                                    world_x_by_unit=coords,
+                                )
+                            )
+                            base_spec, _ = self.app._part_spec_query_callback(
+                                "base_plate", physical,
+                            )
+                            base_trial = preview_v5_on_existing_receiving_base(
+                                physical, inner_door_id, door=trial,
+                                configured_holes=unit_holes, base_spec=base_spec,
+                            )
+                        else:
+                            from ae_engine.receiving_nfb_ui1b_runtime import (
+                                preview_current_nfb_v5_door_base_ui_draft,
+                            )
+                            physical=nfb_physical_bay_snapshot(
+                                selected.set_index,selected.bay_index,
+                            )
+                            base_spec,_=self.app._part_spec_query_callback(
+                                "base_plate",physical,
+                            )
+                            trial,base_trial=preview_current_nfb_v5_door_base_ui_draft(
+                                edit_session.current,layout=adapter.layout,
+                                set_index=selected.set_index,
+                                bay_index=selected.bay_index,
+                                version_id=proof_version_id,
+                                projected_snapshot=physical,
+                                world_x_by_unit=coords,base_spec=base_spec,
+                            )
                         paint_v5_real_inner_door_trial(v5_canvas,trial)
                         paint_v5_real_base_trial(v5_base_canvas,base_trial)
                         popup._receiving_v5_trial=trial
@@ -2727,19 +2794,38 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         outcome.set("內門主孔＋原底板 EAR／螺絲孔幾何檢查通過；"
                                     "可切頁核對。仍不可製造或提交。")
                         return
-                    bundle=verify_current_nfb_ui_draft(
-                        edit_session.current,layout=adapter.layout,
-                        set_index=selected.set_index,
-                        bay_index=selected.bay_index,
-                        version_id=version_id,
-                        projected_snapshot=nfb_physical_bay_snapshot(
-                            selected.set_index,selected.bay_index,
-                        ),
-                        world_x_by_unit=coords,
-                        selected_source_path=source_choice["path"],
-                        canonical_w800_three=canonical_prefilled,
-                    )
-                    nfb_transaction_ports()["stage_verified"](bundle)
+                    if quantity_single:
+                        from ae_engine.receiving_nfb_quantity_editor import (
+                            verify_quantity_nfb_inner_door_source,
+                        )
+                        bundle = verify_quantity_nfb_inner_door_source(
+                            edit_session.current,
+                            snapshot=current_inner_editor_snapshot(),
+                            world_x_by_unit=coords,
+                            selected_source_path=source_choice["path"],
+                        )
+                        original_editor._receiving_quantity_source_proof = bundle
+                    else:
+                        bundle=verify_current_nfb_ui_draft(
+                            edit_session.current,layout=adapter.layout,
+                            set_index=selected.set_index,
+                            bay_index=selected.bay_index,
+                            version_id=proof_version_id,
+                            projected_snapshot=nfb_physical_bay_snapshot(
+                                selected.set_index,selected.bay_index,
+                            ),
+                            world_x_by_unit=coords,
+                            selected_source_path=source_choice["path"],
+                            canonical_w800_three=canonical_prefilled,
+                        )
+                        nfb_transaction_ports()["stage_verified"](bundle)
+                    if embed_parent is not None:
+                        # #1901: the *tab's* 確認 imports this source-verified
+                        # opening into the original Hole Editor. Do not close
+                        # or save the candidate/Bay merely for proving DXF.
+                        warning.set("NFB 實際來源及孔位驗證成功；按受電箱「確認」將開口帶回開孔編輯主頁籤")
+                        close_world_dialog()
+                        return
                     outcome.set("已完成真實來源／內門實體驗證，仍須回主視窗按「確認套用（NFB）」")
                     close_world_dialog()
                     after_saved(version_id)  # UI refresh only, no candidate write
@@ -2794,7 +2880,77 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         pack_switch_layer(chosen[0]),
                         pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
                     ],
+                    "features": deepcopy(initial.get("features", {})),
                 }
+                stage_in_editor = (
+                    getattr(modal.winfo_toplevel(), "_receiving_stage_config", None)
+                    if (embed_parent is not None
+                        and getattr(modal.winfo_toplevel(),
+                                    "_receiving_settings_mode", None)
+                        in ("single", "candidate")) else None
+                )
+                if callable(stage_in_editor):
+                    # No inferred X, guessed CUTTING, or trial-only V5 material
+                    # may silently enter the native Hole Editor. An actual
+                    # indexed-DXF/source-verified bundle is mandatory whenever
+                    # this tab requests NFB cutouts.
+                    chosen_models = tuple(
+                        model for group in config["models"][:config["layers"]]
+                        for model in switch_filenames_in_layer(group)
+                    )
+                    if chosen_models:
+                        native_editor = modal.winfo_toplevel()
+                        quantity_single = (
+                            getattr(native_editor, "_receiving_settings_mode", None)
+                            == "single"
+                            and self.app.designer_workspace.active_mode == "quantity"
+                        )
+                        if quantity_single:
+                            from ae_engine.receiving_nfb_quantity_editor import (
+                                assert_quantity_nfb_proof_current,
+                            )
+                            bundle = assert_quantity_nfb_proof_current(
+                                getattr(native_editor, "_receiving_quantity_source_proof", None),
+                                snapshot=current_inner_editor_snapshot(),
+                                draft=edit_session.current,
+                            )
+                        else:
+                            selected = candidate_adapter().selection
+                            bundle = nfb_transaction_ports()["verified_for_editor"](
+                                selected.set_index, selected.bay_index,
+                            )
+                        brand, indexed_filename = bundle.verified_door.indexed_model_key
+                        current_nfb = edit_session.current
+                        active_brands = tuple(
+                            effective_nfb_slot_brand(current_nfb, li, si)
+                            for li, row in enumerate(
+                                current_nfb["layers"][:current_nfb["layer_count"]]
+                            )
+                            for si, slot in enumerate(row["slots"])
+                            if slot["filename"] is not None
+                        )
+                        if (any(actual != brand for actual in active_brands)
+                                or any(model.casefold() != indexed_filename.casefold()
+                                       for model in chosen_models)
+                                or len(chosen_models) != len(
+                                    bundle.verified_door.physical_hole_ids)):
+                            raise ValueError("NFB 受電箱選型與已驗證的 DXF 實體主孔不一致，請重新驗證")
+                        from ae_engine.receiving_nfb_editor_features import (
+                            verified_nfb_openings_to_editor_features,
+                        )
+                        native_editor = modal.winfo_toplevel()
+                        current_features = native_editor._receiving_pending_features()
+                        inserted = verified_nfb_openings_to_editor_features(
+                            bundle, current_features=current_features,
+                        )
+                        native_editor._receiving_accept_verified_openings(inserted)
+                    # This stage is only an editor transaction; original
+                    # physical Bay or version X remains unchanged until the
+                    # parent Hole Editor 確定全部.
+                    stage_in_editor(config)
+                    after_saved(version_id)
+                    close_editor(saved=True)
+                    return
                 if direct_to_drawing:
                     # No candidate/version creation on Single or ordinary Hole
                     # Editor entry. Commit existing current-Bay shared settings
@@ -2844,8 +3000,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             self.app.root, "_receiving_multi_settings_window", None
         )
         def close_editor(*, saved=False):
-            if (not saved and (draft_state["draft"] != initial_nfb_draft
-                               or nfb_source_viewed["value"])
+            # #1901: Cancel from a Single/Multi Receiving tab must always
+            # discard only this tab's draft and return to the original editor.
+            # The unchanged physical-part legacy route retains its old prompt.
+            settings_embedded = (
+                embed_parent is not None
+                and getattr(modal.winfo_toplevel(), "_receiving_settings_mode", None)
+                in ("single", "candidate")
+            )
+            if (not saved and not settings_embedded
+                    and (draft_state["draft"] != initial_nfb_draft
+                         or nfb_source_viewed["value"])
                     and not messagebox.askyesno(
                         "捨棄未提交的 NFB 草稿？",
                         "目前 NFB 物理層、空槽或品牌選型的預覽尚未提交。確定捨棄？",
@@ -3234,7 +3399,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             flush()
             return receipt
 
+        def verified_for_editor(set_index, bay_index):
+            bundle, reason = eligible_bundle(set_index, bay_index)
+            if bundle is None or not bundle.verified_door.manufacturing_ready:
+                raise ValueError(reason or "沒有已驗證的實體 NFB 來源與開口")
+            return bundle
+
         return {"state": state, "stage_verified": stage_verified,
+                "verified_for_editor": verified_for_editor,
                 "submit": submit, "copy": copy, "manifest": physical_manifest,
                 "partial_export": export_partial_nfb_inner_door,
                 "base_partial_export": export_partial_nfb_base_plate,
@@ -3281,68 +3453,273 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             )
         } for bi in range(len(selected_set["bays"])))
 
-    if embedded_inner_parent is not None:
-        # The unified Hole Editor already owns the window and its modal grab.
-        # Reuse the same inner candidate editor inside the 受電箱 tab.
-        from tkinter import ttk, messagebox
-        from ae_engine.receiving_shared_settings import setting_value
-        container = embedded_inner_parent
+    def current_inner_editor_config():
         adapter = candidate_adapter()
-        selection = adapter.selection
-        stored = setting_value(
-            adapter.layout["sets"][selection.set_index],
-            selection.bay_index, "inner_door_version_id",
+        selected = adapter.selection
+        row = adapter.layout["sets"][selected.set_index]
+        config = {
+            "layers": setting_value(row, selected.bay_index, "inner_door_layers"),
+            "models": setting_value(row, selected.bay_index, "inner_door_models"),
+            "features": setting_value(row, selected.bay_index, "inner_door_features"),
+        }
+        heights = setting_value(row, selected.bay_index, "inner_door_layer_heights_mm")
+        if heights is not None:
+            config["layer_heights_mm"] = heights
+        return config
+
+    def current_inner_editor_snapshot():
+        source = _current_mode_snapshot(self, namespace)
+        if source.get("active_mode") == "set_bay":
+            selected = candidate_adapter().selection
+            return nfb_physical_bay_snapshot(
+                selected.set_index, selected.bay_index,
+            )
+        # Single quantity box W/H/D and inner-door geometry must not
+        # accidentally inherit the currently highlighted multi-Bay size.
+        return source
+
+    def current_inner_editor_part_key():
+        from ae_engine.cabinet_types import policy as receiving_family_policy
+        physical = current_inner_editor_snapshot()
+        upper = tuple(
+            panel.stable_id for panel in receiving_family_policy.derive_inner_door_panels(physical)
+            if str(panel.cell_key).endswith(":0")
         )
-        ids = {item["id"] for item in inner_versions(inner_library())}
-        state = {"version": stored if stored in ids else None}
-        if self.app.designer_workspace.active_mode != "set_bay":
-            state["version"] = None
+        if len(upper) != 1:
+            raise ValueError("原開孔編輯器必須對應一片明確的上層實體內門")
+        return upper[0]
+
+    def launch_inner_editor(part_key, *, mode, version_id=None, initial_features=None,
+                            after_saved=None):
+        from .receiving_inner_door_hole_editor import open_inner_door_hole_editor
+        from ae_engine.receiving_inner_door_candidates import validate_door_config
+        from ae_engine.receiving_shared_settings import validate_setting
+        from copy import deepcopy
+
+        def confirmed(actual_part, features, staged_config):
+            if actual_part != part_key:
+                raise ValueError("內門開孔編輯返回錯誤的實體板件")
+            if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
+                if staged_config is not None:
+                    config = validate_door_config(staged_config)
+                    self.app._phase6_input_snapshot["receiving_inner_door_layers"] = (
+                        config["layers"]
+                    )
+                    self.app._phase6_input_snapshot["receiving_inner_door_models"] = (
+                        deepcopy(config["models"])
+                    )
+                    if config.get("layer_heights_mm") is not None:
+                        self.app._phase6_input_snapshot[
+                            "receiving_inner_door_layer_heights_mm"
+                        ] = deepcopy(config["layer_heights_mm"])
+                # Quantity's current physical sheet is the live workspace owner;
+                # it is NOT a Set/Bay candidate or a synthetic version X.
+                self.app.designer_workspace.stash_features(part_key, features)
+                if str(self.app.designer_workspace.active_part) == part_key:
+                    self.app._load_part_holes(part_key)
+                self.app.submit_update_intent("geometry", commit=True)
+                return
+            if mode == "single":
+                adapter = candidate_adapter()
+                selected = adapter.selection
+                row = adapter.layout["sets"][selected.set_index]
+                bay = row["bays"][selected.bay_index]
+                if bay.get("nfb_config_submitted") is True:
+                    raise ValueError("NFB 已驗證提交；不得未經重新驗證直接改動內門開孔")
+                # Single owns the *existing* physical Bay, never a candidate.
+                # Both settings and actual CUTTING must survive Bay reprojection.
+                current = (validate_door_config(staged_config) if staged_config is not None
+                           else current_inner_editor_config())
+                current = deepcopy(current)
+                current.setdefault("features", {})[part_key] = deepcopy(features)
+                # Reuse the adapter's atomic Set/Bay update; no version library
+                # is created and no other Bay is touched.
+                adapter.apply_inner_door_candidate_to_bays(
+                    current, selected.set_index, (selected.bay_index,), version_id="",
+                )
+                self.mark_receiving_switch_layout_dirty(namespace, adapter)
+                self.sync_receiving_current_bay(namespace, refresh_controls=False)
+                self.app.submit_update_intent("geometry", commit=True)
+                return
+            if mode != "candidate":
+                raise ValueError("未知的內門儲存目標")
+            config = (inner_config(inner_library(), version_id) if version_id is not None
+                      else current_inner_editor_config())
+            if staged_config is not None:
+                config = validate_door_config(staged_config)
+            config = deepcopy(config)
+            config.setdefault("features", {})[part_key] = deepcopy(features)
+            if version_id is None:
+                updated, selected_version = create_inner_candidate(inner_library(), config)
+            else:
+                updated = update_inner_candidate(inner_library(), version_id, config)
+                selected_version = version_id
+            # An uncommitted verification uses the future real candidate ID
+            # but cannot mint a different ID (for example after another edit).
+            if any(getattr(f, "source_type", None) == "NFB_VERIFIED_SOURCE"
+                   for f in features):
+                selected = candidate_adapter().selection
+                proof = pending_verified_nfb.get(
+                    (selected.set_index, selected.bay_index)
+                )
+                if proof is None or proof.version_id != selected_version:
+                    raise ValueError("NFB 原始來源驗證與候選版本編號已不同，請重新確認")
+            # No changes to a committed Bay before explicit 套用.
+            persist_inner(updated)
+            if callable(after_saved):
+                after_saved(selected_version)
+
+        physical = current_inner_editor_snapshot()
+        return open_inner_door_hole_editor(
+            self.app, part_key, settings_mode=mode,
+            initial_features=initial_features, physical_snapshot=physical,
+            selected_candidate_version=version_id,
+            on_settings_confirm=confirmed,
+        )
+
+    def edit_single_inner_door():
+        return launch_inner_editor(current_inner_editor_part_key(), mode="single")
+
+    def edit_multi_inner_door(version_id, after_saved):
+        part_key = current_inner_editor_part_key()
+        source = (inner_config(inner_library(), version_id) if version_id is not None
+                  else current_inner_editor_config())
+        typed = source.get("features", {})
+        # Existing candidates never implicitly consume another Bay's live holes.
+        if part_key in typed:
+            draft_features = deepcopy(typed[part_key])
+        else:
+            # A new candidate starts empty. Never borrow the selected Bay or
+            # Single's current physical holes before explicit version Apply.
+            draft_features = []
+        return launch_inner_editor(
+            part_key, mode="candidate", version_id=version_id,
+            initial_features=draft_features, after_saved=after_saved,
+        )
+
+    if embedded_inner_parent is not None:
+        # Keep the original Corner Data / physical-part double-click editor.
+        # Only the NEW Single/Multi settings button opts into staged save.
+        editor = embedded_inner_parent.winfo_toplevel()
+        if getattr(editor, "_receiving_settings_mode", None) is None:
+            # The unified Hole Editor already owns the window and its modal grab.
+            # Reuse the same inner candidate editor inside the 受電箱 tab.
+            from tkinter import ttk, messagebox
+            from ae_engine.receiving_shared_settings import setting_value
+            container = embedded_inner_parent
+            adapter = candidate_adapter()
+            selection = adapter.selection
+            stored = setting_value(
+                adapter.layout["sets"][selection.set_index],
+                selection.bay_index, "inner_door_version_id",
+            )
+            ids = {item["id"] for item in inner_versions(inner_library())}
+            state = {"version": stored if stored in ids else None}
+            if self.app.designer_workspace.active_mode != "set_bay":
+                state["version"] = None
+            bar = ttk.Frame(container)
+            bar.pack(fill="x", padx=8, pady=(5, 3))
+            status = ttk.Label(
+                bar,
+                text=("受電箱內門｜直接套用目前圖面" if self.app.designer_workspace.active_mode != "set_bay"
+                      else "受電箱內門｜版本 X 另行套用到連"),
+            )
+            status.pack(side="left")
+            def apply_saved_version():
+                version = state["version"]
+                if version is None:
+                    messagebox.showwarning("內門版本", "請先確認並儲存內門版本", parent=container.winfo_toplevel())
+                    return
+                try:
+                    selected = candidate_adapter().selection
+                    inner_apply(INNER_ROLE, version, selected.set_index,
+                                (selected.bay_index,))
+                    status.configure(text="已套用到目前選取的內門")
+                except (ValueError, IndexError, RuntimeError) as exc:
+                    messagebox.showwarning("內門版本", str(exc), parent=container.winfo_toplevel())
+            apply_button = ttk.Button(
+                bar, text="套用到目前連", command=apply_saved_version,
+                state="normal" if state["version"] is not None else "disabled",
+            )
+            if self.app.designer_workspace.active_mode == "set_bay":
+                apply_button.pack(side="right")
+            editor_host = ttk.Frame(container)
+            editor_host.pack(fill="both", expand=True)
+            def mount_inner_editor():
+                if not editor_host.winfo_exists():
+                    return
+                for child in editor_host.winfo_children():
+                    child.destroy()
+                inner_edit(
+                    INNER_ROLE, state["version"], saved_inner_version,
+                    embed_parent=editor_host, after_closed=mount_inner_editor,
+                )
+            def saved_inner_version(version_id):
+                if version_id is None:
+                    state["version"] = None
+                    status.configure(text="高度已套用目前圖面；未建立版本 X")
+                else:
+                    state["version"] = version_id
+                    apply_button.configure(state="normal")
+                    status.configure(text="內門版本已儲存；按「套用到目前連」才會改變配置")
+                editor_host.after_idle(mount_inner_editor)
+            mount_inner_editor()
+            return container
+
+        # Two native tabs belong to the SAME original Hole Editor.  Editing
+        # this configuration stages a draft only; the editor's 確定全部 owns
+        # all persistence, and its 取消全部 owns rollback.
+        from tkinter import ttk
+        container = embedded_inner_parent
+        editor = container.winfo_toplevel()
+        mode = getattr(editor, "_receiving_settings_mode", None)
+        selected_version = getattr(editor, "_receiving_candidate_version", None)
+        if mode == "candidate" and selected_version is not None:
+            inner_config(inner_library(), selected_version)
+        state = {"version": selected_version if mode == "candidate" else None}
         bar = ttk.Frame(container)
         bar.pack(fill="x", padx=8, pady=(5, 3))
         status = ttk.Label(
-            bar,
-            text=("受電箱內門｜直接套用目前圖面" if self.app.designer_workspace.active_mode != "set_bay"
-                  else "受電箱內門｜版本 X 另行套用到連"),
+            bar, text=("單只｜主頁籤確定全部才寫入現有板件"
+                       if mode == "single"
+                       else "多連｜主頁籤確定全部才寫入候選版本 X"),
         )
-        status.pack(side="left")
-        def apply_saved_version():
-            version = state["version"]
-            if version is None:
-                messagebox.showwarning("內門版本", "請先確認並儲存內門版本", parent=container.winfo_toplevel())
-                return
-            try:
-                selected = candidate_adapter().selection
-                inner_apply(INNER_ROLE, version, selected.set_index,
-                            (selected.bay_index,))
-                status.configure(text="已套用到目前選取的內門")
-            except (ValueError, IndexError, RuntimeError) as exc:
-                messagebox.showwarning("內門版本", str(exc), parent=container.winfo_toplevel())
-        apply_button = ttk.Button(
-            bar, text="套用到目前連", command=apply_saved_version,
-            state="normal" if state["version"] is not None else "disabled",
-        )
-        if self.app.designer_workspace.active_mode == "set_bay":
-            apply_button.pack(side="right")
+        status.pack(anchor="w")
+        tabs = getattr(editor, "_receiving_config_tabs", None)
+
+        def go_to_main_tab():
+            if tabs is not None and tabs.winfo_exists():
+                tabs.select(0)   # native 開孔編輯 tab, not a new popup
+
+        def stage_inner_config(config):
+            editor._receiving_staged_config = deepcopy(config)
+
+        editor._receiving_stage_config = stage_inner_config
         editor_host = ttk.Frame(container)
         editor_host.pack(fill="both", expand=True)
+
+        def canceled_inner_tab():
+            # No staged write on 取消; the old accepted editor draft, if any,
+            # remains available until the outer editor's own final transaction.
+            go_to_main_tab()
+
+        def saved_inner_version(_version_id):
+            status.configure(text="受電箱設定已放入主開孔編輯器草稿；尚未寫入板件或版本")
+            go_to_main_tab()
+
         def mount_inner_editor():
-            if not editor_host.winfo_exists():
+            if not editor_host.winfo_exists() or editor_host.winfo_children():
                 return
-            for child in editor_host.winfo_children():
-                child.destroy()
             inner_edit(
                 INNER_ROLE, state["version"], saved_inner_version,
-                embed_parent=editor_host, after_closed=mount_inner_editor,
+                embed_parent=editor_host, after_closed=canceled_inner_tab,
             )
-        def saved_inner_version(version_id):
-            if version_id is None:
-                state["version"] = None
-                status.configure(text="高度已套用目前圖面；未建立版本 X")
-            else:
-                state["version"] = version_id
-                apply_button.configure(state="normal")
-                status.configure(text="內門版本已儲存；按「套用到目前連」才會改變配置")
-            editor_host.after_idle(mount_inner_editor)
+
+        if tabs is not None:
+            def restore_tab_editor(_event=None):
+                if tabs.winfo_exists() and tabs.select() == str(container):
+                    mount_inner_editor()
+            tabs.bind("<<NotebookTabChanged>>", restore_tab_editor, add="+")
         mount_inner_editor()
         return container
 
@@ -3375,6 +3752,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_single_size_quantity=single_size_quantity,
         set_single_size_quantity=set_single_size_quantity,
         edit_single_holes=edit_single_holes,
+        edit_single_inner_door=edit_single_inner_door,
+        edit_multi_inner_door=edit_multi_inner_door,
         on_brand_close=None if single else finalize_global_brand,
         on_close=lambda: _restore_receiving_assembly_after_modal(self, namespace),
         dialog_kind="single" if single else "multi",
