@@ -18,7 +18,7 @@ from ezdxf.lldxf.encoding import decode_dxf_unicode
 # accepted. A new kind is an explicit unsupported result, not a silent PASS.
 SUPPORTED = frozenset({
     "LINE", "ARC", "CIRCLE", "LWPOLYLINE", "POLYLINE", "POINT",
-    "TEXT", "MTEXT", "INSERT", "ATTRIB", "ATTDEF", "DIMENSION",
+    "TEXT", "MTEXT", "INSERT", "ATTRIB", "ATTDEF", "DIMENSION", "VERTEX",
 })
 HEADER_KEYS = ("$INSUNITS", "$MEASUREMENT")
 IGNORED = frozenset({"handle", "owner", "paperspace"})
@@ -61,8 +61,8 @@ def _signature(entity):
         if "text" in attrs:
             attrs["text"] = decode_dxf_unicode(attrs["text"])
     elif kind == "MTEXT":
-        if "text" in attrs:
-            attrs["text"] = decode_dxf_unicode(attrs["text"])
+        # MTEXT stores its content in entity.text, not a DXF attrib.
+        attrs["mtext_content"] = decode_dxf_unicode(entity.text)
     elif kind == "LWPOLYLINE":
         attrs["vertices_xyseb"] = _value(list(entity.get_points("xyseb")))
         attrs["closed"] = bool(entity.closed)
