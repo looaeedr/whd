@@ -33,6 +33,15 @@ def test_registry_routes_gui_performance_work_to_dedicated_skill():
     )
 
 
+def test_windows_native_tk_is_never_skipped_just_for_missing_x11_display():
+    issue517 = (ROOT / "tests" / "test_issue517_receiving_live_switch_ui_export_marking.py").read_text(encoding="utf-8")
+    project = (ROOT / "tests" / "test_phase6_project_file.py").read_text(encoding="utf-8")
+    assert 'os.name != "nt" and not os.environ.get("DISPLAY")' in issue517
+    assert 'not os.environ.get("DISPLAY")' in project
+    assert project.count('if os.name != "nt" and not os.environ.get("DISPLAY"):') == 9
+    assert 'if not os.environ.get("DISPLAY"):' not in project
+
+
 def test_gui_performance_skill_locks_the_today_rules():
     text = GUI_SKILL.read_text(encoding='utf-8')
     for required in (

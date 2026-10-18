@@ -6,8 +6,11 @@ from pathlib import Path
 import pytest
 
 
+# Windows has native Tk and does not set the Unix DISPLAY environment variable.
+# Keep Linux's explicit X display requirement; on Windows run real GUI tests and
+# let Tk startup fail visibly if no desktop exists rather than silently skip.
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("DISPLAY"),
+    os.name != "nt" and not os.environ.get("DISPLAY"),
     reason="#517 exact GUI regressions require real Tk/Xvfb",
 )
 
