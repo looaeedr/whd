@@ -43,11 +43,11 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb libxkbcommon-x11-0 libgl1-mesa-dri libegl1 libfontconfig1
           python -m pip install -r requirements.txt psutil ezdxf
-      - name: Download pinned upstream 0.7.0 CADCraft GUI with SHA256 check
+      - name: Download pinned upstream 0.8.0 CADCraft GUI with SHA256 check
         shell: bash
         run: |
           set -euo pipefail
-          VERSION=0.7.0
+          VERSION=0.8.0
           PACKAGE="cadcraft-$VERSION-linux-x86_64.tar.gz"
           BASE="https://github.com/storytold/cadcraft/releases/download/v$VERSION"
           mkdir -p "$RUNNER_TEMP/cadcraft"
@@ -91,7 +91,7 @@ jobs:
           export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime"
           xvfb-run -a -s "-screen 0 1600x1000x24" \
             python tools/issue1820_cadcraft_native_gui_control_probe.py \
-            "$RUNNER_TEMP/cadcraft/cadcraft-0.7.0-linux-x86_64/bin/cadcraft" \
+            "$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft" \
             work/issue1820-native/source.dxf work/issue1820-native --port 19779
       - name: Preserve native GUI logs, frame screenshots, session telemetry
         uses: actions/upload-artifact@v4

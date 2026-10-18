@@ -105,11 +105,27 @@ def measured_worker(source:Path,dest:Path):
         process=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=err,text=True)
         handle=psutil.Process(process.pid)
         stop=threading.Event()
+        descendant_samples=[]
+        process_count_samples=[]
         def watch():
+            # Windows venv/Scripts/python.exe can be a small redirector that
+            # owns a SECOND actual Tk Python process. Sampling only the parent
+            # reported ~6.8 MiB while the real renderer was still alive.
+            # Include its recursively owned process tree, on both OSes.
             while not stop.is_set():
                 try:
-                    samples.append(handle.memory_info().rss)
-                except psutil.Error:
+                    members=[handle,*handle.children(recursive=True)]
+                    values=[]
+                    for proc in members:
+                        try:
+                            values.append((proc.pid,proc.memory_info().rss))
+                        except (psutil.NoSuchProcess,psutil.AccessDenied,psutil.ZombieProcess):
+                            pass
+                    if values:
+                        samples.append(sum(rss for _pid,rss in values))
+                        descendant_samples.append(sum(rss for pid,rss in values if pid!=handle.pid))
+                        process_count_samples.append(len(values))
+                except (psutil.NoSuchProcess,psutil.AccessDenied,psutil.ZombieProcess):
                     break
                 stop.wait(.05)
         t=threading.Thread(target=watch,daemon=True);t.start()
@@ -129,6 +145,9 @@ def measured_worker(source:Path,dest:Path):
         detail["subprocess_spawn_to_first_painted_ms"]=first_visible
         detail["max_50ms_sampled_process_rss_bytes"]=max(samples) if samples else None
         detail["rss_samples"]=len(samples)
+        detail["rss_is_process_tree_not_launcher_only"]=True
+        detail["max_50ms_sampled_descendant_rss_bytes"]=max(descendant_samples,default=0)
+        detail["max_sampled_process_count"]=max(process_count_samples,default=0)
         detail["worker_exit_code"]=rc
         (dest/"whd-real-gui.json").write_text(json.dumps(detail,indent=2,ensure_ascii=False),encoding="utf-8")
         print("WHD_REAL_ORIGINAL_2D_FIRST_FRAME_PASS",round(first_visible,2),

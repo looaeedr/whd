@@ -41,11 +41,11 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb python3-tk
           python -m pip install -r requirements.txt psutil matplotlib ezdxf
-      - name: Download actual upstream CADCraft 0.7.0 CLI pinned release with SHA256
+      - name: Download actual upstream CADCraft 0.8.0 CLI pinned release with SHA256
         shell: bash
         run: |
           set -euo pipefail
-          VERSION=0.7.0
+          VERSION=0.8.0
           PACKAGE="cadcraft-$VERSION-linux-x86_64.tar.gz"
           BASE="https://github.com/storytold/cadcraft/releases/download/v$VERSION"
           mkdir -p "$RUNNER_TEMP/cadcraft"
@@ -91,7 +91,7 @@ jobs:
           xvfb-run -a -s "-screen 0 1600x1000x24" \
             python tools/issue1820_whd_cadcraft_dxf_benchmark.py compare \
             work/issue1820/source.dxf \
-            "$RUNNER_TEMP/cadcraft/cadcraft-0.7.0-linux-x86_64/bin/cadcraft-cli" \
+            "$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft-cli" \
             work/issue1820
       - name: Preserve raw profiles and exact evidence for review
         if: always()
