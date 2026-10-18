@@ -84,6 +84,8 @@ PYTEST_PATHS = (
     # #1503 real physical SIDE sheet-only manufacturing marking (not full box/PAD).
     "tests/test_issue1503_side_only_production_marking.py",
     "tests/test_issue1503_side_only_mfg_gui.py",
+    # #1503 Windows real project-open UAT: current per-hole CSV V5 identity survives .p6fold v3.
+    "tests/test_issue1503_nfb_v5_p6fold_roundtrip.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
