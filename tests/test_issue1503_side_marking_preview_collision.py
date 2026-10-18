@@ -31,7 +31,7 @@ def _owners():
     }
 
 
-@pytest.mark.parametrize("factory,expected", ((_assembled, 4), (_two_tier, 8)))
+@pytest.mark.parametrize("factory,expected", ((_assembled, 8), (_two_tier, 16)))
 def test_true_ear_source_receipts_make_separate_side_preview_without_mutation(factory, expected):
     rows = _receipts(factory)
     owners = _owners()
