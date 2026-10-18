@@ -594,7 +594,7 @@ class HoleEditorModalLifecycle:
         commit_active_edit, sync_all, validate_current_indicator_fit,
         door_indicator_state, collect_indicator_state, door_indicator_commit,
         editor_closed, editor, on_close, insert_mode, set_insert_mode,
-        cancel_active_edit, on_confirm=None,
+        cancel_active_edit, on_confirm=None, before_commit=None,
     ):
         self.hole_session = hole_session
         self.has_selected_feature = has_selected_feature
@@ -609,6 +609,7 @@ class HoleEditorModalLifecycle:
         self.editor = editor
         self.on_close = on_close
         self.on_confirm = on_confirm
+        self.before_commit = before_commit
         self.insert_mode = insert_mode
         self.set_insert_mode = set_insert_mode
         self.cancel_active_edit = cancel_active_edit
@@ -623,6 +624,14 @@ class HoleEditorModalLifecycle:
     def confirm_all(self):
         if not self.validate_current_indicator_fit(show_error=True):
             return
+        # Settings-mode writes must be validated before the modal ends its
+        # session or closes; an invalid physical NFB leaves the editor open.
+        if self.before_commit is not None:
+            try:
+                self.before_commit()
+            except (ValueError, TypeError, RuntimeError) as exc:
+                messagebox.showerror("內門開孔驗證失敗", str(exc), parent=self.editor)
+                return
         self.hole_session.finish(commit=True)
         if self.door_indicator_state is not None:
             committed = self.collect_indicator_state()
