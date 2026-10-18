@@ -62,9 +62,19 @@ def test_two_source_nfb_layers_produce_two_distinct_real_blank_finalscenes():
     assert tuple(p.part_key for p in physical)==(
         "base_plate:nfb_layer:0","base_plate:nfb_layer:1"
     )
-    assert [p.offset for p in physical]==pytest.approx([
-        (0.,470.,-163.),(0.,-30.,-163.)
+    # One Z formula per tier: source model depths differ, hence two true
+    # independently installed Base Plate offsets (not copied root -163).
+    from ae_engine.receiving_tier_ear_z_targets import (
+        resolve_receiving_tier_base_z_targets,
+    )
+    targets = resolve_receiving_tier_base_z_targets(snapshot)
+    assert [p.offset[0] for p in physical] == pytest.approx([0.,0.])
+    assert [p.offset[1] for p in physical] == pytest.approx([470.,-30.])
+    assert [p.offset[2] for p in physical] == pytest.approx([
+        x.world_offset_z_mm for x in targets
     ])
+    assert len({p.offset[2] for p in physical}) == 2
+    assert all(x.physical_skin_z_resolved for x in targets)
     assert physical[0].render_data is not source.render_data
     assert physical[1].render_data is not physical[0].render_data
     assert [p.render_data.unfolded_topology.piece_id for p in physical]==[
