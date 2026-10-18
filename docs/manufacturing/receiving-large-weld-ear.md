@@ -9,6 +9,18 @@ whd_schema: WHD_DOC_META_V1
 
 **工廠實際製程（2026-10-13 使用者確認）：不使用折彎補償。** 本製程沿用原板件的實際折線與既有下料尺寸規則，不要求輸入或核准 K-factor、bend allowance、折彎扣除量或其他補償值。這些不屬於 #1502 進場／驗收的前提；仍需正確驗證實體折線、折向、折後孔位與耳朵焊接裝配關係。
 
+
+## #1503 外門上層雙 NFB 層的固定片歸屬（2026-10-18）
+
+依當次使用者組裝確認：**同一 NFB 層孔群中心對該層底板中心**；一層一片底板，兩層各自一片；每片各有左、右兩片**底板固定片**，固定片隨底板孔位定位，焊於箱身左右側板內面。**外門下層區域無本項 NFB 底板**，與外門上層的 NFB 第二層完全不同。
+
+`receiving_base_fixing_plate_previews` 保留原單層的 `base_plate:fixing_plate:left/right`，對**已提交且身份完整的雙層**另投影**四個不同來源平面件**：
+
+- `base_plate:fixing_plate:nfb_layer:0:left/right`，parent `base_plate:nfb_layer:0`
+- `base_plate:fixing_plate:nfb_layer:1:left/right`，parent `base_plate:nfb_layer:1`
+
+外型沿用來源 `受電耳朵.dxf` 的 256×105、T3、25×11 長圓孔四個及 210／140 可選孔組；在 W800/T2 時 86−63＝23 僅為名義焊邊至折向參考，**不得當作大片固定片原圖 BEND 已認證**。這四件的 `manufacturing_ready` 仍為 false，僅是各自正確的來源平面身份、父子關係和孔規預覽；真正 Z 皮面、折彎、焊接碰觸及側板 MARKING 還需實體回投影認證，才能進入 DXF／完整 BOM 製造輸出。
+
 ## 適用實體、來源與尺寸語意
 
 - 盤型：受電箱，**箱身外寬 W=800 mm，左右側板厚 T=2 mm**。
