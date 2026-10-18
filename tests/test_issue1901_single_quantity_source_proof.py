@@ -120,6 +120,39 @@ def test_quantity_model_rotation_drift_invalidates_verified_opening(monkeypatch,
     ) is proof
 
 
+def test_single_v5_preview_uses_real_quantity_panel_without_bay(monkeypatch, tmp_path):
+    q, snap, draft, _source, panel = _source_setup(monkeypatch, tmp_path)
+    import ae_engine.receiving_nfb_model_identity as identity
+    import ae_engine.receiving_nfb_ui1a as ui
+    import ae_engine.receiving_nfb_v5_configured_inner_door as v5
+
+    draft["layers"][0]["slots"][0]["filename"] = "numeric:士林:400"
+    monkeypatch.setattr(identity, "parse_numeric_model_ref",
+                        lambda _ref: ("士林", "400"))
+    monkeypatch.setattr(ui, "effective_nfb_slot_brand", lambda *_args: "士林")
+    trial = SimpleNamespace(manufacturing_ready=False, status="PREVIEW_ONLY")
+    observed = []
+    def trial_on_real_part(snapshot, inner_door, *, holes):
+        observed.append((snapshot, inner_door, tuple(holes)))
+        return trial
+    monkeypatch.setattr(v5, "trial_configured_nfb_v5_inner_door_render_data",
+                        trial_on_real_part)
+    result, entries, inner_door_id = q.preview_quantity_nfb_v5_on_actual_inner_door(
+        draft, snapshot=snap, world_x_by_unit={"unit-1": 120.0},
+    )
+    assert result is trial
+    assert inner_door_id == panel.inner_door_id
+    assert entries[0].physical_hole_id == (
+        "nfb:quantity:" + panel.stable_id + ":unit-1"
+    )
+    assert observed[0][0] is snap
+    assert result.manufacturing_ready is False
+    with pytest.raises(ValueError, match="世界 X"):
+        q.preview_quantity_nfb_v5_on_actual_inner_door(
+            draft, snapshot=snap, world_x_by_unit={},
+        )
+
+
 def test_quantity_invalid_world_x_does_not_stage_or_write(monkeypatch, tmp_path):
     q, snap, draft, source, _panel = _source_setup(monkeypatch, tmp_path)
     for coordinates in ({}, {"wrong-unit": 25.0}, {"unit-1": float("nan")}):
