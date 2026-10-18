@@ -3349,28 +3349,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                            else current_inner_editor_config())
                 current = deepcopy(current)
                 current.setdefault("features", {})[part_key] = deepcopy(features)
-                required_values = (
-                    ("inner_door_layers", current["layers"]),
-                    ("inner_door_models", current["models"]),
-                    ("inner_door_layer_heights_mm", current.get("layer_heights_mm")),
-                    ("inner_door_features", current["features"]),
-                    ("inner_door_version_id", ""),
+                # Reuse the adapter's atomic Set/Bay update; no version library
+                # is created and no other Bay is touched.
+                adapter.apply_inner_door_candidate_to_bays(
+                    current, selected.set_index, (selected.bay_index,), version_id="",
                 )
-                values = [(kind, validate_setting(kind, value)) for kind, value in required_values]
-                # Validate all writes before mutating the canonical live adapter.
-                from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-                updated_layout = adapter.layout
-                for kind, value in values:
-                    updated_layout = unlink_setting(
-                        updated_layout, set_index=selected.set_index,
-                        bay_index=selected.bay_index, kind=kind,
-                    )
-                    updated_layout = edit_setting(
-                        updated_layout, set_index=selected.set_index,
-                        bay_index=selected.bay_index, kind=kind, value=value,
-                    )
-                adapter._layout = updated_layout
-                adapter.mark_current_bay_dirty()
                 self.mark_receiving_switch_layout_dirty(namespace, adapter)
                 self.sync_receiving_current_bay(namespace, refresh_controls=False)
                 self.app.submit_update_intent("geometry", commit=True)
