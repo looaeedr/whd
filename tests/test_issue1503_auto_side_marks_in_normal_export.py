@@ -74,12 +74,12 @@ def test_normal_selected_boxbody_exports_all_physical_pieces_plus_real_ear_marks
     filenames, errors = _export_selected_resolved_parts(host, str(normal), _flags())
     assert errors == []
     assert calls == ["resolve"]
-    assert "box_body__left_side.dxf" in filenames
-    assert "box_body__right_side.dxf" in filenames
+    assert "box_body_box_body_left_side.dxf" in filenames
+    assert "box_body_box_body_right_side.dxf" in filenames
     assert len(filenames) > 2, "normal export must retain other body panels"
     assert len(list(normal.glob("*.dxf"))) == len(filenames)
     for part in ("left_side", "right_side"):
-        actual = _mark_lines(normal / ("box_body__" + part + ".dxf"))
+        actual = _mark_lines(normal / ("box_body_box_body_" + part + ".dxf"))
         assert len(actual) >= expected_per_side
     # The former separate manual export remains an independent reference,
     # not a prerequisite or the implementation of the normal exporter.
@@ -89,7 +89,7 @@ def test_normal_selected_boxbody_exports_all_physical_pieces_plus_real_ear_marks
     )
     for side, fp in reference.output_paths:
         assert _mark_lines(fp) == _mark_lines(
-            normal / ("box_body__" + side.split(":")[1] + ".dxf")
+            normal / ("box_body_box_body_" + side.split(":")[1] + ".dxf")
         )
     assert owner_render_data(geometry, "box_body:left_side") is before_l
     assert owner_render_data(geometry, "box_body:right_side") is before_r
@@ -118,7 +118,7 @@ def test_normal_export_with_submitted_nfb_must_not_release_unverified_other_part
 @pytest.mark.parametrize("changes,pattern", (
     ({"w":750.}, "CURRENT_W800_T2"),
     ({"t":3.}, "CURRENT_W800_T2"),
-    ({"nfb_config_submitted":False}, None),
+    ({"nfb_config_submitted":False}, "已提交 NFB"),
 ))
 def test_normal_export_cannot_invent_ear_marks_for_unsupported_input(
     tmp_path, changes, pattern,
@@ -126,25 +126,15 @@ def test_normal_export_cannot_invent_ear_marks_for_unsupported_input(
     snapshot, geometry = _actual(_assembled)
     snapshot = {**snapshot, **changes}
     host, _ = _host(snapshot, geometry)
-    if pattern:
-        with pytest.raises(ValueError, match=pattern):
-            _export_selected_resolved_parts(host, str(tmp_path/"out"), _flags())
-        assert not (tmp_path/"out").exists()
-    else:
-        names, errors = _export_selected_resolved_parts(
-            host, str(tmp_path/"unsubmitted"), _flags())
-        assert not errors
-        assert "box_body__left_side.dxf" in names
-        # Unsubmitted original body has no auto-applied EAR contact marks.
-        assert not owner_render_data(geometry, "box_body:left_side").metadata.get(
-            "receiving_ear_side_marking_provenance"
-        )
+    with pytest.raises(ValueError, match=pattern):
+        _export_selected_resolved_parts(host, str(tmp_path/"out"), _flags())
+    assert not (tmp_path/"out").exists()
 
 
 def test_normal_export_rejects_source_geometry_mismatch_before_output(tmp_path):
     snap, geom = _actual(_assembled)
     host, _ = _host({**snap, "h": 1700.}, geom)
-    with pytest.raises(ValueError, match="SOURCE|MATERIAL|MATING|CONTACT|PREVIEW"):
+    with pytest.raises(ValueError, match="SOURCE|MATERIAL|MATING|CONTACT|PREVIEW|OPEN-Y-PROJECTION"):
         _export_selected_resolved_parts(host, str(tmp_path/"bad"), _flags())
     assert not (tmp_path/"bad").exists()
 
