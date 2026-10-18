@@ -2794,7 +2794,20 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         pack_switch_layer(chosen[0]),
                         pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
                     ],
+                    "features": deepcopy(initial.get("features", {})),
                 }
+                stage_in_editor = (
+                    getattr(modal.winfo_toplevel(), "_receiving_stage_config", None)
+                    if embed_parent is not None else None
+                )
+                if callable(stage_in_editor):
+                    # The 受電箱 tab confirms only its draft into the existing
+                    # Hole Editor. No live Bay or candidate write before the
+                    # editor's separate 確定全部 transaction.
+                    stage_in_editor(config)
+                    after_saved(version_id)
+                    close_editor(saved=True)
+                    return
                 if direct_to_drawing:
                     # No candidate/version creation on Single or ordinary Hole
                     # Editor entry. Commit existing current-Bay shared settings
