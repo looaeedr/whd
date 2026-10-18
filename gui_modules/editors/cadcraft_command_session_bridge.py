@@ -78,8 +78,18 @@ class CadcraftSessionStage:
             raise CadcraftCommandProofError("CADCRAFT_OUTPUT_CHANGED_AFTER_VALIDATION")
 
     def confirm(self):
-        """Only a *user-triggered* caller may invoke confirm; returns Session snapshot."""
-        self._assert_same_preview()
+        """Explicit user confirmation only. Invalid proof rolls back *this* draft."""
+        try:
+            self._assert_same_preview()
+        except CadcraftCommandProofError:
+            # A tampered/missing CADCraft file must not leave a valid-looking
+            # transient preview for some later unrelated Confirm All click.
+            snapshot = self.session.snapshot()
+            if (snapshot.context_key == self.context_key and snapshot.active_edit
+                    and snapshot.features == self.preview_features):
+                self.session.execute(HoleEditorAction.cancel_active())
+                self.active = False
+            raise
         state = self.session.execute(HoleEditorAction.commit_active(keep_selected=False))
         self.active = False
         return state
