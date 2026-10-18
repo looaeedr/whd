@@ -181,9 +181,12 @@ def open_inner_door_hole_editor(
         local_reference_guide=door_guide,
         cabinet_reference_guide=work_area_guide,
         feature_list_override=features,
-        sync_callback=(commit if settings_mode is None else lambda: None),
+        # Every entry stays transient until native Confirm All, including
+        # direct Corner Data / board-preview routes. Cancel All must never
+        # leave a Receiving-tab NFB in the physical workspace.
+        sync_callback=lambda: None,
         **({"on_close": restore_settings_dialog} if settings_mode is not None else {}),
-        **({"on_confirm_features": confirm_settings} if settings_mode is not None else {}),
+        on_confirm_features=confirm_settings,
         door_frame_edges=DoorFrameEdges(
             left=False, right=False, top=False, bottom=False,
         ),
