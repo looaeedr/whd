@@ -140,3 +140,50 @@ def test_reenter_receiving_tab_preserves_manually_moved_native_hole():
     assert shifted[0].offset.x == pytest.approx(12.0)
     assert shifted[0].offset.y == pytest.approx(74.0)
     assert dict(shifted[0].source_params)["y_from_top_mm"] == 500.0
+
+
+def test_generic_inner_door_entry_never_writes_before_native_confirm_all():
+    from types import SimpleNamespace
+    from ae_engine.sheetmetal_features import RectFeature, FeatureAnchor
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    from gui_modules.application.receiving_inner_door_hole_editor import (
+        open_inner_door_hole_editor,
+    )
+    physical = _physical()
+    part = policy.derive_inner_door_panels(physical)[0].stable_id
+    workspace = Phase6DesignerWorkspace.from_snapshot({
+        **physical, "existing_parts": ["box_body", part],
+        "active_part": part,
+    })
+    payloads, writes = [], []
+
+    class Host:
+        def scene_query(self, *_args):
+            return None
+
+        def _open_unified_hole_editor(self, *_args, **kwargs):
+            payloads.append(kwargs)
+            self.last_unified_hole_editor = SimpleNamespace()
+            return self.last_unified_hole_editor
+
+    host = Host()
+    app = SimpleNamespace(
+        root=SimpleNamespace(),
+        designer_workspace=workspace,
+        _phase6_input_snapshot=physical,
+        _scene_query_callback=host.scene_query,
+        _load_part_holes=lambda *_args: writes.append("load"),
+        submit_update_intent=lambda *_args, **_kwargs: writes.append("commit"),
+    )
+    open_inner_door_hole_editor(app, part)
+    pending = RectFeature(
+        width=25.0, height=111.0,
+        anchor=FeatureAnchor.PANEL_CENTER, offset=Vec2(0, 0),
+    )
+    payloads[0]["feature_list_override"].append(pending)
+    payloads[0]["sync_callback"]()
+    assert workspace.features_for(part) == []
+    assert writes == []
+    payloads[0]["on_confirm_features"]([pending])
+    assert workspace.features_for(part) == [pending]
+    assert "commit" in writes
