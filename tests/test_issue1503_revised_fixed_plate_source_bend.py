@@ -49,6 +49,7 @@ def test_current_uploaded_fixed_plate_has_real_bend_line_and_moved_holes(kind):
     assert pattern.slot_centers == facts["slot_xy"]
     assert (pattern.width, pattern.height) == facts["size"]
     assert pattern.thickness == facts["t"] == part.metadata["thickness"]
+    assert pattern.corner_radius == 0.0  # outer CUTTING native polyline no bulge
     assert (pattern.slot_length, pattern.slot_width) == facts["slot_size"]
     assert part.metadata["source_bend_verified"] is True
     assert part.metadata["source_bend_line_mm"] == 23.0
