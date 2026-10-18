@@ -3081,6 +3081,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
             side="left", padx=5,
         )
+        # The CSV world-X dialog must be reachable from the actual settings
+        # tab, not only defined as a dead nested callback.
+        ttk.Button(buttons, text="CSV 開口位置",
+                   command=open_nfb_world_x_dialog).pack(side="left", padx=5)
         ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
         # Restore the parent multi-settings grab after this editor closes.
         parent_modal = getattr(
@@ -3804,6 +3808,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         def mount_inner_editor():
             if not editor_host.winfo_exists() or editor_host.winfo_children():
                 return
+            # A canceled tab may not leave behind reusable geometry proof.
+            editor._receiving_csv_door_proof = None
             inner_edit(
                 INNER_ROLE, state["version"], saved_inner_version,
                 embed_parent=editor_host, after_closed=canceled_inner_tab,
