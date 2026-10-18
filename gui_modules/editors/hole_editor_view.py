@@ -366,6 +366,10 @@ class HoleEditorWindowShellBuilder:
         cadcraft_button = ttk.Button(window_actions, text="CADCraft 試看")
         cadcraft_button.pack(side=tk.RIGHT, padx=(0, 8))
         editor._hole_header_cadcraft = cadcraft_button
+        # #1959 opt-in new-drawing trial; original Hole Editor remains authoritative.
+        cadcraft_draw_button = ttk.Button(window_actions, text="CADCraft 指令繪圖試作")
+        cadcraft_draw_button.pack(side=tk.RIGHT, padx=(0, 8))
+        editor._hole_header_cadcraft_draw = cadcraft_draw_button
         body = tk.Frame(editor, bg=host.COLOR_BG)
         body.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         # Inner-door NFB settings live in a second page of THIS existing
