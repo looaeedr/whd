@@ -1,0 +1,47 @@
+name: WHD #1819 Windows UAT Launcher Safety
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'tools/issue1819_windows_gtk_uat.bat'
+      - '.github/workflows/whd-issue1819-windows-uat-safety.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  rejected-outside-localx:
+    name: Windows batch refuses detached/non-localX HEAD without running GUI
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head (detached branch)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare Python executable (not product dependencies)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify safe refusal without worktree creation or source mutation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $branch = (git branch --show-current).Trim()
+          if ($branch -eq 'localX') {
+            throw 'Unsafe fixture: test checkout unexpectedly owns localX branch'
+          }
+          $before = @(git status --porcelain)
+          & cmd.exe /d /c 'call tools\issue1819_windows_gtk_uat.bat'
+          $code = $LASTEXITCODE
+          if ($code -ne 2) {
+            throw "Expected safe branch-refusal exit 2; observed $code"
+          }
+          $after = @(git status --porcelain)
+          if (($before -join "`n") -ne ($after -join "`n")) {
+            throw 'UAT safety refusal changed the checkout'
+          }
+          Write-Output 'ISSUE1819_WINDOWS_NON_LOCALX_FAIL_CLOSED_PASS'
