@@ -101,6 +101,19 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
     generated = []
     for center in centers:
         identity = center.layer_part_id
+        depth_target = z_targets[center.layer_index]
+        if depth_target.parent_base_id != identity:
+            raise ValueError("RECEIVING_NFB_TIER_Z_TARGET_OWNER_DRIFT")
+        # Exact same source-physical Base Plate variant is used for the skin
+        # solve, FinalScene material and fold profiles in EVERY NFB tier.
+        tier_pair = (
+            tuple(depth_target.source_depths_mm)
+            if len(depth_target.source_depths_mm) == 2 else None
+        )
+        tier_values = {**values, "receiving_nfb_depth_pair_mm": tier_pair}
+        tier_profiles = receiving_base_plate_3d_profiles(snapshot, tier_values)
+        if tier_profiles is None:
+            raise ValueError("RECEIVING_NFB_TIER_SOURCE_PROFILE_MISSING")
         spec = BasePlatePartSpec(
             width=float(snapshot["w"]),
             height=float(values["h"]),
@@ -112,7 +125,7 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
             bend=float(values["base_plate_bend"]),
             model_name="受電箱",
             receiving_bend_pattern=str(values["receiving_bend_pattern"]),
-            receiving_nfb_depth_pair_mm=None,
+            receiving_nfb_depth_pair_mm=tier_pair,
             physical_id=identity,
         )
         actual = build_part_render_data(spec)
@@ -132,9 +145,6 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
         # NFB horizontal X is a SCREW-HOLE position, never the Base Plate
         # assembly X. The plate and its +/-335-mm ear fixing columns remain
         # fixed at the cabinet X centre for every NFB layer.
-        depth_target = z_targets[center.layer_index]
-        if depth_target.parent_base_id != identity:
-            raise ValueError("RECEIVING_NFB_TIER_Z_TARGET_OWNER_DRIFT")
         # Missing model depth never becomes an invented installation Z; old
         # preview is retained only as a non-manufacturing visualization.
         z = (float(depth_target.world_offset_z_mm)
@@ -150,8 +160,8 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
         generated.append(AssemblyScenePart(
             part_key=identity,
             render_data=actual,
-            x_profile=tuple(dict(s) for s in profiles["X"]),
-            y_profile=tuple(dict(s) for s in profiles["Y"]),
+            x_profile=tuple(dict(s) for s in tier_profiles["X"]),
+            y_profile=tuple(dict(s) for s in tier_profiles["Y"]),
             placement="offset",
             offset=(0.0, float(center.world_y_mm), z),
         ))
