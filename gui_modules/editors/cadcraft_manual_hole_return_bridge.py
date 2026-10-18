@@ -1,8 +1,9 @@
-"""#1959 manually moved holes: CADCraft isolated DXF -> WHD existing Session.
+"""#1959 CADCraft isolated DXF -> WHD existing Session (moves and new holes).
 
-Translation-only first GUI slice. No free-form DXF import: one specific WHD-created
-isolated drawing, exact original feature order, unchanged shapes, dimensions and
-manufacturing semantics. CADCraft is never the manufacturing source of truth.
+One specific WHD-created isolated drawing, exact original feature order and
+unchanged original shapes/dimensions. New geometry is admitted only after strict
+unit/shape/physical boundary/collision checks and explicit WHD confirmation.
+CADCraft is never the manufacturing source of truth.
 """
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from ae_engine.sheetmetal_features import (
 from gui_modules.editors.cadcraft_command_session_bridge import (
     CadcraftSessionStage, _polygon, _MAX_EXCHANGE_BYTES,
 )
+from gui_modules.editors.cadcraft_new_hole_import import new_hole_from_cadcraft_entity
 from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession
 from tools.issue1959_whd_cadcraft_command_draw import (
     CadcraftCommandProofError, from_whd_resolved, verify_dxf,
@@ -44,6 +46,7 @@ class ManualReturnTicket:
 class ManualReturnPreview:
     stage: CadcraftSessionStage
     moves: tuple[tuple[int, float, float], ...]
+    additions: tuple[object, ...] = ()
 
     def confirm(self):
         return self.stage.confirm()
@@ -105,7 +108,7 @@ def create_manual_return_ticket(*, output: Path, features, session,
 
 
 def _dxf_moves(output: Path, original: tuple, surface, width, height):
-    """Only pure translations, by preserved entity order; no resize/add/delete."""
+    """Allow existing-hole translations and strictly append new holes, not deletes/resizes."""
     expected = from_whd_resolved(tuple(
         resolve_surface_features(surface, original, width, height)
     ))
@@ -116,7 +119,9 @@ def _dxf_moves(output: Path, original: tuple, surface, width, height):
     if doc.header.get("$INSUNITS") != 4 or doc.header.get("$MEASUREMENT") != 1:
         raise CadcraftCommandProofError("MILLIMETRE_HEADER_MISMATCH")
     entities = list(doc.modelspace())
-    if len(entities) != len(original):
+    # Source holes must remain the original ordered prefix. Extra circles and
+    # contours are the *only* admissible additions, on this isolated drawing.
+    if len(entities) < len(original) or len(entities) > 100:
         raise CadcraftCommandProofError("ENTITY_COUNT_MISMATCH")
     moves = []
     updated = []
@@ -165,14 +170,20 @@ def _dxf_moves(output: Path, original: tuple, surface, width, height):
         updated.append(candidate)
         if not _near(dx, 0) or not _near(dy, 0):
             moves.append((index, dx, dy))
-    if not moves:
+    additions = tuple(new_hole_from_cadcraft_entity(entity)
+                      for entity in entities[len(original):])
+    for feature in additions:
+        if not feature_is_strictly_within_surface(surface, feature, width, height):
+            raise CadcraftCommandProofError("OUTSIDE_WHD_PHYSICAL_SURFACE")
+    if not moves and not additions:
         raise CadcraftCommandProofError("NO_MANUAL_HOLE_POSITION_CHANGE")
+    updated.extend(additions)
     footprints = [_polygon(feature, width, height) for feature in updated]
     for index, footprint in enumerate(footprints):
         for preceding in footprints[:index]:
             if footprint.intersects(preceding):
                 raise CadcraftCommandProofError("WHD_FEATURE_COLLISION")
-    return tuple(updated), tuple(moves)
+    return tuple(updated), tuple(moves), additions
 
 
 def stage_manual_cadcraft_return(ticket: ManualReturnTicket) -> ManualReturnPreview:
@@ -186,7 +197,7 @@ def stage_manual_cadcraft_return(ticket: ManualReturnTicket) -> ManualReturnPrev
     digest = sha256(data).hexdigest()
     if digest == ticket.original_sha256:
         raise CadcraftCommandProofError("CADCRAFT_DRAWING_NOT_EDITED")
-    updated, moves = _dxf_moves(
+    updated, moves, additions = _dxf_moves(
         ticket.output, ticket.original, ticket.surface, ticket.width, ticket.height
     )
     if sha256(_read_limited(ticket.output)).hexdigest() != digest:
@@ -198,4 +209,4 @@ def stage_manual_cadcraft_return(ticket: ManualReturnTicket) -> ManualReturnPrev
         session=session, output=ticket.output, output_sha256=digest,
         context_key=ticket.context_key, preview_features=updated,
     )
-    return ManualReturnPreview(stage=stage, moves=moves)
+    return ManualReturnPreview(stage=stage, moves=moves, additions=additions)
