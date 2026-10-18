@@ -2881,20 +2881,25 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         for model in switch_filenames_in_layer(group)
                     )
                     if chosen_models:
-                        from ae_engine.receiving_nfb_editor_features import (
-                            assert_editor_nfb_proof_scope,
+                        native_editor = modal.winfo_toplevel()
+                        quantity_single = (
+                            getattr(native_editor, "_receiving_settings_mode", None)
+                            == "single"
+                            and self.app.designer_workspace.active_mode == "quantity"
                         )
-                        assert_editor_nfb_proof_scope(
-                            settings_mode=getattr(
-                                modal.winfo_toplevel(),
-                                "_receiving_settings_mode", None,
-                            ),
-                            active_mode=self.app.designer_workspace.active_mode,
-                        )
-                        selected = candidate_adapter().selection
-                        bundle = nfb_transaction_ports()["verified_for_editor"](
-                            selected.set_index, selected.bay_index,
-                        )
+                        if quantity_single:
+                            from ae_engine.receiving_nfb_quantity_editor import (
+                                assert_quantity_nfb_proof_current,
+                            )
+                            bundle = assert_quantity_nfb_proof_current(
+                                getattr(native_editor, "_receiving_quantity_source_proof", None),
+                                snapshot=current_inner_editor_snapshot(),
+                            )
+                        else:
+                            selected = candidate_adapter().selection
+                            bundle = nfb_transaction_ports()["verified_for_editor"](
+                                selected.set_index, selected.bay_index,
+                            )
                         brand, indexed_filename = bundle.verified_door.indexed_model_key
                         if (brand != self.receiving_switch_adapter(namespace).brand
                                 or any(model.casefold() != indexed_filename.casefold()
