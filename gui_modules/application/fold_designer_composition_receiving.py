@@ -2902,7 +2902,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                                 selected.set_index, selected.bay_index,
                             )
                         brand, indexed_filename = bundle.verified_door.indexed_model_key
-                        if (brand != self.receiving_switch_adapter(namespace).brand
+                        current_nfb = edit_session.current
+                        active_brands = tuple(
+                            effective_nfb_slot_brand(current_nfb, li, si)
+                            for li, row in enumerate(
+                                current_nfb["layers"][:current_nfb["layer_count"]]
+                            )
+                            for si, slot in enumerate(row["slots"])
+                            if slot["filename"] is not None
+                        )
+                        if (any(actual != brand for actual in active_brands)
                                 or any(model.casefold() != indexed_filename.casefold()
                                        for model in chosen_models)
                                 or len(chosen_models) != len(
