@@ -39,7 +39,7 @@ def invalidate_csv_editor_proof(editor, popup=None):
 
 def csv_checked_world_values_match(checked, fields) -> bool:
     """A post-check text change cannot keep the cached physical X proof."""
-    from math import isfinite
+    from dataclasses import replace
 
     if not isinstance(checked, Mapping) or not isinstance(fields, Mapping):
         return False
@@ -168,7 +168,7 @@ def csv_openings_to_editor_features(
     return tuple(features)
 
 
-def editor_nfb_features_from_csv(snapshot: Mapping, config):
+def editor_nfb_features_from_csv(snapshot: Mapping, config, *, current_features=()):
     """Build editable CSV NFB hole drafts for the ORIGINAL Hole Editor.
 
     The operator chooses models and top-edge Y in the Receiving tab; the
@@ -210,6 +210,16 @@ def editor_nfb_features_from_csv(snapshot: Mapping, config):
     result = []
     polygons = []
     source_hashes = {}
+    previously_placed = {}
+    for old in current_features:
+        if not isinstance(old, ProfileFeature) or old.source_type != "NFB_CSV_SOURCE":
+            continue
+        params = dict(old.source_params)
+        if params.get("part_id") != panel.stable_id:
+            continue
+        key = (params.get("layer_index"), params.get("slot_index"))
+        if key not in previously_placed:
+            previously_placed[key] = old
     for layer_index in range(layers):
         names = switch_filenames_in_layer(models[layer_index])
         if not names:
@@ -247,9 +257,35 @@ def editor_nfb_features_from_csv(snapshot: Mapping, config):
                     ("layer_index", layer_index),
                     ("slot_index", slot_index),
                     ("csv_sha256", source_hashes[brand]),
+                    ("y_from_top_mm", float(heights[layer_index])),
                     ("placement", "native_editor_initial"),
                 ),
             )
+            old = previously_placed.get((layer_index, slot_index))
+            if old is not None:
+                info = dict(old.source_params)
+                if (info.get("brand") == brand and info.get("model") == model
+                        and info.get("csv_sha256") == source_hashes[brand]
+                        and info.get("y_from_top_mm") is not None):
+                    # A repeat tab Confirm must never reset the X/rotation
+                    # already placed by the operator on the native canvas.
+                    # Only a changed height shifts its physical Y.
+                    delta_y = float(info["y_from_top_mm"]) - float(heights[layer_index])
+                    feature = replace(
+                        old,
+                        offset=Vec2(old.offset.x, old.offset.y + delta_y),
+                        source_params=tuple(
+                            (key, (float(heights[layer_index])
+                                   if key == "y_from_top_mm" else value))
+                            for key, value in old.source_params
+                        ),
+                    )
+                    from .sheetmetal_feature_core import _rotate_local_point
+                    polygon = Polygon([
+                        (p.x + feature.offset.x, p.y + feature.offset.y)
+                        for p in (_rotate_local_point(point, feature.rotation_deg)
+                                  for point in feature.points)
+                    ])
             if (not polygon.is_valid or polygon.area <= 0
                     or not feature_is_strictly_within_surface(
                         surface, feature, structural.width, structural.height
