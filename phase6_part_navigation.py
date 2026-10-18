@@ -132,6 +132,7 @@ def operator_part_label(
     This stays pure: callers provide any legacy/base label table plus an
     optional read-only snapshot used only for family/layout-sensitive labels.
     """
+    import re
     key = str(value or "")
     labels = dict(base_labels or {})
     if key in labels:
