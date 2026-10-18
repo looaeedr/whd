@@ -103,7 +103,7 @@ def make_dummy_gui(workspace_data=None):
     app._apply_endcap_fw_snapshot = lambda s: None
     app._current_box_assembly_type = lambda: 'WRAP_OVERLAY'
     app._phase6_current_existing_parts = lambda: set(app.workspace_controller.raw_existing_parts())
-    app._apply_existing_parts_from_fold_workspace = lambda parts: set(parts)
+    app._apply_existing_parts_from_fold_workspace = lambda parts, *, state_fingerprint=None, force_invalidate=False: set(parts)
     app._collect_main_setting_values = lambda: {'fw': 25.0}
 
     def _dummy_new_column(width, heights, *, width_auto=False, height_auto=None):
