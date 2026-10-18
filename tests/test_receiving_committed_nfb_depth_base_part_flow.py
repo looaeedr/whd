@@ -158,3 +158,62 @@ def test_multiple_bays_selected_runtime_exact_owner_can_use_its_own_saved_models
     snap["_receiving_runtime_selection"]["bay_id"] = "bayB"
     # A stale mismatched active Bay selection does not produce a false source.
     assert committed_receiving_nfb_depth_pair_mm(snap) is None
+
+
+
+def _v5_current_set_snapshot(*, flat=False):
+    """Current actual Set schema lacks retired switch_brand."""
+    snap = _snapshot()
+    snap["receiving_layout"]["sets"][0].pop("switch_brand", None)
+    holes = snap["nfb_config"]["holes"]
+    holes[0].update(model_filename="nfbv5:士林:2P400", source_brand="士林")
+    if flat:
+        holes[:] = [holes[0]]
+        snap["receiving_base_plate"]["pattern"] = "LEFT_FLAT_SIDE"
+    else:
+        holes[1].update(model_filename="nfbv5:東元:3P125SN", source_brand="東元")
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    return snap
+
+
+def test_current_set_without_switch_brand_reads_two_actual_brand_csv_depths():
+    snap = _v5_current_set_snapshot()
+    assert committed_receiving_nfb_depth_pair_mm(snap) == (107., 68.)
+    values = receiving_base_plate_values(snap)
+    assert values["receiving_nfb_depth_pair_mm"] == (107., 68.)
+    from ae_engine.receiving_nfb_depth_surface_policy import (
+        receiving_nfb_second_side_fold_mm,
+    )
+    assert receiving_nfb_second_side_fold_mm(
+        reference_nfb_depth_mm=107., secondary_nfb_depth_mm=68.,
+        base_plate_thickness_mm=2.,
+    ) == pytest.approx(37.)
+
+
+def test_current_set_without_switch_brand_reads_one_flat_csv_depth():
+    from ae_engine.receiving_nfb_depth_surface_policy import (
+        committed_receiving_flat_nfb_depth_mm,
+    )
+    snap = _v5_current_set_snapshot(flat=True)
+    assert committed_receiving_flat_nfb_depth_mm(snap) == 107.
+    values = receiving_base_plate_values(snap)
+    assert values["receiving_nfb_reference_depth_mm"] == 107.
+
+
+def test_current_source_brand_mismatch_or_missing_csv_depth_stays_blocked():
+    snap = _v5_current_set_snapshot()
+    snap["nfb_config"]["holes"][1]["source_brand"] = "士林"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    with pytest.raises(ValueError, match="BRAND_IDENTITY_MISMATCH"):
+        committed_receiving_nfb_depth_pair_mm(snap)
+    snap = _v5_current_set_snapshot()
+    snap["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:東元:2P400"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    with pytest.raises(ValueError, match="MODEL_DEPTH_MISSING"):
+        committed_receiving_nfb_depth_pair_mm(snap)

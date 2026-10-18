@@ -161,6 +161,46 @@ def selected_receiving_nfb_depth_pair_mm(
     return tuple(sorted(depths, reverse=True))
 
 
+def _source_depth_for_submitted_hole(hole, *, legacy_set_brand):
+    """Resolve one physical switch from its stored brand + CSV model owner.
+
+    The current Receiving Set no longer stores switch_brand. The typed V5
+    model identity names its own source brand; legacy DXF filenames still
+    require an explicit brand (per-hole or legacy Set) for backward data.
+    Never infer a missing model's physical depth from another NFB's source.
+    """
+    from collections.abc import Mapping
+    from .receiving_nfb_model_identity import (
+        parse_numeric_model_ref, selected_numeric_spec,
+    )
+    from .receiving_switch_model_catalog import model_depth_mm
+
+    if not isinstance(hole, Mapping):
+        raise ValueError("RECEIVING_NFB_DEPTH_HOLE_SOURCE_INVALID")
+    filename = hole.get("model_filename")
+    if not isinstance(filename, str) or not filename:
+        raise ValueError("RECEIVING_NFB_DEPTH_MODEL_SOURCE_MISSING")
+    parsed = parse_numeric_model_ref(filename)
+    brand = hole.get("source_brand", legacy_set_brand or (
+        parsed[0] if parsed is not None else None
+    ))
+    if not isinstance(brand, str) or not brand:
+        raise ValueError("RECEIVING_NFB_DEPTH_BRAND_SOURCE_MISSING")
+    if filename.startswith("nfbv5:"):
+        if parsed is None or parsed[0] != brand:
+            raise ValueError("RECEIVING_NFB_DEPTH_V5_BRAND_IDENTITY_MISMATCH")
+        spec = selected_numeric_spec(brand, filename)
+        depth = spec.depth_mm if spec is not None else None
+    else:
+        depth = model_depth_mm(brand, filename)
+    if depth is None:
+        raise ValueError("RECEIVING_NFB_DEPTH_CSV_MODEL_DEPTH_MISSING")
+    depth = float(depth)
+    if not isfinite(depth) or depth <= 0:
+        raise ValueError("RECEIVING_NFB_DEPTH_CSV_MODEL_DEPTH_INVALID")
+    return depth
+
+
 def committed_receiving_nfb_depth_pair_mm(snapshot) -> tuple[float, float] | None:
     """Derive a CENTER base depth pair from an ACTUALLY submitted Bay's holes.
 
@@ -227,9 +267,7 @@ def committed_receiving_nfb_depth_pair_mm(snapshot) -> tuple[float, float] | Non
     names = tuple(row.get("model_filename") for row in holes)
     if not all(isinstance(name, str) and name for name in names):
         raise ValueError("submitted NFBConfig has missing model filename")
-    if names[0] == names[1]:
-        return None
-
+    # Same filename alone does not prove same model across different brands.
     layout = snapshot.get("receiving_layout")
     if not isinstance(layout, Mapping):
         raise ValueError("submitted NFB depth has no owning Receiving Set")
@@ -264,14 +302,12 @@ def committed_receiving_nfb_depth_pair_mm(snapshot) -> tuple[float, float] | Non
             raise ValueError("Receiving NFB active Bay identity ambiguous")
     else:
         raise ValueError("Receiving NFB active Set identity ambiguous")
-    brand = chosen.get("switch_brand")
-    if not isinstance(brand, str) or not brand:
-        raise ValueError("Receiving Set owns no selected NFB switch brand")
-    # Saved per-hole provenance may forbid using the Set brand for this
-    # exact hole; never silently cross-brand-match a filename.
-    if any(row.get("source_brand", brand) != brand for row in holes):
-        raise ValueError("NFB per-hole source brand disagrees with selected Set")
-    depths = selected_receiving_nfb_depth_pair_mm(brand, names)
+    legacy_brand = chosen.get("switch_brand")
+    depths = tuple(sorted((
+        _source_depth_for_submitted_hole(
+            hole, legacy_set_brand=legacy_brand,
+        ) for hole in holes
+    ), reverse=True))
     if abs(depths[0] - depths[1]) <= 1e-9:
         return None
     receiving_nfb_second_side_fold_mm(
@@ -343,23 +379,12 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
     models={str(h.get("model_filename") or "").strip() for h in holes}
     if len(models)!=1 or not next(iter(models)):
         raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
-    brand=chosen.get("switch_brand")
-    if not isinstance(brand,str) or not brand:
-        raise ValueError("RECEIVING_FLAT_NFB_SET_BRAND_MISSING")
-    if any(h.get("source_brand",brand)!=brand for h in holes):
-        raise ValueError("RECEIVING_FLAT_NFB_SOURCE_BRAND_DRIFT")
-    filename=next(iter(models))
-    if filename.startswith("nfbv5:"):
-        from .receiving_nfb_model_identity import selected_numeric_spec
-        spec=selected_numeric_spec(brand,filename)
-        depth=spec.depth_mm if spec is not None else None
-    else:
-        from .receiving_switch_model_catalog import model_depth_mm
-        depth=model_depth_mm(brand,filename)
-    if depth is None:
-        raise ValueError("RECEIVING_FLAT_NFB_MODEL_CSV_DEPTH_MISSING")
-    from math import isfinite
-    depth=float(depth)
-    if not isfinite(depth) or depth<=0:
-        raise ValueError("RECEIVING_FLAT_NFB_MODEL_CSV_DEPTH_INVALID")
-    return depth
+    legacy_brand=chosen.get("switch_brand")
+    depths=tuple(
+        _source_depth_for_submitted_hole(
+            hole, legacy_set_brand=legacy_brand,
+        ) for hole in holes
+    )
+    if any(abs(depth-depths[0])>1e-9 for depth in depths):
+        raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_DEPTHS_NEED_PAD")
+    return depths[0]
