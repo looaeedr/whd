@@ -2558,9 +2558,18 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def open_nfb_world_x_dialog():
             """Operator enters absolute world-X; UI-1A draft offset is not X."""
-            if version_id is None:
-                warning.set("請先儲存內門版本，再進行 NFB 實體確認")
-                return
+            proof_version_id = version_id
+            if proof_version_id is None:
+                original_editor = (embed_parent.winfo_toplevel()
+                                   if embed_parent is not None else None)
+                if (original_editor is None
+                        or getattr(original_editor, "_receiving_settings_mode", None)
+                           != "candidate"):
+                    warning.set("此入口尚無可驗證的內門版本；不可擅自借用其他連的 NFB 實體孔")
+                    return
+                # Reserve the *next real candidate identity* only in memory.
+                # Cancel leaves the library and its version counter untouched.
+                proof_version_id = "inner-door-v" + str(inner_library()["next_number"])
             from ae_engine.receiving_nfb_ui1b_runtime import verify_current_nfb_ui_draft
             current=edit_session.current
             active=[
@@ -2731,7 +2740,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             edit_session.current,layout=adapter.layout,
                             set_index=selected.set_index,
                             bay_index=selected.bay_index,
-                            version_id=version_id,
+                            version_id=proof_version_id,
                             projected_snapshot=physical,
                             world_x_by_unit=coords,base_spec=base_spec,
                         )
@@ -2746,7 +2755,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         edit_session.current,layout=adapter.layout,
                         set_index=selected.set_index,
                         bay_index=selected.bay_index,
-                        version_id=version_id,
+                        version_id=proof_version_id,
                         projected_snapshot=nfb_physical_bay_snapshot(
                             selected.set_index,selected.bay_index,
                         ),
