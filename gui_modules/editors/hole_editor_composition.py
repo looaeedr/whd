@@ -708,6 +708,9 @@ def _build_navigation_and_lifecycle(s):
             ))
             s.refresh_created()
             s.sync_all()
+            # The external sync redraws the assembly preview, NOT this native
+            # Hole Editor canvas. Paint the newly imported CUTTING outlines now.
+            s.redraw()
         s.editor._receiving_accept_verified_openings = accept_verified_openings
 
         def stage_selected_nfb_openings(openings):
@@ -743,8 +746,14 @@ def _build_navigation_and_lifecycle(s):
             ))
             s.refresh_created()
             s.sync_all()
+            # The external sync redraws the assembly preview, NOT this native
+            # Hole Editor canvas. Paint the newly imported CUTTING outlines now.
+            s.redraw()
 
         s.editor._receiving_stage_selected_nfb_openings = stage_selected_nfb_openings
+        # The Receiving tab switches back after stage; paint again once its
+        # main Canvas is mapped, not only while the settings tab is visible.
+        s.editor._receiving_redraw_main_holes = s.redraw
         s.editor._receiving_pending_features = lambda: tuple(s.live_context.feature_list)
 
     s.confirm_reference_edit = modal_lifecycle.confirm_reference_edit
