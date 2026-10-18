@@ -138,9 +138,14 @@ def test_operator_opening_center_moves_base_plate_center_without_changing_plate_
 
 def test_two_nfb_tiers_do_not_create_one_fake_combined_plate_center():
     snap=_assembled()
+    snap["nfb_config"]["layer_count"] = 2
+    snap["nfb_config"]["holes"][0].update(layer_count=2,slot_index=0)
     snap["nfb_config"]["holes"][1].update(layer_count=2,slot_index=1)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
-    # Incomplete/stale legacy two-row alias is not evidence for a single
-    # physical plate. Per-tier centre targets have independent identities.
+    from ae_engine.receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
+    layer_centers = receiving_nfb_layer_centers(snap,"upper")
+    assert len(layer_centers) == 2
+    assert layer_centers[0].layer_part_id != layer_centers[1].layer_part_id
+    # One legacy root is NOT falsely presented as both tier plates.
     p = resolve_assembly_placement(snap,"base_plate")
     assert p.relationship == "BASE_PLATE"
