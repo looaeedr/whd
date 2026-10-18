@@ -197,3 +197,29 @@ def test_real_box_body_piece_canvas_receives_preview_marks_and_unapproved_label(
     assert any("MARKING 預覽" in message and "未核准製造" in message
                for message in canvas.messages)
     assert len(canvas.messages) == 1
+
+
+def test_real_receiving_box_side_source_world_uv_produces_actual_2d_marks():
+    """No mocked world triangles, UV solver, source panels or fixture scene."""
+    from tests.test_issue1050_receiving_mother_plate_marking import (
+        _snapshot as real_box_snapshot, _full_receiving_geometry,
+    )
+
+    snapshot = real_box_snapshot()
+    snapshot.update(_assembled())
+    geometry = _full_receiving_geometry(snapshot)
+    body = geometry.part("box_body").render_data
+    side_by_role = {str(piece.role).lower(): piece for piece in body.pieces}
+    assert set(side_by_role) >= {"left_side", "right_side"}
+
+    for role in ("left_side", "right_side"):
+        owner = side_by_role[role]
+        shown = project_receiving_ear_side_piece_2d_preview(
+            snapshot, owner, piece_key="box_body:" + role,
+            geometry=geometry, dimensions=(800., 1600., 350.),
+            sheet_thickness=2.,
+        )
+        assert shown.render_data.metadata["ear_side_mark_preview_count"] == 4
+        assert sum(p.layer == "MARKING" for p in shown.render_data.scene.primitives) >= 4
+        assert shown.render_data.material.equals(owner.render_data.material)
+        assert shown.render_data is not owner.render_data
