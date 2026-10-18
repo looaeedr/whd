@@ -186,3 +186,97 @@ def test_new_hole_actual_whd_manufacturing_cutting_after_confirm(tmp_path):
                    and e.dxf.layer == "CUTTING"]
     assert len(new_circles) == 2
     assert any(abs(e.dxf.radius - 5) < 1e-6 for e in new_circles)
+
+
+def test_empty_whd_face_creates_first_hole_in_cadcraft_exchange_and_confirm(tmp_path):
+    """First-hole path: WHD owns blank metric DXF, CADCraft adds, WHD confirms."""
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        prepare_whd_cadcraft_commands, draw_whd_commands_with_cadcraft,
+    )
+    surface = feature_surface_from_rect("blank-face", Vec2(-100, -100),
+                                        Vec2(400, 400))
+    features = []
+    identity = id(features)
+    session = Phase6HoleEditorSession("blank-face", features)
+    instructions = prepare_whd_cadcraft_commands(
+        surface=surface, features=features, width=500, height=500,
+    )
+    assert instructions == ()
+    issued = draw_whd_commands_with_cadcraft(
+        instructions=instructions, executable="not-executed-for-empty-source",
+        output_dir=tmp_path,
+    )
+    assert issued.geometry_evidence["scope"] == "EMPTY_WHD_ISSUED_EXCHANGE"
+    assert issued.preview_png.read_bytes().startswith(
+        bytes([137, 80, 78, 71, 13, 10, 26, 10])
+    )
+    empty_doc = ezdxf.readfile(issued.output_dxf)
+    assert empty_doc.header["$INSUNITS"] == 4
+    assert empty_doc.header["$MEASUREMENT"] == 1
+    assert not list(empty_doc.modelspace())
+    ticket = create_manual_return_ticket(
+        output=issued.output_dxf, features=features, session=session,
+        surface=surface, width=500, height=500,
+    )
+    with pytest.raises(CadcraftCommandProofError, match="DRAWING_NOT_EDITED"):
+        stage_manual_cadcraft_return(ticket)
+    # Simulated CADCraft geometry edit, followed by real WHD Session staging.
+    empty_doc.modelspace().add_circle((-25, -15), 7)
+    empty_doc.modelspace().add_lwpolyline(
+        [(140, 130), (156, 130), (156, 143), (140, 143)], close=True
+    )
+    empty_doc.saveas(issued.output_dxf)
+    pending = stage_manual_cadcraft_return(ticket)
+    assert pending.moves == () and len(pending.additions) == 2
+    assert len(features) == 2 and session.has_active_edit
+    pending.cancel()
+    assert not features and not session.has_active_edit
+    pending = stage_manual_cadcraft_return(ticket)
+    pending.confirm()
+    assert id(features) == identity
+    assert features[0].offset == Vec2(-25, -15)
+    assert isinstance(features[1], RectFeature)
+    assert features[1].offset == Vec2(148, 136.5)
+    session.execute(HoleEditorAction.undo())
+    assert not features
+
+
+def test_empty_face_rejects_prepopulated_or_wrong_unit_seed(tmp_path):
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        draw_whd_commands_with_cadcraft,
+    )
+    surface = feature_surface_from_rect("empty-reject", Vec2(0, 0), Vec2(300, 300))
+    features = []
+    session = Phase6HoleEditorSession("empty-reject", features)
+    output = draw_whd_commands_with_cadcraft(
+        instructions=(), executable="not-executed", output_dir=tmp_path
+    ).output_dxf
+    doc = ezdxf.readfile(output)
+    doc.modelspace().add_circle((75, 75), 4)
+    doc.saveas(output)
+    with pytest.raises(CadcraftCommandProofError, match="INVALID_BLANK_EXCHANGE_DXF"):
+        create_manual_return_ticket(
+            output=output, features=features, session=session,
+            surface=surface, width=300, height=300,
+        )
+    doc.modelspace().delete_all_entities()
+    doc.header["$INSUNITS"] = 1
+    doc.saveas(output)
+    with pytest.raises(CadcraftCommandProofError, match="INVALID_BLANK_EXCHANGE_DXF"):
+        create_manual_return_ticket(
+            output=output, features=features, session=session,
+            surface=surface, width=300, height=300,
+        )
+
+
+def test_blank_exchange_never_overwrites_existing_file(tmp_path):
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        draw_whd_commands_with_cadcraft,
+    )
+    source = tmp_path / "whd-command-drawing.dxf"
+    source.write_bytes(b"existing-user-file-untouched")
+    with pytest.raises(CadcraftCommandProofError, match="REFUSE_TO_OVERWRITE"):
+        draw_whd_commands_with_cadcraft(
+            instructions=(), executable="not-executed", output_dir=tmp_path
+        )
+    assert source.read_bytes() == b"existing-user-file-untouched"
