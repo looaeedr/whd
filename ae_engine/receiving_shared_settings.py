@@ -12,6 +12,8 @@ SETTING_DEFAULTS = {
     # Two independent layers; each slot may retain legacy DXF or typed V5
     # brand/model identities. Repeated physical instances are not deduplicated.
     "inner_door_models": ["", ""],
+    # Per physical inner-door sheet, not a second NFB or generic hole owner.
+    "inner_door_features": {},
     # NFB opening-row centers measured from the TOP edge of the selected work area.
     "inner_door_layer_heights_mm": [330.0, 830.0],
     # Per-Bay display provenance. None=never applied, ""=explicit 即時.
@@ -74,6 +76,20 @@ def validate_setting(kind, value):
             raise ValueError("內門層數必須為 1 或 2")
     elif kind == "inner_door_models":
         value = switch_model_layers(value)
+    elif kind == "inner_door_features":
+        from .sheetmetal_features import CircleFeature, RectFeature, ProfileFeature
+        if not isinstance(value, Mapping):
+            raise ValueError("內門孔位必須依實體板件 ID 保存")
+        normalized = {}
+        for part_key, features in value.items():
+            if (not isinstance(part_key, str) or not part_key.startswith("inner_door:")
+                    or not part_key.endswith(":panel")
+                    or not isinstance(features, (list, tuple))
+                    or any(not isinstance(feature, (CircleFeature, RectFeature, ProfileFeature))
+                           for feature in features)):
+                raise ValueError("內門候選只能保存真實門板的 Hole Editor Feature")
+            normalized[part_key] = list(features)
+        value = normalized
     elif kind == "inner_door_layer_heights_mm":
         # Old saved NFB projects have no operator-height authority; None
         # retains their original certified nominal 290/790 Y until edited.
