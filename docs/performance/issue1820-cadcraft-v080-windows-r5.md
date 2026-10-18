@@ -54,3 +54,67 @@
 包括 `DC_actions.log`、`WINDOWS_080_SUMMARY.json`、`cadcraft_version.txt`、原生 GUI 及縮放後截圖、各 worker JSON，及隔離校驗程式。GitHub 倉庫僅記錄**結果與工具修復**，不包含使用者 DXF。
 
 **階段判斷：保留 WHD 現有 2D 編輯器為唯一正式開孔入口；CADCraft v0.8.0 僅為可選外部試看。** #1820 仍需比較完整 Windows 端到端操作、實際大圖幾何／單位驗證、開孔互動、pan/zoom、回寫／製造安全性與維護成本；沒有證據前不採用 CADCraft 替換原本 2D，正式 X 不變。
+
+---
+
+## R5-2600 完整實機續驗：2026-10-18（台灣時間）
+
+### 證據界線
+
+使用者明確允許 DC 進入 **R5-2600** 測試 #1820。Windows `Z:\localX` 在測試開始時真實讀回 `d986089f85feb48356b0aaaeaaae7e8e22972e34`（PR #1927 已合併）；操作僅在既有 `C:\Users\looae\Documents\WHD_1820_CADCraft_UAT\` 隔離寫出。原始 DXF、正式 X、WHD 製造圖、`Z:\localX` 追蹤程式碼均**未被測試改寫**。Windows 工作區原有兩個未追蹤檔亦保留。後來 GitHub `localX` 有其他提交，**此 UAT 不涵蓋這些較新 SHA**。
+
+本次新增的可重現工具與原始 JSON：
+- `r5_1820_preflight.py`、`r5_1820_geometry_check.py`、`r5_1820_deep_semantics.py`、`r5_1820_gesture.py`、`r5_1820_win32_mouse.py`、`r5_1820_concurrent.py`；位於上述 Windows 隔離資料夾，沒有提交含客戶 DXF 的檔案。
+- `final_1820_v080/geometry_results.json`、`deep_semantics.json`、`cadcraft_gesture_results.json`、`win32_pointer_results.json`、`concurrent_results.json`、`concurrent_rss_50ms_samples.json` 和 Win32 實際截圖。
+- 每項執行操作追加到原有 `DC_actions.log`；沒有偷偷重用先前的量測成為這次結果。
+
+### Windows 原生滑鼠操作（真 OS 輸入）
+
+CADCraft v0.8.0 原生 GUI 真正載入 8,620 圖元大圖，`app.open` 成功，`drawing.inspect.entityCount=8620`。只用控制協定合成的 `ui.drag(button=middle)` **未改變 view**，不得冒充 PASS。接著透過 Windows `user32` 對真實 CADCraft 視窗送出**中鍵按下、滑鼠移動、放開、滾輪**，並以原生 `ui.inspect.view` 獨立回讀：
+
+| 操作 | 前 → 後（CADCraft 真實 View） | 結果 |
+|---|---|---|
+| 中鍵平移 | center `[10978.676, -24804.845]` → `[-3052.061, -16620.248]` | **PASS** |
+| 滾輪縮放 | height `71556.760649` → `62624.567717` | **PASS** |
+| 同 DXF 不變 | 原始 SHA256 `c53d1977ef65362ab4c02fa3504df8702c399d429a9b3596523f011b73951dd0` | **PASS** |
+
+實際桌面畫面 `final_1820_v080/cadcraft-win32-physical-input-after.png` 已保存；執行結束後還原游標和原先焦點，關閉測試開啟的 CADCraft 程序。
+
+### 真正 WHD 開孔編輯器與 CADCraft 同時運行
+
+在同一台 R5-2600，以同一 `d986089f...` WHD 程式開啟真正 `Phase6PrimaryApplication` → 原統一開孔視窗（94 個 Canvas items）；保留原編輯器運作時，用目前正式 `build_hole_editor_cadcraft_scene`／`save_cadcraft_preview_dxf` 產生一次性 CHECK 暫存 DXF，再啟動 v0.8.0 真正 CADCraft 桌面，載入同圖、查圖元並截取首幀。50ms 樣本同時採計兩者完整程序樹 RSS。
+
+| 觀察項目 | R5-2600 單輪實測 |
+|---|---:|
+| WHD 原主程式 → 真正 Hole Editor 顯示 | 9,695.25 ms |
+| WHD resolved CHECK DXF 準備 | 10.09 ms |
+| CADCraft 啟動 → 載入／原生首張截圖 | 1,291.84 ms |
+| 準備 DXF ＋ CADCraft 首幀 | **1,301.93 ms** |
+| 同時 WHD process-tree RSS peak | 142,270,464 bytes |
+| 同時 CADCraft process-tree RSS peak | 298,008,576 bytes |
+| **同時合計 process-tree RSS peak** | **440,279,040 bytes（約 419.9 MiB）** |
+| CADCraft 原生載入圖元 | 4/4 |
+
+這是已開啟 WHD 開孔視窗後的**程序準備＋外部 GUI**成本；並**沒有**量到人手點擊工具列按鈕、桌面視窗切換及返回 WHD 重新編輯。小圖僅 4 圖元，不能把 1.30 秒直接宣告大型專案的端到端回寫速度。測試沒有回寫 WHD，沒有以 CADCraft 改寫製造資料。CADCraft 測試程序以 `terminate()` 主動結束（回傳碼 1），非測試途中閃退；WHD worker 正常 exit 0。
+
+### 真正 DXF read→resave：比圖元數量更嚴格的驗證
+
+對已隔離的四份圖，執行**官方 v0.8.0 CADCraft CLI 真實開啟及另存**至 `final_1820_v080/roundtrip_*.dxf`；原檔全程 SHA256 一致。使用獨立 `ezdxf.readfile()` 比對 DXF header、modelspace 幾何和屬性，並額外查圖塊定義及標註欄位（不把此步當 CADCraft viewer「回寫 WHD」功能）。
+
+| 圖面 | 圖元數（前→後） | `$INSUNITS`（前→後） | 嚴格語意結果 |
+|---|---:|---:|---|
+| WHD 4 圖元 CHECK 試看圖 | 4→4 | 4→4（mm） | **PASS** |
+| `400_cn.dxf` | 81→81 | 4→4 | **NOT EXACT：6 筆 INSERT/DIMENSION 屬性差異；區塊數 13→9** |
+| `800x3.dxf` | 54→54 | 0→0（未指定） | **NOT EXACT：4 筆 DIMENSION 屬性／量測欄位差異** |
+| `士林中底板(1).dxf` | 8620→8620 | **0→1（未指定→inch）** | **FAIL：單位改變、723 筆複合物件屬性差異** |
+
+8,620 圖元檔的 723 筆差異以嚴格屬性簽章計算，涉及 **205 TEXT、29 INSERT、489 DIMENSION**。進一步分流發現部分 TEXT 轉成 DXF `\\U+XXXX` 字元編碼後經 `decode_dxf_unicode` 還原仍相同；INSERT 主要被補寫 1.0 scale／0 rotation；DIMENSION 的測量值、text midpoint 等屬性出現變化，不能直接標為等價。ARC 的少量原始浮點角度序列化差異已另記錄，六位小數正規化後與 LINE/CIRCLE/POINT 比對未發現 modelspace 基本圖元遺失。另存在圖塊定義數差異（大圖 520→522），且尚未證明所有標註渲染／布局像素一致。
+
+**重要：DXF `$INSUNITS=0` 是「未指定單位」，不可在 CADCraft 另存後自動改成 `1`（inch）仍宣稱原圖單位完全保存；此例已構成保真驗收 FAIL。** 圖元總數一致只是載入數量觀察，絕非完整安全證據。
+
+### #1820 決策與剩餘驗收
+
+1. **確認保留 WHD 原 2D 開孔編輯器，CADCraft 只能作使用者選用、唯讀、單向試看。** 不取代 WHD 製造幾何，不用 CADCraft DXF 回寫 WHD。Windows 原生滑鼠 pan/zoom 已 PASS，並已取得真實同時 RSS 和可重現的 DXF 開圖成本。
+2. **CADCraft 作為製造或完整保真編輯器的整合判斷為 NO-GO / DEFER**：目前有實際單位和標註語意的差異；不能將 `entityCount` 或 CI 的 4-entity roundtrip 當作全圖合格。若未來評估整合／回寫，須先修正、再重新驗證這三份真 DXF、DIMENSION/INSERT/TEXT、區塊和單位，並核實視覺等價。
+3. 本次實機已確認上述特定版本；後續 GitHub `localX` 新施工需另驗差異。本報告是 CADCraft 採用評估的負面決策證據，**不是 CADCraft 替換驗收通過，也不是正式 X 發布證據**。
+
