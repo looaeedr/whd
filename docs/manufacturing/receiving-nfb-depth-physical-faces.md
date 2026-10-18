@@ -115,23 +115,25 @@ shallow_back_z       = shallow_front_z - Tb
 
 ## 四之三、每個 NFB 層的開孔群中心對底板中心（2026-10-18 使用者再次確認）
 
-**使用者正式指定「開孔在哪底板就在哪，中心對中心」**：每一 NFB 層的**開孔群中心**，就是該層獨立底板的**組合中心 X/Y**。NFB 開孔從箱頂量得的高度（如 330／830）既是孔的定位，也決定對應底板的組合 Y；**不是底板成品高度尺寸**。先前 #1892 將這點反過來，硬把已配置底板 X/Y 留在 (0,0)，**不符合此次明確指定**。
+**2026-10-18 再次更正**：每一層底板**左右 X 永遠以箱體中心 X=0 定位，不隨 NFB 開孔 X／型號 X 位移**；只移動該顆 NFB 在底板上的**螺絲孔 X**。原先「開孔在哪底板就在哪」只適用於各層的**高度 Y 定位**，不是把整片板跟著 NFB 橫移。NFB 開孔從箱頂量得的高度（如 330／830）既是孔的定位，也決定對應底板的組合 Y；**不是底板成品高度尺寸**。先前 #1892 將這點反過來，硬把已配置底板 X/Y 留在 (0,0)，**不符合此次明確指定**。
 
 - **外門上層的 NFB 每層一片底板及一組左右固定片**。同一層兩顆以上 NFB 的開孔中心群，取這層開孔組的中心對該層板中心；不同 NFB 層分開計算、分開建實體。外門本身**下層區域**沒有本項 NFB 底板，這不代表 NFB 第二層沒有板。
 - Y：既有 `project_nfb_inner_door_nominal_y` 會按世界座標投影每層開孔中心；對 H1600，從箱頂 330／830 時世界 Y 分別為 **470／−30 mm**。該層底板的中心 Y 必須等於此處開孔群中心，而**底板 H 仍由 `receiving_base_plate_values` 的板件規格決定**。
-- X：對同層多個 NFB，以**已核對的開孔中心 X** 範圍中點作整組底板中心 X（`(min(X)+max(X))/2`）；只有 X 的來源確定才可標成已驗證。X 未確認時舊 X0 僅可作預覽，不得冒稱製造孔位已認證。**不是把不同 NFB 層的 X 混在一起取平均。**
+- **X：底板固定在箱體橫向中心 X=0**；NFB 的 `manual_x_mm`／各顆來源開孔 X 只用來計算其各自底板螺絲孔的本地 X（`local_hole_x = world_nfb_x - plate_world_x`，此處 plate_world_x=0）。同一層兩顆或兩層各顆偏移都不改底板／670 固定孔／左右固定片 X。X 未確認則 NFB 製造螺絲孔不可冒充有憑證。
 - Z：由內門朝內物理 skin、NFB CSV 深度和底板真正折後安裝 skin 對齊；士林 107／72 的實體安裝面差 35、展開第二折 33 的規則**不變**。
-- 裝配順序：**先依開孔群中心確定該 NFB 層底板 X/Y，依實體面求 Z → 左右底板固定片跟著該層底板固定孔對位，在左右側板內面焊接 → 固定片接觸位置投影 MARKING → NFB 的各顆螺絲孔依原主開孔中心與已定位底板的變換投影**。固定片不能再反過來任意把底板移到另一個 Y。
+- 裝配順序：**各層底板 X=箱體中心 0、Y=該層開孔高度投影、Z=真實安裝皮面 → 左右底板固定片依底板固定孔 670 左右孔距對位並焊側板內面 → 各顆 NFB 的螺絲孔依它自己的來源主孔 X／Y 在已固定的底板局部座標投影**。NFB 左右移只改其螺絲孔，不得平移底板、底板固定孔或固定片。側板 MARKING 須另驗實體接觸。
 - 現有根 `base_plate` 只有一個實體身份：**僅在來源確定只有一個 NFB 層時**，可直接使用 `receiving_nfb_layer_centers` 的唯一中心放置。新每層資料以 `base_plate:nfb_layer:<layer_index>` 作獨立定位標識；如有兩層，必須由下游建立兩份板件／固定片且經 3D/製造驗證，**不能把一個 root plate 冒充已產生兩片**，也不能把兩層孔心平均成一片。
 - **層索引和顆索引是兩回事**：`layer_index` 是內門上層作業區中的 NFB 第幾層，`slot_index` 是該層左右第幾顆。只選一個 NFB 層時，左右兩顆的 `slot_index=0/1` 都屬同一片底板；配置兩層時必須有明確 `layer_index`，不可拿第二顆 `slot_index=1` 假扮第二層。
 - 先前 #1892 的「固定片先決定底板 XY，孔位不得影響底板位置」屬**錯誤解讀，已撤回**；左右側板上的固定片實體折向及 MARKING 仍要通過獨立幾何回投影驗收，未完成前不可當成已出製造圖。
+
+**定位硬規則（覆蓋本節先前誤述）**：底板 X 永遠固定在箱體中心；NFB 橫向移動只改那顆 NFB 的**螺絲孔**，底板及左右固定片不橫移。這一條同時適用單層與雙層板件。沒有螺絲孔來源認證不得釋出 DXF。
 
 ## 四之四、左右平側底板：單一來源型號的實體 Z
 
 前面的「35 mm 面差」只屬於 **CENTER 雙折雙深度** 底板。`LEFT_FLAT_SIDE`、`RIGHT_FLAT_SIDE` **無側折**，但仍各有上／下 20 mm 折邊；不能因為沒有深淺兩顆深度差，就把平底板放回舊的箱體後側 Z。
 
 - 本次只有**已提交的當前 Set/Bay**、單層同一列、唯一來源廠牌／型號深度時，透過 `committed_receiving_flat_nfb_depth_mm` 讀取 `開關索引.csv` 或 nfbv5 數值資料的深度（例如士林 400=107，另一個來源型號可能是 68），不設第二套底板「深度」輸入。
-- 走**同一** `receiving_base_plate_real_skins` 取得平面底板的真 T2 NFB 安裝皮面；`resolve_receiving_nfb_world_skin_datums` 對齊內門朝箱內 skin；`assembly_placement` 在單一 NFB 層時，以該層**開孔群中心對底板中心的 X/Y**及真實物理 skin 的 **Z** 定位；左右固定片再與已定位的底板固定孔貼合。換型號深度時，底板與固定片接觸的**目標 Z** 同步調整，內門不動。
+- 走**同一** `receiving_base_plate_real_skins` 取得平面底板的真 T2 NFB 安裝皮面；`resolve_receiving_nfb_world_skin_datums` 對齊內門朝箱內 skin；`assembly_placement` 在單一 NFB 層時，以**固定的箱體中心 X=0、該層開孔高度 Y**及真實物理 skin 的 **Z** 定位；左右固定片再與已定位的底板固定孔貼合。換型號深度時，底板與固定片接觸的**目標 Z** 同步調整，內門不動。
 - **平底板兩顆不同型號**或**兩列**不能偷用最深一顆並聲稱全都貼合。若需要 PAD／其他實體底板，必須由其真實孔列及裝配來源驗證；缺項拒絕，不退回箱體後側 preview 冒充有來源的配置。
 - 上述仍不代表大片固定片已擁有正式原圖 BEND。此固定片與側板兩側打標需獨立通過真實折向、物理接觸與回投影驗證後才准放行。
 
@@ -140,7 +142,7 @@ shallow_back_z       = shallow_front_z - Tb
 `phase6_manufacturing_service.resolve()` 是組合 3D 的 `ResolvedManufacturingPart` 正式產生入口。已提交、來源唯一的外門上層 NFB 配置如有兩層，新增 `receiving_nfb_layer_physical_parts.expand_receiving_nfb_layer_parts`：
 
 - 由既有 `receiving_nfb_layer_centers` 取得上下層各自的 NFB 開孔群中心及 `base_plate:nfb_layer:0/1` 來源身份；不可把 `slot_index`（同層第幾顆）冒充 `layer_index`（第幾層）。
-- 每一層各自建立一個**新的** `BasePlatePartSpec`（原受電箱來源樣式和下料尺寸，不另造尺寸表）→ `build_part_render_data`，取得**兩個不同的真 FinalScene 材料、BEND 與 unfolded topology identity**；用該層孔群世界 X/Y 中心放置，移除單一根 `base_plate` 以免多畫一片。
+- 每一層各自建立一個**新的** `BasePlatePartSpec`（原受電箱來源樣式和下料尺寸，不另造尺寸表）→ `build_part_render_data`，取得**兩個不同的真 FinalScene 材料、BEND 與 unfolded topology identity**；用**固定世界 X=0** 與該層孔群世界 **Y 高度**放置，移除單一根 `base_plate` 以免多畫一片。
 - 原有 `base_plate` 可見性核選同時控制兩片來源實體。**板材成品高度由底板板件規格提供**，不被 330／830 的開孔高度覆蓋；外門下層不新增板件。
 - **嚴格交付界限**：目前這是**兩個真實、身份分離的板材 FinalScene 源圖／3D 毛胚**，其 `metadata.manufacturing_ready=False`，`nfb_layer_manufacturing_status=NFB_TIER_BASE_EAR_AND_HOLES_UNVERIFIED`；尚未把每層實際 NFB 螺絲孔／全部耳片裝配孔製造結果接入新身份，也未完成每層獨立 Z 深度／左右固定片真折向、焊接貼合與側板 MARKING。兩片真實毛胚的出現**不是兩張已核准的製造圖**。不能以同一層原孔位鏡像到另一層或把第一層 CSV 深度套在第二層。
 
