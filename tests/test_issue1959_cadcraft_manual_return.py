@@ -149,3 +149,66 @@ def test_approved_source_feature_cannot_receive_manual_return_ticket(tmp_path):
             output=path, features=features, session=session,
             surface=surface, width=300, height=300,
         )
+
+
+def test_manual_return_confirm_rebuilds_original_whd_manufacturing(tmp_path):
+    """Actual WHD exporter sees only approved Session features, not CADCraft DXF."""
+    from collections import Counter
+    from ae_engine import ae
+    from ae_engine.contracts import DoorPartSpec, ManufacturingContext
+    from ae_engine.manufacturing_api import generate_part
+    from tools.issue1959_whd_real_manufacturing_parity import _signature
+
+    door = dict(width=500, height=600, thickness=2, frame_width=25,
+                gap_w=3.5, gap_h=3.5, fold_left=19, fold_right=19,
+                fold_top=19, fold_bottom=19)
+    finished_width, finished_height = ae.calculate_door_finished_size(
+        500, 600, 25, 3.5, 3.5, 2
+    )
+    surface = feature_surface_from_rect(
+        "1959-real-door", Vec2(0, 0), Vec2(finished_width, finished_height)
+    )
+    original = CircleFeature(10, FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(110, 130))
+    features = [original]
+    session = Phase6HoleEditorSession("1959-real-door", features)
+    exchange = tmp_path / "cadcraft-only-exchange.dxf"
+    proof = ezdxf.new("R2010", units=ezdxf.units.MM)
+    proof.modelspace().add_circle((110, 130), 5)
+    proof.saveas(exchange)
+    ticket = create_manual_return_ticket(
+        output=exchange, features=features, session=session,
+        surface=surface, width=finished_width, height=finished_height,
+    )
+    _move(exchange, 0, 10, -5)
+    staged = stage_manual_cadcraft_return(ticket)
+    assert staged.moves == ((0, 10, -5),)
+    staged.confirm()
+    assert features[0].offset == Vec2(120, 125)
+    session.finish(commit=True)
+
+    authority = tmp_path / "authority"
+    authority.mkdir()
+    context = ManufacturingContext(resource_root=authority, draw_stock=False)
+    before_path = tmp_path / "whd-before.dxf"
+    after_path = tmp_path / "whd-after-confirm.dxf"
+    generate_part(DoorPartSpec(**door, features=(original,)), before_path, context)
+    generate_part(DoorPartSpec(**door, features=tuple(features)), after_path, context)
+    before_entities = list(ezdxf.readfile(before_path).modelspace())
+    after_entities = list(ezdxf.readfile(after_path).modelspace())
+    before = Counter(_signature(entity) for entity in before_entities)
+    after = Counter(_signature(entity) for entity in after_entities)
+    assert sum((before - after).values()) == 1
+    assert sum((after - before).values()) == 1
+    unchanged = before & after
+    assert sum(unchanged.values()) == len(before_entities) - 1
+    initial_hole = [e for e in before_entities if e.dxftype() == "CIRCLE"
+                    and e.dxf.layer == "CUTTING"]
+    final_hole = [e for e in after_entities if e.dxftype() == "CIRCLE"
+                  and e.dxf.layer == "CUTTING"]
+    assert len(initial_hole) == len(final_hole) == 1
+    assert initial_hole[0].dxf.center.x == 342
+    assert initial_hole[0].dxf.center.y == 147
+    assert final_hole[0].dxf.center.x == 332
+    assert final_hole[0].dxf.center.y == 142
+    assert final_hole[0].dxf.radius == 5
+    assert exchange != after_path and exchange.is_file()
