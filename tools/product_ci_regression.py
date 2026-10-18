@@ -61,6 +61,7 @@ PYTEST_PATHS = (
     "tests/test_receiving_tier_fixing_plate_owner_ids.py",
     # #1503: actual folded 3D Base Plate skin must match EACH source EAR target.
     "tests/test_issue1503_actual_assembly_ear_contact_receipt.py",
+    "tests/test_issue1503_revised_bend_formed_skins.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
@@ -212,8 +213,7 @@ PYTEST_PATHS = (
     "tests/test_final_scene_input_to_assembly_direction.py::test_physical_3d_input_preview_never_reads_back_from_assembly",
     "tests/test_final_scene_input_to_assembly_direction.py::test_manufacturing_adapter_reads_active_3d_input_not_assembly_result",
     "tests/test_phase6_3d_single_source_renderer.py::test_2d_and_3d_equal_door_state_share_exact_render_data_object",
-    # No triangulation grid on any FinalScene skin: real W800 + Doors.
-    # Selected in exact-head product CI, not just local standalone tests.
+    # Real W800, single & assembled doors, and all FinalScene skins must be grid-free.
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_real_receiving_all_panels_shaded_without_triangle_edges",
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_flat_part_keeps_authoritative_bend_and_marking_with_no_mesh_lines",
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_single_door_cutting_rims_and_bends_without_mesh_edge_overlay",
