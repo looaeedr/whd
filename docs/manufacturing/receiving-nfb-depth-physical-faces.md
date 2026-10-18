@@ -132,6 +132,14 @@ shallow_back_z       = shallow_front_z - Tb
 - **平底板兩顆不同型號**或**兩列**不能偷用最深一顆並聲稱全都貼合。若需要 PAD／其他實體底板，必須由其真實孔列及裝配來源驗證；缺項拒絕，不退回箱體後側 preview 冒充有來源的配置。
 - 上述仍不代表大片固定片已擁有正式原圖 BEND。此固定片與側板兩側打標需獨立通過真實折向、物理接觸與回投影驗證後才准放行。
 
+## 四之五、底板固定片世界座標目標與 NFB X 分離
+
+大片底板固定片的 X 是**箱身左右側板焊接基準**，不是 NFB 開關孔列的 X。W800/T2 的兩片耳朵焊接側板內側真實 X=-398／+398，固定孔世界 X=-335／+335，裝配孔距670；所以整片底板必須維持世界 X=0。NFB 孔心即使人工確認在 -130／+70，**只能在底板加工投影內改 X**，不能把整片底板搬成 X=-30 造成耳朵與固定孔脫離。
+
+`receiving_base_fixing_plate_z_targets.py` 以已存在的大片耳朵 source XY mating（`receiving_base_fixing_plate_mating.py`）與同一真實 `BasePlate` assembly Z、真實 T2 安裝面，產生兩片焊接固定片世界位置**需求／接觸目標**。CENTER 原始孔距 670×140：預設 NFB 所在列世界 Y250，兩片耳朵固定孔世界 Y180／320；NFB 高度改 330 則固定孔一起變 Y400／540。底板背面 Z 與固定片前接觸面 Z 必須相等（0 間隙），固定片來源 T3 往箱內方向延伸。
+
+**但目標座標不是已認證加工結果。** 原始大片耳朵 DXF 並無正式可核准 BEND，故新目標的 `source_bend_verified`、`formed_weld_contact_verified`、`side_plate_marking_export_approved`、`manufacturing_ready` 均保留 `False`。真實側板 3D 皮面交集與展開 UV 回投影尚未解出以前，**不可據此自行輸出 MARKING 線或解開 MFG2**。
+
 ## 五、資料與向下相容
 
 - 型號來源必須從 `基準檔/開孔/NFB/開關索引.csv` 或 V5 各品牌 `基準檔/開孔/NFB/數值規格/<品牌>/NFB數值規格.csv` **以被選中的 brand/model 查取深度**。不可從檔名尾碼或其他品牌推斷。
