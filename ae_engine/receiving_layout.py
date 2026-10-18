@@ -600,6 +600,9 @@ def project_receiving_bay_legacy_aliases(
         part_features = deepcopy(dict(result.get("part_features") or {}))
         for role in ("head", "tail"):
             part_features[role] = deepcopy(features[role])
+        # Every applied candidate retains its own physical door-hole owner.
+        # The projected Bay overrides the root workspace ONLY for keyed sheets.
+        part_features.update(setting_value(selected, bay_index, "inner_door_features"))
         result["part_features"] = part_features
         result["receiving_inner_door_layers"] = setting_value(selected, bay_index, "inner_door_layers")
         result["receiving_inner_door_models"] = setting_value(
