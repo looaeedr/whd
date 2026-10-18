@@ -2742,17 +2742,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 # without rerunning Check must not keep an obsolete proof.
                 if (v5_mode and original_editor is not None
                         and checked_csv_world["values"] is not None):
-                    try:
-                        now = {
-                            uid: float(var.get().strip())
-                            for uid, var in world_values.items()
-                        }
-                    except (ValueError, TypeError):
-                        now = None
-                    if now != checked_csv_world["values"]:
-                        from ae_engine.receiving_nfb_csv_editor_features import (
-                            invalidate_csv_editor_proof,
-                        )
+                    from ae_engine.receiving_nfb_csv_editor_features import (
+                        invalidate_csv_editor_proof,
+                        csv_checked_world_values_match,
+                    )
+                    if not csv_checked_world_values_match(
+                        checked_csv_world["values"], world_values,
+                    ):
                         invalidate_csv_editor_proof(original_editor, popup)
                 if popup.grab_current() is popup:
                     popup.grab_release()
