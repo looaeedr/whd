@@ -226,8 +226,11 @@ def preview_current_nfb_v5_ui_draft(
         bay = row["bays"][bay_index]
     except (TypeError, KeyError, IndexError) as exc:
         raise ValueError("NFB V5 指定的實體 Set/Bay 不存在") from exc
-    if row["switch_brand"] != state["set_brand"]:
-        raise ValueError("NFB V5 廠牌與目前實體 Set 不一致")
+    # The current multi-Bay layout may not persist a switch_brand field:
+    # its authoritative editable brand is the active NFB draft. When a Set
+    # explicitly stores its own brand, disagreement still fails closed.
+    if row.get("switch_brand", state["set_brand"]) != state["set_brand"]:
+        raise ValueError("NFB CSV 廠牌與目前實體 Set 不一致")
     if bay.get("nfb_config_submitted") is True:
         raise ValueError("NFB V5 已提交設定不可用試作預覽覆蓋")
     if not isinstance(world_x_by_unit, Mapping):

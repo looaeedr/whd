@@ -2169,11 +2169,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 for filename in files:
                     entry["available"].insert(tk.END, display_model_ref(filename))
 
+        poll_job = {"id": None}
+
         def poll_source():
             if not modal.winfo_exists():
                 return
             refresh_source()
-            modal.after(1800, poll_source)
+            poll_job["id"] = modal.after(1800, poll_source)
 
         def add_switch(index):
             selected = layer_rows[index]["available"].curselection()
@@ -2555,7 +2557,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # Nominal NFB draft/workflow summary is not part of the approved UI.
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
         refresh_source(force=True)
-        modal.after(1800, poll_source)
+        poll_job["id"] = modal.after(1800, poll_source)
         modal._receiving_inner_switch_state = {
             "layer_heights_mm": layer_height_vars,
             "direct_to_drawing": direct_to_drawing,
@@ -2606,9 +2608,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                                    for row in active):
                 warning.set("同一次實體開孔不可混合 V5 數值型號與舊 DXF 來源")
                 return
+            if v5_mode and original_editor is not None:
+                original_editor._receiving_csv_door_proof = None
             popup=tk.Toplevel(modal)
-            popup.title("NFB V5 內門／底板真實孔位試作｜不可製造" if v5_mode
-                        else "NFB 物理世界 X｜正式提交前驗證")
+            popup.title("NFB CSV 內門開口／底板孔位核對" if v5_mode
+                        else "舊來源 DXF 驗證")
             popup.geometry("540x440")
             from .receiving_scroll_view import make_scrollable_frame
             world_scroll, world_content, _world_view = make_scrollable_frame(
@@ -2624,9 +2628,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             ).pack(anchor="w",pady=(0,7))
             ttk.Label(
                 body,text=(
-                    "V5 讀廠牌數值 CSV，不要求舊 DXF。核對真實內門主孔、"
-                    "原底板 EAR／螺絲孔與層高；不同 Y 需另有實體底板。"
-                    "試作不會提交製造。"
+                    "從廠牌 NFB數值規格.csv 產生內門主孔，"
+                    "以真實板件與世界 X／層高驗算。"
+                    "確認僅帶入原開孔編輯器；底板另行檢驗。" 
                     if v5_mode else
                     "舊 DXF 來源需驗證 SHA、內門板、1100 Y 與孔位碰撞，"
                     "通過後才能準備提交。"
@@ -2732,6 +2736,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     modal.lift()
                     modal.focus_set()
 
+            def discard_world_dialog():
+                if v5_mode and original_editor is not None:
+                    original_editor._receiving_csv_door_proof = None
+                close_world_dialog()
+
             def prepare():
                 try:
                     coords={}
@@ -2748,19 +2757,52 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             paint_v5_real_inner_door_trial,
                             paint_v5_real_base_trial,
                         )
+                        # Read the physical inner-door sheet from the ORIGINAL
+                        # editor transaction, never from legacy DXF identity.
+                        physical = (current_inner_editor_snapshot() if quantity_single
+                                    else nfb_physical_bay_snapshot(
+                                        selected.set_index, selected.bay_index,
+                                    ))
+                        if original_editor is not None and getattr(
+                                original_editor, "_receiving_settings_mode", None
+                        ) in ("single", "candidate"):
+                            from copy import deepcopy as _copy_csv_snapshot
+                            physical = _copy_csv_snapshot(physical)
+                            existing = dict(physical.get("part_features") or {})
+                            existing[current_inner_editor_part_key()] = list(
+                                original_editor._receiving_pending_features()
+                            )
+                            physical["part_features"] = existing
                         if quantity_single:
                             from ae_engine.receiving_nfb_quantity_editor import (
                                 preview_quantity_nfb_v5_on_actual_inner_door,
                             )
-                            from ae_engine.receiving_nfb_v5_live_base_preview import (
-                                preview_v5_on_existing_receiving_base,
-                            )
-                            physical = current_inner_editor_snapshot()
                             trial, unit_holes, inner_door_id = (
                                 preview_quantity_nfb_v5_on_actual_inner_door(
                                     edit_session.current, snapshot=physical,
                                     world_x_by_unit=coords,
                                 )
+                            )
+                        else:
+                            from ae_engine.receiving_nfb_ui1b_runtime import (
+                                preview_current_nfb_v5_ui_draft,
+                            )
+                            trial, unit_holes, inner_door_id = preview_current_nfb_v5_ui_draft(
+                                edit_session.current, layout=adapter.layout,
+                                set_index=selected.set_index,
+                                bay_index=selected.bay_index,
+                                version_id=proof_version_id,
+                                projected_snapshot=physical,
+                                world_x_by_unit=coords, _with_holes=True,
+                            )
+                        # CSV data drives this INNER-DOOR edit. Base-plate screws
+                        # belong to another part; absence of a configured base
+                        # must not prevent staging a geometrically valid door.
+                        base_trial = None
+                        base_warning = ""
+                        try:
+                            from ae_engine.receiving_nfb_v5_live_base_preview import (
+                                preview_v5_on_existing_receiving_base,
                             )
                             base_spec, _ = self.app._part_spec_query_callback(
                                 "base_plate", physical,
@@ -2769,30 +2811,25 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                                 physical, inner_door_id, door=trial,
                                 configured_holes=unit_holes, base_spec=base_spec,
                             )
-                        else:
-                            from ae_engine.receiving_nfb_ui1b_runtime import (
-                                preview_current_nfb_v5_door_base_ui_draft,
+                        except (ValueError, TypeError, KeyError, IndexError) as exc:
+                            base_warning = "；底板仍需獨立驗證：" + str(exc)
+                        paint_v5_real_inner_door_trial(v5_canvas, trial)
+                        if base_trial is not None:
+                            paint_v5_real_base_trial(v5_base_canvas, base_trial)
+                        popup._receiving_v5_trial = trial
+                        popup._receiving_v5_base_trial = base_trial
+                        if original_editor is not None and getattr(
+                                original_editor, "_receiving_settings_mode", None
+                        ) in ("single", "candidate"):
+                            from ae_engine.receiving_nfb_csv_editor_features import (
+                                stage_csv_openings,
                             )
-                            physical=nfb_physical_bay_snapshot(
-                                selected.set_index,selected.bay_index,
+                            original_editor._receiving_csv_door_proof = stage_csv_openings(
+                                trial, snapshot=physical, draft=edit_session.current,
+                                current_features=original_editor._receiving_pending_features(),
                             )
-                            base_spec,_=self.app._part_spec_query_callback(
-                                "base_plate",physical,
-                            )
-                            trial,base_trial=preview_current_nfb_v5_door_base_ui_draft(
-                                edit_session.current,layout=adapter.layout,
-                                set_index=selected.set_index,
-                                bay_index=selected.bay_index,
-                                version_id=proof_version_id,
-                                projected_snapshot=physical,
-                                world_x_by_unit=coords,base_spec=base_spec,
-                            )
-                        paint_v5_real_inner_door_trial(v5_canvas,trial)
-                        paint_v5_real_base_trial(v5_base_canvas,base_trial)
-                        popup._receiving_v5_trial=trial
-                        popup._receiving_v5_base_trial=base_trial
-                        outcome.set("內門主孔＋原底板 EAR／螺絲孔幾何檢查通過；"
-                                    "可切頁核對。仍不可製造或提交。")
+                        outcome.set("CSV 內門主孔已核對；按受電箱「確認」帶回主頁籤"
+                                    + base_warning)
                         return
                     if quantity_single:
                         from ae_engine.receiving_nfb_quantity_editor import (
@@ -2834,25 +2871,44 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     outcome.set("尚未通過驗證："+str(exc))
             actions=ttk.Frame(body)
             actions.pack(anchor="e",pady=(9,0))
-            ttk.Button(actions,text="取消",command=close_world_dialog).pack(
+            ttk.Button(actions,text="取消",command=discard_world_dialog).pack(
                 side="left",padx=5,
             )
+            if v5_mode:
+                ttk.Button(actions, text="返回受電箱頁籤",
+                           command=close_world_dialog).pack(side="left", padx=5)
             ttk.Button(actions,text=(
-                "檢查內門＋底板（V5 試作）" if v5_mode else "驗證實體來源"
+                "檢查 CSV 開口" if v5_mode else "驗證舊 DXF 來源"
             ),command=prepare).pack(side="left")
-            popup.protocol("WM_DELETE_WINDOW",close_world_dialog)
+            popup.protocol("WM_DELETE_WINDOW",discard_world_dialog)
             popup.lift()
 
         def confirm():
             try:
+                from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
                 # #1491 is transient UI-1A only. Distinct NFB physical layer
                 # count cannot be flattened into legacy inner-door layers.
                 if nfb_physical_layers.get() != layers.get():
                     raise ValueError("NFB 物理層與內門版本層數不同，不能覆寫成舊候選")
-                # Existing candidate serializer also lacks physical empty
-                # slots and brand overrides. Fail rather than lose user data.
+                # Current CSV CUTTING is saved as typed physical Hole Editor
+                # Features; no original DXF or lossy legacy brand/rotation
+                # serializer is required for this new settings entry.
+                source_models = [
+                    slot["filename"]
+                    for layer in edit_session.current["layers"][:nfb_physical_layers.get()]
+                    for slot in layer["slots"]
+                    if slot["filename"] is not None
+                ]
+                current_numeric_editor = (
+                    embed_parent is not None
+                    and getattr(modal.winfo_toplevel(),
+                                "_receiving_settings_mode", None)
+                    in ("single", "candidate")
+                    and bool(source_models)
+                    and all(is_numeric_model_ref(ref) for ref in source_models)
+                )
                 active = draft_state["draft"]["layers"][:nfb_physical_layers.get()]
-                for row in active:
+                for row in (() if current_numeric_editor else active):
                     if row["brand"]["mode"] == OVERRIDE:
                         raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
                     if row["rotation_deg"]!=0:
@@ -2866,13 +2922,34 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
                         if slot["source_brand"] != draft_state["draft"]["set_brand"]:
                             raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
-                selected_brand = self.receiving_switch_adapter(namespace).brand
-                latest_files = (set(numeric_model_refs(selected_brand))
-                                | set(model_filenames(selected_brand)))
                 relevant = chosen[:layers.get()]
-                if any(filename not in latest_files
-                       for layer_items in relevant for filename in layer_items):
-                    raise ValueError("開關型號已不在廠牌 CSV，請重新選擇")
+                if current_numeric_editor:
+                    from ae_engine.receiving_nfb_model_identity import parse_numeric_model_ref
+                    from ae_engine.receiving_nfb_numeric_catalog import model_spec
+                    expected_models = []
+                    for li, row in enumerate(active):
+                        for si, slot in enumerate(row["slots"]):
+                            ref = slot["filename"]
+                            if ref is None:
+                                continue
+                            effective_brand = effective_nfb_slot_brand(
+                                edit_session.current, li, si,
+                            )
+                            parsed = parse_numeric_model_ref(ref)
+                            if (parsed is None or parsed[0] != effective_brand
+                                    or model_spec(*parsed) is None):
+                                raise ValueError("NFB 實際廠牌與 CSV 型號不符，請重新選擇")
+                            expected_models.append(ref)
+                    selected_models = [model for group in relevant for model in group]
+                    if sorted(selected_models) != sorted(expected_models):
+                        raise ValueError("NFB CSV 選型與開孔設定不同步，請重新檢查")
+                else:
+                    selected_brand = self.receiving_switch_adapter(namespace).brand
+                    latest_files = (set(numeric_model_refs(selected_brand))
+                                    | set(model_filenames(selected_brand)))
+                    if any(filename not in latest_files
+                           for layer_items in relevant for filename in layer_items):
+                        raise ValueError("開關型號已不在廠牌 CSV，請重新選擇")
                 config = {
                     "layers": layers.get(),
                     "layer_heights_mm": read_layer_heights(),
@@ -2898,7 +2975,27 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         model for group in config["models"][:config["layers"]]
                         for model in switch_filenames_in_layer(group)
                     )
-                    if chosen_models:
+                    if chosen_models and current_numeric_editor:
+                        from ae_engine.receiving_nfb_csv_editor_features import (
+                            csv_openings_to_editor_features,
+                        )
+                        native_editor = modal.winfo_toplevel()
+                        physical = deepcopy(current_inner_editor_snapshot())
+                        current_features = native_editor._receiving_pending_features()
+                        current_part = current_inner_editor_part_key()
+                        physical["part_features"] = {
+                            **dict(physical.get("part_features") or {}),
+                            current_part: list(current_features),
+                        }
+                        inserted = csv_openings_to_editor_features(
+                            getattr(native_editor, "_receiving_csv_door_proof", None),
+                            snapshot=physical, draft=edit_session.current,
+                            current_features=current_features,
+                        )
+                        if len(inserted) != len(chosen_models):
+                            raise ValueError("NFB CSV 開孔數與型號數量不同")
+                        native_editor._receiving_accept_verified_openings(inserted)
+                    elif chosen_models:
                         native_editor = modal.winfo_toplevel()
                         quantity_single = (
                             getattr(native_editor, "_receiving_settings_mode", None)
@@ -2994,6 +3091,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
             side="left", padx=5,
         )
+        # The CSV world-X dialog must be reachable from the actual settings
+        # tab, not only defined as a dead nested callback.
+        ttk.Button(buttons, text="CSV 開口位置",
+                   command=open_nfb_world_x_dialog).pack(side="left", padx=5)
         ttk.Button(buttons, text="確認", command=confirm).pack(side="left")
         # Restore the parent multi-settings grab after this editor closes.
         parent_modal = getattr(
@@ -3017,6 +3118,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         parent=modal.winfo_toplevel(),
                     )):
                 return
+            # Cancel the Tk timer before destroying its Tcl callback command.
+            if poll_job["id"] is not None:
+                try:
+                    modal.after_cancel(poll_job["id"])
+                except tk.TclError:
+                    pass
+                poll_job["id"] = None
             if modal.grab_current() is modal:
                 modal.grab_release()
             modal.destroy()
@@ -3710,6 +3818,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         def mount_inner_editor():
             if not editor_host.winfo_exists() or editor_host.winfo_children():
                 return
+            # A canceled tab may not leave behind reusable geometry proof.
+            editor._receiving_csv_door_proof = None
             inner_edit(
                 INNER_ROLE, state["version"], saved_inner_version,
                 embed_parent=editor_host, after_closed=canceled_inner_tab,
