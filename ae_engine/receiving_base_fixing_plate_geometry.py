@@ -8,7 +8,7 @@
 """Original-user 固定片.dxf (2026-10-18) source-backed Receiving fixing blanks.
 
 The REVISED 固定片.dxf contains TWO closed source profiles: long 256x105 / four slots
-and small 90x90 / two slots (source T2, top R5, slot R5.5). Coordinates below are
+and small 90x90 / two slots (source T2, square outer corners, slot R5.5). Coordinates below are
 local 0,0 normalization of the user's actual LINE/ARC entities, not a new
 cabinet placement. Geometry is shared by 2D / 3D flat-material preview and
 separate source-flat DXF. The source explicitly contains a 23-mm-from-bottom BEND LINE on BOTH blanks
@@ -46,12 +46,12 @@ class FixingPlateSourcePattern:
 
 
 LARGE_PATTERN = FixingPlateSourcePattern(
-    LARGE_SOURCE, 256.0, 105.0, 2.0, 5.0, 25.0, 11.0,
+    LARGE_SOURCE, 256.0, 105.0, 2.0, 0.0, 25.0, 11.0,
     ((23.0, 84.0), (58.0, 84.0), (198.0, 84.0), (233.0, 84.0)),
     source_fold_reference=23.0,
 )
 SMALL_PATTERN = FixingPlateSourcePattern(
-    SMALL_SOURCE, 90.0, 90.0, 2.0, 5.0, 30.0, 11.0,
+    SMALL_SOURCE, 90.0, 90.0, 2.0, 0.0, 30.0, 11.0,
     ((25.0, 69.0), (65.0, 69.0)),
     source_fold_reference=23.0,
 )
@@ -83,6 +83,10 @@ def _outline(pattern):
     arc segmentation and coordinate precision are unchanged.
     """
     w, h, r = pattern.width, pattern.height, pattern.corner_radius
+    if r == 0.0:
+        # Uploaded revised source: outer CUTTING LWPOLYLINE handles 98
+        # (large) / 99 (small), 4 straight vertices, zero bulges.
+        return ((0.0, 0.0), (w, 0.0), (w, h), (0.0, h))
     return (
         ((0.0, 0.0), (w, 0.0), (w, h-r))
         + _arc(w-r, h-r, r, 0, 90)
