@@ -2681,8 +2681,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         from ae_engine.receiving_nfb_csv_editor_features import (
                             editor_nfb_features_from_csv,
                         )
+                        parent_editor = modal.winfo_toplevel()
+                        pending = getattr(parent_editor, "_receiving_pending_features", None)
                         openings = editor_nfb_features_from_csv(
                             current_inner_editor_snapshot(), config,
+                            current_features=(pending() if callable(pending) else ()),
                         )
                     stage_in_editor(config, openings)
                     after_saved(version_id)
