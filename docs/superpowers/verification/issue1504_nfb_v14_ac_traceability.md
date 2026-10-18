@@ -15,6 +15,8 @@ whd_schema: WHD_DOC_META_V1
 
 基準：NFB-AC-01～56 和 SWT-AC-01～32 全數 88 項。每個 AC 包含原文、期別、owner 工單、候選 test path、以及尚缺驗收。真相來源仍是兩份已核准 v1.4；本矩陣不是第二規格。
 
+**2026-10-18 最新施工口徑（#1502／#1503，已合入 localX 的 PR #1909）：** 受電箱每個 NFB 層各有一片真實底板；底板與左右底板固定片的 X 永遠以**箱體中心 X=0** 為基準，**不可因 NFB 向左／向右移動而移動**。W800／T2 的折後底板對耳朵固定孔 X=−335／+335（孔距 **670 mm**），側板內皮 X=−398／+398；原始展開數據 732 mm 不得當成折後裝配孔距。每顆 NFB 的原始 DXF 已驗證螺絲孔可各自按 world X 移動，固定孔／固定片仍不動。各層底板 Y 隨各層開孔中心，H1600 且由箱頂 330／830 時世界 Y=470／−30；外門的下層分區不產生本項底板。**固定片折彎、真實焊接 Z 接觸、側板 MARKING、正式 MFG-2 DXF 與 Windows UAT 仍待驗收**，不能憑 #1909 CI 綠燈把相關 AC 改為已通過。原始 v1.4 AC 文字及 SHA 保持不變，本段只記錄現行規則覆蓋舊解讀。
+
 本期未完成：[#1500](https://github.com/looaeedr/whd/issues/1500) 真正 Windows GUI／原DXF提交複製 Undo 存讀操作；[#1502](https://github.com/looaeedr/whd/issues/1502) NFB→耳朵→實體底板及 CHECK/Q 正式裝配製造；[#1503](https://github.com/looaeedr/whd/issues/1503) PAD/EAR 暫緩且不偽造核准。#1504 和主單 #1490 不得提前結案。
 
 狀態：`EVIDENCE_CANDIDATE_ONLY`=檔案存在但 assertion 未逐條驗證；`BLOCKED_1500_REAL_GUI`=缺實機 GUI；`BLOCKED_1502_PHYSICAL_MFG`=缺實際裝配與製造；`DEFERRED_PRODUCT_EVIDENCE`=產品設計／實測證據延期。所有狀態都不是 PASS。

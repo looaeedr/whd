@@ -2650,7 +2650,7 @@
   ],
   "latest_product_scope": {
     "authority_issue": 1502,
-    "rule": "Actual submitted NFB inner-door hole center is the sole NFB location source; left/right ears and real base plate consume it. A center illustration folded sample is not a separate middle plate. Never use sample DXF origin to set machine world coordinates.",
+    "rule": "2026-10-18 #1502/#1503 supersession, merged PR #1909: Every Receiving Base Plate and its welded fixing plates stay centered on cabinet X=0, regardless of each NFB opening/screw X. At W800/T2, folded Base Plate-to-EAR mounting hole centers remain X=-335/+335 (670 mm); side-sheet inner skins X=-398/+398. ONLY the source-verified NFB screw holes move by each NFB's world X. Each physical NFB tier has its own Base Plate, whose Y follows that tier's opening center (H1600, 330/830 from top => Y=470/-30); the separate exterior-door lower compartment has no NFB Base Plate. Do not infer plate X from the NFB row centroid, raw unfolded 732-mm hole distance, or a sample DXF origin. A sample's center folded plate is not a separate middle plate. Genuine EAR BEND/Z contact, side-sheet MARKING, complete MFG-2 DXF and Windows UAT remain unapproved.",
     "cannot_be_inferred": [
       "EAR welded Z/correction",
       "PAD manufacturing geometry",
