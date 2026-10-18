@@ -77,6 +77,8 @@ PYTEST_PATHS = (
     "tests/test_issue1503_ear_side_check_only_dxf.py",
     # #1503 real operator GUI CHECK-only entry is separate from manufacturing.
     "tests/test_issue1503_ear_side_check_gui_entry.py",
+    # #1503: real GUI invocation and side CHECK UV parity after project reload.
+    "tests/test_issue1503_ear_side_check_gui_e2e_save_reload.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
