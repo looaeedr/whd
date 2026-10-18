@@ -636,7 +636,12 @@ def validate_nfb_base_part_cutting(
         nfb_center = _xy(metadata["receiving_base_nfb_row_center_world_xy_mm"], "NFB")
     except (KeyError, ValueError) as exc:
         raise ValueError("NFB_BASE_PART_MATING_XY_UNVERIFIED") from exc
-    if max(abs(a-b) for a, b in zip(ear_center, nfb_center)) > _TOL:
+    # The base/ear X MUST stay at the cabinet centre. NFB source-group X
+    # is a screw-hole machining offset, not the physical plate centre, so
+    # it MAY differ. Only the owning tier's Y must agree for the same plate.
+    # Remaining native screw outlines are independently checked below.
+    if (abs(ear_center[0]) > _TOL
+            or abs(ear_center[1]-nfb_center[1]) > _TOL):
         raise ValueError("NFB_BASE_PART_MATING_XY_UNVERIFIED")
 
     primitives = render_data.scene.primitives
