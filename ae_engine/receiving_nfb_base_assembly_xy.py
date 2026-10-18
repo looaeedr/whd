@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
-"""#1502: source-selected physical Base Plate group XY from current NFB Bay.
+"""#1502: legacy NFB HOLE-group X/Y preview from current committed Bay.
 
-The 3D base and source-verified NFB machining must share the SAME upper-cell
-physical installation center. The user's already-selected layer heights feed
-the existing manufacturer Y projection; a box-height/2 or bottom-plate sketch
-position must never become a second installation coordinate.
+WARNING: the returned X/Y are NFB OPENING coordinates on the inner door,
+NOT the world position of an entire Receiving Base Plate. The Base Plate is
+secured to the left/right side-sheet welded fixing plates; its assembly XY
+must be derived from the ear contact and its 670-mm support holes, never from
+an operator-edited hole height or a mean NFB opening X.
+
+Kept for hole projection compatibility until callers migrate to a per-layer
+NFB Feature owner. DO NOT reconnect this helper to resolve_base_plate_placement.
+One NFB layer needs one independently installed Base Plate / ear pair.
 """
 from __future__ import annotations
 
@@ -22,12 +27,12 @@ class ReceivingNfbBaseAssemblyXY:
 
 
 def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
-    """Get one committed NFB group's actual Y, optional independently verified X.
+    """Return NFB *hole row* Y and optional confirmed hole X (not plate XY).
 
-    For a mixed-depth pair the caller may place the common Base Plate in Y
-    before all manual X values have been verified, but MUST NOT claim verified
-    X from a missing, copied or draft X. Two different physical rows cannot
-    share one Base Plate group. Return None if no committed depth pair.
+    Kept under its existing public function name for compatibility; consumers
+    may project switch holes/bolts but may NEVER move the whole welded-ear
+    Base Plate to this Y. A per-layer Base Plate is a separate physical part.
+    Do not mix two distinct NFB rows in this single-row preview result.
     """
     from .receiving_nfb_depth_surface_policy import (
         committed_receiving_nfb_depth_pair_mm,

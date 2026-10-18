@@ -50,9 +50,10 @@ def test_assembly_places_actual_deep_and_shallow_nfb_front_skins_to_inner_door_c
     )
     assert placement.relationship=="RECEIVING_NFB_SKIN_DEPTH"
     assert placement.anchor=="inner_door:source_nfb_physical_skin"
-    # This is the SAME manufactured NFB upper-row centre, not the former
-    # disconnected whole-cabinet plate Y=0.
-    assert placement.world_offset[:2] == pytest.approx((0.0, 250.0))
+    # The NFB opening centre (Y250) belongs to the HOLE, not to the
+    # welded-ear/Base Plate assembly XY. Keep old preview XY until the
+    # left/right fixing-plate physical mate is independently certified.
+    assert placement.world_offset[:2] == pytest.approx((0.0, 0.0))
     assert placement.world_offset[2]+local_deep == pytest.approx(world.base_nfb_face_world_z_mm)
     assert placement.world_offset[2]+local_shallow == pytest.approx(world.shallow_nfb_face_world_z_mm)
     assert (world.inner_door_inner_skin_world_z_mm -
@@ -107,13 +108,21 @@ def test_committed_pair_without_unique_inner_door_never_falls_back_to_wrong_rear
         resolve_assembly_placement(snap,"base_plate")
 
 
-def test_operator_layer_height_and_confirmed_X_move_actual_plate_xy_without_wrong_z():
+def test_operator_hole_y_and_x_edit_never_move_entire_welded_ear_base_plate():
     snap=_assembled()
     original=resolve_assembly_placement(snap,"base_plate")
     snap["receiving_inner_door_layer_heights_mm"]=[330,830]
     raised=resolve_assembly_placement(snap,"base_plate")
-    assert original.world_offset[1]==pytest.approx(250)
-    assert raised.world_offset[1]==pytest.approx(470)
+    from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    hole_before = project_nfb_inner_door_nominal_y(
+        _assembled(), "upper", layer_count=1, slot_index=0,
+    )
+    hole_after = project_nfb_inner_door_nominal_y(
+        snap, "upper", layer_count=1, slot_index=0,
+    )
+    assert hole_before.box_world_y_mm == pytest.approx(250)
+    assert hole_after.box_world_y_mm == pytest.approx(470)
+    assert original.world_offset[:2] == raised.world_offset[:2] == pytest.approx((0., 0.))
     assert raised.world_offset[2]==pytest.approx(original.world_offset[2])
 
     for hole,x in zip(snap["nfb_config"]["holes"],(-130.,70.)):
@@ -121,13 +130,18 @@ def test_operator_layer_height_and_confirmed_X_move_actual_plate_xy_without_wron
                     datum_revision="SOURCE-X-REV1",datum_snapshot={"w":800,"t":2})
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     moved=resolve_assembly_placement(snap,"base_plate")
-    assert moved.world_offset[:2]==pytest.approx((-30.,470.))
+    # Even CONFIRMED NFB opening X must move the screw-hole projection,
+    # never the entire 670mm ear-mounted Base Plate / assembly origin.
+    assert moved.world_offset[:2]==pytest.approx((0.,0.))
     assert moved.world_offset[2]==pytest.approx(original.world_offset[2])
 
 
-def test_two_source_nfb_rows_fail_real_base_xyz_before_false_assembly():
+def test_second_nfb_layer_cannot_create_false_base_xy_by_reusing_opening_center():
     snap=_assembled()
     snap["nfb_config"]["holes"][1].update(layer_count=2,slot_index=1)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
-    with pytest.raises(ValueError,match="DISTINCT_ROWS"):
-        resolve_assembly_placement(snap,"base_plate")
+    # Per-layer physical part and ear identity are not modeled by this
+    # legacy single part key yet. Do NOT reject the valid 2-layer user
+    # configuration merely because the NFB hole rows have different Y.
+    p = resolve_assembly_placement(snap,"base_plate")
+    assert p.world_offset[:2] == pytest.approx((0.,0.))
