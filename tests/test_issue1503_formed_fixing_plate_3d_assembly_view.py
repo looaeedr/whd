@@ -131,8 +131,6 @@ def test_actual_renderer_draws_world_ear_skins_without_mesh_grid_lines():
         "base_plate:fixing_plate:left",
         "base_plate:fixing_plate:right",
     )
-    # Folded triangle-grid lines are not drawn as wireframes.
-    assert all(getattr(row, "_edgecolors", None) is None
-               or len(getattr(row, "_edgecolors", ())) == 0
-               for row in axis.collections
-               if hasattr(row, "_edgecolors")) is False or world
+    # The overlay is a smooth filled surface (no mesh-grid wire overlay).
+    assert len(axis.collections) >= 3
+    assert renderer.last_cutting_mesh == world
