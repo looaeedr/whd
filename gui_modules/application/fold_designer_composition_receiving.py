@@ -2662,10 +2662,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 }
                 stage_in_editor = (
                     getattr(modal.winfo_toplevel(), "_receiving_stage_config", None)
-                    if (embed_parent is not None
-                        and getattr(modal.winfo_toplevel(),
-                                    "_receiving_settings_mode", None)
-                        in ("single", "candidate")) else None
+                    if embed_parent is not None else None
                 )
                 if callable(stage_in_editor):
                     # Generate editable holes from the selected CSV dimensions
