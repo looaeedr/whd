@@ -445,14 +445,13 @@ def build_existing_receiving_base_with_verified_nfb(
     profile,
     lower_reference_handle: str,
 ) -> NfbComposedActualBase:
-    """Assemble the existing physical Base Plate on verified NFB/ear center.
+    """Assemble cabinet-X-centered Base Plate, project verified NFB screws.
 
-    The 1100-mm upper Door CELL owns the NFB Y datum, NOT the height of a
-    base plate. A BasePlatePartSpec already describes the actual physical
-    plate's own blank and fold pattern (e.g. an approximately 300-mm-tall
-    sample). Its mounting ear-hole GROUP center mates to the NFB row's
-    source-verified physical installation center. Never create a lower plate
-    or use a sketch's on-paper X/Y to position the base.
+    The upper Door NFB height owns the Base Plate Y placement, NOT plate
+    finished height. BasePlatePartSpec retains the original physical blank
+    and folded 670-mm fixing pattern, permanently cabinet X-centered. Per-
+    NFB horizontal X shifts ONLY native screw CUTTING coordinates into
+    that fixed plate's work-face UV. Outer Door lower compartment has no plate.
     """
     from .contracts import BasePlatePartSpec
     from .manufacturing_api import build_part_render_data
