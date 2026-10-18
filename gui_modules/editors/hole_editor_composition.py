@@ -709,6 +709,7 @@ def _build_navigation_and_lifecycle(s):
             s.refresh_created()
             s.sync_all()
         s.editor._receiving_accept_verified_openings = accept_verified_openings
+        s.editor._receiving_pending_features = lambda: tuple(s.live_context.feature_list)
 
     s.confirm_reference_edit = modal_lifecycle.confirm_reference_edit
     s.confirm_all = modal_lifecycle.confirm_all
