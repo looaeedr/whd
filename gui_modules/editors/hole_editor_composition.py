@@ -835,7 +835,9 @@ def _bind_editor_events(s):
                                 return_button.configure(state="normal")
                     s.d.messagebox.showinfo(
                         "CADCraft 指令繪圖試作",
-                        "已由 WHD 座標指令產生 CADCraft 新圖，幾何校驗通過。\n"
+                        ("已產生 WHD 毫米空白交換圖；請用 CADCraft 繪製第一個孔。\n"
+                         if not instructions else
+                         "已由 WHD 座標指令產生 CADCraft 新圖，幾何校驗通過。\n")
                         "PNG：" + str(outcome.preview_png)
                         + "\nDXF：" + str(outcome.output_dxf)
                         + "\n這是獨立試作，不會修改 WHD 開孔或製造圖。"
