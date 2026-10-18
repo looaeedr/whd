@@ -8,12 +8,14 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from ae_engine.dxf_serialization import save_scene_dxf
+import ezdxf
 from ae_engine.sheetmetal_drawing import DrawingScene
 from ae_engine.sheetmetal_features import (
     CircleFeature, FeatureAnchor, RectFeature, Vec2, feature_surface_from_rect,
 )
-from gui_modules.editors.cadcraft_preview_bridge import build_hole_editor_cadcraft_scene
+from gui_modules.editors.cadcraft_preview_bridge import (
+    build_hole_editor_cadcraft_scene, save_cadcraft_preview_dxf,
+)
 
 
 def emit(path: Path) -> None:
@@ -36,13 +38,18 @@ def emit(path: Path) -> None:
     )
     assert tuple(baseline.primitives) == expected
     path.parent.mkdir(parents=True, exist_ok=True)
-    save_scene_dxf(str(path), scene)
+    save_cadcraft_preview_dxf(path, scene)
 
 
 def verify(source: Path, resaved: Path) -> None:
     # Reuse the repository's preexisting *independent* canonical entity witness.
     # This includes geometry, process layer, color, closed contours and circles.
     from tools.nfb_v5_cadcraft_crosscheck import _entities
+    # DXF units are part of the CAD interoperability contract, not merely
+    # a numeric-coordinates comparison (ezdxf defaults to metres).
+    if (ezdxf.readfile(source).units != ezdxf.units.MM
+            or ezdxf.readfile(resaved).units != ezdxf.units.MM):
+        raise ValueError("CADCRAFT_HOLE_PREVIEW_MILLIMETRE_UNITS_LOST")
     original = _entities(source)
     after = _entities(resaved)
     if original != after:
