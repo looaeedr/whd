@@ -2740,35 +2740,53 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         if not value:
                             raise ValueError("每顆 NFB 的世界 X 都須明確輸入，0 亦可")
                         coords[unit_id]=float(value)
-                    if quantity_single and v5_mode:
-                        raise ValueError(
-                            "單只 V5 數值孔目前僅供預覽，尚未取得正式 CUTTING 來源驗證"
-                        )
                     if not quantity_single:
                         adapter=candidate_adapter()
                         selected=adapter.selection
                     if v5_mode:
-                        from ae_engine.receiving_nfb_ui1b_runtime import (
-                            preview_current_nfb_v5_door_base_ui_draft,
-                        )
                         from .receiving_nfb_v5_scene_preview import (
                             paint_v5_real_inner_door_trial,
                             paint_v5_real_base_trial,
                         )
-                        physical=nfb_physical_bay_snapshot(
-                            selected.set_index,selected.bay_index,
-                        )
-                        base_spec,_=self.app._part_spec_query_callback(
-                            "base_plate",physical,
-                        )
-                        trial,base_trial=preview_current_nfb_v5_door_base_ui_draft(
-                            edit_session.current,layout=adapter.layout,
-                            set_index=selected.set_index,
-                            bay_index=selected.bay_index,
-                            version_id=proof_version_id,
-                            projected_snapshot=physical,
-                            world_x_by_unit=coords,base_spec=base_spec,
-                        )
+                        if quantity_single:
+                            from ae_engine.receiving_nfb_quantity_editor import (
+                                preview_quantity_nfb_v5_on_actual_inner_door,
+                            )
+                            from ae_engine.receiving_nfb_v5_live_base_preview import (
+                                preview_v5_on_existing_receiving_base,
+                            )
+                            physical = current_inner_editor_snapshot()
+                            trial, unit_holes, inner_door_id = (
+                                preview_quantity_nfb_v5_on_actual_inner_door(
+                                    edit_session.current, snapshot=physical,
+                                    world_x_by_unit=coords,
+                                )
+                            )
+                            base_spec, _ = self.app._part_spec_query_callback(
+                                "base_plate", physical,
+                            )
+                            base_trial = preview_v5_on_existing_receiving_base(
+                                physical, inner_door_id, door=trial,
+                                configured_holes=unit_holes, base_spec=base_spec,
+                            )
+                        else:
+                            from ae_engine.receiving_nfb_ui1b_runtime import (
+                                preview_current_nfb_v5_door_base_ui_draft,
+                            )
+                            physical=nfb_physical_bay_snapshot(
+                                selected.set_index,selected.bay_index,
+                            )
+                            base_spec,_=self.app._part_spec_query_callback(
+                                "base_plate",physical,
+                            )
+                            trial,base_trial=preview_current_nfb_v5_door_base_ui_draft(
+                                edit_session.current,layout=adapter.layout,
+                                set_index=selected.set_index,
+                                bay_index=selected.bay_index,
+                                version_id=proof_version_id,
+                                projected_snapshot=physical,
+                                world_x_by_unit=coords,base_spec=base_spec,
+                            )
                         paint_v5_real_inner_door_trial(v5_canvas,trial)
                         paint_v5_real_base_trial(v5_base_canvas,base_trial)
                         popup._receiving_v5_trial=trial
