@@ -3,7 +3,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from ae_engine.receiving_nfb_editor_features import verified_nfb_openings_to_editor_features
+from ae_engine.receiving_nfb_editor_features import (
+    verified_nfb_openings_to_editor_features, assert_editor_nfb_proof_scope,
+)
 from ae_engine.receiving_nfb_ui1b_bridge import NfbVerifiedDraftSubmission
 from ae_engine.sheetmetal_drawing import DrawingScene
 from ae_engine.sheetmetal_feature_core import FeatureAnchor, ProfileFeature
@@ -88,3 +90,23 @@ def test_unverified_or_stale_nfb_never_enters_native_editor(monkeypatch, case):
             bundle, current_features=(["unsaved-change"]
                                       if case == "editor_drift" else []),
         )
+
+
+@pytest.mark.parametrize("settings_mode,active_mode,blocked", [
+    ("single", "quantity", True),
+    ("single", "set_bay", False),
+    ("candidate", "set_bay", False),
+    (None, "quantity", False),
+])
+def test_single_quantity_must_not_reuse_multi_bay_verified_nfb_scope(
+    settings_mode, active_mode, blocked,
+):
+    if blocked:
+        with pytest.raises(ValueError, match="不可沿用多連 Bay"):
+            assert_editor_nfb_proof_scope(
+                settings_mode=settings_mode, active_mode=active_mode,
+            )
+    else:
+        assert_editor_nfb_proof_scope(
+            settings_mode=settings_mode, active_mode=active_mode,
+        ) is None
