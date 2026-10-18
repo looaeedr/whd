@@ -65,3 +65,31 @@ def test_two_tier_source_children_visible_with_real_layer_part_keys():
             "base_plate:nfb_layer:0","base_plate:nfb_layer:1",
         ))
     assert len(ears)==4
+
+
+
+def test_navigation_tier_ears_nested_under_own_plate_not_the_other():
+    from phase6_part_navigation import project_hierarchy, operator_part_label
+    keys=(
+        "base_plate","base_plate:nfb_layer:0",
+        "base_plate:fixing_plate:nfb_layer:0:left",
+        "base_plate:fixing_plate:nfb_layer:0:right",
+        "base_plate:nfb_layer:1",
+        "base_plate:fixing_plate:nfb_layer:1:left",
+        "base_plate:fixing_plate:nfb_layer:1:right",
+    )
+    rows=project_hierarchy(keys)
+    direct={
+        row.part_key:(row.parent_key,row.depth)
+        for row in rows
+    }
+    assert direct["base_plate:fixing_plate:nfb_layer:0:left"]==(
+        "base_plate:nfb_layer:0",1
+    )
+    assert direct["base_plate:fixing_plate:nfb_layer:1:right"]==(
+        "base_plate:nfb_layer:1",1
+    )
+    assert operator_part_label("base_plate:nfb_layer:0")=="底板（NFB 第1層）"
+    assert operator_part_label(
+        "base_plate:fixing_plate:nfb_layer:1:right"
+    )=="底板固定片（第2層右）"
