@@ -13,7 +13,8 @@ import shutil
 import subprocess
 import tempfile
 
-from ae_engine.dxf_serialization import save_scene_dxf
+import ezdxf
+from ae_engine.dxf_serialization import add_drawing_scene_to_dxf, setup_dxf_layers
 from ae_engine.sheetmetal_drawing import DrawingScene
 from ae_engine.sheetmetal_features import (
     ResolvedCircle, ResolvedRect, ResolvedProfile, resolve_surface_features,
@@ -97,6 +98,16 @@ def build_hole_editor_cadcraft_scene(*, surface, features, width, height, baseli
     return scene
 
 
+def save_cadcraft_preview_dxf(path, scene):
+    """Keep WHD millimetre coordinates explicit for the external DXF viewer."""
+    if not isinstance(scene, DrawingScene):
+        raise TypeError("CADCraft preview requires a resolved DrawingScene")
+    document = ezdxf.new("R2010", units=ezdxf.units.MM)
+    setup_dxf_layers(document)
+    add_drawing_scene_to_dxf(document.modelspace(), scene)
+    document.saveas(str(path))
+
+
 def open_hole_editor_cadcraft_preview(
     *, surface, features, width, height, baseline_scene=None,
     executable=None, output_dir=None, launcher=None,
@@ -120,7 +131,7 @@ def open_hole_editor_cadcraft_preview(
     os.close(fd)
     target = Path(filename)
     try:
-        save_scene_dxf(str(target), scene)
+        save_cadcraft_preview_dxf(target, scene)
         spawn = launcher if launcher is not None else subprocess.Popen
         spawn([binary, str(target)])  # argv only: never shell=True
     except Exception:
@@ -131,5 +142,6 @@ def open_hole_editor_cadcraft_preview(
 
 __all__ = [
     "CadcraftPreviewError", "find_cadcraft_gui",
-    "build_hole_editor_cadcraft_scene", "open_hole_editor_cadcraft_preview",
+    "build_hole_editor_cadcraft_scene", "save_cadcraft_preview_dxf",
+    "open_hole_editor_cadcraft_preview",
 ]
