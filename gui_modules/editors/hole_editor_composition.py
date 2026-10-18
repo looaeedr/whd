@@ -679,7 +679,7 @@ def _build_navigation_and_lifecycle(s):
         set_insert_mode=s.set_insert_mode,
         cancel_active_edit=s.cancel_active_edit,
     )
-    if s.on_confirm_features is not None and str(s.part_key).startswith("inner_door:"):
+    if str(s.part_key).startswith("inner_door:"):
         def accept_verified_openings(verified):
             from phase6_hole_editor_session import HoleEditorAction
             from ae_engine.sheetmetal_features import ProfileFeature
