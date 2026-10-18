@@ -71,6 +71,16 @@ def test_quantity_uses_actual_single_door_without_forged_multi_version(monkeypat
     assert assert_quantity_nfb_proof_current(proof, snapshot=snap) is proof
 
 
+def test_quantity_per_unit_override_uses_real_slot_brand_not_global(monkeypatch, tmp_path):
+    q, snap, draft, source, panel = _source_setup(monkeypatch, tmp_path)
+    draft["set_brand"] = "東元"  # actual unit override remains 士林
+    proof = verify_quantity_nfb_inner_door_source(
+        draft, snapshot=snap, world_x_by_unit={"unit-1": 165.0},
+        selected_source_path=source,
+    )
+    assert proof.part_id == panel.stable_id
+
+
 def test_quantity_proof_rejects_wrong_current_panel_or_changed_original_source(
     monkeypatch, tmp_path,
 ):
