@@ -19,6 +19,63 @@ from collections.abc import Mapping
 PREVIEW_STATUS = "NFB_TIER_BASE_EAR_AND_HOLES_UNVERIFIED"
 
 
+
+def source_receiving_nfb_tier_base_specs(snapshot, *, require_source_z=True):
+    """Build the SAME source PartSpec variants used by actual tier FinalScene.
+
+    An existing submitted Bay, matching NFB config, physical layer owners and
+    approved source dimensions are mandatory. Not a copied or renamed root
+    base, and never a candidate/unsaved manufacturing entitlement.
+    """
+    from .contracts import BasePlatePartSpec
+    from .cabinet_types import policy
+    from .receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
+    from .receiving_tier_ear_z_targets import resolve_receiving_tier_base_z_targets
+    from .receiving_base_plate_config import receiving_base_plate_values
+
+    if not isinstance(snapshot, Mapping) or snapshot.get("nfb_config_submitted") is not True:
+        raise ValueError("CSV_TIER_BASE_REQUIRES_SUBMITTED_PHYSICAL_BAY")
+    config = snapshot.get("nfb_config")
+    if not isinstance(config, Mapping) or config.get("layer_count") != 2:
+        raise ValueError("CSV_TIER_BASE_REQUIRES_TWO_REAL_NFB_TIERS")
+    upper = [p for p in policy.derive_inner_door_panels(snapshot)
+             if str(p.cell_key).split(":")[-1] == "0"]
+    if len(upper) != 1:
+        raise ValueError("CSV_TIER_BASE_UNIQUE_INNER_DOOR_MISSING")
+    centers = receiving_nfb_layer_centers(snapshot, upper[0].inner_door_id)
+    if (len(centers) != 2 or {p.layer_index for p in centers} != {0, 1}):
+        raise ValueError("CSV_TIER_BASE_ACTUAL_LAYER_OWNERS_MISSING")
+    depth_rows = resolve_receiving_tier_base_z_targets(snapshot)
+    depths = {p.layer_index: p for p in depth_rows}
+    if set(depths) != {0, 1}:
+        raise ValueError("CSV_TIER_BASE_DEPTH_OWNER_DRIFT")
+    values = receiving_base_plate_values(snapshot)
+    if values is None:
+        raise ValueError("CSV_TIER_BASE_PHYSICAL_VARIANT_MISSING")
+    specs = {}
+    for center in centers:
+        depth = depths[center.layer_index]
+        if (depth.parent_base_id != center.layer_part_id
+                or (require_source_z and not depth.physical_skin_z_resolved)):
+            raise ValueError("CSV_TIER_BASE_UNVERIFIED_TIER_SOURCE_Z")
+        pair = (tuple(depth.source_depths_mm)
+                if len(depth.source_depths_mm) == 2 else None)
+        specs[center.layer_index] = BasePlatePartSpec(
+            width=float(snapshot["w"]), height=float(values["h"]),
+            thickness=float(snapshot["t"]),
+            shrink_top=float(values["base_plate_shrink_top"]),
+            shrink_bottom=float(values["base_plate_shrink_bottom"]),
+            shrink_left=float(values["base_plate_shrink_left"]),
+            shrink_right=float(values["base_plate_shrink_right"]),
+            bend=float(values["base_plate_bend"]),
+            model_name="受電箱",
+            receiving_bend_pattern=str(values["receiving_bend_pattern"]),
+            receiving_nfb_depth_pair_mm=pair,
+            physical_id=center.layer_part_id,
+        )
+    return specs
+
+
 def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
     """Replace a single root Base Plate with 2 independent manufactured blanks.
 
@@ -98,6 +155,7 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
     }
     if set(z_targets) != {0, 1}:
         raise ValueError("RECEIVING_NFB_TIER_DEPTH_TARGET_IDENTITY_MISSING")
+    tier_specs = source_receiving_nfb_tier_base_specs(snapshot, require_source_z=False)
     generated = []
     for center in centers:
         identity = center.layer_part_id
@@ -114,20 +172,11 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
         tier_profiles = receiving_base_plate_3d_profiles(snapshot, tier_values)
         if tier_profiles is None:
             raise ValueError("RECEIVING_NFB_TIER_SOURCE_PROFILE_MISSING")
-        spec = BasePlatePartSpec(
-            width=float(snapshot["w"]),
-            height=float(values["h"]),
-            thickness=float(snapshot["t"]),
-            shrink_top=float(values["base_plate_shrink_top"]),
-            shrink_bottom=float(values["base_plate_shrink_bottom"]),
-            shrink_left=float(values["base_plate_shrink_left"]),
-            shrink_right=float(values["base_plate_shrink_right"]),
-            bend=float(values["base_plate_bend"]),
-            model_name="受電箱",
-            receiving_bend_pattern=str(values["receiving_bend_pattern"]),
-            receiving_nfb_depth_pair_mm=tier_pair,
-            physical_id=identity,
-        )
+        # One canonical constructor for 3D assembly and CSV V5 GUI preview.
+        spec = tier_specs[center.layer_index]
+        if (spec.physical_id != identity
+                or spec.receiving_nfb_depth_pair_mm != tier_pair):
+            raise ValueError("RECEIVING_TIER_SOURCE_PART_SPEC_IDENTITY_DRIFT")
         actual = build_part_render_data(spec)
         topology = actual.unfolded_topology
         if topology is None or topology.piece_id != identity:
