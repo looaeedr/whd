@@ -29,11 +29,19 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
     X from a missing, copied or draft X. Two different physical rows cannot
     share one Base Plate group. Return None if no committed depth pair.
     """
-    from .receiving_nfb_depth_surface_policy import committed_receiving_nfb_depth_pair_mm
+    from .receiving_nfb_depth_surface_policy import (
+        committed_receiving_nfb_depth_pair_mm,
+        committed_receiving_flat_nfb_depth_mm,
+    )
     from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
     if not isinstance(snapshot,Mapping):
         raise TypeError("NFB assembly XY requires physical Receiving snapshot")
-    if committed_receiving_nfb_depth_pair_mm(snapshot) is None:
+    pair=committed_receiving_nfb_depth_pair_mm(snapshot)
+    flat_depth=(
+        committed_receiving_flat_nfb_depth_mm(snapshot)
+        if pair is None else None
+    )
+    if pair is None and flat_depth is None:
         return None
     config = snapshot.get("nfb_config")
     if not isinstance(config, Mapping):
@@ -62,8 +70,9 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
     if not isinstance(config,Mapping):
         raise ValueError("NFB_BASE_XY_CONFIG_MISSING")
     rows=config.get("holes")
-    if not isinstance(rows,(tuple,list)) or len(rows)!=2:
-        raise ValueError("NFB_BASE_XY_REQUIRES_ONE_PAIR")
+    if (not isinstance(rows,(tuple,list)) or not 1<=len(rows)<=2
+            or (pair is not None and len(rows)!=2)):
+        raise ValueError("NFB_BASE_XY_REQUIRES_ONE_OR_TWO_SAME_ROW_HOLES")
     y_values=[]
     x_values=[]
     projections={}
