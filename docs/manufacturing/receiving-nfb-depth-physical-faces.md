@@ -129,7 +129,7 @@ shallow_back_z       = shallow_front_z - Tb
 前面的「35 mm 面差」只屬於 **CENTER 雙折雙深度** 底板。`LEFT_FLAT_SIDE`、`RIGHT_FLAT_SIDE` **無側折**，但仍各有上／下 20 mm 折邊；不能因為沒有深淺兩顆深度差，就把平底板放回舊的箱體後側 Z。
 
 - 本次只有**已提交的當前 Set/Bay**、單層同一列、唯一來源廠牌／型號深度時，透過 `committed_receiving_flat_nfb_depth_mm` 讀取 `開關索引.csv` 或 nfbv5 數值資料的深度（例如士林 400=107，另一個來源型號可能是 68），不設第二套底板「深度」輸入。
-- 走**同一** `receiving_base_plate_real_skins` 取得平面底板的真 T2 NFB 安裝皮面；`resolve_receiving_nfb_world_skin_datums` 對齊內門朝箱內 skin；`assembly_placement` 套用相同來源的 XY 與 Z。換型號深度時，底板位置與固定片接觸的**目標 Z** 一起改，內門不動。
+- 走**同一** `receiving_base_plate_real_skins` 取得平面底板的真 T2 NFB 安裝皮面；`resolve_receiving_nfb_world_skin_datums` 對齊內門朝箱內 skin；`assembly_placement` 僅使用真實皮面來源對齊 **Z**；板件 **X/Y 只能從固定片焊接在側板的實際裝配定位及底板固定孔關係**得到，不能從 NFB 開孔中心取得。換型號深度時，底板與固定片接觸的**目標 Z** 同步調整，內門不動。
 - **平底板兩顆不同型號**或**兩列**不能偷用最深一顆並聲稱全都貼合。若需要 PAD／其他實體底板，必須由其真實孔列及裝配來源驗證；缺項拒絕，不退回箱體後側 preview 冒充有來源的配置。
 - 上述仍不代表大片固定片已擁有正式原圖 BEND。此固定片與側板兩側打標需獨立通過真實折向、物理接觸與回投影驗證後才准放行。
 
