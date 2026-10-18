@@ -353,3 +353,59 @@ def test_part_only_rejects_changed_native_alias_evidence_before_write(tmp_path, 
     with pytest.raises(ValueError, match="NFB_BASE_PART_(NATIVE_ALIAS|SOURCE_HOLE_MAPPING)_UNVERIFIED"):
         save_resolved_manufacturing_geometry_dxf(resolved, root, part_only=True)
     assert not root.exists()
+
+
+def test_nfb_x_edit_moves_only_its_real_screw_circles_not_base_or_welded_ear_x(tmp_path):
+    """The user-authorized manufacturing regression: plate center X never moves."""
+    path, profile, lower = _native_original(tmp_path)
+    original = _verified(profile)
+    # Both NFBs move +10mm right; a previous bug moved the WHOLE Base
+    # Plate 10mm as well and thus cancelled their real screw-hole offset.
+    edited = replace(
+        original,
+        verified_hole_locations=tuple(
+            (hole_id, x + 10., layer_count, slot, angle)
+            for hole_id, x, layer_count, slot, angle
+            in original.verified_hole_locations
+        ),
+    )
+    inputs=dict(
+        snapshot=_snapshot(),
+        inner_door_id="upper",
+        base_spec=_upper_base(),
+        source_path=path,
+        profile=profile,
+        lower_reference_handle=lower,
+    )
+    before=build_existing_receiving_base_with_verified_nfb(
+        verified_inner_door=original, **inputs
+    )
+    after=build_existing_receiving_base_with_verified_nfb(
+        verified_inner_door=edited, **inputs
+    )
+    for result in (before, after):
+        assert result.render_data.metadata[
+            "receiving_base_ear_mount_center_world_xy_mm"
+        ] == pytest.approx((0.,250.))
+        assert result.render_data.metadata[
+            "receiving_base_nfb_row_center_world_xy_mm"
+        ] == pytest.approx((0.,250.))
+        assert result.render_data.unfolded_topology.piece_id == "base_plate"
+        assert result.render_data.material.area > 0
+
+    def screws(result):
+        return {
+            p.source_id:(p.center.x,p.center.y)
+            for p in result.render_data.scene.primitives
+            if isinstance(p,CirclePrimitive)
+            and p.source_type=="NFB_LOWER_NATIVE_FIXING_CIRCLE"
+        }
+
+    a,b=screws(before),screws(after)
+    assert a.keys()==b.keys()
+    assert len(a)==8
+    for key in a:
+        assert b[key][0]-a[key][0] == pytest.approx(10.)
+        assert b[key][1]-a[key][1] == pytest.approx(0.)
+    # Ear mounting holes in the actual source plate are still owned by its
+    # unchanged source topology; the NFB screw quartet alone shifts.
