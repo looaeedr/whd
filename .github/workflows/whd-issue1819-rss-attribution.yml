@@ -46,7 +46,7 @@ jobs:
           python -m pip install -r requirements.txt pytest matplotlib psutil
       - name: Test diagnostic gate and incomplete-run handling
         run: python -m pytest -q tests/test_issue1819_python_memory_probe.py
-      - name: Trace genuine Tk multi-bay operations without changing source geometry
+      - name: Trace one real Tk Bay after warmup to locate retained owners
         shell: bash
         run: |
           set -euo pipefail
@@ -59,32 +59,35 @@ jobs:
           } > work/issue1819-retention/environment.txt
           xvfb-run -a -s "-screen 0 1600x1000x24" \
             python tools/whd_performance_baseline.py \
-            --samples 1 --cycles 12 --python-memory-trace \
-            --memory-interval-ms 50 \
-            --output work/issue1819-retention/tracedgui.json
-      - name: Read two exact-worker Python-trace reports
+            --worker --bays 1 --worker-sample 0 \
+            --cycles 8 --python-memory-trace --memory-interval-ms 50 \
+            --output work/issue1819-retention/tracedgui-b1-s0.jsonl
+      - name: Read real GUI Python object holders, caches and RSS
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           import json
           base = Path("work/issue1819-retention")
-          for bays in (1,3):
-              p = base / f"tracedgui-b{bays}-s0.python-mem.json"
-              if not p.is_file():
-                  raise SystemExit(f"TRACE_REPORT_MISSING: {p}")
-              d = json.loads(p.read_text())
-              if not d["complete"] or d["cycles_seen"] != 12:
-                  raise SystemExit(f"TRACE_INCOMPLETE: {p}")
-              print("ISSUE1819_PYTHON_RSS_ATTRIBUTION", bays)
-              print(json.dumps({
-                  "cycles": d["cycles_seen"],
-                  "warm_cycle": d["warm_cycle"],
-                  "tracemalloc_delta_total_bytes": d["tracemalloc_delta_total_bytes"],
-                  "rss_after_forced_gc_bytes_delta": d["rss_bytes_after_forced_gc_delta"],
-                  "gc_tracked_object_count_delta": d["gc_tracked_object_count_delta"],
-                  "top_python_heap_file_growth": d["top_python_heap_file_growth"][:12],
-              }, ensure_ascii=False, indent=2))
+          bays = 1
+          p = base / "tracedgui-b1-s0.python-mem.json"
+          if not p.is_file():
+              raise SystemExit(f"TRACE_REPORT_MISSING: {p}")
+          d = json.loads(p.read_text())
+          if not d["complete"] or d["cycles_seen"] != 8:
+              raise SystemExit(f"TRACE_INCOMPLETE: {p}")
+          print("ISSUE1819_PYTHON_RSS_OWNER_ATTRIBUTION", bays)
+          print(json.dumps({
+              "cycles": d["cycles_seen"],
+              "warm_cycle": d["warm_cycle"],
+              "tracemalloc_delta_total_bytes": d["tracemalloc_delta_total_bytes"],
+              "rss_after_forced_gc_bytes_delta": d["rss_bytes_after_forced_gc_delta"],
+              "surviving_object_count_delta": d["surviving_object_count_delta"],
+              "actual_gui_owner_cache_entry_delta": d["actual_gui_owner_cache_entry_delta"],
+              "warm_owner_cache_entries": d["checkpoints"][str(d["warm_cycle"])]["actual_gui_owner_cache_entries"],
+              "final_owner_cache_entries": d["checkpoints"][str(d["cycles_seen"])]["actual_gui_owner_cache_entries"],
+              "top_python_heap_file_growth": d["top_python_heap_file_growth"][:15],
+          }, ensure_ascii=False, indent=2))
           PY
       - name: Retain diagnostics and raw worker journals on GREEN or RED
         if: always()
