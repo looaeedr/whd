@@ -71,6 +71,8 @@ PYTEST_PATHS = (
     "tests/test_issue1503_side_marking_preview_collision.py",
     # #1503: selected GUI side 2D-only EAR marks, never manufacturing part.
     "tests/test_issue1503_real_side_piece_2d_preview.py",
+    # #1503: actual opposed EAR+SIDE skin fit, never weld release.
+    "tests/test_issue1503_real_ear_side_weld_skin_mating.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
