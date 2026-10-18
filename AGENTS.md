@@ -41,7 +41,7 @@ whd_schema: WHD_DOC_META_V1
 - **同一條施工鏈**：`/功能` 定義需求與適用驗收；`/DEBUG` 使用真實程式來源與 RED→GREEN 診斷；`/派工` 執行 GitHub BUILD→COMMIT→PR→CI→`localX`→原 Issue 收尾→下一張；`/接手` 只在當次明確授權時切換 RC 執行位置。混合命令沿用同一 Issue／PR／工作分支、已確定的使用者需求及證據，不重新啟動多個流程、不先做冗長盤點、不重問既有答案。
 - **不預先設定停止程序**：依真實狀態直接續作。CI 尚在跑就追 exact SHA；CI RED 就讀失敗修復；GREEN 就核對並合法合併 GitHub `localX`；合併後接著結案和施工下一張。只查到下一個 Issue、只寫留言或只產出計畫均不算完成。
 - **遇阻繼續做**：單一 API／測試／來源操作失敗，直接在原有授權內改用其他適用的合法操作、補讀來源、切分可獨立變更，或施工其他已授權的工作；不得以一個拒絕全面停工，也不得捏造完成或繞過實際安全／權限拒絕。RC/DC 與正式 X 仍各守當次授權、`/推推`、exact SHA／CI、非 force 合併的硬邊界。
-- **可驗證硬閘門**：`.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json` 及 `tools/interactive_command_no_stop_gate.py` 的連續動作判定由治理回歸驗證；不得再次加入「先規劃停止」或以執行限制文字取代當下可執行動作。
+- **可執行路由與驗證**：既有 `tools/phase6_skill_preflight.py::required_skills_for` 直接使用 `tools/interactive_command_no_stop_gate.py::ordered_command_skills` 將複合指令歸併排序；`execute_authorized_step` 以已授權 handler 真正呼叫下一個操作並處理單項拒絕，不藉此自行增加工具權限。治理回歸必須測此實際呼叫路徑，而非只比對文字；不得把模擬測試冒充使用者指令已實際完成。
 
 ## 新增功能入口 `/功能` — `FEATURE_FLOW_V1`
 

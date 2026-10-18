@@ -20,6 +20,8 @@ on:
       - tests/governance/test_dispatch_turn_exit_gate_contract.py
       - tests/governance/test_interactive_command_no_stop_hard_gate.py
       - tools/interactive_command_no_stop_gate.py
+      - tools/phase6_skill_preflight.py
+      - .agents/skills/skill_registry.json
       - tests/governance/test_no_external_storage_residue.py
       - tests/knowledge/test_debug_source_read_gate_contract.py
       - .github/workflows/whd-localx-governance-tests.yml

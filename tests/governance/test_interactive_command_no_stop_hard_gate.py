@@ -2,7 +2,10 @@
 import json
 from pathlib import Path
 import unittest
-from tools.interactive_command_no_stop_gate import WorkObservation, next_action
+from tools.interactive_command_no_stop_gate import (
+    WorkObservation, next_action, ordered_command_skills, execute_authorized_step,
+)
+from tools.phase6_skill_preflight import required_skills_for
 
 ROOT = Path(__file__).resolve().parents[2]
 SURFACES = [
@@ -31,6 +34,44 @@ class InteractiveNoStopGate(unittest.TestCase):
         self.assertTrue(gate["any_legal_action_available_means_continue"])
         for key in ("VERIFIED_EXTERNAL_BLOCKER", "REAL_RUNTIME_LIMIT"):
             self.assertFalse(data["decisions"][key]["may_end_turn_without_completion"])
+
+    def test_actual_skill_router_calls_combined_command_route(self):
+        expected = ("新增功能", "diagnosing-bugs", "tdd", "派工", "issue-closure-gate")
+        self.assertEqual(ordered_command_skills("/功能 /DEBUG /派工 #1933"), expected)
+        selected = required_skills_for(task="/功能 /DEBUG /派工 #1933")
+        self.assertEqual(selected[:len(expected)], expected)
+        self.assertNotIn("root-local-first", selected)
+        takeover = required_skills_for(task="/接手 #1933")
+        self.assertIn("root-local-first", takeover)
+        self.assertIn("執行開發任務", takeover)
+        self.assertNotIn("root-local-first", required_skills_for(task="/派工 #1933"))
+
+    def test_real_executor_invokes_other_authorized_work_after_refusal(self):
+        calls = []
+        def denied():
+            calls.append("denied")
+            raise PermissionError("explicit permission denied")
+        def do_work():
+            calls.append("implemented")
+        result = execute_authorized_step(
+            WorkObservation(authorized_actions=("denied", "implemented")),
+            {"denied": denied, "implemented": do_work},
+        )
+        self.assertEqual(calls, ["denied", "implemented"])
+        self.assertEqual(result.completed_action, "implemented")
+        self.assertEqual(result.blocked, ("denied",))
+        self.assertEqual(result.attempted, ("denied", "implemented"))
+
+    def test_refused_operation_does_not_fabricate_success_or_unapproved_route(self):
+        def denied():
+            raise PermissionError("denied")
+        result = execute_authorized_step(
+            WorkObservation(authorized_actions=("denied", "absent")),
+            {"denied": denied},
+        )
+        self.assertIsNone(result.completed_action)
+        self.assertEqual(result.attempted, ("denied",))
+        self.assertEqual(result.blocked, ("denied",))
 
     def test_real_next_steps_override_single_failed_operation(self):
         self.assertEqual(next_action(WorkObservation(
