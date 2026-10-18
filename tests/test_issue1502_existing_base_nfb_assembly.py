@@ -383,15 +383,29 @@ def test_nfb_x_edit_moves_only_its_real_screw_circles_not_base_or_welded_ear_x(t
     after=build_existing_receiving_base_with_verified_nfb(
         verified_inner_door=edited, **inputs
     )
-    for result in (before, after):
+    for result, nfb_group_x in ((before,0.),(after,10.)):
         assert result.render_data.metadata[
             "receiving_base_ear_mount_center_world_xy_mm"
         ] == pytest.approx((0.,250.))
         assert result.render_data.metadata[
             "receiving_base_nfb_row_center_world_xy_mm"
-        ] == pytest.approx((0.,250.))
+        ] == pytest.approx((nfb_group_x,250.))
         assert result.render_data.unfolded_topology.piece_id == "base_plate"
         assert result.render_data.material.area > 0
+    assert after.render_data.metadata[
+        "receiving_base_nfb_hole_world_x_by_id"
+    ] == (("nfb:upper:1",-90.),("nfb:upper:2",110.))
+    from ae_engine.receiving_nfb_base_process_projection import (
+        validate_nfb_base_part_cutting,
+    )
+    validate_nfb_base_part_cutting(after.render_data,physical_part_id="base_plate")
+    stale=dict(after.render_data.metadata)
+    stale["receiving_base_nfb_row_center_world_xy_mm"]=(0.,250.)
+    with pytest.raises(ValueError,match="SCREW_X_SOURCE_UNVERIFIED"):
+        validate_nfb_base_part_cutting(
+            replace(after.render_data,metadata=stale),
+            physical_part_id="base_plate",
+        )
 
     def screws(result):
         return {
