@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """#1502: independent *actual FinalScene blanks* for NFB tiers in upper Door.
 
-The CENTER of each NFB opening group is the CENTER of that tier's Base Plate.
+Each tier's Base Plate stays fixed laterally at CABINET CENTER X=0.
+NFB opening HEIGHT supplies the respective tier's installed Y; the
+independent NFB X source may shift ONLY NFB screw-hole CUTTING.
 A tier's source physical plate uses a NEW BasePlatePartSpec/PartRenderData and
 its own unfolded topology identity. It is never a translated reference to
 another layer's PartRenderData or an invented different base-plate editor.
