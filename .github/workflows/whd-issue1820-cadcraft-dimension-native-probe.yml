@@ -125,7 +125,6 @@ jobs:
         run: cargo build --locked --release -p cadcraft-cli --manifest-path upstream-cadcraft-v080/Cargo.toml
       - name: Must PASS independent Windows native unit and DXF geometry matrix
         run: python tools/issue1820_cadcraft_unitless_import_patch.py verify upstream-cadcraft-v080/target/release/cadcraft-cli.exe work/issue1820-unitless/matrix --expect patched --json work/issue1820-unitless/patched-windows-GREEN.json
-            work/issue1820-unitless/dimension-patched-windows-GREEN.json
       - name: Verify original DIMENSION group 11 and 42 after native Windows resave
         run: python tools/issue1820_cadcraft_dimension_import_patch.py verify upstream-cadcraft-v080/target/release/cadcraft-cli.exe work/issue1820-unitless/dimension_case --expect patched --json work/issue1820-unitless/dimension-patched-windows-GREEN.json
       - name: Retain experimental Windows CLI only after verification
