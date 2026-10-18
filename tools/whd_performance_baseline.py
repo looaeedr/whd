@@ -397,6 +397,8 @@ def worker(args):
     try:
         app = gui.Phase6PrimaryApplication(root)
         designer = app.fold_designer_app
+        if python_memory_probe is not None:
+            python_memory_probe.owners = (app, designer)
         designer.root.deiconify()
         designer.root.geometry('1400x900+0+0')
         owners = (app, designer)
