@@ -52,6 +52,7 @@ def trial_v5_screws_on_existing_receiving_base(
     door: NfbV5ConfiguredInnerDoorTrial,
     configured_holes: Sequence[NfbV5ConfiguredInnerDoorHole],
     target: NfbActualBaseWorkFace,
+    tier_slot_index: int | None = None,
 ) -> NfbV5ActualBaseScrewTrial:
     """Physically subtract 4 V5 mounting circles per switch from ONE base.
 
@@ -93,6 +94,16 @@ def trial_v5_screws_on_existing_receiving_base(
             or tuple(e.physical_hole_id for e in entries) != door.hole_ids
             or len(set(door.hole_ids)) != len(door.hole_ids)):
         raise ValueError("NFB V5 底板必須對應相同的完整內門孔位群")
+    if tier_slot_index is not None and (
+        type(tier_slot_index) is not int or tier_slot_index < 0
+    ):
+        raise ValueError("NFB V5 實體層索引不合法")
+    selected_entries = tuple(
+        e for e in entries
+        if tier_slot_index is None or e.slot_index == tier_slot_index
+    )
+    if not selected_entries:
+        raise ValueError("NFB V5 實體底板對應層沒有開關")
     footprints = []
     patterns = []
     for entry, prior in zip(entries, door.patterns):
@@ -122,6 +133,11 @@ def trial_v5_screws_on_existing_receiving_base(
                 or abs(prior.datum.uv_centre_mm[1] - y.unfolded_uv_y_mm) > _TOL
                 or (prior.datum.uv_axis_x, prior.datum.uv_axis_y) != AXES[entry.rotation_deg]):
             raise ValueError("NFB V5 內門已驗證孔位與目前裝配座標不一致")
+        # Check the entire current Door proof before selecting this tier:
+        # an unselected tier's changed model/X/Y/rotation cannot borrow the
+        # saved full-door trial. The actual machining below is tier-local.
+        if tier_slot_index is not None and entry.slot_index != tier_slot_index:
+            continue
         world_y = float(y.box_world_y_mm)
         if abs(world_y - face_world[1]) > _TOL:
             raise ValueError("NFB V5 不同層高不可共用一片底板 EAR 工作面")
@@ -150,7 +166,7 @@ def trial_v5_screws_on_existing_receiving_base(
         patterns.append(pattern)
 
     scene = DrawingScene(list(baseline.scene.primitives))
-    for entry, pattern in zip(entries, patterns):
+    for entry, pattern in zip(selected_entries, patterns):
         for index, centre in enumerate(pattern.screw_centres_uv_mm, start=1):
             scene.add_circle(
                 centre, pattern.screw_diameter_mm / 2.0,
@@ -169,7 +185,8 @@ def trial_v5_screws_on_existing_receiving_base(
         metadata={
             **metadata,
             "nfb_v5_trial_status": STATUS,
-            "nfb_v5_hole_ids": door.hole_ids,
+            "nfb_v5_hole_ids": tuple(e.physical_hole_id for e in selected_entries),
+            "nfb_v5_tier_slot_index": tier_slot_index,
             "nfb_v5_source_models": tuple((x.brand, x.model) for x in patterns),
             "nfb_v5_target_role": "base-plate",
             "nfb_base_mfg2_release_approved": False,
@@ -178,7 +195,7 @@ def trial_v5_screws_on_existing_receiving_base(
     )
     return NfbV5ActualBaseScrewTrial(
         part_id=target.physical_part_id,
-        hole_ids=door.hole_ids,
+        hole_ids=tuple(e.physical_hole_id for e in selected_entries),
         patterns=tuple(patterns),
         render_data=patched,
     )
