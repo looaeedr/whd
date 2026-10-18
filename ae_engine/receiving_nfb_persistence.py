@@ -62,9 +62,22 @@ def normalize_nfb_config(config):
             raise ValueError("NFB physical_hole_id missing/duplicate")
         seen.add(owner)
         model = hole.get("model_filename")
-        if (not isinstance(model, str) or not model.lower().endswith(".dxf")
-                or len(model) <= 4 or "/" in model or chr(92) in model):
-            raise ValueError("NFB model must be an indexed DXF basename")
+        # CURRENT CSV V5 persists a source-owned brand/model identity, not a
+        # fake .dxf basename. Reuse the existing typed identity validator:
+        # it accepts historical DXF names, rejects malformed V5 identities,
+        # and does not invent a missing CSV row when reading saved projects.
+        from .receiving_nfb_model_identity import (
+            parse_numeric_model_ref, validate_stored_model_ref,
+        )
+        try:
+            model = validate_stored_model_ref(model)
+        except ValueError as exc:
+            raise ValueError("NFB model must be a valid V5 identity or legacy DXF basename") from exc
+        parsed = parse_numeric_model_ref(model)
+        if parsed is not None:
+            source_brand = hole.get("source_brand")
+            if source_brand is not None and source_brand != parsed[0]:
+                raise ValueError("NFB V5 model and saved hole source_brand mismatch")
         state = hole.get("manual_x_state", "NONE")
         if state not in MANUAL_X_STATES:
             raise ValueError("NFB manual_x_state unsupported")
