@@ -87,18 +87,30 @@ def create_manual_return_ticket(*, output: Path, features, session,
         raise CadcraftCommandProofError("WHD_PHASE6_SESSION_REQUIRED")
     snapshot = session.snapshot()
     originals = tuple(features)
-    if (session.has_active_edit or not originals or len(originals) > 100
+    if (session.has_active_edit or len(originals) > 100
             or snapshot.features != originals or not all(map(_eligible, originals))):
         raise CadcraftCommandProofError("UNSUPPORTED_OR_DIRTY_WHD_SOURCE")
     w, h = float(width), float(height)
     if not all(math.isfinite(v) and v > 0 for v in (w, h)):
         raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
-    expected = from_whd_resolved(
+    expected = (from_whd_resolved(
         tuple(resolve_surface_features(surface, originals, w, h))
-    )
+    ) if originals else ())
     path = Path(output).resolve(strict=True)
     data = _read_limited(path)
-    verify_dxf(path, expected)
+    if expected:
+        verify_dxf(path, expected)
+    else:
+        # Zero-entity proof: WHD issues only a fresh, empty, explicitly mm DXF.
+        # It is a short-lived ticket bound to this exact editor Session.
+        try:
+            document = ezdxf.readfile(path)
+        except (OSError, ValueError, ezdxf.DXFError) as exc:
+            raise CadcraftCommandProofError("INVALID_BLANK_EXCHANGE_DXF") from exc
+        if (document.header.get("$INSUNITS") != 4
+                or document.header.get("$MEASUREMENT") != 1
+                or any(document.modelspace())):
+            raise CadcraftCommandProofError("INVALID_BLANK_EXCHANGE_DXF")
     if sha256(_read_limited(path)).digest() != sha256(data).digest():
         raise CadcraftCommandProofError("CADCRAFT_FILE_CHANGED_DURING_TICKET")
     return ManualReturnTicket(
@@ -109,9 +121,9 @@ def create_manual_return_ticket(*, output: Path, features, session,
 
 def _dxf_moves(output: Path, original: tuple, surface, width, height):
     """Allow existing-hole translations and strictly append new holes, not deletes/resizes."""
-    expected = from_whd_resolved(tuple(
+    expected = (from_whd_resolved(tuple(
         resolve_surface_features(surface, original, width, height)
-    ))
+    )) if original else ())
     try:
         doc = ezdxf.readfile(output)
     except (OSError, ValueError, TypeError, ezdxf.DXFError) as exc:
