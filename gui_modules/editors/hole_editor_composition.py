@@ -839,7 +839,8 @@ def _bind_editor_events(s):
                         "PNG：" + str(outcome.preview_png)
                         + "\nDXF：" + str(outcome.output_dxf)
                         + "\n這是獨立試作，不會修改 WHD 開孔或製造圖。"
-                        + ("\n回傳操作：在 CADCraft 開啟上述 DXF，只平移原孔、原檔儲存，"
+                        + ("\n回傳操作：在 CADCraft 開啟上述 DXF，可平移原孔或新增"
+                           "圓孔／封閉直線輪廓（僅圖層 0），原檔儲存，"
                            "再回 WHD 點『CADCraft 改孔回傳』。"
                            if not return_denied else "\n此圖不可回傳：" + return_denied),
                         parent=s.editor,
@@ -868,15 +869,21 @@ def _bind_editor_events(s):
                 return
             s.refresh_created()
             s.redraw()
-            details = "\n".join(
-                f"孔 {index + 1}: X {dx:+.3f} mm、Y {dy:+.3f} mm"
+            move_details = [
+                f"原孔 {index + 1}: X {dx:+.3f} mm、Y {dy:+.3f} mm"
                 for index, dx, dy in pending.moves
-            )
+            ]
+            added_details = [
+                f"新孔 {index + 1}: {type(feature).__name__}"
+                for index, feature in enumerate(pending.additions)
+            ]
+            details = "\n".join(move_details + added_details)
             confirmed = False
             try:
                 confirmed = s.d.messagebox.askyesno(
                     "CADCraft 改孔回傳 — WHD 預覽",
-                    f"已驗證 {len(pending.moves)} 個孔的平移（尺寸、孔型不變）：\n"
+                    f"已驗證 {len(pending.moves)} 個原孔平移、"
+                    f"{len(pending.additions)} 個新孔（原孔尺寸、孔型不變）：\n"
                     + details
                     + "\n\n確認：提交至 WHD 原開孔 Session；"
                       "取消：復原預覽、不更改原孔。\n"
@@ -900,7 +907,7 @@ def _bind_editor_events(s):
                 return_button.configure(state="disabled")
                 s.d.messagebox.showinfo(
                     "CADCraft 改孔回傳",
-                    "孔位已確認至 WHD Session。請在原開孔編輯器按『確定』，"
+                    "新增／平移孔位已確認至 WHD Session。請在原開孔編輯器按『確定』，"
                     "由 WHD 原流程儲存並重新產生製造圖。",
                     parent=s.editor,
                 )
