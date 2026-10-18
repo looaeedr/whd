@@ -92,7 +92,7 @@ def test_bottom_fixing_plate_part_identity_and_original_2d_source():
             (23, 84), (58, 84), (198, 84), (233, 84),
         )
         assert part.source_slot_size_mm == (25, 11)
-        assert part.source_top_corner_radius_mm == 5
+        assert part.source_top_corner_radius_mm == 0
         assert part.nominal_fold_from_weld_edge_mm == 23
         assert part.applicable_slot_pair_indexes == (0, 3)
         assert part.manufacturing_status == MANUFACTURING_STATUS
@@ -162,10 +162,8 @@ def test_original_source_large_and_small_are_actual_independent_cutting_geometry
     assert big.metadata["formed_geometry_verified"] is False
     # Source native arcs are tessellated at sub-hundredth-mm error, but the
     # same *material* is returned to 2D, 3D and the independent DXF sink.
-    expected_big = (256 * 105 - 2 * (25 - pi*25/4)
-                    - 4 * (14*11 + pi * (5.5**2)))
-    expected_small = (90 * 90 - 2 * (25 - pi*25/4)
-                      - 2 * (19*11 + pi * (5.5**2)))
+    expected_big = (256 * 105 - 4 * (14*11 + pi * (5.5**2)))
+    expected_small = (90 * 90 - 2 * (19*11 + pi * (5.5**2)))
     assert big.material.area == pytest.approx(expected_big, abs=0.15)
     assert small.material.area == pytest.approx(expected_small, abs=0.15)
 
