@@ -42,10 +42,19 @@ def _cache_owners(owners):
                 "_authoritative_part_render_cache",
                 "_phase6_manufacturing_cache_service",
                 "_derived_cache_owner",
+                "settings_panel",
+                "_settings_page_cache",
+                "_receiving_raw_inner_door_panel_history",
+                "_receiving_raw_inner_door_frame_history",
                 "_phase6_last_resolved_manufacturing_geometry",
                 "_phase6_last_resolved_manufacturing_signature",
             ):
-                if key == "_phase6_manufacturing_cache_service":
+                if key == "settings_panel":
+                    pages = getattr(value, "page_cache", {})
+                    result[f"{root}.{key}.page_cache"] = _len(pages)
+                    result[f"{root}.{key}.page_keys"] = tuple(str(k) for k in pages)
+                    result[f"{root}.{key}.current_page"] = getattr(value, "current_page", None)
+                elif key == "_phase6_manufacturing_cache_service":
                     result[f"{root}.{key}._entries"] = _len(getattr(value, "_entries", None))
                 elif key == "_derived_cache_owner":
                     caches = getattr(value, "_caches", {})
@@ -63,7 +72,7 @@ def _cache_owners(owners):
 
 def _tracked_type_counts():
     """Count real GC-tracked objects by fully qualified Python class."""
-    counter = Counter(type(obj).__module__ + "." + type(obj).__name__ for obj in gc.get_objects())
+    counter = Counter(str(type(obj).__module__) + "." + str(type(obj).__name__) for obj in gc.get_objects())
     return dict(counter)
 
 
