@@ -87,10 +87,14 @@ def draw_whd_commands_with_cadcraft(
     directory.mkdir(parents=True,exist_ok=True)
     target=directory/"whd-command-drawing.dxf"
     preview=directory/"whd-command-drawing.png"
+    if target.exists() or preview.exists():
+        raise CadcraftCommandProofError("REFUSE_TO_OVERWRITE_EXISTING_FILE")
     # run_proof refuses existing target/preview, makes a NEW drawing with
     # --metric and independently verifies exact CADCraft output geometry.
     evidence=runner(str(executable),instructions,target,preview)
     if evidence.get("status")!="PASS":
         raise CadcraftCommandProofError("CADCRAFT_GEOMETRY_PROOF_NOT_GREEN")
+    if not target.is_file() or not preview.is_file():
+        raise CadcraftCommandProofError("CADCRAFT_OUTPUT_NOT_CREATED")
     return CadcraftCommandDrawingResult(
         output_dxf=target,preview_png=preview,geometry_evidence=evidence)
