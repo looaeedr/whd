@@ -56,13 +56,13 @@ def inner_door_work_area_guide(snapshot, panel, structural):
 def open_inner_door_hole_editor(
     app, part_key: str, *, from_corner_data=False, from_part_preview=False,
     settings_mode=None, initial_features=None, on_settings_confirm=None,
-    selected_candidate_version=None,
+    selected_candidate_version=None, physical_snapshot=None,
 ):
     """Open the existing Vault Door hole editor; preserve view-only Corner Data selection."""
     if not is_inner_door_sheet(part_key):
         raise ValueError("不是可開孔編輯的內門門板")
     workspace = app.designer_workspace
-    if part_key not in workspace.available_parts:
+    if settings_mode is None and part_key not in workspace.available_parts:
         raise ValueError("內門門板目前不在有效板件清單")
     host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
     if settings_mode not in (None, "single", "candidate"):
@@ -92,7 +92,8 @@ def open_inner_door_hole_editor(
     from ae_engine.sheetmetal_features import feature_surface_from_structural_result
     from ae_engine import manufacturing_api
 
-    snapshot = dict(app._phase6_input_snapshot)
+    snapshot = dict(app._phase6_input_snapshot if physical_snapshot is None
+                    else physical_snapshot)
     panel = next((
         item for item in cabinet_family_policy.derive_inner_door_panels(snapshot)
         if item.stable_id == part_key
