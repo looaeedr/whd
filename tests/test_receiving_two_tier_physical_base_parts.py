@@ -109,3 +109,19 @@ def test_unsubmitted_two_tier_is_not_auto_made_into_certified_parts():
 def test_two_tier_missing_original_base_part_fails_instead_of_one_plate_illusion():
     with pytest.raises(ValueError,match="SOURCE_BASE_PLATE_MISSING"):
         expand_receiving_nfb_layer_parts(_two_tier(),())
+
+
+
+def test_real_mode_switch_stale_selection_does_not_break_one_tier_or_draft():
+    snap=_assembled()
+    snap["_receiving_runtime_selection"]["set_id"]="obsolete-view"
+    p=_source(snap)
+    assert expand_receiving_nfb_layer_parts(snap,(p,))==(p,)
+    snap=_two_tier()
+    snap["_receiving_runtime_selection"]["set_id"]="obsolete-view"
+    p=_source(snap)
+    assert expand_receiving_nfb_layer_parts(snap,(p,))==(p,)
+    snap=_two_tier()
+    snap["nfb_config_submitted"]=False
+    p=_source(snap)
+    assert expand_receiving_nfb_layer_parts(snap,(p,))==(p,)
