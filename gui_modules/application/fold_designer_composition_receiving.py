@@ -1898,8 +1898,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         else:
             initial = inner_config(inner_library(), version_id)
         if embed_parent is not None:
-            staged = getattr(embed_parent.winfo_toplevel(),
-                             "_receiving_staged_config", None)
+            owner_editor = embed_parent.winfo_toplevel()
+            if (getattr(owner_editor, "_receiving_settings_mode", None) == "single"
+                    and self.app.designer_workspace.active_mode == "quantity"):
+                # Quantity single box is NOT a multi-Bay shared setting.
+                # Read its own selected physical box instead of stale Bay UI.
+                quantity = _current_mode_snapshot(self, namespace)
+                initial = {
+                    "layers": quantity.get("receiving_inner_door_layers", 1),
+                    "models": quantity.get("receiving_inner_door_models", ["", ""]),
+                    "layer_heights_mm": quantity.get(
+                        "receiving_inner_door_layer_heights_mm",
+                        SETTING_DEFAULTS["inner_door_layer_heights_mm"],
+                    ),
+                }
+            staged = getattr(owner_editor, "_receiving_staged_config", None)
             if staged is not None:
                 from ae_engine.receiving_inner_door_candidates import validate_door_config
                 initial = validate_door_config(staged)
