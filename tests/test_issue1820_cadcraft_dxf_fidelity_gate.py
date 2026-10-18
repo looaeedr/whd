@@ -110,3 +110,29 @@ def test_no_inplace_rewrite(tmp_path):
         assert str(exc) == "ORIGINAL_MUST_NOT_BE_THE_RESAVED_DXF"
     else:
         assert False, "audit must refuse in-place DXF modification"
+
+
+
+def test_solid_inside_block_is_fingerprinted_and_geometry_changes_fail(tmp_path):
+    """Actual R5 user drawings contain SOLID entities in DIMENSION/INSERT blocks.
+
+    SOLID is a four-vertex geometry entity, not an unsupported metadata entry.
+    """
+    a, b = _fixture(tmp_path)
+    source = ezdxf.readfile(a)
+    source.blocks["WHD_TEST_BLOCK"].add_solid(
+        [(0, 0), (5, 0), (5, 5), (0, 5)]
+    )
+    source.saveas(a)
+    copy2(a, b)
+    assert audit(a, b)["result"] == "PASS"
+
+    saved = ezdxf.readfile(b)
+    solid = next(e for e in saved.blocks["WHD_TEST_BLOCK"]
+                 if e.dxftype() == "SOLID")
+    solid.dxf.vtx1 = (5.125, 0, 0)
+    saved.saveas(b)
+
+    result = audit(a, b)
+    assert result["result"] == "FAIL_CLOSED"
+    assert "BLOCKS_DIFF" in result["failures"]
