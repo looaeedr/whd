@@ -152,10 +152,17 @@ def build_fixing_plate_source_render_data(
     from shapely import wkb as shapely_wkb
 
     key = str(part_id or "")
+    legacy_ids = (BASE_FIXING_PLATE_PREFIX + "left",
+                  BASE_FIXING_PLATE_PREFIX + "right")
+    is_tier_ear = (
+        key.startswith(BASE_FIXING_PLATE_PREFIX + "nfb_layer:")
+        and key.rsplit(":", 1)[-1] in ("left", "right")
+    )
     if source_kind == LARGE_SOURCE:
-        if key not in (BASE_FIXING_PLATE_PREFIX + "left",
-                       BASE_FIXING_PLATE_PREFIX + "right"):
+        if key not in legacy_ids and not is_tier_ear:
             raise ValueError("unknown physical large fixing-plate identity")
+        if is_tier_ear and snapshot is None:
+            raise ValueError("TIER_FIXING_PLATE_NEEDS_CURRENT_SOURCE_SNAPSHOT")
     elif source_kind == SMALL_SOURCE:
         if key != BASE_FIXING_PLATE_PREFIX + "small_source":
             raise ValueError("small original drawing is a source part, not an installed W800 ear")
@@ -175,21 +182,44 @@ def build_fixing_plate_source_render_data(
         source="ORIGINAL_EAR_DXF", revision=1,
     )
     mating = None
+    tier_xy = None
+    tier_contact = None
+    preview = None
     if snapshot is not None and source_kind == LARGE_SOURCE:
-        from .receiving_base_fixing_plate_mating import (
-            resolve_base_fixing_plate_xy_mating,
-        )
         from .receiving_base_fixing_plate import receiving_base_fixing_plate_previews
         data = dict(snapshot or {})
         candidates = receiving_base_fixing_plate_previews(
             data, available_parts=("base_plate",),
         )
-        if key not in {row.part_id for row in candidates}:
+        preview = next((row for row in candidates if row.part_id == key), None)
+        if preview is None:
             raise ValueError("BASE_FIXING_PLATE_CABINET_MISMATCH")
-        if any(row.part_id == key and row.applicable_slot_pair_indexes is not None for row in candidates):
-            mating = resolve_base_fixing_plate_xy_mating(
-                data, key.rsplit(":", 1)[-1],
-            )
+        if preview.applicable_slot_pair_indexes is not None:
+            if is_tier_ear:
+                from .receiving_tier_ear_assembly_xy import (
+                    resolve_receiving_tier_ear_mating_xy,
+                )
+                from .receiving_tier_ear_z_targets import (
+                    resolve_receiving_tier_ear_contact_targets,
+                )
+                tier_xy = next((row for row in
+                                resolve_receiving_tier_ear_mating_xy(data)
+                                if row.ear_id == key), None)
+                tier_contact = next((row for row in
+                                     resolve_receiving_tier_ear_contact_targets(data)
+                                     if row.ear_id == key), None)
+                if (tier_xy is None or tier_contact is None
+                        or tier_xy.parent_base_id != preview.parent_part_id
+                        or tier_contact.parent_base_id != preview.parent_part_id
+                        or tier_contact.layer_index != tier_xy.layer_index):
+                    raise ValueError("TIER_FIXING_PLATE_SOURCE_OWNER_DRIFT")
+            else:
+                from .receiving_base_fixing_plate_mating import (
+                    resolve_base_fixing_plate_xy_mating,
+                )
+                mating = resolve_base_fixing_plate_xy_mating(
+                    data, key.rsplit(":", 1)[-1],
+                )
     metadata = {
             "stable_id": key,
             "physical_part_role": "BASE_FIXING_PLATE",
@@ -208,18 +238,40 @@ def build_fixing_plate_source_render_data(
             "formed_geometry_verified": False,
             "weld_z_verified": False,
             "factory_bend_compensation_required": False,
-            "xy_mating_proven": mating is not None,
+            "xy_mating_proven": mating is not None or tier_xy is not None,
+            "parent_base_id": (
+                preview.parent_part_id if preview is not None else None
+            ),
+            "nfb_layer_index": (
+                tier_xy.layer_index if tier_xy is not None else None
+            ),
             "nominal_weld_inside_skin_x_mm": (
+                tier_xy.side_inside_weld_x_mm if tier_xy is not None else
                 mating.inside_skin_world_x_mm if mating is not None else None
             ),
             "nominal_base_fixing_hole_world_x_mm": (
+                tier_xy.selected_slot_column_x_mm if tier_xy is not None else
                 mating.selected_fixing_world_x_mm if mating is not None else None
             ),
             "nominal_base_fixing_hole_world_y_mm": (
+                tier_xy.selected_slot_pair_world_y_mm if tier_xy is not None else
                 mating.selected_fixing_world_y_mm if mating is not None else ()
             ),
             "nominal_slot_pair_indexes": (
+                preview.applicable_slot_pair_indexes if preview is not None else
                 mating.selected_slot_indexes if mating is not None else None
+            ),
+            "base_back_skin_world_z_mm": (
+                tier_contact.base_back_skin_world_z_mm
+                if tier_contact is not None else None
+            ),
+            "ear_contact_target_world_z_mm": (
+                tier_contact.target_ear_contact_world_z_mm
+                if tier_contact is not None else None
+            ),
+            "base_skin_z_source_verified": (
+                tier_contact.base_skin_z_source_verified
+                if tier_contact is not None else False
             ),
             "manufacturing_ready": False,
         }
