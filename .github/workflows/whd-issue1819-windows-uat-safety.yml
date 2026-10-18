@@ -30,8 +30,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $branch = [string](git branch --show-current)
-          $branch = $branch.Trim()
+          $branch = git branch --show-current  # detached HEAD gives null, intentionally allowed
           if ($branch -eq 'localX') {
             throw 'Unsafe fixture: test checkout unexpectedly owns localX branch'
           }
