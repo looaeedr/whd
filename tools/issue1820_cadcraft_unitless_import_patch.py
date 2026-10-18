@@ -10,8 +10,14 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 
 import ezdxf
+
+# CLI entrypoint also runs as python tools/...py outside a python -m package.
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 from tools.issue1820_cadcraft_dxf_fidelity_gate import audit
 
