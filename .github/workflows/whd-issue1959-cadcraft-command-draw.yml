@@ -6,6 +6,9 @@ on:
     paths:
       - "tools/issue1959_whd_cadcraft_command_draw.py"
       - "tests/test_issue1959_whd_cadcraft_command_draw.py"
+      - "tests/test_issue1959_cadcraft_command_session_bridge.py"
+      - "gui_modules/editors/cadcraft_command_session_bridge.py"
+      - "tools/issue1959_cadcraft_session_trial.py"
       - ".github/workflows/whd-issue1959-cadcraft-command-draw.yml"
   workflow_dispatch:
 
@@ -33,7 +36,7 @@ jobs:
       - name: Install WHD geometric dependencies and regression runner
         run: python -m pip install -r requirements.txt ezdxf pytest
       - name: Test WHD command conversion and independent fail-closed DXF geometry audit
-        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py
       - name: Retrieve official CADCraft v0.8.0 CLI and verify its release SHA256
         shell: bash
         run: |
@@ -84,6 +87,19 @@ jobs:
           proof=json.loads(Path("work/issue1959/geometry-proof.json").read_text())
           assert proof["status"] == "PASS" and proof["entity_count"] == 3
           print("ACTUAL_NATIVE_CADCRAFT_WHD_COMMANDS_GREEN")
+          PY
+      - name: Stage actual CADCraft output into original WHD Session then test Cancel Confirm Undo
+        run: |
+          python -m tools.issue1959_cadcraft_session_trial \
+            --input work/issue1959/cadcraft_fresh_drawn.dxf \
+            --evidence work/issue1959/session-stage-proof.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("work/issue1959/session-stage-proof.json").read_text())
+          assert p["status"]=="PASS" and all(p[k] for k in ("preview","cancel","confirm","undo"))
+          assert p["manufacturing_dxf_written"] is False
+          print("ACTUAL_CADCRAFT_DXF_WHD_SESSION_STAGE_CANCEL_CONFIRM_UNDO_GREEN")
           PY
       - name: Retain isolated drawing PNG DXF and geometry readback (not manufacturing)
         if: always()
