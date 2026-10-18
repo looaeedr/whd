@@ -136,7 +136,7 @@ def check_csv_v5_base_part_only_groups(
             raise ValueError("CSV V5 底板含非所屬 NFB 的額外 CUTTING 圓孔")
         native = [primitive for primitive in render.scene.primitives
                   if isinstance(primitive, PolylinePrimitive)
-                  and primitive.closed and primitive.layer == "CUTTING"]
+                  and primitive.closed and str(primitive.layer).upper() == "CUTTING"]
         expected_ids = {
             f"{hole_id}:screw:{i}"
             for hole_id in part.hole_ids for i in range(1, 5)
