@@ -118,3 +118,19 @@ CADCraft v0.8.0 原生 GUI 真正載入 8,620 圖元大圖，`app.open` 成功�
 2. **CADCraft 作為製造或完整保真編輯器的整合判斷為 NO-GO / DEFER**：目前有實際單位和標註語意的差異；不能將 `entityCount` 或 CI 的 4-entity roundtrip 當作全圖合格。若未來評估整合／回寫，須先修正、再重新驗證這三份真 DXF、DIMENSION/INSERT/TEXT、區塊和單位，並核實視覺等價。
 3. 本次實機已確認上述特定版本；後續 GitHub `localX` 新施工需另驗差異。本報告是 CADCraft 採用評估的負面決策證據，**不是 CADCraft 替換驗收通過，也不是正式 X 發布證據**。
 
+
+## #1820 後續：R5-2600 真圖保真，版本與字碼頁契約
+
+歷史表格為官方未修補 v0.8.0 的首次觀測，**不得代替後續隔離修正版結果**。截至第三階段 #1944，官方來源 patch 的 Linux/Windows 原生 CLI 與 R5 三份真實 DXF 已確認單位與量測設定、已有的 DIMENSION group11/42，以及原本缺失的 489 筆 group42 全部保留；但仍未取得完整幾何與文字保真資格。
+
+第三階段 R5 獨立比對（隔離資料夾 `unitless_native_1941/group42_real_1944/`，詳見 `R5_remainder_field_triage.json`、`R5_block_entity_field_triage.json`、`R5_dxf_codepage_provenance.json`）另揭露：
+
+| 原始 DXF | 原 $ACADVER → 另存 | 原 $DWGCODEPAGE → 另存 |
+|---|---|---|
+| 81 圖元 | AC1032 → AC1032 | ANSI_950 → ANSI_1252 |
+| 54 圖元 | AC1032 → AC1032 | ANSI_950 → ANSI_1252 |
+| 8,620 圖元 | AC1009 → AC1015 | ansi_950 → ansi_950 |
+
+CADCraft v0.8.0 `crates/io/src/dxf_write.rs::code_page` 針對 2007 以後版本寫出 `ANSI_1252`；`crates/io/src/lib.rs::save_version` 對舊版 DXF 使用所支援的最接近版本，寫入器則使用 R2000 結構。因此**這些是可定位的輸出格式變更**，不是只看圖元數能偵測到；R2018 的 codepage 宣告差異不能逕認中文字損壞，也不能在未驗證前逕認完全等價。另有圖塊內 264 處 TEXT 轉碼差異，部分原檔在 ezdxf 解碼時出現替代字元，尚缺 byte-level／正確 CP950 解碼的可核對證據。
+
+`tools/issue1820_cadcraft_dxf_fidelity_gate.py` 除 `$INSUNITS`、`$MEASUREMENT` 外，新增 `$ACADVER` 和 `$DWGCODEPAGE` 作為 **嚴格保真硬閘門**；僅作 fail-closed 診斷，不擅自重寫來源檔頭，不把 CADCraft 另存結果回流 WHD 製造。後續真正修復文字／圖塊時應另設明確證據，若需刻意升版或改字碼頁，應視為版本轉換工作，與「原 DXF 無損另存」分別驗收。
