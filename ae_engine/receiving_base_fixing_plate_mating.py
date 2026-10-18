@@ -7,14 +7,13 @@
 
 """#1503 source-verified 2D XY mating audit for Receiving Base Fixing Plates.
 
-The physical basis is 受電耳朵.dxf + 受電箱底板.dxf.  The factory does NOT use
+The current fixed-plate source is uploaded 固定片.dxf. The factory does NOT use
 bend compensation. For W800/T2 the *nominal* fold reference is 23 mm from the
-long weld edge because original source slot center is 86 mm away and the
-assembled hole is 63 mm from the inside side-panel skin.
+long weld edge because UPDATED source hole center y84 minus real source BEND23 plus
+EAR sheet T2 = 63 mm from the cabinet inside side-panel skin.
 
-This independent 2D proof derives ALL four original slot projections. It
-intentionally does not publish a press-brake BEND line, formed 3D geometry, or
-a welding Z, because none is established by the original large plate DXF.
+This independent 2D proof derives ALL four original slot projections. It carries the real source BEND line, but does not claim certified signed
+3D folding direction, side wall weld seam or manufacturing approval.
 """
 from __future__ import annotations
 
@@ -109,8 +108,11 @@ def resolve_base_fixing_plate_xy_mating(
     # Left (-X) / right (+X) inside skin: +-398 for W800/T2.
     sign = -1.0 if name == "left" else 1.0
     inner_x = sign * (float(data["w"]) / 2.0 - float(data["t"]))
+    # New source T2: 84 - BEND23 + EAR_T2 = 63 from side INNER skin.
+    # No bend compensation; ear stock T and box side T are distinct.
     projected_x = inner_x - sign * (
         centers_y[0] - fit.nominal_fold_from_weld_edge_mm
+        + fit.ear_thickness_mm
     )
     expected_x = sign * x_pitch / 2.0
     if not isclose(projected_x, expected_x,abs_tol=1e-7):

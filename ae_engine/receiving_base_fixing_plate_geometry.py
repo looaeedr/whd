@@ -5,14 +5,15 @@
 # 展開 BEND = 料長前綴和；由展開邊界與 BEND 差分得料長，再按拓樸/T 可反算包外，正反算須一致。
 # 單板3D、組合3D、2D及製造/DXF都由這份輸入推導；角度正負只定折彎方向，WRAP/OVERLAY 是裝配語意.
 
-"""Independent, original-DXF-derived Receiving bottom fixing-plate blanks.
+"""Original-user 固定片.dxf (2026-10-18) source-backed Receiving fixing blanks.
 
-受電耳朵.dxf contains TWO closed source profiles: long 256x105 / four slots
-and small 90x90 / two slots (T3, top R5, slot R5.5). Coordinates below are
+The REVISED 固定片.dxf contains TWO closed source profiles: long 256x105 / four slots
+and small 90x90 / two slots (source T2, square outer corners, slot R5.5). Coordinates below are
 local 0,0 normalization of the user's actual LINE/ARC entities, not a new
 cabinet placement. Geometry is shared by 2D / 3D flat-material preview and
-separate source-flat DXF. The source does not establish the finished weld Z,
-large-ear fold direction/line or the number of *small* plates to install in a cabinet.
+separate source-flat DXF. The source explicitly contains a 23-mm-from-bottom BEND LINE on BOTH blanks
+for T2, and labels T3 fold at 24 mm (21 + physical EAR T). A LINE does NOT
+independently specify its signed 90-degree direction or the assembled weld Z.
 
 The long plate applies to W800/T2 at the two verified side positions; the
 short profile is catalogued, never silently instantiated in that W800 cabinet.
@@ -26,7 +27,7 @@ from pathlib import Path
 
 from .receiving_base_fixing_plate import BASE_FIXING_PLATE_PREFIX
 
-SOURCE_DXF_SHA256 = "2d8b96ff88882c033a08da223f112e2d7573f787fb13fa056cf71626bfeec8a8"
+SOURCE_DXF_SHA256 = "dd123595e384b7ce6bf4c444b5af23a11e559de2a715c40ce5d89e2552167cbe"
 LARGE_SOURCE = "large"
 SMALL_SOURCE = "small"
 
@@ -45,13 +46,14 @@ class FixingPlateSourcePattern:
 
 
 LARGE_PATTERN = FixingPlateSourcePattern(
-    LARGE_SOURCE, 256.0, 105.0, 3.0, 5.0, 25.0, 11.0,
-    ((23.0, 86.0), (58.0, 86.0), (198.0, 86.0), (233.0, 86.0)),
+    LARGE_SOURCE, 256.0, 105.0, 2.0, 0.0, 25.0, 11.0,
+    ((23.0, 84.0), (58.0, 84.0), (198.0, 84.0), (233.0, 84.0)),
+    source_fold_reference=23.0,
 )
 SMALL_PATTERN = FixingPlateSourcePattern(
-    SMALL_SOURCE, 90.0, 90.0, 3.0, 5.0, 30.0, 11.0,
-    ((25.0, 68.0), (65.0, 68.0)),
-    source_fold_reference=22.0,
+    SMALL_SOURCE, 90.0, 90.0, 2.0, 0.0, 30.0, 11.0,
+    ((25.0, 69.0), (65.0, 69.0)),
+    source_fold_reference=23.0,
 )
 # The small plate's straight portion is 19 mm, with 5.5 mm radii on both
 # sides => 30 mm total slot width. Long plate is 14+11=25 mm.
@@ -81,6 +83,10 @@ def _outline(pattern):
     arc segmentation and coordinate precision are unchanged.
     """
     w, h, r = pattern.width, pattern.height, pattern.corner_radius
+    if r == 0.0:
+        # Uploaded revised source: outer CUTTING LWPOLYLINE handles 98
+        # (large) / 99 (small), 4 straight vertices, zero bulges.
+        return ((0.0, 0.0), (w, 0.0), (w, h), (0.0, h))
     return (
         ((0.0, 0.0), (w, 0.0), (w, h-r))
         + _arc(w-r, h-r, r, 0, 90)
@@ -113,11 +119,12 @@ def _source_flat_cutting_scene(pattern):
         scene.add_polyline(_slot(*center, pattern.slot_length, pattern.slot_width),
                            layer="CUTTING", closed=True)
     if pattern.source_fold_reference is not None:
-        # Uncertified source reference is MARKING only, not BEND.
+        # This BEND is a real LINE in the user-supplied UPDATED
+        # 固定片.dxf (handles 9C small / 9D large), not an inferred fold.
         scene.add_line(
             (0.0, pattern.source_fold_reference),
             (pattern.width, pattern.source_fold_reference),
-            layer="MARKING", color=150)
+            layer="BEND", color=5)
     return scene
 
 
@@ -141,13 +148,14 @@ def _cached_source_flat_material_wkb(source_kind):
 def build_fixing_plate_source_render_data(
     part_id: str, *, source_kind: str = LARGE_SOURCE, snapshot=None,
 ):
-    """Real standalone PartRenderData from source CUTTING, never fake BEND.
+    """Real standalone PartRenderData from source CUTTING plus existing BEND.
 
-    Output remains a source-flat manufacturing part until bend/weld proofs pass.
+    T2 source BEND exists; signed forming direction/weld remain separate proofs.
     The same geometry is used for material, 2D and 3D flat-thickness preview.
     """
     from .manufacturing_render_data import (
         PartRenderData, UnfoldedBlankTopology, MaterialSegment,
+        fold_guides_from_final_scene,
     )
     from shapely import wkb as shapely_wkb
 
@@ -169,6 +177,20 @@ def build_fixing_plate_source_render_data(
     else:
         raise ValueError("UNKNOWN_BASE_FIXING_PLATE_SOURCE_PROFILE")
     pattern = source_pattern(source_kind)
+    # The user's revised DXF explicitly states y_BEND = 21 + physical
+    # EAR sheet T, and gives the *formed* hole datum for each profile.
+    # Actual source T2: large 84-23+2=63, small 69-23+2=48.
+    if (pattern.source_fold_reference is None
+            or abs(pattern.source_fold_reference - (21.0 + pattern.thickness)) > 1e-7
+            or len({cy for _, cy in pattern.slot_centers}) != 1):
+        raise ValueError("REVISED_FIXED_PLATE_SOURCE_BEND_OR_SLOTS_DRIFT")
+    source_formed_hole = (
+        pattern.slot_centers[0][1]
+        - pattern.source_fold_reference
+        + pattern.thickness
+    )
+    if abs(source_formed_hole - (63.0 if source_kind == LARGE_SOURCE else 48.0)) > 1e-7:
+        raise ValueError("REVISED_FIXED_PLATE_FORMED_HOLE_DATUM_DRIFT")
     scene = _source_flat_cutting_scene(pattern)
     # Recreate a distinct, mutable-independent geometry wrapper from a
     # certified constant source contour; placement/proof stays uncached.
@@ -239,6 +261,12 @@ def build_fixing_plate_source_render_data(
                 2 if source_kind == LARGE_SOURCE else None
             ),
             "source_cutting_verified": True,
+            "source_bend_verified": True,
+            "source_bend_axis": "y",
+            "source_bend_line_mm": pattern.source_fold_reference,
+            "source_bend_rule": "21+EAR_T",
+            "source_derived_formed_hole_center_mm": source_formed_hole,
+            "formed_direction_verified": False,
             "formed_geometry_verified": False,
             "weld_z_verified": False,
             "factory_bend_compensation_required": False,
@@ -281,6 +309,7 @@ def build_fixing_plate_source_render_data(
         }
     return PartRenderData(
         scene=scene, material=material, unfolded_topology=topology,
+        fold_guides=fold_guides_from_final_scene(scene),
         metadata=metadata,
     )
 

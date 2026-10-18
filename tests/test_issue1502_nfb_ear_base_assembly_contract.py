@@ -65,7 +65,7 @@ def test_ear_mounting_does_not_invent_base_or_change_verified_inner_NFB(
     )
     assert ear.slot_pair_indexes == slot_pair
     assert ear.fixing_center_from_inside_skin_mm == pytest.approx(63.0)
-    assert ear.ear_thickness_mm == pytest.approx(3.0)
+    assert ear.ear_thickness_mm == pytest.approx(2.0)
     assert ear.nominal_fold_from_weld_edge_mm == pytest.approx(23.0)
 
     scope = NfbPhysicalScope(

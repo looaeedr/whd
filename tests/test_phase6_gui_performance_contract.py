@@ -1050,8 +1050,12 @@ def test_issue1817_cached_contours_keep_source_flat_small_dxf_roundtrip(tmp_path
             BASE_FIXING_PLATE_PREFIX+"small_source",
             source_kind=source.SMALL_SOURCE)
         assert small.material.is_valid and small.material.area > 0
+        # Current uploaded 固定片.dxf contains an ACTUAL BEND layer,
+        # unlike the historical small plate's non-manufacturing MARKING.
         assert {p.layer for p in small.scene.primitives} == {
-            "CUTTING", "MARKING"}
+            "CUTTING", "BEND"}
+        assert len(small.fold_guides) == 1
+        assert small.fold_guides[0].position == 23.0
         output=source.save_independent_source_flat_dxf(
             BASE_FIXING_PLATE_PREFIX+"small_source",tmp_path/"small.dxf")
         assert output == str(tmp_path/"small.dxf")

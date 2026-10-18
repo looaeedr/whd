@@ -25,12 +25,12 @@ def test_big_receiving_weld_ear_mates_either_bottom_plate(row_pitch, expected_sl
     )
     # Independent DXF facts: 670 assembled transverse fixing centers,
     # single large ear longitudinal slot positions 0/35/175/210 and 86 mm
-    # from the nominated welding edge to the slot center. Ear stock is T3.
+    # from the nominated welding edge to the slot center. Ear stock is T2, with BEND23 on both revised DXF blanks.
     assert fit.fixing_center_from_outer_side_mm == pytest.approx(65.0)
     assert fit.fixing_center_from_inside_skin_mm == pytest.approx(63.0)
-    assert fit.ear_weld_edge_to_hole_center_mm == pytest.approx(86.0)
+    assert fit.ear_weld_edge_to_hole_center_mm == pytest.approx(84.0)
     assert fit.nominal_fold_from_weld_edge_mm == pytest.approx(23.0)
-    assert fit.ear_thickness_mm == pytest.approx(3.0)
+    assert fit.ear_thickness_mm == pytest.approx(2.0)
     assert fit.slot_pair_indexes == expected_slot_pair
 
 
@@ -42,7 +42,7 @@ def test_ear_65_mm_is_outside_datum_not_bend_or_inside_skin_dimension():
     assert fit.fixing_center_from_outer_side_mm - fit.fixing_center_from_inside_skin_mm == 2
     assert fit.nominal_fold_from_weld_edge_mm != 65
     assert fit.nominal_fold_from_weld_edge_mm != 63
-    assert fit.nominal_fold_from_weld_edge_mm + fit.fixing_center_from_inside_skin_mm == 86
+    assert fit.nominal_fold_from_weld_edge_mm + fit.fixing_center_from_inside_skin_mm - fit.ear_thickness_mm == 84
 
 
 @pytest.mark.parametrize(
@@ -53,8 +53,8 @@ def test_ear_65_mm_is_outside_datum_not_bend_or_inside_skin_dimension():
         ({"box_side_thickness_mm": 3.0}, "T=2"),
         ({"fixing_hole_pitch_x_mm": 732.0}, "ASSEMBLED.*670"),
         ({"fixing_hole_pitch_y_mm": 200.0}, "210 or 140"),
-        ({"ear_thickness_mm": 2.0}, "T=3"),
-        ({"ear_weld_edge_to_hole_center_mm": 85.0}, "86"),
+        ({"ear_thickness_mm": 3.0}, "T=2"),
+        ({"ear_weld_edge_to_hole_center_mm": 85.0}, "84"),
     ],
 )
 def test_weld_ear_unverified_dimensions_fail_closed(kwargs, reason):
@@ -86,13 +86,13 @@ def test_bottom_fixing_plate_part_identity_and_original_2d_source():
     ]
     for part in parts:
         assert part.parent_part_id == "base_plate"
-        assert part.stock_thickness_mm == 3
+        assert part.stock_thickness_mm == 2
         assert part.nominal_source_outline_mm == (256, 105)
         assert part.nominal_source_slot_centers_mm == (
-            (23, 86), (58, 86), (198, 86), (233, 86),
+            (23, 84), (58, 84), (198, 84), (233, 84),
         )
         assert part.source_slot_size_mm == (25, 11)
-        assert part.source_top_corner_radius_mm == 5
+        assert part.source_top_corner_radius_mm == 0
         assert part.nominal_fold_from_weld_edge_mm == 23
         assert part.applicable_slot_pair_indexes == (0, 3)
         assert part.manufacturing_status == MANUFACTURING_STATUS
@@ -143,7 +143,7 @@ def test_original_source_large_and_small_are_actual_independent_cutting_geometry
     assert source_pattern("large") is LARGE_PATTERN
     assert source_pattern("small") is SMALL_PATTERN
     assert big.metadata["stable_id"] == "base_plate:fixing_plate:left"
-    assert big.metadata["thickness"] == 3
+    assert big.metadata["thickness"] == 2
     assert big.unfolded_topology.width == 256
     assert big.unfolded_topology.height == 105
     assert small.unfolded_topology.width == 90
@@ -151,15 +151,19 @@ def test_original_source_large_and_small_are_actual_independent_cutting_geometry
     assert len([p for p in big.scene.primitives if isinstance(p, PolylinePrimitive)]) == 5
     assert len([p for p in small.scene.primitives if isinstance(p, PolylinePrimitive)]) == 3
     assert len([p for p in small.scene.primitives if isinstance(p, LinePrimitive)]) == 1
-    assert all(p.layer != "BEND" for p in small.scene.primitives)
+    assert len(small.fold_guides) == len(big.fold_guides) == 1
+    assert big.fold_guides[0].axis == "y"
+    assert big.fold_guides[0].position == small.fold_guides[0].position == 23.0
+    assert big.fold_guides[0].span_end == 256.0
+    assert small.fold_guides[0].span_end == 90.0
+    assert big.metadata["source_bend_verified"] is True
+    assert small.metadata["source_bend_verified"] is True
     assert small.metadata["weld_z_verified"] is False
     assert big.metadata["formed_geometry_verified"] is False
     # Source native arcs are tessellated at sub-hundredth-mm error, but the
     # same *material* is returned to 2D, 3D and the independent DXF sink.
-    expected_big = (256 * 105 - 2 * (25 - pi*25/4)
-                    - 4 * (14*11 + pi * (5.5**2)))
-    expected_small = (90 * 90 - 2 * (25 - pi*25/4)
-                      - 2 * (19*11 + pi * (5.5**2)))
+    expected_big = (256 * 105 - 4 * (14*11 + pi * (5.5**2)))
+    expected_small = (90 * 90 - 2 * (19*11 + pi * (5.5**2)))
     assert big.material.area == pytest.approx(expected_big, abs=0.15)
     assert small.material.area == pytest.approx(expected_small, abs=0.15)
 
@@ -261,7 +265,7 @@ def test_original_large_fixing_plate_left_right_xy_mates_both_base_patterns(
     )
     for part in (left, right):
         assert part.nominal_fold_from_weld_edge_mm == 23.0
-        assert part.source_weld_edge_to_slot_center_mm == 86.0
+        assert part.source_weld_edge_to_slot_center_mm == 84.0
         assert part.factory_bend_compensation_mm == 0.0
         assert part.xy_mating_proven is True
         assert part.manufacturing_approved is False
@@ -320,7 +324,7 @@ def test_correct_mating_evidence_flows_into_physical_render_data():
     assert right.metadata["nominal_slot_pair_indexes"] == (1,2)
     assert all(part.metadata["xy_mating_proven"] for part in (left, right))
     assert all(not part.metadata["manufacturing_ready"] for part in (left, right))
-    assert all(part.metadata["thickness"] == 3.0 for part in (left, right))
+    assert all(part.metadata["thickness"] == 2.0 for part in (left, right))
 
 
 @pytest.mark.parametrize("box_count", [1, 3])
@@ -355,7 +359,7 @@ def test_bom_counts_both_independent_fixing_plates_without_unsafe_export(box_cou
         "base_plate:fixing_plate:right": box_count,
     }
     assert sum(item.quantity for item in bom) == 2 * box_count
-    assert all(item.render_data.metadata["thickness"] == 3 for item in bom)
+    assert all(item.render_data.metadata["thickness"] == 2 for item in bom)
     # Formal full-cabinet export remains closed for unformed fixing plates.
     assert resolved_physical_render_parts(geometry) == ()
     all_parts = resolved_physical_render_parts(

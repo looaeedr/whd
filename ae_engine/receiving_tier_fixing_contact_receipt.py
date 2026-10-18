@@ -3,8 +3,8 @@
 
 An independent *read-only* geometric receipt. This does NOT infer the missing
 large-ear forming direction, weld seam, side-sheet flat UV or manufacturing
-approval. Source EAR parts are actual T3 CUTTING blanks, not fake installed
-formed solids. No DXF conversions or output are performed.
+approval. Source EAR parts have the actual T2 BEND, not yet an approved signed
+90-degree formed solid or completed weld. No DXF conversions or output are performed.
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def validate_receiving_tier_fixing_contact_receipts(
 
     A target-vs-target test is not enough: consume the assembled FinalScene
     Base Plate's real offset, source topology and folded NFB mounting skin,
-    each physical EAR's own real T3 source material, and the independently
+    each physical EAR's own real revised T2 source material, and the independently
     derived side-wall mount column. One and two tiers share this same check.
     """
     from .receiving_base_fixing_plate_geometry import (
@@ -150,7 +150,10 @@ def validate_receiving_tier_fixing_contact_receipts(
                 or ear_meta.get("parent_base_id") != xy_row.parent_base_id
                 or ear_meta.get("source_dxf_sha256") != SOURCE_DXF_SHA256
                 or ear_meta.get("source_cutting_verified") is not True
-                or not _same(ear_meta.get("thickness"), 3.0)
+                or not _same(ear_meta.get("thickness"), 2.0)
+                or ear_meta.get("source_bend_verified") is not True
+                or not _same(ear_meta.get("source_bend_line_mm"), 23.0)
+                or ear_meta.get("formed_direction_verified") is not False
                 or ear_meta.get("formed_geometry_verified") is not False
                 or ear_meta.get("weld_z_verified") is not False
                 or ear_meta.get("manufacturing_ready") is not False):
@@ -158,7 +161,11 @@ def validate_receiving_tier_fixing_contact_receipts(
         cuts = [p for p in source.scene.primitives
                 if isinstance(p, PolylinePrimitive)
                 and p.layer == "CUTTING" and p.closed]
-        if len(cuts) != 5 or any(p.layer == "BEND" for p in source.scene.primitives):
+        if (len(cuts) != 5 or len(source.fold_guides) != 1
+                or source.fold_guides[0].axis != "y"
+                or not _same(source.fold_guides[0].position, 23.0)
+                or not _same(source.fold_guides[0].span_start, 0.0)
+                or not _same(source.fold_guides[0].span_end, 256.0)):
             raise ValueError("EAR_RECEIPT_SOURCE_EAR_CUTTING_OR_BEND_DRIFT")
         if (not _same(ear_meta.get("nominal_base_fixing_hole_world_x_mm"),
                       xy_row.selected_slot_column_x_mm)

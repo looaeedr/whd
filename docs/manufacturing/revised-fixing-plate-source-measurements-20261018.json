@@ -1,0 +1,152 @@
+{
+  "source_filename": "固定片.dxf",
+  "uploaded_revision": "2026-10-18",
+  "acad_version": "AC1027",
+  "units": "mm",
+  "sha256": "dd123595e384b7ce6bf4c444b5af23a11e559de2a715c40ce5d89e2552167cbe",
+  "source_bend_rule": "21+EAR_T",
+  "source_stock_thickness_mm": 2,
+  "source_entities": {
+    "large": {
+      "cutting_outer": {
+        "handle": "98",
+        "vertices": [
+          [
+            0,
+            0
+          ],
+          [
+            256,
+            0
+          ],
+          [
+            256,
+            105
+          ],
+          [
+            0,
+            105
+          ]
+        ],
+        "corner_bulges": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "slots": {
+        "handles": [
+          "94",
+          "95",
+          "96",
+          "97"
+        ],
+        "centers": [
+          [
+            23,
+            84
+          ],
+          [
+            58,
+            84
+          ],
+          [
+            198,
+            84
+          ],
+          [
+            233,
+            84
+          ]
+        ],
+        "overall_size_mm": [
+          25,
+          11
+        ]
+      },
+      "bend": {
+        "handle": "9D",
+        "layer": "BEND",
+        "from": [
+          0,
+          23
+        ],
+        "to": [
+          256,
+          23
+        ]
+      }
+    },
+    "small": {
+      "cutting_outer": {
+        "handle": "99",
+        "vertices": [
+          [
+            0,
+            0
+          ],
+          [
+            90,
+            0
+          ],
+          [
+            90,
+            90
+          ],
+          [
+            0,
+            90
+          ]
+        ],
+        "corner_bulges": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "slots": {
+        "handles": [
+          "9A",
+          "9B"
+        ],
+        "centers": [
+          [
+            25,
+            69
+          ],
+          [
+            65,
+            69
+          ]
+        ],
+        "overall_size_mm": [
+          30,
+          11
+        ]
+      },
+      "bend": {
+        "handle": "9C",
+        "layer": "BEND",
+        "from": [
+          0,
+          23
+        ],
+        "to": [
+          90,
+          23
+        ]
+      }
+    }
+  },
+  "annotations": {
+    "formed_hole_center_mm": {
+      "large": 63,
+      "small": 48
+    },
+    "source_bend_at_T3_mm": 24
+  },
+  "proof_scope": "actual BEND position and CUTTING only; signed fold and real welded 3D unverified",
+  "original_binary_copied_to_github": false
+}
