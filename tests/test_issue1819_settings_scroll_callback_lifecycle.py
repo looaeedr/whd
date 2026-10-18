@@ -87,12 +87,17 @@ def test_issue1819_bound_settings_scroll_actions_remain_callable_from_tk():
             def yview_moveto(self, fraction):
                 seen.append(("home", fraction))
         panel.settings_scroll_canvas = Scroll()
-        w = ttk.Frame(root)
+        # Keyboard shortcuts require a focused widget; a bare ttk.Frame
+        # cannot receive the X11 KeyPress event by default.
+        w = ttk.Entry(root)
         w.pack()
         root.update()
         panel._bind_settings_scroll_tree(w)
         for _ in range(15):
             panel._bind_settings_scroll_tree(w)
+        w.focus_force()
+        root.update()
+        assert root.focus_get() is w
         w.event_generate("<MouseWheel>", delta=-120)
         w.event_generate("<Home>")
         root.update()
