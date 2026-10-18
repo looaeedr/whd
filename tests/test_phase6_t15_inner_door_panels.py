@@ -572,6 +572,11 @@ def test_inner_door_editor_reuses_original_vault_hole_editor_and_stashes_per_pan
     feature = CircleFeature(diameter=8.0, anchor=FeatureAnchor.PANEL_CENTER, offset=Vec2(0.0, 0.0))
     kwargs["feature_list_override"].append(feature)
     kwargs["sync_callback"]()
+    # Preview stays in the original editor draft; only main Confirm All
+    # commits. Its Cancel All cannot leave a physical inner-door hole.
+    assert workspace.features_for(key) == []
+    assert ("update", "geometry", True) not in calls
+    kwargs["on_confirm_features"]([feature])
     assert workspace.features_for(key) == [feature]
     assert workspace.features_for("box_body") == []
     assert ("update", "geometry", True) in calls
@@ -624,8 +629,11 @@ def test_corner_data_inner_door_existing_editor_keeps_active_part_and_feature_ow
     )
     calls[0][2]["feature_list_override"].append(feature)
     calls[0][2]["sync_callback"]()
-    assert workspace.features_for(key) == [feature]
+    assert workspace.features_for(key) == []
     assert workspace.features_for("head") == []
+    assert ("update", "geometry", True) not in calls
+    calls[0][2]["on_confirm_features"]([feature])
+    assert workspace.features_for(key) == [feature]
     assert workspace.active_part == "head"
     assert ("active-holes", key) not in calls
     assert ("update", "geometry", True) in calls

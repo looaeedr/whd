@@ -2,8 +2,9 @@
 """Regression: Receiving inner door uses the original Hole Editor directly.
 
 The user removed the separate CSV world-X/opening verification workflow.
-Selecting NFB metadata must not secretly import an opening or demand a
-pre-verified numeric/DXF source before the ordinary editor can confirm.
+Selecting NFB metadata does not silently commit. The Receiving tab's own
+Confirm stages user-selected CSV holes in the original editor, without
+a duplicate verification popup. Only Confirm All can persist the result.
 """
 import ast
 from pathlib import Path
@@ -44,7 +45,7 @@ def test_csv_opening_world_x_button_and_popup_are_completely_removed():
     assert "stage_csv_openings" not in source
 
 
-def test_receiving_confirm_stages_settings_but_does_not_import_or_autocut_holes():
+def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction():
     functions = _inner_editor_functions()
     confirm = functions["confirm"]
     calls = [
@@ -52,6 +53,8 @@ def test_receiving_confirm_stages_settings_but_does_not_import_or_autocut_holes(
         if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
     ]
     assert "stage_in_editor" in calls
+    assert "editor_nfb_features_from_csv" in calls
+    assert "stage_in_editor(config, openings)" in _ui_source()
     assert "after_saved" in calls
     assert "close_editor" in calls
     assert "csv_openings_to_editor_features" not in calls
@@ -61,7 +64,7 @@ def test_receiving_confirm_stages_settings_but_does_not_import_or_autocut_holes(
     assert "model_spec" in calls
     assert "current_numeric_editor" in ast.unparse(confirm)
     source = _ui_source()
-    assert 'ttk.Button(buttons, text="確認", command=confirm)' in source
+    assert 'ttk.Button(buttons, text="確定", command=confirm)' in source
     assert 'ttk.Button(buttons, text="取消"' in source
 
 
