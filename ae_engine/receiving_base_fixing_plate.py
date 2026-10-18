@@ -73,7 +73,10 @@ def receiving_base_fixing_plate_previews(
     """
     data = dict(snapshot or {})
     model = str(data.get("model") or data.get("baseline_model") or "").strip()
-    if model not in RECEIVING_FAMILIES or BASE_FIXING_PLATE_PARENT_ID not in set(available_parts):
+    parts=set(str(value) for value in tuple(available_parts or ()))
+    if (model not in RECEIVING_FAMILIES
+            or (BASE_FIXING_PLATE_PARENT_ID not in parts
+                and not any(p.startswith("base_plate:nfb_layer:") for p in parts))):
         return ()
     try:
         w = float(data.get("w", 0))
@@ -103,11 +106,57 @@ def receiving_base_fixing_plate_previews(
         )
     except (TypeError, ValueError, OverflowError):
         return ()
+    # One NFB layer owns ONE source Base Plate and exactly two welded-ear
+    # children (left/right). Two NFB layers inside the UPPER Outer Door must
+    # NEVER silently share the same two ear IDs. The OUTER lower compartment
+    # has no such NFB Base Plate. These are source-flat previews, not fake
+    # certified BEND/weld/3D manufacturing parts.
+    owner_ids=(BASE_FIXING_PLATE_PARENT_ID,)
+    config_nfb=data.get("nfb_config")
+    if (data.get("nfb_config_submitted") is True
+            and isinstance(config_nfb,Mapping)
+            and config_nfb.get("layer_count")==2):
+        from .receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
+        upper=tuple(
+            row for row in tuple(data.get("inner_doors") or ())
+            if isinstance(row,Mapping)
+            and str(row.get("cell_key") or "").split(":")[-1]=="0"
+            and str(row.get("stable_id") or "").strip()
+        )
+        if len(upper)!=1:
+            return ()
+        try:
+            tiers=receiving_nfb_layer_centers(
+                data,str(upper[0]["stable_id"]),
+            )
+        except ValueError as exc:
+            if str(exc) in {
+                "RECEIVING_NFB_LAYER_SET_IDENTITY_DRIFT",
+                "RECEIVING_NFB_LAYER_BAY_IDENTITY_DRIFT",
+                "RECEIVING_NFB_LAYER_CONFIG_IDENTITY_DRIFT",
+            }:
+                return ()  # UI switching: do not invent stale tier children
+            raise
+        if len(tiers)!=2:
+            return ()
+        owner_ids=tuple(tier.layer_part_id for tier in tiers)
+
     return tuple(
         BaseFixingPlatePreview(
-            part_id=BASE_FIXING_PLATE_PREFIX + side,
-            parent_part_id=BASE_FIXING_PLATE_PARENT_ID,
-            display_name=BASE_FIXING_PLATE_DISPLAY_NAME + ("（左）" if side == "left" else "（右）"),
+            part_id=(
+                BASE_FIXING_PLATE_PREFIX+side
+                if owner_id==BASE_FIXING_PLATE_PARENT_ID
+                else BASE_FIXING_PLATE_PREFIX +
+                     f"nfb_layer:{owner_id.rsplit(':',1)[-1]}:{side}"
+            ),
+            parent_part_id=owner_id,
+            display_name=(
+                BASE_FIXING_PLATE_DISPLAY_NAME +
+                ("（左）" if side=="left" else "（右）")
+                if owner_id==BASE_FIXING_PLATE_PARENT_ID else
+                f"{BASE_FIXING_PLATE_DISPLAY_NAME}（第{int(owner_id.rsplit(':',1)[-1])+1}層" +
+                ("左）" if side=="left" else "右）")
+            ),
             side=side,
             stock_thickness_mm=fit.ear_thickness_mm,
             nominal_source_outline_mm=SOURCE_FLAT_SIZE_MM,
@@ -117,5 +166,6 @@ def receiving_base_fixing_plate_previews(
             nominal_fold_from_weld_edge_mm=fit.nominal_fold_from_weld_edge_mm,
             applicable_slot_pair_indexes=chosen_pair,
         )
-        for side in ("left", "right")
+        for owner_id in owner_ids
+        for side in ("left","right")
     )

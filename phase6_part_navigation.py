@@ -74,15 +74,37 @@ def project_hierarchy(values: Iterable[object] | None) -> tuple[NavigationRow, .
     fixing_children = tuple(key for key in keys if key.startswith("base_plate:fixing_plate:"))
     fixing_set = set(fixing_children)
     base_present = "base_plate" in keys
+    import re
+    tier_base = re.compile(r"base_plate:nfb_layer:[01]$")
+    tier_ear = re.compile(r"base_plate:fixing_plate:nfb_layer:([01]):(left|right)$")
+    tier_owners = {k for k in keys if tier_base.fullmatch(k)}
+    def ear_parent(key):
+        match = tier_ear.fullmatch(key)
+        if match:
+            owner = f"base_plate:nfb_layer:{match.group(1)}"
+            if owner in tier_owners:
+                return owner
+        return "base_plate" if base_present else None
+
     rows: list[NavigationRow] = []
     for key in keys:
-        if (parent_present and key in child_set) or (base_present and key in fixing_set):
+        if (parent_present and key in child_set) or (
+            key in fixing_set and ear_parent(key) is not None
+        ):
             continue
         rows.append(NavigationRow(key, None, 0))
         if parent_present and key == "box_body":
             rows.extend(NavigationRow(child, "box_body", 1) for child in children)
         if base_present and key == "base_plate":
-            rows.extend(NavigationRow(child, "base_plate", 1) for child in fixing_children)
+            rows.extend(
+                NavigationRow(child, "base_plate", 1)
+                for child in fixing_children if ear_parent(child) == "base_plate"
+            )
+        if key in tier_owners:
+            rows.extend(
+                NavigationRow(child, key, 1)
+                for child in fixing_children if ear_parent(child) == key
+            )
     return tuple(rows)
 
 
@@ -110,6 +132,7 @@ def operator_part_label(
     This stays pure: callers provide any legacy/base label table plus an
     optional read-only snapshot used only for family/layout-sensitive labels.
     """
+    import re
     key = str(value or "")
     labels = dict(base_labels or {})
     if key in labels:
@@ -128,10 +151,19 @@ def operator_part_label(
     if key in piece_labels:
         return piece_labels[key]
     if key.startswith("base_plate:fixing_plate:"):
+        import re
+        tier = re.fullmatch(
+            r"base_plate:fixing_plate:nfb_layer:([01]):(left|right)", key
+        )
+        if tier:
+            side = "左" if tier.group(2) == "left" else "右"
+            return f"底板固定片（第{int(tier.group(1))+1}層{side}）"
         side = key.rsplit(":", 1)[-1]
         return "底板固定片（左）" if side == "left" else (
             "底板固定片（右）" if side == "right" else "底板固定片"
         )
+    if re.fullmatch(r"base_plate:nfb_layer:([01])", key):
+        return f"底板（NFB 第{int(key.rsplit(':',1)[-1])+1}層）"
 
     snap = dict(snapshot or {})
     catalog = snap.get("custom_parts") or dict(snap.get("workspace") or {}).get("custom_parts") or {}
