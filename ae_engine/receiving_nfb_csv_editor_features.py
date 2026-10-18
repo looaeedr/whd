@@ -22,6 +22,21 @@ from .sheetmetal_feature_core import FeatureAnchor, ProfileFeature
 from .sheetmetal_geometry import Vec2
 
 
+def invalidate_csv_editor_proof(editor, popup=None):
+    """Fail closed before every CSV re-check, including unsuccessful retries.
+
+    The previous typed proof must never survive a new invalid world-X input,
+    missing CSV/model, changed geometry, or source/face/collision error.
+    The caller can restage a fresh proof only after its *entire* new check
+    succeeds. This only touches the transient original Hole Editor state.
+    """
+    if editor is not None:
+        editor._receiving_csv_door_proof = None
+    if popup is not None:
+        popup._receiving_v5_trial = None
+        popup._receiving_v5_base_trial = None
+
+
 @dataclass(frozen=True)
 class NfbCsvHoleEditorProof:
     trial: NfbV5ConfiguredInnerDoorTrial
