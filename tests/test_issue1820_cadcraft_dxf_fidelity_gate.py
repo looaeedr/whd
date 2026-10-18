@@ -136,3 +136,49 @@ def test_solid_inside_block_is_fingerprinted_and_geometry_changes_fail(tmp_path)
     result = audit(a, b)
     assert result["result"] == "FAIL_CLOSED"
     assert "BLOCKS_DIFF" in result["failures"]
+
+
+def test_original_dxf_codepage_change_is_a_hard_failure(tmp_path):
+    """#1820 R5: AC1032 ANSI_950 was rewritten to ANSI_1252.
+
+    Use ASCII-only HEADER byte surgery on an isolated fixture because ezdxf
+    intentionally normalizes the codepage for post-2007 DXF when saving.
+    """
+    source, saved = _fixture(tmp_path)
+    before = source.read_bytes()
+    assert before.count(b"ANSI_1252") == 1
+    source.write_bytes(before.replace(b"ANSI_1252", b"ANSI_950", 1))
+    assert ezdxf.readfile(source).header.get("$DWGCODEPAGE") == "ANSI_950"
+    assert ezdxf.readfile(saved).header.get("$DWGCODEPAGE") == "ANSI_1252"
+    result = audit(source, saved)
+    assert result["result"] == "FAIL_CLOSED"
+    assert "$DWGCODEPAGE_DRIFT" in result["failures"]
+    assert result["header"]["$DWGCODEPAGE"] == {
+        "original": "ANSI_950", "resaved": "ANSI_1252",
+    }
+
+
+def test_original_dxf_version_upgrade_is_a_hard_failure(tmp_path):
+    """#1820 R5: original AC1009 later resaved to AC1015.
+
+    Use compatible ASCII HEADER values in this self-contained synthetic test.
+    """
+    source, saved = _fixture(tmp_path)
+    saved_bytes = saved.read_bytes()
+    assert saved_bytes.count(b"AC1024") == 1
+    saved.write_bytes(saved_bytes.replace(b"AC1024", b"AC1027", 1))
+    assert ezdxf.readfile(saved).header.get("$ACADVER") == "AC1027"
+    result = audit(source, saved)
+    assert result["result"] == "FAIL_CLOSED"
+    assert "$ACADVER_DRIFT" in result["failures"]
+    assert result["header"]["$ACADVER"] == {
+        "original": "AC1024", "resaved": "AC1027",
+    }
+
+
+def test_unmodified_dxf_file_metadata_still_passes(tmp_path):
+    source, saved = _fixture(tmp_path)
+    result = audit(source, saved)
+    assert result["result"] == "PASS"
+    assert result["header"]["$ACADVER"]["original"] == "AC1024"
+    assert result["header"]["$DWGCODEPAGE"]["original"] == "ANSI_1252"
