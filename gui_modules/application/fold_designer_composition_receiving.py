@@ -2755,6 +2755,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         canonical_w800_three=canonical_prefilled,
                     )
                     nfb_transaction_ports()["stage_verified"](bundle)
+                    if embed_parent is not None:
+                        # #1901: the *tab's* 確認 imports this source-verified
+                        # opening into the original Hole Editor. Do not close
+                        # or save the candidate/Bay merely for proving DXF.
+                        warning.set("NFB 實際來源及孔位驗證成功；按受電箱「確認」將開口帶回開孔編輯主頁籤")
+                        close_world_dialog()
+                        return
                     outcome.set("已完成真實來源／內門實體驗證，仍須回主視窗按「確認套用（NFB）」")
                     close_world_dialog()
                     after_saved(version_id)  # UI refresh only, no candidate write
