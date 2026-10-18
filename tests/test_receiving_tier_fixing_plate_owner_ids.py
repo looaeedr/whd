@@ -26,13 +26,13 @@ def test_two_tiers_have_four_distinct_child_ear_ids_in_their_own_base():
         "base_plate:nfb_layer:1","base_plate:nfb_layer:1",
     ]
     assert [e.side for e in ears]==["left","right","left","right"]
-    assert all(e.stock_thickness_mm==3 for e in ears)
+    assert all(e.stock_thickness_mm==2 for e in ears)
     assert all(e.nominal_source_outline_mm==(256.,105.) for e in ears)
     assert all(e.applicable_slot_pair_indexes==(1,2) for e in ears)
     assert len({e.part_id for e in ears})==4
     assert all(e.manufacturing_status==MANUFACTURING_STATUS
                and not e.manufacturing_ready for e in ears)
-    # No certification/false 3D BEND or side-wall MARKING.
+    # BEND exists in revised source, but signed 3D forming / weld still unverified.
     assert ears[0].nominal_fold_from_weld_edge_mm==pytest.approx(23)
 
 
@@ -123,7 +123,7 @@ def test_two_nfb_tiers_have_four_independent_source_cutting_blanks_and_xyz():
         assert meta["stable_id"] == part_id
         assert meta["source_dxf_sha256"] == SOURCE_DXF_SHA256
         assert meta["source_cutting_verified"] is True
-        assert meta["thickness"] == 3
+        assert meta["thickness"] == 2
         assert meta["source_flat_dimensions"] == (256, 105)
         assert meta["xy_mating_proven"] is True
         assert meta["parent_base_id"] == target.parent_base_id
@@ -151,7 +151,10 @@ def test_two_nfb_tiers_have_four_independent_source_cutting_blanks_and_xyz():
         assert len([p for p in material.scene.primitives
                     if isinstance(p, PolylinePrimitive)
                     and p.layer == "CUTTING" and p.closed]) == 5
-        assert all(p.layer != "BEND" for p in material.scene.primitives)
+        assert len(material.fold_guides) == 1
+        assert material.fold_guides[0].position == 23.0
+        assert material.metadata["source_bend_verified"] is True
+        assert material.metadata["formed_direction_verified"] is False
     assert len(renders) == 4
     assert len({id(p.scene) for p in renders.values()}) == 4
     assert len({id(p.material) for p in renders.values()}) == 4
