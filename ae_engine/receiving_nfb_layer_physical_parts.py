@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """#1502: independent *actual FinalScene blanks* for NFB tiers in upper Door.
 
-The CENTER of each NFB opening group is the CENTER of that tier's Base Plate.
+Each tier's NFB opening group determines Base Plate Y; physical X stays 0.
 A tier's source physical plate uses a NEW BasePlatePartSpec/PartRenderData and
 its own unfolded topology identity. It is never a translated reference to
 another layer's PartRenderData or an invented different base-plate editor.
@@ -89,6 +89,15 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
     profiles = receiving_base_plate_3d_profiles(snapshot, values)
     if profiles is None:
         raise ValueError("RECEIVING_TWO_TIER_BASE_PROFILE_UNAVAILABLE")
+    # #1503: each tier uses the SAME NFB source depth / actual inner-door
+    # and original Base Plate physical-face Z rule. Different tier count
+    # only means independent applications of that one solver.
+    from .receiving_tier_ear_z_targets import resolve_receiving_tier_base_z_targets
+    z_targets = {
+        x.layer_index: x for x in resolve_receiving_tier_base_z_targets(snapshot)
+    }
+    if set(z_targets) != {0, 1}:
+        raise ValueError("RECEIVING_NFB_TIER_DEPTH_TARGET_IDENTITY_MISSING")
     generated = []
     for center in centers:
         identity = center.layer_part_id
@@ -123,7 +132,21 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
         # NFB horizontal X is a SCREW-HOLE position, never the Base Plate
         # assembly X. The plate and its +/-335-mm ear fixing columns remain
         # fixed at the cabinet X centre for every NFB layer.
-        z = float(root.offset[2])
+        depth_target = z_targets[center.layer_index]
+        if depth_target.parent_base_id != identity:
+            raise ValueError("RECEIVING_NFB_TIER_Z_TARGET_OWNER_DRIFT")
+        # Missing model depth never becomes an invented installation Z; old
+        # preview is retained only as a non-manufacturing visualization.
+        z = (float(depth_target.world_offset_z_mm)
+             if depth_target.physical_skin_z_resolved
+             else float(root.offset[2]))
+        actual = replace(actual, metadata={
+            **dict(actual.metadata),
+            "nfb_tier_depth_source_mm": depth_target.source_depths_mm,
+            "nfb_tier_real_skin_z_resolved": depth_target.physical_skin_z_resolved,
+            "nfb_tier_base_back_skin_world_z_mm":
+                depth_target.base_back_skin_world_z_mm,
+        })
         generated.append(AssemblyScenePart(
             part_key=identity,
             render_data=actual,
