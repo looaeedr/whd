@@ -1,0 +1,152 @@
+name: 'WHD #1820 CADCraft absent DXF DIMENSION 42 native repair'
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-issue1820-cadcraft-dimension42-preservation.yml'
+      - 'tools/issue1820_cadcraft_unitless_import_patch.py'
+      - 'tools/issue1820_cadcraft_dimension_import_patch.py'
+      - 'tools/issue1820_cadcraft_dimension42_absence_patch.py'
+      - 'tests/test_issue1820_cadcraft_dimension_import_patch.py'
+      - 'tests/test_issue1820_cadcraft_dimension42_absence_patch.py'
+      - 'tests/test_issue1820_cadcraft_unitless_import_patch.py'
+      - 'tools/issue1820_cadcraft_dxf_fidelity_gate.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-native-red-green:
+    name: CADCraft upstream v0.8.0 official RED to patched CLI GREEN
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout WHD exact candidate SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Checkout public CADCraft official v0.8.0 source
+        uses: actions/checkout@v4
+        with:
+          repository: storytold/cadcraft
+          ref: v0.8.0
+          path: upstream-cadcraft-v080
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install independent parsers
+        run: python -m pip install pytest ezdxf
+      - name: Exercise synthetic source and patch safety tests
+        run: python -m pytest -q tests/test_issue1820_cadcraft_unitless_import_patch.py tests/test_issue1820_cadcraft_dimension_import_patch.py tests/test_issue1820_cadcraft_dimension42_absence_patch.py tests/test_issue1820_cadcraft_dxf_fidelity_gate.py
+      - name: Create six DXF header cases and immutable source IDs
+        run: |
+          mkdir -p work/issue1820-unitless
+          git rev-parse HEAD > work/issue1820-unitless/whd-head.txt
+          git -C upstream-cadcraft-v080 rev-parse HEAD > work/issue1820-unitless/cadcraft-head.txt
+          python tools/issue1820_cadcraft_unitless_import_patch.py fixtures work/issue1820-unitless/matrix
+          python tools/issue1820_cadcraft_dimension_import_patch.py fixture work/issue1820-unitless/dimension_case
+          python tools/issue1820_cadcraft_dimension42_absence_patch.py fixtures work/issue1820-unitless/group42_case
+      - name: Download official v0.8.0 CLI and validate publisher SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          package=cadcraft-0.8.0-linux-x86_64.tar.gz
+          url=https://github.com/storytold/cadcraft/releases/download/v0.8.0
+          mkdir -p "$RUNNER_TEMP/cadcraft-original"
+          curl -fLsS --retry 3 "$url/SHA256SUMS.txt" -o "$RUNNER_TEMP/cadcraft-original/SHA256SUMS.txt"
+          curl -fLsS --retry 3 "$url/$package" -o "$RUNNER_TEMP/cadcraft-original/$package"
+          cd "$RUNNER_TEMP/cadcraft-original"
+          grep " $package$" SHA256SUMS.txt | sha256sum -c -
+          tar xzf "$package"
+          echo "OFFICIAL_CADC=$RUNNER_TEMP/cadcraft-original/cadcraft-0.8.0-linux-x86_64/bin/cadcraft-cli" >> "$GITHUB_ENV"
+      - name: Official CLI actually reproduces original RED
+        run: python tools/issue1820_cadcraft_unitless_import_patch.py verify "$OFFICIAL_CADC" work/issue1820-unitless/matrix --expect baseline --json work/issue1820-unitless/official-RED.json
+      - name: Confirm official v0.8.0 native DIMENSION field RED
+        run: python tools/issue1820_cadcraft_dimension_import_patch.py verify "$OFFICIAL_CADC" work/issue1820-unitless/dimension_case --expect official --json work/issue1820-unitless/dimension-original-RED.json
+      - name: Reproduce original missing group42 on official unmodified CLI
+        run: python tools/issue1820_cadcraft_dimension42_absence_patch.py verify "$OFFICIAL_CADC" work/issue1820-unitless/group42_case --expect baseline --json work/issue1820-unitless/group42-original-RED.json
+      - name: Apply narrow reader patch and save source diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/issue1820_cadcraft_unitless_import_patch.py patch upstream-cadcraft-v080 > work/issue1820-unitless/patch-evidence.json
+          python tools/issue1820_cadcraft_dimension_import_patch.py patch upstream-cadcraft-v080 > work/issue1820-unitless/dimension-patch-evidence.json
+          python tools/issue1820_cadcraft_dimension42_absence_patch.py patch upstream-cadcraft-v080 > work/issue1820-unitless/group42-patch-evidence.json
+          git -C upstream-cadcraft-v080 diff > work/issue1820-unitless/patch.diff
+          git -C upstream-cadcraft-v080 diff --check
+          test -s work/issue1820-unitless/patch.diff
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build actual patched CADCraft CLI, official upstream source
+        run: cargo build --locked -p cadcraft-cli --manifest-path upstream-cadcraft-v080/Cargo.toml
+      - name: Patched native CLI must preserve absent and explicit headers
+        run: python tools/issue1820_cadcraft_unitless_import_patch.py verify upstream-cadcraft-v080/target/debug/cadcraft-cli work/issue1820-unitless/matrix --expect patched --json work/issue1820-unitless/patched-linux-GREEN.json
+      - name: Prove original DIMENSION 11/42 preservation in patched native CLI
+        run: python tools/issue1820_cadcraft_dimension_import_patch.py verify upstream-cadcraft-v080/target/debug/cadcraft-cli work/issue1820-unitless/dimension_case --expect patched --json work/issue1820-unitless/dimension-patched-linux-GREEN.json
+      - name: Prove absent group42 remains absent and explicit zero remains zero (Linux)
+        run: python tools/issue1820_cadcraft_dimension42_absence_patch.py verify upstream-cadcraft-v080/target/debug/cadcraft-cli work/issue1820-unitless/group42_case --expect patched --json work/issue1820-unitless/group42-patched-linux-GREEN.json
+      - name: Keep RED, GREEN, exact SHAs and source diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1820-cadcraft-dimension-native-linux-evidence
+          path: |
+            work/issue1820-unitless/*.json
+            work/issue1820-unitless/*.txt
+            work/issue1820-unitless/*.diff
+          if-no-files-found: warn
+          retention-days: 14
+
+  windows-cli-test-only:
+    name: Compile and test patched CADCraft CLI Windows x64
+    needs: linux-native-red-green
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: storytold/cadcraft
+          ref: v0.8.0
+          path: upstream-cadcraft-v080
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install ezdxf
+      - name: Prepare DXF matrix and patch from exact v0.8.0 source
+        run: |
+          python tools/issue1820_cadcraft_unitless_import_patch.py fixtures work/issue1820-unitless/matrix
+          python tools/issue1820_cadcraft_unitless_import_patch.py patch upstream-cadcraft-v080
+          python tools/issue1820_cadcraft_dimension_import_patch.py patch upstream-cadcraft-v080
+          python tools/issue1820_cadcraft_dimension42_absence_patch.py patch upstream-cadcraft-v080
+          python tools/issue1820_cadcraft_dimension42_absence_patch.py fixtures work/issue1820-unitless/group42_case
+          git -C upstream-cadcraft-v080 diff --check
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Generate independent DIMENSION regression fixture
+        run: python tools/issue1820_cadcraft_dimension_import_patch.py fixture work/issue1820-unitless/dimension_case
+      - name: Compile native experimental CLI
+        run: cargo build --locked --release -p cadcraft-cli --manifest-path upstream-cadcraft-v080/Cargo.toml
+      - name: Must PASS independent Windows native unit and DXF geometry matrix
+        run: python tools/issue1820_cadcraft_unitless_import_patch.py verify upstream-cadcraft-v080/target/release/cadcraft-cli.exe work/issue1820-unitless/matrix --expect patched --json work/issue1820-unitless/patched-windows-GREEN.json
+      - name: Verify original DIMENSION group 11 and 42 after native Windows resave
+        run: python tools/issue1820_cadcraft_dimension_import_patch.py verify upstream-cadcraft-v080/target/release/cadcraft-cli.exe work/issue1820-unitless/dimension_case --expect patched --json work/issue1820-unitless/dimension-patched-windows-GREEN.json
+      - name: Verify imported DIMENSION group42 missing, explicit zero and negative one on Windows
+        run: python tools/issue1820_cadcraft_dimension42_absence_patch.py verify upstream-cadcraft-v080/target/release/cadcraft-cli.exe work/issue1820-unitless/group42_case --expect patched --json work/issue1820-unitless/group42-patched-windows-GREEN.json
+      - name: Retain experimental Windows CLI only after verification
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1820-patched-CADCraft-v080-GROUP42-Windows-TEST-ONLY
+          path: |
+            upstream-cadcraft-v080/target/release/cadcraft-cli.exe
+            work/issue1820-unitless/patched-windows-GREEN.json
+            work/issue1820-unitless/group42-patched-windows-GREEN.json
+          if-no-files-found: error
+          retention-days: 14
