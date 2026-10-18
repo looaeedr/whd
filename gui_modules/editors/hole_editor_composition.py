@@ -671,7 +671,11 @@ def _build_navigation_and_lifecycle(s):
         editor_closed=s.editor_closed,
         editor=s.editor,
         on_close=s.on_close,
-        on_confirm=s.on_confirm,
+        on_confirm=(lambda: (
+            s.on_confirm_features(list(s.live_context.feature_list))
+            if s.on_confirm_features is not None else
+            s.on_confirm() if s.on_confirm is not None else None
+        )),
         insert_mode=s.insert_mode,
         set_insert_mode=s.set_insert_mode,
         cancel_active_edit=s.cancel_active_edit,
@@ -750,7 +754,8 @@ def open_unified_hole_editor(
     reference_guide=None, feature_list_override=None, door_indicator_state=None,
     door_indicator_context=None, door_indicator_commit=None, door_frame_edges=None,
     door_gap_w=None, door_gap_h=None, door_frame_width=None, door_thickness=None,
-    on_close=None, on_confirm=None, baseline_scene=None, baseline_status_text=None,
+    on_close=None, on_confirm=None, on_confirm_features=None,
+    baseline_scene=None, baseline_status_text=None,
     indicator_component_context_provider=None, cabinet_reference_guide=None,
     local_reference_guide=None, *, dependencies,
 ):
@@ -765,7 +770,8 @@ def open_unified_hole_editor(
         door_indicator_commit=door_indicator_commit, door_frame_edges=door_frame_edges,
         door_gap_w=door_gap_w, door_gap_h=door_gap_h,
         door_frame_width=door_frame_width, door_thickness=door_thickness,
-        on_close=on_close, on_confirm=on_confirm, baseline_scene=baseline_scene,
+        on_close=on_close, on_confirm=on_confirm,
+        on_confirm_features=on_confirm_features, baseline_scene=baseline_scene,
         baseline_status_text=baseline_status_text,
         indicator_component_context_provider=indicator_component_context_provider,
     )
