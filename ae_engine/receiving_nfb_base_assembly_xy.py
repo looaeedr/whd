@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""#1502: CENTER-to-CENTER NFB opening-group and per-tier Base Plate placement.
+"""#1502: fixed-X Base Plate with per-tier NFB opening HEIGHT Y placement.
 
-User product rule: each NFB tier within the UPPER outer-door compartment
-has ONE independently installed Base Plate with left/right fixing plates;
-the plate centre follows the tier's NFB opening-group centre. This
-placement DOES NOT change the plate's physical finished W/H. The OUTER
-door's lower compartment has no NFB Base Plate.
+Each NFB tier in the UPPER outer-door compartment has one Base Plate and
+its left/right fixing plates. Plate X always equals cabinet CENTER X=0;
+the opening-group's height determines only the matching tier's plate Y.
+NFB opening X moves only that switch's screw holes on the installed plate.
+This placement does NOT change the Base Plate's finished W/H. The OUTER
+door lower compartment has no NFB Base Plate.
 
 The actual welded fixing-plate side-sheet MARKING remains non-certified.
 Unknown/unconfirmed NFB X never becomes verified manufacturing evidence.
@@ -28,9 +29,10 @@ class ReceivingNfbBaseAssemblyXY:
 def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
     """Legacy one-row convenience projection; per-tier ownership below.
 
-    For one tier, the NFB opening group's XY also anchors the installed
-    Base Plate's centre (CENTER-to-CENTER), not its finished height. Multiple
-    tiers each require their own Base Plate; never mix rows into one result.
+    For one tier, the NFB group's WORLD Y anchors installed Base Plate Y.
+    The verified group X here is ONLY an NFB screw-hole input; it must
+    NEVER translate the Base Plate, EAR support holes or welded fixing
+    plates away from cabinet X=0. Keep layers independent.
     """
     from .receiving_nfb_depth_surface_policy import (
         committed_receiving_nfb_depth_pair_mm,
@@ -119,7 +121,7 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
 
 @dataclass(frozen=True)
 class ReceivingNfbLayerCenter:
-    """Source geometry target for one physical NFB tier's Base Plate."""
+    """Layer Y for installed Base Plate; X only for NFB screw-hole source."""
 
     layer_index: int
     layer_part_id: str
@@ -132,17 +134,18 @@ class ReceivingNfbLayerCenter:
 def receiving_nfb_layer_centers(
     snapshot: Mapping[str, object], inner_door_id: str,
 ) -> tuple[ReceivingNfbLayerCenter, ...]:
-    """Return independent CENTER-to-CENTER positions for every submitted tier.
+    """Return independent layer Y and NFB screw-hole group X for each tier.
 
     The caller must instantiate ONE separately-owned physical Base Plate and
     one left/right fixing-plate pair per result. A legacy root 'base_plate'
     may consume this only when exactly one tier is configured; never collapse
     a two-tier layout into one root plate.
 
-    Y is from the approved NFB inner-door opening projection; X is the
-    opening group's bounding-box centre only when every hole has a confirmed
-    source X. Without X provenance, zero is a *preview* fallback at the
-    callsite, not manufacturing-authorized positioning.
+    Y comes from the NFB opening HEIGHT and sets this tier Base Plate Y.
+    The returned confirmed X is the NFB opening group's screw-hole source
+    ONLY, never Base Plate installation X. The physical Base Plate and
+    670-mm mounting holes always stay at cabinet X=0. Unknown NFB X must
+    not be substituted into manufacturing screw-hole CUTTING.
     """
     from .receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
     from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
