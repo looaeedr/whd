@@ -3294,6 +3294,108 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             )
         } for bi in range(len(selected_set["bays"])))
 
+    def current_inner_editor_config():
+        adapter = candidate_adapter()
+        selected = adapter.selection
+        row = adapter.layout["sets"][selected.set_index]
+        config = {
+            "layers": setting_value(row, selected.bay_index, "inner_door_layers"),
+            "models": setting_value(row, selected.bay_index, "inner_door_models"),
+            "features": setting_value(row, selected.bay_index, "inner_door_features"),
+        }
+        heights = setting_value(row, selected.bay_index, "inner_door_layer_heights_mm")
+        if heights is not None:
+            config["layer_heights_mm"] = heights
+        return config
+
+    def current_inner_editor_part_key():
+        from ae_engine.cabinet_types import policy as receiving_family_policy
+        selected = candidate_adapter().selection
+        physical = nfb_physical_bay_snapshot(selected.set_index, selected.bay_index)
+        upper = tuple(
+            panel.stable_id for panel in receiving_family_policy.derive_inner_door_panels(physical)
+            if str(panel.cell_key).endswith(":0")
+        )
+        if len(upper) != 1:
+            raise ValueError("原開孔編輯器必須對應一片明確的上層實體內門")
+        return upper[0]
+
+    def launch_inner_editor(part_key, *, mode, version_id=None, initial_features=None,
+                            after_saved=None):
+        from .receiving_inner_door_hole_editor import open_inner_door_hole_editor
+        from ae_engine.receiving_inner_door_candidates import validate_door_config
+        from ae_engine.receiving_shared_settings import validate_setting
+        from copy import deepcopy
+
+        def confirmed(actual_part, features, staged_config):
+            if actual_part != part_key:
+                raise ValueError("內門開孔編輯返回錯誤的實體板件")
+            if mode == "single":
+                adapter = candidate_adapter()
+                selected = adapter.selection
+                bay = adapter.layout["sets"][selected.set_index]["bays"][selected.bay_index]
+                if bay.get("nfb_config_submitted") is True:
+                    raise ValueError("NFB 已驗證提交；不得未經重新驗證直接改動內門開孔")
+                if staged_config is not None:
+                    config = validate_door_config(staged_config)
+                    for kind, value in (
+                        ("inner_door_layers", config["layers"]),
+                        ("inner_door_models", config["models"]),
+                        ("inner_door_layer_heights_mm", config.get("layer_heights_mm")),
+                        ("inner_door_version_id", ""),
+                    ):
+                        adapter.unlink_setting(kind)
+                        adapter.update_setting(kind, validate_setting(kind, value))
+                    self.mark_receiving_switch_layout_dirty(namespace, adapter)
+                    self.sync_receiving_current_bay(namespace, refresh_controls=False)
+                self.app.designer_workspace.stash_features(part_key, features)
+                self.app.submit_update_intent("geometry", commit=True)
+                return
+            if mode != "candidate":
+                raise ValueError("未知的內門儲存目標")
+            config = (inner_config(inner_library(), version_id) if version_id is not None
+                      else current_inner_editor_config())
+            if staged_config is not None:
+                config = validate_door_config(staged_config)
+            config = deepcopy(config)
+            config.setdefault("features", {})[part_key] = deepcopy(features)
+            if version_id is None:
+                updated, selected_version = create_inner_candidate(inner_library(), config)
+            else:
+                updated = update_inner_candidate(inner_library(), version_id, config)
+                selected_version = version_id
+            # No changes to a committed Bay before explicit 套用.
+            persist_inner(updated)
+            if callable(after_saved):
+                after_saved(selected_version)
+
+        return open_inner_door_hole_editor(
+            self.app, part_key, settings_mode=mode,
+            initial_features=initial_features,
+            selected_candidate_version=version_id,
+            on_settings_confirm=confirmed,
+        )
+
+    def edit_single_inner_door():
+        return launch_inner_editor(current_inner_editor_part_key(), mode="single")
+
+    def edit_multi_inner_door(version_id, after_saved):
+        part_key = current_inner_editor_part_key()
+        source = (inner_config(inner_library(), version_id) if version_id is not None
+                  else current_inner_editor_config())
+        typed = source.get("features", {})
+        # Existing candidates never implicitly consume another Bay's live holes.
+        if part_key in typed:
+            draft_features = deepcopy(typed[part_key])
+        elif version_id is None:
+            draft_features = self.app.designer_workspace.features_for(part_key)
+        else:
+            draft_features = []
+        return launch_inner_editor(
+            part_key, mode="candidate", version_id=version_id,
+            initial_features=draft_features, after_saved=after_saved,
+        )
+
     if embedded_inner_parent is not None:
         # The unified Hole Editor already owns the window and its modal grab.
         # Reuse the same inner candidate editor inside the 受電箱 tab.
@@ -3388,6 +3490,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_single_size_quantity=single_size_quantity,
         set_single_size_quantity=set_single_size_quantity,
         edit_single_holes=edit_single_holes,
+        edit_single_inner_door=edit_single_inner_door,
+        edit_multi_inner_door=edit_multi_inner_door,
         on_brand_close=None if single else finalize_global_brand,
         on_close=lambda: _restore_receiving_assembly_after_modal(self, namespace),
         dialog_kind="single" if single else "multi",
