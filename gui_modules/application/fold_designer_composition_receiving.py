@@ -2783,6 +2783,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     )
                     checked_csv_world["values"] = None
                     invalidate_csv_editor_proof(original_editor, popup)
+                    # A failed repeat CSV check must not leave the last
+                    # successful physical geometry on screen as if valid.
+                    for canvas in (
+                        v5_canvas, v5_base_canvas,
+                        popup._receiving_v5_second_base_canvas,
+                    ):
+                        canvas.delete("v5-real-part")
+                    extra = popup._receiving_v5_second_base_tab
+                    if str(extra) in panels.tabs():
+                        panels.forget(extra)
+                    panels.tab(base_tab, text="底板尚未驗證")
                 try:
                     coords={}
                     for unit_id,var in world_values.items():
