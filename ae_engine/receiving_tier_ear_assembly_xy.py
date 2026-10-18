@@ -9,9 +9,12 @@ regardless of selected NFB manual X. Each large source ear has 4 slots,
 with the selected 210 or 140mm *longitudinal* pair centered on the same
 tier Y. Left/right side-wall inner skins supply the intended weld X.
 
-This is a 2D nominal mounting witness ONLY. The original 受電耳朵.dxf
-large-ear BEND orientation, true physical skin contact Z, welding seam
-and reverse projected MARKING remain unverified. No manufacturing export.
+This is the XY witness, not the weld release. CURRENT 2026-10-18
+固定片.dxf is T2 with genuine source BEND y=23 and the user's
+21+T rule; the old T3/no-BEND 受電耳朵.dxf is superseded.
+The revised signed formed 3D model is handled separately from this XY
+locator; weld seam and reverse-projected side MARKING still have their
+own geometry checks. No manufacturing export.
 """
 from __future__ import annotations
 
