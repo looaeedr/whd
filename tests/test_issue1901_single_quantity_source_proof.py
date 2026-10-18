@@ -94,6 +94,22 @@ def test_quantity_proof_rejects_wrong_current_panel_or_changed_original_source(
         assert_quantity_nfb_proof_current(proof, snapshot=snap)
 
 
+def test_quantity_model_rotation_drift_invalidates_verified_opening(monkeypatch, tmp_path):
+    q, snap, draft, source, _panel = _source_setup(monkeypatch, tmp_path)
+    proof = verify_quantity_nfb_inner_door_source(
+        draft, snapshot=snap, world_x_by_unit={"unit-1": 165.0},
+        selected_source_path=source,
+    )
+    from copy import deepcopy
+    altered = deepcopy(draft)
+    altered["layers"][0]["slots"][0]["rotation_deg"] = 90
+    with pytest.raises(ValueError, match="轉向"):
+        assert_quantity_nfb_proof_current(proof, snapshot=snap, draft=altered)
+    assert assert_quantity_nfb_proof_current(
+        proof, snapshot=snap, draft=draft,
+    ) is proof
+
+
 def test_quantity_invalid_world_x_does_not_stage_or_write(monkeypatch, tmp_path):
     q, snap, draft, source, _panel = _source_setup(monkeypatch, tmp_path)
     for coordinates in ({}, {"wrong-unit": 25.0}, {"unit-1": float("nan")}):
