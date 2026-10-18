@@ -3,7 +3,8 @@ __pycache__/
 .pytest_cache/
 *.lock
 dist/
-/cadcraft/  # Local CADCraft portable bundle; never commit third-party binaries
+# Local CADCraft portable bundle; never commit third-party binaries
+/cadcraft/
 *.exe
 scratch/
 restore_temp/
