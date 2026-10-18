@@ -134,7 +134,7 @@ shallow_back_z       = shallow_front_z - Tb
 
 ## 四之五、底板固定片世界座標目標與 NFB X 分離
 
-大片底板固定片的 X 是**箱身左右側板焊接基準**，不是 NFB 開關孔列的 X。W800/T2 的兩片耳朵焊接側板內側真實 X=-398／+398，固定孔世界 X=-335／+335，裝配孔距670；所以整片底板必須維持世界 X=0。NFB 孔心即使人工確認在 -130／+70，**只能在底板加工投影內改 X**，不能把整片底板搬成 X=-30 造成耳朵與固定孔脫離。
+大片底板固定片的 X 是**箱身左右側板焊接基準**，不是 NFB 開關孔列的 X。W800/T2 的兩片耳朵焊接側板內側真實 X=-398／+398，固定孔世界 X=-335／+335，裝配孔距670；所以整片底板必須維持世界 X=0。NFB 孔心即使人工確認在 -130／+70，**只能在底板加工投影內改 X**，不能把整片底板搬成 X=-30 造成耳朵與固定孔脫離。 現在 `receiving_nfb_base_process_projection.py` 已把兩個不同的世界座標基準拆開：`receiving_base_ear_mount_center_world_xy_mm=(0,安裝列Y)`，`receiving_base_nfb_row_center_world_xy_mm=(NFB兩顆已確認X的中點,安裝列Y)`；製造下層螺絲孔投影使用箱體固定之底板中心而非 NFB 自己的中心，否則底板不移動但孔會錯誤歸零。新增真 FinalScene→DXF 開回測試：NFB 改為 -130／+70 時每組螺絲孔實際相對 2D X 移動 -30，大片耳朵固定孔 ±335 保持不動。
 
 `receiving_base_fixing_plate_z_targets.py` 以已存在的大片耳朵 source XY mating（`receiving_base_fixing_plate_mating.py`）與同一真實 `BasePlate` assembly Z、真實 T2 安裝面，產生兩片焊接固定片世界位置**需求／接觸目標**。CENTER 原始孔距 670×140：預設 NFB 所在列世界 Y250，兩片耳朵固定孔世界 Y180／320；NFB 高度改 330 則固定孔一起變 Y400／540。底板背面 Z 與固定片前接觸面 Z 必須相等（0 間隙），固定片來源 T3 往箱內方向延伸。
 
