@@ -28,6 +28,7 @@ PYTEST_PATHS = (
     "tests/test_phase6_part_switch_performance.py",
     # CADCraft experimental DXF viewer must not modify the existing Hole Editor.
     "tests/test_cadcraft_hole_editor_preview.py",
+    "tests/test_cadcraft_hole_editor_tk_opt_in.py",
     # #1817: cached per-Bay Receiving preview must track adjacent Joint and
     # preceding world placements, but not unrelated trailing W/H/D.
     "tests/test_issue1817_preview_dependency_cache.py",
