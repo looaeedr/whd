@@ -3397,67 +3397,60 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         )
 
     if embedded_inner_parent is not None:
-        # The unified Hole Editor already owns the window and its modal grab.
-        # Reuse the same inner candidate editor inside the 受電箱 tab.
-        from tkinter import ttk, messagebox
-        from ae_engine.receiving_shared_settings import setting_value
+        # Two native tabs belong to the SAME original Hole Editor.  Editing
+        # this configuration stages a draft only; the editor's 確定全部 owns
+        # all persistence, and its 取消全部 owns rollback.
+        from tkinter import ttk
         container = embedded_inner_parent
-        adapter = candidate_adapter()
-        selection = adapter.selection
-        stored = setting_value(
-            adapter.layout["sets"][selection.set_index],
-            selection.bay_index, "inner_door_version_id",
-        )
-        ids = {item["id"] for item in inner_versions(inner_library())}
-        state = {"version": stored if stored in ids else None}
-        if self.app.designer_workspace.active_mode != "set_bay":
-            state["version"] = None
+        editor = container.winfo_toplevel()
+        mode = getattr(editor, "_receiving_settings_mode", None)
+        selected_version = getattr(editor, "_receiving_candidate_version", None)
+        if mode == "candidate" and selected_version is not None:
+            inner_config(inner_library(), selected_version)
+        state = {"version": selected_version if mode == "candidate" else None}
         bar = ttk.Frame(container)
         bar.pack(fill="x", padx=8, pady=(5, 3))
         status = ttk.Label(
-            bar,
-            text=("受電箱內門｜直接套用目前圖面" if self.app.designer_workspace.active_mode != "set_bay"
-                  else "受電箱內門｜版本 X 另行套用到連"),
+            bar, text=("單只｜主頁籤確定全部才寫入現有板件"
+                       if mode == "single"
+                       else "多連｜主頁籤確定全部才寫入候選版本 X"),
         )
-        status.pack(side="left")
-        def apply_saved_version():
-            version = state["version"]
-            if version is None:
-                messagebox.showwarning("內門版本", "請先確認並儲存內門版本", parent=container.winfo_toplevel())
-                return
-            try:
-                selected = candidate_adapter().selection
-                inner_apply(INNER_ROLE, version, selected.set_index,
-                            (selected.bay_index,))
-                status.configure(text="已套用到目前選取的內門")
-            except (ValueError, IndexError, RuntimeError) as exc:
-                messagebox.showwarning("內門版本", str(exc), parent=container.winfo_toplevel())
-        apply_button = ttk.Button(
-            bar, text="套用到目前連", command=apply_saved_version,
-            state="normal" if state["version"] is not None else "disabled",
-        )
-        if self.app.designer_workspace.active_mode == "set_bay":
-            apply_button.pack(side="right")
+        status.pack(anchor="w")
+        tabs = getattr(editor, "_receiving_config_tabs", None)
+
+        def go_to_main_tab():
+            if tabs is not None and tabs.winfo_exists():
+                tabs.select(0)   # native 開孔編輯 tab, not a new popup
+
+        def stage_inner_config(config):
+            editor._receiving_staged_config = deepcopy(config)
+
+        editor._receiving_stage_config = stage_inner_config
         editor_host = ttk.Frame(container)
         editor_host.pack(fill="both", expand=True)
+
+        def canceled_inner_tab():
+            # No staged write on 取消; the old accepted editor draft, if any,
+            # remains available until the outer editor's own final transaction.
+            go_to_main_tab()
+
+        def saved_inner_version(_version_id):
+            status.configure(text="受電箱設定已放入主開孔編輯器草稿；尚未寫入板件或版本")
+            go_to_main_tab()
+
         def mount_inner_editor():
-            if not editor_host.winfo_exists():
+            if not editor_host.winfo_exists() or editor_host.winfo_children():
                 return
-            for child in editor_host.winfo_children():
-                child.destroy()
             inner_edit(
                 INNER_ROLE, state["version"], saved_inner_version,
-                embed_parent=editor_host, after_closed=mount_inner_editor,
+                embed_parent=editor_host, after_closed=canceled_inner_tab,
             )
-        def saved_inner_version(version_id):
-            if version_id is None:
-                state["version"] = None
-                status.configure(text="高度已套用目前圖面；未建立版本 X")
-            else:
-                state["version"] = version_id
-                apply_button.configure(state="normal")
-                status.configure(text="內門版本已儲存；按「套用到目前連」才會改變配置")
-            editor_host.after_idle(mount_inner_editor)
+
+        if tabs is not None:
+            def restore_tab_editor(_event=None):
+                if tabs.winfo_exists() and tabs.select() == str(container):
+                    mount_inner_editor()
+            tabs.bind("<<NotebookTabChanged>>", restore_tab_editor, add="+")
         mount_inner_editor()
         return container
 
