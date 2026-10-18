@@ -709,6 +709,39 @@ def _build_navigation_and_lifecycle(s):
             s.refresh_created()
             s.sync_all()
         s.editor._receiving_accept_verified_openings = accept_verified_openings
+
+        def stage_selected_nfb_openings(openings):
+            # Re-selecting the NFB list replaces only prior CSV-generated
+            # holes; never touch an operator's ordinary Hole Editor features.
+            # Empty selection intentionally clears this tab's previous CSV
+            # drafts, and all operations stay inside the undoable session.
+            from phase6_hole_editor_session import HoleEditorAction
+            from ae_engine.sheetmetal_features import ProfileFeature
+            from ae_engine.sheetmetal_feature_surface import feature_is_strictly_within_surface
+
+            staged = tuple(openings)
+            if any(not isinstance(f, ProfileFeature)
+                   or f.source_type != "NFB_CSV_SOURCE" for f in staged):
+                raise ValueError("NFB 頁籤只能暫存合法 CSV 主孔")
+            existing = list(s.live_context.feature_list)
+            if any(getattr(f, "source_type", None) == "NFB_VERIFIED_SOURCE"
+                   for f in existing) and staged:
+                raise ValueError("已有來源驗證的 NFB 孔，不可重複產生")
+            for feature in staged:
+                if not feature_is_strictly_within_surface(
+                    s.live_context.surface, feature,
+                    s.live_context.width, s.live_context.height,
+                ):
+                    raise ValueError("NFB 主孔超出目前內門板面")
+            retained = [feature for feature in existing
+                        if getattr(feature, "source_type", None) != "NFB_CSV_SOURCE"]
+            s.hole_session.execute(HoleEditorAction.preview_all(
+                [*retained, *staged],
+            ))
+            s.refresh_created()
+            s.sync_all()
+
+        s.editor._receiving_stage_selected_nfb_openings = stage_selected_nfb_openings
         s.editor._receiving_pending_features = lambda: tuple(s.live_context.feature_list)
 
     s.confirm_reference_edit = modal_lifecycle.confirm_reference_edit
