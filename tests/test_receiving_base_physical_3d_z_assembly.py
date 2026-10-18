@@ -50,6 +50,9 @@ def test_assembly_places_actual_deep_and_shallow_nfb_front_skins_to_inner_door_c
     )
     assert placement.relationship=="RECEIVING_NFB_SKIN_DEPTH"
     assert placement.anchor=="inner_door:source_nfb_physical_skin"
+    # This is the SAME manufactured NFB upper-row centre, not the former
+    # disconnected whole-cabinet plate Y=0.
+    assert placement.world_offset[:2] == pytest.approx((0.0, 250.0))
     assert placement.world_offset[2]+local_deep == pytest.approx(world.base_nfb_face_world_z_mm)
     assert placement.world_offset[2]+local_shallow == pytest.approx(world.shallow_nfb_face_world_z_mm)
     assert (world.inner_door_inner_skin_world_z_mm -
@@ -101,4 +104,30 @@ def test_committed_pair_without_unique_inner_door_never_falls_back_to_wrong_rear
     snap=_assembled()
     snap["inner_doors"]=[]
     with pytest.raises(ValueError,match="UNIQUE_UPPER_INNER_DOOR"):
+        resolve_assembly_placement(snap,"base_plate")
+
+
+def test_operator_layer_height_and_confirmed_X_move_actual_plate_xy_without_wrong_z():
+    snap=_assembled()
+    original=resolve_assembly_placement(snap,"base_plate")
+    snap["receiving_inner_door_layer_heights_mm"]=[330,830]
+    raised=resolve_assembly_placement(snap,"base_plate")
+    assert original.world_offset[1]==pytest.approx(250)
+    assert raised.world_offset[1]==pytest.approx(470)
+    assert raised.world_offset[2]==pytest.approx(original.world_offset[2])
+
+    for hole,x in zip(snap["nfb_config"]["holes"],(-130.,70.)):
+        hole.update(manual_x_state="CONFIRMED",manual_x_mm=x,
+                    datum_revision="SOURCE-X-REV1",datum_snapshot={"w":800,"t":2})
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
+    moved=resolve_assembly_placement(snap,"base_plate")
+    assert moved.world_offset[:2]==pytest.approx((-30.,470.))
+    assert moved.world_offset[2]==pytest.approx(original.world_offset[2])
+
+
+def test_two_source_nfb_rows_fail_real_base_xyz_before_false_assembly():
+    snap=_assembled()
+    snap["nfb_config"]["holes"][1].update(layer_count=2,slot_index=1)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
+    with pytest.raises(ValueError,match="DISTINCT_ROWS"):
         resolve_assembly_placement(snap,"base_plate")
