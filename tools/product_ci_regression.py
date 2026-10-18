@@ -188,6 +188,8 @@ PYTEST_PATHS = (
     "tests/test_issue1901_verified_nfb_editor_import.py",
     "tests/test_issue1901_single_quantity_source_proof.py",
     "tests/test_issue1901_csv_native_editor.py",
+    # CSV recheck invalidates old physical GUI scenes and source label.
+    "tests/test_issue1901_csv_preview_invalidation.py",
     "tests/test_issue1901_inner_editor_atomic_confirm.py",
     "tests/test_phase6_t16_receiving_placement.py",
     "tests/test_phase6_t17_receiving_inner_door_80.py",

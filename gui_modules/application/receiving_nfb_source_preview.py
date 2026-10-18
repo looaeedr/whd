@@ -17,7 +17,7 @@ class NfbDxfSourcePreviewPanel:
     """One retained controller per editor, cache keyed by real source revision."""
 
     def __init__(self,parent,*,index_path=None):
-        self.frame=ttk.LabelFrame(parent,text="原始 DXF 真圖｜僅預覽")
+        self.frame=ttk.LabelFrame(parent,text="NFB 型號來源｜僅預覽")
         self.frame.pack(side="right",fill="both",padx=(12,0))
         self.canvas=tk.Canvas(self.frame,width=396,height=415,
                               background="#101c27",highlightthickness=0)
@@ -28,10 +28,11 @@ class NfbDxfSourcePreviewPanel:
         self._source_key=None
         self._drag_point=None
         self._numeric_spec=None
+        self._numeric_mode=False
         self._numeric_zoom=1.0
         self._numeric_pan=(0.0,0.0)
-        self.identity=tk.StringVar(master=self.frame,value="請選取左側 DXF 型號")
-        self.reason=tk.StringVar(master=self.frame,value="真圖尚未讀取｜僅預覽")
+        self.identity=tk.StringVar(master=self.frame,value="請選取左側 NFB 型號")
+        self.reason=tk.StringVar(master=self.frame,value="尚未選擇 NFB 型號來源｜僅預覽")
         bar=ttk.Frame(self.frame)
         bar.pack(fill="x",padx=6)
         ttk.Button(bar,text="＋ 放大",command=lambda:self.zoom(1.25)).pack(side="left")
@@ -55,6 +56,8 @@ class NfbDxfSourcePreviewPanel:
     def show(self,brand,filename):
         """Only read this one indexed model, never trigger app geometry recompute."""
         if filename is None:
+            self._numeric_mode=False
+            self.frame.configure(text="NFB 型號來源｜僅預覽")
             self._source_key=None
             self._numeric_spec=None
             self.viewport.preview=None
@@ -63,6 +66,8 @@ class NfbDxfSourcePreviewPanel:
             self.paint()
             return
         if isinstance(filename,str) and filename.startswith("nfbv5:"):
+            self._numeric_mode=True
+            self.frame.configure(text="NFB 數值規格 CSV｜僅預覽")
             parsed=parse_numeric_model_ref(filename)
             try:
                 if parsed is None or parsed[0]!=brand:
@@ -86,6 +91,8 @@ class NfbDxfSourcePreviewPanel:
                             + (f"｜缺：{missing}" if missing else "｜數值齊全，仍不可製造"))
             self.paint()
             return
+        self._numeric_mode=False
+        self.frame.configure(text="舊 DXF 來源｜僅預覽")
         self._numeric_spec=None
         try:
             opts={"index_path":self._index_path} if self._index_path is not None else {}
@@ -122,7 +129,9 @@ class NfbDxfSourcePreviewPanel:
                 )
         if not self.viewport.preview or not self.viewport.preview.strokes:
             self.canvas.create_text(
-                w/2,h/2,text="來源缺失／沒有可顯示的真實 DXF 圖元",
+                w/2,h/2,text=("CSV 型號數值不足／無法顯示"
+                            if self._numeric_mode else
+                            "舊 DXF 來源缺失／沒有可顯示的圖元"),
                 fill="#9fbacb",tags=("nfb-dxf",),
             )
 

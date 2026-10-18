@@ -2783,6 +2783,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     )
                     checked_csv_world["values"] = None
                     invalidate_csv_editor_proof(original_editor, popup)
+                    # Clearing proof AND scene prevents a failed check from
+                    # leaving a previously accepted-looking source graphic.
+                    from .receiving_nfb_v5_scene_preview import (
+                        clear_v5_checked_geometry_preview,
+                    )
+                    clear_v5_checked_geometry_preview(
+                        popup, door_canvas=v5_canvas,
+                        base_canvas=v5_base_canvas,
+                    )
                 try:
                     coords={}
                     for unit_id,var in world_values.items():
