@@ -97,7 +97,7 @@ def test_quantity_proof_rejects_wrong_current_panel_or_changed_original_source(
                                 **vars(panel), "unfolded_width": current["w"],
                             })
                         ])
-    with pytest.raises(ValueError, match="幾何"):
+    with pytest.raises(ValueError, match="內門定位"):
         assert_quantity_nfb_proof_current(proof, snapshot=modified)
     source.write_bytes(b"tampered-DXF")
     with pytest.raises(ValueError, match="DXF 已變更"):
