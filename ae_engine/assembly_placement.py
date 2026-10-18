@@ -251,11 +251,13 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
             )
             if group is None:
                 raise ValueError("RECEIVING_NFB_BASE_SOURCE_Y_MISSING")
-            position = (
-                float(group.verified_world_x_mm)
-                if group.verified_world_x_mm is not None else 0.0,
-                float(group.world_y_mm), float(source_z),
-            )
+            # W800 bottom plate's two FIXED EAR bolt columns are at
+            # world X=-335,+335; both ear weld to side-panel inner skins
+            # X=-398,+398. Translating the whole plate with NFB manual X
+            # would separate those mounting slots from the physical ears.
+            # The NFB cut/screw holes own their X INSIDE the fixed plate,
+            # as already projected by receiving_nfb_base_process_projection.
+            position = (0.0, float(group.world_y_mm), float(source_z))
         else:
             position = (0.0,0.0,_base_plate_center_plane(snapshot))
         return AssemblyPlacement(
