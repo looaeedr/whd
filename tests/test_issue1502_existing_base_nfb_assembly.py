@@ -353,3 +353,55 @@ def test_part_only_rejects_changed_native_alias_evidence_before_write(tmp_path, 
     with pytest.raises(ValueError, match="NFB_BASE_PART_(NATIVE_ALIAS|SOURCE_HOLE_MAPPING)_UNVERIFIED"):
         save_resolved_manufacturing_geometry_dxf(resolved, root, part_only=True)
     assert not root.exists()
+
+
+def test_offset_verified_nfb_x_moves_real_base_dxf_screws_but_not_ear_mount_columns(tmp_path):
+    """#1502: physical fixed ear X=±335, NFB machining X may be -30 off-center.
+
+    This is a complete actual FinalScene → DXF roundtrip, not just an
+    isolated coordinate formula. Reuse the SAME verified source bytes/SHA.
+    """
+    source, profile, lower = _native_original(tmp_path)
+    baseline = _verified(profile)
+    displaced = replace(baseline, verified_hole_locations=(
+        ("nfb:upper:1", -130., 1, 0, 0),
+        ("nfb:upper:2", 70., 1, 0, 90),
+    ))
+    def materialize(current):
+        return build_existing_receiving_base_with_verified_nfb(
+            snapshot=_snapshot(),inner_door_id="upper",
+            base_spec=_upper_base("CENTER_DOUBLE_SIDE_FOLD"),
+            verified_inner_door=current,source_path=source,profile=profile,
+            lower_reference_handle=lower,
+        ).render_data
+    before=materialize(baseline)
+    after=materialize(displaced)
+    assert before.metadata["receiving_base_ear_mount_center_world_xy_mm"] == pytest.approx((0.,250.))
+    assert after.metadata["receiving_base_ear_mount_center_world_xy_mm"] == pytest.approx((0.,250.))
+    assert before.metadata["receiving_base_nfb_row_center_world_xy_mm"] == pytest.approx((0.,250.))
+    assert after.metadata["receiving_base_nfb_row_center_world_xy_mm"] == pytest.approx((-30.,250.))
+    def screws(render):
+        return {row.source_id:(row.center.x,row.center.y)
+                for row in render.scene.primitives
+                if isinstance(row,CirclePrimitive)
+                and row.source_type=="NFB_LOWER_NATIVE_FIXING_CIRCLE"}
+    prior, moved=screws(before),screws(after)
+    assert len(prior)==len(moved)==8
+    assert set(prior)==set(moved)
+    for hole_id,(px,py) in prior.items():
+        nx,ny=moved[hole_id]
+        assert nx-px==pytest.approx(-30.)
+        assert ny==pytest.approx(py)
+    output=tmp_path/"offset_x_real_base.dxf"
+    save_part_render_data_dxf(after,output)
+    roundtrip=ezdxf.readfile(output)
+    actual=sorted((
+        round(e.dxf.center.x,6),round(e.dxf.center.y,6)
+        ) for e in roundtrip.modelspace()
+        if e.dxftype()=="CIRCLE" and e.dxf.layer=="CUTTING")
+    original=sorted((
+        round(row.center.x,6),round(row.center.y,6)
+        ) for row in after.scene.primitives
+        if isinstance(row,CirclePrimitive) and row.layer=="CUTTING")
+    assert actual==original
+    assert after.metadata["receiving_base_ear_weld_z_verified"] is False
