@@ -67,44 +67,57 @@ def _current_brand_config(snapshot):
     else:
         raise ValueError("EAR_Z_SOURCE_BAY_AMBIGUOUS")
     config = bay.get("nfb_config")
-    brand = selected_set.get("switch_brand")
+    # switch_brand is an OPTIONAL legacy Set field. Current receiving Set
+    # has no such key: saved per-switch source_brand / nfbv5:brand:model own
+    # source identity. Never require obsolete Set.brand for a physical tier.
+    legacy_brand = selected_set.get("switch_brand")
     if (bay.get("nfb_config_submitted") is not True
             or snapshot.get("nfb_config") != config
-            or not isinstance(config, Mapping)
-            or not isinstance(brand, str) or not brand):
+            or not isinstance(config, Mapping)):
         raise ValueError("EAR_Z_NFB_SOURCE_IDENTITY_DRIFT")
-    return brand, config
+    return legacy_brand, config
 
 
-def _tier_source_depths(brand, config, layer_index):
-    from .receiving_nfb_depth_surface_policy import selected_receiving_nfb_depth_pair_mm
+def _tier_source_depths(legacy_brand, config, layer_index):
+    """Every physical switch reads its OWN brand/model CSV source.
+
+    Current Set schema does not have switch_brand; layer/slot overrides may
+    intentionally use different brands. Missing or inconsistent identity
+    blocks only that tier's Z readiness rather than borrowing another model.
+    """
+    from .receiving_nfb_model_identity import selected_numeric_spec
+    from .receiving_switch_model_catalog import model_depth_mm
+
     count = config.get("layer_count")
-    refs = []
+    depths = []
     for hole in config.get("holes") or ():
         if not isinstance(hole, Mapping):
             raise ValueError("EAR_Z_SOURCE_HOLE_INVALID")
         tier = hole.get("layer_index", 0 if count == 1 else None)
         if tier != layer_index:
             continue
-        if hole.get("source_brand", brand) != brand:
-            raise ValueError("EAR_Z_SOURCE_BRAND_DRIFT")
+        brand = hole.get("source_brand", legacy_brand)
         filename = hole.get("model_filename")
-        if not isinstance(filename, str) or not filename:
+        if (not isinstance(brand, str) or not brand
+                or not isinstance(filename, str) or not filename):
             return ()
-        refs.append(filename)
-    if not 1 <= len(refs) <= 2:
+        try:
+            if filename.startswith("nfbv5:"):
+                spec = selected_numeric_spec(brand, filename)
+                depth = None if spec is None else spec.depth_mm
+            else:
+                depth = model_depth_mm(brand, filename)
+        except (ValueError, KeyError, TypeError, OSError):
+            return ()
+        if depth is None:
+            return ()
+        number = float(depth)
+        if not isfinite(number) or number <= 0:
+            return ()
+        depths.append(number)
+    if not 1 <= len(depths) <= 2:
         return ()
-    try:
-        # Same catalog lookup/brand identity whether one or two NFBs per tier.
-        depths = selected_receiving_nfb_depth_pair_mm(
-            brand, (refs[0], refs[-1]),
-        )
-    except (ValueError, KeyError, TypeError, OSError):
-        return ()
-    result = tuple(sorted({float(d) for d in depths}, reverse=True))
-    if not result or not all(isfinite(v) and v > 0 for v in result):
-        return ()
-    return result
+    return tuple(sorted(set(depths), reverse=True))
 
 
 def resolve_receiving_tier_base_z_targets(

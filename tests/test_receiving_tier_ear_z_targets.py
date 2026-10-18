@@ -121,3 +121,59 @@ def test_two_tiers_nfb_horizontal_x_does_not_change_either_skin_z():
         [r.world_offset_z_mm for r in after]
     )
     assert all(r.physical_skin_z_resolved for r in after)
+
+
+def test_current_set_without_legacy_switch_brand_uses_each_v5_csv_source():
+    """Actual modern Set schema has no switch_brand: per-switch CSV is owner."""
+    snap = _two_tier()
+    snap["receiving_layout"]["sets"][0].pop("switch_brand", None)
+    pairs = (
+        ("士林", "nfbv5:士林:2P400", 107.),
+        ("東元", "nfbv5:東元:3P125SN", 68.),
+    )
+    for hole, (brand, model, _depth) in zip(snap["nfb_config"]["holes"], pairs):
+        hole["source_brand"] = brand
+        hole["model_filename"] = model
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    base = resolve_receiving_tier_base_z_targets(snap)
+    assert [t.layer_index for t in base] == [0, 1]
+    assert [t.source_depths_mm for t in base] == [(107.,), (68.,)]
+    assert all(t.physical_skin_z_resolved for t in base)
+    assert len({t.world_offset_z_mm for t in base}) == 2
+    ears = resolve_receiving_tier_ear_contact_targets(snap)
+    assert len(ears) == 4
+    assert [x.target_ear_contact_world_z_mm for x in ears] == [
+        base[0].base_back_skin_world_z_mm,
+        base[0].base_back_skin_world_z_mm,
+        base[1].base_back_skin_world_z_mm,
+        base[1].base_back_skin_world_z_mm,
+    ]
+    assert all(not x.manufacturing_ready and not x.source_bend_verified
+               for x in ears)
+
+
+def test_v5_csv_missing_depth_or_cross_brand_blocks_only_affected_tier_z():
+    snap = _two_tier()
+    snap["receiving_layout"]["sets"][0].pop("switch_brand", None)
+    holes = snap["nfb_config"]["holes"]
+    holes[0].update(source_brand="士林", model_filename="nfbv5:士林:2P400")
+    holes[1].update(source_brand="東元", model_filename="nfbv5:東元:2P400")
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    targets = resolve_receiving_tier_base_z_targets(snap)
+    assert targets[0].source_depths_mm == (107.,)
+    assert targets[0].physical_skin_z_resolved
+    assert targets[1].source_depths_mm == ()
+    assert not targets[1].physical_skin_z_resolved
+    assert targets[1].world_offset_z_mm is None
+    # A cross-brand identity is not silently repaired by using other CSV.
+    holes[1]["model_filename"] = "nfbv5:士林:2P400"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    assert not resolve_receiving_tier_base_z_targets(
+        snap
+    )[1].physical_skin_z_resolved
