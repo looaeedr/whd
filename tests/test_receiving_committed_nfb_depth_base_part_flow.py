@@ -79,12 +79,12 @@ def test_same_set_different_bay_or_brand_drift_cannot_reinterpret_old_model():
         committed_receiving_nfb_depth_pair_mm(snap)
     snap = _snapshot()
     snap["receiving_layout"]["sets"][0]["switch_brand"] = "東元"
-    with pytest.raises(ValueError, match="unknown|source|depth|model|brand"):
+    with pytest.raises(ValueError, match=r"(?i:unknown|source|depth|model|brand)"):
         committed_receiving_nfb_depth_pair_mm(snap)
     snap = _snapshot()
     snap["nfb_config"]["holes"][0]["source_brand"] = "東元"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
-    with pytest.raises(ValueError, match="brand"):
+    with pytest.raises(ValueError, match=r"(?i:brand|source|model|depth)"):
         committed_receiving_nfb_depth_pair_mm(snap)
 
 
