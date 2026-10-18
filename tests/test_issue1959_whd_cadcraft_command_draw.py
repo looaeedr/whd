@@ -114,7 +114,7 @@ def test_whd_actual_resolve_surface_path_works_not_raw_dxf():
         CircleFeature(diameter=12,anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
                       offset=Vec2(20,30)),
         RectFeature(width=24,height=14,anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
-                    offset=Vec2(88,60),rotation_deg=30),
+                    offset=Vec2(88,60),rotation_deg=90),
         ProfileFeature(points=(Vec2(-6,-5),Vec2(7,-5),Vec2(10,6),Vec2(-4,9)),
                        anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
                        offset=Vec2(140,95)),
