@@ -19,6 +19,8 @@ import sys
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
+from tools.interactive_command_no_stop_gate import ordered_command_skills
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / ".agents" / "skills" / "skill_registry.json"
@@ -136,7 +138,10 @@ def required_skills_for(
             skill_name = str(skill)
             if skill_name not in required:
                 required.append(skill_name)
-    return tuple(required)
+    # The same real route used for Skill discovery handles composite instructions.
+    # Explicit commands share one ordered path; unrelated matched Skills stay intact.
+    explicit = ordered_command_skills(str(task or ""))
+    return tuple(dict.fromkeys((*explicit, *required)))
 
 
 def required_references_for(
