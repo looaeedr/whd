@@ -1940,6 +1940,12 @@ class Phase6PrimaryApplication(Phase6ApplicationHost):
         self._phase6_primary_workspace = True
         super().__init__(root)
         self.open_original_fold_designer(target_window=root)
+        # Production startup bypasses the old BoxCalculator left panel.
+        # Place #1503 CHECK-only export on the actual Fold Designer sidebar.
+        from gui_modules.application.receiving_ear_check_primary_entry import (
+            mount_primary_receiving_ear_side_check,
+        )
+        mount_primary_receiving_ear_side_check(self)
 
     def create_widgets(self):
         """Legacy 2D user-facing widgets are not part of the primary lifecycle."""
