@@ -19,11 +19,11 @@ def _two_tier():
     config["holes"] = [
         {
             **config["holes"][0], "physical_hole_id": "tier:0:a",
-            "layer_count": 2, "slot_index": 0,
+            "layer_count": 2, "layer_index": 0, "slot_index": 0,
         },
         {
             **config["holes"][1], "physical_hole_id": "tier:1:a",
-            "layer_count": 2, "slot_index": 1,
+            "layer_count": 2, "layer_index": 1, "slot_index": 0,
         },
     ]
     snapshot["nfb_config"] = config
@@ -100,3 +100,21 @@ def test_unsubmitted_or_wrong_bay_never_mates_unrelated_plate():
     snap["_receiving_runtime_selection"]["bay_id"] = "wrong"
     with pytest.raises(ValueError, match="BAY_IDENTITY_DRIFT"):
         receiving_nfb_layer_centers(snap, "upper")
+
+
+
+def test_two_layer_horizontal_slot_number_must_not_invent_second_tier():
+    snap = _two_tier()
+    # Two physical slots in the first tier are still only ONE plate,
+    # even though one horizontal slot_index is 1.
+    snap["nfb_config"]["holes"][1]["layer_index"] = 0
+    snap["nfb_config"]["holes"][1]["slot_index"] = 1
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
+    only_one = receiving_nfb_layer_centers(snap,"upper")
+    assert len(only_one) == 1
+    assert only_one[0].layer_index == 0
+    assert only_one[0].source_hole_count == 2
+    snap["nfb_config"]["holes"][1].pop("layer_index")
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
+    with pytest.raises(ValueError, match="LAYER_SLOT_OUTSIDE|SLOT_OUTSIDE"):
+        receiving_nfb_layer_centers(snap,"upper")
