@@ -115,7 +115,7 @@ def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
 
         button.invoke()
         _pump(root, started.is_set)
-        assert button.cget("state") == "disabled"
+        assert str(button.cget("state")) == "disabled"
         assert thread_ids and thread_ids[0] != main_thread_id
         assert canvas.winfo_exists() and editor.winfo_exists()
         assert not dialogs
@@ -132,7 +132,7 @@ def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
         assert dialogs[-1][0] == "info"
         assert "actual-output.dxf" in dialogs[-1][1][1]
         assert "不會修改 WHD 開孔或製造圖" in dialogs[-1][1][1]
-        assert button.cget("state") == "normal"
+        assert str(button.cget("state")) == "normal"
         assert old_preview.winfo_exists()
         assert features == [] and not session.has_active_edit
     finally:
@@ -166,7 +166,7 @@ def test_live_tk_missing_cli_fails_without_starting_draft_or_drawing(
         root.update()
         assert dialogs and dialogs[-1][0] == "error"
         assert "CADCRAFT_CLI_NOT_FOUND" in dialogs[-1][1][1]
-        assert button.cget("state") == "normal"
+        assert str(button.cget("state")) == "normal"
         assert features == [] and not session.has_active_edit
         assert canvas.winfo_exists() and editor._hole_header_cadcraft.winfo_exists()
     finally:
