@@ -162,6 +162,29 @@ def test_issue1793_part_switches_coalesce_scheduler_flushes(monkeypatch, record_
     root, win, app = _make_app(monkeypatch)
     try:
         scheduler = app._phase6_update_scheduler
+        # Windows real Tk UAT: the initial geometry solve may still be queued
+        # when the startup view first becomes interactive. It belongs to
+        # startup, not to a later display-only part switch. Settle it before
+        # measuring the 12 navigation transactions, while keeping an explicit
+        # receipt so a genuine startup calculation is never hidden.
+        startup_pending = tuple(sorted(scheduler.dirty))
+        startup_before = scheduler.metrics_snapshot()
+        if scheduler.dirty or scheduler._after_job is not None:
+            scheduler.flush_now()
+            _drain(root, 0.05)
+        startup_after = scheduler.metrics_snapshot()
+        record_property("issue1796_startup_settle_receipt", repr({
+            "pending_before": startup_pending,
+            "startup_calculation_flushes": (
+                startup_after["calculation_flushes"]
+                - startup_before["calculation_flushes"]
+            ),
+            "startup_display_flushes": (
+                startup_after["display_flushes"] - startup_before["display_flushes"]
+            ),
+        }))
+        assert scheduler.dirty == set()
+        assert scheduler._after_job is None
         original_submit = scheduler.submit
         original_flush = scheduler.flush_now
         original_render = app.renderer.render
