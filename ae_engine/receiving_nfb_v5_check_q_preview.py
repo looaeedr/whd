@@ -107,10 +107,26 @@ def check_csv_v5_base_part_only_groups(
         # V5-added CUTTING circles may ONLY be the NFB screws for this exact
         # source trial. Counting recognized screws alone misses an injected
         # foreign circular cut (and can mistakenly certify extra machining).
+        # The real native sheet uses five closed CUTTING polylines and
+        # numeric NFB screws use CUTTING circles. Other CUTTING entities
+        # (open polylines, loose lines, text or unknown future types) cannot
+        # be silently omitted from this physical CHECK/Q receipt. Even when
+        # non-closed linework has not changed the resulting Shapely material,
+        # it could be sent to the machining sink as an extra toolpath.
+        unexpected_cutting = [
+            primitive for primitive in render.scene.primitives
+            if str(getattr(primitive, "layer", "")).upper() == "CUTTING"
+            and not (
+                isinstance(primitive, CirclePrimitive)
+                or (isinstance(primitive, PolylinePrimitive) and primitive.closed)
+            )
+        ]
+        if unexpected_cutting:
+            raise ValueError("CSV V5 底板含未驗證的額外 CUTTING 線段或圖元")
         cutting_circles = [
             primitive for primitive in render.scene.primitives
             if isinstance(primitive, CirclePrimitive)
-            and primitive.layer == "CUTTING"
+            and str(primitive.layer).upper() == "CUTTING"
         ]
         screws = [
             primitive for primitive in cutting_circles
@@ -120,7 +136,7 @@ def check_csv_v5_base_part_only_groups(
             raise ValueError("CSV V5 底板含非所屬 NFB 的額外 CUTTING 圓孔")
         native = [primitive for primitive in render.scene.primitives
                   if isinstance(primitive, PolylinePrimitive)
-                  and primitive.closed and primitive.layer == "CUTTING"]
+                  and primitive.closed and str(primitive.layer).upper() == "CUTTING"]
         expected_ids = {
             f"{hole_id}:screw:{i}"
             for hole_id in part.hole_ids for i in range(1, 5)

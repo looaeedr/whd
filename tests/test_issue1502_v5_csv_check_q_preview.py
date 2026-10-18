@@ -168,3 +168,34 @@ def test_check_q_rejects_extra_unowned_cutting_circle_even_with_matching_materia
     ).area == pytest.approx(0)
     with pytest.raises(ValueError, match="額外 CUTTING 圓孔"):
         check_csv_v5_base_part_only_groups((_row(forged),))
+
+
+@pytest.mark.parametrize("foreign_type", ("line", "open_polyline", "text"))
+def test_csv_check_q_rejects_unowned_non_circle_cutting_even_if_material_agrees(foreign_type):
+    """Extra non-circular CUTTING toolpaths must not be ignored by CHECK Q."""
+    from ae_engine.manufacturing_render_data import material_polygon_from_final_scene
+    from ae_engine.sheetmetal_drawing import DrawingScene, TextPrimitive
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    snap, door, holes, bases = _setup()
+    first, _ = _run(snap, door, holes, bases)
+    pt = first.render_data.material.representative_point()
+    scene = DrawingScene(list(first.render_data.scene.primitives))
+    a = (float(pt.x), float(pt.y))
+    b = (a[0] + 0.1, a[1])
+    if foreign_type == "line":
+        scene.add_line(a, b, layer="CUTTING", color=30)
+    elif foreign_type == "open_polyline":
+        scene.add_polyline((a, b), layer="CUTTING", closed=False, color=30)
+    else:
+        scene.add(TextPrimitive("UNOWNED", Vec2(*a), "CUTTING", 1.0, 1, 30))
+    material = material_polygon_from_final_scene(scene)
+    forged = replace(first, render_data=replace(
+        first.render_data, scene=scene, material=material,
+    ))
+    # The modified FinalScene and its recomputed material agree; the
+    # unauthorized toolpath must still fail instead of passing by counting
+    # only native closed polygons and the recognized NFB screw circles.
+    assert forged.render_data.material.symmetric_difference(material).area == pytest.approx(0)
+    with pytest.raises(ValueError, match="額外 CUTTING 線段或圖元"):
+        check_csv_v5_base_part_only_groups((_row(forged),))
