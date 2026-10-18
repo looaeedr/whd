@@ -88,9 +88,15 @@ def test_receiving_confirm_draws_two_csv_nfb_holes_on_native_main_canvas():
         radios = [w for w in walk(frame)
                   if isinstance(w, ttk.Radiobutton)
                   and w.cget("text") == "2" and str(w.cget("value")) == "2"]
-        assert radios
-        radios[0].invoke()
+        actual_layer_radio = next(
+            (w for w in radios
+             if str(w.cget("variable")) == str(state["layers"])), None
+        )
+        assert actual_layer_radio is not None, "找不到內門層數的兩層選項"
+        actual_layer_radio.invoke()
         pump(root)
+        assert state["layers"].get() == 2
+        assert state["nfb_physical_layers"].get() == 2
         add_real_csv_nfb(root, state, 1)
         assert float(state["layer_heights_mm"][0].get()) == 300.0
 
