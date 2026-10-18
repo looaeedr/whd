@@ -195,7 +195,11 @@ def build_fixing_plate_source_render_data(
         if preview is None:
             raise ValueError("BASE_FIXING_PLATE_CABINET_MISMATCH")
         if preview.applicable_slot_pair_indexes is not None:
-            if is_tier_ear:
+            # A submitted SINGLE NFB tier is as physical as TWO tiers.
+            # Legacy root EAR lookup used base-local +/-70/105 world Y,
+            # ignoring the actual NFB opening-centred Base Plate offset.
+            # Only UNCOMMITTED legacy source-flat previews use old-local XY.
+            if is_tier_ear or data.get("nfb_config_submitted") is True:
                 from .receiving_tier_ear_assembly_xy import (
                     resolve_receiving_tier_ear_mating_xy,
                 )

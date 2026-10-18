@@ -188,5 +188,8 @@ def test_single_tier_source_flat_render_still_uses_real_original_one_pair():
         render = build_fixing_plate_source_render_data(part, snapshot=snapshot)
         assert render.metadata["nominal_base_fixing_hole_world_x_mm"] == x
         assert render.metadata["parent_base_id"] == "base_plate"
-        assert render.metadata["nfb_layer_index"] is None
+        assert render.metadata["nfb_layer_index"] == 0
+        assert render.metadata["nominal_base_fixing_hole_world_y_mm"] == (180., 320.)
+        assert render.metadata["base_skin_z_source_verified"] is True
+        assert not render.metadata["formed_geometry_verified"]
         assert not render.metadata["manufacturing_ready"]
