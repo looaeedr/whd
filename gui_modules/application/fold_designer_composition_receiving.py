@@ -2571,17 +2571,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def open_nfb_world_x_dialog():
             """Operator enters absolute world-X; UI-1A draft offset is not X."""
+            original_editor = (embed_parent.winfo_toplevel()
+                               if embed_parent is not None else None)
+            quantity_single = (
+                original_editor is not None
+                and getattr(original_editor, "_receiving_settings_mode", None) == "single"
+                and self.app.designer_workspace.active_mode == "quantity"
+            )
             proof_version_id = version_id
-            if proof_version_id is None:
-                original_editor = (embed_parent.winfo_toplevel()
-                                   if embed_parent is not None else None)
+            if proof_version_id is None and not quantity_single:
                 if (original_editor is None
                         or getattr(original_editor, "_receiving_settings_mode", None)
                            != "candidate"):
-                    warning.set("此入口尚無可驗證的內門版本；不可擅自借用其他連的 NFB 實體孔")
+                    warning.set("此入口尚無可驗證的內門版本；不可借用其他連的 NFB 實體孔")
                     return
-                # Reserve the *next real candidate identity* only in memory.
-                # Cancel leaves the library and its version counter untouched.
+                # Reserve only an in-memory candidate identity (Multi only).
                 proof_version_id = "inner-door-v" + str(inner_library()["next_number"])
             from ae_engine.receiving_nfb_ui1b_runtime import verify_current_nfb_ui_draft
             current=edit_session.current
@@ -2675,10 +2679,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 from ae_engine.receiving_nfb_ui1b_runtime import (
                     derive_w800_three_world_x_by_unit,
                 )
-                selection_for_x=candidate_adapter().selection
-                physical_for_x=nfb_physical_bay_snapshot(
-                    selection_for_x.set_index,selection_for_x.bay_index,
-                )
+                if quantity_single:
+                    physical_for_x = current_inner_editor_snapshot()
+                else:
+                    selection_for_x=candidate_adapter().selection
+                    physical_for_x=nfb_physical_bay_snapshot(
+                        selection_for_x.set_index,selection_for_x.bay_index,
+                    )
                 canonical_x=derive_w800_three_world_x_by_unit(
                     edit_session.current,snapshot=physical_for_x,
                 )
@@ -2733,8 +2740,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         if not value:
                             raise ValueError("每顆 NFB 的世界 X 都須明確輸入，0 亦可")
                         coords[unit_id]=float(value)
-                    adapter=candidate_adapter()
-                    selected=adapter.selection
+                    if quantity_single and v5_mode:
+                        raise ValueError(
+                            "單只 V5 數值孔目前僅供預覽，尚未取得正式 CUTTING 來源驗證"
+                        )
+                    if not quantity_single:
+                        adapter=candidate_adapter()
+                        selected=adapter.selection
                     if v5_mode:
                         from ae_engine.receiving_nfb_ui1b_runtime import (
                             preview_current_nfb_v5_door_base_ui_draft,
@@ -2764,19 +2776,31 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         outcome.set("內門主孔＋原底板 EAR／螺絲孔幾何檢查通過；"
                                     "可切頁核對。仍不可製造或提交。")
                         return
-                    bundle=verify_current_nfb_ui_draft(
-                        edit_session.current,layout=adapter.layout,
-                        set_index=selected.set_index,
-                        bay_index=selected.bay_index,
-                        version_id=proof_version_id,
-                        projected_snapshot=nfb_physical_bay_snapshot(
-                            selected.set_index,selected.bay_index,
-                        ),
-                        world_x_by_unit=coords,
-                        selected_source_path=source_choice["path"],
-                        canonical_w800_three=canonical_prefilled,
-                    )
-                    nfb_transaction_ports()["stage_verified"](bundle)
+                    if quantity_single:
+                        from ae_engine.receiving_nfb_quantity_editor import (
+                            verify_quantity_nfb_inner_door_source,
+                        )
+                        bundle = verify_quantity_nfb_inner_door_source(
+                            edit_session.current,
+                            snapshot=current_inner_editor_snapshot(),
+                            world_x_by_unit=coords,
+                            selected_source_path=source_choice["path"],
+                        )
+                        original_editor._receiving_quantity_source_proof = bundle
+                    else:
+                        bundle=verify_current_nfb_ui_draft(
+                            edit_session.current,layout=adapter.layout,
+                            set_index=selected.set_index,
+                            bay_index=selected.bay_index,
+                            version_id=proof_version_id,
+                            projected_snapshot=nfb_physical_bay_snapshot(
+                                selected.set_index,selected.bay_index,
+                            ),
+                            world_x_by_unit=coords,
+                            selected_source_path=source_choice["path"],
+                            canonical_w800_three=canonical_prefilled,
+                        )
+                        nfb_transaction_ports()["stage_verified"](bundle)
                     if embed_parent is not None:
                         # #1901: the *tab's* 確認 imports this source-verified
                         # opening into the original Hole Editor. Do not close
