@@ -8,12 +8,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-import os
 from pathlib import Path
-import shutil
 import tempfile
 from typing import Sequence
 
+from .cadcraft_paths import cadcraft_binary
 from ae_engine.sheetmetal_features import resolve_surface_features
 from tools.issue1959_whd_cadcraft_command_draw import (
     CadcraftCommandProofError, DrawInstruction,
@@ -29,30 +28,15 @@ class CadcraftCommandDrawingResult:
 
 
 def find_cadcraft_cli(*, configured=None) -> str:
-    """Find an installed CLI only when explicitly invoked. No downloads."""
-    explicit = configured if configured is not None else os.environ.get("WHD_CADCRAFT_CLI")
-    if explicit:
-        path = Path(explicit).expanduser()
-        if not path.is_file():
-            raise CadcraftCommandProofError(f"CADCRAFT_CLI_NOT_FOUND: {path}")
-        return str(path)
-
-    # Portable Windows CADCraft bundles cadcraft-cli.exe near its GUI.
-    gui = os.environ.get("WHD_CADCRAFT_GUI")
-    if gui:
-        sibling = Path(gui).expanduser().parent / (
-            "cadcraft-cli.exe" if os.name == "nt" else "cadcraft-cli"
+    """Find the portable CLI in WHD's application-relative ./cadcraft folder."""
+    path = (Path(configured).expanduser() if configured is not None
+            else cadcraft_binary("cli"))
+    if not path.is_file():
+        raise CadcraftCommandProofError(
+            f"CADCRAFT_CLI_NOT_FOUND: {path}；"
+            "請將 cadcraft-cli 放在 WHD 主程式旁的 cadcraft 資料夾。"
         )
-        if sibling.is_file():
-            return str(sibling)
-
-    for name in ("cadcraft-cli", "cadcraft-cli.exe"):
-        located = shutil.which(name)
-        if located and Path(located).is_file():
-            return located
-    raise CadcraftCommandProofError(
-        "CADCRAFT_CLI_NOT_FOUND: 請指定 WHD_CADCRAFT_CLI 的 cadcraft-cli.exe 完整路徑"
-    )
+    return str(path)
 
 
 def prepare_whd_cadcraft_commands(*, surface, features: Sequence,
