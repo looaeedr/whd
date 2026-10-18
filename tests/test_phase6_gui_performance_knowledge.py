@@ -123,7 +123,7 @@ def test_issue1796_real_windows_acceptance_lessons_are_in_existing_reference_led
     skill = GUI_SKILL.read_text(encoding="utf-8")
     for term in (
         "ISSUE1796_WINDOWS_NATIVE_TK_AND_FROZEN_SHA_WRITEBACK_20261018",
-        "啟動 geometry 與純導覽的量測邊界混淆",
+        "初始化 geometry 與純導覽的量測邊界混淆",
         "Linux `DISPLAY` 被當成所有平台 Tk 可用性",
         "共用 `localX` 在長時間 UAT 期間被其他施工更新",
         "39133590991",
