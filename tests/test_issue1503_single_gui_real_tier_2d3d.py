@@ -171,5 +171,54 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
             row.part_id for row in formed
         }
         assert len(renderer.last_receiving_ear_marking_segments) == 16
+        # A segment-count pass is not a visible-pixel pass. Render the SAME
+        # physical FinalScene twice at the SAME camera; toggle ONLY the real
+        # production renderer's formed-EAR contact overlay. This captures
+        # whether Matplotlib actually made contrasting pixels on its canvas.
+        import numpy as np
+        ax = renderer.renderer.ax3d
+        canvas = renderer.renderer.canvas
+        original = renderer._draw_receiving_ear_side_markings
+
+        def actual_canvas_pixels(*, marking, camera):
+            ax.clear()
+            if not marking:
+                renderer._draw_receiving_ear_side_markings = lambda *a, **kw: ()
+            try:
+                renderer.render(request)
+                ax.view_init(elev=camera[0], azim=camera[1])
+                canvas.draw()
+                return np.asarray(canvas.buffer_rgba()).copy()
+            finally:
+                renderer._draw_receiving_ear_side_markings = original
+
+        for label, camera in (
+            ("normal_operator_view", (50., -90.)),
+            ("side_interior_inspection_view", (32., 125.)),
+        ):
+            without = actual_canvas_pixels(marking=False, camera=camera)
+            with_marks = actual_canvas_pixels(marking=True, camera=camera)
+            assert with_marks.shape == without.shape
+            delta = np.max(
+                np.abs(
+                    with_marks[:, :, :3].astype(np.int16)
+                    - without[:, :, :3].astype(np.int16)
+                ),
+                axis=2,
+            )
+            visible = int(np.count_nonzero(delta > 32))
+            total = int(delta.size)
+            print(
+                f"REAL_3D_PIXEL_MARKING {label}: "
+                f"visible_pixels={visible}, all_pixels={total}, "
+                f"percent={visible * 100 / total:.5f}%",
+                flush=True,
+            )
+            if label == "side_interior_inspection_view":
+                # This view faces the actual physical SIDE inner surface;
+                # 16 theoretical segments but zero legible pixels is RED.
+                assert visible >= 250, (
+                    "EAR_3D_VISIBLE_MARKING_NOT_RENDERED_ON_SIDE_INSPECTION"
+                )
     finally:
         root.destroy()
