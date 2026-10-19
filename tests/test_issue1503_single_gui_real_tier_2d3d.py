@@ -130,6 +130,18 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
             assert part.render_data.material.area > 0
             assert part.render_data.unfolded_topology.piece_id == key
             assert part.render_data.metadata.get("manufacturing_ready") is False
+            # 2D operator sheet selector must list this actual per-tier part,
+            # and its active-sheet renderer must use the SAME physical source
+            # material as the 3D assembly (not just an invisible scene DTO).
+            assert key in designer.designer_workspace.available_parts
+            from phase6_part_navigation import operator_part_selector_keys
+            assert key in operator_part_selector_keys(
+                designer.designer_workspace.available_parts
+            )
+            source = designer._phase6_scene_query_payload_for_part(key)
+            preview = designer._scene_query_callback(key, source)
+            assert preview.unfolded_topology.piece_id == key
+            assert preview.material.area == part.render_data.material.area
 
         formed = tuple(scene.formed_fixing_plate_skins or ())
         assert len(formed) == 4, "two tiers require four real side-fixed plates"
