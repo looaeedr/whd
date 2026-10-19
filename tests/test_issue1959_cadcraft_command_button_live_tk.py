@@ -231,3 +231,40 @@ def test_live_tk_cadcraft_manual_position_return_uses_original_session(monkeypat
         assert features == [original]
     finally:
         root.destroy()
+
+
+
+def test_live_tk_when_cadcraft_gui_cannot_launch_reports_error_without_losing_ticket(
+    monkeypatch, tmp_path,
+):
+    import ezdxf
+    from gui_modules.editors import cadcraft_command_preview_bridge as bridge
+
+    root, editor, canvas, session, features, dialogs = _tk_shell()
+    target = tmp_path / "valid-whd-isolated-exchange.dxf"
+    ezdxf.new("R2010", units=ezdxf.units.MM).saveas(target)
+    png = tmp_path / "visual.png"
+    png.write_bytes(b"test-only")
+    try:
+        monkeypatch.setattr(bridge, "find_cadcraft_cli", lambda: "test-cli")
+        monkeypatch.setattr(
+            bridge, "draw_whd_commands_with_cadcraft",
+            lambda **kw: bridge.CadcraftCommandDrawingResult(
+                target, png, {"status": "PASS"},
+            ),
+        )
+        def denied(path):
+            assert path == target
+            raise CadcraftCommandProofError("CADCRAFT_GUI_LAUNCH_FAILED")
+        monkeypatch.setattr(bridge, "open_cadcraft_hole_editor", denied)
+        editor._hole_header_cadcraft_draw.invoke()
+        _pump(root, lambda: bool(dialogs))
+        assert dialogs[-1][0] == "error"
+        assert "CADCRAFT_GUI_LAUNCH_FAILED" in dialogs[-1][1][1]
+        assert editor._hole_cadcraft_return_ticket is not None
+        assert str(editor._hole_header_cadcraft_return.cget("state")) == "normal"
+        assert "啟動失敗" in editor._hole_header_cadcraft_status.cget("text")
+        assert features == [] and not session.has_active_edit
+        assert canvas.winfo_exists()
+    finally:
+        root.destroy()
