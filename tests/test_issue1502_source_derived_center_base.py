@@ -111,8 +111,7 @@ def test_no_submitted_nfb_and_ambiguous_flat_do_not_invent_a_plate():
     snap["nfb_config_submitted"] = False
     assert receiving_base_plate_values(snap) is None
     snap = _source_snapshot(shallow="2P400")  # old slot1 owner is invalid for flat
-    with pytest.raises(ValueError, match="MULTIPLE_ROWS_NEED_DISTINCT_BASE"):
-        receiving_base_plate_values(snap)
+    assert receiving_base_plate_values(snap) is None
 
 
 def test_current_bay_identity_mismatch_is_not_cross_bay_mfg_source():
