@@ -404,7 +404,11 @@ def _query_fold_designer_render_data(self, part_key, payload):
             source, available_parts=("base_plate",),
         )
         if key not in {part.part_id for part in physical}:
-            raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
+            raise ValueError(
+                "BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET:"
+                f" requested={key}; current="
+                f"{tuple(part.part_id for part in physical)}"
+            )
         return sheet(build_fixing_plate_source_render_data(key, snapshot=source))
     if key.startswith("box_body:divider:"):
         divider = _box_body_divider_from_payload(key, payload)
