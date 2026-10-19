@@ -108,6 +108,19 @@ def project_common_box(snapshot):
             result["receiving_" + kind] = deepcopy(box[kind])
     if "door_state" in box:
         bay["door_state"] = deepcopy(box["door_state"])
+    # This singleton Bay exists solely to project the selected quantity
+    # version into the SAME assembly solver as regular Set/Bay mode.
+    # Keep NFB submission owned by QuantityModel, never the synthetic Bay.
+    result.pop("nfb_config_submitted", None)
+    result.pop("nfb_config", None)
+    quantity = result.get("quantity")
+    if isinstance(quantity, Mapping):
+        from phase6_quantity_model import QuantityModel
+        model = QuantityModel.from_payload(quantity)
+        submitted = model.nfb_config_for_version(model.selected_version_id)
+        if submitted:
+            bay.update(deepcopy(submitted))
+            result.update(deepcopy(submitted))
     row["settings"] = normalize_set_settings(None, row["bays"])
     result["receiving_layout"] = layout
     result["receiving_inner_door_layers"] = box["inner_door_layers"]
