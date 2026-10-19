@@ -53,7 +53,7 @@ def _pick_400(root, state, layer):
     assert row["assigned"].size() == 1
 
 
-def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft():
+def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft(tmp_path):
     import gui
     import fold_designer_bridge as bridge
 
@@ -239,5 +239,102 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 assert visible >= 250, (
                     "EAR_3D_VISIBLE_MARKING_NOT_RENDERED_ON_SIDE_INSPECTION"
                 )
+
+        # 2D must be native Tk pixels from the real WHD Canvas drawing sink,
+        # not just metadata, fabricated strokes, or a matplotlib source sketch.
+        # This comparison uses an explicitly operator-selected physical source;
+        # the original unconfigured problem-project fixture stays unchanged.
+        from types import SimpleNamespace
+        from PIL import ImageGrab
+        from gui_modules.rendering.box_body_view import draw_box_body_piece_preview
+        from gui_modules.application.receiving_ear_side_2d import (
+            present_receiving_ear_side_piece_2d,
+        )
+        import os
+        box_part = next(part for part in scene.assembly_parts
+                        if part.part_key == "box_body")
+        box_data = box_part.render_data
+        body = {p.role: p for p in box_data.pieces}
+        tk_stage = tk.Toplevel(root)
+        tk_stage.geometry("1000x880+30+30")
+        stage_canvas = tk.Canvas(tk_stage, width=950, height=820, bg="#172233")
+        stage_canvas.pack(fill=tk.BOTH, expand=True)
+        _pump(root)
+        host = SimpleNamespace(
+            canvas_z=stage_canvas,
+            draw_stock_var=tk.BooleanVar(master=root, value=False),
+            _box_body_piece_label=calc._box_body_piece_label,
+            COLOR_TEXT_MUTED=calc.COLOR_TEXT_MUTED,
+        )
+        from gui import (
+            _phase6_2d_material_viewport, render_drawing_scene,
+            _draw_phase6_annotation_projection,
+        )
+        output = os.environ.get("WHD_1503_PIXEL_RECEIPT_DIR")
+        def capture_side(side, selected):
+            stage_canvas.delete("all")
+            draw_box_body_piece_preview(
+                host, box_data, selected, "box_body:" + side,
+                viewport=_phase6_2d_material_viewport,
+                scene_renderer=render_drawing_scene,
+                annotation_drawer=_draw_phase6_annotation_projection,
+            )
+            _pump(root)
+            x, y = stage_canvas.winfo_rootx(), stage_canvas.winfo_rooty()
+            w, h = stage_canvas.winfo_width(), stage_canvas.winfo_height()
+            assert min(w, h) >= 500, "2D canvas not actually mapped"
+            return np.asarray(ImageGrab.grab(bbox=(x, y, x + w, y + h)).convert("RGB")).copy()
+
+        for side in ("left_side", "right_side"):
+            original_side = body[side]
+            shown, blocker = present_receiving_ear_side_piece_2d(
+                calc, box_data, original_side, "box_body:" + side,
+            )
+            assert blocker is None, blocker
+            assert shown.render_data.metadata["ear_side_mark_preview_count"] == 8
+            without_2d = capture_side(side, original_side)
+            with_2d = capture_side(side, shown)
+            assert with_2d.shape == without_2d.shape
+            diff = np.max(np.abs(
+                with_2d.astype(np.int16) - without_2d.astype(np.int16),
+            ), axis=2)
+            # Remove the top info text from pixel witness so a changed
+            # "8 marks" LABEL never masquerades as geometric 2D lines.
+            visible_2d = int(np.count_nonzero(diff[220:, :] > 45))
+            print(f"REAL_TK_2D_MARKING {side}: visible_pixels={visible_2d}", flush=True)
+            assert visible_2d >= 250, "REAL_TK_SIDE_MARKS_NOT_VISIBLE:" + side
+            if output:
+                from pathlib import Path
+                folder = Path(output)
+                folder.mkdir(parents=True, exist_ok=True)
+                from PIL import Image
+                Image.fromarray(without_2d).save(folder / f"real_tk_2d_{side}_without.png")
+                Image.fromarray(with_2d).save(folder / f"real_tk_2d_{side}_with.png")
+        tk_stage.destroy()
+
+        # Only now persist the explicitly configured source + Confirm All
+        # through the product Save As, and ACTUALLY reopen it in the GUI.
+        from unittest.mock import patch
+        saved_path = tmp_path / "configured_two_tier_native_gui.p6fold"
+        with patch("tkinter.filedialog.asksaveasfilename", return_value=str(saved_path)):
+            saved = designer.save_project_file_as()
+        assert saved_path.exists() and saved
+        reloaded = calc.load_phase6_project(saved_path, open_designer=True)
+        _pump(root)
+        assert reloaded._phase6_input_snapshot.get("receiving_base_plate") is not None
+        restored = bridge._phase6_final_scene_adapter(reloaded).query_assembly_render_data()
+        restored_parts = {p.part_key: p for p in restored.assembly_parts}
+        assert all(f"base_plate:nfb_layer:{i}" in restored_parts for i in (0, 1))
+        assert len(restored.formed_fixing_plate_skins) == 4
+        reloaded._phase6_3d_display_mode = "assembly"
+        reloaded_view = reloaded.final_scene_view
+        restored_request = bridge._phase6_final_scene_adapter(reloaded).build_request()
+        assert restored_request is not None
+        reloaded_view.render(restored_request)
+        assert len(reloaded_view.last_receiving_ear_marking_segments) == 16
+        for side, target_x in (("left_side", -398.), ("right_side", 398.)):
+            lines = tuple((a,b) for a,b in reloaded_view.last_receiving_ear_marking_segments
+                          if abs(a[0]-target_x) < 1e-5 and abs(b[0]-target_x) < 1e-5)
+            assert len(lines) == 8, "RELOADED_LEFT_RIGHT_EAR_MARKING_MISSING:" + side
     finally:
         root.destroy()
