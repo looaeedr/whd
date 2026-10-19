@@ -198,6 +198,7 @@ class Phase6FinalSceneViewAdapter:
         selected_joint_id=None,
         preserve_endcap_core_origin=False,
         formed_fixing_plate_skins=(),
+        warnings=(),
         render_data_cls=None,
     ):
         return _project_assembly_scene_render_data(
@@ -212,6 +213,7 @@ class Phase6FinalSceneViewAdapter:
             selected_joint_id=selected_joint_id,
             preserve_endcap_core_origin=preserve_endcap_core_origin,
             formed_fixing_plate_skins=formed_fixing_plate_skins,
+            warnings=warnings,
             render_data_cls=render_data_cls,
         )
 
@@ -286,6 +288,16 @@ class Phase6FinalSceneViewAdapter:
             if str(getattr(part, "part_key", "")) in visible_set
         )
         cabinet_family = dependencies.cabinet_family()
+        # UI-only disclosure, never fabrication of a physical source or an
+        # NFB submission flag. Without an operator-selected physical Base Plate
+        # there cannot be real NFB-tier Base Plates or welded-EAR contact MARKING.
+        source_warning = (
+            ("受電箱實體底板尚未配置：請先在底板設定選擇實體板型並套用；"
+             "目前不顯示底板與固定片打標線",)
+            if cabinet_family == "受電箱"
+               and not snapshot.get("receiving_base_plate")
+            else ()
+        )
         return self.make_assembly_scene_render_data(
             assembly_parts=parts,
             visible_part_keys=visible_part_keys,
@@ -299,6 +311,7 @@ class Phase6FinalSceneViewAdapter:
             ),
             selected_joint_id=None,
             preserve_endcap_core_origin=(cabinet_family == "受電箱"),
+            warnings=source_warning,
             formed_fixing_plate_skins=(
                 self._formed_ear_assembly_preview(snapshot, visible_set)
                 if cabinet_family == "受電箱" else ()
