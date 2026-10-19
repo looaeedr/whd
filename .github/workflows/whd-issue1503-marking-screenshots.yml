@@ -9,6 +9,7 @@ on:
       - 'tools/receiving_ear_marking_capture.py'
       - 'tests/test_issue1503_assembly_ear_3d_marking_overlay.py'
       - 'tests/test_issue1503_all_marking_capture.py'
+      - 'tests/test_issue1503_single_gui_real_tier_2d3d.py'
       - 'tests/test_issue1503_source_derived_fixing_pitch.py'
       - 'tests/test_issue1503_non800_full_side_mfg.py'
       - '.github/workflows/whd-issue1503-marking-screenshots.yml'
@@ -43,6 +44,18 @@ jobs:
             tests/test_issue1503_non800_full_side_mfg.py
       - name: Capture 2D/3D headless rendered evidence
         run: PYTHONPATH=. python tools/receiving_ear_marking_capture.py --output artifacts/full_receiving_marking
+      - name: Capture actual native Tk 3D canvas with and without marking
+        env:
+          WHD_1503_PIXEL_RECEIPT_DIR: artifacts/live_tk_3d
+        run: |
+          xvfb-run -a python -m pytest -q -s tests/test_issue1503_single_gui_real_tier_2d3d.py
+      - name: Upload native Tk marking pixel receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiving-native-tk-3d-on-off-and-diff
+          path: artifacts/live_tk_3d/*.png
+          if-no-files-found: error
+          retention-days: 30
       - name: Upload verified source-render PNGs
         uses: actions/upload-artifact@v4
         with:
