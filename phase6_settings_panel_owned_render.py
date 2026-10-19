@@ -479,7 +479,7 @@ class Phase6SettingsPanelOwnedRenderMixin:
                    "已配置實體板型" if projection.get("configured")
                    else ("來源尚無法唯一推導：" + str(projection["source_error"])
                          if projection.get("source_error")
-                         else "尚無可唯一辨識的底板來源；製造檢查仍有效")),
+                         else "未配置：來源尚無法唯一辨識，製造檢查仍有效")),
         )
         ttk.Label(frame, textvariable=status_var).grid(
             row=4, column=0, columnspan=3, sticky="w", pady=(5, 0),
