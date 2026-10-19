@@ -3311,6 +3311,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         )
 
     if embedded_inner_parent is not None:
+        from .receiving_inner_door_hole_editor import inner_door_commit_target
         # Keep the original Corner Data / physical-part double-click editor.
         # Only the NEW Single/Multi settings button opts into staged save.
         editor = embedded_inner_parent.winfo_toplevel()
