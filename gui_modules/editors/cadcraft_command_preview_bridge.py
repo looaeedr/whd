@@ -63,6 +63,65 @@ def open_cadcraft_hole_editor(exchange_dxf: Path, *, executable=None, launcher=N
         ) from exc
 
 
+def focus_started_cadcraft_window(process_id: int):
+    """Best-effort foreground handoff after a real WHD user click on Windows.
+
+    Return False while the native CADCraft top-level window does not exist or
+    if the user has switched to another application. Never steal focus from
+    Chrome/another foreground process. No external dependency is required.
+    """
+    import os
+    if os.name != "nt" or not isinstance(process_id, int) or process_id <= 0:
+        return False
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    user32.GetForegroundWindow.restype = wintypes.HWND
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.SetForegroundWindow.restype = wintypes.BOOL
+    user32.BringWindowToTop.argtypes = [wintypes.HWND]
+    user32.BringWindowToTop.restype = wintypes.BOOL
+    pid = wintypes.DWORD()
+    get_pid = user32.GetWindowThreadProcessId
+    get_pid.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    get_pid.restype = wintypes.DWORD
+    foreground = user32.GetForegroundWindow()
+    get_pid(foreground, ctypes.byref(pid))
+    if pid.value == process_id:
+        return True
+    # Foreground may be this WHD process only when launched by actual
+    # interaction. An unrelated foreground owner must never be disturbed.
+    if pid.value != os.getpid():
+        return False
+
+    found = []
+    callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.IsWindowVisible.restype = wintypes.BOOL
+
+    def inspect(hwnd, unused):
+        owner = wintypes.DWORD()
+        get_pid(hwnd, ctypes.byref(owner))
+        if owner.value == process_id and user32.IsWindowVisible(hwnd):
+            found.append(hwnd)
+            return False
+        return True
+
+    callback = callback_type(inspect)
+    user32.EnumWindows.argtypes = [callback_type, wintypes.LPARAM]
+    user32.EnumWindows(callback, 0)
+    if not found:
+        return False
+    hwnd = found[0]
+    user32.IsIconic.argtypes = [wintypes.HWND]
+    if user32.IsIconic(hwnd):
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+    user32.BringWindowToTop(hwnd)
+    user32.SetForegroundWindow(hwnd)
+    return user32.GetForegroundWindow() == hwnd
+
+
 def prepare_whd_cadcraft_commands(*, surface, features: Sequence,
                                    width: float, height: float) -> tuple[DrawInstruction, ...]:
     """Read-only WHD authority check; captures immutable geometry for worker."""

@@ -268,3 +268,44 @@ def test_live_tk_when_cadcraft_gui_cannot_launch_reports_error_without_losing_ti
         assert canvas.winfo_exists()
     finally:
         root.destroy()
+
+
+
+def test_live_tk_gui_handoff_focuses_spawned_native_window_without_modal(
+    monkeypatch, tmp_path,
+):
+    """The actual WHD button polls for the native window after launching."""
+    import ezdxf
+    from gui_modules.editors import cadcraft_command_preview_bridge as bridge
+    root, editor, canvas, session, features, dialogs = _tk_shell()
+    exchange = tmp_path / "verified-whd-blank.dxf"
+    ezdxf.new("R2010", units=ezdxf.units.MM).saveas(exchange)
+    image = tmp_path / "placeholder.png"
+    image.write_bytes(b"test")
+    focus_calls = []
+    try:
+        monkeypatch.setattr(bridge, "find_cadcraft_cli", lambda: "test-cli")
+        monkeypatch.setattr(
+            bridge, "draw_whd_commands_with_cadcraft",
+            lambda **kw: bridge.CadcraftCommandDrawingResult(
+                exchange, image, {"status": "PASS"},
+            ),
+        )
+        monkeypatch.setattr(
+            bridge, "open_cadcraft_hole_editor",
+            lambda path: SimpleNamespace(pid=4242, poll=lambda: None),
+        )
+        monkeypatch.setattr(
+            bridge, "focus_started_cadcraft_window",
+            lambda pid: focus_calls.append(pid) or True,
+        )
+        editor._hole_header_cadcraft_draw.invoke()
+        _pump(root, lambda: bool(focus_calls))
+        assert focus_calls == [4242]
+        assert "已啟動" in editor._hole_header_cadcraft_status.cget("text")
+        assert str(editor._hole_header_cadcraft_return.cget("state")) == "normal"
+        assert not dialogs
+        assert features == [] and not session.has_active_edit
+        assert canvas.winfo_exists()
+    finally:
+        root.destroy()
