@@ -295,6 +295,39 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 isinstance(p, LinePrimitive) and
                 str(getattr(p, "layer", "")).upper() == "MARKING"
             ))
+            # Honest RED witness: distinguish pre-existing joint marks from
+            # the per-tier EAR projected weld contact, without adding strokes.
+            from ae_engine.receiving_fixed_plate_side_uv_marking import (
+                resolve_receiving_ear_side_uv_receipts,
+            )
+            from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+            resolved_manufacturing = designer._phase6_resolve_manufacturing_geometry()
+            world_geometry = _phase6_build_joint_world_geometry(
+                tuple(resolved_manufacturing.parts),
+                (float(designer._phase6_input_snapshot["w"]),
+                 float(designer._phase6_input_snapshot["h"]),
+                 float(designer._phase6_input_snapshot["d"])),
+                float(designer._phase6_input_snapshot["t"]),
+            )
+            receipts = resolve_receiving_ear_side_uv_receipts(
+                designer._phase6_input_snapshot,
+                world_geometry=world_geometry,
+                geometry=resolved_manufacturing,
+            )
+            from shapely.geometry import LineString, Polygon
+            patches = [Polygon(rec.side_source_flat_boundary) for rec in receipts
+                       if rec.side_piece_id == "box_body:" + side]
+            print("SIDE_SOURCE_MARKING_DIAGNOSTIC", side, "source_lines",
+                  [((round(item.p1.x, 2), round(item.p1.y, 2)),
+                    (round(item.p2.x, 2), round(item.p2.y, 2))) for item in ear_lines],
+                  "ear_patches", [
+                      (tuple(round(v, 2) for v in p.bounds), round(p.area, 2))
+                      for p in patches
+                  ], "overlap_lengths", [
+                      [round(LineString((item.p1, item.p2)).intersection(
+                          p).length, 3) for p in patches]
+                      for item in ear_lines
+                  ], flush=True)
             assert len(ear_lines) >= 8, (
                 "REAL_SOURCE_SIDE_EAR_MARKING_MISSING:" + side
             )
