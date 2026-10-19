@@ -262,6 +262,25 @@ def _save_3d(snapshot, geometry, tier_count, root):
     )
     if joint_segments != 7:
         raise ValueError("FULL_MARKING_3D_FRAME_DIVIDER_MISSING:" + str(joint_segments))
+    # The native UI displays Chinese operator text; CI's minimal Linux fonts
+    # render it as square glyphs. Strip only those 2D annotations from this
+    # evidence PNG, not the 3D physical MARKING lines or the application UI.
+    for annotation in tuple(ax.texts):
+        annotation.remove()
+    from matplotlib.lines import Line2D
+    fig.suptitle(
+        f"WHD / {tier_count} NFB TIER(S) / Full assembly 3D contact MARKING",
+        fontsize=15,
+    )
+    fig.legend(
+        handles=[
+            Line2D([0], [0], color=COLOR_JOINT, linewidth=3,
+                   label="Inner-door frame / divider contact"),
+            Line2D([0], [0], color=COLOR_EAR, linewidth=3,
+                   label="Base fixing-plate weld contact"),
+        ],
+        loc="lower center", ncol=2, fontsize=9, frameon=False,
+    )
     for azimuth, elevation, name in ((-52, 24, "isometric"), (12, 19, "inner_front"), (78, 17, "side_contact")):
         ax.view_init(elev=elevation, azim=azimuth)
         fig.savefig(root / f"3d_{name}.png", bbox_inches="tight")
