@@ -1,0 +1,4 @@
+# Keep CADCraft third-party portable contents local.
+# Only the ignore policy itself is tracked.
+*
+!.gitignore

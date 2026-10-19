@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1819-windows-uat
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1819 Windows localX 實機驗收（手動啟動）
 
 這是**可選的 Windows 實機量測入口**。程式不會自動執行、不會更動你的正式 X，也不會替你發布。雲端 #1894 的 Xvfb 30 輪數據與這份 Windows 量測必須分開記錄。

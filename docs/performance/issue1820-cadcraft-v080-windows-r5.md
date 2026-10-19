@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1820-cadcraft-v080-windows-r5
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1820 — CADCraft v0.8.0 / R5-2600 Windows GUI 實測（2026-10-18）
 
 ## 版本校正
