@@ -99,3 +99,19 @@ def test_quantity_selected_version_nfb_is_projected_to_one_actual_bay_only():
     next_view = project_common_box(projected)
     assert next_view.get("nfb_config_submitted") is None
     assert next_view["receiving_layout"]["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
+
+
+def test_real_base_plate_selection_is_owned_by_quantity_box_not_volatile_alias():
+    from tests.test_receiving_committed_nfb_depth_base_part_flow import _snapshot
+    cfg = _snapshot()["receiving_base_plate"]
+    old = project_common_box({
+        "model": "受電箱", "active_mode": "quantity", "t": 2.,
+        "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+    })
+    chosen = update_common_box(old, {"receiving_base_plate": cfg})
+    assert chosen["receiving_quantity_box"]["receiving_base_plate"] == cfg
+    assert chosen["receiving_base_plate"] == cfg
+    assert project_common_box(deepcopy(chosen))["receiving_base_plate"] == cfg
+    restored = update_common_box(chosen, {"receiving_base_plate": None})
+    assert "receiving_base_plate" not in restored
+    assert "receiving_base_plate" not in restored["receiving_quantity_box"]
