@@ -22,6 +22,24 @@ FIXTURE = Path(__file__).parent / "fixtures" / "issue1503_legacy_receiving_witho
 MISSING_MESSAGE = "受電箱實體底板尚未配置"
 
 
+def test_auto_source_does_not_trigger_legacy_manual_base_warning(monkeypatch):
+    """#1502: a genuine resolver result can exist without manual settings."""
+    import ae_engine.receiving_base_plate_config as source
+    from phase6_final_scene_view import receiving_base_source_display_warnings
+    snapshot = {"model": "受電箱", "w": 800, "h": 1600, "d": 350,
+                "t": 2, "nfb_config_submitted": True}
+    assert "receiving_base_plate" not in snapshot
+
+    monkeypatch.setattr(source, "receiving_base_plate_values",
+                        lambda data: {"receiving_bend_pattern": "CENTER_DOUBLE_SIDE_FOLD"})
+    assert receiving_base_source_display_warnings(snapshot, "受電箱") == ()
+
+    monkeypatch.setattr(source, "receiving_base_plate_values", lambda data: None)
+    missing = receiving_base_source_display_warnings(snapshot, "受電箱")
+    assert len(missing) == 1 and "來源不足" in missing[0]
+    assert receiving_base_source_display_warnings(snapshot, "金庫型") == ()
+
+
 def test_fixture_preserves_missing_authorities():
     raw = json.loads(FIXTURE.read_text(encoding="utf-8"))
     snap = raw["snapshot"]
