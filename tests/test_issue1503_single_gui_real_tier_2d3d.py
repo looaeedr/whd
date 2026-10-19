@@ -138,7 +138,8 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
             assert key in operator_part_selector_keys(
                 designer.designer_workspace.available_parts
             )
-            source = designer._phase6_scene_query_payload_for_part(key)
+            from phase6_manufacturing_adapter import build_scene_payload_for_app
+            source = build_scene_payload_for_app(designer, key)
             preview = designer._scene_query_callback(key, source)
             assert preview.unfolded_topology.piece_id == key
             assert preview.material.area == part.render_data.material.area
