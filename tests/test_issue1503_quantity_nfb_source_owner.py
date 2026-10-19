@@ -58,3 +58,44 @@ def test_malformed_source_model_or_reversed_nfb_y_fails_before_commit():
         from pytest import raises
         with raises(ValueError):
             update_common_box(original, wrong)
+
+
+def test_quantity_selected_version_nfb_is_projected_to_one_actual_bay_only():
+    from phase6_quantity_model import QuantityModel
+    from ae_engine.receiving_nfb_persistence import normalize_nfb_config
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    baseline = project_common_box({
+        "model": "受電箱", "active_mode": "quantity", "t": 2.,
+        "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+    })
+    q = QuantityModel.from_payload(baseline["quantity"]) if "quantity" in baseline else QuantityModel()
+    ref = numeric_model_ref("士林", "2P400")
+    typed = normalize_nfb_config({
+        "layer_count": 2,
+        "holes": [
+            {"physical_hole_id": "upper:nfb:0", "model_filename": ref,
+             "source_brand": "士林", "layer_count": 2, "layer_index": 0,
+             "slot_index": 0, "manual_x_state": "UNVERIFIED_BASIS"},
+            {"physical_hole_id": "upper:nfb:1", "model_filename": ref,
+             "source_brand": "士林", "layer_count": 2, "layer_index": 1,
+             "slot_index": 0, "manual_x_state": "UNVERIFIED_BASIS"},
+        ],
+    })
+    q.set_version_nfb_config(q.selected_version_id, submitted=True, config=typed)
+    baseline["quantity"] = q.snapshot()
+    projected = project_common_box(baseline)
+    bay = projected["receiving_layout"]["sets"][0]["bays"][0]
+    assert bay["nfb_config_submitted"] is True
+    assert bay["nfb_config"] == typed
+    assert projected["nfb_config"] == typed
+    # Reprojection from saved authority must be idempotent and preserve
+    # the exact physical-hole identity in every NFB layer.
+    again = project_common_box(projected)
+    assert again["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] == typed
+    # Selecting a newly unconfigured version must not borrow old NFB holes.
+    q.add_version()
+    q.set_version_nfb_config(q.selected_version_id, submitted=False)
+    projected["quantity"] = q.snapshot()
+    next_view = project_common_box(projected)
+    assert next_view.get("nfb_config_submitted") is None
+    assert next_view["receiving_layout"]["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
