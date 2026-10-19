@@ -89,6 +89,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         self.last_all_parts_collision_audit = None
         self._all_parts_collision_cache = None
         self.last_formed_ear_display_ids = ()
+        self.last_receiving_ear_marking_segments = ()
 
     def render(self, request: FinalSceneViewRequest | None):
         if request is None:
@@ -434,6 +435,16 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 triangles.extend(skin_tris)
                 visible_ears.append(str(formed.part_id))
             self.last_formed_ear_display_ids = tuple(visible_ears)
+            # EAR contact lines are MARKING on the mother SIDE plate, not
+            # a mesh-grid overlay or an EAR CUTTING/BEND feature.  Only draw
+            # when the physical box body and its actual side are visible.
+            if visible_part_keys is None or "box_body" in visible_part_keys:
+                self.last_receiving_ear_marking_segments = (
+                    self._draw_receiving_ear_side_markings(
+                        tuple(getattr(render_data, "formed_fixing_plate_skins", ()) or ()),
+                        visible_side_piece_keys=visible_box_body_piece_keys,
+                    )
+                )
             # On-demand WHOLE ASSEMBLY physical audit, independent of legacy
             # EndCap restored-delta visualization. Include all side pieces,
             # divider, inner-door frames, head/tail and future generated parts.
