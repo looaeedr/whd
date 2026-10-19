@@ -1,4 +1,4 @@
-name: WHD EAR MARKING 2D 3D Visual Evidence
+name: WHD Full Receiving Marking Visual Evidence
 
 on:
   pull_request:
@@ -8,6 +8,7 @@ on:
       - 'phase6_final_scene_renderer.py'
       - 'tools/receiving_ear_marking_capture.py'
       - 'tests/test_issue1503_assembly_ear_3d_marking_overlay.py'
+      - 'tests/test_issue1503_all_marking_capture.py'
       - '.github/workflows/whd-issue1503-marking-screenshots.yml'
 
 permissions:
@@ -31,13 +32,14 @@ jobs:
         run: python -m pip install -r requirements.txt matplotlib pytest numpy pillow
       - name: Source-backed MARKING tests
         run: |
-          python -m pytest -q             tests/test_issue1503_assembly_ear_3d_marking_overlay.py             tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py             tests/test_issue1503_real_side_piece_2d_preview.py
+          python -m pytest -q             tests/test_issue1503_assembly_ear_3d_marking_overlay.py             tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py             tests/test_issue1503_real_side_piece_2d_preview.py \
+            tests/test_issue1503_all_marking_capture.py
       - name: Capture 2D/3D headless rendered evidence
-        run: PYTHONPATH=. python tools/receiving_ear_marking_capture.py --output artifacts/ear_marking
+        run: PYTHONPATH=. python tools/receiving_ear_marking_capture.py --output artifacts/full_receiving_marking
       - name: Upload verified source-render PNGs
         uses: actions/upload-artifact@v4
         with:
-          name: receiving-ear-marking-2d-3d
-          path: artifacts/ear_marking/*.png
+          name: receiving-all-marks-single-double-2d-3d
+          path: artifacts/full_receiving_marking/**/*.png
           if-no-files-found: error
           retention-days: 30
