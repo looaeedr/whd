@@ -51,6 +51,11 @@ class ReceivingEarSideCheckDxfReceipt:
 
 
 def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness):
+    # A GUI callback can be stale or return an unresolved object during
+    # edits. Never read .parts or write manufacturing data from such input.
+    from .contracts import ResolvedManufacturingGeometry
+    if not isinstance(geometry, ResolvedManufacturingGeometry):
+        raise ValueError("EAR_SIDE_CHECK_ACTUAL_MANUFACTURING_GEOMETRY_REQUIRED")
     if (snapshot.get("model") != "受電箱"
             or snapshot.get("nfb_config_submitted") is not True
             or len(tuple(dimensions or ())) != 3
