@@ -110,8 +110,9 @@ def test_no_submitted_nfb_and_ambiguous_flat_do_not_invent_a_plate():
     snap = _source_snapshot()
     snap["nfb_config_submitted"] = False
     assert receiving_base_plate_values(snap) is None
-    snap = _source_snapshot(shallow="2P400")  # same depth => LEFT/RIGHT ambiguous
-    assert receiving_base_plate_values(snap) is None
+    snap = _source_snapshot(shallow="2P400")  # old slot1 owner is invalid for flat
+    with pytest.raises(ValueError, match="MULTIPLE_ROWS_NEED_DISTINCT_BASE"):
+        receiving_base_plate_values(snap)
 
 
 def test_current_bay_identity_mismatch_is_not_cross_bay_mfg_source():
@@ -125,3 +126,54 @@ def test_center_source_is_t2_only_and_does_not_guess_ear_thickness():
     snap = _source_snapshot(side_t=3.)
     with pytest.raises(ValueError, match="RECEIVING_CENTER_SOURCE_REQUIRES_T2"):
         receiving_base_plate_values(snap)
+
+
+def _submitted_one_shihlin_400(*, width=800.):
+    snap = _source_snapshot(width=width)
+    hole = snap["nfb_config"]["holes"][0]
+    snap["nfb_config"]["holes"] = [hole]
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    return snap
+
+
+def test_source_left_400_csv_pitch_derives_710x300_without_manual_config(tmp_path):
+    snap = _submitted_one_shihlin_400()
+    values = receiving_base_plate_values(snap)
+    assert values["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert values["receiving_nfb_reference_depth_mm"] == 107.
+    assert values["h"] == 340.
+    assert tuple(values[k] for k in (
+        "base_plate_shrink_top", "base_plate_shrink_bottom",
+        "base_plate_shrink_left", "base_plate_shrink_right", "base_plate_bend",
+    )) == (20., 20., 45., 45., 20.)
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
+    render = build_part_render_data(_spec(snap))
+    assert render.unfolded_topology.width == 710.
+    assert sorted(float(g.position) for g in render.fold_guides if g.axis == "y") == [20., 280.]
+    output = tmp_path / "left_geometry_unit_only.dxf"
+    generate_part(_spec(snap), output)
+    assert ezdxf.readfile(output).modelspace().query("LWPOLYLINE")
+
+
+@pytest.mark.parametrize("width,blank,pitch", [
+    (800., 710., 670.), (750., 660., 620.), (900., 810., 770.),
+])
+def test_left_source_selected_by_400_screw_pitch_scales_with_real_side_63(
+    width, blank, pitch,
+):
+    snap = _submitted_one_shihlin_400(width=width)
+    assert receiving_base_plate_blank_dimensions(snap) == (blank, 300.)
+    assert receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=width, box_side_thickness_mm=2.
+    ) == pitch
+
+
+def test_no_arbitrary_flat_right_selection_for_other_source_model():
+    snap = _submitted_one_shihlin_400()
+    snap["nfb_config"]["holes"][0]["model_filename"] = "nfbv5:士林:3P125SN"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    assert receiving_base_plate_values(snap) is None
