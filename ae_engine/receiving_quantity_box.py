@@ -34,6 +34,7 @@ def normalize_common_box(value):
     elif not isinstance(value, Mapping):
         raise ValueError("共用箱體資料格式錯誤")
     allowed = {"w", "h", "d", "back_panel_mode", "inner_door_layers",
+               "inner_door_models", "inner_door_layer_heights_mm",
                "switch_brand", "door_state"}
     if set(value) - allowed:
         raise ValueError("共用箱體不能保存 Set/Bay、Joint 或孔型版本資料")
@@ -44,6 +45,13 @@ def normalize_common_box(value):
     if brand not in RECEIVING_SWITCH_BRANDS:
         raise ValueError("不支援的開關品牌")
     result["switch_brand"] = brand
+    # In quantity mode this common physical box owns its NFB row settings.
+    # Root aliases and its synthetic one-Bay projection get rebuilt on every
+    # refresh. Persisting only the aliases loses the operator's layer count,
+    # CSV model choice and Y after the Hole Editor Confirm All.
+    for kind in ("inner_door_models", "inner_door_layer_heights_mm"):
+        if kind in value:
+            result[kind] = validate_setting(kind, value[kind])
     if "door_state" in value:
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
         door = value["door_state"]
@@ -94,6 +102,10 @@ def project_common_box(snapshot):
     row["switch_brand"] = box["switch_brand"]
     bay = row["bays"][0]
     bay["inner_door_layers"] = box["inner_door_layers"]
+    for kind in ("inner_door_models", "inner_door_layer_heights_mm"):
+        if kind in box:
+            bay[kind] = deepcopy(box[kind])
+            result["receiving_" + kind] = deepcopy(box[kind])
     if "door_state" in box:
         bay["door_state"] = deepcopy(box["door_state"])
     row["settings"] = normalize_set_settings(None, row["bays"])
