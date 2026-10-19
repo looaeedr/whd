@@ -33,6 +33,21 @@ def test_registry_routes_gui_performance_work_to_dedicated_skill():
     )
 
 
+def test_windows_native_tk_is_never_skipped_just_for_missing_x11_display():
+    issue517 = (ROOT / "tests" / "test_issue517_receiving_live_switch_ui_export_marking.py").read_text(encoding="utf-8")
+    project = (ROOT / "tests" / "test_phase6_project_file.py").read_text(encoding="utf-8")
+    assert 'os.name != "nt" and not os.environ.get("DISPLAY")' in issue517
+    assert 'not os.environ.get("DISPLAY")' in project
+    assert project.count('if os.name != "nt" and not os.environ.get("DISPLAY"):') == 9
+    assert 'if not os.environ.get("DISPLAY"):' not in project
+
+
+def test_real_cache_gui_uses_native_windows_tk_without_unix_display():
+    source = (ROOT / "tests" / "test_phase6_gui_performance_contract.py").read_text(encoding="utf-8")
+    assert 'if os.name != "nt" and not os.environ.get("DISPLAY"):' in source
+    assert 'pytest.skip("real Tk/MainGUI source-integrity proof requires Xvfb")' in source
+
+
 def test_gui_performance_skill_locks_the_today_rules():
     text = GUI_SKILL.read_text(encoding='utf-8')
     for required in (
@@ -46,6 +61,10 @@ def test_gui_performance_skill_locks_the_today_rules():
         'recalculation',
         'DXF disk read',
         'render',
+        '先結算啟動、再量測導航',
+        'Windows 原生 Tk 不等於 Xvfb 缺失',
+        'git archive',
+        'JUnit XML',
     ):
         assert required in text
 
@@ -97,3 +116,19 @@ def test_global_pitfall_library_contains_targeted_gate_and_checkpoint_provenance
         '混合狀態',
     ):
         assert required in text
+
+
+def test_issue1796_real_windows_acceptance_lessons_are_in_existing_reference_ledger():
+    ledger = PITFALLS.read_text(encoding="utf-8-sig")
+    skill = GUI_SKILL.read_text(encoding="utf-8")
+    for term in (
+        "ISSUE1796_WINDOWS_NATIVE_TK_AND_FROZEN_SHA_WRITEBACK_20261018",
+        "初始化 geometry 與純導覽的量測邊界混淆",
+        "Linux `DISPLAY` 被當成所有平台 Tk 可用性",
+        "共用 `localX` 在長時間 UAT 期間被其他施工更新",
+        "39133590991",
+        "Windows 自動測試",
+    ):
+        assert term in ledger, term
+    assert "先結算啟動、再量測導航" in skill
+    assert "Windows 原生 Tk 不等於 Xvfb 缺失" in skill

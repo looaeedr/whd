@@ -1,0 +1,103 @@
+name: WHD #1820 CADCraft Native Desktop GUI Evidence
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'tools/issue1820_cadcraft_native_gui_control_probe.py'
+      - '.github/workflows/whd-issue1820-cadcraft-native-gui.yml'
+      - 'docs/performance/issue1820-cadcraft-native-gui.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-1820-native-gui-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-egui-control:
+    name: Real CADCraft desktop egui open, first presented frame and zoom
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Taipei
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      WINIT_UNIX_BACKEND: x11
+      XDG_SESSION_TYPE: x11
+    steps:
+      - name: Checkout PR exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Xvfb and native OpenGL software stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libxkbcommon-x11-0 libgl1-mesa-dri libegl1 libfontconfig1
+          python -m pip install -r requirements.txt psutil ezdxf
+      - name: Download pinned upstream 0.8.0 CADCraft GUI with SHA256 check
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=0.8.0
+          PACKAGE="cadcraft-$VERSION-linux-x86_64.tar.gz"
+          BASE="https://github.com/storytold/cadcraft/releases/download/v$VERSION"
+          mkdir -p "$RUNNER_TEMP/cadcraft"
+          curl -fLsS --retry 3 "$BASE/SHA256SUMS.txt" -o "$RUNNER_TEMP/cadcraft/SHA256SUMS.txt"
+          curl -fLsS --retry 3 "$BASE/$PACKAGE" -o "$RUNNER_TEMP/cadcraft/$PACKAGE"
+          cd "$RUNNER_TEMP/cadcraft"
+          python - "$PACKAGE" <<'PY'
+          import hashlib
+          from pathlib import Path
+          import sys
+          name=sys.argv[1]
+          expected=dict((r.split(maxsplit=1)[1].lstrip("*"),r.split()[0])
+                        for r in Path("SHA256SUMS.txt").read_text().splitlines() if len(r.split())>=2)
+          digest=hashlib.sha256(Path(name).read_bytes()).hexdigest()
+          assert expected.get(name)==digest,"UNVERIFIED_CADCRAFT_RELEASE"
+          print("CADCRAFT_UPSTREAM_VERIFIED",name,digest)
+          PY
+          tar -xzf "$PACKAGE"
+          test -x "$RUNNER_TEMP/cadcraft/cadcraft-$VERSION-linux-x86_64/bin/cadcraft"
+      - name: Export identical WHD 2D hole preview DXF, mm/layer/geometry witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1820-native
+          PYTHONPATH="$GITHUB_WORKSPACE" python tools/cadcraft_hole_editor_preview_crosscheck.py emit work/issue1820-native/source.dxf
+          python - <<'PY'
+          import ezdxf,hashlib
+          from pathlib import Path
+          path=Path("work/issue1820-native/source.dxf")
+          d=ezdxf.readfile(path)
+          assert d.units==ezdxf.units.MM
+          assert {e.dxftype() for e in d.modelspace()} == {"LWPOLYLINE","LINE","CIRCLE"}
+          print("SOURCE_SHA256",hashlib.sha256(path.read_bytes()).hexdigest())
+          PY
+      - name: Observe real native CADCraft GUI on Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime"
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/issue1820_cadcraft_native_gui_control_probe.py \
+            "$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft" \
+            work/issue1820-native/source.dxf work/issue1820-native --port 19779
+      - name: Preserve native GUI logs, frame screenshots, session telemetry
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: whd-1820-native-cadcraft-desktop-frame-and-zoom
+          path: work/issue1820-native/
+          if-no-files-found: warn
+          retention-days: 14

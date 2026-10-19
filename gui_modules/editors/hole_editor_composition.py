@@ -119,6 +119,20 @@ def _build_shell_and_indicator(s):
     s.indicator_offset_x_var = None
     s.indicator_offset_y_var = None
     s.indicator_box_dist_var = None
+    s.cabinet_locator_var = None
+    if s.cabinet_reference_guide is not None:
+        # Use the original release's "箱體定位距離" checkbox interaction,
+        # not duplicate editable X/Y distance fields. This merely changes
+        # the measurement guide, never the physical hole coordinates.
+        s.cabinet_locator_var = d.tk.BooleanVar(master=s.editor, value=False)
+        d.tk.Checkbutton(
+            s.left, text="箱體定位距離", variable=s.cabinet_locator_var,
+            bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+            selectcolor=host.COLOR_INPUT_BG,
+            activebackground=host.COLOR_PANEL,
+            command=lambda: (s.refresh_reference_fields(), s.redraw()),
+        ).pack(fill=d.tk.X, padx=10, pady=(5, 4))
+        s.editor._hole_cabinet_positioning = s.cabinet_locator_var
     indicator_ui_actions = d._HoleEditorIndicatorUiActions(
         editor_tabs=s.editor_tabs,
         indicator_page=s.indicator_page,
@@ -188,6 +202,9 @@ def _build_sidebar_workspace_state(s):
     )
     s.toggle_fullscreen = fullscreen_actions.toggle_fullscreen
     s.fullscreen_btn.configure(command=s.toggle_fullscreen)
+    header_fullscreen = getattr(s.editor, "_hole_header_fullscreen", None)
+    if header_fullscreen is not None:
+        header_fullscreen.configure(command=s.toggle_fullscreen)
     s.indicator_fit_error = [None]
     indicator_fit_validation = d._HoleEditorIndicatorFitValidation(
         door_indicator_state_provider=lambda: s.door_indicator_state,
@@ -298,6 +315,11 @@ def _build_reference_stack(s):
         selection_provider=lambda: (s.hole_session.selected_index, s.live_context.feature_list),
         context_provider=lambda: {
             "reference_guide": s.live_context.reference_guide,
+            "cabinet_reference_guide": s.cabinet_reference_guide,
+            "local_reference_guide": s.local_reference_guide,
+            "cabinet_locator_enabled": bool(
+                s.cabinet_locator_var is not None and s.cabinet_locator_var.get()
+            ),
             "active_part_key": s.active_part_key[0],
             "indicator_box_dist_enabled": bool(
                 s.indicator_box_dist_var is not None and s.indicator_box_dist_var.get()
@@ -342,6 +364,9 @@ def _build_renderer_and_catalog_actions(s):
             "width": s.live_context.width,
             "height": s.live_context.height,
             "reference_guide": s.live_context.reference_guide,
+            "cabinet_reference_enabled": bool(
+                s.cabinet_locator_var is not None and s.cabinet_locator_var.get()
+            ),
             "baseline_scene": s.live_context.baseline_scene,
             "active_part_key": s.active_part_key[0],
             "indicator_box_dist_enabled": bool(
@@ -646,11 +671,91 @@ def _build_navigation_and_lifecycle(s):
         editor_closed=s.editor_closed,
         editor=s.editor,
         on_close=s.on_close,
-        on_confirm=s.on_confirm,
+        before_commit=(lambda: s.on_confirm_features(
+            list(s.live_context.feature_list),
+        )) if s.on_confirm_features is not None else None,
+        on_confirm=(s.on_confirm if s.on_confirm_features is None else None),
         insert_mode=s.insert_mode,
         set_insert_mode=s.set_insert_mode,
         cancel_active_edit=s.cancel_active_edit,
     )
+    if str(s.part_key).startswith("inner_door:"):
+        def accept_verified_openings(verified):
+            from phase6_hole_editor_session import HoleEditorAction
+            from ae_engine.sheetmetal_features import ProfileFeature
+            from ae_engine.sheetmetal_feature_surface import feature_is_strictly_within_surface
+
+            imported = tuple(verified)
+            if not imported or any(
+                not isinstance(feature, ProfileFeature)
+                or feature.source_type not in ("NFB_VERIFIED_SOURCE", "NFB_CSV_SOURCE")
+                for feature in imported
+            ):
+                raise ValueError("不能帶入未完成實體來源驗證的 NFB 孔")
+            existing = list(s.live_context.feature_list)
+            if any(getattr(feature, "source_type", "") in
+                   ("NFB_VERIFIED_SOURCE", "NFB_CSV_SOURCE")
+                   for feature in existing):
+                raise ValueError("此門板已有相同 NFB 來源主孔；請重新開啟編輯驗證")
+            for feature in imported:
+                if not feature_is_strictly_within_surface(
+                    s.live_context.surface, feature,
+                    s.live_context.width, s.live_context.height,
+                ):
+                    raise ValueError("NFB 來源主孔超出內門實體平面")
+            s.hole_session.execute(HoleEditorAction.preview_all(
+                [*existing, *imported],
+            ))
+            s.refresh_created()
+            s.sync_all()
+            # The external sync redraws the assembly preview, NOT this native
+            # Hole Editor canvas. Paint the newly imported CUTTING outlines now.
+            s.redraw()
+        s.editor._receiving_accept_verified_openings = accept_verified_openings
+
+        def stage_selected_nfb_openings(openings):
+            # Re-selecting the NFB list replaces only prior CSV-generated
+            # holes; never touch an operator's ordinary Hole Editor features.
+            # Empty selection intentionally clears this tab's previous CSV
+            # drafts, and all operations stay inside the undoable session.
+            from phase6_hole_editor_session import HoleEditorAction
+            from ae_engine.sheetmetal_features import ProfileFeature
+            from ae_engine.sheetmetal_feature_surface import feature_is_strictly_within_surface
+
+            staged = tuple(openings)
+            if any(not isinstance(f, ProfileFeature)
+                   or f.source_type != "NFB_CSV_SOURCE" for f in staged):
+                raise ValueError("NFB 頁籤只能暫存合法 CSV 主孔")
+            if any(dict(f.source_params).get("part_id") != s.part_key
+                   for f in staged):
+                raise ValueError("NFB 開孔不可帶入其他實體內門")
+            existing = list(s.live_context.feature_list)
+            if any(getattr(f, "source_type", None) == "NFB_VERIFIED_SOURCE"
+                   for f in existing) and staged:
+                raise ValueError("已有來源驗證的 NFB 孔，不可重複產生")
+            for feature in staged:
+                if not feature_is_strictly_within_surface(
+                    s.live_context.surface, feature,
+                    s.live_context.width, s.live_context.height,
+                ):
+                    raise ValueError("NFB 主孔超出目前內門板面")
+            retained = [feature for feature in existing
+                        if getattr(feature, "source_type", None) != "NFB_CSV_SOURCE"]
+            s.hole_session.execute(HoleEditorAction.preview_all(
+                [*retained, *staged],
+            ))
+            s.refresh_created()
+            s.sync_all()
+            # The external sync redraws the assembly preview, NOT this native
+            # Hole Editor canvas. Paint the newly imported CUTTING outlines now.
+            s.redraw()
+
+        s.editor._receiving_stage_selected_nfb_openings = stage_selected_nfb_openings
+        # The Receiving tab switches back after stage; paint again once its
+        # main Canvas is mapped, not only while the settings tab is visible.
+        s.editor._receiving_redraw_main_holes = s.redraw
+        s.editor._receiving_pending_features = lambda: tuple(s.live_context.feature_list)
+
     s.confirm_reference_edit = modal_lifecycle.confirm_reference_edit
     s.confirm_all = modal_lifecycle.confirm_all
     s.cancel_all = modal_lifecycle.cancel_all
@@ -663,6 +768,246 @@ def _build_navigation_and_lifecycle(s):
 
 
 def _bind_editor_events(s):
+    # CADCraft is an opt-in external inspection only. Re-resolve the active
+    # editor context on click (including inner-door context switches); never
+    # import CADCraft edits or mutate this editor's pending feature session.
+    cadcraft_button = getattr(s.editor, "_hole_header_cadcraft", None)
+    if cadcraft_button is not None:
+        def preview_in_cadcraft():
+            from .cadcraft_preview_bridge import open_hole_editor_cadcraft_preview
+            try:
+                saved = open_hole_editor_cadcraft_preview(
+                    surface=s.live_context.surface,
+                    features=s.live_context.feature_list,
+                    width=s.live_context.width,
+                    height=s.live_context.height,
+                    baseline_scene=s.live_context.baseline_scene,
+                )
+            except (OSError, ValueError, TypeError) as exc:
+                s.d.messagebox.showerror("CADCraft 試看", str(exc), parent=s.editor)
+            else:
+                s.d.messagebox.showinfo(
+                    "CADCraft 試看",
+                    "已在 CADCraft 開啟暫存檢視圖：\n"
+                    + str(saved)
+                    + "\nCADCraft 內修改不會回寫 WHD；請繼續使用原 2D 開孔編輯器儲存孔位。",
+                    parent=s.editor,
+                )
+        cadcraft_button.configure(command=preview_in_cadcraft)
+
+    return_button = getattr(s.editor, "_hole_header_cadcraft_return", None)
+    status_label = getattr(s.editor, "_hole_header_cadcraft_status", None)
+    s.editor._hole_cadcraft_return_ticket = None
+    s.editor._hole_cadcraft_gui_process = None
+    trial_button = getattr(s.editor, "_hole_header_cadcraft_draw", None)
+    if trial_button is not None:
+        def draw_new_cadcraft_picture():
+            """Opt-in new CADCraft drawing from WHD coordinates, never a save."""
+            from queue import Empty, Queue
+            from threading import Thread
+            from .cadcraft_command_preview_bridge import (
+                find_cadcraft_cli, prepare_whd_cadcraft_commands,
+                draw_whd_commands_with_cadcraft,
+            )
+            try:
+                context = s.live_context
+                old_snapshot = s.hole_session.snapshot()
+                instructions = prepare_whd_cadcraft_commands(
+                    surface=context.surface,
+                    features=tuple(context.feature_list),
+                    width=context.width, height=context.height,
+                )
+                executable = find_cadcraft_cli()
+            except (OSError, ValueError, TypeError) as exc:
+                s.d.messagebox.showerror("CADCraft 指令繪圖試作", str(exc), parent=s.editor)
+                return
+
+            # Any new drawing invalidates a previous manual-return provenance.
+            s.editor._hole_cadcraft_return_ticket = None
+            if return_button is not None:
+                return_button.configure(state="disabled")
+            if status_label is not None:
+                status_label.configure(text="正在產生 CADCraft 開孔交換圖…")
+            trial_button.configure(state="disabled")
+            result_queue = Queue(maxsize=1)
+
+            def worker():
+                try:
+                    result = draw_whd_commands_with_cadcraft(
+                        instructions=instructions, executable=executable)
+                    result_queue.put(("ok", result))
+                except Exception as exc:
+                    result_queue.put(("error", str(exc)))
+
+            def poll_for_result():
+                try:
+                    if not s.editor.winfo_exists():
+                        return
+                    status, outcome = result_queue.get_nowait()
+                except Empty:
+                    s.editor.after(100, poll_for_result)
+                    return
+                trial_button.configure(state="normal")
+                if status != "ok":
+                    s.d.messagebox.showerror(
+                        "CADCraft 指令繪圖試作", str(outcome), parent=s.editor)
+                elif s.hole_session.snapshot() != old_snapshot:
+                    s.d.messagebox.showwarning(
+                        "CADCraft 指令繪圖試作",
+                        "WHD 開孔已變更，本次 CADCraft 出圖僅供舊版對照：\n"
+                        + str(outcome.preview_png),
+                        parent=s.editor,
+                    )
+                else:
+                    # Establish a live ticket from the *exact* verified DXF.
+                    # Synthetic GUI tests may intentionally supply only an
+                    # isolated test path, not a physical proof output.
+                    return_denied = "隔離 DXF 檔案不存在"
+                    if outcome.output_dxf.is_file():
+                        from .cadcraft_manual_hole_return_bridge import (
+                            create_manual_return_ticket,
+                        )
+                        try:
+                            ticket = create_manual_return_ticket(
+                                output=outcome.output_dxf,
+                                features=old_snapshot.features,
+                                session=s.hole_session,
+                                surface=context.surface,
+                                width=context.width, height=context.height,
+                            )
+                        except (OSError, ValueError, TypeError) as exc:
+                            return_denied = str(exc)
+                        else:
+                            return_denied = ""
+                            s.editor._hole_cadcraft_return_ticket = ticket
+                            if return_button is not None:
+                                return_button.configure(state="normal")
+                    # Issue the GUI launch only AFTER the original WHD
+                    # provenance ticket is validated; no blocking modal dialog
+                    # that would keep the CADCraft window behind WHD.
+                    if return_denied:
+                        if status_label is not None:
+                            status_label.configure(text="CADCraft 交換圖不可回傳")
+                        s.d.messagebox.showerror(
+                            "CADCraft 開孔編輯", "交換圖建立但無法回傳：" + return_denied,
+                            parent=s.editor,
+                        )
+                    else:
+                        from .cadcraft_command_preview_bridge import (
+                            open_cadcraft_hole_editor,
+                        )
+                        try:
+                            process = open_cadcraft_hole_editor(ticket.output)
+                        except (OSError, ValueError, TypeError) as exc:
+                            if status_label is not None:
+                                status_label.configure(text="CADCraft 啟動失敗")
+                            s.d.messagebox.showerror(
+                                "CADCraft 開孔編輯",
+                                "無法開啟 CADCraft 編輯視窗：" + str(exc)
+                                + "\n交換圖仍保留：" + str(ticket.output),
+                                parent=s.editor,
+                            )
+                        else:
+                            s.editor._hole_cadcraft_gui_process = process
+                            if status_label is not None:
+                                status_label.configure(
+                                    text="CADCraft 已啟動；存檔後按『改孔回傳』"
+                                )
+                            # Windows starts a visible process asynchronously;
+                            # the program window may initially sit behind this
+                            # modal WHD editor. Hand foreground over only while
+                            # WHD still owns foreground (never steal focus from
+                            # another app the user switched to meanwhile).
+                            from .cadcraft_command_preview_bridge import (
+                                focus_started_cadcraft_window,
+                            )
+                            pid = getattr(process, "pid", None)
+                            if isinstance(pid, int) and pid > 0:
+                                def focus_new_cadcraft(attempt=0):
+                                    if not s.editor.winfo_exists():
+                                        return
+                                    if focus_started_cadcraft_window(pid):
+                                        return
+                                    if attempt < 12 and process.poll() is None:
+                                        s.editor.after(
+                                            150, lambda: focus_new_cadcraft(attempt + 1)
+                                        )
+                                    elif status_label is not None:
+                                        status_label.configure(
+                                            text="CADCraft 已啟動；若視窗在後方請 Alt+Tab"
+                                        )
+                                s.editor.after(180, focus_new_cadcraft)
+
+            Thread(target=worker, name="whd-cadcraft-command-draw", daemon=True).start()
+            s.editor.after(100, poll_for_result)
+
+        trial_button.configure(command=draw_new_cadcraft_picture)
+
+    if return_button is not None:
+        def return_manually_moved_holes():
+            """Only import the WHD-issued isolated DXF after human CADCraft save."""
+            from .cadcraft_manual_hole_return_bridge import stage_manual_cadcraft_return
+            ticket = getattr(s.editor, "_hole_cadcraft_return_ticket", None)
+            if ticket is None:
+                s.d.messagebox.showerror(
+                    "CADCraft 改孔回傳", "尚無有效的 WHD→CADCraft 交換圖，請先指令出圖。",
+                    parent=s.editor,
+                )
+                return
+            try:
+                pending = stage_manual_cadcraft_return(ticket)
+            except (OSError, ValueError, TypeError) as exc:
+                s.d.messagebox.showerror("CADCraft 改孔回傳", str(exc), parent=s.editor)
+                return
+            s.refresh_created()
+            s.redraw()
+            move_details = [
+                f"原孔 {index + 1}: X {dx:+.3f} mm、Y {dy:+.3f} mm"
+                for index, dx, dy in pending.moves
+            ]
+            added_details = [
+                f"新孔 {index + 1}: {type(feature).__name__}"
+                for index, feature in enumerate(pending.additions)
+            ]
+            details = "\n".join(move_details + added_details)
+            confirmed = False
+            try:
+                confirmed = s.d.messagebox.askyesno(
+                    "CADCraft 改孔回傳 — WHD 預覽",
+                    f"已驗證 {len(pending.moves)} 個原孔平移、"
+                    f"{len(pending.additions)} 個新孔（原孔尺寸、孔型不變）：\n"
+                    + details
+                    + "\n\n確認：提交至 WHD 原開孔 Session；"
+                      "取消：復原預覽、不更改原孔。\n"
+                      "製造圖仍由 WHD 原本的主編輯器『確定／儲存』流程產生。",
+                    parent=s.editor,
+                )
+                if confirmed:
+                    pending.confirm()
+                else:
+                    pending.cancel()
+                    if status_label is not None:
+                        status_label.configure(text="已取消 CADCraft 回傳，原孔不變")
+            except Exception as exc:
+                if pending.stage.active:
+                    pending.cancel()
+                s.d.messagebox.showerror("CADCraft 改孔回傳", str(exc), parent=s.editor)
+                return
+            finally:
+                s.refresh_created()
+                s.redraw()
+            if confirmed:
+                s.editor._hole_cadcraft_return_ticket = None
+                return_button.configure(state="disabled")
+                if status_label is not None:
+                    status_label.configure(text="CADCraft 孔位已送回 WHD")
+                s.d.messagebox.showinfo(
+                    "CADCraft 改孔回傳",
+                    "新增／平移孔位已確認至 WHD Session。請在原開孔編輯器按『確定』，"
+                    "由 WHD 原流程儲存並重新產生製造圖。",
+                    parent=s.editor,
+                )
+        return_button.configure(command=return_manually_moved_holes)
     s.editor.bind("<F11>", s.toggle_fullscreen)
     s.editor.bind("<Control-z>", s.undo_last_action)
     s.editor.bind("<Control-Z>", s.undo_last_action)
@@ -699,19 +1044,24 @@ def open_unified_hole_editor(
     reference_guide=None, feature_list_override=None, door_indicator_state=None,
     door_indicator_context=None, door_indicator_commit=None, door_frame_edges=None,
     door_gap_w=None, door_gap_h=None, door_frame_width=None, door_thickness=None,
-    on_close=None, on_confirm=None, baseline_scene=None, baseline_status_text=None,
-    indicator_component_context_provider=None, *, dependencies,
+    on_close=None, on_confirm=None, on_confirm_features=None,
+    baseline_scene=None, baseline_status_text=None,
+    indicator_component_context_provider=None, cabinet_reference_guide=None,
+    local_reference_guide=None, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
         width=width, height=height, sync_callback=sync_callback,
-        reference_guide=reference_guide, feature_list_override=feature_list_override,
+        reference_guide=reference_guide, cabinet_reference_guide=cabinet_reference_guide,
+        local_reference_guide=local_reference_guide,
+        feature_list_override=feature_list_override,
         door_indicator_state=door_indicator_state,
         door_indicator_context=door_indicator_context,
         door_indicator_commit=door_indicator_commit, door_frame_edges=door_frame_edges,
         door_gap_w=door_gap_w, door_gap_h=door_gap_h,
         door_frame_width=door_frame_width, door_thickness=door_thickness,
-        on_close=on_close, on_confirm=on_confirm, baseline_scene=baseline_scene,
+        on_close=on_close, on_confirm=on_confirm,
+        on_confirm_features=on_confirm_features, baseline_scene=baseline_scene,
         baseline_status_text=baseline_status_text,
         indicator_component_context_provider=indicator_component_context_provider,
     )

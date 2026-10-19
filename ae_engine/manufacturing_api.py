@@ -160,9 +160,15 @@ def save_part_render_data_dxf(
     overwrite: bool = False,
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
-    blocked = (getattr(render_data, "metadata", None) or {}).get("baseline_fit_error")
+    metadata = getattr(render_data, "metadata", None) or {}
+    blocked = metadata.get("baseline_fit_error")
     if blocked:
         raise ValueError(str(blocked))
+    # Numeric V5 CUTTING is a real 2D/3D trial, not an export authorization.
+    # Only a separately certified manufacturing adapter can lift this gate.
+    if (metadata.get("nfb_v5_trial_status")
+            and metadata.get("nfb_trial_export_approved") is not True):
+        raise ValueError("NFB V5 未驗證試作禁止使用正式製造 DXF 輸出")
     return _manufacturing_export.save_part_render_data_dxf(
         render_data.scene,
         output_path,

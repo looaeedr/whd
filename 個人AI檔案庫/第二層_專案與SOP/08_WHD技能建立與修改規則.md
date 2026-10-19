@@ -9,12 +9,12 @@ whd_doc_id: WHD-SOP-SKILL-AUTHORING
 
 > 目的：讓所有後續 AI 在建立或修改 `.agents/skills/**` 時，不再把特定模型、特定 CLI、背景 Subagent、viewer 或 TodoList 當成普遍存在的能力，並維持 Skill 資料夾、frontmatter、路由與引用的一致 identity。
 
-> **REFERENCE／非執行權威。** 本文件保留 Skill identity、能力偵測、域規格與驗證方法的補充說明；執行、施工位置、DC 權限、交付與 CI 以正式 X 的 `AGENTS.md`、`寫技能` CURRENT Skill 與 `tools/change_lane_gate.py` 為準。此處的舊 Phase6 Preflight／WORKSPACE_DELIVERY／claim／lease／工作槽／GIT_WRITE_UNLOCKED 規則已退役，不得當成本次任務前置。舊版來源可查 Git 歷史與 `docs/governance/WHD_20261010_retired_process_provenance.md`。
+> **REFERENCE／非執行權威。** 本文件保留 Skill identity、能力偵測、域規格與驗證方法的補充說明；執行、施工位置、DC 權限、交付與 CI 以 GitHub 最新 `localX` 的 `AGENTS.md`、`寫技能` CURRENT Skill 與 `tools/change_lane_gate.py` 為準。此處的舊 Phase6 Preflight／WORKSPACE_DELIVERY／claim／lease／工作槽／GIT_WRITE_UNLOCKED 規則已退役，不得當成本次任務前置。舊版來源可查 Git 歷史與 `docs/governance/WHD_20261010_retired_process_provenance.md`。
 
 ## 現行使用與驗證邊界
 
 1. 使用者當次明確指示和已核准規格優先；本文件不能創造獨立執行／發布授權。
-2. 純治理 Skill／文件變更由 GitHub／雲端治理分支從最新 X 建立，依受信任 `change_lane_gate.py` 及適用測試、PR／CI／merge/readback 交付；未經當次明確授權禁止 DC／使用者本機。
+2. 純治理 Skill／文件變更從 GitHub 最新 `localX` 建立治理分支，經適用治理 CI、PR、合併／回讀整合 `localX`；正式 X 僅限使用者人工驗收與當次 `/推推` 依受信任 gate 發布；未經當次明確授權禁止 DC／使用者本機。
 3. 產品或混合修改依 `/派工` 的雲端施工或當次明確 `/接手` 的 RC 施工路線，先整合 `localX`；產品正式發布 X 只接受當次 `/推推`。
 4. Skill identity、資料夾、Registry、required domain references 與適用 tests 應一致；可用 runtime 能力必須先核實，測試證據不得倒灌成 domain Source of Truth。
 5. 同一已核准範圍的交付不應反覆詢問相同授權，但任何 GitHub／平台權限拒絕均須遵守，不得更換傳輸繞過。

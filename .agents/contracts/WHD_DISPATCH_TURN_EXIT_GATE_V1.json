@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "WHD_DISPATCH_TURN_EXIT_GATE_V1",
-  "purpose": "product /派工 turn-exit decision consistency; not a ChatGPT platform execution hook",
+  "purpose": "interactive user-command work continuity, direct next-step execution, no predeclared stop procedures",
   "required_observation_fields": [
     "issue",
     "pr",
@@ -12,7 +12,9 @@
     "run_status",
     "run_conclusion",
     "last_observation",
-    "next_exact_action"
+    "next_exact_action",
+    "next_issue_discovery_outcome",
+    "next_issue_evidence"
   ],
   "nonterminal_statuses": [
     "requested",
@@ -55,15 +57,10 @@
       "normal_completion": false,
       "may_end_turn_without_completion": false
     },
-    "FULL_DELIVERY_READBACK": {
-      "action": "RELEASED",
-      "normal_completion": true,
-      "may_end_turn_without_completion": false
-    },
     "VERIFIED_EXTERNAL_BLOCKER": {
       "action": "BLOCKED_WITH_EVIDENCE",
       "normal_completion": false,
-      "may_end_turn_without_completion": true,
+      "may_end_turn_without_completion": false,
       "requires": [
         "blocker",
         "last_observation",
@@ -73,23 +70,49 @@
     "REAL_RUNTIME_LIMIT": {
       "action": "RUNTIME_LIMIT_UNRESOLVED",
       "normal_completion": false,
-      "may_end_turn_without_completion": true,
+      "may_end_turn_without_completion": false,
       "requires": [
         "limit_evidence",
         "last_observation",
         "next_exact_action"
       ]
+    },
+    "NEXT_ISSUE_DISCOVERY_REQUIRED": {
+      "action": "DISCOVER_NEXT_ISSUE",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "NEXT_ISSUE_START_REQUIRED": {
+      "action": "START_NEXT_ISSUE",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "NEXT_ISSUE_ALREADY_STARTED": {
+      "action": "CONTINUE_NEXT_ISSUE",
+      "normal_completion": false,
+      "may_end_turn_without_completion": false
+    },
+    "FULL_DELIVERY_READBACK": {
+      "action": "RELEASED",
+      "normal_completion": true,
+      "may_end_turn_without_completion": false,
+      "requires": [
+        "verified_no_eligible_issue_evidence"
+      ]
     }
   },
   "ordering": [
-    "REAL_RUNTIME_LIMIT",
-    "VERIFIED_EXTERNAL_BLOCKER",
     "RUN_OR_HEAD_MISSING_OR_MISMATCH",
     "CI_NONTERMINAL",
     "CI_TERMINAL_RED",
     "CI_EXACT_SUCCESS_LOCALX_PENDING",
     "CI_EXACT_SUCCESS_REMAINING_DELIVERY",
-    "FULL_DELIVERY_READBACK"
+    "NEXT_ISSUE_DISCOVERY_REQUIRED",
+    "NEXT_ISSUE_START_REQUIRED",
+    "NEXT_ISSUE_ALREADY_STARTED",
+    "FULL_DELIVERY_READBACK",
+    "VERIFIED_EXTERNAL_BLOCKER",
+    "REAL_RUNTIME_LIMIT"
   ],
   "restrictions": [
     "No normal exit while CI is nonterminal and tools remain available",
@@ -99,7 +122,9 @@
     "No DC access (including list_devices or ping) without explicit current device/operation authorization and external approval",
     "Same-issue default GitHub localX merge requires exact CI GREEN, mergeability, verified base change impact and expected HEAD",
     "Windows localX sync and manual UAT remain independently pending unless verified",
-    "No force/reset and no product X publish without user /推推"
+    "No force/reset and no product X publish without user /推推",
+    "PR merge, Issue close/readback or next_issue_checked alone MUST NOT finish /派工: eligible next issue must be started and CONTINUE_NEXT_ISSUE; only verified NO_ELIGIBLE_ISSUE permits normal queue exit",
+    "INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1: Never predeclare a stopping procedure; a blocked individual tool call is not project completion; directly perform the next authorized action"
   ],
   "integration_routes": {
     "GITHUB_LOCALX_FIRST": {
@@ -138,5 +163,29 @@
   "route_readback_invariants": {
     "GITHUB_LOCALX_FIRST": "GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING; workstation SHA and UAT unverified",
     "EXPLICIT_DC_LOCALX": "LOCALX_SYNCED only after successful local safe merge, nonforce remote sync and both SHA readback"
+  },
+  "interactive_command_hard_gate": {
+    "id": "INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1",
+    "rule": "不得停止程序",
+    "commands": [
+      "/功能",
+      "/DEBUG",
+      "/派工",
+      "/接手",
+      "/繼續"
+    ],
+    "predeclared_stop_procedure_allowed": false,
+    "status_report_is_progress_not_completion": true,
+    "any_legal_action_available_means_continue": true,
+    "blocked_operation_only_blocks_itself": true,
+    "alternative_actions": "continue other authorized operations without bypassing actual access denials",
+    "combined_command_owner": "one Issue/PR/branch; feature defines acceptance, debug diagnoses, dispatch delivers, takeover requires explicit authority",
+    "protected_boundaries": [
+      "SOURCE_READ_BEFORE_MUTATION_V1",
+      "exact_head_ci",
+      "GITHUB_LOCALX_FIRST",
+      "DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE",
+      "/推推"
+    ]
   }
 }

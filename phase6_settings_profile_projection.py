@@ -363,6 +363,13 @@ def build_standard_part_profiles(
         profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
         return profiles
 
+    if part_key == "base_plate" and str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}:
+        # Share the ONE actual FinalScene-derived BEND profile with assembly Z.
+        from ae_engine.receiving_base_plate_3d_profiles import receiving_base_plate_3d_profiles
+        physical = receiving_base_plate_3d_profiles(snapshot)
+        if physical is not None:
+            return physical
+
     if _is_base_plate_part_key(part_key):
         bend = snapshot.get("base_plate_bend", 20)
         profiles = {

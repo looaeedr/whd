@@ -105,6 +105,11 @@ class HoleEditorReferencePresentation:
 
     def active_reference_guide(self):
         context = self.context_provider()
+        if context.get("cabinet_reference_guide") is not None:
+            if context.get("cabinet_locator_enabled"):
+                return context["cabinet_reference_guide"]
+            if context.get("local_reference_guide") is not None:
+                return context["local_reference_guide"]
         if (
             context["active_part_key"] == "door"
             and context["indicator_box_dist_enabled"]
@@ -460,7 +465,10 @@ class HoleEditorFullscreenActions:
         self.fullscreen_button.configure(
             text=("還原視窗" if self.fullscreen_state[0] else "全螢幕")
         )
-        self.editor.after_idle(self.redraw_provider())
+        # after_idle must receive the callback, not its immediate result.
+        # Immediate full-canvas redraw during F11 made the editor freeze.
+        if callable(self.redraw_provider):
+            self.editor.after_idle(self.redraw_provider)
         return "break"
 
 class HoleEditorCreatedListPresentation:

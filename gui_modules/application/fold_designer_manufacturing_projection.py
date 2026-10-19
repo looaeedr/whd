@@ -9,13 +9,14 @@
 This module adapts application state to existing authoritative manufacturing APIs.
 It owns no project/workspace/navigation state.
 """
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
+from ae_engine.contracts import BoxBodyPartSpec, EndCapPartSpec, ManufacturingContext
 from ae_engine.corner_type_ui import (
     is_unknown_model,
     normalize_custom_model_name,
@@ -161,11 +162,15 @@ def _fold_designer_corner_policy_from_payload(corner_state, part_key, fw):
     return policy_from_corner_state(selections, fw=float(fw))
 
 def _authoritative_render_data(self, spec, context=None):
-    """Return one immutable manufacturing render object for an exact PartSpec.
+    """Build raw 2D/3D material from the exact typed manufacturing PartSpec.
 
-    2D and 3D callers share this cache.  Geometry is built only by
-    manufacturing_api; GUI/renderer code may consume scene/material but may
-    not reconstruct CUTTING, baseline or CornerType geometry.
+    The primary authoritative cache is always cleared on a geometry edit.
+    Only source-certified Receiving Set/Bay raw material may cross W/H/D
+    edits on an unchanged typed Spec/Context. EndCap raw reuse excludes
+    committed relief cuts and embedded assembly relief; the canonical
+    downstream Joint/collision solver still runs on every changed state.
+    The complete manufacturing resolver (Joint/collision/placement/relief)
+    still executes after each changed global manufacturing state.
     """
     ctx = context or ManufacturingContext(draw_stock=False)
     cache = getattr(self, "_authoritative_part_render_cache", None)
@@ -174,7 +179,72 @@ def _authoritative_render_data(self, spec, context=None):
         if owner is None:
             owner = self._derived_cache_owner = Phase6DerivedCacheOwner()
         cache = self._authoritative_part_render_cache = owner.cache("authoritative_render")
+    owner = getattr(self, "_derived_cache_owner", None)
     cache_key = (repr(spec), repr(ctx))
+    snapshot = getattr(self, "_phase6_input_snapshot", None)
+    # EndCap raw material is independent of a different Bay's W/H/D only
+    # when the exact typed inputs are identical and no pre-solved assembly
+    # cuts/embedded relief are present. Do not retain final solved endcaps.
+    raw_endcap = (
+        isinstance(spec, EndCapPartSpec)
+        and not spec.resolved_assembly_relief_cuts
+        and spec.assembly_relief is None
+    )
+    eligible = (
+        (isinstance(spec, BoxBodyPartSpec) or raw_endcap)
+        and isinstance(snapshot, Mapping)
+        and snapshot.get("model") == "受電箱"
+        and snapshot.get("active_mode") == "set_bay"
+        and str(spec.model_name) == "受電箱"
+        and isinstance(owner, Phase6DerivedCacheOwner)
+    )
+    history = (
+        owner._receiving_exact_material_history if eligible else None
+    )
+    source_stamp = None
+    if history is not None:
+        # Same verified baseline source-generation seam used by the complete
+        # manufacturing cache. Missing/unreadable witness forbids reuse.
+        from phase6_manufacturing_adapter import _receiving_baseline_source_stamp
+        from phase6_box_body_structure import (
+            BoxBodyStructureType, normalize_box_body_structure_state,
+        )
+        structure_state = (
+            spec.structure_state if isinstance(spec, BoxBodyPartSpec)
+            else spec.box_body_structure_state
+        )
+        is_dedicated_three_piece = (
+            normalize_box_body_structure_state(structure_state).get("active_type")
+            == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+        )
+        source_stamp = _receiving_baseline_source_stamp(
+            str(spec.model_name),
+            context=ctx,
+            include_physical_panels=is_dedicated_three_piece,
+        )
+        # Unlike the existing BoxBody fallback, a Receiving EndCap must
+        # have a real witnessed 封頭尾 DXF. A missing optional source never
+        # certifies cross-transaction reuse of EndCap material.
+        if raw_endcap and source_stamp is not None and not any(
+            len(row) >= 2 and row[0] == "封頭尾.dxf" and row[1] is not None
+            for row in source_stamp
+        ):
+            source_stamp = None
+        if source_stamp is None:
+            history.clear()
+            owner._receiving_exact_material_stamp = None
+            cache.clear()
+        elif owner._receiving_exact_material_stamp != source_stamp:
+            history.clear()
+            cache.clear()
+            owner._receiving_exact_material_stamp = source_stamp
+        if source_stamp is not None and cache_key not in cache and cache_key in history:
+            render_data = history[cache_key]
+            history.move_to_end(cache_key)
+            cache[cache_key] = render_data
+            if len(cache) > 32:
+                cache.pop(next(iter(cache)))
+            return render_data
     if cache_key in cache:
         return cache[cache_key]
     if isinstance(spec, BoxBodyPartSpec):
@@ -189,7 +259,13 @@ def _authoritative_render_data(self, spec, context=None):
     cache[cache_key] = render_data
     if len(cache) > 32:
         cache.pop(next(iter(cache)))
+    if history is not None and source_stamp is not None:
+        history[cache_key] = render_data
+        history.move_to_end(cache_key)
+        if len(history) > 8:
+            history.popitem(last=False)
     return render_data
+
 
 def _require_verified_baseline_sources_for_manufacturing(self):
     """Fail closed when a baseline-backed manufacturing source is not freshly verified."""
@@ -226,35 +302,7 @@ def _export_authoritative_part(self, spec, output_path, context=None):
         render_data, output_path, overwrite=bool(getattr(ctx, "overwrite", False))
     )
 
-def _query_fold_designer_render_data(self, part_key, payload):
-    from ae_engine.physical_sheet_features import with_physical_sheet_features
-
-    def sheet(render):
-        return with_physical_sheet_features(str(part_key), render, (payload or {}).get('features', ()))
-    if str(part_key or "").startswith("indicator"):
-        payload = collect_indicator_box_input(payload)
-    if str(part_key or "").startswith("box_body:part:"):
-        payload = collect_multipart_input(payload)
-    if str(part_key or "").startswith("door:"):
-        payload = collect_door_input(payload)
-    """Return the same authoritative final geometry used by 2D consumers."""
-    key = str(part_key or "")
-    if key.startswith("base_plate:fixing_plate:"):
-        # Native independent PartRenderData, not the BasePlatePartSpec blank
-        # and not a drawing-only menu simulation.
-        from ae_engine.receiving_base_fixing_plate import (
-            receiving_base_fixing_plate_previews,
-        )
-        from ae_engine.receiving_base_fixing_plate_geometry import (
-            build_fixing_plate_source_render_data,
-        )
-        physical = receiving_base_fixing_plate_previews(
-            dict(payload or {}), available_parts=("base_plate",),
-        )
-        if key not in {part.part_id for part in physical}:
-            raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
-        return sheet(build_fixing_plate_source_render_data(key, snapshot=dict(payload or {})))
-    if key.startswith("box_body:divider:"):
+def _box_body_divider_from_payload(key, payload):
         from ae_engine.door_dividers import derive_box_body_dividers
 
         divider_input = collect_divider_input(
@@ -274,19 +322,9 @@ def _query_fold_designer_render_data(self, part_key, payload):
         divider = next((item for item in dividers if item.stable_id == key), None)
         if divider is None:
             raise ValueError(f"中隔 stable_id 不存在於 authoritative topology: {key}")
-        return sheet(manufacturing_api.build_box_body_divider_render_data(divider))
+        return divider
 
-    if key.startswith("inner_door:") and key.endswith(":panel"):
-        data = dict(payload or {})
-        panels = cabinet_family_policy.derive_inner_door_panels(data)
-        panel = next((item for item in panels if item.stable_id == key), None)
-        if panel is None:
-            raise ValueError(f"內門板 stable_id 不存在於 authoritative topology: {key}")
-        return manufacturing_api.build_inner_door_panel_render_data(
-            panel, features=tuple(data.get("features") or ()),
-        )
-
-    if key.startswith("inner_door:") and key.endswith("_frame"):
+def _inner_door_frame_from_payload(key, payload):
         from ae_engine.inner_door_frames import (
             InnerDoorFrameSet,
             derive_all_inner_door_frames,
@@ -318,14 +356,149 @@ def _query_fold_designer_render_data(self, part_key, payload):
         frame = next((item for item in frames if item.stable_id == key), None)
         if frame is None:
             raise ValueError(f"內門框 stable_id 不存在於 authoritative topology: {key}")
+        return frame
+
+
+def _query_fold_designer_render_data(self, part_key, payload):
+    from ae_engine.physical_sheet_features import with_physical_sheet_features
+
+    def sheet(render):
+        return with_physical_sheet_features(str(part_key), render, (payload or {}).get('features', ()))
+    if str(part_key or "").startswith("indicator"):
+        payload = collect_indicator_box_input(payload)
+    if str(part_key or "").startswith("box_body:part:"):
+        payload = collect_multipart_input(payload)
+    if str(part_key or "").startswith("door:"):
+        payload = collect_door_input(payload)
+    """Return the same authoritative final geometry used by 2D consumers."""
+    key = str(part_key or "")
+    if key.startswith("base_plate:nfb_layer:"):
+        # The 2D part selector may address either physical tier directly.
+        # Its source is the current already-resolved canonical assembly,
+        # never a second guessed/fabricated BasePlatePartSpec. On the first
+        # selection resolve the real manufacturing graph once; its two
+        # tier materials are identical to the ones displayed in 3D.
+        import re
+        if not re.fullmatch(r"base_plate:nfb_layer:[01]", key):
+            raise ValueError("RECEIVING_NFB_TIER_2D_PART_ID_INVALID")
+        owner = getattr(self, "fold_designer_app", None)
+        current = getattr(owner, "_phase6_input_snapshot", None)
+        if (not isinstance(current, Mapping)
+                or current.get("nfb_config_submitted") is not True):
+            raise ValueError("RECEIVING_NFB_TIER_2D_NOT_SUBMITTED")
+        resolved = getattr(owner, "_phase6_last_resolved_manufacturing_geometry", None)
+        found = next(
+            (part for part in tuple(getattr(resolved, "parts", ()) or ())
+             if str(part.part_key) == key), None,
+        )
+        if found is None:
+            resolver = getattr(owner, "_phase6_resolve_manufacturing_geometry", None)
+            if not callable(resolver):
+                raise ValueError("RECEIVING_NFB_TIER_2D_SOURCE_UNAVAILABLE")
+            resolved = resolver()
+            found = next(
+                (part for part in tuple(getattr(resolved, "parts", ()) or ())
+                 if str(part.part_key) == key), None,
+            )
+        if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
+            raise ValueError("RECEIVING_NFB_TIER_2D_PHYSICAL_PART_MISSING")
+        return found.render_data
+    if key.startswith("base_plate:fixing_plate:"):
+        # Native independent PartRenderData, not the BasePlatePartSpec blank
+        # and not a drawing-only menu simulation.
+        from ae_engine.receiving_base_fixing_plate import (
+            receiving_base_fixing_plate_previews,
+        )
+        from ae_engine.receiving_base_fixing_plate_geometry import (
+            build_fixing_plate_source_render_data,
+        )
+        # The part-specific scene payload may be intentionally minimal:
+        # a child fixing-plate PartSpec has no separate NFB/Bay authority.
+        # Derive the physical owner from this *current* application's
+        # receiving snapshot, not a stale root-base payload or the part ID
+        # being queried. This exact same source drives 2D material and
+        # 3D formed weld contacts; it cannot grant manufacturing release.
+        source = dict(payload or {})
+        live = getattr(self, "_phase6_input_snapshot", None)
+        if isinstance(live, Mapping):
+            for name in ("nfb_config", "nfb_config_submitted"):
+                source.pop(name, None)
+            for name in (
+                "model", "w", "h", "d", "t", "receiving_base_plate",
+                "receiving_layout", "_receiving_runtime_selection",
+                "nfb_config", "nfb_config_submitted", "inner_doors",
+                "receiving_inner_door_layer_heights_mm",
+            ):
+                if name in live:
+                    source[name] = live[name]
+        physical = receiving_base_fixing_plate_previews(
+            source, available_parts=("base_plate",),
+        )
+        if key not in {part.part_id for part in physical}:
+            raise ValueError(
+                "BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET:"
+                f" requested={key}; current="
+                f"{tuple(part.part_id for part in physical)}"
+            )
+        return sheet(build_fixing_plate_source_render_data(key, snapshot=source))
+    if key.startswith("box_body:divider:"):
+        divider = _box_body_divider_from_payload(key, payload)
+        return sheet(manufacturing_api.build_box_body_divider_render_data(divider))
+
+    if key.startswith("inner_door:") and key.endswith(":panel"):
+        data = dict(payload or {})
+        panels = cabinet_family_policy.derive_inner_door_panels(data)
+        panel = next((item for item in panels if item.stable_id == key), None)
+        if panel is None:
+            raise ValueError(f"內門板 stable_id 不存在於 authoritative topology: {key}")
+        features = tuple(data.get("features") or ())
+        # The canonical inner-door panel factory consumes only the immutable
+        # physical panel and finished-face features. It reads no DXF/source
+        # file. Do not apply this cross-transaction reuse to frame/divider
+        # factories: those read dedicated physical baseline source data.
+        snapshot = getattr(self, "_phase6_input_snapshot", None)
+        owner = getattr(self, "_derived_cache_owner", None)
+        eligible = (
+            isinstance(snapshot, Mapping)
+            and snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("active_mode") == "set_bay"
+            and isinstance(owner, Phase6DerivedCacheOwner)
+        )
+        if eligible:
+            from phase6_manufacturing_contracts import manufacturing_fingerprint
+            try:
+                # No arbitrary repr fallback: unknown feature/part input must
+                # be manufactured normally instead of guessed equivalent.
+                fingerprint = manufacturing_fingerprint(
+                    {"panel": panel, "features": features})
+            except (TypeError, ValueError, OverflowError):
+                fingerprint = None
+            if fingerprint is not None:
+                history = owner._receiving_inner_door_panel_history
+                if fingerprint in history:
+                    history.move_to_end(fingerprint)
+                    return history[fingerprint]
+                material = manufacturing_api.build_inner_door_panel_render_data(
+                    panel, features=features)
+                history[fingerprint] = material
+                history.move_to_end(fingerprint)
+                while len(history) > 8:
+                    history.popitem(last=False)
+                return material
+        return manufacturing_api.build_inner_door_panel_render_data(
+            panel, features=features,
+        )
+
+    if key.startswith("inner_door:") and key.endswith("_frame"):
+        frame = _inner_door_frame_from_payload(key, payload)
         return sheet(manufacturing_api.build_inner_door_frame_render_data(frame))
 
     spec, context = self._fold_designer_part_spec_from_payload(part_key, payload)
-    if isinstance(spec, BoxBodyPartSpec):
-        from phase6_box_body_structure import BoxBodyStructureType, normalize_box_body_structure_state
-        state = normalize_box_body_structure_state(spec.structure_state)
-        if state.get("active_type") != BoxBodyStructureType.INTEGRAL.value:
-            return manufacturing_api.build_box_body_structure_render_data(spec, context)
+    # The single authoritative PartSpec cache already dispatches integral
+    # versus multipart BoxBody to the correct manufacturing-owned factory.
+    # Calling build_box_body_structure_render_data directly here bypassed that
+    # exact Spec/Context cache, rebuilding the same physical 2D/3D geometry
+    # multiple times between geometry invalidations.
     return self._authoritative_render_data(spec, context)
 
 def _payload_topology_context(part_key, payload):

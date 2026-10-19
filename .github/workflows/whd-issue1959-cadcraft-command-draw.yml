@@ -1,0 +1,236 @@
+name: WHD #1959 WHD to CADCraft Fresh Drawing Command Proof
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - "tools/issue1959_whd_cadcraft_command_draw.py"
+      - "tests/test_issue1959_whd_cadcraft_command_draw.py"
+      - "tests/test_issue1959_cadcraft_command_session_bridge.py"
+      - "gui_modules/editors/cadcraft_command_session_bridge.py"
+      - "gui_modules/editors/cadcraft_manual_hole_return_bridge.py"
+      - "gui_modules/editors/cadcraft_new_hole_import.py"
+      - "tests/test_issue1959_cadcraft_manual_return.py"
+      - "tests/test_issue1959_cadcraft_append_holes.py"
+      - "tools/issue1959_cadcraft_session_trial.py"
+      - "tools/issue1959_whd_real_manufacturing_parity.py"
+      - "tests/test_issue1959_whd_real_manufacturing_parity.py"
+      - "tests/test_issue1959_cadcraft_windows_native_ci_contract.py"
+      - "gui_modules/editors/cadcraft_command_preview_bridge.py"
+      - "gui_modules/editors/cadcraft_paths.py"
+      - "tests/test_issue1959_cadcraft_relative_location.py"
+      - "gui_modules/editors/hole_editor_composition.py"
+      - "gui_modules/editors/hole_editor_view.py"
+      - "tests/test_issue1959_cadcraft_command_preview_button.py"
+      - "tests/test_issue1959_cadcraft_command_button_live_tk.py"
+      - ".github/workflows/whd-issue1959-cadcraft-command-draw.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TZ: Asia/Taipei
+
+jobs:
+  actual-cadcraft-commands:
+    name: Official CADCraft CLI new metric drawing and independent WHD geometry parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact WHD PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install WHD geometric dependencies and regression runner
+        run: python -m pip install -r requirements.txt ezdxf pytest
+      - name: Test WHD command conversion and independent fail-closed DXF geometry audit
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_cadcraft_relative_location.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_windows_native_ci_contract.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py
+      - name: Actually invoke Hole Editor CADCraft button in a real Tk/Xvfb window
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y xvfb
+          fi
+          xvfb-run -a python -m pytest -q tests/test_issue1959_cadcraft_command_button_live_tk.py
+      - name: Retrieve official CADCraft v0.8.0 CLI and verify its release SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          name=cadcraft-0.8.0-linux-x86_64.tar.gz
+          base=https://github.com/storytold/cadcraft/releases/download/v0.8.0
+          mkdir -p "$RUNNER_TEMP/cadcraft"
+          curl -fLsS --retry 3 "$base/SHA256SUMS.txt" -o "$RUNNER_TEMP/cadcraft/SHA256SUMS.txt"
+          curl -fLsS --retry 3 "$base/$name" -o "$RUNNER_TEMP/cadcraft/$name"
+          cd "$RUNNER_TEMP/cadcraft"
+          python - "$name" <<'PY'
+          import hashlib
+          from pathlib import Path
+          import sys
+          name = sys.argv[1]
+          rows = dict((words[1].lstrip("*"), words[0])
+                      for line in Path("SHA256SUMS.txt").read_text().splitlines()
+                      if len(words := line.split()) >= 2)
+          expected = rows.get(name)
+          if not expected:
+              raise SystemExit("CADCRAFT_OFFICIAL_SHA256_ENTRY_MISSING")
+          actual = hashlib.sha256(Path(name).read_bytes()).hexdigest()
+          if actual.lower() != expected.lower():
+              raise SystemExit("CADCRAFT_OFFICIAL_SHA256_MISMATCH")
+          print("OFFICIAL_CADCRAFT_SHA256", actual)
+          PY
+          tar xzf "$name"
+          CLI="$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft-cli"
+          test -x "$CLI"
+          echo "CADCRAFT_CLI=$CLI" >> "$GITHUB_ENV"
+      - name: Actually draw WHD circle rectangle and closed profile using native CADCraft commands
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1959
+          export CADCRAFT_CONFIG_DIR="$RUNNER_TEMP/issue1959-cadcraft-config"
+          python -m tools.issue1959_whd_cadcraft_command_draw \
+            --cadcraft-cli "$CADCRAFT_CLI" \
+            --output work/issue1959/cadcraft_fresh_drawn.dxf \
+            --preview work/issue1959/cadcraft_fresh_drawn.png \
+            --evidence work/issue1959/geometry-proof.json
+          test -s work/issue1959/cadcraft_fresh_drawn.dxf
+          test -s work/issue1959/cadcraft_fresh_drawn.png
+          python - "$CADCRAFT_CLI" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          proof=json.loads(Path("work/issue1959/geometry-proof.json").read_text())
+          assert proof["status"] == "PASS" and proof["entity_count"] == 3
+          print("ACTUAL_NATIVE_CADCRAFT_WHD_COMMANDS_GREEN")
+          PY
+      - name: Stage actual CADCraft output into original WHD Session then test Cancel Confirm Undo
+        run: |
+          python -m tools.issue1959_cadcraft_session_trial \
+            --input work/issue1959/cadcraft_fresh_drawn.dxf \
+            --evidence work/issue1959/session-stage-proof.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("work/issue1959/session-stage-proof.json").read_text())
+          assert p["status"]=="PASS" and all(p[k] for k in ("preview","cancel","confirm","undo"))
+          assert p["manufacturing_dxf_written"] is False
+          print("ACTUAL_CADCRAFT_DXF_WHD_SESSION_STAGE_CANCEL_CONFIRM_UNDO_GREEN")
+          PY
+      - name: Real WHD manufacturing DXF after verified CADCraft session Confirm
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.issue1959_whd_real_manufacturing_parity \
+            --cadcraft-cli "$CADCRAFT_CLI" \
+            --work work/issue1959/manufacturing_isolated \
+            --evidence work/issue1959/WHD-original-manufacturing-parity.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("work/issue1959/WHD-original-manufacturing-parity.json").read_text())
+          assert p["status"]=="PASS" and p["new_cutting_holes"]==3
+          assert p["manufacturing_cutting_from_whd"] is True
+          assert p["cadcraft_dxf_used_as_manufacturing_source"] is False
+          assert p["windows_gui_uat_completed"] is False
+          print("REAL_WHD_MANUFACTURING_CUTTING_FROM_CADCRAFT_APPROVED_FEATURES_GREEN")
+          PY
+      - name: Retain isolated drawing PNG DXF and geometry readback (not manufacturing)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1959-whd-to-cadcraft-three-hole-native-proof
+          path: work/issue1959/
+          if-no-files-found: warn
+          retention-days: 14
+
+  windows-native-cadcraft-commands:
+    name: Windows x64 official CADCraft native CLI and real WHD manufacturing parity
+    runs-on: windows-2022
+    timeout-minutes: 30
+    # The hosted English Windows console is CP1252 by default; the existing
+    # WHD door exporter prints Traditional Chinese. This is an output-channel
+    # setting only, not a change to DXF units, contents or manufacturing rules.
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout exact WHD PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Python for Windows
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install real Windows WHD geometry dependencies
+        shell: pwsh
+        run: python -m pip install -r requirements.txt ezdxf pytest
+      - name: Real Windows WHD coordinate and Session regressions
+        shell: pwsh
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_command_button_live_tk.py
+      - name: Verify publisher SHA256 and unpack official Windows x64 CADCraft v0.8.0
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ProgressPreference = "SilentlyContinue"
+          $name = "cadcraft-0.8.0-windows-x64-portable.zip"
+          $base = "https://github.com/storytold/cadcraft/releases/download/v0.8.0"
+          $dir = Join-Path $env:RUNNER_TEMP "issue1959-cadcraft-win64"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $archive = Join-Path $dir $name
+          $sumfile = Join-Path $dir "SHA256SUMS.txt"
+          Invoke-WebRequest -Uri "$base/SHA256SUMS.txt" -OutFile $sumfile
+          Invoke-WebRequest -Uri "$base/$name" -OutFile $archive
+          $lines = @(Get-Content $sumfile | Where-Object { $_ -match [regex]::Escape($name) })
+          if ($lines.Count -ne 1) { throw "CADCRAFT_SHA256SUMS_AMBIGUOUS" }
+          $expected = ($lines[0].Trim() -split "\s+")[0].ToLowerInvariant()
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "CADCRAFT_OFFICIAL_WINDOWS_SHA256_MISMATCH" }
+          Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $dir "unpacked") -Force
+          $executables = @(Get-ChildItem (Join-Path $dir "unpacked") -Recurse -File -Filter "cadcraft-cli.exe")
+          if ($executables.Count -ne 1) { throw "CADCRAFT_WINDOWS_CLI_NOT_UNIQUE" }
+          $cli = $executables[0].FullName
+          "CADCRAFT_CLI=$cli" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "OFFICIAL_WINDOWS_CADCRAFT_RELEASE_SHA256 $actual"
+      - name: Windows native CADCraft draws actual WHD holes and saves disposable PNG DXF
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path "work/issue1959-win" | Out-Null
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue1959-win-config"
+          python -m tools.issue1959_whd_cadcraft_command_draw --cadcraft-cli "$env:CADCRAFT_CLI" --output "work/issue1959-win/cadcraft-native.dxf" --preview "work/issue1959-win/cadcraft-native.png" --evidence "work/issue1959-win/cadcraft-native-proof.json"
+          if ($LASTEXITCODE -ne 0) { throw "CADCRAFT_WINDOWS_NATIVE_DRAW_RED" }
+          python -m tools.issue1959_cadcraft_session_trial --input "work/issue1959-win/cadcraft-native.dxf" --evidence "work/issue1959-win/session-stage-proof.json"
+          if ($LASTEXITCODE -ne 0) { throw "WHD_WINDOWS_SESSION_STAGE_RED" }
+      - name: Windows native CADCraft to genuine WHD DoorPartSpec CUTTING manufacturing output
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m tools.issue1959_whd_real_manufacturing_parity --cadcraft-cli "$env:CADCRAFT_CLI" --work "work/issue1959-win/isolated-manufacturing" --evidence "work/issue1959-win/whd-manufacturing-proof.json"
+          if ($LASTEXITCODE -ne 0) { throw "WHD_WINDOWS_MANUFACTURING_DXF_RED" }
+          @'
+          import json
+          from pathlib import Path
+          p = json.loads(Path("work/issue1959-win/whd-manufacturing-proof.json").read_text())
+          assert p["status"] == "PASS" and p["new_cutting_holes"] == 3
+          assert p["manufacturing_cutting_from_whd"] and not p["windows_gui_uat_completed"]
+          print("WINDOWS_NATIVE_CADCRAFT_TO_WHD_MANUFACTURING_GREEN")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "WHD_WINDOWS_MANUFACTURING_EVIDENCE_RED" }
+      - name: Retain Windows official CLI geometries and genuine WHD manufacturing DXF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1959-Windows-x64-native-CADCraft-WHD-manufacturing-TEST-ONLY
+          path: work/issue1959-win/
+          if-no-files-found: warn
+          retention-days: 14

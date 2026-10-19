@@ -106,7 +106,7 @@ def test_project_file_controls_are_global_not_embedded_in_3d_settings_footer():
 
 def test_real_designer_load_button_replaces_workspace_from_p6fold(tmp_path, monkeypatch):
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import tkinter.filedialog as filedialog
@@ -193,7 +193,7 @@ def test_project_argv_and_windows_open_command_support_double_click(tmp_path):
 
 def test_real_main_gui_load_restores_workspace_and_opens_saved_part(tmp_path):
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import gui
@@ -234,7 +234,7 @@ def test_real_main_gui_load_restores_workspace_and_opens_saved_part(tmp_path):
 
 def test_main_gui_has_global_project_controls_and_3d_footer_has_no_project_file_buttons():
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import gui
@@ -270,7 +270,7 @@ def test_main_gui_has_global_project_controls_and_3d_footer_has_no_project_file_
 
 def test_global_save_save_as_and_open_round_trip_project_without_forcing_3d(tmp_path, monkeypatch):
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import tkinter.filedialog as filedialog
@@ -327,7 +327,7 @@ def test_global_save_save_as_and_open_round_trip_project_without_forcing_3d(tmp_
 
 def test_loaded_project_session_baseline_survives_main_committed_recapture(tmp_path):
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import gui
@@ -360,7 +360,7 @@ def test_loaded_project_session_baseline_survives_main_committed_recapture(tmp_p
 
 def test_3d_live_edit_updates_committed_state_without_project_draft():
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import gui
@@ -396,7 +396,7 @@ def test_3d_live_edit_updates_committed_state_without_project_draft():
 
 def test_3d_window_close_keeps_already_live_committed_width():
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import gui
@@ -436,7 +436,7 @@ def test_3d_window_close_keeps_already_live_committed_width():
 
 def test_main_connected_designer_project_save_as_persists_current_live_canonical_state(tmp_path, monkeypatch):
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import tkinter.filedialog as filedialog
@@ -474,7 +474,7 @@ def test_main_connected_designer_project_save_as_persists_current_live_canonical
 
 def test_main_gui_exposes_project_controller_as_the_project_transaction_boundary():
     import os
-    if not os.environ.get("DISPLAY"):
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import gui

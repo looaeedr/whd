@@ -14,7 +14,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import replace
 from typing import Any
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 import re
 
 from phase6_manufacturing_contracts import (
@@ -168,7 +168,13 @@ def operator_finished_dimensions_for_app(
     """Tk/app adapter to the shared finished-dimension provider."""
     key = str(part_key or getattr(app, "active_part_key", "") or "")
     snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-    settings = getattr(app, "_settings_values", {}) or {}
+    settings = dict(getattr(app, "_settings_values", {}) or {})
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        # Manufactured dimensions are the active project/Bay W/H/D, while
+        # Settings W/H/D remain read-only seeds. Never let default W/H/D
+        # override a real Receiving door/layout/body.
+        whd = getattr(app, "_phase6_box_whd", {}) or {}
+        settings.update({axis: whd[axis] for axis in ("w", "h", "d") if axis in whd})
     head_policy = tail_policy = None
     if key == "box_body":
         head_policy = _corner_policy_for_app(app, "head")
@@ -486,10 +492,38 @@ def _finished_dimensions_for_part(app: Any, part_key: str, provider=None) -> Any
 def _canonical_part_keys(app: Any) -> tuple[str, ...]:
     workspace = getattr(app, "designer_workspace", None)
     values = tuple(getattr(workspace, "available_parts", ()) or ())
+    snapshot = getattr(app, "_phase6_input_snapshot", None)
+    if (isinstance(snapshot, Mapping)
+            and snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("nfb_config_submitted") is True
+            and isinstance(snapshot.get("nfb_config"), Mapping)
+            and snapshot["nfb_config"].get("layer_count") == 2):
+        # Live layout may still list two ORIGINAL EAR parts after the native
+        # hole editor commits a two-tier NFB. Their current owner is NOT the
+        # legacy base_plate: it has been replaced by distinct tier bases.
+        # Re-derive authorized IDs from the actual source model/Bay and
+        # replace *only* these stale fixed-plate entries in the manufacturing
+        # request, before any 2D/3D rendering. No invented geometry or release.
+        from ae_engine.receiving_base_fixing_plate import (
+            receiving_base_fixing_plate_previews,
+        )
+        current = tuple(receiving_base_fixing_plate_previews(
+            snapshot, available_parts=("base_plate",),
+        ))
+        if len(current) == 4 and len({row.part_id for row in current}) == 4:
+            values = tuple(
+                part for part in values
+                if not str(part).startswith("base_plate:fixing_plate:")
+            ) + tuple(row.part_id for row in current)
     return tuple(
         str(key)
         for key in values
-        if str(key or "") and not is_box_body_physical_piece_key(key)
+        if str(key or "")
+        and not is_box_body_physical_piece_key(key)
+        # Two tier Base Plates are generated from the single source root
+        # inside the canonical manufacturing resolver. They are real 2D
+        # navigation identities but not additional RAW source inputs.
+        and not str(key).startswith("base_plate:nfb_layer:")
     )
 
 
@@ -539,6 +573,12 @@ def build_manufacturing_request(
     snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
     settings = _mapping(getattr(app, "_settings_values", {}) or {})
     box_dimensions = _mapping(getattr(app, "_phase6_box_whd", {}) or {})
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        # Detached Manufacturing request. Defaults are never modified.
+        settings.update({
+            axis: box_dimensions[axis] for axis in ("w", "h", "d")
+            if axis in box_dimensions
+        })
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
@@ -628,12 +668,117 @@ def build_manufacturing_cache_key(app: Any) -> ManufacturingCacheKey:
     return ManufacturingCacheKey(_legacy_manufacturing_signature(app))
 
 
+def _receiving_baseline_source_stamp(
+    model: str, *, context=None, include_physical_panels=False,
+):
+    """Source-stat/reload-generation witness for Receiving cached material.
+
+    The original complete manufacturing undo cache uses the three standard
+    BoxBody/EndCap/Door sources. A multipart Receiving BoxBody additionally
+    reads three dedicated physical sheet DXFs; cross-transaction *raw*
+    material reuse is forbidden unless all three dedicated files are
+    source-witnessed at the same paths used by the manufacturing factory.
+    """
+    from pathlib import Path
+    from ae_engine import ae
+    pieces = []
+    for name in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
+        try:
+            if context is not None:
+                from ae_engine.manufacturing_baseline_policy import _expected_baseline_path
+                path = _expected_baseline_path(model, name, context)
+                if path is not None and not Path(path).is_file():
+                    path = None
+            else:
+                # Preserve existing global complete-manufacturing receipt
+                # semantics for callers without a scoped material Context.
+                path = ae.baseline_part_path(model, name)
+            if path is None:
+                pieces.append((name, None))
+                continue
+            pieces.append((name, tuple(ae.baseline_source_fingerprint(path))))
+        except (OSError, ValueError):
+            return None
+
+    if include_physical_panels:
+        from ae_engine.receiving_panel_baselines import ROLE_FILES
+        from ae_engine.manufacturing_baseline_policy import _expected_baseline_path
+        from ae_engine.contracts import ManufacturingContext
+        ctx = context or ManufacturingContext()
+        for role, filename in sorted(ROLE_FILES.items()):
+            if ctx.resource_root is not None:
+                # Match manufacturing_scene_orchestration's resource-root
+                # authority exactly, rather than the legacy AE global root.
+                path = Path(ctx.resource_root) / "基準檔" / "受電箱" / filename
+            else:
+                path = _expected_baseline_path("受電箱", filename, ctx)
+            if path is None:
+                return None
+            try:
+                path = Path(path)
+                if not path.is_file():
+                    return None
+                pieces.append((
+                    role, filename, tuple(ae.baseline_source_fingerprint(path)),
+                ))
+            except (OSError, ValueError):
+                return None
+    return tuple(pieces)
+
+
 def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
+    # Only the canonical Receiving Set/Bay editor may retain one *previous
+    # complete state* for tail add/remove undo. Other families and quantity
+    # projection retain the legacy single-result cache. No schema/key bypass.
+    snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+    eligible = (
+        isinstance(snapshot, Mapping)
+        and str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}
+        and snapshot.get("active_mode") == "set_bay"
+    )
+    size = 2 if eligible else 1
     service = getattr(app, "_phase6_manufacturing_cache_service", None)
-    if isinstance(service, ManufacturingCacheService):
-        return service
-    service = ManufacturingCacheService()
-    setattr(app, "_phase6_manufacturing_cache_service", service)
+    if not isinstance(service, ManufacturingCacheService):
+        service = ManufacturingCacheService(max_entries=size)
+        setattr(app, "_phase6_manufacturing_cache_service", service)
+    else:
+        service.set_capacity(size)
+    if eligible:
+        # The complete semantic fingerprint does not include a raw DXF file's
+        # mtime/size/reload epoch. Before accepting *any* current or previous
+        # cached result, retire both when its source witness has changed.
+        # A complete resolved geometry receipt includes all physical BoxBody
+        # pieces, not just the three general BoxBody/Head/Door baselines.
+        # The Receiving 3-piece source-flat factory consumes three *dedicated*
+        # left/right/rear DXFs: changing any one must retire BOTH cached
+        # topology receipts, including 3->4->3 undo. Unknown structure cannot
+        # certify the complete source set, so it disables historical reuse.
+        from phase6_box_body_structure import BoxBodyStructureType
+        structure = _box_body_structure(getattr(app, "designer_workspace", None))
+        if not structure and isinstance(snapshot.get("box_body_structure"), Mapping):
+            structure = snapshot["box_body_structure"]
+        active = (
+            getattr(structure.get("active_type"), "value", structure.get("active_type"))
+            if isinstance(structure, Mapping) else None
+        )
+        recognized = {kind.value for kind in BoxBodyStructureType}
+        if active not in recognized:
+            stamp = None
+        else:
+            make_context = getattr(app, "_manufacturing_context", None)
+            try:
+                ctx = make_context(draw_stock=False) if callable(make_context) else None
+                stamp = _receiving_baseline_source_stamp(
+                    str(snapshot.get("model")), context=ctx,
+                    include_physical_panels=(
+                        active == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+                    ),
+                )
+            except (TypeError, ValueError, OSError):
+                stamp = None
+        if stamp is None or getattr(service, "_receiving_baseline_stamp", None) != stamp:
+            service.clear()
+        service._receiving_baseline_stamp = stamp
     return service
 
 
@@ -682,7 +827,17 @@ def resolve_manufacturing_for_app(
     key = build_manufacturing_cache_key(app)
     lookup = service.lookup(key)
     if lookup.result is not None:
-        # Legacy mirrors remain readers only; they are never cache authority.
+        # Undo history can restore a result from *before* the last GUI update.
+        # Restore its diagnostics as well as geometry; retaining the previous
+        # topology's collision/relief diagnostics would be stale, even though
+        # the full exact-state fingerprint matches the restored geometry.
+        diagnostics = lookup.result.diagnostics
+        app._phase6_last_interference_probe_parts = tuple(
+            diagnostics.interference_probe_parts)
+        app._phase6_last_relief_errors = dict(
+            diagnostics.relief_errors.items())
+        app._phase6_last_relief_solutions = dict(
+            diagnostics.relief_solutions.items())
         app._phase6_last_resolved_manufacturing_geometry = lookup.result.geometry
         app._phase6_last_resolved_manufacturing_signature = key.fingerprint
         return lookup.result.geometry

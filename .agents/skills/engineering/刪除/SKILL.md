@@ -1,6 +1,6 @@
 ---
 name: 刪除
-description: 處理 WHD/Google Drive/repository 工作區的檔案或資料夾刪除、清空 active 0、移出 active scope，以及 provider 不支援 delete 時的封存 fallback。使用者說「刪除」「刪掉」「清除」「清掉」「清空」「移除 staging/0」時使用；必須區分真正實體刪除與 archive/move，並以 readback 證明結果。
+description: 處理 WHD/外部儲存/repository 工作區的檔案或資料夾刪除、清空 active 0、移出 active scope，以及 provider 不支援 delete 時的封存 fallback。使用者說「刪除」「刪掉」「清除」「清掉」「清空」「移除 staging/0」時使用；必須區分真正實體刪除與 archive/move，並以 readback 證明結果。
 whd_doc_role: CURRENT
 whd_contract: deletion-lifecycle-v1
 whd_canonical: null
@@ -14,8 +14,8 @@ whd_schema: WHD_DOC_META_V1
 ## 0. Authority 與遠端邊界
 
 1. 使用者本輪明確指示最高。
-2. Repository 刪除遵循現行 `AGENTS.md` 的治理／產品通道與當次授權；舊 Drive/shared-zero、`WORKSPACE_DELIVERY` 交易前置已退役，不得當成刪除或交付門檻。
-3. Google Drive / Library / connector 只是 transport；transport 顯示「不支援 delete」時，不得把 move/archive 冒充 delete。
+2. Repository 刪除遵循現行 `AGENTS.md` 的治理／產品通道與當次授權；舊 已退役外部儲存/shared-zero、`WORKSPACE_DELIVERY` 交易前置已退役，不得當成刪除或交付門檻。
+3. 外部儲存 provider / Library / connector 只是 transport；transport 顯示「不支援 delete」時，不得把 move/archive 冒充 delete。
 4. 任何 destructive action 前先 fresh-read exact target identity：canonical path、file/folder kind、provider id、parent、必要時 hash/size/modified time。
 
 ## 1. 先分類「刪除」的真實語意
@@ -46,8 +46,8 @@ TARGET_PATH_RESOLVED
 硬規則：
 
 - 不從聊天記憶、舊 id、同名搜尋結果直接刪；exact parent-chain 要先證明。
-- capability detection 必須先枚舉 provider 原生刪除能力（例如 Google Drive `delete_file`），再檢查 Library/其他 transport；不得因其中一條 transport 回 unsupported 就推論 provider 整體不能刪。
-- `files.manage_library delete`、Drive connector、OS/filesystem 各自是否支援 delete，要以本回合實際 tool contract/result 判定。
+- capability detection 必須先枚舉 provider 原生刪除能力（例如 provider 原生 `delete_file`），再檢查 Library/其他 transport；不得因其中一條 transport 回 unsupported 就推論 provider 整體不能刪。
+- `files.manage_library delete`、provider connector、OS/filesystem 各自是否支援 delete，要以本回合實際 tool contract/result 判定。
 - API 回 `unsupported_operation` / 404 / permission denied 時，不得改口說「已清除」。
 - destructive target 若是資料夾，先確認是否要 recursive；不得把「刪資料夾」偷偷擴張成不受限的 parent tree 刪除。
 
@@ -55,7 +55,7 @@ TARGET_PATH_RESOLVED
 
 下列 path 不得因模糊的「清掉」「整理一下」直接刪除：
 
-- `/Google Drive/WHD` repo root；
+- `已退役外部儲存 repo root` repo root；
 - `.git/`、`.agents/`、`AGENTS.md`；
 - `.unpushed/` 根與 lane 根；
 - canonical contract / registry / Source of Truth；
@@ -74,7 +74,7 @@ TARGET_PATH_RESOLVED
 5. 未經使用者本次明確授權，不得為治理刪除操作 DC、CoreELEC、whd-dev 或使用者本機 shell；雲端能力不足時如實回報阻塞。
 6. 正式 X 禁止直接 patch；target advancement 依現行分流走 PR／適用檢查／merge／readback。
 
-**Missing Drive mount / missing shared-0 不是普通 tracked-path刪除的 blocker。** 不得因歷史 shared-0 流程把 Codex 拉回固定 `/Google Drive/WHD`。
+**Missing external-storage mount / missing shared-0 不是普通 tracked-path刪除的 blocker。** 不得因歷史 shared-0 流程把 Codex 拉回固定 `已退役外部儲存 repo root`。
 
 ## 5. ACTIVE_ZERO_PHYSICAL_CLEANUP_HARD_GATE_V1 — HISTORICAL DATA ONLY
 
@@ -142,7 +142,7 @@ delivery-receipt.<delivered>.json
 - 為了刪 staging 去碰 repository 真實檔案。
 - 清 docs lane 時順手清 body lane。
 - archive 後不說 archive location，讓使用者以為資料消失。
-- 以舊 Drive id / alias 404 猜測「檔案已不存在」。404 只能證明該 transport/id 無法解析，不能單獨證明 logical target 已刪除。
+- 以舊 provider id / alias 404 猜測「檔案已不存在」。404 只能證明該 transport/id 無法解析，不能單獨證明 logical target 已刪除。
 
 ## 9. 完成條件
 

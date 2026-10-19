@@ -31,8 +31,23 @@ whd_schema: WHD_DOC_META_V1
 - **混合／未知檔案一律回產品通道**：只要包含一個非白名單路徑，即不得以治理分類豁免產品 QA 或正式 X 發布閘門；檔案改名必須同時分類舊、新路徑，空 diff、跨 repo、來源分支不符都 fail closed。正式判斷由 `.github/workflows/whd-change-lane-hard-gate.yml` 與 `tools/change_lane_gate.py` 執行。
 - GitHub 正式硬閘門必須在 X 的 Ruleset 把 `WHD Change Lane Gate` 設為 required status check，否則只能算 CI 檢查、不能宣稱平台端不可繞過；直接 push X 應由分支 Ruleset 禁止。
 - 禁止遺失使用者本地未發布修改，禁止用 X 覆蓋 localX。保留程式碼 review、製造幾何與產品回歸檢查；無需工單交易硬閘門。
-- 本地工作不需 Google Drive 工作根目錄，也不需調用舊協調分支。
+- 本地工作不需任何外部儲存工作根目錄，也不需調用舊協調分支。
 - **兩入口共享交付範圍、不共享施工權限**：`/派工` 與 `/接手` 共用 Issue、PR、產品驗收標準，但前者預設 GitHub 施工與 GitHub `localX` 合併，不以 PR GREEN 自動授權 DC。`/接手` 僅當次明確允許 RC；DC 必須有特定目的／裝置／操作授權且經外部審查。治理變更也先整合 `localX`，正式 X 仍限驗收後的 `/推推`。
+
+## 使用者指令不得停止硬閘門 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
+
+**不得停止程序。** 使用者親自下達 `/功能`、`/DEBUG`、`/派工`、`/接手`、`/繼續`，以及多個命令合用時，執行者不得預設停止步驟、不得把狀態回報、開 PR、CI 等待、部分工作完成或單一 API 受阻當作結束工作；**仍能呼叫工具就直接執行下一個合法實質動作**。每 2–3 個動作簡短回報，回報後立即施工。遇既有程式、規格、測試來源缺失，繼續查來源；不得猜測後寫入產品。
+
+- **同一條施工鏈**：`/功能` 定義需求與適用驗收；`/DEBUG` 使用真實程式來源與 RED→GREEN 診斷；`/派工` 執行 GitHub BUILD→COMMIT→PR→CI→`localX`→原 Issue 收尾→下一張；`/接手` 只在當次明確授權時切換 RC 執行位置。混合命令沿用同一 Issue／PR／工作分支、已確定的使用者需求及證據，不重新啟動多個流程、不先做冗長盤點、不重問既有答案。
+- **不預先設定停止程序**：依真實狀態直接續作。CI 尚在跑就追 exact SHA；CI RED 就讀失敗修復；GREEN 就核對並合法合併 GitHub `localX`；合併後接著結案和施工下一張。只查到下一個 Issue、只寫留言或只產出計畫均不算完成。
+- **遇阻繼續做**：單一 API／測試／來源操作失敗，直接在原有授權內改用其他適用的合法操作、補讀來源、切分可獨立變更，或施工其他已授權的工作；不得以一個拒絕全面停工，也不得捏造完成或繞過實際安全／權限拒絕。RC/DC 與正式 X 仍各守當次授權、`/推推`、exact SHA／CI、非 force 合併的硬邊界。
+- **可執行路由與驗證**：既有 `tools/phase6_skill_preflight.py::required_skills_for` 直接使用 `tools/interactive_command_no_stop_gate.py::ordered_command_skills` 將複合指令歸併排序；`execute_authorized_step` 以已授權 handler 真正呼叫下一個操作並處理單項拒絕，不藉此自行增加工具權限。治理回歸必須測此實際呼叫路徑，而非只比對文字；不得把模擬測試冒充使用者指令已實際完成。
+
+## 新增功能入口 `/功能` — `FEATURE_FLOW_V1`
+
+- `/功能` 路由至唯一 CURRENT `.agents/skills/engineering/新增功能/SKILL.md`；支援 `/功能 設計`（只讀）、`/功能 新增`（合法 GitHub 功能施工與 localX 整合）、`/功能 繼續 #Issue`（沿用原工單／PR）。`/debug` 仍由 `diagnosing-bugs` 處理既有錯誤；不建立第二套派工、lease、測試或發布系統。
+- 施工前遵守 `SOURCE_READ_BEFORE_MUTATION_V1`，依真實影響核對 GUI、資料、Save→Reload、2D、3D、碰撞、製造及舊功能；不適用領域可有理由 N/A。`WHD_CHANGE_TEST_PROFILE_V1` 的 FEATURE、UI／GEOMETRY 與 final gate、`GITHUB_LOCALX_FIRST`、Windows 人工 GUI UAT 均維持原權威。
+- 同範圍功能之 PR exact SHA CI SUCCESS 後可整合 GitHub 遠端 `localX`；Windows 同步／人工驗收是獨立待辦，正式 `X=cleanup/2d-3d-sync` 仍須使用者驗收及當次 `/推推`，不得修改 RC／DC 權限或以 X 作日常施工來源。
 
 ## WHD 長對話上下文損耗防護 `WHD_CONTEXT_LOSS_PREVENTION_V1`
 
@@ -125,13 +140,13 @@ whd_schema: WHD_DOC_META_V1
 遠端合併只回報 `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`，不冒稱 Windows 同 SHA、UAT GREEN、DC 失聯。Windows `Z:\localX` 沿用現有 Fast-forward 腳本及人工 GUI／製造驗收；無 `/推推` 不得發布正式產品 X。
 ## /派工退出前查核 `DISPATCH_TURN_EXIT_GATE_V1`
 
-**執行者必須先判斷下一個合法動作，才可正常結束當前施工回合。** 狀態表權威為 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json`；它是治理契約，不是平台層級的 ChatGPT 回合攔截器。只有本體當輪具備實際工具能力才能執行續作；此契約**不會在回合結束後自行喚醒模型或啟動背景輪詢**。
+**不得停止程序。** 直接依 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json` 和 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1` 執行下一個合法動作；不把此檢查設計成額外前置、停工手續或完成宣告。
 
 - **先對準 exact HEAD**：讀取當下 PR `base=localX`、`head_sha` 與同一 SHA 的 Canonical Product Regression `run_id/status/conclusion`、jobs。缺 run、查到舊 SHA／矛盾資料 → `RECONCILE_ONLY`，不得借用其他 HEAD 的 GREEN。
 - **CI 非終態**（`requested/queued/waiting/pending/in_progress`）→ `CONTINUE_POLL`：在當次仍可呼叫工具時持續查詢 exact run，2–3 次操作回報一次實質進度，回報不是退出訊號；只讀結構化狀態與精簡失敗資料，不重抓長 Log、不要無限制高頻打 API。
 - **CI 終態**：`success` → `LOCALX_INTEGRATION_PENDING`，立即走 GitHub remote `localX` 合併及 readback（預設不需 DC）；`failure/cancelled/timed_out/action_required` → `REPAIR_AND_RETEST`，不可將 GREEN 誤報產品 X 已發布。
 - **CI 成功仍未完成交付**：本機／遠端 `localX` 整合回讀、Issue close/readback 及 `NEXT_ISSUE_DISCOVERY_REQUIRED` 等既有義務未處理 → `CONTINUE_FINALIZATION`；達到所有必要驗收與追蹤義務、讀回證據後才可標 `RELEASED`。正式 X 仍限使用者當次 `/推推`。
-- **允許當回合非完成式退出的真實例外**：有可追溯 API 錯誤／權限拒絕／無合法執行途徑 → `BLOCKED_WITH_EVIDENCE`，或執行環境真實中斷／當回合工具資源限制 → `RUNTIME_LIMIT_UNRESOLVED`；回報當時 `Issue/PR/head_sha/run_id/last_observation/blocker/next_exact_action`，**不得標示 DONE、已完成、背景自動續作**，不得假造阻塞來取代仍可做的輪詢。
+- **單一步驟受阻不准全面停工**：API 錯誤／權限拒絕以 `BLOCKED_WITH_EVIDENCE` 記錄該操作，立即沿原授權範圍改做合法替代動作；真正無法呼叫任何後續工具時才如實標 `RUNTIME_LIMIT_UNRESOLVED`，不得把標記當作預先停止程序，不得捏造 GREEN／SHA／完成。
 - **不擴權**：本規則只對現有 `/派工` 回合施加退出前的決策檢查；不啟動新排程／`workflow_run` 自動施工、不重建舊 Flow v2、不增設 GitHub 分支保護，不允許提早使用 DC／RC／本機；純治理文件先從 `localX` 建工作分支、跑治理測試、PR 合回 `localX`。正式 X 的任何發布仍需人工驗收和當次 `/推推`。
 
 ## /派工 產品交付不中斷閘門（執行者責任）
@@ -139,10 +154,10 @@ whd_schema: WHD_DOC_META_V1
 - `/派工` 不以「已建立 PR」「CI queued/in_progress/pending」作為交付完成。這些都是 **CONTINUE_POLL**，不能以「等 CI 完成」作最終答覆來退出當輪任務。
 - 一旦已建立指向 `localX` 的產品 PR，就應在**當次可執行回合**追蹤 exact PR HEAD、base 與 Canonical Product Regression 的 GitHub Actions run；短間隔再次查詢。每 2–3 次操作回報實質進度，但**回報本身不是停止訊號**。
 - exact HEAD 的 Product Regression `SUCCESS` 且 PR 可整合 → **GitHub PR merge `localX`**，核對 head/base/scope/CI、最新 base diff，merge 後遠端 SHA/PR 回讀，標記 `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`，回寫 Issue 與 close/readback 並查找下一張。Windows 以 `Z:\localX` 腳本自行更新與人工驗收；不再預設 DC，也不冒稱 Windows 同步成功。產品 X 仍必須當次 `/推推`。
-- **下一張工單觸發點**：GitHub 遠端 `localX` PR 合併及 HEAD／PR readback 成功即 `NEXT_ISSUE_DISCOVERY_REQUIRED`，不要求 DC、CoreELEC 斷線證據或 Windows 已同步；原工單留言／close/readback 仍要完成。搜尋 OPEN Issue、排除衝突／已接取及未滿足前置；找不到符合條件則回報 `NO_ELIGIBLE_ISSUE`。不得把 Issue CLOSED 當作唯一觸發條件。
+- **下一張工單觸發點**：GitHub 遠端 `localX` PR 合併及 HEAD／PR readback 成功即 `NEXT_ISSUE_DISCOVERY_REQUIRED`，不要求 DC、CoreELEC 斷線證據或 Windows 已同步；原工單留言／close/readback 仍要完成。搜尋 OPEN Issue、排除衝突／已接取及未滿足前置；找到可執行下一單不能只登記或留言，須接取、建立工作分支並開始真實施工，進入 `CONTINUE_NEXT_ISSUE`，而非 `RELEASED`。只找到 Issue／僅完成當前 PR merge 或 Issue close/readback 均不可當作整條派工完成。只有無下一張時，出具已檢查清單與 `NO_ELIGIBLE_ISSUE` 證據才可正常退出；不得把 Issue CLOSED 當作唯一觸發條件。
 
 - CI 失敗 → 查該 run 的 job/step/log，修復並重測；沒有執行中的 run → 檢查 workflow branch/path 觸發與權限，修接線並重新觸發。不得將其他 SHA、舊 local GREEN 或 pending 冒充目前 PR GREEN。
-- 若實際 API/權限/機器或當次執行限制阻止繼續，必須留下**可驗證的阻塞證據及續作點**，不得寫「派工交付完成」。聊天回合結束後**沒有自動背景輪詢**，除非另有明確建立的排程監控；不得宣稱本規則能自行喚醒模型。
+- **不得停止程序**：單一 API／權限／機器受阻就改做其他合法可執行動作；能提交、查詢、測試、修復或繼續下一張，就直接做。僅在實際操作完全無法推進時據實記錄最後操作及具體錯誤，不得稱已完成。
 - 以上只授權整合產品變更至 `localX`，**不授權發布正式 X**；`/推推` 是 X 產品發布的必要條件。不得增設 GitHub 分支保護、恢復 Flow v2 或其他舊交易門檻。
 
 

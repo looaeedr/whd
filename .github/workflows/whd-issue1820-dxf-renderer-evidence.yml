@@ -1,0 +1,103 @@
+name: WHD #1820 Identical DXF Renderer Evidence
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'tools/issue1820_whd_cadcraft_dxf_benchmark.py'
+      - '.github/workflows/whd-issue1820-dxf-renderer-evidence.yml'
+      - 'docs/performance/issue1820-cadcraft-evaluation.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-1820-renderer-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  identical-dxf-renderers:
+    name: Actual Tk Canvas / CADCraft CLI same DXF observational baseline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Taipei
+      MPLBACKEND: TkAgg
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install actual WHD GUI and measurement dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt psutil matplotlib ezdxf
+      - name: Download actual upstream CADCraft 0.8.0 CLI pinned release with SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=0.8.0
+          PACKAGE="cadcraft-$VERSION-linux-x86_64.tar.gz"
+          BASE="https://github.com/storytold/cadcraft/releases/download/v$VERSION"
+          mkdir -p "$RUNNER_TEMP/cadcraft"
+          curl --fail --location --silent --show-error --retry 3 "$BASE/SHA256SUMS.txt" -o "$RUNNER_TEMP/cadcraft/SHA256SUMS.txt"
+          curl --fail --location --silent --show-error --retry 3 "$BASE/$PACKAGE" -o "$RUNNER_TEMP/cadcraft/$PACKAGE"
+          cd "$RUNNER_TEMP/cadcraft"
+          python - "$PACKAGE" <<'PY'
+          from pathlib import Path
+          import hashlib
+          import sys
+          name=sys.argv[1]
+          entries=dict((r.split(maxsplit=1)[1].lstrip("*"),r.split()[0])
+                       for r in Path("SHA256SUMS.txt").read_text().splitlines() if len(r.split())>=2)
+          expected=entries.get(name)
+          if expected is None or hashlib.sha256(Path(name).read_bytes()).hexdigest().lower()!=expected.lower():
+              raise SystemExit("CADCRAFT_SHA256_VERIFICATION_FAILED")
+          print("PINNED_CADCRAFT_CLI_SHA256",name,expected)
+          PY
+          tar -xzf "$PACKAGE"
+          test -x "$RUNNER_TEMP/cadcraft/cadcraft-$VERSION-linux-x86_64/bin/cadcraft-cli"
+      - name: Produce same WHD inspection DXF and audit whole drawing
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          mkdir -p work/issue1820
+          python tools/cadcraft_hole_editor_preview_crosscheck.py emit work/issue1820/source.dxf
+          python - <<'PY'
+          import ezdxf,hashlib
+          from pathlib import Path
+          p=Path("work/issue1820/source.dxf")
+          d=ezdxf.readfile(p)
+          assert d.units==ezdxf.units.MM
+          assert {e.dxftype() for e in d.modelspace()}=={"LWPOLYLINE","LINE","CIRCLE"}
+          print("SAME_DXF_SHA256",hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: Measure real WHD Tk canvas and real CADCraft CLI renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CADCRAFT_CONFIG_DIR="$RUNNER_TEMP/cadcraft-sandbox"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/issue1820_whd_cadcraft_dxf_benchmark.py compare \
+            work/issue1820/source.dxf \
+            "$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft-cli" \
+            work/issue1820
+      - name: Preserve raw profiles and exact evidence for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-1820-identical-dxf-renderer-observations
+          path: work/issue1820/
+          if-no-files-found: warn
+          retention-days: 14

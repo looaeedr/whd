@@ -525,16 +525,27 @@ def test_all_gui_dxf_export_paths_serialize_authoritative_render_data_not_genera
         assert "manufacturing_api.generate_part" not in src, method
         assert "_export_authoritative_part" in src, method
 
-def test_box_body_back_piece_keeps_physical_hole_rims_without_display_overlays():
+def test_all_final_scene_parts_do_not_restore_triangle_grid_overlays():
+    """No single, multi-piece or assembly branch may draw mesh-derived lines."""
     from pathlib import Path
 
     source = Path("phase6_final_scene_renderer.py").read_text(encoding="utf-8")
-    assert 'if piece_role == "back":' in source
-    assert 'self._add_mesh_feature_lines(piece_placed, edge)' in source
-    assert 'str(getattr(_piece, "role", "") or "").strip() == "back"' in source
-    assert 'self._add_mesh_feature_lines(piece_tris, edge)' in source
-    # Rear-panel BEND/joint overlays stay suppressed; physical CUTTING rims are
-    # recovered from the authoritative solid mesh rather than redrawn by coordinates.
-    assert 'if piece_role == "back":\n                continue' in source
-    assert 'facecolor=face' in source
-    assert 'edgecolor="none"' in source
+    # Physical CUTTING holes are still part of the shaded geometry; door and
+    # head/tail source inner rings remain explicit. BEND is source-derived.
+    for call in (
+        "self._add_mesh_boundary_lines(",
+        "self._add_mesh_feature_lines(",
+        "self._add_mesh_boundary_and_crease_lines(",
+    ):
+        assert call not in source
+    assert "self._draw_cutting_hole_rims(" in source
+    assert "self._draw_endcap_cutting_hole_rims(" in source
+    assert "self._draw_box_body_structure_bends(" in source
+    # Edge policy now lives in the shared transparency-compositing renderer.
+    mesh_helper = Path("phase6_final_scene_mesh_display.py").read_text(encoding="utf-8")
+    assert 'edgecolor="none"' in mesh_helper
+    assert 'gridless_mesh_collection(' in source
+    # All physical and diagnostic skins share one raster policy, including
+    # the formed fixing plates supplied by the #1503 assembly contract.
+    assert source.count("gridless_mesh_collection(") == 6
+    assert "antialiaseds=False" in mesh_helper

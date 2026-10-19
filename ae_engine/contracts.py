@@ -198,6 +198,10 @@ class BasePlatePartSpec:
     # from an illustrative DXF's sheet layout or add a second plate editor.
     receiving_bend_pattern: str | None = None
     physical_id: str | None = None
+    # #1502: verified pair (deep, shallow) from selected NFBConfig/brand CSV.
+    # Do not populate from file name guesses or ordinary preview defaults.
+    # None retains nonmanufacturable historical center-plate preview.
+    receiving_nfb_depth_pair_mm: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)

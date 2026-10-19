@@ -272,6 +272,60 @@ def single_door_render_snapshot(host):
 
 
 def base_plate_render_snapshot(host, val):
+    # The primary 2D BasePlate tab used to regenerate the generic cabinet
+    # panel from legacy shrink variables even after receiving NFB Confirm All
+    # had committed two different physical tier Base Plates in FoldDesigner.
+    # The currently resolved real FinalScene owns both 2D/3D materials.
+    designer = getattr(host, "fold_designer_app", None)
+    current = getattr(designer, "_phase6_input_snapshot", None)
+    if (isinstance(current, dict)
+            and current.get("model") in ("受電箱", "RECEIVING")):
+        if not current.get("receiving_base_plate"):
+            raise ValueError(
+                "受電箱底板尚未設定實體來源型式，不能顯示舊式通用底板"
+            )
+        resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+        if not callable(resolver):
+            raise ValueError("受電箱底板缺少已提交的製造幾何來源")
+        resolved = resolver()
+        part_keys = tuple(
+            p.part_key for p in tuple(resolved.parts or ())
+            if p.part_key == "base_plate"
+            or p.part_key.startswith("base_plate:nfb_layer:")
+        )
+        tiers = tuple(
+            key for key in part_keys
+            if key.startswith("base_plate:nfb_layer:")
+        )
+        if current.get("nfb_config_submitted") is True:
+            if not tiers:
+                raise ValueError(
+                    "已提交 NFB，但沒有對應的受電箱分層底板；不能回退舊式底板"
+                )
+            active = str(getattr(getattr(designer, "designer_workspace", None),
+                                 "active_part", "") or "")
+            chosen = active if active in tiers else tiers[0]
+        else:
+            if "base_plate" not in part_keys:
+                raise ValueError(
+                    "受電箱底板已選來源，但未產生實體底板；不能回退舊式底板"
+                )
+            chosen = "base_plate"
+        physical = resolved.part(chosen).render_data
+        if (getattr(physical, "unfolded_topology", None) is None
+                or getattr(physical, "material", None) is None):
+            raise ValueError("受電箱專屬底板缺少實際展開幾何")
+        bounds = tuple(float(v) for v in physical.material.bounds)
+        minx, miny, maxx, maxy = bounds
+        return {
+            "render_data": physical,
+            "bounds": bounds,
+            "world_bounds": bounds,
+            "box_rect": (minx, miny, maxx - minx, maxy - miny),
+            "bend": 0.0,
+            "receiving_physical_part_key": chosen,
+            "receiving_tier_keys": tiers,
+        }
     shrink_top = float(host.base_plate_shrink_top_var.get())
     shrink_bottom = float(host.base_plate_shrink_bottom_var.get())
     shrink_left = float(host.base_plate_shrink_left_var.get())
@@ -308,10 +362,28 @@ def base_plate_render_snapshot(host, val):
 
 
 def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dimensions):
-    spec = host._box_body_part_spec(val)
-    render_data = host._authoritative_render_data(
-        spec, host._manufacturing_context(draw_stock=False)
-    )
+    # Primary GUI is a presentation shell when a Receiving FoldDesigner
+    # workspace is open. The side mother-sheet must be the SAME physical
+    # source as its NFB/EAR world-contact solver. Rebuilding a different
+    # legacy BoxBody from main GUI controls can make the 2D SIDE source
+    # disagree with the committed FoldDesigner geometry, hiding MARKING.
+    designer = getattr(host, "fold_designer_app", None)
+    current = getattr(designer, "_phase6_input_snapshot", None)
+    if (isinstance(current, dict)
+            and current.get("model") in ("受電箱", "RECEIVING")):
+        resolve = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+        if not callable(resolve):
+            raise ValueError("受電箱側板 2D 缺少 FoldDesigner 實體製造來源")
+        geometry = resolve()
+        box_body = geometry.part("box_body")
+        render_data = box_body.render_data
+        if not tuple(getattr(render_data, "pieces", ()) or ()):
+            raise ValueError("受電箱側板 2D 缺少現行物理板件")
+    else:
+        spec = host._box_body_part_spec(val)
+        render_data = host._authoritative_render_data(
+            spec, host._manufacturing_context(draw_stock=False)
+        )
     selected_piece_key = host._refresh_box_body_piece_tabs_2d(render_data)
     if selected_piece_key:
         selected_role = selected_piece_key.split(":", 1)[1]
@@ -324,11 +396,21 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dime
             None,
         )
         if selected_piece is not None:
+            # #1503: only the selected Receiving physical SIDE gets a
+            # display-only source-world->UV EAR weld footprint. Production
+            # BoxBody data and DXF inventory remain the original render_data.
+            blocker = None
+            if selected_piece_key in {"box_body:left_side", "box_body:right_side"}:
+                from .receiving_ear_side_2d import present_receiving_ear_side_piece_2d
+                selected_piece, blocker = present_receiving_ear_side_piece_2d(
+                    host, render_data, selected_piece, selected_piece_key,
+                )
             return {
                 "mode": "piece",
                 "render_data": render_data,
                 "piece": selected_piece,
                 "piece_key": selected_piece_key,
+                "ear_marking_preview_blocker": blocker,
             }
 
     bounds = tuple(float(v) for v in render_data.material.bounds)

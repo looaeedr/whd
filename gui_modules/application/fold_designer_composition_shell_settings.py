@@ -150,6 +150,29 @@ def install_renderer_view(self, namespace):
     app = self.app
     adapter = self.final_scene_adapter(self.final_scene_ports(namespace))
     result = adapter.install_renderer()
+    # A double-click belongs to the physical sheet actually hit in the
+    # rendered 3D view, not to the current left-hand selector or project mode.
+    # Reuse the existing original Hole Editor entry and its Confirm/Cancel
+    # lifecycle; do not manufacture or change geometry on the pick itself.
+    def open_clicked_3d_sheet(part_key):
+        key = str(part_key)
+        workspace = app.designer_workspace
+        if key not in workspace.available_parts:
+            return None
+        host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
+        opener = getattr(host, "open_part_hole_editor", None)
+        if not callable(opener):
+            return None
+
+        def open_after_mpl_event():
+            if (app.root.winfo_exists()
+                    and key in app.designer_workspace.available_parts):
+                opener(key)
+
+        app.root.after_idle(open_after_mpl_event)
+        return key
+
+    result.set_hole_double_click_handler(open_clicked_3d_sheet)
     try:
         app.renderer.canvas.get_tk_widget().configure(takefocus=False)
     except Exception:
@@ -448,6 +471,58 @@ def sync_authoritative_derived_parts(
         },
     )
 
+    # #1503: assembly expansion already creates two physical NFB-tier Base
+    # Plates, but the original root-only navigation omitted BOTH from the
+    # operator's 2D part selector. Publish their exact source-derived
+    # profiles as navigation children; leave the root assembly input in
+    # place because the manufacturing service expands that ONE root into
+    # TWO actual FinalScene owners. Never create a tier for an unsubmitted
+    # draft or a Base Plate with no selected physical source.
+    tier_profiles = {}
+    if (receiving_single_base
+            and isinstance(snapshot.get("receiving_base_plate"), Mapping)
+            and snapshot.get("nfb_config_submitted") is True
+            and isinstance(snapshot.get("nfb_config"), Mapping)
+            and snapshot["nfb_config"].get("layer_count") == 2):
+        from ae_engine.receiving_nfb_base_assembly_xy import (
+            receiving_nfb_layer_centers,
+        )
+        from ae_engine.receiving_base_plate_3d_profiles import (
+            receiving_base_plate_3d_profiles,
+        )
+        upper = tuple(
+            row for row in tuple(snapshot.get("inner_doors") or ())
+            if isinstance(row, Mapping)
+            and str(row.get("cell_key") or "").split(":")[-1] == "0"
+            and str(row.get("stable_id") or "").strip()
+        )
+        if len(upper) == 1:
+            try:
+                centers = receiving_nfb_layer_centers(
+                    snapshot, str(upper[0]["stable_id"]),
+                )
+            except ValueError as exc:
+                # Switching between versions may briefly leave the old
+                # runtime Set/Bay selector. Never publish stale navigation.
+                if str(exc) not in {
+                    "RECEIVING_NFB_LAYER_SET_IDENTITY_DRIFT",
+                    "RECEIVING_NFB_LAYER_BAY_IDENTITY_DRIFT",
+                    "RECEIVING_NFB_LAYER_CONFIG_IDENTITY_DRIFT",
+                }:
+                    raise
+                centers = ()
+            if len(centers) == 2:
+                profiles = receiving_base_plate_3d_profiles(snapshot)
+                if profiles is not None:
+                    tier_profiles = {
+                        center.layer_part_id: deepcopy(profiles)
+                        for center in centers
+                    }
+    navigation.sync_derived_parts(
+        namespace="base_plate:nfb_layer:",
+        part_profiles=tier_profiles,
+    )
+
     return (
         tuple(divider_profiles),
         tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
@@ -545,9 +620,21 @@ def refresh_profiles_from_settings(
     app = self.app
     required = lambda name: self._required(namespace, name)
     workspace = app.designer_workspace
+    snapshot = getattr(app, "_phase6_input_snapshot", {})
+    settings = dict(getattr(app, "_settings_values", {}) or {})
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        # The pure Settings projection overlays settings onto the current
+        # snapshot. Supply live Receiving W/H/D to this *detached request* so
+        # geometry, CUTTING and 3D track the active Bay/Quantity without
+        # mutating or using up the operator's saved default W/H/D.
+        current_box = getattr(app, "_phase6_box_whd", {}) or {}
+        settings.update({
+            axis: current_box[axis] for axis in ("w", "h", "d")
+            if axis in current_box
+        })
     request = required("SettingsProfileProjectionRequest")(
-        settings_values=getattr(app, "_settings_values", {}),
-        input_snapshot=getattr(app, "_phase6_input_snapshot", {}),
+        settings_values=settings,
+        input_snapshot=snapshot,
         available_parts=tuple(workspace.available_parts),
         existing_profiles=workspace.part_profiles_snapshot(),
         box_body_profile=app.state.profiles_vault.get("箱身", []),
@@ -657,6 +744,22 @@ def settings_application_project_ui_values(
         remembered = getattr(plan, "remember_non_receiving_structure", None)
         if remembered is not None:
             app._phase6_non_receiving_structure_state = deepcopy(remembered)
+
+        # Restore the user's original Family part-presence set *before* the
+        # Settings profile projection and the single Scheduler baseline solve.
+        # Do not force Door present: an intentionally absent Door remains
+        # absent. Do not reuse this set for a different cabinet family.
+        if old_model == "受電箱" and new_model != "受電箱":
+            previous_parts = getattr(
+                app, "_phase6_non_receiving_part_presence_state", None
+            )
+            if (
+                isinstance(previous_parts, dict)
+                and previous_parts.get("model") == new_model
+            ):
+                parts = tuple(previous_parts.get("parts") or ())
+                app.designer_workspace.replace_available_parts(parts)
+                app._phase6_input_snapshot["existing_parts"] = list(parts)
 
         if "fw" in values:
             state = getattr(app, "_phase6_endcap_fw_state", None)

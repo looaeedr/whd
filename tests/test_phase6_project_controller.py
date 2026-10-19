@@ -136,3 +136,70 @@ def test_failed_save_does_not_change_project_path(tmp_path):
         )
 
     assert controller.project_path == str(tmp_path / "before.p6fold")
+
+
+
+def test_issue1819_loading_project_releases_prior_designer_derived_scenes():
+    """A loaded .p6fold must never retain the prior project's real Bay scene."""
+    import gc
+    from types import SimpleNamespace
+    from weakref import ref
+    from gui_modules.project_actions import load_phase6_project
+
+    class PhysicalScene:
+        pass
+
+    prior_scene = PhysicalScene()
+    witness = ref(prior_scene)
+    names = (
+        "_receiving_bay_preview_cache",
+        "_receiving_bay_virtual_preview_cache",
+        "_receiving_raw_divider_history",
+        "_receiving_raw_inner_door_frame_history",
+        "_receiving_raw_inner_door_panel_history",
+    )
+    composition = SimpleNamespace(**{
+        name: {(0, 0): prior_scene} for name in names
+    })
+    del prior_scene
+    invalidations = []
+    cache_clear = []
+    designer = SimpleNamespace(
+        _phase6_composition_owner=composition,
+        _derived_cache_owner=SimpleNamespace(
+            invalidate=lambda reason: invalidations.append(reason)),
+        _phase6_manufacturing_cache_service=SimpleNamespace(
+            clear=lambda: cache_clear.append(True)),
+        available_parts=(),
+    )
+    snapshot = {"model": "金庫型", "w": 875.0}
+    app = SimpleNamespace(
+        fold_designer_app=designer,
+        project_controller=SimpleNamespace(
+            load=lambda _path: ({"snapshot": snapshot}, snapshot)),
+        _apply_phase6_project_snapshot=lambda payload: payload,
+        open_original_fold_designer=lambda: designer,
+    )
+    assert load_phase6_project(app, "different.p6fold", open_designer=True) is designer
+    assert all(not getattr(composition, name) for name in names)
+    assert invalidations == ["family-structure"]
+    assert cache_clear == [True]
+    gc.collect()
+    assert witness() is None, "previous project's physical scene is still retained"
+
+
+def test_issue1819_failed_project_load_preserves_current_valid_cache():
+    from types import SimpleNamespace
+    from gui_modules.project_actions import load_phase6_project
+
+    marker = object()
+    composition = SimpleNamespace(_receiving_bay_preview_cache={(0, 0): marker})
+    def fail(_path):
+        raise OSError("bad new project")
+    app = SimpleNamespace(
+        fold_designer_app=SimpleNamespace(_phase6_composition_owner=composition),
+        project_controller=SimpleNamespace(load=fail),
+    )
+    with pytest.raises(OSError, match="bad new project"):
+        load_phase6_project(app, "invalid.p6fold", open_designer=False)
+    assert composition._receiving_bay_preview_cache[(0, 0)] is marker

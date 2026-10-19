@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 import re
 
-from ae_engine.receiving_shared_settings import validate_setting
+from ae_engine.receiving_shared_settings import validate_setting, SETTING_DEFAULTS
 
 KEY = "receiving_inner_door_candidates"
 SCHEMA = "receiving-inner-door-candidates-v1"
@@ -19,13 +19,23 @@ ROLE = "inner-door"
 
 
 def validate_door_config(config):
-    if not isinstance(config, Mapping) or set(config) != {"layers", "models"}:
-        raise ValueError("內門版本設定須包含 layers 與 models")
+    if not isinstance(config, Mapping):
+        raise ValueError("內門版本設定須為物件")
+    required = {"layers", "models"}
+    if not required.issubset(config) or set(config) - (required | {"layer_heights_mm", "features"}):
+        raise ValueError("內門版本設定須包含 layers／models，及可選的每層高度")
     layers = validate_setting("inner_door_layers", config["layers"])
     models = validate_setting("inner_door_models", config["models"])
     if layers == 1 and models[1]:
         raise ValueError("單層內門不能配置第二層開關")
-    return {"layers": layers, "models": models}
+    result = {"layers": layers, "models": models, "features": validate_setting(
+        "inner_door_features", config.get("features", {}),
+    )}
+    if "layer_heights_mm" in config:
+        result["layer_heights_mm"] = validate_setting(
+            "inner_door_layer_heights_mm", config["layer_heights_mm"]
+        )
+    return result
 
 
 def normalize_inner_candidates(value=None):

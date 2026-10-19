@@ -8,6 +8,8 @@
 """Fold-profile mapping and folded-mesh construction for assembly geometry."""
 from __future__ import annotations
 
+from .assembly_mesh_reuse import reuse_local_mesh
+
 from .assembly_geometry_primitives import place_assembly_points, place_assembly_triangles
 
 def _segment_value(segment, key, default=None):
@@ -139,11 +141,29 @@ def _profile_geometry(profile, *, enabled_folds=None):
         length = max(0.0, _as_float(
             _segment_value(seg, "length", _segment_value(seg, "len", 0.0))
         ))
+        # #1502: the source BEND interval is material length (Shihlin 33),
+        # but the corresponding *formed* vertical NFB face step is 35.
+        # Keep these two datums separate WITHOUT K-factor compensation:
+        # original flat UV/cumulative BEND continues to use material len,
+        # while ONLY the Receiving source-owned second folded leg can supply
+        # its independently derived real formed length.
+        formed = length
+        formed_raw = _segment_value(seg, "formed_length", None)
+        if formed_raw is not None:
+            identity = str(_segment_value(seg, "phase6_key", "") or "")
+            # Other established owners (notably Receiving box-body zl1's
+            # formed_length=24 for source 22) ALREADY carry this metadata.
+            # Those have a separate certified skin-fitting path; do NOT
+            # reinterpret or reject them in the common folding engine.
+            if identity in {"receiving_left_second", "receiving_right_second"}:
+                formed = _as_float(formed_raw)
+                if not math.isfinite(formed) or formed <= 0 or formed < length:
+                    raise ValueError("RECEIVING_NFB_FORMED_LENGTH_INVALID")
         angles.append(current_angle)
         rad = math.radians(current_angle)
-        raw_u.append(raw_u[-1] + length * math.cos(rad))
-        raw_z.append(raw_z[-1] + length * math.sin(rad))
-        # 展開折彎站位只累計上游 material len；包外留給折後實體外側面，不當作展開線位。
+        raw_u.append(raw_u[-1] + formed * math.cos(rad))
+        raw_z.append(raw_z[-1] + formed * math.sin(rad))
+        # Unfolded DXF/BEND uses actual material len, never formed length.
         cumulative.append(cumulative[-1] + length)
         angle = _segment_value(seg, "angle", None)
         if index < len(segs) - 1 and angle is not None:
@@ -276,6 +296,32 @@ def _profile_map_with_guides(position, cross_position, profile, *, axis, fold_gu
     return _profile_map(position, boundaries, folded)
 
 
+def _prepare_profile_mapper(profile, *, axis, fold_guides, geometry):
+    """Reuse bend masks/chains within ONE mesh build, never across input edits.
+
+    Thousands of triangle vertices share a small number of enabled-fold masks.
+    Keep the original finite-guide and coordinate arithmetic as the authority.
+    """
+    rows = tuple(profile or ())
+    guides = tuple(fold_guides or ())
+    masks = {}
+    chains = {(True,) * max(0, len(rows) - 1): geometry}
+
+    def map_point(position, cross_position):
+        cross = float(cross_position)
+        mask = masks.get(cross)
+        if mask is None:
+            mask = _fold_mask_for_cross_coordinate(rows, axis, cross, guides)
+            masks[cross] = mask
+        chain = chains.get(mask)
+        if chain is None:
+            chain = _profile_geometry(rows, enabled_folds=mask)
+            chains[mask] = chain
+        return _profile_map(position, *chain)
+
+    return map_point
+
+
 def fit_receiving_left_zl1_formed_outside(
     segments, mapped, mid_triangles, *, thickness, axis,
     tolerance=1e-7,
@@ -360,6 +406,7 @@ def fit_receiving_left_zl1_formed_outside(
         )
     return tuple(result)
 
+@reuse_local_mesh
 def folded_mesh_from_polygon(
     material,
     x_profile,
@@ -379,6 +426,8 @@ def folded_mesh_from_polygon(
 
     xb, xf = _profile_geometry(x_profile)
     yb, yf = _profile_geometry(y_profile)
+    x_mapper = _prepare_profile_mapper(x_profile, axis="x", fold_guides=fold_guides, geometry=(xb, xf))
+    y_mapper = _prepare_profile_mapper(y_profile, axis="y", fold_guides=fold_guides, geometry=(yb, yf))
     total_x, total_y = float(xb[-1]), float(yb[-1])
     display_material = material.simplify(0.05, preserve_topology=True)
     clipped_material = display_material.intersection(box(0.0, 0.0, total_x, total_y))
@@ -434,18 +483,14 @@ def folded_mesh_from_polygon(
                         if "x" in flags:
                             ux, zx = _profile_flat_map(x, xb, profile=x_profile)
                         elif fold_guides:
-                            ux, zx = _profile_map_with_guides(
-                                x, y, x_profile, axis="x", fold_guides=fold_guides
-                            )
+                            ux, zx = x_mapper(x, y)
                         else:
                             ux, zx = _profile_map(x, xb, xf)
 
                         if "y" in flags:
                             uy, zy = _profile_flat_map(y, yb, profile=y_profile)
                         elif fold_guides:
-                            uy, zy = _profile_map_with_guides(
-                                y, x, y_profile, axis="y", fold_guides=fold_guides
-                            )
+                            uy, zy = y_mapper(y, x)
                         else:
                             uy, zy = _profile_map(y, yb, yf)
                         mapped.append((float(ux), float(uy), float(zx + zy)))

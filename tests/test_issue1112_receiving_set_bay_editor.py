@@ -250,3 +250,95 @@ def test_bridge_projects_receiving_layers_as_rows_without_legacy_set_bay_selecto
     # Selection remains UI/session state; no persisted selector index is introduced.
     assert '"current_set_index"' not in source
     assert '"current_bay_index"' not in source
+
+
+def test_issue1817_multi_bay_dimension_batch_normalizes_once_and_matches_legacy(
+    monkeypatch,
+):
+    import ae_engine.receiving_layout as layout_owner
+    import gui_modules.application.receiving_set_bay_adapter as adapter_owner
+
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=4)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=1,
+                                  width=950, height=1750, depth=480)
+    before = deepcopy(layout)
+    expected = update_receiving_bay(layout, set_index=0, bay_index=0,
+                                    width=900, height=1700, depth=390)
+    expected = update_receiving_bay(expected, set_index=0, bay_index=2,
+                                    width=900, height=1700, depth=390)
+    adapter = ReceivingSetBayAdapter(layout)
+    actual_normalize = layout_owner.normalize_receiving_layout
+    calls = []
+    def counted(raw):
+        calls.append(1)
+        return actual_normalize(raw)
+    monkeypatch.setattr(layout_owner, 'normalize_receiving_layout', counted)
+    monkeypatch.setattr(adapter_owner, 'normalize_receiving_layout', counted)
+    count = adapter.apply_dimensions_to_bays(
+        0, (0, 2), width=900, height=1700, depth=390, expected_count=2)
+    assert count == 2
+    assert len(calls) == 1, 'batch must commit exactly one validated layout'
+    assert adapter.layout == expected
+    assert before['sets'][0]['bays'][1] == adapter.layout['sets'][0]['bays'][1]
+    assert before['sets'][0]['bays'][3] == adapter.layout['sets'][0]['bays'][3]
+    assert before['sets'][0]['joints'] == adapter.layout['sets'][0]['joints']
+    assert adapter._session_dirty_ids == {
+        before['sets'][0]['bays'][0]['stable_id'],
+        before['sets'][0]['bays'][2]['stable_id'],
+    }
+
+
+def test_issue1817_noop_dimension_confirmation_skips_all_normalization(monkeypatch):
+    import ae_engine.receiving_layout as layout_owner
+    import gui_modules.application.receiving_set_bay_adapter as adapter_owner
+    adapter = ReceivingSetBayAdapter(_layout())
+    original = layout_owner.normalize_receiving_layout
+    calls = []
+    def counted(raw):
+        calls.append(1)
+        return original(raw)
+    monkeypatch.setattr(layout_owner, 'normalize_receiving_layout', counted)
+    monkeypatch.setattr(adapter_owner, 'normalize_receiving_layout', counted)
+    before = adapter.layout
+    assert adapter.apply_dimensions_to_bays(
+        0, (0,), width=800, height=1600, depth=350, expected_count=1) == 0
+    assert len(calls) == 0
+    assert adapter.layout == before
+    assert not adapter._session_dirty_ids
+
+
+def test_issue1817_batch_invalid_late_door_partition_is_atomic():
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=1,
+        door_state={'door_layout_columns': [[400, [1000, 600]], [400, [1000, 600]]]})
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    with pytest.raises(ValueError, match='第2連 W 不符合門分割'):
+        adapter.apply_dimensions_to_bays(
+            0, (0, 1), width=350, height=1700, depth=400, expected_count=2)
+    assert adapter.layout == before
+    assert not adapter._session_dirty_ids
+
+
+def test_issue1817_batch_reflows_existing_door_state_same_as_sequential_updates():
+    from ae_engine.sheetmetal_part_adapters import complete_partition
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        door_state={'door_layout_columns': [[400, [1000, 600]], [400, [1000, 600]]]})
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=2,
+        door_state={'door_layout_columns': [[400, [1000, 600]], [400, [1000, 600]]]})
+    # The existing accepted UI contract adjusts only the final partition
+    # cell, preserving the explicit first width and layer heights.
+    assert complete_partition([400], 850).valid
+    adapter = ReceivingSetBayAdapter(layout)
+    changed = adapter.apply_dimensions_to_bays(
+        0, (0, 2), width=850, height=1650, depth=420, expected_count=2)
+    assert changed == 2
+    result = adapter.layout
+    for bay_index in (0, 2):
+        assert result['sets'][0]['bays'][bay_index]['door_state']['door_layout_columns'] == [
+            [400.0, [1000.0, 650.0]], [450.0, [1000.0, 650.0]]]
+    assert result['sets'][0]['bays'][1] == layout['sets'][0]['bays'][1]

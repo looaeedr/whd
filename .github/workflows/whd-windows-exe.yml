@@ -1,0 +1,160 @@
+name: Build WHD Windows EXE
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-windows-exe.yml'
+  push:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-windows-exe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows-package:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout Traditional Chinese release documents
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout pinned released product
+        uses: actions/checkout@v4
+        with:
+          ref: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          path: product
+          persist-credentials: false
+      - name: Python 3.12 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Verify exact source and dependencies
+        shell: pwsh
+        working-directory: product
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne '7c1d6f59e3582bdff10af1c3d432d375341c0bea') {
+            throw 'Unexpected product SHA'
+          }
+          if (!(Test-Path '基準檔') -or !(Test-Path 'config.ini')) {
+            throw 'Missing required editable DXF/config data'
+          }
+          python -m pip install --disable-pip-version-check -r requirements.txt 'pyinstaller==6.16.0' matplotlib pillow
+          python -c "import tkinter,ezdxf,shapely,matplotlib,gui; print('WHD_IMPORT_OK')"
+      - name: Build portable Windows application
+        shell: pwsh
+        working-directory: product
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --contents-directory . --name WHD --collect-submodules ae_engine --collect-submodules gui_modules --add-data '基準檔;基準檔' --add-data 'config.ini;.' --add-data 'config;config' gui.py
+          if (!(Test-Path 'dist/WHD/WHD.exe')) { throw 'Missing WHD.exe' }
+          if (!(Test-Path 'dist/WHD/config.ini')) { throw 'Missing external config.ini' }
+          if (!(Test-Path 'dist/WHD/基準檔')) { throw 'Missing DXF baseline directory' }
+          if (!(Get-ChildItem 'dist/WHD/基準檔' -Recurse -Filter '*.dxf' | Select-Object -First 1)) {
+            throw 'DXF baseline contents missing'
+          }
+      - name: Smoke-test launched WHD.exe
+        shell: pwsh
+        working-directory: product
+        run: |
+          $folder = (Resolve-Path 'dist/WHD').Path
+          $exe = Join-Path $folder 'WHD.exe'
+          $process = Start-Process -FilePath $exe -WorkingDirectory $folder -PassThru
+          try {
+            Start-Sleep -Seconds 12
+            $process.Refresh()
+            if ($process.HasExited) { throw "WHD.exe exited during startup: $($process.ExitCode)" }
+          } finally {
+            if (!$process.HasExited) { Stop-Process -Id $process.Id -Force }
+          }
+      - name: Create portable ZIP and SHA256
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path output | Out-Null
+          $guide = 'docs/releases/WHD_Windows_使用說明.md'
+          $notes = 'docs/releases/WHD_v2026.10.15_更新紀錄.md'
+          if (!(Test-Path $guide) -or !(Test-Path $notes)) {
+            throw '缺少繁體中文使用說明或版本更新紀錄'
+          }
+          Copy-Item -LiteralPath $guide -Destination 'product/dist/WHD/使用說明.md'
+          Copy-Item -LiteralPath $notes -Destination 'product/dist/WHD/本次更新.md'
+          Copy-Item -LiteralPath 'product/使用說明書.md' -Destination 'product/dist/WHD/功能操作參考.md'
+          Copy-Item -LiteralPath $guide -Destination 'output/WHD_Windows_Guide_zh-TW.md'
+          Copy-Item -LiteralPath $notes -Destination 'output/WHD_Release_Notes_zh-TW.md'
+          $name = 'WHD_Windows_x64_v2026.10.15-x-7c1d6f59e358.zip'
+          @"
+          WHD Windows 64 位元可攜式執行版
+          正式產品來源：7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          請先完整解壓縮，再開啟 WHD 資料夾並執行 WHD.exe。
+          請保留與 WHD.exe 同一資料夾內的 config.ini、基準檔及其他程式檔案。
+          下載、安裝與使用方法請參閱 使用說明.md。
+          本次功能更新請參閱 本次更新.md。
+          "@ | Set-Content -Encoding utf8 'product/dist/WHD/BUILD_SOURCE.txt'
+          Compress-Archive -LiteralPath 'product/dist/WHD' -DestinationPath "output/$name"
+          $hash = (Get-FileHash "output/$name" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $name" | Set-Content -Encoding ascii 'output/SHA256.txt'
+          Write-Host "PACKAGED $name SHA256 $hash"
+      - name: Upload Windows package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WHD-Windows-x64
+          path: output/*
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-release:
+    name: Attach verified Windows ZIP to official WHD Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/localX' && github.repository == 'looaeedr/whd'
+    needs: windows-package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download successful Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: WHD-Windows-x64
+          path: windows-package
+      - name: Verify and upload official Windows portable build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: v2026.10.15-x-7c1d6f59e358
+          RELEASE_SHA: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd windows-package
+          archive="WHD_Windows_x64_$RELEASE_TAG.zip"
+          test -s "$archive"
+          test -s SHA256.txt
+          test -s WHD_Windows_Guide_zh-TW.md
+          test -s WHD_Release_Notes_zh-TW.md
+          grep -q '本次主要更新' WHD_Release_Notes_zh-TW.md
+          grep -q '如何下載' WHD_Windows_Guide_zh-TW.md
+          sha256sum --check SHA256.txt
+          release_json="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,targetCommitish,isDraft,isPrerelease)"
+          printf '%s' "$release_json" | jq -e \
+            --arg tag "$RELEASE_TAG" --arg sha "$RELEASE_SHA" \
+            '.tagName == $tag and .targetCommitish == $sha and .isDraft == false and .isPrerelease == false' >/dev/null
+          # Same approved product version, new ZIP includes Traditional Chinese documentation.
+          for filename in "$archive" "SHA256.txt" "WHD_Windows_Guide_zh-TW.md" "WHD_Release_Notes_zh-TW.md"; do
+            gh release upload "$RELEASE_TAG" "$filename" --clobber --repo "$GITHUB_REPOSITORY"
+          done
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "WHD_Release_Notes_zh-TW.md"
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets,body \
+            | jq -e --arg archive "$archive" '
+                ([.assets[] | select(.name == $archive and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Windows_Guide_zh-TW.md" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Release_Notes_zh-TW.md" and .size > 0)] | length) == 1
+                and (.body | contains("本次主要更新"))
+              ' >/dev/null
+          # 先確認新的附件與中文版說明均存在，再清除先前 GitHub 將中文檔名轉成 default.md 的錯誤附件。
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            | jq -e '.assets[] | select(.name == "default.md")' >/dev/null; then
+            gh release delete-asset "$RELEASE_TAG" "default.md" --repo "$GITHUB_REPOSITORY" --yes
+          fi
+          echo "OFFICIAL_WINDOWS_EXE_RELEASED: https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"

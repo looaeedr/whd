@@ -18,7 +18,22 @@ def test_each_selector_appears_in_exactly_one_shard(count):
     assert set(seen) == set(PYTEST_PATHS)
     assert all(n == 1 for n in seen.values())
     assert all(shards)
-    assert shards == [PYTEST_PATHS[i::count] for i in range(count)]
+    if count != 3:
+        assert shards == [PYTEST_PATHS[i::count] for i in range(count)]
+    else:
+        assert all(len(shard) >= 1 for shard in shards)
+        expected = {
+            "tests/test_issue517_receiving_live_switch_ui_export_marking.py": 2,
+            "tests/test_issue1463_receiving_modes.py": 1,
+            "tests/test_issue1469_v15_acceptance.py": 0,
+        }
+        for selector, target in expected.items():
+            assert selector in shards[target]
+            assert all(selector not in shard for n, shard in enumerate(shards)
+                       if n != target)
+        for n, selector in enumerate(PYTEST_PATHS):
+            if selector not in expected:
+                assert selector in shards[n % 3]
 
 
 @pytest.mark.parametrize("index,count", [(-1, 3), (3, 3), (0, 0),
@@ -26,6 +41,37 @@ def test_each_selector_appears_in_exactly_one_shard(count):
 def test_invalid_shard_fails_closed(index, count):
     with pytest.raises(ValueError, match="invalid regression shard"):
         shard_paths(index, count)
+
+
+def test_gui_performance_and_reentrant_save_contracts_cannot_be_omitted_from_ci():
+    # #1792: whole-file selectors prevent the test-selection blind spot
+    # uncovered while validating the #1790 Save regression.
+    mandatory = {
+        "tests/test_phase6_gui_performance_contract.py",
+        "tests/test_phase6_part_switch_performance.py",
+        "tests/test_issue371_t7_update_runtime_behavior.py",
+    }
+    assert mandatory.issubset(set(PYTEST_PATHS))
+    assert len(PYTEST_PATHS) == len(set(PYTEST_PATHS))
+    for path in mandatory:
+        assert not any(item.startswith(path + "::") for item in PYTEST_PATHS)
+
+
+def test_issue1795_sync_envelope_real_tk_suite_is_mandatory():
+    # External revision, startup precedence and anti-echo are live Tk
+    # acceptance contracts; static source checks cannot replace execution.
+    assert "tests/test_phase6_sync_envelope.py" in PYTEST_PATHS
+
+
+def test_issue1796_main_and_designer_project_roundtrip_is_canonical():
+    """Final acceptance must really exercise both global and Designer Save paths."""
+    required = {
+        "tests/test_phase6_project_file.py::test_global_save_save_as_and_open_round_trip_project_without_forcing_3d",
+        "tests/test_phase6_project_file.py::test_main_connected_designer_project_save_as_persists_current_live_canonical_state",
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+    }
+    assert required.issubset(set(PYTEST_PATHS))
+    assert all(PYTEST_PATHS.count(selector) == 1 for selector in required)
 
 
 def test_outside_bend_bidirectional_gate_cannot_be_omitted_from_product_ci():

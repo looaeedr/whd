@@ -25,6 +25,8 @@ from phase6_endcap_semantics import (
     normalize_endcap_fw_state,
 )
 from phase6_settings_center import load_corner_defaults_from_ini, ui_text_size_label
+from collections import OrderedDict
+
 from phase6_sync_envelope import stable_fingerprint
 
 
@@ -45,12 +47,39 @@ class Phase6DerivedCacheOwner:
     def __init__(self):
         self._caches = {name: {} for name in self.PRODUCTS}
         self._invalidations = {name: 0 for name in self.PRODUCTS}
+        # Raw exact PartSpec/Context material only, never a full manufacturing
+        # result or a resolved Joint/collision/placement. Geometry invalidation
+        # continues to clear every authoritative product cache as before.
+        self._receiving_exact_material_history = OrderedDict()
+        # Exact generated inner-door panel material; no DXF baseline source.
+        # Frame and divider materials are source-backed and excluded.
+        self._receiving_inner_door_panel_history = OrderedDict()
+        self._receiving_exact_material_stamp = None
 
     def cache(self, product):
         return self._caches[str(product)]
 
     def invalidate(self, reason, changed_keys=()):
         reason = str(reason or "geometry")
+        keys = frozenset(str(key) for key in (changed_keys or ()) if str(key))
+        # The only dependency-free keys proven by the CURRENT GUI contract
+        # are view/typography state. Unknown, dimensional, Joint, holes and
+        # fold keys continue to fail closed via the original reason matrix.
+        if reason == "geometry" and keys and keys <= {
+            "camera", "display", "annotation", "ui_text_size"
+        }:
+            return ()
+        # Only a witnessed W/H/D edit can preserve a *separate* bounded raw
+        # material history. Joint/fold/hole/unknown edits, baseline reload,
+        # presence and family changes must discard it. The authoritative
+        # render cache below remains fully invalidated for geometry edits.
+        if (
+            reason not in {"display", "annotation", "camera"}
+            and not (reason == "geometry" and keys and keys <= {"w", "h", "d"})
+        ):
+            self._receiving_exact_material_history.clear()
+            self._receiving_inner_door_panel_history.clear()
+            self._receiving_exact_material_stamp = None
         products = self._REASON_PRODUCTS.get(reason)
         if products is None:
             # Unknown state mutation fails closed at the derived layer only.

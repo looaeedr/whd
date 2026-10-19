@@ -98,10 +98,9 @@ def add_nfb_draft_slot(draft, layer_index, *, filename=None, source_brand=None):
     _check_layer(updated, layer_index)
     if layer_index >= updated["layer_count"]:
         raise ValueError("NFB hidden physical layer cannot accept slots")
-    if filename is not None and (not isinstance(filename,str)
-            or not filename.lower().endswith(".dxf")
-            or "/" in filename or "\\" in filename):
-        raise ValueError("NFB slot filename must be operator-indexed DXF")
+    if filename is not None:
+        from .receiving_nfb_model_identity import validate_stored_model_ref
+        validate_stored_model_ref(filename)
     current = effective_nfb_layer_brand(updated, layer_index)
     source = _brand(source_brand or current) if filename else None
     updated["layers"][layer_index]["slots"].append({
@@ -161,7 +160,8 @@ def effective_nfb_slot_brand(draft, i, j):
 
 
 def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
-                     catalog: Mapping[str,tuple[str,...]] | None = None):
+                     catalog: Mapping[str,tuple[str,...]] | None = None,
+                     layer_heights_mm=None):
     """No absolute X, no CUTTING and no claim of manufacturing readiness."""
     if draft.get("status") != PREVIEW_ONLY:
         raise ValueError("NFB preview requires an unsubmitted draft")
@@ -171,8 +171,17 @@ def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
         raise ValueError("NFB Bay width is invalid")
     if type(upper_cell_height_mm) not in (int,float) or not isfinite(float(upper_cell_height_mm)):
         raise ValueError("NFB upper cell height is invalid")
-    ys = (approved_nominal_y_mm(draft["layer_count"])
-          if abs(float(upper_cell_height_mm)-1100.0)<1e-6 else None)
+    if layer_heights_mm is not None:
+        from .receiving_shared_settings import validate_setting
+        verified_heights = validate_setting(
+            "inner_door_layer_heights_mm", layer_heights_mm,
+        )
+        if verified_heights[draft["layer_count"] - 1] >= float(upper_cell_height_mm):
+            raise ValueError("每層高度須位於目前作業區的頂部至底部之間")
+        ys = tuple(verified_heights[:draft["layer_count"]])
+    else:
+        ys = (approved_nominal_y_mm(draft["layer_count"])
+              if abs(float(upper_cell_height_mm)-1100.0)<1e-6 else None)
     layers = []
     for i in range(draft["layer_count"]):
         slots = draft["layers"][i]["slots"]

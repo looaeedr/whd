@@ -1,0 +1,133 @@
+name: WHD #1819 Real Tk Long-Cycle Memory Evidence
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-issue1819-long-gui-memory.yml'
+      - 'docs/performance/issue1819-long-gui-memory.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-issue1819-real-gui-rss-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  true-gui-long-cycles:
+    name: True Tk 1/3 Bay 30-cycle cache and RSS evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      TZ: Asia/Taipei
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+      MPLBACKEND: TkAgg
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real GUI and RSS probe dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt matplotlib pytest psutil
+      - name: Preserve exact environment and manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1819
+          {
+            echo "kind=LINUX_ISSUE1819_TRUE_GUI_LONG_CYCLE_REFERENCE"
+            echo "head_sha=$(git rev-parse HEAD)"
+            echo "windows_uat=PENDING"
+            uname -a
+            python -V
+            python -m pip freeze
+            sha256sum config.ini tools/whd_performance_baseline.py
+          } > work/issue1819/environment.txt
+      - name: Perform real Tk operations with 30 cycles per 1 and 3 Bay worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/whd_performance_baseline.py \
+            --samples 1 --cycles 30 --memory-interval-ms 50 \
+            --output work/issue1819/longgui.json
+      - name: Validate completed real GUI cycles and summarize RSS observations
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import statistics
+          from pathlib import Path
+
+          path = Path("work/issue1819/longgui.json")
+          if not path.is_file():
+              raise SystemExit("ISSUE1819_GUI_REPORT_MISSING")
+          report = json.loads(path.read_text(encoding="utf-8"))
+          metadata = report["metadata"]
+          if metadata.get("samples") != 1 or metadata.get("cycles") != 30:
+              raise SystemExit("ISSUE1819_GUI_SAMPLE_CONTRACT_MISMATCH")
+          workers = metadata.get("workers", [])
+          if sorted((w.get("bays"), w.get("sample")) for w in workers) != [(1, 0), (3, 0)]:
+              raise SystemExit("ISSUE1819_GUI_WORKERS_MISSING")
+          if any(w.get("returncode") != 0 for w in workers):
+              raise SystemExit("ISSUE1819_GUI_WORKER_FAILED")
+
+          rows = report["rows"]
+          failed = [r for r in rows if r.get("status") != "ok"]
+          if failed:
+              raise SystemExit(f"ISSUE1819_GUI_OPERATION_FAILED: {failed[:3]}")
+          measures = []
+          for bays in (1, 3):
+              series = [r for r in rows if r.get("bays") == bays and r.get("operation") == "return_3d"]
+              if len(series) != 30:
+                  raise SystemExit(f"ISSUE1819_INCOMPLETE_RETURN_3D_CYCLES: bays={bays} got={len(series)}")
+              rss = [r.get("rss_after") for r in series]
+              if any(v is None or int(v) <= 0 for v in rss):
+                  raise SystemExit(f"ISSUE1819_MISSING_RSS_CHECKPOINT: bays={bays}")
+              rss = [int(v) for v in rss]
+              early = statistics.median(rss[5:15])
+              late = statistics.median(rss[-10:])
+              samples = [r for r in rows if r.get("bays") == bays]
+              hits = sum(r.get("manufacturing_cache_lookups", {}).get("hit", 0) for r in samples)
+              misses = sum(r.get("manufacturing_cache_lookups", {}).get("miss", 0) for r in samples)
+              solver_calls = sum(r.get("counts", {}).get("manufacturing_solve", 0) for r in samples)
+              item = dict(bays=bays, cycles=len(series), first_rss_bytes=rss[0],
+                          last_rss_bytes=rss[-1], maximum_checkpoint_rss_bytes=max(rss),
+                          early_after_warmup_median_bytes=early, final_ten_median_bytes=late,
+                          late_minus_early_bytes=late - early,
+                          real_cache_hits=hits, real_cache_misses=misses,
+                          real_solve_calls=solver_calls,
+                          rss_checkpoints_bytes=rss,
+                          interpretation="LINUX_CLOUD_SAME_PROCESS_OBSERVATION_NOT_WINDOWS_UAT_OR_LEAK_PROOF")
+              print(json.dumps(item, ensure_ascii=False))
+              measures.append(item)
+          Path("work/issue1819/memory-analysis.json").write_text(
+              json.dumps({"head_sha": metadata["source_sha"], "measurements": measures,
+                          "windows_uat": "PENDING"}, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          print("ISSUE1819_TRUE_GUI_30_CYCLES_EACH_COMPLETED")
+          PY
+      - name: Retain raw worker journals and measurements on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-issue1819-true-gui-memory-evidence
+          path: work/issue1819/
+          if-no-files-found: warn
+          retention-days: 14

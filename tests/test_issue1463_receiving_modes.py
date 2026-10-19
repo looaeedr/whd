@@ -396,3 +396,218 @@ def test_invalid_unselected_feature_blocks_before_manufacturing_cache_lookup():
     app = SimpleNamespace(_phase6_input_snapshot=source,designer_workspace=workspace)
     with pytest.raises(ValueError,match=second):
         resolve_manufacturing_for_app(app)
+
+
+@pytest.fixture
+def receiving_gui_stall_guard():
+    """Fail a stuck headless GUI test with its last operator action, not CI timeout."""
+    import signal
+
+    state = {"stage": "setup"}
+    def checkpoint(stage):
+        state["stage"] = stage
+
+    if not hasattr(signal, "SIGALRM"):
+        yield checkpoint
+        return
+
+    prior_handler = signal.getsignal(signal.SIGALRM)
+    def expired(_signum, _frame):
+        raise TimeoutError("Receiving Tk regression stalled for 300s at " + state["stage"])
+
+    signal.signal(signal.SIGALRM, expired)
+    signal.alarm(300)
+    try:
+        yield checkpoint
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, prior_handler)
+
+
+@pytest.mark.skipif(
+    not __import__("os").environ.get("DISPLAY"),
+    reason="Receiving settings defaults regression needs a real Tk/Xvfb",
+)
+def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypatch, receiving_gui_stall_guard):
+    """Operator sizes belong to current Quantity/Set-Bay, NOT Settings defaults.
+
+    The existing global Settings values (including config.ini save payload)
+    are independent of the factory-size seed for a new Receiving cabinet.
+    """
+    # A modal warning inside Tk/Xvfb would otherwise block the CI runner until
+    # the job is cancelled, hiding the originating exception and losing JUnit.
+    # This is a contract test: an unexpected dialog is a real test failure.
+    from tkinter import messagebox
+
+    def unexpected_dialog(*args, **kwargs):
+        raise AssertionError(f"unexpected Receiving modal dialog: {args!r} {kwargs!r}")
+
+    for dialog in ("showwarning", "showerror", "showinfo", "askyesno"):
+        monkeypatch.setattr(messagebox, dialog, unexpected_dialog)
+
+    import fold_designer_bridge as bridge
+    from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+    from tests.test_issue517_receiving_live_switch_ui_export_marking import (
+        _open_vault_designer, _pump, _close,
+    )
+
+    receiving_gui_stall_guard("open designer")
+    tk, root, _main, designer = _open_vault_designer()
+    try:
+        receiving_gui_stall_guard("switch to receiving")
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        defaults = {
+            axis: designer._settings_values[axis]
+            for axis in ("w", "h", "d")
+        }
+        family_defaults = tuple(BOX_BODY_DEFAULTS[axis] for axis in ("w", "h", "d"))
+        assert family_defaults == (800.0, 1600.0, 350.0)
+
+        receiving_gui_stall_guard("open single settings")
+        single = bridge._phase6_open_receiving_single_settings(designer)
+        _pump(root, 2)
+        single_values = single._receiving_dimension_group_input
+        assert tuple(float(single_values[key].get()) for key in ("width", "height", "depth")) == family_defaults
+        single_values["width"].set("875")
+        single_values["depth"].set("410")
+        single_values["count"].set("3")
+        row = single._receiving_dimension_groups_host.winfo_children()[0].winfo_children()[0]
+        receiving_gui_stall_guard("confirm single cabinet dimensions")
+        next(item for item in row.winfo_children()
+             if item.winfo_class() == "TButton").invoke()
+        _pump(root, 2)
+
+        assert designer._phase6_box_whd["w"] == pytest.approx(875.)
+        assert designer._phase6_box_whd["d"] == pytest.approx(410.)
+        assert designer.designer_workspace.snapshot()["receiving_quantity_box"]["w"] == pytest.approx(875.)
+        assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
+        receiving_gui_stall_guard("close single settings")
+        single._receiving_multi_close()
+
+        receiving_gui_stall_guard("open multi settings")
+        multi = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 2)
+        receiving_gui_stall_guard("apply set 0")
+        assert multi._receiving_multi_apply(0)
+        _pump(root, 2)
+        multi_values = multi._receiving_dimension_group_input
+        assert tuple(float(multi_values[key].get()) for key in ("width", "height", "depth")) == family_defaults
+        multi_values["width"].set("735")
+        multi_values["depth"].set("375")
+        multi_values["count"].set("1")
+        receiving_gui_stall_guard("confirm multi cabinet dimensions")
+        assert multi._receiving_dimension_group_confirm() is True
+        _pump(root, 2)
+
+        from gui_modules.application.fold_designer_composition_receiving import (
+            _current_mode_snapshot,
+        )
+        composition = bridge._phase6_composition(designer)
+        working = _current_mode_snapshot(composition, vars(bridge))
+        assert working["receiving_layout"]["sets"][0]["bays"][0]["width"] == 735
+        assert working["receiving_layout"]["sets"][0]["bays"][0]["depth"] == 375
+        # Confirm intentionally advances focus to the next unconfigured Bay.
+        # The applied Bay retains 735, while current W/H/D describe the newly
+        # selected Bay; the global Settings defaults remain unchanged.
+        # The dialog clears its highlight when no unconfigured Bay remains.
+        # The authoritative adapter still tracks the last browsing selection.
+        adapter = composition.receiving_adapter(vars(bridge))
+        active_index = adapter.selection.bay_index
+        active_bay = working["receiving_layout"]["sets"][0]["bays"][active_index]
+        assert designer._phase6_box_whd["w"] == pytest.approx(active_bay["width"])
+        assert designer._phase6_input_snapshot["w"] == pytest.approx(active_bay["width"])
+        assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
+        receiving_gui_stall_guard("close multi settings")
+        multi._receiving_multi_close()
+
+        # Reopen the single mode: retain the previous Quantity W/H/D while
+        # the shared operator defaults stay untouched across both editors.
+        receiving_gui_stall_guard("reopen single settings")
+        single_again = bridge._phase6_open_receiving_single_settings(designer)
+        _pump(root, 2)
+        restored = single_again._receiving_dimension_group_input
+        assert float(restored["width"].get()) == pytest.approx(875.)
+        assert float(restored["depth"].get()) == pytest.approx(410.)
+        assert {axis: designer._settings_values[axis] for axis in defaults} == defaults
+        single_again._receiving_multi_close()
+    finally:
+        receiving_gui_stall_guard("close root")
+        _close(tk, root, designer)
+
+
+def test_receiving_cache_key_ignores_settings_defaults_but_tracks_working_whd():
+    """Default seed changes must not invalidate already-resolved Receiving geometry."""
+    from types import SimpleNamespace
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "受電箱", "w": 800, "h": 1600, "d": 350},
+        _settings_values={"w": 900, "h": 1700, "d": 400, "t": 2},
+        _phase6_box_whd={"w": 800, "h": 1600, "d": 350},
+    )
+    before = build_manufacturing_cache_key(app).fingerprint
+    app._settings_values.update(w=950, h=1800, d=450)
+    assert build_manufacturing_cache_key(app).fingerprint == before
+    app._phase6_box_whd["w"] = 875
+    assert build_manufacturing_cache_key(app).fingerprint != before
+    # Non-Receiving families still own their dimensions through Settings.
+    app._phase6_input_snapshot["model"] = "金庫型"
+    vault = build_manufacturing_cache_key(app).fingerprint
+    app._settings_values["w"] = 1000
+    assert build_manufacturing_cache_key(app).fingerprint != vault
+
+
+def test_missing_quantity_door_state_resizes_with_existing_family_partition():
+    """Legacy no-Door-authority Quantity edits reuse Family, never bypass validation."""
+    from ae_engine.receiving_quantity_box import update_common_box
+    from phase6_receiving_modes import fresh_receiving_mode
+    source = fresh_receiving_mode("quantity", {"w": 800, "h": 1600, "d": 350})
+    source["receiving_quantity_box"].pop("door_state", None)
+    before = deepcopy(source)
+    result = update_common_box(source, {"w": 875, "h": 1700})
+    assert source == before
+    assert result["receiving_quantity_box"]["w"] == 875
+    assert result["door_layout_columns"] == [[875.0, [1100.0, 600.0]]]
+    # Explicitly invalid topology must not silently fall back to Family.
+    invalid = deepcopy(source)
+    invalid["receiving_quantity_box"]["door_state"] = {"door_layout_columns": []}
+    with pytest.raises(ValueError, match="W 不符合目前門分割"):
+        update_common_box(invalid, {"w": 875})
+
+
+def test_first_fresh_mode_preserves_project_family_presets_not_inactive_geometry():
+    """A Quantity session cannot erase Vault's preset needed on family return."""
+    from phase6_receiving_modes import ReceivingModeSession
+    from phase6_settings_transitions import family_model_transition
+    initial = old_multibay()
+    initial["_runtime_family_presets"] = {
+        "金庫型": {"settings": {"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0}}
+    }
+    initial["factory_defaults"] = {"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0}
+    session = ReceivingModeSession(initial)
+    assert session.switch("quantity", dimensions={"w": 800, "h": 1600, "d": 350})
+    active = session.snapshot()
+    assert active["_runtime_family_presets"] == initial["_runtime_family_presets"]
+    assert active["factory_defaults"] == initial["factory_defaults"]
+    # The fresh mode has independent physical dimensions and topology.
+    assert active["active_mode"] == "quantity"
+    assert (active["w"], active["h"], active["d"]) == (800, 1600, 350)
+    assert active["receiving_layout"] != initial["receiving_layout"]
+    # A later edit must not mutate original buffered project-level presets.
+    active["_runtime_family_presets"]["金庫型"]["settings"]["w"] = 999
+    assert session.snapshot()["_runtime_family_presets"]["金庫型"]["settings"]["w"] == 400.0
+
+
+def test_switch_back_to_vault_after_first_quantity_mode_uses_saved_family_settings():
+    """Keep data authority: Vault resolves its own preset, not Receiving W/H/D."""
+    from phase6_receiving_modes import ReceivingModeSession
+    from phase6_settings_transitions import family_model_transition
+    initial = old_multibay()
+    saved = {"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0}
+    initial["_runtime_family_presets"] = {"金庫型": {"settings": dict(saved)}}
+    session = ReceivingModeSession(initial)
+    assert session.switch("quantity", dimensions={"w": 800, "h": 1600, "d": 350})
+    current = session.snapshot()
+    assert current["_runtime_family_presets"]["金庫型"]["settings"] == saved
+    assert current["model"] == "受電箱"

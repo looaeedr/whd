@@ -9,6 +9,11 @@ whd_schema: WHD_DOC_META_V1
 
 # Diagnosing Bugs
 
+## 不得停止程序 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
+
+`/DEBUG` 為既有錯誤的診斷方法；搭配 `/功能 /派工` 時沿用同一 Issue、PR 與原始資料，直接 RED→GREEN→提交→CI→`localX` 接續。**不得預先設停止程序**；單一重現手段不可用時改用其他已授權的資料查證、可重現測試 seam 或獨立施工動作，不得把分析或回報當成完成。所有產品修改前仍必須確實讀原始碼／規格並具備真實驗證依據。
+
+
 ## RUNTIME_CAPABILITY_FALLBACK
 
 Use the tightest loop the current runtime can actually execute. Specialized browser/debugger/subagent helpers are optional; when absent, build the repro and diagnosis as an **inline fallback** with available commands/tests. If a human must perform a step, generate a self-contained checklist or small temporary script from current evidence; do not depend on a missing supporting template.
@@ -23,7 +28,7 @@ When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear men
 
 **Before changing product source code, tests, fixtures or expected values:**
 
-1. Fresh-read official `X` `AGENTS.md`, the exact working ref/HEAD, the actual implicated source modules, and the authoritative CURRENT requirements (including relevant diagrams / CSV / JSON / DXF and customer-approved rules). Search hits, file names, issue summaries and a previous agent's claims are **not** proof that a file has been read.
+1. Fresh-read GitHub `localX` exact HEAD `AGENTS.md`, the exact working ref/HEAD, the actual implicated source modules, and the authoritative CURRENT requirements (including relevant diagrams / CSV / JSON / DXF and customer-approved rules). Search hits, file names, issue summaries and a previous agent's claims are **not** proof that a file has been read.
 2. Follow and inspect the **real entrypoint → caller/callee → intermediate coordinate and state transforms → 2D/3D/collision/manufacturing/output** path. Read complete affected functions and all necessary adjacent code before deciding what to replace; inspect existing regression tests, version differences, and product data. Scope reading to relevant modules rather than blindly opening the entire repository.
 3. Show a concise `SOURCE_READ_EVIDENCE` summary: source ref/HEAD, code paths and functions actually read, document/data authority, factual symptom and RED-capable test plan, and proposed minimal touched paths. Reading a passing test, existing screen output or code-derived constant never establishes manufacturing truth.
 4. If required sources or a normative rule cannot be verified, return `SOURCE_READ_PRECONDITION_FAILED`. Continue read-only investigation and ask about genuinely missing domain authority only; **do not patch product code or fabricate regression expected values**. Once evidence is available, proceed directly within the already-authorized scope.
@@ -73,7 +78,7 @@ The goal is not a clean repro but a **higher reproduction rate**. Loop the trigg
 
 ### When you genuinely cannot build a loop
 
-Stop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a redacted captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.
+Record the exact unavailable reproduction method, then immediately continue other lawful source inspection or independently testable bug paths. Seek specific missing evidence or permission only when it is genuinely indispensable. Do **not** invent a hypothesis without a reproducing signal.
 
 ### Completion criterion: a tight loop that goes red
 
@@ -186,5 +191,5 @@ When the user corrects the diagnosis, clarifies a product rule, or identifies a 
 2. `/接手`：僅使用者當次明確指示，才允許 RC → `whd-dev:/workspace/whd` 的產品施工、測試與交付。
 3. 純非產品治理／技能／治理專用測試：同樣以 GitHub `localX` 建分支並 PR 合回 `localX`，使用治理專項 CI；不得按舊治理直送 X 的指示 bypass `localX`。正式 X 發布仍需人工驗收與當次 `/推推`。
 4. 每次記錄診斷重現證據、規格來源、source/tested SHA、exact diff、適用測試及最終回讀。CI 失敗必須回到合法施工路線修復並重新驗證新 SHA；target/touched-path drift 應重驗。
-5. 舊 `WORKSPACE_DELIVERY`、Drive/shared-zero、claim／lease／工作槽及 `FINALIZE` 交易要求已退役，不能當作啟動或交付前置；更不能以此放寬平台安全審查。不得直接 patch 正式 X 或 `main`。
+5. 舊 `WORKSPACE_DELIVERY`、已退役外部儲存/shared-zero、claim／lease／工作槽及 `FINALIZE` 交易要求已退役，不能當作啟動或交付前置；更不能以此放寬平台安全審查。不得直接 patch 正式 X 或 `main`。
 

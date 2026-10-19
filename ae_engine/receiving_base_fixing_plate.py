@@ -7,15 +7,13 @@
 
 """Receiving Base Plate > Base Fixing Plate (formerly 'ear') source preview.
 
-The physical plates are welded to the inside of the left/right cabinet sides.
-They are NOT material belonging to the Base Plate blank. This module exposes
-independent, stable *pending-manufacture* part identities and an authentic
-source-flat 2D silhouette, without inventing the missing certified bend and
-weld-Z manufacturing geometry.
+The physical plates weld inside the cabinet sides and are separate physical
+parts from Base Plate. The UPDATED fixing-plate source contains an actual BEND
+line; exact signed forming and weld-Z proof remain separate from this preview.
 
-The nominal 256x105 outline, R5 top corners, and four 25x11 slots were measured
-from the user's original 受電耳朵.dxf (SHA256:
-2d8b96ff88882c033a08da223f112e2d7573f787fb13fa056cf71626bfeec8a8).
+Updated 2026-10-18 固定片.dxf SHA256:
+dd123595e384b7ce6bf4c444b5af23a11e559de2a715c40ce5d89e2552167cbe
+T2, 256x105, large hole row y84, y-BEND23; small 90x90, hole y69/BEND23.
 Do not use the preview geometry as manufacturing CUTTING/BEND authority:
 the source and material may be edited and must be re-read and recertified for
 each actual production request.
@@ -26,17 +24,19 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from .receiving_base_plate_config import RECEIVING_FAMILIES
-from .receiving_weld_ear_policy import resolve_receiving_large_weld_ear_fit
+from .receiving_weld_ear_policy import (
+    resolve_receiving_large_weld_ear_fit, receiving_source_fixing_pitch_x_mm,
+)
 
 BASE_FIXING_PLATE_PARENT_ID = "base_plate"
 BASE_FIXING_PLATE_PREFIX = "base_plate:fixing_plate:"
 BASE_FIXING_PLATE_DISPLAY_NAME = "底板固定片"
 SOURCE_FLAT_SIZE_MM = (256.0, 105.0)
-SOURCE_TOP_CORNER_RADIUS_MM = 5.0
+SOURCE_TOP_CORNER_RADIUS_MM = 0.0
 SOURCE_SLOT_SIZE_MM = (25.0, 11.0)
-SOURCE_SLOT_CENTERS_MM = ((23.0, 86.0), (58.0, 86.0),
-                          (198.0, 86.0), (233.0, 86.0))
-MANUFACTURING_STATUS = "EAR_BEND_WELD_Z_UNVERIFIED"
+SOURCE_SLOT_CENTERS_MM = ((23.0, 84.0), (58.0, 84.0),
+                          (198.0, 84.0), (233.0, 84.0))
+MANUFACTURING_STATUS = "EAR_SOURCE_BEND_VERIFIED_FORMING_WELD_Z_UNVERIFIED"
 
 
 @dataclass(frozen=True)
@@ -66,14 +66,17 @@ def receiving_base_fixing_plate_previews(
 ) -> tuple[BaseFixingPlatePreview, ...]:
     """Read-only part preview; never changes physical scene or BOM.
 
-    We only expose the W800/T2 source-verified variant. Other dimensions need
-    an independently verified physical source and must not silently inherit
-    these two W800 plates. A missing explicit base variant is previewable with
+    Use the existing T2/BEND23 fixed-plate source for each physical Bay. Its
+    assembled X pitch follows the actual cabinet inside side skin; independent
+    source contact and material checks still gate manufacture. A missing explicit base variant is previewable with
     the 210-mm outer slot pair, but remains *unconfigured* and never releasable.
     """
     data = dict(snapshot or {})
     model = str(data.get("model") or data.get("baseline_model") or "").strip()
-    if model not in RECEIVING_FAMILIES or BASE_FIXING_PLATE_PARENT_ID not in set(available_parts):
+    parts=set(str(value) for value in tuple(available_parts or ()))
+    if (model not in RECEIVING_FAMILIES
+            or (BASE_FIXING_PLATE_PARENT_ID not in parts
+                and not any(p.startswith("base_plate:nfb_layer:") for p in parts))):
         return ()
     try:
         w = float(data.get("w", 0))
@@ -98,16 +101,64 @@ def receiving_base_fixing_plate_previews(
         fit = resolve_receiving_large_weld_ear_fit(
             box_outer_width_mm=w,
             box_side_thickness_mm=side_t,
-            fixing_hole_pitch_x_mm=670.0,
+            fixing_hole_pitch_x_mm=receiving_source_fixing_pitch_x_mm(
+                box_outer_width_mm=w, box_side_thickness_mm=side_t,
+            ),
             fixing_hole_pitch_y_mm=pitch_y,
         )
     except (TypeError, ValueError, OverflowError):
         return ()
+    # One NFB layer owns ONE source Base Plate and exactly two welded-ear
+    # children (left/right). Two NFB layers inside the UPPER Outer Door must
+    # NEVER silently share the same two ear IDs. The OUTER lower compartment
+    # has no such NFB Base Plate. These are source-flat previews, not fake
+    # certified BEND/weld/3D manufacturing parts.
+    owner_ids=(BASE_FIXING_PLATE_PARENT_ID,)
+    config_nfb=data.get("nfb_config")
+    if (data.get("nfb_config_submitted") is True
+            and isinstance(config_nfb,Mapping)
+            and config_nfb.get("layer_count")==2):
+        from .receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
+        upper=tuple(
+            row for row in tuple(data.get("inner_doors") or ())
+            if isinstance(row,Mapping)
+            and str(row.get("cell_key") or "").split(":")[-1]=="0"
+            and str(row.get("stable_id") or "").strip()
+        )
+        if len(upper)!=1:
+            return ()
+        try:
+            tiers=receiving_nfb_layer_centers(
+                data,str(upper[0]["stable_id"]),
+            )
+        except ValueError as exc:
+            if str(exc) in {
+                "RECEIVING_NFB_LAYER_SET_IDENTITY_DRIFT",
+                "RECEIVING_NFB_LAYER_BAY_IDENTITY_DRIFT",
+                "RECEIVING_NFB_LAYER_CONFIG_IDENTITY_DRIFT",
+            }:
+                return ()  # UI switching: do not invent stale tier children
+            raise
+        if len(tiers)!=2:
+            return ()
+        owner_ids=tuple(tier.layer_part_id for tier in tiers)
+
     return tuple(
         BaseFixingPlatePreview(
-            part_id=BASE_FIXING_PLATE_PREFIX + side,
-            parent_part_id=BASE_FIXING_PLATE_PARENT_ID,
-            display_name=BASE_FIXING_PLATE_DISPLAY_NAME + ("（左）" if side == "left" else "（右）"),
+            part_id=(
+                BASE_FIXING_PLATE_PREFIX+side
+                if owner_id==BASE_FIXING_PLATE_PARENT_ID
+                else BASE_FIXING_PLATE_PREFIX +
+                     f"nfb_layer:{owner_id.rsplit(':',1)[-1]}:{side}"
+            ),
+            parent_part_id=owner_id,
+            display_name=(
+                BASE_FIXING_PLATE_DISPLAY_NAME +
+                ("（左）" if side=="left" else "（右）")
+                if owner_id==BASE_FIXING_PLATE_PARENT_ID else
+                f"{BASE_FIXING_PLATE_DISPLAY_NAME}（第{int(owner_id.rsplit(':',1)[-1])+1}層" +
+                ("左）" if side=="left" else "右）")
+            ),
             side=side,
             stock_thickness_mm=fit.ear_thickness_mm,
             nominal_source_outline_mm=SOURCE_FLAT_SIZE_MM,
@@ -117,5 +168,6 @@ def receiving_base_fixing_plate_previews(
             nominal_fold_from_weld_edge_mm=fit.nominal_fold_from_weld_edge_mm,
             applicable_slot_pair_indexes=chosen_pair,
         )
-        for side in ("left", "right")
+        for owner_id in owner_ids
+        for side in ("left","right")
     )

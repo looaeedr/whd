@@ -1613,6 +1613,21 @@ class Phase6ApplicationHost:
         key = self._door_layout_cell_key(cell)
         try:
             val = self.get_float_values()
+            # The host's main-Settings W/H/D may intentionally differ from
+            # the active Receiving designer. Project current Bay/Quantity
+            # geometry into this one editor request; never change host defaults.
+            live = _door_layout_host_adapter._receiving_live_door_layout_source(self)
+            if live is not None:
+                snapshot, whd = live
+                val.update({
+                    key: snapshot[key]
+                    for key in (
+                        "t", "fw", "door_gap_w", "door_gap_h",
+                        "door_fold_l", "door_fold_r", "door_fold_t", "door_fold_b",
+                    )
+                    if key in snapshot
+                })
+                val.update({axis: float(whd[axis]) for axis in ("w", "h", "d")})
             result = self._door_layout_cell_result(cell, val)
             surface = feature_surface_from_structural_result("door", result)
             material_fw = self._door_material_frame_width(val['fw'], val['t'])
@@ -1846,8 +1861,8 @@ class Phase6ApplicationHost:
     def on_box_body_piece_double_click(self, event=None):
         return _on_box_body_piece_double_click_impl(self, event)
 
-    def _draw_box_body_piece_preview(self, aggregate_render_data, piece, part_key):
-        return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection)
+    def _draw_box_body_piece_preview(self, aggregate_render_data, piece, part_key, *, ear_marking_preview_blocker=None):
+        return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, ear_marking_preview_blocker=ear_marking_preview_blocker)
 
     def _box_body_render_snapshot(self, val):
         return _box_body_render_snapshot_impl(self, val, face_dimensions_fn=box_body_face_dimensions)
@@ -1857,7 +1872,7 @@ class Phase6ApplicationHost:
         if cw <= 1 or ch <= 1: return
         self.draw_grid(canvas, cw, ch)
         snapshot = self._box_body_render_snapshot(val)
-        if snapshot["mode"] == "piece": return self._draw_box_body_piece_preview(snapshot["render_data"], snapshot["piece"], snapshot["piece_key"])
+        if snapshot["mode"] == "piece": return self._draw_box_body_piece_preview(snapshot["render_data"], snapshot["piece"], snapshot["piece_key"], ear_marking_preview_blocker=snapshot.get("ear_marking_preview_blocker"))
         return _draw_box_body_aggregate_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     def _end_cap_render_snapshot(self, val, *, part_label='封頭/尾', is_tail=False):
@@ -1894,6 +1909,8 @@ class Phase6ApplicationHost:
     export_multi_door_layout_dxfs = _phase6_project_export.export_multi_door_layout_dxfs
     export_multi_door_indicator_box_parts = _phase6_project_export.export_multi_door_indicator_box_parts
     export_selected_dxf = _phase6_project_export.export_selected_dxf
+    export_receiving_ear_side_check_dxf = _phase6_project_export.export_receiving_ear_side_check_dxf
+    export_receiving_ear_side_manufacturing_dxf = _phase6_project_export.export_receiving_ear_side_manufacturing_dxf
     _single_door_indicator_state_snapshot = _phase6_project_export._single_door_indicator_state_snapshot
     _apply_single_door_indicator_state = _phase6_project_export._apply_single_door_indicator_state
     _apply_multi_door_indicator_state = _phase6_project_export._apply_multi_door_indicator_state

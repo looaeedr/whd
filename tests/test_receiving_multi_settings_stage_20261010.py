@@ -221,13 +221,13 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert brand_calls == ["東元"]
         assert brand_commit == []  # no synchronous 3D/geometry redraw
         assert brand_picker.master.master is win._receiving_multi_mode_controls.master
-        assert win.title() == "多只設定"
+        assert win.title() == "多連設定"
         assert win.grab_current() is win
         assert win.winfo_width() >= win.winfo_screenwidth() - 2
         assert win.winfo_height() >= win.winfo_screenheight() - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"NFB", "套／連", "數量", "－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
+        assert set(texts) == {"NFB", "－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas
@@ -235,8 +235,8 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         mode_row = win._receiving_multi_mode_controls
         setting_list = win._receiving_multi_setting_list
         controls_column = rows_host.master
-        # Two columns: Set/Bay stays LEFT; category/function selection is
-        # RIGHT TOP, and a separate diagram container occupies RIGHT BOTTOM.
+        # Two columns: Set/Bay stays LEFT; always-visible dimensions/count
+        # sit RIGHT TOP, followed by function selection and diagram.
         left = win._receiving_multi_left_host
         right = win._receiving_multi_right_host
         function = win._receiving_multi_function_host
@@ -248,8 +248,9 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert mode_row.master.master is left
         assert controls_column.master is left
         assert function.master is win._receiving_multi_function_scroll._receiving_scroll_content
-        assert win._receiving_multi_function_scroll.grid_info()["row"] == 0
-        assert diagram.master is right and diagram.grid_info()["row"] == 1
+        assert win._receiving_dimension_groups_host.grid_info()["row"] == 0
+        assert win._receiving_multi_function_scroll.grid_info()["row"] == 1
+        assert diagram.master is right and diagram.grid_info()["row"] == 2
         assert canvas.master is diagram and canvas.grid_info()["row"] == 0
         assert win._receiving_multi_settings_host.master is function
         assert abs(controls_column.winfo_rootx() - mode_row.winfo_rootx()) <= 2
@@ -364,21 +365,11 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win._receiving_multi_applied["selected"] == 0
         assert canvas._receiving_selected_bays == frozenset({0})
 
-        # Two choices are mutually exclusive; no quantity-version table or
-        # common-box affordance is exposed until explicitly requested.
+        # Quantity is no longer a primary multi-connection mode.
+        # Version Manager retains its separate quantity allocation page.
         choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
                    if isinstance(w, ttk.Radiobutton)]
-        assert len(choices) == 2
-        choices[1].invoke()
-        root.update()
-        assert mode["value"] == "quantity"
-        assert not win._receiving_multi_rows_host.winfo_children()
-        assert setting_list.winfo_ismapped()
-        assert tuple(setting_list.get(0, tk.END)) == ("封頭尾",)
-        assert len(canvas._receiving_bay_hitboxes) == 1
-        assert set(_visible_texts(win)) == {"NFB", "套／連", "數量"}
-        choices[0].invoke()
-        root.update()
+        assert choices == []
         assert mode["value"] == "set_bay"
         assert "第1套" in _visible_texts(win)
         assert setting_list.winfo_ismapped()
@@ -427,20 +418,12 @@ def test_multi_settings_does_not_expose_postponed_version_ui():
         assert not any("版本" in label for label in _visible_texts(panel))
         assert not any(isinstance(child, ttk.Treeview)
                        for child in panel.winfo_children())
-        # Switching to 數量 must not silently add an unfinished version UI.
+        # Removed main Quantity mode must not mutate the QuantityModel.
         choices = [w for w in win._receiving_multi_mode_controls.winfo_children()
                    if isinstance(w, ttk.Radiobutton)]
-        choices[1].invoke()
-        root.update()
-        assert mode["value"] == "quantity"
-        listing.selection_set(0)
-        listing.event_generate("<<ListboxSelect>>")
-        root.update()
-        assert not panel.winfo_children()
-        assert model.snapshot() == original
-        choices[0].invoke()
-        root.update()
+        assert choices == []
         assert mode["value"] == "set_bay"
+        assert model.snapshot() == original
         win._receiving_multi_close()
     finally:
         root.destroy()
@@ -759,4 +742,158 @@ def test_two_doors_in_every_touching_bay_and_one_selection():
         body = canvas.find_all()[8]
         assert canvas.itemcget(body, "outline") == "#42bdf4"
     finally:
+        root.destroy()
+
+
+def test_issue1791_main_sketch_configure_burst_coalesces_one_idle_paint(monkeypatch, record_property):
+    """Real Tk: resize events are display-only and keep the final hitboxes."""
+    import gui_modules.application.receiving_multi_settings_window as module
+
+    root = tk.Tk()
+    root.geometry("900x640+0+0")
+    root.update()
+    paints = []
+    actual_paint = module.paint_connected_bays
+
+    def count_paints(*args, **kwargs):
+        paints.append(args[0].winfo_width())
+        return actual_paint(*args, **kwargs)
+
+    monkeypatch.setattr(module, "paint_connected_bays", count_paints)
+    win = None
+    try:
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda target: True,
+            resize_connections=lambda index, delta: True,
+            get_brand=lambda: "士林",
+        )
+        root.update()
+        canvas = win._receiving_multi_canvas
+        assert canvas.winfo_exists()
+        paints.clear()
+        # These Configure callbacks are delivered without running the idle
+        # queue in between; only the final canvas size needs to be painted.
+        for _ in range(20):
+            canvas.event_generate("<Configure>")
+        root.update_idletasks()
+        record_property("configure_paint_count", len(paints))
+        assert paints == [], "same-size Configure after explicit paint repainted sketch"
+        # No Set is selected yet, so the preview intentionally shows one Bay.
+        assert len(canvas._receiving_bay_hitboxes) == 1
+        assert canvas._receiving_selected_bays == frozenset()
+        assert canvas.winfo_exists()
+        win._receiving_multi_close()
+        win = None
+        root.update_idletasks()  # no redraw callback may survive close
+    finally:
+        if win is not None and win.winfo_exists():
+            win._receiving_multi_close()
+        root.destroy()
+
+
+def test_issue1791_cancelled_idle_redraw_never_paints_destroyed_canvas():
+    """No orphan after callback after the sketch window is destroyed."""
+    from gui_modules.application.receiving_multi_settings_window import _IdleCanvasRedraw
+
+    root = tk.Tk()
+    root.geometry("350x280+0+0")
+    canvas = tk.Canvas(root, width=200, height=120)
+    canvas.pack()
+    root.update()
+    paints = []
+    try:
+        redraw = _IdleCanvasRedraw(canvas, lambda: paints.append(canvas.winfo_width()))
+        # The initial explicit sketch paint must absorb redundant Configure
+        # events without generating another idle job.
+        redraw.mark_drawn()
+        for _ in range(20):
+            redraw.request()
+        assert redraw.job is None
+        # A real size change must schedule exactly one latest-size paint.
+        previous_width = canvas.winfo_width()
+        canvas.configure(width=previous_width + 75)
+        root.update_idletasks()
+        redraw.request()
+        assert redraw.job is not None
+        redraw.cancel()
+        assert redraw.job is None
+        # User selection can explicitly paint the new size and cancel an
+        # already-queued obsolete Configure before the event loop flush.
+        redraw.request()
+        assert redraw.job is not None
+        redraw.mark_drawn()
+        assert redraw.job is None
+        for _ in range(20):
+            redraw.request()
+        root.update_idletasks()
+        assert paints == []
+        canvas.destroy()
+        root.update_idletasks()
+        assert paints == []
+    finally:
+        root.destroy()
+
+
+def test_issue1818_real_cut_preview_latest_selection_wins_during_reentrant_provider(monkeypatch):
+    """Real Tk: stale head callback cannot draw over a newer tail preview."""
+    from gui_modules.application.receiving_settings_preview_2d import ReceivingSettingsPreview2D
+
+    root = tk.Tk()
+    root.geometry("900x640+0+0")
+    root.update()
+    phase = ["switch"]
+    seen = []
+    shown = []
+    errors = []
+    win = None
+
+    def observe_geometry(self, requests=None):
+        if requests:
+            shown.append(tuple(requests))
+
+    def observe_failure(self, message):
+        errors.append(str(message))
+
+    monkeypatch.setattr(ReceivingSettingsPreview2D, "draw_geometry", observe_geometry)
+    monkeypatch.setattr(ReceivingSettingsPreview2D, "invalidate", observe_failure)
+
+    def fetch_cut(role, version, set_index, bay_index):
+        seen.append(role)
+        if role == "head":
+            if phase[0] == "switch":
+                win._receiving_multi_show_real_preview("tail")
+            elif phase[0] == "close":
+                win._receiving_multi_close_real_preview()
+        return ("real", role, version, set_index, bay_index)
+
+    try:
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda _mode: True,
+            resize_connections=lambda *_args: False,
+            get_real_cut_preview_request=fetch_cut,
+        )
+        root.update()
+        win._receiving_multi_show_real_preview("head")
+        root.update()
+        assert seen[:2] == ["head", "tail"]
+        assert len(shown) == 1, "superseded preview reached the GUI painter"
+        assert shown[0][0][1] == "tail"
+        assert win._receiving_multi_real_preview["role"] == "tail"
+        assert not errors
+
+        phase[0] = "close"
+        win._receiving_multi_show_real_preview("head")
+        root.update()
+        assert not win._receiving_multi_real_preview["win"]
+        assert len(shown) == 1, "closed preview was painted after destruction"
+        assert not errors, "stale failure overwrote the closed preview"
+    finally:
+        if win is not None and win.winfo_exists():
+            win._receiving_multi_close()
         root.destroy()

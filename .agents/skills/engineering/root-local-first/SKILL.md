@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 
 # root-local-first
 
-此 Skill 僅適用於**使用者當次明確 `/接手` 選用 RC** 的施工路線；來源必須是最新 GitHub `localX`，Remote Desktop Commander → CoreELEC `whd-dev:/workspace/whd` 只是明確選擇的 executor 工作副本，不是 canonical 基準。一般任務／`/派工` 的 BUILD／TEST／COMMIT、CI GREEN 後 PR merge `localX` 都預設 GitHub／雲端，不以 RC 為必要整合前置；DC 權限需當次操作與平台核准。不得退回 Google Drive／`.unpushed` 當工作根目錄。
+此 Skill 僅適用於**使用者當次明確 `/接手` 選用 RC** 的施工路線；來源必須是最新 GitHub `localX`，Remote Desktop Commander → CoreELEC `whd-dev:/workspace/whd` 只是明確選擇的 executor 工作副本，不是 canonical 基準。一般任務／`/派工` 的 BUILD／TEST／COMMIT、CI GREEN 後 PR merge `localX` 都預設 GitHub／雲端，不以 RC 為必要整合前置；DC 權限需當次操作與平台核准。不得退回已退役外部儲存根目錄／`.unpushed` 當工作根目錄。
 
 Registry 選路僅在明確 `/接手` 或直接查改本 Skill 時提示此路線；不得用任意 `changed_file`、通用 Bug 修復、治理任務或 `/派工` 自動載入 `root-local-first` 作為本機權限來源。Registry 的路由提示本身也不等於使用者 DC 授權。
 

@@ -17,15 +17,15 @@ whd_schema: WHD_DOC_META_V1
 
 ### CURRENT Skill 撰寫入口（依 AGENTS.md）
 
-目前以正式 X 的 `AGENTS.md`、`tools/change_lane_gate.py` 與當次明確任務範圍為準。原先的 Phase6 Preflight receipt、`WORKSPACE_DELIVERY`、claim／lease／工作槽、Skill 啟動公告及寫入前證據交易閘門已退役，**不得再視為修改、測試、提交 Skill 的必要前置**。
+目前以 GitHub 最新 `localX` exact HEAD 的 `AGENTS.md`、適用治理 CI 與當次明確任務範圍為準。正式 X 只供正式發布及受信任 gate 查核。原先的 Phase6 Preflight receipt、`WORKSPACE_DELIVERY`、claim／lease／工作槽、Skill 啟動公告及寫入前證據交易閘門已退役，**不得再視為修改、測試、提交 Skill 的必要前置**。
 
 執行優先順序：
 1. 使用者本輪明確指示及已核准的範圍。
-2. 正式 X 的 `AGENTS.md`、現行技能／Registry、專案 Source of Truth。
+2. GitHub 最新 `localX` 的 `AGENTS.md`、現行技能／Registry、專案 Source of Truth。
 3. 本次待修改的 Skill baseline 與必要引用。
 4. 一般 Skill 撰寫慣例。
 
-純治理 Skill 檔案：先從最新 X 取得 baseline，在 GitHub／雲端 `governance/*`、`docs/*` 或 `skills/*` 分支修改；保留 exact diff，使用 `tools/change_lane_gate.py` 依受信任 X → PR HEAD 實際差異分類，通過適用檢查後 PR 合併 X。**未取得使用者當次明確授權，不得探測或操作 DC、CoreELEC、whd-dev 或使用者本機 shell**；沒有雲端能力應回報具體限制，不得轉走本機。
+純治理 Skill 檔案：先從 GitHub `localX` 最新 exact HEAD 取得 baseline，在 GitHub／雲端 `governance/*`、`docs/*` 或 `skills/*` 分支修改；保留 exact diff，以適用治理檢查及必要 GitHub CI 驗證，PR base=`localX` 並合回遠端 `localX`。正式 X 只能在使用者驗收與當次 `/推推` 之後依受信任 gate 發布；不得依舊 `GOVERNANCE_DIRECT_X` 白名單直送 X。**未取得使用者當次明確授權，不得探測或操作 DC、CoreELEC、whd-dev 或使用者本機 shell**；沒有雲端能力應回報具體限制，不得轉走本機。
 
 若包含產品或未知／混合路徑，必須回產品通道、依 `localX` 整合規則交付；發布正式 X 的產品改動仍需當次 `/推推`。任何變更均需核對修改路徑、內容、引用、適用測試與 GitHub readback，不得用舊版 Preflight／授權門檻取代實際驗證。
 
@@ -127,7 +127,7 @@ WHD Skill 修改固定：
 5. 經現行 `change_lane_gate.py` 分流後，使用合法分支 push／PR／required checks；驗收後合併至對應目標並回讀實際 GitHub 結果。
 6. 同一已核准任務範圍不得因提交 SHA 改變而無故重問相同授權；若跨 repo、路徑或任務範圍則重新核實權限。
 
-Drive/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 前置。不得直接 patch production target；不得自動 ours/theirs 解決實質衝突。
+已退役外部儲存/shared-zero 與 /推推 文檔 都不是 authoring、delivery 或 closure 前置。不得直接 patch production target；不得自動 ours/theirs 解決實質衝突。
 
 ### 4.3 先找真正問題，不要只換句話
 

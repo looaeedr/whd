@@ -12,6 +12,8 @@ publication, cache lookup, and compatibility mirrors live outside this module.
 """
 from __future__ import annotations
 
+from ae_engine.assembly_mesh_reuse import mesh_build_scope
+
 from copy import deepcopy
 from dataclasses import replace
 
@@ -98,6 +100,7 @@ def _replay_endcap_render(part_input, solution):
     return solved
 
 
+@mesh_build_scope()
 def resolve(request):
     """Resolve one canonical manufacturing result from immutable domain input."""
     if not isinstance(request, ManufacturingResolveRequest):
@@ -109,6 +112,11 @@ def resolve(request):
     settings = thaw_manufacturing_value(request.settings)
     if not isinstance(snapshot, dict) or not isinstance(settings, dict):
         raise TypeError("manufacturing request snapshot/settings must thaw to mappings")
+    if snapshot.get("model") in ("受電箱", "RECEIVING"):
+        from ae_engine.receiving_nfb_manufacturing_transport import (
+            restore_receiving_nfb_dto_selectors,
+        )
+        snapshot = restore_receiving_nfb_dto_selectors(snapshot)
 
     snapshot_for_joints = migrate_legacy_snapshot_joints(dict(snapshot))
     joints = tuple(
@@ -170,6 +178,17 @@ def resolve(request):
                 offset=offset,
             )
         )
+    # A configured upper Door with two NFB tiers owns TWO physical Base
+    # Plate blanks (plus future pair of welded fixing plates per tier).
+    # The root one-plate render is not duplicated as a fake third plate.
+    # Each source blank carries its own FinalScene identity and remains
+    # manufacturing-blocked until per-layer screw holes and ear weld
+    # contact/MARKING are independently certified.
+    from ae_engine.receiving_nfb_layer_physical_parts import (
+        expand_receiving_nfb_layer_parts,
+    )
+    parts = list(expand_receiving_nfb_layer_parts(snapshot, parts))
+
     if not parts:
         raise ValueError("no parts available for assembly 3D display")
 

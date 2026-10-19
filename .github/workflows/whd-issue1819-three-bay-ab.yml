@@ -1,0 +1,132 @@
+name: WHD #1819 3-Bay True Tk Callback Fix RSS A-B
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - '.github/workflows/whd-issue1819-three-bay-ab.yml'
+      - 'docs/performance/issue1819-three-bay-ab.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-1819-3bay-ab-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  three-bay-before-after:
+    name: 3-Bay pre-fix vs fixed 12-cycle true GUI RSS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      TZ: Asia/Taipei
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+      MPLBACKEND: TkAgg
+      BASELINE_SHA: 7e03ff36bc27ab02cb54cf205dd21e6cd95aab28
+    steps:
+      - name: Checkout exact new candidate on localX
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install original Tk and manufacturing dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt psutil matplotlib pytest
+      - name: Verify matched source and create isolated unpatched checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1819-three-bay
+          git worktree add --detach "$RUNNER_TEMP/whd-1819-before-3bay" "$BASELINE_SHA"
+          test "$(sha256sum config.ini | awk '{print $1}')" = "$(sha256sum "$RUNNER_TEMP/whd-1819-before-3bay/config.ini" | awk '{print $1}')"
+          test "$(sha256sum tools/whd_performance_baseline.py | awk '{print $1}')" = "$(sha256sum "$RUNNER_TEMP/whd-1819-before-3bay/tools/whd_performance_baseline.py" | awk '{print $1}')"
+          {
+            echo "kind=ACTUAL_3BAY_TK_RSS_AB_NOT_WINDOWS_UAT"
+            echo "before_sha=$BASELINE_SHA"
+            echo "after_sha=$(git rev-parse HEAD)"
+            echo "samples_per_version=1"
+            echo "bay_count=3"
+            echo "cycles_per_version=12"
+            echo "rss_sampler_ms=50"
+            echo "order=before_then_after"
+            python -V
+            uname -a
+            sha256sum config.ini tools/whd_performance_baseline.py
+          } > work/issue1819-three-bay/environment.txt
+      - name: Baseline 3-Bay true Tk geometry and 2D-3D switching
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE"
+          cd "$RUNNER_TEMP/whd-1819-before-3bay"
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/whd_performance_baseline.py --worker --bays 3 \
+            --worker-sample 0 --cycles 12 --memory-interval-ms 50 \
+            --output "$ROOT/work/issue1819-three-bay/before.jsonl" \
+            > "$ROOT/work/issue1819-three-bay/before.log" 2>&1
+      - name: Fixed 3-Bay true Tk geometry and 2D-3D switching
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/whd_performance_baseline.py --worker --bays 3 \
+            --worker-sample 0 --cycles 12 --memory-interval-ms 50 \
+            --output work/issue1819-three-bay/after.jsonl \
+            > work/issue1819-three-bay/after.log 2>&1
+      - name: Inspect all committed operation states and calculate RSS slope
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import statistics
+          from pathlib import Path
+          root = Path("work/issue1819-three-bay")
+          report = {}
+          operations = ("add_bay_apply_close", "remove_bay_apply_close", "return_3d", "issue1818_rapid_2d_3d_final_state")
+          for stage in ("before", "after"):
+              rows = [json.loads(line) for line in (root / (stage + ".jsonl")).read_text(encoding="utf-8").splitlines()]
+              errors = [r for r in rows if r.get("status") != "ok"]
+              if errors:
+                  raise SystemExit(f"{stage}: failed actual GUI operation {errors[:2]}")
+              stages = {}
+              for name in operations:
+                  values = [int(r["rss_after"]) for r in rows if r.get("operation") == name and isinstance(r.get("rss_after"), (int,float))]
+                  if len(values) != 12:
+                      raise SystemExit(f"{stage}: {name} produced {len(values)} of 12 valid cycles")
+                  stages[name] = {
+                      "rss_each_cycle_bytes": values,
+                      "first_to_last_bytes": values[-1] - values[0],
+                      "warm_median_bytes": statistics.median(values[3:7]),
+                      "late_median_bytes": statistics.median(values[-4:]),
+                      "warm_to_late_bytes": statistics.median(values[-4:]) - statistics.median(values[3:7]),
+                  }
+              report[stage] = {"valid_real_gui_rows":len(rows),"states":stages}
+          report["fixed_minus_baseline_post_warmup_bytes"] = {
+              op: report["after"]["states"][op]["warm_to_late_bytes"] - report["before"]["states"][op]["warm_to_late_bytes"] for op in operations
+          }
+          report["interpretation"] = ("Same Linux runner, 3-Bay live Tk, exact same engineering harness and 12-cycle sequence. "
+              "Observe rather than assume improvement; residual RSS does not imply a particular owner. "
+              "Windows UAT remains separate and pending.")
+          (root / "comparison.json").write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding="utf-8")
+          print(json.dumps({"fixed_minus_baseline_post_warmup_bytes":report["fixed_minus_baseline_post_warmup_bytes"],"last_state":{k:v["states"][operations[-1]] for k,v in report.items() if k in ("before","after")}},indent=2))
+          PY
+      - name: Preserve raw A-B evidence even on failure
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: whd-1819-three-bay-before-after
+          path: work/issue1819-three-bay/
+          if-no-files-found: warn
+          retention-days: 14

@@ -305,17 +305,84 @@ def _export_selected_resolved_parts(self, folder, flags):
             self._phase6_nfb_partial_export_report = report
         return (names, [])
 
-    _assert_legacy_nfb_export_scope_safe(self, flags)
+    # #1503: the original selected-DXF action applies authenticated EAR
+    # positioning marks to LEFT/RIGHT physical side plates automatically.
+    # No extra operator button or forged cabinet/PAD release.
+    receiving_snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+    auto_side = (
+        bool(flags.get("box_body"))
+        and receiving_snapshot.get("model") == "受電箱"
+        and receiving_snapshot.get("nfb_config_submitted") is True
+    )
+    if auto_side:
+        if receiving_snapshot.get("active_mode") == "quantity":
+            raise ValueError("EAR_SIDE_NORMAL_EXPORT_QUANTITY_NOT_VERIFIED")
+        # Existing submitted-NFB guards for DOOR and BASE remain mandatory;
+        # only the independently verified BoxBody sides become eligible.
+        _assert_legacy_nfb_export_scope_safe(self, {**flags, "box_body": False})
+    else:
+        _assert_legacy_nfb_export_scope_safe(self, flags)
     resolved = resolver()
+    if auto_side:
+        from ae_engine.receiving_ear_side_manufacturing_marking import (
+            with_verified_receiving_ear_side_markings,
+        )
+        dimensions = tuple(
+            float(receiving_snapshot[key]) for key in ("w", "h", "d")
+        )
+        sheet_thickness = float(receiving_snapshot["t"])
+        unmarked = resolved
+        resolved = with_verified_receiving_ear_side_markings(
+            receiving_snapshot, unmarked,
+            dimensions=dimensions, sheet_thickness=sheet_thickness,
+        )
     selected = _selected_resolved_geometry(resolved, flags)
     if not tuple(getattr(selected, "parts", ()) or ()):
         return ([], ["canonical resolved export: no selected physical parts"])
 
     outputs = manufacturing_api.save_resolved_manufacturing_geometry_dxf(
-        selected,
-        folder,
-        overwrite=True,
+        selected, folder, overwrite=True,
     )
+    if auto_side:
+        # Independently reopen the actual serialized SIDE drawings and compare
+        # every source-world-derived MARKING coordinate before the outer
+        # selected-DXF batch can be committed to the operator's folder.
+        from ae_engine.receiving_fixed_plate_side_check_dxf import (
+            _verified_pair, _readback_marking_lines,
+        )
+        from ae_engine.manufacturing_scene_access import owner_render_data
+        from ae_engine.manufacturing_api import verify_saved_part_render_data_dxf
+        receipts, _, _, _ = _verified_pair(
+            receiving_snapshot, unmarked,
+            dimensions=dimensions, sheet_thickness=sheet_thickness,
+        )
+        for side in ("box_body:left_side", "box_body:right_side"):
+            physical = owner_render_data(resolved, side)
+            # Resolve the actual canonical physical row by its immutable
+            # render-data identity, not by a fabricated part_id/filename:
+            # BoxBody composite role keys are e.g. box_body:box_body_left_side.
+            from ae_engine.manufacturing_export import (
+                resolved_physical_render_parts,
+            )
+            matching_keys = tuple(
+                part_id for part_id, render_data
+                in resolved_physical_render_parts(selected)
+                if render_data is physical and part_id.startswith("box_body:")
+            )
+            if physical is None or len(matching_keys) != 1:
+                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OWNER_AMBIGUOUS")
+            target = outputs.get(matching_keys[0])
+            if not target:
+                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OUTPUT_MISSING")
+            if not verify_saved_part_render_data_dxf(physical, target).ok:
+                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SAVED_DXF_INVALID")
+            _readback_marking_lines(
+                target, (
+                    segment
+                    for row in receipts if row.side_piece_id == side
+                    for segment in row.marking_segments
+                ),
+            )
     return ([os.path.basename(path) for path in outputs.values()], [])
 
 
@@ -501,6 +568,128 @@ def _commit_staged_project_export(stage_folder, output_folder):
     finally:
         shutil.rmtree(backup_root, ignore_errors=True)
 
+def export_receiving_ear_side_manufacturing_dxf(self):
+    """#1503: signed geometry-only production MARKING for TWO side sheets.
+
+    Normal full cabinet manufacturing, unverified PAD/EAR parts and NC remain
+    blocked by the existing export. Only physical LEFT/RIGHT side DXFs get
+    the genuine 3D-contact-derived, backprojected MARKING coordinates.
+    """
+    try:
+        self._flush_phase6_authoritative_state()
+        designer = getattr(self, "fold_designer_app", None)
+        resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+        if not callable(resolver):
+            raise ValueError("側板正式 MARKING 缺少現行製造幾何")
+        snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+        if (snapshot.get("model") != "受電箱"
+                or snapshot.get("nfb_config_submitted") is not True
+                or snapshot.get("active_mode") == "quantity"):
+            raise ValueError("側板製造 MARKING 限已提交的單只／套連實體，數量版本須逐版核對")
+        dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
+        thickness = float(snapshot["t"])
+        # Contact, folded source and side material must all agree; W800
+        # is a reference value, not a mandatory cabinet width.
+        if dimensions[0] <= 0 or thickness <= 0:
+            raise ValueError("側板 MARKING 箱寬與側板厚度必須為正")
+        geometry = resolver()
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
+        return None
+
+    folder = filedialog.askdirectory(
+        title="選擇左右側板正式 MARKING DXF 資料夾（僅側板，非整箱）",
+    )
+    if not folder:
+        return None
+    try:
+        from ae_engine.receiving_ear_side_manufacturing_marking import (
+            export_receiving_ear_side_manufacturing_marking_dxf,
+        )
+        receipt = export_receiving_ear_side_manufacturing_marking_dxf(
+            snapshot, geometry, folder, dimensions=dimensions,
+            sheet_thickness=thickness, overwrite=False,
+        )
+    except (ValueError, FileExistsError, OSError, TypeError) as exc:
+        messagebox.showerror(
+            "側板製造 MARKING 驗證失敗",
+            str(exc) + "\n任一側板驗證失敗，整組側板 DXF 不發布。",
+        )
+        return None
+    messagebox.showinfo(
+        "左右側板正式 MARKING DXF 已驗證（僅側板）",
+        "已驗證來源物理貼合、展開 UV、MARKING 及 DXF 回讀。"
+        "\n僅左右側板正式製造圖；整箱、EAR 獨立件、PAD 和焊接工藝不因此放行。"
+        f"\nEAR 接觸片數：{len(receipt.physical_ear_ids)}"
+        f"\nMARKING：{receipt.marking_lines_verified} 線"
+        + "\n" + "\n".join(path for _side, path in receipt.output_paths),
+    )
+    return receipt
+
+
+def export_receiving_ear_side_check_dxf(self):
+    """Source-backed SIDE contact CHECK-only export, not production DXF."""
+    try:
+        self._flush_phase6_authoritative_state()
+        designer = getattr(self, "fold_designer_app", None)
+        resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+        if not callable(resolver):
+            raise ValueError("固定片側板 CHECK 缺少現行製造幾何")
+        snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+        if (snapshot.get("model") != "受電箱"
+                or snapshot.get("nfb_config_submitted") is not True
+                or snapshot.get("active_mode") == "quantity"):
+            raise ValueError("固定片 CHECK 限受電箱已提交的單只／套連實體；數量版本須逐版驗證")
+        dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
+        thickness = float(snapshot["t"])
+        if dimensions[0] <= 0 or thickness <= 0:
+            raise ValueError("固定片側板 CHECK 箱寬與側板厚度必須為正")
+        geometry = resolver()
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        messagebox.showerror("固定片 CHECK 不可用", str(exc))
+        return None
+
+    folder = filedialog.askdirectory(
+        title="選擇固定片側板 CHECK 專用資料夾（非製造）",
+    )
+    if not folder:
+        return None
+
+    try:
+        from ae_engine.receiving_fixed_plate_side_check_dxf import (
+            export_receiving_ear_side_check_only_dxf,
+        )
+        receipt = export_receiving_ear_side_check_only_dxf(
+            snapshot, geometry, folder,
+            dimensions=dimensions, sheet_thickness=thickness,
+            overwrite=False,
+        )
+    except (ValueError, FileExistsError, OSError, TypeError) as exc:
+        messagebox.showerror(
+            "固定片側板 CHECK 未通過",
+            str(exc) + "\n未放行正式製造 DXF。",
+        )
+        return None
+
+    messagebox.showinfo(
+        "固定片側板 CHECK 輸出成功（非製造）",
+        "左右側板 CHECK 專用 DXF 已逐檔回讀驗證。"
+        "\n此檔案不可作為焊道或正式製造放行。"
+        f"\n接觸片數：{len(receipt.part_ids)}"
+        f"\nMARKING 線段：{receipt.marking_lines_verified}"
+        + "\n" + "\n".join(path for _owner, path in receipt.output_paths),
+    )
+    return receipt
+
+
+def _is_unconfigured_receiving_base_export_error(errors):
+    """Match only the explicit missing-plate-pattern guard, never arbitrary DXF failures."""
+    return tuple(str(error) for error in errors) == (
+        "canonical resolved export: "
+        "RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING: base_plate",
+    )
+
+
 def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
     self._flush_phase6_authoritative_state()
@@ -529,10 +718,34 @@ def export_selected_dxf(self):
     # T-012 project-batch atomicity: serialize every requested file into an
     # isolated staging directory first. Any validation/serialization failure
     # leaves the operator-selected destination untouched.
+    skipped_unconfigured_base = False
     with tempfile.TemporaryDirectory(prefix=".whd-export-stage-", dir=folder) as stage_folder:
         exported, errors = _export_selected_parts(
             self, stage_folder, val, flags, bool(self.draw_stock_var.get())
         )
+        if flags.get("base_plate", False) and _is_unconfigured_receiving_base_export_error(errors):
+            other_flags = {**flags, "base_plate": False}
+            if not any(other_flags.values()):
+                errors = [
+                    "受電箱底板尚未設定實體板型與尺寸。"
+                    "請到「底板」設定選擇左／中／右板型、填妥尺寸並套用，再輸出。"
+                ]
+            elif not messagebox.askyesno(
+                "受電箱底板尚未配置",
+                "選取的受電箱底板尚未設定實體板型與尺寸，不能製造 DXF。\n\n"
+                "是否只輸出其餘已選取、通過驗證的板件？\n"
+                "底板不會輸出，這不是整箱製造完成。",
+                default="no",
+            ):
+                return
+            else:
+                # Re-run through the same manufacturing authority with only
+                # the explicitly excluded base plate removed from selection.
+                # Other source/provenance failures must continue to block.
+                exported, errors = _export_selected_parts(
+                    self, stage_folder, val, other_flags, bool(self.draw_stock_var.get())
+                )
+                skipped_unconfigured_base = bool(exported) and not errors
         if errors:
             messagebox.showerror("輸出失敗", "\n".join(errors))
             return
@@ -559,8 +772,11 @@ def export_selected_dxf(self):
             return
 
     messagebox.showinfo(
-        "NFB 部分匯出完成" if partial_report is not None else "輸出成功",
-        ("僅完成已驗證板件，整套尚未完成。\n" if partial_report is not None else "")
+        ("部分 DXF 輸出完成" if skipped_unconfigured_base
+         else "NFB 部分匯出完成" if partial_report is not None else "輸出成功"),
+        ("受電箱底板尚未配置，已排除底板；僅輸出其他已驗證板件，並非整箱完成。\n"
+         if skipped_unconfigured_base else "")
+        + ("僅完成已驗證板件，整套尚未完成。\n" if partial_report is not None else "")
         + f"已成功輸出 {len(committed)} 個檔案至：\n{folder}\n\n"
         + "\n".join(f"  • {name}" for name in committed),
     )

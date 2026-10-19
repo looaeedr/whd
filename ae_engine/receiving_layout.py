@@ -600,10 +600,21 @@ def project_receiving_bay_legacy_aliases(
         part_features = deepcopy(dict(result.get("part_features") or {}))
         for role in ("head", "tail"):
             part_features[role] = deepcopy(features[role])
+        # In set/bay mode an unassigned Bay must not inherit the root
+        # workspace's currently active inner-door holes.  Override with empty
+        # lists too: the preview proxy merges root feature maps by key.
+        if result.get("active_mode", "set_bay") == "set_bay":
+            for key in tuple(part_features):
+                if str(key).startswith("inner_door:") and str(key).endswith(":panel"):
+                    part_features[key] = []
+            part_features.update(setting_value(selected, bay_index, "inner_door_features"))
         result["part_features"] = part_features
         result["receiving_inner_door_layers"] = setting_value(selected, bay_index, "inner_door_layers")
         result["receiving_inner_door_models"] = setting_value(
             selected, bay_index, "inner_door_models"
+        )
+        result["receiving_inner_door_layer_heights_mm"] = setting_value(
+            selected, bay_index, "inner_door_layer_heights_mm"
         )
     if validate_common:
         try:

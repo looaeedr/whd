@@ -572,7 +572,7 @@ RECEIVING_BASE_PATTERNS = frozenset((
 
 def build_receiving_base_plate_result(
     *, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right,
-    bend, pattern,
+    bend, pattern, nfb_depth_pair_mm=None,
 ) -> StructuralGeometryResult:
     """Reuse the Base Plate part owner for the three drawn Receiving patterns.
 
@@ -581,10 +581,14 @@ def build_receiving_base_plate_result(
     actual enclosure/plate dimensions; these offsets are always local UV.
 
     LEFT/RIGHT: straight side edges, TOP and BOTTOM fold only (20 mm).
-    CENTER: top/bottom 20 mm plus TWO side folds of 40,33 mm on each
-    side; sheet T is deducted once per side. The central straight span
-    is therefore W - shrink_left - shrink_right. At W800, shrinks85/85
-    and T2: 630 + 2*(40+33-2) = 772 mm, not 774.
+    CENTER: top/bottom 20 mm, first side fold -40 (fixed), and 2nd
+    fold inferred from real NFB depth pair when supplied. Historic previews
+    used 40/33 for Shihlin 107/72 T2; this MUST NOT become a universal
+    manufacturing rule. The central straight span is W-shrink_left-
+    shrink_right; original W800 shrinks85/85 gives 630+2*(40+33-2)=772.
+    The user inferred 33 from deep NFB FRONT to shallow plate BACK, i.e.
+    107-(72+2)=33, not by counting two T deductions or assuming that
+    33 is the formed outside-to-outside Z step (the NFB face step is 35).
 
     User supplied base sample outlines also show a 35-mm shoulder from
     top/bottom on the center pattern. No drawing's absolute X/Y, holes
@@ -622,35 +626,76 @@ def build_receiving_base_plate_result(
 
     if abs(t-2.0)>1e-6:
         raise ValueError("Receiving center double-side bend drawing is T2 only")
-    first, second=40.0,33.0
-    # Relative dimensional chain in the user's corrected drawing:
-    # (40 + 33 - T)*2 + central straight width.
+    first, second = 40.0, 33.0  # historical preview-only Shihlin 107/72, T2
+    if nfb_depth_pair_mm is not None:
+        # #1502/#1503: compute from the selected brand/model CSV depths.
+        # User's NON-FOLDED thought experiment: reference NFB front face
+        # minus shallow NFB BACK face; never deduct T twice.
+        #   deep 107 / shallow 72, T2 => front-to-front 35, 2nd return 33.
+        # This length is a face-datum TARGET, not measured 3D face parity.
+        if (not isinstance(nfb_depth_pair_mm, (tuple, list))
+                or len(nfb_depth_pair_mm) != 2):
+            raise ValueError("Receiving depth pair requires (deep, shallow)")
+        from .receiving_nfb_depth_surface_policy import receiving_nfb_second_side_fold_mm
+        second = receiving_nfb_second_side_fold_mm(
+            reference_nfb_depth_mm=nfb_depth_pair_mm[0],
+            secondary_nfb_depth_mm=nfb_depth_pair_mm[1],
+            base_plate_thickness_mm=t,
+        )
+    # The unfolded BLANK return and the two BEND station locations are
+    # DIFFERENT measured values. The user's 受電箱底板(5).dxf has W772,
+    # BENDING left stations x=(40,73) and right x=(699,732), measured
+    # relative to the center example's cutting min-X. So their physical
+    # station-to-station spacing is 33, NOT 31. The blank return is still
+    # 40 + 33 - T2 = 71 on each side; that is NOT the 2nd BEND station.
+    # For variable selected NFB depth second, preserve this distinction.
+    # This does not certify the 3D folded skins or release manufacturing.
     side_fold=first+second-t
+    second_bend_station=first+second
     blank_w=core_w+2*side_fold
     shoulder=35.0
-    if blank_h<=2*shoulder or core_w<=0:
+    corner_chamfer=5.0
+    # Physical source CUTTING (受電箱底板(5).dxf, SHA256 cccf060c...4160d29b)
+    # for W772/T2 has inner shoulder x=74 and 698 (20 polygon vertices).
+    # IMPORTANT: unfolded topology's material side return=71 differs from:
+    # 2nd BEND station=73 and CUTTING shoulder=74. The latter is 1 mm
+    # beyond the BEND station for this certified T2 geometry. Do not
+    # project 71 to all three geometrically different reference points.
+    cutting_shoulder=second_bend_station+t/2.0
+    if (blank_h <= 2*(shoulder+corner_chamfer)
+            or cutting_shoulder+corner_chamfer>=blank_w/2.0
+            or core_w<=0):
         raise ValueError("Receiving center base shoulders consume the physical core")
-    x0,x1=side_fold,blank_w-side_fold
+    x0,x1=cutting_shoulder,blank_w-cutting_shoulder
     y0,y1=shoulder,blank_h-shoulder
+    c=corner_chamfer
     outline=(
-        Vec2(x0,0.),Vec2(x1,0.),
-        Vec2(x1,y0),Vec2(blank_w,y0),
-        Vec2(blank_w,y1),Vec2(x1,y1),
-        Vec2(x1,blank_h),Vec2(x0,blank_h),
-        Vec2(x0,y1),Vec2(0.,y1),
-        Vec2(0.,y0),Vec2(x0,y0),
+        Vec2(x0+c,blank_h),Vec2(x1-c,blank_h),
+        Vec2(x1,blank_h-c),Vec2(x1,y1),
+        Vec2(blank_w-c,y1),Vec2(blank_w,y1-c),
+        Vec2(blank_w,y0+c),Vec2(blank_w-c,y0),
+        Vec2(x1,y0),Vec2(x1,c),
+        Vec2(x1-c,0.),Vec2(x0+c,0.),
+        Vec2(x0,c),Vec2(x0,y0),
+        Vec2(c,y0),Vec2(0.,y0+c),
+        Vec2(0.,y1-c),Vec2(c,y1),
+        Vec2(x0,y1),Vec2(x0,blank_h-c),
     )
     bends=(
         BendLine("receiving_bottom_20",Vec2(x0,bend),Vec2(x1,bend)),
         BendLine("receiving_top_20",
                  Vec2(x0,blank_h-bend),Vec2(x1,blank_h-bend)),
         BendLine("receiving_left_40",Vec2(first,y0),Vec2(first,y1)),
-        BendLine("receiving_left_33",Vec2(side_fold,y0),Vec2(side_fold,y1)),
+        BendLine("receiving_left_33",Vec2(second_bend_station,y0),Vec2(second_bend_station,y1)),
         BendLine("receiving_right_40",
                  Vec2(blank_w-first,y0),Vec2(blank_w-first,y1)),
         BendLine("receiving_right_33",
-                 Vec2(blank_w-side_fold,y0),Vec2(blank_w-side_fold,y1)),
+                 Vec2(blank_w-second_bend_station,y0),Vec2(blank_w-second_bend_station,y1)),
     )
-    return _result(outline,bends,blank_w,blank_h,(
-        "RECEIVING_BASE",pattern,core_w,blank_h,bend,t,
-    ))
+    # Keep topology/fingerprint sensitive to an actual source-selected
+    # NFB depth pair. Reusing the old fixed-33 topology key for a changed
+    # 2nd return could incorrectly retain cached manufacturing geometry.
+    identity = ("RECEIVING_BASE", pattern, core_w, blank_h, bend, t)
+    if nfb_depth_pair_mm is not None:
+        identity += ("NFB_DEPTH_RETURN", float(second))
+    return _result(outline,bends,blank_w,blank_h,identity)

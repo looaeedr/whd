@@ -3,7 +3,7 @@
 The shared-zero routing/lane state machine is SUPERSEDED_DATA_ONLY. Explicit
 historical aliases may parse old receipts for audit/migration. The neutral exact
 delivery fileset lock/hash/pre-merge helpers remain CURRENT because they bind an
-already-tested workspace diff and do not select a Drive/shared-zero route.
+already-tested workspace diff and do not select a 已退役外部儲存/shared-zero route.
 """
 from __future__ import annotations
 

@@ -72,6 +72,51 @@ class Phase6FinalSceneRenderHelpersMixin:
                 )
             )
 
+    def _draw_cutting_hole_rims(
+        self, material, x_profile, y_profile, fold_guides=(), *,
+        local_reference=None, placement=None, dimensions=None,
+        offset=(0.0, 0.0, 0.0),
+    ):
+        """Highlight ONLY authoritative CUTTING inner rings on Door solids.
+
+        Using material polygon interiors rather than triangle sides avoids
+        tessellation diagonals without hiding real circular/rectangular holes.
+        Mapping follows the same folding/assembly placement as the solid.
+        """
+        from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
+        polygons = (
+            (material,) if getattr(material, "geom_type", "") == "Polygon"
+            else tuple(getattr(material, "geoms", ()) or ())
+        )
+        segments = []
+        for polygon in polygons:
+            if getattr(polygon, "geom_type", "") != "Polygon":
+                continue
+            for ring in polygon.interiors:
+                local_points = tuple(
+                    self._map_xy(x, y, x_profile, y_profile, fold_guides)
+                    for x, y in ring.coords
+                )
+                if local_reference is not None:
+                    from ae_engine.assembly_geometry import place_assembly_points
+                    points = place_assembly_points(
+                        local_points, local_reference, placement,
+                        dimensions, offset,
+                    )
+                else:
+                    points = local_points
+                segments.extend(
+                    (u, v) for u, v in zip(points, points[1:])
+                    if any(abs(u[i] - v[i]) > 1e-9 for i in range(3))
+                )
+        if segments:
+            self.renderer.ax3d.add_collection3d(Line3DCollection(
+                segments, colors="#22d3ee", linewidths=2.2,
+                linestyles="solid", zorder=20,
+            ))
+        return len(segments)
+
     def _add_mesh_boundary_and_crease_lines(self, triangles, color, *, creases_only=False):
         """Draw real folded-sheet creases without exposing triangulation seams.
 
@@ -476,6 +521,52 @@ class Phase6FinalSceneRenderHelpersMixin:
                 alpha=1.0,
                 zorder=20,
             )
+
+
+    def _draw_receiving_ear_side_markings(
+        self, formed_ear_skins, *, visible_side_piece_keys=None,
+    ):
+        """Show the real formed-EAR contact outline on the assembled SIDE skin.
+
+        Display only. The four world-space corners come from the same
+        T2/BEND23 physical skin used for the 2D world-to-UV MARKING receipts;
+        never infer a new mark from a 2D bounding box or release welding.
+        Hiding a side panel also hides its overlay.
+        """
+        from ae_engine.receiving_fixed_plate_side_contact import (
+            derive_receiving_ear_side_contact_from_formed_skin,
+        )
+
+        rows = tuple(formed_ear_skins or ())
+        if not rows:
+            return ()
+        if len(rows) not in (2, 4) or len({r.part_id for r in rows}) != len(rows):
+            raise ValueError("EAR_ASSEMBLY_MARKING_SOURCE_OWNER_COUNT_INVALID")
+        allowed = (
+            {"box_body:left_side", "box_body:right_side"}
+            if visible_side_piece_keys is None
+            else set(visible_side_piece_keys)
+        )
+        segments = []
+        for formed in rows:
+            receipt = derive_receiving_ear_side_contact_from_formed_skin(formed)
+            if receipt.side_piece_id not in allowed:
+                continue
+            boundary = receipt.world_surface_boundary
+            for i in range(4):
+                a, b = boundary[i], boundary[(i + 1) % 4]
+                segments.append((a, b))
+        # No mesh triangulation edges: just four authentic contact-boundary
+        # lines for each physically present and visible welded fixing plate.
+        ax = self.renderer.ax3d
+        if callable(getattr(ax, "plot", None)):
+            for a, b in segments:
+                ax.plot(
+                    (a[0], b[0]), (a[1], b[1]), (a[2], b[2]),
+                    color="#facc15", linewidth=3.0,
+                    linestyle="-", alpha=1.0, zorder=30,
+                )
+        return tuple(segments)
 
     def _resolved_finished_dimensions(self, request, triangles):
         return resolve_operator_finished_dimensions(

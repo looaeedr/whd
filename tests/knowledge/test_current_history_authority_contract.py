@@ -409,3 +409,75 @@ def test_retired_pitfall_subsections_do_not_advertise_active_owners() -> None:
     assert "當時的 Registry route（HISTORICAL；不代表現行啟用）" in closure
     assert continuity.count("當時的事故防錯規則（HISTORICAL；今日依 CURRENT Skill／GitHub 回讀）") == 3
     assert "\n永久規則：\n" not in continuity
+
+
+def test_issue1796_partial_gui_acceptance_checkpoint_stays_historical_and_blocked() -> None:
+    """A dated GUI checkpoint cannot silently become release or CURRENT authority."""
+    body = read("docs/superpowers/verification/2026-10-16-issue1796-gui-integrity-checkpoint.md")
+    assert "whd_doc_role: HISTORICAL" in body[:250]
+    assert "whd_contract: verification-provenance" in body[:250]
+    assert "部分驗收" in body
+    assert "CURRENT" in body and "phase6-gui-performance-integrity" in body
+    for required in (
+        "#1794", "#1796", "#1805", "#1806",
+        "WINDOWS_LOCALX_SYNC_PENDING",
+        "WINDOWS_UAT_PENDING",
+        "AI_LIBRARY_WRITEBACK_PENDING",
+        "正式 X",
+    ):
+        assert required in body, required
+
+
+def test_release_1997_legacy_docs_have_consistent_nonduplicated_metadata() -> None:
+    docs = (
+        "docs/integrations/cadcraft-2d-preview-poc.md",
+        "docs/performance/issue1816-baseline.md",
+        "docs/performance/issue1816-cloud-baseline-20261016.md",
+        "docs/performance/issue1816-private-nfb-source-preview-20261016.md",
+        "docs/performance/issue1817-paired-bay-preview.md",
+        "docs/performance/issue1818-navigation-sync.md",
+        "docs/performance/issue1819-long-gui-memory.md",
+        "docs/performance/issue1819-three-bay-ab.md",
+        "docs/performance/issue1819-windows-uat.md",
+        "docs/performance/issue1820-cadcraft-evaluation.md",
+        "docs/performance/issue1820-cadcraft-native-gui.md",
+        "docs/performance/issue1820-cadcraft-v080-windows-r5.md",
+        "docs/performance/issue1820-same-runner-gui.md",
+        "docs/performance/issue1820-whd-real-gui.md",
+        "docs/releases/WHD_Windows_使用說明.md",
+        "docs/releases/WHD_v2026.10.15_更新紀錄.md",
+    )
+    contracts = set()
+    for rel in docs:
+        metadata = parse_doc_metadata(read(rel), path=rel)
+        assert metadata.role == "REFERENCE", rel
+        assert metadata.canonical is None, rel
+        assert metadata.contract.startswith("reference-"), rel
+        assert metadata.contract not in contracts, rel
+        contracts.add(metadata.contract)
+    current = "docs/manufacturing/receiving-fixed-plate-source-20261018.md"
+    owner = parse_doc_metadata(read(current), path=current)
+    assert owner.role == "CURRENT"
+    assert owner.contract == "receiving-fixed-plate-canonical-bend-20261018"
+    assert owner.canonical is None
+
+
+def test_release_1997_cadcraft_is_ignored_without_root_dotfile_diff() -> None:
+    import subprocess
+
+    root_ignore = read(".gitignore")
+    nested = read("cadcraft/.gitignore")
+    assert "/cadcraft/" not in root_ignore
+    assert "*" in nested.splitlines()
+    assert "!.gitignore" in nested.splitlines()
+    for candidate in ("cadcraft/third-party.dll", "cadcraft/internal/config.json", "cadcraft/subdir/module.so"):
+        result = subprocess.run(
+            ["git", "check-ignore", "--no-index", "-q", candidate],
+            cwd=ROOT, capture_output=True, check=False,
+        )
+        assert result.returncode == 0, (candidate, result.stderr)
+    self_result = subprocess.run(
+        ["git", "check-ignore", "--no-index", "-q", "cadcraft/.gitignore"],
+        cwd=ROOT, capture_output=True, check=False,
+    )
+    assert self_result.returncode == 1, self_result.stderr.decode(errors="replace")

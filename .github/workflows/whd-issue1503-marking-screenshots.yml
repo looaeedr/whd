@@ -1,0 +1,65 @@
+name: WHD Full Receiving Marking Visual Evidence
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'phase6_final_scene_render_helpers.py'
+      - 'phase6_final_scene_renderer.py'
+      - 'tools/receiving_ear_marking_capture.py'
+      - 'tests/test_issue1503_assembly_ear_3d_marking_overlay.py'
+      - 'tests/test_issue1503_all_marking_capture.py'
+      - 'tests/test_issue1503_single_gui_real_tier_2d3d.py'
+      - 'tests/test_issue1503_source_derived_fixing_pitch.py'
+      - 'tests/test_issue1503_non800_full_side_mfg.py'
+      - '.github/workflows/whd-issue1503-marking-screenshots.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      TZ: Asia/Taipei
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install geometry and capture dependencies
+        run: python -m pip install -r requirements.txt matplotlib pytest numpy pillow
+      - name: Source-backed MARKING tests and real W750/W900 DXF
+        run: |
+          python -m pytest -q \
+            tests/test_issue1503_assembly_ear_3d_marking_overlay.py \
+            tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py \
+            tests/test_issue1503_real_side_piece_2d_preview.py \
+            tests/test_issue1503_all_marking_capture.py \
+            tests/test_issue1503_source_derived_fixing_pitch.py \
+            tests/test_issue1503_non800_full_side_mfg.py
+      - name: Capture 2D/3D headless rendered evidence
+        run: PYTHONPATH=. python tools/receiving_ear_marking_capture.py --output artifacts/full_receiving_marking
+      - name: Capture actual native Tk 3D canvas with and without marking
+        env:
+          WHD_1503_PIXEL_RECEIPT_DIR: artifacts/live_tk_3d
+        run: |
+          xvfb-run -a python -m pytest -q -s tests/test_issue1503_single_gui_real_tier_2d3d.py
+      - name: Upload native Tk marking pixel receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiving-native-tk-3d-on-off-and-diff
+          path: artifacts/live_tk_3d/*.png
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload verified source-render PNGs
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiving-all-marks-single-double-2d-3d
+          path: artifacts/full_receiving_marking/**/*.png
+          if-no-files-found: error
+          retention-days: 30

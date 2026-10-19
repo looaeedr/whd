@@ -146,11 +146,26 @@ class ReceivingSetBayAdapter:
             self._confirm_if_required(removed)
             self._persisted_ids.difference_update(removed)
             self._session_dirty_ids.difference_update(removed)
-        self._layout = resize_receiving_bays(
+        candidate = resize_receiving_bays(
             self._layout,
             set_index=self._selection.set_index,
             bay_count=wanted,
         )
+        if wanted > current:
+            # New Bay dimensions originate from the Receiving Family authority,
+            # not from the previously selected Bay's possibly custom size.
+            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+            defaults = tuple(float(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d"))
+            if any(not value.is_integer() or value <= 0 for value in defaults):
+                raise ValueError("受電箱預設 W/H/D 必須為正整數毫米")
+            builder = ReceivingSetBayAdapter(candidate)
+            builder.apply_dimensions_to_bays(
+                self._selection.set_index, tuple(range(current, wanted)),
+                width=int(defaults[0]), height=int(defaults[1]),
+                depth=int(defaults[2]), expected_count=wanted - current,
+            )
+            candidate = builder.layout
+        self._layout = candidate
         new_count = self.bay_count()
         self._selection = ReceivingSelection(
             set_index=self._selection.set_index,
@@ -172,6 +187,66 @@ class ReceivingSetBayAdapter:
             len(self._layout["sets"][set_index]["bays"]) - 1,
         )
         self._selection = ReceivingSelection(set_index=set_index, bay_index=bay_index)
+
+    def apply_dimensions_to_bays(self, set_index, bay_indices, *, width, height, depth, expected_count):
+        """Apply W/H/D to explicitly highlighted real Bays, atomically."""
+        from ae_engine.sheetmetal_part_adapters import complete_partition
+        index = int(set_index)
+        if index < 0 or index >= len(self._layout["sets"]):
+            raise IndexError("套不存在")
+        for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
+            if type(value) is not int or value <= 0:
+                raise ValueError(f"{label} 必須為正整數")
+        selected = tuple(bay_indices)
+        bay_count = len(self._layout["sets"][index]["bays"])
+        if (len(selected) != expected_count or len(set(selected)) != len(selected)
+                or any(type(i) is not int or not 0 <= i < bay_count for i in selected)):
+            raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
+        # One operator confirmation is one atomic topology transaction. The
+        # old loop called update_receiving_bay() for every highlighted Bay;
+        # that helper normalizes the *entire* Set/Bay/Joint layout twice on
+        # each call, rebuilding even untouched Bays. Keep the same per-Bay
+        # door-partition checks but validate the final candidate only once.
+        candidate, dirty = self._layout, []
+        for bay_index in selected:
+            current = candidate["sets"][index]["bays"][bay_index]
+            changes = {"width": width, "height": height, "depth": depth}
+            if all(float(current[k]) == v for k, v in changes.items()):
+                continue
+            door = current.get("door_state")
+            if door and (float(current["width"]) != width or float(current["height"]) != height):
+                columns = door.get("door_layout_columns") or ()
+                if door.get("multi_door_enabled") and not columns:
+                    raise ValueError(f"第{bay_index + 1}連門分割資料不完整")
+                if columns:
+                    widths = complete_partition([item[0] for item in columns[:-1]], width)
+                    if not widths.valid or len(widths.values) != len(columns):
+                        raise ValueError(f"第{bay_index + 1}連 W 不符合門分割")
+                    new_cols = []
+                    for new_w, (_, heights) in zip(widths.values, columns):
+                        sizes = complete_partition(heights[:-1], height)
+                        if not sizes.valid or len(sizes.values) != len(heights):
+                            raise ValueError(f"第{bay_index + 1}連 H 不符合門分割")
+                        new_cols.append([new_w, list(sizes.values)])
+                    changes["door_state"] = {**deepcopy(door), "door_layout_columns": new_cols}
+            if not dirty:
+                candidate = deepcopy(self._layout)
+            # Existing update_receiving_bay() casts numeric inputs to float
+            # before canonical normalization; preserve that data contract.
+            candidate["sets"][index]["bays"][bay_index] = {
+                **current, **{axis: float(value) for axis, value in changes.items()
+                              if axis in ("width", "height", "depth")},
+                **({"door_state": changes["door_state"]} if "door_state" in changes else {}),
+            }
+            dirty.append(str(current["stable_id"]))
+        if not dirty:
+            return 0
+        # Normalize and check *all* dependencies/Joints once. Any failure
+        # leaves both the canonical layout and dirty bookkeeping unchanged.
+        validated = normalize_receiving_layout(candidate)
+        self._layout = validated
+        self._session_dirty_ids.update(dirty)
+        return len(dirty)
 
     def update_current_bay(self, **changes: object) -> bool:
         before = self.current_bay()
@@ -307,11 +382,40 @@ class ReceivingSetBayAdapter:
         if not selected or any(type(i) is not int or not 0 <= i < count
                                for i in selected):
             raise ValueError("請在簡易圖高亮有效的連")
+        # Stage a candidate's current CSV source identities. Merely saving a
+        # version does not touch any physical Bay; only explicit Apply can
+        # submit the version's existing Hole Editor NFB features into each
+        # selected Bay's source projection. Manual NFB X remains unverified
+        # and manufacturing-ready flags are NEVER promoted by this bridge.
+        csv_config = None
+        from ae_engine.receiving_nfb_csv_committed_config import (
+            committed_csv_nfb_config,
+        )
+        imported = [
+            (part_id, features)
+            for part_id, features in source.get("features", {}).items()
+            if any(getattr(feat, "source_type", None) == "NFB_CSV_SOURCE"
+                   for feat in features)
+        ]
+        if imported:
+            if len(imported) != 1:
+                raise ValueError("每個候選 NFB 必須對應唯一實體內門板件")
+            part_id, features = imported[0]
+            csv_config = committed_csv_nfb_config(part_id, features, source)
+        # A native Hole Editor CUTTING Feature and a submitted NFBConfig must
+        # never both own the same physical inner-door opening.
+        if source.get("features") and any(
+            self._layout["sets"][set_index]["bays"][bi].get("nfb_config_submitted") is True
+            for bi in selected
+        ):
+            raise ValueError("此連 NFB 已提交；不得將另一份內門開孔覆寫成重複 CUTTING")
         candidate = self._layout
         for bi in selected:
             for kind, value in (
                 ("inner_door_layers", source["layers"]),
                 ("inner_door_models", source["models"]),
+                ("inner_door_features", source.get("features", {})),
+                ("inner_door_layer_heights_mm", source.get("layer_heights_mm")),
                 ("inner_door_version_id", version_id),
             ):
                 candidate = unlink_setting(
@@ -320,6 +424,22 @@ class ReceivingSetBayAdapter:
                 candidate = edit_setting(
                     candidate, set_index=set_index, bay_index=bi,
                     kind=kind, value=value,
+                )
+        if csv_config is not None:
+            from ae_engine.receiving_layout import update_receiving_bay
+            for bi in selected:
+                bay_id = str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
+                config_for_bay = deepcopy(csv_config)
+                # Each Bay is a distinct physical owner even when the
+                # *candidate* version is shared between many connected Bays.
+                for hole in config_for_bay["holes"]:
+                    hole["physical_hole_id"] = (
+                        f"{bay_id}:{hole['physical_hole_id']}"
+                    )
+                candidate = update_receiving_bay(
+                    candidate, set_index=set_index, bay_index=bi,
+                    nfb_config_submitted=True,
+                    nfb_config=config_for_bay,
                 )
         self._layout = candidate
         self._session_dirty_ids.update(
@@ -366,13 +486,18 @@ class ReceivingSetBayAdapter:
             expected_counts=expected_counts,
         )
         from ae_engine.receiving_shared_settings import validate_setting
-        for si, bi, _config in plan:
+        for si, bi, config in plan:
             validate_setting("inner_door_version_id", assigned[(si, bi)])
+            if (config.get("features")
+                    and self._layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is True):
+                raise ValueError("已提交 NFB 與候選內門開孔不得成為雙重 CUTTING owner")
         candidate = self._layout
         for si, bi, config in plan:
             for kind, value in (
                 ("inner_door_layers", config["layers"]),
                 ("inner_door_models", config["models"]),
+                ("inner_door_features", config.get("features", {})),
+                ("inner_door_layer_heights_mm", config.get("layer_heights_mm")),
                 ("inner_door_version_id", assigned[(si, bi)]),
             ):
                 candidate = unlink_setting(

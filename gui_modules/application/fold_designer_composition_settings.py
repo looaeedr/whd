@@ -505,11 +505,37 @@ def settings_context_extension_projection(self, namespace, context):
         context == "base_plate"
         and str(base_snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
     )
+    derived_base = None
+    derived_base_error = ""
+    if is_receiving_base and base_snapshot.get("receiving_base_plate") is None:
+        # Use the same source resolution as FinalScene/DXF, not a GUI-local
+        # default that could disagree with manufacturing.
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+        try:
+            resolved = receiving_base_plate_values(base_snapshot)
+        except (ValueError, TypeError, KeyError) as exc:
+            derived_base_error = str(exc)
+        else:
+            if resolved is not None:
+                derived_base = {
+                    "pattern": resolved["receiving_bend_pattern"],
+                    "height": resolved["h"],
+                    "shrink_top": resolved["base_plate_shrink_top"],
+                    "shrink_bottom": resolved["base_plate_shrink_bottom"],
+                    "shrink_left": resolved["base_plate_shrink_left"],
+                    "shrink_right": resolved["base_plate_shrink_right"],
+                    "bend": resolved["base_plate_bend"],
+                }
     return {
         "receiving_base_plate": (
             {
-                "configured": base_snapshot.get("receiving_base_plate") is not None,
-                "values": deepcopy(base_snapshot.get("receiving_base_plate") or {}),
+                "configured": (base_snapshot.get("receiving_base_plate") is not None
+                               or derived_base is not None),
+                "values": deepcopy(
+                    base_snapshot.get("receiving_base_plate") or derived_base or {}
+                ),
+                "source_derived": derived_base is not None,
+                "source_error": derived_base_error,
             }
             if is_receiving_base else None
         ),
@@ -708,34 +734,68 @@ def on_baseline_model_changed(self, namespace, *_args):
         "_phase6_non_receiving_structure_state",
         None,
     )
+    # Keep the user's pre-Receiving part-presence choice outside the two
+    # independent Quantity/Set-Bay physical mode buffers. The first fresh
+    # mode intentionally starts with Family physical defaults; returning to
+    # the original family must not silently lose a real part such as Door.
+    remembered_parts = tuple(app.designer_workspace.available_parts)
     coordinator = self.settings_coordinator(
         self.settings_application_ports(namespace)
     )
-    return coordinator.apply_baseline_transition(
+    result = coordinator.apply_baseline_transition(
         new_model=new_model,
         old_model=old_model,
         new_editable=editable,
         old_editable=old_editable,
         fixed_corner_state=fixed_corner_state,
-        available_parts=tuple(
-            getattr(app.designer_workspace, "available_parts", ())
-            or ()
-        ),
+        available_parts=remembered_parts,
         previous_non_receiving_structure=previous_non_receiving_structure,
     )
+    if result is not None and old_model != "受電箱" and new_model == "受電箱":
+        app._phase6_non_receiving_part_presence_state = {
+            "model": old_model,
+            "parts": remembered_parts,
+        }
+    return result
 
 def apply_external_settings(self, namespace, updates):
     app = self.app
+    updates = dict(updates or {})
+    # UI text scale is a presentation preference, not a manufacturing
+    # SettingSpec. Preserve its existing UI owner instead of silently
+    # dropping it in normalize_updates(). External changes are runtime-only.
+    ui_text_size = updates.pop("ui_text_size", None)
     app._phase6_external_apply_guard = True
     try:
+        ui_result = {}
+        if ui_text_size is not None:
+            required = lambda name: self._required(namespace, name)
+            key = required("normalize_ui_text_size")(ui_text_size)
+            if app._settings_values.get("ui_text_size") != key:
+                applied = self.apply_ui_text_size(namespace, key)
+                if applied is not None:
+                    # Updating the selector must not publish an echo; traces
+                    # are guarded while the external transaction is active.
+                    ui_var = getattr(app, "ui_text_size_var", None)
+                    label = required("ui_text_size_label")(key)
+                    if ui_var is not None and ui_var.get() != label:
+                        app._phase6_settings_guard = True
+                        try:
+                            ui_var.set(label)
+                        finally:
+                            app._phase6_settings_guard = False
+                    ui_result["ui_text_size"] = applied
+        if not updates:
+            return ui_result
         coordinator = self.settings_coordinator(
             self.settings_application_ports(namespace)
         )
-        return coordinator.apply_updates(
+        result = coordinator.apply_updates(
             updates,
             notify=False,
             external_apply_guard=True,
         )
+        return {**ui_result, **result}
     finally:
         app._phase6_external_apply_guard = False
 

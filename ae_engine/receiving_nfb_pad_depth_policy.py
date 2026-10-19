@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """#1503 NFB PAD eligibility, using the user's editable switch-depth CSV.
 
-The Base Plate and Base Fixing Plates remain completely fixed in every case.
+The PAD *preview* never moves a Base Plate or creates an ear. This old
+module must not override the later #1502/#1503 physical mounting contract:
+inner-door Z stays fixed, while the Base Plate and its two fixing plates
+translate TOGETHER with selected NFB depth; see receiving_nfb_depth_surface_policy.
 Only one physical NFB layer with exactly two selected switches of *unequal*
 known depth qualifies for a PAD proposal. This makes no manufacturing PAD
 part, thickness, BEND/DXF or automatic welding/Z adjustment.
@@ -77,7 +80,15 @@ def preview_nfb_pad_depth(
                 or slot.get("source_brand") != brand):
             depths.append(None)
             continue
-        depths.append(model_depth_mm(brand, filename, path=index_path))
+        from .receiving_nfb_model_identity import (
+            parse_numeric_model_ref, selected_numeric_spec,
+        )
+        if filename.startswith("nfbv5:"):
+            parsed = parse_numeric_model_ref(filename)
+            spec = selected_numeric_spec(brand, filename) if parsed else None
+            depths.append(spec.depth_mm if spec is not None else None)
+        else:
+            depths.append(model_depth_mm(brand, filename, path=index_path))
     observed = tuple(depths)
     if any(x is None for x in observed):
         return NfbPadDepthPreview(NEEDS_SOURCE, count, size, observed, None, None, None)

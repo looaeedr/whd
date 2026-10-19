@@ -13,6 +13,53 @@ from ae_engine.receiving_hole_candidates import version_label
 from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
 
 
+class _IdleCanvasRedraw:
+    """Coalesce Configure bursts and skip already-painted canvas dimensions.
+
+    Selection redraws remain immediate. A real size change always paints the
+    last observed size; a pending stale Configure is cancelled by an explicit
+    paint. No geometry or state computation occurs inside this scheduler.
+    """
+
+    def __init__(self, canvas, draw):
+        self.canvas = canvas
+        self.draw = draw
+        self.job = None
+        self._painted_size = None
+
+    def _size(self):
+        return (self.canvas.winfo_width(), self.canvas.winfo_height())
+
+    def request(self, _event=None):
+        if not self.canvas.winfo_exists():
+            return
+        if self._painted_size == self._size():
+            return
+        if self.job is None:
+            self.job = self.canvas.after_idle(self._run)
+
+    def _run(self):
+        self.job = None
+        if self.canvas.winfo_exists() and self._painted_size != self._size():
+            self.draw()
+            self._painted_size = self._size()
+
+    def mark_drawn(self):
+        """The user-selected state has just been painted synchronously."""
+        if not self.canvas.winfo_exists():
+            return
+        self._painted_size = self._size()
+        self.cancel()
+
+    def cancel(self):
+        job, self.job = self.job, None
+        if job is not None:
+            try:
+                self.canvas.after_cancel(job)
+            except tk.TclError:
+                pass
+
+
 def display_dimension(value):
     number = float(value)
     return str(int(number)) if number.is_integer() else f"{number:g}"
@@ -86,7 +133,7 @@ def extract_original_door_marks(scene):
     return {"nameplate": nameplate, "handle": handle}
 
 
-def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None):
+def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None, bay_dimensions=None):
     """Cheap front-elevation sketch: touching bays with basic upper/lower doors.
 
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
@@ -108,14 +155,30 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     height = max(int(canvas.winfo_height()), int(canvas.cget("height")))
     usable_w = max(40, width - 24)
     usable_h = max(50, height - 24)
-    bay_w = min(usable_w / count, usable_h * 0.5)
-    bay_h = min(usable_h, bay_w * 2.0)
-    left = (width - bay_w * count) / 2
-    top = (height - bay_h) / 2
-    split = top + bay_h * 1100.0 / 1600.0
-    hitboxes = []
+    # Draw from the canonical physical Bay W/H proportions, rather than an
+    # equal-width placeholder that stays unchanged after size confirmation.
+    # D is a depth axis: show it in the size summary, not as a false 2D width.
+    source = tuple(bay_dimensions or ())
+    physical = []
     for index in range(count):
-        x0, x1 = left + index * bay_w, left + (index + 1) * bay_w
+        item = source[index] if index < len(source) else (800.0, 1600.0, 350.0)
+        if isinstance(item, dict):
+            w, h = float(item["width"]), float(item["height"])
+        else:
+            w, h = float(item[0]), float(item[1])
+        physical.append((max(1.0, w), max(1.0, h)))
+    scale = min(usable_w / sum(w for w, _ in physical),
+                usable_h / max(h for _, h in physical))
+    left = (width - sum(w for w, _ in physical) * scale) / 2
+    bottom = (height + max(h for _, h in physical) * scale) / 2
+    cursor_x = left
+    hitboxes = []
+    for index, (physical_w, physical_h) in enumerate(physical):
+        x0, x1 = cursor_x, cursor_x + physical_w * scale
+        cursor_x = x1
+        top, bay_h = bottom - physical_h * scale, physical_h * scale
+        bay_w = x1 - x0
+        split = top + bay_h * min(1100.0 / physical_h, 0.999)
         active = index in selected_bays
         outline = "#42bdf4" if active else "#8faec4"
         fill = "#315775" if active else "#263a4d"
@@ -158,7 +221,8 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                 px, py = fx0 + cx * dw, fy0 + cy * dh
                 sx, sy = max(1.0, rx * dw), max(1.0, ry * dh)
                 canvas.create_oval(px - sx, py - sy, px + sx, py + sy,
-                                  outline="#f7c66f", width=1)
+                                  outline="#f7c66f", width=1,
+                                  tags=("receiving_nameplate",))
         labels = (version_labels or ())
         by_role = labels[index] if index < len(labels) else {}
         if by_role:
@@ -187,6 +251,15 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
     return paint_connected_bays(canvas, 1)
 
 
+def dimension_group_summary(bays):
+    """Derive arbitrary-sized W/H/D groups from canonical physical Bays."""
+    rows = {}
+    for index, bay in enumerate(bays):
+        key = tuple(float(bay[field]) for field in ("width", "height", "depth"))
+        rows.setdefault(key, []).append(index)
+    return tuple((dimensions, tuple(indices)) for dimensions, indices in rows.items())
+
+
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, resize_sets=None,
                         get_candidate_ports=None, get_inner_candidate_ports=None,
@@ -195,9 +268,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         set_brand=None, get_settings_ports=None,
                         get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
+                        get_initial_door_marks=None,
                         get_applied_version_labels=None,
                         get_real_cut_preview_request=None,
-                        on_close=None, on_brand_close=None):
+                        get_dimension_group=None,
+                        get_single_size_quantity=None,
+                        set_single_size_quantity=None,
+                        edit_single_holes=None,
+                        edit_single_inner_door=None, edit_multi_inner_door=None,
+                        on_close=None, on_brand_close=None,
+                        dialog_kind="multi"):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
     old = getattr(parent, "_receiving_multi_settings_window", None)
     if old is not None and old.winfo_exists():
@@ -206,7 +286,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         return old
 
     win = tk.Toplevel(parent)
-    win.title("多只設定")
+    title = "單只設定" if dialog_kind == "single" else "多連設定"
+    win.title(title)
     # The primary application is not interactive while multi-settings is open.
     win.transient(parent)
     parent._receiving_multi_settings_window = win
@@ -214,6 +295,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_changed = {"value": False}
 
     def close():
+        sketch_redraw.cancel()
         close_real_preview()
         close_manager()
         if win.grab_current() is win:
@@ -222,10 +304,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         win.destroy()
         # Reconcile the original (hidden) controls only once on exit,
         # never from inside the +連 button's Tk callback.
-        if (topology_changed["value"] or brand_changed["value"]) and on_close is not None:
-            on_close()
         if brand_changed["value"] and on_brand_close is not None:
             on_brand_close()
+        # Always restore the originating Assembly page, even without edits.
+        if on_close is not None:
+            on_close()
 
     win.protocol("WM_DELETE_WINDOW", close)
     win._receiving_multi_close = close
@@ -282,11 +365,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     right_host = ttk.Frame(win)
     right_host.grid(row=0, column=1, sticky="nsew", padx=24, pady=16)
     right_host.columnconfigure(0, weight=1)
-    right_host.rowconfigure(1, weight=1)
+    right_host.rowconfigure(2, weight=1)
 
     # Reflect the authoritative mode instead of deferring a hidden mode switch
     # (and its complete geometry rebuild) to the first connection edit.
-    initial_mode = get_snapshot().get("active_mode", "set_bay")
+    # The obsolete Quantity main mode has been removed from this window.
+    # Preserve the independent quantity allocation inside Version Manager.
+    initial_mode = "quantity" if dialog_kind == "single" else "set_bay"
+    if get_snapshot().get("active_mode", "set_bay") != initial_mode:
+        if not switch_mode(initial_mode):
+            raise ValueError("無法切換設定模式")
     mode_var = tk.StringVar(master=win, value=initial_mode)
     top_left = ttk.Frame(left_host)
     top_left.pack(anchor="nw")
@@ -317,22 +405,24 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     minus_set = ttk.Button(
         set_actions, text="－套", width=5, command=lambda: adjust_sets(-1)
     )
-    minus_set.pack(side="left", padx=(0, 3))
+    if dialog_kind != "single":
+        minus_set.pack(side="left", padx=(0, 3))
     plus_set = ttk.Button(
         set_actions, text="＋套", width=5, command=lambda: adjust_sets(1)
     )
-    plus_set.pack(side="left")
+    if dialog_kind != "single":
+        plus_set.pack(side="left")
 
     applied = {"set_index": None, "count": 1, "selected": None,
                "selected_bays": (), "mode": initial_mode}
+    single_mode = dialog_kind == "single"
 
-    # Right TOP: original Listbox and its selected category controls.
-    # Right BOTTOM: the independent diagram region, never commandeered
-    # by quantity version management.
+    # Right TOP: cabinet dimensions and quantities stay visible at full width.
+    # Function controls sit below, with the independently resizable 2D diagram.
     function_scroll, function_content, function_scroll_canvas = make_scrollable_frame(
-        right_host, tk=tk, ttk=ttk, width=610, height=250,
+        right_host, tk=tk, ttk=ttk, width=610, height=110,
     )
-    function_scroll.grid(row=0, column=0, sticky="new")
+    function_scroll.grid(row=1, column=0, sticky="new", pady=(2, 0))
     function_host = ttk.Frame(
         function_content, padding=8, relief="groove", borderwidth=1,
     )
@@ -349,7 +439,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     settings_host.grid(row=0, column=1, sticky="new")
 
     diagram_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
-    diagram_host.grid(row=1, column=0, sticky="nsew", pady=(12, 0))
+    diagram_host.grid(row=2, column=0, sticky="nsew", pady=(2, 0))
     diagram_host.columnconfigure(0, weight=1)
     diagram_host.rowconfigure(0, weight=1)
     canvas = tk.Canvas(diagram_host, width=525, height=310, background="#1a2734",
@@ -360,6 +450,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     rows_host.pack(anchor="nw", pady=(8, 0))
     actions_host = ttk.Frame(rows_host)
     actions_host.pack(anchor="w")
+    # Committed size/quantity rows belong under left Set/Bay operations.
+    confirmed_groups_host = ttk.Frame(left_host)
+    confirmed_groups_host.pack(anchor="nw", fill="x", pady=(4, 0))
+    # W/H/D, quantity and Confirm cannot fit inside the 280px Set/Bay sidebar.
+    size_groups_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
+    size_groups_host.grid(row=0, column=0, sticky="ew")
     setting_kind = {"封頭尾": "head_features", "內門": "inner_door_layers"}
     selected_setting = {"set_index": None, "bay_index": None, "kind": None}
     active_ports = {"ports": None}
@@ -436,19 +532,35 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         popup.title(f"{role.replace('inner-door', '內門').replace('head', '封頭').replace('tail', '封尾')}｜{label}｜真實截角2D")
         real_preview["status"].set("正在取得既有 FinalScene 真實幾何…")
         def refresh_exact():
-            if (real_preview["generation"] != generation or
-                    not popup.winfo_exists()):
+            def still_current():
+                # The geometry provider may run a nested Tk callback, switch
+                # candidate/version or close the modal before it returns.
+                # Never publish a superseded request or error to a newer view.
+                return (
+                    real_preview["generation"] == generation
+                    and real_preview["win"] is popup
+                    and popup.winfo_exists()
+                    and real_preview["view"] is not None
+                )
+
+            if not still_current():
                 return
             try:
                 request = get_real_cut_preview_request(role, selected_id, si, bi)
+                if not still_current():
+                    return  # A newer operator choice already owns this view.
                 if request is None:
                     raise ValueError("此版本缺少可驗證的實體幾何來源")
                 real_preview["view"].draw_geometry((request,))
+                if not still_current():
+                    return
                 popup._receiving_real_preview_request = request
                 real_preview["status"].set(
                     f"第{si+1}套／第{bi+1}連｜{label}｜實際 FinalScene 投影；滾輪縮放／中鍵平移"
                 )
             except Exception as exc:
+                if not still_current():
+                    return
                 real_preview["view"].invalidate(str(exc))
                 real_preview["status"].set("真實幾何不可用：" + str(exc))
         popup.after_idle(refresh_exact)
@@ -464,10 +576,41 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             win.after_idle(show_setting_controls)
             win.after_idle(refresh_manager_controls)
 
+    def safe_single_holes(role):
+        try:
+            edit_single_holes(role)
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
+    def safe_single_inner_door():
+        try:
+            edit_single_inner_door()
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
     def show_setting_controls():
         for widget in settings_host.winfo_children():
             widget.destroy()
         active_ports["ports"] = None
+        if single_mode:
+            if selected_setting["kind"] == "head_features":
+                if edit_single_holes is not None:
+                    for role, label in (("head", "封頭孔"), ("tail", "封尾孔")):
+                        ttk.Button(
+                            settings_host, text=label + "編輯",
+                            command=lambda role=role: safe_single_holes(role),
+                        ).pack(side="left", padx=4)
+            elif selected_setting["kind"] == "inner_door_layers":
+                if edit_single_inner_door is not None:
+                    ttk.Button(
+                        settings_host, text="編輯",
+                        command=lambda: safe_single_inner_door(),
+                    ).pack(anchor="w")
+                else:
+                    ttk.Label(
+                        settings_host, text="尚未連接原內門開孔編輯器"
+                    ).pack(anchor="w")
+            return
         if selected_setting["kind"] is None or applied["mode"] == "quantity":
             # Version feature design will be handled separately. Preserve the
             # existing QuantityModel but do not render a version editor here.
@@ -561,11 +704,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             def edit_role():
                 try:
                     selected_before = candidate_selected[role]
-                    library["edit"](
-                        role, selected_before,
-                        lambda created, role=role, live=(selected_before is None):
-                            editor_saved(role, created, keep_live=live),
-                    )
+                    callback = (edit_multi_inner_door if role == "inner-door"
+                                and edit_multi_inner_door is not None
+                                else library["edit"])
+                    if callback is edit_multi_inner_door:
+                        callback(
+                            selected_before,
+                            lambda created, role=role, live=(selected_before is None):
+                                editor_saved(role, created, keep_live=live),
+                        )
+                    else:
+                        callback(
+                            role, selected_before,
+                            lambda created, role=role, live=(selected_before is None):
+                                editor_saved(role, created, keep_live=live),
+                        )
                 except (ValueError, IndexError, RuntimeError) as exc:
                     warn(exc)
 
@@ -766,6 +919,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def close_manager():
         nonlocal quantity_ui
+        pending_redraw = manager_widgets.get("redraw_queue")
+        if pending_redraw is not None:
+            pending_redraw.cancel()
+        manager_widgets["redraw_queue"] = None
         manager = manager_window["win"]
         if manager is None or not manager.winfo_exists():
             manager_window["win"] = None
@@ -825,6 +982,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if not diagram.master.winfo_manager():
                 diagram.master.pack(fill="both", expand=True, pady=(12, 0))
             quantity_ui.paint()
+            redraw_queue = manager_widgets.get("redraw_queue")
+            if redraw_queue is not None:
+                redraw_queue.mark_drawn()
         else:
             diagram.master.pack_forget()
 
@@ -931,7 +1091,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             warn=warn,
         )
         diagram.bind("<Button-1>", quantity_ui.click)
-        diagram.bind("<Configure>", lambda _event: render_manager_diagram())
+        manager_redraw = _IdleCanvasRedraw(diagram, render_manager_diagram)
+        manager_widgets["redraw_queue"] = manager_redraw
+        diagram.bind("<Configure>", manager_redraw.request)
         def scroll_quantity(event):
             if manager_state["page"] != "quantity":
                 return
@@ -998,7 +1160,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             warn(exc)
 
     def warn(exc):
-        messagebox.showwarning("多只設定", str(exc), parent=win)
+        messagebox.showwarning(title, str(exc), parent=win)
         return False
 
     def ensure_set_mode():
@@ -1008,6 +1170,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         return True
 
     mark_cache = {"key": None, "values": ()}
+    size_cache = {"set_index": None, "dimensions": ()}
 
     def render():
         # The main sketch always remains a Set/Bay highlighter. Quantity
@@ -1017,10 +1180,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         count = applied["count"] if applied["mode"] == "set_bay" else 1
         selected = applied["selected_bays"] if applied["mode"] == "set_bay" else None
         marks = ()
-        if applied["mode"] == "set_bay" and get_original_door_marks is not None:
+        if (applied["mode"] in ("set_bay", "quantity")
+                and applied["set_index"] is None
+                and get_initial_door_marks is not None):
+            marks = tuple(get_initial_door_marks() or ())
+        if (applied["mode"] == "set_bay"
+                and applied["set_index"] is not None
+                and get_original_door_marks is not None):
             set_index = applied["set_index"]
-            if set_index is None:
-                set_index = 0
             key = (set_index, count)
             if mark_cache["key"] != key:
                 # The baseline is requested once per applied Set/connection
@@ -1036,16 +1203,182 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 applied["set_index"] is not None and
                 get_applied_version_labels is not None):
             labels = get_applied_version_labels(applied["set_index"])
-        paint_connected_bays(canvas, count, selected, marks, labels)
+        # Geometry dimensions are cached per applied Set. Canvas Configure
+        # redraws can fire repeatedly; don't deep-copy the complete Receiving
+        # layout (including switch/NFB payloads) on every pixel resize.
+        if (applied["set_index"] is not None and applied["mode"] == "set_bay"
+                and size_cache["set_index"] != applied["set_index"]):
+            source = get_switch()
+            layout = getattr(source, "layout", None)
+            size_cache["dimensions"] = (
+                tuple(layout["sets"][applied["set_index"]]["bays"])
+                if layout is not None else ()
+            )
+            size_cache["set_index"] = applied["set_index"]
+        paint_connected_bays(canvas, count, selected, marks, labels,
+                             bay_dimensions=size_cache["dimensions"])
         canvas._receiving_selected_bay = (
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
+        # A direct highlight/mode paint supersedes a queued same-size
+        # Configure callback; a future physical size change is still painted.
+        sketch_redraw.mark_drawn()
+
+    size_input = {}
+    size_controls = {"single": None}
+
+    def input_dimensions(values):
+        import re
+        parsed = {}
+        for name, label in (("width", "W"), ("height", "H"), ("depth", "D"), ("count", "數量")):
+            raw = values[name].get().strip()
+            if re.fullmatch(r"[0-9]+", raw) is None or int(raw) <= 0:
+                raise ValueError(f"{label} 必須為正整數")
+            parsed[name] = int(raw)
+        return parsed
+
+    def refresh_dimension_rows():
+        for widget in size_groups_host.winfo_children():
+            widget.destroy()
+        for widget in confirmed_groups_host.winfo_children():
+            widget.destroy()
+        if single_mode or applied["set_index"] is None or get_dimension_group is None:
+            return
+        set_index = applied["set_index"]
+        layout = get_switch().layout
+        bays = layout["sets"][set_index]["bays"]
+        size_cache.update(set_index=set_index, dimensions=tuple(bays))
+        ttk.Label(
+            confirmed_groups_host, text=f"第{set_index + 1}套｜已確定尺寸／數量",
+        ).pack(anchor="w")
+        group_table = ttk.Frame(confirmed_groups_host)
+        group_table.pack(anchor="w", pady=4)
+        for column, label in enumerate(("W", "H", "D", "數量")):
+            ttk.Label(group_table, text=label, width=7).grid(
+                row=0, column=column, padx=2,
+            )
+        for row_index, (dimensions, indices) in enumerate(dimension_group_summary(bays), start=1):
+            for column, text in enumerate((*dimensions, len(indices))):
+                ttk.Label(
+                    group_table, text=display_dimension(text), width=7,
+                ).grid(row=row_index, column=column, padx=2, pady=1)
+        ttk.Label(size_groups_host, text="其他尺寸：高亮右圖相對箱體，再輸入尺寸及數量").pack(anchor="w")
+        entry_row = ttk.Frame(size_groups_host)
+        entry_row.pack(anchor="w", pady=3)
+        if not size_input:
+            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+            size_input.update({
+                key: tk.StringVar(master=win, value=display_dimension(BOX_BODY_DEFAULTS[axis]))
+                for key, axis in (("width", "w"), ("height", "h"), ("depth", "d"))
+            })
+            size_input["count"] = tk.StringVar(master=win, value="1")
+        for label, key in (("W", "width"), ("H", "height"), ("D", "depth"), ("數量", "count")):
+            ttk.Label(entry_row, text=label).pack(side="left", padx=(2, 0))
+            ttk.Entry(entry_row, textvariable=size_input[key], width=6).pack(side="left", padx=2)
+        ttk.Button(entry_row, text="確定", command=confirm_dimension_group).pack(side="left", padx=4)
+        # No duplicate selected-count message below the size entry row.
+
+    # Tracks EXPLICIT confirmations, not "non-default" sizes. A confirmed
+    # 800x1600x350 Bay is configured, too; no extra project data is invented.
+    confirmed_indices_by_set = {}
+
+    def confirm_dimension_group():
+        if applied["set_index"] is None or get_dimension_group is None:
+            return
+        try:
+            dims = input_dimensions(size_input)
+            indices = tuple(applied["selected_bays"])
+            if len(indices) != dims["count"]:
+                raise ValueError(f"請在右側圖面高亮剛好 {dims['count']} 個箱體")
+            set_index = applied["set_index"]
+            get_dimension_group(
+                set_index, indices,
+                dims["width"], dims["height"], dims["depth"], dims["count"],
+            )
+            confirmed = confirmed_indices_by_set.setdefault(set_index, set())
+            confirmed.update(indices)
+            # Drop the whole old multi-selection. Focus exactly the next Bay
+            # that has NOT been explicitly confirmed during this edit session.
+            count = len(get_switch().layout["sets"][set_index]["bays"])
+            next_index = next((
+                candidate
+                for step in range(1, count + 1)
+                for candidate in ((max(indices) + step) % count,)
+                if candidate not in confirmed
+            ), None)
+            applied.update(selected=None, selected_bays=())
+            if next_index is not None:
+                applied.update(selected=next_index, selected_bays=(next_index,))
+                if select_bay is not None:
+                    select_bay(set_index, next_index)
+            # Recompute the committed grouping from canonical per-Bay W/H/D.
+            refresh_dimension_rows()
+            if next_index is not None:
+                bay = get_switch().layout["sets"][set_index]["bays"][next_index]
+                for field in ("width", "height", "depth"):
+                    size_input[field].set(display_dimension(bay[field]))
+                size_input["count"].set("1")
+            render()
+            return True
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+            return False
+
+    def refresh_single_dimensions():
+        if get_single_size_quantity is None:
+            return
+        values = get_single_size_quantity()
+        for key in ("width", "height", "depth", "count"):
+            size_input[key].set(display_dimension(values[key]))
+        size_controls["status"].set(
+            f"總數量 {values['total_count']}"
+        )
+
+    def confirm_single_dimensions():
+        if set_single_size_quantity is None:
+            return
+        try:
+            dims = input_dimensions(size_input)
+            set_single_size_quantity(
+                dims["width"], dims["height"], dims["depth"], dims["count"],
+            )
+            refresh_single_dimensions()
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
+    def build_single_dimensions():
+        if size_controls["single"] is not None:
+            return
+        root = ttk.LabelFrame(size_groups_host, text="單只｜尺寸與數量", padding=8)
+        root.pack(anchor="w", fill="x")
+        size_controls["single"] = root
+        size_controls["status"] = tk.StringVar(master=win)
+        if get_single_size_quantity is None:
+            ttk.Label(root, text="單只尺寸來源尚未連接").pack(anchor="w")
+            return
+        entry_row = ttk.Frame(root)
+        entry_row.pack(anchor="w")
+        values = get_single_size_quantity()
+        for key, label in (("width", "W"), ("height", "H"), ("depth", "D"), ("count", "數量")):
+            ttk.Label(entry_row, text=label).pack(side="left", padx=(2, 0))
+            size_input[key] = tk.StringVar(master=win, value=display_dimension(values[key]))
+            ttk.Entry(entry_row, textvariable=size_input[key], width=7).pack(side="left", padx=3)
+        ttk.Button(entry_row, text="確定", command=confirm_single_dimensions).pack(side="left", padx=4)
+        ttk.Label(root, textvariable=size_controls["status"]).pack(anchor="w", pady=4)
+        refresh_single_dimensions()
 
     # Retain button identity while a +連/−連 callback is executing.
     # Destroying its own Tk button mid-invoke is a first-click freeze risk.
     bay_rows = []
 
     def refresh_rows():
+        if single_mode:
+            set_actions.pack_forget()
+            for entry in bay_rows:
+                entry["frame"].destroy()
+            bay_rows.clear()
+            build_single_dimensions()
+            return
         if mode_var.get() != "set_bay":
             set_actions.pack_forget()
             for entry in bay_rows:
@@ -1089,6 +1422,13 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             bay_rows.append({"frame": row, "count": count_label})
         for entry, count in zip(bay_rows, counts):
             entry["count"].configure(text=str(count))
+        for index, count in enumerate(counts):
+            confirmed_indices_by_set.setdefault(index, set()).intersection_update(
+                range(count)
+            )
+        for index in tuple(confirmed_indices_by_set):
+            if index >= len(counts):
+                del confirmed_indices_by_set[index]
         # Topology invalidates an in-progress child-window allocation.
         # Schedule after idle so the invoking +連 button remains alive.
         if quantity_ui is not None and manager_window["win"] is not None:
@@ -1142,6 +1482,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     show_setting_controls()
                     render()
                 refresh_rows()
+                if applied["set_index"] is not None:
+                    refresh_dimension_rows()
             return result
         except (ValueError, IndexError, RuntimeError) as exc:
             return warn(exc)
@@ -1154,8 +1496,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if result:
                 topology_changed["value"] = True
                 refresh_rows()
-            # Intentionally do not redraw: only 套用 projects the current
-            # number of bays into the 2D diagram.
+            # Existing contract: +連/−連 changes canonical topology, but
+            # the operator's sketch is projected only after 套用.
             return result
         except (ValueError, IndexError, RuntimeError) as exc:
             return warn(exc)
@@ -1173,6 +1515,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             show_setting_controls()
             if select_bay is not None:
                 select_bay(index, 0)
+            refresh_dimension_rows()
             render()
             return True
         except (ValueError, IndexError, RuntimeError) as exc:
@@ -1242,13 +1585,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         finally:
             mode_transition["busy"] = False
 
-    for text, value in (("套／連", "set_bay"), ("數量", "quantity")):
-        ttk.Radiobutton(mode_row, text=text, value=value,
-                        variable=mode_var, command=change_mode).pack(
-                            side="left", padx=(0, 16))
+    # No main mode radio buttons: this window edits Set/Bay only.
+    # The Version Manager still owns its separate 數量配置 page.
 
     canvas.bind("<Button-1>", click_bay)
-    canvas.bind("<Configure>", lambda _event: render())
+    sketch_redraw = _IdleCanvasRedraw(canvas, render)
+    canvas.bind("<Configure>", sketch_redraw.request)
     refresh_rows()
     render()
 
@@ -1275,6 +1617,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_mode_var = mode_var
     win._receiving_multi_mode_controls = mode_row
     win._receiving_multi_rows_host = actions_host
+    win._receiving_dimension_groups_host = size_groups_host
+    win._receiving_confirmed_groups_host = confirmed_groups_host
+    win._receiving_confirmed_indices = confirmed_indices_by_set
+    win._receiving_dimension_group_input = size_input
+    win._receiving_dimension_group_confirm = confirm_dimension_group
     win._receiving_multi_setting_list = setting_list
     win._receiving_multi_selected_setting = selected_setting
     win._receiving_multi_canvas = canvas

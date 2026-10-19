@@ -1,0 +1,229 @@
+# -*- coding: utf-8 -*-
+"""#1502/#1503: SAME physical NFB/base/ear Z rule independently for each tier.
+
+Tier count only changes how many times the source-depth + true-skin mapping
+runs. A depth without source is unverified for THAT tier, not for all tiers.
+Nothing here certifies ear source BEND, welded contact or manufacturing DXF.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from math import isfinite
+from typing import Mapping
+
+from .receiving_tier_ear_assembly_xy import resolve_receiving_tier_ear_mating_xy
+from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
+
+
+@dataclass(frozen=True)
+class ReceivingTierBaseZTarget:
+    layer_index: int
+    parent_base_id: str
+    world_offset_z_mm: float | None
+    base_back_skin_world_z_mm: float | None
+    source_depths_mm: tuple[float, ...]
+    physical_skin_z_resolved: bool
+
+
+@dataclass(frozen=True)
+class ReceivingTierEarContactTarget:
+    ear_id: str
+    parent_base_id: str
+    layer_index: int
+    side: str
+    fixing_hole_world_x_mm: float
+    fixing_hole_world_y_mm: tuple[float, float]
+    side_inside_weld_x_mm: float
+    base_back_skin_world_z_mm: float | None
+    target_ear_contact_world_z_mm: float | None
+    base_skin_z_source_verified: bool
+    source_bend_verified: bool = False
+    formed_weld_contact_verified: bool = False
+    side_plate_marking_export_approved: bool = False
+    manufacturing_ready: bool = False
+
+
+def _current_brand_config(snapshot):
+    from .receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
+    layout = snapshot.get("receiving_layout")
+    sets = layout.get("sets") if isinstance(layout, Mapping) else None
+    if not isinstance(sets, (tuple, list)) or not sets:
+        raise ValueError("EAR_Z_SOURCE_SET_MISSING")
+    active = snapshot.get(RECEIVING_RUNTIME_SELECTION_KEY)
+    if isinstance(active, Mapping):
+        si, bi = active.get("set_index"), active.get("bay_index")
+        if (type(si) is not int or si < 0 or si >= len(sets)
+                or sets[si].get("stable_id") != active.get("set_id")):
+            raise ValueError("EAR_Z_SET_IDENTITY_DRIFT")
+        selected_set = sets[si]
+        bays = selected_set.get("bays")
+        if (not isinstance(bays, (tuple, list)) or type(bi) is not int
+                or bi < 0 or bi >= len(bays)
+                or bays[bi].get("stable_id") != active.get("bay_id")):
+            raise ValueError("EAR_Z_BAY_IDENTITY_DRIFT")
+        bay = bays[bi]
+    elif (len(sets) == 1 and len(sets[0].get("bays") or ()) == 1):
+        selected_set = sets[0]
+        bay = selected_set["bays"][0]
+    else:
+        raise ValueError("EAR_Z_SOURCE_BAY_AMBIGUOUS")
+    config = bay.get("nfb_config")
+    # switch_brand is an OPTIONAL legacy Set field. Current receiving Set
+    # has no such key: saved per-switch source_brand / nfbv5:brand:model own
+    # source identity. Never require obsolete Set.brand for a physical tier.
+    legacy_brand = selected_set.get("switch_brand")
+    if (bay.get("nfb_config_submitted") is not True
+            or snapshot.get("nfb_config") != config
+            or not isinstance(config, Mapping)):
+        raise ValueError("EAR_Z_NFB_SOURCE_IDENTITY_DRIFT")
+    return legacy_brand, config
+
+
+def _tier_source_depths(legacy_brand, config, layer_index):
+    """Every physical switch reads its OWN brand/model CSV source.
+
+    Current Set schema does not have switch_brand; layer/slot overrides may
+    intentionally use different brands. Missing or inconsistent identity
+    blocks only that tier's Z readiness rather than borrowing another model.
+    """
+    from .receiving_nfb_model_identity import selected_numeric_spec
+    from .receiving_switch_model_catalog import model_depth_mm
+
+    count = config.get("layer_count")
+    depths = []
+    for hole in config.get("holes") or ():
+        if not isinstance(hole, Mapping):
+            raise ValueError("EAR_Z_SOURCE_HOLE_INVALID")
+        tier = hole.get("layer_index", 0 if count == 1 else None)
+        if tier != layer_index:
+            continue
+        brand = hole.get("source_brand", legacy_brand)
+        filename = hole.get("model_filename")
+        if (not isinstance(brand, str) or not brand
+                or not isinstance(filename, str) or not filename):
+            return ()
+        try:
+            if filename.startswith("nfbv5:"):
+                spec = selected_numeric_spec(brand, filename)
+                depth = None if spec is None else spec.depth_mm
+            else:
+                depth = model_depth_mm(brand, filename)
+        except (ValueError, KeyError, TypeError, OSError):
+            return ()
+        if depth is None:
+            return ()
+        number = float(depth)
+        if not isfinite(number) or number <= 0:
+            return ()
+        depths.append(number)
+    if not 1 <= len(depths) <= 2:
+        return ()
+    return tuple(sorted(set(depths), reverse=True))
+
+
+def resolve_receiving_tier_base_z_targets(
+    snapshot: Mapping[str, object],
+) -> tuple[ReceivingTierBaseZTarget, ...]:
+    """Evaluate the identical real-inner-door/real-base-skin formula per tier."""
+    ears = resolve_receiving_tier_ear_mating_xy(snapshot)
+    if not ears:
+        return ()
+    brand, config = _current_brand_config(snapshot)
+    from .receiving_base_plate_config import receiving_base_plate_values
+    from .receiving_base_plate_real_skins import receiving_base_actual_local_nfb_skins
+    from .receiving_nfb_world_skin_datums import resolve_receiving_nfb_world_skin_datums
+
+    physical = receiving_base_plate_values(snapshot)
+    if physical is None:
+        raise ValueError("EAR_Z_REAL_BASE_SOURCE_MISSING")
+    upper = tuple(row for row in tuple(snapshot.get("inner_doors") or ())
+                  if isinstance(row, Mapping)
+                  and str(row.get("cell_key") or "").split(":")[-1] == "0"
+                  and str(row.get("stable_id") or "").strip())
+    if len(upper) != 1:
+        raise ValueError("EAR_Z_UNIQUE_INNER_DOOR_REQUIRED")
+    door_id = str(upper[0]["stable_id"])
+    t = float(snapshot["t"])
+    if not isfinite(t) or t <= 0:
+        raise ValueError("EAR_Z_BASE_THICKNESS_INVALID")
+    groups = {}
+    for ear in ears:
+        key = (ear.layer_index, ear.parent_base_id)
+        groups.setdefault(key, []).append(ear)
+    targets = []
+    for (tier, part_id), pair in sorted(groups.items()):
+        if len(pair) != 2 or {row.side for row in pair} != {"left", "right"}:
+            raise ValueError("EAR_Z_SOURCE_PAIR_INCOMPLETE")
+        depths = _tier_source_depths(brand, config, tier)
+        if not depths:
+            targets.append(ReceivingTierBaseZTarget(tier, part_id, None, None, (), False))
+            continue
+        local_physical = dict(physical)
+        # A single NFB/depth in each tier uses the same original base source
+        # folded skin, not the other tier's model or its placement Z.
+        if len(depths) == 2:
+            # Only the actual source profile can certify a two-depth folded
+            # web; the resulting EAR target still is NOT approved manufacture.
+            local_physical["receiving_nfb_depth_pair_mm"] = depths
+        else:
+            local_physical["receiving_nfb_depth_pair_mm"] = None
+        local_front, shallow = receiving_base_actual_local_nfb_skins(
+            snapshot, local_physical,
+        )
+        world = resolve_receiving_nfb_world_skin_datums(
+            snapshot, inner_door_id=door_id,
+            reference_nfb_depth_mm=depths[0],
+            secondary_nfb_depth_mm=(depths[1] if len(depths) == 2 else None),
+        )
+        offset_z = world.base_nfb_face_world_z_mm - local_front
+        back_z = offset_z + local_front - t
+        if (len(depths) == 2 and (shallow is None
+                or world.shallow_nfb_face_world_z_mm is None
+                or abs(offset_z + shallow - world.shallow_nfb_face_world_z_mm) > 1e-6)):
+            raise ValueError("EAR_Z_SECOND_NFB_FACE_SOURCE_MISMATCH")
+        if not all(isfinite(v) for v in (offset_z, back_z)):
+            raise ValueError("EAR_Z_NONFINITE_SOURCE_SKIN")
+        targets.append(ReceivingTierBaseZTarget(
+            tier, part_id, offset_z, back_z, depths, True,
+        ))
+    return tuple(targets)
+
+
+def resolve_receiving_tier_ear_contact_targets(
+    snapshot: Mapping[str, object],
+) -> tuple[ReceivingTierEarContactTarget, ...]:
+    """Attach each of the same tier's TWO ears to that tier's Base Plate Z."""
+    rows = resolve_receiving_tier_ear_mating_xy(snapshot)
+    if not rows:
+        return ()
+    base_z = {
+        (row.layer_index, row.parent_base_id): row
+        for row in resolve_receiving_tier_base_z_targets(snapshot)
+    }
+    if len({r.ear_id for r in rows}) != len(rows):
+        raise ValueError("EAR_Z_DUPLICATE_PHYSICAL_EAR")
+    pitch_x = receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=float(snapshot["w"]),
+        box_side_thickness_mm=float(snapshot["t"]),
+    )
+    inside_x = float(snapshot["w"])/2.0 - float(snapshot["t"])
+    output = []
+    for row in rows:
+        side_sign = {"left": -1.0, "right": 1.0}.get(row.side)
+        if (side_sign is None
+                or abs(row.base_center_x_mm) > 1e-6
+                or abs(row.selected_slot_column_x_mm-side_sign*pitch_x/2.0) > 1e-6
+                or abs(row.side_inside_weld_x_mm-side_sign*inside_x) > 1e-6):
+            raise ValueError("EAR_Z_SOURCE_MOUNT_X_DRIFT")
+        target = base_z[(row.layer_index, row.parent_base_id)]
+        output.append(ReceivingTierEarContactTarget(
+            ear_id=row.ear_id, parent_base_id=row.parent_base_id,
+            layer_index=row.layer_index, side=row.side,
+            fixing_hole_world_x_mm=row.selected_slot_column_x_mm,
+            fixing_hole_world_y_mm=row.selected_slot_pair_world_y_mm,
+            side_inside_weld_x_mm=row.side_inside_weld_x_mm,
+            base_back_skin_world_z_mm=target.base_back_skin_world_z_mm,
+            target_ear_contact_world_z_mm=target.base_back_skin_world_z_mm,
+            base_skin_z_source_verified=target.physical_skin_z_resolved,
+        ))
+    return tuple(output)

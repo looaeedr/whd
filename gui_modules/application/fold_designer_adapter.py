@@ -806,7 +806,21 @@ class Phase6FoldDesignerComposition:
         def assembly_visibility(parts):
             owner = getattr(app, "_phase6_assembly_panel_owner", None)
             if owner is not None:
-                return owner.resolve_visibility(parts)
+                keys, box_pieces = owner.resolve_visibility(parts)
+                # Both real NFB tier source blanks inherit the existing
+                # Base Plate checkbox, not two extra unmanaged controls.
+                tier_keys = {
+                    str(p.part_key) for p in tuple(parts or ())
+                    if str(p.part_key).startswith("base_plate:nfb_layer:")
+                }
+                if tier_keys:
+                    root_var = owner.visible_vars.get("base_plate")
+                    root_visible = bool(
+                        root_var.get() if root_var is not None else True
+                    )
+                    if not root_visible:
+                        keys = tuple(k for k in keys if k not in tier_keys)
+                return keys, box_pieces
             return Phase6AssemblyPanel._resolve_visibility_with_vars(
                 parts, {}, {}
             )

@@ -6,6 +6,9 @@ import tkinter as tk
 from tkinter import ttk
 
 from ae_engine.receiving_nfb_2d_preview import Nfb2DViewport, NfbDxfPreviewCache
+from ae_engine.receiving_nfb_model_identity import (
+    parse_numeric_model_ref, selected_numeric_spec,
+)
 
 _ACI_COLORS = {30:"#ffb064", 150:"#54c6ff", 212:"#cfb6ff", 3:"#69df90"}
 
@@ -14,7 +17,7 @@ class NfbDxfSourcePreviewPanel:
     """One retained controller per editor, cache keyed by real source revision."""
 
     def __init__(self,parent,*,index_path=None):
-        self.frame=ttk.LabelFrame(parent,text="原始 DXF 真圖｜僅預覽")
+        self.frame=ttk.LabelFrame(parent,text="NFB 型號來源｜僅預覽")
         self.frame.pack(side="right",fill="both",padx=(12,0))
         self.canvas=tk.Canvas(self.frame,width=396,height=415,
                               background="#101c27",highlightthickness=0)
@@ -24,8 +27,12 @@ class NfbDxfSourcePreviewPanel:
         self._index_path=index_path
         self._source_key=None
         self._drag_point=None
-        self.identity=tk.StringVar(master=self.frame,value="請選取左側 DXF 型號")
-        self.reason=tk.StringVar(master=self.frame,value="真圖尚未讀取｜僅預覽")
+        self._numeric_spec=None
+        self._numeric_mode=False
+        self._numeric_zoom=1.0
+        self._numeric_pan=(0.0,0.0)
+        self.identity=tk.StringVar(master=self.frame,value="請選取左側 NFB 型號")
+        self.reason=tk.StringVar(master=self.frame,value="尚未選擇 NFB 型號來源｜僅預覽")
         bar=ttk.Frame(self.frame)
         bar.pack(fill="x",padx=6)
         ttk.Button(bar,text="＋ 放大",command=lambda:self.zoom(1.25)).pack(side="left")
@@ -49,12 +56,44 @@ class NfbDxfSourcePreviewPanel:
     def show(self,brand,filename):
         """Only read this one indexed model, never trigger app geometry recompute."""
         if filename is None:
+            self._numeric_mode=False
+            self.frame.configure(text="NFB 型號來源｜僅預覽")
             self._source_key=None
+            self._numeric_spec=None
             self.viewport.preview=None
             self.identity.set("空槽｜尚未選型")
             self.reason.set("空槽不是開孔；無製造幾何")
             self.paint()
             return
+        if isinstance(filename,str) and filename.startswith("nfbv5:"):
+            self._numeric_mode=True
+            self.frame.configure(text="NFB 數值規格 CSV｜僅預覽")
+            parsed=parse_numeric_model_ref(filename)
+            try:
+                if parsed is None or parsed[0]!=brand:
+                    raise ValueError("V5 型號與選定廠牌不符")
+                spec=selected_numeric_spec(brand,filename)
+                if spec is None:
+                    raise ValueError("廠牌 CSV 已無此型號")
+            except (ValueError,OSError,UnicodeError) as exc:
+                self._numeric_spec=None
+                self.viewport.preview=None
+                self.identity.set(f"{brand}｜{parsed[1] if parsed else filename}")
+                self.reason.set(f"V5 數值來源未定：{exc}｜禁止製造")
+                self.paint()
+                return
+            self._numeric_spec=spec
+            self.viewport.preview=None
+            self._source_key=("v5",brand,filename,spec)
+            self.identity.set(f"{brand}｜{spec.model}｜開孔 {spec.opening_mm or '未知'}")
+            missing="、".join(spec.missing_fields)
+            self.reason.set("V5 數值孔位（未經實體／製造驗證）"
+                            + (f"｜缺：{missing}" if missing else "｜數值齊全，仍不可製造"))
+            self.paint()
+            return
+        self._numeric_mode=False
+        self.frame.configure(text="舊 DXF 來源｜僅預覽")
+        self._numeric_spec=None
         try:
             opts={"index_path":self._index_path} if self._index_path is not None else {}
             result=self.cache.load(brand,filename,**opts)
@@ -78,6 +117,9 @@ class NfbDxfSourcePreviewPanel:
     def paint(self):
         self.canvas.delete("nfb-dxf")
         w,h=self._size()
+        if self._numeric_spec is not None:
+            self._paint_numeric(w,h)
+            return
         for color,points in self.viewport.strokes_for_canvas(w,h):
             coords=[v for xy in points for v in xy]
             if len(coords)>=4:
@@ -87,15 +129,61 @@ class NfbDxfSourcePreviewPanel:
                 )
         if not self.viewport.preview or not self.viewport.preview.strokes:
             self.canvas.create_text(
-                w/2,h/2,text="來源缺失／沒有可顯示的真實 DXF 圖元",
+                w/2,h/2,text=("CSV 型號數值不足／無法顯示"
+                            if self._numeric_mode else
+                            "舊 DXF 來源缺失／沒有可顯示的圖元"),
                 fill="#9fbacb",tags=("nfb-dxf",),
             )
 
+    def _paint_numeric(self,w,h):
+        """Local V5 illustration only; never register an actual machined part."""
+        spec=self._numeric_spec
+        corners=spec.opening_corners_xy_mm
+        screws=spec.screw_centers_xy_mm
+        if corners is None:
+            self.canvas.create_text(w/2,h/2,text="開孔尺寸未提供｜禁止製造",
+                                    fill="#9fbacb",tags=("nfb-dxf",))
+            return
+        points=list(corners)+list(screws or ())
+        xs=[x for x,y in points]
+        ys=[y for x,y in points]
+        if screws is not None:
+            radius=spec.screw_diameter_mm/2.0
+            xs += [x-radius for x,y in screws]+[x+radius for x,y in screws]
+            ys += [y-radius for x,y in screws]+[y+radius for x,y in screws]
+        extent=max(max(xs)-min(xs),max(ys)-min(ys),1.0)
+        scale=0.8*min(w,h)/extent*self._numeric_zoom
+        center_x=(max(xs)+min(xs))/2.0
+        center_y=(max(ys)+min(ys))/2.0
+        px,py=self._numeric_pan
+        def screen(x,y):
+            return (w/2+(x-center_x)*scale+px,
+                    h/2-(y-center_y)*scale+py)
+        x1,y1=screen(*corners[0]);x2,y2=screen(*corners[2])
+        self.canvas.create_rectangle(x1,y2,x2,y1,outline="#54c6ff",width=2,
+                                     tags=("nfb-dxf",))
+        if screws is not None:
+            r=spec.screw_diameter_mm/2.0*scale
+            for x,y in screws:
+                cx,cy=screen(x,y)
+                self.canvas.create_oval(cx-r,cy-r,cx+r,cy+r,
+                                        outline="#69df90",width=1.5,tags=("nfb-dxf",))
+        cx,cy=screen(0,0)
+        self.canvas.create_line(cx-8,cy,cx+8,cy,fill="#b6d0e2",tags=("nfb-dxf",))
+        self.canvas.create_line(cx,cy-8,cx,cy+8,fill="#b6d0e2",tags=("nfb-dxf",))
+
     def reset(self):
+        if self._numeric_spec is not None:
+            self._numeric_zoom=1.0
+            self._numeric_pan=(0.0,0.0)
         self.viewport._fit=True
         self.paint()
 
     def zoom(self,factor,anchor=None):
+        if self._numeric_spec is not None:
+            self._numeric_zoom=max(0.1,min(12.0,self._numeric_zoom*factor))
+            self.paint()
+            return
         if not self.viewport.preview or not self.viewport.preview.strokes:
             return
         w,h=self._size()
@@ -110,7 +198,15 @@ class NfbDxfSourcePreviewPanel:
         self._drag_point=(event.x,event.y)
 
     def _move(self,event):
-        if self._drag_point is None or not self.viewport.preview:return
+        if self._drag_point is None:return
+        if self._numeric_spec is not None:
+            old=self._drag_point
+            self._numeric_pan=(self._numeric_pan[0]+event.x-old[0],
+                               self._numeric_pan[1]+event.y-old[1])
+            self._drag_point=(event.x,event.y)
+            self.paint()
+            return
+        if not self.viewport.preview:return
         if self.viewport._fit:self.viewport.reset(*self._size())
         old=self._drag_point
         self.viewport.pan(event.x-old[0],event.y-old[1])

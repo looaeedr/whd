@@ -152,6 +152,55 @@ def _base_plate_center_plane(snapshot: Mapping[str, object]) -> float:
     return rear_inner_plane + bend / 2.0
 
 
+def _receiving_source_nfb_base_center_z(snapshot: Mapping[str, object]) -> float | None:
+    """Actual 3D Base Plate Z from inner-door & plate true physical skins.
+
+    CENTER mixed-depth NFB uses two independently checked 107/72 faces.
+    LEFT/RIGHT flat-sided plates take the single model depth from the
+    submitted current Bay's brand CSV; they MUST NOT use the rear wall Z.
+    Missing source retains legacy PREVIEW only, never release.
+    """
+    from .receiving_base_plate_config import receiving_base_plate_values
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+    physical=receiving_base_plate_values(snapshot)
+    if physical is None:
+        return None
+    pair=physical.get("receiving_nfb_depth_pair_mm")
+    single=physical.get("receiving_nfb_reference_depth_mm")
+    if pair is None and single is None:
+        return None
+    center=physical["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_CENTER
+    if (pair is not None and not center) or (single is not None and center):
+        raise ValueError("RECEIVING_BASE_NFB_DEPTH_DOES_NOT_MATCH_PHYSICAL_PATTERN")
+    upper=[
+        row for row in tuple(snapshot.get("inner_doors") or ())
+        if isinstance(row, Mapping)
+        and str(row.get("cell_key") or "").split(":")[-1] == "0"
+        and str(row.get("stable_id") or "").strip()
+    ]
+    if len(upper)!=1:
+        raise ValueError("RECEIVING_NFB_BASE_REQUIRES_UNIQUE_UPPER_INNER_DOOR")
+    from .receiving_nfb_world_skin_datums import resolve_receiving_nfb_world_skin_datums
+    from .receiving_base_plate_real_skins import receiving_base_actual_local_nfb_skins
+    world = resolve_receiving_nfb_world_skin_datums(
+        snapshot,inner_door_id=str(upper[0]["stable_id"]),
+        reference_nfb_depth_mm=float(pair[0]) if pair is not None else float(single),
+        secondary_nfb_depth_mm=float(pair[1]) if pair is not None else None,
+    )
+    base_local_front,shallow_local_front = receiving_base_actual_local_nfb_skins(
+        snapshot,physical,
+    )
+    world_offset_z=world.base_nfb_face_world_z_mm-base_local_front
+    if pair is not None:
+        if shallow_local_front is None or abs(
+            (world_offset_z+shallow_local_front)-world.shallow_nfb_face_world_z_mm
+        )>1e-6:
+            raise ValueError("RECEIVING_BASE_SHALLOW_WORLD_SKIN_Z_MISMATCH")
+    elif shallow_local_front is not None:
+        raise ValueError("RECEIVING_FLAT_BASE_UNEXPECTED_SECOND_MOUNTING_FACE")
+    return world_offset_z
+
+
 def resolve_outer_door_placement(snapshot: Mapping[str, object], stable_id: str) -> AssemblyPlacement:
     """Resolve a formal Door cell from topology plus the family front datum."""
     columns, cell = _door_cell_from_part_key(snapshot, stable_id)
@@ -182,15 +231,49 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
     """
     stable_id = str(stable_id or "").strip()
     if stable_id == "base_plate":
-        position = (0.0, 0.0, _base_plate_center_plane(snapshot))
+        model=str(snapshot.get("model") or "").strip()
+        source_z=(
+            _receiving_source_nfb_base_center_z(snapshot)
+            if model in {"受電箱","RECEIVING"} else None
+        )
+        verified_source=source_z is not None
+        # #1502 CURRENT confirmed assembly: the base is ALWAYS cabinet
+        # centered in X; the +/-335mm ear mounting columns never translate.
+        # NFB horizontal X corrections move ONLY NFB screw-hole CUTTING on
+        # the stationary plate. The NFB tier's Y opening height DOES place
+        # that tier's plate in Y, and its real NFB depth controls Z.
+        # Ear BEND / side-sheet MARKING still require physical certification.
+        # Do not confuse outer Door lower compartment with NFB second tier.
+        if verified_source:
+            upper = [
+                row for row in tuple(snapshot.get("inner_doors") or ())
+                if isinstance(row, Mapping)
+                and str(row.get("cell_key") or "").split(":")[-1] == "0"
+                and str(row.get("stable_id") or "").strip()
+            ]
+            if len(upper) != 1:
+                raise ValueError("RECEIVING_NFB_BASE_XY_REQUIRES_UNIQUE_UPPER_DOOR")
+            from .receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
+            centers = receiving_nfb_layer_centers(snapshot, str(upper[0]["stable_id"]))
+            if len(centers) != 1:
+                raise ValueError("RECEIVING_NFB_BASE_NEEDS_ONE_PHYSICAL_PART_PER_TIER")
+            center = centers[0]
+            position = (0.0, float(center.world_y_mm), float(source_z))
+        else:
+            # Legacy preview without a source-verified NFB mounting depth.
+            # Never claim this unconfigured placeholder is a certified plate.
+            position = (0.0, 0.0, _base_plate_center_plane(snapshot))
         return AssemblyPlacement(
             stable_id=stable_id,
             parent_assembly_node="box_body",
-            anchor="box_body:center:base_plate",
+            anchor=("inner_door:source_nfb_physical_skin"
+                    if verified_source else "box_body:center:base_plate"),
             world_offset=position,
             rotation=(0.0, 0.0, 0.0),
-            mate_target="box_body:base_plate_plane",
-            relationship="BASE_PLATE",
+            mate_target=("inner_door:nfb_mount_depth"
+                         if verified_source else "box_body:base_plate_plane"),
+            relationship=("RECEIVING_NFB_SKIN_DEPTH"
+                          if verified_source else "BASE_PLATE"),
             placement_kind="base_plate",
             semantic_position=position,
         )

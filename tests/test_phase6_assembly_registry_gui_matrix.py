@@ -7,6 +7,7 @@ save-reload acceptance case automatically.
 """
 from __future__ import annotations
 
+import time
 import tkinter as tk
 
 import pytest
@@ -46,7 +47,7 @@ def _destroy(app, root):
 
 
 @pytest.mark.parametrize("intent", REGISTERED_CERTIFIED_INTENTS, ids=lambda item: item.value)
-def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent, tmp_path):
+def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent, tmp_path, record_property):
     import fold_designer_bridge as bridge
     import gui
 
@@ -54,9 +55,25 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
     app = gui.BoxCalculatorGUI(root)
     save_path = tmp_path / f"assembly-{intent.value}.p6fold"
     try:
+        # #1796: measure the real Tk owner's authoritative Scheduler, not
+        # just the 2D/3D result. No machine-specific wall-time SLA is imposed.
+        scheduler = app._phase6_update_scheduler
+        app._flush_phase6_authoritative_state()
+        before = scheduler.metrics_snapshot()
+        started = time.perf_counter()
         app._set_box_assembly_type(
             intent, recalculate=True, notify_designer=False, reset_bottom_defaults=False
         )
+        app._flush_phase6_authoritative_state()
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
+        after = scheduler.metrics_snapshot()
+        deltas = {key: after[key] - before[key] for key in before}
+        record_property("issue1796_assembly_intent_scheduler", repr({
+            "intent": intent.value, "metrics": deltas, "wall_ms": elapsed_ms,
+        }))
+        assert deltas["calculation_flushes"] <= 1, (intent, deltas)
+        assert scheduler.dirty == set(), (intent, scheduler.dirty)
+        assert scheduler._after_job is None, intent
         assert app._current_box_assembly_type() is intent
 
         designer = app.open_original_fold_designer()

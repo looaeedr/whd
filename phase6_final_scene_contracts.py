@@ -35,6 +35,9 @@ class AssemblySceneRenderData:
     collision_certification_diagnostics: tuple[object, ...] = ()
     selected_joint_id: str | None = None
     preserve_endcap_core_origin: bool = False
+    # Display-only source-verified T2 formed EAR skins; never manufacturing
+    # parts or exportable materials. Built on demand, cached by the adapter.
+    formed_fixing_plate_skins: tuple[object, ...] = ()
 
 
 @dataclass(frozen=True)

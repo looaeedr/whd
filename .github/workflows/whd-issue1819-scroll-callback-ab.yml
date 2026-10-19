@@ -1,0 +1,134 @@
+name: WHD #1819 Tk Callback Owner Before-After Memory
+
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'phase6_settings_panel.py'
+      - 'tests/test_issue1819_settings_scroll_callback_lifecycle.py'
+      - '.github/workflows/whd-issue1819-scroll-callback-ab.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-issue1819-scroll-ab-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  same-runner-before-after:
+    name: Baseline vs fixed real 1-Bay Tk RSS (same runner)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      TZ: Asia/Taipei
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONHASHSEED: '0'
+      MPLBACKEND: TkAgg
+    steps:
+      - name: Checkout exact fixed candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install actual Tk and engineering dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt matplotlib psutil pytest
+      - name: Create isolated baseline checkout at PR base
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p work/issue1819-ab
+          git worktree add --detach "$RUNNER_TEMP/whd-issue1819-before" "$BASE_SHA"
+          test "$(sha256sum config.ini | awk '{print $1}')" = \
+               "$(sha256sum "$RUNNER_TEMP/whd-issue1819-before/config.ini" | awk '{print $1}')"
+          {
+            echo "before_sha=$BASE_SHA"
+            echo "after_sha=$(git rev-parse HEAD)"
+            echo "kind=SAME_RUNNER_REAL_TK_RSS_AB_NOT_WINDOWS_UAT"
+            echo "window=1 Bay, 12 cycles, 3D after rapid display return"
+            python -V
+            uname -a
+            sha256sum config.ini
+          } > work/issue1819-ab/manifest.txt
+      - name: Run unmodified baseline 1-Bay true GUI cycles
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE"
+          cd "$RUNNER_TEMP/whd-issue1819-before"
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/whd_performance_baseline.py \
+            --worker --bays 1 --worker-sample 0 --cycles 12 --memory-interval-ms 50 \
+            --output "$ROOT/work/issue1819-ab/before.jsonl" \
+            > "$ROOT/work/issue1819-ab/before.log" 2>&1
+      - name: Run candidate 1-Bay true GUI cycles on SAME runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1600x1000x24" \
+            python tools/whd_performance_baseline.py \
+            --worker --bays 1 --worker-sample 0 --cycles 12 --memory-interval-ms 50 \
+            --output work/issue1819-ab/after.jsonl \
+            > work/issue1819-ab/after.log 2>&1
+      - name: Compare same-state per-cycle RSS, not arbitrary peak
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import statistics
+          from pathlib import Path
+          root = Path("work/issue1819-ab")
+          results = {}
+          for kind in ("before", "after"):
+              rows = [json.loads(line) for line in (root / f"{kind}.jsonl").read_text(encoding="utf-8").splitlines()]
+              errors = [x for x in rows if x.get("status") != "ok"]
+              if errors:
+                  raise SystemExit(f"{kind.upper()}_REAL_GUI_FAILURE: {errors[:2]}")
+              values = [int(x["rss_after"]) for x in rows
+                        if x.get("operation") == "issue1818_rapid_2d_3d_final_state"
+                        and x.get("rss_after") is not None]
+              if len(values) != 12:
+                  raise SystemExit(f"{kind.upper()}_INCOMPLETE_SAME_STATE_CYCLES: {len(values)}")
+              early = statistics.median(values[3:7])
+              late = statistics.median(values[8:12])
+              results[kind] = {
+                  "cycles": 12, "rss_each_cycle_bytes": values,
+                  "early_four_median_bytes": early,
+                  "late_four_median_bytes": late,
+                  "post_warmup_delta_bytes": late - early,
+                  "first_to_last_bytes": values[-1] - values[0],
+              }
+          results["delta_fixed_minus_baseline_bytes"] = (
+              results["after"]["post_warmup_delta_bytes"]
+              - results["before"]["post_warmup_delta_bytes"]
+          )
+          results["interpretation"] = (
+              "observed RSS in identical operations and same runner; "
+              "not proof of all GUI owners fixed or Windows UAT"
+          )
+          print(json.dumps(results, ensure_ascii=False, indent=2))
+          (root / "comparison.json").write_text(
+              json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"
+          )
+          PY
+      - name: Retain exact before/after worker logs and raw RSS
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-issue1819-scroll-owner-before-after
+          path: work/issue1819-ab/
+          if-no-files-found: warn
+          retention-days: 14

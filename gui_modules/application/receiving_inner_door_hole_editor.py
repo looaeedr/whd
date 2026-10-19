@@ -13,6 +13,20 @@ def is_inner_door_sheet(part_key: object) -> bool:
 
 
 
+def inner_door_commit_target(settings_mode):
+    """Binding is the actual launch entry, NEVER global set_bay/quantity data.
+
+    Only the explicit 多連設定 inner-door editor receives candidate ownership.
+    Ordinary board/corner/part-preview and 單只 settings write physical parts
+    on the parent editor Confirm All. NFB tab Confirm never writes either.
+    """
+    if settings_mode == "candidate":
+        return "candidate"
+    if settings_mode in (None, "single"):
+        return "physical"
+    raise ValueError("未知的內門編輯來源")
+
+
 def inner_door_work_area_guide(snapshot, panel, structural):
     """Project the source door-layout cell into the local inner-door editor.
 
@@ -53,15 +67,24 @@ def inner_door_work_area_guide(snapshot, panel, structural):
     )
 
 
-def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, from_part_preview=False):
+def open_inner_door_hole_editor(
+    app, part_key: str, *, from_corner_data=False, from_part_preview=False,
+    settings_mode=None, initial_features=None, on_settings_confirm=None,
+    selected_candidate_version=None, physical_snapshot=None,
+):
     """Open the existing Vault Door hole editor; preserve view-only Corner Data selection."""
     if not is_inner_door_sheet(part_key):
         raise ValueError("不是可開孔編輯的內門門板")
     workspace = app.designer_workspace
-    if part_key not in workspace.available_parts:
+    if settings_mode is None and part_key not in workspace.available_parts:
         raise ValueError("內門門板目前不在有效板件清單")
     host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
-    if str(workspace.active_part) != part_key:
+    # Use the entry identity captured at window creation, not the project's
+    # stored Set/Bay data or another settings window's existence.
+    inner_door_commit_target(settings_mode)
+    # An explicit settings-button entry already identifies this physical panel;
+    # the old panel-double-click path still requires active-part selection.
+    if settings_mode is None and str(workspace.active_part) != part_key:
         corner_selected = (
             from_corner_data
             and str(getattr(app, "_phase6_3d_display_mode", "") or "") == "corner_data"
@@ -79,12 +102,13 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
 
     from ae_engine.cabinet_types import policy as cabinet_family_policy
     from ae_engine.sheetmetal_part_adapters import (
-        build_door_result, DoorFrameEdges,
+        build_door_result, build_finished_reference_guide, DoorFrameEdges,
     )
     from ae_engine.sheetmetal_features import feature_surface_from_structural_result
     from ae_engine import manufacturing_api
 
-    snapshot = dict(app._phase6_input_snapshot)
+    snapshot = dict(app._phase6_input_snapshot if physical_snapshot is None
+                    else physical_snapshot)
     panel = next((
         item for item in cabinet_family_policy.derive_inner_door_panels(snapshot)
         if item.stable_id == part_key
@@ -104,13 +128,21 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         ),
     )
     surface = feature_surface_from_structural_result("door", structural)
-    guide = inner_door_work_area_guide(snapshot, panel, structural)
+    # Original checkbox: OFF measures from the real inner-door finished face;
+    # ON measures from its authoritative full work-area (e.g. 800 x 1100).
+    door_guide = build_finished_reference_guide(
+        "door", structural, finished_width=panel.width,
+        finished_height=panel.height,
+    )
+    work_area_guide = inner_door_work_area_guide(snapshot, panel, structural)
     # The inner-door hole UI must show the same physical CUTTING/BEND as
     # its produced DXF. Reuse Vault certified folding/corner rules without
     # importing the OUTER Vault Door's fixed handle/nameplate holes into a
     # Receiving inner-door/NFB physical hole owner.
     render = manufacturing_api.build_inner_door_panel_render_data(panel)
-    features = workspace.features_for(part_key)
+    from copy import deepcopy
+    features = (workspace.features_for(part_key) if initial_features is None
+                else deepcopy(list(initial_features)))
 
     def commit():
         # Workspace is authoritative; original outer Door holes remain separate.
@@ -127,12 +159,54 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
             if callable(refresh):
                 refresh()
 
+    def confirm_settings(final_features):
+        # Hole Editor calls this ONLY on 確定全部.  No candidate / Bay writes
+        # occur on its live sync or on 取消全部.
+        editor = getattr(host, "last_unified_hole_editor", None)
+        staged = getattr(editor, "_receiving_staged_config", None)
+        if on_settings_confirm is not None:
+            on_settings_confirm(part_key, deepcopy(list(final_features)), staged)
+        else:
+            workspace.stash_features(part_key, deepcopy(list(final_features)))
+            if str(workspace.active_part) == part_key:
+                app._load_part_holes(part_key)
+            app.submit_update_intent("geometry", commit=True)
+            if (from_corner_data and str(getattr(
+                    app, "_phase6_3d_display_mode", "") or "") == "corner_data"):
+                refresh = getattr(app, "_phase6_refresh_corner_data_unfold_view", None)
+                if callable(refresh):
+                    refresh()
+
+    # Nested settings dialogs may own a grab. The original editor, not the
+    # settings dialog, owns interaction until 確定全部／取消全部.
+    root = getattr(app, "root", None)
+    parent_modal = (getattr(root, "_receiving_multi_settings_window", None)
+                    if settings_mode is not None and root is not None else None)
+    if settings_mode is not None and parent_modal is not None and parent_modal.winfo_exists():
+        if parent_modal.grab_current() is parent_modal:
+            parent_modal.grab_release()
+
+    def restore_settings_dialog():
+        if (parent_modal is not None and parent_modal.winfo_exists()
+                and parent_modal.grab_current() is None):
+            parent_modal.grab_set()
+            parent_modal.lift()
+
     title = "內門門板：" + str(panel.inner_door_id)
     window = host._open_unified_hole_editor(
         part_key, title, surface, structural.width, structural.height,
-        reference_guide=guide,
+        # The operator editor always DISPLAYS the full work area (800x1100).
+        # The checkbox changes measurement authority, not the shown size.
+        reference_guide=work_area_guide,
+        local_reference_guide=door_guide,
+        cabinet_reference_guide=work_area_guide,
         feature_list_override=features,
-        sync_callback=commit,
+        # Every entry stays transient until native Confirm All, including
+        # direct Corner Data / board-preview routes. Cancel All must never
+        # leave a Receiving-tab NFB in the physical workspace.
+        sync_callback=lambda: None,
+        **({"on_close": restore_settings_dialog} if settings_mode is not None else {}),
+        on_confirm_features=confirm_settings,
         door_frame_edges=DoorFrameEdges(
             left=False, right=False, top=False, bottom=False,
         ),
@@ -140,7 +214,32 @@ def open_inner_door_hole_editor(app, part_key: str, *, from_corner_data=False, f
         baseline_scene=render.scene,
         baseline_status_text="金庫型門板共用折彎／截角；內門孔位獨立",
     )
-    return window or getattr(host, "last_unified_hole_editor", None)
+    editor = window or getattr(host, "last_unified_hole_editor", None)
+    if settings_mode is not None:
+        editor._receiving_staged_config = None
+        editor._receiving_settings_mode = settings_mode
+        editor._receiving_candidate_version = selected_candidate_version
+    receiving_page = getattr(editor, "_receiving_config_frame", None)
+    if receiving_page is not None:
+        # Reuse the existing Receiving Set/Bay candidate/NFB data authority,
+        # placing its widgets inside the original Hole Editor's 受電箱 tab.
+        # The receiving tab's composition owner is the Fold Designer `app`.
+        # `host` is the primary GUI owning the generic hole editor, and
+        # must never be used for Receiving-specific navigation ports.
+        build_receiving_tab = getattr(
+            app, "_phase6_open_embedded_receiving_inner_editor", None,
+        )
+        if callable(build_receiving_tab):
+            build_receiving_tab(receiving_page)
+        else:
+            # Legacy preview/test hosts do not always mount the Assembly
+            # coordinator. They must still open the original Hole Editor.
+            # Production Bridge installs this port before any navigation.
+            from tkinter import ttk
+            ttk.Label(
+                receiving_page, text="目前未提供受電箱設定入口",
+            ).pack(anchor="w", padx=12, pady=12)
+    return editor
 
 
 def sync_inner_door_hole_editor_button(app, part_key: str) -> None:

@@ -19,6 +19,28 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    # #1795: live Tk Main GUI / 3D revision, initialization, runtime-only sync.
+    "tests/test_phase6_sync_envelope.py",
+    # #1792: canonical full-file GUI/3D runtime performance acceptance.
+    "tests/test_phase6_gui_performance_contract.py",
+    # #1794: immutable DXF reload/source-fail gate + derived invalidation.
+    "tests/test_phase6_derived_cache_owner.py",
+    "tests/test_phase6_part_switch_performance.py",
+    # CADCraft experimental DXF viewer must not modify the existing Hole Editor.
+    "tests/test_cadcraft_hole_editor_preview.py",
+    "tests/test_cadcraft_hole_editor_tk_opt_in.py",
+    # #1817: cached per-Bay Receiving preview must track adjacent Joint and
+    # preceding world placements, but not unrelated trailing W/H/D.
+    "tests/test_issue1817_preview_dependency_cache.py",
+    # #1819: loaded .p6fold projects must retire old Bay scene/material caches.
+    "tests/test_phase6_project_controller.py::test_issue1819_loading_project_releases_prior_designer_derived_scenes",
+    "tests/test_phase6_project_controller.py::test_issue1819_failed_project_load_preserves_current_valid_cache",
+    "tests/test_issue1819_manufacturing_cache_bounds.py",
+    "tests/test_issue1819_real_manufacturing_dxf_parity.py",
+    "tests/test_issue1819_manufacturing_cache_rss_plateau.py",
+    "tests/test_issue1819_settings_scroll_callback_lifecycle.py",
+    "tests/test_manufacturing_mesh_reuse.py",
+    "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",
     "tests/test_issue1464_custom_manufacturing.py",
     "tests/test_issue1465_quantity_ui.py",
@@ -32,6 +54,55 @@ PYTEST_PATHS = (
     "tests/test_issue1501_live_partial_writer.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+    # #1503: per-tier physical Base Plate skin + EAR target Z unified regression.
+    "tests/test_receiving_tier_ear_assembly_xy.py",
+    "tests/test_receiving_tier_ear_z_targets.py",
+    # #1503: every source-defined layer ear must be its own real geometry and XY/Z owner.
+    "tests/test_receiving_tier_fixing_plate_owner_ids.py",
+    # #1503: actual folded 3D Base Plate skin must match EACH source EAR target.
+    "tests/test_issue1503_actual_assembly_ear_contact_receipt.py",
+    "tests/test_issue1503_revised_bend_formed_skins.py",
+    # #1503: formed T2 BEND23 actual assembly 3D overlay / no false MFG.
+    "tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py",
+    # #1503: only real bent flange skin may define side-panel weld contact.
+    "tests/test_issue1503_formed_ear_side_contact.py",
+    # #1503: side-owned physical UV contact and CUTTING/BEND conflict proof.
+    "tests/test_issue1503_real_side_uv_backprojection.py",
+    "tests/test_issue1503_side_marking_preview_collision.py",
+    # #1503: selected GUI side 2D-only EAR marks, never manufacturing part.
+    "tests/test_issue1503_real_side_piece_2d_preview.py",
+    # #1503: actual opposed EAR+SIDE skin fit, never weld release.
+    "tests/test_issue1503_real_ear_side_weld_skin_mating.py",
+    # #1503 source EAR/SIDE CHECK-only DXF must roundtrip as an atomic pair.
+    "tests/test_issue1503_ear_side_check_only_dxf.py",
+    # #1503 real operator GUI CHECK-only entry is separate from manufacturing.
+    "tests/test_issue1503_ear_side_check_gui_entry.py",
+    # #1503: real GUI invocation and side CHECK UV parity after project reload.
+    "tests/test_issue1503_ear_side_check_gui_e2e_save_reload.py",
+    # #1503: actual Primary 3D Tk startup must SHOW the operator button.
+    "tests/test_issue1503_primary_real_tk_check_button.py",
+    # #1503 real physical SIDE sheet-only manufacturing marking (not full box/PAD).
+    "tests/test_issue1503_side_only_production_marking.py",
+    "tests/test_issue1503_side_only_mfg_gui.py",
+    # #1503: normal selected-DXF auto side weld MARKING, no extra UI buttons.
+    "tests/test_issue1503_auto_side_marks_in_normal_export.py",
+    # #1503 Windows real project-open UAT: current per-hole CSV V5 identity survives .p6fold v3.
+    "tests/test_issue1503_nfb_v5_p6fold_roundtrip.py",
+    "tests/test_receiving_two_tier_physical_base_parts.py",
+    # #1503 actual native Tk Confirm All -> physical CSV NFB -> 2D/3D
+    # Base Plates and true four EAR-side 3D MARKING, including multi candidate
+    # storage-before-Apply and per-Bay physical isolation. Exact CI required:
+    # source DTO-only GREEN is NOT a substitute for these real GUI tests.
+    "tests/test_issue1503_csv_committed_config.py",
+    "tests/test_issue1503_quantity_nfb_source_owner.py",
+    "tests/test_issue1503_nfb_manufacturing_transport.py",
+    "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+    "tests/test_issue1503_primary_2d_ear_source_authority.py",
+    "tests/test_issue1503_primary_receiving_base_plate_source.py",
+    "tests/test_issue1503_multi_candidate_nfb_apply_gui.py",
+    "tests/test_issue1503_multi_nfb_bay_isolation.py",
+    # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
+    "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
     "tests/test_issue1494_nfb_x_shadow_projection.py",
     "tests/test_issue1496_index_color_evidence.py",
     "tests/test_issue1496_nfb_dxf_source.py",
@@ -89,6 +160,11 @@ PYTEST_PATHS = (
     "tests/test_issue1502_editable_nfb_source_format.py",
     "tests/test_issue1502_receiving_single_base_workspace.py",
     "tests/test_issue1502_nfb_base_source_projection.py",
+    # V5 CSV is the current source of NFB openings and screw pitches.
+    "tests/test_issue1502_v5_csv_base_x_stable.py",
+    # Same V5 CSV source geometry on separate, truly owned NFB-tier plates.
+    "tests/test_issue1502_v5_csv_tier_bases.py",
+    "tests/test_issue1502_v5_csv_check_q_preview.py",
     "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
     "tests/test_issue1502_nfb_finalscene_composite.py",
     "tests/test_issue1502_lower_four_nfb_mount_source.py::test_only_original_lower_four_circles_are_mounting_screws",
@@ -122,21 +198,52 @@ PYTEST_PATHS = (
     "tests/test_issue63_regression_red.py",
     "tests/test_issue71_divider_relief_components.py",
     "tests/test_issue74_divider_side_front_penetration.py",
+    # Retired mirrored-LEFT +T relief must never silently re-enter CUTTING.
+    "tests/test_issue83_divider_cross_registry.py",
     # /debug: 7mm C slot / real first-22 Z witness must be truly selected.
     "tests/test_receiving_C_slot_22mm_real_world_debug.py",
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
     # Tk/Xvfb contract: real mapped modal windows, highlights and multi-Bay apply.
+    "tests/test_receiving_multi_settings_stage_20261010.py::test_issue1791_main_sketch_configure_burst_coalesces_one_idle_paint",
+    "tests/test_receiving_multi_settings_stage_20261010.py::test_issue1791_cancelled_idle_redraw_never_paints_destroyed_canvas",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_modal_fullscreen_strict_controls_apply_and_highlight",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_compact_candidates_and_set_controls_use_original_combobox",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_sketch_multi_highlights_drive_existing_endcap_edits_without_link_buttons",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_last_highlight_can_be_cleared_without_implicit_reselection",
     "tests/test_receiving_multi_settings_stage_20261010.py::test_inner_door_version_applies_to_both_highlighted_bays",
+    # #1818: real Tk reentrant preview requests must never render stale
+    # geometry or write stale errors after candidate switch / window close.
+    "tests/test_receiving_multi_settings_stage_20261010.py::test_issue1818_real_cut_preview_latest_selection_wins_during_reentrant_provider",
+    # #1818: 3D FinalScene last valid operator choice wins after nested Tk
+    # callbacks, and old provider failures must never repaint the newer view.
+    "tests/test_phase6_3d_operator_view.py::test_issue1818_reentrant_3d_render_only_publishes_latest_view",
+    # Real live designer viewport/camera interaction, not a mocked canvas.
+    "tests/test_phase6_3d_view_regressions.py::test_real_tk_3d_only_layout_scroll_zoom_and_unfolded_size_label",
+    # True rendered 3D geometry hit, not currently highlighted sidebar part.
+    "tests/test_phase6_3d_mesh_hole_entry.py",
     "tests/test_issue1640_mode_navigation.py::test_mode_toggle_and_manager_stay_operable_without_forced_window_exit",
     "tests/test_issue1640_floating_scroll.py::test_real_popup_reuses_one_nonmodal_toplevel_without_applying_candidate",
     "tests/test_receiving_weld_ear_mounting.py",
+    # Revised uploaded 固定片.dxf T2 actual BEND23 and moved CUTTING slots.
+    "tests/test_issue1503_revised_fixed_plate_source_bend.py",
     "tests/test_issue1050_receiving_mother_plate_marking.py",
     "tests/test_receiving_inner_frame_last_flange_contact.py",
     "tests/test_phase6_t15_inner_door_panels.py",
+    "tests/test_issue1901_inner_door_feature_candidates.py",
+    "tests/test_issue1901_receiving_editor_commit_boundary.py",
+    # NFB subtab is draft-only; main Confirm routes by the actual entry, not project mode.
+    "tests/test_receiving_nfb_entry_scoped_transactions.py",
+    "tests/test_issue1901_receiving_settings_editor_buttons.py",
+    "tests/test_issue1901_verified_nfb_editor_import.py",
+    "tests/test_issue1901_single_quantity_source_proof.py",
+    "tests/test_issue1901_csv_native_editor.py",
+    # CSV recheck invalidates old physical GUI scenes and source label.
+    "tests/test_issue1901_csv_preview_invalidation.py",
+    "tests/test_issue1901_inner_editor_atomic_confirm.py",
+    # User: Receiving inner door holes belong to original Hole Editor; no duplicate CSV opening popups.
+    "tests/test_receiving_inner_editor_no_csv_opening_popup.py",
+    "tests/test_receiving_native_nfb_tab_flow.py",
+    "tests/test_receiving_nfb_main_canvas_visual.py",
     "tests/test_phase6_t16_receiving_placement.py",
     "tests/test_phase6_t17_receiving_inner_door_80.py",
     "tests/test_issue1113_receiving_joint_lock_geometry.py",
@@ -152,11 +259,22 @@ PYTEST_PATHS = (
     "tests/test_final_scene_input_to_assembly_direction.py::test_physical_3d_input_preview_never_reads_back_from_assembly",
     "tests/test_final_scene_input_to_assembly_direction.py::test_manufacturing_adapter_reads_active_3d_input_not_assembly_result",
     "tests/test_phase6_3d_single_source_renderer.py::test_2d_and_3d_equal_door_state_share_exact_render_data_object",
+    # Real W800, single & assembled doors, and all FinalScene skins must be grid-free.
+    "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_real_receiving_all_panels_shaded_without_triangle_edges",
+    # Real raster check: translucent sheet facets render without seams.
+    "tests/test_phase6_gridless_surface_opacity.py",
+    "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_flat_part_keeps_authoritative_bend_and_marking_with_no_mesh_lines",
+    "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_single_door_cutting_rims_and_bends_without_mesh_edge_overlay",
+    "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_outer_door_assembly_renders_real_cutting_rim_and_source_bend",
+    "tests/test_phase6_3d_single_source_renderer.py::test_all_final_scene_parts_do_not_restore_triangle_grid_overlays",
     "tests/test_phase6_assembly_3d_view.py::test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum",
     # All certified assembly intents: real Tk/Xvfb 2D/3D, collision-probe opt-in and reload parity.
     "tests/test_phase6_assembly_registry_gui_matrix.py",
     # Corner-policy rule duplicates must fail closed, using the real policy owner.
     "tests/test_certified_relief_registry_completion.py",
+    # #1796: real Tk Main GUI and connected Designer persistence boundaries.
+    "tests/test_phase6_project_file.py::test_global_save_save_as_and_open_round_trip_project_without_forcing_3d",
+    "tests/test_phase6_project_file.py::test_main_connected_designer_project_save_as_persists_current_live_canonical_state",
     "tests/test_phase6_project_file.py::test_project_round_trip_preserves_verified_joint_relief_state",
     "tests/test_phase6_project_file.py::test_p6fold_round_trip_preserves_receiving_bottom_wrap_linkage_and_reserves",
 )
@@ -206,7 +324,7 @@ def _source_authority_scan() -> None:
 
 def _run_bridge_guard() -> None:
     # This guard compares against an immutable historical Git baseline using
-    # ``git show``.  The canonical Drive root intentionally has no .git
+    # ``git show``.  A non-Git external-storage root may intentionally have no .git
     # metadata, so root verification runs the same behavioral regression test
     # but defers this Git-history-only proof to clean PR CI.
     if not (ROOT / ".git").exists():
@@ -235,18 +353,36 @@ def _run_bridge_guard() -> None:
 
 
 
+# #1817: measured 2026-10-17 exact HEAD b7c06bdb full Product Regression
+# run 39015604209 showed round-robin shard pytest durations 346.88/146.53/
+# 101.31 seconds. These are three whole-file heavy suites, never split test
+# cases or modify expectations. Move them by observed cost while preserving
+# every canonical selector exactly once and the existing runner/count contract.
+# Other shard counts continue using the original deterministic interleave.
+_THREE_SHARD_SUITES = {
+    "tests/test_issue517_receiving_live_switch_ui_export_marking.py": 2,
+    "tests/test_issue1463_receiving_modes.py": 1,
+    "tests/test_issue1469_v15_acceptance.py": 0,
+}
+
+
 def shard_paths(index: int, count: int) -> tuple[str, ...]:
     """Partition the exact canonical case selectors, never sample or drop any."""
     if count < 1 or count > len(PYTEST_PATHS) or not 0 <= index < count:
         raise ValueError(f"invalid regression shard {index}/{count}")
-    return PYTEST_PATHS[index::count]
+    if count != 3:
+        return PYTEST_PATHS[index::count]
+    return tuple(
+        path for position, path in enumerate(PYTEST_PATHS)
+        if _THREE_SHARD_SUITES.get(path, position % count) == index
+    )
 
 
 def _pytest_command(junit_path=None, paths=None) -> list[str]:
     selected = tuple(PYTEST_PATHS if paths is None else paths)
     if not selected:
         raise ValueError("product regression shard cannot be empty")
-    command = [sys.executable, "-m", "pytest", "-q", "--disable-warnings",
+    command = [sys.executable, "-m", "pytest", "-vv", "--disable-warnings",
                "--durations=15", *selected]
     if junit_path is not None:
         command.extend(("--junitxml", str(junit_path), "-o", "junit_logging=system-out"))
@@ -298,7 +434,14 @@ def run(index: int = 0, count: int = 1, junit_out: Path | None = None) -> int:
     with tempfile.TemporaryDirectory(prefix="whd-v15-acceptance-") as tmp:
         report = junit_out or (Path(tmp) / "product-regression.xml")
         report.parent.mkdir(parents=True, exist_ok=True)
-        rc = subprocess.call(_pytest_command(report, selected), cwd=ROOT)
+        # Verbose case names identify a stalled selector. Bound a complete
+        # shard to 15 minutes rather than leaving the runner stuck until its
+        # 50-minute job cancellation; timeout remains a hard CI failure.
+        try:
+            rc = subprocess.call(_pytest_command(report, selected), cwd=ROOT, timeout=900)
+        except subprocess.TimeoutExpired:
+            print(f"WHD_SHARD_TIMEOUT shard={index}/{count} limit=900s", flush=True)
+            rc = 124
         if rc == 0:
             if count == 1:
                 _verify_full_receipt(report)

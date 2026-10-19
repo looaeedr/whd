@@ -10,6 +10,7 @@ class _Phase6UpdateScheduler:
     DEFAULT_DEBOUNCE_MS = 75
     MIN_DEBOUNCE_MS = 50
     MAX_DEBOUNCE_MS = 100
+    MAX_REENTRANT_FLUSH_PASSES = 16
     _DISPLAY_ONLY_REASONS = frozenset({"display", "annotation", "camera"})
     _FULL_REASONS = frozenset({"geometry", "assembly", "baseline"})
 
@@ -18,6 +19,9 @@ class _Phase6UpdateScheduler:
         self.executor = executor
         self.depth = 0
         self.dirty = set()
+        # Modal editor batch: pending work must be visible to explicit
+        # Save/Export flush_now, but not execute on Tk idle during the modal.
+        self.staged = set()
         self._flushing = False
         self._after_job = None
         self._metrics = {
@@ -47,6 +51,15 @@ class _Phase6UpdateScheduler:
 
     def mark_dirty(self, reason="geometry"):
         return self.submit(reason)
+
+    def stage(self, reason="geometry"):
+        """Hold modal changes until close or explicit authoritative Save/Export.
+
+        Unlike submit(), never enqueue a Tk idle timer. An explicit flush_now()
+        always drains staged changes; this is NOT a permanent debounce.
+        """
+        self.staged.add(str(reason or "geometry"))
+        return True
 
     @classmethod
     def _normalize_debounce_ms(cls, debounce_ms):
@@ -86,7 +99,12 @@ class _Phase6UpdateScheduler:
         self.flush_now()
 
     def flush_now(self):
-        if self.depth > 0 or self._flushing or not self.dirty:
+        if self.depth > 0 or self._flushing:
+            return False
+        if self.staged:
+            self.dirty.update(self.staged)
+            self.staged.clear()
+        if not self.dirty:
             return False
         if self._after_job is not None:
             root = getattr(self.owner, "root", None)
@@ -96,29 +114,62 @@ class _Phase6UpdateScheduler:
             except Exception:
                 pass
             self._after_job = None
-        reasons = set(self.dirty)
-        self.dirty.clear()
+
+        # The executor may trigger a Tk trace that submits another intent.
+        # Drain those intents before returning to a Save/DXF flush boundary;
+        # never call the executor recursively while it is already running.
         self._flushing = True
+        exceeded_limit = False
         try:
-            self._metrics["flushes"] += 1
-            requires_calculation = self._requires_calculation(reasons)
-            metric_key = (
-                "calculation_flushes"
-                if requires_calculation
-                else "display_flushes"
-            )
-            self._metrics[metric_key] += 1
-            if callable(self.executor):
-                self.executor(reasons)
-            elif requires_calculation:
-                self.owner.update_calculations()
-            else:
-                render = getattr(self.owner, "draw_preview", None)
-                if callable(render):
-                    render()
+            for _ in range(self.MAX_REENTRANT_FLUSH_PASSES):
+                # A modal edit may arrive from a Tk callback within the
+                # current executor; explicit flush must drain that last edit.
+                if self.staged:
+                    self.dirty.update(self.staged)
+                    self.staged.clear()
+                if self.depth > 0 or not self.dirty:
+                    break
+                reasons = set(self.dirty)
+                self.dirty.clear()
+                self._metrics["flushes"] += 1
+                requires_calculation = self._requires_calculation(reasons)
+                metric_key = (
+                    "calculation_flushes"
+                    if requires_calculation
+                    else "display_flushes"
+                )
+                self._metrics[metric_key] += 1
+                if callable(self.executor):
+                    self.executor(reasons)
+                elif requires_calculation:
+                    self.owner.update_calculations()
+                else:
+                    render = getattr(self.owner, "draw_preview", None)
+                    if callable(render):
+                        render()
+                # A trace that republishes the reason currently being handled
+                # belongs to this same calculation transaction. It is already
+                # covered by the just-finished authoritative update, so avoid
+                # re-entering an identical full solve on every Tk callback.
+                # Distinct reasons remain queued for the next bounded pass.
+                self.dirty.difference_update(reasons)
+            if self.depth == 0 and (self.dirty or self.staged):
+                exceeded_limit = True
+                raise RuntimeError(
+                    "GUI update did not settle within the bounded flush; "
+                    "refusing to persist or export stale state"
+                )
         finally:
             self._flushing = False
-        return bool(reasons)
+            if self.depth == 0 and self.dirty and not exceeded_limit:
+                # If an executor raises, preserve newly queued intents and
+                # schedule them on Tk rather than silently losing the last edit.
+                # Without an event loop leave dirty for an explicit later flush,
+                # avoiding recursive execution in headless callers.
+                root = getattr(self.owner, "root", None)
+                if root is not None and hasattr(root, "after"):
+                    self.request_flush()
+        return True
 
     def cancel_pending(self):
         if self._after_job is not None:
@@ -130,6 +181,7 @@ class _Phase6UpdateScheduler:
                 pass
             self._after_job = None
         self.dirty.clear()
+        self.staged.clear()
         self.depth = 0
         return True
 

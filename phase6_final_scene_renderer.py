@@ -52,6 +52,7 @@ from phase6_final_scene_projection import (
 
 
 from phase6_final_scene_render_helpers import Phase6FinalSceneRenderHelpersMixin
+from phase6_final_scene_mesh_display import gridless_mesh_collection
 
 
 class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
@@ -87,8 +88,57 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         self.last_interference_diagnostic = None
         self.last_all_parts_collision_audit = None
         self._all_parts_collision_cache = None
+        self.last_formed_ear_display_ids = ()
+        self.last_receiving_ear_marking_segments = ()
+        # Artist -> authoritative physical Part ID, populated ONLY from
+        # rendered, visible FinalScene material. No mesh is rebuilt for picks.
+        self._hole_pick_artists = []
+        self._hole_double_click_handler = None
+        self._hole_double_click_cid = None
+
+    def set_hole_double_click_handler(self, handler):
+        """Connect the original Hole Editor route to visible 3D sheet skins."""
+        if handler is not None and not callable(handler):
+            raise TypeError("3D Hole Editor callback must be callable")
+        self._hole_double_click_handler = handler
+        if self._hole_double_click_cid is not None:
+            return
+        canvas = getattr(self.renderer, "canvas", None)
+        if canvas is not None and callable(getattr(canvas, "mpl_connect", None)):
+            self._hole_double_click_cid = canvas.mpl_connect(
+                "button_press_event", self.on_hole_mesh_double_click,
+            )
+
+    def on_hole_mesh_double_click(self, event):
+        """Resolve an actual rendered mesh hit; never guess the selected part.
+
+        Matplotlib projects Poly3DCollections into their final 2D visible
+        paths before hit-testing. Its draw-time zorder selects the nearest
+        visible surface when more than one projected sheet overlaps.
+        """
+        if (not getattr(event, "dblclick", False)
+                or getattr(event, "button", None) != 1
+                or getattr(event, "inaxes", None) is not self.renderer.ax3d
+                or not callable(self._hole_double_click_handler)):
+            return None
+        hits = []
+        for index, (artist, part_key) in enumerate(self._hole_pick_artists):
+            if not artist.get_visible() or artist.axes is not self.renderer.ax3d:
+                continue
+            contains, _ = artist.contains(event)
+            if contains:
+                hits.append((artist.get_zorder(), index, part_key))
+        if not hits:
+            return None
+        part_key = max(hits)[2]
+        self._hole_double_click_handler(part_key)
+        return part_key
 
     def render(self, request: FinalSceneViewRequest | None):
+        # Never keep the pick IDs from a prior rendered Bay / visibility state.
+        self._hole_pick_artists = []
+        # Redraw/visibility changes must not reuse stale contact outlines.
+        self.last_receiving_ear_marking_segments = ()
         if request is None:
             self.last_cutting_mesh = []
             self.last_cutting_material = None
@@ -112,7 +162,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     line.remove()
                 except Exception:
                     pass
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
             triangles = []
             materials = []
             box_body_piece_dimension_lines = []
@@ -274,25 +323,21 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 visible_rows.append(piece)
                                 if not piece_placed:
                                     continue
-                                poly = Poly3DCollection(
-                                    piece_placed,
-                                    alpha=(min(0.17, float(request.alpha_bend))
-                                           if divider_in_view else float(request.alpha_bend)),
-                                    facecolor=face,
-                                    edgecolor="none",
-                                    linewidths=0.0,
+                                poly = gridless_mesh_collection(
+                                    piece_placed, facecolor=face,
+                                    opacity=(min(0.17, float(request.alpha_bend))
+                                             if divider_in_view else float(request.alpha_bend)),
                                 )
                                 ax.add_collection3d(poly)
+                                # A box body is several distinct editable
+                                # physical sheets, not one arbitrary "box_body".
+                                self._hole_pick_artists.append((poly, piece_key))
                                 piece_role = str(getattr(piece, "role", "") or "").strip()
-                                if piece_role == "back":
-                                    # Rear panel is a flat operator reference face.  Draw only
-                                    # real physical skin edges (including CUTTING hole rims);
-                                    # do not restore BEND/joint/wireframe overlays.
-                                    self._add_mesh_feature_lines(piece_placed, edge)
-                                else:
-                                    # Render the actual solid without an extra
-                                    # triangulation border overlay.  Real BEND
-                                    # and joint MARKING come from source data.
+                                # Mesh feature extraction can turn individually
+                                # triangulated/nonplanar skins into a visible grid.
+                                # A back panel remains an actual CUTTING solid, but
+                                # has no additional mesh-derived wire overlay.
+                                if piece_role != "back":
                                     self._draw_joint_marking_world_rows(piece.render_data)
                                 triangles.extend(piece_placed)
                             if visible_rows:
@@ -368,40 +413,89 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 )
                 face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
                 opacity = float(request.alpha_bend)
+                # Outer Door is intentionally readable even when the shared
+                # sheet transparency is lowered to inspect the cabinet internals.
+                is_outer_door = (
+                    part_key == "door" or
+                    (part_key.startswith("door_c") and "_r" in part_key)
+                )
+                is_inner_panel = (
+                    part_key.startswith("inner_door:") and part_key.endswith(":panel")
+                )
+                if is_outer_door or is_inner_panel:
+                    opacity = 1.0
                 divider_presentation = _phase6_assembly_part_presentation(part_key, opacity)
                 if divider_presentation is not None:
                     face, edge, opacity = divider_presentation
-                poly = Poly3DCollection(
-                    placed,
-                    alpha=opacity,
-                    facecolor=face,
-                    edgecolor="none",
-                    linewidths=0.0,
+                poly = gridless_mesh_collection(
+                    placed, facecolor=face, opacity=opacity,
                 )
                 ax.add_collection3d(poly)
-                if formed_surface_for_edges is not None:
-                    # The folded mid-surface sits inside the physical T-thick
-                    # sheet and can be depth-occluded.  Draw the feature edges
-                    # of the thickened solid itself so through-hole rims and
-                    # bend/miter edges live on the visible skins.  Keep the
-                    # authoritative mid-surface crease overlay as a fallback
-                    # for long fold spans that do not coincide with a skin rim.
-                    self._add_mesh_boundary_and_crease_lines(
-                        formed_surface_for_edges, edge, creases_only=True
+                self._hole_pick_artists.append((poly, part_key))
+                if is_outer_door or is_inner_panel:
+                    # CUTTING holes must be real material interiors, not
+                    # tessellation outlines. Folded-door crease/BEND geometry
+                    # must likewise remain visible after the opaque door skin
+                    # is drawn; other parts intentionally keep smooth skins.
+                    self._draw_cutting_hole_rims(
+                        part_material, part.x_profile, part.y_profile,
+                        tuple(getattr(part_data, "fold_guides", ()) or ()),
+                        local_reference=local, placement=placement,
+                        dimensions=request.finished_dimensions, offset=offset,
                     )
+                    self._draw_assembly_box_body_bends(
+                        part_data.scene,
+                        tuple(dict(seg) for seg in part.x_profile),
+                        tuple(dict(seg) for seg in part.y_profile),
+                        tuple(getattr(part_data, "fold_guides", ()) or ()),
+                        local, placement, request.finished_dimensions, offset,
+                    )
+                if formed_surface_for_edges is not None:
+                    # Only source CUTTING inner rings get a drawn line.
+                    # Never turn triangulation/normal changes into an overlay.
                     self._draw_endcap_cutting_hole_rims(
                         part_material, part.x_profile, part.y_profile,
                         tuple(getattr(part_data, "fold_guides", ()) or ()),
                         local, formed_surface_for_edges, placement, edge,
                     )
-                elif divider_presentation is not None:
-                    # Show only shared physical creases, never triangulation
-                    # boundaries; preserve the real C-divider solid and holes.
-                    self._add_mesh_boundary_and_crease_lines(
-                        placed, edge, creases_only=True
-                    )
                 triangles.extend(placed)
                 materials.append(part_material)
+            # #1503: show the already source-certified T2/BEND23 folded
+            # fixing plates in the assembled 3D view. The geometry was built
+            # upstream from physical FinalScene and passed as DISPLAY ONLY,
+            # not added to the manufacturing part list/BOM or DXF export.
+            # No triangle-grid edges or invented weld lines.
+            self.last_formed_ear_display_ids = ()
+            visible_ears = []
+            for formed in tuple(getattr(render_data, "formed_fixing_plate_skins", ()) or ()):
+                if (not getattr(formed, "source_bend_verified", False)
+                        or not getattr(formed, "actual_signed_forming_constructed", False)
+                        or getattr(formed, "manufacturing_ready", True)
+                        or getattr(formed, "weld_contact_verified", True)):
+                    raise ValueError("EAR_3D_SOURCE_OR_MANUFACTURING_GATE_FAILED")
+                skin_tris = tuple(
+                    tuple(tuple(float(v) for v in point) for point in face.world)
+                    for face in tuple(formed.mapped_world_skins or ())
+                )
+                if not skin_tris:
+                    raise ValueError("EAR_3D_FORMED_SKIN_EMPTY")
+                poly = gridless_mesh_collection(
+                    skin_tris, facecolor="#f97316", opacity=0.92,
+                )
+                ax.add_collection3d(poly)
+                triangles.extend(skin_tris)
+                visible_ears.append(str(formed.part_id))
+            self.last_formed_ear_display_ids = tuple(visible_ears)
+            # EAR contact lines are MARKING on the mother SIDE plate, not
+            # a mesh-grid overlay or an EAR CUTTING/BEND feature.  Only draw
+            # when the physical box body and its actual side are visible.
+            if visible_part_keys is None or "box_body" in visible_part_keys:
+                self.last_receiving_ear_marking_segments = (
+                    self._draw_receiving_ear_side_markings(
+                        tuple(getattr(render_data, "formed_fixing_plate_skins", ()) or ()),
+                        visible_side_piece_keys=visible_box_body_piece_keys,
+                    )
+                )
             # On-demand WHOLE ASSEMBLY physical audit, independent of legacy
             # EndCap restored-delta visualization. Include all side pieces,
             # divider, inner-door frames, head/tail and future generated parts.
@@ -470,15 +564,11 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         linewidths=3.6, alpha=0.95,
                     ))
             if interference_segments:
-                from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
+                from mpl_toolkits.mplot3d.art3d import Line3DCollection
                 from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
                 if interference_targets:
-                    ax.add_collection3d(Poly3DCollection(
-                        interference_targets,
-                        facecolor="#eab308",
-                        edgecolor="none",
-                        linewidths=0.0,
-                        alpha=0.42,
+                    ax.add_collection3d(gridless_mesh_collection(
+                        interference_targets, facecolor="#eab308", opacity=0.42,
                     ))
                 ax.add_collection3d(Line3DCollection(
                     interference_segments, colors="#eab308", linewidths=2.5,
@@ -564,19 +654,18 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     line.remove()
                 except Exception:
                     pass
-            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
             face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
             for _piece, piece_tris in meshes:
-                poly = Poly3DCollection(
-                    piece_tris, alpha=float(request.alpha_bend), facecolor=face,
-                    edgecolor="none", linewidths=0.0,
+                poly = gridless_mesh_collection(
+                    piece_tris, facecolor=face, opacity=float(request.alpha_bend),
                 )
                 self.renderer.ax3d.add_collection3d(poly)
-                # Back panel rim is a true physical feature. For all other
-                # pieces, BEND comes from the underlying manufacturing scene,
-                # not triangulation boundaries.
-                if str(getattr(_piece, "role", "") or "").strip() == "back":
-                    self._add_mesh_feature_lines(piece_tris, edge)
+                role = str(getattr(_piece, "role", "") or "").strip()
+                if role:
+                    self._hole_pick_artists.append((poly, f"box_body:{role}"))
+                # All Box Body pieces use smooth material skins.
+                # Physical BEND comes from the manufacturing scene below,
+                # never from mesh/normal-derived feature segments.
             self._draw_box_body_structure_bends(
                 render_data, thickness=request.thickness
             )
@@ -642,16 +731,23 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 line.remove()
             except Exception:
                 pass
-        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
         face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
-        poly = Poly3DCollection(
-            triangles,
-            alpha=float(request.alpha_bend),
-            facecolor=face,
-            edgecolor="none",
-            linewidths=0.0,
+        part_key = str(request.part_key)
+        is_door = (
+            part_key == "door"
+            or (part_key.startswith("door_c") and "_r" in part_key)
+            or (part_key.startswith("inner_door:") and part_key.endswith(":panel"))
+        )
+        poly = gridless_mesh_collection(
+            triangles, facecolor=face,
+            opacity=1.0 if is_door else float(request.alpha_bend),
         )
         self.renderer.ax3d.add_collection3d(poly)
+        self._hole_pick_artists.append((poly, part_key))
+        if is_door:
+            self._draw_cutting_hole_rims(
+                material, request.x_profile, request.y_profile, fold_guides,
+            )
         # A shaded solid has no triangulation grid. Explicit source BEND and
         # MARKING stay visible independently of the physical mesh tessellation.
         self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
@@ -704,8 +800,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         self.view_initialized = False
         self.configure_3d_only_figure()
         self.base_renderer_render = self.renderer.render
+        # A request provider can enter a nested Tk event loop. The last
+        # operator view must own the artists, diagnostics and canvas draw.
+        self._view_render_generation = 0
 
         def render_3d_only():
+            self._view_render_generation += 1
+            generation = self._view_render_generation
             canvas = self.renderer.canvas
             requested_draw = getattr(canvas, "draw", None)
             ax = self.renderer.ax3d
@@ -714,6 +815,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             except AttributeError:
                 elev, azim = 30, -45
             ax.clear()
+            self._hole_pick_artists = []
             ax2d = getattr(self.renderer, "ax2d", None)
             if ax2d is not None:
                 ax2d.clear()
@@ -721,9 +823,16 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             apply_mpl_dark_theme(getattr(ax, "figure", None), (ax, ax2d))
             self.configure_3d_only_figure()
             try:
-                self.render(request_provider())
+                request = request_provider()
+                if generation != self._view_render_generation:
+                    return None  # Superseded while querying FinalScene.
+                self.render(request)
+                if generation != self._view_render_generation:
+                    return None
                 self.cutting_mesh_error = None
             except Exception as exc:
+                if generation != self._view_render_generation:
+                    return None  # Do not publish an old error on a newer view.
                 self.last_cutting_mesh = []
                 self.last_cutting_material = None
                 self.cutting_mesh_error = str(exc)
@@ -741,6 +850,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 except Exception:
                     pass
+            if generation != self._view_render_generation:
+                return None
             try:
                 if self.view_initialized:
                     ax.view_init(elev=elev, azim=azim)
@@ -754,6 +865,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 self.scale_current_3d_limits(scale)
             if callable(after_render):
                 after_render()
+            if generation != self._view_render_generation:
+                return None
             if callable(requested_draw):
                 requested_draw()
             return None

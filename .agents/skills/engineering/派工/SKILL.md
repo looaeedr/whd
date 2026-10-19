@@ -8,6 +8,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # /派工
 
+## 不得停止程序 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
+
+承接 `/功能 /DEBUG /派工 /接手 /繼續` 的同一工作鏈；`/功能` 定義需求、`/DEBUG` 解決真實錯誤、`/派工` 直接提交／測試／合併／接下一張。**不得預先設停止程序**；可用工具仍可施工時立即呼叫工具，不可用報告、詢問是否繼續、PR 建立、CI queued、單一步驟受阻當停止理由。被拒操作不繞過權限，在同範圍直接換其他合法動作，續讀、修其他獨立部分、追已有 CI；不重做無關前置。每 2–3 次實質動作回報一次，繼續做。執行位置和 `/推推` 權限按 `AGENTS.md` 原規定。
+
+
 **產品修改先讀再寫**：GitHub／雲端施工者同樣受正式 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1` 約束。先讀相關程式實際函式及呼叫鏈、CURRENT 文檔／基準資料與測試，回報 `SOURCE_READ_EVIDENCE`；未完成即 `SOURCE_READ_PRECONDITION_FAILED`，只准續查、不准先改後補證據。不得因此改走 DC／RC。
 
 ## 全域 DC 預設禁止（施工與整合皆不預設呼叫）
@@ -32,7 +37,7 @@ whd_schema: WHD_DOC_META_V1
 1. **能力核對與啟動**：依 `DISPATCH_SELF_EXECUTION_FIRST`，先由有合法 GitHub 寫入／提交／CI 能力的同一合法雲端執行者直接施工；缺少必要能力時才辨識並呼叫獲授權的 `GITHUB|SCHEDULER|REMOTE_ACTION` 外部施工入口。GitHub issue/PR 寫入、加 assignee、留言提及另一人、建立 CI、只寫排程 prompt，**都不等於啟動施工**。
 2. **回讀接取證據**：只有可回讀 `EXECUTOR_START_CONFIRMED`（身分、執行入口、Issue、分支、首個真實施工動作）才能回報「已派工／已接取／執行中」。本體直接施工使用 commit SHA 與相應 CI run ID，不需外部 task ID；委派代理才需對方 task/run ID 或相當接取證據。接取人應在同一 Issue 留身份及實質進度；**由派工者代貼『請施工』不算接取**。
 3. **失敗即真實回報**：僅寫入 PR／Issue／派工留言而沒有執行者，回報 `DISPATCH_REGISTERED_ONLY` 並在未找到可用雲端入口時明列 `REMOTE_EXECUTOR_UNAVAILABLE`。有入口但啟動失敗／接取未證實則回報 `DISPATCH_START_UNCONFIRMED` 與具體操作／錯誤／證據。**不得標完成，不得宣稱背景有人運作，不得為了補外觀另建 PR 或 Issue，也不得轉用 DC／本機。**
-4. **成功後連續施工**：執行者按原 Issue 規格在合法雲端進行 BUILD→TEST→COMMIT→PR→CI，隨後依 `LOCALX_INTEGRATION` 整合。每次更新以真實 commit/run/Issue 留言為準；回合無法跨時自主續作時不得宣稱能自行喚醒。
+4. **成功後連續施工**：執行者按原 Issue 規格在合法雲端進行 BUILD→TEST→COMMIT→PR→CI，隨後依 `LOCALX_INTEGRATION` 整合。每次更新以真實 commit/run/Issue 留言為準；有合法後續工具動作就直接續作，不得用報告取代施工。
 
 ### `LOCALX_INTEGRATION` 預設 GitHub 完成
 
@@ -46,19 +51,19 @@ whd_schema: WHD_DOC_META_V1
 
 ## 預設自動整合遠端 localX `DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1`
 
-「自動」只表示當次仍可執行時持續收尾，不是跨回合背景程式。同工單 `/派工` 已授權範圍包含 CI SUCCESS 後 **GitHub `localX` PR 合併**，預設 `GITHUB_LOCALX_FIRST`，不需要另下一張 PR 合併口令，也不需要 DC。Windows 狀態未驗證仍記 `WINDOWS_LOCALX_SYNC_PENDING`。
+「自動」表示持續執行當下可合法施工的每一步，任何進度回報不得中斷施工。同工單 `/派工` 已授權範圍包含 CI SUCCESS 後 **GitHub `localX` PR 合併**，預設 `GITHUB_LOCALX_FIRST`，不需要另下一張 PR 合併口令，也不需要 DC。Windows 狀態未驗證仍記 `WINDOWS_LOCALX_SYNC_PENDING`。
 ## GitHub 遠端 localX 預設整合 `GITHUB_LOCALX_FIRST_V1`
 
 已授權的同工單 PR 在 exact SHA CI 全 SUCCESS、PR base=`localX`、scope／work branch／mergeability／最新 base drift 檢查後，即用 GitHub `expected_head_sha` 合併。合併後 readback PR merged 與 remote HEAD，記 `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`；不可把遠端結果冒稱 Windows 已對齊或人工 UAT 通過。這不是 DC 斷線備援；不必探測本機。產品 X 仍需當次 `/推推`。
-## 退出前決策：`DISPATCH_TURN_EXIT_GATE_V1`
+## 連續執行硬閘門：`DISPATCH_TURN_EXIT_GATE_V1`
 
-當次回合準備收尾時，先套用 `AGENTS.md` 和 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json`，不能因為已發進度報告就退出：
+**不得停止程序**。依 `AGENTS.md` 和 `.agents/contracts/WHD_DISPATCH_TURN_EXIT_GATE_V1.json` 直接執行下一個動作，禁止把狀態決策變成預先收尾程序：
 
 1. 讀當前 PR `base/head_sha` 以及 **exact SHA** Product Regression 的 `run_id/status/conclusion`（含 jobs）；不存在、SHA 不符或資訊不足 → `RECONCILE_ONLY`，定向補讀，不得沿用舊 GREEN。
 2. `requested/queued/waiting/pending/in_progress` → `CONTINUE_POLL`，同一回合繼續查狀態；每 2–3 次操作回報，而非結束。避免高頻重抓完整 CI log。
 3. `completed/success` → `LOCALX_INTEGRATION_PENDING`：這是**待執行動作**而非待使用者再次授權；既有 `/派工` 範圍直接續行預設 GitHub `localX` 合併，不碰 DC。保留本機修改；即使 PR 仍 Draft，也不能以「綠燈但還未合併」作為完成。其他 terminal conclusion → `REPAIR_AND_RETEST`。
 4. `localX` 整合、Issue close/readback、`NEXT_ISSUE_DISCOVERY_REQUIRED` 未完成 → `CONTINUE_FINALIZATION`，不能冒稱 `RELEASED`；只有所有義務已驗證才宣告交付完成。
-5. **唯一非完成式退出**：真正的外部障礙 `BLOCKED_WITH_EVIDENCE` 或真實工具／回合上限 `RUNTIME_LIMIT_UNRESOLVED`；附 `Issue/PR/head_sha/run_id/last_observation/blocker/next_exact_action`，不得稱 DONE，不能假裝背景會繼續。ChatGPT 平台沒有可由此文件攔截的「關閉回答」鉤子；此規則依賴執行者按規則行動。
+5. **遇阻換合法動作繼續做**：`BLOCKED_WITH_EVIDENCE` 只表示該操作遭拒；其餘允許的來源查證、提交、測試與獨立施工仍直接執行。若所有工具實際無法使用才據實標示 `RUNTIME_LIMIT_UNRESOLVED`；不得把這些代碼拿來預先停工。
 
 只增加現有流程的真實退出決策，不需要 Codex、不建新排程、不改本機施工授權，也不恢復退役 lease／claim／Flow v2。
 
@@ -67,8 +72,8 @@ whd_schema: WHD_DOC_META_V1
 1. `PR_OPEN / CI_QUEUED / CI_IN_PROGRESS / CI_PENDING` 一律 `CONTINUE_POLL`，**不是可結束的交付狀態**；在當前回合持續輪詢 exact PR SHA 與對應 run，不得把「正在測試」當成派工完成。
 2. `CI_SUCCESS` 且 PR 可整合，**直接 GitHub PR merge `localX`**，回讀 PR/remote HEAD，工單留言、close/readback；Windows 手動更新與 UAT 待完成，記 `WINDOWS_LOCALX_SYNC_PENDING`，不能虛構 `LOCALX_SYNCED` 或 DC 斷線。整段不必使用者再喊「繼續」。
    **重要先後次序**：GitHub `localX` merge＋遠端 SHA 回讀成功（本機待 Windows 同步）後，**立刻啟動 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，同步完成原 Issue 留言／close/readback；**不得等 Issue CLOSED 才找下一張**，也不得以 Issue close/readback 為流程終點。
-   搜尋下一張 OPEN 且前置工單已完成的可執行 Issue；檢查相同工作是否已有 owner/PR，避免重複；可施工就建立真實工作分支、寫入派工留言並繼續執行。找不到則輸出已核查清單與 `NO_ELIGIBLE_ISSUE`，不得假報成功派工。
+   搜尋下一張 OPEN 且前置工單已完成的可執行 Issue；檢查相同工作是否已有 owner/PR，避免重複；可施工就建立真實工作分支、寫入派工留言並**完成首個真實施工動作**，持續執行下一張。**只找到 Issue 號碼、只寫派工留言或只建立分支都不等於接取成功，更不是退出條件**。已有下一張但未開工 → `NEXT_ISSUE_START_REQUIRED`；已有下一張且接取證據可回讀 → `NEXT_ISSUE_ALREADY_STARTED / CONTINUE_NEXT_ISSUE`，仍不能正常結束回合。只有實際核查 OPEN 工單及前置／owner／PR 後無可執行者，附可追溯清單與 `NO_ELIGIBLE_ISSUE` 證據，才允許整條派工佇列正常結束；不得假報成功派工。
 
 3. `CI_FAILURE / CANCELLED / TIMED_OUT`：讀取 job/step/log，定位和修復後再次測試；若 run 完全缺席，先修正 workflow branch/path 接線並觸發，不得聲稱已驗收。
-4. 回報至少每 2–3 次實質操作一次；回報不構成退出。只有**實際無法繼續的外部阻塞**或回合／工具限制造成無法續跑時，才能清楚報出已驗證 blocker、last exact PR/SHA 與下一步，**不可聲稱 DONE**。ChatGPT 回合結束後不會自行輪詢，除非另有正式排程。
+4. 回報至少每 2–3 次實質操作一次；回報不構成退出。**不得停止程序**：若某一步驟受阻，繼續可合法完成的下一步；完全無法實際操作才據實保留 blocker 與最後可驗證的 PR/SHA，不得聲稱 DONE。
 5. 產品 `localX → X` 仍需使用者當次 `/推推`。不加新的 GitHub 分支保護、不恢復 Flow v2。

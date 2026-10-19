@@ -177,6 +177,7 @@ class ReceivingSettingsPreview2D:
         self.overlay_blit_count = 0
         self._background = None
         self.overlay_count = 0
+        self._overlay_paint_state = None  # display-only last-painted state
         self._home = None
         self._drag = None
         self.canvas.mpl_connect("draw_event", self._on_draw)
@@ -206,6 +207,7 @@ class ReceivingSettingsPreview2D:
         self.tiles.clear()
         self._bay_overlays.clear()
         self._current_roles = []
+        self._overlay_paint_state = None
         segments_by_role = defaultdict(list)
         all_bounds = []
         for bay_index, request in enumerate(self.requests):
@@ -266,6 +268,7 @@ class ReceivingSettingsPreview2D:
         self.tiles.clear()
         self._bay_overlays.clear()
         self._current_roles = []
+        self._overlay_paint_state = None
         self._background = None
         self.ax.clear()
         self.ax.set_axis_off()
@@ -308,9 +311,21 @@ class ReceivingSettingsPreview2D:
                 (kind=="inner_door_layers" and role.startswith("inner_door")))
 
     def update_overlay(self):
-        pending = getattr(self.panel, "_receiving_pending", ())
-        matches = getattr(self.panel, "_receiving_matches", ())
+        pending = frozenset(getattr(self.panel, "_receiving_pending", ()) or ())
+        matches = frozenset(getattr(self.panel, "_receiving_matches", ()) or ())
         active = getattr(self.panel, "_receiving_active", None)
+        # Same-Bay selection/hover can run this callback repeatedly without
+        # changing the visible highlight. Skip redundant blits *only* when
+        # the Matplotlib background remains valid; zoom, pan, geometry and
+        # visibility changes all invalidate it independently.
+        state = (
+            pending, matches, active,
+            tuple((role, bool(self.visibility[role].get()))
+                  for role in dict.fromkeys(self._current_roles)),
+            tuple(sorted(self._bay_overlays)),
+        )
+        if self._background is not None and state == self._overlay_paint_state:
+            return
         for bay, rect in self._bay_overlays.items():
             is_pending = bay in pending
             is_active = bay == active
@@ -322,6 +337,7 @@ class ReceivingSettingsPreview2D:
                                "#60a5fa" if is_pending else "#7c8fa6"
                                if is_match else "#41464e")
             rect.set_linewidth(2.8 if is_active else 1.4)
+        self._overlay_paint_state = state
         self.overlay_count += 1
         self._paint_overlay()
 

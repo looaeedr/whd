@@ -131,13 +131,44 @@ def get_door_layout_columns(self):
         columns.append((width, heights))
     return columns
 
+def _receiving_live_door_layout_source(self):
+    """Read active Receiving operator dimensions/doors; NEVER edit defaults.
+
+    The main GUI may still display its saved global W/H/D while an opened
+    Designer is working on a different Receiving Quantity/Set/Bay. Door hole
+    entry must consume the same project-local geometry as manufacturing.
+    """
+    designer = getattr(self, "fold_designer_app", None)
+    source = getattr(designer, "_phase6_input_snapshot", None)
+    if not isinstance(source, dict) or source.get("model") not in {"受電箱", "RECEIVING"}:
+        return None
+    whd = getattr(designer, "_phase6_box_whd", None)
+    if not isinstance(whd, dict) or any(axis not in whd for axis in ("w", "h", "d")):
+        return None
+    columns = source.get("door_layout_columns")
+    if not columns:
+        # Never substitute another Bay's legacy UI grid for an absent
+        # authoritative door topology.
+        raise ValueError("目前受電箱缺少已配置門分割資料")
+    return source, whd
+
+
 def get_door_layout_cells(self):
-    columns = self.get_door_layout_columns()
-    try:
-        total_width = float(self.w_var.get())
-        total_height = float(self.h_var.get())
-    except ValueError as exc:
-        raise ValueError("W / H 必須先填入有效數字") from exc
+    live = _receiving_live_door_layout_source(self)
+    if live is not None:
+        source, whd = live
+        columns = [
+            (float(row[0]), [float(h) for h in row[1]])
+            for row in source["door_layout_columns"]
+        ]
+        total_width, total_height = float(whd["w"]), float(whd["h"])
+    else:
+        columns = self.get_door_layout_columns()
+        try:
+            total_width = float(self.w_var.get())
+            total_height = float(self.h_var.get())
+        except ValueError as exc:
+            raise ValueError("W / H 必須先填入有效數字") from exc
     return _door_layout_cells_impl(
         columns, total_width=total_width, total_height=total_height
     )

@@ -6,8 +6,11 @@ from pathlib import Path
 import pytest
 
 
+# Windows has native Tk and does not set the Unix DISPLAY environment variable.
+# Keep Linux's explicit X display requirement; on Windows run real GUI tests and
+# let Tk startup fail visibly if no desktop exists rather than silently skip.
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("DISPLAY"),
+    os.name != "nt" and not os.environ.get("DISPLAY"),
     reason="#517 exact GUI regressions require real Tk/Xvfb",
 )
 
@@ -312,6 +315,22 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
             f"actual={sorted(p.name for p in actual_files)!r} "
             f"canonical_count={len(expected)}"
         )
+        # Equal file counts are not manufacturing acceptance. Reopen the
+        # ACTUAL operator-exported DXFs and use the canonical verifier to
+        # compare filenames, entity/layer counts, CUTTING material, BEND
+        # guides and CUTTING holes against the same committed physical parts.
+        # This detects wrong shapes even when GUI export count looks right.
+        from ae_engine.manufacturing_api import (
+            verify_saved_resolved_manufacturing_geometry_dxf,
+        )
+        verified = verify_saved_resolved_manufacturing_geometry_dxf(
+            resolved, tmp_path
+        )
+        assert verified.ok, [
+            (issue.part_id, issue.category, issue.detail)
+            for issue in verified.issues
+        ]
+        assert len(verified.part_results) == len(expected)
     finally:
         _close(tk, root, designer)
 
@@ -462,19 +481,17 @@ def test_receiving_operator_controls_are_visibly_chinese_above_fold_notebook():
         assert owner.multi_settings_button.winfo_ismapped()
         win = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 3)
-        assert win.title() == "多只設定"
-        # The dialog reflects the current canonical mode. Select Set/Bay
-        # explicitly before asserting its controls, rather than relying on a
-        # mismatched display that switches modes on the first connection edit.
+        assert win.title() == "多連設定"
+        # The main Quantity mode was removed; Set/Bay is selected on entry.
         mode_buttons = win._receiving_multi_mode_controls.winfo_children()
-        next(button for button in mode_buttons
-             if button.cget("value") == "set_bay").invoke()
+        assert not mode_buttons
+        assert win._receiving_multi_mode_var.get() == "set_bay"
         _pump(root, 3)
         # Only user-specified elements are exposed, no legacy editor or
         # extra brand/common-box/quantity-version controls.
         texts = _mapped_widget_texts(win)
         for expected in (
-            "套／連", "數量", "－套", "＋套", "第1套", "－連", "＋連", "套用",
+            "－套", "＋套", "第1套", "－連", "＋連", "套用",
         ):
             assert expected in texts, (expected, texts)
         assert [w.cget("text") for w in win._receiving_multi_set_buttons] == [
@@ -669,6 +686,7 @@ def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
     import time
     import fold_designer_bridge as bridge
     from gui_modules.application.fold_designer_composition_receiving import _current_mode_snapshot
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
     tk, root, _app, designer = _open_vault_designer()
     try:
         designer.baseline_model_var.set('受電箱')
@@ -677,12 +695,10 @@ def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
         current = _current_mode_snapshot(composition, vars(bridge))['active_mode']
         win = bridge._phase6_open_receiving_multi_settings(designer)
         _pump(root, 4)
-        assert win._receiving_multi_mode_var.get() == current
-        assert win._receiving_multi_applied['mode'] == current
-        if current != 'set_bay':
-            radios = win._receiving_multi_mode_controls.winfo_children()
-            next(button for button in radios if button.cget('value') == 'set_bay').invoke()
-            _pump(root, 4)
+        assert win._receiving_multi_mode_var.get() == "set_bay"
+        assert win._receiving_multi_applied['mode'] == "set_bay"
+        assert _current_mode_snapshot(composition, vars(bridge))['active_mode'] == 'set_bay'
+        assert win._receiving_multi_mode_controls.winfo_children() == []
         row = win._receiving_multi_rows_host.winfo_children()[0]
         plus = next(button for button in row.winfo_children()
                     if button.winfo_class() == 'TButton' and button.cget('text') == '＋連')
@@ -696,7 +712,62 @@ def test_primary_multi_settings_matches_mode_and_first_connection_is_fast():
             counts.append(composition.receiving_switch_adapter(vars(bridge)).connection_counts()[0])
         assert counts == [2, 3]
         assert max(durations) < 1.0, durations
+        # Exact Windows UAT repro: topology changed, then close immediately.
+        # The modal click path stays fast; the one required manufacturing flush
+        # happens at the close boundary before Assembly is remounted.
         win._receiving_multi_close()
+        _pump(root, 6)
+        assert designer._phase6_last_resolved_manufacturing_signature == (
+            build_manufacturing_cache_key(designer).fingerprint
+        )
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.final_scene_view.last_cutting_mesh
+        assert designer.part_var.get() == "組合體"
+    finally:
+        _close(tk, root, designer)
+
+
+def test_issue1796_multi_dimension_change_close_commits_finalscene():
+    """Real Tk: change one Bay W/H/D and close immediately; Assembly consumes the new receipt."""
+    import fold_designer_bridge as bridge
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        win = bridge._phase6_open_receiving_multi_settings(designer)
+        _pump(root, 4)
+        assert win._receiving_multi_apply(0) is True
+        values = win._receiving_dimension_group_input
+        values["width"].set("820")
+        values["height"].set("1600")
+        values["depth"].set("350")
+        values["count"].set("1")
+
+        # Do not pump Tk between confirmation and close. This is the reported
+        # operator sequence that previously let Assembly race stale geometry.
+        assert win._receiving_dimension_group_confirm() is True
+        win._receiving_multi_close()
+        _pump(root, 6)
+
+        assert float(designer._phase6_box_whd["w"]) == 820.0
+        assert float(designer.v_w.get()) == 820.0
+        assert float(designer._phase6_last_w) == 820.0
+        width_core = next(
+            segment for segment in designer.state.profiles_vault["箱身"]
+            if segment.get("core") == "W"
+        )
+        from phase6_fold_profiles import engine_segment_length_to_ui
+        assert float(engine_segment_length_to_ui(width_core)) == 820.0
+        # Bottom fixing-plate applicability/manufacturing belongs to #1503
+        # and is intentionally outside this #1796 modal/FinalScene regression.
+        assert designer._phase6_last_resolved_manufacturing_signature == (
+            build_manufacturing_cache_key(designer).fingerprint
+        )
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.final_scene_view.last_cutting_mesh
+        assert designer.part_var.get() == "組合體"
     finally:
         _close(tk, root, designer)
 
@@ -787,3 +858,393 @@ def test_primary_receiving_inner_door_is_visible_selectable_and_real_panel_witho
         assert any(str(item.layer).upper() == "CUTTING" for item in render.scene.primitives)
     finally:
         _close(tk, root, designer)
+
+
+def test_receiving_part_switch_back_to_assembly_still_renders_true_3d():
+    """A standalone sheet preview must not poison the following Assembly view."""
+    import fold_designer_bridge as bridge
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        renderer = designer.final_scene_view
+        available = tuple(designer.designer_workspace.available_parts)
+        # Receiving's outer Door is dynamically split into door_cN_rN,
+        # so test a REAL available Door, not Vault's standalone `door` key.
+        outer_door = next(
+            key for key in available
+            if key == "door" or key.startswith("door_c")
+        )
+        side = "box_body:left_side" if "box_body:left_side" in available else "box_body"
+        for part in (outer_door, side, "head"):
+            assert part in available
+            designer.activate_part(part)
+            _pump(root, 3)
+            assert renderer.cutting_mesh_error is None, (
+                part, renderer.cutting_mesh_error
+            )
+            bridge._phase6_show_assembly(designer)
+            _pump(root, 5)
+            assert designer._phase6_3d_display_mode == "assembly"
+            assert designer.part_var.get() == "組合體"
+            assert renderer.cutting_mesh_error is None, (
+                part, renderer.cutting_mesh_error
+            )
+            assert renderer.last_cutting_mesh, (
+                "組合體 must not be blank after returning from a standalone 3D part"
+            )
+    finally:
+        _close(tk, root, designer)
+
+
+def test_receiving_dynamic_outer_doors_retain_real_nameplate_mount_cutting():
+    """Certified Vault nameplate mounts must survive Receiving's split Door topology."""
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    from shapely.geometry import Point
+    import fold_designer_bridge as bridge
+
+    tk, root, _app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 7)
+        resolved = bridge._phase6_resolve_manufacturing_geometry(designer)
+        doors = {
+            part.part_key: part.render_data
+            for part in resolved.parts
+            if part.part_key.startswith("door_c")
+        }
+        assert set(doors) == {"door_c1_r1", "door_c1_r2"}
+        for part_key, data in doors.items():
+            mounts = [
+                primitive for primitive in data.scene.primitives
+                if isinstance(primitive, CirclePrimitive)
+                and str(getattr(primitive, "source_type", "")) == "nameplate_mount"
+                and str(getattr(primitive, "layer", "")).upper() == "CUTTING"
+            ]
+            assert len(mounts) == 2, (part_key, mounts)
+            assert {
+                str(getattr(mount, "source_id", "")) for mount in mounts
+            } == {"door:nameplate_mount:left", "door:nameplate_mount:right"}
+            # They are actual through-holes in manufacturing material, not
+            # preview-only decoration or an overlay added by Matplotlib.
+            for mount in mounts:
+                center = Point(float(mount.center.x), float(mount.center.y))
+                assert not data.material.covers(center), (part_key, mount.center)
+    finally:
+        _close(tk, root, designer)
+
+
+def test_receiving_modal_first_entry_defers_baselines_and_close_mounts_assembly(monkeypatch):
+    """Opening with no Set selection must neither stretch DXF nor hide Assembly."""
+    import fold_designer_bridge as bridge
+    tk, root, app, designer = _open_vault_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 6)
+        # Seed the exact committed scene that the real Assembly 3D uses.
+        bridge._phase6_resolve_manufacturing_geometry(designer)
+        calls = []
+        old = app._door_layout_baseline_scene
+
+        def count_baseline(*args, **kwargs):
+            calls.append((args, kwargs))
+            return old(*args, **kwargs)
+
+        monkeypatch.setattr(app, "_door_layout_baseline_scene", count_baseline)
+        for button in (
+            bridge._phase6_open_receiving_single_settings,
+            bridge._phase6_open_receiving_multi_settings,
+        ):
+            calls.clear()
+            win = button(designer)
+            _pump(root, 3)
+            assert calls == [], "unapplied modal must not parse Door DXF"
+            assert win._receiving_multi_canvas.find_withtag("receiving_nameplate"), (
+                "cached real Door nameplate mounts must show on initial sketch"
+            )
+            assert win._receiving_multi_applied["set_index"] is None
+            # Reproduce the reported desync: mode/selection says Assembly,
+            # but the shared slot still shows Box Body's input content.
+            bridge._phase6_mount_shared_content(designer, "single")
+            assert designer.input_content_host.winfo_manager()
+            win._receiving_multi_close()
+            _pump(root, 2)
+            assert designer._phase6_3d_display_mode == "assembly"
+            assert designer.part_var.get() == "組合體"
+            assert designer.assembly_parts_panel.winfo_manager()
+            assert not designer.input_content_host.winfo_manager()
+    finally:
+        _close(tk, root, designer)
+
+
+def test_issue1796_real_tk_vault_receiving_single_setbay_modal_roundtrip_without_orphans(
+    monkeypatch, record_property,
+):
+    """Cross-mode GUI acceptance: receipt, visible Assembly, focus and cleanup stay in sync."""
+    import time
+    from tkinter import messagebox
+    import fold_designer_bridge as bridge
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    def unexpected_dialog(*args, **kwargs):
+        raise AssertionError(
+            f"unexpected blocking Tk dialog during #1796 mode roundtrip: {args!r} {kwargs!r}"
+        )
+
+    for name in ("showwarning", "showerror", "showinfo"):
+        monkeypatch.setattr(messagebox, name, unexpected_dialog)
+
+    tk, root, _app, designer = _open_vault_designer()
+    rows = []
+    try:
+        scene = designer.final_scene_view
+        vault_mesh = _mesh_bounds(scene.last_cutting_mesh)
+        vault_parts = _assembly_part_signatures(designer)
+
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        # Baseline switching may correctly preserve the active Quantity
+        # session; enter Set/Bay via the actual operator modal, not an
+        # invented default-mode assumption.
+        if designer.designer_workspace.active_mode != "set_bay":
+            initial = bridge._phase6_open_receiving_multi_settings(designer)
+            try:
+                _pump(root, 4)
+                assert designer.designer_workspace.active_mode == "set_bay"
+            finally:
+                if initial.winfo_exists():
+                    initial._receiving_multi_close()
+                _pump(root, 3)
+        assert designer.designer_workspace.active_mode == "set_bay"
+        assert designer.root.grab_current() is None
+        receiving_mesh = _mesh_bounds(scene.last_cutting_mesh)
+        receiving_parts = _assembly_part_signatures(designer)
+        assert receiving_mesh != vault_mesh
+
+        for expected_mode, opener in (
+            ("quantity", bridge._phase6_open_receiving_single_settings),
+            ("set_bay", bridge._phase6_open_receiving_multi_settings),
+        ):
+            started = time.perf_counter()
+            window = opener(designer)
+            try:
+                _pump(root, 5)
+                assert window.winfo_exists()
+                assert designer.designer_workspace.active_mode == expected_mode
+                assert window._receiving_multi_applied["mode"] == expected_mode
+                # Do not force a new solve just to pass the test. The existing
+                # committed manufacturing receipt must match the working state.
+                current_key = build_manufacturing_cache_key(designer).fingerprint
+                assert current_key == designer._phase6_last_resolved_manufacturing_signature
+                assert designer._phase6_last_resolved_manufacturing_geometry is not None
+                assert _assembly_part_signatures(designer)
+            finally:
+                if window.winfo_exists():
+                    window._receiving_multi_close()
+                _pump(root, 3)
+            assert designer.root.grab_current() is None
+            assert getattr(designer.root, "_receiving_multi_settings_window", None) is None
+            scheduler = designer._phase6_update_scheduler
+            assert not scheduler.dirty
+            assert scheduler._after_job is None
+            assert designer.part_var.get() == "組合體"
+            assert scene.cutting_mesh_error is None
+            rows.append((expected_mode, round((time.perf_counter() - started) * 1000, 2)))
+
+        # Returning to the preserved Set/Bay session cannot silently replace
+        # its physical 2D/3D scene with the temporary Quantity session.
+        assert _mesh_bounds(scene.last_cutting_mesh) == receiving_mesh
+        assert _assembly_part_signatures(designer) == receiving_parts
+
+        designer.baseline_model_var.set("金庫型")
+        _pump(root, 8)
+        restored_mesh = _mesh_bounds(scene.last_cutting_mesh)
+        restored_parts = _assembly_part_signatures(designer)
+        differing_parts = {
+            key: {"before": vault_parts.get(key), "restored": restored_parts.get(key)}
+            for key in sorted(set(vault_parts) | set(restored_parts))
+            if vault_parts.get(key) != restored_parts.get(key)
+        }
+        assert restored_mesh == vault_mesh, (
+            f"Vault mesh drift after Receiving modal roundtrip: before={vault_mesh}, "
+            f"after={restored_mesh}, changed_parts={differing_parts!r}, "
+            f"model={designer._phase6_input_snapshot.get('model')!r}, "
+            f"active_mode={designer.designer_workspace.active_mode!r}, "
+            f"available_parts={tuple(designer.designer_workspace.available_parts)!r}"
+        )
+        assert restored_parts == vault_parts, differing_parts
+        assert designer.root.grab_current() is None
+        record_property("issue1796_real_tk_modal_mode_wall_ms", repr(rows))
+    finally:
+        _close(tk, root, designer)
+
+
+
+def test_issue1796_absent_vault_door_stays_absent_after_receiving_modals(monkeypatch):
+    """Roundtripping mode buffers must not invent a part the operator removed.
+
+    Regression for the part-presence restore introduced after the #1808 RED:
+    restoring the user's old Vault inventory is different from forcing Door.
+    """
+    from tkinter import messagebox
+    import fold_designer_bridge as bridge
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+
+    def unexpected_dialog(*args, **kwargs):
+        raise AssertionError(
+            f"unexpected blocking GUI dialog during absent-Door roundtrip: "
+            f"{args!r}, {kwargs!r}"
+        )
+
+    for name in ("showwarning", "showerror", "showinfo"):
+        monkeypatch.setattr(messagebox, name, unexpected_dialog)
+
+    tk, root, _host, designer = _open_vault_designer()
+    try:
+        assert "door" in designer.designer_workspace.available_parts
+        assert "door" in _assembly_part_signatures(designer)
+
+        # The actual Designer removal handler is the user's part-presence
+        # authority; do not mutate a detached test fixture's existing_parts.
+        assert designer.remove_part("door") is True
+        designer.submit_update_intent("assembly", commit=True)
+        _pump(root, 8)
+        assert "door" not in designer.designer_workspace.available_parts
+        assert "door" not in _assembly_part_signatures(designer)
+        without_door = _mesh_bounds(designer.final_scene_view.last_cutting_mesh)
+
+        designer.baseline_model_var.set("受電箱")
+        _pump(root, 8)
+        for opener in (
+            bridge._phase6_open_receiving_single_settings,
+            bridge._phase6_open_receiving_multi_settings,
+        ):
+            window = opener(designer)
+            try:
+                _pump(root, 5)
+                assert window.winfo_exists()
+            finally:
+                if window.winfo_exists():
+                    window._receiving_multi_close()
+                _pump(root, 4)
+            assert designer.root.grab_current() is None
+
+        designer.baseline_model_var.set("金庫型")
+        _pump(root, 8)
+        assert designer._phase6_input_snapshot.get("model") == "金庫型"
+        assert "door" not in designer.designer_workspace.available_parts
+        assert "door" not in _assembly_part_signatures(designer)
+        assert _mesh_bounds(designer.final_scene_view.last_cutting_mesh) == without_door
+        assert designer._phase6_last_resolved_manufacturing_signature == (
+            build_manufacturing_cache_key(designer).fingerprint
+        )
+        assert designer.final_scene_view.cutting_mesh_error is None
+        assert designer.root.grab_current() is None
+        scheduler = designer._phase6_update_scheduler
+        assert not scheduler.dirty and scheduler._after_job is None
+    finally:
+        _close(tk, root, designer)
+
+
+def test_issue1796_receiving_modal_close_flushes_changed_geometry_before_assembly(monkeypatch):
+    """Windows UAT regression: changed Set/Bay state must commit before Assembly remount."""
+    from types import SimpleNamespace
+
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _restore_receiving_assembly_after_modal,
+    )
+    import phase6_manufacturing_adapter as manufacturing_adapter
+
+    events = []
+
+    class Scheduler:
+        def flush_now(self):
+            events.append("flush")
+            app._phase6_last_resolved_manufacturing_signature = "new"
+
+    app = SimpleNamespace(
+        _phase6_3d_display_mode="assembly",
+        _phase6_last_resolved_manufacturing_signature="old",
+        _phase6_update_scheduler=Scheduler(),
+        submit_update_intent=lambda reason, commit=False: events.append(
+            ("submit", reason, commit)
+        ),
+        part_var=SimpleNamespace(set=lambda value: events.append(("part", value))),
+    )
+    owner = SimpleNamespace(
+        app=app,
+        refresh_receiving_set_bay_control=lambda _ns: events.append("refresh"),
+        sync_receiving_current_bay=lambda _ns, refresh_controls=False: events.append(
+            "sync"
+        ),
+        sync_authoritative_derived_parts=lambda _ns: events.append("derived"),
+    )
+    monkeypatch.setattr(
+        manufacturing_adapter,
+        "build_manufacturing_cache_key",
+        lambda _app: SimpleNamespace(fingerprint="new"),
+    )
+    namespace = {
+        "_phase6_mount_shared_content": lambda _app, mode: events.append(
+            ("mount", mode)
+        )
+    }
+
+    _restore_receiving_assembly_after_modal(owner, namespace)
+
+    assert "sync" in events
+    assert "derived" in events
+    assert ("submit", "geometry", False) in events
+    assert "flush" in events
+    assert events.index("sync") < events.index("derived")
+    assert events.index("derived") < events.index(("mount", "assembly"))
+    assert events.index(("mount", "assembly")) < events.index("flush")
+
+
+def test_issue1796_receiving_modal_close_equivalent_geometry_is_noop(monkeypatch):
+    """No-edit close may restore Assembly but must not manufacture the same state again."""
+    from types import SimpleNamespace
+
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _restore_receiving_assembly_after_modal,
+    )
+    import phase6_manufacturing_adapter as manufacturing_adapter
+
+    events = []
+
+    class Scheduler:
+        def flush_now(self):
+            raise AssertionError("equivalent close must not flush")
+
+    app = SimpleNamespace(
+        _phase6_3d_display_mode="assembly",
+        _phase6_last_resolved_manufacturing_signature="same",
+        _phase6_update_scheduler=Scheduler(),
+        submit_update_intent=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("equivalent close must not submit geometry")
+        ),
+        part_var=SimpleNamespace(set=lambda value: events.append(("part", value))),
+    )
+    owner = SimpleNamespace(
+        app=app,
+        refresh_receiving_set_bay_control=lambda _ns: events.append("refresh"),
+        sync_receiving_current_bay=lambda _ns, refresh_controls=False: events.append(
+            "sync"
+        ),
+        sync_authoritative_derived_parts=lambda _ns: events.append("derived"),
+    )
+    monkeypatch.setattr(
+        manufacturing_adapter,
+        "build_manufacturing_cache_key",
+        lambda _app: SimpleNamespace(fingerprint="same"),
+    )
+    namespace = {
+        "_phase6_mount_shared_content": lambda _app, mode: events.append(
+            ("mount", mode)
+        )
+    }
+
+    _restore_receiving_assembly_after_modal(owner, namespace)
+
+    assert "sync" in events
+    assert events.index("sync") < events.index(("mount", "assembly"))

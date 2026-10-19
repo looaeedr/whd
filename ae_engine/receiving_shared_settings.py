@@ -2,15 +2,20 @@
 """Receiving 每連設定的獨立共享關係；UI 只保存選取，不擁有設定值。"""
 from copy import deepcopy
 from collections.abc import Mapping
+from math import isfinite
 
 SETTING_DEFAULTS = {
     "back_panel_mode": "FULL",
     "head_features": [],
     "tail_features": [],
     "inner_door_layers": 1,
-    # Two independent layers; each slot accepts a legacy single filename or
-    # multiple switch instances (including repeated identical DXF filenames).
+    # Two independent layers; each slot may retain legacy DXF or typed V5
+    # brand/model identities. Repeated physical instances are not deduplicated.
     "inner_door_models": ["", ""],
+    # Per physical inner-door sheet, not a second NFB or generic hole owner.
+    "inner_door_features": {},
+    # NFB opening-row centers measured from the TOP edge of the selected work area.
+    "inner_door_layer_heights_mm": [330.0, 830.0],
     # Per-Bay display provenance. None=never applied, ""=explicit 即時.
     "head_version_id": None,
     "tail_version_id": None,
@@ -27,12 +32,10 @@ def switch_filenames_in_layer(slot):
         if not names:
             return ()
     else:
-        raise ValueError("每層開關須為 DXF 檔名或檔名清單")
+        raise ValueError("每層開關須為型號或型號清單")
+    from .receiving_nfb_model_identity import validate_stored_model_ref
     for name in names:
-        if (not isinstance(name, str) or len(name) <= 4
-                or not name.lower().endswith(".dxf")
-                or "/" in name or chr(92) in name or chr(0) in name):
-            raise ValueError("每層開關必須為合法 DXF 檔名")
+        validate_stored_model_ref(name)
     return names
 
 
@@ -73,6 +76,31 @@ def validate_setting(kind, value):
             raise ValueError("內門層數必須為 1 或 2")
     elif kind == "inner_door_models":
         value = switch_model_layers(value)
+    elif kind == "inner_door_features":
+        from .sheetmetal_features import CircleFeature, RectFeature, ProfileFeature
+        if not isinstance(value, Mapping):
+            raise ValueError("內門孔位必須依實體板件 ID 保存")
+        normalized = {}
+        for part_key, features in value.items():
+            if (not isinstance(part_key, str) or not part_key.startswith("inner_door:")
+                    or not part_key.endswith(":panel")
+                    or not isinstance(features, (list, tuple))
+                    or any(not isinstance(feature, (CircleFeature, RectFeature, ProfileFeature))
+                           for feature in features)):
+                raise ValueError("內門候選只能保存真實門板的 Hole Editor Feature")
+            normalized[part_key] = list(features)
+        value = normalized
+    elif kind == "inner_door_layer_heights_mm":
+        # Old saved NFB projects have no operator-height authority; None
+        # retains their original certified nominal 290/790 Y until edited.
+        if value is None:
+            return None
+        if (not isinstance(value, (list, tuple)) or len(value) != 2
+                or any(type(v) not in (int, float) or not isfinite(float(v))
+                       or float(v) <= 0 for v in value)
+                or float(value[0]) >= float(value[1])):
+            raise ValueError("第一層／第二層高度須為正數、由上往下遞增（mm）")
+        value = [float(v) for v in value]
     elif not isinstance(value, (list, tuple)):
         raise ValueError("封頭尾設定必須是 Hole Editor feature 清單")
     return deepcopy(value)
@@ -81,6 +109,10 @@ def validate_setting(kind, value):
 def normalize_set_settings(raw, bays):
     """每項設定各自有 refs/values；只保留仍被實體連引用的值。"""
     source = dict(raw or {})
+    legacy_height_absent = (
+        "inner_door_layer_heights_mm" not in source
+        and (bool(source) or any(bay.get("nfb_config_submitted") is True for bay in bays))
+    )
     unknown = set(source) - set(SETTING_DEFAULTS)
     if unknown:
         raise ValueError(f"不支援的每連設定：{sorted(unknown)}")
@@ -96,7 +128,11 @@ def normalize_set_settings(raw, bays):
             ref = refs.get(bay_id)
             if ref is None:
                 ref = f"{bay_id}:{kind}"
-                value = bay.get(kind, default)
+                value = bay.get(
+                    kind,
+                    None if legacy_height_absent and kind == "inner_door_layer_heights_mm"
+                    else default,
+                )
             else:
                 if not isinstance(ref, str) or not ref or ref not in values:
                     raise ValueError("共享設定引用不存在")
