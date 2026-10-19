@@ -51,15 +51,20 @@ class ReceivingEarSideCheckDxfReceipt:
 
 
 def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness):
+    # A GUI callback can be stale or return an unresolved object during
+    # edits. Never read .parts or write manufacturing data from such input.
+    from .contracts import ResolvedManufacturingGeometry
+    if not isinstance(geometry, ResolvedManufacturingGeometry):
+        raise ValueError("EAR_SIDE_CHECK_ACTUAL_MANUFACTURING_GEOMETRY_REQUIRED")
     if (snapshot.get("model") != "受電箱"
             or snapshot.get("nfb_config_submitted") is not True
             or len(tuple(dimensions or ())) != 3
-            or not isclose(float(snapshot["w"]), 800., abs_tol=1e-8)
-            or not isclose(float(snapshot["t"]), 2., abs_tol=1e-8)
-            or not isclose(float(sheet_thickness), 2., abs_tol=1e-8)
+            or float(snapshot["w"]) <= 0
+            or float(snapshot["t"]) <= 0
+            or not isclose(float(sheet_thickness), float(snapshot["t"]), abs_tol=1e-8)
             or any(not isclose(float(snapshot[k]), float(dimensions[i]), abs_tol=1e-8)
                    for i, k in enumerate(("w", "h", "d")))):
-        raise ValueError("EAR_SIDE_CHECK_REQUIRES_CURRENT_W800_T2_SUBMITTED_SNAPSHOT")
+        raise ValueError("EAR_SIDE_CHECK_REQUIRES_CURRENT_MATCHING_SUBMITTED_SNAPSHOT")
 
     from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
     world = _phase6_build_joint_world_geometry(

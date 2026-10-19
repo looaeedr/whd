@@ -4,7 +4,7 @@
 The Base Plate is ALWAYS laterally centered on the CABINET X=0.
 The *NFB opening group height* owns each tier Base Plate's Y, while
 each switch's horizontal offset only locates its NFB screw holes.
-The 670-mm ear support pitch places its left/right columns at X +/-335
+A source-derived ear pitch places left/right columns at +/-pitch/2
 regardless of selected NFB manual X. Each large source ear has 4 slots,
 with the selected 210 or 140mm *longitudinal* pair centered on the same
 tier Y. Left/right side-wall inner skins supply the intended weld X.
@@ -27,8 +27,8 @@ from .receiving_base_fixing_plate import (
     receiving_base_fixing_plate_previews,
 )
 from .receiving_weld_ear_policy import (
-    RECEIVING_ASSEMBLED_FIXING_PITCH_X_MM,
     resolve_receiving_large_weld_ear_fit,
+    receiving_source_fixing_pitch_x_mm,
 )
 
 STATUS = "EAR_XY_SOURCE_WITNESS_ONLY_Z_AND_MARKING_UNVERIFIED"
@@ -98,6 +98,9 @@ def resolve_receiving_tier_ear_mating_xy(
         raise ValueError("RECEIVING_EAR_XY_UNSUPPORTED_NFB_TIER_COUNT")
     w=float(snapshot["w"])
     t=float(snapshot["t"])
+    x_pitch = receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=w, box_side_thickness_mm=t,
+    )
     previews = receiving_base_fixing_plate_previews(
         snapshot,
         available_parts=(
@@ -140,7 +143,7 @@ def resolve_receiving_tier_ear_mating_xy(
             pitch_y=hole_y[1]-hole_y[0]
             fit=resolve_receiving_large_weld_ear_fit(
                 box_outer_width_mm=w,box_side_thickness_mm=t,
-                fixing_hole_pitch_x_mm=RECEIVING_ASSEMBLED_FIXING_PITCH_X_MM,
+                fixing_hole_pitch_x_mm=x_pitch,
                 fixing_hole_pitch_y_mm=pitch_y,
             )
             # Plate/side-wall support is fixed to cabinet center in X.

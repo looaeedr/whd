@@ -786,19 +786,24 @@ def _receiving_base_weld_ear_mount_slots(scene, *, result, pattern, box_w, t):
     centers 20 mm in from both blank X edges. The MIDDLE sample's UNFOLDED
     hole X pitch is 732 ONLY for W772 with side return 71 (Shihlin 107/72,
     T2). When the selected second side fold varies, the unfolded hole pitch
-    changes WITH the blank to preserve assembled X pitch 670. The LEFT/RIGHT
+    changes WITH the blank to preserve source-derived assembled X pitch. The LEFT/RIGHT
     samples are 670 both before and after folding.
     This draws ear mounting holes, NOT an NFB's four small screw holes.
     """
     from math import cos, sin, pi
-    from .receiving_weld_ear_policy import resolve_receiving_large_weld_ear_fit
+    from .receiving_weld_ear_policy import (
+        resolve_receiving_large_weld_ear_fit,
+        receiving_source_fixing_pitch_x_mm,
+    )
     from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
 
     center_pattern = pattern == RECEIVING_BASE_PATTERN_CENTER
     y_pitch = 140.0 if center_pattern else 210.0
     fit = resolve_receiving_large_weld_ear_fit(
         box_outer_width_mm=box_w, box_side_thickness_mm=t,
-        fixing_hole_pitch_x_mm=670.0, fixing_hole_pitch_y_mm=y_pitch,
+        fixing_hole_pitch_x_mm=receiving_source_fixing_pitch_x_mm(
+            box_outer_width_mm=box_w, box_side_thickness_mm=t,
+        ), fixing_hole_pitch_y_mm=y_pitch,
     )
     # The mounting slots remain 20 mm from each unfolded blank edge.
     # For CENTER, 772-40=732 is only the ORIGINAL first40/second33/T2
@@ -817,7 +822,10 @@ def _receiving_base_weld_ear_mount_slots(scene, *, result, pattern, box_w, t):
     else:
         assembled_pitch = actual_unfolded_pitch
     if abs(assembled_pitch-fit.fixing_hole_pitch_x_mm) > 1e-6:
-        raise ValueError("Receiving base pattern cannot mate native assembled 670-mm ear holes")
+        raise ValueError(
+            "Receiving base source CUTTING slots do not mate actual "
+            f"side-wall fixing pitch X={fit.fixing_hole_pitch_x_mm:g}"
+        )
     cx=(20.0,result.width-20.0)
     cy=(result.height/2.0-y_pitch/2.0,
         result.height/2.0+y_pitch/2.0)

@@ -115,13 +115,33 @@ def test_flat_variant_has_no_side_bending_and_keeps_top_bottom_20():
 def test_receiving_illustration_cannot_override_family_or_mount_hole_datum():
     pattern=RECEIVING_BASE_PATTERN_CENTER
     state=_spec(pattern)
-    invalid=[
+    # A changed W is a valid physical cabinet, not an invalid copied
+    # W800 illustration. The actual BasePlate spec must recompute CUTTING
+    # and fixing-hole locations for the new width, while retaining the
+    # source T2/BEND23 fixed-plate offset from real SIDE inside skins.
+    narrower=build_part_render_data(replace(state,width=750.))
+    original=build_part_render_data(state)
+    assert narrower.unfolded_topology.width == pytest.approx(
+        original.unfolded_topology.width-50.
+    )
+    assert narrower.metadata["receiving_bend_pattern"] == pattern
+    narrowed_slots=[
+        row for row in narrower.scene.primitives
+        if isinstance(row,PolylinePrimitive) and row.layer=="CUTTING"
+        and row.closed
+    ][1:]
+    assert len(narrowed_slots)==4
+    xs=sorted(set(round((min(p.x for p in row.points) +
+                         max(p.x for p in row.points))/2., 6)
+                  for row in narrowed_slots))
+    assert xs==pytest.approx([20., narrower.unfolded_topology.width-20.])
+    # Wrong family, T3 unsupported CENTER fold and unknown physical
+    # pattern remain illegal: do not weaken genuine manufacturing guards.
+    for spec in (
         replace(state,model_name="金庫型"),
         replace(state,thickness=3.),
-        replace(state,width=750.),
         replace(state,receiving_bend_pattern="guess"),
-    ]
-    for spec in invalid:
+    ):
         with pytest.raises(ValueError):
             build_part_render_data(spec)
 

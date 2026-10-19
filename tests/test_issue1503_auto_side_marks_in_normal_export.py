@@ -116,18 +116,20 @@ def test_normal_export_with_submitted_nfb_must_not_release_unverified_other_part
 
 
 @pytest.mark.parametrize("changes,pattern", (
-    ({"w":750.}, "CURRENT_W800_T2"),
-    ({"t":3.}, "CURRENT_W800_T2"),
+    ({"w":750.}, None),
+    ({"t":3.}, None),
     ({"nfb_config_submitted":False}, "已提交 NFB"),
 ))
-def test_normal_export_cannot_invent_ear_marks_for_unsupported_input(
+def test_normal_export_rejects_stale_original_w800_geometry_for_changed_input(
     tmp_path, changes, pattern,
 ):
     snapshot, geometry = _actual(_assembled)
     snapshot = {**snapshot, **changes}
     host, _ = _host(snapshot, geometry)
-    with pytest.raises(ValueError, match=pattern):
+    with pytest.raises(ValueError) as exc:
         _export_selected_resolved_parts(host, str(tmp_path/"out"), _flags())
+    if pattern:
+        assert pattern in str(exc.value)
     assert not (tmp_path/"out").exists()
 
 

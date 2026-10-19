@@ -109,7 +109,9 @@ def verify_receiving_ear_side_skin_mating(
     x = float(contact.side_inside_skin_world_x_mm)
     left = formed.side == "left"
     if (formed.side not in {"left", "right"}
-            or not isclose(x, -398. if left else 398., abs_tol=_X_TOL)):
+            or not isclose(x, float(formed.side_wall_inside_world_x_mm),
+                           abs_tol=_X_TOL)
+            or (left and x >= 0) or (not left and x <= 0)):
         raise ValueError("EAR_SIDE_MATING_WRONG_SIDE_DATUM")
     # Outward normal of the *inner physical side-wall skin* points INTO
     # the cabinet (+X left / -X right). EAR's wall-facing physical skin

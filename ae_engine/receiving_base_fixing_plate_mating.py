@@ -23,7 +23,9 @@ from math import isclose, isfinite
 
 from .receiving_base_fixing_plate import receiving_base_fixing_plate_previews
 from .receiving_base_fixing_plate_geometry import LARGE_PATTERN
-from .receiving_weld_ear_policy import resolve_receiving_large_weld_ear_fit
+from .receiving_weld_ear_policy import (
+    resolve_receiving_large_weld_ear_fit, receiving_source_fixing_pitch_x_mm,
+)
 
 
 @dataclass(frozen=True)
@@ -77,11 +79,14 @@ def resolve_base_fixing_plate_xy_mating(
         ) if p.side == name
     ), None)
     if preview is None:
-        raise ValueError("FIXING_PLATE_XY_MATING_REQUIRES_W800_T2_RECEIVING")
+        raise ValueError("FIXING_PLATE_XY_MATING_REQUIRES_SOURCE_RECEIVING")
     pair = preview.applicable_slot_pair_indexes
     if pair is None:
         raise ValueError("FIXING_PLATE_XY_MATING_REQUIRES_CONFIGURED_BASE_PATTERN")
-    x_pitch = 670.0
+    x_pitch = receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=float(data["w"]),
+        box_side_thickness_mm=float(data["t"]),
+    )
     selected_y_pitch = 210.0 if pair == (0, 3) else 140.0
     fit = resolve_receiving_large_weld_ear_fit(
         box_outer_width_mm=float(data["w"]),
@@ -105,7 +110,7 @@ def resolve_base_fixing_plate_xy_mating(
         raise ValueError("FIXING_PLATE_SOURCE_HOLE_COLUMN_INVALID")
     if not isclose(centers_y[0],fit.ear_weld_edge_to_hole_center_mm,abs_tol=1e-7):
         raise ValueError("FIXING_PLATE_SOURCE_EDGE_DATUM_INVALID")
-    # Left (-X) / right (+X) inside skin: +-398 for W800/T2.
+    # Left (-X) / right (+X): actual inside skin (W/2 - side T).
     sign = -1.0 if name == "left" else 1.0
     inner_x = sign * (float(data["w"]) / 2.0 - float(data["t"]))
     # New source T2: 84 - BEND23 + EAR_T2 = 63 from side INNER skin.

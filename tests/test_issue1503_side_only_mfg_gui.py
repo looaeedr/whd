@@ -57,7 +57,7 @@ def test_real_gui_action_outputs_true_source_verified_standard_side_dxf(
 
 @pytest.mark.parametrize("updates", (
     {"model":"金庫型"}, {"nfb_config_submitted":False},
-    {"active_mode":"quantity"}, {"w":750.}, {"t":3.},
+    {"active_mode":"quantity"},
 ))
 def test_invalid_gui_input_rejected_before_resolving_or_asking_folder(
     tmp_path, monkeypatch, updates,
@@ -71,6 +71,22 @@ def test_invalid_gui_input_rejected_before_resolving_or_asking_folder(
     assert not any(e=="resolved" or e=="folder" for e in events)
     assert events[-1][0]=="error"
     assert not list(tmp_path.glob("*"))
+
+
+@pytest.mark.parametrize("updates", ({"w": 750.}, {"t": 3.}))
+def test_different_dimensions_require_new_true_side_geometry_not_old_w800(
+    tmp_path, monkeypatch, updates,
+):
+    # Changing cabinet dimensions is allowed, but reusing its former
+    # W800/T2 physical side sheets must never release manufacturing MARKING.
+    snap, old_geometry = _actual(_assembled)
+    changed = {**snap, **updates}
+    host, events = _host(changed, old_geometry)
+    _messages(monkeypatch, tmp_path, events)
+    assert export_actions.export_receiving_ear_side_manufacturing_dxf(host) is None
+    assert events[:3] == ["flush", "resolved", "folder"]
+    assert events[-1][0] == "error"
+    assert not list(tmp_path.glob("*.dxf"))
 
 
 def test_real_primary_has_no_extra_ear_buttons_but_retains_normal_export():

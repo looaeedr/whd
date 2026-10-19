@@ -24,7 +24,9 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from .receiving_base_plate_config import RECEIVING_FAMILIES
-from .receiving_weld_ear_policy import resolve_receiving_large_weld_ear_fit
+from .receiving_weld_ear_policy import (
+    resolve_receiving_large_weld_ear_fit, receiving_source_fixing_pitch_x_mm,
+)
 
 BASE_FIXING_PLATE_PARENT_ID = "base_plate"
 BASE_FIXING_PLATE_PREFIX = "base_plate:fixing_plate:"
@@ -64,9 +66,9 @@ def receiving_base_fixing_plate_previews(
 ) -> tuple[BaseFixingPlatePreview, ...]:
     """Read-only part preview; never changes physical scene or BOM.
 
-    We only expose the W800/T2 source-verified variant. Other dimensions need
-    an independently verified physical source and must not silently inherit
-    these two W800 plates. A missing explicit base variant is previewable with
+    Use the existing T2/BEND23 fixed-plate source for each physical Bay. Its
+    assembled X pitch follows the actual cabinet inside side skin; independent
+    source contact and material checks still gate manufacture. A missing explicit base variant is previewable with
     the 210-mm outer slot pair, but remains *unconfigured* and never releasable.
     """
     data = dict(snapshot or {})
@@ -99,7 +101,9 @@ def receiving_base_fixing_plate_previews(
         fit = resolve_receiving_large_weld_ear_fit(
             box_outer_width_mm=w,
             box_side_thickness_mm=side_t,
-            fixing_hole_pitch_x_mm=670.0,
+            fixing_hole_pitch_x_mm=receiving_source_fixing_pitch_x_mm(
+                box_outer_width_mm=w, box_side_thickness_mm=side_t,
+            ),
             fixing_hole_pitch_y_mm=pitch_y,
         )
     except (TypeError, ValueError, OverflowError):

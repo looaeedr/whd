@@ -48,10 +48,10 @@ def test_ear_65_mm_is_outside_datum_not_bend_or_inside_skin_dimension():
 @pytest.mark.parametrize(
     "kwargs,reason",
     [
-        ({"box_outer_width_mm": 750.0}, "W=800"),
+        ({"box_outer_width_mm": 750.0}, "source-folded EAR/side-skin"),
         ({"box_side_thickness_mm": -2.0}, "positive"),
-        ({"box_side_thickness_mm": 3.0}, "T=2"),
-        ({"fixing_hole_pitch_x_mm": 732.0}, "ASSEMBLED.*670"),
+        ({"box_side_thickness_mm": 3.0}, "source-folded EAR/side-skin"),
+        ({"fixing_hole_pitch_x_mm": 732.0}, "source-folded EAR/side-skin"),
         ({"fixing_hole_pitch_y_mm": 200.0}, "210 or 140"),
         ({"ear_thickness_mm": 3.0}, "T=2"),
         ({"ear_weld_edge_to_hole_center_mm": 85.0}, "84"),
@@ -108,8 +108,6 @@ def test_bottom_fixing_plate_part_identity_and_original_2d_source():
 
 @pytest.mark.parametrize("snapshot,available", [
     ({"model": "金庫型", "w": 800, "t": 2}, ("base_plate",)),
-    ({"model": "受電箱", "w": 750, "t": 2}, ("base_plate",)),
-    ({"model": "受電箱", "w": 800, "t": 3}, ("base_plate",)),
     ({"model": "受電箱", "w": 800, "t": 2}, ("box_body",)),
 ])
 def test_bottom_fixing_plate_not_invented_for_other_families_or_unknown_geometry(
@@ -293,8 +291,6 @@ def test_unconfigured_base_does_not_guess_xy_mating_or_enable_mfg():
 
 @pytest.mark.parametrize("bad", [
     {"model": "金庫型", "w": 800.0, "t": 2.0},
-    {"model": "受電箱", "w": 750.0, "t": 2.0},
-    {"model": "受電箱", "w": 800.0, "t": 3.0},
 ])
 def test_fixing_plate_x_y_mating_rejects_unproven_cabinets(bad):
     from ae_engine.receiving_base_fixing_plate_mating import (
@@ -302,7 +298,7 @@ def test_fixing_plate_x_y_mating_rejects_unproven_cabinets(bad):
     )
     from ae_engine.receiving_base_fixing_plate_geometry import build_fixing_plate_source_render_data
     snap = {**bad, "receiving_base_plate": {"pattern": "CENTER_DOUBLE_SIDE_FOLD"}}
-    with pytest.raises(ValueError, match="W800_T2"):
+    with pytest.raises(ValueError, match="SOURCE"):
         resolve_base_fixing_pair_xy_mating(snap)
     with pytest.raises(ValueError, match="CABINET_MISMATCH"):
         build_fixing_plate_source_render_data(

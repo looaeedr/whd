@@ -91,7 +91,10 @@ def project_receiving_ear_contact_to_side_uv(
     ):
         raise ValueError("EAR_SIDE_UV_CONTACT_NOT_SOURCE_VERIFIED")
     x = float(contact.side_inside_skin_world_x_mm)
-    if not isclose(x, -398. if contact.side_piece_id.endswith("left_side") else 398., abs_tol=_TOL):
+    # The actual SIDE physical skin mapping supplies X, not W800's +/-398.
+    if (not (float("-inf") < x < float("inf"))
+            or (contact.side_piece_id.endswith("left_side") and x >= 0)
+            or (contact.side_piece_id.endswith("right_side") and x <= 0)):
         raise ValueError("EAR_SIDE_UV_SIDE_OWNER_SKIN_DRIFT")
     boundary = tuple(tuple(float(v) for v in p) for p in contact.world_surface_boundary)
     if any(len(p) != 3 or abs(p[0] - x) > _TOL for p in boundary):

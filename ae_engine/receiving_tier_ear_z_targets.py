@@ -12,6 +12,7 @@ from math import isfinite
 from typing import Mapping
 
 from .receiving_tier_ear_assembly_xy import resolve_receiving_tier_ear_mating_xy
+from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
 
 
 @dataclass(frozen=True)
@@ -201,11 +202,19 @@ def resolve_receiving_tier_ear_contact_targets(
     }
     if len({r.ear_id for r in rows}) != len(rows):
         raise ValueError("EAR_Z_DUPLICATE_PHYSICAL_EAR")
+    pitch_x = receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=float(snapshot["w"]),
+        box_side_thickness_mm=float(snapshot["t"]),
+    )
+    inside_x = float(snapshot["w"])/2.0 - float(snapshot["t"])
     output = []
     for row in rows:
-        if (abs(row.base_center_x_mm) > 1e-6
-                or abs(abs(row.selected_slot_column_x_mm) - 335) > 1e-6):
-            raise ValueError("EAR_Z_FIXED_670_MOUNT_DRIFT")
+        side_sign = {"left": -1.0, "right": 1.0}.get(row.side)
+        if (side_sign is None
+                or abs(row.base_center_x_mm) > 1e-6
+                or abs(row.selected_slot_column_x_mm-side_sign*pitch_x/2.0) > 1e-6
+                or abs(row.side_inside_weld_x_mm-side_sign*inside_x) > 1e-6):
+            raise ValueError("EAR_Z_SOURCE_MOUNT_X_DRIFT")
         target = base_z[(row.layer_index, row.parent_base_id)]
         output.append(ReceivingTierEarContactTarget(
             ear_id=row.ear_id, parent_base_id=row.parent_base_id,
