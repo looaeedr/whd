@@ -70,10 +70,10 @@ def test_real_w800_signed_ear_skin_side_uv_saved_dxf_matches_exact_lines(
 def test_export_refuses_unsubmitted_or_stale_input_before_creating_any_dir(tmp_path):
     snap, geom = _actual(_assembled)
     output = tmp_path / "never-created"
-    with pytest.raises(ValueError, match="W800_T2_SUBMITTED"):
+    with pytest.raises(ValueError, match="MATCHING_SUBMITTED"):
         _export({**snap, "nfb_config_submitted": False}, geom, output)
     assert not output.exists()
-    with pytest.raises(ValueError, match="W800_T2_SUBMITTED"):
+    with pytest.raises(ValueError, match="MATCHING_SUBMITTED"):
         export_receiving_ear_side_check_only_dxf(
             snap, geom, output,
             dimensions=(750., 1600., 350.), sheet_thickness=2.,
