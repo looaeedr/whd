@@ -297,6 +297,37 @@ def draw_base_plate_preview(
         skip_layers=("CHECK", "STOCK"),
     )
 
+    source_key = snapshot.get("receiving_physical_part_key")
+    if source_key:
+        # The receiving sheet is the actual original physical PartRenderData,
+        # NOT the legacy red box-body outline or an inferred screw pitch.
+        # This one-sheet Canvas defaults to tier 1. The FoldDesigner 2D part
+        # selector can separately select every other NFB-tier plate.
+        choices = tuple(snapshot.get("receiving_tier_keys") or ())
+        if source_key in choices:
+            layer_label = f"NFB 第 {choices.index(source_key) + 1} 層"
+            selected_text = (
+                f"受電箱專屬底板｜{layer_label}｜Final Part Geometry"
+            )
+            if len(choices) > 1:
+                selected_text += (
+                    "\n其他層請在 FoldDesigner 2D 板件清單選取"
+                )
+        else:
+            selected_text = "受電箱專屬底板｜已選定的實體來源"
+        canvas.create_text(
+            20, 20,
+            text=selected_text + "\nCUTTING / BEND / MARKING 均取自同一份實體來源",
+            fill=host.COLOR_TEXT,
+            font=("Microsoft JhengHei", 9, "bold"),
+            anchor=tk.NW,
+            width=max(180, int(canvas_width * 0.56)),
+            tags=("phase6_preview_hint",),
+        )
+        annotation_drawer(canvas, render_data, transform, part_key=source_key)
+        hint_drawer(canvas, canvas_width, endcap=False)
+        return
+
     bx0, by0 = transform.world_to_canvas(Vec2(box_l, box_b))
     bx1, by1 = transform.world_to_canvas(Vec2(box_l + box_w, box_b + box_h))
     canvas.create_rectangle(
