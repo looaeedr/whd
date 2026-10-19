@@ -95,7 +95,17 @@ def _source_left_flat_base_config(data):
     from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
     from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
 
-    depth = committed_receiving_flat_nfb_depth_mm(data)
+    # A two-tier source is handled by independent tier parts, never by
+    # guessing that both tiers share a single LEFT/RIGHT root Base Plate.
+    active = data.get("nfb_config")
+    if isinstance(active, Mapping) and active.get("layer_count") != 1:
+        return None
+    try:
+        depth = committed_receiving_flat_nfb_depth_mm(data)
+    except ValueError as exc:
+        if str(exc) == "RECEIVING_FLAT_NFB_MULTIPLE_ROWS_NEED_DISTINCT_BASE":
+            return None
+        raise
     if depth is None:
         return None
     # The live Bay/Set identity is already verified by the flat depth
