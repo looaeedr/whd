@@ -247,9 +247,8 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         from types import SimpleNamespace
         from PIL import ImageGrab
         from gui_modules.rendering.box_body_view import draw_box_body_piece_preview
-        from gui_modules.application.receiving_ear_side_2d import (
-            present_receiving_ear_side_piece_2d,
-        )
+        from dataclasses import replace
+        from ae_engine.sheetmetal_drawing import DrawingScene, LinePrimitive
         import os
         box_part = next(part for part in scene.assembly_parts
                         if part.part_key == "box_body")
@@ -287,13 +286,27 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
 
         for side in ("left_side", "right_side"):
             original_side = body[side]
-            shown, blocker = present_receiving_ear_side_piece_2d(
-                calc, box_data, original_side, "box_body:" + side,
+            # Current native Side PartRenderData already contains the REAL
+            # canonical MARKING. A display-only overlay on top of it would
+            # legitimately fail with EXISTING_MARKING_CONFLICT. Never
+            # manufacture duplicates to satisfy a pixel threshold.
+            primitives = tuple(original_side.render_data.scene.primitives)
+            ear_lines = tuple(p for p in primitives if (
+                isinstance(p, LinePrimitive) and
+                str(getattr(p, "layer", "")).upper() == "MARKING"
+            ))
+            assert len(ear_lines) >= 8, (
+                "REAL_SOURCE_SIDE_EAR_MARKING_MISSING:" + side
             )
-            assert blocker is None, blocker
-            assert shown.render_data.metadata["ear_side_mark_preview_count"] == 8
-            without_2d = capture_side(side, original_side)
-            with_2d = capture_side(side, shown)
+            no_marks = replace(original_side, render_data=replace(
+                original_side.render_data, scene=DrawingScene([
+                    p for p in primitives
+                    if not (isinstance(p, LinePrimitive) and
+                            str(getattr(p, "layer", "")).upper() == "MARKING")
+                ]),
+            ))
+            without_2d = capture_side(side, no_marks)
+            with_2d = capture_side(side, original_side)
             assert with_2d.shape == without_2d.shape
             diff = np.max(np.abs(
                 with_2d.astype(np.int16) - without_2d.astype(np.int16),
