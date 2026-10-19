@@ -77,6 +77,11 @@ def focus_started_cadcraft_window(process_id: int):
     from ctypes import wintypes
 
     user32 = ctypes.windll.user32
+    user32.GetForegroundWindow.restype = wintypes.HWND
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.SetForegroundWindow.restype = wintypes.BOOL
+    user32.BringWindowToTop.argtypes = [wintypes.HWND]
+    user32.BringWindowToTop.restype = wintypes.BOOL
     pid = wintypes.DWORD()
     get_pid = user32.GetWindowThreadProcessId
     get_pid.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
