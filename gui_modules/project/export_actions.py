@@ -585,11 +585,13 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         if (snapshot.get("model") != "受電箱"
                 or snapshot.get("nfb_config_submitted") is not True
                 or snapshot.get("active_mode") == "quantity"):
-            raise ValueError("側板製造 MARKING 限已提交 W800/T2 單只／套連的來源實體，數量版本須逐版核對")
+            raise ValueError("側板製造 MARKING 限已提交的單只／套連實體，數量版本須逐版核對")
         dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
         thickness = float(snapshot["t"])
-        if dimensions[0] != 800.0 or thickness != 2.0:
-            raise ValueError("側板 MARKING 目前僅適用已驗證 W800/T2 來源")
+        # Contact, folded source and side material must all agree; W800
+        # is a reference value, not a mandatory cabinet width.
+        if dimensions[0] <= 0 or thickness <= 0:
+            raise ValueError("側板 MARKING 箱寬與側板厚度必須為正")
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
@@ -626,7 +628,7 @@ def export_receiving_ear_side_manufacturing_dxf(self):
 
 
 def export_receiving_ear_side_check_dxf(self):
-    """W800/T2 SIDE contact CHECK-only export, isolated from production DXF."""
+    """Source-backed SIDE contact CHECK-only export, not production DXF."""
     try:
         self._flush_phase6_authoritative_state()
         designer = getattr(self, "fold_designer_app", None)
@@ -640,8 +642,8 @@ def export_receiving_ear_side_check_dxf(self):
             raise ValueError("固定片 CHECK 限受電箱已提交的單只／套連實體；數量版本須逐版驗證")
         dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
         thickness = float(snapshot["t"])
-        if dimensions[0] != 800.0 or thickness != 2.0:
-            raise ValueError("固定片側板 CHECK 目前只認證 W800/T2")
+        if dimensions[0] <= 0 or thickness <= 0:
+            raise ValueError("固定片側板 CHECK 箱寬與側板厚度必須為正")
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片 CHECK 不可用", str(exc))
