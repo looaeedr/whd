@@ -3257,16 +3257,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     projected = update_common_box(
                         self.app._phase6_input_snapshot, changes,
                     )
-                    # Confirm All is explicit operator acceptance of the
-                    # CURRENT native CSV hole rows, not a separate source
-                    # certification. Keep this NFBConfig in the selected
-                    # quantity version; the synthetic Bay is only a display
-                    # projection. Do not create an invented base-plate shape:
-                    # without a selected physical source leave hole-only
-                    # editing intact, with no false manufacture entitlement.
-                    if (projected.get("receiving_base_plate") is not None
-                            and any(getattr(row, "source_type", None) ==
-                                    "NFB_CSV_SOURCE" for row in features)):
+                    # Confirm All accepts the validated original CSV holes
+                    # for this selected quantity-version independently of
+                    # physical Base Plate source selection. NFB identity is
+                    # NOT manufacturing approval. Previously the extra
+                    # receiving_base_plate gate silently dropped submitted
+                    # NFBConfig in the normal Single GUI, so source resolution,
+                    # 2D SIDE EAR and 3D tier parts could never even inspect
+                    # these confirmed model identities. Never fabricate an
+                    # unresolved Base Plate or relax MFG/NC guards here.
+                    if any(getattr(row, "source_type", None) ==
+                           "NFB_CSV_SOURCE" for row in features):
                         from ae_engine.receiving_nfb_csv_committed_config import (
                             committed_csv_nfb_config,
                         )
