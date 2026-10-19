@@ -20,6 +20,7 @@ from ae_engine.receiving_fixed_plate_side_uv_marking import (
 def project_receiving_ear_side_piece_2d_preview(
     snapshot, source_piece, *, piece_key, geometry,
     dimensions, sheet_thickness, world_geometry=None,
+    display_only_marking_overlap=False,
 ):
     """Return a separate displayed piece, preserving real manufacturing source.
 
@@ -63,7 +64,10 @@ def project_receiving_ear_side_piece_2d_preview(
         side: owner_render_data(geometry, side)
         for side in ("box_body:left_side", "box_body:right_side")
     }
-    previews = build_receiving_ear_side_marking_previews(receipts, sides)
+    previews = build_receiving_ear_side_marking_previews(
+        receipts, sides,
+        display_only_marking_overlap=bool(display_only_marking_overlap),
+    )
     if key not in previews:
         raise ValueError("EAR_2D_PREVIEW_NOT_PROJECTED_TO_OWNER")
     before = dict(data.metadata or {})
@@ -78,6 +82,12 @@ def project_receiving_ear_side_piece_2d_preview(
             "ear_side_mark_preview_owner": key,
             "ear_side_mark_preview_count": sum(
                 len(r.marking_segments) for r in receipts if r.side_piece_id == key
+            ),
+            # A display-only mode that can expose real EAR contact even
+            # when unrelated original joint MARKING crosses its weld zone.
+            # Do not treat this as manufacturing conflict certification.
+            "ear_side_existing_marking_overlap_display_mode": bool(
+                display_only_marking_overlap
             ),
         },
     )
@@ -144,6 +154,7 @@ def present_receiving_ear_side_piece_2d(
             snapshot, source_piece, piece_key=key, geometry=geometry,
             dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
             sheet_thickness=float(snapshot["t"]),
+            display_only_marking_overlap=True,
         )
         result = displayed, None
     except Exception as exc:
