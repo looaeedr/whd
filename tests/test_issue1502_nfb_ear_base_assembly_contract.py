@@ -110,8 +110,8 @@ def test_source_color150_does_not_create_a_nonexistent_middle_plate():
     assert got.scope_reasons == ("BASE_PLATE_PHYSICAL_ID_UNRESOLVED",)
 
 
-def test_factory_ear_must_not_be_approved_at_wrong_box_width():
-    with pytest.raises(ValueError, match="W=800"):
+def test_factory_ear_rejects_stale_w800_pitch_at_different_box_width():
+    with pytest.raises(ValueError, match="source-folded EAR/side-skin"):
         resolve_receiving_large_weld_ear_fit(
             box_outer_width_mm=750.0, box_side_thickness_mm=2.0,
             fixing_hole_pitch_x_mm=670.0, fixing_hole_pitch_y_mm=210.0,
