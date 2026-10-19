@@ -324,7 +324,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                       (tuple(round(v, 2) for v in p.bounds), round(p.area, 2))
                       for p in patches
                   ], "overlap_lengths", [
-                      [round(LineString((item.p1, item.p2)).intersection(
+                      [round(LineString(((item.p1.x, item.p1.y), (item.p2.x, item.p2.y))).intersection(
                           p).length, 3) for p in patches]
                       for item in ear_lines
                   ], flush=True)
