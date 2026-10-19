@@ -78,6 +78,7 @@ def _pump(root, predicate, *, timeout=10.0):
 def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
     monkeypatch, tmp_path,
 ):
+    import ezdxf
     from gui_modules.editors import cadcraft_command_preview_bridge as bridge
 
     started = threading.Event()
@@ -93,6 +94,12 @@ def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
             lambda **kw: (calls.append(kw), instructions)[1],
         )
         monkeypatch.setattr(bridge, "find_cadcraft_cli", lambda: "test-only-cli")
+        target = tmp_path / "actual-output.dxf"
+        doc = ezdxf.new("R2010", units=ezdxf.units.MM)
+        doc.saveas(target)
+        launched = []
+        monkeypatch.setattr(bridge, "open_cadcraft_hole_editor",
+                            lambda path: launched.append(path) or object())
 
         def fake_draw(*, instructions, executable):
             thread_ids.append(threading.get_ident())
@@ -101,7 +108,7 @@ def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
             if not release.wait(15):
                 raise RuntimeError("TEST_THREAD_NOT_RELEASED")
             return bridge.CadcraftCommandDrawingResult(
-                output_dxf=tmp_path / "actual-output.dxf",
+                output_dxf=target,
                 preview_png=tmp_path / "actual-output.png",
                 geometry_evidence={"status": "PASS"},
             )
@@ -111,7 +118,7 @@ def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
         button = editor._hole_header_cadcraft_draw
         assert button.winfo_exists() and old_preview.winfo_exists()
         assert old_preview.cget("text") == "CADCraft 試看"
-        assert button.cget("text") == "CADCraft 指令繪圖試作"
+        assert button.cget("text") == "CADCraft 開孔編輯"
         main_thread_id = threading.get_ident()
 
         button.invoke()
@@ -129,10 +136,11 @@ def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
         assert canvas.winfo_exists()
 
         release.set()
-        _pump(root, lambda: len(dialogs) > 0)
-        assert dialogs[-1][0] == "info"
-        assert "actual-output.dxf" in dialogs[-1][1][1]
-        assert "不會修改 WHD 開孔或製造圖" in dialogs[-1][1][1]
+        _pump(root, lambda: bool(launched))
+        assert launched == [target]
+        assert not dialogs, "Successful CADCraft launch must not show blocking modal"
+        assert str(editor._hole_header_cadcraft_return.cget("state")) == "normal"
+        assert "已啟動" in editor._hole_header_cadcraft_status.cget("text")
         assert str(button.cget("state")) == "normal"
         assert old_preview.winfo_exists()
         assert features == [] and not session.has_active_edit
@@ -199,11 +207,15 @@ def test_live_tk_cadcraft_manual_position_return_uses_original_session(monkeypat
             assert instructions[0].radius == 5
             return bridge.CadcraftCommandDrawingResult(target, image, {"status": "PASS"})
         monkeypatch.setattr(bridge, "draw_whd_commands_with_cadcraft", fake_draw)
+        launches = []
+        monkeypatch.setattr(bridge, "open_cadcraft_hole_editor",
+                            lambda path: launches.append(path) or object())
         draw_button = editor._hole_header_cadcraft_draw
         return_button = editor._hole_header_cadcraft_return
         assert str(return_button.cget("state")) == "disabled"
         draw_button.invoke()
-        _pump(root, lambda: any(row[0] == "info" for row in dialogs))
+        _pump(root, lambda: bool(launches))
+        assert launches == [target]
         assert str(return_button.cget("state")) == "normal"
         doc = ezdxf.readfile(target)
         circle = list(doc.modelspace())[0]
