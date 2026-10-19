@@ -105,6 +105,80 @@ def test_rendered_scene_pick_entries_replaced_on_redraw_or_empty():
     assert view._hole_pick_artists == []
 
 
+def test_true_assembly_draw_tracks_each_independent_visible_sheet():
+    from shapely.geometry import box
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    fig = Figure(figsize=(6, 5))
+    canvas = FigureCanvasAgg(fig)
+    ax = fig.add_subplot(111, projection="3d")
+    owner = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax, canvas=canvas))
+    door = SimpleNamespace(
+        scene=DrawingScene(), material=box(0, 0, 100, 80),
+        fold_guides=(),
+    )
+    head = SimpleNamespace(
+        scene=DrawingScene(), material=box(0, 0, 100, 40),
+        fold_guides=(),
+    )
+    flat_x = ({"len": 100.0, "core": True},)
+    parts = (
+        AssemblyScenePart("door", door, flat_x,
+                          ({"len": 80.0, "core": True},),
+                          placement="front"),
+        AssemblyScenePart("head", head, flat_x,
+                          ({"len": 40.0, "core": True},),
+                          placement="top"),
+    )
+    request = FinalSceneViewRequest(
+        render_data=AssemblySceneRenderData(
+            assembly_parts=parts,
+            visible_part_keys=("door", "head"),
+        ),
+        x_profile=(), y_profile=(), part_key="assembly",
+        alpha_bend=0.8, finished_dimensions=(100.0, 80.0, 40.0),
+        thickness=2.0,
+    )
+    assert owner.render(request)
+    canvas.draw()
+    assert {key for _, key in owner._hole_pick_artists} == {"door", "head"}
+    assert all(poly.axes is ax for poly, _ in owner._hole_pick_artists)
+    owner.render(None)
+    assert owner._hole_pick_artists == []
+
+
+def test_assembly_hidden_part_does_not_appear_in_pick_targets():
+    from shapely.geometry import box
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    fig = Figure(figsize=(5, 4))
+    canvas = FigureCanvasAgg(fig)
+    ax = fig.add_subplot(111, projection="3d")
+    owner = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax, canvas=canvas))
+    part = SimpleNamespace(
+        scene=DrawingScene(), material=box(0, 0, 100, 80),
+        fold_guides=(),
+    )
+    profiles = ({"len": 100.0, "core": True},)
+    request = FinalSceneViewRequest(
+        render_data=AssemblySceneRenderData(
+            assembly_parts=(
+                AssemblyScenePart("door", part, profiles, profiles, placement="front"),
+                AssemblyScenePart("head", part, profiles, profiles, placement="top"),
+            ),
+            visible_part_keys=("door",),
+        ),
+        x_profile=(), y_profile=(), part_key="assembly",
+        finished_dimensions=(100.0, 80.0, 40.0), thickness=2.0,
+    )
+    owner.render(request)
+    assert {key for _, key in owner._hole_pick_artists} == {"door"}
+
+
 @pytest.mark.skipif(__import__("os").environ.get("DISPLAY") is None,
                     reason="real Tk display required")
 def test_real_3d_single_part_surface_routes_to_original_hole_editor(monkeypatch):
