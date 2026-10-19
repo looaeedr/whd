@@ -723,7 +723,7 @@ def export_selected_dxf(self):
         exported, errors = _export_selected_parts(
             self, stage_folder, val, flags, bool(self.draw_stock_var.get())
         )
-        if flags["base_plate"] and _is_unconfigured_receiving_base_export_error(errors):
+        if flags.get("base_plate", False) and _is_unconfigured_receiving_base_export_error(errors):
             other_flags = {**flags, "base_plate": False}
             if not any(other_flags.values()):
                 errors = [
