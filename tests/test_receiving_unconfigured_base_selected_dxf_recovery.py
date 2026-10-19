@@ -21,12 +21,14 @@ _KEYS = ("box_body", "head", "tail", "door", "base_plate",
          "indicator_box", "indicator_door")
 
 
-def _run(monkeypatch, tmp_path, selected, *, confirm=True, failure=_MISSING_PATTERN):
+def _run(monkeypatch, tmp_path, selected, *, confirm=True, failure=_MISSING_PATTERN, omit_base_key=False):
     calls = []
     questions = []
     errors = []
     successes = []
     flags = {key: key in selected for key in _KEYS}
+    if omit_base_key:
+        flags.pop("base_plate")
 
     host = SimpleNamespace(
         _flush_phase6_authoritative_state=lambda: None,
@@ -63,7 +65,7 @@ def _run(monkeypatch, tmp_path, selected, *, confirm=True, failure=_MISSING_PATT
 
     def fake_mfg(_self, stage_folder, _val, requested, _stock):
         calls.append(dict(requested))
-        if requested["base_plate"]:
+        if requested.get("base_plate", False):
             return [], [failure]
         # Only a stand-in for the downstream writer in the GUI dispatch test.
         # Manufacturing geometry and DXF serialization have separate tests.
@@ -133,6 +135,17 @@ def test_unselected_base_never_invokes_partial_fallback(tmp_path, monkeypatch):
     )
     assert len(calls) == 1
     assert calls[0]["base_plate"] is False
+    assert not questions
+    assert not errors
+    assert successes
+    assert (tmp_path / "end_cap_head.dxf").is_file()
+
+def test_legacy_partial_flags_without_base_plate_key_keep_normal_export(tmp_path, monkeypatch):
+    calls, questions, errors, successes = _run(
+        monkeypatch, tmp_path, ("head",), omit_base_key=True,
+    )
+    assert len(calls) == 1
+    assert "base_plate" not in calls[0]
     assert not questions
     assert not errors
     assert successes
