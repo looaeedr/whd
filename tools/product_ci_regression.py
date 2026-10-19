@@ -217,6 +217,8 @@ PYTEST_PATHS = (
     "tests/test_phase6_t15_inner_door_panels.py",
     "tests/test_issue1901_inner_door_feature_candidates.py",
     "tests/test_issue1901_receiving_editor_commit_boundary.py",
+    # NFB subtab is draft-only; main Confirm routes by the actual entry, not project mode.
+    "tests/test_receiving_nfb_entry_scoped_transactions.py",
     "tests/test_issue1901_receiving_settings_editor_buttons.py",
     "tests/test_issue1901_verified_nfb_editor_import.py",
     "tests/test_issue1901_single_quantity_source_proof.py",
