@@ -53,6 +53,79 @@ def test_fixture_preserves_missing_authorities():
         assert key not in snap
 
 
+
+def test_fresh_single_editor_shows_csv_400_and_can_confirm_without_manual_base(tmp_path):
+    """Real native Tk: no helper NFB insertion, no manual BasePlate commit."""
+    import gui
+    import fold_designer_bridge as bridge
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        source = tmp_path / "fresh_receiving.p6fold"
+        source.write_bytes(FIXTURE.read_bytes())
+        designer = app.load_phase6_project(source, open_designer=True)
+        _pump(root)
+        assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
+        settings = bridge._phase6_open_receiving_single_settings(designer)
+        _pump(root)
+        chosen = settings._receiving_multi_setting_list
+        chosen.selection_clear(0, tk.END)
+        chosen.selection_set(1)
+        chosen.event_generate("<<ListboxSelect>>")
+        _pump(root)
+        _buttons(settings._receiving_multi_settings_host, "編輯")[0].invoke()
+        _pump(root)
+        editor = app.last_unified_hole_editor
+        editor._receiving_config_tabs.select(1)
+        _pump(root)
+        frame = next(w for w in _walk(editor)
+                     if hasattr(w, "_receiving_inner_switch_state") and w.winfo_exists())
+        rows = frame._receiving_inner_switch_state["rows"]
+        assert rows[0]["assigned"].size() == 1
+        assert str(rows[0]["assigned"].get(0)) == "2P400"
+        assert rows[1]["assigned"].size() == 0
+        assert not designer.designer_workspace.quantity_model.nfb_config_for_version(
+            designer.designer_workspace.quantity_model.selected_version_id
+        ), "Opening draft is never implicit persistence"
+        _buttons(frame, "確定")[0].invoke()
+        _pump(root)
+        _buttons(editor, "確定全部")[0].invoke()
+        _pump(root)
+        cfg = designer._phase6_input_snapshot
+        assert cfg.get("nfb_config_submitted") is True
+        assert cfg.get("receiving_base_plate") is None
+        assert cfg["nfb_config"]["layer_count"] == 1
+        assert len(cfg["nfb_config"]["holes"]) == 1
+        assert cfg["nfb_config"]["holes"][0]["model_filename"] == numeric_model_ref(
+            "士林", "2P400"
+        )
+        actual = receiving_base_plate_values(cfg)
+        assert actual is not None
+        assert actual["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+        assert actual["h"] == 340
+        scene = bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
+        assert "base_plate" in {p.part_key for p in scene.assembly_parts}
+        assert not scene.warnings, scene.warnings
+        # Actual Save As and GUI reopen, not a constructed Python snapshot.
+        from unittest.mock import patch
+        target = tmp_path / "fresh_single_400_saved.p6fold"
+        with patch("tkinter.filedialog.asksaveasfilename", return_value=str(target)):
+            saved = designer.save_project_file_as()
+        assert saved and target.exists()
+        reloaded = app.load_phase6_project(target, open_designer=True)
+        _pump(root)
+        snap = reloaded._phase6_input_snapshot
+        assert snap.get("receiving_base_plate") is None
+        assert snap["nfb_config_submitted"] is True
+        assert len(snap["nfb_config"]["holes"]) == 1
+        assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    finally:
+        root.destroy()
+
+
 def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
     """Old code is RED when it silently draws no real base/EAR after Confirm All."""
     import gui
