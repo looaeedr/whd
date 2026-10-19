@@ -149,7 +149,13 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
 
     values = receiving_base_plate_values(snapshot)
     if values is None:
-        raise ValueError("RECEIVING_TWO_TIER_BASE_VARIANT_UNCONFIGURED")
+        # NFB CSV Confirm All is legitimate even when the existing physical
+        # source cannot uniquely resolve a two-tier Base Plate. Do not crash
+        # the real 2D/3D GUI, fabricate two source-derived parts, or certify
+        # an unrelated root Base Plate. Preserve the editable legacy scene
+        # plus the independent visible source warning. MFG/NC gates remain
+        # unchanged and continue to reject unresolved fabrication.
+        return parts
     # We cannot claim that a two-tier pair's source depth is the same as
     # a historical one-tier source: holes and PAD must be resolved per layer.
     # No model-depth fallback grants manufacturing permission.

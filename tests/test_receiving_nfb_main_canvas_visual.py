@@ -38,6 +38,11 @@ def test_receiving_confirm_draws_two_csv_nfb_holes_on_native_main_canvas():
 
     def add_real_csv_nfb(root, state, index):
         row = state["rows"][index]
+        # New first-entry default owns one real Shihlin 2P400 *draft*.
+        # The original canvas test should reuse it instead of creating
+        # a second first-tier switch and then blaming duplicate geometry.
+        if row["assigned"].size() == 1 and str(row["assigned"].get(0)) == "2P400":
+            return
         options = row["available"]
         selected = next((i for i in range(options.size())
                          if "2P400" in str(options.get(i))), None)

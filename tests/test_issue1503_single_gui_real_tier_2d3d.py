@@ -40,6 +40,11 @@ def _buttons(widget, name):
 
 def _pick_400(root, state, layer):
     row = state["rows"][layer]
+    # Fresh receiving Single now starts with one Shihlin 2P400 in its
+    # *uncommitted* editable draft. Never add a duplicate while using the
+    # old helper to populate another/empty layer.
+    if row["assigned"].size() == 1 and "2P400" in row["assigned"].get(0):
+        return
     source = row["available"]
     index = next(i for i in range(source.size())
                  if "2P400" in str(source.get(i)))

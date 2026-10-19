@@ -31,6 +31,10 @@ def pump(root):
 
 def add(root,frame,state,layer):
     row=state['rows'][layer]
+    # Fresh candidate NFB tab may now have a transient default 2P400.
+    # Reuse that exact original CSV identity instead of duplicating slot 0.
+    if row['assigned'].size()==1 and str(row['assigned'].get(0))=='2P400':
+        return
     available=row['available']
     assert available.size() >= 1, 'missing available numeric CSV list, layer=' + str(layer)
     available.selection_clear(0,tk.END)

@@ -1953,6 +1953,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 == list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])):
             # Fresh receiving-tab draft, not a global migration of old boxes.
             initial["layer_heights_mm"] = [550.0, 800.0]
+        # Fresh Single NFB UI: show one real Shihlin 2P400 by default,
+        # sourced from its current CSV. This is only a transient editor
+        # draft. A Cancel never persists it; native Confirm All remains the
+        # authority for the actual NFB CUTTING source identity.
+        # Existing selections, an alternate explicit global brand, and
+        # staged edits are never overwritten.
+        if embed_parent is not None:
+            from ae_engine.receiving_fresh_nfb_defaults import (
+                initial_fresh_receiving_nfb_models,
+            )
+            initial["models"] = initial_fresh_receiving_nfb_models(
+                initial["models"],
+                layer_count=initial["layers"],
+                selected_brand=self.receiving_switch_adapter(namespace).brand,
+            )
         parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
         from .receiving_inner_door_hole_editor import inner_door_commit_target
         # Read the actual opening editor entry. Stored Set/Bay state and
@@ -3257,16 +3272,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     projected = update_common_box(
                         self.app._phase6_input_snapshot, changes,
                     )
-                    # Confirm All is explicit operator acceptance of the
-                    # CURRENT native CSV hole rows, not a separate source
-                    # certification. Keep this NFBConfig in the selected
-                    # quantity version; the synthetic Bay is only a display
-                    # projection. Do not create an invented base-plate shape:
-                    # without a selected physical source leave hole-only
-                    # editing intact, with no false manufacture entitlement.
-                    if (projected.get("receiving_base_plate") is not None
-                            and any(getattr(row, "source_type", None) ==
-                                    "NFB_CSV_SOURCE" for row in features)):
+                    # Confirm All accepts the validated original CSV holes
+                    # for this selected quantity-version independently of
+                    # physical Base Plate source selection. NFB identity is
+                    # NOT manufacturing approval. Previously the extra
+                    # receiving_base_plate gate silently dropped submitted
+                    # NFBConfig in the normal Single GUI, so source resolution,
+                    # 2D SIDE EAR and 3D tier parts could never even inspect
+                    # these confirmed model identities. Never fabricate an
+                    # unresolved Base Plate or relax MFG/NC guards here.
+                    if any(getattr(row, "source_type", None) ==
+                           "NFB_CSV_SOURCE" for row in features):
                         from ae_engine.receiving_nfb_csv_committed_config import (
                             committed_csv_nfb_config,
                         )
