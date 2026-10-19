@@ -76,6 +76,11 @@ def draw_box_body_piece_preview(
     if render_data.metadata.get("ear_side_mark_preview_only"):
         count = int(render_data.metadata.get("ear_side_mark_preview_count") or 0)
         source_hint += f"\n固定片焊接區：{count} 條 MARKING 預覽（未核准製造）"
+        if render_data.metadata.get("ear_side_existing_marking_overlap_display_mode"):
+            source_hint += (
+                "\\n⚠ 既有打標可能與固定片接觸輪廓重疊；"
+                "此畫面僅供檢視，並非正式製造放行"
+            )
     if ear_marking_preview_blocker:
         source_hint += f"\n⚠ 固定片打標未顯示：{ear_marking_preview_blocker}"
     fit_error = render_data.metadata.get("baseline_fit_error")
