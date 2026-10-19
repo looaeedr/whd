@@ -83,13 +83,19 @@ def receiving_base_fixing_plate_previews(
         side_t = float(data.get("t", 0))
     except (TypeError, ValueError, OverflowError):
         return ()
-    from .receiving_base_plate_config import receiving_base_plate_values
-    # The active NFB CSV may uniquely identify the physical source without
-    # any legacy/manual box setting. This is the SAME pure source resolver
-    # as the actual PartSpec/3D assembly; never manufacture from a guess.
-    actual_source = receiving_base_plate_values(data)
-    pattern = (str(actual_source["receiving_bend_pattern"])
-               if actual_source is not None else "")
+    # Preserve historical pattern-only preview inputs (which are NOT a
+    # fully configured physical BasePlate). A legacy flat preview may name
+    # LEFT/CENTER/RIGHT solely to display the correct source slot pair.
+    # ONLY when no explicit pattern is present, resolve the real physical
+    # type from a submitted NFB CSV; never guess an unrecognized source.
+    config = data.get("receiving_base_plate")
+    pattern = (str(config.get("pattern") or "")
+               if isinstance(config, Mapping) else "")
+    if not pattern:
+        from .receiving_base_plate_config import receiving_base_plate_values
+        actual_source = receiving_base_plate_values(data)
+        pattern = (str(actual_source["receiving_bend_pattern"])
+                   if actual_source is not None else "")
     from .sheetmetal_part_adapters import (
         RECEIVING_BASE_PATTERN_CENTER, RECEIVING_BASE_PATTERN_LEFT,
         RECEIVING_BASE_PATTERN_RIGHT,
