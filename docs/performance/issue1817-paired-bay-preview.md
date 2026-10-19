@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1817-paired-bay-preview
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1817｜單連快取與完整求解的同機對照（2026-10-17）
 
 > 狀態：此文件定義量測協議；**不預先宣稱任何成功樣本或改善幅度**。實際成功與統計以本 PR 的 GitHub Actions 真 Tk 原始 artifact 為準。

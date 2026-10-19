@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1819-three-bay-ab
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1819：三連真實 GUI 記憶體持有修復前後驗證
 
 ## 核心問題

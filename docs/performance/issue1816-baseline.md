@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1816-baseline
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # WHD 效能基準（#1816）
 
 本工具只觀測產品呼叫，不替換幾何、不修改 Scheduler、不清快取、不變更製造規則。原 `phase6_gui_perf_stress.py` 包含固定等待及推算計數，不作本工單的延遲基準。
