@@ -80,3 +80,39 @@ def test_nonreceiving_or_missing_designer_geometry_never_fabricates_marks():
         host, geometry.part("box_body").render_data, source, "box_body:left_side",
     )
     assert shown is source and blocker is None
+
+
+@pytest.mark.parametrize("side,expected_marks", (
+    ("left_side", 8), ("right_side", 8),
+))
+def test_actual_primary_boxbody_2d_panel_must_use_same_designer_side_material(side, expected_marks):
+    from gui_modules.application.render_snapshots import box_body_render_snapshot
+    committed, geometry = _actual(_two_tier)
+    mirror = {key: value for key, value in committed.items()
+              if key not in ("nfb_config_submitted", "nfb_config")}
+    calls = []
+    designer = SimpleNamespace(
+        _phase6_input_snapshot=committed,
+        _phase6_resolve_manufacturing_geometry=(
+            lambda: calls.append("designer_geometry") or geometry
+        ),
+    )
+    def reject_generic(*args, **kwargs):
+        raise AssertionError("PRIMARY_OLD_GENERIC_BOXBODY_MUST_NOT_BE_BUILT")
+    host = SimpleNamespace(
+        fold_designer_app=designer,
+        _compose_phase6_project_snapshot_from_main_gui=lambda: mirror,
+        _box_body_part_spec=reject_generic,
+        _authoritative_render_data=reject_generic,
+        _refresh_box_body_piece_tabs_2d=lambda real: f"box_body:{side}",
+    )
+    view = box_body_render_snapshot(
+        host, {"model": "受電箱", "w": 800., "h": 1600., "d": 350.},
+    )
+    assert view["mode"] == "piece"
+    assert view["piece_key"] == f"box_body:{side}"
+    assert view["ear_marking_preview_blocker"] is None
+    assert view["render_data"] is geometry.part("box_body").render_data
+    assert view["piece"].render_data.metadata["ear_side_mark_preview_count"] == expected_marks
+    assert calls == ["designer_geometry", "designer_geometry"]
+    assert not hasattr(host, "_legacy_preview_render_cache")
