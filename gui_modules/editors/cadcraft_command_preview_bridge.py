@@ -39,6 +39,30 @@ def find_cadcraft_cli(*, configured=None) -> str:
     return str(path)
 
 
+def open_cadcraft_hole_editor(exchange_dxf: Path, *, executable=None, launcher=None):
+    """Launch the real CADCraft GUI with the verified WHD isolated exchange.
+
+    CLI output alone does not open a visible editor. Launch only after the
+    caller has established a live WHD Session return ticket; never pass a
+    baseline, original manufacturing DXF, or arbitrary user-selected file.
+    Keep the GUI process non-blocking so WHD can receive edits later.
+    """
+    import subprocess
+    from .cadcraft_preview_bridge import find_cadcraft_gui
+
+    path = Path(exchange_dxf).resolve(strict=True)
+    if not path.is_file() or path.suffix.lower() != ".dxf":
+        raise CadcraftCommandProofError("CADCRAFT_EDIT_EXCHANGE_INVALID")
+    binary = find_cadcraft_gui(configured=executable)
+    spawn = launcher if launcher is not None else subprocess.Popen
+    try:
+        return spawn([binary, str(path)])
+    except OSError as exc:
+        raise CadcraftCommandProofError(
+            f"CADCRAFT_GUI_LAUNCH_FAILED: {binary} ({exc})"
+        ) from exc
+
+
 def prepare_whd_cadcraft_commands(*, surface, features: Sequence,
                                    width: float, height: float) -> tuple[DrawInstruction, ...]:
     """Read-only WHD authority check; captures immutable geometry for worker."""
