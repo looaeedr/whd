@@ -109,7 +109,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         # First actionable condition: the actual current physical cabinet
         # must own two distinct mounted source plates instead of the stale
         # generic single root. These are expected real 2D/3D PartRenderData.
-        scene = designer.final_scene_view.query_assembly_render_data()
+        scene = designer._final_scene_adapter.query_assembly_render_data()
         physical = {part.part_key: part for part in scene.assembly_parts}
         assert "base_plate" not in physical
         for index in (0, 1):
