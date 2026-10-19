@@ -913,6 +913,30 @@ def _bind_editor_events(s):
                                 status_label.configure(
                                     text="CADCraft 已啟動；存檔後按『改孔回傳』"
                                 )
+                            # Windows starts a visible process asynchronously;
+                            # the program window may initially sit behind this
+                            # modal WHD editor. Hand foreground over only while
+                            # WHD still owns foreground (never steal focus from
+                            # another app the user switched to meanwhile).
+                            from .cadcraft_command_preview_bridge import (
+                                focus_started_cadcraft_window,
+                            )
+                            pid = getattr(process, "pid", None)
+                            if isinstance(pid, int) and pid > 0:
+                                def focus_new_cadcraft(attempt=0):
+                                    if not s.editor.winfo_exists():
+                                        return
+                                    if focus_started_cadcraft_window(pid):
+                                        return
+                                    if attempt < 12 and process.poll() is None:
+                                        s.editor.after(
+                                            150, lambda: focus_new_cadcraft(attempt + 1)
+                                        )
+                                    elif status_label is not None:
+                                        status_label.configure(
+                                            text="CADCraft 已啟動；若視窗在後方請 Alt+Tab"
+                                        )
+                                s.editor.after(180, focus_new_cadcraft)
 
             Thread(target=worker, name="whd-cadcraft-command-draw", daemon=True).start()
             s.editor.after(100, poll_for_result)
