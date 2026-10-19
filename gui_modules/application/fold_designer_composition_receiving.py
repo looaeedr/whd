@@ -3253,6 +3253,30 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     projected = update_common_box(
                         self.app._phase6_input_snapshot, changes,
                     )
+                    # Confirm All is explicit operator acceptance of the
+                    # CURRENT native CSV hole rows, not a separate source
+                    # certification. Keep this NFBConfig in the selected
+                    # quantity version; the synthetic Bay is only a display
+                    # projection. Do not create an invented base-plate shape:
+                    # without a selected physical source leave hole-only
+                    # editing intact, with no false manufacture entitlement.
+                    if (projected.get("receiving_base_plate") is not None
+                            and any(getattr(row, "source_type", None) ==
+                                    "NFB_CSV_SOURCE" for row in features)):
+                        from ae_engine.receiving_nfb_csv_committed_config import (
+                            committed_csv_nfb_config,
+                        )
+                        from ae_engine.receiving_quantity_box import project_common_box
+                        typed = committed_csv_nfb_config(part_key, features, config)
+                        quantity = self.app.designer_workspace.quantity_model
+                        if quantity is None:
+                            raise ValueError("單只 NFB 需要目前的數量模式版本")
+                        quantity.set_version_nfb_config(
+                            quantity.selected_version_id, submitted=True,
+                            config=typed,
+                        )
+                        projected["quantity"] = quantity.snapshot()
+                        projected = project_common_box(projected)
                     self.app._phase6_input_snapshot.update(projected)
                     # The workspace is the in-memory canonical mode owner.
                     # The next scheduler/SetBay sync otherwise restores its
