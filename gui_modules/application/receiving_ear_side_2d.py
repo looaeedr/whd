@@ -92,8 +92,28 @@ def present_receiving_ear_side_piece_2d(
     if key not in {"box_body:left_side", "box_body:right_side"}:
         return source_piece, None
     try:
-        snapshot = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
-        if snapshot.get("model") != "受電箱" or snapshot.get("nfb_config_submitted") is not True:
+        # The primary window's snapshot is only an editable projection.
+        # In the actual WHD GUI, NFB Confirm All commits to FoldDesigner,
+        # leaving the primary mirror without nfb_config_submitted. Reading
+        # that mirror silently discarded all SIDE EAR MARKING. The same
+        # FoldDesigner now owns BOTH the NFB source and its resolved geometry.
+        designer = getattr(host, "fold_designer_app", None)
+        if designer is not None:
+            canonical = getattr(designer, "_phase6_input_snapshot", None)
+            if not isinstance(canonical, dict):
+                raise ValueError("EAR_2D_PREVIEW_DESIGNER_SOURCE_NOT_AVAILABLE")
+            snapshot = dict(canonical)
+        else:
+            snapshot = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
+        if snapshot.get("model") != "受電箱":
+            return source_piece, None
+        if snapshot.get("nfb_config_submitted") is not True:
+            # A legacy/unconfigured Receiving side has no EAR weld footprint;
+            # do not borrow a stale submitted NFB from the main GUI mirror.
+            main = (dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
+                    if designer is not None else snapshot)
+            if main.get("nfb_config_submitted") is True:
+                raise ValueError("EAR_2D_PREVIEW_PRIMARY_SOURCE_DRIFT")
             return source_piece, None
 
         import hashlib
@@ -112,9 +132,14 @@ def present_receiving_ear_side_piece_2d(
             return cached[1], cached[2]
 
         if geometry_provider is None:
-            from phase6_manufacturing_adapter import resolve_for_app
-            geometry_provider = resolve_for_app
-        geometry = geometry_provider(host)
+            resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+            if callable(resolver):
+                geometry = resolver()
+            else:
+                from phase6_manufacturing_adapter import resolve_for_app
+                geometry = resolve_for_app(designer if designer is not None else host)
+        else:
+            geometry = geometry_provider(designer if designer is not None else host)
         displayed = project_receiving_ear_side_piece_2d_preview(
             snapshot, source_piece, piece_key=key, geometry=geometry,
             dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
