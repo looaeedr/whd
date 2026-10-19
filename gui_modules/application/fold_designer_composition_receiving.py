@@ -3254,6 +3254,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         self.app._phase6_input_snapshot, changes,
                     )
                     self.app._phase6_input_snapshot.update(projected)
+                    # The workspace is the in-memory canonical mode owner.
+                    # The next scheduler/SetBay sync otherwise restores its
+                    # previous quantity-box value and silently discards NFB
+                    # layer count, CSV model identities and operator heights.
+                    self.app.designer_workspace.set_receiving_common_box(
+                        projected["receiving_quantity_box"]
+                    )
+                    self.receiving_adapter(namespace, reset=True)
+                    self.sync_receiving_current_bay(
+                        namespace, refresh_controls=False,
+                    )
                 # Quantity's current physical sheet is the live workspace owner;
                 # it is NOT a Set/Bay candidate or a synthetic version X.
                 self.app.designer_workspace.stash_features(part_key, features)
