@@ -1183,6 +1183,38 @@ def settings_panel(self, namespace):
 
     required = lambda name: self._required(namespace, name)
     query = getattr(app, "_baseline_data_query_callback", None)
+
+    def receiving_base_plate_for_current_mode(config):
+        # In quantity mode the synthetic current Set/Bay and top-level input
+        # aliases are rebuilt from receiving_quantity_box after every redraw.
+        # Committing only the root alias loses this physical source and
+        # silently falls back to the generic single Base Plate. Reuse the
+        # original source/slot transaction on a detached copy, then update
+        # the actual quantity common-box owner atomically with the same
+        # mode navigation transaction used by other receiving edits.
+        if app.designer_workspace.active_mode == "quantity":
+            from ae_engine.receiving_quantity_box import update_common_box
+            candidate = _current_mode_snapshot(self, namespace)
+            commit_receiving_base_plate_settings(
+                input_snapshot=candidate,
+                settings_values=app._settings_values,
+                submit_geometry_update=lambda: None,
+                config=config,
+            )
+            source = update_common_box(
+                candidate, {"receiving_base_plate": config},
+            )
+            _apply_mode_snapshot(self, namespace, source)
+            return deepcopy(source.get("receiving_base_plate"))
+        return commit_receiving_base_plate_settings(
+            input_snapshot=app._phase6_input_snapshot,
+            settings_values=app._settings_values,
+            submit_geometry_update=lambda: app.submit_update_intent(
+                "geometry", commit=True,
+            ),
+            config=config,
+        )
+
     panel = Phase6SettingsPanel(
         values_snapshot=lambda: dict(app._settings_values),
         stage_setting_update=lambda key, value: self.stage_setting_update(
@@ -1207,12 +1239,7 @@ def settings_panel(self, namespace):
         context_extension_projection=lambda context: self.settings_context_extension_projection(
             namespace, context
         ),
-        receiving_base_plate_commit=lambda config: commit_receiving_base_plate_settings(
-            input_snapshot=app._phase6_input_snapshot,
-            settings_values=app._settings_values,
-            submit_geometry_update=lambda: app.submit_update_intent("geometry", commit=True),
-            config=config,
-        ),
+        receiving_base_plate_commit=receiving_base_plate_for_current_mode,
         endcap_fw_value_selected=lambda part_key, value_var: required(
             "_phase6_on_endcap_fw_value_selected"
         )(app, part_key, value_var),
