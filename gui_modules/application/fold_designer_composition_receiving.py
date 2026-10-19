@@ -3237,17 +3237,23 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 raise ValueError("內門開孔編輯返回錯誤的實體板件")
             if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
                 if staged_config is not None:
+                    from ae_engine.receiving_quantity_box import update_common_box
                     config = validate_door_config(staged_config)
-                    self.app._phase6_input_snapshot["receiving_inner_door_layers"] = (
-                        config["layers"]
-                    )
-                    self.app._phase6_input_snapshot["receiving_inner_door_models"] = (
-                        deepcopy(config["models"])
-                    )
+                    changes = {
+                        "inner_door_layers": config["layers"],
+                        "inner_door_models": deepcopy(config["models"]),
+                    }
                     if config.get("layer_heights_mm") is not None:
-                        self.app._phase6_input_snapshot[
-                            "receiving_inner_door_layer_heights_mm"
-                        ] = deepcopy(config["layer_heights_mm"])
+                        changes["inner_door_layer_heights_mm"] = deepcopy(
+                            config["layer_heights_mm"]
+                        )
+                    # Persist in the actual quantity-box authority, never
+                    # solely in synthetic top-level receiving_* projection.
+                    # That projection is rebuilt on every mode/UI refresh.
+                    projected = update_common_box(
+                        self.app._phase6_input_snapshot, changes,
+                    )
+                    self.app._phase6_input_snapshot.update(projected)
                 # Quantity's current physical sheet is the live workspace owner;
                 # it is NOT a Set/Bay candidate or a synthetic version X.
                 self.app.designer_workspace.stash_features(part_key, features)
