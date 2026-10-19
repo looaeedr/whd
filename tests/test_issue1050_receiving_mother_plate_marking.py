@@ -86,10 +86,10 @@ def _full_receiving_geometry(snapshot):
     box_profile = build_box_body_profile(snapshot)
     structure_state = receiving.resolve_box_body_structure_state(None)
     box_body = build_box_body_structure_render_data(BoxBodyPartSpec(
-        width=800.0,
-        height=1600.0,
-        depth=350.0,
-        thickness=2.0,
+        width=float(snapshot["w"]),
+        height=float(snapshot["h"]),
+        depth=float(snapshot["d"]),
+        thickness=float(snapshot["t"]),
         frame_width=29.0,
         model_name="受電箱",
         zl1=24.0,
@@ -103,10 +103,10 @@ def _full_receiving_geometry(snapshot):
 
     head_profiles = build_linked_endcap_xy_profiles(snapshot, box_profile)["head"]
     head = build_part_render_data(EndCapPartSpec(
-        width=800.0,
-        height=1600.0,
-        depth=350.0,
-        thickness=2.0,
+        width=float(snapshot["w"]),
+        height=float(snapshot["h"]),
+        depth=float(snapshot["d"]),
+        thickness=float(snapshot["t"]),
         frame_width=29.0,
         model_name="受電箱",
         is_tail=False,
@@ -120,7 +120,7 @@ def _full_receiving_geometry(snapshot):
         fold_profile_y=profile_to_fold_segments(head_profiles["Y"]),
         corner_policy=receiving.endcap_corner_policy(
             frame_width=29.0,
-            thickness=2.0,
+            thickness=float(snapshot["t"]),
             side_rear_bend=18.0,
         ),
         depth_comp_t=2.0,
