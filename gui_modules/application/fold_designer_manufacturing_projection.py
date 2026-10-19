@@ -381,12 +381,31 @@ def _query_fold_designer_render_data(self, part_key, payload):
         from ae_engine.receiving_base_fixing_plate_geometry import (
             build_fixing_plate_source_render_data,
         )
+        # The part-specific scene payload may be intentionally minimal:
+        # a child fixing-plate PartSpec has no separate NFB/Bay authority.
+        # Derive the physical owner from this *current* application's
+        # receiving snapshot, not a stale root-base payload or the part ID
+        # being queried. This exact same source drives 2D material and
+        # 3D formed weld contacts; it cannot grant manufacturing release.
+        source = dict(payload or {})
+        live = getattr(self, "_phase6_input_snapshot", None)
+        if isinstance(live, Mapping):
+            for name in ("nfb_config", "nfb_config_submitted"):
+                source.pop(name, None)
+            for name in (
+                "model", "w", "h", "d", "t", "receiving_base_plate",
+                "receiving_layout", "_receiving_runtime_selection",
+                "nfb_config", "nfb_config_submitted", "inner_doors",
+                "receiving_inner_door_layer_heights_mm",
+            ):
+                if name in live:
+                    source[name] = live[name]
         physical = receiving_base_fixing_plate_previews(
-            dict(payload or {}), available_parts=("base_plate",),
+            source, available_parts=("base_plate",),
         )
         if key not in {part.part_id for part in physical}:
             raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
-        return sheet(build_fixing_plate_source_render_data(key, snapshot=dict(payload or {})))
+        return sheet(build_fixing_plate_source_render_data(key, snapshot=source))
     if key.startswith("box_body:divider:"):
         divider = _box_body_divider_from_payload(key, payload)
         return sheet(manufacturing_api.build_box_body_divider_render_data(divider))
