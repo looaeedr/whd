@@ -67,6 +67,17 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         _pump(root)
         settings = bridge._phase6_open_receiving_single_settings(designer)
         _pump(root)
+        # Operator has to select the physical Base Plate variant; do not
+        # make up a LEFT/CENTER/RIGHT shape for an unconfigured cabinet.
+        # Use the same existing physical #1502 source through its actual
+        # GUI settings transaction before committing NFB CSV hole rows.
+        from tests.test_receiving_committed_nfb_depth_base_part_flow import (
+            _snapshot as source_base,
+        )
+        designer.settings_panel._receiving_base_plate_commit(
+            source_base()["receiving_base_plate"],
+        )
+        _pump(root)
         selected = settings._receiving_multi_setting_list
         selected.selection_clear(0, tk.END)
         selected.selection_set(1)
