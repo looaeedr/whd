@@ -682,6 +682,14 @@ def export_receiving_ear_side_check_dxf(self):
     return receipt
 
 
+def _is_unconfigured_receiving_base_export_error(errors):
+    """Match only the explicit missing-plate-pattern guard, never arbitrary DXF failures."""
+    return tuple(str(error) for error in errors) == (
+        "canonical resolved export: "
+        "RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING: base_plate",
+    )
+
+
 def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
     self._flush_phase6_authoritative_state()
@@ -710,10 +718,34 @@ def export_selected_dxf(self):
     # T-012 project-batch atomicity: serialize every requested file into an
     # isolated staging directory first. Any validation/serialization failure
     # leaves the operator-selected destination untouched.
+    skipped_unconfigured_base = False
     with tempfile.TemporaryDirectory(prefix=".whd-export-stage-", dir=folder) as stage_folder:
         exported, errors = _export_selected_parts(
             self, stage_folder, val, flags, bool(self.draw_stock_var.get())
         )
+        if flags["base_plate"] and _is_unconfigured_receiving_base_export_error(errors):
+            other_flags = {**flags, "base_plate": False}
+            if not any(other_flags.values()):
+                errors = [
+                    "受電箱底板尚未設定實體板型與尺寸。"
+                    "請到「底板」設定選擇左／中／右板型、填妥尺寸並套用，再輸出。"
+                ]
+            elif not messagebox.askyesno(
+                "受電箱底板尚未配置",
+                "選取的受電箱底板尚未設定實體板型與尺寸，不能製造 DXF。\n\n"
+                "是否只輸出其餘已選取、通過驗證的板件？\n"
+                "底板不會輸出，這不是整箱製造完成。",
+                default="no",
+            ):
+                return
+            else:
+                # Re-run through the same manufacturing authority with only
+                # the explicitly excluded base plate removed from selection.
+                # Other source/provenance failures must continue to block.
+                exported, errors = _export_selected_parts(
+                    self, stage_folder, val, other_flags, bool(self.draw_stock_var.get())
+                )
+                skipped_unconfigured_base = bool(exported) and not errors
         if errors:
             messagebox.showerror("輸出失敗", "\n".join(errors))
             return
@@ -740,8 +772,11 @@ def export_selected_dxf(self):
             return
 
     messagebox.showinfo(
-        "NFB 部分匯出完成" if partial_report is not None else "輸出成功",
-        ("僅完成已驗證板件，整套尚未完成。\n" if partial_report is not None else "")
+        ("部分 DXF 輸出完成" if skipped_unconfigured_base
+         else "NFB 部分匯出完成" if partial_report is not None else "輸出成功"),
+        ("受電箱底板尚未配置，已排除底板；僅輸出其他已驗證板件，並非整箱完成。\n"
+         if skipped_unconfigured_base else "")
+        + ("僅完成已驗證板件，整套尚未完成。\n" if partial_report is not None else "")
         + f"已成功輸出 {len(committed)} 個檔案至：\n{folder}\n\n"
         + "\n".join(f"  • {name}" for name in committed),
     )
