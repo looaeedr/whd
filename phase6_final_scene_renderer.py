@@ -92,6 +92,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         self.last_receiving_ear_marking_segments = ()
 
     def render(self, request: FinalSceneViewRequest | None):
+        # Redraw/visibility changes must not reuse stale contact outlines.
+        self.last_receiving_ear_marking_segments = ()
         if request is None:
             self.last_cutting_mesh = []
             self.last_cutting_material = None
