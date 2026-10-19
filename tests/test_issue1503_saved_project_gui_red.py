@@ -107,8 +107,32 @@ def test_fresh_single_editor_shows_csv_400_and_can_confirm_without_manual_base(t
         assert actual["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
         assert actual["h"] == 340
         scene = bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
-        assert "base_plate" in {p.part_key for p in scene.assembly_parts}
+        physical = {p.part_key: p for p in scene.assembly_parts}
+        assert "base_plate" in physical
         assert not scene.warnings, scene.warnings
+        assert len(scene.formed_fixing_plate_skins) == 2, (
+            "SHIHLIN_400_REAL_LEFT_BASE_MUST_HAVE_TWO_SOURCE_EARS"
+        )
+        # Verify BOTH true source UV contacts in the native SIDE preview,
+        # not just the existence of an unrelated root 2D/3D Base Plate.
+        from gui_modules.application.receiving_ear_side_2d import (
+            present_receiving_ear_side_piece_2d,
+        )
+        raw_body = physical["box_body"].render_data
+        for role in ("left_side", "right_side"):
+            piece = next(p for p in raw_body.pieces if p.role == role)
+            shown, blocker = present_receiving_ear_side_piece_2d(
+                app, raw_body, piece, "box_body:" + role,
+            )
+            assert blocker is None, blocker
+            assert shown.render_data.metadata["ear_side_mark_preview_count"] == 4
+        designer._phase6_3d_display_mode = "assembly"
+        native_view = designer.final_scene_view
+        native_request = bridge._phase6_final_scene_adapter(designer).build_request()
+        assert native_request is not None
+        native_view.render(native_request)
+        assert len(native_view.last_formed_ear_display_ids) == 2
+        assert len(native_view.last_receiving_ear_marking_segments) == 8
         # Actual Save As and GUI reopen, not a constructed Python snapshot.
         from unittest.mock import patch
         target = tmp_path / "fresh_single_400_saved.p6fold"
