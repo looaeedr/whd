@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m pytest -q             tests/test_issue1503_assembly_ear_3d_marking_overlay.py             tests/test_issue1503_formed_fixing_plate_3d_assembly_view.py             tests/test_issue1503_real_side_piece_2d_preview.py
       - name: Capture 2D/3D headless rendered evidence
-        run: python tools/receiving_ear_marking_capture.py --output artifacts/ear_marking
+        run: PYTHONPATH=. python tools/receiving_ear_marking_capture.py --output artifacts/ear_marking
       - name: Upload verified source-render PNGs
         uses: actions/upload-artifact@v4
         with:
