@@ -119,8 +119,32 @@ def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
                 "canvas_shape": list(pixels.shape),
             }, ensure_ascii=False, indent=2), encoding="utf-8")
 
+        # Save through the actual application callback, then reopen the
+        # resulting .p6fold. Never populate missing physical authority.
+        from unittest.mock import patch
+        saved_path = tmp_path / "receiving_confirmed_saved.p6fold"
+        with patch("tkinter.filedialog.asksaveasfilename", return_value=str(saved_path)):
+            saved = designer.save_project_file_as()
+        assert saved_path.exists() and saved
+        import phase6_project_file
+        disk = phase6_project_file.read_project(saved_path)["snapshot"]
+        assert disk.get("receiving_base_plate") is None
+        app.load_phase6_project(saved_path, open_designer=True)
+        _pump(root)
+        reloaded_designer = app.fold_designer_app
+        assert reloaded_designer._phase6_input_snapshot.get("receiving_base_plate") is None
+        reloaded_designer._phase6_3d_display_mode = "assembly"
+        reloaded_view = reloaded_designer.final_scene_view
+        reloaded_request = bridge._phase6_final_scene_adapter(reloaded_designer).build_request()
+        assert reloaded_request is not None and reloaded_request.part_key == "assembly"
+        reloaded_view.render(reloaded_request)
+        reloaded_view.renderer.canvas.draw()
+        if output:
+            Image.fromarray(
+                np.asarray(reloaded_view.renderer.canvas.buffer_rgba()).copy()
+            ).save(Path(output) / "unconfigured_after_save_reload_3d.png")
         # RED on old version: a real operator must not see an unexplained blank.
-        labels = [x.get_text() for x in view.renderer.ax3d.texts]
+        labels = [x.get_text() for x in reloaded_view.renderer.ax3d.texts]
         assert any(MISSING_MESSAGE in x for x in labels), (
             "UNCONFIGURED_RECEIVING_BASE_SILENTLY_INVISIBLE: "
             "3D must display a clear missing-source diagnostic, "
