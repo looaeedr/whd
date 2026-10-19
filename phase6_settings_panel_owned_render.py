@@ -428,8 +428,13 @@ class Phase6SettingsPanelOwnedRenderMixin:
         frame = ttk.LabelFrame(parent, text="受電箱實體底板選型", padding=5)
         frame.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
         values = dict(projection.get("values") or {})
+        source_derived = bool(projection.get("source_derived", False))
         pattern_var = tk.StringVar(master=frame, value=str(values.get("pattern") or ""))
-        ttk.Label(frame, text="型式（必須指定，不自動推測）").grid(
+        ttk.Label(
+            frame,
+            text=("型式（依已提交 NFB／實體來源自動推導）" if source_derived
+                  else "型式（須有可核對的板件來源）"),
+        ).grid(
             row=0, column=0, columnspan=3, sticky="w"
         )
         choices = (
@@ -440,6 +445,7 @@ class Phase6SettingsPanelOwnedRenderMixin:
         for index, (label, value) in enumerate(choices):
             ttk.Radiobutton(
                 frame, text=label, value=value, variable=pattern_var,
+                state=("disabled" if source_derived else "normal"),
             ).grid(row=1, column=index, sticky="w", padx=(0, 5), pady=(2, 5))
 
         fields = (
@@ -460,13 +466,20 @@ class Phase6SettingsPanelOwnedRenderMixin:
             var = tk.StringVar(
                 master=cell, value=setting_number_text(raw) if raw is not None else "",
             )
-            ttk.Entry(cell, textvariable=var, width=12, justify=tk.CENTER).pack(fill="x")
+            ttk.Entry(
+                cell, textvariable=var, width=12, justify=tk.CENTER,
+                state=("readonly" if source_derived else "normal"),
+            ).pack(fill="x")
             vars_by_key[key] = var
 
         status_var = tk.StringVar(
             master=frame,
-            value=("已配置實體板型" if projection.get("configured")
-                   else "未配置：僅允許預覽，正式製造仍阻擋"),
+            value=("來源已自動推導實體底板（不代表全箱製造驗收）"
+                   if source_derived else
+                   "已配置實體板型" if projection.get("configured")
+                   else ("來源尚無法唯一推導：" + str(projection["source_error"])
+                         if projection.get("source_error")
+                         else "尚無可唯一辨識的底板來源；製造檢查仍有效")),
         )
         ttk.Label(frame, textvariable=status_var).grid(
             row=4, column=0, columnspan=3, sticky="w", pady=(5, 0),
@@ -496,9 +509,15 @@ class Phase6SettingsPanelOwnedRenderMixin:
                 return
             status_var.set("已還原未配置；正式製造保持阻擋")
 
-        apply_button = ttk.Button(frame, text="套用實體底板", command=submit)
+        apply_button = ttk.Button(
+            frame, text="套用實體底板", command=submit,
+            state=("disabled" if source_derived else "normal"),
+        )
         apply_button.grid(row=5, column=1, sticky="e", pady=(5, 0))
-        reset_button = ttk.Button(frame, text="還原為未配置", command=restore_unconfigured)
+        reset_button = ttk.Button(
+            frame, text="還原為未配置", command=restore_unconfigured,
+            state=("disabled" if source_derived else "normal"),
+        )
         reset_button.grid(row=5, column=2, sticky="e", pady=(5, 0))
         state["receiving_base_plate_vars"] = vars_by_key
         state["receiving_base_plate_status_var"] = status_var
