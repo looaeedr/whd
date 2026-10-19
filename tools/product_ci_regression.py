@@ -89,6 +89,16 @@ PYTEST_PATHS = (
     # #1503 Windows real project-open UAT: current per-hole CSV V5 identity survives .p6fold v3.
     "tests/test_issue1503_nfb_v5_p6fold_roundtrip.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
+    # #1503 actual native Tk Confirm All -> physical CSV NFB -> 2D/3D
+    # Base Plates and true four EAR-side 3D MARKING, including multi candidate
+    # storage-before-Apply and per-Bay physical isolation. Exact CI required:
+    # source DTO-only GREEN is NOT a substitute for these real GUI tests.
+    "tests/test_issue1503_csv_committed_config.py",
+    "tests/test_issue1503_quantity_nfb_source_owner.py",
+    "tests/test_issue1503_nfb_manufacturing_transport.py",
+    "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+    "tests/test_issue1503_multi_candidate_nfb_apply_gui.py",
+    "tests/test_issue1503_multi_nfb_bay_isolation.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
     "tests/test_issue1494_nfb_x_shadow_projection.py",
