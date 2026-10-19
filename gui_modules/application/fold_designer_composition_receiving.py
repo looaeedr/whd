@@ -3321,6 +3321,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 self.app.designer_workspace.stash_features(part_key, features)
                 if str(self.app.designer_workspace.active_part) == part_key:
                     self.app._load_part_holes(part_key)
+                if staged_config is not None:
+                    # NFB tier source IDs changed, not just CUTTING Features.
+                    # Refresh operator 2D navigation and derived part owners
+                    # BEFORE publishing the geometry redraw; otherwise the
+                    # workbench still lists the obsolete single root sheet.
+                    self._required(
+                        namespace, "_phase6_sync_authoritative_derived_parts"
+                    )(self.app)
                 self.app.submit_update_intent("geometry", commit=True)
                 return
             if mode == "single":
