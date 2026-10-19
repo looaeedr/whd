@@ -448,6 +448,58 @@ def sync_authoritative_derived_parts(
         },
     )
 
+    # #1503: assembly expansion already creates two physical NFB-tier Base
+    # Plates, but the original root-only navigation omitted BOTH from the
+    # operator's 2D part selector. Publish their exact source-derived
+    # profiles as navigation children; leave the root assembly input in
+    # place because the manufacturing service expands that ONE root into
+    # TWO actual FinalScene owners. Never create a tier for an unsubmitted
+    # draft or a Base Plate with no selected physical source.
+    tier_profiles = {}
+    if (receiving_single_base
+            and isinstance(snapshot.get("receiving_base_plate"), Mapping)
+            and snapshot.get("nfb_config_submitted") is True
+            and isinstance(snapshot.get("nfb_config"), Mapping)
+            and snapshot["nfb_config"].get("layer_count") == 2):
+        from ae_engine.receiving_nfb_base_assembly_xy import (
+            receiving_nfb_layer_centers,
+        )
+        from ae_engine.receiving_base_plate_3d_profiles import (
+            receiving_base_plate_3d_profiles,
+        )
+        upper = tuple(
+            row for row in tuple(snapshot.get("inner_doors") or ())
+            if isinstance(row, Mapping)
+            and str(row.get("cell_key") or "").split(":")[-1] == "0"
+            and str(row.get("stable_id") or "").strip()
+        )
+        if len(upper) == 1:
+            try:
+                centers = receiving_nfb_layer_centers(
+                    snapshot, str(upper[0]["stable_id"]),
+                )
+            except ValueError as exc:
+                # Switching between versions may briefly leave the old
+                # runtime Set/Bay selector. Never publish stale navigation.
+                if str(exc) not in {
+                    "RECEIVING_NFB_LAYER_SET_IDENTITY_DRIFT",
+                    "RECEIVING_NFB_LAYER_BAY_IDENTITY_DRIFT",
+                    "RECEIVING_NFB_LAYER_CONFIG_IDENTITY_DRIFT",
+                }:
+                    raise
+                centers = ()
+            if len(centers) == 2:
+                profiles = receiving_base_plate_3d_profiles(snapshot)
+                if profiles is not None:
+                    tier_profiles = {
+                        center.layer_part_id: deepcopy(profiles)
+                        for center in centers
+                    }
+    navigation.sync_derived_parts(
+        namespace="base_plate:nfb_layer:",
+        part_profiles=tier_profiles,
+    )
+
     return (
         tuple(divider_profiles),
         tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),

@@ -34,7 +34,8 @@ def normalize_common_box(value):
     elif not isinstance(value, Mapping):
         raise ValueError("共用箱體資料格式錯誤")
     allowed = {"w", "h", "d", "back_panel_mode", "inner_door_layers",
-               "switch_brand", "door_state"}
+               "inner_door_models", "inner_door_layer_heights_mm",
+               "receiving_base_plate", "switch_brand", "door_state"}
     if set(value) - allowed:
         raise ValueError("共用箱體不能保存 Set/Bay、Joint 或孔型版本資料")
     result = {axis: positive_dimension(value.get(axis), axis) for axis in ("w", "h", "d")}
@@ -44,6 +45,18 @@ def normalize_common_box(value):
     if brand not in RECEIVING_SWITCH_BRANDS:
         raise ValueError("不支援的開關品牌")
     result["switch_brand"] = brand
+    # In quantity mode this common physical box owns its NFB row settings.
+    # Root aliases and its synthetic one-Bay projection get rebuilt on every
+    # refresh. Persisting only the aliases loses the operator's layer count,
+    # CSV model choice and Y after the Hole Editor Confirm All.
+    for kind in ("inner_door_models", "inner_door_layer_heights_mm"):
+        if kind in value:
+            result[kind] = validate_setting(kind, value[kind])
+    if value.get("receiving_base_plate") is not None:
+        plate = value["receiving_base_plate"]
+        if not isinstance(plate, Mapping):
+            raise ValueError("單只底板來源須為實體型式設定")
+        result["receiving_base_plate"] = deepcopy(dict(plate))
     if "door_state" in value:
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
         door = value["door_state"]
@@ -85,6 +98,12 @@ def project_common_box(snapshot):
             for key in RECEIVING_DOOR_STATE_KEYS if key in defaults
         }
     result[BOX_KEY] = box
+    # The quantity common box owns its one physical Base Plate variant.
+    # Root receiving_base_plate is only the current assembly projection.
+    if "receiving_base_plate" in box:
+        result["receiving_base_plate"] = deepcopy(box["receiving_base_plate"])
+    else:
+        result.pop("receiving_base_plate", None)
     result.update({axis: box[axis] for axis in ("w", "h", "d")})
     if "door_state" in box:
         result.update(deepcopy(box["door_state"]))
@@ -94,8 +113,25 @@ def project_common_box(snapshot):
     row["switch_brand"] = box["switch_brand"]
     bay = row["bays"][0]
     bay["inner_door_layers"] = box["inner_door_layers"]
+    for kind in ("inner_door_models", "inner_door_layer_heights_mm"):
+        if kind in box:
+            bay[kind] = deepcopy(box[kind])
+            result["receiving_" + kind] = deepcopy(box[kind])
     if "door_state" in box:
         bay["door_state"] = deepcopy(box["door_state"])
+    # This singleton Bay exists solely to project the selected quantity
+    # version into the SAME assembly solver as regular Set/Bay mode.
+    # Keep NFB submission owned by QuantityModel, never the synthetic Bay.
+    result.pop("nfb_config_submitted", None)
+    result.pop("nfb_config", None)
+    quantity = result.get("quantity")
+    if isinstance(quantity, Mapping):
+        from phase6_quantity_model import QuantityModel
+        model = QuantityModel.from_payload(quantity)
+        submitted = model.nfb_config_for_version(model.selected_version_id)
+        if submitted:
+            bay.update(deepcopy(submitted))
+            result.update(deepcopy(submitted))
     row["settings"] = normalize_set_settings(None, row["bays"])
     result["receiving_layout"] = layout
     result["receiving_inner_door_layers"] = box["inner_door_layers"]

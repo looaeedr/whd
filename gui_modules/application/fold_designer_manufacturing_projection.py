@@ -372,6 +372,37 @@ def _query_fold_designer_render_data(self, part_key, payload):
         payload = collect_door_input(payload)
     """Return the same authoritative final geometry used by 2D consumers."""
     key = str(part_key or "")
+    if key.startswith("base_plate:nfb_layer:"):
+        # The 2D part selector may address either physical tier directly.
+        # Its source is the current already-resolved canonical assembly,
+        # never a second guessed/fabricated BasePlatePartSpec. On the first
+        # selection resolve the real manufacturing graph once; its two
+        # tier materials are identical to the ones displayed in 3D.
+        import re
+        if not re.fullmatch(r"base_plate:nfb_layer:[01]", key):
+            raise ValueError("RECEIVING_NFB_TIER_2D_PART_ID_INVALID")
+        owner = getattr(self, "fold_designer_app", None)
+        current = getattr(owner, "_phase6_input_snapshot", None)
+        if (not isinstance(current, Mapping)
+                or current.get("nfb_config_submitted") is not True):
+            raise ValueError("RECEIVING_NFB_TIER_2D_NOT_SUBMITTED")
+        resolved = getattr(owner, "_phase6_last_resolved_manufacturing_geometry", None)
+        found = next(
+            (part for part in tuple(getattr(resolved, "parts", ()) or ())
+             if str(part.part_key) == key), None,
+        )
+        if found is None:
+            resolver = getattr(owner, "_phase6_resolve_manufacturing_geometry", None)
+            if not callable(resolver):
+                raise ValueError("RECEIVING_NFB_TIER_2D_SOURCE_UNAVAILABLE")
+            resolved = resolver()
+            found = next(
+                (part for part in tuple(getattr(resolved, "parts", ()) or ())
+                 if str(part.part_key) == key), None,
+            )
+        if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
+            raise ValueError("RECEIVING_NFB_TIER_2D_PHYSICAL_PART_MISSING")
+        return found.render_data
     if key.startswith("base_plate:fixing_plate:"):
         # Native independent PartRenderData, not the BasePlatePartSpec blank
         # and not a drawing-only menu simulation.
@@ -381,12 +412,35 @@ def _query_fold_designer_render_data(self, part_key, payload):
         from ae_engine.receiving_base_fixing_plate_geometry import (
             build_fixing_plate_source_render_data,
         )
+        # The part-specific scene payload may be intentionally minimal:
+        # a child fixing-plate PartSpec has no separate NFB/Bay authority.
+        # Derive the physical owner from this *current* application's
+        # receiving snapshot, not a stale root-base payload or the part ID
+        # being queried. This exact same source drives 2D material and
+        # 3D formed weld contacts; it cannot grant manufacturing release.
+        source = dict(payload or {})
+        live = getattr(self, "_phase6_input_snapshot", None)
+        if isinstance(live, Mapping):
+            for name in ("nfb_config", "nfb_config_submitted"):
+                source.pop(name, None)
+            for name in (
+                "model", "w", "h", "d", "t", "receiving_base_plate",
+                "receiving_layout", "_receiving_runtime_selection",
+                "nfb_config", "nfb_config_submitted", "inner_doors",
+                "receiving_inner_door_layer_heights_mm",
+            ):
+                if name in live:
+                    source[name] = live[name]
         physical = receiving_base_fixing_plate_previews(
-            dict(payload or {}), available_parts=("base_plate",),
+            source, available_parts=("base_plate",),
         )
         if key not in {part.part_id for part in physical}:
-            raise ValueError("BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET")
-        return sheet(build_fixing_plate_source_render_data(key, snapshot=dict(payload or {})))
+            raise ValueError(
+                "BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET:"
+                f" requested={key}; current="
+                f"{tuple(part.part_id for part in physical)}"
+            )
+        return sheet(build_fixing_plate_source_render_data(key, snapshot=source))
     if key.startswith("box_body:divider:"):
         divider = _box_body_divider_from_payload(key, payload)
         return sheet(manufacturing_api.build_box_body_divider_render_data(divider))

@@ -112,6 +112,11 @@ def resolve(request):
     settings = thaw_manufacturing_value(request.settings)
     if not isinstance(snapshot, dict) or not isinstance(settings, dict):
         raise TypeError("manufacturing request snapshot/settings must thaw to mappings")
+    if snapshot.get("model") in ("受電箱", "RECEIVING"):
+        from ae_engine.receiving_nfb_manufacturing_transport import (
+            restore_receiving_nfb_dto_selectors,
+        )
+        snapshot = restore_receiving_nfb_dto_selectors(snapshot)
 
     snapshot_for_joints = migrate_legacy_snapshot_joints(dict(snapshot))
     joints = tuple(

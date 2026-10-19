@@ -1183,6 +1183,38 @@ def settings_panel(self, namespace):
 
     required = lambda name: self._required(namespace, name)
     query = getattr(app, "_baseline_data_query_callback", None)
+
+    def receiving_base_plate_for_current_mode(config):
+        # In quantity mode the synthetic current Set/Bay and top-level input
+        # aliases are rebuilt from receiving_quantity_box after every redraw.
+        # Committing only the root alias loses this physical source and
+        # silently falls back to the generic single Base Plate. Reuse the
+        # original source/slot transaction on a detached copy, then update
+        # the actual quantity common-box owner atomically with the same
+        # mode navigation transaction used by other receiving edits.
+        if app.designer_workspace.active_mode == "quantity":
+            from ae_engine.receiving_quantity_box import update_common_box
+            candidate = _current_mode_snapshot(self, namespace)
+            commit_receiving_base_plate_settings(
+                input_snapshot=candidate,
+                settings_values=app._settings_values,
+                submit_geometry_update=lambda: None,
+                config=config,
+            )
+            source = update_common_box(
+                candidate, {"receiving_base_plate": config},
+            )
+            _apply_mode_snapshot(self, namespace, source)
+            return deepcopy(source.get("receiving_base_plate"))
+        return commit_receiving_base_plate_settings(
+            input_snapshot=app._phase6_input_snapshot,
+            settings_values=app._settings_values,
+            submit_geometry_update=lambda: app.submit_update_intent(
+                "geometry", commit=True,
+            ),
+            config=config,
+        )
+
     panel = Phase6SettingsPanel(
         values_snapshot=lambda: dict(app._settings_values),
         stage_setting_update=lambda key, value: self.stage_setting_update(
@@ -1207,12 +1239,7 @@ def settings_panel(self, namespace):
         context_extension_projection=lambda context: self.settings_context_extension_projection(
             namespace, context
         ),
-        receiving_base_plate_commit=lambda config: commit_receiving_base_plate_settings(
-            input_snapshot=app._phase6_input_snapshot,
-            settings_values=app._settings_values,
-            submit_geometry_update=lambda: app.submit_update_intent("geometry", commit=True),
-            config=config,
-        ),
+        receiving_base_plate_commit=receiving_base_plate_for_current_mode,
         endcap_fw_value_selected=lambda part_key, value_var: required(
             "_phase6_on_endcap_fw_value_selected"
         )(app, part_key, value_var),
@@ -3214,22 +3241,71 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 raise ValueError("內門開孔編輯返回錯誤的實體板件")
             if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
                 if staged_config is not None:
+                    from ae_engine.receiving_quantity_box import update_common_box
                     config = validate_door_config(staged_config)
-                    self.app._phase6_input_snapshot["receiving_inner_door_layers"] = (
-                        config["layers"]
-                    )
-                    self.app._phase6_input_snapshot["receiving_inner_door_models"] = (
-                        deepcopy(config["models"])
-                    )
+                    changes = {
+                        "inner_door_layers": config["layers"],
+                        "inner_door_models": deepcopy(config["models"]),
+                    }
                     if config.get("layer_heights_mm") is not None:
-                        self.app._phase6_input_snapshot[
-                            "receiving_inner_door_layer_heights_mm"
-                        ] = deepcopy(config["layer_heights_mm"])
+                        changes["inner_door_layer_heights_mm"] = deepcopy(
+                            config["layer_heights_mm"]
+                        )
+                    # Persist in the actual quantity-box authority, never
+                    # solely in synthetic top-level receiving_* projection.
+                    # That projection is rebuilt on every mode/UI refresh.
+                    projected = update_common_box(
+                        self.app._phase6_input_snapshot, changes,
+                    )
+                    # Confirm All is explicit operator acceptance of the
+                    # CURRENT native CSV hole rows, not a separate source
+                    # certification. Keep this NFBConfig in the selected
+                    # quantity version; the synthetic Bay is only a display
+                    # projection. Do not create an invented base-plate shape:
+                    # without a selected physical source leave hole-only
+                    # editing intact, with no false manufacture entitlement.
+                    if (projected.get("receiving_base_plate") is not None
+                            and any(getattr(row, "source_type", None) ==
+                                    "NFB_CSV_SOURCE" for row in features)):
+                        from ae_engine.receiving_nfb_csv_committed_config import (
+                            committed_csv_nfb_config,
+                        )
+                        from ae_engine.receiving_quantity_box import project_common_box
+                        typed = committed_csv_nfb_config(part_key, features, config)
+                        quantity = self.app.designer_workspace.quantity_model
+                        if quantity is None:
+                            raise ValueError("單只 NFB 需要目前的數量模式版本")
+                        quantity.set_version_nfb_config(
+                            quantity.selected_version_id, submitted=True,
+                            config=typed,
+                        )
+                        projected["quantity"] = quantity.snapshot()
+                        projected = project_common_box(projected)
+                    self.app._phase6_input_snapshot.update(projected)
+                    # The workspace is the in-memory canonical mode owner.
+                    # The next scheduler/SetBay sync otherwise restores its
+                    # previous quantity-box value and silently discards NFB
+                    # layer count, CSV model identities and operator heights.
+                    self.app.designer_workspace.set_receiving_common_box(
+                        projected["receiving_quantity_box"]
+                    )
+                    self.receiving_adapter(namespace, reset=True)
+                    self.sync_receiving_current_bay(
+                        namespace, refresh_controls=False,
+                    )
                 # Quantity's current physical sheet is the live workspace owner;
                 # it is NOT a Set/Bay candidate or a synthetic version X.
                 self.app.designer_workspace.stash_features(part_key, features)
                 if str(self.app.designer_workspace.active_part) == part_key:
                     self.app._load_part_holes(part_key)
+                if staged_config is not None:
+                    # NFB tier source IDs changed, not just CUTTING Features.
+                    # Refresh operator 2D navigation and derived part owners
+                    # BEFORE publishing the geometry redraw; otherwise the
+                    # workbench still lists the obsolete single root sheet.
+                    self._required(
+                        namespace, "_phase6_sync_authoritative_derived_parts"
+                    )(self.app)
                 self.app.submit_update_intent("geometry", commit=True)
                 return
             if mode == "single":

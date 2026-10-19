@@ -492,10 +492,38 @@ def _finished_dimensions_for_part(app: Any, part_key: str, provider=None) -> Any
 def _canonical_part_keys(app: Any) -> tuple[str, ...]:
     workspace = getattr(app, "designer_workspace", None)
     values = tuple(getattr(workspace, "available_parts", ()) or ())
+    snapshot = getattr(app, "_phase6_input_snapshot", None)
+    if (isinstance(snapshot, Mapping)
+            and snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("nfb_config_submitted") is True
+            and isinstance(snapshot.get("nfb_config"), Mapping)
+            and snapshot["nfb_config"].get("layer_count") == 2):
+        # Live layout may still list two ORIGINAL EAR parts after the native
+        # hole editor commits a two-tier NFB. Their current owner is NOT the
+        # legacy base_plate: it has been replaced by distinct tier bases.
+        # Re-derive authorized IDs from the actual source model/Bay and
+        # replace *only* these stale fixed-plate entries in the manufacturing
+        # request, before any 2D/3D rendering. No invented geometry or release.
+        from ae_engine.receiving_base_fixing_plate import (
+            receiving_base_fixing_plate_previews,
+        )
+        current = tuple(receiving_base_fixing_plate_previews(
+            snapshot, available_parts=("base_plate",),
+        ))
+        if len(current) == 4 and len({row.part_id for row in current}) == 4:
+            values = tuple(
+                part for part in values
+                if not str(part).startswith("base_plate:fixing_plate:")
+            ) + tuple(row.part_id for row in current)
     return tuple(
         str(key)
         for key in values
-        if str(key or "") and not is_box_body_physical_piece_key(key)
+        if str(key or "")
+        and not is_box_body_physical_piece_key(key)
+        # Two tier Base Plates are generated from the single source root
+        # inside the canonical manufacturing resolver. They are real 2D
+        # navigation identities but not additional RAW source inputs.
+        and not str(key).startswith("base_plate:nfb_layer:")
     )
 
 

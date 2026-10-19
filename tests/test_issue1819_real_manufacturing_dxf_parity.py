@@ -52,6 +52,17 @@ def test_issue1819_real_manufacturing_cached_uncached_dxf_parity(
             "shrink_right": 85.0,
             "bend": 20.0,
         }
+        # Quantity's real Base Plate authority is the common physical box;
+        # the root receiving_base_plate is a transient assembly projection.
+        # Commit the existing #1502 source using the same transaction route
+        # as the live GUI, then test the *real* cached/uncached DXF parity.
+        from ae_engine.receiving_quantity_box import update_common_box
+        snapshot = update_common_box(
+            snapshot, {"receiving_base_plate": snapshot["receiving_base_plate"]},
+        )
+        assert snapshot["receiving_quantity_box"]["receiving_base_plate"] == (
+            snapshot["receiving_base_plate"]
+        )
         project = write_project(
             tmp_path / "real-parity.p6fold",
             {"schema": PROJECT_SCHEMA_V2, "snapshot": snapshot},
