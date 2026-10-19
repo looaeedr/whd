@@ -217,6 +217,8 @@ PYTEST_PATHS = (
     "tests/test_phase6_3d_operator_view.py::test_issue1818_reentrant_3d_render_only_publishes_latest_view",
     # Real live designer viewport/camera interaction, not a mocked canvas.
     "tests/test_phase6_3d_view_regressions.py::test_real_tk_3d_only_layout_scroll_zoom_and_unfolded_size_label",
+    # True rendered 3D geometry hit, not currently highlighted sidebar part.
+    "tests/test_phase6_3d_mesh_hole_entry.py",
     "tests/test_issue1640_mode_navigation.py::test_mode_toggle_and_manager_stay_operable_without_forced_window_exit",
     "tests/test_issue1640_floating_scroll.py::test_real_popup_reuses_one_nonmodal_toplevel_without_applying_candidate",
     "tests/test_receiving_weld_ear_mounting.py",
