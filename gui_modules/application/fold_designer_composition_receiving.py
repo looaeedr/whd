@@ -2664,11 +2664,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     getattr(modal.winfo_toplevel(), "_receiving_stage_config", None)
                     if embed_parent is not None else None
                 )
-                if callable(stage_in_editor):
-                    # Generate editable holes from the selected CSV dimensions
-                    # and operator Y, directly in the original Hole Editor.
-                    # No extra world-X popup, source proof or manufacturing write.
-                    # The parent Hole Editor's 確定全部 remains the commit gate.
+                if embed_parent is not None:
+                    # Embedded NFB Confirm only stages a draft for the
+                    # original Hole Editor. Regardless of active_mode or an
+                    # existing multi-dialog, NEVER write a candidate/Bay here.
+                    if not callable(stage_in_editor):
+                        raise ValueError("主開孔編輯器尚未連接 NFB 交易暫存")
                     openings = None
                     if current_numeric_editor or not source_models:
                         from ae_engine.receiving_nfb_csv_editor_features import (
@@ -2684,41 +2685,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     after_saved(version_id)
                     close_editor(saved=True)
                     return
-                if direct_to_drawing:
-                    # No candidate/version creation on Single or ordinary Hole
-                    # Editor entry. Commit existing current-Bay shared settings
-                    # and re-project the graph through the normal scheduler.
-                    adapter = candidate_adapter()
-                    sel = adapter.selection
-                    bay = adapter.layout["sets"][sel.set_index]["bays"][sel.bay_index]
-                    if bay.get("nfb_config_submitted") is True:
-                        raise ValueError("此連 NFB 已驗證提交，請先取消／重新驗證實體孔位，不能偷偷移動已認證的孔")
-                    for kind, value in (
-                        ("inner_door_layers", config["layers"]),
-                        ("inner_door_models", config["models"]),
-                        ("inner_door_layer_heights_mm", config["layer_heights_mm"]),
-                        ("inner_door_version_id", ""),
-                    ):
-                        adapter.unlink_setting(kind)
-                        adapter.update_setting(kind, value)
-                    self.mark_receiving_switch_layout_dirty(namespace, adapter)
-                    self.sync_receiving_current_bay(namespace, refresh_controls=False)
-                    self.app._phase6_input_snapshot[
-                        "receiving_inner_door_layer_heights_mm"
-                    ] = list(config["layer_heights_mm"])
-                    self.app.designer_workspace.mark_dirty()
-                    self.app.submit_update_intent("geometry", commit=True)
-                    after_saved(None)
+                # Standalone candidate-version manager (outside the original
+                # Hole Editor) retains its existing explicit version save.
+                if version_id is None:
+                    saved, vid = create_inner_candidate(inner_library(), config)
                 else:
-                    if version_id is None:
-                        saved, vid = create_inner_candidate(inner_library(), config)
-                    else:
-                        saved = update_inner_candidate(
-                            inner_library(), version_id, config,
-                        )
-                        vid = version_id
-                    persist_inner(saved)
-                    after_saved(vid)
+                    saved = update_inner_candidate(
+                        inner_library(), version_id, config,
+                    )
+                    vid = version_id
+                persist_inner(saved)
+                after_saved(vid)
                 close_editor(saved=True)
             except (ValueError, OSError, UnicodeError) as exc:
                 warning.set(str(exc))
@@ -3337,71 +3314,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # Keep the original Corner Data / physical-part double-click editor.
         # Only the NEW Single/Multi settings button opts into staged save.
         editor = embedded_inner_parent.winfo_toplevel()
-        if getattr(editor, "_receiving_settings_mode", None) is None:
-            # The unified Hole Editor already owns the window and its modal grab.
-            # Reuse the same inner candidate editor inside the 受電箱 tab.
-            from tkinter import ttk, messagebox
-            from ae_engine.receiving_shared_settings import setting_value
-            container = embedded_inner_parent
-            adapter = candidate_adapter()
-            selection = adapter.selection
-            stored = setting_value(
-                adapter.layout["sets"][selection.set_index],
-                selection.bay_index, "inner_door_version_id",
-            )
-            ids = {item["id"] for item in inner_versions(inner_library())}
-            state = {"version": stored if stored in ids else None}
-            if self.app.designer_workspace.active_mode != "set_bay":
-                state["version"] = None
-            bar = ttk.Frame(container)
-            bar.pack(fill="x", padx=8, pady=(5, 3))
-            status = ttk.Label(
-                bar,
-                text=("受電箱內門｜直接套用目前圖面" if self.app.designer_workspace.active_mode != "set_bay"
-                      else "受電箱內門｜版本 X 另行套用到連"),
-            )
-            status.pack(side="left")
-            def apply_saved_version():
-                version = state["version"]
-                if version is None:
-                    messagebox.showwarning("內門版本", "請先確認並儲存內門版本", parent=container.winfo_toplevel())
-                    return
-                try:
-                    selected = candidate_adapter().selection
-                    inner_apply(INNER_ROLE, version, selected.set_index,
-                                (selected.bay_index,))
-                    status.configure(text="已套用到目前選取的內門")
-                except (ValueError, IndexError, RuntimeError) as exc:
-                    messagebox.showwarning("內門版本", str(exc), parent=container.winfo_toplevel())
-            apply_button = ttk.Button(
-                bar, text="套用到目前連", command=apply_saved_version,
-                state="normal" if state["version"] is not None else "disabled",
-            )
-            if self.app.designer_workspace.active_mode == "set_bay":
-                apply_button.pack(side="right")
-            editor_host = ttk.Frame(container)
-            editor_host.pack(fill="both", expand=True)
-            def mount_inner_editor():
-                if not editor_host.winfo_exists():
-                    return
-                for child in editor_host.winfo_children():
-                    child.destroy()
-                inner_edit(
-                    INNER_ROLE, state["version"], saved_inner_version,
-                    embed_parent=editor_host, after_closed=mount_inner_editor,
-                )
-            def saved_inner_version(version_id):
-                if version_id is None:
-                    state["version"] = None
-                    status.configure(text="高度已套用目前圖面；未建立版本 X")
-                else:
-                    state["version"] = version_id
-                    apply_button.configure(state="normal")
-                    status.configure(text="內門版本已儲存；按「套用到目前連」才會改變配置")
-                editor_host.after_idle(mount_inner_editor)
-            mount_inner_editor()
-            return container
-
         # Two native tabs belong to the SAME original Hole Editor.  Editing
         # this configuration stages a draft only; the editor's 確定全部 owns
         # all persistence, and its 取消全部 owns rollback.
@@ -3409,6 +3321,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         container = embedded_inner_parent
         editor = container.winfo_toplevel()
         mode = getattr(editor, "_receiving_settings_mode", None)
+        # Explicit entry identity, not project state: only the multi-settings
+        # "candidate" entry saves a version on the MAIN Confirm All.
+        if mode not in (None, "single", "candidate"):
+            raise ValueError("未知的內門開孔編輯入口")
         selected_version = getattr(editor, "_receiving_candidate_version", None)
         if mode == "candidate" and selected_version is not None:
             inner_config(inner_library(), selected_version)
@@ -3416,9 +3332,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         bar = ttk.Frame(container)
         bar.pack(fill="x", padx=8, pady=(5, 3))
         status = ttk.Label(
-            bar, text=("單只｜主頁籤確定全部才寫入現有板件"
-                       if mode == "single"
-                       else "多連｜主頁籤確定全部才寫入候選版本 X"),
+            bar, text=("多連設定｜主頁籤確定全部才存入候選版本 X"
+                       if mode == "candidate"
+                       else "一般／單只入口｜主頁籤確定全部才套用現有板件"),
         )
         status.pack(anchor="w")
         tabs = getattr(editor, "_receiving_config_tabs", None)
@@ -3450,8 +3366,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         editor_host.pack(fill="both", expand=True)
 
         def canceled_inner_tab():
-            # No staged write on 取消; the old accepted editor draft, if any,
-            # remains available until the outer editor's own final transaction.
+            # The settings tab does not write to the original Hole Editor
+            # until its own Confirm. Cancel discards all new NFB selections,
+            # preserves previously staged/main features and returns to Main.
             go_to_main_tab()
 
         def saved_inner_version(_version_id):
