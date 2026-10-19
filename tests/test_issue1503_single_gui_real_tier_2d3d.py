@@ -180,7 +180,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         canvas = renderer.renderer.canvas
         original = renderer._draw_receiving_ear_side_markings
 
-        def actual_canvas_pixels(*, marking, camera):
+        def actual_canvas_pixels(*, marking, camera, label):
             ax.clear()
             if not marking:
                 renderer._draw_receiving_ear_side_markings = lambda *a, **kw: ()
@@ -188,7 +188,19 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 renderer.render(request)
                 ax.view_init(elev=camera[0], azim=camera[1])
                 canvas.draw()
-                return np.asarray(canvas.buffer_rgba()).copy()
+                pixels = np.asarray(canvas.buffer_rgba()).copy()
+                # Opt-in evidence only: save the unedited native Tk canvas.
+                # No synthetic image or altered production rendering.
+                import os
+                output = os.environ.get("WHD_1503_PIXEL_RECEIPT_DIR")
+                if output:
+                    from pathlib import Path
+                    from PIL import Image
+                    folder = Path(output)
+                    folder.mkdir(parents=True, exist_ok=True)
+                    suffix = "with_marks" if marking else "without_marks"
+                    Image.fromarray(pixels).save(folder / f"{label}_{suffix}.png")
+                return pixels
             finally:
                 renderer._draw_receiving_ear_side_markings = original
 
@@ -196,8 +208,8 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
             ("normal_operator_view", (50., -90.)),
             ("side_interior_inspection_view", (32., 125.)),
         ):
-            without = actual_canvas_pixels(marking=False, camera=camera)
-            with_marks = actual_canvas_pixels(marking=True, camera=camera)
+            without = actual_canvas_pixels(marking=False, camera=camera, label=label)
+            with_marks = actual_canvas_pixels(marking=True, camera=camera, label=label)
             assert with_marks.shape == without.shape
             delta = np.max(
                 np.abs(
@@ -206,6 +218,13 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 ),
                 axis=2,
             )
+            import os
+            output = os.environ.get("WHD_1503_PIXEL_RECEIPT_DIR")
+            if output:
+                from pathlib import Path
+                from PIL import Image
+                heatmap = np.clip(delta.astype(np.int16) * 4, 0, 255).astype(np.uint8)
+                Image.fromarray(heatmap).save(Path(output) / f"{label}_difference_heatmap.png")
             visible = int(np.count_nonzero(delta > 32))
             total = int(delta.size)
             print(
