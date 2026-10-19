@@ -362,10 +362,28 @@ def base_plate_render_snapshot(host, val):
 
 
 def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dimensions):
-    spec = host._box_body_part_spec(val)
-    render_data = host._authoritative_render_data(
-        spec, host._manufacturing_context(draw_stock=False)
-    )
+    # Primary GUI is a presentation shell when a Receiving FoldDesigner
+    # workspace is open. The side mother-sheet must be the SAME physical
+    # source as its NFB/EAR world-contact solver. Rebuilding a different
+    # legacy BoxBody from main GUI controls can make the 2D SIDE source
+    # disagree with the committed FoldDesigner geometry, hiding MARKING.
+    designer = getattr(host, "fold_designer_app", None)
+    current = getattr(designer, "_phase6_input_snapshot", None)
+    if (isinstance(current, dict)
+            and current.get("model") in ("受電箱", "RECEIVING")):
+        resolve = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+        if not callable(resolve):
+            raise ValueError("受電箱側板 2D 缺少 FoldDesigner 實體製造來源")
+        geometry = resolve()
+        box_body = geometry.part("box_body")
+        render_data = box_body.render_data
+        if not tuple(getattr(render_data, "pieces", ()) or ()):
+            raise ValueError("受電箱側板 2D 缺少現行物理板件")
+    else:
+        spec = host._box_body_part_spec(val)
+        render_data = host._authoritative_render_data(
+            spec, host._manufacturing_context(draw_stock=False)
+        )
     selected_piece_key = host._refresh_box_body_piece_tabs_2d(render_data)
     if selected_piece_key:
         selected_role = selected_piece_key.split(":", 1)[1]
