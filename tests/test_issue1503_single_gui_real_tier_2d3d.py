@@ -281,6 +281,13 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 annotation_drawer=_draw_phase6_annotation_projection,
             )
             _pump(root)
+            if selected.render_data.metadata.get("ear_side_mark_preview_only"):
+                authentic = stage_canvas.find_withtag(
+                    "receiving_source_ear_marking_preview"
+                )
+                assert len(authentic) == 8, (
+                    "ACTUAL_TK_OPERATOR_SIDE_EAR_LINES_NOT_VISIBLE:" + side
+                )
             x, y = stage_canvas.winfo_rootx(), stage_canvas.winfo_rooty()
             w, h = stage_canvas.winfo_width(), stage_canvas.winfo_height()
             assert min(w, h) >= 500, "2D canvas not actually mapped"
