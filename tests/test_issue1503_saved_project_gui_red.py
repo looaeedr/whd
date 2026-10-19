@@ -110,6 +110,18 @@ def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
         # Confirm All is an operator action, but a physical plate SOURCE was
         # never selected. Never auto-create it from test-only defaults.
         assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
+        # Confirm All must save original operator CSV NFB identities even
+        # when physical Base Plate variant is unresolved. NOT MFG approval.
+        quantity = designer.designer_workspace.quantity_model
+        submitted = quantity.nfb_config_for_version(quantity.selected_version_id)
+        assert submitted.get("nfb_config_submitted") is True, (
+            "NORMAL_SINGLE_CSV_CONFIRM_LOST_WITHOUT_PHYSICAL_BASE"
+        )
+        typed = submitted["nfb_config"]
+        assert typed["layer_count"] == 2 and len(typed["holes"]) == 2
+        assert all(h["manual_x_state"] == "UNVERIFIED_BASIS"
+                   for h in typed["holes"])
+        assert designer._phase6_input_snapshot.get("nfb_config_submitted") is True
         scene = bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
         keys = {p.part_key for p in scene.assembly_parts}
         assert not any(k.startswith("base_plate:nfb_layer:") for k in keys)
@@ -147,10 +159,14 @@ def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
         import phase6_project_file
         disk = phase6_project_file.read_project(saved_path)["snapshot"]
         assert disk.get("receiving_base_plate") is None
+        assert disk.get("nfb_config_submitted") is True
+        assert disk.get("nfb_config") == typed
         app.load_phase6_project(saved_path, open_designer=True)
         _pump(root)
         reloaded_designer = app.fold_designer_app
         assert reloaded_designer._phase6_input_snapshot.get("receiving_base_plate") is None
+        assert reloaded_designer._phase6_input_snapshot.get("nfb_config_submitted") is True
+        assert reloaded_designer._phase6_input_snapshot.get("nfb_config") == typed
         reloaded_designer._phase6_3d_display_mode = "assembly"
         reloaded_view = reloaded_designer.final_scene_view
         reloaded_request = bridge._phase6_final_scene_adapter(reloaded_designer).build_request()
