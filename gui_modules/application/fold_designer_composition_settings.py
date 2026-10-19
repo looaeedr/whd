@@ -505,11 +505,37 @@ def settings_context_extension_projection(self, namespace, context):
         context == "base_plate"
         and str(base_snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
     )
+    derived_base = None
+    derived_base_error = ""
+    if is_receiving_base and base_snapshot.get("receiving_base_plate") is None:
+        # Use the same source resolution as FinalScene/DXF, not a GUI-local
+        # default that could disagree with manufacturing.
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+        try:
+            resolved = receiving_base_plate_values(base_snapshot)
+        except (ValueError, TypeError, KeyError) as exc:
+            derived_base_error = str(exc)
+        else:
+            if resolved is not None:
+                derived_base = {
+                    "pattern": resolved["receiving_bend_pattern"],
+                    "height": resolved["h"],
+                    "shrink_top": resolved["base_plate_shrink_top"],
+                    "shrink_bottom": resolved["base_plate_shrink_bottom"],
+                    "shrink_left": resolved["base_plate_shrink_left"],
+                    "shrink_right": resolved["base_plate_shrink_right"],
+                    "bend": resolved["base_plate_bend"],
+                }
     return {
         "receiving_base_plate": (
             {
-                "configured": base_snapshot.get("receiving_base_plate") is not None,
-                "values": deepcopy(base_snapshot.get("receiving_base_plate") or {}),
+                "configured": (base_snapshot.get("receiving_base_plate") is not None
+                               or derived_base is not None),
+                "values": deepcopy(
+                    base_snapshot.get("receiving_base_plate") or derived_base or {}
+                ),
+                "source_derived": derived_base is not None,
+                "source_error": derived_base_error,
             }
             if is_receiving_base else None
         ),
