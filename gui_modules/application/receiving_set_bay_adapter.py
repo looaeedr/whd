@@ -382,6 +382,26 @@ class ReceivingSetBayAdapter:
         if not selected or any(type(i) is not int or not 0 <= i < count
                                for i in selected):
             raise ValueError("請在簡易圖高亮有效的連")
+        # Stage a candidate's current CSV source identities. Merely saving a
+        # version does not touch any physical Bay; only explicit Apply can
+        # submit the version's existing Hole Editor NFB features into each
+        # selected Bay's source projection. Manual NFB X remains unverified
+        # and manufacturing-ready flags are NEVER promoted by this bridge.
+        csv_config = None
+        from ae_engine.receiving_nfb_csv_committed_config import (
+            committed_csv_nfb_config,
+        )
+        imported = [
+            (part_id, features)
+            for part_id, features in source.get("features", {}).items()
+            if any(getattr(feat, "source_type", None) == "NFB_CSV_SOURCE"
+                   for feat in features)
+        ]
+        if imported:
+            if len(imported) != 1:
+                raise ValueError("每個候選 NFB 必須對應唯一實體內門板件")
+            part_id, features = imported[0]
+            csv_config = committed_csv_nfb_config(part_id, features, source)
         # A native Hole Editor CUTTING Feature and a submitted NFBConfig must
         # never both own the same physical inner-door opening.
         if source.get("features") and any(
@@ -404,6 +424,22 @@ class ReceivingSetBayAdapter:
                 candidate = edit_setting(
                     candidate, set_index=set_index, bay_index=bi,
                     kind=kind, value=value,
+                )
+        if csv_config is not None:
+            from ae_engine.receiving_layout import update_receiving_bay
+            for bi in selected:
+                bay_id = str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
+                config_for_bay = deepcopy(csv_config)
+                # Each Bay is a distinct physical owner even when the
+                # *candidate* version is shared between many connected Bays.
+                for hole in config_for_bay["holes"]:
+                    hole["physical_hole_id"] = (
+                        f"{bay_id}:{hole['physical_hole_id']}"
+                    )
+                candidate = update_receiving_bay(
+                    candidate, set_index=set_index, bay_index=bi,
+                    nfb_config_submitted=True,
+                    nfb_config=config_for_bay,
                 )
         self._layout = candidate
         self._session_dirty_ids.update(
