@@ -543,6 +543,7 @@ def make_assembly_scene_render_data(
     selected_joint_id=None,
     preserve_endcap_core_origin=False,
     formed_fixing_plate_skins=(),
+    warnings=(),
     render_data_cls=None,
 ):
     """Construct the UI-only assembly bundle across old/new view contracts."""
@@ -573,6 +574,7 @@ def make_assembly_scene_render_data(
         ),
         "preserve_endcap_core_origin": bool(preserve_endcap_core_origin),
         "formed_fixing_plate_skins": tuple(formed_fixing_plate_skins or ()),
+        "warnings": tuple(warnings or ()),
     }
     try:
         params = signature(cls).parameters

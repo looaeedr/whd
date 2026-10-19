@@ -1,0 +1,37 @@
+name: WHD 1503 Saved Project Native Tk Reproduction
+on:
+  pull_request:
+    branches: [localX]
+    paths:
+      - 'tests/test_issue1503_saved_project_gui_red.py'
+      - 'tests/fixtures/issue1503_legacy_receiving_without_nfb_base.p6fold'
+      - 'phase6_final_scene_view.py'
+      - 'phase6_final_scene_renderer.py'
+      - '.github/workflows/whd-issue1503-saved-project-repro.yml'
+permissions:
+  contents: read
+jobs:
+  real_project_gui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      TZ: Asia/Taipei
+      MPLBACKEND: TkAgg
+      WHD_1503_PROJECT_REPRO_ARTIFACTS: artifacts/issue1503_saved
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt matplotlib numpy pillow pytest
+      - name: Real saved project and native Tk GUI RED-to-GREEN test
+        run: xvfb-run -a python -m pytest -q -s tests/test_issue1503_saved_project_gui_red.py
+      - name: Upload real canvas and failure receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue1503-native-project-ui-repro
+          path: artifacts/issue1503_saved/
+          if-no-files-found: warn
+          retention-days: 30

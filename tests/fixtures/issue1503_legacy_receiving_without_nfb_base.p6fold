@@ -1,0 +1,725 @@
+{
+  "schema": "phase6-fold-project-v1",
+  "snapshot": {
+    "model": "受電箱",
+    "w": 800,
+    "h": 1600,
+    "d": 350,
+    "t": 2,
+    "fw": 29,
+    "zl1": 17,
+    "zl2": 24,
+    "zr1": 15,
+    "zr2": 22,
+    "yl1": 15,
+    "yr1": 15,
+    "ytop1": 16,
+    "ybottom1": 15,
+    "door_gap_w": 3.5,
+    "door_gap_h": 3.5,
+    "door_fold_l": 19,
+    "door_fold_r": 19,
+    "door_fold_t": 19,
+    "door_fold_b": 19,
+    "base_plate_shrink_top": 55,
+    "base_plate_shrink_bottom": 55,
+    "base_plate_shrink_left": 55,
+    "base_plate_shrink_right": 55,
+    "base_plate_bend": 15,
+    "use_box_distance": false,
+    "assembly_type": "WRAP_OVERLAY",
+    "endcap_fw": {
+      "mode": "FOLLOW_BODY",
+      "head": {
+        "follow_box": true,
+        "value": 29
+      },
+      "tail": {
+        "follow_box": true,
+        "value": 29
+      }
+    },
+    "endcap_bottom_wrap": {
+      "mode": "LINKED",
+      "head": {
+        "enabled": true,
+        "reserve_u": 2,
+        "reserve_v": 1
+      },
+      "tail": {
+        "enabled": true,
+        "reserve_u": 2,
+        "reserve_v": 1
+      }
+    },
+    "door_layout_scope": "receiving-main",
+    "inner_doors": [],
+    "door_layout_columns": [
+      [
+        800,
+        [
+          1100,
+          500
+        ]
+      ]
+    ],
+    "part_dimensions": {
+      "box_body": {
+        "width": 800,
+        "height": 1600
+      },
+      "head": {
+        "width": 800,
+        "height": 350
+      },
+      "tail": {
+        "width": 800,
+        "height": 350
+      },
+      "door": {
+        "width": 735,
+        "height": 1535
+      },
+      "base_plate": {
+        "width": 690,
+        "height": 1490
+      },
+      "indicator_box": {
+        "width": 396,
+        "height": 445
+      },
+      "indicator_door": {
+        "width": 323,
+        "height": 372
+      }
+    },
+    "box_body_profile": [
+      {
+        "len": 15,
+        "angle": 90,
+        "phase6_key": "zl1",
+        "ui_len_add": 2
+      },
+      {
+        "len": 20,
+        "angle": -90,
+        "phase6_key": "zl2",
+        "ui_len_add": 4
+      },
+      {
+        "len": 25,
+        "angle": -90,
+        "phase6_key": "fw_left",
+        "ui_len_add": 4
+      },
+      {
+        "len": 346,
+        "angle": -90,
+        "core": "D",
+        "phase6_key": "d_left",
+        "ui_len_add": 4
+      },
+      {
+        "len": 796,
+        "angle": -90,
+        "core": "W",
+        "phase6_key": "w",
+        "ui_len_add": 4
+      },
+      {
+        "len": 346,
+        "angle": -90,
+        "core": "D",
+        "phase6_key": "d_right",
+        "ui_len_add": 4
+      },
+      {
+        "len": 25,
+        "angle": -90,
+        "phase6_key": "fw_right",
+        "ui_len_add": 4
+      },
+      {
+        "len": 20,
+        "phase6_key": "zr2",
+        "ui_len_add": 2
+      }
+    ],
+    "existing_parts": [
+      "box_body",
+      "head",
+      "tail"
+    ],
+    "active_part": "box_body",
+    "part_profiles": {
+      "head": {
+        "X": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "yl1",
+            "ui_len_add": 2
+          },
+          {
+            "len": 792,
+            "angle": -90,
+            "phase6_key": "endcap_w_core",
+            "core": "W-2T",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "yr1",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 16,
+            "angle": -90,
+            "phase6_key": "ytop1",
+            "ui_len_add": 2
+          },
+          {
+            "len": 25,
+            "angle": -90,
+            "phase6_key": "fw",
+            "ui_len_add": 4
+          },
+          {
+            "len": 346,
+            "angle": -90,
+            "phase6_key": "endcap_d_core",
+            "core": "D-T",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "ybottom1",
+            "ui_len_add": 2
+          }
+        ]
+      },
+      "tail": {
+        "X": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "yl1",
+            "ui_len_add": 2
+          },
+          {
+            "len": 792,
+            "angle": -90,
+            "phase6_key": "endcap_w_core",
+            "core": "W-2T",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "yr1",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "ybottom1",
+            "ui_len_add": 2
+          },
+          {
+            "len": 346,
+            "angle": -90,
+            "phase6_key": "endcap_d_core",
+            "core": "D-T",
+            "ui_len_add": 4
+          },
+          {
+            "len": 25,
+            "angle": -90,
+            "phase6_key": "fw",
+            "ui_len_add": 4
+          },
+          {
+            "len": 16,
+            "phase6_key": "ytop1",
+            "ui_len_add": 2
+          }
+        ]
+      },
+      "door": {
+        "X": [
+          {
+            "len": 19,
+            "angle": -90,
+            "phase6_key": "door_fold_l",
+            "ui_len_add": 2
+          },
+          {
+            "len": 796,
+            "angle": -90,
+            "phase6_key": "door_face_w",
+            "core": "門包外 W",
+            "ui_len_add": 4
+          },
+          {
+            "len": 19,
+            "phase6_key": "door_fold_r",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 19,
+            "angle": -90,
+            "phase6_key": "door_fold_b",
+            "ui_len_add": 2
+          },
+          {
+            "len": 1596,
+            "angle": -90,
+            "phase6_key": "door_face_h",
+            "core": "門包外 H",
+            "ui_len_add": 4
+          },
+          {
+            "len": 19,
+            "phase6_key": "door_fold_t",
+            "ui_len_add": 2
+          }
+        ]
+      },
+      "base_plate": {
+        "X": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "base_bend_l",
+            "ui_len_add": 2
+          },
+          {
+            "len": 690,
+            "angle": -90,
+            "phase6_key": "base_face_w",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "base_bend_r",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "base_bend_b",
+            "ui_len_add": 2
+          },
+          {
+            "len": 1490,
+            "angle": -90,
+            "phase6_key": "base_face_h",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "base_bend_t",
+            "ui_len_add": 2
+          }
+        ]
+      },
+      "door_c1_r1": {
+        "X": [
+          {
+            "len": 19,
+            "angle": -90,
+            "phase6_key": "door_fold_l",
+            "ui_len_add": 2
+          },
+          {
+            "len": 731,
+            "angle": -90,
+            "phase6_key": "door_face_w",
+            "core": "門包外 W",
+            "ui_len_add": 4
+          },
+          {
+            "len": 19,
+            "phase6_key": "door_fold_r",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 19,
+            "angle": -90,
+            "phase6_key": "door_fold_b",
+            "ui_len_add": 2
+          },
+          {
+            "len": 1060,
+            "angle": -90,
+            "phase6_key": "door_face_h",
+            "core": "門包外 H",
+            "ui_len_add": 4
+          },
+          {
+            "len": 19,
+            "phase6_key": "door_fold_t",
+            "ui_len_add": 2
+          }
+        ]
+      },
+      "door_c1_r2": {
+        "X": [
+          {
+            "len": 19,
+            "angle": -90,
+            "phase6_key": "door_fold_l",
+            "ui_len_add": 2
+          },
+          {
+            "len": 731,
+            "angle": -90,
+            "phase6_key": "door_face_w",
+            "core": "門包外 W",
+            "ui_len_add": 4
+          },
+          {
+            "len": 19,
+            "phase6_key": "door_fold_r",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 19,
+            "angle": -90,
+            "phase6_key": "door_fold_b",
+            "ui_len_add": 2
+          },
+          {
+            "len": 431,
+            "angle": -90,
+            "phase6_key": "door_face_h",
+            "core": "門包外 H",
+            "ui_len_add": 4
+          },
+          {
+            "len": 19,
+            "phase6_key": "door_fold_t",
+            "ui_len_add": 2
+          }
+        ]
+      },
+      "base_plate_c1_r1": {
+        "X": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "base_bend_l",
+            "ui_len_add": 2
+          },
+          {
+            "len": 690,
+            "angle": -90,
+            "phase6_key": "base_face_w",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "base_bend_r",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "base_bend_b",
+            "ui_len_add": 2
+          },
+          {
+            "len": 990,
+            "angle": -90,
+            "phase6_key": "base_face_h",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "base_bend_t",
+            "ui_len_add": 2
+          }
+        ]
+      },
+      "base_plate_c1_r2": {
+        "X": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "base_bend_l",
+            "ui_len_add": 2
+          },
+          {
+            "len": 690,
+            "angle": -90,
+            "phase6_key": "base_face_w",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "base_bend_r",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "base_bend_b",
+            "ui_len_add": 2
+          },
+          {
+            "len": 390,
+            "angle": -90,
+            "phase6_key": "base_face_h",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "base_bend_t",
+            "ui_len_add": 2
+          }
+        ]
+      },
+      "box_body:left_side": {
+        "X": [
+          {
+            "len": 15,
+            "angle": 90,
+            "phase6_key": "zl1",
+            "ui_len_add": 2
+          },
+          {
+            "len": 20,
+            "angle": -90,
+            "phase6_key": "zl2",
+            "ui_len_add": 4
+          },
+          {
+            "len": 25,
+            "angle": -90,
+            "phase6_key": "fw_left",
+            "ui_len_add": 4
+          },
+          {
+            "len": 346,
+            "angle": -90,
+            "core": "D",
+            "phase6_key": "d_left",
+            "ui_len_add": 4
+          },
+          {
+            "len": 15,
+            "phase6_key": "side_rear_bend_left",
+            "ui_len_add": 2
+          }
+        ],
+        "Y": [
+          {
+            "len": 1596,
+            "phase6_key": "box_body_piece_height"
+          }
+        ]
+      },
+      "box_body:back": {
+        "X": [
+          {
+            "len": 795,
+            "core": "W_BACK",
+            "phase6_key": "back_panel"
+          }
+        ],
+        "Y": [
+          {
+            "len": 1596,
+            "phase6_key": "box_body_piece_height"
+          }
+        ]
+      },
+      "box_body:right_side": {
+        "X": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "side_rear_bend_right"
+          },
+          {
+            "len": 346,
+            "angle": -90,
+            "core": "D",
+            "phase6_key": "d_right"
+          },
+          {
+            "len": 25,
+            "angle": -90,
+            "phase6_key": "fw_right"
+          },
+          {
+            "len": 20,
+            "phase6_key": "zr2"
+          }
+        ],
+        "Y": [
+          {
+            "len": 1596,
+            "phase6_key": "box_body_piece_height"
+          }
+        ]
+      },
+      "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1": {
+        "X": [
+          {
+            "len": 16,
+            "angle": 90,
+            "phase6_key": "divider_fold_1"
+          },
+          {
+            "len": 25,
+            "angle": 90,
+            "phase6_key": "divider_fold_2"
+          },
+          {
+            "len": 102,
+            "angle": 90,
+            "core": "D_DIVIDER",
+            "phase6_key": "divider_fold_3"
+          },
+          {
+            "len": 15,
+            "phase6_key": "divider_fold_4"
+          }
+        ],
+        "Y": [
+          {
+            "len": 796,
+            "phase6_key": "divider_span"
+          }
+        ]
+      },
+      "inner_door:upper:top_frame": {
+        "X": [
+          {
+            "len": 22,
+            "angle": 90,
+            "phase6_key": "inner_door_frame_top_1"
+          },
+          {
+            "len": 46,
+            "angle": 90,
+            "phase6_key": "inner_door_frame_top_2"
+          },
+          {
+            "len": 22,
+            "phase6_key": "inner_door_frame_top_3"
+          }
+        ],
+        "Y": [
+          {
+            "len": 635,
+            "phase6_key": "inner_door_frame_span"
+          }
+        ]
+      },
+      "inner_door:upper:left_frame": {
+        "X": [
+          {
+            "len": 22,
+            "angle": -90,
+            "phase6_key": "inner_door_frame_left_1"
+          },
+          {
+            "len": 20,
+            "angle": 90,
+            "phase6_key": "inner_door_frame_left_2"
+          },
+          {
+            "len": 46,
+            "angle": 90,
+            "phase6_key": "inner_door_frame_left_3"
+          },
+          {
+            "len": 22,
+            "phase6_key": "inner_door_frame_left_4"
+          }
+        ],
+        "Y": [
+          {
+            "len": 1014,
+            "phase6_key": "inner_door_frame_span"
+          }
+        ]
+      },
+      "inner_door:upper:right_frame": {
+        "X": [
+          {
+            "len": 22,
+            "angle": 90,
+            "phase6_key": "inner_door_frame_right_1"
+          },
+          {
+            "len": 46,
+            "angle": 90,
+            "phase6_key": "inner_door_frame_right_2"
+          },
+          {
+            "len": 22,
+            "phase6_key": "inner_door_frame_right_3"
+          }
+        ],
+        "Y": [
+          {
+            "len": 1014,
+            "phase6_key": "inner_door_frame_span"
+          }
+        ]
+      },
+      "inner_door:upper:panel": {
+        "X": [
+          {
+            "len": 635,
+            "phase6_key": "inner_door_panel_width"
+          }
+        ],
+        "Y": [
+          {
+            "len": 1014,
+            "phase6_key": "inner_door_panel_height"
+          }
+        ]
+      }
+    },
+    "part_features": {
+      "box_body": [],
+      "head": [],
+      "tail": [],
+      "door": [],
+      "base_plate": [],
+      "door_c1_r1": [],
+      "door_c1_r2": [],
+      "base_plate_c1_r1": [],
+      "base_plate_c1_r2": [],
+      "box_body:left_side": [],
+      "box_body:back": [],
+      "box_body:right_side": [],
+      "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1": [],
+      "inner_door:upper:top_frame": [],
+      "inner_door:upper:left_frame": [],
+      "inner_door:upper:right_frame": [],
+      "inner_door:upper:panel": []
+    }
+  },
+  "final_geometry": {}
+}
