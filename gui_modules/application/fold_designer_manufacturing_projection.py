@@ -372,6 +372,36 @@ def _query_fold_designer_render_data(self, part_key, payload):
         payload = collect_door_input(payload)
     """Return the same authoritative final geometry used by 2D consumers."""
     key = str(part_key or "")
+    if key.startswith("base_plate:nfb_layer:"):
+        # The 2D part selector may address either physical tier directly.
+        # Its source is the current already-resolved canonical assembly,
+        # never a second guessed/fabricated BasePlatePartSpec. On the first
+        # selection resolve the real manufacturing graph once; its two
+        # tier materials are identical to the ones displayed in 3D.
+        import re
+        if not re.fullmatch(r"base_plate:nfb_layer:[01]", key):
+            raise ValueError("RECEIVING_NFB_TIER_2D_PART_ID_INVALID")
+        current = getattr(self, "_phase6_input_snapshot", None)
+        if (not isinstance(current, Mapping)
+                or current.get("nfb_config_submitted") is not True):
+            raise ValueError("RECEIVING_NFB_TIER_2D_NOT_SUBMITTED")
+        resolved = getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
+        found = next(
+            (part for part in tuple(getattr(resolved, "parts", ()) or ())
+             if str(part.part_key) == key), None,
+        )
+        if found is None:
+            resolver = getattr(self, "_phase6_resolve_manufacturing_geometry", None)
+            if not callable(resolver):
+                raise ValueError("RECEIVING_NFB_TIER_2D_SOURCE_UNAVAILABLE")
+            resolved = resolver()
+            found = next(
+                (part for part in tuple(getattr(resolved, "parts", ()) or ())
+                 if str(part.part_key) == key), None,
+            )
+        if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
+            raise ValueError("RECEIVING_NFB_TIER_2D_PHYSICAL_PART_MISSING")
+        return found.render_data
     if key.startswith("base_plate:fixing_plate:"):
         # Native independent PartRenderData, not the BasePlatePartSpec blank
         # and not a drawing-only menu simulation.
