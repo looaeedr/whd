@@ -40,6 +40,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: receiving-all-marks-single-double-2d-3d
-          path: artifacts/ear_marking/*.png
+          path: artifacts/full_receiving_marking/**/*.png
           if-no-files-found: error
           retention-days: 30
