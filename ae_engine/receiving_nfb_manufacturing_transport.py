@@ -63,6 +63,15 @@ def restore_receiving_nfb_dto_selectors(snapshot):
     data = dict(snapshot)
     if data.get("nfb_config_submitted") is True:
         data["nfb_config"] = _config(data.get("nfb_config"))
+    selection = data.get("_receiving_runtime_selection")
+    if isinstance(selection, Mapping):
+        restored_selection = dict(selection)
+        for name in ("set_index", "bay_index"):
+            if name in restored_selection:
+                restored_selection[name] = _selector(
+                    restored_selection[name], name,
+                )
+        data["_receiving_runtime_selection"] = restored_selection
     layout = data.get("receiving_layout")
     if isinstance(layout, Mapping):
         sets = []
