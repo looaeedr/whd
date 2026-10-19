@@ -25,7 +25,7 @@ jobs:
       - name: Checkout pinned released product
         uses: actions/checkout@v4
         with:
-          ref: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          ref: 3da51e25a32491b58867a0ea1eec56087c03bad2
           path: product
           persist-credentials: false
       - name: Python 3.12 x64
@@ -37,7 +37,7 @@ jobs:
         shell: pwsh
         working-directory: product
         run: |
-          if ((git rev-parse HEAD).Trim() -ne '7c1d6f59e3582bdff10af1c3d432d375341c0bea') {
+          if ((git rev-parse HEAD).Trim() -ne '3da51e25a32491b58867a0ea1eec56087c03bad2') {
             throw 'Unexpected product SHA'
           }
           if (!(Test-Path '基準檔') -or !(Test-Path 'config.ini')) {
@@ -74,8 +74,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path output | Out-Null
-          $guide = 'docs/releases/WHD_Windows_使用說明.md'
-          $notes = 'docs/releases/WHD_v2026.10.15_更新紀錄.md'
+          $guide = 'docs/releases/WHD_Windows_使用說明_20261020.md'
+          $notes = 'docs/releases/WHD_v2026.10.20_更新紀錄.md'
           if (!(Test-Path $guide) -or !(Test-Path $notes)) {
             throw '缺少繁體中文使用說明或版本更新紀錄'
           }
@@ -84,10 +84,10 @@ jobs:
           Copy-Item -LiteralPath 'product/使用說明書.md' -Destination 'product/dist/WHD/功能操作參考.md'
           Copy-Item -LiteralPath $guide -Destination 'output/WHD_Windows_Guide_zh-TW.md'
           Copy-Item -LiteralPath $notes -Destination 'output/WHD_Release_Notes_zh-TW.md'
-          $name = 'WHD_Windows_x64_v2026.10.15-x-7c1d6f59e358.zip'
+          $name = 'WHD_Windows_x64_v2026.10.20-x-3da51e25a324.zip'
           @"
           WHD Windows 64 位元可攜式執行版
-          正式產品來源：7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          正式產品來源：3da51e25a32491b58867a0ea1eec56087c03bad2
           請先完整解壓縮，再開啟 WHD 資料夾並執行 WHD.exe。
           請保留與 WHD.exe 同一資料夾內的 config.ini、基準檔及其他程式檔案。
           下載、安裝與使用方法請參閱 使用說明.md。
@@ -121,8 +121,8 @@ jobs:
       - name: Verify and upload official Windows portable build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: v2026.10.15-x-7c1d6f59e358
-          RELEASE_SHA: 7c1d6f59e3582bdff10af1c3d432d375341c0bea
+          RELEASE_TAG: v2026.10.20-x-3da51e25a324
+          RELEASE_SHA: 3da51e25a32491b58867a0ea1eec56087c03bad2
         shell: bash
         run: |
           set -euo pipefail
