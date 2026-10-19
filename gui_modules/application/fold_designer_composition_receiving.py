@@ -1927,13 +1927,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # Fresh receiving-tab draft, not a global migration of old boxes.
             initial["layer_heights_mm"] = [550.0, 800.0]
         parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
-        multi_entry = bool(
-            parent_modal is not None and parent_modal.winfo_exists()
-            and self.app.designer_workspace.active_mode == "set_bay"
-        )
-        # The Set/Bay version editor (standalone) writes candidate X;
-        # ordinary Hole Editor tab entries update the currently drawn Bay.
-        direct_to_drawing = embed_parent is not None and not multi_entry
+        from .receiving_inner_door_hole_editor import inner_door_commit_target
+        # Read the actual opening editor entry. Stored Set/Bay state and
+        # unrelated modal dialogs may NEVER choose the persistence target.
+        entry_mode = (getattr(embed_parent.winfo_toplevel(),
+                              "_receiving_settings_mode", None)
+                      if embed_parent is not None else "candidate")
+        direct_to_drawing = inner_door_commit_target(entry_mode) == "physical"
         owner = parent_modal if (parent_modal is not None
                                  and parent_modal.winfo_exists()) else self.app.root
         if embed_parent is None:
@@ -3323,17 +3323,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         mode = getattr(editor, "_receiving_settings_mode", None)
         # Explicit entry identity, not project state: only the multi-settings
         # "candidate" entry saves a version on the MAIN Confirm All.
-        if mode not in (None, "single", "candidate"):
-            raise ValueError("未知的內門開孔編輯入口")
+        save_target = inner_door_commit_target(mode)
         selected_version = getattr(editor, "_receiving_candidate_version", None)
-        if mode == "candidate" and selected_version is not None:
+        if save_target == "candidate" and selected_version is not None:
             inner_config(inner_library(), selected_version)
-        state = {"version": selected_version if mode == "candidate" else None}
+        state = {"version": selected_version if save_target == "candidate" else None}
         bar = ttk.Frame(container)
         bar.pack(fill="x", padx=8, pady=(5, 3))
         status = ttk.Label(
             bar, text=("多連設定｜主頁籤確定全部才存入候選版本 X"
-                       if mode == "candidate"
+                       if save_target == "candidate"
                        else "一般／單只入口｜主頁籤確定全部才套用現有板件"),
         )
         status.pack(anchor="w")
