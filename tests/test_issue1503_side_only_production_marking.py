@@ -85,13 +85,13 @@ def test_part_only_production_marks_match_already_verified_check_dxf(
 def test_missing_approved_physical_data_blocks_without_creating_target(tmp_path):
     snap, geom = _actual(_assembled)
     target = tmp_path/"must-stay-absent"
-    with pytest.raises(ValueError, match="REQUIRES_CURRENT_W800_T2_SUBMITTED"):
+    with pytest.raises(ValueError, match="REQUIRES_CURRENT_MATCHING_SUBMITTED"):
         _make({**snap,"nfb_config_submitted":False}, geom, target)
     assert not target.exists()
     with pytest.raises(ValueError, match="QUANTITY_REQUIRES_PER_VERSION"):
         _make({**snap,"active_mode":"quantity"}, geom, target)
     assert not target.exists()
-    with pytest.raises(ValueError, match="REQUIRES_CURRENT_W800_T2_SUBMITTED"):
+    with pytest.raises(ValueError, match="REQUIRES_CURRENT_MATCHING_SUBMITTED"):
         export_receiving_ear_side_manufacturing_marking_dxf(
             snap, geom, target, dimensions=(750,1600,350), sheet_thickness=2.,
         )
