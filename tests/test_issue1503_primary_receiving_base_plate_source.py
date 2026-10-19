@@ -7,7 +7,7 @@ import pytest
 
 from gui_modules.application.render_snapshots import base_plate_render_snapshot
 from ae_engine.receiving_nfb_layer_physical_parts import expand_receiving_nfb_layer_parts
-from phase6_manufacturing_contracts import ResolvedManufacturingGeometry
+from ae_engine.contracts import ResolvedManufacturingGeometry
 from tests.test_receiving_two_tier_physical_base_parts import _two_tier, _source
 
 
