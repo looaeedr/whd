@@ -65,6 +65,33 @@ from phase6_final_scene_renderer import (
 )
 
 
+def receiving_base_source_display_warnings(snapshot, cabinet_family):
+    """Explain unresolved physical sources, never demand obsolete manual fields.
+
+    Current #1502 may uniquely derive a CENTER/LEFT physical base from
+    committed NFB CSV and source geometry without receiving_base_plate.
+    The same canonical resolver used by production must decide; do not
+    mistake an absent legacy manual mapping for absent material.
+    """
+    if cabinet_family != "受電箱":
+        return ()
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    try:
+        resolved = receiving_base_plate_values(snapshot)
+    except (ValueError, TypeError, KeyError) as exc:
+        return (
+            "受電箱實體底板來源驗證失敗：" + str(exc)
+            + "；不可冒用通用底板或假畫固定片打標線",
+        )
+    if resolved is None:
+        return (
+            "受電箱實體底板尚未配置或來源不足：請核對目前 NFB "
+            "CSV／已提交層別及原實體板件來源；"
+            "未證實來源前不顯示底板與固定片打標線",
+        )
+    return ()
+
+
 class Phase6FinalSceneViewAdapter:
     """Owner-free Final Scene orchestration over explicit typed ports."""
 
@@ -288,15 +315,10 @@ class Phase6FinalSceneViewAdapter:
             if str(getattr(part, "part_key", "")) in visible_set
         )
         cabinet_family = dependencies.cabinet_family()
-        # UI-only disclosure, never fabrication of a physical source or an
-        # NFB submission flag. Without an operator-selected physical Base Plate
-        # there cannot be real NFB-tier Base Plates or welded-EAR contact MARKING.
-        source_warning = (
-            ("受電箱實體底板尚未配置：請先在底板設定選擇實體板型並套用；"
-             "目前不顯示底板與固定片打標線",)
-            if cabinet_family == "受電箱"
-               and not snapshot.get("receiving_base_plate")
-            else ()
+        # UI-only warning follows canonical #1502 source resolution, which
+        # may derive a plate from submitted CSV without legacy manual config.
+        source_warning = receiving_base_source_display_warnings(
+            snapshot, cabinet_family,
         )
         return self.make_assembly_scene_render_data(
             assembly_parts=parts,
