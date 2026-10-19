@@ -163,6 +163,32 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         assert [r['layer_index'] for r in physical_bay['nfb_config']['holes']]==[0,1]
         assert all(r['manual_x_state']=='UNVERIFIED_BASIS' for r in physical_bay['nfb_config']['holes'])
         print('MULTI_APPLIED_CSV_PHYSICAL_OWNER_PASS',flush=True)
+        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+        from ae_engine.receiving_nfb_layer_physical_parts import expand_receiving_nfb_layer_parts
+        from tests.test_receiving_committed_nfb_depth_base_part_flow import _snapshot as source_base
+        physical_snapshot=project_receiving_bay_legacy_aliases({
+            **designer._phase6_input_snapshot,"receiving_layout":adapter.layout,
+            "receiving_base_plate":source_base()["receiving_base_plate"],
+        },set_index=0,bay_index=0)
+        assert physical_snapshot["nfb_config_submitted"] is True
+        source_scene=bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
+        expanded=expand_receiving_nfb_layer_parts(physical_snapshot,source_scene.assembly_parts)
+        assert [p.part_key for p in expanded if p.part_key.startswith("base_plate:")] == [
+            "base_plate:nfb_layer:0","base_plate:nfb_layer:1"
+        ],[p.part_key for p in expanded]
+        print('MULTI_APPLIED_TWO_REAL_2D3D_BASES_PASS',flush=True)
+        from ae_engine.receiving_tier_ear_assembly_xy import resolve_receiving_tier_ear_mating_xy
+        from ae_engine.receiving_fixed_plate_formed_skins import build_receiving_formed_fixing_plate_skins
+        from ae_engine.receiving_fixed_plate_side_contact import derive_receiving_ear_side_contact_from_formed_skin
+        owners=resolve_receiving_tier_ear_mating_xy(physical_snapshot)
+        assert len(owners)==4
+        formed=[build_receiving_formed_fixing_plate_skins(physical_snapshot,ear.ear_id) for ear in owners]
+        assert len({f.part_id for f in formed})==4
+        contacts=[derive_receiving_ear_side_contact_from_formed_skin(f) for f in formed]
+        assert len(contacts)==4
+        assert {c.side_piece_id for c in contacts}=={"box_body:left_side","box_body:right_side"}
+        assert all(len(c.world_surface_boundary)==4 for c in contacts)
+        print('MULTI_FOUR_REAL_3D_EAR_CONTACTS_PASS',flush=True)
 
         print('PR1993_MULTI_CANDIDATE_APPLY_PASS',flush=True)
     except Exception as exc:
