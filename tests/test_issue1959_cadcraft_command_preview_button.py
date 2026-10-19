@@ -111,7 +111,7 @@ def test_gui_button_keeps_original_preview_and_runs_cli_off_tk_event_thread():
                 if isinstance(n,ast.Constant) and isinstance(n.value,str)}
     vt=tokens(view)
     assert "CADCraft 試看" in vt
-    assert "CADCraft 指令繪圖試作" in vt
+    assert "CADCraft 開孔編輯" in vt
     bodies=[n for n in ast.walk(composition)
             if isinstance(n,ast.FunctionDef) and n.name=="draw_new_cadcraft_picture"]
     assert len(bodies)==1
@@ -121,3 +121,49 @@ def test_gui_button_keeps_original_preview_and_runs_cli_off_tk_event_thread():
                for n in calls)
     assert any(isinstance(n.func,ast.Name) and n.func.id=="draw_whd_commands_with_cadcraft"
                for n in calls)
+
+
+
+def test_actual_gui_launcher_opens_only_existing_isolated_dxf_via_argv(tmp_path):
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        open_cadcraft_hole_editor,
+    )
+    gui = tmp_path / "cadcraft.exe"
+    gui.write_bytes(b"portable executable")
+    exchange = tmp_path / "isolated-exchange.dxf"
+    exchange.write_text("exchange placeholder", encoding="utf-8")
+    captured = []
+    process = object()
+
+    def launch(argv):
+        captured.append(argv)
+        return process
+
+    assert open_cadcraft_hole_editor(
+        exchange, executable=gui, launcher=launch,
+    ) is process
+    assert captured == [[str(gui), str(exchange.resolve())]]
+    with pytest.raises((OSError, ValueError)):
+        open_cadcraft_hole_editor(
+            tmp_path / "missing.dxf", executable=gui, launcher=launch,
+        )
+    with pytest.raises(CadcraftCommandProofError, match="EXCHANGE_INVALID"):
+        wrong = tmp_path / "original-manufacturing.txt"
+        wrong.write_text("not a valid exchange")
+        open_cadcraft_hole_editor(wrong, executable=gui, launcher=launch)
+    assert len(captured) == 1
+
+
+def test_gui_launcher_failure_fails_closed_and_does_not_shell_fallback(tmp_path):
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        open_cadcraft_hole_editor,
+    )
+    exchange = tmp_path / "isolated.dxf"
+    exchange.write_bytes(b"not opened")
+    gui = tmp_path / "cadcraft.exe"
+    gui.write_bytes(b"stub")
+    def refuse(argv):
+        assert argv == [str(gui), str(exchange.resolve())]
+        raise OSError("Windows GUI process denied")
+    with pytest.raises(CadcraftCommandProofError, match="CADCRAFT_GUI_LAUNCH_FAILED"):
+        open_cadcraft_hole_editor(exchange, executable=gui, launcher=refuse)
