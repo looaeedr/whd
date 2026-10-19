@@ -247,8 +247,10 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         from types import SimpleNamespace
         from PIL import ImageGrab
         from gui_modules.rendering.box_body_view import draw_box_body_piece_preview
-        from dataclasses import replace
-        from ae_engine.sheetmetal_drawing import DrawingScene, LinePrimitive
+        from ae_engine.sheetmetal_drawing import LinePrimitive
+        from gui_modules.application.receiving_ear_side_2d import (
+            present_receiving_ear_side_piece_2d,
+        )
         import os
         box_part = next(part for part in scene.assembly_parts
                         if part.part_key == "box_body")
@@ -328,18 +330,29 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                           p).length, 3) for p in patches]
                       for item in ear_lines
                   ], flush=True)
-            assert len(ear_lines) >= 8, (
-                "REAL_SOURCE_SIDE_EAR_MARKING_MISSING:" + side
+            shown, blocker = present_receiving_ear_side_piece_2d(
+                calc, box_data, original_side, "box_body:" + side,
             )
-            no_marks = replace(original_side, render_data=replace(
-                original_side.render_data, scene=DrawingScene([
-                    p for p in primitives
-                    if not (isinstance(p, LinePrimitive) and
-                            str(getattr(p, "layer", "")).upper() == "MARKING")
-                ]),
+            assert blocker is None, blocker
+            assert shown.render_data.metadata["ear_side_mark_preview_count"] == 8
+            assert shown.render_data.metadata["ear_side_mark_preview_only"] is True
+            assert shown.render_data.metadata["ear_side_existing_marking_overlap_display_mode"] is True
+            after_primitives = tuple(shown.render_data.scene.primitives)
+            after_lines = tuple(p for p in after_primitives if (
+                isinstance(p, LinePrimitive) and
+                str(getattr(p, "layer", "")).upper() == "MARKING"
             ))
-            without_2d = capture_side(side, no_marks)
-            with_2d = capture_side(side, original_side)
+            assert len(after_lines) == len(ear_lines) + 8, (
+                "REAL_SOURCE_2D_EAR_PREVIEW_MISSING_EIGHT_PER_SIDE:" + side
+            )
+            assert tuple(original_side.render_data.scene.primitives) == primitives, (
+                "preview mutated source geometry"
+            )
+            # Both are actual live Tk 2D renderings from the identical
+            # source. The AFTER view adds only the verified EAR UV receipt
+            # lines; the factory's original joint MARKING stays untouched.
+            without_2d = capture_side(side, original_side)
+            with_2d = capture_side(side, shown)
             assert with_2d.shape == without_2d.shape
             diff = np.max(np.abs(
                 with_2d.astype(np.int16) - without_2d.astype(np.int16),
