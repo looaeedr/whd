@@ -80,8 +80,6 @@ def test_real_gui_selected_receiving_side_check_is_not_standard_manufacturing_ex
     {"model": "金庫型"},
     {"nfb_config_submitted": False},
     {"active_mode": "quantity"},
-    {"w": 750.},
-    {"t": 3.},
 ))
 def test_no_check_dxf_picker_or_resolution_for_unapproved_or_wrong_mode(
     tmp_path, monkeypatch, updates,
@@ -93,6 +91,24 @@ def test_no_check_dxf_picker_or_resolution_for_unapproved_or_wrong_mode(
     assert export_actions.export_receiving_ear_side_check_dxf(host) is None
     assert state == {"flushed": 1, "resolved": 0}
     assert [row[0] for row in events] == ["error"]
+
+
+@pytest.mark.parametrize("updates", ({"w": 750.}, {"t": 3.}))
+def test_different_cabinet_dimensions_reach_source_proof_not_w800_guard(
+    tmp_path, monkeypatch, updates,
+):
+    # This stub is NOT a ResolvedManufacturingGeometry. A new width or
+    # SIDE T is a valid request, but a fake stale resolver still cannot
+    # generate any DXF or receive a success message.
+    snapshot = _snapshot()
+    snapshot.update(updates)
+    host, state = _host(snapshot)
+    events = _dialogs(monkeypatch, tmp_path)
+    assert export_actions.export_receiving_ear_side_check_dxf(host) is None
+    assert state == {"flushed": 1, "resolved": 1}
+    assert [entry[0] for entry in events] == ["select", "error"]
+    assert "ACTUAL_MANUFACTURING_GEOMETRY_REQUIRED" in events[-1][-1]
+    assert not list(tmp_path.glob("*.dxf"))
 
 
 def test_missing_canonical_designer_resolver_is_fail_closed(tmp_path, monkeypatch):
