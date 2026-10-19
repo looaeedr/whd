@@ -29,7 +29,7 @@ def _geometry_of_source_primitive(item):
     return None
 
 
-def _check_source_conflicts(patch, render_data):
+def _check_source_conflicts(patch, render_data, *, display_only_marking_overlap=False):
     if not render_data.material.covers(patch):
         raise ValueError("EAR_MARK_PREVIEW_FINAL_MATERIAL_CONFLICT")
     for guide in tuple(render_data.fold_guides or ()):
@@ -49,12 +49,21 @@ def _check_source_conflicts(patch, render_data):
             continue
         feature = _geometry_of_source_primitive(item)
         if feature is not None and patch.intersects(feature):
+            if layer == "MARKING" and display_only_marking_overlap:
+                # Native operator 2D visualization only. Existing source
+                # markings (e.g. a true joint X inside the EAR footprint) do
+                # not erase the separate true EAR outline from the screen.
+                # Independent manufacturing/MFG and CUTTING/BEND guards are
+                # intentionally unchanged and this returns NO approval.
+                continue
             raise ValueError("EAR_MARK_PREVIEW_EXISTING_" + layer + "_CONFLICT")
 
 
 def build_receiving_ear_side_marking_previews(
     receipts: tuple[ReceivingEarSideUVReceipt, ...],
     side_render_data: Mapping[str, object],
+    *,
+    display_only_marking_overlap: bool = False,
 ) -> dict[str, DrawingScene]:
     """Read-only preview, copying existing side drawing without modifying it.
 
@@ -96,7 +105,10 @@ def build_receiving_ear_side_marking_previews(
                 raise ValueError("EAR_MARK_PREVIEW_SOURCE_PATCH_INVALID")
             if any(patch.intersects(previous) for previous in patches):
                 raise ValueError("EAR_MARK_PREVIEW_TIER_COLLISION")
-            _check_source_conflicts(patch, owner)
+            _check_source_conflicts(
+                patch, owner,
+                display_only_marking_overlap=display_only_marking_overlap,
+            )
             for p1, p2 in row.marking_segments:
                 if not patch.covers(LineString((p1, p2))):
                     raise ValueError("EAR_MARK_PREVIEW_MARK_OUTSIDE_RECEIPT")
