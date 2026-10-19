@@ -177,3 +177,12 @@ def test_no_arbitrary_flat_right_selection_for_other_source_model():
         snap["nfb_config"]
     )
     assert receiving_base_plate_values(snap) is None
+
+
+def test_two_tier_committed_holes_do_not_reuse_one_root_flat_plate():
+    snap = _submitted_one_shihlin_400()
+    snap["nfb_config"]["layer_count"] = 2
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    assert receiving_base_plate_values(snap) is None
