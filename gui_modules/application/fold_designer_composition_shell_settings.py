@@ -150,6 +150,29 @@ def install_renderer_view(self, namespace):
     app = self.app
     adapter = self.final_scene_adapter(self.final_scene_ports(namespace))
     result = adapter.install_renderer()
+    # A double-click belongs to the physical sheet actually hit in the
+    # rendered 3D view, not to the current left-hand selector or project mode.
+    # Reuse the existing original Hole Editor entry and its Confirm/Cancel
+    # lifecycle; do not manufacture or change geometry on the pick itself.
+    def open_clicked_3d_sheet(part_key):
+        key = str(part_key)
+        workspace = app.designer_workspace
+        if key not in workspace.available_parts:
+            return None
+        host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
+        opener = getattr(host, "open_part_hole_editor", None)
+        if not callable(opener):
+            return None
+
+        def open_after_mpl_event():
+            if (app.root.winfo_exists()
+                    and key in app.designer_workspace.available_parts):
+                opener(key)
+
+        app.root.after_idle(open_after_mpl_event)
+        return key
+
+    result.set_hole_double_click_handler(open_clicked_3d_sheet)
     try:
         app.renderer.canvas.get_tk_widget().configure(takefocus=False)
     except Exception:

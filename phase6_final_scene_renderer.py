@@ -90,8 +90,53 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         self._all_parts_collision_cache = None
         self.last_formed_ear_display_ids = ()
         self.last_receiving_ear_marking_segments = ()
+        # Artist -> authoritative physical Part ID, populated ONLY from
+        # rendered, visible FinalScene material. No mesh is rebuilt for picks.
+        self._hole_pick_artists = []
+        self._hole_double_click_handler = None
+        self._hole_double_click_cid = None
+
+    def set_hole_double_click_handler(self, handler):
+        """Connect the original Hole Editor route to visible 3D sheet skins."""
+        if handler is not None and not callable(handler):
+            raise TypeError("3D Hole Editor callback must be callable")
+        self._hole_double_click_handler = handler
+        if self._hole_double_click_cid is not None:
+            return
+        canvas = getattr(self.renderer, "canvas", None)
+        if canvas is not None and callable(getattr(canvas, "mpl_connect", None)):
+            self._hole_double_click_cid = canvas.mpl_connect(
+                "button_press_event", self.on_hole_mesh_double_click,
+            )
+
+    def on_hole_mesh_double_click(self, event):
+        """Resolve an actual rendered mesh hit; never guess the selected part.
+
+        Matplotlib projects Poly3DCollections into their final 2D visible
+        paths before hit-testing. Its draw-time zorder selects the nearest
+        visible surface when more than one projected sheet overlaps.
+        """
+        if (not getattr(event, "dblclick", False)
+                or getattr(event, "button", None) != 1
+                or getattr(event, "inaxes", None) is not self.renderer.ax3d
+                or not callable(self._hole_double_click_handler)):
+            return None
+        hits = []
+        for index, (artist, part_key) in enumerate(self._hole_pick_artists):
+            if not artist.get_visible() or artist.axes is not self.renderer.ax3d:
+                continue
+            contains, _ = artist.contains(event)
+            if contains:
+                hits.append((artist.get_zorder(), index, part_key))
+        if not hits:
+            return None
+        part_key = max(hits)[2]
+        self._hole_double_click_handler(part_key)
+        return part_key
 
     def render(self, request: FinalSceneViewRequest | None):
+        # Never keep the pick IDs from a prior rendered Bay / visibility state.
+        self._hole_pick_artists = []
         # Redraw/visibility changes must not reuse stale contact outlines.
         self.last_receiving_ear_marking_segments = ()
         if request is None:
@@ -284,6 +329,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                              if divider_in_view else float(request.alpha_bend)),
                                 )
                                 ax.add_collection3d(poly)
+                                # A box body is several distinct editable
+                                # physical sheets, not one arbitrary "box_body".
+                                self._hole_pick_artists.append((poly, piece_key))
                                 piece_role = str(getattr(piece, "role", "") or "").strip()
                                 # Mesh feature extraction can turn individually
                                 # triangulated/nonplanar skins into a visible grid.
@@ -383,6 +431,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     placed, facecolor=face, opacity=opacity,
                 )
                 ax.add_collection3d(poly)
+                self._hole_pick_artists.append((poly, part_key))
                 if is_outer_door or is_inner_panel:
                     # CUTTING holes must be real material interiors, not
                     # tessellation outlines. Folded-door crease/BEND geometry
@@ -611,6 +660,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     piece_tris, facecolor=face, opacity=float(request.alpha_bend),
                 )
                 self.renderer.ax3d.add_collection3d(poly)
+                role = str(getattr(_piece, "role", "") or "").strip()
+                if role:
+                    self._hole_pick_artists.append((poly, f"box_body:{role}"))
                 # All Box Body pieces use smooth material skins.
                 # Physical BEND comes from the manufacturing scene below,
                 # never from mesh/normal-derived feature segments.
@@ -691,6 +743,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             opacity=1.0 if is_door else float(request.alpha_bend),
         )
         self.renderer.ax3d.add_collection3d(poly)
+        self._hole_pick_artists.append((poly, part_key))
         if is_door:
             self._draw_cutting_hole_rims(
                 material, request.x_profile, request.y_profile, fold_guides,
@@ -762,6 +815,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             except AttributeError:
                 elev, azim = 30, -45
             ax.clear()
+            self._hole_pick_artists = []
             ax2d = getattr(self.renderer, "ax2d", None)
             if ax2d is not None:
                 ax2d.clear()
