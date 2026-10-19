@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1820-whd-real-gui
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1820：WHD 真正主程式到原 2D 開孔視窗的首幀基準
 
 前置 [#1819](https://github.com/looaeedr/whd/issues/1819) 已完成。此測試與 #1911 的 Tk Canvas 元件基準不同：**直接執行 WHD Production `Phase6PrimaryApplication`、呼叫現有原始 `_open_unified_hole_editor`，等待畫面真正出現**，然後從 Xvfb 截取實際開孔編輯視窗。

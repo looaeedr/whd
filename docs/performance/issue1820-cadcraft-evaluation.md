@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1820-cadcraft-evaluation
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1820 CADCraft 與 WHD 2D 效能評估：階段一
 
 ## 基準

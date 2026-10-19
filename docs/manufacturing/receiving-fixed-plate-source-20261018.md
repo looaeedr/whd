@@ -1,6 +1,7 @@
 ---
 whd_doc_role: CURRENT
 whd_contract: receiving-fixed-plate-canonical-bend-20261018
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 

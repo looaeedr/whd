@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1816-private-nfb-source-preview-20261016
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1816｜士林 NFB 原始 DXF 真圖預覽效能（2026-10-16）
 
 > **部分驗收證據。** 此處是真正的士林來源 DXF，使用 WHD 原始 NFB 真圖預覽程式，在隔離 Linux/Tk/Xvfb 測得。**不等於 Windows 實機 UAT、製造孔位來源認證，亦非整體 GUI 效能改善百分比。** 原始 CAD 不放入本公開 GitHub repo，也不放入公開 Actions Artifact。

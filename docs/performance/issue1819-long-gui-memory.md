@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1819-long-gui-memory
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1819 — 真實 GUI 長循環 RSS 驗收（Linux 雲端觀察）
 
 ## 目的

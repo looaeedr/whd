@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-integration-cadcraft-2d-preview-poc
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # WHD × CADCraft：原 2D 開孔編輯器的可選試看原型
 
 **狀態：PoC／試驗功能；不取代 WHD 現有 2D 編輯器。**

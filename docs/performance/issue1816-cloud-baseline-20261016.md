@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1816-cloud-baseline-20261016
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1816｜WHD Phase6 效能基準：Linux 雲端參考量測（2026-10-16）
 
 > **證據狀態：部分基準已取得，Issue #1816 尚未完成驗收。** 本報告是 Linux Runner 的 *before* 觀測，不代表 Windows 實機效能，也不是改善後的百分比。真正的 NFB DXF 封閉環境預覽、長期記憶體及 Windows UAT 仍待驗；已另外完成正式三連專案 fresh-process 重開的雲端量測。

@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1820-same-runner-gui
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1820：同一 runner 真正 WHD 與 CADCraft GUI 配對觀測
 
 本階段前已完成：#1911 同源 DXF 的 WHD Tk/CADCraft CLI、#1913 真 CADCraft 原生桌面首幀、#1914 真 WHD 主程式到原 2D 開孔視窗首幀，各自測試均全綠。它們過去分別使用不同 runner，不能直接用耗時排名。

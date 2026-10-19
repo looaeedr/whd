@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-release-windows-guide-20261015
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # WHD Windows 版使用說明
 
 **版本：** `v2026.10.15-x-7c1d6f59e358`  

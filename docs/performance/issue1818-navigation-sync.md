@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1818-navigation-sync
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1818：純板件選取仍觸發主視窗完整更新
 
 ## 重現與原因

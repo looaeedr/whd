@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: reference-performance-issue1820-cadcraft-native-gui
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1820 CADCraft 真正桌面 GUI 顯示階段（Linux Xvfb）
 
 此測試**不會**取代 WHD 原始 2D 開孔編輯器，也不會改動正式製造 DXF。#1911 已建立同 DXF 的 WHD Tk 元件與 CADCraft CLI 觀測；那不是桌面互動速度比較。
