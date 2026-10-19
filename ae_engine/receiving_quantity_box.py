@@ -35,7 +35,7 @@ def normalize_common_box(value):
         raise ValueError("共用箱體資料格式錯誤")
     allowed = {"w", "h", "d", "back_panel_mode", "inner_door_layers",
                "inner_door_models", "inner_door_layer_heights_mm",
-               "switch_brand", "door_state"}
+               "receiving_base_plate", "switch_brand", "door_state"}
     if set(value) - allowed:
         raise ValueError("共用箱體不能保存 Set/Bay、Joint 或孔型版本資料")
     result = {axis: positive_dimension(value.get(axis), axis) for axis in ("w", "h", "d")}
@@ -52,6 +52,11 @@ def normalize_common_box(value):
     for kind in ("inner_door_models", "inner_door_layer_heights_mm"):
         if kind in value:
             result[kind] = validate_setting(kind, value[kind])
+    if value.get("receiving_base_plate") is not None:
+        plate = value["receiving_base_plate"]
+        if not isinstance(plate, Mapping):
+            raise ValueError("單只底板來源須為實體型式設定")
+        result["receiving_base_plate"] = deepcopy(dict(plate))
     if "door_state" in value:
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
         door = value["door_state"]
@@ -93,6 +98,12 @@ def project_common_box(snapshot):
             for key in RECEIVING_DOOR_STATE_KEYS if key in defaults
         }
     result[BOX_KEY] = box
+    # The quantity common box owns its one physical Base Plate variant.
+    # Root receiving_base_plate is only the current assembly projection.
+    if "receiving_base_plate" in box:
+        result["receiving_base_plate"] = deepcopy(box["receiving_base_plate"])
+    else:
+        result.pop("receiving_base_plate", None)
     result.update({axis: box[axis] for axis in ("w", "h", "d")})
     if "door_state" in box:
         result.update(deepcopy(box["door_state"]))
