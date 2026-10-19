@@ -796,7 +796,9 @@ def _bind_editor_events(s):
         cadcraft_button.configure(command=preview_in_cadcraft)
 
     return_button = getattr(s.editor, "_hole_header_cadcraft_return", None)
+    status_label = getattr(s.editor, "_hole_header_cadcraft_status", None)
     s.editor._hole_cadcraft_return_ticket = None
+    s.editor._hole_cadcraft_gui_process = None
     trial_button = getattr(s.editor, "_hole_header_cadcraft_draw", None)
     if trial_button is not None:
         def draw_new_cadcraft_picture():
@@ -824,6 +826,8 @@ def _bind_editor_events(s):
             s.editor._hole_cadcraft_return_ticket = None
             if return_button is not None:
                 return_button.configure(state="disabled")
+            if status_label is not None:
+                status_label.configure(text="正在產生 CADCraft 開孔交換圖…")
             trial_button.configure(state="disabled")
             result_queue = Queue(maxsize=1)
 
@@ -878,20 +882,37 @@ def _bind_editor_events(s):
                             s.editor._hole_cadcraft_return_ticket = ticket
                             if return_button is not None:
                                 return_button.configure(state="normal")
-                    s.d.messagebox.showinfo(
-                        "CADCraft 指令繪圖試作",
-                        ("已產生 WHD 毫米空白交換圖；請用 CADCraft 繪製第一個孔。\n"
-                         if not instructions else
-                         "已由 WHD 座標指令產生 CADCraft 新圖，幾何校驗通過。\n")
-                        + "PNG：" + str(outcome.preview_png)
-                        + "\nDXF：" + str(outcome.output_dxf)
-                        + "\n這是獨立試作，不會修改 WHD 開孔或製造圖。"
-                        + ("\n回傳操作：在 CADCraft 開啟上述 DXF，可平移原孔或新增"
-                           "圓孔／封閉直線輪廓（僅圖層 0），原檔儲存，"
-                           "再回 WHD 點『CADCraft 改孔回傳』。"
-                           if not return_denied else "\n此圖不可回傳：" + return_denied),
-                        parent=s.editor,
-                    )
+                    # Issue the GUI launch only AFTER the original WHD
+                    # provenance ticket is validated; no blocking modal dialog
+                    # that would keep the CADCraft window behind WHD.
+                    if return_denied:
+                        if status_label is not None:
+                            status_label.configure(text="CADCraft 交換圖不可回傳")
+                        s.d.messagebox.showerror(
+                            "CADCraft 開孔編輯", "交換圖建立但無法回傳：" + return_denied,
+                            parent=s.editor,
+                        )
+                    else:
+                        from .cadcraft_command_preview_bridge import (
+                            open_cadcraft_hole_editor,
+                        )
+                        try:
+                            process = open_cadcraft_hole_editor(ticket.output)
+                        except (OSError, ValueError, TypeError) as exc:
+                            if status_label is not None:
+                                status_label.configure(text="CADCraft 啟動失敗")
+                            s.d.messagebox.showerror(
+                                "CADCraft 開孔編輯",
+                                "無法開啟 CADCraft 編輯視窗：" + str(exc)
+                                + "\n交換圖仍保留：" + str(ticket.output),
+                                parent=s.editor,
+                            )
+                        else:
+                            s.editor._hole_cadcraft_gui_process = process
+                            if status_label is not None:
+                                status_label.configure(
+                                    text="CADCraft 已啟動；存檔後按『改孔回傳』"
+                                )
 
             Thread(target=worker, name="whd-cadcraft-command-draw", daemon=True).start()
             s.editor.after(100, poll_for_result)
@@ -941,6 +962,8 @@ def _bind_editor_events(s):
                     pending.confirm()
                 else:
                     pending.cancel()
+                    if status_label is not None:
+                        status_label.configure(text="已取消 CADCraft 回傳，原孔不變")
             except Exception as exc:
                 if pending.stage.active:
                     pending.cancel()
@@ -952,6 +975,8 @@ def _bind_editor_events(s):
             if confirmed:
                 s.editor._hole_cadcraft_return_ticket = None
                 return_button.configure(state="disabled")
+                if status_label is not None:
+                    status_label.configure(text="CADCraft 孔位已送回 WHD")
                 s.d.messagebox.showinfo(
                     "CADCraft 改孔回傳",
                     "新增／平移孔位已確認至 WHD Session。請在原開孔編輯器按『確定』，"
