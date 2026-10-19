@@ -13,6 +13,20 @@ def is_inner_door_sheet(part_key: object) -> bool:
 
 
 
+def inner_door_commit_target(settings_mode):
+    """Binding is the actual launch entry, NEVER global set_bay/quantity data.
+
+    Only the explicit 多連設定 inner-door editor receives candidate ownership.
+    Ordinary board/corner/part-preview and 單只 settings write physical parts
+    on the parent editor Confirm All. NFB tab Confirm never writes either.
+    """
+    if settings_mode == "candidate":
+        return "candidate"
+    if settings_mode in (None, "single"):
+        return "physical"
+    raise ValueError("未知的內門編輯來源")
+
+
 def inner_door_work_area_guide(snapshot, panel, structural):
     """Project the source door-layout cell into the local inner-door editor.
 
@@ -65,8 +79,9 @@ def open_inner_door_hole_editor(
     if settings_mode is None and part_key not in workspace.available_parts:
         raise ValueError("內門門板目前不在有效板件清單")
     host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
-    if settings_mode not in (None, "single", "candidate"):
-        raise ValueError("未知的內門編輯來源")
+    # Use the entry identity captured at window creation, not the project's
+    # stored Set/Bay data or another settings window's existence.
+    inner_door_commit_target(settings_mode)
     # An explicit settings-button entry already identifies this physical panel;
     # the old panel-double-click path still requires active-part selection.
     if settings_mode is None and str(workspace.active_part) != part_key:
