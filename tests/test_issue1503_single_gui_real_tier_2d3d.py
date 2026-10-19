@@ -144,5 +144,19 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
             "box_body:left_side", "box_body:right_side"
         }
         assert all(len(x.world_surface_boundary) == 4 for x in contacts)
+        # The scene owning correct DTOs is not sufficient: verify the actual
+        # production Matplotlib 3D renderer drew all four formed EAR skins
+        # and eight source-contact MARKING segments on EACH side plate.
+        # No raw/preselected/fabricated lines are passed to the renderer.
+        designer._phase6_3d_display_mode = "assembly"
+        renderer = designer.final_scene_view
+        adapter = bridge._phase6_final_scene_adapter(designer)
+        request = adapter.build_request()
+        assert request is not None and request.part_key == "assembly"
+        renderer.render(request)
+        assert set(renderer.last_formed_ear_display_ids) == {
+            row.part_id for row in formed
+        }
+        assert len(renderer.last_receiving_ear_marking_segments) == 16
     finally:
         root.destroy()
