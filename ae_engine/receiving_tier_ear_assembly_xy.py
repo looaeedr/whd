@@ -68,13 +68,15 @@ def resolve_receiving_tier_ear_mating_xy(
         raise TypeError("RECEIVING_EAR_XY_REQUIRES_SNAPSHOT")
     if snapshot.get("nfb_config_submitted") is not True:
         return ()
-    # #1502 also recognizes an unambiguous physical LEFT/CENTER original
-    # from the submitted NFB CSV; a *manual* receiving_base_plate field is
-    # no longer mandatory. Use the SAME resolution as the true BasePlate
-    # PartSpec rather than silently losing its welded EAR children.
-    from .receiving_base_plate_config import receiving_base_plate_values
-    if receiving_base_plate_values(snapshot) is None:
-        return ()
+    # Existing explicit pattern-only previews must stay backwards
+    # compatible; do not require their legacy UI-only mapping to become
+    # manufacturing-complete. When no manual pattern is present, #1502 may
+    # derive the actual LEFT/CENTER blank from the committed numeric CSV.
+    manual = snapshot.get("receiving_base_plate")
+    if not (isinstance(manual, Mapping) and manual.get("pattern")):
+        from .receiving_base_plate_config import receiving_base_plate_values
+        if receiving_base_plate_values(snapshot) is None:
+            return ()
     doors=tuple(
         row for row in tuple(snapshot.get("inner_doors") or ())
         if isinstance(row, Mapping)
