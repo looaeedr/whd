@@ -518,7 +518,12 @@ def _canonical_part_keys(app: Any) -> tuple[str, ...]:
     return tuple(
         str(key)
         for key in values
-        if str(key or "") and not is_box_body_physical_piece_key(key)
+        if str(key or "")
+        and not is_box_body_physical_piece_key(key)
+        # Two tier Base Plates are generated from the single source root
+        # inside the canonical manufacturing resolver. They are real 2D
+        # navigation identities but not additional RAW source inputs.
+        and not str(key).startswith("base_plate:nfb_layer:")
     )
 
 
