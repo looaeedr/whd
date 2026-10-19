@@ -98,6 +98,7 @@ PYTEST_PATHS = (
     "tests/test_issue1503_nfb_manufacturing_transport.py",
     "tests/test_issue1503_single_gui_real_tier_2d3d.py",
     "tests/test_issue1503_primary_2d_ear_source_authority.py",
+    "tests/test_issue1503_primary_receiving_base_plate_source.py",
     "tests/test_issue1503_multi_candidate_nfb_apply_gui.py",
     "tests/test_issue1503_multi_nfb_bay_isolation.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
