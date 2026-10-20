@@ -198,3 +198,11 @@ def test_untrusted_method_cannot_escape_allowlist():
     client = CadcraftControlClient(1024)
     with pytest.raises(CadcraftControlError, match="NOT_ALLOWED"):
         client.request("app.save", {"path": "original.dxf"})
+
+
+def test_engine_command_cannot_bypass_safe_method_allowlist():
+    client = CadcraftControlClient(1024)
+    with pytest.raises(CadcraftControlError, match="ENGINE_COMMAND_NOT_ALLOWED"):
+        client.request("engine.execute", {"command": "saveas", "params": {"path": "original.dxf"}})
+    with pytest.raises(CadcraftControlError, match="ENGINE_COMMAND_NOT_ALLOWED"):
+        client.request("engine.execute", {"command": "erase", "params": {"all": True}})
