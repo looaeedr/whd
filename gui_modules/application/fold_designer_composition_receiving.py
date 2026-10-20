@@ -3052,10 +3052,18 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             )
             current = nfb_physical_bay_snapshot(set_index, bay_index)
             source = _submitted_csv_holes(current)
-            if not source or source[1][0].layer_count != 1:
+            if not source:
                 return False
             specs = _existing_source_specs(current, source[1])
-            return set(specs) == {0} and specs[0].physical_id == "base_plate"
+            count = source[1][0].layer_count
+            if count == 1:
+                return set(specs) == {0} and specs[0].physical_id == "base_plate"
+            if count == 2:
+                return set(specs) == {0, 1} and all(
+                    specs[i].physical_id == f"base_plate:nfb_layer:{i}"
+                    for i in (0, 1)
+                )
+            return False
 
         def export_partial_nfb_door_base_pair(set_index, bay_index, output_directory):
             """Existing PART_ONLY button: canonical CSV first; old DXF for old data."""
@@ -3064,10 +3072,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 export_current_csv_nfb_door_base_pair,
             )
             current = nfb_physical_bay_snapshot(set_index, bay_index)
-            spec, _ = self.app._part_spec_query_callback("base_plate", current)
             if current_csv_pair_source(set_index, bay_index):
-                # The same actual Bay assembly displayed in 2D/3D is the
-                # source. No new CSV button, alternate plate or DXF handle.
+                # The same actual Bay assembly displayed in 2D/3D owns one
+                # real root or two real tier blanks; do not request a fake
+                # generic root PartSpec for a two-tier physical assembly.
+                from ae_engine.receiving_nfb_committed_final_scene import (
+                    _submitted_csv_holes,
+                )
+                owner = _submitted_csv_holes(current)
+                if not owner:
+                    raise ValueError("本連沒有現行有效的 CSV NFB 來源")
+                spec = None
+                if owner[1][0].layer_count == 1:
+                    spec, _ = self.app._part_spec_query_callback(
+                        "base_plate", current,
+                    )
                 request = self.receiving_bay_preview_request(
                     namespace, set_index, bay_index,
                     preview_layout=candidate_adapter().layout,
@@ -3080,6 +3099,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             bundle = committed_nfb_evidence.get((set_index, bay_index))
             if bundle is None:
                 raise ValueError("NFB 成對出圖缺少現行 CSV 或舊版已驗證來源")
+            spec, _ = self.app._part_spec_query_callback("base_plate", current)
             return export_verified_receiving_nfb_door_base_pair(
                 bundle, layout=candidate_adapter().layout,
                 current_snapshot=current, base_spec=spec,
