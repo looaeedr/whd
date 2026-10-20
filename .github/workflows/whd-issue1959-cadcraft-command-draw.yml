@@ -31,6 +31,7 @@ on:
       - "tests/test_issue1959_cadcraft_command_button_live_tk.py"
       - "tests/test_issue1959_native_windows_whd_button_e2e.py"
       - "tests/test_issue1959_main_gui_save_open.py"
+      - "tests/test_issue1959_receiving_inner_3d_editor.py"
       - ".github/workflows/whd-issue1959-cadcraft-command-draw.yml"
   workflow_dispatch:
 
@@ -69,7 +70,7 @@ jobs:
             sudo apt-get update -qq
             sudo apt-get install -y xvfb
           fi
-          xvfb-run -a python -m pytest -q tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_main_gui_save_open.py
+          xvfb-run -a python -m pytest -q tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_main_gui_save_open.py tests/test_issue1959_receiving_inner_3d_editor.py
       - name: Retrieve official CADCraft v0.8.0 CLI and verify its release SHA256
         shell: bash
         run: |
@@ -238,7 +239,7 @@ jobs:
         shell: pwsh
         env:
           WHD_1959_PIXEL_RECEIPT_DIR: work/issue1959-win/real3d-pixels
-        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_cadcraft_live_return.py tests/test_issue1959_main_gui_save_open.py
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_cadcraft_live_return.py tests/test_issue1959_main_gui_save_open.py tests/test_issue1959_receiving_inner_3d_editor.py
       - name: Verify publisher SHA256 and unpack official Windows x64 CADCraft v0.8.0
         shell: pwsh
         run: |
