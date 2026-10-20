@@ -10,6 +10,7 @@ from pathlib import Path
 import time
 
 import ezdxf
+import pytest
 
 from ae_engine.sheetmetal_features import (
     CircleFeature, FeatureAnchor, Vec2,
@@ -23,14 +24,15 @@ from phase6_hole_editor_session import HoleEditorAction
 from test_issue1959_cadcraft_command_button_live_tk import _pump, _tk_shell
 
 
+@pytest.mark.parametrize("confirmed", [True, False], ids=["confirm", "cancel"])
 def test_whd_real_tk_button_opens_real_native_cadcraft_and_returns_unsaved_hole(
-    monkeypatch,
+    monkeypatch, confirmed,
 ):
     cli = Path(os.environ["CADCRAFT_CLI"]).resolve(strict=True)
     gui = Path(os.environ["CADCRAFT_GUI"]).resolve(strict=True)
     assert cli.name.lower() == "cadcraft-cli.exe"
     assert gui.name.lower() == "cadcraft.exe"
-    root, editor, canvas, session, features, dialogs = _tk_shell()
+    root, editor, canvas, session, features, dialogs = _tk_shell(confirm=confirmed)
     original = CircleFeature(
         10, FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(40, 40)
     )
@@ -96,15 +98,26 @@ def test_whd_real_tk_button_opens_real_native_cadcraft_and_returns_unsaved_hole(
         errors = [str(item[1]) for item in dialogs if item[0] == "error"]
         assert not errors, "Real Tk live capture failed: " + " / ".join(errors)
         assert any(m[0] == "ask" for m in dialogs)
-        assert len(features) == 2 and id(features) == original_id
-        assert features[0] == original
-        assert features[1].offset == Vec2(90, 95)
-        assert session.has_active_edit is False
-        assert str(return_button.cget("state")) == "disabled"
+        assert id(features) == original_id
+        assert not session.has_active_edit
         assert ticket.output.read_bytes() == bytes_before
         assert canvas.winfo_exists()
-        session.execute(HoleEditorAction.undo())
-        assert tuple(features) == before
+        if confirmed:
+            assert len(features) == 2
+            assert features[0] == original
+            assert features[1].offset == Vec2(90, 95)
+            assert str(return_button.cget("state")) == "disabled"
+            session.execute(HoleEditorAction.undo())
+            assert tuple(features) == before
+        else:
+            # The native CADCraft in-memory circle was valid, but WHD's
+            # original confirmation dialog rejected it. No Feature survives.
+            assert tuple(features) == before
+            assert str(return_button.cget("state")) == "normal"
+            assert editor._hole_cadcraft_return_ticket is ticket
+            assert "已取消" in editor._hole_header_cadcraft_status.cget("text")
+            assert not any(kind == "info" and "孔位已送回" in str(args)
+                           for kind, args, _ in dialogs)
     finally:
         if process is None:
             process = getattr(editor, "_hole_cadcraft_gui_process", None)
