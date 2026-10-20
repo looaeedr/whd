@@ -72,17 +72,11 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         _pump(root)
         settings = bridge._phase6_open_receiving_single_settings(designer)
         _pump(root)
-        # Operator has to select the physical Base Plate variant; do not
-        # make up a LEFT/CENTER/RIGHT shape for an unconfigured cabinet.
-        # Use the same existing physical #1502 source through its actual
-        # GUI settings transaction before committing NFB CSV hole rows.
-        from tests.test_receiving_committed_nfb_depth_base_part_flow import (
-            _snapshot as source_base,
-        )
-        designer.settings_panel._receiving_base_plate_commit(
-            source_base()["receiving_base_plate"],
-        )
-        _pump(root)
+        # #1502 real GUI regression: operator has submitted NFB numeric CSV,
+        # and LEFT 2P400+2P400 is uniquely known from original CUTTING source.
+        # Do NOT manufacture test success by silently entering a second
+        # hand-picked receiving_base_plate setting before the NFB workflow.
+        assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
         selected = settings._receiving_multi_setting_list
         selected.selection_clear(0, tk.END)
         selected.selection_set(1)
@@ -392,7 +386,9 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         assert saved_path.exists() and saved
         reloaded = calc.load_phase6_project(saved_path, open_designer=True)
         _pump(root)
-        assert reloaded._phase6_input_snapshot.get("receiving_base_plate") is not None
+        # The Save/Reload must keep the NFBConfig as the single authority,
+        # with actual physical tiers rebuilt automatically from numeric CSV.
+        assert reloaded._phase6_input_snapshot.get("receiving_base_plate") is None
         restored = bridge._phase6_final_scene_adapter(reloaded).query_assembly_render_data()
         restored_parts = {p.part_key: p for p in restored.assembly_parts}
         assert all(f"base_plate:nfb_layer:{i}" in restored_parts for i in (0, 1))
