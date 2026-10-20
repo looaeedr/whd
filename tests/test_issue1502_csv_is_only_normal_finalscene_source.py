@@ -206,3 +206,74 @@ def test_non_csv_editor_features_are_not_erased_by_source_projection():
     checked = _without_derived_csv_door_features(snap, "upper")
     assert checked["part_features"]["inner_door:upper:panel"] == (other,)
     assert snap["part_features"]["inner_door:upper:panel"] == (derived, other)
+
+
+def test_saved_native_hole_editor_position_drives_screws_without_second_x_input():
+    from hashlib import sha256
+    from ae_engine.receiving_nfb_v5_part_only_manufacturing import (
+        _current_single_tier_csv_holes,
+    )
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    from ae_engine.sheetmetal_feature_core import (
+        FeatureAnchor, ProfileFeature,
+    )
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    snap = _current()
+    original_holes, _, _ = _current_single_tier_csv_holes(snap, "upper")
+    proof = trial_configured_nfb_v5_inner_door_render_data(
+        snap, "upper", holes=original_holes,
+    )
+    panel = next(p for p in derive_inner_door_panels(snap)
+                 if p.stable_id == proof.part_id)
+    aliases = []
+    for row, pattern in zip(snap["nfb_config"]["holes"], proof.patterns):
+        aliases.append(ProfileFeature(
+            points=tuple(Vec2(float(x)-panel.fold_left+panel.thickness,
+                              float(y)-panel.fold_bottom+panel.thickness)
+                         for x,y in pattern.opening_uv_mm),
+            anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=Vec2(0.,0.), layer="CUTTING",
+            source_type="NFB_CSV_SOURCE",
+            source_params=(
+                ("part_id", panel.stable_id),
+                ("brand", pattern.brand),
+                ("model", pattern.model),
+                ("csv_sha256",
+                 sha256(brand_csv_path(pattern.brand).read_bytes()).hexdigest()),
+                ("layer_index", 0),
+                ("slot_index", row["slot_index"]),
+            ),
+        ))
+    snap["part_features"] = {panel.stable_id: tuple(aliases)}
+    for row in snap["nfb_config"]["holes"]:
+        row["manual_x_state"] = "UNVERIFIED_BASIS"
+        row["manual_x_mm"] = None
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    original = _make(snap)
+    processed = apply_committed_csv_v5_to_canonical_parts(snap, (original,))
+    assert len(_screws(processed[0])) == 8
+    assert tuple(aliases) == snap["part_features"][panel.stable_id]
+    assert processed[0].render_data.metadata["nfb_v5_hole_ids"] == (
+        "nfb:0", "nfb:1",
+    )
+
+
+def test_changed_csv_hash_or_ambiguous_editor_feature_must_not_generate_screws():
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        _source_world_x_from_committed_editor_feature,
+    )
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    snap = _current()
+    panel = next(p for p in derive_inner_door_panels(snap)
+                 if str(p.cell_key).split(":")[-1] == "0")
+    row = snap["nfb_config"]["holes"][0]
+    assert _source_world_x_from_committed_editor_feature(
+        snap,panel,row,brand="士林",model="2P400",
+    ) is None
