@@ -52,6 +52,12 @@ class CadcraftControlClient:
                    "drawing.inspect", "engine.execute"}
         if method not in allowed or params is not None and not isinstance(params, dict):
             raise CadcraftControlError("CADCRAFT_CONTROL_METHOD_NOT_ALLOWED")
+        # Narrow engine.execute to the commands this isolated bridge actually
+        # owns. A TCP method allowlist alone would still permit SAVEAS/ERASE.
+        if method == "engine.execute":
+            command = (params or {}).get("command")
+            if command not in {"new", "document.bytes", "circle", "pline"}:
+                raise CadcraftControlError("CADCRAFT_ENGINE_COMMAND_NOT_ALLOWED")
         ident = next(self._ids)
         try:
             wire = (json.dumps({"id": ident, "method": method,
