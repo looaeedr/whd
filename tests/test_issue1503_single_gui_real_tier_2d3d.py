@@ -377,6 +377,50 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 Image.fromarray(with_2d).save(folder / f"real_tk_2d_{side}_with.png")
         tk_stage.destroy()
 
+        # #1502 end-to-end actual operator DXF: the SAME no-manual-base
+        # native Tk cabinet must export real CUTTING/BEND and SIDE MARKING
+        # through its ORIGINAL visible export button, not a helper's
+        # synthetic scene or a second CSV-only button.
+        from unittest.mock import patch
+        import gui_modules.project.export_actions as export_actions
+        from pathlib import Path
+        import ezdxf
+        export_dir = tmp_path / "no_manual_two_tier_actual_gui_dxf"
+        export_dir.mkdir()
+        errors=[]
+        assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
+        for setting in designer.output_export_vars.values():
+            setting.set(True)
+        with (
+            patch.object(export_actions.filedialog,"askdirectory",
+                         return_value=str(export_dir)),
+            patch.object(export_actions.messagebox,"showerror",
+                         side_effect=lambda title,msg: errors.append((title,msg))),
+            patch.object(export_actions.messagebox,"showinfo",
+                         return_value=None),
+            patch.object(export_actions.messagebox,"showwarning",
+                         return_value=None),
+            patch.object(export_actions.messagebox,"askyesno",
+                         return_value=False),
+        ):
+            designer.output_export_button.invoke()
+            _pump(root)
+        assert not errors, "NATIVE_GUI_CSV_DXF_EXPORT_FAILED: " + repr(errors)
+        actual_dxfs = tuple(export_dir.glob("*.dxf"))
+        names = tuple(p.name for p in actual_dxfs)
+        assert sum("base_plate" in name and "fixing_plate" not in name
+                   for name in names) == 2, "GUI_MISSING_TWO_REAL_BASE_DXF"
+        assert sum("fixing_plate" in name for name in names) == 4, (
+            "GUI_MISSING_FOUR_FORMED_FIXING_DXF"
+        )
+        assert any("inner_door" in name and "panel" in name
+                   for name in names), "GUI_MISSING_REAL_INNER_DOOR_DXF"
+        assert sum("left_side" in name or "right_side" in name
+                   for name in names) >= 2, "GUI_MISSING_SIDE_MARKING_DXF"
+        for path in actual_dxfs:
+            ezdxf.readfile(path)
+        assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
+
         # Only now persist the explicitly configured source + Confirm All
         # through the product Save As, and ACTUALLY reopen it in the GUI.
         from unittest.mock import patch
