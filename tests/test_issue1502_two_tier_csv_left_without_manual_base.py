@@ -80,9 +80,13 @@ def test_wrong_model_is_not_declared_left_from_depth_or_manual_legacy_choice():
     }
     # An unknown CSV tier does not acquire a machining source from a stale
     # manually entered generic RIGHT pattern.
-    assert receiving_base_plate_values(snap) is not None
-    with pytest.raises((ValueError,TypeError)):
-        source_receiving_nfb_tier_base_specs(snap)
+    # Legacy manual sheets may remain visible as previews, but cannot
+    # pretend an unmatched numeric CSV has an approved manufacturing shape.
+    preview=expand_receiving_nfb_layer_parts(snap,(_source(snap),))
+    assert all(part.render_data.metadata.get("manufacturing_ready") is False
+               for part in preview)
+    assert all(part.render_data.metadata.get("nfb_layer_manufacturing_status")
+               is not None for part in preview)
 
 
 def test_unsubmitted_and_stale_bay_identity_never_authorize_automatic_tiers():
