@@ -7,11 +7,13 @@ Never create a second base, infer ear Z, or authorize manufacturing.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from math import isfinite
 from typing import Mapping, Sequence
 
 from .contracts import BasePlatePartSpec
 from .manufacturing_api import build_part_render_data
+from .manufacturing_render_data import PartRenderData
 from .receiving_nfb_base_process_projection import NfbActualBaseWorkFace
 from .receiving_nfb_v5_actual_base_screws import (
     NfbV5ActualBaseScrewTrial, trial_v5_screws_on_existing_receiving_base,
@@ -36,6 +38,7 @@ def preview_v5_on_existing_receiving_base(
     configured_holes: Sequence[NfbV5ConfiguredInnerDoorHole],
     base_spec: BasePlatePartSpec,
     tier_slot_index: int | None = None,
+    existing_render_data: PartRenderData | None = None,
 ) -> NfbV5ActualBaseScrewTrial:
     """Use current application's existing base PartSpec, not a test fixture.
 
@@ -107,7 +110,23 @@ def preview_v5_on_existing_receiving_base(
     # Averaging the NFB centres here used to move the entire plate and
     # falsely rejected every legitimately offset NFB row.
     center_world = (0.0, world_centres[0][1])
-    original = build_part_render_data(base_spec)
+    # Punch the already-built physical AssemblyScenePart, not a parallel
+    # rendering; compare with the current canonical PartSpec before overlay.
+    canonical = build_part_render_data(base_spec)
+    if existing_render_data is None:
+        original = canonical
+    else:
+        original = existing_render_data
+        if (not isinstance(original, PartRenderData)
+                or original.unfolded_topology != canonical.unfolded_topology
+                or tuple(original.scene.primitives) != tuple(canonical.scene.primitives)
+                or original.material is None
+                or original.material.symmetric_difference(canonical.material).area > _TOL
+                or tuple(original.fold_guides or ()) != tuple(canonical.fold_guides or ())
+                or original.metadata.get("stable_id") != physical_id
+                or original.metadata.get("receiving_bend_pattern")
+                   != base_spec.receiving_bend_pattern):
+            raise ValueError("NFB V5 實際組合體底板與目前來源 PartSpec 不一致")
     topo = original.unfolded_topology
     if (topo is None or topo.piece_id != physical_id
             or original.metadata.get("stable_id") != physical_id):
@@ -197,3 +216,65 @@ def preview_v5_on_existing_receiving_tier_bases(
         raise ValueError("NFB V5 各層底板實體 ID 重複")
     assert all(not part.manufacturing_ready for part in results)
     return results
+
+
+def project_csv_v5_onto_existing_assembly_parts(
+    snapshot: Mapping[str, object], inner_door_id: str,
+    *, door: NfbV5ConfiguredInnerDoorTrial,
+    configured_holes: Sequence[NfbV5ConfiguredInnerDoorHole],
+    base_specs: Mapping[int, BasePlatePartSpec],
+    assembly_parts: Sequence[object],
+) -> tuple[object, ...]:
+    """Cut CSV screws into the actual physical 2D/3D AssemblyScenePart renders.
+
+    Preserve physical identity, installed offsets, fold profiles and the
+    other assembly pieces. This is not DXF permission or a new blank.
+    """
+    entries = tuple(configured_holes)
+    parts = tuple(assembly_parts)
+    if (not isinstance(door, NfbV5ConfiguredInnerDoorTrial)
+            or not entries or not isinstance(base_specs, Mapping)
+            or tuple(e.physical_hole_id for e in entries) != door.hole_ids
+            or not parts):
+        raise ValueError("NFB V5 組合體缺少完整內門來源或實體底板")
+    if any(not isinstance(e, NfbV5ConfiguredInnerDoorHole) for e in entries):
+        raise TypeError("NFB V5 組合體含非實體孔位")
+    counts = {e.layer_count for e in entries}
+    if len(counts) != 1 or next(iter(counts)) not in (1, 2):
+        raise ValueError("NFB V5 組合體 NFB 層數不一致")
+    count = next(iter(counts))
+    active = {e.slot_index for e in entries}
+    if (any(type(e.slot_index) is not int or not 0 <= e.slot_index < count
+            for e in entries) or set(base_specs) != active):
+        raise ValueError("NFB V5 組合體每層缺少獨立原始底板來源")
+
+    by_key = {}
+    for part in parts:
+        key = str(getattr(part, "part_key", ""))
+        if key in by_key:
+            raise ValueError("NFB V5 組合體重複的實體板件身份")
+        by_key[key] = part
+    output = {}
+    for tier in sorted(active):
+        spec = base_specs[tier]
+        if not isinstance(spec, BasePlatePartSpec):
+            raise TypeError("NFB V5 每層必須使用實體 BasePlatePartSpec")
+        expected = ("base_plate" if count == 1 and spec.physical_id == "base_plate"
+                    else f"base_plate:nfb_layer:{tier}")
+        if spec.physical_id != expected or expected not in by_key:
+            raise ValueError("NFB V5 組合體不存在本層原始實體底板")
+        owner = by_key[expected]
+        if not isinstance(getattr(owner, "render_data", None), PartRenderData):
+            raise ValueError("NFB V5 組合體缺少本層原始 PartRenderData")
+        projected = preview_v5_on_existing_receiving_base(
+            snapshot, inner_door_id, door=door,
+            configured_holes=entries, base_spec=spec,
+            tier_slot_index=(None if expected == "base_plate" else tier),
+            existing_render_data=owner.render_data,
+        )
+        if projected.part_id != expected or expected in output:
+            raise ValueError("NFB V5 底板 FinalScene 所屬實體漂移")
+        output[expected] = projected.render_data
+
+    return tuple(replace(part, render_data=output[part.part_key])
+                 if part.part_key in output else part for part in parts)
