@@ -197,9 +197,6 @@ def test_receiving_3d_inner_door_original_insert_confirm_saves_physical_not_cand
         assert editor and editor.winfo_exists()
         assert getattr(editor, "_receiving_settings_mode", None) is None
 
-        lists = [
-            w for w in editor.winfo_children()
-        ]
         def walk(w):
             yield w
             for child in w.winfo_children():
@@ -255,9 +252,12 @@ def test_receiving_3d_inner_door_original_insert_confirm_saves_physical_not_cand
         assert after_authority == before_authority, (
             "INNER_DOOR_3D_CONFIRM_CHANGED_MULTI_CANDIDATE_OR_QUANTITY"
         )
-        # Use WHD's original primary-toolbar Save (not a hand-built JSON
-        # snapshot) and a real project reload into the Fold Designer.
-        app.project_save_button.invoke()
+        # Primary 3D (not legacy BoxCalculatorGUI) delegates its real GUI
+        # Save action to this exact command, per lifecycle.py. No fake
+        # serializer or hand-built project payload is used.
+        assert app.project_controller.project_path == str(path)
+        written = app.save_phase6_project()
+        assert written is not None and Path(written) == path
         saved = read_project(path)
         persisted = tuple(saved["snapshot"]["part_features"][key])
         assert persisted == committed, "INNER_DOOR_3D_FEATURE_LOST_ON_PROJECT_SAVE"
