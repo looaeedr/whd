@@ -140,3 +140,69 @@ def test_resolver_has_normal_source_seam_not_a_new_operator_export_button():
         "apply_committed_csv_v5_to_canonical_parts"
     )
     assert "輸出 CSV 底板 DXF（單片）" not in window
+
+
+def test_existing_editor_csv_feature_is_alias_not_duplicate_source():
+    """Current Hole Editor CSV opening exists before normal Phase6 resolve."""
+    from ae_engine.receiving_nfb_v5_part_only_manufacturing import (
+        _current_single_tier_csv_holes,
+    )
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    from ae_engine.sheetmetal_feature_core import (
+        FeatureAnchor, ProfileFeature,
+    )
+    from ae_engine.sheetmetal_geometry import Vec2
+    from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+
+    snap = _current()
+    holes, _, _ = _current_single_tier_csv_holes(snap, "upper")
+    proof = trial_configured_nfb_v5_inner_door_render_data(
+        snap, "upper", holes=holes,
+    )
+    panel = next(p for p in derive_inner_door_panels(snap)
+                 if p.stable_id == proof.part_id)
+    delta_x = float(panel.fold_left) - float(panel.thickness)
+    delta_y = float(panel.fold_bottom) - float(panel.thickness)
+    aliases = tuple(
+        ProfileFeature(
+            points=tuple(Vec2(float(x)-delta_x, float(y)-delta_y)
+                         for x,y in pattern.opening_uv_mm),
+            anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=Vec2(0.,0.), layer="CUTTING",
+            source_type="NFB_CSV_SOURCE",
+            source_params=(("part_id",panel.stable_id),
+                           ("brand",pattern.brand),
+                           ("model",pattern.model)),
+        )
+        for pattern in proof.patterns
+    )
+    snap["part_features"] = {panel.stable_id: aliases}
+    door = AssemblyScenePart(
+        part_key=panel.stable_id,
+        render_data=build_inner_door_panel_render_data(panel),
+        x_profile=(),y_profile=(),placement="offset",offset=(0.,0.,0.),
+    )
+    base = _make(snap)
+    output = apply_committed_csv_v5_to_canonical_parts(snap, (door, base))
+    assert output[0].part_key == panel.stable_id
+    assert output[0].render_data.scene.primitives == proof.render_data.scene.primitives
+    assert output[0].render_data.material.equals(proof.render_data.material)
+    assert len(_screws(output[1])) == 8
+    # The committed source features are never edited, cleared or duplicated.
+    assert snap["part_features"][panel.stable_id] == aliases
+
+
+def test_non_csv_editor_features_are_not_erased_by_source_projection():
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        _without_derived_csv_door_features,
+    )
+    snap = _current()
+    other = SimpleNamespace(source_type="USER_DRAWN_OTHER")
+    derived = SimpleNamespace(source_type="NFB_CSV_SOURCE")
+    snap["part_features"] = {"inner_door:upper:panel": (derived, other)}
+    checked = _without_derived_csv_door_features(snap, "upper")
+    assert checked["part_features"]["inner_door:upper:panel"] == (other,)
+    assert snap["part_features"]["inner_door:upper:panel"] == (derived, other)
