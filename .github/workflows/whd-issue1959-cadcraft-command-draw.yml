@@ -18,6 +18,7 @@ on:
       - "tests/test_issue1959_cadcraft_windows_native_ci_contract.py"
       - "gui_modules/editors/cadcraft_control_bridge.py"
       - "tests/test_issue1959_cadcraft_tcp_control.py"
+      - "tools/issue1959_cadcraft_tcp_native_probe.py"
       - "gui_modules/editors/cadcraft_command_preview_bridge.py"
       - "gui_modules/editors/cadcraft_paths.py"
       - "tests/test_issue1959_cadcraft_relative_location.py"
@@ -112,6 +113,25 @@ jobs:
           proof=json.loads(Path("work/issue1959/geometry-proof.json").read_text())
           assert proof["status"] == "PASS" and proof["entity_count"] == 3
           print("ACTUAL_NATIVE_CADCRAFT_WHD_COMMANDS_GREEN")
+          PY
+      - name: Real official CADCraft desktop --control TCP new metric drawing and DXF geometry parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          GUI="$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft"
+          test -x "$GUI"
+          mkdir -p work/issue1959
+          xvfb-run -a python -m tools.issue1959_cadcraft_tcp_native_probe \
+            --cadcraft "$GUI" \
+            --evidence work/issue1959/cadcraft-desktop-tcp-native-proof.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("work/issue1959/cadcraft-desktop-tcp-native-proof.json").read_text())
+          assert p["status"]=="PASS" and p["observed_count"]==3
+          assert p["geometry"]["status"]=="PASS" and not p["manufacturing_dxf_written"]
+          assert p["whd_session_modified"] is False and not p["windows_gui_uat_completed"]
+          print("REAL_VENDOR_DESKTOP_CONTROL_TCP_WHD_GEOMETRY_GREEN")
           PY
       - name: Stage actual CADCraft output into original WHD Session then test Cancel Confirm Undo
         run: |
