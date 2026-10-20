@@ -9,6 +9,7 @@ import ezdxf
 import pytest
 
 from ae_engine.manufacturing_equivalence import ManufacturingParameters
+from ae_engine.manufacturing_api import build_part_render_data
 from ae_engine.receiving_nfb_v5_part_only_manufacturing import (
     export_verified_csv_v5_single_base_part_only,
 )
@@ -45,9 +46,12 @@ def _current(*, width=800., model_second="3P125SN"):
     return snap
 
 
-def _export(snap, root, *, spec=None):
+def _export(snap, root, *, spec=None, existing=None):
+    spec = spec or _spec(snap)
+    # Exact PartRenderData handed over by the installed WHD assembly scene.
+    existing = existing if existing is not None else build_part_render_data(spec)
     return export_verified_csv_v5_single_base_part_only(
-        snap, "upper", base_spec=spec or _spec(snap),
+        snap, "upper", base_spec=spec, existing_base_render_data=existing,
         output_directory=root, version_id="V1", quantity=3,
         parameters=PARAMS,
     )
@@ -157,3 +161,16 @@ def test_existing_output_is_never_overwritten_implicitly(tmp_path):
     with pytest.raises(FileExistsError):
         _export(snap, root)
     assert Path(first.path).read_bytes() == before
+
+
+def test_wrong_existing_assembly_blank_cannot_be_machined_as_current_base(tmp_path):
+    snap = _current()
+    spec = _spec(snap)
+    wrong = replace(build_part_render_data(spec), metadata={
+        **build_part_render_data(spec).metadata,
+        "receiving_bend_pattern": "RIGHT_FLAT_SIDE",
+    })
+    root = tmp_path / "wrong-existing"
+    with pytest.raises(ValueError, match="來源 PartSpec"):
+        _export(snap, root, existing=wrong)
+    assert not root.exists()
