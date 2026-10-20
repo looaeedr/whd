@@ -879,7 +879,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                                 "已原子輸出並驗證內門：" + paired.inner_door_path
                                 + "；實體底板：" + "、".join(
                                     getattr(paired, "base_plate_paths", ())
-                                    or (paired.base_plate_path,)
+                                    or (getattr(paired, "base_plate_path", ""),)
                                 )
                                 + "。耳朵焊接 Z、PAD／EAR 與整箱 MFG-2 尚未放行。",
                                 parent=win,
