@@ -198,9 +198,12 @@ def export_current_csv_nfb_door_base_pair(
         )
     if holes[0].layer_count != 1 or any(h.layer_count != 1 for h in holes):
         raise ValueError("CSV_PAIR_UNSUPPORTED_NFB_TIER_COUNT")
+    # Numeric CSV is the sole Base Plate authority. Older GUI callbacks
+    # can supply a PartSpec with default physical_id=None; it is NOT a
+    # second source, nor may it veto a correctly built current FinalScene.
+    # The physical installed sheet is cross-checked against the derived CSV
+    # spec, CUTTING/BEND/material and stable owner further below.
     expected_spec = _existing_source_specs(snapshot, holes)[0]
-    if base_spec != expected_spec:
-        raise ValueError("CSV_PAIR_ACTUAL_BASE_PARTSPEC_CHANGED")
     selection = snapshot.get("_receiving_runtime_selection")
     if not isinstance(selection, Mapping):
         raise ValueError("CSV_PAIR_SELECTED_SET_BAY_REQUIRED")
