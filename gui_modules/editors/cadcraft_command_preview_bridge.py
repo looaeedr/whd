@@ -39,7 +39,8 @@ def find_cadcraft_cli(*, configured=None) -> str:
     return str(path)
 
 
-def open_cadcraft_hole_editor(exchange_dxf: Path, *, executable=None, launcher=None):
+def open_cadcraft_hole_editor(exchange_dxf: Path, *, executable=None, launcher=None,
+                              control_port=None):
     """Launch the real CADCraft GUI with the verified WHD isolated exchange.
 
     CLI output alone does not open a visible editor. Launch only after the
@@ -55,8 +56,15 @@ def open_cadcraft_hole_editor(exchange_dxf: Path, *, executable=None, launcher=N
         raise CadcraftCommandProofError("CADCRAFT_EDIT_EXCHANGE_INVALID")
     binary = find_cadcraft_gui(configured=executable)
     spawn = launcher if launcher is not None else subprocess.Popen
+    args = [binary]
+    if control_port is not None:
+        if (isinstance(control_port, bool) or not isinstance(control_port, int)
+                or not 1 <= control_port <= 65535):
+            raise CadcraftCommandProofError("CADCRAFT_INVALID_CONTROL_PORT")
+        args.extend(["--control", str(control_port)])
+    args.append(str(path))
     try:
-        return spawn([binary, str(path)])
+        return spawn(args)
     except OSError as exc:
         raise CadcraftCommandProofError(
             f"CADCRAFT_GUI_LAUNCH_FAILED: {binary} ({exc})"
