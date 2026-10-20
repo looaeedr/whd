@@ -23,8 +23,21 @@ from tests.test_issue1502_quantity_current_csv_full_batch import _geometry
 def _multi():
     source,_=_prepare(False)
     source["active_mode"]="set_bay"
+    # The _prepare fixture deliberately uses a compact in-memory source
+    # alias ("S"/"B") for single-sheet tests. A true MULTI-Bay test must
+    # start from the authentic canonical persisted layout with real dimensions,
+    # stable IDs and adjacency joints; do not pass a fake one-Bay alias to
+    # resize_receiving_bays or manufacture from it.
+    from ae_engine.receiving_layout import new_receiving_layout
+    single = new_receiving_layout(
+        width=source["w"], height=source["h"], depth=source["d"],
+    )
+    single["sets"][0]["switch_brand"] = "士林"
+    original = single["sets"][0]["bays"][0]
+    original["nfb_config_submitted"] = True
+    original["nfb_config"] = deepcopy(source["nfb_config"])
     source["receiving_layout"]=resize_receiving_bays(
-        source["receiving_layout"],set_index=0,bay_count=2,
+        single,set_index=0,bay_count=2,
     )
     bays=source["receiving_layout"]["sets"][0]["bays"]
     assert [row["stable_id"] for row in bays]==[
