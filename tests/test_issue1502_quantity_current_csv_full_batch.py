@@ -197,5 +197,5 @@ def test_original_quantity_gui_routes_to_current_csv_not_retired_supplier_dxf():
     from gui_modules.project import export_actions
     source=inspect.getsource(export_actions._export_selected_resolved_parts)
     assert "export_current_csv_quantity_manufacturing" in source
-    assert "if (request.cabinet_model" in source
+    assert 'mode_source.get("model") == "受電箱"' in source
     assert "_resolved_export_intention_key" in source
