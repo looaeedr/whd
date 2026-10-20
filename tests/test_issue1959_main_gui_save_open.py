@@ -157,6 +157,102 @@ def test_cadcraft_approved_features_survive_actual_whd_main_toolbar_save_open(
         assert abs(physical_door.material.area - render.material.area) < 1e-5, (
             "DOOR_REAL_2D_3D_PHYSICAL_MATERIAL_DISAGREES"
         )
+
+        # #1959 VISUAL RED oracle: real Matplotlib FinalScene pixels, not a
+        # sketch, fabricated screenshot, or a triangle/metadata count.
+        # Compare exactly the same committed material and camera while
+        # toggling ONLY the existing cyan CUTTING rim overlay.
+        import json
+        import numpy as np
+
+        material = render.material
+        polygons = (
+            (material,) if material.geom_type == "Polygon"
+            else tuple(getattr(material, "geoms", ()))
+        )
+        inner_rings = sum(len(p.interiors) for p in polygons
+                          if getattr(p, "geom_type", "") == "Polygon")
+        assert inner_rings >= 4, "RELOADED_CADCRAFT_REAL_3D_MATERIAL_HAS_MISSING_HOLES"
+
+        designer._phase6_3d_display_mode = "single"
+        view = designer.final_scene_view
+        request = bridge._phase6_final_scene_adapter(designer).build_request()
+        assert request is not None and request.part_key == "door"
+        assert request.render_data.material.equals(material)
+        ax = view.renderer.ax3d
+        canvas = view.renderer.canvas
+        real_rim_drawing = view._draw_cutting_hole_rims
+        rim_segments = []
+
+        def traced_real_rims(*args, **kwargs):
+            n = real_rim_drawing(*args, **kwargs)
+            rim_segments.append(n)
+            return n
+
+        def native_canvas_pixels(*, rims):
+            ax.clear()
+            view._draw_cutting_hole_rims = (
+                traced_real_rims if rims else lambda *a, **kw: 0
+            )
+            try:
+                triangles = view.render(request)
+                assert triangles and view.last_cutting_material.equals(material)
+                ax.view_init(elev=82, azim=-90)
+                canvas.draw()
+                return np.asarray(canvas.buffer_rgba()).copy()
+            finally:
+                view._draw_cutting_hole_rims = real_rim_drawing
+
+        without_rims = native_canvas_pixels(rims=False)
+        with_rims = native_canvas_pixels(rims=True)
+        assert with_rims.shape == without_rims.shape
+        assert len(rim_segments) == 1 and rim_segments[0] >= 30, (
+            "RELOADED_CADCRAFT_3D_CUTTING_RIMS_NOT_DRAWN"
+        )
+        delta = np.max(np.abs(
+            with_rims[:, :, :3].astype(np.int16)
+            - without_rims[:, :, :3].astype(np.int16)
+        ), axis=2)
+        changed_pixels = int(np.count_nonzero(delta > 40))
+        cyan_visible = int(np.count_nonzero(
+            (delta > 40)
+            & (with_rims[:, :, 0] < 130)
+            & (with_rims[:, :, 1] > 145)
+            & (with_rims[:, :, 2] > 155)
+        ))
+        print(
+            "WHD_NATIVE_CADCRAFT_3D_HOLE_PIXELS "
+            f"rings={inner_rings} rim_segments={rim_segments[0]} "
+            f"changed_pixels={changed_pixels} cyan_visible={cyan_visible}",
+            flush=True,
+        )
+        evidence_dir = os.environ.get("WHD_1959_PIXEL_RECEIPT_DIR")
+        if evidence_dir:
+            from PIL import Image
+            output = Path(evidence_dir)
+            output.mkdir(parents=True, exist_ok=True)
+            Image.fromarray(without_rims).save(output / "real-door-rims-hidden.png")
+            Image.fromarray(with_rims).save(output / "real-door-rims-visible.png")
+            Image.fromarray(np.clip(delta * 4, 0, 255).astype("uint8")).save(
+                output / "real-door-rims-pixel-difference.png"
+            )
+            (output / "real-door-rims-receipt.json").write_text(
+                json.dumps({
+                    "source": "original WHD FinalScene renderer; GUI .p6fold reload",
+                    "canvas_shape": list(with_rims.shape),
+                    "material_hole_rings": inner_rings,
+                    "rim_segments": rim_segments[0],
+                    "changed_pixels": changed_pixels,
+                    "cyan_visible_pixels": cyan_visible,
+                    "camera_elev": 82,
+                    "camera_azim": -90,
+                    "comparison": "identical true physical mesh; CUTTING rim overlay only",
+                    "windows_user_uat": False,
+                }, indent=2) + "\n", encoding="utf-8"
+            )
+        assert changed_pixels >= 130 and cyan_visible >= 60, (
+            "RELOADED_CADCRAFT_3D_HOLE_RIMS_NOT_VISIBLE_IN_REAL_PIXELS"
+        )
     finally:
         try:
             if app is not None and app.fold_designer_window is not None:
