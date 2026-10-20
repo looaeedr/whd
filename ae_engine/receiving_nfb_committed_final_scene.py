@@ -134,6 +134,40 @@ def _existing_source_specs(snapshot, holes):
     return {0: spec}
 
 
+def _without_derived_csv_door_features(snapshot, inner_door_id):
+    """CSV Hole Editor Feature is an alias, not a second opening authority.
+
+    The ordinary Hole Editor already materializes a ProfileFeature with
+    source_type=NFB_CSV_SOURCE. Before building the same opening from the
+    committed numeric NFBConfig, exclude only that derived alias. Retain
+    every other actual Hole Editor profile/marking and never mutate saved
+    source values or user-authored features.
+    """
+    from .cabinet_types.policy import derive_inner_door_panels
+
+    upper = tuple(p for p in derive_inner_door_panels(snapshot)
+                  if p.inner_door_id == inner_door_id
+                  and str(p.cell_key).split(":")[-1] == "0")
+    if len(upper) != 1:
+        raise ValueError("NFB_COMMITTED_CSV_DOOR_FEATURE_OWNER_UNRESOLVED")
+    part_id = upper[0].stable_id
+    filtered = dict(snapshot)
+    for key in ("part_features", "surface_features"):
+        store = snapshot.get(key)
+        if not isinstance(store, Mapping) or part_id not in store:
+            continue
+        original = store[part_id]
+        if not isinstance(original, (tuple, list)):
+            raise ValueError("NFB_COMMITTED_CSV_DOOR_FEATURES_INVALID")
+        kept = tuple(
+            feature for feature in original
+            if getattr(feature, "source_type", None) != "NFB_CSV_SOURCE"
+        )
+        if len(kept) != len(original):
+            filtered[key] = {**store, part_id: kept}
+    return filtered
+
+
 def apply_committed_csv_v5_to_canonical_parts(snapshot, assembly_parts):
     """Read current committed CSV once per physical resolve, update same parts.
 
@@ -150,12 +184,27 @@ def apply_committed_csv_v5_to_canonical_parts(snapshot, assembly_parts):
         # No original material sheet exists. A missing Base Plate may not be
         # manufactured by silently reusing an unrelated door or box-body.
         raise ValueError("NFB_COMMITTED_CSV_REAL_BASE_PART_MISSING")
+    # The legacy Hole Editor's NFB_CSV_SOURCE feature is derived from this
+    # same committed CSV, not a second source. Excluding only that alias
+    # avoids cutting the exact opening twice during standard 2D/3D resolve.
+    source_snapshot = _without_derived_csv_door_features(snapshot, inner_door_id)
     proof = trial_configured_nfb_v5_inner_door_render_data(
-        snapshot, inner_door_id, holes=holes,
+        source_snapshot, inner_door_id, holes=holes,
     )
-    return project_csv_v5_onto_existing_assembly_parts(
+    result = project_csv_v5_onto_existing_assembly_parts(
         snapshot, inner_door_id, door=proof,
         configured_holes=holes,
         base_specs=_existing_source_specs(snapshot, holes),
         assembly_parts=parts,
+    )
+    # The actual door's CUTTING comes from this exact CSV proof as well.
+    # Keeping the unmodified legacy derived-hole scene would leave two
+    # independent ways to manufacture the same opening.
+    owner = next((part for part in result if part.part_key == proof.part_id), None)
+    if owner is None:
+        return result  # partial source-only caller without a door part
+    from dataclasses import replace
+    return tuple(
+        replace(part, render_data=proof.render_data)
+        if part.part_key == proof.part_id else part for part in result
     )
