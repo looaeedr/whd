@@ -68,3 +68,30 @@ def test_unresolved_physical_source_never_creates_base_on_a_saved_project():
         _phase6_input_snapshot=source,
     )
     assert _canonical_part_keys(host) == ("box_body",)
+
+def test_submitted_two_tier_csv_without_physical_blank_cannot_add_base_or_ears():
+    """The missing-source gate must also hold *after* NFB acceptance."""
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    from phase6_manufacturing_adapter import _canonical_part_keys
+    source = _snapshot()
+    source.pop("receiving_base_plate")
+    source["nfb_config_submitted"] = True
+    source["nfb_config"] = {
+        "layer_count": 2,
+        "holes": [
+            {"physical_hole_id": "nfb:upper", "layer_index": 0, "slot_index": 0,
+             "model_filename": "nfbv5:士林:2P400", "source_brand": "士林"},
+            {"physical_hole_id": "nfb:lower", "layer_index": 1, "slot_index": 0,
+             "model_filename": "nfbv5:士林:2P400", "source_brand": "士林"},
+        ],
+    }
+    assert receiving_base_plate_values(source) is None, (
+        "TEST_INVALID: submitted but absent physical source is now auto-resolvable"
+    )
+    host = SimpleNamespace(
+        designer_workspace=SimpleNamespace(available_parts=("box_body",)),
+        _phase6_input_snapshot=source,
+    )
+    assert _canonical_part_keys(host) == ("box_body",), (
+        "SUBMITTED_CSV_WITHOUT_PHYSICAL_SOURCE_MUST_NOT_CREATE_BASE"
+    )
