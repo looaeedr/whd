@@ -120,6 +120,21 @@ def load_phase6_project(self, path, *, open_designer=True):
             _apply_mode_snapshot(bridge._phase6_composition(designer), vars(bridge), snapshot)
             designer._refresh_part_buttons()
             designer._phase6_current_project_path = str(Path(path))
+        # #1503 real Windows saved v3: the authoritative project's original
+        # Receiving BasePlate mapping is persisted in .p6fold but the newly
+        # created designer initially projects only visible UI knobs and loses
+        # this source. Restore its original mapping into the effective
+        # designer snapshot BEFORE any assembly geometry is consumed.
+        # No new data or missing BasePlate is invented; source CSV and
+        # manufacturing checks still have to prove the part independently.
+        if (snapshot.get("model") in ("受電箱", "RECEIVING")
+                and "receiving_base_plate" in snapshot):
+            from copy import deepcopy
+            effective = getattr(designer, "_phase6_input_snapshot", None)
+            if isinstance(effective, dict):
+                effective["receiving_base_plate"] = deepcopy(
+                    snapshot["receiving_base_plate"]
+                )
         active = snapshot.get("active_part") or (snapshot.get("workspace") or {}).get("active_part")
         if active in getattr(designer, "available_parts", ()):
             designer.activate_part(active)
