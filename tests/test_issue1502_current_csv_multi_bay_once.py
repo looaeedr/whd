@@ -30,9 +30,14 @@ def _multi():
     assert [row["stable_id"] for row in bays]==[
         "receiving:set:1:bay:1","receiving:set:1:bay:2",
     ]
-    # Real second Bay has a DIFFERENT signed CSV screw position but the
-    # same physical cabinet family, sheet material and fixing EAR pitch.
-    bays[1]["nfb_config"]["holes"][0]["manual_x_mm"]+=25.
+    # Appending a Bay intentionally resets copied NFB X confirmation.
+    # Model an independently CONFIRMED second Bay from the same authorized
+    # numeric CSV, with a different actual screw X. Never manufacture
+    # the unconfirmed cloned Bay that resize_receiving_bays first creates.
+    second=deepcopy(bays[0]["nfb_config"])
+    second["holes"][0]["manual_x_mm"]+=25.
+    bays[1]["nfb_config_submitted"]=True
+    bays[1]["nfb_config"]=second
     return source
 
 
