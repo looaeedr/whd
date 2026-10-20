@@ -97,7 +97,7 @@ def test_no_borrowed_bay_or_fake_assembly_plate_or_missing_source(tmp_path):
 
 def test_unrecognized_csv_plate_variant_does_not_create_operator_button():
     snap = _current()
-    snap["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:2P400"
+    snap["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:3P999UNKNOWN"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
