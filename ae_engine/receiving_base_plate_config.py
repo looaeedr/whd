@@ -180,10 +180,22 @@ def receiving_base_plate_values(snapshot):
         # Mismatching legacy values are not silently promoted to authority.
         config = source_config
     elif data.get("nfb_config_submitted") is True:
-        # A committed NFB is not proof that an unknown RIGHT/flat/tier base
-        # exists.  A manually saved pattern cannot bypass source ambiguity.
-        # The caller retains the existing unconfigured manufacturing guard.
-        return None
+        # A submitted *numeric CSV V5* model is not proof that an unknown
+        # RIGHT/flat/tier source exists. Do not revive a manual pattern when
+        # the typed source lacks a unique physical match. Legacy DXF-backed
+        # saved jobs retain their previous preview/settings compatibility;
+        # they have separate independent manufacturing proof obligations.
+        nfb = data.get("nfb_config")
+        holes = nfb.get("holes") if isinstance(nfb, Mapping) else None
+        has_numeric_csv = (
+            isinstance(holes, (list, tuple))
+            and any(isinstance(hole, Mapping)
+                    and str(hole.get("model_filename") or "").startswith("nfbv5:")
+                    for hole in holes)
+        )
+        if has_numeric_csv:
+            return None
+        config = data.get("receiving_base_plate")
     else:
         # Older projects without submitted NFBs retain their existing manual
         # settings for normal editing/preview; this does not certify MFG-2.
