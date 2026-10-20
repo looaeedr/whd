@@ -106,3 +106,68 @@ def test_part_only_rejects_approval_flags_without_real_scene(tmp_path, metadata)
         )
     assert calls == []
     assert not root.exists()
+
+
+
+def test_unverified_real_tier_finalscene_stays_visible_but_never_exports_dxf(tmp_path):
+    """#1502: 2D/3D evidence cannot accidentally become manufacturing release."""
+    from dataclasses import replace
+
+    from ae_engine.manufacturing_api import (
+        save_part_render_data_dxf as save_direct,
+        save_resolved_manufacturing_geometry_dxf as save_batch,
+    )
+    from ae_engine.receiving_nfb_layer_physical_parts import (
+        expand_receiving_nfb_layer_parts,
+    )
+    from tests.test_receiving_two_tier_physical_base_parts import (
+        _two_tier, _source,
+    )
+
+    snapshot = _two_tier()
+    tiers = expand_receiving_nfb_layer_parts(snapshot, (_source(snapshot),))
+    assert len(tiers) == 2
+    for tier in tiers:
+        assert tier.part_key.startswith("base_plate:nfb_layer:")
+        assert tier.render_data.material.area > 0
+        assert tier.render_data.metadata["manufacturing_ready"] is False
+        output = tmp_path / (tier.part_key.replace(":", "_") + ".dxf")
+        with pytest.raises(ValueError, match="RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED"):
+            save_direct(tier.render_data, output)
+        assert not output.exists()
+
+        # A forged ready flag or marker removal is not a manufacturing receipt.
+        forged = replace(tier.render_data, metadata={
+            **tier.render_data.metadata, "manufacturing_ready": True,
+            "nfb_layer_manufacturing_status": "RELEASED",
+        })
+        with pytest.raises(ValueError, match="RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED"):
+            save_direct(forged, output)
+        assert not output.exists()
+
+    # The preflight must fail atomically, before creating a destination dir.
+    destination = tmp_path / "batch"
+    with pytest.raises(ValueError, match="RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED"):
+        save_batch(SimpleNamespace(parts=tiers), destination)
+    assert not destination.exists()
+
+
+def test_tier_output_id_cannot_be_renamed_to_escape_preflight(tmp_path):
+    """An exporter must inspect the physical scene identity, not just filename."""
+    from ae_engine.manufacturing_export import save_resolved_manufacturing_geometry_dxf
+
+    calls = []
+    source = _part("export_alias", {
+        "stable_id": "base_plate:nfb_layer:0",
+        "nfb_layer_manufacturing_status": "NFB_TIER_BASE_EAR_AND_HOLES_UNVERIFIED",
+        "manufacturing_ready": True,
+    })
+    root = tmp_path / "renamed"
+    with pytest.raises(ValueError, match="RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED"):
+        save_resolved_manufacturing_geometry_dxf(
+            _geometry(source), root,
+            save_part_render_data_dxf=_serializer(calls),
+            box_body_physical_piece_roles=(),
+        )
+    assert calls == []
+    assert not root.exists()
