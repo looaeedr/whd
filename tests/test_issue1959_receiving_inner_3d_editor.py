@@ -57,7 +57,7 @@ def test_receiving_inner_door_real_3d_pick_opens_original_editor_and_cancels_wit
         original_features = tuple(workspace.features_for(key))
         before_receiving = {
             k: deepcopy(v)
-            for k, v in app._phase6_input_snapshot.items()
+            for k, v in designer._phase6_input_snapshot.items()
             if "candidate" in k or k in ("receiving_quantity_box",)
         }
         # No multi-settings entry was used: the actual physical sheet owns
@@ -121,7 +121,7 @@ def test_receiving_inner_door_real_3d_pick_opens_original_editor_and_cancels_wit
         assert tuple(workspace.features_for(key)) == original_features
         after_receiving = {
             k: deepcopy(v)
-            for k, v in app._phase6_input_snapshot.items()
+            for k, v in designer._phase6_input_snapshot.items()
             if "candidate" in k or k in ("receiving_quantity_box",)
         }
         assert after_receiving == before_receiving, (
@@ -143,4 +143,8 @@ def test_receiving_inner_door_real_3d_pick_opens_original_editor_and_cancels_wit
                     app.fold_designer_window.destroy()
             except Exception:
                 pass
-        root.destroy()
+        try:
+            root.destroy()
+        except tk.TclError as exc:
+            if "application has been destroyed" not in str(exc):
+                raise
