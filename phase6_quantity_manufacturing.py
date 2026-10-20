@@ -48,6 +48,17 @@ def build_quantity_manufacturing_requests(base_request, workspace_snapshot):
         selected.select(version_id)
         snapshot = deepcopy(source)
         snapshot["quantity"] = selected.snapshot()
+        if snapshot["model"] == "受電箱":
+            # Rebuild the SOURCE-owned singleton Bay for THIS version.
+            # Previously only the initial selected version was projected
+            # before the loop, and all later versions could borrow its NFB
+            # model/holes when manufacturing the same common box.
+            from ae_engine.receiving_quantity_box import project_common_box
+            from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+            snapshot = project_common_box(snapshot)
+            snapshot = project_receiving_bay_legacy_aliases(
+                snapshot, set_index=0, bay_index=0,
+            )
         snapshot["part_features"] = deepcopy(snapshot.get("part_features") or {})
         parts = []
         for part in base.parts:
