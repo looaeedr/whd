@@ -373,6 +373,14 @@ def _export_selected_resolved_parts(self, folder, flags):
             overwrite=True,
         )
         outputs = dict(bundle.output_paths)
+    elif committed_csv and bool(flags.get("door") or flags.get("base_plate")):
+        from ae_engine.receiving_fixed_plate_formed_manufacturing import (
+            save_verified_receiving_csv_selected_sheets,
+        )
+        outputs = save_verified_receiving_csv_selected_sheets(
+            receiving_snapshot, resolved, selected, folder,
+            overwrite=True,
+        )
     else:
         outputs = manufacturing_api.save_resolved_manufacturing_geometry_dxf(
             selected, folder, overwrite=True,
