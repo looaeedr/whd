@@ -167,16 +167,49 @@ def receiving_base_plate_values(snapshot):
     data = dict(snapshot or {})
     if str(data.get("model") or "").strip() not in RECEIVING_FAMILIES:
         return None
-    config = data.get("receiving_base_plate")
+    # The selected/submitted NFBConfig and the current brand CSV are the
+    # physical source authority, even when an older project has saved a
+    # separate manual base pattern.  Resolve source FIRST: accepting a stale
+    # saved RIGHT/LEFT or W800 shrink silently changes the manufactured sheet.
+    source_config = _source_center_base_config(data)
+    if source_config is None:
+        source_config = _source_left_flat_base_config(data)
+    if source_config is not None:
+        # Matching legacy values are geometrically equivalent and may remain
+        # in the project file, but the source-derived values own this PartSpec.
+        # Mismatching legacy values are not silently promoted to authority.
+        config = source_config
+    elif data.get("nfb_config_submitted") is True:
+        # A submitted *numeric CSV V5* model is not proof that an unknown
+        # RIGHT/flat/tier source exists. Do not revive a manual pattern when
+        # the typed source lacks a unique physical match. Legacy DXF-backed
+        # saved jobs retain their previous preview/settings compatibility;
+        # they have separate independent manufacturing proof obligations.
+        nfb = data.get("nfb_config")
+        holes = nfb.get("holes") if isinstance(nfb, Mapping) else None
+        has_numeric_csv = (
+            isinstance(holes, (list, tuple))
+            and any(isinstance(hole, Mapping)
+                    and str(hole.get("model_filename") or "").startswith("nfbv5:")
+                    for hole in holes)
+        )
+        if has_numeric_csv:
+            # Two tiers already have separate submitted physical owners, and
+            # current CENTER/LEFT one-row source recognition cannot resolve
+            # their variant from both rows at once. Keep an existing physical
+            # root *for preview/skin target calculation only*: the tier
+            # assembly explicitly marks every resulting FinalScene unreleased.
+            # One-row unknown CSV sources must NEVER borrow a saved pattern.
+            if not (isinstance(nfb, Mapping)
+                    and nfb.get("layer_count") == 2):
+                return None
+        config = data.get("receiving_base_plate")
+    else:
+        # Older projects without submitted NFBs retain their existing manual
+        # settings for normal editing/preview; this does not certify MFG-2.
+        config = data.get("receiving_base_plate")
     if config is None:
-        # Source-backed, *unambiguous* CENTER variant requires no redundant
-        # operator-entered dimensions. Never choose LEFT versus RIGHT for a
-        # flat tier solely because both happen to pass an envelope check.
-        config = _source_center_base_config(data)
-        if config is None:
-            config = _source_left_flat_base_config(data)
-        if config is None:
-            return None
+        return None
     if not isinstance(config, Mapping):
         raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID")
     missing = tuple(key for key in _REQUIRED if key not in config)

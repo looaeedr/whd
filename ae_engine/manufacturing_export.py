@@ -236,6 +236,25 @@ def _validate_nfb_base_part_scope(rows, *, part_only: bool,
     return approved
 
 
+def reject_unverified_receiving_nfb_tier_base(
+    render_data, *, output_key: str = "",
+) -> None:
+    """Deny unapproved physical NFB tier bases at the DXF boundary.
+
+    Neither a forged manufacturing_ready value nor a renamed output key can
+    certify real EAR contact, source BEND and NFB screw CUTTING. Future
+    release requires an explicit part-scoped CSV verification adapter.
+    """
+    meta = getattr(render_data, "metadata", None)
+    metadata = meta if isinstance(meta, Mapping) else {}
+    tier_id = "base_plate:nfb_layer:"
+    identity = str(metadata.get("stable_id") or "")
+    if (str(output_key).startswith(tier_id)
+            or identity.startswith(tier_id)
+            or "nfb_layer_manufacturing_status" in metadata):
+        raise ValueError("RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED")
+
+
 def _save_resolved_rows_atomic(
     rows,
     output_dir,
@@ -249,6 +268,9 @@ def _save_resolved_rows_atomic(
     rows = tuple(rows)
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)
     for output_key, _, render_data in rows:
+        reject_unverified_receiving_nfb_tier_base(
+            render_data, output_key=str(output_key),
+        )
         metadata = getattr(render_data, "metadata", None)
         if (isinstance(metadata, Mapping)
                 and metadata.get("receiving_base_plate_unconfigured") is True):
