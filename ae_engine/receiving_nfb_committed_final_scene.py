@@ -22,6 +22,52 @@ from .receiving_nfb_v5_live_base_preview import (
 from .receiving_nfb_model_identity import parse_numeric_model_ref
 
 
+def _physical_feature_from_transport(value):
+    """Restore only WHD's trusted feature DTO shapes from Phase6 transport.
+
+    ManufacturingResolveRequest freezes dataclasses into dicts with a type
+    marker. The normal resolver must recover real Hole Editor feature types
+    before checking the original source; a raw dict is not a cutting part.
+    """
+    from .sheetmetal_feature_core import (
+        CircleFeature, RectFeature, ProfileFeature, FeatureAnchor,
+    )
+    from .sheetmetal_geometry import Vec2
+    classes = {
+        "CircleFeature": CircleFeature,
+        "RectFeature": RectFeature,
+        "ProfileFeature": ProfileFeature,
+    }
+    if isinstance(value, tuple(classes.values())):
+        return value
+    if not isinstance(value, Mapping):
+        raise ValueError("NFB_COMMITTED_CSV_FEATURE_DTO_INVALID")
+    kind = str(value.get("__dataclass_type__") or "")
+    target = classes.get(kind.rsplit(".",1)[-1])
+    if target is None or kind != (
+            "ae_engine.sheetmetal_feature_core." + target.__name__):
+        raise ValueError("NFB_COMMITTED_CSV_UNSUPPORTED_FEATURE_DTO")
+    def vec(p):
+        if isinstance(p, Vec2):
+            return p
+        if not isinstance(p, Mapping) or "x" not in p or "y" not in p:
+            raise ValueError("NFB_COMMITTED_CSV_FEATURE_VEC2_INVALID")
+        return Vec2(float(p["x"]), float(p["y"]))
+    fields = {k: v for k,v in value.items() if k != "__dataclass_type__"}
+    fields["anchor"] = FeatureAnchor(fields["anchor"])
+    fields["offset"] = vec(fields["offset"])
+    fields["source_params"] = tuple(
+        tuple(row) for row in tuple(fields.get("source_params") or ())
+    )
+    if target is ProfileFeature:
+        fields["points"] = tuple(vec(p) for p in fields.get("points") or ())
+        fields["layered_profiles"] = tuple(
+            (str(layer), tuple(vec(p) for p in points), bool(closed))
+            for layer, points, closed in tuple(fields.get("layered_profiles") or ())
+        )
+    return target(**fields)
+
+
 def _source_world_x_from_committed_editor_feature(
     snapshot, panel, row, *, brand, model,
 ):
@@ -43,6 +89,7 @@ def _source_world_x_from_committed_editor_feature(
     features = (snapshot.get("part_features") or {}).get(panel.stable_id, ())
     if not isinstance(features, (tuple, list)):
         return None
+    features = tuple(_physical_feature_from_transport(p) for p in features)
     wanted = (row.get("physical_hole_id"), row.get("layer_index", 0),
               row.get("slot_index"))
     matches = []
@@ -256,12 +303,15 @@ def _without_derived_csv_door_features(snapshot, inner_door_id):
         original = store[part_id]
         if not isinstance(original, (tuple, list)):
             raise ValueError("NFB_COMMITTED_CSV_DOOR_FEATURES_INVALID")
+        typed = tuple(_physical_feature_from_transport(p) for p in original)
         kept = tuple(
-            feature for feature in original
+            feature for feature in typed
             if getattr(feature, "source_type", None) != "NFB_CSV_SOURCE"
         )
-        if len(kept) != len(original):
-            filtered[key] = {**store, part_id: kept}
+        # Even if no CSV alias is present, forward restored native Feature
+        # dataclasses so the existing inner-door FinalScene never sees raw
+        # manufacturing DTO dictionaries.
+        filtered[key] = {**store, part_id: kept}
     return filtered
 
 
