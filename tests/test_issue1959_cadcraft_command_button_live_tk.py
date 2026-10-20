@@ -309,3 +309,70 @@ def test_live_tk_gui_handoff_focuses_spawned_native_window_without_modal(
         assert canvas.winfo_exists()
     finally:
         root.destroy()
+
+
+
+def test_live_tk_cadcraft_tcp_return_without_user_save_reuses_original_session(
+    monkeypatch, tmp_path,
+):
+    """The real Tk buttons capture off-thread; Session commit stays on Tk thread."""
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from gui_modules.editors import cadcraft_command_preview_bridge as bridge
+    from gui_modules.editors import cadcraft_live_return_bridge as live
+    from phase6_hole_editor_session import HoleEditorAction
+
+    root, editor, canvas, session, features, dialogs = _tk_shell()
+    original = CircleFeature(10, FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(40, 40))
+    features.append(original)
+    issued = tmp_path / "WHD-source.dxf"
+    edited = tmp_path / "CADCraft-unsaved-captured.dxf"
+    doc = ezdxf.new("R2010", units=ezdxf.units.MM)
+    doc.modelspace().add_circle((40, 40), 5)
+    doc.saveas(issued)
+    doc = ezdxf.new("R2010", units=ezdxf.units.MM)
+    doc.modelspace().add_circle((44, 37), 5)
+    doc.saveas(edited)
+    png = tmp_path / "preview.png"
+    png.write_bytes(b"test-only")
+    imported_on = []
+    try:
+        monkeypatch.setattr(bridge, "find_cadcraft_cli", lambda: "test-only-cli")
+        monkeypatch.setattr(
+            bridge, "draw_whd_commands_with_cadcraft",
+            lambda **kw: bridge.CadcraftCommandDrawingResult(
+                issued, png, {"status": "PASS"},
+            ),
+        )
+        fake_process = SimpleNamespace(pid=22331, poll=lambda: None)
+        launches = []
+        monkeypatch.setattr(
+            bridge, "open_cadcraft_hole_editor",
+            lambda path, **kwargs: launches.append((path, kwargs)) or fake_process,
+        )
+        monkeypatch.setattr(bridge, "focus_started_cadcraft_window", lambda pid: True)
+        monkeypatch.setattr(live, "reserve_cadcraft_control_port", lambda: 41991)
+
+        def capture(ticket, *, port, process):
+            imported_on.append(threading.get_ident())
+            assert port == 41991 and process is fake_process and ticket.output == issued
+            assert tuple(features) == (original,)
+            return replace(ticket, output=edited)
+
+        monkeypatch.setattr(live, "capture_unsaved_cadcraft_return", capture)
+        editor._hole_header_cadcraft_draw.invoke()
+        _pump(root, lambda: bool(launches))
+        assert launches[0][0] == issued
+        assert launches[0][1]["control_port"] == 41991
+        assert editor._hole_cadcraft_control_port == 41991
+        assert "已啟動" in editor._hole_header_cadcraft_status.cget("text")
+        editor._hole_header_cadcraft_return.invoke()
+        _pump(root, lambda: any(row[0] == "ask" for row in dialogs))
+        assert imported_on and imported_on[0] != threading.get_ident()
+        assert features[0].offset == Vec2(44, 37) and not session.has_active_edit
+        assert str(editor._hole_header_cadcraft_return.cget("state")) == "disabled"
+        session.execute(HoleEditorAction.undo())
+        assert features == [original] and canvas.winfo_exists()
+    finally:
+        root.destroy()
