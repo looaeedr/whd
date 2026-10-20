@@ -343,16 +343,25 @@ def _export_selected_resolved_parts(self, folder, flags):
     # assembly anchor back to local sheet coordinates, then validate/serialize
     # each Bay under its stable Set/Bay namespace in ONE atomic transaction.
     receiving_live = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+    raw_layout = receiving_live.get("receiving_layout") or {}
+    raw_sets = raw_layout.get("sets", ()) if isinstance(raw_layout, dict) else ()
+    # Only a real multi-Bay topology enters the multi-Bay machinery.
+    # Older single-Bay NFB snapshots legitimately lack canonical schema/
+    # dimensions; validating those through the multi-Bay path would break
+    # previously verified ordinary single-box exports.
+    physical_count = sum(
+        len(row.get("bays", ())) for row in raw_sets
+        if isinstance(row, dict)
+    ) if isinstance(raw_sets, (list, tuple)) else 0
     if (receiving_live.get("model") == "受電箱"
             and receiving_live.get("active_mode", "set_bay") == "set_bay"
-            and receiving_live.get("receiving_layout")):
+            and physical_count > 1):
         from ae_engine.receiving_layout import (
             normalize_receiving_layout, receiving_bay_assembly_offsets,
         )
-        saved_layout = normalize_receiving_layout(
-            receiving_live["receiving_layout"],
-        )
-        physical_count = sum(len(s["bays"]) for s in saved_layout["sets"])
+        saved_layout = normalize_receiving_layout(raw_layout)
+        if physical_count != sum(len(s["bays"]) for s in saved_layout["sets"]):
+            raise ValueError("多連實體連數與目前標準組合體資料不一致")
         if physical_count > 1:
             import fold_designer_bridge as receiving_bridge
             from ae_engine.contracts import (
