@@ -852,6 +852,52 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     )
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
                     base_ready = False
+                # CSV V5 single-plate manufacture is separate from the
+                # historical DXF-sourced inner-door/base *pair* export.
+                # A committed numerical source can derive the physical
+                # BasePlate without a manual saved pattern or a DXF bundle.
+                csv_ready = bool(
+                    base_ports["state"](set_index, chosen_bay).get(
+                        "csv_base_part_ready"
+                    )
+                ) if base_ports is not None else False
+                if csv_ready:
+                    def export_csv_base_part_only():
+                        try:
+                            if (applied["mode"] != "set_bay"
+                                    or applied["set_index"] != set_index
+                                    or tuple(applied["selected_bays"]) != (chosen_bay,)):
+                                raise ValueError("CSV 底板輸出連位已切換，請重新選擇")
+                            live_ports = get_nfb_transaction_ports()
+                            if not live_ports["state"](
+                                set_index, chosen_bay
+                            ).get("csv_base_part_ready"):
+                                raise ValueError("CSV 底板來源／世界 X 已變更，請重新核對")
+                            from tkinter import filedialog
+                            folder = filedialog.askdirectory(
+                                title="選擇 CSV NFB 底板單片 DXF 資料夾",
+                                parent=win,
+                            )
+                            if not folder:
+                                return
+                            receipt = live_ports["csv_base_partial_export"](
+                                set_index, chosen_bay, folder,
+                            )
+                            messagebox.showinfo(
+                                "NFB CSV 底板單片 DXF",
+                                "已輸出並重新讀取驗證實體底板：" + receipt.path
+                                + "。此輸出僅限單層底板一片；左右固定片、"
+                                  "側板打標、PAD 與整箱加工仍獨立驗證。",
+                                parent=win,
+                            )
+                        except (ValueError, TypeError, IndexError,
+                                KeyError, RuntimeError, OSError) as exc:
+                            warn(exc)
+                    ttk.Button(
+                        settings_host,
+                        text="輸出 CSV 底板 DXF（單片）",
+                        command=export_csv_base_part_only,
+                    ).pack(anchor="e", pady=(5, 0))
                 if base_ready:
                     def export_nfb_paired_partial():
                         try:
