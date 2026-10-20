@@ -19,7 +19,7 @@ from phase6_hole_editor_session import Phase6HoleEditorSession
 from tools.issue1959_whd_cadcraft_command_draw import CadcraftCommandProofError
 
 
-def _tk_shell():
+def _tk_shell(*, confirm=True):
     root = tk.Tk()
     root.geometry("1300x850+0+0")
     root.update_idletasks()
@@ -42,7 +42,7 @@ def _tk_shell():
         showinfo=lambda *args, **kwargs: msgs.append(("info", args, kwargs)),
         showerror=lambda *args, **kwargs: msgs.append(("error", args, kwargs)),
         showwarning=lambda *args, **kwargs: msgs.append(("warning", args, kwargs)),
-        askyesno=lambda *args, **kwargs: (msgs.append(("ask", args, kwargs)), True)[1],
+        askyesno=lambda *args, **kwargs: (msgs.append(("ask", args, kwargs)), confirm)[1],
     )
     noop = lambda *args, **kwargs: None
     context = SimpleNamespace(
