@@ -95,3 +95,45 @@ def test_submitted_two_tier_csv_without_physical_blank_cannot_add_base_or_ears()
     assert _canonical_part_keys(host) == ("box_body",), (
         "SUBMITTED_CSV_WITHOUT_PHYSICAL_SOURCE_MUST_NOT_CREATE_BASE"
     )
+
+
+def test_mfg_raw_part_provider_never_recursively_resolves_itself():
+    """Regression from real Windows double->single project switch."""
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _query_fold_designer_render_data,
+    )
+    snapshot = _snapshot()
+    calls = []
+    app = SimpleNamespace(
+        fold_designer_app=SimpleNamespace(
+            _phase6_input_snapshot=snapshot,
+            _phase6_last_resolved_manufacturing_geometry=None,
+            _phase6_resolve_manufacturing_geometry=lambda: calls.append("recursive"),
+        ),
+        _fold_designer_part_spec_from_payload=lambda key, p: ("root", "ctx"),
+        _authoritative_render_data=lambda part_spec, context: (part_spec, context),
+    )
+    raw = _query_fold_designer_render_data(
+        app, "base_plate", {"_use_committed_relief": False},
+    )
+    assert raw == ("root", "ctx")
+    assert calls == [], "RAW_MANUFACTURING_MUST_NOT_REENTER_RESOLVER"
+
+
+def test_one_tier_2d_operator_read_uses_cached_exact_canonical_sheet():
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _query_fold_designer_render_data,
+    )
+    snapshot = _snapshot()
+    genuine = SimpleNamespace(unfolded_topology=object())
+    resolver_calls = []
+    owner = SimpleNamespace(
+        _phase6_input_snapshot=snapshot,
+        _phase6_last_resolved_manufacturing_geometry=SimpleNamespace(
+            parts=(SimpleNamespace(part_key="base_plate", render_data=genuine),),
+        ),
+        _phase6_resolve_manufacturing_geometry=lambda: resolver_calls.append(True),
+    )
+    app = SimpleNamespace(fold_designer_app=owner)
+    assert _query_fold_designer_render_data(app, "base_plate", {}) is genuine
+    assert resolver_calls == [], "2D operator must reuse exact completed source"
