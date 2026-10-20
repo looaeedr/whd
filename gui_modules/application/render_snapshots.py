@@ -280,10 +280,16 @@ def base_plate_render_snapshot(host, val):
     current = getattr(designer, "_phase6_input_snapshot", None)
     if (isinstance(current, dict)
             and current.get("model") in ("受電箱", "RECEIVING")):
+        # A committed, uniquely resolvable NFB+CSV source may supply the
+        # real BasePlatePartSpec without a separately saved manual pattern.
+        # Rendering must not depend on a manufacturing-release flag, while
+        # an unresolved source still must not generate a generic fake plate.
         if not current.get("receiving_base_plate"):
-            raise ValueError(
-                "受電箱底板尚未設定實體來源型式，不能顯示舊式通用底板"
-            )
+            from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+            if receiving_base_plate_values(current) is None:
+                raise ValueError(
+                    "受電箱底板尚未設定實體來源型式，不能顯示舊式通用底板"
+                )
         resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
         if not callable(resolver):
             raise ValueError("受電箱底板缺少已提交的製造幾何來源")
@@ -298,13 +304,20 @@ def base_plate_render_snapshot(host, val):
             if key.startswith("base_plate:nfb_layer:")
         )
         if current.get("nfb_config_submitted") is True:
-            if not tiers:
+            config = current.get("nfb_config")
+            count = config.get("layer_count") if isinstance(config, dict) else None
+            if count == 1 and "base_plate" in part_keys:
+                # One submitted NFB tier owns the existing real Base Plate.
+                # It must remain selectable in 2D even while DXF is blocked.
+                chosen = "base_plate"
+            elif count == 2 and tiers:
+                active = str(getattr(getattr(designer, "designer_workspace", None),
+                                     "active_part", "") or "")
+                chosen = active if active in tiers else tiers[0]
+            else:
                 raise ValueError(
                     "已提交 NFB，但沒有對應的受電箱分層底板；不能回退舊式底板"
                 )
-            active = str(getattr(getattr(designer, "designer_workspace", None),
-                                 "active_part", "") or "")
-            chosen = active if active in tiers else tiers[0]
         else:
             if "base_plate" not in part_keys:
                 raise ValueError(
