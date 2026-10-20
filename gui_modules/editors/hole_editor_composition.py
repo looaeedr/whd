@@ -799,6 +799,7 @@ def _bind_editor_events(s):
     status_label = getattr(s.editor, "_hole_header_cadcraft_status", None)
     s.editor._hole_cadcraft_return_ticket = None
     s.editor._hole_cadcraft_gui_process = None
+    s.editor._hole_cadcraft_control_port = None
     trial_button = getattr(s.editor, "_hole_header_cadcraft_draw", None)
     if trial_button is not None:
         def draw_new_cadcraft_picture():
@@ -824,6 +825,7 @@ def _bind_editor_events(s):
 
             # Any new drawing invalidates a previous manual-return provenance.
             s.editor._hole_cadcraft_return_ticket = None
+            s.editor._hole_cadcraft_control_port = None
             if return_button is not None:
                 return_button.configure(state="disabled")
             if status_label is not None:
@@ -897,7 +899,13 @@ def _bind_editor_events(s):
                             open_cadcraft_hole_editor,
                         )
                         try:
-                            process = open_cadcraft_hole_editor(ticket.output)
+                            from .cadcraft_live_return_bridge import (
+                                reserve_cadcraft_control_port,
+                            )
+                            control_port = reserve_cadcraft_control_port()
+                            process = open_cadcraft_hole_editor(
+                                ticket.output, control_port=control_port
+                            )
                         except (OSError, ValueError, TypeError) as exc:
                             if status_label is not None:
                                 status_label.configure(text="CADCraft 啟動失敗")
@@ -909,9 +917,15 @@ def _bind_editor_events(s):
                             )
                         else:
                             s.editor._hole_cadcraft_gui_process = process
+                            # Synthetic GUI tests may use a no-process launch
+                            # stub; only a real pollable process owns live TCP.
+                            s.editor._hole_cadcraft_control_port = (
+                                control_port if callable(getattr(process, "poll", None))
+                                else None
+                            )
                             if status_label is not None:
                                 status_label.configure(
-                                    text="CADCraft 已啟動；存檔後按『改孔回傳』"
+                                    text="CADCraft 已啟動；修改後直接按『改孔回傳』"
                                 )
                             # Windows starts a visible process asynchronously;
                             # the program window may initially sit behind this
@@ -944,16 +958,9 @@ def _bind_editor_events(s):
         trial_button.configure(command=draw_new_cadcraft_picture)
 
     if return_button is not None:
-        def return_manually_moved_holes():
-            """Only import the WHD-issued isolated DXF after human CADCraft save."""
+        def stage_return_ticket(ticket):
+            """Reuse the original WHD preview/confirm/cancel path unchanged."""
             from .cadcraft_manual_hole_return_bridge import stage_manual_cadcraft_return
-            ticket = getattr(s.editor, "_hole_cadcraft_return_ticket", None)
-            if ticket is None:
-                s.d.messagebox.showerror(
-                    "CADCraft 改孔回傳", "尚無有效的 WHD→CADCraft 交換圖，請先指令出圖。",
-                    parent=s.editor,
-                )
-                return
             try:
                 pending = stage_manual_cadcraft_return(ticket)
             except (OSError, ValueError, TypeError) as exc:
@@ -1007,6 +1014,64 @@ def _bind_editor_events(s):
                     "由 WHD 原流程儲存並重新產生製造圖。",
                     parent=s.editor,
                 )
+
+        def return_manually_moved_holes():
+            """Read unsaved native CADCraft via TCP, with legacy saved-DXF fallback."""
+            from queue import Empty, Queue
+            from threading import Thread
+            ticket = getattr(s.editor, "_hole_cadcraft_return_ticket", None)
+            if ticket is None:
+                s.d.messagebox.showerror(
+                    "CADCraft 改孔回傳", "尚無有效的 WHD→CADCraft 交換圖，請先指令出圖。",
+                    parent=s.editor,
+                )
+                return
+            port = getattr(s.editor, "_hole_cadcraft_control_port", None)
+            process = getattr(s.editor, "_hole_cadcraft_gui_process", None)
+            if port is None or not callable(getattr(process, "poll", None)):
+                # Legacy user-saved disposable DXF remains independently valid.
+                stage_return_ticket(ticket)
+                return
+            from .cadcraft_live_return_bridge import capture_unsaved_cadcraft_return
+            return_button.configure(state="disabled")
+            if status_label is not None:
+                status_label.configure(text="正在讀取 CADCraft 即時圖元…")
+            queue = Queue(maxsize=1)
+
+            def worker():
+                try:
+                    captured = capture_unsaved_cadcraft_return(
+                        ticket, port=port, process=process,
+                    )
+                    queue.put(("ok", captured))
+                except Exception as exc:
+                    queue.put(("error", str(exc)))
+
+            def poll():
+                if not s.editor.winfo_exists():
+                    return
+                try:
+                    status, result = queue.get_nowait()
+                except Empty:
+                    s.editor.after(100, poll)
+                    return
+                return_button.configure(state="normal")
+                if status != "ok":
+                    # Preserve old disk-based exchange as a manual fallback.
+                    s.editor._hole_cadcraft_control_port = None
+                    if status_label is not None:
+                        status_label.configure(text="CADCraft TCP 回傳失敗；可先存檔再回傳")
+                    s.d.messagebox.showerror(
+                        "CADCraft 即時回傳",
+                        str(result) + "\n若已在 CADCraft 存檔，可再按『改孔回傳』使用舊流程。",
+                        parent=s.editor,
+                    )
+                    return
+                stage_return_ticket(result)
+
+            Thread(target=worker, name="whd-cadcraft-live-capture", daemon=True).start()
+            s.editor.after(100, poll)
+
         return_button.configure(command=return_manually_moved_holes)
     s.editor.bind("<F11>", s.toggle_fullscreen)
     s.editor.bind("<Control-z>", s.undo_last_action)
