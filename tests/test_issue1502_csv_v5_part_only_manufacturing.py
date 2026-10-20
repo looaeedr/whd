@@ -127,13 +127,14 @@ def test_wrong_current_source_or_unproven_world_x_produces_no_dxf(
 
 def test_csv_source_change_prevents_part_only_output(tmp_path):
     snap = _current()
+    original_spec = _spec(snap)
     snap["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:3P500BAD"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
     out = tmp_path / "source-changed"
     with pytest.raises((ValueError, KeyError)):
-        _export(snap, out)
+        _export(snap, out, spec=original_spec)
     assert not out.exists()
 
 
