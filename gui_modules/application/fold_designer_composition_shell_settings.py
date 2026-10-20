@@ -291,6 +291,21 @@ def sync_authoritative_derived_parts(
     source_part_features = dict(snapshot.get("part_features") or {})
     known_feature_keys = set(workspace.part_features_snapshot())
     source_parts = tuple(snapshot.get("existing_parts") or ())
+    # A saved v3 Receiving project may omit the original BasePlate from the
+    # historical existing_parts list despite having a committed NFB and an
+    # authentic physical source. The manufacturing resolver can restore it,
+    # but the 2D part selector must use the SAME source authority.
+    # Never add it for drafts, unknown sources or non-Receiving families.
+    if (snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("nfb_config_submitted") is True
+            and "base_plate" not in source_parts):
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+        try:
+            original_base = receiving_base_plate_values(snapshot)
+        except (ValueError, TypeError, KeyError):
+            original_base = None
+        if original_base is not None:
+            source_parts += ("base_plate",)
     available_parts = tuple(workspace.available_parts)
 
     build_profiles = required("build_standard_part_profiles")
