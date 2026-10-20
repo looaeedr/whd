@@ -138,9 +138,8 @@ def _require_source_derived_real_plate(snapshot, base_spec):
             or base_spec.features
             or any(abs(float(getattr(base_spec, key)) - float(v)) > 1e-6
                    for key, v in expected.items())
-            or (base_spec.receiving_nfb_depth_pair_mm is not None
-                and base_spec.receiving_nfb_depth_pair_mm
-                    != values["receiving_nfb_depth_pair_mm"])):
+            or tuple(base_spec.receiving_nfb_depth_pair_mm or ())
+                != tuple(values["receiving_nfb_depth_pair_mm"] or ())):
         raise ValueError("CSV_BASE_EXPORT_PARTSPEC_VS_LIVE_SOURCE_MISMATCH")
     baseline = build_part_render_data(base_spec)
     if (baseline.unfolded_topology is None
