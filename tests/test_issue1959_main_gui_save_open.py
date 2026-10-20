@@ -120,6 +120,43 @@ def test_cadcraft_approved_features_survive_actual_whd_main_toolbar_save_open(
         assert before == after, "WHD_GUI_RELOAD_MANUFACTURING_GEOMETRY_DRIFT"
         assert any(layer == "CUTTING" and kind == "CIRCLE"
                    for kind, layer, _ in after)
+
+        # The saved main-GUI Feature collection must also reach the actual
+        # Fold Designer source and the same physical assembly material. A DXF
+        # or .p6fold-only PASS does not prove the 2D/3D part was updated.
+        import fold_designer_bridge as bridge
+        from ae_engine.sheetmetal_drawing import CirclePrimitive
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+
+        designer = app.open_original_fold_designer()
+        root.update_idletasks()
+        root.update()
+        assert "door" in designer.available_parts
+        designer.activate_part("door")
+        root.update_idletasks()
+        root.update()
+        observed = tuple(designer.designer_workspace.features_for("door"))
+        assert observed == accepted, "RELOADED_DOOR_FEATURES_MISSING_FROM_3D_WORKSPACE"
+        payload = build_scene_payload_for_app(designer, "door")
+        assert tuple(payload["features"]) == accepted, "DOOR_2D3D_SOURCE_MISMATCH"
+        render = designer._scene_query_callback("door", payload)
+        assert render is not None and render.material.area > 0
+        cutting_circles = tuple(
+            p for p in render.scene.primitives
+            if isinstance(p, CirclePrimitive) and p.layer == "CUTTING"
+        )
+        assert len(cutting_circles) >= 2, "DOOR_CADCraft_CIRCLES_NOT_IN_2D_SCENE"
+
+        assembled = bridge._phase6_final_scene_adapter(
+            designer
+        ).query_assembly_render_data()
+        physical = {p.part_key: p for p in assembled.assembly_parts}
+        assert "door" in physical, "RELOADED_DOOR_ABSENT_FROM_REAL_3D_ASSEMBLY"
+        physical_door = physical["door"].render_data
+        assert physical_door.material.area > 0
+        assert abs(physical_door.material.area - render.material.area) < 1e-5, (
+            "DOOR_REAL_2D_3D_PHYSICAL_MATERIAL_DISAGREES"
+        )
     finally:
         try:
             if app is not None and app.fold_designer_window is not None:
