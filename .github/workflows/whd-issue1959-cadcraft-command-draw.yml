@@ -21,6 +21,7 @@ on:
       - "tests/test_issue1959_cadcraft_live_return.py"
       - "tests/test_issue1959_cadcraft_tcp_control.py"
       - "tools/issue1959_cadcraft_tcp_native_probe.py"
+      - "tools/issue1959_cadcraft_tcp_live_native_probe.py"
       - "gui_modules/editors/cadcraft_command_preview_bridge.py"
       - "gui_modules/editors/cadcraft_paths.py"
       - "tests/test_issue1959_cadcraft_relative_location.py"
@@ -142,6 +143,24 @@ jobs:
           assert p["geometry"]["status"]=="PASS" and not p["manufacturing_dxf_written"]
           assert p["whd_session_modified"] is False and not p["windows_gui_uat_completed"]
           print("REAL_VENDOR_DESKTOP_CONTROL_TCP_WHD_GEOMETRY_GREEN")
+          PY
+      - name: Real CADCraft GUI unsaved live TCP hole to WHD original Session, Confirm and Undo
+        shell: bash
+        run: |
+          set -euo pipefail
+          GUI="$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft"
+          test -x "$GUI"
+          xvfb-run -a python -m tools.issue1959_cadcraft_tcp_live_native_probe \
+            --cadcraft "$GUI" \
+            --evidence work/issue1959/cadcraft-live-unsaved-session-proof.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("work/issue1959/cadcraft-live-unsaved-session-proof.json").read_text())
+          assert p["status"]=="PASS" and p["new_holes_in_whd_session"]==1
+          assert p["disk_original_unchanged"] and p["session_confirm"] and p["session_undo"]
+          assert p["manual_cadcraft_save"] is False and not p["manufacturing_dxf_written"]
+          print("REAL_VENDOR_UNSAVED_GUI_TCP_WHD_SESSION_GREEN")
           PY
       - name: Stage actual CADCraft output into original WHD Session then test Cancel Confirm Undo
         run: |
