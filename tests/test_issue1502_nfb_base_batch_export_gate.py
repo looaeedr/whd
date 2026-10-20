@@ -145,6 +145,18 @@ def test_unverified_real_tier_finalscene_stays_visible_but_never_exports_dxf(tmp
             save_direct(forged, output)
         assert not output.exists()
 
+    # The old generic generate_part BasePlate branch must not bypass the
+    # shared FinalScene export guard either.
+    from ae_engine.manufacturing_api import generate_part
+    from ae_engine.receiving_nfb_layer_physical_parts import (
+        source_receiving_nfb_tier_base_specs,
+    )
+    for spec in source_receiving_nfb_tier_base_specs(snapshot).values():
+        path = tmp_path / (spec.physical_id.replace(":", "_") + "_generic.dxf")
+        with pytest.raises(ValueError, match="RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED"):
+            generate_part(spec, path)
+        assert not path.exists()
+
     # The preflight must fail atomically, before creating a destination dir.
     destination = tmp_path / "batch"
     with pytest.raises(ValueError, match="RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED"):
