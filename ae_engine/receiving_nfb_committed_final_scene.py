@@ -22,6 +22,94 @@ from .receiving_nfb_v5_live_base_preview import (
 from .receiving_nfb_model_identity import parse_numeric_model_ref
 
 
+def _source_world_x_from_committed_editor_feature(
+    snapshot, panel, row, *, brand, model,
+):
+    """Recover a placed opening's X from its existing original Hole Editor.
+
+    This is not an inferred NFB pitch: the Feature is committed on the
+    physical panel with CSV SHA and exact original brand/model. Its centre
+    and Y must agree with the same current numeric model and tier datum.
+    """
+    from hashlib import sha256
+    from math import hypot
+    from .receiving_nfb_numeric_catalog import brand_csv_path, model_spec
+    from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    from .receiving_nfb_manufacturing_release import _resolve_physical_panel
+    from .sheetmetal_feature_core import (
+        FeatureAnchor, ProfileFeature, _rotate_local_point,
+    )
+
+    features = (snapshot.get("part_features") or {}).get(panel.stable_id, ())
+    if not isinstance(features, (tuple, list)):
+        return None
+    wanted = (row.get("physical_hole_id"), row.get("layer_index", 0),
+              row.get("slot_index"))
+    matches = []
+    for feature in features:
+        if not isinstance(feature, ProfileFeature) or feature.source_type != "NFB_CSV_SOURCE":
+            continue
+        params = dict(feature.source_params)
+        if params.get("part_id") != panel.stable_id:
+            continue
+        identity = (
+            params.get("hole_id") == wanted[0]
+            if "hole_id" in params else
+            (params.get("layer_index"), params.get("slot_index")) == wanted[1:]
+        )
+        if identity:
+            matches.append((feature, params))
+    if not matches:
+        return None
+    if len(matches) != 1:
+        raise ValueError("NFB_CSV_EDITOR_DUPLICATE_COMMITTED_OPENING")
+    feature, params = matches[0]
+    csv_sha = sha256(brand_csv_path(brand).read_bytes()).hexdigest()
+    spec = model_spec(brand, model)
+    if (params.get("brand") != brand or params.get("model") != model
+            or params.get("csv_sha256") != csv_sha or spec is None
+            or spec.opening_corners_xy_mm is None
+            or feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE
+            or feature.layer != "CUTTING"
+            or len(feature.points) != 4
+            or feature.layered_profiles):
+        raise ValueError("NFB_CSV_EDITOR_OPENING_SOURCE_STALE")
+    points = tuple(
+        (float(rot.x + feature.offset.x),
+         float(rot.y + feature.offset.y))
+        for rot in (_rotate_local_point(p, feature.rotation_deg)
+                    for p in feature.points)
+    )
+    source = tuple((float(x),float(y)) for x,y in spec.opening_corners_xy_mm)
+    expected_edges = sorted(round(hypot(source[(i+1)%4][0]-source[i][0],
+                                        source[(i+1)%4][1]-source[i][1]), 6)
+                            for i in range(4))
+    actual_edges = sorted(round(hypot(points[(i+1)%4][0]-points[i][0],
+                                      points[(i+1)%4][1]-points[i][1]), 6)
+                          for i in range(4))
+    if expected_edges != actual_edges:
+        raise ValueError("NFB_CSV_EDITOR_OPENING_SIZE_DIFFERS_FROM_SOURCE")
+    panel_now, placement = _resolve_physical_panel(
+        snapshot, panel.inner_door_id,
+    )
+    if panel_now.stable_id != panel.stable_id:
+        raise ValueError("NFB_CSV_EDITOR_PHYSICAL_PANEL_CHANGED")
+    centre_x = (min(x for x,y in points)+max(x for x,y in points))/2
+    centre_y = (min(y for x,y in points)+max(y for x,y in points))/2
+    projection = project_nfb_inner_door_nominal_y(
+        snapshot, panel.inner_door_id,
+        layer_count=row.get("layer_count", 1),
+        slot_index=row.get("layer_index", 0),
+    )
+    expected_face_y = (float(projection.unfolded_uv_y_mm)
+                       - float(panel.fold_bottom) + float(panel.thickness))
+    if abs(centre_y-expected_face_y)>1e-6:
+        raise ValueError("NFB_CSV_EDITOR_OPENING_Y_DIFFERS_FROM_LAYER")
+    core_width = float(panel.unfolded_width)-float(panel.fold_left)-float(panel.fold_right)
+    return (centre_x - float(panel.thickness) - core_width/2
+            + float(placement.world_offset[0]))
+
+
 def _submitted_csv_holes(snapshot):
     """Get canonical selected Bay's full config; no separate editor authority."""
     if (not isinstance(snapshot, Mapping)
@@ -47,11 +135,10 @@ def _submitted_csv_holes(snapshot):
     count = config.get("layer_count")
     if type(count) is not int or count not in (1, 2):
         raise ValueError("NFB_COMMITTED_CSV_INVALID_LAYER_COUNT")
-    # Edited/committed UI CSV initially stores UNVERIFIED_BASIS X. Do not
-    # fabricate or cut holes at zero before operator's physical X exists.
-    if any(row.get("manual_x_state") != "CONFIRMED"
-           or row.get("manual_x_mm") is None for row in rows):
-        return ()
+    # The original Hole Editor is also a genuine source of physical hole
+    # position. If the saved numeric config lacks independent confirmed X,
+    # reuse ONLY an exact source-hashed, already-placed editor ProfileFeature.
+    # Never guess X from slot number or model pitch.
     from .receiving_nfb_persistence import normalize_nfb_config
     from .receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
     from .cabinet_types.policy import derive_inner_door_panels
@@ -90,17 +177,27 @@ def _submitted_csv_holes(snapshot):
     seen = set()
     for row, model in zip(validated["holes"], parsed):
         tier = row.get("layer_index", 0 if count == 1 else None)
-        brand = row.get("source_brand")
+        brand = row.get("source_brand") or model[0]
         hole_id = row.get("physical_hole_id")
         if (tier not in owners or brand != model[0]
                 or hole_id in seen):
             raise ValueError("NFB_COMMITTED_CSV_OWNER_OR_MODEL_MISMATCH")
+        x = row.get("manual_x_mm")
+        if row.get("manual_x_state") != "CONFIRMED" or x is None:
+            x = _source_world_x_from_committed_editor_feature(
+                snapshot, upper[0], row, brand=brand, model=model[1],
+            )
+            if x is None:
+                # Existing editor may be in a temporary unconfirmed/draft
+                # state. Keep the normal physical blank visible; do not make
+                # any source-less screw CUTTING.
+                return ()
         seen.add(hole_id)
         holes.append(NfbV5ConfiguredInnerDoorHole(
             physical_hole_id=hole_id,
             brand=brand,
             model_ref=row["model_filename"],
-            world_x_mm=float(row["manual_x_mm"]),
+            world_x_mm=float(x),
             layer_count=count,
             slot_index=tier,
             rotation_deg=row.get("rotation_deg", 0),
