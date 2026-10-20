@@ -372,7 +372,12 @@ def _query_fold_designer_render_data(self, part_key, payload):
         payload = collect_door_input(payload)
     """Return the same authoritative final geometry used by 2D consumers."""
     key = str(part_key or "")
-    if key == "base_plate":
+    if key == "base_plate" and (payload or {}).get("_use_committed_relief") is not False:
+        # Manufacturing-request raw input passes _use_committed_relief=False.
+        # Do NOT request final geometry while assembling that very request:
+        # it would recursively re-enter this provider on every project switch.
+        # Raw manufacturing keeps the original PartSpec factory below; the
+        # operator 2D click instead reads the completed canonical PartRenderData.
         # Restored Receiving v3 single-tier NFB uses the ORIGINAL one
         # BasePlate. Query the exact PartRenderData used by assembly/3D,
         # including actual unfolded sheet topology, not a legacy generic
