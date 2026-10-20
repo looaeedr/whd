@@ -25,6 +25,7 @@ class CadcraftDrawingSnapshot:
     entities: tuple[dict, ...]
     counts: dict[str, int]
     dirty: bool
+    path: str | None = None
 
 
 class CadcraftControlClient:
@@ -140,11 +141,14 @@ class CadcraftControlClient:
             if row["handle"] in handles:
                 raise CadcraftControlError("CADCRAFT_DUPLICATE_ENTITY_HANDLE")
             handles.add(row["handle"])
-        if not isinstance(result.get("space"), str) or not isinstance(result.get("dirty"), bool):
+        if (not isinstance(result.get("space"), str)
+                or not isinstance(result.get("dirty"), bool)
+                or result.get("path") is not None and not isinstance(result["path"], str)):
             raise CadcraftControlError("CADCRAFT_INSPECTION_UNKNOWN_DOCUMENT_STATE")
         return CadcraftDrawingSnapshot(
             space=result["space"], entity_count=total,
             entities=tuple(rows), counts=dict(counts), dirty=result["dirty"],
+            path=result.get("path"),
         )
 
     def execute_whd_draw(self, instructions: tuple) -> CadcraftDrawingSnapshot:
