@@ -161,9 +161,6 @@ def save_part_render_data_dxf(
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
     metadata = getattr(render_data, "metadata", None) or {}
-    # The same per-tier physical FinalScene may be shown in 2D/3D, but
-    # its EAR/BEND/NFB source remains unreleased. Reject direct DXF too.
-    _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
     blocked = metadata.get("baseline_fit_error")
     if blocked:
         raise ValueError(str(blocked))
@@ -172,6 +169,9 @@ def save_part_render_data_dxf(
     if (metadata.get("nfb_v5_trial_status")
             and metadata.get("nfb_trial_export_approved") is not True):
         raise ValueError("NFB V5 未驗證試作禁止使用正式製造 DXF 輸出")
+    # Specific V5 trial guard takes priority, then the more general tier
+    # physical-base gate handles unsourced/forged non-V5 scenes.
+    _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
     return _manufacturing_export.save_part_render_data_dxf(
         render_data.scene,
         output_path,
