@@ -29,6 +29,7 @@ on:
       - "gui_modules/editors/hole_editor_view.py"
       - "tests/test_issue1959_cadcraft_command_preview_button.py"
       - "tests/test_issue1959_cadcraft_command_button_live_tk.py"
+      - "tests/test_issue1959_native_windows_whd_button_e2e.py"
       - ".github/workflows/whd-issue1959-cadcraft-command-draw.yml"
   workflow_dispatch:
 
@@ -273,6 +274,14 @@ jobs:
           print("WINDOWS_NATIVE_VENDOR_GUI_TCP_UNSAVED_WHD_SESSION_GREEN")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "WINDOWS_NATIVE_GUI_TCP_RECEIPT_INVALID" }
+      - name: Real WHD Tk button opens native CADCraft GUI and live unsaved return Confirm Undo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue1959-native-button-config"
+          python -m pytest -q tests/test_issue1959_native_windows_whd_button_e2e.py
+          if ($LASTEXITCODE -ne 0) { throw "WHD_WINDOWS_NATIVE_TK_BUTTON_CADCRAFT_TCP_RED" }
+          Write-Host "REAL_WINDOWS_WHD_TK_NATIVE_CADCRAFT_UNSAVED_RETURN_GREEN"
       - name: Windows native CADCraft draws actual WHD holes and saves disposable PNG DXF
         shell: pwsh
         run: |
