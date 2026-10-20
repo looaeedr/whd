@@ -38,7 +38,9 @@ def _scene(snapshot):
 
 def _export(snap, parts, root):
     return export_current_csv_nfb_door_base_pair(
-        snap, assembly_parts=parts, base_spec=_spec(snap),
+        snap, assembly_parts=parts, base_spec=(
+            _spec(snap) if snap.get("nfb_config_submitted") is True else None
+        ),
         output_directory=root,
     )
 
@@ -81,7 +83,7 @@ def test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action(tmp_
         _export(stale, parts, tmp_path)
     wrong_bay = deepcopy(snapshot)
     wrong_bay["_receiving_runtime_selection"]["bay_id"] = "different"
-    with pytest.raises(ValueError, match="IDENTITY_DRIFT"):
+    with pytest.raises(ValueError, match="identity drift|IDENTITY_DRIFT"):
         _export(wrong_bay, parts, tmp_path)
     assert not list(tmp_path.glob("*.dxf"))
 

@@ -29,6 +29,9 @@ from ae_engine.receiving_nfb_committed_final_scene import (
 )
 from ae_engine.sheetmetal_drawing import LinePrimitive
 from phase6_quantity_manufacturing import QuantityManufacturingBatch
+from phase6_manufacturing_contracts import (
+    freeze_manufacturing_value, thaw_manufacturing_value,
+)
 from phase6_quantity_model import QuantityModel
 from ae_engine.receiving_csv_quantity_manufacturing import (
     export_current_csv_quantity_manufacturing,
@@ -98,7 +101,8 @@ def _batch():
         count=3 if vid==first else 2
         versions.append(ResolvedQuantityVersion(vid,count,geom))
         requests.append((vid,count,SimpleNamespace(
-            input_snapshot=snap,settings={"t":2.},parts=(),
+            input_snapshot=freeze_manufacturing_value(snap),
+            settings=freeze_manufacturing_value({"t":2.}),parts=(),
         )))
     demands=resolved_quantity_physical_demands(versions)
     return QuantityManufacturingBatch(
@@ -144,14 +148,18 @@ def test_both_actual_versions_sum_five_identical_base_and_ear_pieces(tmp_path):
 def test_each_version_uses_current_saved_csv_not_other_selected_version(tmp_path):
     batch=_batch()
     req=list(batch.requests)
-    first_snapshot=deepcopy(req[0][2].input_snapshot)
-    altered=deepcopy(req[1][2].input_snapshot)
+    first_snapshot=thaw_manufacturing_value(req[0][2].input_snapshot)
+    altered=thaw_manufacturing_value(req[1][2].input_snapshot)
     altered["nfb_config"]=deepcopy(first_snapshot["nfb_config"])
     altered["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
         altered["nfb_config"]
     )
     broken=replace(batch,requests=(req[0],(req[1][0],req[1][1],
-        SimpleNamespace(input_snapshot=altered,settings={"t":2.},parts=()))))
+        SimpleNamespace(
+            input_snapshot=freeze_manufacturing_value(altered),
+            settings=freeze_manufacturing_value({"t":2.}),
+            parts=(),
+        ))))
     with pytest.raises(ValueError,match="SAVED_SOURCE_NOT_CURRENT"):
         _export(broken,tmp_path)
     assert not list(tmp_path.glob("*.dxf"))
@@ -159,18 +167,34 @@ def test_each_version_uses_current_saved_csv_not_other_selected_version(tmp_path
 
 def test_changed_second_version_hole_does_not_export_stale_geometry(tmp_path):
     batch=_batch()
-    second=deepcopy(batch.requests[1][2].input_snapshot)
+    second=thaw_manufacturing_value(batch.requests[1][2].input_snapshot)
     second["nfb_config"]["holes"][0]["manual_x_mm"]+=15.
     second["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
         second["nfb_config"]
     )
+    # Reconstruct the same strictly typed identity fields as the actual
+    # Phase6 quantity CSV manufacturing entrance before modifying the saved
+    # version. Positive piece-count is checked by QuantityModel, not coerced
+    # into an arbitrary permissive number.
+    from ae_engine.receiving_csv_quantity_manufacturing import (
+        restore_frozen_quantity_integer_identity,
+    )
+    second = restore_frozen_quantity_integer_identity(second)
+    second["quantity"]["versions"] = [
+        {**row, "piece_count": int(row["piece_count"])}
+        for row in second["quantity"]["versions"]
+    ]
     q=QuantityModel.from_payload(second["quantity"])
     q.set_version_nfb_config(q.selected_version_id,submitted=True,
                              config=second["nfb_config"])
     second["quantity"]=q.snapshot()
     modified=replace(batch,requests=(batch.requests[0],
         (batch.requests[1][0],batch.requests[1][1],
-         SimpleNamespace(input_snapshot=second,settings={"t":2.},parts=()))))
+         SimpleNamespace(
+            input_snapshot=freeze_manufacturing_value(second),
+            settings=freeze_manufacturing_value({"t":2.}),
+            parts=(),
+        ))))
     with pytest.raises(ValueError,match="SOURCE_DRIFT|CURRENT"):
         _export(modified,tmp_path)
     assert not list(tmp_path.glob("*.dxf"))

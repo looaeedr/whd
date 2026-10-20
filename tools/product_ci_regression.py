@@ -167,6 +167,16 @@ PYTEST_PATHS = (
     "tests/test_issue1502_v5_csv_check_q_preview.py",
     "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
     "tests/test_issue1502_nfb_finalscene_composite.py",
+    # Mandatory actual 2D/3D/DXF acceptance for current numeric CSV source:
+    # The earlier CI list omitted these new production tests, so GREEN did
+    # not establish saved-DXF reopen, EAR, quantity or multi-Bay coverage.
+    "tests/test_issue1502_csv_is_only_normal_finalscene_source.py",
+    "tests/test_issue1502_current_csv_original_pair_dxf.py",
+    "tests/test_issue1502_current_csv_original_two_tier_dxf.py",
+    "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py",
+    "tests/test_issue1502_single_button_full_csv_receiving_export.py",
+    "tests/test_issue1502_quantity_current_csv_full_batch.py",
+    "tests/test_issue1502_current_csv_multi_bay_once.py",
     "tests/test_issue1502_lower_four_nfb_mount_source.py::test_only_original_lower_four_circles_are_mounting_screws",
     "tests/test_issue1502_lower_four_nfb_mount_source.py::test_source_lower_circle_mismatch_cannot_guess_a_quartet",
     "tests/test_issue1502_lower_four_nfb_mount_source.py::test_native_lower_screw_needs_matching_upper_NFB_source_identity",

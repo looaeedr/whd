@@ -337,6 +337,67 @@ def _export_selected_resolved_parts(self, folder, flags):
             self._phase6_nfb_partial_export_report = report
         return (names, [])
 
+    # A Set/Bay production run must output EVERY physical Bay, not merely
+    # the currently selected Bay. Reuse precisely the same current Bay
+    # resolver that feeds the ordinary 2D/3D preview, de-translate its world
+    # assembly anchor back to local sheet coordinates, then validate/serialize
+    # each Bay under its stable Set/Bay namespace in ONE atomic transaction.
+    receiving_live = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+    raw_layout = receiving_live.get("receiving_layout") or {}
+    raw_sets = raw_layout.get("sets", ()) if isinstance(raw_layout, dict) else ()
+    # Only a real multi-Bay topology enters the multi-Bay machinery.
+    # Older single-Bay NFB snapshots legitimately lack canonical schema/
+    # dimensions; validating those through the multi-Bay path would break
+    # previously verified ordinary single-box exports.
+    physical_count = sum(
+        len(row.get("bays", ())) for row in raw_sets
+        if isinstance(row, dict)
+    ) if isinstance(raw_sets, (list, tuple)) else 0
+    if (receiving_live.get("model") == "受電箱"
+            and receiving_live.get("active_mode", "set_bay") == "set_bay"
+            and physical_count > 1):
+        from ae_engine.receiving_layout import (
+            normalize_receiving_layout, receiving_bay_assembly_offsets,
+        )
+        saved_layout = normalize_receiving_layout(raw_layout)
+        if physical_count != sum(len(s["bays"]) for s in saved_layout["sets"]):
+            raise ValueError("多連實體連數與目前標準組合體資料不一致")
+        if physical_count > 1:
+            import fold_designer_bridge as receiving_bridge
+            from ae_engine.contracts import (
+                ResolvedManufacturingGeometry, ResolvedManufacturingPart,
+            )
+            from ae_engine.receiving_csv_multibay_manufacturing import (
+                export_current_receiving_multibay_dxf,
+            )
+            composition = receiving_bridge._phase6_composition(designer)
+            def actual_bay_geometry(set_index, bay_index):
+                current = composition.receiving_bay_preview_request(
+                    vars(receiving_bridge), set_index, bay_index,
+                )
+                anchor = receiving_bay_assembly_offsets(
+                    saved_layout, set_index=set_index,
+                )[bay_index]
+                physical = tuple(
+                    ResolvedManufacturingPart(
+                        part_key=p.part_key,render_data=p.render_data,
+                        x_profile=p.x_profile,y_profile=p.y_profile,
+                        placement=p.placement,
+                        offset=tuple(float(x)-float(y)
+                                     for x,y in zip(p.offset, anchor)),
+                    )
+                    for p in current.render_data.assembly_parts
+                )
+                if any(p.placement == "standalone" for p in physical):
+                    raise ValueError("多連出圖禁止以單件預覽取代組合體實體")
+                return ResolvedManufacturingGeometry(parts=physical)
+            outputs = export_current_receiving_multibay_dxf(
+                receiving_live,
+                physical_bay_geometry_provider=actual_bay_geometry,
+                flags=flags,output_dir=folder,overwrite=True,
+            )
+            return ([os.path.basename(path) for path in outputs.values()], [])
+
     # #1503: the original selected-DXF action applies authenticated EAR
     # positioning marks to LEFT/RIGHT physical side plates automatically.
     # No extra operator button or forged cabinet/PAD release.

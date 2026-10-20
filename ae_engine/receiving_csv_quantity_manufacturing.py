@@ -28,6 +28,36 @@ from .drawing_annotation_layout import annotate_quantity_render_data
 from .dxf_serialization import verify_quantity_check_dxf
 
 
+def restore_frozen_quantity_integer_identity(value, key=None):
+    """Restore only schema-defined integer fields lost by Phase6 Real DTOs.
+
+    Preserve arbitrary floating dimensions and X/Y/Z; reject nonintegral,
+    nonfinite or boolean identity values instead of making manufacturing
+    identity permissive.
+    """
+    from math import isfinite
+    keys = frozenset((
+        "rotation_deg", "layer_count", "layer_index", "slot_index",
+        "set_index", "bay_index", "inner_door_layers",
+        "receiving_inner_door_layers", "next_version_number",
+    ))
+    if isinstance(value, dict):
+        return {name: restore_frozen_quantity_integer_identity(item, name)
+                for name, item in value.items()}
+    if isinstance(value, list):
+        return [restore_frozen_quantity_integer_identity(item)
+                for item in value]
+    if key in keys and value is not None:
+        if (type(value) not in (int, float) or not isfinite(value)
+                or int(value) != value):
+            raise ValueError(
+                "RECEIVING_CSV_QUANTITY_FROZEN_INTEGER_IDENTITY_INVALID:"
+                + str(key)
+            )
+        return int(value)
+    return value
+
+
 def export_current_csv_quantity_manufacturing(
     batch, output_dir, *, flags, overwrite=False,
 ):
@@ -61,11 +91,31 @@ def export_current_csv_quantity_manufacturing(
         raise ValueError("RECEIVING_CSV_QUANTITY_VERSION_IDENTITY_MISMATCH")
     chosen = []
     marked_receipts = []
+    verified_csv_owners = set()
     for vid, count, request in requests:
         version = versions.get(vid)
         if version is None or version.piece_count != count or count < 1:
             raise ValueError("RECEIVING_CSV_QUANTITY_COUNT_VERSION_DRIFT")
         snapshot = thaw_manufacturing_value(request.input_snapshot)
+        snapshot = restore_frozen_quantity_integer_identity(snapshot)
+        # The immutable Phase6 contract represents EVERY Real as float, so
+        # persisted piece_count 3 becomes 3.0 when thawed. Restore ONLY
+        # quantity version counts already independently confirmed by the
+        # typed QuantityManufacturingBatch; nonintegral/negative/forged
+        # counts remain rejected rather than weakening QuantityModel.
+        from math import isfinite
+        restored = []
+        for row in snapshot["quantity"]["versions"]:
+            expected_version = versions.get(row["version_id"])
+            piece = row["piece_count"]
+            if (expected_version is None or type(expected_version.piece_count) is not int
+                    or type(piece) not in (int, float)
+                    or not isfinite(piece)
+                    or piece <= 0 or int(piece) != piece
+                    or int(piece) != expected_version.piece_count):
+                raise ValueError("RECEIVING_CSV_QUANTITY_FROZEN_PIECE_COUNT_DRIFT")
+            restored.append({**row, "piece_count": int(piece)})
+        snapshot["quantity"] = {**snapshot["quantity"], "versions": restored}
         persisted = QuantityModel.from_payload(snapshot["quantity"])
         if persisted.selected_version_id != vid:
             raise ValueError("RECEIVING_CSV_QUANTITY_SELECTED_VERSION_DRIFT")
@@ -141,6 +191,7 @@ def export_current_csv_quantity_manufacturing(
                 tuple(row for row in rows if row[0] not in permitted),
                 part_only=False,
             )
+            verified_csv_owners.update((vid,key) for key in permitted)
             for d in selected:
                 chosen.append(replace(d,render_data=current[d.physical_id]))
             if body_selected:
@@ -188,7 +239,19 @@ def export_current_csv_quantity_manufacturing(
         for group in groups:
             render=annotate_quantity_render_data(group.render_data,group.quantity)
             target=Path(stage)/group.filename
-            save_part_render_data_dxf(render,target,overwrite=False)
+            member_ids={(row.version_id,row.physical_id)
+                        for row in group.members}
+            if member_ids.issubset(verified_csv_owners):
+                from .dxf_serialization import save_scene_dxf
+                save_scene_dxf(target,render.scene)
+            else:
+                # A mixed verified/unverified group can NEVER inherit
+                # a CSV source authorization through equivalence grouping.
+                if (getattr(render,"metadata",None) or {}).get(
+                    "nfb_v5_trial_status"
+                ):
+                    raise ValueError("RECEIVING_CSV_QUANTITY_GROUP_MIXED_PROOF")
+                save_part_render_data_dxf(render,target,overwrite=False)
             if not verify_saved_part_render_data_dxf(render,target).ok:
                 raise ValueError("RECEIVING_CSV_QUANTITY_SAVED_DXF_REOPEN_FAILED")
             verify_quantity_check_dxf(render.scene,target)

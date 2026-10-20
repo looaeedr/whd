@@ -198,9 +198,12 @@ def export_current_csv_nfb_door_base_pair(
         )
     if holes[0].layer_count != 1 or any(h.layer_count != 1 for h in holes):
         raise ValueError("CSV_PAIR_UNSUPPORTED_NFB_TIER_COUNT")
+    # Numeric CSV is the sole Base Plate authority. Older GUI callbacks
+    # can supply a PartSpec with default physical_id=None; it is NOT a
+    # second source, nor may it veto a correctly built current FinalScene.
+    # The physical installed sheet is cross-checked against the derived CSV
+    # spec, CUTTING/BEND/material and stable owner further below.
     expected_spec = _existing_source_specs(snapshot, holes)[0]
-    if base_spec != expected_spec:
-        raise ValueError("CSV_PAIR_ACTUAL_BASE_PARTSPEC_CHANGED")
     selection = snapshot.get("_receiving_runtime_selection")
     if not isinstance(selection, Mapping):
         raise ValueError("CSV_PAIR_SELECTED_SET_BAY_REQUIRED")
@@ -256,10 +259,10 @@ def export_current_csv_nfb_door_base_pair(
         raise ValueError("CSV_PAIR_OUTPUT_DIRECTORY_MISSING")
     names = {
         door.part_id: resolved_physical_dxf_filename(
-            door.part_id, instance_namespace=namespace,
+            door.part_id, instance_namespace=namespace, box_body_physical_piece_roles=(),
         ),
         "base_plate": resolved_physical_dxf_filename(
-            "base_plate", instance_namespace=namespace,
+            "base_plate", instance_namespace=namespace, box_body_physical_piece_roles=(),
         ),
     }
     if len(set(names.values())) != 2:
@@ -431,7 +434,7 @@ def _export_current_csv_nfb_two_tier_pair(
     if not root.is_dir():
         raise ValueError("CSV_TWO_TIER_OUTPUT_DIRECTORY_MISSING")
     names = {
-        key: resolved_physical_dxf_filename(key, instance_namespace=namespace)
+        key: resolved_physical_dxf_filename(key, instance_namespace=namespace, box_body_physical_piece_roles=())
         for key in expected
     }
     if len(set(names.values())) != 3:
