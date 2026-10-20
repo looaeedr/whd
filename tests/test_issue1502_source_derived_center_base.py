@@ -185,3 +185,66 @@ def test_two_tier_committed_holes_do_not_reuse_one_root_flat_plate():
         snap["nfb_config"]
     )
     assert receiving_base_plate_values(snap) is None
+
+
+def test_submitted_csv_source_overrides_stale_saved_pattern_and_dimensions():
+    # Real old projects may have a manually chosen RIGHT pattern. That is
+    # neither a manufacturing authority nor a reason to bypass submitted CSV.
+    snap = _source_snapshot()
+    snap["receiving_base_plate"] = {
+        "pattern": "RIGHT_FLAT_SIDE", "height": 360.,
+        "shrink_top": 20., "shrink_bottom": 20.,
+        "shrink_left": 45., "shrink_right": 45., "bend": 20.,
+    }
+    selected = receiving_base_plate_values(snap)
+    assert selected["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
+    assert selected["receiving_nfb_depth_pair_mm"] == (107., 72.)
+    assert receiving_base_plate_blank_dimensions(snap) == (772., 240.)
+    # Source resolution must not overwrite operator project data on a read.
+    assert snap["receiving_base_plate"]["pattern"] == "RIGHT_FLAT_SIDE"
+
+
+def test_submitted_single_400_source_replaces_obsolete_manual_width():
+    snap = _submitted_one_shihlin_400(width=750.)
+    snap["receiving_base_plate"] = {
+        "pattern": "LEFT_FLAT_SIDE", "height": 340.,
+        "shrink_top": 20., "shrink_bottom": 20.,
+        "shrink_left": 45., "shrink_right": 45., "bend": 20.,
+    }
+    values = receiving_base_plate_values(snap)
+    assert values["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert values["base_plate_shrink_left"] == 45.
+    assert receiving_base_plate_blank_dimensions(snap) == (660., 300.)
+    # Even when width varies, installed slot pitch is always from current W/T.
+    assert receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=750., box_side_thickness_mm=2.,
+    ) == 620.
+
+
+def test_unknown_submitted_csv_plate_cannot_borrow_manual_pattern():
+    snap = _submitted_one_shihlin_400()
+    snap["nfb_config"]["holes"][0]["model_filename"] = "nfbv5:士林:3P125SN"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    snap["receiving_base_plate"] = {
+        "pattern": "RIGHT_FLAT_SIDE", "height": 360.,
+        "shrink_top": 20., "shrink_bottom": 20.,
+        "shrink_left": 45., "shrink_right": 45., "bend": 20.,
+    }
+    assert receiving_base_plate_values(snap) is None
+    assert receiving_base_plate_blank_dimensions(snap) is None
+
+
+def test_unsubmitted_legacy_edit_remains_previewable_but_not_csv_certified():
+    snap = _source_snapshot()
+    snap["nfb_config_submitted"] = False
+    old = {
+        "pattern": "LEFT_FLAT_SIDE", "height": 340.,
+        "shrink_top": 20., "shrink_bottom": 20.,
+        "shrink_left": 45., "shrink_right": 45., "bend": 20.,
+    }
+    snap["receiving_base_plate"] = old
+    values = receiving_base_plate_values(snap)
+    assert values["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert values["receiving_nfb_reference_depth_mm"] is None
