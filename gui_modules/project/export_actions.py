@@ -340,9 +340,29 @@ def _export_selected_resolved_parts(self, folder, flags):
     if not tuple(getattr(selected, "parts", ()) or ()):
         return ([], ["canonical resolved export: no selected physical parts"])
 
-    outputs = manufacturing_api.save_resolved_manufacturing_geometry_dxf(
-        selected, folder, overwrite=True,
+    # Current submitted Receiving Base Plates own physical fixing sheets.
+    # Validate real signed folds / side weld contact before committing those
+    # source CUTTING/BEND sheets WITH the ordinary SIDE MARKING in one batch.
+    # Historical side-only scenes without an installed base stay compatible.
+    physical_base_present = auto_side and any(
+        str(getattr(part, "part_key", "")) == "base_plate"
+        or str(getattr(part, "part_key", "")).startswith("base_plate:nfb_layer:")
+        for part in tuple(getattr(unmarked, "parts", ()) or ())
     )
+    if physical_base_present:
+        from ae_engine.receiving_fixed_plate_formed_manufacturing import (
+            save_verified_receiving_formed_fixing_plate_bundle,
+        )
+        bundle = save_verified_receiving_formed_fixing_plate_bundle(
+            receiving_snapshot, unmarked, selected, folder,
+            dimensions=dimensions, sheet_thickness=sheet_thickness,
+            overwrite=True,
+        )
+        outputs = dict(bundle.output_paths)
+    else:
+        outputs = manufacturing_api.save_resolved_manufacturing_geometry_dxf(
+            selected, folder, overwrite=True,
+        )
     if auto_side:
         # Independently reopen the actual serialized SIDE drawings and compare
         # every source-world-derived MARKING coordinate before the outer
