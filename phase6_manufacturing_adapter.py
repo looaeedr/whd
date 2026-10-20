@@ -493,6 +493,24 @@ def _canonical_part_keys(app: Any) -> tuple[str, ...]:
     workspace = getattr(app, "designer_workspace", None)
     values = tuple(getattr(workspace, "available_parts", ()) or ())
     snapshot = getattr(app, "_phase6_input_snapshot", None)
+    # A saved Receiving v3 may have an old workspace existing_parts list
+    # without BasePlate even while its current submitted NFB CSV + actual
+    # original physical source prove that BasePlate is required. Register
+    # exactly that ONE physical root source in the manufacturing request;
+    # the canonical two-tier expander owns its replacement by tier blanks.
+    # This does NOT mutate existing_parts, invent a missing blank, or grant
+    # manufacturing readiness. No submitted/unique original -> no part.
+    if (isinstance(snapshot, Mapping)
+            and snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("nfb_config_submitted") is True
+            and "base_plate" not in values):
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+        try:
+            verified_source = receiving_base_plate_values(snapshot)
+        except (ValueError, TypeError, KeyError):
+            verified_source = None
+        if verified_source is not None:
+            values = values + ("base_plate",)
     if (isinstance(snapshot, Mapping)
             and snapshot.get("model") in ("受電箱", "RECEIVING")
             and snapshot.get("nfb_config_submitted") is True

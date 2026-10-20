@@ -120,6 +120,39 @@ def load_phase6_project(self, path, *, open_designer=True):
             _apply_mode_snapshot(bridge._phase6_composition(designer), vars(bridge), snapshot)
             designer._refresh_part_buttons()
             designer._phase6_current_project_path = str(Path(path))
+        # #1503 real Windows saved v3: the authoritative project's original
+        # Receiving BasePlate mapping is persisted in .p6fold but the newly
+        # created designer initially projects only visible UI knobs and loses
+        # this source. Restore its original mapping into the effective
+        # designer snapshot BEFORE any assembly geometry is consumed.
+        # No new data or missing BasePlate is invented; source CSV and
+        # manufacturing checks still have to prove the part independently.
+        if (snapshot.get("model") in ("受電箱", "RECEIVING")
+                and "receiving_base_plate" in snapshot):
+            from copy import deepcopy
+            effective = getattr(designer, "_phase6_input_snapshot", None)
+            if isinstance(effective, dict):
+                effective["receiving_base_plate"] = deepcopy(
+                    snapshot["receiving_base_plate"]
+                )
+        # Rebuild the operator 2D navigator AFTER the saved physical source
+        # reaches the effective Designer. Original Designer initialization
+        # happens before this restore, so its first derived sync sees only
+        # box_body and silently omits both the base and per-tier child parts.
+        # An unsubmitted or unresolvable source cannot gain new presence.
+        effective = getattr(designer, "_phase6_input_snapshot", None)
+        if (isinstance(effective, dict)
+                and effective.get("model") in ("受電箱", "RECEIVING")
+                and effective.get("nfb_config_submitted") is True):
+            from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+            try:
+                verified_source = receiving_base_plate_values(effective)
+            except (ValueError, TypeError, KeyError):
+                verified_source = None
+            if verified_source is not None:
+                import fold_designer_bridge as bridge
+                bridge._phase6_sync_authoritative_derived_parts(designer)
+                designer._refresh_part_buttons()
         active = snapshot.get("active_part") or (snapshot.get("workspace") or {}).get("active_part")
         if active in getattr(designer, "available_parts", ()):
             designer.activate_part(active)

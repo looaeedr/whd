@@ -372,6 +372,46 @@ def _query_fold_designer_render_data(self, part_key, payload):
         payload = collect_door_input(payload)
     """Return the same authoritative final geometry used by 2D consumers."""
     key = str(part_key or "")
+    if key == "base_plate" and (payload or {}).get("_use_committed_relief") is not False:
+        # Manufacturing-request raw input passes _use_committed_relief=False.
+        # Do NOT request final geometry while assembling that very request:
+        # it would recursively re-enter this provider on every project switch.
+        # Raw manufacturing keeps the original PartSpec factory below; the
+        # operator 2D click instead reads the completed canonical PartRenderData.
+        # Restored Receiving v3 single-tier NFB uses the ORIGINAL one
+        # BasePlate. Query the exact PartRenderData used by assembly/3D,
+        # including actual unfolded sheet topology, not a legacy generic
+        # box-width shrink preview that silently omits physical EAR slots.
+        owner = getattr(self, "fold_designer_app", None)
+        current = getattr(owner, "_phase6_input_snapshot", None)
+        if (isinstance(current, Mapping)
+                and current.get("model") in ("受電箱", "RECEIVING")
+                and current.get("nfb_config_submitted") is True
+                and isinstance(current.get("nfb_config"), Mapping)
+                and current["nfb_config"].get("layer_count") == 1):
+            from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+            try:
+                known_base = receiving_base_plate_values(current)
+            except (ValueError, TypeError, KeyError):
+                known_base = None
+            if known_base is not None:
+                resolved = getattr(owner, "_phase6_last_resolved_manufacturing_geometry", None)
+                found = next(
+                    (part for part in tuple(getattr(resolved, "parts", ()) or ())
+                     if str(part.part_key) == key), None,
+                )
+                if found is None:
+                    resolver = getattr(owner, "_phase6_resolve_manufacturing_geometry", None)
+                    if not callable(resolver):
+                        raise ValueError("RECEIVING_ONE_TIER_2D_SOURCE_UNAVAILABLE")
+                    resolved = resolver()
+                    found = next(
+                        (part for part in tuple(getattr(resolved, "parts", ()) or ())
+                         if str(part.part_key) == key), None,
+                    )
+                if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
+                    raise ValueError("RECEIVING_ONE_TIER_2D_PHYSICAL_PART_MISSING")
+                return found.render_data
     if key.startswith("base_plate:nfb_layer:"):
         # The 2D part selector may address either physical tier directly.
         # Its source is the current already-resolved canonical assembly,
