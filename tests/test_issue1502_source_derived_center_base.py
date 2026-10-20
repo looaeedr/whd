@@ -209,7 +209,8 @@ def test_submitted_single_400_source_replaces_obsolete_manual_width():
     snap["receiving_base_plate"] = {
         "pattern": "LEFT_FLAT_SIDE", "height": 340.,
         "shrink_top": 20., "shrink_bottom": 20.,
-        "shrink_left": 45., "shrink_right": 45., "bend": 20.,
+        # Stale W800-derived margins cannot be used at a new physical width.
+        "shrink_left": 85., "shrink_right": 85., "bend": 20.,
     }
     values = receiving_base_plate_values(snap)
     assert values["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
