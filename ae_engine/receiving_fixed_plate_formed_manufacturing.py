@@ -311,9 +311,11 @@ def save_verified_receiving_formed_fixing_plate_bundle(
             snapshot, original_geometry, selected_marked_geometry,
         )
         source_selected = {
-            key for key,_,_ in standard_rows
+            key for key,_,render in standard_rows
             if key == "base_plate" or key.startswith("base_plate:nfb_layer:")
-            or key.startswith("inner_door:")
+            or bool((getattr(render, "metadata", None) or {}).get(
+                "nfb_v5_trial_status"
+            ))
         }
         if not source_selected.issubset(approved_csv):
             raise ValueError("RECEIVING_FULL_NFB_UNPROVEN_SELECTED_PHYSICAL_SHEET")
@@ -382,3 +384,60 @@ def save_verified_receiving_formed_fixing_plate_bundle(
         source_sha256=SOURCE_DXF_SHA256,
         physical_contact_area_mm2=sum(x.physical_contact_area_mm2 for x in side_contact),
     )
+
+
+def save_verified_receiving_csv_selected_sheets(
+    snapshot, original_geometry, selected_geometry, output_dir, *,
+    overwrite=False,
+):
+    """Normal DXF when only door/base selected, without forcing SIDE selection.
+
+    Same single source + source-geometry/CHECK-Q/installed-XYZ proof as full
+    Receiving output. No fake EAR or unrequested physical SIDE DXFs.
+    """
+    from .manufacturing_export import (
+        _reject_unapproved_nfb_pad_ear_manufacturing,
+        reject_unverified_receiving_nfb_tier_base,
+        _validate_nfb_base_part_scope,
+    )
+    approved = _verified_current_csv_manufacturing_owners(
+        snapshot, original_geometry, selected_geometry,
+    )
+    rows = tuple(
+        (key, _resolved_physical_dxf_filename(key), render)
+        for key,render in resolved_physical_render_parts(selected_geometry)
+    )
+    if not rows or not approved:
+        raise ValueError("RECEIVING_CSV_SELECTED_NO_PHYSICAL_NFB_SHEETS")
+    nfb_rows = {
+        key for key,_,render in rows
+        if (key == "base_plate" or key.startswith("base_plate:nfb_layer:")
+            or (getattr(render,"metadata",None) or {}).get("nfb_v5_trial_status"))
+    }
+    if not nfb_rows.issubset(approved):
+        raise ValueError("RECEIVING_CSV_SELECTED_UNVERIFIED_PART")
+    _reject_unapproved_nfb_pad_ear_manufacturing(rows)
+    for key,_,render in rows:
+        if key not in approved:
+            reject_unverified_receiving_nfb_tier_base(render,output_key=key)
+    _validate_nfb_base_part_scope(
+        tuple(row for row in rows if row[0] not in approved),part_only=False,
+    )
+    if len({key for key,_,_ in rows}) != len(rows):
+        raise ValueError("RECEIVING_CSV_SELECTED_DUPLICATED_PHYSICAL_OWNER")
+    root=Path(output_dir)
+    if not overwrite and any((root/name).exists() for _,name,_ in rows):
+        raise FileExistsError("RECEIVING_CSV_SELECTED_EXISTING_DXF")
+    root.mkdir(parents=True,exist_ok=True)
+    with TemporaryDirectory(prefix=".whd-csv-selected-",dir=str(root)) as stage:
+        candidates={}
+        for key,name,render in rows:
+            target=Path(stage)/name
+            save_part_render_data_dxf(render,target,overwrite=False)
+            receipt=verify_saved_part_render_data_dxf(render,target)
+            if not receipt.ok:
+                raise ValueError("RECEIVING_CSV_SELECTED_DXF_REOPEN_FAILED:" + key)
+            candidates[key]=target
+        return _atomic_commit_staged_dxfs(
+            candidates,root,overwrite=overwrite,
+        )
