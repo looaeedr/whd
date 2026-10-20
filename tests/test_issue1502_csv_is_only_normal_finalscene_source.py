@@ -277,3 +277,34 @@ def test_changed_csv_hash_or_ambiguous_editor_feature_must_not_generate_screws()
     assert _source_world_x_from_committed_editor_feature(
         snap,panel,row,brand="士林",model="2P400",
     ) is None
+
+
+def test_frozen_manufacturing_dto_recovers_typed_hole_editor_features():
+    from phase6_manufacturing_contracts import (
+        freeze_manufacturing_value, thaw_manufacturing_value,
+    )
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        _physical_feature_from_transport, _without_derived_csv_door_features,
+    )
+    from ae_engine.sheetmetal_feature_core import (
+        ProfileFeature, FeatureAnchor,
+    )
+    from ae_engine.sheetmetal_geometry import Vec2
+    source = ProfileFeature(
+        points=(Vec2(40.,40.), Vec2(60.,40.),
+                Vec2(60.,70.), Vec2(40.,70.)),
+        anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(0.,0.),
+        layer="CUTTING", source_type="NFB_CSV_SOURCE",
+        source_params=(("part_id","inner_door:upper:panel"),),
+    )
+    raw = thaw_manufacturing_value(freeze_manufacturing_value(source))
+    assert isinstance(raw, dict)
+    assert raw["__dataclass_type__"].endswith(".ProfileFeature")
+    assert _physical_feature_from_transport(raw) == source
+    saved = _current()
+    saved["part_features"] = {"inner_door:upper:panel": (source,)}
+    frozen = thaw_manufacturing_value(freeze_manufacturing_value(saved))
+    projected = _without_derived_csv_door_features(frozen, "upper")
+    assert projected["part_features"]["inner_door:upper:panel"] == ()
+    assert frozen["part_features"]["inner_door:upper:panel"][0] == raw
