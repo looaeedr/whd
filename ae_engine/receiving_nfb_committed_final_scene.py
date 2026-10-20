@@ -303,10 +303,19 @@ def _without_derived_csv_door_features(snapshot, inner_door_id):
         original = store[part_id]
         if not isinstance(original, (tuple, list)):
             raise ValueError("NFB_COMMITTED_CSV_DOOR_FEATURES_INVALID")
-        typed = tuple(_physical_feature_from_transport(p) for p in original)
+        # Remove a derived alias *before* restoring any transport DTO.
+        # A discarded CSV-only alias must never fail the ordinary editor
+        # projection merely because an old in-memory preview still holds a
+        # compatibility object. Other user-authored features stay untouched;
+        # typed feature validation still applies when the real renderer cuts.
+        def is_csv_alias(feature):
+            if isinstance(feature, Mapping):
+                return feature.get("source_type") == "NFB_CSV_SOURCE"
+            return getattr(feature, "source_type", None) == "NFB_CSV_SOURCE"
         kept = tuple(
-            feature for feature in typed
-            if getattr(feature, "source_type", None) != "NFB_CSV_SOURCE"
+            _physical_feature_from_transport(feature)
+            if isinstance(feature, Mapping) else feature
+            for feature in original if not is_csv_alias(feature)
         )
         # Even if no CSV alias is present, forward restored native Feature
         # dataclasses so the existing inner-door FinalScene never sees raw
