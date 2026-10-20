@@ -253,6 +253,44 @@ def test_cadcraft_approved_features_survive_actual_whd_main_toolbar_save_open(
         assert changed_pixels >= 130 and cyan_visible >= 60, (
             "RELOADED_CADCRAFT_3D_HOLE_RIMS_NOT_VISIBLE_IN_REAL_PIXELS"
         )
+
+        # Real Matplotlib native double-click hit on the actual visible Door
+        # mesh must enter WHD's EXISTING unified Hole Editor (CADCraft opt-in
+        # included). No synthetic sheet or fake part ID is introduced.
+        from matplotlib.backend_bases import MouseButton, MouseEvent
+
+        assert callable(view._hole_double_click_handler), (
+            "REAL_3D_SHEET_DOUBLE_CLICK_EDITOR_NOT_CONNECTED"
+        )
+        artists = [(artist, key) for artist, key in view._hole_pick_artists
+                   if key == "door" and artist.get_visible()]
+        assert len(artists) == 1, "REAL_3D_DOOR_MESH_NOT_PICKABLE"
+        artist, _ = artists[0]
+        bbox = ax.bbox
+        clicked = None
+        for yy in np.linspace(bbox.y0 + 10, bbox.y1 - 10, 17):
+            if clicked is not None:
+                break
+            for xx in np.linspace(bbox.x0 + 10, bbox.x1 - 10, 17):
+                event = MouseEvent(
+                    "button_press_event", canvas,
+                    float(xx), float(yy),
+                    button=MouseButton.LEFT, dblclick=True,
+                )
+                if event.inaxes is ax and artist.contains(event)[0]:
+                    clicked = event
+                    break
+        assert clicked is not None, "VISIBLE_3D_DOOR_CANNOT_BE_HIT_TESTED"
+        assert view.on_hole_mesh_double_click(clicked) == "door"
+        root.update_idletasks()
+        root.update()
+        editor = getattr(app, "last_unified_hole_editor", None)
+        assert editor is not None and editor.winfo_exists(), (
+            "REAL_3D_DOOR_DBLCLICK_DID_NOT_OPEN_ORIGINAL_HOLE_EDITOR"
+        )
+        assert editor._hole_header_cadcraft_draw.cget("text") == "CADCraft 開孔編輯"
+        assert tuple(app.surface_features["door"]) == accepted
+        editor.destroy()
     finally:
         try:
             if app is not None and app.fold_designer_window is not None:
