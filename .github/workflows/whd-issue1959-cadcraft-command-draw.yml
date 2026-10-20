@@ -17,6 +17,8 @@ on:
       - "tests/test_issue1959_whd_real_manufacturing_parity.py"
       - "tests/test_issue1959_cadcraft_windows_native_ci_contract.py"
       - "gui_modules/editors/cadcraft_control_bridge.py"
+      - "gui_modules/editors/cadcraft_live_return_bridge.py"
+      - "tests/test_issue1959_cadcraft_live_return.py"
       - "tests/test_issue1959_cadcraft_tcp_control.py"
       - "tools/issue1959_cadcraft_tcp_native_probe.py"
       - "gui_modules/editors/cadcraft_command_preview_bridge.py"
@@ -53,7 +55,7 @@ jobs:
       - name: Install WHD geometric dependencies and regression runner
         run: python -m pip install -r requirements.txt ezdxf pytest
       - name: Test WHD command conversion and independent fail-closed DXF geometry audit
-        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_cadcraft_relative_location.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_windows_native_ci_contract.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_cadcraft_relative_location.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_windows_native_ci_contract.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_live_return.py
       - name: Actually invoke Hole Editor CADCraft button in a real Tk/Xvfb window
         shell: bash
         run: |
@@ -206,7 +208,7 @@ jobs:
         run: python -m pip install -r requirements.txt ezdxf pytest
       - name: Real Windows WHD coordinate and Session regressions
         shell: pwsh
-        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_command_button_live_tk.py
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_cadcraft_live_return.py
       - name: Verify publisher SHA256 and unpack official Windows x64 CADCraft v0.8.0
         shell: pwsh
         run: |
