@@ -47,7 +47,7 @@ def test_whd_real_tk_button_opens_real_native_cadcraft_and_returns_unsaved_hole(
         launch_button = editor._hole_header_cadcraft_draw
         return_button = editor._hole_header_cadcraft_return
         assert launch_button.cget("text") == "CADCraft 開孔編輯"
-        assert return_button.cget("state") == "disabled"
+        assert str(return_button.cget("state")) == "disabled"
         launch_button.invoke()
 
         def launched():
@@ -59,7 +59,7 @@ def test_whd_real_tk_button_opens_real_native_cadcraft_and_returns_unsaved_hole(
 
         _pump(root, launched, timeout=60)
         assert process.poll() is None
-        assert return_button.cget("state") == "normal"
+        assert str(return_button.cget("state")) == "normal"
         port = editor._hole_cadcraft_control_port
         client = CadcraftControlClient(port, timeout=1)
 
@@ -100,7 +100,7 @@ def test_whd_real_tk_button_opens_real_native_cadcraft_and_returns_unsaved_hole(
         assert features[0] == original
         assert features[1].offset == Vec2(90, 95)
         assert session.has_active_edit is False
-        assert return_button.cget("state") == "disabled"
+        assert str(return_button.cget("state")) == "disabled"
         assert ticket.output.read_bytes() == bytes_before
         assert canvas.winfo_exists()
         session.execute(HoleEditorAction.undo())
