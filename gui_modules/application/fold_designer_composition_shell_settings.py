@@ -328,6 +328,17 @@ def sync_authoritative_derived_parts(
     # lower 500-mm section). Other families keep their existing multi-door
     # base_plate_cN_rN projection unchanged.
     receiving_single_base = str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
+    # Submitted NFB in TWO real tiers replaces the single root physical
+    # BasePlate with TWO canonical tier PartSpecs. The original root remains
+    # an internal manufacturing INPUT (registered at _canonical_part_keys),
+    # never a third item in the operator's 2D selector.
+    receiving_two_tier = (
+        receiving_single_base
+        and snapshot.get("nfb_config_submitted") is True
+        and isinstance(snapshot.get("nfb_config"), Mapping)
+        and snapshot["nfb_config"].get("layer_count") == 2
+    )
+    preserve_navigation_root = receiving_single_base and not receiving_two_tier
     base_plate_profiles = {}
     if door_rows and not receiving_single_base:
         columns = tuple(
@@ -437,7 +448,7 @@ def sync_authoritative_derived_parts(
     )
     single_base_plate_profiles = (
         build_profiles(snapshot, "base_plate")
-        if (not door_rows or receiving_single_base) and "base_plate" in source_parts and "base_plate" not in available_parts
+        if (not door_rows or preserve_navigation_root) and "base_plate" in source_parts and "base_plate" not in available_parts
         else None
     )
     request = build_derived_part_projection_request(
@@ -457,7 +468,7 @@ def sync_authoritative_derived_parts(
             single_base_plate_profiles=single_base_plate_profiles,
             active_part=workspace.active_part,
             selected_part=workspace.selected_part,
-            preserve_single_base_plate=receiving_single_base,
+            preserve_single_base_plate=preserve_navigation_root,
         )
     )
     plan = build_derived_part_sync_plan(request)
@@ -537,6 +548,12 @@ def sync_authoritative_derived_parts(
         namespace="base_plate:nfb_layer:",
         part_profiles=tier_profiles,
     )
+    # No historical third root entry on two-tier navigation; once canonical
+    # tier profiles are published, reconcile a stale root that survived an
+    # older project load/single-to-two-tier transition. Never alter source
+    # geometry or modify the original saved project during this projection.
+    if receiving_two_tier and "base_plate" in workspace.available_parts:
+        navigation.remove_part("base_plate")
 
     return (
         tuple(divider_profiles),
