@@ -161,6 +161,9 @@ def save_part_render_data_dxf(
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
     metadata = getattr(render_data, "metadata", None) or {}
+    # The same per-tier physical FinalScene may be shown in 2D/3D, but
+    # its EAR/BEND/NFB source remains unreleased. Reject direct DXF too.
+    _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
     blocked = metadata.get("baseline_fit_error")
     if blocked:
         raise ValueError(str(blocked))
