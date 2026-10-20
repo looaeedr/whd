@@ -117,7 +117,8 @@ def _resolved_export_intention_key(part_key):
         return "tail"
     if key == "door" or key.startswith("door_") or key.startswith("inner_door:"):
         return "door"
-    if key == "base_plate" or key.startswith("base_plate_"):
+    if (key == "base_plate" or key.startswith("base_plate_")
+            or key.startswith("base_plate:nfb_layer:")):
         return "base_plate"
     if key == "indicator_box" or key.startswith("indicator_box_"):
         return "indicator_box"
@@ -314,12 +315,25 @@ def _export_selected_resolved_parts(self, folder, flags):
         and receiving_snapshot.get("model") == "受電箱"
         and receiving_snapshot.get("nfb_config_submitted") is True
     )
+    committed_csv = ()
+    if (receiving_snapshot.get("model") == "受電箱"
+            and receiving_snapshot.get("nfb_config_submitted") is True):
+        from ae_engine.receiving_nfb_committed_final_scene import (
+            _submitted_csv_holes,
+        )
+        committed_csv = _submitted_csv_holes(receiving_snapshot)
     if auto_side:
         if receiving_snapshot.get("active_mode") == "quantity":
             raise ValueError("EAR_SIDE_NORMAL_EXPORT_QUANTITY_NOT_VERIFIED")
-        # Existing submitted-NFB guards for DOOR and BASE remain mandatory;
-        # only the independently verified BoxBody sides become eligible.
-        _assert_legacy_nfb_export_scope_safe(self, {**flags, "box_body": False})
+        # For current CSV, the SAME atomic exporter independently proves the
+        # real door, both tier bases, signed formed EARs and side marks. The
+        # obsolete old-supplier-DXF gate must NOT preempt that proof.
+        if not committed_csv:
+            _assert_legacy_nfb_export_scope_safe(self, {**flags, "box_body": False})
+    elif committed_csv and bool(flags.get("door") or flags.get("base_plate")):
+        # Individual CSV sheets use the same current source proof path and
+        # must not be routed back to the obsolete DXF-only legacy guard.
+        pass
     else:
         _assert_legacy_nfb_export_scope_safe(self, flags)
     resolved = resolver()
@@ -359,6 +373,14 @@ def _export_selected_resolved_parts(self, folder, flags):
             overwrite=True,
         )
         outputs = dict(bundle.output_paths)
+    elif committed_csv and bool(flags.get("door") or flags.get("base_plate")):
+        from ae_engine.receiving_fixed_plate_formed_manufacturing import (
+            save_verified_receiving_csv_selected_sheets,
+        )
+        outputs = save_verified_receiving_csv_selected_sheets(
+            receiving_snapshot, resolved, selected, folder,
+            overwrite=True,
+        )
     else:
         outputs = manufacturing_api.save_resolved_manufacturing_geometry_dxf(
             selected, folder, overwrite=True,
