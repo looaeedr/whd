@@ -61,6 +61,7 @@ def export_current_csv_quantity_manufacturing(
         raise ValueError("RECEIVING_CSV_QUANTITY_VERSION_IDENTITY_MISMATCH")
     chosen = []
     marked_receipts = []
+    verified_csv_owners = set()
     for vid, count, request in requests:
         version = versions.get(vid)
         if version is None or version.piece_count != count or count < 1:
@@ -141,6 +142,7 @@ def export_current_csv_quantity_manufacturing(
                 tuple(row for row in rows if row[0] not in permitted),
                 part_only=False,
             )
+            verified_csv_owners.update((vid,key) for key in permitted)
             for d in selected:
                 chosen.append(replace(d,render_data=current[d.physical_id]))
             if body_selected:
@@ -188,7 +190,19 @@ def export_current_csv_quantity_manufacturing(
         for group in groups:
             render=annotate_quantity_render_data(group.render_data,group.quantity)
             target=Path(stage)/group.filename
-            save_part_render_data_dxf(render,target,overwrite=False)
+            member_ids={(row.version_id,row.physical_id)
+                        for row in group.members}
+            if member_ids.issubset(verified_csv_owners):
+                from .dxf_serialization import save_scene_dxf
+                save_scene_dxf(target,render.scene)
+            else:
+                # A mixed verified/unverified group can NEVER inherit
+                # a CSV source authorization through equivalence grouping.
+                if (getattr(render,"metadata",None) or {}).get(
+                    "nfb_v5_trial_status"
+                ):
+                    raise ValueError("RECEIVING_CSV_QUANTITY_GROUP_MIXED_PROOF")
+                save_part_render_data_dxf(render,target,overwrite=False)
             if not verify_saved_part_render_data_dxf(render,target).ok:
                 raise ValueError("RECEIVING_CSV_QUANTITY_SAVED_DXF_REOPEN_FAILED")
             verify_quantity_check_dxf(render.scene,target)
