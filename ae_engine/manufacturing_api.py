@@ -327,7 +327,10 @@ def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: Manufact
     # geometry and apply local seam reliefs consistently with 2D/render.
     if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:
         render_data = build_part_render_data(spec, context)
-        save_scene_dxf(filepath, render_data.scene)
+        # The legacy generic BasePlate exporter bypassed the shared FinalScene
+        # manufacturing guard. Use exactly the same guarded serializer as
+        # resolved/batch DXF; generate_part already provides a temp file.
+        save_part_render_data_dxf(render_data, filepath, overwrite=True)
         return "final_scene_base_plate_structure_export", None, None
     exporter = ae.export_unknown_base_plate_dxf if spec.corner_policy is not None else ae.export_base_plate_dxf
     kwargs = {"corner_policy": spec.corner_policy} if spec.corner_policy is not None else {}
