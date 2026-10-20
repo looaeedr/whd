@@ -506,10 +506,16 @@ def sync_authoritative_derived_parts(
     # draft or a Base Plate with no selected physical source.
     tier_profiles = {}
     if (receiving_single_base
-            and isinstance(snapshot.get("receiving_base_plate"), Mapping)
             and snapshot.get("nfb_config_submitted") is True
             and isinstance(snapshot.get("nfb_config"), Mapping)
             and snapshot["nfb_config"].get("layer_count") == 2):
+        # Do not gate the operator's 2D tier selector on a SECOND manually
+        # saved receiving_base_plate setting. The source-only
+        # receiving_base_plate_3d_profiles(snapshot) below already returns
+        # None for an unresolved physical shape and provides the SAME
+        # submitted numeric-CSV authority as the actual Phase6 FinalScene.
+        # Previously the real 3D scene had two tiers but 2D navigation
+        # silently omitted both unless the operator re-entered a base plate.
         from ae_engine.receiving_nfb_base_assembly_xy import (
             receiving_nfb_layer_centers,
         )
