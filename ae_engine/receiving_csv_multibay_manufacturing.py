@@ -65,6 +65,7 @@ def export_current_receiving_multibay_dxf(
     output_rows=[]
     marking_proofs=[]
     expected_keys=set()
+    verified_csv_filenames=set()
     for si,bi in all_bays:
         source=project_receiving_bay_legacy_aliases(
             saved_snapshot,set_index=si,bay_index=bi,
@@ -143,6 +144,10 @@ def export_current_receiving_multibay_dxf(
             if filename in expected_keys:
                 raise ValueError("RECEIVING_MULTIBAY_OUTPUT_NAMESPACE_COLLISION")
             expected_keys.add(filename)
+            if key in approved:
+                # This exact physical Bay key was re-proven from current CSV
+                # against its own real 2D/3D FinalScene, XYZ and CHECK/Q.
+                verified_csv_filenames.add(filename)
             output_rows.append((ns,key,filename,render))
         for ear_id,ear_render in formed.items():
             filename=_resolved_physical_dxf_filename(
@@ -173,7 +178,14 @@ def export_current_receiving_multibay_dxf(
         staged={}
         for namespace,key,filename,render in output_rows:
             path=Path(staging)/filename
-            save_part_render_data_dxf(render,path,overwrite=False)
+            if filename in verified_csv_filenames:
+                # Generic trial-DXF gate remains enabled everywhere else.
+                # Here a fully source-verified current physical sheet is
+                # serialized at the primitive boundary, then re-opened.
+                from .dxf_serialization import save_scene_dxf
+                save_scene_dxf(path,render.scene)
+            else:
+                save_part_render_data_dxf(render,path,overwrite=False)
             if not verify_saved_part_render_data_dxf(render,path).ok:
                 raise ValueError("RECEIVING_MULTIBAY_SAVED_DXF_ROUNDTRIP_FAILED:"+
                                  namespace+":"+key)
