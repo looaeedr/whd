@@ -118,6 +118,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxkbcommon-x11-0 libxkbcommon-x11-dev
           GUI="$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft"
           test -x "$GUI"
           mkdir -p work/issue1959
