@@ -1,0 +1,172 @@
+# -*- coding: utf-8 -*-
+"""#1503: actual +90° source-formed EAR machining through ORIGINAL selected DXF."""
+from dataclasses import replace
+from pathlib import Path
+from types import SimpleNamespace
+
+import ezdxf
+import pytest
+
+from ae_engine.assembly_placement import resolve_assembly_placement
+from ae_engine.receiving_base_fixing_plate_geometry import (
+    SOURCE_DXF_SHA256, build_fixing_plate_source_render_data,
+)
+from ae_engine.receiving_nfb_layer_physical_parts import (
+    expand_receiving_nfb_layer_parts,
+)
+from ae_engine.receiving_fixed_plate_formed_manufacturing import (
+    save_verified_receiving_formed_fixing_plate_bundle,
+)
+from ae_engine.receiving_ear_side_manufacturing_marking import (
+    with_verified_receiving_ear_side_markings,
+)
+from gui_modules.project.export_actions import _export_selected_resolved_parts
+from tests.test_issue1503_ear_side_check_only_dxf import _actual
+from tests.test_receiving_base_physical_3d_z_assembly import _assembled
+from tests.test_receiving_two_tier_physical_base_parts import _two_tier, _source
+
+
+def _real_installed(factory):
+    snapshot, side_scene = _actual(factory)
+    root = _source(snapshot)
+    if factory is _two_tier:
+        physical = expand_receiving_nfb_layer_parts(snapshot, (root,))
+    else:
+        installed = resolve_assembly_placement(snapshot, "base_plate")
+        physical = (replace(root, offset=installed.world_offset),)
+    return snapshot, replace(
+        side_scene, parts=side_scene.parts + tuple(physical),
+    )
+
+
+def _selected(snapshot, geometry):
+    full = with_verified_receiving_ear_side_markings(
+        snapshot, geometry, dimensions=(800.,1600.,350.), sheet_thickness=2.,
+    )
+    from gui_modules.project.export_actions import _selected_resolved_geometry
+    flags = dict(box_body=True, head=False, tail=False, door=False,
+                 base_plate=False, indicator_box=False, indicator_door=False)
+    return _selected_resolved_geometry(full, flags)
+
+
+def _run(snapshot, geom, dest):
+    return save_verified_receiving_formed_fixing_plate_bundle(
+        snapshot, geom, _selected(snapshot, geom), dest,
+        dimensions=(800.,1600.,350.), sheet_thickness=2.,
+    )
+
+
+@pytest.mark.parametrize("factory,count",((_assembled,2),(_two_tier,4)))
+def test_source_formed_ear_is_real_production_cutting_bend_and_side_marking(
+    tmp_path,factory,count,
+):
+    snapshot, scene = _real_installed(factory)
+    receipt = _run(snapshot,scene,tmp_path)
+    assert len(receipt.formed_part_ids) == count
+    assert receipt.source_sha256 == SOURCE_DXF_SHA256
+    assert receipt.physical_contact_area_mm2 == pytest.approx(5632.*count)
+    files = dict(receipt.output_paths)
+    assert set(receipt.formed_part_ids).issubset(files)
+    assert len(files) == len(list(tmp_path.glob("*.dxf")))
+    for ear_id in receipt.formed_part_ids:
+        dxf=ezdxf.readfile(files[ear_id]).modelspace()
+        cutting=[entity for entity in dxf
+                 if entity.dxftype()=="LWPOLYLINE"
+                 and entity.dxf.layer.upper()=="CUTTING"
+                 and entity.closed]
+        bend=[entity for entity in dxf if entity.dxf.layer.upper()=="BEND"]
+        assert len(cutting)==5 and len(bend)==1
+        assert bend[0].dxftype()=="LINE"
+        assert bend[0].dxf.start.y==pytest.approx(23.)
+        assert bend[0].dxf.end.y==pytest.approx(23.)
+        # Existing preview remains blocked; scoped manufacturing proof
+        # must not turn source data into globally certified welding.
+        preview=build_fixing_plate_source_render_data(ear_id,snapshot=snapshot)
+        assert preview.metadata["formed_geometry_verified"] is False
+        assert preview.metadata["weld_z_verified"] is False
+        assert preview.metadata["manufacturing_ready"] is False
+    names=[Path(v).name for v in files.values()]
+    assert any("left_side" in n for n in names)
+    assert any("right_side" in n for n in names)
+
+
+@pytest.mark.parametrize("factory,count",((_assembled,2),(_two_tier,4)))
+def test_original_selected_export_automatically_adds_formed_ear_sheets(
+    tmp_path,factory,count,
+):
+    snap,geom=_real_installed(factory)
+    calls=[]
+    class Designer:
+        _phase6_input_snapshot=snap
+        designer_workspace=None
+        def _phase6_resolve_manufacturing_geometry(self):
+            calls.append("resolve")
+            return geom
+    host=SimpleNamespace(fold_designer_app=Designer())
+    flags=dict(box_body=True,head=False,tail=False,door=False,base_plate=False,
+               indicator_box=False,indicator_door=False)
+    names, errors = _export_selected_resolved_parts(host,str(tmp_path),flags)
+    assert errors==[]
+    assert calls==["resolve"]
+    assert len(names)==len(list(tmp_path.glob("*.dxf")))
+    assert len([n for n in names if "fixing_plate" in n])==count
+    assert "box_body_box_body_left_side.dxf" in names
+    assert "box_body_box_body_right_side.dxf" in names
+
+
+def test_missing_second_installed_base_cannot_issue_partial_ear_batch(tmp_path):
+    snap,geom=_real_installed(_two_tier)
+    stripped=replace(geom,parts=tuple(p for p in geom.parts
+        if getattr(p,"part_key","")!="base_plate:nfb_layer:1"))
+    with pytest.raises(ValueError,match="ACTUAL_BASE_PART_MISSING_OR_DUPLICATED"):
+        _run(snap,stripped,tmp_path/"out")
+    assert not (tmp_path/"out").exists()
+
+
+def test_shifted_actual_base_z_refuses_contact_claim(tmp_path):
+    snap,geom=_real_installed(_assembled)
+    shifted=replace(geom,parts=tuple(
+        replace(part, offset=(
+            part.offset[0],part.offset[1],part.offset[2]+3.0
+        )) if getattr(part,"part_key",None)=="base_plate" else part
+        for part in geom.parts
+    ))
+    with pytest.raises(ValueError,match="ACTUAL_BASE_XYZ_DRIFT"):
+        _run(snap,shifted,tmp_path/"out")
+    assert not (tmp_path/"out").exists()
+
+
+def test_last_dxf_reopen_failure_rolls_back_every_ear_and_side(tmp_path,monkeypatch):
+    import ae_engine.receiving_fixed_plate_formed_manufacturing as module
+    snap,geom=_real_installed(_two_tier)
+    original=module.verify_saved_part_render_data_dxf
+    called={"n":0}
+    def fail_one(render,path):
+        called["n"]+=1
+        if "fixing_plate" in str(path):
+            return SimpleNamespace(ok=False)
+        return original(render,path)
+    monkeypatch.setattr(module,"verify_saved_part_render_data_dxf",fail_one)
+    target=tmp_path/"out"
+    with pytest.raises(ValueError,match="EAR_FORM_MFG_DXF_ROUNDTRIP_FAILED"):
+        _run(snap,geom,target)
+    assert called["n"] > 0
+    assert not list(target.glob("*.dxf"))
+
+
+def test_unsubmitted_and_source_identity_drift_fail_before_output(tmp_path):
+    snap,geom=_real_installed(_assembled)
+    stale={**snap, "nfb_config_submitted":False}
+    with pytest.raises(ValueError,match="MATCHING_SUBMITTED"):
+        _run(stale,geom,tmp_path/"out")
+    assert not (tmp_path/"out").exists()
+
+
+def test_no_new_ui_button_or_full_cabinet_global_ear_bypass():
+    import inspect
+    import ae_engine.manufacturing_export as sink
+    import gui_modules.project.export_actions as gui
+    source=inspect.getsource(gui._export_selected_resolved_parts)
+    guard=inspect.getsource(sink._reject_unapproved_nfb_pad_ear_manufacturing)
+    assert "save_verified_receiving_formed_fixing_plate_bundle" in source
+    assert "BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED" in guard
