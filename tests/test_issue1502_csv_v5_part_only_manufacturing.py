@@ -73,11 +73,12 @@ def test_current_csv_center_part_only_exports_real_screws_ear_slots_and_bends(tm
     bends = [v for v in msp if v.dxf.layer == "BEND"]
     assert len(screws) == 8 and len(native) == 5
     assert bends
-    assert sorted(round(x, 6) for x in (v.dxf.radius for v in screws)) == (
-        sorted(round(x / 2., 6) for x in (5.1,)*4
-               + (5.1,)*4) if False else
-        sorted(round(v.dxf.radius, 6) for v in screws)
+    from ae_engine.receiving_nfb_numeric_catalog import model_spec
+    expected = sorted(
+        round(model_spec("士林", model).screw_diameter_mm / 2., 6)
+        for model in ("2P400", "3P125SN") for _ in range(4)
     )
+    assert sorted(round(v.dxf.radius, 6) for v in screws) == expected
     # One independently checked sheet, not a full-cabinet DXF batch.
     assert len(list(path.parent.glob("*.dxf"))) == 1
 
