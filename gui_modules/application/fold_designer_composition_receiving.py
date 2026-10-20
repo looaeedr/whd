@@ -3045,6 +3045,31 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 output_directory=output_directory,
             )
 
+        def csv_base_part_ready(set_index, bay_index):
+            """CSV numeric source must not depend on legacy DXF session cache."""
+            from .receiving_csv_v5_base_export_action import (
+                csv_base_part_only_ready,
+            )
+            return csv_base_part_only_ready(
+                nfb_physical_bay_snapshot(set_index, bay_index),
+            )
+
+        def export_csv_base_part(set_index, bay_index, output_directory):
+            """One selected Bay, real assembly source, CSV-only Base PART_ONLY."""
+            from .receiving_csv_v5_base_export_action import (
+                export_current_receiving_csv_base_part_from_gui,
+            )
+            current = nfb_physical_bay_snapshot(set_index, bay_index)
+            if not csv_base_part_ready(set_index, bay_index):
+                raise ValueError("目前連的 CSV 底板來源或 NFB 世界 X 尚未完成配置")
+            spec, _ = self.app._part_spec_query_callback("base_plate", current)
+            request = self.receiving_bay_preview_request(namespace, set_index, bay_index)
+            return export_current_receiving_csv_base_part_from_gui(
+                current, base_spec=spec,
+                assembly_parts=request.render_data.assembly_parts,
+                output_directory=output_directory,
+            )
+
         def export_partial_nfb_door_base_pair(set_index, bay_index, output_directory):
             """Atomic PART_ONLY actual inner-door + physical Receiving Base Plate."""
             from .receiving_nfb_pair_partial_export_action import (
@@ -3081,6 +3106,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     submitted
                     and (set_index, bay_index) in committed_nfb_evidence
                     and nfb_physical_bay_snapshot(set_index, bay_index).get("receiving_base_plate")
+                ),
+                # Independent V5 numeric source, no legacy DXF bundle or
+                # manual receiving_base_plate selection required.
+                "csv_base_part_ready": (
+                    submitted and csv_base_part_ready(set_index, bay_index)
                 ),
                 "reason": ("來源已配置、目標連獨立世界 X 與 DXF 已驗證，可複製提交"
                            if can_copy else
@@ -3166,6 +3196,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "partial_export": export_partial_nfb_inner_door,
                 "base_partial_export": export_partial_nfb_base_plate,
                 "pair_partial_export": export_partial_nfb_door_base_pair,
+                "csv_base_partial_export": export_csv_base_part,
                 "restore": restore, "undo": undo}
 
     def real_cut_preview_request(role, version_id, set_index, bay_index):
