@@ -291,6 +291,62 @@ def test_cadcraft_approved_features_survive_actual_whd_main_toolbar_save_open(
         assert editor._hole_header_cadcraft_draw.cget("text") == "CADCraft 開孔編輯"
         assert tuple(app.surface_features["door"]) == accepted
         editor.destroy()
+
+        # The part-only 3D path above is not enough for an operator using
+        # the normal complete cabinet. Re-render the REAL assembly with box
+        # body and Door, then hit-test the actual visible Door skin. The test
+        # does not hide other parts or fabricate a pick result.
+        designer._phase6_3d_display_mode = "assembly"
+        assembly_request = bridge._phase6_final_scene_adapter(designer).build_request()
+        assert assembly_request.part_key == "assembly"
+        assert {p.part_key for p in assembly_request.render_data.assembly_parts} >= {
+            "box_body", "door"
+        }
+        ax.clear()
+        triangles = view.render(assembly_request)
+        assert triangles
+        ax.view_init(elev=24, azim=-90)
+        canvas.draw()
+        visible = [
+            (index, artist, key)
+            for index, (artist, key) in enumerate(view._hole_pick_artists)
+            if artist.get_visible() and artist.axes is ax
+        ]
+        assert any(key == "door" for _, _, key in visible), (
+            "ASSEMBLY_REAL_DOOR_MESH_MISSING_PICK_ARTIST"
+        )
+        chosen = None
+        bbox = ax.bbox
+        for yy in np.linspace(bbox.y0 + 10, bbox.y1 - 10, 22):
+            if chosen is not None:
+                break
+            for xx in np.linspace(bbox.x0 + 10, bbox.x1 - 10, 22):
+                event = MouseEvent(
+                    "button_press_event", canvas,
+                    float(xx), float(yy),
+                    button=MouseButton.LEFT, dblclick=True,
+                )
+                if event.inaxes is not ax:
+                    continue
+                hits = [
+                    (artist.get_zorder(), index, key)
+                    for index, artist, key in visible if artist.contains(event)[0]
+                ]
+                if hits and max(hits)[2] == "door":
+                    chosen = event
+                    break
+        assert chosen is not None, (
+            "ASSEMBLY_VISIBLE_DOOR_CANNOT_BE_DOUBLE_CLICKED"
+        )
+        assert view.on_hole_mesh_double_click(chosen) == "door"
+        root.update_idletasks()
+        root.update()
+        assembly_editor = getattr(app, "last_unified_hole_editor", None)
+        assert assembly_editor is not None and assembly_editor is not editor
+        assert assembly_editor.winfo_exists()
+        assert assembly_editor._hole_header_cadcraft_draw.cget("text") == "CADCraft 開孔編輯"
+        assert tuple(app.surface_features["door"]) == accepted
+        assembly_editor.destroy()
     finally:
         try:
             if app is not None and app.fold_designer_window is not None:
