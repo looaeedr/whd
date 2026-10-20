@@ -136,7 +136,14 @@ def test_door_and_base_only_use_original_selection_without_ears(tmp_path,two):
     })
     assert errors==[] and calls==["resolve"]
     assert not any("fixing_plate" in p for p in names)
-    assert len(names)==(3 if two else 2)
+    # "door" intentionally selects all actual visible DOOR sheets as well
+    # as the NFB inner-door panel. Do not assume the user's existing outer
+    # door panels disappear just because the CSV has one upper NFB panel.
+    assert any("inner_door" in name and "panel" in name for name in names)
+    assert len([name for name in names if "base_plate" in name]) == (
+        2 if two else 1
+    )
+    assert not any("box_body" in name for name in names)
     assert len(list(tmp_path.glob("*.dxf")))==len(names)
     assert all((tmp_path/p).is_file() for p in names)
 
