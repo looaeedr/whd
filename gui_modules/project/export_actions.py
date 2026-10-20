@@ -233,6 +233,19 @@ def _export_selected_resolved_parts(self, folder, flags):
         if submitted_facts(input_quantity) != submitted_facts(quantity):
             raise ValueError("NFB 數量版本與目前工作狀態不一致，請重新套用後再出圖")
         batch = resolve_quantity_manufacturing(request, workspace_snapshot)
+        if (request.cabinet_model == "受電箱"
+                and any(row.get("nfb_config_submitted") is True
+                        for row in quantity.get("versions", ()))):
+            # One normal operator button, ALL saved quantity versions.
+            # The per-version current numeric CSV/FinalScene proofs replace
+            # only the obsolete supplier-DXF NFB quantity dispatcher.
+            from ae_engine.receiving_csv_quantity_manufacturing import (
+                export_current_csv_quantity_manufacturing,
+            )
+            outputs = export_current_csv_quantity_manufacturing(
+                batch, folder, flags=flags, overwrite=True,
+            )
+            return ([os.path.basename(path) for path in outputs.values()], [])
         nfb_selection = None
         if any(row.get("nfb_config_submitted") is True
                for row in quantity.get("versions", ())):
