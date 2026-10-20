@@ -172,8 +172,14 @@ def test_changed_second_version_hole_does_not_export_stale_geometry(tmp_path):
     second["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
         second["nfb_config"]
     )
-    # Phase6 freeze stores all numeric values as float; QuantityModel's
-    # persisted positive piece_count contract intentionally remains int.
+    # Reconstruct the same strictly typed identity fields as the actual
+    # Phase6 quantity CSV manufacturing entrance before modifying the saved
+    # version. Positive piece-count is checked by QuantityModel, not coerced
+    # into an arbitrary permissive number.
+    from ae_engine.receiving_csv_quantity_manufacturing import (
+        restore_frozen_quantity_integer_identity,
+    )
+    second = restore_frozen_quantity_integer_identity(second)
     second["quantity"]["versions"] = [
         {**row, "piece_count": int(row["piece_count"])}
         for row in second["quantity"]["versions"]
