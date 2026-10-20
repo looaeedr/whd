@@ -55,7 +55,26 @@ def _verified_formed_ear_parts(snapshot, original_geometry, *, dimensions, sheet
     cannot borrow the earlier geometry receipt.
     """
     if snapshot.get("active_mode") == "quantity":
-        raise ValueError("EAR_FORM_MFG_QUANTITY_NEEDS_EACH_VERSION")
+        # Quantity requests are authorized per CURRENT, selected, persisted
+        # NFB version; never carry the previously selected Bay's source.
+        from ae_engine.receiving_quantity_box import project_common_box
+        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+        from phase6_quantity_model import QuantityModel
+        raw_quantity = snapshot.get("quantity")
+        model = QuantityModel.from_payload(raw_quantity)
+        current = model.nfb_config_for_version(model.selected_version_id)
+        reprojection = project_receiving_bay_legacy_aliases(
+            project_common_box(snapshot), set_index=0, bay_index=0,
+        )
+        if (not current or current.get("nfb_config_submitted") is not True
+                or current.get("nfb_config") != snapshot.get("nfb_config")
+                or reprojection.get("nfb_config") != snapshot.get("nfb_config")
+                or reprojection.get("nfb_config_submitted") is not True
+                or reprojection.get("_receiving_runtime_selection")
+                   != snapshot.get("_receiving_runtime_selection")
+                or reprojection.get("receiving_layout")
+                   != snapshot.get("receiving_layout")):
+            raise ValueError("EAR_FORM_MFG_QUANTITY_CURRENT_VERSION_SOURCE_DRIFT")
     uv, side_contact, side_parts, side_scenes = _verified_pair(
         snapshot, original_geometry, dimensions=dimensions,
         sheet_thickness=sheet_thickness,
