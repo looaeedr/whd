@@ -28,6 +28,36 @@ from .drawing_annotation_layout import annotate_quantity_render_data
 from .dxf_serialization import verify_quantity_check_dxf
 
 
+def restore_frozen_quantity_integer_identity(value, key=None):
+    """Restore only schema-defined integer fields lost by Phase6 Real DTOs.
+
+    Preserve arbitrary floating dimensions and X/Y/Z; reject nonintegral,
+    nonfinite or boolean identity values instead of making manufacturing
+    identity permissive.
+    """
+    from math import isfinite
+    keys = frozenset((
+        "rotation_deg", "layer_count", "layer_index", "slot_index",
+        "set_index", "bay_index", "inner_door_layers",
+        "receiving_inner_door_layers", "next_version_number",
+    ))
+    if isinstance(value, dict):
+        return {name: restore_frozen_quantity_integer_identity(item, name)
+                for name, item in value.items()}
+    if isinstance(value, list):
+        return [restore_frozen_quantity_integer_identity(item)
+                for item in value]
+    if key in keys and value is not None:
+        if (type(value) not in (int, float) or not isfinite(value)
+                or int(value) != value):
+            raise ValueError(
+                "RECEIVING_CSV_QUANTITY_FROZEN_INTEGER_IDENTITY_INVALID:"
+                + str(key)
+            )
+        return int(value)
+    return value
+
+
 def export_current_csv_quantity_manufacturing(
     batch, output_dir, *, flags, overwrite=False,
 ):
@@ -67,32 +97,7 @@ def export_current_csv_quantity_manufacturing(
         if version is None or version.piece_count != count or count < 1:
             raise ValueError("RECEIVING_CSV_QUANTITY_COUNT_VERSION_DRIFT")
         snapshot = thaw_manufacturing_value(request.input_snapshot)
-        # The immutable Phase6 DTO intentionally normalizes *all* numeric
-        # values into floats. Only schema-defined integer identity fields
-        # (not arbitrary dimensions/X/Z coordinates) are restored here.
-        # A fractional, nonfinite or forged field still fails closed.
-        from math import isfinite
-        integer_identity_fields = frozenset((
-            "rotation_deg", "layer_count", "layer_index", "slot_index",
-            "set_index", "bay_index", "inner_door_layers",
-            "receiving_inner_door_layers", "next_version_number",
-        ))
-        def restore_dto_id(value, key=None):
-            if isinstance(value, dict):
-                return {name: restore_dto_id(item, name)
-                        for name,item in value.items()}
-            if isinstance(value, list):
-                return [restore_dto_id(item) for item in value]
-            if key in integer_identity_fields and value is not None:
-                if (type(value) not in (int,float) or not isfinite(value)
-                        or int(value) != value):
-                    raise ValueError(
-                        "RECEIVING_CSV_QUANTITY_FROZEN_INTEGER_IDENTITY_INVALID:"
-                        + str(key)
-                    )
-                return int(value)
-            return value
-        snapshot = restore_dto_id(snapshot)
+        snapshot = restore_frozen_quantity_integer_identity(snapshot)
         # The immutable Phase6 contract represents EVERY Real as float, so
         # persisted piece_count 3 becomes 3.0 when thawed. Restore ONLY
         # quantity version counts already independently confirmed by the
