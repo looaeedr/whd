@@ -373,7 +373,15 @@ def save_verified_receiving_formed_fixing_plate_bundle(
             (key, filenames[key], verified[key]) for key in verified
         ):
             dest = Path(stage) / filename
-            save_part_render_data_dxf(render, dest, overwrite=False)
+            if key in approved_csv:
+                # This exact current CSV physical sheet has already passed
+                # source + installed FinalScene + CHECK/Q; preserve generic
+                # unproven-trial DXF denial by skipping the generic sink
+                # ONLY for this scoped sheet and checking saved round-trip.
+                from .dxf_serialization import save_scene_dxf
+                save_scene_dxf(dest, render.scene)
+            else:
+                save_part_render_data_dxf(render, dest, overwrite=False)
             receipt = verify_saved_part_render_data_dxf(render, dest)
             if not receipt.ok:
                 raise ValueError("EAR_FORM_MFG_DXF_ROUNDTRIP_FAILED:" + key)
@@ -452,7 +460,11 @@ def save_verified_receiving_csv_selected_sheets(
         candidates={}
         for key,name,render in rows:
             target=Path(stage)/name
-            save_part_render_data_dxf(render,target,overwrite=False)
+            if key in approved:
+                from .dxf_serialization import save_scene_dxf
+                save_scene_dxf(target,render.scene)
+            else:
+                save_part_render_data_dxf(render,target,overwrite=False)
             receipt=verify_saved_part_render_data_dxf(render,target)
             if not receipt.ok:
                 raise ValueError("RECEIVING_CSV_SELECTED_DXF_REOPEN_FAILED:" + key)
