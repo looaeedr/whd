@@ -67,6 +67,24 @@ def export_current_csv_quantity_manufacturing(
         if version is None or version.piece_count != count or count < 1:
             raise ValueError("RECEIVING_CSV_QUANTITY_COUNT_VERSION_DRIFT")
         snapshot = thaw_manufacturing_value(request.input_snapshot)
+        # The immutable Phase6 contract represents EVERY Real as float, so
+        # persisted piece_count 3 becomes 3.0 when thawed. Restore ONLY
+        # quantity version counts already independently confirmed by the
+        # typed QuantityManufacturingBatch; nonintegral/negative/forged
+        # counts remain rejected rather than weakening QuantityModel.
+        from math import isfinite
+        restored = []
+        for row in snapshot["quantity"]["versions"]:
+            expected_version = versions.get(row["version_id"])
+            piece = row["piece_count"]
+            if (expected_version is None or type(expected_version.piece_count) is not int
+                    or type(piece) not in (int, float)
+                    or not isfinite(piece)
+                    or piece <= 0 or int(piece) != piece
+                    or int(piece) != expected_version.piece_count):
+                raise ValueError("RECEIVING_CSV_QUANTITY_FROZEN_PIECE_COUNT_DRIFT")
+            restored.append({**row, "piece_count": int(piece)})
+        snapshot["quantity"] = {**snapshot["quantity"], "versions": restored}
         persisted = QuantityModel.from_payload(snapshot["quantity"])
         if persisted.selected_version_id != vid:
             raise ValueError("RECEIVING_CSV_QUANTITY_SELECTED_VERSION_DRIFT")
