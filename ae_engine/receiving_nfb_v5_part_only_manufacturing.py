@@ -18,7 +18,7 @@ from typing import Mapping
 
 from .contracts import BasePlatePartSpec
 from .dxf_serialization import save_scene_dxf
-from .manufacturing_api import build_part_render_data
+from .manufacturing_render_data import PartRenderData
 from .manufacturing_equivalence import ManufacturingParameters
 from .manufacturing_export import (
     _atomic_commit_staged_dxfs, resolved_physical_dxf_filename,
@@ -141,16 +141,12 @@ def _require_source_derived_real_plate(snapshot, base_spec):
             or tuple(base_spec.receiving_nfb_depth_pair_mm or ())
                 != tuple(values["receiving_nfb_depth_pair_mm"] or ())):
         raise ValueError("CSV_BASE_EXPORT_PARTSPEC_VS_LIVE_SOURCE_MISMATCH")
-    baseline = build_part_render_data(base_spec)
-    if (baseline.unfolded_topology is None
-            or baseline.unfolded_topology.piece_id != "base_plate"
-            or not baseline.fold_guides):
-        raise ValueError("CSV_BASE_EXPORT_SOURCE_BEND_OR_BLANK_MISSING")
-    return baseline
+    return values
 
 
 def export_verified_csv_v5_single_base_part_only(
     snapshot, inner_door_id, *, base_spec: BasePlatePartSpec,
+    existing_base_render_data: PartRenderData,
     output_directory, version_id: str, quantity: int,
     parameters: ManufacturingParameters, overwrite: bool = False,
 ) -> VerifiedCsvBasePartOnlyOutput:
@@ -164,13 +160,20 @@ def export_verified_csv_v5_single_base_part_only(
         snapshot, inner_door_id,
     )
     _require_source_derived_real_plate(snapshot, base_spec)
+    if not isinstance(existing_base_render_data, PartRenderData):
+        raise ValueError("CSV_BASE_EXPORT_ACTUAL_ASSEMBLY_FINALSCENE_REQUIRED")
     door = trial_configured_nfb_v5_inner_door_render_data(
         snapshot, inner_door_id, holes=holes,
     )
     part = preview_v5_on_existing_receiving_base(
         snapshot, inner_door_id, door=door,
         configured_holes=holes, base_spec=base_spec,
+        existing_render_data=existing_base_render_data,
     )
+    if (part.render_data.unfolded_topology is None
+            or part.render_data.unfolded_topology.piece_id != "base_plate"
+            or not part.render_data.fold_guides):
+        raise ValueError("CSV_BASE_EXPORT_SOURCE_BEND_OR_BLANK_MISSING")
     preview = check_csv_v5_base_part_only_groups((
         CsvV5BaseCheckDemand(version_id, part, quantity, parameters),
     ))
