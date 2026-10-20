@@ -194,7 +194,15 @@ def receiving_base_plate_values(snapshot):
                     for hole in holes)
         )
         if has_numeric_csv:
-            return None
+            # Two tiers already have separate submitted physical owners, and
+            # current CENTER/LEFT one-row source recognition cannot resolve
+            # their variant from both rows at once. Keep an existing physical
+            # root *for preview/skin target calculation only*: the tier
+            # assembly explicitly marks every resulting FinalScene unreleased.
+            # One-row unknown CSV sources must NEVER borrow a saved pattern.
+            if not (isinstance(nfb, Mapping)
+                    and nfb.get("layer_count") == 2):
+                return None
         config = data.get("receiving_base_plate")
     else:
         # Older projects without submitted NFBs retain their existing manual
