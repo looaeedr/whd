@@ -167,3 +167,28 @@ def test_gui_launcher_failure_fails_closed_and_does_not_shell_fallback(tmp_path)
         raise OSError("Windows GUI process denied")
     with pytest.raises(CadcraftCommandProofError, match="CADCRAFT_GUI_LAUNCH_FAILED"):
         open_cadcraft_hole_editor(exchange, executable=gui, launcher=refuse)
+
+
+
+def test_controlled_gui_launch_adds_local_tcp_arg_without_shell(tmp_path):
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        open_cadcraft_hole_editor,
+    )
+    gui = tmp_path / "cadcraft.exe"
+    gui.write_bytes(b"test-only")
+    exchange = tmp_path / "WHD-issued.dxf"
+    exchange.write_bytes(b"test-only")
+    argv = []
+    def launch(command):
+        argv.append(command)
+        return object()
+
+    open_cadcraft_hole_editor(
+        exchange, executable=gui, launcher=launch, control_port=41991,
+    )
+    assert argv == [[str(gui), "--control", "41991", str(exchange.resolve())]]
+    with pytest.raises(CadcraftCommandProofError, match="INVALID_CONTROL_PORT"):
+        open_cadcraft_hole_editor(
+            exchange, executable=gui, launcher=launch, control_port=0,
+        )
+    assert len(argv) == 1
