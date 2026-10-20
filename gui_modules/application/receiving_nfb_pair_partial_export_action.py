@@ -256,10 +256,10 @@ def export_current_csv_nfb_door_base_pair(
         raise ValueError("CSV_PAIR_OUTPUT_DIRECTORY_MISSING")
     names = {
         door.part_id: resolved_physical_dxf_filename(
-            door.part_id, instance_namespace=namespace,
+            door.part_id, instance_namespace=namespace, box_body_physical_piece_roles=(),
         ),
         "base_plate": resolved_physical_dxf_filename(
-            "base_plate", instance_namespace=namespace,
+            "base_plate", instance_namespace=namespace, box_body_physical_piece_roles=(),
         ),
     }
     if len(set(names.values())) != 2:
@@ -431,7 +431,7 @@ def _export_current_csv_nfb_two_tier_pair(
     if not root.is_dir():
         raise ValueError("CSV_TWO_TIER_OUTPUT_DIRECTORY_MISSING")
     names = {
-        key: resolved_physical_dxf_filename(key, instance_namespace=namespace)
+        key: resolved_physical_dxf_filename(key, instance_namespace=namespace, box_body_physical_piece_roles=())
         for key in expected
     }
     if len(set(names.values())) != 3:
