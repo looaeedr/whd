@@ -172,6 +172,12 @@ def test_changed_second_version_hole_does_not_export_stale_geometry(tmp_path):
     second["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
         second["nfb_config"]
     )
+    # Phase6 freeze stores all numeric values as float; QuantityModel's
+    # persisted positive piece_count contract intentionally remains int.
+    second["quantity"]["versions"] = [
+        {**row, "piece_count": int(row["piece_count"])}
+        for row in second["quantity"]["versions"]
+    ]
     q=QuantityModel.from_payload(second["quantity"])
     q.set_version_nfb_config(q.selected_version_id,submitted=True,
                              config=second["nfb_config"])
