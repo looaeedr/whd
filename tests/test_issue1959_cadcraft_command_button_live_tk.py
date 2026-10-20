@@ -99,7 +99,7 @@ def test_live_tk_command_button_runs_off_thread_and_preserves_original_editor(
         doc.saveas(target)
         launched = []
         monkeypatch.setattr(bridge, "open_cadcraft_hole_editor",
-                            lambda path: launched.append(path) or object())
+                            lambda path, **kwargs: launched.append(path) or object())
 
         def fake_draw(*, instructions, executable):
             thread_ids.append(threading.get_ident())
@@ -209,7 +209,7 @@ def test_live_tk_cadcraft_manual_position_return_uses_original_session(monkeypat
         monkeypatch.setattr(bridge, "draw_whd_commands_with_cadcraft", fake_draw)
         launches = []
         monkeypatch.setattr(bridge, "open_cadcraft_hole_editor",
-                            lambda path: launches.append(path) or object())
+                            lambda path, **kwargs: launches.append(path) or object())
         draw_button = editor._hole_header_cadcraft_draw
         return_button = editor._hole_header_cadcraft_return
         assert str(return_button.cget("state")) == "disabled"
@@ -253,7 +253,7 @@ def test_live_tk_when_cadcraft_gui_cannot_launch_reports_error_without_losing_ti
                 target, png, {"status": "PASS"},
             ),
         )
-        def denied(path):
+        def denied(path, **kwargs):
             assert path == target
             raise CadcraftCommandProofError("CADCRAFT_GUI_LAUNCH_FAILED")
         monkeypatch.setattr(bridge, "open_cadcraft_hole_editor", denied)
@@ -293,7 +293,7 @@ def test_live_tk_gui_handoff_focuses_spawned_native_window_without_modal(
         )
         monkeypatch.setattr(
             bridge, "open_cadcraft_hole_editor",
-            lambda path: SimpleNamespace(pid=4242, poll=lambda: None),
+            lambda path, **kwargs: SimpleNamespace(pid=4242, poll=lambda: None),
         )
         monkeypatch.setattr(
             bridge, "focus_started_cadcraft_window",
