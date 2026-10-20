@@ -204,8 +204,10 @@ def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
         _buttons(editor, "確定全部")[0].invoke()
         _pump(root)
 
-        # Confirm All is an operator action, but a physical plate SOURCE was
-        # never selected. Never auto-create it from test-only defaults.
+        # Source is the two actual 2P400 model selections plus the original
+        # numeric CSV, NOT any manually selected base. The certified LEFT
+        # blank is now uniquely recognized; it must appear on the real GUI
+        # despite the pre-existing legacy project having no base settings.
         assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
         # Confirm All must save original operator CSV NFB identities even
         # when physical Base Plate variant is unresolved. NOT MFG approval.
@@ -221,8 +223,13 @@ def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
         assert designer._phase6_input_snapshot.get("nfb_config_submitted") is True
         scene = bridge._phase6_final_scene_adapter(designer).query_assembly_render_data()
         keys = {p.part_key for p in scene.assembly_parts}
-        assert not any(k.startswith("base_plate:nfb_layer:") for k in keys)
-        assert scene.formed_fixing_plate_skins == ()
+        assert {"base_plate:nfb_layer:0", "base_plate:nfb_layer:1"} <= keys
+        for part in scene.assembly_parts:
+            if part.part_key.startswith("base_plate:nfb_layer:"):
+                assert part.render_data.material.area > 0
+                assert part.render_data.metadata["manufacturing_ready"] is False
+                assert part.part_key in designer.designer_workspace.available_parts
+        assert len(scene.formed_fixing_plate_skins) == 4
 
         designer._phase6_3d_display_mode = "assembly"
         view = designer.final_scene_view
@@ -239,7 +246,7 @@ def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
             folder.mkdir(parents=True, exist_ok=True)
             Image.fromarray(pixels).save(folder / "unconfigured_after_confirm_3d.png")
             (folder / "repro_state.json").write_text(json.dumps({
-                "source_configured": False,
+                "source_configured": True,
                 "part_keys": sorted(keys),
                 "formed_fixing_plate_count": len(scene.formed_fixing_plate_skins),
                 "ear_line_count": len(view.last_receiving_ear_marking_segments),
@@ -274,12 +281,20 @@ def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
             Image.fromarray(
                 np.asarray(reloaded_view.renderer.canvas.buffer_rgba()).copy()
             ).save(Path(output) / "unconfigured_after_save_reload_3d.png")
-        # RED on old version: a real operator must not see an unexplained blank.
+        # Same submitted CSV after Save/Reload must still yield both actual
+        # tier sheets, without a fake manually persisted base pattern or a
+        # misleading "missing base" warning. Source-invalid jobs retain the
+        # separate read-only missing-source diagnostics test.
+        restored = bridge._phase6_final_scene_adapter(
+            reloaded_designer
+        ).query_assembly_render_data()
+        restored_keys = {p.part_key for p in restored.assembly_parts}
+        assert {"base_plate:nfb_layer:0", "base_plate:nfb_layer:1"} <= restored_keys
+        assert len(restored.formed_fixing_plate_skins) == 4
+        assert len(reloaded_view.last_receiving_ear_marking_segments) == 16
         labels = [x.get_text() for x in reloaded_view.renderer.ax3d.texts]
-        assert any(MISSING_MESSAGE in x for x in labels), (
-            "UNCONFIGURED_RECEIVING_BASE_SILENTLY_INVISIBLE: "
-            "3D must display a clear missing-source diagnostic, "
-            "not fabricate geometry or report 16 theoretical marks"
+        assert not any(MISSING_MESSAGE in x for x in labels), (
+            "SOURCE_DERIVED_RECEIVING_BASE_STILL_MISLABELED_UNCONFIGURED"
         )
     finally:
         root.destroy()
