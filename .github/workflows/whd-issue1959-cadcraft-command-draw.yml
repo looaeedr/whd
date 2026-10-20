@@ -274,7 +274,7 @@ jobs:
           print("WINDOWS_NATIVE_VENDOR_GUI_TCP_UNSAVED_WHD_SESSION_GREEN")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "WINDOWS_NATIVE_GUI_TCP_RECEIPT_INVALID" }
-      - name: Real WHD Tk button opens native CADCraft GUI and live unsaved return Confirm Undo
+      - name: Real WHD Tk button opens native CADCraft GUI live unsaved Confirm Cancel Undo
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
