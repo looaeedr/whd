@@ -264,6 +264,15 @@ def project_csv_v5_onto_existing_assembly_parts(
         if spec.physical_id != expected or expected not in by_key:
             raise ValueError("NFB V5 組合體不存在本層原始實體底板")
         owner = by_key[expected]
+        from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+        y = project_nfb_inner_door_nominal_y(
+            snapshot, inner_door_id, layer_count=count, slot_index=tier,
+        )
+        offset = getattr(owner, "offset", None)
+        if (not isinstance(offset, (tuple, list)) or len(offset) != 3
+                or abs(float(offset[0])) > _TOL
+                or abs(float(offset[1]) - float(y.box_world_y_mm)) > _TOL):
+            raise ValueError("NFB V5 組合體底板安裝位置與同層內門開孔不一致")
         if not isinstance(getattr(owner, "render_data", None), PartRenderData):
             raise ValueError("NFB V5 組合體缺少本層原始 PartRenderData")
         projected = preview_v5_on_existing_receiving_base(
