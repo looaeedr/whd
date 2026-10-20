@@ -233,12 +233,30 @@ def _export_selected_resolved_parts(self, folder, flags):
         if submitted_facts(input_quantity) != submitted_facts(quantity):
             raise ValueError("NFB 數量版本與目前工作狀態不一致，請重新套用後再出圖")
         batch = resolve_quantity_manufacturing(request, workspace_snapshot)
-        if (request.cabinet_model == "受電箱"
-                and any(row.get("nfb_config_submitted") is True
-                        for row in quantity.get("versions", ()))):
-            # One normal operator button, ALL saved quantity versions.
-            # The per-version current numeric CSV/FinalScene proofs replace
-            # only the obsolete supplier-DXF NFB quantity dispatcher.
+        # Preserve old DXF projects: only a COMPLETE current numeric CSV
+        # version family goes through the newly source-proven batch action.
+        # Legacy test requests may not carry cabinet_model at all; project
+        # family and saved submitted per-version sources are the authorities.
+        submitted_rows = tuple(
+            row for row in quantity.get("versions", ())
+            if row.get("nfb_config_submitted") is True
+        )
+        numeric_submissions = ()
+        if mode_source.get("model") == "受電箱" and submitted_rows:
+            from ae_engine.receiving_nfb_model_identity import (
+                parse_numeric_model_ref,
+            )
+            numeric_submissions = tuple(
+                bool((row.get("nfb_config") or {}).get("holes"))
+                and all(parse_numeric_model_ref(hole.get("model_filename"))
+                        is not None
+                        for hole in (row.get("nfb_config") or {}).get("holes", ()))
+                for row in submitted_rows
+            )
+            if any(numeric_submissions) and not all(numeric_submissions):
+                raise ValueError("NFB 數量版本混用數值 CSV 與舊 DXF，禁止混源整批出圖")
+        if numeric_submissions and all(numeric_submissions):
+            # One original button; independently revalidate EVERY version.
             from ae_engine.receiving_csv_quantity_manufacturing import (
                 export_current_csv_quantity_manufacturing,
             )
