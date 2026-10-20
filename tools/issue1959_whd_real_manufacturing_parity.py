@@ -27,6 +27,7 @@ from ae_engine.sheetmetal_part_adapters import (
 )
 from gui_modules.editors.cadcraft_command_session_bridge import stage_verified_cadcraft_drawing
 from phase6_hole_editor_session import Phase6HoleEditorSession
+from phase6_project_file import PROJECT_SCHEMA, read_project, write_project
 from tools.issue1959_whd_cadcraft_command_draw import from_whd_resolved, run_proof
 
 
@@ -112,6 +113,31 @@ def prove(cli: Path, work: Path):
         raise AssertionError("ORIGINAL_WHD_SESSION_CONFIRM_FAILED")
     session.finish(commit=True)
 
+    # Real WHD project authority: persist the exact confirmed Feature objects
+    # under the existing part_features.door key, then reconstruct from .p6fold.
+    # This does not simulate the top-level GUI Save click or a Windows UAT.
+    project_file = write_project(work / "WHD-confirmed-test-only.p6fold", {
+        "schema": PROJECT_SCHEMA,
+        "saved_at": "2026-10-20T00:00:00+08:00",
+        "snapshot": {
+            "model": "金庫型",
+            "part_features": {"door": tuple(originals)},
+            "existing_parts": ["door"],
+            "active_part": "door",
+        },
+        "final_geometry": {},
+    })
+    restored_project = read_project(project_file)
+    persisted_features = tuple(
+        restored_project["snapshot"]["part_features"]["door"]
+    )
+    if persisted_features != tuple(originals):
+        raise AssertionError("WHD_P6FOLD_CONFIRMED_FEATURE_ROUNDTRIP_DRIFT")
+    if [type(x) for x in persisted_features] != [type(x) for x in originals]:
+        raise AssertionError("WHD_P6FOLD_FEATURE_TYPE_CHANGED")
+    if restored_project["final_geometry"]:
+        raise AssertionError("WHD_PROJECT_PERSISTED_DERIVED_GEOMETRY")
+
     specs=dict(
         width=500,height=600,thickness=2,frame_width=25,
         gap_w=3.5,gap_h=3.5,fold_left=19,fold_right=19,
@@ -125,6 +151,19 @@ def prove(cli: Path, work: Path):
     new_file=work/"WHD-confirmed-authoritative-door.dxf"
     generate_part(before_spec,original_file,context)
     generate_part(after_spec,new_file,context)
+    # Reloaded WHD .p6fold must independently regenerate identical canonical
+    # CUTTING / BEND geometry. CADCraft's exchange DXF is never used here.
+    reloaded_spec = DoorPartSpec(**specs, features=persisted_features)
+    reloaded_manufacturing = work / "WHD-reloaded-authoritative-door.dxf"
+    generate_part(reloaded_spec, reloaded_manufacturing, context)
+    saved_geometry = Counter(
+        _signature(e) for e in ezdxf.readfile(new_file).modelspace()
+    )
+    reloaded_geometry = Counter(
+        _signature(e) for e in ezdxf.readfile(reloaded_manufacturing).modelspace()
+    )
+    if saved_geometry != reloaded_geometry:
+        raise AssertionError("WHD_RELOADED_MANUFACTURING_DXF_GEOMETRY_CHANGED")
     previous=ezdxf.readfile(original_file)
     manufactured=ezdxf.readfile(new_file)
     before=Counter(_signature(e) for e in previous.modelspace())
@@ -214,6 +253,11 @@ def prove(cli: Path, work: Path):
         "manufacturing_x_mirrored_by_existing_door_export":True,
         "unfolded_mirror_span_mm":blank_w,
         "manufacturing_cutting_from_whd":True,
+        "project_file_saved_and_reloaded":True,
+        "reloaded_part_features_count":len(persisted_features),
+        "persisted_feature_types":[type(x).__name__ for x in persisted_features],
+        "reloaded_manufacturing_dxf_geometry_parity":True,
+        "top_level_gui_save_click_tested":False,
         "cadcraft_dxf_used_as_manufacturing_source":False,
         "installed_cadcraft_modified":False,
         "product_or_baseline_modified":False,
