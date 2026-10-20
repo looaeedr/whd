@@ -87,5 +87,24 @@ def test_real_receiving_composition_passes_preservation_intent_from_model():
     source=Path('gui_modules/application/fold_designer_composition_shell_settings.py').read_text(encoding='utf-8')
     assert "receiving_single_base" in source
     assert 'str(snapshot.get("model") or "").strip()' in source
-    assert "preserve_single_base_plate=receiving_single_base" in source
+    # One-tier retains the historical root; two-tier publishes *only*
+    # the two genuine tier PartSpecs, with the root kept internal to MFG.
+    assert "preserve_single_base_plate=preserve_navigation_root" in source
+    assert "receiving_two_tier" in source
+    assert "navigation.remove_part(\"base_plate\")" in source
     assert "if door_rows and not receiving_single_base" in source
+
+
+def test_receiving_two_tier_navigation_removes_root_without_generating_door_cell_clones():
+    from dataclasses import replace
+    two_tier = replace(
+        _input(receiving=False),
+        base_plate_profiles={},
+    )
+    plan = build_derived_part_sync_plan(
+        build_derived_part_projection_request(two_tier),
+    )
+    assert "base_plate" in plan.remove_part_keys
+    by_door = next(p for p in plan.namespaces if p.namespace == "base_plate_c")
+    assert by_door.parts == ()
+    assert all(p.part_key != "base_plate" for p in plan.add_parts)
