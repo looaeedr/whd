@@ -845,22 +845,19 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     and applied["mode"] == "set_bay"
                     and len(applied["selected_bays"]) == 1):
                 chosen_bay = applied["selected_bays"][0]
+                base_ready = False
+                csv_ready = False
                 try:
                     base_ports = get_nfb_transaction_ports()
-                    base_ready = bool(
-                        base_ports["state"](set_index, chosen_bay).get("base_partial_ready")
-                    )
+                    live_base_state = base_ports["state"](set_index, chosen_bay)
+                    base_ready = bool(live_base_state.get("base_partial_ready"))
+                    csv_ready = bool(live_base_state.get("csv_base_part_ready"))
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
-                    base_ready = False
+                    pass
                 # CSV V5 single-plate manufacture is separate from the
                 # historical DXF-sourced inner-door/base *pair* export.
                 # A committed numerical source can derive the physical
                 # BasePlate without a manual saved pattern or a DXF bundle.
-                csv_ready = bool(
-                    base_ports["state"](set_index, chosen_bay).get(
-                        "csv_base_part_ready"
-                    )
-                ) if base_ports is not None else False
                 if csv_ready:
                     def export_csv_base_part_only():
                         try:
