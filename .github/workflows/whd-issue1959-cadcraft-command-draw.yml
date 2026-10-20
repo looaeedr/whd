@@ -11,7 +11,7 @@ on:
       - "gui_modules/editors/cadcraft_manual_hole_return_bridge.py"
       - "gui_modules/editors/cadcraft_new_hole_import.py"
       - "tests/test_issue1959_cadcraft_manual_return.py"
-      - "tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py"
+      - "tests/test_issue1959_cadcraft_append_holes.py"
       - "tools/issue1959_cadcraft_session_trial.py"
       - "tools/issue1959_whd_real_manufacturing_parity.py"
       - "tests/test_issue1959_whd_real_manufacturing_parity.py"
@@ -251,7 +251,28 @@ jobs:
           if ($executables.Count -ne 1) { throw "CADCRAFT_WINDOWS_CLI_NOT_UNIQUE" }
           $cli = $executables[0].FullName
           "CADCRAFT_CLI=$cli" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $guis = @(Get-ChildItem (Join-Path $dir "unpacked") -Recurse -File -Filter "cadcraft.exe")
+          if ($guis.Count -ne 1) { throw "CADCRAFT_WINDOWS_GUI_NOT_UNIQUE" }
+          "CADCRAFT_GUI=$($guis[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "OFFICIAL_WINDOWS_CADCRAFT_RELEASE_SHA256 $actual"
+      - name: Actual Windows CADCraft desktop GUI unsaved TCP to WHD Session Confirm Undo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path "work/issue1959-win" | Out-Null
+          python -m tools.issue1959_cadcraft_tcp_live_native_probe --cadcraft "$env:CADCRAFT_GUI" --evidence "work/issue1959-win/cadcraft-native-gui-unsaved-return.json"
+          if ($LASTEXITCODE -ne 0) { throw "CADCRAFT_REAL_WINDOWS_GUI_TCP_RETURN_RED" }
+          @'
+          import json
+          from pathlib import Path
+          p = json.loads(Path("work/issue1959-win/cadcraft-native-gui-unsaved-return.json").read_text(encoding="utf-8"))
+          assert p["status"] == "PASS" and p["new_holes_in_whd_session"] == 1
+          assert p["session_confirm"] and p["session_undo"] and p["disk_original_unchanged"]
+          assert p["manual_cadcraft_save"] is False and not p["manufacturing_dxf_written"]
+          assert p["windows_user_gui_uat"] is False
+          print("WINDOWS_NATIVE_VENDOR_GUI_TCP_UNSAVED_WHD_SESSION_GREEN")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "WINDOWS_NATIVE_GUI_TCP_RECEIPT_INVALID" }
       - name: Windows native CADCraft draws actual WHD holes and saves disposable PNG DXF
         shell: pwsh
         run: |
