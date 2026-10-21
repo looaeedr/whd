@@ -27,7 +27,13 @@ from phase6_final_scene_renderer import Phase6FinalSceneRenderer
 def test_individual_3d_uses_signed_90_degree_bend_and_preserves_mfg_source(part_id):
     from matplotlib.figure import Figure
 
-    source = build_fixing_plate_source_render_data(part_id)
+    # Installed second-tier IDs require the actual committed Set/Bay owner.
+    # Do not fabricate tier identities without the same source used in GUI.
+    snapshot = None
+    if "nfb_layer:" in part_id:
+        from tests.test_receiving_two_tier_physical_base_parts import _two_tier
+        snapshot = _two_tier()
+    source = build_fixing_plate_source_render_data(part_id, snapshot=snapshot)
     guides_before = source.fold_guides
     scene_before = tuple(source.scene.primitives)
     source_metadata = dict(source.metadata)
