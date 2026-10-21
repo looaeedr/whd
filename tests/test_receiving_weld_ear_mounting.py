@@ -376,3 +376,50 @@ def test_bom_counts_both_independent_fixing_plates_without_unsafe_export(box_cou
         geometry, include_unreleased_source_flats=True,
     )
     assert {key for key, _ in all_parts} == {item.physical_id for item in bom}
+
+
+def test_real_parent_owned_offset_ear_preview_is_not_a_manufacturing_row():
+    """Normal selected DXF omits verified-source previews, not forged EARs."""
+    from types import SimpleNamespace
+    from dataclasses import replace
+    from ae_engine.manufacturing_export import (
+        resolved_physical_render_parts, _reject_unapproved_nfb_pad_ear_manufacturing,
+    )
+    from ae_engine.receiving_base_fixing_plate_geometry import (
+        build_fixing_plate_source_render_data,
+    )
+    snapshot = {
+        "model": "受電箱", "w": 800, "t": 2,
+        "receiving_base_plate": {"pattern": "LEFT_FLAT_SIDE"},
+    }
+    key = "base_plate:fixing_plate:left"
+    source = build_fixing_plate_source_render_data(key, snapshot=snapshot)
+    assert source.metadata["parent_base_id"] == "base_plate"
+    assert source.metadata["source_cutting_verified"] is True
+    assert source.metadata["source_bend_verified"] is True
+    base = SimpleNamespace(part_key="base_plate", placement="offset",
+                           render_data=SimpleNamespace(metadata={}))
+    installed = SimpleNamespace(part_key=key, placement="offset",
+                                render_data=source)
+    geometry = SimpleNamespace(parts=(base, installed))
+    rows = resolved_physical_render_parts(geometry)
+    assert rows == (("base_plate", base.render_data),)
+    assert set(key for key, _ in resolved_physical_render_parts(
+        geometry, include_unreleased_source_flats=True
+    )) == {"base_plate", "base_plate:fixing_plate:left"}
+
+    # Source metadata alone never makes an offset orphan a trusted preview.
+    orphan = SimpleNamespace(parts=(installed,))
+    assert resolved_physical_render_parts(orphan) == ((key, source),)
+    with pytest.raises(ValueError, match="BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED"):
+        _reject_unapproved_nfb_pad_ear_manufacturing(
+            ((key, key + ".dxf", source),)
+        )
+    # A wrong original-source fingerprint also keeps the generic guard live.
+    wrong = replace(source, metadata={
+        **source.metadata, "source_dxf_sha256": "not-the-original"
+    })
+    forged = SimpleNamespace(part_key=key, placement="offset", render_data=wrong)
+    assert resolved_physical_render_parts(
+        SimpleNamespace(parts=(base, forged))
+    ) == (("base_plate", base.render_data), (key, wrong))
