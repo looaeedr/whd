@@ -119,3 +119,42 @@ def test_invalid_edit_keeps_batch_atomic_and_source_unchanged():
     assert session.current==before
     with pytest.raises(ValueError,match="finite"):
         set_nfb_manual_x(initial(),0,0,float("inf"))
+
+
+def test_ac06_rejected_mutating_callback_does_not_leak_into_live_draft():
+    """A callback may mutate its argument *before* reporting collision."""
+    session=NfbUi1aEditSession(initial())
+    before=deepcopy(session.current)
+
+    def mutate_then_reject(candidate):
+        candidate["layers"][0]["slots"][0]["manual_x_mm"]=999.0
+        candidate["layers"][0]["slots"][0]["filename"]="leaked.dxf"
+        raise ValueError("collision detected")
+
+    with pytest.raises(ValueError,match="collision detected"):
+        session.apply("REJECT_COLLISION",mutate_then_reject)
+    assert session.current==before
+    assert not session.dirty
+    with pytest.raises(ValueError,match="no undo"):
+        session.undo()
+
+
+def test_ac06_successful_mutating_callback_commits_once_and_undo_restores():
+    """Even in-place editing callbacks must commit atomically with an undo."""
+    session=NfbUi1aEditSession(initial())
+    before=deepcopy(session.current)
+    original=deepcopy(before)
+
+    def mutate_then_succeed(candidate):
+        candidate["layers"][0]["slots"][0]["manual_x_mm"]=12.5
+        candidate["layers"][0]["slots"][0]["manual_x_state"]=UNVERIFIED
+        return candidate
+
+    receipt=session.apply("MANUAL_X",mutate_then_succeed)
+    assert receipt.action=="MANUAL_X"
+    assert session.current["layers"][0]["slots"][0]["manual_x_mm"]==12.5
+    assert before==original
+    assert session.dirty
+    session.undo()
+    assert session.current==before
+    assert not session.dirty
