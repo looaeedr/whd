@@ -78,6 +78,7 @@ def _verified_formed_ear_parts(snapshot, original_geometry, *, dimensions, sheet
     uv, side_contact, side_parts, side_scenes = _verified_pair(
         snapshot, original_geometry, dimensions=dimensions,
         sheet_thickness=sheet_thickness,
+        permit_independent_source_marking_crossing=True,
     )
     bases = validate_receiving_tier_fixing_contact_receipts(
         snapshot, original_geometry.parts,
