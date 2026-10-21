@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """#1504 fail-closed machine audit of the two approved NFB v1.4 AC tables.
 
-Only traceability is delivered by this check. A test filename is NOT proof
-that an AC's specific assertion passed, and no item may claim acceptance
-while #1500 real-source GUI or #1503 independent PAD work remains open.
+A test filename is NOT proof that an AC passed. Some independent automated
+ACs may be signed only with actual multi-assertion runtime tests in mandatory
+CI, while #1500 real-source GUI and #1503 independent PAD remain unsanctioned.
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ NEEDS = {
     "BLOCKED_1500_REAL_GUI",
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
     "DEFERRED_PRODUCT_EVIDENCE",
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
 }
 ORIGINAL_SHA = {
     "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md":
@@ -81,10 +82,16 @@ def test_all_owner_and_candidate_paths_exist_without_claiming_tests_prove_ac():
         assert all(re.fullmatch(r"tests/[a-zA-Z0-9_/-]+\.py", p)
                    for p in candidates), row["id"]
         assert all((ROOT / p).is_file() for p in candidates), row["id"]
-        assert row["evidence_level"] == "PATH_EXISTS_NOT_ASSERTION_AUDITED"
-        assert row["accepted"] is False
         assert row["status"] in NEEDS
-        assert row["status"] not in ("PASS", "GREEN", "CLOSED", "READY")
+        if row["accepted"]:
+            assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+            assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+            assert row["assertion_review_state"] == "FULL_AC_AUTOMATED_SIGNED"
+            assert row["acceptance_evidence"]["factory_release"] is False
+            assert row["acceptance_evidence"]["human_windows_uat_claimed"] is False
+        else:
+            assert row["evidence_level"] == "PATH_EXISTS_NOT_ASSERTION_AUDITED"
+            assert row["status"] not in ("PASS", "GREEN", "CLOSED", "READY")
 
 
 def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
@@ -108,6 +115,8 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
             assert r["blocking_issues"] == [1503]
         else:
             assert not r["blocking_issues"]
+    assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30"}
+    assert rows["NFB-AC-30"]["blocking_issues"] == []
 
 
 def test_1502_newer_corrected_base_plate_scope_is_not_lost():
@@ -129,7 +138,8 @@ def test_manifest_review_summary_is_recomputed_from_records():
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
     assert counts["SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"] == 14
     assert counts["BLOCKED_1500_REAL_GUI"] == 17
-    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 53
+    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 52
+    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 1
 
 
 def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
@@ -141,12 +151,18 @@ def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_fl
         witnesses = item["identified_test_functions"]
         state = item["assertion_review_state"]
         assert witnesses, item["id"]
-        assert state == "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
-        assert len(witnesses) == 1  # exact function identity, not full AC proof
+        assert state == (
+            "FULL_AC_AUTOMATED_SIGNED" if item["accepted"]
+            else "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+        )
+        assert len(witnesses) == 1  # one primary per AC, not fake row counts
         for witness in witnesses:
             assert witness["path"] in item["regression_candidates"]
-            assert witness["accepted"] is False
-            assert witness["witness_scope"] == "PARTIAL_AUTOMATED_ASSERTIONS_ONLY"
+            assert witness["accepted"] is item["accepted"]
+            assert witness["witness_scope"] == (
+                "FULL_AC_AUTOMATED_ASSERTIONS" if item["accepted"]
+                else "PARTIAL_AUTOMATED_ASSERTIONS_ONLY"
+            )
             target = ROOT / witness["path"]
             nodes = ast.parse(target.read_text(encoding="utf-8")).body
             actual = {n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
@@ -166,17 +182,42 @@ def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
 
 
 
-def test_all_function_links_are_only_partial_and_no_factory_approval_is_implied():
+def test_one_full_ac_requires_source_specific_runtime_witness_and_ci_selection():
     obj = _data()
     assert obj["exact_test_function_witnesses_review"].startswith(
-        "88/88 FUNCTION_IDENTITIES_VERIFIED; 0/88 FULL_AC_ACCEPTED;"
+        "88/88 FUNCTION_IDENTITIES_VERIFIED; 1/88 FULL_AC_AUTOMATED_SIGNED"
     )
-    for row in obj["records"]:
-        assert row["assertion_review_state"] == (
-            "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
-        )
-        assert row["accepted"] is False
-        assert row["identified_test_functions"][0]["accepted"] is False
+    signed = {r["id"]: r for r in obj["records"] if r["accepted"]}
+    assert set(signed) == {"NFB-AC-30"}
+    from tools.product_ci_regression import PYTEST_PATHS
+    # Do not accept a filename or an unrelated witness.  Exact path, native
+    # numeric CSV fail-closed and old source-scoped MFG1 preflight are mandatory.
+    a = signed["NFB-AC-30"]
+    e = a["acceptance_evidence"]
+    proof = "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py"
+    assert e["original_ac_text_unchanged"] is True
+    assert proof in PYTEST_PATHS
+    assert e["primary_assertion"] == (
+        proof+"::test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting"
+    )
+    assert e["other_required_assertion"] == (
+        proof+"::test_nfb_ac30_missing_numeric_csv_model_produces_no_physical_cutting"
+    )
+    assert e["separate_mfg1_preflight"] == (
+        "tests/test_issue1497_nfb_cutting_preflight.py"
+        "::test_unresolved_x_never_generates_a_fake_center_or_manufacturable_hole"
+    )
+    assert "tests/test_issue1497_nfb_cutting_preflight.py" in PYTEST_PATHS
+    for entry in (e["primary_assertion"], e["other_required_assertion"],
+                  e["separate_mfg1_preflight"]):
+        filename, function = entry.split("::")
+        tree = ast.parse((ROOT / filename).read_text(encoding="utf-8"))
+        matches = [n for n in tree.body
+                   if isinstance(n, ast.FunctionDef) and n.name == function]
+        assert len(matches) == 1
+        assert any(isinstance(n, ast.Assert) for n in ast.walk(matches[0]))
+    assert e["factory_release"] is False
+    assert e["human_windows_uat_claimed"] is False
     assert set(obj["open_gates"]) == {1500, 1503, 1504}
 
 
@@ -194,7 +235,7 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
     assert "732-mm" in rule and "Do not infer plate X" in rule
     assert "remain unapproved" in rule
     assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
-    assert all(row["accepted"] is False for row in obj["records"])
+    assert {r["id"] for r in obj["records"] if r["accepted"]} == {"NFB-AC-30"}
 
     # The human review must not silently retain an older X-centering claim.
     text = MANIFEST.with_suffix(".md").read_text(encoding="utf-8")
@@ -211,7 +252,8 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     assert d["counts"] == {
         "BLOCKED_1500_REAL_GUI": 17,
         "DEFERRED_PRODUCT_EVIDENCE": 4,
-        "EVIDENCE_CANDIDATE_ONLY": 53,
+        "EVIDENCE_CANDIDATE_ONLY": 52,
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 1,
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     }
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
@@ -247,7 +289,7 @@ def test_current_csv_ear_and_true_skin_supersessions_never_mutate_original_ac():
     assert "PAD blank/material/thickness/Z/BOM" in rule
     assert "welding-workmanship certification" in source["cannot_be_inferred"]
     assert "full" not in d["review_status"].lower()
-    assert not any(r["accepted"] for r in d["records"])
+    assert {r["id"] for r in d["records"] if r["accepted"]} == {"NFB-AC-30"}
     # Historical original AC-13 falsely held Base Plate Z fixed; preserve
     # the original phrase for traceability and declare its current override.
     row = {r["id"]: r for r in d["records"]}

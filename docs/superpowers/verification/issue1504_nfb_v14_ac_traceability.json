@@ -25,8 +25,9 @@
   "counts": {
     "BLOCKED_1500_REAL_GUI": 17,
     "DEFERRED_PRODUCT_EVIDENCE": 4,
-    "EVIDENCE_CANDIDATE_ONLY": 53,
-    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14
+    "EVIDENCE_CANDIDATE_ONLY": 52,
+    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 1
   },
   "records": [
     {
@@ -894,21 +895,33 @@
       "regression_candidates": [
         "tests/test_issue1494_closed_cutting_reference.py",
         "tests/test_issue1494_nfb_x_shadow_projection.py",
-        "tests/test_issue1494_receiving_nfb_x_evidence.py"
+        "tests/test_issue1494_receiving_nfb_x_evidence.py",
+        "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
-          "test_name": "test_no_unapproved_size_or_single_unit_center_defaults",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
+          "test_name": "test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "NOMINAL_CENTER_PITCH_INDEPENDENT_OF_SELECTED_MODEL_AND_FAIL_CLOSED_WITH_MISSING_CURRENT_CSV_SOURCE",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting",
+        "other_required_assertion": "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::test_nfb_ac30_missing_numeric_csv_model_produces_no_physical_cutting",
+        "separate_mfg1_preflight": "tests/test_issue1497_nfb_cutting_preflight.py::test_unresolved_x_never_generates_a_fake_center_or_manufacturable_hole",
+        "integration_ci": "WHD Product Regression canonical selector; exact PR HEAD CI required before localX merge",
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-31",
@@ -2750,8 +2763,8 @@
     ]
   },
   "exact_test_function_witnesses_count": 88,
-  "assertion_witness_note": "All named functions and original issue candidate paths are checked against existing source; this is a machine-verifiable link, NOT proof each original AC assertion is complete or actual Windows GUI / factory manufacture was approved.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 0/88 FULL_AC_ACCEPTED; 62 newly linked partial witnesses, 26 previously linked.",
+  "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. All other 87 are still unsigned.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 1/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 87 AC have partial or deferred evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
