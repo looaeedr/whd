@@ -161,6 +161,11 @@ PYTEST_PATHS = (
     "tests/test_issue1502_receiving_single_base_workspace.py",
     "tests/test_issue1502_nfb_base_source_projection.py",
     # V5 CSV is the current source of NFB openings and screw pitches.
+    # #1502's source-derived plate selection and actual standalone V5 DXF
+    # were previously OMITTED from mandatory Product Regression despite
+    # source/GUI changes. Run both in every CI shard manifest, fail closed.
+    "tests/test_issue1502_source_derived_center_base.py",
+    "tests/test_issue1502_csv_v5_part_only_manufacturing.py",
     "tests/test_issue1502_v5_csv_base_x_stable.py",
     # Same V5 CSV source geometry on separate, truly owned NFB-tier plates.
     "tests/test_issue1502_v5_csv_tier_bases.py",
