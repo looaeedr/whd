@@ -1,0 +1,10 @@
+{
+  "schema": "RECEIVING_NFB_PAD_TOOLING_V1",
+  "revision": "2026-10-21-source-100_75X130_68",
+  "source_dxf_sha256": "1674fa98e9f1b09113dd19374b659220f171ce433dda3bef4a0802577b77d169",
+  "tab_projection_mm": 2.0,
+  "tab_height_mm": 5.0,
+  "tab_end_inset_mm": 15.0,
+  "base_square_side_mm": 6.0,
+  "base_square_center_inset_x_mm": 1.5
+}
