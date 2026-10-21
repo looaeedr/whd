@@ -33,7 +33,10 @@ def committed_nfb_pad_draft_parts(snapshot: Mapping) -> tuple[NfbPadDraftPart, .
     from .receiving_nfb_model_identity import parse_numeric_model_ref
     from .receiving_nfb_numeric_catalog import model_spec
     found = _submitted_csv_holes(snapshot)
-    if found is None:
+    if not found:
+        # The normal committed V5 projector deliberately returns () when
+        # WORLD-X has not been confirmed in the original Hole Editor.
+        # Never invent a 2D PAD selector entry from model names alone.
         return ()
     _door_id, holes = found
     if not holes:

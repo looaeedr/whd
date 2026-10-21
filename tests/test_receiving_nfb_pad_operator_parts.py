@@ -3,19 +3,25 @@
 from copy import deepcopy
 import pytest
 from ae_engine.receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
-from tests.test_receiving_flat_pad_source_routing import _mixed
+from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
+from ae_engine.receiving_nfb_numeric_catalog import model_spec
+from ae_engine.receiving_nfb_pad_generator import read_pad_tooling_rule
 
 
 def test_current_one_tier_csv_selection_generates_single_real_pad_2d_sheet():
-    snap=_mixed()
-    snap.pop("receiving_base_plate",None)
+    snap=_current()
     parts=committed_nfb_pad_draft_parts(snap)
     assert len(parts)==1
     pad=parts[0]
     assert pad.parent_base_id=="base_plate"
-    assert pad.pattern.rise_mm==pytest.approx(39.)
-    assert pad.render_data.unfolded_topology.width==pytest.approx(149.)
-    assert pad.render_data.unfolded_topology.height==pytest.approx(130.)
+    selected=tuple(model_spec("士林",row["model_filename"].rsplit(":",1)[-1])
+                   for row in snap["nfb_config"]["holes"])
+    assert pad.pattern.rise_mm==pytest.approx(
+        max(s.depth_mm for s in selected)-min(s.depth_mm for s in selected))
+    assert pad.render_data.unfolded_topology.width==pytest.approx(
+        pad.pattern.blank_width_mm+2*read_pad_tooling_rule().tab_projection_mm)
+    assert pad.render_data.unfolded_topology.height==pytest.approx(
+        pad.pattern.formed_height_mm)
     assert pad.part_id.startswith("nfb_pad:")
     assert pad.part_id.endswith(snap["nfb_config"]["holes"][1]["physical_hole_id"])
     assert pad.manufacturing_ready is False
@@ -25,13 +31,13 @@ def test_current_one_tier_csv_selection_generates_single_real_pad_2d_sheet():
 
 
 def test_existing_explicit_center_has_no_spurious_pad_navigation_or_double_compensation():
-    snap=_mixed()
-    snap["receiving_base_plate"]["pattern"]="CENTER_DOUBLE_SIDE_FOLD"
+    snap=_current()
+    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
     assert committed_nfb_pad_draft_parts(snap)==()
 
 
 def test_uncommitted_and_no_source_bay_may_not_fabricate_pad_entries():
-    snap=_mixed()
+    snap=_current()
     snap["nfb_config_submitted"]=False
     assert committed_nfb_pad_draft_parts(snap)==()
     snap["nfb_config_submitted"]=True
@@ -49,8 +55,7 @@ def test_native_part_renderer_reads_true_pad_2d_without_mfg_claim():
     )
     from phase6_part_navigation import operator_part_label
     from phase6_manufacturing_adapter import _canonical_part_keys
-    snap=_mixed()
-    snap.pop("receiving_base_plate",None)
+    snap=_current()
     selected,=committed_nfb_pad_draft_parts(snap)
     owner=SimpleNamespace(_phase6_input_snapshot=snap)
     host=SimpleNamespace(fold_designer_app=owner)
@@ -73,8 +78,7 @@ def test_old_pad_2d_navigation_key_rejected_after_center_change():
     from gui_modules.application.fold_designer_manufacturing_projection import (
         _query_fold_designer_render_data,
     )
-    snap=_mixed()
-    snap.pop("receiving_base_plate",None)
+    snap=_current()
     part,=committed_nfb_pad_draft_parts(snap)
     snap["receiving_base_plate"]={
         "pattern":"CENTER_DOUBLE_SIDE_FOLD","height":280.,"shrink_top":20.,
