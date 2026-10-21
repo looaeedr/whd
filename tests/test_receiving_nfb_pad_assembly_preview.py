@@ -176,3 +176,48 @@ def test_actual_pad_mating_refuses_stale_base_geometry_even_when_owner_metadata_
     # that the actual selected NFB's locator/screw geometry drifted.
     with pytest.raises(ValueError,match="PAD_BASE_"):
         build_committed_pad_assembly_display(snap,(changed,))
+
+
+
+@pytest.mark.parametrize("rotation",(0,90,180,270))
+def test_real_folded_pad_four_tab_tips_enter_matching_base_cutting_squares(rotation):
+    """True mesh tip vertices, NOT guessed labels, must mate 4 source holes."""
+    from shapely.geometry import Point, Polygon
+    from ae_engine.receiving_nfb_v5_configured_inner_door import AXES
+
+    smaller=_s("100HN-s",75,130,68,25,111,3.2)
+    reference=_s("3P400SN",140,257,107,44,194,5.1)
+    pattern,=generate_nfb_pad_patterns(
+        (smaller,reference),plate_thickness_mm=2.,tooling=read_pad_tooling_rule())
+    world_x,world_y,base_z=147.,260.,-150.
+    triangles=pad_physical_preview_world_mesh(
+        pattern,parent_base_id="base_plate",owner_hole_id="nfb:tab-contact",
+        world_x=world_x,world_y=world_y,base_front_world_z_mm=base_z,
+        rotation_deg=rotation,
+    )
+    mins=triangle_bounds(triangles)
+    assert mins is not None
+    # Thickness-normal offset is on the vertical leg itself: the four tiny
+    # tips project into the Base Plate's physical depth range, not hover.
+    tip_world_z=mins[2][0]
+    assert base_z-pattern.plate_thickness_mm-1e-5 <= tip_world_z <= base_z+1e-5
+    vertices={
+        (round(float(pt[0]),6),round(float(pt[1]),6))
+        for tri in triangles for pt in tri
+        if abs(float(pt[2])-tip_world_z) < 1e-5
+    }
+    assert vertices, "PAD_REAL_3D_TAB_TIPS_MISSING"
+    ux,uy=AXES[rotation]
+    def project(point):
+        x,y=point
+        return (world_x+x*ux[0]+y*uy[0],
+                world_y+x*ux[1]+y*uy[1])
+    squares=tuple(Polygon(tuple(project(v) for v in square))
+                  for square in pattern.base_square_holes_xy_mm)
+    assert len(squares)==4
+    for square in squares:
+        matches=[p for p in vertices if square.buffer(1e-5).covers(Point(p))]
+        assert matches, (
+            "PAD_REAL_3D_TAB_TIP_MISALIGNED_WITH_BASE_SQUARE",
+            rotation,square.bounds,len(vertices),
+        )
