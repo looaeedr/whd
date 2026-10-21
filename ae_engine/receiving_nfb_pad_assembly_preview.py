@@ -153,6 +153,19 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
         if (set(squares)!={entries[p.switch_index].physical_hole_id for p in patterns}
                 or any(count!=4 for count in squares.values())):
             raise ValueError("PAD_BASE_LOCATOR_SQUARES_NOT_SAME_OWNER")
+        # Ownership count is only metadata. Recheck every actual 6x6
+        # CUTTING polygon against this NFB's four selected CSV screw centres
+        # and its rotated source geometry before any 3D skin may appear.
+        from .receiving_nfb_pad_base_mating import (
+            verify_real_pad_base_square_cuts,
+        )
+        for candidate in patterns:
+            selected=entries[candidate.switch_index]
+            verify_real_pad_base_square_cuts(
+                base.render_data,candidate,
+                owner_hole_id=selected.physical_hole_id,
+                rotation_deg=selected.rotation_deg,
+            )
         world=resolve_receiving_nfb_world_skin_datums(
             snapshot,inner_door_id=door_id,
             reference_nfb_depth_mm=max(s.depth_mm for s in source_specs),

@@ -117,3 +117,62 @@ def test_same_real_pad_rotates_as_selected_nfb_base_four_squares(angle):
             expect=(35.+(x-35.)*ax[0]+(y-70.)*ay[0],
                     70.+(x-35.)*ax[1]+(y-70.)*ay[1],z)
             assert p2==pytest.approx(expect,abs=1e-5)
+
+
+
+@pytest.mark.parametrize("fault",("square_removed","square_shifted","screw_shifted"))
+def test_actual_pad_mating_refuses_stale_base_geometry_even_when_owner_metadata_says_four(fault):
+    from copy import deepcopy
+    from dataclasses import replace
+    from ae_engine.sheetmetal_geometry import Vec2
+    from ae_engine.sheetmetal_drawing import (
+        CirclePrimitive,PolylinePrimitive,DrawingScene,
+    )
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        apply_committed_csv_v5_to_canonical_parts,
+    )
+    from ae_engine.receiving_nfb_pad_assembly_preview import (
+        build_committed_pad_assembly_display,
+    )
+    from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
+    from tests.test_issue1502_csv_is_only_normal_finalscene_source import _make
+
+    snap=_current()
+    snap["receiving_base_plate"]={
+        "pattern":"LEFT_FLAT_SIDE","height":340.,
+        "shrink_top":20.,"shrink_bottom":20.,
+        "shrink_left":45.,"shrink_right":45.,"bend":20.,
+    }
+    rows=snap["nfb_config"]["holes"]
+    rows[0].update(model_filename="nfbv5:士林:3P400SN",source_brand="士林")
+    rows[1].update(model_filename="nfbv5:士林:100HN-s",source_brand="士林",
+                   rotation_deg=90)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
+    installed=apply_committed_csv_v5_to_canonical_parts(snap,(_make(snap),))
+    assert len(installed)==1
+    original=installed[0].render_data
+    assert dict(original.metadata["nfb_v5_pad_square_owners"]) == {
+        rows[1]["physical_hole_id"]:4}
+    items=list(original.scene.primitives)
+    if fault=="screw_shifted":
+        i=next(i for i,p in enumerate(items)
+            if isinstance(p,CirclePrimitive)
+            and p.source_id==rows[1]["physical_hole_id"]+":screw:1")
+        p=items[i]
+        items[i]=replace(p,center=Vec2(p.center.x+2.,p.center.y))
+    else:
+        i=next(i for i,p in enumerate(items)
+            if isinstance(p,PolylinePrimitive) and p.closed
+            and p.layer=="CUTTING" and p.color==30 and len(p.points)==4)
+        if fault=="square_removed":
+            del items[i]
+        else:
+            poly=items[i]
+            items[i]=replace(poly,points=tuple(
+                Vec2(q.x+5.,q.y) for q in poly.points))
+    changed=replace(installed[0],render_data=replace(
+        original,scene=DrawingScene(items)))
+    # A stale metadata count or still-valid material must never conceal
+    # that the actual selected NFB's locator/screw geometry drifted.
+    with pytest.raises(ValueError,match="PAD_BASE_"):
+        build_committed_pad_assembly_display(snap,(changed,))
