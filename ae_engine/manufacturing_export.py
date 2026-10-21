@@ -73,7 +73,9 @@ def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_sour
     Full-cabinet export and verification keep the conservative default.
     """
     rows = []
-    for part in tuple(getattr(resolved_geometry, 'parts', ()) or ()):
+    physical = tuple(getattr(resolved_geometry, 'parts', ()) or ())
+    physical_ids = {str(getattr(p, 'part_key', '') or '') for p in physical}
+    for part in physical:
         key = str(getattr(part, 'part_key', '') or '').strip()
         if not key:
             raise ValueError('resolved manufacturing part missing part_key')
@@ -87,12 +89,27 @@ def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_sour
         # PAD/EAR guard still checks all remaining manufacturing rows.
         meta = getattr(render_data, 'metadata', None)
         if (key.startswith('base_plate:fixing_plate:')
-                and getattr(part, 'placement', None) == 'standalone'
                 and isinstance(meta, Mapping)
                 and meta.get('physical_part_role') == 'BASE_FIXING_PLATE'
                 and meta.get('formed_geometry_verified') is False
                 and not include_unreleased_source_flats):
-            continue
+            # Standalone source flats are view/BOM only. Installed previews
+            # have placement="offset"; exclude these only with real parent
+            # ownership and the original source fingerprint. An unrelated
+            # offset part with the same key must reach the export guard.
+            placement = getattr(part, 'placement', None)
+            if placement == 'standalone':
+                continue
+            if placement == 'offset':
+                from .receiving_base_fixing_plate_geometry import SOURCE_DXF_SHA256
+                parent = str(meta.get('parent_base_id') or '')
+                if (parent.startswith('base_plate')
+                        and parent in physical_ids
+                        and meta.get('stable_id') == key
+                        and meta.get('source_dxf_sha256') == SOURCE_DXF_SHA256
+                        and meta.get('source_cutting_verified') is True
+                        and meta.get('source_bend_verified') is True):
+                    continue
         pieces = tuple(getattr(render_data, 'pieces', ()) or ())
         if pieces:
             for index, piece in enumerate(pieces, start=1):
