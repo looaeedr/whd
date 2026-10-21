@@ -26,6 +26,7 @@ REQUIRED = (
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     "tests/test_issue1504_v14_ac_traceability.py",
+    "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
 )
 
 
