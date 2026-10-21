@@ -224,7 +224,16 @@ def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
             values.append({"slot_index":j, "filename":filename,
                            "effective_brand":brand,
                            "brand_mode":slot["brand"]["mode"],
-                           "status":status, "absolute_x_mm":None})
+                           "status":status, "absolute_x_mm":None,
+                           # Relative pitch is never a physical X position.
+                           # Explicit per-check UNKNOWN values prevent a
+                           # consumer from treating missing collision/bounds
+                           # evidence as a successful validation.
+                           "verification": {
+                               "absolute_x": "UNVERIFIED",
+                               "collision": "UNVERIFIED",
+                               "bounds": "UNVERIFIED",
+                           }})
         layers.append({"layer_index":i, "effective_brand":effective_nfb_layer_brand(draft,i),
                        "brand_mode":draft["layers"][i]["brand"]["mode"],
                        "nominal_y_from_top_mm":ys[i] if ys is not None else None,
