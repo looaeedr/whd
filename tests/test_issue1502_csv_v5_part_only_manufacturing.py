@@ -174,3 +174,28 @@ def test_wrong_existing_assembly_blank_cannot_be_machined_as_current_base(tmp_pa
     with pytest.raises(ValueError, match="來源 PartSpec"):
         _export(snap, root, existing=wrong)
     assert not root.exists()
+
+
+def test_original_csv_125_only_uses_real_flat_plate_and_reopen_with_own_screws(tmp_path):
+    snap = _current()
+    # The NFB model, opening and screw group all come from this submitted
+    # 3P125SN CSV row; 400's original drawing is only a flat blank example.
+    only = deepcopy(snap["nfb_config"]["holes"][1])
+    only.update(slot_index=0, layer_index=0, manual_x_mm=0.)
+    snap["nfb_config"]["holes"] = [only]
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    receipt = _export(snap, tmp_path / "single-125")
+    assert receipt.source_hole_ids == ("nfb:1",)
+    doc = ezdxf.readfile(receipt.path)
+    circles = [x for x in doc.modelspace()
+               if x.dxftype() == "CIRCLE" and x.dxf.layer == "CUTTING"]
+    assert len(circles) == 4
+    assert all(abs(float(x.dxf.radius) - 1.6) < 1e-6 for x in circles)
+    assert len([x for x in doc.modelspace()
+                if x.dxftype() == "LWPOLYLINE" and x.closed
+                and x.dxf.layer == "CUTTING"]) == 5
+    assert any(x.dxf.layer == "BEND" for x in doc.modelspace())
