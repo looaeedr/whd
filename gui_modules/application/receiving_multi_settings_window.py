@@ -776,12 +776,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     "inner_door_layers", targets(),
                 )) if targets() else None,
             ).pack(side="left", padx=(0, 5))
-            ttk.Button(
-                link_row, text="解除本連連動",
-                command=lambda: perform(lambda: ports["unlink"](
-                    "inner_door_layers",
-                )),
-            ).pack(side="left")
+            # No per-Bay "unlink" action here: the operator-selected
+            # highlight / version management is the sole current inner-door
+            # workflow. The former "解除本連連動" control was explicitly retired.
             # #1500: the existing source-verified Receiving NFB transaction
             # ports must remain operable after the settings window refactor.
             # Use the SAME canvas Bay highlighter and single canonical adapter;
@@ -841,7 +838,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             if len(current) != 1 or not current_state.get("can_submit"):
                                 raise ValueError(
                                     current_state.get("reason")
-                                    or "NFB 尚未核對本連原始 DXF／實體孔位"
+                                    or "目前沒有可提交的 NFB 交易證據，請先完成來源核對"
                                 )
                             changed = live["submit"](
                                 set_index, current, nfb_confirm,
