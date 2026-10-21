@@ -27,6 +27,7 @@ class NfbPadDisplaySkin:
     rise_mm: float
     source_flat_and_bend_verified: bool = True
     actual_base_squares_present: bool = True
+    four_tab_mesh_mating_verified: bool = False
     manufacturing_ready: bool = False
     assembly_contact_certified: bool = False
 
@@ -158,13 +159,17 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
         # and its rotated source geometry before any 3D skin may appear.
         from .receiving_nfb_pad_base_mating import (
             verify_real_pad_base_square_cuts,
+            verify_real_pad_mesh_tab_engagement,
         )
+        real_square_uv_by_owner={}
         for candidate in patterns:
             selected=entries[candidate.switch_index]
-            verify_real_pad_base_square_cuts(
-                base.render_data,candidate,
-                owner_hole_id=selected.physical_hole_id,
-                rotation_deg=selected.rotation_deg,
+            real_square_uv_by_owner[selected.physical_hole_id] = (
+                verify_real_pad_base_square_cuts(
+                    base.render_data,candidate,
+                    owner_hole_id=selected.physical_hole_id,
+                    rotation_deg=selected.rotation_deg,
+                )
             )
         world=resolve_receiving_nfb_world_skin_datums(
             snapshot,inner_door_id=door_id,
@@ -192,6 +197,18 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
                 base_front_world_z_mm=world.base_nfb_face_world_z_mm,
                 rotation_deg=entry.rotation_deg,
             )
+            # The real solid-skin tab tips must each ENTER its own physical
+            # selected-CSV square, at the actual Base Plate world Z. A render
+            # with a shifted or upside-down PAD is now refused, not displayed
+            # on the strength of four source square counts alone.
+            verify_real_pad_mesh_tab_engagement(
+                triangles,pattern,
+                real_square_uv_by_owner[entry.physical_hole_id],
+                world_x_mm=entry.world_x_mm,
+                world_y_mm=y.box_world_y_mm,
+                base_front_world_z_mm=world.base_nfb_face_world_z_mm,
+                rotation_deg=entry.rotation_deg,
+            )
             result.append(NfbPadDisplaySkin(
                 part_id=f"nfb_pad:{entry.physical_hole_id}",
                 parent_base_id=parent,
@@ -200,5 +217,6 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
                 base_front_world_z_mm=world.base_nfb_face_world_z_mm,
                 pad_front_world_z_mm=world.base_nfb_face_world_z_mm+pattern.rise_mm,
                 rise_mm=pattern.rise_mm,
+                four_tab_mesh_mating_verified=True,
             ))
     return tuple(result)

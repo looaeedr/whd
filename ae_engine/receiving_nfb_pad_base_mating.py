@@ -98,3 +98,83 @@ def verify_real_pad_base_square_cuts(
         if material.intersection(geometry).area>tol:
             raise ValueError("PAD_BASE_LOCATOR_SQUARES_NOT_REMOVED_FROM_MATERIAL")
     return expected
+
+
+
+def verify_real_pad_mesh_tab_engagement(
+    triangles, pattern: PadPattern, actual_square_uv,
+    *, world_x_mm: float, world_y_mm: float,
+    base_front_world_z_mm: float, rotation_deg: int,
+) -> tuple[tuple[tuple[float, float], ...], ...]:
+    """Verify actual folded mesh tip vertices in the four genuinely cut holes.
+
+    The square positions are returned by verify_real_pad_base_square_cuts(),
+    NOT manufactured from nominal metadata. This is a preview fit guard, not
+    approval of full-mesh volume collision or manufacturing.
+    """
+    from math import isclose, isfinite
+    from shapely.geometry import Point, Polygon
+    from .receiving_nfb_v5_configured_inner_door import AXES
+    from .assembly_geometry_primitives import triangle_bounds
+
+    if not isinstance(pattern, PadPattern) or pattern.manufacturing_ready:
+        raise ValueError("PAD_MESH_MATING_PATTERN_UNVERIFIED")
+    if type(rotation_deg) is not int or rotation_deg not in AXES:
+        raise ValueError("PAD_MESH_MATING_ROTATION_INVALID")
+    if len(tuple(actual_square_uv or ())) != 4:
+        raise ValueError("PAD_MESH_MATING_FOUR_REAL_SQUARES_REQUIRED")
+    bounds = triangle_bounds(triangles)
+    if bounds is None:
+        raise ValueError("PAD_MESH_MATING_PHYSICAL_TRIANGLES_EMPTY")
+    bottom, top = map(float, bounds[2])
+    t = float(pattern.plate_thickness_mm)
+    base = float(base_front_world_z_mm)
+    if (not all(isfinite(v) for v in (bottom, top, t, base, world_x_mm, world_y_mm))
+            or t <= 0
+            or not isclose(bottom, base-t, rel_tol=0, abs_tol=1e-4)
+            or not isclose(top, base+pattern.rise_mm, rel_tol=0, abs_tol=1e-4)):
+        raise ValueError("PAD_MESH_MATING_REAL_PHYSICAL_Z_DRIFT")
+
+    ux, uy = AXES[rotation_deg]
+    def rotate(point):
+        x, y = map(float, point)
+        return (x*ux[0]+y*uy[0], x*ux[1]+y*uy[1])
+    expected = tuple(pattern.base_square_holes_xy_mm)
+    measured = tuple(tuple(tuple(map(float, v)) for v in square)
+                     for square in actual_square_uv)
+    first = rotate(expected[0][0])
+    datum = (measured[0][0][0]-first[0], measured[0][0][1]-first[1])
+    squares_world = []
+    for nominal, actual in zip(expected, measured):
+        if len(actual) != 4:
+            raise ValueError("PAD_MESH_MATING_REAL_SQUARE_VERTEX_COUNT")
+        polygon = Polygon(actual)
+        reference = Polygon(tuple((datum[0]+rotate(v)[0],
+                                   datum[1]+rotate(v)[1]) for v in nominal))
+        if (not polygon.is_valid or polygon.area <= 0
+                or polygon.symmetric_difference(reference).area > 1e-4):
+            raise ValueError("PAD_MESH_MATING_REAL_BASE_SQUARE_DATUM_DRIFT")
+        world = Polygon(tuple((x-datum[0]+float(world_x_mm),
+                               y-datum[1]+float(world_y_mm)) for x, y in actual))
+        squares_world.append(world)
+
+    # Folded leg tips stop at the front skin; ONLY four protrusions extend
+    # into the physical T2 base. Fail if any deepest vertex enters solid base.
+    tips = {
+        (round(float(pt[0]), 7), round(float(pt[1]), 7))
+        for tri in tuple(triangles or ()) for pt in tri
+        if abs(float(pt[2])-bottom) < 1e-5
+    }
+    if len(tips) < 4:
+        raise ValueError("PAD_MESH_MATING_FOUR_TAB_TIPS_ABSENT")
+    hits = [0, 0, 0, 0]
+    for xy in tips:
+        matching = [i for i, square in enumerate(squares_world)
+                    if square.buffer(1e-4).covers(Point(xy))]
+        if len(matching) != 1:
+            raise ValueError("PAD_MESH_MATING_TIP_OUTSIDE_REAL_BASE_SQUARE")
+        hits[matching[0]] += 1
+    if not all(hits):
+        raise ValueError("PAD_MESH_MATING_TAB_MISSING_IN_REAL_BASE_SQUARE")
+    return tuple(tuple((float(x), float(y)) for x, y in polygon.exterior.coords[:-1])
+                 for polygon in squares_world)
