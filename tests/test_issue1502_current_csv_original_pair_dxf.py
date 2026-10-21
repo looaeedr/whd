@@ -168,3 +168,35 @@ def test_original_operator_left_two_source_equivalent_models_roundtrip(tmp_path)
                 if item.dxftype() == "LWPOLYLINE" and item.closed
                 and item.dxf.layer == "CUTTING"]
     assert len(openings) >= 3  # actual inner-door perimeter + both NFB openings
+
+
+def test_three_same_tier_400_switches_share_one_source_base_and_reopen_dxf(tmp_path):
+    # One submitted vertical tier can have 3 horizontally arranged NFBs.
+    # The NFBConfig owns all 3 X locations; source LEFT still owns one
+    # cabinet-centred base and its original four ear-mount slots.
+    snap = _current(model_second="3P400SN")
+    holes = snap["nfb_config"]["holes"]
+    holes[0]["manual_x_mm"] = -180.
+    holes[1]["manual_x_mm"] = 0.
+    third = deepcopy(holes[0])
+    third.update(physical_hole_id="nfb:third", slot_index=2,
+                 manual_x_mm=180., model_filename="nfbv5:士林:2P400")
+    holes.append(third)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    parts = _scene(snap)
+    receipt = _export(snap, parts, tmp_path)
+    assert receipt.source_hole_ids == ("nfb:0", "nfb:1", "nfb:third")
+    assert len(list(tmp_path.glob("*.dxf"))) == 2
+    base = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    circles = [p for p in base if p.dxftype() == "CIRCLE"
+               and p.dxf.layer == "CUTTING"]
+    assert len(circles) == 12
+    assert all(abs(float(p.dxf.radius) - 2.55) < 1e-6 for p in circles)
+    assert len([p for p in base if p.dxftype() == "LWPOLYLINE"
+                and p.closed and p.dxf.layer == "CUTTING"]) == 5
+    assert sum(1 for p in base if p.dxf.layer == "BEND") == 2
+    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+    assert len([p for p in door if p.dxftype() == "LWPOLYLINE"
+                and p.closed and p.dxf.layer == "CUTTING"]) >= 4
