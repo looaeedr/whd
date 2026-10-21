@@ -489,6 +489,7 @@ def _export_selected_resolved_parts(self, folder, flags):
         receipts, _, _, _ = _verified_pair(
             receiving_snapshot, unmarked,
             dimensions=dimensions, sheet_thickness=sheet_thickness,
+            permit_independent_source_marking_crossing=True,
         )
         for side in ("box_body:left_side", "box_body:right_side"):
             physical = owner_render_data(resolved, side)
