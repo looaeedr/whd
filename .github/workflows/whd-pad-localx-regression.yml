@@ -58,7 +58,7 @@ jobs:
             --junitxml=pad-localx-junit.xml
       - name: Produce real WHD FinalScene assembled PAD screenshot (CI SIMULATION)
         run: |
-          python tools/receiving_pad_ci_visual_receipt.py \
+          python -m tools.receiving_pad_ci_visual_receipt \
             --output WHD_PAD_REAL_ENGINE_3D_CI_SIMULATION_NOT_MFG.png
       - name: Upload real WHD 3D visual receipt, explicitly not Windows UAT
         if: success()
