@@ -72,7 +72,7 @@ def test_flat_unknown_source_brand_or_model_fails_instead_of_guessing_depth():
     with pytest.raises(ValueError,match="SOURCE_BRAND_DRIFT"):
         resolve_assembly_placement(snap,"base_plate")
     snap=_flat(model="NOT_INDEXED.dxf")
-    with pytest.raises(ValueError,match="CSV_DEPTH_MISSING"):
+    with pytest.raises(ValueError,match=r"CSV_(?:MODEL_)?DEPTH_MISSING"):
         resolve_assembly_placement(snap,"base_plate")
 
 
