@@ -45,3 +45,53 @@ def test_different_sheet_T_does_not_falsely_claim_verified_2mm_tab_engagement():
             p,parent_base_id="base_plate",owner_hole_id="nfb:pad:2",
             world_x=0.,world_y=0.,base_front_world_z_mm=-100.,
         )
+
+
+def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins():
+    from copy import deepcopy
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        apply_committed_csv_v5_to_canonical_parts,
+    )
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
+    from tests.test_issue1502_csv_is_only_normal_finalscene_source import _make
+    from ae_engine.receiving_nfb_pad_assembly_preview import (
+        build_committed_pad_assembly_display,
+    )
+
+    snap=_current()
+    # Explicit real LEFT flat sheet, two selected models; all dimensions are
+    # recomputed from the current brand CSV and shared tooling, not this test.
+    snap["receiving_base_plate"]={
+        "pattern":"LEFT_FLAT_SIDE","height":340.,
+        "shrink_top":20.,"shrink_bottom":20.,
+        "shrink_left":45.,"shrink_right":45.,"bend":20.,
+    }
+    rows=snap["nfb_config"]["holes"]
+    rows[0].update(model_filename="nfbv5:士林:3P400SN",source_brand="士林")
+    rows[1].update(model_filename="nfbv5:士林:100HN-s",source_brand="士林")
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
+    values=receiving_base_plate_values(snap)
+    assert values["receiving_bend_pattern"]=="LEFT_FLAT_SIDE"
+    base=_make(snap)
+    installed=apply_committed_csv_v5_to_canonical_parts(snap,(base,))
+    assert len(installed)==1
+    derived=installed[0]
+    assert dict(derived.render_data.metadata["nfb_v5_pad_square_owners"])=={
+        rows[1]["physical_hole_id"]:4
+    }
+    squares=[row for row in derived.render_data.scene.primitives
+             if isinstance(row,PolylinePrimitive) and row.closed
+             and row.layer=="CUTTING" and row.color==30]
+    assert len(squares)==4
+    skins=build_committed_pad_assembly_display(snap,installed)
+    assert len(skins)==1
+    assert skins[0].owner_hole_id==rows[1]["physical_hole_id"]
+    assert skins[0].parent_base_id=="base_plate"
+    assert skins[0].rise_mm==pytest.approx(39.)
+    assert skins[0].manufacturing_ready is False
+    assert skins[0].assembly_contact_certified is False
+    bounds=triangle_bounds(skins[0].world_triangles)
+    assert bounds[2][0]<skins[0].base_front_world_z_mm
+    assert bounds[2][1]>skins[0].base_front_world_z_mm
