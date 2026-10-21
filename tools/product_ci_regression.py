@@ -128,6 +128,7 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_ui1b_bridge.py",
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+    "tests/test_issue1500_nfb_operator_gui_transactions.py",
     "tests/test_issue1504_v14_ac_traceability.py",
     # #1504 exact function audit uncovered these five previously unselected
     # UI-1A / native-source preview / MFG-1 preflight owner suites.
