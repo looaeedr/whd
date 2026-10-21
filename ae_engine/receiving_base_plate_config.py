@@ -206,7 +206,17 @@ def _source_two_tier_matching_left_base_config(data):
                 or spec.screw_diameter_mm != 5.1
                 or spec.depth_mm is None or spec.depth_mm <= 0):
             return None
-        tiers[tier].append((brand, model, float(spec.depth_mm)))
+        # Distinct CSV model names can describe the SAME physical machining
+        # source (e.g. 士林 2P400 and 3P400SN). Use exact dimensional
+        # source identity, never a filename equality test or depth alone.
+        # Keep brand, body/opening, fixing-hole shape and offsets in this
+        # signature so near-matching variants cannot borrow the LEFT blank.
+        tiers[tier].append((
+            brand, spec.width_mm, spec.height_mm, spec.opening_mm,
+            spec.screw_pitch_mm, spec.screw_diameter_mm,
+            spec.screw_offset_x_mm, spec.screw_offset_y_mm,
+            float(spec.depth_mm),
+        ))
     if any(not 1 <= len(rows) <= 2 or len({r for r in rows}) != 1
            for rows in tiers.values()):
         return None
