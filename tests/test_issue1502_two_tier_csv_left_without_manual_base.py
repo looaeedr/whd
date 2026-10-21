@@ -181,3 +181,17 @@ def test_two_tiers_different_complete_csv_models_derive_independent_flat_sheets(
     assert len(targets) == 2 and all(t.physical_skin_z_resolved for t in targets)
     assert [t.source_depths_mm for t in targets] == [(107.,), (72.,)]
     assert set(source_receiving_nfb_tier_base_specs(snap)) == {0, 1}
+
+
+def test_two_tiers_refuse_wrong_flat_source_for_two_depths_on_same_tier():
+    snap = _committed_two_left_tiers()
+    shallow = deepcopy(snap["nfb_config"]["holes"][0])
+    shallow.update(physical_hole_id="nfb:shallow-in-upper", slot_index=1,
+                   model_filename="nfbv5:士林:3P125SN", manual_x_mm=100.)
+    snap["nfb_config"]["holes"].append(shallow)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    # Two true Z faces in one tier need the source folded/CENTER geometry;
+    # they must never silently borrow the unrelated flat LEFT sheet.
+    assert receiving_base_plate_values(snap) is None
