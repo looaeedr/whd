@@ -116,7 +116,10 @@ def _tier_source_depths(legacy_brand, config, layer_index):
         if not isfinite(number) or number <= 0:
             return ()
         depths.append(number)
-    if not 1 <= len(depths) <= 2:
+    if not depths or len(set(depths)) > 2:
+        # Number of physical switches is not the number of mounting faces.
+        # Keep two-depth face proof strict while permitting multiple same-
+        # depth switches on one existing tier's real Base Plate.
         return ()
     return tuple(sorted(set(depths), reverse=True))
 
