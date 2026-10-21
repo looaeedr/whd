@@ -29,7 +29,7 @@ def test_full_100hn_pad_is_real_wHD_part_and_retains_four_tabs():
     assert part.render_data.unfolded_topology.height==pytest.approx(130)
     assert tuple(g.position for g in part.render_data.fold_guides)==(39,110)
     assert [s["len"] for s in part.x_profile]==pytest.approx((39,71,39))
-    assert [s["angle"] for s in part.x_profile[:2]]==[90.,90.]
+    assert [s["angle"] for s in part.x_profile[:2]]==[90.,-90.]
     assert len([x for x in part.render_data.scene.primitives
                 if isinstance(x,CirclePrimitive) and x.layer=="CUTTING"])==4
     assert len([x for x in part.render_data.scene.primitives
@@ -51,3 +51,19 @@ def test_common_part_is_not_brand_specific():
     assert part.render_data.unfolded_topology.width==pytest.approx(158)
     assert [row["len"] for row in part.x_profile]==pytest.approx((36,86,36))
     assert part.render_data.metadata["source_brand"]=="東元"
+
+def test_real_fold_profiles_put_both_legs_on_same_base_contact_side():
+    from ae_engine.assembly_geometry_folded_mesh import (
+        folded_profile_segment_center_from_envelope,
+    )
+    rule=read_pad_tooling_rule()
+    shallow=_s("士林","100HN-s",75,130,68,25,111,3.2)
+    deeper=_s("士林","3P400SN",140,257,107,44,194,5.1)
+    p,=generate_nfb_pad_patterns([shallow,deeper],plate_thickness_mm=2,tooling=rule)
+    pad=build_nfb_pad_draft_part(p,parent_base_id="base_plate",owner_hole_id="nfb:trial")
+    left=folded_profile_segment_center_from_envelope(pad.x_profile,0)
+    core=folded_profile_segment_center_from_envelope(pad.x_profile,1)
+    right=folded_profile_segment_center_from_envelope(pad.x_profile,2)
+    assert left[1] == pytest.approx(right[1],abs=1e-8)
+    assert (left[1]-core[1]) == pytest.approx(39/2,abs=1e-8)
+    assert pad.x_profile[0]["angle"] == -pad.x_profile[1]["angle"]
