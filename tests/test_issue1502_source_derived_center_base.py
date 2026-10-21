@@ -249,3 +249,47 @@ def test_unsubmitted_legacy_edit_remains_previewable_but_not_csv_certified():
     values = receiving_base_plate_values(snap)
     assert values["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
     assert values["receiving_nfb_reference_depth_mm"] is None
+
+
+def _one_layer_pair(second_model="2P400", second_brand="士林"):
+    snap = _submitted_one_shihlin_400()
+    second = deepcopy(snap["nfb_config"]["holes"][0])
+    second.update(
+        physical_hole_id="nfb:second", slot_index=1,
+        model_filename=f"nfbv5:{second_brand}:{second_model}",
+        source_brand=second_brand,
+    )
+    snap["nfb_config"]["holes"].append(second)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    return snap
+
+
+@pytest.mark.parametrize("second_model", ["2P400", "3P400SN"])
+def test_real_left_two_original_quartets_allow_second_nfb_slot_and_alias(second_model):
+    # Two on ONE actual mounting tier; no new manual plate, no moving
+    # ear mounting X, and the source-derived 710x300 blank remains identical.
+    snap = _one_layer_pair(second_model)
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
+    assert receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=800., box_side_thickness_mm=2.,
+    ) == 670.
+
+
+def test_one_tier_cross_brand_similar_pitch_not_identical_plate_source():
+    # 伍菱 3P400SN has pitch/depth equal but its opening differs.
+    snap = _one_layer_pair("3P400SN", "伍菱")
+    with pytest.raises(ValueError, match="DIFFERENT_MODELS"):
+        receiving_base_plate_values(snap)
+
+
+def test_flat_second_slot_cannot_be_misread_as_third_switch_row():
+    snap = _one_layer_pair()
+    snap["nfb_config"]["holes"][1]["slot_index"] = 2
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    with pytest.raises(ValueError, match="MULTIPLE_ROWS"):
+        receiving_base_plate_values(snap)
