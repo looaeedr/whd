@@ -126,6 +126,13 @@ def test_committed_mixed_nfb_may_not_disappear_from_bom_if_world_x_missing():
         row["manual_x_state"]="UNVERIFIED_BASIS"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
         snap["nfb_config"])
+    # Preserve operator's explicitly selected flat PAD-bearing Base Plate;
+    # the source-derived fallback can select CENTER when the NFB X is gone.
+    snap["receiving_base_plate"]={
+        "pattern":"LEFT_FLAT_SIDE","height":340.,
+        "shrink_top":20.,"shrink_bottom":20.,
+        "shrink_left":45.,"shrink_right":45.,"bend":20.,
+    }
     with pytest.raises(ValueError,match="PAD_BOM_CONFIRMED_WORLD_X"):
         pad_bom_demands_from_committed_snapshot("v1",snap,piece_count=2)
 
