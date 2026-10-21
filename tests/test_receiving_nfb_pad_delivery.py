@@ -96,3 +96,30 @@ def test_real_pad_and_its_matching_base_dxf_reopen_as_atomic_trial_bundle(tmp_pa
     with pytest.raises(FileExistsError):
         export_pad_trial_bundle(snap,base,target)
     assert len(tuple(target.glob("*.dxf")))==2
+
+
+def test_committed_single_bay_pad_is_counted_once_per_quantity_version():
+    from ae_engine.receiving_nfb_pad_delivery import (
+        pad_bom_demands_from_committed_snapshot,
+    )
+    snap,_=installed_pair()
+    v1,=pad_bom_demands_from_committed_snapshot("v1",snap,piece_count=3)
+    v2,=pad_bom_demands_from_committed_snapshot("v2",snap,piece_count=5)
+    assert (v1.version_id,v1.physical_id,v1.quantity)==(
+        "v1",v2.physical_id,3)
+    assert (v2.version_id,v2.quantity)==("v2",5)
+    assert v1.per_box_count==v2.per_box_count==1
+    assert v1.render_data.metadata["manufacturing_ready"] is False
+    assert v2.render_data.metadata["nfb_deferred_manufacturing_role"]=="PAD"
+
+
+def test_committed_mixed_nfb_may_not_disappear_from_bom_if_world_x_missing():
+    from ae_engine.receiving_nfb_pad_delivery import (
+        pad_bom_demands_from_committed_snapshot,
+    )
+    snap,_=installed_pair()
+    # Source identities still require one PAD, but there is no actual
+    # installed hole geometry. Silently returning 0 BOM would under-order.
+    snap["part_features"]={}
+    with pytest.raises(ValueError,match="PAD_BOM_CONFIRMED_WORLD_X"):
+        pad_bom_demands_from_committed_snapshot("v1",snap,piece_count=2)

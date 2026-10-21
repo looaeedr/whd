@@ -9,6 +9,7 @@ on:
       - 'ae_engine/receiving_nfb_v5_part_only_manufacturing.py'
       - 'ae_engine/receiving_nfb_depth_surface_policy.py'
       - 'ae_engine/receiving_base_plate_config.py'
+      - 'phase6_quantity_manufacturing.py'
       - 'gui_modules/application/fold_designer_composition_shell_settings.py'
       - 'gui_modules/application/fold_designer_manufacturing_projection.py'
       - 'ae_engine/receiving_tier_ear_z_targets.py'

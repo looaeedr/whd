@@ -105,6 +105,23 @@ def resolve_quantity_manufacturing(base_request, workspace_snapshot):
     demands = manufacturing_api.resolved_quantity_physical_demands(
         versions, per_box_counts=counts
     )
+    if base_request.cabinet_model in ("受電箱", "RECEIVING"):
+        # PAD is a physical sheet, not an ephemeral 3D preview. Preserve one
+        # genuine per-owner item in each version's BOM with the version box
+        # multiplicity. Never manufacture it here: the canonical DXF PAD gate
+        # still rejects trial-only parts until full T2 contact is certified.
+        from ae_engine.receiving_nfb_pad_delivery import (
+            pad_bom_demands_from_committed_snapshot,
+        )
+        pad_demands=[]
+        for version_id, piece_count, request in requests:
+            source=thaw_manufacturing_value(request.input_snapshot)
+            pad_demands.extend(pad_bom_demands_from_committed_snapshot(
+                version_id,source,piece_count=piece_count))
+        seen={(row.version_id,row.physical_id) for row in demands}
+        if any((row.version_id,row.physical_id) in seen for row in pad_demands):
+            raise ValueError("PAD_QUANTITY_BOM_DUPLICATE_PHYSICAL_SOURCE")
+        demands=tuple(demands)+tuple(pad_demands)
     return QuantityManufacturingBatch(versions, demands, requests)
 
 

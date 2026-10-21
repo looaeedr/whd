@@ -206,3 +206,60 @@ def export_pad_trial_bundle(
     finally:
         if stage.exists():
             shutil.rmtree(stage)
+
+
+def pad_bom_demands_from_committed_snapshot(
+    version_id: str, snapshot: Mapping, *, piece_count: int,
+) -> tuple[PhysicalPartDemand, ...]:
+    """Demand-only projection for quantity mode's committed NFB source.
+
+    A quantity-mode manufacturing resolver does not yet furnish a certified
+    PAD assembled solid; its job is to count actual physical sheets, not to
+    infer any manufacturing permission. Require a confirmed current Hole
+    Editor X and valid common source before creating any BOM row.
+    """
+    count=_positive_int(piece_count)
+    if not isinstance(snapshot,Mapping):
+        raise TypeError("PAD_BOM_SNAPSHOT_REQUIRED")
+    if not str(version_id or "").strip():
+        raise ValueError("PAD_BOM_VERSION_ID_REQUIRED")
+    if snapshot.get("nfb_config_submitted") is not True:
+        return ()
+    rows=tuple(committed_nfb_pad_draft_parts(snapshot))
+    if len({p.part_id for p in rows})!=len(rows):
+        raise ValueError("PAD_BOM_DUPLICATE_PHYSICAL_OWNER")
+    # A committed flat source with mixed V5 depths MUST NOT silently claim
+    # zero material if the selected X source was omitted on save/reopen.
+    from .receiving_base_plate_config import receiving_base_plate_values
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_numeric_catalog import model_spec
+    physical=receiving_base_plate_values(snapshot)
+    if physical and physical.get("receiving_bend_pattern") in (
+            "LEFT_FLAT_SIDE","RIGHT_FLAT_SIDE"):
+        config=snapshot.get("nfb_config")
+        holes=config.get("holes") if isinstance(config,Mapping) else ()
+        layer_count=config.get("layer_count") if isinstance(config,Mapping) else None
+        if isinstance(holes,(list,tuple)) and type(layer_count) is int:
+            expected=0
+            for tier in range(layer_count):
+                tier_rows=tuple(row for row in holes
+                                if isinstance(row,Mapping)
+                                and row.get("slot_index")==tier)
+                depths=[]
+                for row in tier_rows:
+                    identity=parse_numeric_model_ref(row.get("model_filename"))
+                    if identity is None:
+                        depths=[]
+                        break
+                    source=model_spec(*identity)
+                    if source is None or not source.dimensionally_complete:
+                        raise ValueError("PAD_BOM_SELECTED_CSV_SOURCE_INCOMPLETE")
+                    depths.append(float(source.depth_mm))
+                if depths:
+                    deepest=max(depths)
+                    expected+=sum(deepest-x>1e-8 for x in depths)
+            if expected and len(rows)!=expected:
+                raise ValueError("PAD_BOM_CONFIRMED_WORLD_X_OR_PART_COUNT_MISSING")
+    return tuple(PhysicalPartDemand(
+        str(version_id),p.part_id,p.part_id,count,1,p.render_data,
+    ) for p in rows)
