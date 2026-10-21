@@ -373,13 +373,36 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
     if not all(isinstance(h,Mapping) for h in holes):
         raise ValueError("RECEIVING_FLAT_NFB_INVALID_HOLE_SOURCE")
     count=config.get("layer_count")
-    if count!=1 or any(h.get("layer_count",count)!=1 or h.get("slot_index",0)!=0
-                      for h in holes):
+    if count!=1 or any(
+        h.get("layer_count",count)!=1 or h.get("slot_index",0) not in (0,1)
+        for h in holes
+    ):
         raise ValueError("RECEIVING_FLAT_NFB_MULTIPLE_ROWS_NEED_DISTINCT_BASE")
+    # The original LEFT flat sheet has TWO NFB quartets. Position slot 1
+    # must not falsely become a different *tier*. Distinct model aliases
+    # may share that one source only with complete identical CSV geometry.
     models={str(h.get("model_filename") or "").strip() for h in holes}
-    if len(models)!=1 or not next(iter(models)):
+    if "" in models:
         raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
     legacy_brand=chosen.get("switch_brand")
+    if len(models)!=1:
+        from .receiving_nfb_model_identity import selected_numeric_spec
+        signatures=set()
+        for hole in holes:
+            model_ref=str(hole["model_filename"])
+            brand=hole.get("source_brand",legacy_brand)
+            if not model_ref.startswith("nfbv5:"):
+                raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
+            spec=selected_numeric_spec(brand,model_ref)
+            if spec is None or not spec.dimensionally_complete:
+                raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
+            signatures.add((
+                brand,spec.width_mm,spec.height_mm,spec.opening_mm,
+                spec.screw_pitch_mm,spec.screw_diameter_mm,
+                spec.screw_offset_x_mm,spec.screw_offset_y_mm,spec.depth_mm,
+            ))
+        if len(signatures)!=1:
+            raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
     depths=tuple(
         _source_depth_for_submitted_hole(
             hole, legacy_set_brand=legacy_brand,
