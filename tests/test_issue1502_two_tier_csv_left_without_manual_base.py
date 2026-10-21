@@ -66,23 +66,24 @@ def test_submitted_two_left_tiers_derive_real_plate_without_manual_pattern():
     assert snap==original, "source derivation must not persist a fake manual setting"
 
 
-def test_wrong_model_is_not_declared_left_from_depth_or_manual_legacy_choice():
+def test_two_distinct_known_csv_tiers_ignore_stale_manual_right_pattern():
     snap=_committed_two_left_tiers()
     snap["nfb_config"]["holes"][1]["model_filename"]="nfbv5:士林:3P125SN"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
         snap["nfb_config"]
     )
-    assert receiving_base_plate_values(snap) is None
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"]=="LEFT_FLAT_SIDE"
     snap["receiving_base_plate"]={
         "pattern":"RIGHT_FLAT_SIDE","height":360.,
         "shrink_top":20.,"shrink_bottom":20.,
         "shrink_left":45.,"shrink_right":45.,"bend":20.,
     }
-    # An unknown CSV tier does not acquire a machining source from a stale
-    # manually entered generic RIGHT pattern.
-    # Legacy manual sheets may remain visible as previews, but cannot
-    # pretend an unmatched numeric CSV has an approved manufacturing shape.
+    # The old manual RIGHT is not the source for either typed current CSV
+    # NFB. Two genuine physical tiers have different depths, but each uses
+    # one independently Z-positioned LEFT flat blank; no false MFG release.
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"]=="LEFT_FLAT_SIDE"
     preview=expand_receiving_nfb_layer_parts(snap,(_source(snap),))
+    assert len(preview)==2
     assert all(part.render_data.metadata.get("manufacturing_ready") is False
                for part in preview)
     assert all(part.render_data.metadata.get("nfb_layer_manufacturing_status")
