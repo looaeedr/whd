@@ -43,6 +43,7 @@ class PadPhysicalDelivery:
     tooling_sha256: str
     render_data: object
     tab_tip_mating_preview_verified: bool
+    seating_witness: object
     full_thickness_contact_certified: bool = False
     full_volume_collision_certified: bool = False
     manufacturing_ready: bool = False
@@ -95,6 +96,8 @@ def resolve_committed_pad_physical_delivery(
                 or skin.manufacturing_ready
                 or skin.assembly_contact_certified):
             raise ValueError("PAD_BOM_PHYSICAL_IDENTITY_OR_RELEASE_DRIFT")
+        from .receiving_nfb_pad_fit_witness import inspect_pad_base_seating
+        fit=inspect_pad_base_seating(skin,sheet)
         digest, tool_digest=_source_hashes(pattern.brand)
         rows.append(PadPhysicalDelivery(
             physical_id=sheet.part_id,parent_base_id=sheet.parent_base_id,
@@ -109,6 +112,8 @@ def resolve_committed_pad_physical_delivery(
             quantity=count,source_csv_sha256=digest,tooling_sha256=tool_digest,
             render_data=data,
             tab_tip_mating_preview_verified=True,
+            seating_witness=fit,
+            full_thickness_contact_certified=fit.full_thickness_seated,
         ))
     return tuple(rows)
 
@@ -186,6 +191,11 @@ def export_pad_trial_bundle(
                 "rise_mm":rec.rise_mm,
                 "thickness_mm":rec.thickness_mm,
                 "quantity":rec.quantity,
+                "measured_tab_insertion_mm":rec.seating_witness.tab_insertion_mm,
+                "required_tab_insertion_mm":rec.seating_witness.full_thickness_required_mm,
+                "tab_back_skin_shortfall_mm":rec.seating_witness.tab_back_skin_shortfall_mm,
+                "regular_leg_front_gap_mm":rec.seating_witness.regular_leg_front_gap_mm,
+                "full_thickness_contact_certified":rec.full_thickness_contact_certified,
                 "csv_sha256":rec.source_csv_sha256,
                 "tooling_sha256":rec.tooling_sha256,
             } for rec in records],
