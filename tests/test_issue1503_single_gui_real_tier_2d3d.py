@@ -408,6 +408,17 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         assert not errors, "NATIVE_GUI_CSV_DXF_EXPORT_FAILED: " + repr(errors)
         actual_dxfs = tuple(export_dir.glob("*.dxf"))
         names = tuple(p.name for p in actual_dxfs)
+        from gui_modules.project.export_actions import _selected_export_flags
+        print("ISSUE1502_NATIVE_EXPORT_TRACE", {
+            "dxfs": names,
+            "main_existing": sorted(calc._phase6_current_existing_parts()),
+            "real_workspace": designer.designer_workspace.available_parts,
+            "base_toggle": bool(calc.export_base_plate_var.get()),
+            "resolved_flags": _selected_export_flags(
+                calc, calc._phase6_current_existing_parts(),
+                calc._has_any_indicator_box(),
+            ),
+        }, flush=True)
         assert sum("base_plate" in name and "fixing_plate" not in name
                    for name in names) == 2, "GUI_MISSING_TWO_REAL_BASE_DXF"
         assert sum("fixing_plate" in name for name in names) == 4, (
