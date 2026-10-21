@@ -189,14 +189,14 @@ def test_one_full_ac_requires_source_specific_runtime_witness_and_ci_selection()
     )
     signed = {r["id"]: r for r in obj["records"] if r["accepted"]}
     assert set(signed) == {"NFB-AC-30"}
-    from tools.product_ci_regression import PRODUCT_REGRESSION_TEST_FILES
+    from tools.product_ci_regression import PYTEST_PATHS
     # Do not accept a filename or an unrelated witness.  Exact path, native
     # numeric CSV fail-closed and old source-scoped MFG1 preflight are mandatory.
     a = signed["NFB-AC-30"]
     e = a["acceptance_evidence"]
     proof = "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py"
     assert e["original_ac_text_unchanged"] is True
-    assert proof in PRODUCT_REGRESSION_TEST_FILES
+    assert proof in PYTEST_PATHS
     assert e["primary_assertion"] == (
         proof+"::test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting"
     )
@@ -207,7 +207,7 @@ def test_one_full_ac_requires_source_specific_runtime_witness_and_ci_selection()
         "tests/test_issue1497_nfb_cutting_preflight.py"
         "::test_unresolved_x_never_generates_a_fake_center_or_manufacturable_hole"
     )
-    assert "tests/test_issue1497_nfb_cutting_preflight.py" in PRODUCT_REGRESSION_TEST_FILES
+    assert "tests/test_issue1497_nfb_cutting_preflight.py" in PYTEST_PATHS
     for entry in (e["primary_assertion"], e["other_required_assertion"],
                   e["separate_mfg1_preflight"]):
         filename, function = entry.split("::")
