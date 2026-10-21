@@ -782,6 +782,132 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     "inner_door_layers",
                 )),
             ).pack(side="left")
+            # #1500: the existing source-verified Receiving NFB transaction
+            # ports must remain operable after the settings window refactor.
+            # Use the SAME canvas Bay highlighter and single canonical adapter;
+            # these controls never invent X/datum, a source DXF or a new owner.
+            if (get_nfb_transaction_ports is not None
+                    and applied["mode"] == "set_bay"
+                    and applied["set_index"] == set_index
+                    and applied["selected_bays"]):
+                highlighted = targets()
+                try:
+                    status_ports = get_nfb_transaction_ports()
+                    status = status_ports["state"](
+                        set_index, highlighted[0], highlighted,
+                    )
+                    all_submitted = all(
+                        status_ports["state"](
+                            set_index, bi, highlighted,
+                        ).get("can_restore", False)
+                        for bi in highlighted
+                    )
+                except (ValueError, TypeError, KeyError, IndexError, OSError):
+                    status = {}
+                    all_submitted = False
+
+                nfb_row = ttk.Frame(settings_host)
+                nfb_row.pack(anchor="w", pady=(5, 1))
+
+                def nfb_confirm(preview):
+                    # The transaction's actual affected parts and blocked
+                    # dependencies, not the button label, own the warning.
+                    affected = "、".join(preview.impacted_parts) or "目前 NFB 設定"
+                    held = "、".join(preview.held_parts)
+                    message = (
+                        f"動作：{preview.action}\n"
+                        f"目標連：{'、'.join(preview.target_bay_ids)}\n"
+                        f"影響板件：{affected}"
+                    )
+                    if held:
+                        message += f"\n尚未製造放行：{held}"
+                    if preview.dependency_warnings:
+                        message += "\n待核對：" + "；".join(preview.dependency_warnings)
+                    message += "\n確定套用這次 NFB 交易？"
+                    return messagebox.askyesno("NFB 提交確認", message, parent=win)
+
+                def run_nfb_transaction(action):
+                    try:
+                        current = targets()
+                        if (applied["mode"] != "set_bay"
+                                or applied["set_index"] != set_index
+                                or not current):
+                            raise ValueError("NFB 操作連位已切換，請重新選擇")
+                        live = get_nfb_transaction_ports()
+                        current_state = live["state"](
+                            set_index, current[0], current,
+                        )
+                        if action == "submit":
+                            if len(current) != 1 or not current_state.get("can_submit"):
+                                raise ValueError(
+                                    current_state.get("reason")
+                                    or "NFB 尚未核對本連原始 DXF／實體孔位"
+                                )
+                            changed = live["submit"](
+                                set_index, current, nfb_confirm,
+                            )
+                        elif action == "copy":
+                            if len(current) != 2 or not current_state.get("can_copy"):
+                                raise ValueError(
+                                    "NFB 複製必須高亮恰好兩連，"
+                                    "且目標連已獨立核對實體世界 X／來源"
+                                )
+                            changed = live["copy"](
+                                set_index, current, nfb_confirm,
+                            )
+                        elif action == "restore":
+                            if not all(live["state"](
+                                set_index, bi, current,
+                            ).get("can_restore") for bi in current):
+                                raise ValueError("只有已提交 NFB 的連可以還原")
+                            changed = live["restore"](
+                                set_index, current, nfb_confirm,
+                            )
+                        elif action == "undo":
+                            if not current_state.get("can_undo"):
+                                raise ValueError("目前沒有可復原的 NFB 提交")
+                            if not messagebox.askyesno(
+                                "NFB Undo", "確定復原上一次 NFB 交易？",
+                                parent=win,
+                            ):
+                                return
+                            live["undo"]()
+                            changed = True
+                        else:
+                            raise ValueError("未知 NFB 交易")
+                        if changed:
+                            render()
+                        # A successful commit changes the live can_submit,
+                        # can_copy, can_restore and can_undo guards. Rebuild
+                        # the visible controls immediately; otherwise old
+                        # enabled actions survive while their proof is gone.
+                        show_setting_controls()
+                    except (ValueError, TypeError, KeyError, IndexError,
+                            RuntimeError, OSError) as exc:
+                        warn(exc)
+
+                for label, action, enabled in (
+                    ("確認套用 NFB", "submit",
+                     len(highlighted) == 1 and status.get("can_submit", False)),
+                    ("複製至其他連", "copy",
+                     len(highlighted) == 2 and status.get("can_copy", False)),
+                    ("還原為未配置", "restore", all_submitted),
+                    ("復原上次 NFB 操作", "undo",
+                     status.get("can_undo", False)),
+                ):
+                    ttk.Button(
+                        nfb_row, text=label,
+                        command=lambda action=action: run_nfb_transaction(action),
+                        state="normal" if enabled else "disabled",
+                    ).pack(side="left", padx=(0, 4))
+                if (len(highlighted) == 1
+                        and not status.get("can_submit")
+                        and not status.get("submitted")
+                        and status.get("reason")):
+                    ttk.Label(
+                        settings_host, text=status["reason"],
+                        wraplength=570, justify="left",
+                    ).pack(anchor="w")
             # #1501: ONLY a genuinely READY current highlighted Set/Bay
             # gets the explicit partial manufacturing action. The existing
             # physical writer is still revalidated after folder selection.
