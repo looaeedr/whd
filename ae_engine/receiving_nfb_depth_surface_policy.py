@@ -368,19 +368,22 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
     if ("nfb_config" in snapshot and snapshot["nfb_config"] != config):
         raise ValueError("RECEIVING_FLAT_NFB_CONFIG_SCOPE_DRIFT")
     holes=config.get("holes")
-    if not isinstance(holes,(tuple,list)) or not 1<=len(holes)<=2:
-        raise ValueError("RECEIVING_FLAT_NFB_REQUIRES_ONE_OR_TWO_HOLES_SAME_ROW")
+    if not isinstance(holes,(tuple,list)) or not holes:
+        raise ValueError("RECEIVING_FLAT_NFB_REQUIRES_SUBMITTED_HOLES_SAME_ROW")
     if not all(isinstance(h,Mapping) for h in holes):
         raise ValueError("RECEIVING_FLAT_NFB_INVALID_HOLE_SOURCE")
     count=config.get("layer_count")
     if count!=1 or any(
-        h.get("layer_count",count)!=1 or h.get("slot_index",0) not in (0,1)
+        h.get("layer_count",count)!=1
+        or type(h.get("slot_index",0)) is not int
+        or h.get("slot_index",0)<0
         for h in holes
     ):
         raise ValueError("RECEIVING_FLAT_NFB_MULTIPLE_ROWS_NEED_DISTINCT_BASE")
-    # The original LEFT flat sheet has TWO NFB quartets. Position slot 1
-    # must not falsely become a different *tier*. Distinct model aliases
-    # may share that one source only with complete identical CSV geometry.
+    # Horizontal slot_index is not a vertical tier. An arbitrary count of
+    # source-confirmed same-depth switches may share this real flat sheet;
+    # the downstream FinalScene checks each generated hole for containment
+    # and collisions. Distinct model aliases still need identical source.
     models={str(h.get("model_filename") or "").strip() for h in holes}
     if "" in models:
         raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
