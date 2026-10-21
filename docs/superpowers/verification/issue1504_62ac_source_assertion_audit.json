@@ -1150,11 +1150,20 @@
         1502
       ],
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 18,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert report[\"schema\"] == \"WHD_NFB_INDEXED_SOURCE_COLOR_COVERAGE_V1\"",
+        "assert report[\"index_records\"] == 2",
+        "assert report[\"source_index_sha256\"] == sha256(before_index).hexdigest()",
+        "assert report[\"totals\"] == {",
+        "assert shihlin[\"source_sha256\"] == shihlin[\"expected_sha256\"]"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "SWT-AC-01",
@@ -1386,11 +1395,20 @@
         1504
       ],
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 31,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert set(main._baseline_model_choices()) == {\"金庫型\", \"受電箱\", \"自訂\"}",
+        "assert modes._switch_mode(bridge._phase6_composition(app), vars(bridge), \"quantity\")",
+        "assert controls.commit_count()",
+        "assert controls.commit_count()",
+        "assert ws.quantity_model.features_for_version(second, \"head\") == captured[-1][\"feature_list_override\"]"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "SWT-AC-13",
@@ -1591,11 +1609,16 @@
         1502
       ],
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"distinct actual ear/base groups\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "SWT-AC-21",
@@ -1757,11 +1780,16 @@
         1497
       ],
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"blocked\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "SWT-AC-30",
@@ -1833,11 +1861,20 @@
         1502
       ],
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 18,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert catalog.records_read==2",
+        "assert len(catalog.sources)==len(audited)==3",
+        "assert [r.brand for r in rows]==[\"士林\",\"東元\",\"伍菱\"]",
+        "assert shihlin.status==UNCERTIFIED",
+        "assert shihlin.source_sha256 is not None"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     }
   ]
 }
