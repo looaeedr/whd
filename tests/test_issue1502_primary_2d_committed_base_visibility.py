@@ -64,9 +64,12 @@ def test_unresolved_csv_source_cannot_display_unrelated_old_real_part():
         part_key="base_plate", render_data=build_part_render_data(_spec(valid)),
     )
     host, _, calls = _host(snap, (root,))
-    with pytest.raises(ValueError, match="尚未設定實體來源"):
+    # With complete current V5 CSV, the flat source exists. The old
+    # CENTER-shaped FinalScene is now a *stale actual part*, not a missing
+    # model. Reject wrong source instead of displaying it in 2D.
+    with pytest.raises(ValueError, match="目前 CSV 來源與已載入 2D 實體板型不一致"):
         base_plate_render_snapshot(host, {"model": "受電箱"})
-    assert calls == []
+    assert calls == ["resolved"]
 
 
 def test_submitted_two_tier_cannot_downgrade_to_one_root_in_2d():
@@ -76,3 +79,23 @@ def test_submitted_two_tier_cannot_downgrade_to_one_root_in_2d():
     with pytest.raises(ValueError, match="沒有對應的受電箱分層底板"):
         base_plate_render_snapshot(host, {"model": "受電箱"})
     assert calls == ["resolved"]
+
+
+def test_single_tier_complete_125_model_is_visible_as_real_csv_flat_sheet_in_2d():
+    snap = _source_snapshot()
+    snap["nfb_config"]["holes"] = [snap["nfb_config"]["holes"][1]]
+    snap["nfb_config"]["holes"][0]["slot_index"] = 0
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = __import__(
+        "copy"
+    ).deepcopy(snap["nfb_config"])
+    assert "receiving_base_plate" not in snap
+    real = build_part_render_data(_spec(snap))
+    source = SimpleNamespace(part_key="base_plate", render_data=real)
+    host, scene, calls = _host(snap, (source,))
+    drawn = base_plate_render_snapshot(host, {"model": "受電箱"})
+    assert calls == ["resolved"]
+    assert drawn["receiving_physical_part_key"] == "base_plate"
+    assert drawn["render_data"] is scene.part("base_plate").render_data
+    assert real.unfolded_topology.width == 710.
+    assert real.unfolded_topology.height == 300.
+    assert real.metadata["receiving_nfb_base_mfg2_release_approved"] is False

@@ -121,11 +121,14 @@ def _source_left_flat_base_config(data):
     holes = config.get("holes") if isinstance(config, Mapping) else None
     if not isinstance(holes, (tuple, list)) or not holes:
         return None
-    # The actual LEFT original CUTTING has TWO independent 44x194/Ø5.1
-    # hole quartets. A second selected switch (slot 1) need not reuse the
-    # exact same model name, but must share the SAME full CSV shape source.
-    shape = None
+    # The real LEFT template owns one 710x300 source flat sheet, BEND20
+    # and four source EAR slots. Its illustrated 400 screw quartets are NOT
+    # the current per-NFB machining authority; committed CSV is. A selected
+    # numeric model must have full dimensions and fit this 260-mm flat face.
+    # Every actual placement and screw intersection is checked by FinalScene.
     for hole in holes:
+        if not isinstance(hole, Mapping):
+            return None
         parsed = parse_numeric_model_ref(hole.get("model_filename"))
         if parsed is None:
             return None
@@ -133,20 +136,12 @@ def _source_left_flat_base_config(data):
         if hole.get("source_brand") not in (None, brand):
             return None
         spec = model_spec(brand, model)
-        # A matching depth or pitch alone is NOT permission to borrow LEFT.
-        if (spec is None or spec.screw_pitch_mm != (44.0, 194.0)
-                or abs(float(spec.screw_diameter_mm or 0.0) - 5.1) > 1e-6
+        if (spec is None or not spec.dimensionally_complete
+                or spec.height_mm is None
+                or not 0 < float(spec.height_mm) <= 260.
                 or spec.depth_mm is None
                 or abs(float(spec.depth_mm) - depth) > 1e-6):
             return None
-        source = (
-            brand, spec.width_mm, spec.height_mm, spec.opening_mm,
-            spec.screw_pitch_mm, spec.screw_diameter_mm,
-            spec.screw_offset_x_mm, spec.screw_offset_y_mm, spec.depth_mm,
-        )
-        if shape is not None and source != shape:
-            return None
-        shape = source
     t = float(data["t"])
     # Fixed-plate T is the source T2 and independent of the cabinet skin T.
     pitch_x = receiving_source_fixing_pitch_x_mm(
@@ -172,14 +167,13 @@ def _source_left_flat_base_config(data):
 def _source_two_tier_matching_left_base_config(data):
     """Derive two separate source LEFT tier blanks without a manual base choice.
 
-    Only the *existing* LEFT source's exact 44x194 / diameter 5.1 numeric
-    cutting pattern qualifies. Current Bay/Set, each physical tier, and all
-    per-model CSV owners are checked against the committed source; a model
-    that could instead require RIGHT/CENTER cannot silently borrow LEFT.
-    This selects an original blank *shape*, not screw X, installed Y/Z,
-    quantity, or manufacturing approval. The original two 400 screw quartets
-    are example openings, not a limit on operator-selected horizontal NFBs;
-    per-hole geometry and sheet clearance are checked downstream.
+    The source LEFT blank/BEND20/EAR slots are fixed structural geometry,
+    not a limit to the illustrated 44x194 screw pattern. Each vertical NFB
+    tier uses one sheet and its own committed numeric model(s); differing
+    source models are legitimate if complete and within the flat face.
+    Per-hole X/Y/rotation, material, and collision validation remain with
+    the normal FinalScene and original DXF export. This never recognizes
+    an unproved RIGHT sheet or grants whole-cabinet manufacturing approval.
     """
     config = data.get("nfb_config")
     if (data.get("nfb_config_submitted") is not True
@@ -196,6 +190,7 @@ def _source_two_tier_matching_left_base_config(data):
     from .receiving_nfb_model_identity import parse_numeric_model_ref
     from .receiving_nfb_numeric_catalog import model_spec
     tiers = {0: [], 1: []}
+    depths_by_tier = {0: set(), 1: set()}
     for hole in holes:
         if not isinstance(hole, Mapping):
             return None
@@ -207,31 +202,18 @@ def _source_two_tier_matching_left_base_config(data):
         if parsed is None:
             return None
         brand, model = parsed
-        if (hole.get("source_brand") not in (None, brand)
-                or (legacy_brand and legacy_brand != brand)):
-            # A wrong/cross-brand row cannot authorize this LEFT blank;
-            # return no *shape* instead of killing other correctly sourced
-            # tier Z previews. The per-tier source resolver independently
-            # refuses the affected tier's uncertified depth/installation.
+        if hole.get("source_brand") not in (None, brand):
             return None
         spec = model_spec(brand, model)
-        if (spec is None or spec.screw_pitch_mm != (44.0, 194.0)
-                or spec.screw_diameter_mm != 5.1
+        if (spec is None or not spec.dimensionally_complete
+                or spec.height_mm is None
+                or not 0 < float(spec.height_mm) <= 260.
                 or spec.depth_mm is None or spec.depth_mm <= 0):
             return None
-        # Distinct CSV model names can describe the SAME physical machining
-        # source (e.g. 士林 2P400 and 3P400SN). Use exact dimensional
-        # source identity, never a filename equality test or depth alone.
-        # Keep brand, body/opening, fixing-hole shape and offsets in this
-        # signature so near-matching variants cannot borrow the LEFT blank.
-        tiers[tier].append((
-            brand, spec.width_mm, spec.height_mm, spec.opening_mm,
-            spec.screw_pitch_mm, spec.screw_diameter_mm,
-            spec.screw_offset_x_mm, spec.screw_offset_y_mm,
-            float(spec.depth_mm),
-        ))
-    if any(not rows or len({r for r in rows}) != 1
-           for rows in tiers.values()):
+        tiers[tier].append((brand, model))
+        depths_by_tier[tier].add(float(spec.depth_mm))
+    if (any(not rows for rows in tiers.values())
+            or any(len(depths) != 1 for depths in depths_by_tier.values())):
         return None
     if float(data["t"]) != 2.0:
         raise ValueError("RECEIVING_TIER_LEFT_SOURCE_REQUIRES_T2")

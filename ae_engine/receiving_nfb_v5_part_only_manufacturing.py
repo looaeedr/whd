@@ -184,7 +184,9 @@ def export_verified_csv_v5_single_base_part_only(
 
     root = Path(output_directory)
     filename = resolved_physical_dxf_filename(
-        "base_plate", instance_namespace=f"{set_id}__{bay_id}",
+        "base_plate",
+        box_body_physical_piece_roles=(),
+        instance_namespace=f"{set_id}__{bay_id}",
     )
     destination = root / filename
     if destination.exists() and not overwrite:

@@ -200,3 +200,44 @@ def test_three_same_tier_400_switches_share_one_source_base_and_reopen_dxf(tmp_p
     door = ezdxf.readfile(receipt.inner_door_path).modelspace()
     assert len([p for p in door if p.dxftype() == "LWPOLYLINE"
                 and p.closed and p.dxf.layer == "CUTTING"]) >= 4
+
+
+def test_normal_operator_export_single_125_current_csv_uses_real_flat_source(tmp_path):
+    snap = _current()
+    only = deepcopy(snap["nfb_config"]["holes"][1])
+    only.update(slot_index=0, layer_index=0, manual_x_mm=0.)
+    snap["nfb_config"]["holes"] = [only]
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    parts = _scene(snap)
+    receipt = _export(snap, parts, tmp_path)
+    assert receipt.source_hole_ids == ("nfb:1",)
+    assert len(list(tmp_path.glob("*.dxf"))) == 2
+    plate = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    holes = [x for x in plate if x.dxftype() == "CIRCLE"
+             and x.dxf.layer == "CUTTING"]
+    assert len(holes) == 4
+    assert all(abs(float(x.dxf.radius) - 1.6) < 1e-6 for x in holes)
+    assert len([x for x in plate if x.dxftype() == "LWPOLYLINE"
+                and x.closed and x.dxf.layer == "CUTTING"]) == 5
+    assert sum(1 for x in plate if x.dxf.layer == "BEND") == 2
+
+
+def test_original_operator_does_not_equate_two_brands_on_one_flat_base(tmp_path):
+    snap = _current(model_second="3P400SN")
+    row = snap["nfb_config"]["holes"][1]
+    row.update(model_filename="nfbv5:伍菱:3P400SN", source_brand="伍菱")
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    receipt = _export(snap, _scene(snap), tmp_path)
+    assert receipt.source_hole_ids == ("nfb:0", "nfb:1")
+    plate = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    assert sum(1 for x in plate if x.dxftype() == "CIRCLE"
+               and x.dxf.layer == "CUTTING") == 8
+    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+    assert sum(1 for x in door if x.dxftype() == "LWPOLYLINE"
+               and x.closed and x.dxf.layer == "CUTTING") >= 3
