@@ -25,8 +25,10 @@ def _source_tier_base_spec(snapshot, values, center, depth):
     from .contracts import BasePlatePartSpec
     if depth.parent_base_id != center.layer_part_id:
         raise ValueError("RECEIVING_TIER_SOURCE_PART_SPEC_IDENTITY_DRIFT")
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
     pair = (tuple(depth.source_depths_mm)
-            if len(depth.source_depths_mm) == 2 else None)
+            if (values["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_CENTER
+                and len(depth.source_depths_mm) == 2) else None)
     return BasePlatePartSpec(
         width=float(snapshot["w"]), height=float(values["h"]),
         thickness=float(snapshot["t"]),
@@ -182,9 +184,11 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
             raise ValueError("RECEIVING_NFB_TIER_Z_TARGET_OWNER_DRIFT")
         # Exact same source-physical Base Plate variant is used for the skin
         # solve, FinalScene material and fold profiles in EVERY NFB tier.
+        from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
         tier_pair = (
             tuple(depth_target.source_depths_mm)
-            if len(depth_target.source_depths_mm) == 2 else None
+            if (values["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_CENTER
+                and len(depth_target.source_depths_mm) == 2) else None
         )
         tier_values = {**values, "receiving_nfb_depth_pair_mm": tier_pair}
         tier_profiles = receiving_base_plate_3d_profiles(snapshot, tier_values)

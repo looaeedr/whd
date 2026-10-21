@@ -404,5 +404,29 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
         ) for hole in holes
     )
     if any(abs(depth-depths[0])>1e-9 for depth in depths):
-        raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_DEPTHS_NEED_PAD")
+        # A flat Base Plate mounts at the DEEPEST NFB's source depth.
+        # Every shallower NFB needs its own identical parametric PAD rule.
+        # This validates geometry only: no PAD 3D mating/MFG approval.
+        from .receiving_nfb_model_identity import parse_numeric_model_ref
+        from .receiving_nfb_numeric_catalog import model_spec
+        from .receiving_nfb_pad_generator import (
+            generate_nfb_pad_patterns, read_pad_tooling_rule,
+        )
+        sources = []
+        for hole in holes:
+            parsed = parse_numeric_model_ref(hole["model_filename"])
+            if parsed is None or hole.get("source_brand") not in (None, parsed[0]):
+                raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
+            spec = model_spec(*parsed)
+            if spec is None or not spec.dimensionally_complete:
+                raise ValueError("RECEIVING_FLAT_NFB_PAD_SOURCE_INCOMPLETE")
+            sources.append(spec)
+        pads = generate_nfb_pad_patterns(
+            sources, plate_thickness_mm=float(snapshot.get("t",0.)),
+            tooling=read_pad_tooling_rule(),
+        )
+        required = sum(depth < max(depths)-1e-9 for depth in depths)
+        if len(pads) != required:
+            raise ValueError("RECEIVING_FLAT_NFB_PAD_MISSING_PHYSICAL_SOURCE")
+        return max(depths)
     return depths[0]

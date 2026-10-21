@@ -210,11 +210,26 @@ def _source_two_tier_matching_left_base_config(data):
                 or not 0 < float(spec.height_mm) <= 260.
                 or spec.depth_mm is None or spec.depth_mm <= 0):
             return None
-        tiers[tier].append((brand, model))
+        tiers[tier].append(spec)
         depths_by_tier[tier].add(float(spec.depth_mm))
-    if (any(not rows for rows in tiers.values())
-            or any(len(depths) != 1 for depths in depths_by_tier.values())):
+    if any(not rows for rows in tiers.values()):
         return None
+    from .receiving_nfb_pad_generator import (
+        read_pad_tooling_rule, generate_nfb_pad_patterns,
+    )
+    tooling = read_pad_tooling_rule()
+    for tier, sources in tiers.items():
+        if len(depths_by_tier[tier]) > 1:
+            pads = generate_nfb_pad_patterns(
+                sources, plate_thickness_mm=float(data["t"]),
+                tooling=tooling,
+            )
+            required = sum(
+                float(row.depth_mm) < max(depths_by_tier[tier])-1e-9
+                for row in sources
+            )
+            if len(pads) != required:
+                raise ValueError("RECEIVING_TIER_FLAT_PAD_SOURCE_INCOMPLETE")
     if float(data["t"]) != 2.0:
         raise ValueError("RECEIVING_TIER_LEFT_SOURCE_REQUIRES_T2")
     from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
