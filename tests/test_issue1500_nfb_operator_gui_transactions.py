@@ -289,7 +289,8 @@ def test_source_revoked_warning_is_live_and_unlink_never_resurfaces(monkeypatch)
         # After repaint the rendered button must be disabled and show the
         # source-owned reason rather than an invented obsolete DXF mandate.
         win._receiving_multi_applied["selected_bays"] = (0,)
-        win._receiving_multi_show_settings()
+        win._receiving_multi_setting_list.event_generate("<<ListboxSelect>>")
+        root.update()
         assert "解除本連連動" not in _buttons(win._receiving_multi_settings_host)
         win._receiving_multi_close()
     finally:
