@@ -222,7 +222,10 @@ def _reject_unapproved_nfb_pad_ear_manufacturing(rows) -> None:
         if any(value.casefold().startswith((
                 'base_plate:fixing_plate:', 'base_fixing_plate:',
                 'bottom_fixing_plate:')) for value in ids) or role == 'BASE_FIXING_PLATE':
-            raise ValueError('BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED')
+            raise ValueError(
+                'BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED: '
+                + str(output_key) + ' / ' + str(metadata.get('stable_id') or '')
+            )
         if role in {'PAD', 'EAR'} or nfb_part or nfb_markers:
             raise ValueError('NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED')
 
