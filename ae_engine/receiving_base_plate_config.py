@@ -196,7 +196,11 @@ def _source_two_tier_matching_left_base_config(data):
         brand, model = parsed
         if (hole.get("source_brand") not in (None, brand)
                 or (legacy_brand and legacy_brand != brand)):
-            raise ValueError("RECEIVING_TIER_LEFT_CSV_BRAND_IDENTITY_DRIFT")
+            # A wrong/cross-brand row cannot authorize this LEFT blank;
+            # return no *shape* instead of killing other correctly sourced
+            # tier Z previews. The per-tier source resolver independently
+            # refuses the affected tier's uncertified depth/installation.
+            return None
         spec = model_spec(brand, model)
         if (spec is None or spec.screw_pitch_mm != (44.0, 194.0)
                 or spec.screw_diameter_mm != 5.1
