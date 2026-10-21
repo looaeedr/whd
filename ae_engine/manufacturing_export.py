@@ -245,6 +245,11 @@ def reject_unverified_receiving_nfb_tier_base(
     certify real EAR contact, source BEND and NFB screw CUTTING. Future
     release requires an explicit part-scoped CSV verification adapter.
     """
+    # Shared single-part and batch export boundary: one PAD/EAR draft
+    # must never escape by calling save_part_render_data_dxf directly.
+    _reject_unapproved_nfb_pad_ear_manufacturing(
+        ((str(output_key), None, render_data),)
+    )
     meta = getattr(render_data, "metadata", None)
     metadata = meta if isinstance(meta, Mapping) else {}
     tier_id = "base_plate:nfb_layer:"

@@ -97,3 +97,32 @@ def test_pad_preview_cutting_and_bends_survive_real_dxf_roundtrip(tmp_path):
     assert sorted(round(float(e.dxf.start.x),5) for e in bends)==list(
         map(float,pattern.bend_stations_x_mm))
     assert pad.render_data.metadata["manufacturing_ready"] is False
+
+
+
+@pytest.mark.parametrize("forged", (False, True))
+def test_actual_generated_pad_cannot_escape_through_direct_single_part_manufacturing_dxf(
+    tmp_path, forged,
+):
+    from dataclasses import replace
+    from ae_engine.manufacturing_api import save_part_render_data_dxf
+    a=_s("士林","100HN-s",75,130,68,25,111,3.2)
+    b=_s("士林","3P400SN",140,257,107,44,194,5.1)
+    pattern,=generate_nfb_pad_patterns(
+        [a,b],plate_thickness_mm=2,tooling=read_pad_tooling_rule()
+    )
+    part=build_nfb_pad_draft_part(
+        pattern,parent_base_id="base_plate",owner_hole_id="nfb:direct-export",
+    )
+    render=part.render_data
+    if forged:
+        render=replace(render,metadata={
+            **render.metadata,
+            "manufacturing_ready":True,
+            "formed_geometry_verified":True,
+            "assembly_mating_verified":True,
+        })
+    dest=tmp_path/"attempt-to-bypass-PAD-manufacturing-gate.dxf"
+    with pytest.raises(ValueError,match="NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED"):
+        save_part_render_data_dxf(render,dest)
+    assert not dest.exists()

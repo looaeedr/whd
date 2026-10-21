@@ -46,6 +46,7 @@ jobs:
           python -m pytest -q \
             tests/test_receiving_nfb_pad_generator.py \
             tests/test_receiving_nfb_pad_part.py \
+            tests/test_issue1503_deferred_pad_ear_manufacturing.py \
             tests/test_receiving_nfb_pad_assembly_preview.py \
             tests/test_receiving_nfb_pad_preview_cache.py \
             tests/test_receiving_nfb_pad_real_renderer.py \
