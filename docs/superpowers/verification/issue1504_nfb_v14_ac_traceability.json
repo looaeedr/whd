@@ -25,9 +25,9 @@
   "counts": {
     "BLOCKED_1500_REAL_GUI": 17,
     "DEFERRED_PRODUCT_EVIDENCE": 4,
-    "EVIDENCE_CANDIDATE_ONLY": 50,
+    "EVIDENCE_CANDIDATE_ONLY": 48,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 3
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 5
   },
   "records": [
     {
@@ -294,25 +294,38 @@
         "tests/test_issue1494_closed_cutting_reference.py",
         "tests/test_issue1494_nfb_x_shadow_projection.py",
         "tests/test_issue1494_receiving_nfb_x_evidence.py",
-        "tests/test_issue1495_receiving_nfb_y_projection.py"
+        "tests/test_issue1495_receiving_nfb_y_projection.py",
+        "tests/test_issue1504_current_nfb_y_ac10_swt02.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
-          "test_name": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
+          "test_name": "test_nfb_ac10_current_330_830_operator_y_roundtrips_real_panel",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT 2026-10-21: receiving-tab layer-height editor displays defaults 330/830 directly; old 550 and 290/790 in the 2026-10-10 §7 AC are not the current 2-tier default. The actual saved operator Y and tier-owned source determine mounting Y.",
         "authority_issue": 1502
+      },
+      "acceptance_evidence": {
+        "scope": "LEGACY_NOMINAL_PITCH_AND_Y_WITH_CURRENT_OPERATOR_HEIGHT_REAL_PANEL_PROJECTION",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_nfb_ac10_current_330_830_operator_y_roundtrips_real_panel",
+        "other_required_assertion": "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_nfb_ac10_only_approved_nominal_pitch_and_no_world_x",
+        "negative_source_matrix_assertion": "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_nfb_ac10_outside_source_matrix_remains_unknown_not_centered",
+        "integration_ci": "WHD Product Regression mandatory selector; exact PR HEAD CI SUCCESS + GitHub localX readback required",
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "ui_full_operator_uat_claimed": false
       }
     },
     {
@@ -1796,21 +1809,34 @@
         1495
       ],
       "regression_candidates": [
-        "tests/test_issue1495_receiving_nfb_y_projection.py"
+        "tests/test_issue1495_receiving_nfb_y_projection.py",
+        "tests/test_issue1504_current_nfb_y_ac10_swt02.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1495_receiving_nfb_y_projection.py",
-          "test_name": "test_approved_nominal_box_top_y_maps_to_real_1075_blank",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
+          "test_name": "test_swt_ac02_legacy_nominal_and_unknown_non1100_y_never_guess",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "LEGACY_1100_NOMINAL_Y_NON1100_UNKNOWN_AND_CURRENT_OPERATOR_Y_OVERRIDE",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_swt_ac02_legacy_nominal_and_unknown_non1100_y_never_guess",
+        "other_required_assertion": "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_nfb_ac10_current_330_830_operator_y_roundtrips_real_panel",
+        "negative_source_matrix_assertion": "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_nfb_ac10_outside_source_matrix_remains_unknown_not_centered",
+        "integration_ci": "WHD Product Regression mandatory selector; exact PR HEAD CI SUCCESS + GitHub localX readback required",
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "ui_full_operator_uat_claimed": false
+      }
     },
     {
       "id": "SWT-AC-03",
@@ -2788,7 +2814,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. All other 87 are still unsigned.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 3/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 85 AC have partial or deferred evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 5/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 83 AC have partial or deferred evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
