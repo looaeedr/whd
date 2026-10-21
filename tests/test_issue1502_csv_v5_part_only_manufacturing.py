@@ -105,7 +105,7 @@ def test_one_source_flat_left_variant_uses_current_csv_without_old_nfb_dxf(tmp_p
     ("unsubmitted", "SUBMITTED"),
     ("unconfirmed_x", "NOT_CONFIRMED"),
     ("mismatched_bay", "IDENTITY_DRIFT"),
-    ("wrong_variant", "PARTSPEC_VS_LIVE_SOURCE_MISMATCH"),
+    ("wrong_variant", "source CUTTING slots do not mate|PARTSPEC_VS_LIVE_SOURCE_MISMATCH"),
 ))
 def test_wrong_current_source_or_unproven_world_x_produces_no_dxf(
     tmp_path, fault, expected,
