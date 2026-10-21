@@ -91,6 +91,7 @@ def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation)
     assert skins[0].owner_hole_id==rows[1]["physical_hole_id"]
     assert skins[0].parent_base_id=="base_plate"
     assert skins[0].rise_mm==pytest.approx(39.)
+    assert skins[0].four_tab_mesh_mating_verified is True
     assert skins[0].manufacturing_ready is False
     assert skins[0].assembly_contact_certified is False
     bounds=triangle_bounds(skins[0].world_triangles)
@@ -221,3 +222,42 @@ def test_real_folded_pad_four_tab_tips_enter_matching_base_cutting_squares(rotat
             "PAD_REAL_3D_TAB_TIP_MISALIGNED_WITH_BASE_SQUARE",
             rotation,square.bounds,len(vertices),
         )
+
+
+
+@pytest.mark.parametrize("rotation",(0,90,180,270))
+@pytest.mark.parametrize("fault",("shift_world_x","shift_world_z","square_missing"))
+def test_pad_real_mesh_mating_guard_rejects_mutated_triangles_or_base_cut(rotation,fault):
+    """Adversarial real folded geometry must NOT become a displayed PAD skin."""
+    from ae_engine.receiving_nfb_v5_configured_inner_door import AXES
+    from ae_engine.receiving_nfb_pad_base_mating import (
+        verify_real_pad_mesh_tab_engagement,
+    )
+    shallow=_s("100HN-s",75,130,68,25,111,3.2)
+    deep=_s("3P400SN",140,257,107,44,194,5.1)
+    pattern,=generate_nfb_pad_patterns(
+        (shallow,deep),plate_thickness_mm=2.,tooling=read_pad_tooling_rule())
+    ux,uy=AXES[rotation]
+    def rotated(point):
+        x,y=point
+        return (355.+x*ux[0]+y*uy[0],150.+x*ux[1]+y*uy[1])
+    cut_squares=tuple(tuple(rotated(pt) for pt in sq)
+                      for sq in pattern.base_square_holes_xy_mm)
+    triangles=pad_physical_preview_world_mesh(
+        pattern,parent_base_id="base_plate",owner_hole_id="nfb:physical-mutant",
+        world_x=147.,world_y=260.,base_front_world_z_mm=-150.,
+        rotation_deg=rotation)
+    accepted=verify_real_pad_mesh_tab_engagement(
+        triangles,pattern,cut_squares,world_x_mm=147.,world_y_mm=260.,
+        base_front_world_z_mm=-150.,rotation_deg=rotation)
+    assert len(accepted)==4
+    if fault=="square_missing":
+        cut_squares=cut_squares[:3]
+    else:
+        dx,dz=(8.,0.) if fault=="shift_world_x" else (0.,1.)
+        triangles=tuple(tuple((x+dx,y,z+dz) for x,y,z in tri)
+                        for tri in triangles)
+    with pytest.raises(ValueError,match="PAD_MESH_MATING_"):
+        verify_real_pad_mesh_tab_engagement(
+            triangles,pattern,cut_squares,world_x_mm=147.,world_y_mm=260.,
+            base_front_world_z_mm=-150.,rotation_deg=rotation)
