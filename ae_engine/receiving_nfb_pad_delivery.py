@@ -251,9 +251,11 @@ def pad_bom_demands_from_committed_snapshot(
         if isinstance(holes,(list,tuple)) and type(layer_count) is int:
             expected=0
             for tier in range(layer_count):
+                # Raw NFBConfig uses layer_index for the physical tier;
+                # slot_index is each switch's index WITHIN that tier.
                 tier_rows=tuple(row for row in holes
                                 if isinstance(row,Mapping)
-                                and row.get("slot_index")==tier)
+                                and row.get("layer_index",0 if layer_count==1 else None)==tier)
                 depths=[]
                 for row in tier_rows:
                     identity=parse_numeric_model_ref(row.get("model_filename"))

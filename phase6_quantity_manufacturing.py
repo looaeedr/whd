@@ -115,7 +115,13 @@ def resolve_quantity_manufacturing(base_request, workspace_snapshot):
         )
         pad_demands=[]
         for version_id, piece_count, request in requests:
-            source=thaw_manufacturing_value(request.input_snapshot)
+            # build_quantity_manufacturing_requests already supplies a
+            # detached version-specific dict. Thawing it would coerce source
+            # integer Set/Bay indices to floats (e.g. 0 -> 0.0), which
+            # violates canonical receiving scope identity.
+            payload=request.input_snapshot
+            source=(deepcopy(payload) if isinstance(payload,dict)
+                    else thaw_manufacturing_value(payload))
             pad_demands.extend(pad_bom_demands_from_committed_snapshot(
                 version_id,source,piece_count=piece_count))
         seen={(row.version_id,row.physical_id) for row in demands}

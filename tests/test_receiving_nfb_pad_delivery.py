@@ -143,10 +143,10 @@ def test_quantity_bom_pipeline_includes_per_version_pad_without_manufacturing_re
     import phase6_manufacturing_service as service
     from ae_engine import manufacturing_api
     snap,_=installed_pair()
-    from phase6_manufacturing_contracts import freeze_manufacturing_value
+    # Actual quantity requests are detached version-specific dicts.
     requests=(
-        ("v1",3,SimpleNamespace(input_snapshot=freeze_manufacturing_value(deepcopy(snap)))),
-        ("v2",5,SimpleNamespace(input_snapshot=freeze_manufacturing_value(deepcopy(snap)))),
+        ("v1",3,SimpleNamespace(input_snapshot=deepcopy(snap))),
+        ("v2",5,SimpleNamespace(input_snapshot=deepcopy(snap))),
     )
     monkeypatch.setattr(quantity,"build_quantity_manufacturing_requests",
                         lambda _base,_work: requests)
