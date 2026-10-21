@@ -40,13 +40,29 @@ def editable_nfb_draft(draft):
     state=deepcopy(draft)
     seen=set()
     next_number=int(state.get("_next_unit_number",1))
+    if next_number < 1:
+        raise ValueError("NFB next unit number must be positive")
+    # Reserve existing persisted IDs first: mixed legacy rows can lack IDs,
+    # while a saved allocator counter can lag behind already-assigned IDs.
+    reserved=set()
+    for layer in state["layers"]:
+        for slot in layer["slots"]:
+            if "unit_id" not in slot:
+                continue
+            uid=slot["unit_id"]
+            if not isinstance(uid,str) or not uid or uid in reserved:
+                raise ValueError("NFB draft unit IDs must be unique")
+            reserved.add(uid)
     for i,layer in enumerate(state["layers"]):
         layer.setdefault("rotation_deg",0)
         if layer["rotation_deg"] not in ROTATIONS or type(layer["rotation_deg"]) is not int:
             raise ValueError("NFB layer rotation must be 0/90/180/270")
         for slot in layer["slots"]:
             if "unit_id" not in slot:
+                while f"nfb:ui1a:unit:{next_number}" in reserved:
+                    next_number+=1
                 slot["unit_id"]=f"nfb:ui1a:unit:{next_number}"
+                reserved.add(slot["unit_id"])
                 next_number+=1
             if not isinstance(slot["unit_id"],str) or slot["unit_id"] in seen:
                 raise ValueError("NFB draft unit IDs must be unique")
@@ -62,6 +78,8 @@ def editable_nfb_draft(draft):
                     and (type(slot["manual_x_mm"]) not in (int,float)
                          or not isfinite(slot["manual_x_mm"]))):
                 raise ValueError("NFB X offset must be finite")
+    while f"nfb:ui1a:unit:{next_number}" in reserved:
+        next_number+=1
     state["_next_unit_number"]=next_number
     return state
 
@@ -188,7 +206,11 @@ class NfbUi1aEditSession:
     def apply(self,action,operation,*args,**kwargs):
         if not isinstance(action,str) or not action:
             raise ValueError("NFB transaction action name required")
-        candidate=editable_nfb_draft(operation(self.current,*args,**kwargs))
+        # Callbacks are external edit operations.  They may mutate their input
+        # before raising on an invalid/colliding geometry.  Keep the live
+        # transaction immutable until validation succeeds.
+        isolated=deepcopy(self.current)
+        candidate=editable_nfb_draft(operation(isolated,*args,**kwargs))
         if candidate==self.current:return None
         receipt=NfbUi1aEditReceipt(action,deepcopy(self.current),deepcopy(candidate))
         self.current=candidate

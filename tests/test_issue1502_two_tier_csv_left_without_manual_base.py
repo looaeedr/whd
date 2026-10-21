@@ -184,7 +184,7 @@ def test_two_tiers_different_complete_csv_models_derive_independent_flat_sheets(
     assert set(source_receiving_nfb_tier_base_specs(snap)) == {0, 1}
 
 
-def test_two_tiers_refuse_wrong_flat_source_for_two_depths_on_same_tier():
+def test_two_tiers_flat_source_with_mixed_depth_pad_stays_unreleased():
     snap = _committed_two_left_tiers()
     shallow = deepcopy(snap["nfb_config"]["holes"][0])
     shallow.update(physical_hole_id="nfb:shallow-in-upper", slot_index=1,
@@ -193,6 +193,26 @@ def test_two_tiers_refuse_wrong_flat_source_for_two_depths_on_same_tier():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    # Two true Z faces in one tier need the source folded/CENTER geometry;
-    # they must never silently borrow the unrelated flat LEFT sheet.
-    assert receiving_base_plate_values(snap) is None
+    # CURRENT: different Z faces in one tier are separated by a per-switch
+    # generated PAD, not by inventing a new folded CENTER base-plate source.
+    # The LEFT physical blank is previewable only; PAD itself remains
+    # manufacturing-blocked until its folded/assembly/BOM proof is approved.
+    values = receiving_base_plate_values(snap)
+    assert values is not None
+    assert values["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert values["receiving_nfb_depth_pair_mm"] is None
+
+    from ae_engine.receiving_nfb_numeric_catalog import model_spec
+    from ae_engine.receiving_nfb_pad_generator import (
+        read_pad_tooling_rule, generate_nfb_pad_patterns,
+    )
+    sources = (model_spec("士林", "2P400"), model_spec("士林", "3P125SN"))
+    assert all(s is not None and s.dimensionally_complete for s in sources)
+    pads = generate_nfb_pad_patterns(
+        sources, plate_thickness_mm=float(snap["t"]),
+        tooling=read_pad_tooling_rule(),
+    )
+    assert len(pads) == 1
+    assert pads[0].switch_index == 1
+    assert pads[0].rise_mm == pytest.approx(35.)
+    assert pads[0].manufacturing_ready is False
