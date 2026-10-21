@@ -73,7 +73,9 @@ def test_nfb_ac30_missing_numeric_csv_model_produces_no_physical_cutting():
     assert editor_nfb_features_from_csv(physical, absent) == ()
     assert physical == before
 
-    invalid = dict(absent, models=["nonexistent-nfb.csv", ""])
-    with pytest.raises(ValueError, match="CSV 型號"):
+    # A structurally valid V5 identity absent from the current numeric CSV
+    # is the relevant failure (not a malformed legacy DXF basename).
+    invalid = dict(absent, models=["nfbv5:士林:不存在型號", ""])
+    with pytest.raises(ValueError, match="NFB CSV 缺少主孔尺寸"):
         editor_nfb_features_from_csv(physical, invalid)
     assert physical == before
