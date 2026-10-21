@@ -54,6 +54,50 @@ jobs:
             tests/test_issue1502_csv_finalscene_installed_assembly.py \
             tests/test_issue1502_csv_is_only_normal_finalscene_source.py \
             --junitxml=pad-localx-junit.xml
+      - name: Produce source-backed PAD DXF specimen (PREVIEW ONLY)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from ae_engine.receiving_nfb_numeric_catalog import model_spec
+          from ae_engine.receiving_nfb_pad_generator import (
+              generate_nfb_pad_patterns, read_pad_tooling_rule,
+          )
+          from ae_engine.receiving_nfb_pad_part import build_nfb_pad_draft_part
+          from ae_engine.dxf_serialization import save_scene_dxf
+          import ezdxf
+
+          selected = (model_spec("士林", "100HN-s"), model_spec("士林", "3P400SN"))
+          if any(row is None or not row.dimensionally_complete for row in selected):
+              raise ValueError("PAD specimen selected source CSV incomplete")
+          pattern, = generate_nfb_pad_patterns(
+              selected, plate_thickness_mm=2., tooling=read_pad_tooling_rule(),
+          )
+          draft = build_nfb_pad_draft_part(
+              pattern, parent_base_id="base_plate",
+              owner_hole_id="ci-preview-NFB-100HN-s",
+          )
+          if draft.manufacturing_ready or draft.render_data.metadata["manufacturing_ready"]:
+              raise ValueError("Preview cannot claim manufacturing approval")
+          path = Path("PAD_100HN-s_PREVIEW_NOT_MFG.dxf")
+          save_scene_dxf(path, draft.render_data.scene)
+          drawing = ezdxf.readfile(path)
+          actual = tuple(drawing.modelspace())
+          if (sum(e.dxftype()=="CIRCLE" and e.dxf.layer=="CUTTING" for e in actual)!=4
+                  or sum(e.dxftype()=="LINE" and e.dxf.layer=="BEND" for e in actual)!=2
+                  or sum(e.dxftype()=="LWPOLYLINE" and e.dxf.layer=="CUTTING"
+                         and e.closed for e in actual)!=1):
+              raise ValueError("PAD specimen reopening failed geometry checksum")
+          print("PAD_PREVIEW_ONLY_GEOMETRY_RECEIPT", path, pattern.blank_width_mm,
+                pattern.rise_mm, draft.render_data.unfolded_topology.width)
+          PY
+      - name: Upload explicitly non-manufacturing PAD specimen
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-PREVIEW-NOT-MFG-${{ github.sha }}
+          path: PAD_100HN-s_PREVIEW_NOT_MFG.dxf
+          if-no-files-found: error
+          retention-days: 7
       - name: Preserve independent test receipt
         if: always()
         uses: actions/upload-artifact@v4
