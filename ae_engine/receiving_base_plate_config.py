@@ -157,6 +157,82 @@ def _source_left_flat_base_config(data):
     }
 
 
+
+def _source_two_tier_matching_left_base_config(data):
+    """Derive two separate source LEFT tier blanks without a manual base choice.
+
+    Only the *existing* LEFT source's exact 44x194 / diameter 5.1 numeric
+    cutting pattern qualifies. Current Bay/Set, each physical tier, and all
+    per-model CSV owners are checked against the committed source; a model
+    that could instead require RIGHT/CENTER cannot silently borrow LEFT.
+    This selects an original blank *shape*, not screw X, installed Y/Z,
+    quantity, or manufacturing approval.
+    """
+    config = data.get("nfb_config")
+    if (data.get("nfb_config_submitted") is not True
+            or not isinstance(config, Mapping)
+            or config.get("layer_count") != 2):
+        return None
+    from .receiving_tier_ear_z_targets import _current_brand_config
+    legacy_brand, current = _current_brand_config(data)
+    if current != config:
+        raise ValueError("RECEIVING_TIER_LEFT_SOURCE_BAY_IDENTITY_DRIFT")
+    holes = config.get("holes")
+    if not isinstance(holes, (list, tuple)) or not 2 <= len(holes) <= 4:
+        return None
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_numeric_catalog import model_spec
+    tiers = {0: [], 1: []}
+    for hole in holes:
+        if not isinstance(hole, Mapping):
+            return None
+        tier = hole.get("layer_index")
+        if (type(tier) is not int or tier not in tiers
+                or hole.get("layer_count", 2) != 2):
+            return None
+        parsed = parse_numeric_model_ref(hole.get("model_filename"))
+        if parsed is None:
+            return None
+        brand, model = parsed
+        if (hole.get("source_brand") not in (None, brand)
+                or (legacy_brand and legacy_brand != brand)):
+            # A wrong/cross-brand row cannot authorize this LEFT blank;
+            # return no *shape* instead of killing other correctly sourced
+            # tier Z previews. The per-tier source resolver independently
+            # refuses the affected tier's uncertified depth/installation.
+            return None
+        spec = model_spec(brand, model)
+        if (spec is None or spec.screw_pitch_mm != (44.0, 194.0)
+                or spec.screw_diameter_mm != 5.1
+                or spec.depth_mm is None or spec.depth_mm <= 0):
+            return None
+        tiers[tier].append((brand, model, float(spec.depth_mm)))
+    if any(not 1 <= len(rows) <= 2 or len({r for r in rows}) != 1
+           for rows in tiers.values()):
+        return None
+    if float(data["t"]) != 2.0:
+        raise ValueError("RECEIVING_TIER_LEFT_SOURCE_REQUIRES_T2")
+    from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+    pitch_x = receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=float(data["w"]),
+        box_side_thickness_mm=float(data["t"]),
+    )
+    source_ear_inset = 20.0
+    blank_width = pitch_x + 2.0 * source_ear_inset
+    side_shrink = (float(data["w"]) - blank_width) / 2.0
+    if blank_width <= 2.0 * source_ear_inset:
+        raise ValueError("RECEIVING_TIER_LEFT_SOURCE_BLANK_TOO_NARROW")
+    return {
+        "pattern": RECEIVING_BASE_PATTERN_LEFT,
+        "height": 300.0 + 2.0 * 20.0,
+        "shrink_top": 20.0,
+        "shrink_bottom": 20.0,
+        "shrink_left": side_shrink,
+        "shrink_right": side_shrink,
+        "bend": 20.0,
+    }
+
 def receiving_base_plate_values(snapshot):
     """Return existing BasePlatePartSpec input values; never guess a variant.
 
@@ -174,6 +250,8 @@ def receiving_base_plate_values(snapshot):
     source_config = _source_center_base_config(data)
     if source_config is None:
         source_config = _source_left_flat_base_config(data)
+    if source_config is None:
+        source_config = _source_two_tier_matching_left_base_config(data)
     if source_config is not None:
         # Matching legacy values are geometrically equivalent and may remain
         # in the project file, but the source-derived values own this PartSpec.
@@ -242,13 +320,19 @@ def receiving_base_plate_values(snapshot):
         )
         pair = committed_receiving_nfb_depth_pair_mm(data)
     else:
-        # A flat-sided physical mounting face follows ONE exact submitted
-        # model depth. A mixed-depth / multi-layer NFB row is NOT silently
-        # declared to fit this flat plate; the PAD is separately controlled.
-        from .receiving_nfb_depth_surface_policy import (
-            committed_receiving_flat_nfb_depth_mm,
-        )
-        reference = committed_receiving_flat_nfb_depth_mm(data)
+        # In the two-tier shape-proven LEFT case, each tier's actual
+        # independently selected CSV model/depth owns its *own* Z datum in
+        # resolve_receiving_tier_base_z_targets. Do not ask the one-tier
+        # flat-depth helper to collapse the two physical layers into one.
+        config_now = data.get("nfb_config")
+        if (isinstance(config_now, Mapping)
+                and config_now.get("layer_count") == 2):
+            reference = None
+        else:
+            from .receiving_nfb_depth_surface_policy import (
+                committed_receiving_flat_nfb_depth_mm,
+            )
+            reference = committed_receiving_flat_nfb_depth_mm(data)
     return {
         "receiving_nfb_reference_depth_mm": reference,
         "receiving_nfb_depth_pair_mm": pair,

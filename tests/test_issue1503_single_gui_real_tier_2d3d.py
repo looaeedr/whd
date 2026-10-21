@@ -72,17 +72,11 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         _pump(root)
         settings = bridge._phase6_open_receiving_single_settings(designer)
         _pump(root)
-        # Operator has to select the physical Base Plate variant; do not
-        # make up a LEFT/CENTER/RIGHT shape for an unconfigured cabinet.
-        # Use the same existing physical #1502 source through its actual
-        # GUI settings transaction before committing NFB CSV hole rows.
-        from tests.test_receiving_committed_nfb_depth_base_part_flow import (
-            _snapshot as source_base,
-        )
-        designer.settings_panel._receiving_base_plate_commit(
-            source_base()["receiving_base_plate"],
-        )
-        _pump(root)
+        # #1502 real GUI regression: operator has submitted NFB numeric CSV,
+        # and LEFT 2P400+2P400 is uniquely known from original CUTTING source.
+        # Do NOT manufacture test success by silently entering a second
+        # hand-picked receiving_base_plate setting before the NFB workflow.
+        assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
         selected = settings._receiving_multi_setting_list
         selected.selection_clear(0, tk.END)
         selected.selection_set(1)
@@ -383,6 +377,92 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 Image.fromarray(with_2d).save(folder / f"real_tk_2d_{side}_with.png")
         tk_stage.destroy()
 
+        # #1502 end-to-end actual operator DXF: the SAME no-manual-base
+        # native Tk cabinet must export real CUTTING/BEND and SIDE MARKING
+        # through its ORIGINAL visible export button, not a helper's
+        # synthetic scene or a second CSV-only button.
+        from unittest.mock import patch
+        import gui_modules.project.export_actions as export_actions
+        from pathlib import Path
+        import ezdxf
+        export_dir = tmp_path / "no_manual_two_tier_actual_gui_dxf"
+        export_dir.mkdir()
+        errors=[]
+        assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
+        # The Single settings screen is the production QuantityModel flow:
+        # CHECK/Q deliberately names *geometry-equivalent* manufacturing
+        # groups by hash (part_<hash>.dxf). A filename substring can NEVER
+        # prove that a physical source sheet is absent. Instrument the
+        # unchanged grouping seam to witness exactly which physical source
+        # members the ORIGINAL UI actually wrote and in what quantities.
+        import phase6_quantity_manufacturing as qmanufacture
+        actual_group_resolver = qmanufacture.quantity_manufacturing_groups
+        emitted_groups=[]
+        def record_real_group_receipts(*args,**kwargs):
+            groups=actual_group_resolver(*args,**kwargs)
+            emitted_groups.extend(groups)
+            return groups
+        for setting in designer.output_export_vars.values():
+            setting.set(True)
+        with (
+            patch.object(export_actions.filedialog,"askdirectory",
+                         return_value=str(export_dir)),
+            patch.object(export_actions.messagebox,"showerror",
+                         side_effect=lambda title,msg: errors.append((title,msg))),
+            patch.object(export_actions.messagebox,"showinfo",
+                         return_value=None),
+            patch.object(export_actions.messagebox,"showwarning",
+                         return_value=None),
+            patch.object(export_actions.messagebox,"askyesno",
+                         return_value=False),
+            patch.object(qmanufacture,"quantity_manufacturing_groups",
+                         side_effect=record_real_group_receipts),
+        ):
+            designer.output_export_button.invoke()
+            _pump(root)
+        assert not errors, "NATIVE_GUI_CSV_DXF_EXPORT_FAILED: " + repr(errors)
+        actual_dxfs = tuple(export_dir.glob("*.dxf"))
+        names = tuple(p.name for p in actual_dxfs)
+        from gui_modules.project.export_actions import _selected_export_flags
+        print("ISSUE1502_NATIVE_EXPORT_TRACE", {
+            "dxfs": names,
+            "main_existing": sorted(calc._phase6_current_existing_parts()),
+            "real_workspace": designer.designer_workspace.available_parts,
+            "base_toggle": bool(calc.export_base_plate_var.get()),
+            "resolved_flags": _selected_export_flags(
+                calc, calc._phase6_current_existing_parts(),
+                calc._has_any_indicator_box(),
+            ),
+        }, flush=True)
+        assert emitted_groups, "GUI_DXF_CHECK_Q_GROUP_RECEIPTS_MISSING"
+        output_set=set(names)
+        assert output_set=={g.filename for g in emitted_groups}, (
+            "GUI_DXF_CHECK_Q_FILE_OR_SOURCE_GROUP_MISMATCH",names,
+        )
+        physical_receipts=tuple(row for g in emitted_groups for row in g.members)
+        def written_count(starts):
+            return sum(row.quantity for row in physical_receipts
+                       if row.physical_id.startswith(starts))
+        assert written_count("base_plate:nfb_layer:")==2, (
+            "GUI_MISSING_TWO_REAL_BASE_DXF",
+            tuple((row.version_id,row.physical_id,row.quantity)
+                  for row in physical_receipts),
+        )
+        assert written_count("base_plate:fixing_plate:")==4, (
+            "GUI_MISSING_FOUR_FORMED_FIXING_DXF",physical_receipts,
+        )
+        assert written_count("inner_door:upper:panel")>=1, (
+            "GUI_MISSING_REAL_INNER_DOOR_DXF",physical_receipts,
+        )
+        assert written_count("box_body:box_body_left_side")>=1
+        assert written_count("box_body:box_body_right_side")>=1
+        for group in emitted_groups:
+            assert group.quantity==sum(row.quantity for row in group.members)
+            assert (export_dir/group.filename).is_file()
+        for path in actual_dxfs:
+            ezdxf.readfile(path)
+        assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
+
         # Only now persist the explicitly configured source + Confirm All
         # through the product Save As, and ACTUALLY reopen it in the GUI.
         from unittest.mock import patch
@@ -392,7 +472,9 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         assert saved_path.exists() and saved
         reloaded = calc.load_phase6_project(saved_path, open_designer=True)
         _pump(root)
-        assert reloaded._phase6_input_snapshot.get("receiving_base_plate") is not None
+        # The Save/Reload must keep the NFBConfig as the single authority,
+        # with actual physical tiers rebuilt automatically from numeric CSV.
+        assert reloaded._phase6_input_snapshot.get("receiving_base_plate") is None
         restored = bridge._phase6_final_scene_adapter(reloaded).query_assembly_render_data()
         restored_parts = {p.part_key: p for p in restored.assembly_parts}
         assert all(f"base_plate:nfb_layer:{i}" in restored_parts for i in (0, 1))
