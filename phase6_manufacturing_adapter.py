@@ -542,6 +542,9 @@ def _canonical_part_keys(app: Any) -> tuple[str, ...]:
         # inside the canonical manufacturing resolver. They are real 2D
         # navigation identities but not additional RAW source inputs.
         and not str(key).startswith("base_plate:nfb_layer:")
+        # User-selectable PAD 2D is source-backed but an unreleased
+        # preview, never a separate RAW manufacturing PartSpec input.
+        and not str(key).startswith("nfb_pad:")
     )
 
 

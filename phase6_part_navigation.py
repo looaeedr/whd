@@ -150,6 +150,13 @@ def operator_part_label(
     }
     if key in piece_labels:
         return piece_labels[key]
+    if key.startswith("nfb_pad:"):
+        from re import search
+        owner = search(r":nfb:layer:(\d+):slot:(\d+)$", key)
+        if owner:
+            return (f"墊高片（第{int(owner.group(1))+1}層、"
+                    f"第{int(owner.group(2))+1}顆）")
+        return "墊高片（來源定位）"
     if key.startswith("base_plate:fixing_plate:"):
         import re
         tier = re.fullmatch(

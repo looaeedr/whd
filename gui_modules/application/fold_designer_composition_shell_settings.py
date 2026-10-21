@@ -554,6 +554,27 @@ def sync_authoritative_derived_parts(
         namespace="base_plate:nfb_layer:",
         part_profiles=tier_profiles,
     )
+
+    # PAD is its own genuine unfolded 2D sheet. Publish it in the existing
+    # Part selector but never as a RAW manufacturing input. The selected
+    # Bay's numeric V5 CSV and common tooling remain the sole source.
+    from ae_engine.receiving_nfb_pad_operator_parts import (
+        committed_nfb_pad_draft_parts,
+    )
+    try:
+        pad_preview_parts = committed_nfb_pad_draft_parts(snapshot)
+    except (ValueError, TypeError, KeyError, OSError):
+        pad_preview_parts = ()
+    navigation.sync_derived_parts(
+        namespace="nfb_pad:",
+        part_profiles={
+            part.part_id: {
+                "X": tuple(dict(row) for row in part.x_profile),
+                "Y": tuple(dict(row) for row in part.y_profile),
+            }
+            for part in pad_preview_parts
+        },
+    )
     # No historical third root entry on two-tier navigation; once canonical
     # tier profiles are published, reconcile a stale root that survived an
     # older project load/single-to-two-tier transition. Never alter source

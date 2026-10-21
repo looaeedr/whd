@@ -443,6 +443,29 @@ def _query_fold_designer_render_data(self, part_key, payload):
         if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
             raise ValueError("RECEIVING_NFB_TIER_2D_PHYSICAL_PART_MISSING")
         return found.render_data
+    if key.startswith("nfb_pad:"):
+        # The operator's current committed V5 source, never a stale
+        # navigation key or a profile-only fabricated sheet.
+        owner = getattr(self, "fold_designer_app", None)
+        current = getattr(owner, "_phase6_input_snapshot", None)
+        if not isinstance(current, Mapping):
+            raise ValueError("PAD_OPERATOR_2D_SNAPSHOT_UNAVAILABLE")
+        from ae_engine.receiving_nfb_pad_operator_parts import (
+            committed_nfb_pad_draft_parts,
+        )
+        matches = tuple(
+            part for part in committed_nfb_pad_draft_parts(current)
+            if part.part_id == key
+        )
+        if len(matches) != 1:
+            raise ValueError("PAD_OPERATOR_2D_STALE_OR_UNAUTHORIZED_PART")
+        part = matches[0]
+        if (part.manufacturing_ready
+                or part.render_data.metadata.get("manufacturing_ready")
+                or part.render_data.metadata.get("nfb_deferred_manufacturing_role")
+                    != "PAD"):
+            raise ValueError("PAD_OPERATOR_2D_MFG_GATE_INVALID")
+        return sheet(part.render_data)
     if key.startswith("base_plate:fixing_plate:"):
         # Native independent PartRenderData, not the BasePlatePartSpec blank
         # and not a drawing-only menu simulation.
