@@ -41,6 +41,13 @@ def _source_snapshot(*, width=800., side_t=2., shallow="3P125SN"):
     }
 
 
+def _center_snapshot(**kwargs):
+    """Exercise the retained explicit CENTER source, not auto PAD routing."""
+    snap=_source_snapshot(**kwargs)
+    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
+    return snap
+
+
 def _spec(snap):
     val = receiving_base_plate_values(snap)
     return BasePlatePartSpec(
@@ -56,9 +63,9 @@ def _spec(snap):
     )
 
 
-def test_submitted_source_dual_depth_derives_original_772x240_without_manual_config(tmp_path):
-    snap = _source_snapshot()
-    assert "receiving_base_plate" not in snap
+def test_explicit_center_source_dual_depth_retains_original_772x240(tmp_path):
+    snap = _center_snapshot()
+    assert snap["receiving_base_plate"]["pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
     values = receiving_base_plate_values(snap)
     assert values["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
     assert values["receiving_nfb_depth_pair_mm"] == (107., 72.)
@@ -90,7 +97,7 @@ def test_submitted_source_dual_depth_derives_original_772x240_without_manual_con
 def test_width_changes_rederive_mount_pitch_and_blank_without_w800_magic(
     width, expected_blank, expected_pitch,
 ):
-    snap = _source_snapshot(width=width)
+    snap = _center_snapshot(width=width)
     assert receiving_source_fixing_pitch_x_mm(
         box_outer_width_mm=width, box_side_thickness_mm=2.,
     ) == expected_pitch
@@ -98,7 +105,7 @@ def test_width_changes_rederive_mount_pitch_and_blank_without_w800_magic(
 
 
 def test_csv_depth_difference_updates_actual_bends_not_historical_33():
-    snap = _source_snapshot(shallow="2P125SN")  # 士林 depth68, 107-68-T2=37
+    snap = _center_snapshot(shallow="2P125SN")  # 士林 depth68, 107-68-T2=37
     values = receiving_base_plate_values(snap)
     assert values["receiving_nfb_depth_pair_mm"] == (107., 68.)
     assert receiving_base_plate_blank_dimensions(snap) == (780., 240.)
@@ -119,14 +126,14 @@ def test_no_submitted_nfb_and_ambiguous_flat_do_not_invent_a_plate():
 
 
 def test_current_bay_identity_mismatch_is_not_cross_bay_mfg_source():
-    snap = _source_snapshot()
+    snap = _center_snapshot()
     snap["_receiving_runtime_selection"]["bay_id"] = "OTHER"
     with pytest.raises(ValueError, match="identity drift"):
         receiving_base_plate_values(snap)
 
 
 def test_center_source_is_t2_only_and_does_not_guess_ear_thickness():
-    snap = _source_snapshot(side_t=3.)
+    snap = _center_snapshot(side_t=3.)
     with pytest.raises(ValueError, match="RECEIVING_CENTER_SOURCE_REQUIRES_T2"):
         receiving_base_plate_values(snap)
 
@@ -202,9 +209,11 @@ def test_submitted_csv_source_overrides_stale_saved_pattern_and_dimensions():
         "shrink_left": 45., "shrink_right": 45., "bend": 20.,
     }
     selected = receiving_base_plate_values(snap)
-    assert selected["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
-    assert selected["receiving_nfb_depth_pair_mm"] == (107., 72.)
-    assert receiving_base_plate_blank_dimensions(snap) == (772., 240.)
+    # The saved RIGHT from an older job cannot override the current V5
+    # source-backed automatic LEFT+PAD route.
+    assert selected["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert selected["receiving_nfb_depth_pair_mm"] is None
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
     # Source resolution must not overwrite operator project data on a read.
     assert snap["receiving_base_plate"]["pattern"] == "RIGHT_FLAT_SIDE"
 
