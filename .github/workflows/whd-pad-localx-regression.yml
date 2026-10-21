@@ -12,6 +12,7 @@ on:
       - 'ae_engine/receiving_tier_ear_z_targets.py'
       - 'ae_engine/receiving_nfb_layer_physical_parts.py'
       - 'tests/test_receiving_nfb_pad_*.py'
+      - 'tests/test_receiving_pad_native_tk_operator_selector.py'
       - 'tests/test_receiving_flat_pad_source_routing.py'
       - 'tests/test_issue1502_csv_is_only_normal_finalscene_source.py'
       - 'tests/test_issue1502_csv_v5_part_only_manufacturing.py'
@@ -64,6 +65,21 @@ jobs:
             tests/test_issue1502_csv_v5_part_only_manufacturing.py \
             tests/test_issue1502_source_derived_center_base.py \
             --junitxml=pad-localx-junit.xml
+      - name: Run real Tk PAD 2D operator selection under isolated virtual display
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth
+          xvfb-run -a python -m pytest -q -s \
+            tests/test_receiving_pad_native_tk_operator_selector.py \
+            --junitxml=pad-tk-junit.xml
+      - name: Preserve real Tk operator 2D selection witness
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-tk-2D-${{ github.sha }}
+          path: pad-tk-junit.xml
+          if-no-files-found: warn
+          retention-days: 7
       - name: Produce real WHD FinalScene assembled PAD screenshot (CI SIMULATION)
         run: |
           python -m tools.receiving_pad_ci_visual_receipt \
