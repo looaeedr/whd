@@ -52,6 +52,7 @@ def _spec(snap):
         bend=val["base_plate_bend"], model_name="受電箱",
         receiving_bend_pattern=val["receiving_bend_pattern"],
         receiving_nfb_depth_pair_mm=val["receiving_nfb_depth_pair_mm"],
+        physical_id="base_plate",
     )
 
 
