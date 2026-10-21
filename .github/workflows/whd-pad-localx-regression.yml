@@ -15,6 +15,7 @@ on:
       - 'tests/test_receiving_flat_pad_source_routing.py'
       - 'tests/test_issue1502_csv_is_only_normal_finalscene_source.py'
       - 'tests/test_issue1502_csv_v5_part_only_manufacturing.py'
+      - 'tests/test_issue1502_source_derived_center_base.py'
       - '.github/workflows/whd-pad-localx-regression.yml'
   workflow_dispatch:
 
