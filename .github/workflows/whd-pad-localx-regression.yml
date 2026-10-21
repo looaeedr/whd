@@ -6,6 +6,7 @@ on:
     paths:
       - 'ae_engine/receiving_nfb_pad_*.py'
       - 'ae_engine/receiving_nfb_v5_actual_base_screws.py'
+      - 'ae_engine/receiving_nfb_v5_part_only_manufacturing.py'
       - 'ae_engine/receiving_nfb_depth_surface_policy.py'
       - 'ae_engine/receiving_base_plate_config.py'
       - 'ae_engine/receiving_tier_ear_z_targets.py'
@@ -13,6 +14,7 @@ on:
       - 'tests/test_receiving_nfb_pad_*.py'
       - 'tests/test_receiving_flat_pad_source_routing.py'
       - 'tests/test_issue1502_csv_is_only_normal_finalscene_source.py'
+      - 'tests/test_issue1502_csv_v5_part_only_manufacturing.py'
       - '.github/workflows/whd-pad-localx-regression.yml'
   workflow_dispatch:
 

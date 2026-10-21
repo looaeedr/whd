@@ -174,6 +174,12 @@ def export_verified_csv_v5_single_base_part_only(
             or part.render_data.unfolded_topology.piece_id != "base_plate"
             or not part.render_data.fold_guides):
         raise ValueError("CSV_BASE_EXPORT_SOURCE_BEND_OR_BLANK_MISSING")
+    if tuple(part.render_data.metadata.get("nfb_v5_pad_square_owners") or ()):
+        # A single base is NOT the full manufactured PAD + fastener +
+        # contact assembly. Its extra four physical locator square cuts
+        # require separate verified mating, not a CHECK/Q count bypass.
+        # Do this before allocating any destination or staging directory.
+        raise ValueError("CSV_BASE_EXPORT_PAD_MFG_MATING_NOT_VERIFIED")
     preview = check_csv_v5_base_part_only_groups((
         CsvV5BaseCheckDemand(version_id, part, quantity, parameters),
     ))

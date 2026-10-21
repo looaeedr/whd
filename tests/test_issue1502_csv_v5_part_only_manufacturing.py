@@ -60,6 +60,10 @@ def _export(snap, root, *, spec=None, existing=None):
 def test_current_csv_center_part_only_exports_real_screws_ear_slots_and_bends(tmp_path):
     snap = _current()
     assert "receiving_base_plate" not in snap
+    # This testcase tests the historical source-proven CENTER sheet.
+    # Same-row mixed CSV without an explicit CENTER now auto chooses PAD
+    # and cannot receive a center-only PART_ONLY manufacturing approval.
+    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
     receipt = _export(snap, tmp_path / "approved")
     assert receipt.part_id == "base_plate"
     assert receipt.quantity == 3
@@ -145,6 +149,7 @@ def test_csv_source_change_prevents_part_only_output(tmp_path):
 def test_saved_dxf_verification_failure_does_not_commit_any_file(monkeypatch, tmp_path):
     import ae_engine.receiving_nfb_v5_part_only_manufacturing as export_module
     snap = _current()
+    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
     monkeypatch.setattr(export_module, "verify_saved_part_render_data_dxf",
                         lambda *_args, **_kw: SimpleNamespace(ok=False))
     root = tmp_path / "reimport-failed"
@@ -155,6 +160,7 @@ def test_saved_dxf_verification_failure_does_not_commit_any_file(monkeypatch, tm
 
 def test_existing_output_is_never_overwritten_implicitly(tmp_path):
     snap = _current()
+    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
     root = tmp_path / "one-version"
     first = _export(snap, root)
     before = Path(first.path).read_bytes()
@@ -199,3 +205,15 @@ def test_original_csv_125_only_uses_real_flat_plate_and_reopen_with_own_screws(t
                 if x.dxftype() == "LWPOLYLINE" and x.closed
                 and x.dxf.layer == "CUTTING"]) == 5
     assert any(x.dxf.layer == "BEND" for x in doc.modelspace())
+
+
+def test_auto_selected_flat_pad_mixed_nfb_blocks_standalone_base_manufacturing(tmp_path):
+    """A confirmed PAD preview never bypasses unverified mated MFG sources."""
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    snap = _current()  # Same selected V5 models, no saved CENTER override.
+    assert "receiving_base_plate" not in snap
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"]=="LEFT_FLAT_SIDE"
+    root=tmp_path/"PAD-not-authorized"
+    with pytest.raises(ValueError,match="CSV_BASE_EXPORT_PAD_MFG_MATING_NOT_VERIFIED"):
+        _export(snap,root)
+    assert not root.exists()
