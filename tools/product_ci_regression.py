@@ -166,6 +166,10 @@ PYTEST_PATHS = (
     # source/GUI changes. Run both in every CI shard manifest, fail closed.
     "tests/test_issue1502_source_derived_center_base.py",
     "tests/test_issue1502_csv_v5_part_only_manufacturing.py",
+    # The normal 2D/3D selection and source-owned installed AssemblyScene
+    # must be checked as well as manufacturing DXF: visible part != release.
+    "tests/test_issue1502_primary_2d_committed_base_visibility.py",
+    "tests/test_issue1502_csv_finalscene_installed_assembly.py",
     "tests/test_issue1502_v5_csv_base_x_stable.py",
     # Same V5 CSV source geometry on separate, truly owned NFB-tier plates.
     "tests/test_issue1502_v5_csv_tier_bases.py",
