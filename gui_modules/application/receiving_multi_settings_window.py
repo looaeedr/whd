@@ -877,8 +877,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             raise ValueError("未知 NFB 交易")
                         if changed:
                             render()
-                        else:
-                            show_setting_controls()
+                        # A successful commit changes the live can_submit,
+                        # can_copy, can_restore and can_undo guards. Rebuild
+                        # the visible controls immediately; otherwise old
+                        # enabled actions survive while their proof is gone.
+                        show_setting_controls()
                     except (ValueError, TypeError, KeyError, IndexError,
                             RuntimeError, OSError) as exc:
                         warn(exc)
