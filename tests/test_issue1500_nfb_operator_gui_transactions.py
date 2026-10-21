@@ -149,6 +149,11 @@ def test_gui_submit_cancel_copy_restore_undo_reuses_physical_bay_authority(monke
         assert buttons["確認套用 NFB"].instate(("!disabled",))
         assert buttons["複製至其他連"].instate(("disabled",))
         assert buttons["還原為未配置"].instate(("disabled",))
+        # The operator explicitly retired the per-Bay unlink action.
+        # Removing it must not remove the existing highlighter/link/transaction controls.
+        assert "解除本連連動" not in buttons
+        assert "連動選取的連" in buttons
+        assert "確認套用 NFB" in buttons
 
         # Cancel must never submit, nor consume the capability.
         buttons["確認套用 NFB"].invoke()
@@ -228,6 +233,65 @@ def test_live_source_revocation_blocks_stale_enabled_submit_button(monkeypatch):
         enabled.invoke()
         assert not submitted
         assert messages and "原始來源已變更" in messages[0]
+        win._receiving_multi_close()
+    finally:
+        root.destroy()
+
+
+def test_source_revoked_warning_is_live_and_unlink_never_resurfaces(monkeypatch):
+    root = tk.Tk()
+    root.update()
+    messages = []
+    ready = {0}
+    calls = []
+    monkeypatch.setattr(view.messagebox, "showwarning",
+                        lambda _title, message, *, parent:
+                        messages.append(message))
+    try:
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (1,)),
+            switch_mode=lambda _: True,
+            resize_connections=lambda *_: True,
+            get_settings_ports=lambda _: {
+                "row": lambda: {"bays": [{"stable_id": "bay-0"}]},
+                "select": lambda _: None,
+                "share": lambda *_: calls.append("share"),
+                "unlink": lambda *_: calls.append("retired-unlink"),
+            },
+            get_nfb_transaction_ports=lambda: {
+                "state": lambda si, bi, selected=(): {
+                    "submitted": False, "can_submit": bi in ready,
+                    "can_copy": False, "can_restore": False,
+                    "can_undo": False,
+                    "reason": "現行 CSV 請經原開孔編輯器確認全部",
+                    "base_partial_ready": False,
+                },
+                "submit": lambda *_: calls.append("submit"),
+                "manifest": lambda *_: {"status": "LEGACY"},
+            },
+        )
+        root.update()
+        assert win._receiving_multi_apply(0)
+        _select_inner(win, root)
+        buttons = _buttons(win._receiving_multi_settings_host)
+        assert "解除本連連動" not in buttons
+        assert buttons["連動選取的連"].instate(("!disabled",))
+        # Genuine source revocation between paint and click must not submit,
+        # even though the first painted button was enabled.
+        stale_button = buttons["確認套用 NFB"]
+        assert stale_button.instate(("!disabled",))
+        ready.clear()
+        stale_button.invoke()
+        assert calls == []
+        assert messages and "CSV" in messages[-1]
+        # After repaint the rendered button must be disabled and show the
+        # source-owned reason rather than an invented obsolete DXF mandate.
+        win._receiving_multi_applied["selected_bays"] = (0,)
+        win._receiving_multi_setting_list.event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "解除本連連動" not in _buttons(win._receiving_multi_settings_host)
         win._receiving_multi_close()
     finally:
         root.destroy()
