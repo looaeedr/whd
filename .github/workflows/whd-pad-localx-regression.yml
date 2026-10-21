@@ -58,6 +58,8 @@ jobs:
             tests/test_receiving_nfb_depth_surface_policy.py \
             tests/test_issue1502_csv_finalscene_installed_assembly.py \
             tests/test_issue1502_csv_is_only_normal_finalscene_source.py \
+            tests/test_issue1502_csv_v5_part_only_manufacturing.py \
+            tests/test_issue1502_source_derived_center_base.py \
             --junitxml=pad-localx-junit.xml
       - name: Produce real WHD FinalScene assembled PAD screenshot (CI SIMULATION)
         run: |
