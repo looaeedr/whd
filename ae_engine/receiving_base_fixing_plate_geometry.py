@@ -321,15 +321,25 @@ def save_independent_source_flat_dxf(part_id, output_path, *, overwrite=False):
     full-assembly EAR/PAD guard: it creates a separate source-flat DXF, not a
     claimed formed/welded manufacturing part or whole-cabinet release.
     """
-    from .manufacturing_api import (
-        save_part_render_data_dxf, verify_saved_part_render_data_dxf,
+    from .manufacturing_api import verify_saved_part_render_data_dxf
+    from .manufacturing_export import (
+        save_part_render_data_dxf as save_atomic_source_scene_dxf,
     )
+    from .dxf_serialization import save_scene_dxf
     kind = SMALL_SOURCE if str(part_id).endswith("small_source") else LARGE_SOURCE
     data = build_fixing_plate_source_render_data(part_id, source_kind=kind)
     destination = Path(output_path)
     if destination.exists() and not overwrite:
         raise FileExistsError(str(destination))
-    path = save_part_render_data_dxf(data, destination, overwrite=overwrite)
+    # This is explicitly an ORIGINAL *source-flat* specimen, not an
+    # assembled/formed fixing plate or manufacturing approval. Keep the
+    # generic PartRenderData manufacturing gate strict. This dedicated
+    # source-only API uses the existing atomic DXF sink and reopens the
+    # output against the actual source geometry below.
+    path = save_atomic_source_scene_dxf(
+        data.scene, destination, serializer=save_scene_dxf,
+        overwrite=overwrite,
+    )
     verified = verify_saved_part_render_data_dxf(data, path)
     if not verified.ok:
         Path(path).unlink(missing_ok=True)

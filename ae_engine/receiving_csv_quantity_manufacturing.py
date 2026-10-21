@@ -92,6 +92,7 @@ def export_current_csv_quantity_manufacturing(
     chosen = []
     marked_receipts = []
     verified_csv_owners = set()
+    verified_formed_owners = set()
     for vid, count, request in requests:
         version = versions.get(vid)
         if version is None or version.piece_count != count or count < 1:
@@ -203,6 +204,9 @@ def export_current_csv_quantity_manufacturing(
                     chosen.append(PhysicalPartDemand(
                         vid,ear_id,ear_id,count,1,source,
                     ))
+                    # Evidence comes from the actual current-version signed
+                    # fold/side-skin contact proof above, not a ready flag.
+                    verified_formed_owners.add((vid, ear_id))
                 for side in ("box_body:left_side","box_body:right_side"):
                     render=owner_render_data(marked,side)
                     physical_id=next((key for key,v in current.items()
@@ -241,7 +245,8 @@ def export_current_csv_quantity_manufacturing(
             target=Path(stage)/group.filename
             member_ids={(row.version_id,row.physical_id)
                         for row in group.members}
-            if member_ids.issubset(verified_csv_owners):
+            if (member_ids.issubset(verified_csv_owners)
+                    or member_ids.issubset(verified_formed_owners)):
                 from .dxf_serialization import save_scene_dxf
                 save_scene_dxf(target,render.scene)
             else:

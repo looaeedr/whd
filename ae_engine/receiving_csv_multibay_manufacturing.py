@@ -66,6 +66,7 @@ def export_current_receiving_multibay_dxf(
     marking_proofs=[]
     expected_keys=set()
     verified_csv_filenames=set()
+    verified_formed_filenames=set()
     for si,bi in all_bays:
         source=project_receiving_bay_legacy_aliases(
             saved_snapshot,set_index=si,bay_index=bi,
@@ -156,6 +157,9 @@ def export_current_receiving_multibay_dxf(
             if filename in expected_keys or ear_id in {k for k,_ in physical_rows}:
                 raise ValueError("RECEIVING_MULTIBAY_DUPLICATE_FIXING_SOURCE")
             expected_keys.add(filename)
+            # Scope this authorization to the exact Bay EARs constructed by
+            # _verified_formed_ear_parts above, never arbitrary metadata.
+            verified_formed_filenames.add(filename)
             output_rows.append((ns,ear_id,filename,ear_render))
         if is_csv and body_selected:
             for side in ("box_body:left_side","box_body:right_side"):
@@ -178,7 +182,8 @@ def export_current_receiving_multibay_dxf(
         staged={}
         for namespace,key,filename,render in output_rows:
             path=Path(staging)/filename
-            if filename in verified_csv_filenames:
+            if (filename in verified_csv_filenames
+                    or filename in verified_formed_filenames):
                 # Generic trial-DXF gate remains enabled everywhere else.
                 # Here a fully source-verified current physical sheet is
                 # serialized at the primitive boundary, then re-opened.
