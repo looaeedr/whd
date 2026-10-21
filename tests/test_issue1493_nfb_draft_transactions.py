@@ -158,3 +158,30 @@ def test_ac06_successful_mutating_callback_commits_once_and_undo_restores():
     session.undo()
     assert session.current==before
     assert not session.dirty
+
+
+def test_ac04_mixed_legacy_unit_ids_never_reuse_an_existing_identity():
+    """A legacy row without unit_id must not steal a later persisted ID."""
+    draft=new_nfb_ui1a_draft(
+        set_brand="士林", layer_count=1, model_layers=([MODEL,MODEL],""),
+    )
+    draft["layers"][0]["slots"][1]["unit_id"]="nfb:ui1a:unit:1"
+    draft["_next_unit_number"]=1
+    normalized=editable_nfb_draft(draft)
+    original_ids=[s["unit_id"] for s in normalized["layers"][0]["slots"]]
+    assert original_ids==["nfb:ui1a:unit:2","nfb:ui1a:unit:1"]
+    inserted=insert_nfb_slot(normalized,0,1)
+    ids=[s["unit_id"] for s in inserted["layers"][0]["slots"]]
+    assert ids==["nfb:ui1a:unit:2","nfb:ui1a:unit:3","nfb:ui1a:unit:1"]
+    assert len(ids)==len(set(ids))
+
+
+def test_ac04_stale_next_number_is_reconciled_without_changing_unit_identity():
+    base=editable_nfb_draft(initial())
+    old_ids=[s["unit_id"] for layer in base["layers"] for s in layer["slots"]]
+    base["_next_unit_number"]=1
+    updated=insert_nfb_slot(base,0,1)
+    current_ids=[s["unit_id"] for layer in updated["layers"] for s in layer["slots"]]
+    assert len(current_ids)==len(set(current_ids))
+    assert set(old_ids).issubset(current_ids)
+    assert updated["layers"][0]["slots"][1]["unit_id"] not in old_ids
