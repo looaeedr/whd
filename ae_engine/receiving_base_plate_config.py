@@ -292,7 +292,31 @@ def receiving_base_plate_values(snapshot):
         # silently become a CENTER plate or get an unverified PAD.
         if committed_receiving_nfb_depth_pair_mm(data) is not None:
             raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
-    source_config = _source_left_flat_base_config(data) if v5_left else None
+    # A SAME-TIER group of typed NFB V5 models uses one real flat Base
+    # Plate plus source-derived PADs for its shallower models. The former
+    # CENTER-first branch suppressed the PAD entirely in normal Tk workflows.
+    # Keep saved, explicitly selected CENTER profiles on their own existing
+    # physical path: never silently change an operator-configured sheet.
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+    explicit_center = (
+        data.get("nfb_config_submitted") is True
+        and isinstance(preferred, Mapping)
+        and preferred.get("pattern") == RECEIVING_BASE_PATTERN_CENTER
+    )
+    selected_v5 = (
+        data.get("nfb_config_submitted") is True
+        and isinstance(selected_rows, (tuple, list))
+        and bool(selected_rows)
+        and all(isinstance(row, Mapping) and
+                str(row.get("model_filename") or "").startswith("nfbv5:")
+                for row in selected_rows)
+    )
+    source_config = None
+    if selected_v5 and not explicit_center:
+        # This source resolver validates every model's current CSV,
+        # parametric PAD, sheet face, and physical depth. If no flat
+        # source matches, retain the original CENTER resolver fallback.
+        source_config = _source_left_flat_base_config(data)
     if source_config is None:
         source_config = _source_center_base_config(data)
     if source_config is None:

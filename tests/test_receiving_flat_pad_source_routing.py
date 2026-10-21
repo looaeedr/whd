@@ -59,3 +59,23 @@ def test_pad_missing_numeric_source_does_not_borrow_older_model_dimensions():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     with pytest.raises(ValueError):
         receiving_base_plate_values(snap)
+
+
+def test_same_tier_different_depths_auto_selects_common_pad_not_center():
+    """The real GUI has no manual base at first: do not hide a valid PAD."""
+    snap = _mixed()
+    snap.pop("receiving_base_plate", None)
+    resolved = receiving_base_plate_values(snap)
+    assert resolved["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert resolved["receiving_nfb_reference_depth_mm"] == pytest.approx(107.)
+    assert resolved["receiving_nfb_depth_pair_mm"] is None
+
+
+def test_stored_explicit_center_remains_supported_for_existing_projects():
+    """Do not delete or reinterpret old operator-selected CENTER geometry."""
+    snap = _mixed()
+    assert snap["receiving_base_plate"]["pattern"] == "LEFT_FLAT_SIDE"
+    snap["receiving_base_plate"]["pattern"] = "CENTER_DOUBLE_SIDE_FOLD"
+    result = receiving_base_plate_values(snap)
+    assert result["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
+    assert result["receiving_nfb_depth_pair_mm"] == (107., 68.)
