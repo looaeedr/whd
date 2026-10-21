@@ -291,5 +291,6 @@ def test_flat_second_slot_cannot_be_misread_as_third_switch_row():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    with pytest.raises(ValueError, match="MULTIPLE_ROWS"):
-        receiving_base_plate_values(snap)
+    # The source adapter intentionally converts this unsupported same-tier
+    # slot into an unresolved physical blank, not a GUI-fatal exception.
+    assert receiving_base_plate_values(snap) is None
