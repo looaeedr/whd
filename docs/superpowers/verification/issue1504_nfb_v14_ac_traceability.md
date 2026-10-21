@@ -5,9 +5,9 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-# #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-21，完整 AC 尚未驗收）
+# #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-21，已啟動逐條實證簽核）
 
-> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前完整 AC 簽核仍為 `0/88`，所有機器 `accepted=false`。
+> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **1/88 已完成自動化完整 AC 斷言**（`NFB-AC-30`），其他 87 項仍未簽核；不可用測試檔存在或 CI 綠燈概括 88 項。
 
 原規格與來源 SHA256 不變：
 - `WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md` — `2fcf48521b913435b01639b9fa1b3ef7789ec93724033e332cedd4c85e1d0eef`
@@ -22,11 +22,12 @@ whd_schema: WHD_DOC_META_V1
 5. **#1502 已於 2026-10-21 CLOSED**：PR [#2037](https://github.com/looaeedr/whd/pull/2037)、[完整 Product CI #39561179927](https://github.com/looaeedr/whd/actions/runs/39561179927) Preflight／Shard0/1/2／Canonical 全 SUCCESS、GitHub `localX@e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34` 合併/readback。它是 **source-scoped 產品交付的證據，不等於所有 15 條原 AC 已完全簽核**。
 6. **仍開的前置**：[#1500](https://github.com/looaeedr/whd/issues/1500)（真 GUI 交易/操作驗收）、[#1503](https://github.com/looaeedr/whd/issues/1503)（**僅 PAD** 延期與獨立焊接工藝），本張 #1504 為 AC 最終 owner，主單 [#1490](https://github.com/looaeedr/whd/issues/1490) 由完成 #1504 後關閉；**正式 X 僅使用者 `/推推`，Windows 最新 localX 不得由 GitHub CI 冒稱已同步**。
 
-## 88 條 CURRENT 狀態（不是 PASS）
+## 88 條 CURRENT 狀態（只有完成全斷言的一項才可簽核）
 
 - `BLOCKED_1500_REAL_GUI`：17 條 — #1500 正式提交／跨連複製／還原與 Undo GUI 整合尚待完整確認
 - `DEFERRED_PRODUCT_EVIDENCE`：4 條 — #1503 僅 PAD 產品製造／獨立工藝證據延期，已核准 EAR 不重做
-- `EVIDENCE_CANDIDATE_ONLY`：53 條 — 已有候選測試，尚未逐項核斷言
+- `EVIDENCE_CANDIDATE_ONLY`：52 條 — 已有候選測試，尚未逐項核斷言
+- `ACCEPTED_AUTOMATED_CURRENT_SCOPE`：1 條 — `NFB-AC-30` 已用現行來源多組已知 X 名義孔距／無選型／來源過期不造孔／原 Hole Editor 無 CSV 不造 CUTTING 實測（該項機器簽核須在本 PR 的 exact SHA 產品 CI 全綠後才生效）
 - `SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC`：14 條 — #1502 已合入 localX 且現有實體來源範圍 CI 綠燈；完整 AC 尚待逐條驗收
 
 `source-scoped #1502` 的 14 項仍標 `accepted=false`，以及 `SWT-AC-24` 轉歸 #1500 交易 GUI 前置；沒有任何 AC 再寫「#1502 尚未結案」。來源 `json`：`docs/superpowers/verification/issue1504_nfb_v14_ac_traceability.json`。
@@ -84,7 +85,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-27 | #1493、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（設定）／MFG-1（幾何回滾） | Q16 型號變更／待重選恢復不改已知名義中心距，保留位移並重驗整層實際幾何；具完整資料且非法時全筆原子回滾。 |
 | NFB-AC-28 | #1499、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1B（重新確認）／MFG-1（逐顆驗證） | 未驗證位移至少可按 Bay／配置批次重新確認，先提示條件差異與受影響清單；逐顆非法者不能批次放行。 |
 | NFB-AC-29 | #1499、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1B（重載）／MFG-1（重新解析） | Save→Reload／來源 DXF 變動後重新推導主孔中心、位置、越界及草稿結論，不信任專案舊衍生驗證旗標。 |
-| NFB-AC-30 | #1494 | EVIDENCE_CANDIDATE_ONLY | UI-1A（中心距）／MFG-1（防假孔） | 已知名義中心距不依賴已選型號外形；缺型號不抹掉中心距，但未驗證的實際製造孔不得輸出。 |
+| NFB-AC-30 | #1494 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（中心距）／MFG-1（防假孔） | 已知名義中心距不依賴已選型號外形；缺型號不抹掉中心距，但未驗證的實際製造孔不得輸出。 |
 | NFB-AC-31 | #1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-2 | 量產版本不同 NFB 導出不同實際加工幾何時，不得錯誤合併 DXF；同加工者仍依既有 CHECK `Q{加工片數}` 正確分組。 |
 | NFB-AC-32 | #1493 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 清除位移後可觀測是哪層、幾顆受影響；Undo 恢復位移／基準條件快照，沒有殘留過期暫存。 |
 | NFB-AC-33 | #1499 | EVIDENCE_CANDIDATE_ONLY | UI-1A（未提交）／UI-1B（儲存）／MFG-1（舊式 DXF） | 新專案／新增 Bay／版本初始 UNCONFIGURED；未提交不需槽位，舊式 DXF 產出不變。 |
@@ -146,7 +147,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 88 項確切測試函式（部分自動化證據，不代表整條 AC 驗收）
 
-**88/88 條已找到確切的 Python 測試函式；0/88 條通過完整 AC 驗收。** 這只確認函式名稱、候選檔案與原 owner 一致，並經 AST 檢查它真的存在。尚未逐條證明所有操作、UI、加工、裝配與現場斷言均完整覆蓋。
+**88/88 條已找到確切的 Python 測試函式；1/88 條有獨立完整 AC 自動化斷言，仍需本 PR exact HEAD CI 全綠後生效。** 這只確認函式名稱、候選檔案與原 owner 一致，並經 AST 檢查它真的存在。尚未逐條證明所有操作、UI、加工、裝配與現場斷言均完整覆蓋。
 
 如單條需求含多種操作，以下只代表其中一部分證據。例如 #1500 的真實 UI 操作與 #1502 的實體製造仍必須單獨驗收，不得因測試函式存在而放行。
 
@@ -181,7 +182,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-27 | `tests/test_issue1497_nfb_cutting_preflight.py::test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-28 | `tests/test_issue1497_nfb_cutting_preflight.py::test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-29 | `tests/test_issue1499_nfb_persistence.py::test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback` | EVIDENCE_CANDIDATE_ONLY |
-| NFB-AC-30 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_no_unapproved_size_or_single_unit_center_defaults` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-30 | `tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting`（另含同檔 CSV 無來源不產生 CUTTING + #1497 X 未認證拒絕） | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-31 | `tests/test_issue1502_nfb_base_batch_export_gate.py::test_one_unreleased_base_rejects_entire_multi_bay_export_before_io` | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC |
 | NFB-AC-32 | `tests/test_issue1493_nfb_draft_transactions.py::test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-33 | `tests/test_issue1499_nfb_persistence.py::test_unconfigured_bay_and_quantity_keep_legacy_schema` | EVIDENCE_CANDIDATE_ONLY |
