@@ -735,11 +735,18 @@
         1502
       ],
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 3,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError, match=\"NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT\"):",
+        "assert calls == []",
+        "assert not root.exists()"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "NFB-AC-32",
@@ -816,11 +823,17 @@
         1497
       ],
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 2,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"blocked\"):",
+        "assert not output.exists()"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "NFB-AC-38",
@@ -867,11 +880,20 @@
         1502
       ],
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 14,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert status=={\"inner1\":READY,\"base1\":UNAFFECTED,",
+        "assert m.authorized_part_ids==(\"inner1\",\"base1\",\"side1\")",
+        "assert m.actual_export_count==6",
+        "assert m.held_actual_count==4",
+        "assert m.partial_only and not m.whole_ready"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "NFB-AC-44",
@@ -952,11 +974,16 @@
         1496
       ],
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError, match=\"OPEN-X\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "NFB-AC-49",
@@ -973,11 +1000,20 @@
         1494
       ],
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 17,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert [r.revision for r in rows] == [W800_THREE_DATUM_REVISION] * 3",
+        "assert [r.status for r in rows] == [WHD_PART_DATUM_VERIFIED] * 3",
+        "assert [r.rule_id for r in rows] == [\"RECEIVING-NFB-OPEN-X-800-3\"] * 3",
+        "assert [r.slot_index for r in rows] == [0, 1, 2]",
+        "assert [r.part_id for r in rows] == [\"inner_door:upper:panel\"] * 3"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "NFB-AC-50",
@@ -994,11 +1030,20 @@
         1495
       ],
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 15,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert state == raw_before  # no change of any prior Hole Editor feature",
+        "assert actual.rule_id == RULE_ID == \"OPEN-Y-PROJECTION\"",
+        "assert actual.revision == REVISION",
+        "assert actual.status == \"GEOMETRY_ONLY_NOT_NFB_CUTTING_CERTIFIED\"",
+        "assert actual.part_id == \"inner_door:upper:panel\""
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "NFB-AC-51",
@@ -1046,11 +1091,21 @@
         1497
       ],
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 11,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert result.manufacturing_ready",
+        "assert len(result.physical_hole_ids) == 3",
+        "assert [x[1] for x in result.verified_hole_locations] == pytest.approx(expected_world)",
+        "assert [(x[2], x[3], x[4]) for x in result.verified_hole_locations] == [",
+        "assert len(contours) == 4  # original outer CUTTING + actual 3 NFB holes"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
     },
     {
       "id": "NFB-AC-54",
@@ -1271,11 +1326,20 @@
         1502
       ],
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 11,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert result.manufacturing_ready",
+        "assert len(result.physical_hole_ids) == 3",
+        "assert [x[1] for x in result.verified_hole_locations] == pytest.approx(expected_world)",
+        "assert [(x[2], x[3], x[4]) for x in result.verified_hole_locations] == [",
+        "assert len(contours) == 4  # original outer CUTTING + actual 3 NFB holes"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "SWT-AC-11",
@@ -1579,11 +1643,20 @@
         1497
       ],
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 7,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert ready.manufacturing_ready",
+        "assert tuple(ready.render_data.scene.primitives[:len(before)])==before",
+        "assert sum(isinstance(p,CirclePrimitive) and p.source_id==\"legacy:door:bolt:42\"",
+        "assert len(_actual_cuttings(ready))==4",
+        "assert tuple(legacy.scene.primitives)==before"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "SWT-AC-25",
@@ -1628,11 +1701,20 @@
         1494
       ],
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 17,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "assert [r.revision for r in rows] == [W800_THREE_DATUM_REVISION] * 3",
+        "assert [r.status for r in rows] == [WHD_PART_DATUM_VERIFIED] * 3",
+        "assert [r.rule_id for r in rows] == [\"RECEIVING-NFB-OPEN-X-800-3\"] * 3",
+        "assert [r.slot_index for r in rows] == [0, 1, 2]",
+        "assert [r.part_id for r in rows] == [\"inner_door:upper:panel\"] * 3"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "SWT-AC-28",
@@ -1649,11 +1731,16 @@
         1495
       ],
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
-      "assertion_review": "PENDING_SOURCE_FUNCTION_EXCERPT",
-      "assertion_count": null,
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
       "runtime_result": "PENDING_EXACT_SHA_CI",
-      "covered_assertion_fragments": [],
-      "missing_evidence": []
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError, match=\"unapproved cell height\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
     },
     {
       "id": "SWT-AC-29",
