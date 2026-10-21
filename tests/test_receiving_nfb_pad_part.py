@@ -68,3 +68,32 @@ def test_real_fold_profiles_put_both_legs_on_same_base_contact_side():
     assert (core[1]-left[1]) == pytest.approx(p.rise_mm/2,abs=1e-8)
     assert pad.x_profile[0]["angle"] == pad.x_profile[1]["angle"]
     assert left[1] < core[1]  # Both tabs project rearward (-Z) toward physical Base Plate
+
+
+def test_pad_preview_cutting_and_bends_survive_real_dxf_roundtrip(tmp_path):
+    """Draft DXF is a geometry receipt, NEVER official MFG export approval."""
+    import ezdxf
+    from ae_engine.dxf_serialization import save_scene_dxf
+    from ae_engine.sheetmetal_drawing import LinePrimitive
+    rule=read_pad_tooling_rule()
+    shallow=_s("東元","selected-small",75,130,68,25,111,3.2)
+    deep=_s("東元","selected-large",140,257,107,44,194,5.1)
+    pattern,=generate_nfb_pad_patterns([shallow,deep],
+        plate_thickness_mm=2,tooling=rule)
+    pad=build_nfb_pad_draft_part(
+        pattern,parent_base_id="base_plate",owner_hole_id="nfb:dxf:unreleased",
+    )
+    path=tmp_path/"pad-preview-NOT-MFG.dxf"
+    save_scene_dxf(path,pad.render_data.scene)
+    reopened=ezdxf.readfile(path)
+    entities=tuple(reopened.modelspace())
+    outer=[e for e in entities if e.dxftype()=="LWPOLYLINE"
+           and e.dxf.layer=="CUTTING" and e.closed]
+    screws=[e for e in entities if e.dxftype()=="CIRCLE"
+            and e.dxf.layer=="CUTTING"]
+    bends=[e for e in entities if e.dxftype()=="LINE" and e.dxf.layer=="BEND"]
+    assert (len(outer),len(screws),len(bends))==(1,4,2)
+    assert len(tuple(outer[0].get_points("xy"))) == len(pattern.unfolded_outline_xy_mm)
+    assert sorted(round(float(e.dxf.start.x),5) for e in bends)==list(
+        map(float,pattern.bend_stations_x_mm))
+    assert pad.render_data.metadata["manufacturing_ready"] is False
