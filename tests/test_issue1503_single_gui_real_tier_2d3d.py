@@ -389,6 +389,19 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         export_dir.mkdir()
         errors=[]
         assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
+        # The Single settings screen is the production QuantityModel flow:
+        # CHECK/Q deliberately names *geometry-equivalent* manufacturing
+        # groups by hash (part_<hash>.dxf). A filename substring can NEVER
+        # prove that a physical source sheet is absent. Instrument the
+        # unchanged grouping seam to witness exactly which physical source
+        # members the ORIGINAL UI actually wrote and in what quantities.
+        import phase6_quantity_manufacturing as qmanufacture
+        actual_group_resolver = qmanufacture.quantity_manufacturing_groups
+        emitted_groups=[]
+        def record_real_group_receipts(*args,**kwargs):
+            groups=actual_group_resolver(*args,**kwargs)
+            emitted_groups.extend(groups)
+            return groups
         for setting in designer.output_export_vars.values():
             setting.set(True)
         with (
@@ -402,6 +415,8 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                          return_value=None),
             patch.object(export_actions.messagebox,"askyesno",
                          return_value=False),
+            patch.object(qmanufacture,"quantity_manufacturing_groups",
+                         side_effect=record_real_group_receipts),
         ):
             designer.output_export_button.invoke()
             _pump(root)
@@ -419,15 +434,31 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 calc._has_any_indicator_box(),
             ),
         }, flush=True)
-        assert sum("base_plate" in name and "fixing_plate" not in name
-                   for name in names) == 2, "GUI_MISSING_TWO_REAL_BASE_DXF"
-        assert sum("fixing_plate" in name for name in names) == 4, (
-            "GUI_MISSING_FOUR_FORMED_FIXING_DXF"
+        assert emitted_groups, "GUI_DXF_CHECK_Q_GROUP_RECEIPTS_MISSING"
+        output_set=set(names)
+        assert output_set=={g.filename for g in emitted_groups}, (
+            "GUI_DXF_CHECK_Q_FILE_OR_SOURCE_GROUP_MISMATCH",names,
         )
-        assert any("inner_door" in name and "panel" in name
-                   for name in names), "GUI_MISSING_REAL_INNER_DOOR_DXF"
-        assert sum("left_side" in name or "right_side" in name
-                   for name in names) >= 2, "GUI_MISSING_SIDE_MARKING_DXF"
+        physical_receipts=tuple(row for g in emitted_groups for row in g.members)
+        def written_count(starts):
+            return sum(row.quantity for row in physical_receipts
+                       if row.physical_id.startswith(starts))
+        assert written_count("base_plate:nfb_layer:")==2, (
+            "GUI_MISSING_TWO_REAL_BASE_DXF",
+            tuple((row.version_id,row.physical_id,row.quantity)
+                  for row in physical_receipts),
+        )
+        assert written_count("base_plate:fixing_plate:")==4, (
+            "GUI_MISSING_FOUR_FORMED_FIXING_DXF",physical_receipts,
+        )
+        assert written_count("inner_door:upper:panel")>=1, (
+            "GUI_MISSING_REAL_INNER_DOOR_DXF",physical_receipts,
+        )
+        assert written_count("box_body:box_body_left_side")>=1
+        assert written_count("box_body:box_body_right_side")>=1
+        for group in emitted_groups:
+            assert group.quantity==sum(row.quantity for row in group.members)
+            assert (export_dir/group.filename).is_file()
         for path in actual_dxfs:
             ezdxf.readfile(path)
         assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
