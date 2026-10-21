@@ -3,7 +3,7 @@
 
 Only traceability is delivered by this check. A test filename is NOT proof
 that an AC's specific assertion passed, and no item may claim acceptance
-while #1500 real-source GUI or #1502 true physical DXF work remains open.
+while #1500 real-source GUI or #1503 independent PAD work remains open.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ SCHEMA = "WHD_NFB_V14_88AC_TRACEABILITY_V1"
 NEEDS = {
     "EVIDENCE_CANDIDATE_ONLY",
     "BLOCKED_1500_REAL_GUI",
-    "BLOCKED_1502_PHYSICAL_MFG",
+    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
     "DEFERRED_PRODUCT_EVIDENCE",
 }
 ORIGINAL_SHA = {
@@ -89,17 +89,21 @@ def test_all_owner_and_candidate_paths_exist_without_claiming_tests_prove_ac():
 
 def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
     data = _data()
-    assert set(data["open_gates"]) >= {1500, 1502, 1503, 1504}
+    assert set(data["open_gates"]) == {1500, 1503, 1504}
     rows = {r["id"]: r for r in data["records"]}
     assert rows["NFB-AC-34"]["status"] == "BLOCKED_1500_REAL_GUI"
-    assert rows["NFB-AC-14"]["status"] == "BLOCKED_1502_PHYSICAL_MFG"
+    assert rows["NFB-AC-14"]["status"] == "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
     assert rows["NFB-AC-13"]["status"] == "DEFERRED_PRODUCT_EVIDENCE"
     assert rows["SWT-AC-12"]["owning_issues"] == [1504]
     for r in rows.values():
         if r["status"] == "BLOCKED_1500_REAL_GUI":
             assert r["blocking_issues"] == [1500]
-        elif r["status"] == "BLOCKED_1502_PHYSICAL_MFG":
-            assert r["blocking_issues"] == [1502]
+        elif r["status"] == "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC":
+            assert r["blocking_issues"] == []
+            assert 1502 in r["owning_issues"]
+            assert r["current_delivery_scope"] == (
+                "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED"
+            )
         elif r["status"] == "DEFERRED_PRODUCT_EVIDENCE":
             assert r["blocking_issues"] == [1503]
         else:
@@ -123,7 +127,9 @@ def test_manifest_review_summary_is_recomputed_from_records():
     assert obj["counts"] == counts
     assert counts["DEFERRED_PRODUCT_EVIDENCE"] >= 3
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
-    assert counts["BLOCKED_1502_PHYSICAL_MFG"] >= 1
+    assert counts["SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"] == 14
+    assert counts["BLOCKED_1500_REAL_GUI"] == 17
+    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 53
 
 
 def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
@@ -171,7 +177,7 @@ def test_all_function_links_are_only_partial_and_no_factory_approval_is_implied(
         )
         assert row["accepted"] is False
         assert row["identified_test_functions"][0]["accepted"] is False
-    assert set(obj["open_gates"]) >= {1500, 1502, 1503, 1504}
+    assert set(obj["open_gates"]) == {1500, 1503, 1504}
 
 
 def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
@@ -194,4 +200,57 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
     text = MANIFEST.with_suffix(".md").read_text(encoding="utf-8")
     assert "箱體中心 X=0" in text
     assert "孔距 **670 mm**" in text
-    assert "固定片折彎、真實焊接 Z 接觸" in text
+    assert "T2/BEND23" in text and "EAR 已不是全部未驗" in text
+
+
+def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
+    """Closed localX scope cannot be counted as an open blocker or as 88 passes."""
+    d = _data()
+    assert d["assessed_on"] == "2026-10-21"
+    assert 1502 not in d["open_gates"]
+    assert d["counts"] == {
+        "BLOCKED_1500_REAL_GUI": 17,
+        "DEFERRED_PRODUCT_EVIDENCE": 4,
+        "EVIDENCE_CANDIDATE_ONLY": 53,
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
+    }
+    scoped = tuple(r for r in d["records"] if r["status"].startswith(
+        "SCOPED_LOCALX_1502_"
+    ))
+    assert len(scoped) == 14
+    assert all(1502 in r["owning_issues"]
+               and not r["blocking_issues"]
+               and "PR #2037" in r["delivery_receipt"]
+               and not r["accepted"] for r in scoped)
+    assert {r["id"]: r for r in d["records"]}["SWT-AC-24"][
+        "blocking_issues"
+    ] == [1500]
+    assert all(r["status"] != "BLOCKED_1502_PHYSICAL_MFG" for r in d["records"])
+
+
+def test_current_csv_ear_and_true_skin_supersessions_never_mutate_original_ac():
+    d = _data()
+    notes = d["current_legacy_supersessions"]
+    assert len(notes) == 15
+    assert set(notes).issubset({r["id"] for r in d["records"]})
+    assert all(r["current_scope_correction_20261021"][
+        "supersedes_original_interpretation_only"] is True
+        for r in d["records"] if r["id"] in notes)
+    source = d["latest_product_scope"]
+    assert "committed NFBConfig" in source["current_source"]
+    assert "NFB數值規格.csv" in source["current_source"]
+    rule = source["rule"]
+    assert "move TOGETHER in Z" in rule
+    assert "signed fold" in rule and "T2 BEND23" in rule
+    assert "UV side MARKING" in rule
+    assert "Color150" in rule
+    assert "PAD blank/material/thickness/Z/BOM" in rule
+    assert "welding-workmanship certification" in source["cannot_be_inferred"]
+    assert "full" not in d["review_status"].lower()
+    assert not any(r["accepted"] for r in d["records"])
+    # Historical original AC-13 falsely held Base Plate Z fixed; preserve
+    # the original phrase for traceability and declare its current override.
+    row = {r["id"]: r for r in d["records"]}
+    assert "底板不因 NFB 深度變更而位移" in row["NFB-AC-13"]["requirement"]
+    assert "DOES move" in notes["NFB-AC-13"]
+    assert "CURRENT" in notes["SWT-AC-09"]
