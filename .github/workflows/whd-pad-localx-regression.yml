@@ -1,0 +1,61 @@
+name: WHD PAD localX source and geometry checks
+
+on:
+  push:
+    branches: [localX]
+    paths:
+      - 'ae_engine/receiving_nfb_pad_*.py'
+      - 'ae_engine/receiving_nfb_v5_actual_base_screws.py'
+      - 'ae_engine/receiving_nfb_depth_surface_policy.py'
+      - 'ae_engine/receiving_base_plate_config.py'
+      - 'ae_engine/receiving_tier_ear_z_targets.py'
+      - 'ae_engine/receiving_nfb_layer_physical_parts.py'
+      - 'tests/test_receiving_nfb_pad_*.py'
+      - 'tests/test_receiving_flat_pad_source_routing.py'
+      - '.github/workflows/whd-pad-localx-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-pad-localx-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pad-source-and-physical-regression:
+    name: PAD common source, fold and base mating
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - name: Checkout exact localX commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install WHD geometry regression requirements
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements.txt pytest matplotlib
+      - name: Validate PAD common source, physical sheet, selected base, and existing Z rules
+        run: |
+          python -m pytest -q \
+            tests/test_receiving_nfb_pad_generator.py \
+            tests/test_receiving_nfb_pad_part.py \
+            tests/test_receiving_nfb_pad_base_mating.py \
+            tests/test_receiving_flat_pad_source_routing.py \
+            tests/test_receiving_flat_base_single_nfb_true_z.py \
+            tests/test_receiving_nfb_depth_surface_policy.py \
+            --junitxml=pad-localx-junit.xml
+      - name: Preserve independent test receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-localx-junit-${{ github.sha }}
+          path: pad-localx-junit.xml
+          if-no-files-found: warn
+          retention-days: 7
