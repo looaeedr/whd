@@ -140,7 +140,7 @@ def _source_left_flat_base_config(data):
                 or spec.height_mm is None
                 or not 0 < float(spec.height_mm) <= 260.
                 or spec.depth_mm is None
-                or abs(float(spec.depth_mm) - depth) > 1e-6):
+                or float(spec.depth_mm) > depth + 1e-6):
             return None
     t = float(data["t"])
     # Fixed-plate T is the source T2 and independent of the cabinet skin T.
@@ -267,7 +267,34 @@ def receiving_base_plate_values(snapshot):
     # physical source authority, even when an older project has saved a
     # separate manual base pattern.  Resolve source FIRST: accepting a stale
     # saved RIGHT/LEFT or W800 shrink silently changes the manufactured sheet.
-    source_config = _source_center_base_config(data)
+    # The operator's explicit LEFT source variant is respected ONLY when
+    # its actual selected numeric V5 NFBs permit a source-validated flat PAD.
+    # Otherwise do not reinterpret an old/unresolved DXF source as a PAD.
+    preferred = data.get("receiving_base_plate")
+    selected_config = data.get("nfb_config")
+    selected_rows = (selected_config.get("holes")
+                     if isinstance(selected_config, Mapping) else None)
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+    explicit_left = (data.get("nfb_config_submitted") is True
+                     and isinstance(preferred, Mapping)
+                     and preferred.get("pattern") == RECEIVING_BASE_PATTERN_LEFT
+                     and isinstance(selected_rows, (tuple, list))
+                     and bool(selected_rows))
+    v5_left = (explicit_left and all(
+        isinstance(row, Mapping)
+        and str(row.get("model_filename") or "").startswith("nfbv5:")
+        for row in selected_rows))
+    if explicit_left and not v5_left:
+        from .receiving_nfb_depth_surface_policy import (
+            committed_receiving_nfb_depth_pair_mm,
+        )
+        # A saved LEFT plate with two different legacy DXF depths must not
+        # silently become a CENTER plate or get an unverified PAD.
+        if committed_receiving_nfb_depth_pair_mm(data) is not None:
+            raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
+    source_config = _source_left_flat_base_config(data) if v5_left else None
+    if source_config is None:
+        source_config = _source_center_base_config(data)
     if source_config is None:
         source_config = _source_left_flat_base_config(data)
     if source_config is None:

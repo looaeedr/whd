@@ -388,6 +388,15 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
     if "" in models:
         raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
     legacy_brand=chosen.get("switch_brand")
+    # A historical DXF filename is only meaningful inside its owning Set's
+    # legacy brand column. Current nfbv5 identity owns its OWN source brand.
+    # Never reinterpret an old Shihlin DXF as a different brand on a flat base.
+    for hole in holes:
+        ref = str(hole["model_filename"])
+        override = hole.get("source_brand")
+        if (not ref.startswith("nfbv5:") and isinstance(legacy_brand,str)
+                and override is not None and override != legacy_brand):
+            raise ValueError("RECEIVING_FLAT_NFB_SOURCE_BRAND_DRIFT")
     if len(models)!=1:
         from .receiving_nfb_model_identity import selected_numeric_spec
         for hole in holes:
