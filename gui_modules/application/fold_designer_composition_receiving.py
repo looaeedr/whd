@@ -2936,7 +2936,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         options.append((source_bi,bundle))
             if len(options)!=1:
                 raise ValueError(
-                    "請先從已提交來源連複製，並在另一目標連核對獨立世界 X／真 DXF；"
+                    "請先從已提交來源連複製，並在另一目標連核對獨立世界 X／實體來源；"
                     "不可使用未配置來源或不明確的複製方向"
                 )
             return options[0]
@@ -2958,8 +2958,30 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 }
             bundle=committed_nfb_evidence.get((set_index,bay_index))
             if bundle is None:
+                # Numeric CSV is the CURRENT committed NFB source.  The old
+                # DXF proof cache is deliberately empty for this route; never
+                # tell the operator a valid CSV pair is unmanufacturable only
+                # because an obsolete manufacturer DXF receipt is absent.
+                # This read-only view is NOT an export approval or a piece
+                # count. The existing pair PART_ONLY writer revalidates both
+                # original physical material sources at the actual click.
+                try:
+                    csv_scoped = current_csv_pair_source(
+                        set_index, bay_index,
+                    )
+                except (ValueError, TypeError, KeyError, IndexError, OSError):
+                    csv_scoped = False
+                if csv_scoped:
+                    return {
+                        "status":"CSV_SOURCE_RECHECK_ONLY",
+                        "reason":"現行 CSV 已提交；內門＋底板部分 DXF 須於出圖時重新驗證",
+                        "actual_export_count":None,"rows":(),
+                        "unresolved_dependencies":(
+                            "WHOLE_CABINET_MANUFACTURING_NOT_APPROVED",
+                        ),
+                    }
                 return {
-                    "status":"BLOCKED","reason":"已提交，但尚未重新核對原始 DXF／物理孔位",
+                    "status":"BLOCKED","reason":"現行 CSV 或舊版 NFB 實體來源尚未重新核對",
                     "actual_export_count":0,"rows":(),
                     "unresolved_dependencies":("SOURCE_REVALIDATION_REQUIRED",),
                 }
@@ -2994,7 +3016,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     "WHOLE_READY" if manifest.whole_ready else "PARTIAL_ONLY"
                 )
                 details["reason"]=(
-                    "可匯出僅限以下已通過的實體板件；PAD／EAR 仍延期"
+                    "僅限以下已核實的實體板件；PAD 與整櫃焊接工藝另行驗收"
                     if manifest.authorized_part_ids else
                     "尚無可放行 NFB 加工板件"
                 )
@@ -3135,9 +3157,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         and nfb_physical_bay_snapshot(set_index, bay_index).get("receiving_base_plate")
                     )
                 ),
-                "reason": ("來源已配置、目標連獨立世界 X 與 DXF 已驗證，可複製提交"
-                           if can_copy else
-                           (reason or "當前 NFB 已核對來源／世界 X／實體內門，可確認套用")),
+                "reason": (
+                    "來源已提交，且目標連的獨立實體來源已驗證，可複製"
+                    if can_copy else
+                    "現行 CSV 已提交；僅限來源驗證後的內門＋底板部分出圖"
+                    if csv_pair_ready else
+                    reason or "目前尚無可提交的來源核對交易"
+                ),
             }
 
         def submit(set_index,bay_indices,confirm):
