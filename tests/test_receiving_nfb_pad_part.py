@@ -29,7 +29,7 @@ def test_full_100hn_pad_is_real_wHD_part_and_retains_four_tabs():
     assert part.render_data.unfolded_topology.height==pytest.approx(130)
     assert tuple(g.position for g in part.render_data.fold_guides)==(39,110)
     assert [s["len"] for s in part.x_profile]==pytest.approx((39,71,39))
-    assert [s["angle"] for s in part.x_profile[:2]]==[-90.,90.]
+    assert [s["angle"] for s in part.x_profile[:2]]==[90.,90.]
     assert len([x for x in part.render_data.scene.primitives
                 if isinstance(x,CirclePrimitive) and x.layer=="CUTTING"])==4
     assert len([x for x in part.render_data.scene.primitives
