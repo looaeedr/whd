@@ -199,7 +199,7 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
     # The human review must not silently retain an older X-centering claim.
     text = MANIFEST.with_suffix(".md").read_text(encoding="utf-8")
     assert "箱體中心 X=0" in text
-    assert "孔距 **670 mm**" in text
+    assert "**孔距 670 mm**" in text
     assert "T2/BEND23" in text and "EAR 已不是全部未驗" in text
 
 
