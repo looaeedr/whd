@@ -121,9 +121,9 @@ def test_two_tier_source_equivalent_models_share_exact_physical_left_blank():
     assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
 
 
-def test_two_tier_similar_pitches_from_other_brand_cannot_borrow_left_blank():
-    # 伍菱 has the same 44x194 pitch/depth but DIFFERENT opening source
-    # (56x96 vs 士林 57x96). Do not equate physical sources by pitch alone.
+def test_two_tier_current_cross_brand_nfb_keeps_one_original_sheet_per_tier():
+    # Two brands may use one physical flat sheet per tier. Their apertures
+    # and screws still belong to distinct per-switch CSV sources.
     snap = _committed_two_left_tiers()
     extra = deepcopy(snap["nfb_config"]["holes"][0])
     extra.update(
@@ -137,7 +137,8 @@ def test_two_tier_similar_pitches_from_other_brand_cannot_borrow_left_blank():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    assert receiving_base_plate_values(snap) is None
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
 
 
 def test_three_horizontal_400_switches_on_one_of_two_source_left_tiers():
@@ -164,3 +165,19 @@ def test_three_horizontal_400_switches_on_one_of_two_source_left_tiers():
     assert {p.part_key for p in actual} == {
         "base_plate:nfb_layer:0", "base_plate:nfb_layer:1"
     }
+
+
+def test_two_tiers_different_complete_csv_models_derive_independent_flat_sheets():
+    snap = _committed_two_left_tiers()
+    # Two separate vertical tiers each have their own model/depth and plate;
+    # the illustrative 400 screw pitch is not required on the 125 tier.
+    snap["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:3P125SN"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
+    targets = resolve_receiving_tier_base_z_targets(snap)
+    assert len(targets) == 2 and all(t.physical_skin_z_resolved for t in targets)
+    assert [t.source_depths_mm for t in targets] == [(107.,), (72.,)]
+    assert set(source_receiving_nfb_tier_base_specs(snap)) == {0, 1}
