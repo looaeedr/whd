@@ -29,7 +29,7 @@ def test_full_100hn_pad_is_real_wHD_part_and_retains_four_tabs():
     assert part.render_data.unfolded_topology.height==pytest.approx(130)
     assert tuple(g.position for g in part.render_data.fold_guides)==(39,110)
     assert [s["len"] for s in part.x_profile]==pytest.approx((39,71,39))
-    assert [s["angle"] for s in part.x_profile[:2]]==[-90.,90.]
+    assert [s["angle"] for s in part.x_profile[:2]]==[90.,90.]
     assert len([x for x in part.render_data.scene.primitives
                 if isinstance(x,CirclePrimitive) and x.layer=="CUTTING"])==4
     assert len([x for x in part.render_data.scene.primitives
@@ -65,6 +65,6 @@ def test_real_fold_profiles_put_both_legs_on_same_base_contact_side():
     core=folded_profile_segment_center_from_envelope(pad.x_profile,1)
     right=folded_profile_segment_center_from_envelope(pad.x_profile,2)
     assert left[1] == pytest.approx(right[1],abs=1e-8)
-    assert (left[1]-core[1]) == pytest.approx(39/2,abs=1e-8)
-    assert pad.x_profile[0]["angle"] == -pad.x_profile[1]["angle"]
+    assert (core[1]-left[1]) == pytest.approx(p.rise_mm/2,abs=1e-8)
+    assert pad.x_profile[0]["angle"] == pad.x_profile[1]["angle"]
     assert left[1] < core[1]  # Both tabs project rearward (-Z) toward physical Base Plate

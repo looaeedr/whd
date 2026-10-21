@@ -122,7 +122,7 @@ def build_nfb_pad_draft_part(
     # Three segment x fold: each vertical leg bends in the same direction,
     # core is the central NFB mounting web. The two tabs extend the tips.
     x_profile=(
-        {"len":a,"angle":-90.,"core":"PAD_LEFT_LEG"},
+        {"len":a,"angle":90.,"core":"PAD_LEFT_LEG"},
         {"len":b-a,"angle":90.,"core":"W_PART"},
         {"len":total_w-b,"core":"PAD_RIGHT_LEG"},
     )
