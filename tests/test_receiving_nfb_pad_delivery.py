@@ -123,7 +123,7 @@ def test_committed_mixed_nfb_may_not_disappear_from_bom_if_world_x_missing():
     snap["part_features"]={}
     for row in snap["nfb_config"]["holes"]:
         row["manual_x_mm"]=None
-        row["manual_x_state"]="UNCONFIRMED"
+        row["manual_x_state"]="UNVERIFIED_BASIS"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
         snap["nfb_config"])
     with pytest.raises(ValueError,match="PAD_BOM_CONFIRMED_WORLD_X"):
