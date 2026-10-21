@@ -234,8 +234,17 @@ def pad_bom_demands_from_committed_snapshot(
     from .receiving_nfb_model_identity import parse_numeric_model_ref
     from .receiving_nfb_numeric_catalog import model_spec
     physical=receiving_base_plate_values(snapshot)
-    if physical and physical.get("receiving_bend_pattern") in (
-            "LEFT_FLAT_SIDE","RIGHT_FLAT_SIDE"):
+    preferred=snapshot.get("receiving_base_plate")
+    # When an operator explicitly selected FLAT but the committed X is
+    # missing, receiving_base_plate_values() may correctly return None.
+    # Never treat that unresolved outcome as zero-pad manufacturing demand.
+    source_is_flat=(
+        (physical is not None and physical.get("receiving_bend_pattern") in (
+            "LEFT_FLAT_SIDE","RIGHT_FLAT_SIDE"))
+        or (isinstance(preferred,Mapping)
+            and preferred.get("pattern") in ("LEFT_FLAT_SIDE","RIGHT_FLAT_SIDE"))
+    )
+    if source_is_flat:
         config=snapshot.get("nfb_config")
         holes=config.get("holes") if isinstance(config,Mapping) else ()
         layer_count=config.get("layer_count") if isinstance(config,Mapping) else None
