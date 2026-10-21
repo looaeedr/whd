@@ -42,6 +42,53 @@ class ReceivingFormedFixingPlateSkin:
     manufacturing_ready: bool = False
 
 
+
+def verified_receiving_fixing_plate_local_fold(source):
+    """Signed T2 long EAR fold for 3D only; never overwrite source BEND23.
+
+    The source DXF bend line is y=23. The sharp 2-mm MID-skin hinge at
+    y=22 is an already verified formed-geometry datum, not an additional
+    factory bend allowance. This SAME profile is used for individual
+    3D inspection and for installed assembly world skins.
+    """
+    from .contracts import FoldProfileSegment
+    from .manufacturing_render_data import FoldGuide
+    from .receiving_base_fixing_plate_geometry import (
+        LARGE_PATTERN, SOURCE_DXF_SHA256,
+    )
+
+    meta = getattr(source, "metadata", None) or {}
+    pattern = LARGE_PATTERN
+    guides = tuple(getattr(source, "fold_guides", ()) or ())
+    part_id = str(meta.get("stable_id", ""))
+    if (not part_id.startswith("base_plate:fixing_plate:")
+            or not (part_id.endswith(":left") or part_id.endswith(":right"))
+            or meta.get("physical_part_role") != "BASE_FIXING_PLATE"
+            or meta.get("source_profile") != pattern.key
+            or meta.get("source_dxf_sha256") != SOURCE_DXF_SHA256
+            or meta.get("source_bend_verified") is not True
+            or meta.get("source_cutting_verified") is not True
+            or float(meta.get("thickness", 0.)) != pattern.thickness
+            or tuple(meta.get("source_flat_dimensions", ())) !=
+               (pattern.width, pattern.height)
+            or len(guides) != 1
+            or guides[0].axis != "y"
+            or not isclose(guides[0].position, 23., abs_tol=1e-8)
+            or not isclose(guides[0].span_start, 0., abs_tol=1e-8)
+            or not isclose(guides[0].span_end, pattern.width, abs_tol=1e-8)):
+        raise ValueError("EAR_LOCAL_FORM_NOT_CURRENT_VERIFIED_BEND23")
+    hinge_y = pattern.source_fold_reference - pattern.thickness / 2.0
+    if not 0 < hinge_y < pattern.slot_centers[0][1]:
+        raise ValueError("EAR_LOCAL_FORM_PHYSICAL_HINGE_INVALID")
+    x_profile = (FoldProfileSegment(pattern.width, core="D"),)
+    y_profile = (
+        FoldProfileSegment(hinge_y, angle=90., core="weld_leg"),
+        FoldProfileSegment(pattern.height - hinge_y, core="D"),
+    )
+    # This 3D-only guide does NOT modify PartRenderData, CUTTING, BEND, DXF.
+    physical_guides = (FoldGuide("y", hinge_y, 0., pattern.width),)
+    return hinge_y, x_profile, y_profile, physical_guides
+
 def build_receiving_formed_fixing_plate_skins(
     snapshot: Mapping[str, object], part_id: str,
 ) -> ReceivingFormedFixingPlateSkin:
@@ -79,17 +126,9 @@ def build_receiving_formed_fixing_plate_skins(
         raise ValueError("EAR_FORM_PHYSICAL_OWNER_OR_Z_UNVERIFIED")
     source = build_fixing_plate_source_render_data(ear_id, snapshot=snapshot)
     pattern = LARGE_PATTERN
-    guides = tuple(source.fold_guides)
-    if (source.metadata.get("source_dxf_sha256") != SOURCE_DXF_SHA256
-            or source.metadata.get("source_bend_verified") is not True
-            or source.metadata.get("source_cutting_verified") is not True
-            or not isclose(pattern.thickness, 2.0, abs_tol=1e-8)
-            or len(guides) != 1
-            or guides[0].axis != "y"
-            or not isclose(guides[0].position, 23.0, abs_tol=1e-8)
-            or not isclose(guides[0].span_start, 0.0, abs_tol=1e-8)
-            or not isclose(guides[0].span_end, pattern.width, abs_tol=1e-8)):
-        raise ValueError("EAR_FORM_NOT_CURRENT_20261018_SOURCE_BEND")
+    actual_hinge_y, xprof, yprof, physical_guides = (
+        verified_receiving_fixing_plate_local_fold(source)
+    )
     if xy.side not in ("left", "right"):
         raise ValueError("EAR_FORM_SIDE_INVALID")
     inward = 1.0 if xy.side == "left" else -1.0
@@ -102,18 +141,6 @@ def build_receiving_formed_fixing_plate_skins(
     # offset, the flange would miss the SIDE-WALL inside skin by 1 mm.
     # Fold +90 makes the free weld leg point rearward (-Z); left/right
     # assembly uses the same source and mirrors ONLY cabinet X.
-    actual_hinge_y = pattern.source_fold_reference - pattern.thickness/2.0
-    if not 0 < actual_hinge_y < pattern.slot_centers[0][1]:
-        raise ValueError("EAR_FORM_PHYSICAL_HINGE_INVALID")
-    xprof = (FoldProfileSegment(pattern.width, core="D"),)
-    yprof = (
-        FoldProfileSegment(actual_hinge_y, angle=90.0, core="weld_leg"),
-        FoldProfileSegment(pattern.height-actual_hinge_y, core="D"),
-    )
-    from .manufacturing_render_data import FoldGuide
-    # The source BEND guide is retained unchanged on PartRenderData; the
-    # mid-skin fold guide is a derived 3D mapping datum only.
-    physical_guides = (FoldGuide("y", actual_hinge_y, 0.0, pattern.width),)
     folded = folded_mesh_with_flat_uv_from_polygon(
         source.material, xprof, yprof, fold_guides=physical_guides,
     )
