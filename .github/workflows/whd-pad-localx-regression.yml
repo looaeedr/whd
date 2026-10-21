@@ -48,13 +48,13 @@ jobs:
             tests/test_receiving_nfb_pad_part.py \
             tests/test_receiving_nfb_pad_assembly_preview.py \
             tests/test_receiving_nfb_pad_preview_cache.py \
+            tests/test_receiving_nfb_pad_real_renderer.py \
             tests/test_receiving_nfb_pad_base_mating.py \
             tests/test_receiving_flat_pad_source_routing.py \
             tests/test_receiving_flat_base_single_nfb_true_z.py \
             tests/test_receiving_nfb_depth_surface_policy.py \
             tests/test_issue1502_csv_finalscene_installed_assembly.py \
             tests/test_issue1502_csv_is_only_normal_finalscene_source.py \
-            tests/test_issue370_t6_final_scene_view_owner.py \
             --junitxml=pad-localx-junit.xml
       - name: Produce source-backed PAD DXF specimen (PREVIEW ONLY)
         run: |
