@@ -145,5 +145,32 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
               material.unfolded_topology.height,
               "real_shapes",len(polygons),len(screw_holes),len(blue_bends),
               "pixel_delta",changed,flush=True)
+
+        # Full native Save As -> load saved project -> rebuild the 2D owner.
+        # A derived PAD must follow the authoritative saved NFB config and
+        # real committed editor features, not an ephemeral in-memory list.
+        from unittest.mock import patch
+        saved_path = tmp_path / "pad-native-save-reopen.p6fold"
+        with patch("tkinter.filedialog.asksaveasfilename",
+                   return_value=str(saved_path)):
+            saved = designer.save_project_file_as()
+        assert saved and saved_path.exists(), "PAD_NATIVE_SAVE_AS_FAILED"
+        reloaded = app.load_phase6_project(saved_path, open_designer=True)
+        _pump(root)
+        reloaded_parts=tuple(key for key in reloaded.designer_workspace.available_parts
+                             if key.startswith("nfb_pad:"))
+        assert reloaded_parts == (identity,), (
+            "PAD_NATIVE_SAVED_2D_NAVIGATION_MISSING",reloaded_parts
+        )
+        restored=bridge._phase6_final_scene_adapter(
+            reloaded).query_assembly_render_data()
+        assert len(restored.formed_nfb_pad_skins)==1
+        redrawn=reloaded._scene_query_callback(
+            identity,build_scene_payload_for_app(reloaded,identity))
+        assert redrawn.material.equals(material.material)
+        assert redrawn.unfolded_topology==material.unfolded_topology
+        assert redrawn.metadata["manufacturing_ready"] is False
+        print("PAD_REAL_TK_SAVED_REOPEN_SOURCE_PASS",
+              saved_path.name,identity,flush=True)
     finally:
         root.destroy()
