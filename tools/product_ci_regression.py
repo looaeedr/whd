@@ -131,6 +131,7 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_operator_gui_transactions.py",
     "tests/test_issue1504_v14_ac_traceability.py",
     "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
+    "tests/test_issue1504_brand_inheritance_current_csv.py",
     # #1504 exact function audit uncovered these five previously unselected
     # UI-1A / native-source preview / MFG-1 preflight owner suites.
     "tests/test_issue1491_nfb_ui1a.py",

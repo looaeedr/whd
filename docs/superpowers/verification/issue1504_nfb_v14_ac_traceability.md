@@ -5,9 +5,9 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-# #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-21，已啟動逐條實證簽核）
+# #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-22，逐條實證簽核）
 
-> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **1/88 已完成自動化完整 AC 斷言**（`NFB-AC-30`），其他 87 項仍未簽核；不可用測試檔存在或 CI 綠燈概括 88 項。
+> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **3/88 已完成當期範圍自動化完整 AC 斷言**（`NFB-AC-30`、`NFB-AC-17`、`SWT-AC-04`），其他 85 項仍未簽核；不可用測試檔存在或 CI 綠燈概括 88 項。
 
 原規格與來源 SHA256 不變：
 - `WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md` — `2fcf48521b913435b01639b9fa1b3ef7789ec93724033e332cedd4c85e1d0eef`
@@ -22,12 +22,19 @@ whd_schema: WHD_DOC_META_V1
 5. **#1502 已於 2026-10-21 CLOSED**：PR [#2037](https://github.com/looaeedr/whd/pull/2037)、[完整 Product CI #39561179927](https://github.com/looaeedr/whd/actions/runs/39561179927) Preflight／Shard0/1/2／Canonical 全 SUCCESS、GitHub `localX@e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34` 合併/readback。它是 **source-scoped 產品交付的證據，不等於所有 15 條原 AC 已完全簽核**。
 6. **仍開的前置**：[#1500](https://github.com/looaeedr/whd/issues/1500)（真 GUI 交易/操作驗收）、[#1503](https://github.com/looaeedr/whd/issues/1503)（**僅 PAD** 延期與獨立焊接工藝），本張 #1504 為 AC 最終 owner，主單 [#1490](https://github.com/looaeedr/whd/issues/1490) 由完成 #1504 後關閉；**正式 X 僅使用者 `/推推`，Windows 最新 localX 不得由 GitHub CI 冒稱已同步**。
 
+
+### 2026-10-22｜品牌繼承與來源防偽的新增簽核
+
+- **NFB-AC-17**：`test_nfb_ac17_three_tier_followers_overrides_provenance_and_preview` 直接驗證本套品牌、層覆寫、顆覆寫、明確同值覆寫／取消覆寫與舊來源待重選；預覽沒有製造 WORLD-X。
+- **SWT-AC-04**：`test_swt_ac04_spoofed_catalog_and_stale_csv_never_relabel_v5_source` 和 `test_swt_ac04_selected_brand_and_override_are_persisted_without_second_set_owner` 驗證 CSV V5 帶廠牌身分不可被偽清單換廠、來源消失必待重選、保存覆寫模式不新增第二套權威。
+- **生效條件**：上述三條回歸必須加入 canonical Product Regression 並隨 #1504 PR exact SHA 五階段全 SUCCESS，合入 GitHub `localX` 回讀後才可視為當期自動化簽核成立。這不是 #1500 真 Windows GUI UAT 或整箱 MFG/NC 放行。
+
 ## 88 條 CURRENT 狀態（只有完成全斷言的一項才可簽核）
 
 - `BLOCKED_1500_REAL_GUI`：17 條 — #1500 正式提交／跨連複製／還原與 Undo GUI 整合尚待完整確認
 - `DEFERRED_PRODUCT_EVIDENCE`：4 條 — #1503 僅 PAD 產品製造／獨立工藝證據延期，已核准 EAR 不重做
-- `EVIDENCE_CANDIDATE_ONLY`：52 條 — 已有候選測試，尚未逐項核斷言
-- `ACCEPTED_AUTOMATED_CURRENT_SCOPE`：1 條 — `NFB-AC-30` 已用現行來源多組已知 X 名義孔距／無選型／來源過期不造孔／原 Hole Editor 無 CSV 不造 CUTTING 實測（該項機器簽核須在本 PR 的 exact SHA 產品 CI 全綠後才生效）
+- `EVIDENCE_CANDIDATE_ONLY`：50 條 — 已有候選測試，尚未逐項核斷言
+- `ACCEPTED_AUTOMATED_CURRENT_SCOPE`：3 條 — `NFB-AC-30` 已驗名義孔距／無來源不造假孔；`NFB-AC-17`、`SWT-AC-04` 以同一 CURRENT CSV 型號來源核對本套→層→顆的品牌繼承、明確覆寫、跨廠牌待重選、偽清單/來源消失不得顯示 MODEL_SELECTED，以及已提交 NFBConfig 保存覆寫身分。須本 PR exact SHA CI 全綠且合回 localX 方生效；不代表真 Windows GUI / 全櫃製造放行。
 - `SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC`：14 條 — #1502 已合入 localX 且現有實體來源範圍 CI 綠燈；完整 AC 尚待逐條驗收
 
 `source-scoped #1502` 的 14 項仍標 `accepted=false`，以及 `SWT-AC-24` 轉歸 #1500 交易 GUI 前置；沒有任何 AC 再寫「#1502 尚未結案」。來源 `json`：`docs/superpowers/verification/issue1504_nfb_v14_ac_traceability.json`。
@@ -72,7 +79,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-14 | #1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-2（完整跨板件） | 2D／3D／DXF／Save→Reload 使用同一已解析製造資料；相同加工片合併，不同 NFB 加工不得誤合併。 |
 | NFB-AC-15 | #1492 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 僅選取與高亮不重建整箱 3D、不反覆重讀全部 DXF；UI 互動不卡頓。 |
 | NFB-AC-16 | #1499、#1500 | BLOCKED_1500_REAL_GUI | UI-1A（取消）／UI-1B（重載）／MFG-1（舊孔出圖不變） | 新舊未配置案開啟面板再取消仍未配置；Save→Reload 與升級前逐片實際製造幾何／圖層／件數與輸出範圍一致，無虛構 NFB；來源未配置 Bay 複製禁用；提交後 Save→Reload 不丟失提交事實；金庫型及既有 Hole Editor 回歸。 |
-| NFB-AC-17 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A（繼承）／UI-1B（正式保存） | 「本套／本配置→層→單顆」品牌繼承只更新跟隨者，覆寫者保持；跨廠牌型號不偷替換，缺有效來源標待重選。 |
+| NFB-AC-17 | #1491 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（繼承）／UI-1B（正式保存） | 「本套／本配置→層→單顆」品牌繼承只更新跟隨者，覆寫者保持；跨廠牌型號不偷替換，缺有效來源標待重選。 |
 | NFB-AC-18 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 層數只有 NFB 配置一處可編輯；本套開關旁只保留廠牌＋入口；單顆 X／整排 X 基準未知、非 1100 Y 未知，均顯示未定且禁止偽製造定位。 |
 | NFB-AC-19 | #1493、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（清位移）／MFG-1（違法回滾） | Q5／Q6／Q7 只清受影響層全部手動位移，對應狀態改 NONE 並清舊快照；Q16 保留位移／名義孔距，重驗整層非法原子回滾；操作 Undo／Cancel 可完整還原。 |
 | NFB-AC-20 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 改本套／本配置／層預設品牌前正確預告將待重選顆數；取消狀態完全不變，確認才套用；同值明確覆寫仍維持覆寫身份。 |
@@ -115,7 +122,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-01 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 單一可寫 NFB 安裝層數入口，與既有本套品牌 UI 一致；金庫型不出現 NFB 專屬規則。 |
 | SWT-AC-02 | #1495 | EVIDENCE_CANDIDATE_ONLY | UI-1A（名義）／MFG-1（投影） | 上層 1100：一層每顆共用名義 Y=550、兩層上 Y=290／下 Y=790；非 1100 顯示未定，不偷用公式。 |
 | SWT-AC-03 | #1493 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 每層多顆有獨立身份與型號、順序、X 位移及旋轉設定；既有中心距只於有效規格組合使用。 |
-| SWT-AC-04 | #1491、#1499 | EVIDENCE_CANDIDATE_ONLY | UI-1A（繼承）／UI-1B（保存） | 品牌繼承 A：只更新跟隨者，保留覆寫；當生效廠牌與舊檔不合，顯示待重選，不能默默替換。 |
+| SWT-AC-04 | #1491、#1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（繼承）／UI-1B（保存） | 品牌繼承 A：只更新跟隨者，保留覆寫；當生效廠牌與舊檔不合，顯示待重選，不能默默替換。 |
 | SWT-AC-05 | #1492、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（來源預覽）／MFG-1（主孔） | 每顆來源 DXF 原圖預覽、確認／取消、主開孔中心未驗證標示清楚；不冒充可製造定位。 |
 | SWT-AC-06 | #1493、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（設定）／MFG-1（非法回滾） | UI 的 Q5／Q6／Q7／Q16 行為只驗收 NFB-AC-04／19／27；本件查核名義中心距不受型號改變、非法實際幾何不得放行，Undo／取消保留既有加工。 |
 | SWT-AC-07 | #1499、#1500 | BLOCKED_1500_REAL_GUI | UI-1B | UI-1B 提交守衛啟用後，Bay 深複製及數量版本深複製獨立，`.p6fold` Save→Reload 保留已提交配置及使用者設定；UI-1A 僅編輯預覽不可聲稱已保存配置。 |
@@ -147,7 +154,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 88 項確切測試函式（部分自動化證據，不代表整條 AC 驗收）
 
-**88/88 條已找到確切的 Python 測試函式；1/88 條有獨立完整 AC 自動化斷言，仍需本 PR exact HEAD CI 全綠後生效。** 這只確認函式名稱、候選檔案與原 owner 一致，並經 AST 檢查它真的存在。尚未逐條證明所有操作、UI、加工、裝配與現場斷言均完整覆蓋。
+**88/88 條已找到確切的 Python 測試函式；3/88 條有當期範圍的完整 AC 自動化斷言，仍需本 PR exact HEAD CI 全綠後生效。** 這只確認函式名稱、候選檔案與原 owner 一致，並經 AST 檢查它真的存在。尚未逐條證明所有操作、UI、加工、裝配與現場斷言均完整覆蓋。
 
 如單條需求含多種操作，以下只代表其中一部分證據。例如 #1500 的真實 UI 操作與 #1502 的實體製造仍必須單獨驗收，不得因測試函式存在而放行。
 
@@ -169,7 +176,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-14 | `tests/test_issue1502_nfb_ear_base_assembly_contract.py::test_ear_mounting_does_not_invent_base_or_change_verified_inner_NFB` | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC |
 | NFB-AC-15 | `tests/test_issue1492_nfb_real_dxf_preview.py::test_cache_changes_with_real_source_identity_and_bounded_memory` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-16 | `tests/test_issue1499_nfb_persistence.py::test_unconfigured_bay_and_quantity_keep_legacy_schema` | BLOCKED_1500_REAL_GUI |
-| NFB-AC-17 | `tests/test_issue1491_nfb_ui1a.py::test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-17 | `tests/test_issue1504_brand_inheritance_current_csv.py::test_nfb_ac17_three_tier_followers_overrides_provenance_and_preview` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-18 | `tests/test_issue1491_nfb_ui1a.py::test_nominal_pitch_exact_but_never_absolute_x` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-19 | `tests/test_issue1493_nfb_draft_transactions.py::test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-20 | `tests/test_issue1491_nfb_ui1a.py::test_single_set_brand_owner_and_explicit_same_value_overrides` | EVIDENCE_CANDIDATE_ONLY |
@@ -212,7 +219,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-01 | `tests/test_issue1491_nfb_ui1a.py::test_no_unapproved_geometry_or_persistence_fields` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-02 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_approved_nominal_box_top_y_maps_to_real_1075_blank` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-03 | `tests/test_issue1493_nfb_draft_transactions.py::test_insert_delete_reorder_reset_only_touched_layer_x` | EVIDENCE_CANDIDATE_ONLY |
-| SWT-AC-04 | `tests/test_issue1491_nfb_ui1a.py::test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name` | EVIDENCE_CANDIDATE_ONLY |
+| SWT-AC-04 | `tests/test_issue1504_brand_inheritance_current_csv.py::test_swt_ac04_spoofed_catalog_and_stale_csv_never_relabel_v5_source` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-05 | `tests/test_issue1492_nfb_real_dxf_preview.py::test_native_arc_circle_bulge_and_aci_preserved_in_real_source_strokes` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-06 | `tests/test_issue1493_nfb_draft_transactions.py::test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-07 | `tests/test_issue1499_nfb_persistence.py::test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy` | BLOCKED_1500_REAL_GUI |

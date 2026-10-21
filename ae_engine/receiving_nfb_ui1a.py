@@ -117,6 +117,12 @@ def select_nfb_slot_model(draft, layer_index, slot_index, filename, *,
     if (not isinstance(filename,str)
             or filename not in catalog.get(actual, ())):
         raise ValueError("NFB filename must be selected from current brand CSV")
+    if filename.startswith("nfbv5:"):
+        # A caller-supplied list is not authority to relabel a typed V5
+        # identity. Re-check the actual brand-owned numeric CSV on selection.
+        from .receiving_nfb_model_identity import selected_numeric_spec
+        if selected_numeric_spec(actual, filename) is None:
+            raise ValueError("NFB V5 model identity/source does not match effective brand CSV")
     slot["filename"] = filename
     slot["source_brand"] = actual
     return updated
@@ -182,6 +188,21 @@ def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
     else:
         ys = (approved_nominal_y_mm(draft["layer_count"])
               if abs(float(upper_cell_height_mm)-1100.0)<1e-6 else None)
+    # One live CSV read per effective brand, not one per slot. The original
+    # CSV may disappear between selection and preview; stale V5 references
+    # must become NEEDS_RESELECTION rather than MODEL_SELECTED.
+    from .receiving_nfb_model_identity import numeric_model_refs
+    v5_sources = {}
+    def v5_model_current(brand, filename):
+        if not filename.startswith("nfbv5:"):
+            return True  # legacy DXF identities retain their older contract
+        if brand not in v5_sources:
+            try:
+                v5_sources[brand] = set(numeric_model_refs(brand))
+            except (OSError, ValueError):
+                v5_sources[brand] = set()
+        return filename in v5_sources[brand]
+
     layers = []
     for i in range(draft["layer_count"]):
         slots = draft["layers"][i]["slots"]
@@ -197,6 +218,7 @@ def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
             filename = slot["filename"]
             status = ("EMPTY" if filename is None else
                       NEEDS_RESELECTION if (slot["source_brand"] != brand or
+                          not v5_model_current(brand, filename) or
                           (catalog is not None and filename not in catalog.get(brand,())))
                       else "MODEL_SELECTED")
             values.append({"slot_index":j, "filename":filename,
