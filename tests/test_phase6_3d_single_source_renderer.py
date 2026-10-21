@@ -545,7 +545,12 @@ def test_all_final_scene_parts_do_not_restore_triangle_grid_overlays():
     mesh_helper = Path("phase6_final_scene_mesh_display.py").read_text(encoding="utf-8")
     assert 'edgecolor="none"' in mesh_helper
     assert 'gridless_mesh_collection(' in source
-    # All physical and diagnostic skins share one raster policy, including
-    # the formed fixing plates supplied by the #1503 assembly contract.
-    assert source.count("gridless_mesh_collection(") == 6
+    # New physical preview categories (such as the #1503 folded PAD) must
+    # use the same gridless raster helper; an exact call count becomes stale
+    # whenever a legitimate category is added. Assert the actual render
+    # contract and forbid a raw triangulated mesh artist instead.
+    assert source.count("gridless_mesh_collection(") >= 6
+    assert "pad_artist = gridless_mesh_collection(" in source
+    assert "ax.add_collection3d(pad_artist)" in source
+    assert "Poly3DCollection(" not in source
     assert "antialiaseds=False" in mesh_helper
