@@ -38,6 +38,8 @@ class AssemblySceneRenderData:
     # Display-only source-verified T2 formed EAR skins; never manufacturing
     # parts or exportable materials. Built on demand, cached by the adapter.
     formed_fixing_plate_skins: tuple[object, ...] = ()
+    # FinalScene PAD skins are view-only and never MFG/BOM/CNC authority.
+    formed_nfb_pad_skins: tuple[object, ...] = ()
 
 
 @dataclass(frozen=True)

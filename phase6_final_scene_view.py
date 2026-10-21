@@ -113,6 +113,46 @@ class Phase6FinalSceneViewAdapter:
         # source. Do not re-fold two/four EARs on every Tk Configure event.
         self._formed_ear_display_cache = None
         self.last_formed_ear_display_blocker = None
+        self._formed_pad_display_cache = None
+        self.last_formed_pad_display_blocker = None
+
+    def _formed_pad_assembly_preview(self, snapshot, visible_set, assembly_parts):
+        """Cached, source-matched PAD physical skins; DISPLAY ONLY, no MFG."""
+        if snapshot.get("model") not in ("受電箱","RECEIVING") or (
+                snapshot.get("nfb_config_submitted") is not True):
+            self.last_formed_pad_display_blocker = None
+            return ()
+        import hashlib
+        material_proof = tuple((
+            str(getattr(part,"part_key","")),
+            tuple(getattr(part,"offset",()) or ()),
+            repr(dict(getattr(getattr(part,"render_data",None),"metadata",{}) or {}).get(
+                "nfb_v5_pad_square_owners")),
+        ) for part in assembly_parts if str(getattr(part,"part_key","")).startswith("base_plate"))
+        source_key=hashlib.sha256(
+            (repr(snapshot)+repr(material_proof)).encode("utf-8")
+        ).hexdigest()
+        cached=self._formed_pad_display_cache
+        if cached is None or cached[0]!=source_key:
+            try:
+                from ae_engine.receiving_nfb_pad_assembly_preview import (
+                    build_committed_pad_assembly_display,
+                )
+                all_skins=build_committed_pad_assembly_display(snapshot,assembly_parts)
+                if any(skin.manufacturing_ready or skin.assembly_contact_certified
+                       for skin in all_skins):
+                    raise ValueError("PAD_DISPLAY_MFG_OR_CONTACT_GATE_INVALID")
+                blocker=None
+            except (ValueError, TypeError, OSError) as exc:
+                all_skins=()
+                blocker=str(exc)
+            self._formed_pad_display_cache=(source_key,all_skins,blocker)
+        else:
+            all_skins,blocker=cached[1:]
+        self.last_formed_pad_display_blocker=blocker
+        return tuple(
+            skin for skin in all_skins if skin.parent_base_id in visible_set
+        )
 
     def _formed_ear_assembly_preview(self, snapshot, visible_set):
         """Source-backed world skins, NEVER extra manufacturing assembly parts.
@@ -225,6 +265,7 @@ class Phase6FinalSceneViewAdapter:
         selected_joint_id=None,
         preserve_endcap_core_origin=False,
         formed_fixing_plate_skins=(),
+        formed_nfb_pad_skins=(),
         warnings=(),
         render_data_cls=None,
     ):
@@ -240,6 +281,7 @@ class Phase6FinalSceneViewAdapter:
             selected_joint_id=selected_joint_id,
             preserve_endcap_core_origin=preserve_endcap_core_origin,
             formed_fixing_plate_skins=formed_fixing_plate_skins,
+            formed_nfb_pad_skins=formed_nfb_pad_skins,
             warnings=warnings,
             render_data_cls=render_data_cls,
         )
@@ -336,6 +378,10 @@ class Phase6FinalSceneViewAdapter:
             warnings=source_warning,
             formed_fixing_plate_skins=(
                 self._formed_ear_assembly_preview(snapshot, visible_set)
+                if cabinet_family == "受電箱" else ()
+            ),
+            formed_nfb_pad_skins=(
+                self._formed_pad_assembly_preview(snapshot, visible_set, parts)
                 if cabinet_family == "受電箱" else ()
             ),
             render_data_cls=dependencies.assembly_render_data_cls,

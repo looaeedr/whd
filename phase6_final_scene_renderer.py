@@ -486,6 +486,23 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 triangles.extend(skin_tris)
                 visible_ears.append(str(formed.part_id))
             self.last_formed_ear_display_ids = tuple(visible_ears)
+            self.last_formed_pad_display_ids = ()
+            visible_pads = []
+            for pad in tuple(getattr(render_data, "formed_nfb_pad_skins", ()) or ()):
+                if (pad.manufacturing_ready or pad.assembly_contact_certified
+                        or not pad.source_flat_and_bend_verified
+                        or not pad.actual_base_squares_present):
+                    raise ValueError("PAD_3D_PREVIEW_SOURCE_OR_MFG_GATE_INVALID")
+                triangles_pad = tuple(pad.world_triangles or ())
+                if not triangles_pad:
+                    raise ValueError("PAD_3D_PREVIEW_EMPTY_MESH")
+                pad_artist = gridless_mesh_collection(
+                    triangles_pad, facecolor="#a78bfa", opacity=0.92,
+                )
+                ax.add_collection3d(pad_artist)
+                triangles.extend(triangles_pad)
+                visible_pads.append(str(pad.part_id))
+            self.last_formed_pad_display_ids = tuple(visible_pads)
             # EAR contact lines are MARKING on the mother SIDE plate, not
             # a mesh-grid overlay or an EAR CUTTING/BEND feature.  Only draw
             # when the physical box body and its actual side are visible.

@@ -543,6 +543,7 @@ def make_assembly_scene_render_data(
     selected_joint_id=None,
     preserve_endcap_core_origin=False,
     formed_fixing_plate_skins=(),
+    formed_nfb_pad_skins=(),
     warnings=(),
     render_data_cls=None,
 ):
@@ -574,6 +575,7 @@ def make_assembly_scene_render_data(
         ),
         "preserve_endcap_core_origin": bool(preserve_endcap_core_origin),
         "formed_fixing_plate_skins": tuple(formed_fixing_plate_skins or ()),
+        "formed_nfb_pad_skins": tuple(formed_nfb_pad_skins or ()),
         "warnings": tuple(warnings or ()),
     }
     try:
