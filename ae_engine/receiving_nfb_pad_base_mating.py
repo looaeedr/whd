@@ -131,7 +131,11 @@ def verify_real_pad_mesh_tab_engagement(
     base = float(base_front_world_z_mm)
     if (not all(isfinite(v) for v in (bottom, top, t, base, world_x_mm, world_y_mm))
             or t <= 0
-            or not isclose(bottom, base-t, rel_tol=0, abs_tol=1e-4)
+            # The existing sharp-fold mesh is a mid-surface thickened
+            # normally: its tab TIP ends at base - T/2, not base - T.
+            # This witnesses entrance through the front skin ONLY, not
+            # through-sheet TAB clearance or a certified installation.
+            or not isclose(bottom, base-t/2, rel_tol=0, abs_tol=1e-4)
             or not isclose(top, base+pattern.rise_mm, rel_tol=0, abs_tol=1e-4)):
         raise ValueError("PAD_MESH_MATING_REAL_PHYSICAL_Z_DRIFT")
 
