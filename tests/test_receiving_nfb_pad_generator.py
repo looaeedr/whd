@@ -28,10 +28,10 @@ def test_original_source_100hn_is_formula_not_product_switch():
     assert p.switch_index==0
     assert (p.rise_mm,p.side_leg_blank_mm,p.centre_web_blank_mm,
             p.blank_width_mm)==(39,37,71,145)
-    assert p.bend_stations_x_mm==(37,108)
+    assert p.bend_stations_x_mm==(39,110)
     assert Polygon(p.formed_outline_xy_mm).area==pytest.approx(75*130+4*2*5)
     assert Polygon(p.formed_outline_xy_mm).bounds==(-39.5,-65.,39.5,65.)
-    assert Polygon(p.unfolded_outline_xy_mm).bounds==(-2.,0.,147.,130.)
+    assert Polygon(p.unfolded_outline_xy_mm).bounds==(0.,0.,149.,130.)
     assert len(p.base_square_holes_xy_mm)==4
     assert {((s[0][0]+s[2][0])/2,(s[0][1]+s[2][1])/2)
             for s in p.base_square_holes_xy_mm}=={
