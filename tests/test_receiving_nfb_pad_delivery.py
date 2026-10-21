@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+"""#1503: actual PAD+BASЕ physical inventory and DXF bundle, not fake MFG green."""
+from copy import deepcopy
+import json
+from pathlib import Path
+
+import pytest
+
+from ae_engine.receiving_nfb_pad_delivery import (
+    resolve_committed_pad_physical_delivery,
+    pad_physical_demand_rows,
+    export_pad_trial_bundle,
+)
+from ae_engine.receiving_nfb_committed_final_scene import (
+    apply_committed_csv_v5_to_canonical_parts,
+)
+from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
+from tests.test_issue1502_csv_is_only_normal_finalscene_source import _make
+
+
+def installed_pair():
+    snap=_current()
+    # V5 identities are selected input DATA, never a generator branch.
+    snap["nfb_config"]["holes"][0].update(
+        model_filename="nfbv5:士林:3P400SN",source_brand="士林")
+    snap["nfb_config"]["holes"][1].update(
+        model_filename="nfbv5:士林:100HN-s",source_brand="士林")
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
+        snap["nfb_config"])
+    actual=apply_committed_csv_v5_to_canonical_parts(snap,(_make(snap),))
+    assert len(actual)==1
+    return snap,actual
+
+
+def test_bom_is_a_separate_real_physical_pad_per_installed_shallower_nfb():
+    snap,base=installed_pair()
+    demand,=resolve_committed_pad_physical_delivery(
+        snap,base,piece_count=3)
+    assert demand.quantity==3
+    assert demand.parent_base_id=="base_plate"
+    assert demand.owner_hole_id==snap["nfb_config"]["holes"][1]["physical_hole_id"]
+    assert demand.physical_id.startswith("nfb_pad:")
+    assert (demand.blank_width_mm,demand.blank_height_mm)==(149.,130.)
+    assert (demand.formed_width_mm,demand.formed_height_mm)==(75.,130.)
+    assert demand.rise_mm==39.
+    assert demand.thickness_mm==2.
+    assert len(demand.source_csv_sha256)==64
+    assert len(demand.tooling_sha256)==64
+    assert demand.tab_tip_mating_preview_verified is True
+    assert demand.full_thickness_contact_certified is False
+    assert demand.full_volume_collision_certified is False
+    assert demand.manufacturing_ready is False
+    physical,=pad_physical_demand_rows("v1",snap,base,piece_count=3)
+    assert physical.quantity==3
+    assert physical.physical_id==demand.physical_id
+    assert physical.render_data is demand.render_data or (
+        physical.render_data.material.equals(demand.render_data.material))
+
+
+@pytest.mark.parametrize("amount",(0,-1,True,2.5))
+def test_pad_bom_rejects_invalid_piece_counts(amount):
+    snap,base=installed_pair()
+    with pytest.raises(ValueError,match="PAD_BOM_PIECE_COUNT"):
+        resolve_committed_pad_physical_delivery(snap,base,piece_count=amount)
+
+
+def test_cannot_create_bom_without_submitted_verified_real_base_or_four_squares():
+    snap,base=installed_pair()
+    with pytest.raises(ValueError,match="PAD_REAL_PARENT_BASE_MISSING"):
+        resolve_committed_pad_physical_delivery(snap,(),piece_count=1)
+    snap["nfb_config_submitted"]=False
+    assert resolve_committed_pad_physical_delivery(snap,base)==()
+
+
+def test_real_pad_and_its_matching_base_dxf_reopen_as_atomic_trial_bundle(tmp_path):
+    from ae_engine.manufacturing_api import save_part_render_data_dxf
+    snap,base=installed_pair()
+    target=tmp_path/"PAD_INSTALLATION_TRIAL"
+    receipt=export_pad_trial_bundle(snap,base,target,piece_count=4)
+    assert receipt["manufacturing_ready"] is False
+    assert receipt["do_not_use_for_production"] is True
+    assert receipt["parts"][0]["quantity"]==4
+    assert len(receipt["dxf"])==2
+    assert len(tuple(target.glob("*.dxf")))==2
+    assert (target/"NOT_FOR_PRODUCTION.txt").exists()
+    manifest=json.loads((target/"BOM_AND_VERIFICATION_NOT_FOR_PRODUCTION.json").read_text(encoding="utf-8"))
+    assert manifest==receipt
+    from hashlib import sha256
+    for doc in receipt["dxf"]:
+        path=target/doc["filename"]
+        assert sha256(path.read_bytes()).hexdigest()==doc["sha256"]
+    pad,=resolve_committed_pad_physical_delivery(snap,base)
+    with pytest.raises(ValueError,match="NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED"):
+        save_part_render_data_dxf(pad.render_data,tmp_path/"FORBIDDEN_PAD_MFG.dxf")
+    assert not (tmp_path/"FORBIDDEN_PAD_MFG.dxf").exists()
+    with pytest.raises(FileExistsError):
+        export_pad_trial_bundle(snap,base,target)
+    assert len(tuple(target.glob("*.dxf")))==2

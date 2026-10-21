@@ -55,6 +55,7 @@ jobs:
             tests/test_receiving_nfb_pad_depth_policy_tiers.py \
             tests/test_receiving_nfb_pad_part.py \
             tests/test_receiving_nfb_pad_operator_parts.py \
+            tests/test_receiving_nfb_pad_delivery.py \
             tests/test_issue1503_deferred_pad_ear_manufacturing.py \
             tests/test_receiving_nfb_pad_assembly_preview.py \
             tests/test_receiving_nfb_pad_preview_cache.py \
@@ -84,6 +85,17 @@ jobs:
             pad-tk-junit.xml
             pad-native-tk-2D.png
           if-no-files-found: warn
+          retention-days: 7
+      - name: Verify source-joined PAD and actual Base DXF bundle with BOM
+        run: |
+          python -m tools.receiving_pad_delivery_receipt
+      - name: Attach PAD physical BOM and inspected trial DXF package
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-base-physical-BOM-DXF-TRIAL-NOT-MFG-${{ github.sha }}
+          path: WHD_PAD_BASE_SOURCE_VERIFIED_TRIAL_NOT_MFG/
+          if-no-files-found: error
           retention-days: 7
       - name: Produce real WHD FinalScene assembled PAD screenshot (CI SIMULATION)
         run: |
