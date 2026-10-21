@@ -51,6 +51,7 @@ def with_verified_receiving_ear_side_markings(
     uv, physical, parts, scenes = _verified_pair(
         snapshot, geometry, dimensions=dimensions,
         sheet_thickness=sheet_thickness,
+        permit_independent_source_marking_crossing=True,
     )
     side_keys = ("box_body:left_side", "box_body:right_side")
     if set(parts) != set(side_keys) or set(scenes) != set(side_keys):
@@ -110,6 +111,7 @@ def export_receiving_ear_side_manufacturing_marking_dxf(
     uv, physical, parts, previews = _verified_pair(
         snapshot, geometry,
         dimensions=dimensions, sheet_thickness=sheet_thickness,
+        permit_independent_source_marking_crossing=True,
     )
     # The only supported output is precisely one LEFT and RIGHT physical
     # sheet, not an EAR/PAD blank or a merged multi-bay DXF inventory.
