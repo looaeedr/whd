@@ -1,0 +1,1880 @@
+{
+  "schema": "WHD_1504_62AC_BATCH_ASSERTION_AUDIT_V1",
+  "assessed_on": "2026-10-22",
+  "source": "GitHub localX baseline + PR #2045 exact worktree",
+  "scope": "48 original candidates (including provisional AC25) + 14 scoped localX 1502",
+  "group_order": [
+    "選型與開孔",
+    "提交與保存",
+    "板件與組合體",
+    "DXF 與數量"
+  ],
+  "counts": {
+    "選型與開孔": 29,
+    "提交與保存": 19,
+    "板件與組合體": 9,
+    "DXF 與數量": 5
+  },
+  "user_requested_without_full_88_premature_signoff": true,
+  "project_legacy_sources": [
+    "tests/fixtures/issue1503_legacy_receiving_without_nfb_base.p6fold",
+    "/WHD/受電箱.p6fold (Library: RAW MATERIALIZATION NOT AUTHORIZED)"
+  ],
+  "records": [
+    {
+      "id": "NFB-AC-01",
+      "group": "選型與開孔",
+      "requirement": "受電箱才看見 NFB UI；其他箱型既有 Hole Editor 不變。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1491_nfb_ui1a.py",
+        "test_name": "test_no_unapproved_geometry_or_persistence_fields",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1491
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 3,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert name not in d",
+        "assert not result[\"can_manufacture\"]",
+        "assert all(x[\"absolute_x_mm\"] is None for x in result[\"layers\"])"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-03",
+      "group": "選型與開孔",
+      "requirement": "真實廠牌 DXF 列表、右側預覽、縮放／平移／重設；選檔不污染正式狀態。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "test_name": "test_pan_zoom_reset_never_reopens_source_or_changes_manufacturing",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1492
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 8,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert len(original)==4",
+        "assert vp.to_world(115,87,400,300)==pytest.approx(w)",
+        "assert (vp.cx,vp.cy)!=cxcy",
+        "assert len(vp.strokes_for_canvas(400,300))==4",
+        "assert cache.load(\"士林\",source.name,index_path=index) is preview"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-04",
+      "group": "提交與保存",
+      "requirement": "配置卡重排序與 2D 位移明確分離；mm 欄位精確；Q5／Q6／Q7 清除受影響層全部位移；Q16 保留位移、名義孔距不動，重新驗證非法回滾。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_insert_delete_reorder_reset_only_touched_layer_x",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 10,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert [s[\"unit_id\"] for s in swapped[\"layers\"][0][\"slots\"]]==old_ids[::-1]",
+        "assert all(s[\"manual_x_state\"]==NONE and s[\"manual_x_mm\"] is None",
+        "assert swapped[\"layers\"][1]==other",
+        "assert len(inserted[\"layers\"][0][\"slots\"])==3",
+        "assert inserted[\"layers\"][1]==other"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-05",
+      "group": "選型與開孔",
+      "requirement": "整層預設與單顆角度覆寫互不混淆；0/90/180/270 正確、禁止鏡像；更換型號保留設定。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_angle_inherit_explicit_same_override_no_mirror",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493,
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 9,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert effective_nfb_rotation(changed,0,0)==90",
+        "assert same[\"layers\"][0][\"slots\"][0][\"rotation\"]=={\"mode\":OVERRIDE,\"value\":90}",
+        "assert effective_nfb_rotation(same,0,0)==90",
+        "assert effective_nfb_rotation(same,0,1)==90",
+        "assert effective_nfb_rotation(changed_again,0,0)==90"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-06",
+      "group": "提交與保存",
+      "requirement": "離開／取消／Undo 不漏出暫存變更；範圍／碰撞非法時保留上次合法配置。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 10,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert session.dirty",
+        "assert all(x[\"manual_x_state\"]==NONE for x in session.current[\"layers\"][0][\"slots\"])",
+        "assert receipt.action==\"REORDER\"",
+        "assert session.current[\"layers\"][0][\"slots\"][0][\"manual_x_mm\"]==32",
+        "assert session.current[\"layers\"][0][\"slots\"][0][\"rotation\"][\"mode\"]==INHERIT"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-08",
+      "group": "提交與保存",
+      "requirement": "數量模式不同 `version_id` 可保存不同 NFB；版本增刪／切換／深複製／重讀均保持身份。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 7,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert q.snapshot()[\"schema\"] == SCHEMA_V2",
+        "assert q.nfb_config_for_version(v2)[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"RECONFIRM_REQUIRED\"",
+        "assert q.nfb_config_for_version(\"quantity-v1\")[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"CONFIRMED\"",
+        "assert restored.nfb_config_for_version(\"quantity-v1\")[\"nfb_config\"][\"holes\"][0][\"manual_x_mm\"] == 0",
+        "assert restored.snapshot()[\"schema\"] == SCHEMA_V2"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-09",
+      "group": "提交與保存",
+      "requirement": "已經合法提交但後續因板件未完成或來源失效而未驗證的草稿可 Save→Reload；只阻斷真正依賴 NFB 缺項的物理板件，列明 Set／Bay／版本／層／顆與原因；不連坐同 Bay 無關板件。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1498_nfb_part_readiness.py",
+        "test_name": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1498,
+        1499
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 3,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert approved.for_part(\"inner_door:upper:panel\").status==READY",
+        "assert missing.for_part(\"inner_door:upper:panel\").status==BLOCKED",
+        "assert approved.scope.identity != missing.scope.identity"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-11",
+      "group": "選型與開孔",
+      "requirement": "真實來源 ARC、CIRCLE、多 layer／entity color、上下資料組皆完整識別；主開孔 pivot 正確。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1496_nfb_dxf_source.py",
+        "test_name": "test_color_sources_preserve_entity_layer_and_block_inheritance",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1496,
+        1502
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 22,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert by_handle[upper_h].layer == \"BASE_CUT\"",
+        "assert by_handle[upper_h].effective_color_aci == 30",
+        "assert by_handle[upper_h].color_authority == \"LAYER\"",
+        "assert by_handle[other_h].layer_color_aci == 150",
+        "assert by_handle[other_h].effective_color_aci == 30"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-12",
+      "group": "板件與組合體",
+      "requirement": "同顆跨板件孔／打標有穩定關聯，所有合法製造圖元位於正確實體板件，不被當成一張板。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1502_nfb_base_source_projection.py",
+        "test_name": "test_one_door_nfb_owner_projects_corresponding_base_cutting_and_marks",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1502
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 11,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert not result.manufacturing_ready",
+        "assert result.owner_hole_ids == (\"nfb:A\",\"nfb:B\")",
+        "assert result.source_sha256==SHA",
+        "assert result.physical_part_id==\"receiving:upper:base\"",
+        "assert len(result.cutting)==12  # each NFB: 4 native screws + upper circle + contour"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-14",
+      "group": "板件與組合體",
+      "requirement": "2D／3D／DXF／Save→Reload 使用同一已解析製造資料；相同加工片合併，不同 NFB 加工不得誤合併。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
+        "test_name": "test_ear_mounting_does_not_invent_base_or_change_verified_inner_NFB",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1502
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 11,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert ear.slot_pair_indexes == slot_pair",
+        "assert ear.fixing_center_from_inside_skin_mm == pytest.approx(63.0)",
+        "assert ear.ear_thickness_mm == pytest.approx(2.0)",
+        "assert ear.nominal_fold_from_weld_edge_mm == pytest.approx(23.0)",
+        "assert readiness.for_part(door.part_id).status == READY"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-15",
+      "group": "選型與開孔",
+      "requirement": "僅選取與高亮不重建整箱 3D、不反覆重讀全部 DXF；UI 互動不卡頓。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "test_name": "test_cache_changes_with_real_source_identity_and_bounded_memory",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1492
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 6,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert cache.load(\"士林\",source.name,index_path=index) is first",
+        "assert second.source_sha256!=first.source_sha256",
+        "assert second.entity_count==5",
+        "assert cache.parse_count==2",
+        "assert len(cache._entries)==1"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-18",
+      "group": "選型與開孔",
+      "requirement": "層數只有 NFB 配置一處可編輯；本套開關旁只保留廠牌＋入口；單顆 X／整排 X 基準未知、非 1100 Y 未知，均顯示未定且禁止偽製造定位。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1491_nfb_ui1a.py",
+        "test_name": "test_nominal_pitch_exact_but_never_absolute_x",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1491
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 5,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert r[\"layers\"][0][\"adjacent_x_mm\"]==pitch",
+        "assert r[\"layers\"][0][\"nominal_y_from_top_mm\"]==550.0",
+        "assert all(p[\"absolute_x_mm\"] is None for p in r[\"layers\"])",
+        "assert not r[\"can_manufacture\"] and not r[\"has_absolute_x\"]",
+        "assert r[\"status\"]==PREVIEW_ONLY"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-19",
+      "group": "提交與保存",
+      "requirement": "Q5／Q6／Q7 只清受影響層全部手動位移，對應狀態改 NONE 並清舊快照；Q16 保留位移／名義孔距，重驗整層非法原子回滾；操作 Undo／Cancel 可完整還原。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493,
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 8,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert new[\"unit_id\"]==old[\"unit_id\"]",
+        "assert new[\"manual_x_mm\"]==0",
+        "assert new[\"manual_x_state\"]==UNVERIFIED",
+        "assert new[\"datum_snapshot\"] is None",
+        "assert updated[\"layers\"][0][\"slots\"][1]==state[\"layers\"][0][\"slots\"][1]"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-20",
+      "group": "選型與開孔",
+      "requirement": "改本套／本配置／層預設品牌前正確預告將待重選顆數；取消狀態完全不變，確認才套用；同值明確覆寫仍維持覆寫身份。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1491_nfb_ui1a.py",
+        "test_name": "test_single_set_brand_owner_and_explicit_same_value_overrides",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1491
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 9,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert same_layer[\"layers\"][0][\"brand\"]=={\"mode\":OVERRIDE,\"value\":\"士林\"}",
+        "assert same_unit[\"layers\"][0][\"slots\"][0][\"brand\"]=={\"mode\":OVERRIDE,\"value\":\"士林\"}",
+        "assert source[\"layers\"][0][\"brand\"]=={\"mode\":INHERIT,\"value\":None}",
+        "assert updated[\"set_brand\"]==\"東元\"",
+        "assert effective_nfb_slot_brand(updated,0,0)==\"士林\"  # explicit override"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-21",
+      "group": "提交與保存",
+      "requirement": "數量模式每個版本的本配置預設廠牌與三級繼承獨立；深複製後修改甲不影響乙；套／連本套品牌僅既有控件可寫。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1491_nfb_ui1a.py",
+        "test_name": "test_single_set_brand_owner_and_explicit_same_value_overrides",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1491,
+        1499
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 9,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert same_layer[\"layers\"][0][\"brand\"]=={\"mode\":OVERRIDE,\"value\":\"士林\"}",
+        "assert same_unit[\"layers\"][0][\"slots\"][0][\"brand\"]=={\"mode\":OVERRIDE,\"value\":\"士林\"}",
+        "assert source[\"layers\"][0][\"brand\"]=={\"mode\":INHERIT,\"value\":None}",
+        "assert updated[\"set_brand\"]==\"東元\"",
+        "assert effective_nfb_slot_brand(updated,0,0)==\"士林\"  # explicit override"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-22",
+      "group": "提交與保存",
+      "requirement": "X datum 未定仍可輸入含明確 0 的位移，Save→Reload 保存 UNVERIFIED_BASIS、箱寬／層／顆 ID 順序／名義規則版本；沒有位移用 NONE；不保存衍生製造通過狀態。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 4,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert good[\"holes\"][0][\"manual_x_mm\"] == 0",
+        "with pytest.raises(ValueError, match=\"requires explicit numeric\"):",
+        "assert n[\"holes\"][0][\"manual_x_mm\"] is None",
+        "assert normalize_nfb_saved_fields({"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-23",
+      "group": "提交與保存",
+      "requirement": "新 X 基準確立後，舊位移不能自動生效，須比較條件並經使用者重新確認；受影響顆未確認前維持草稿與製造阻斷。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499,
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 7,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert q.snapshot()[\"schema\"] == SCHEMA_V2",
+        "assert q.nfb_config_for_version(v2)[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"RECONFIRM_REQUIRED\"",
+        "assert q.nfb_config_for_version(\"quantity-v1\")[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"CONFIRMED\"",
+        "assert restored.nfb_config_for_version(\"quantity-v1\")[\"nfb_config\"][\"holes\"][0][\"manual_x_mm\"] == 0",
+        "assert restored.snapshot()[\"schema\"] == SCHEMA_V2"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-24",
+      "group": "提交與保存",
+      "requirement": "逐顆「已驗證／未驗證」及原因正確；已提交配置由當前來源推導 DRAFT／CONFIGURED；DRAFT 只阻斷 NFB 依賴未完成的物理板件，不阻斷無關片／Bay／版本，列受阻身份。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1498_nfb_part_readiness.py",
+        "test_name": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1498
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 3,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert approved.for_part(\"inner_door:upper:panel\").status==READY",
+        "assert missing.for_part(\"inner_door:upper:panel\").status==BLOCKED",
+        "assert approved.scope.identity != missing.scope.identity"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-25",
+      "group": "選型與開孔",
+      "requirement": "「型號待重選」仍可依已核准名義表顯示相對中心距；實際 X 定位、碰撞、越界各自未驗證，沒有憑空置中。",
+      "original_status": "PR_2045_PROVISIONAL_NOT_SIGNED",
+      "witness": {
+        "path": "tests/test_issue1504_ac25_reselection_nominal_x.py",
+        "test_name": "test_nfb_ac25_reselection_preserves_approved_relative_pitch_no_fake_x_checks",
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": true
+      },
+      "owning_issues": [
+        1493
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 13,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert draft == before and stale == snapshot",
+        "assert preview[\"status\"] == PREVIEW_ONLY",
+        "assert preview[\"has_absolute_x\"] is False",
+        "assert preview[\"can_manufacture\"] is False",
+        "assert layer[\"adjacent_x_mm\"] == pitch"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-26",
+      "group": "選型與開孔",
+      "requirement": "儲存單顆 90° 等旋轉設定並重載；主開孔中心未驗證時不產生假旋轉放置／已驗證顯示。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_angle_inherit_explicit_same_override_no_mirror",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493,
+        1499
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 9,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert effective_nfb_rotation(changed,0,0)==90",
+        "assert same[\"layers\"][0][\"slots\"][0][\"rotation\"]=={\"mode\":OVERRIDE,\"value\":90}",
+        "assert effective_nfb_rotation(same,0,0)==90",
+        "assert effective_nfb_rotation(same,0,1)==90",
+        "assert effective_nfb_rotation(changed_again,0,0)==90"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-27",
+      "group": "選型與開孔",
+      "requirement": "Q16 型號變更／待重選恢復不改已知名義中心距，保留位移並重驗整層實際幾何；具完整資料且非法時全筆原子回滾。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1497_nfb_cutting_preflight.py",
+        "test_name": "test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493,
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 6,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert initial.status == PREVIEW_ONLY",
+        "assert denied.status == BLOCKED",
+        "assert \"OPENING_OUTSIDE_FINISHED_DOOR_CORE\" in denied.diagnostics",
+        "assert denied.items[0].preview_outline_uv_xy == initial.items[0].preview_outline_uv_xy",
+        "assert denied.manufacturing_ready is False"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-28",
+      "group": "選型與開孔",
+      "requirement": "未驗證位移至少可按 Bay／配置批次重新確認，先提示條件差異與受影響清單；逐顆非法者不能批次放行。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1497_nfb_cutting_preflight.py",
+        "test_name": "test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499,
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 9,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert batch.status == PREVIEW_ONLY",
+        "assert len(batch.items) == 2",
+        "assert batch.manufacturing_ready is False",
+        "assert len(batch.items[0].preview_outline_uv_xy) == 4",
+        "assert len(batch.items[1].preview_outline_uv_xy) == 4"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-29",
+      "group": "提交與保存",
+      "requirement": "Save→Reload／來源 DXF 變動後重新推導主孔中心、位置、越界及草稿結論，不信任專案舊衍生驗證旗標。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499,
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 4,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"derived\"):",
+        "assert normalize_receiving_layout(layout)[\"sets\"][0][\"bays\"][0].get(\"nfb_config\") is None",
+        "with pytest.raises(ValueError,match=\"must preserve its actual NFBConfig\"):",
+        "with pytest.raises(ValueError,match=\"boolean\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-31",
+      "group": "DXF 與數量",
+      "requirement": "量產版本不同 NFB 導出不同實際加工幾何時，不得錯誤合併 DXF；同加工者仍依既有 CHECK `Q{加工片數}` 正確分組。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1502_nfb_base_batch_export_gate.py",
+        "test_name": "test_one_unreleased_base_rejects_entire_multi_bay_export_before_io",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1502
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 3,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError, match=\"NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT\"):",
+        "assert calls == []",
+        "assert not root.exists()"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-32",
+      "group": "提交與保存",
+      "requirement": "清除位移後可觀測是哪層、幾顆受影響；Undo 恢復位移／基準條件快照，沒有殘留過期暫存。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 10,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert session.dirty",
+        "assert all(x[\"manual_x_state\"]==NONE for x in session.current[\"layers\"][0][\"slots\"])",
+        "assert receipt.action==\"REORDER\"",
+        "assert session.current[\"layers\"][0][\"slots\"][0][\"manual_x_mm\"]==32",
+        "assert session.current[\"layers\"][0][\"slots\"][0][\"rotation\"][\"mode\"]==INHERIT"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-33",
+      "group": "提交與保存",
+      "requirement": "新專案／新增 Bay／版本初始 UNCONFIGURED；未提交不需槽位，舊式 DXF 產出不變。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_unconfigured_bay_and_quantity_keep_legacy_schema",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 5,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert raw[\"schema\"] == PROJECT_SCHEMA_V2",
+        "assert all(\"nfb_config\" not in b",
+        "assert reloaded[\"schema\"] == PROJECT_SCHEMA_V2",
+        "assert SCHEMA == \"phase6-quantity-v1\"",
+        "assert QuantityModel().snapshot()[\"schema\"] == SCHEMA"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-37",
+      "group": "選型與開孔",
+      "requirement": "同位置既有 Hole Editor Feature 與 NFB 來源先識別後關聯／排他，來源不明 fail-closed；沒有重複孔，還原後舊特徵完整恢復。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+        "test_name": "test_legacy_same_location_or_same_physical_owner_blocks_atomic_export",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 2,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"blocked\"):",
+        "assert not output.exists()"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-38",
+      "group": "板件與組合體",
+      "requirement": "已提交配置對應內門必相依；可信 DXF 依 Color 30／150 判定底板／中板；型號未選或無法解析時阻斷實際存在的底板／中板，可信證明無相依則恢復匯出；EAR 延期不單獨阻斷側板，不連坐其他件／Bay。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1498_nfb_part_readiness.py",
+        "test_name": "test_real_base_color30_and_marking212_have_specific_base_dependency",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1498,
+        1502
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 3,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert result.for_part(\"base_plate:upper\").status==BLOCKED",
+        "assert result.for_part(\"middle_plate:upper\").status==BLOCKED",
+        "assert result.for_part(\"side_panel:left\").status==UNAFFECTED"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-39",
+      "group": "DXF 與數量",
+      "requirement": "明示部分匯出產生實際可出／受阻清單與原因、版本、件數差異；不留混淆的完整批次舊 DXF，CHECK `Q{加工片數}` 只算實際合法匯出且幾何相同片。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1501_nfb_export_manifest.py",
+        "test_name": "test_shihlin_color150_partial_only_counts_real_pieces",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1501,
+        1502
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 14,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert status=={\"inner1\":READY,\"base1\":UNAFFECTED,",
+        "assert m.authorized_part_ids==(\"inner1\",\"base1\",\"side1\")",
+        "assert m.actual_export_count==6",
+        "assert m.held_actual_count==4",
+        "assert m.partial_only and not m.whole_ready"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-44",
+      "group": "板件與組合體",
+      "requirement": "已提交但空槽／待重選／來源解析失敗時，對應內門與實際存在的底板／中板均不可出完整製造 DXF；來源可信且確認未使用 Color 30／150 時，底板／中板不因 NFB 被阻斷；左右側板不因尚未批准的 EAR 需求被阻斷。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1498_nfb_part_readiness.py",
+        "test_name": "test_missing_real_plate_id_is_scope_blocker_not_an_invented_part",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1498,
+        1502
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 6,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert result.for_part(\"inner_door:upper:panel\").status==READY",
+        "assert \"BASE_PLATE_PHYSICAL_ID_UNRESOLVED\" in result.scope_reasons",
+        "assert \"MIDDLE_PLATE_PHYSICAL_ID_UNRESOLVED\" not in result.scope_reasons",
+        "assert result.can_submit  # only the genuinely verified MFG-1 door",
+        "with pytest.raises(ValueError,match=\"dependencies unresolved\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-47",
+      "group": "提交與保存",
+      "requirement": "UI-1A 關閉有未提交變更的 NFB 面板須確認；取消關閉時保留編輯會話，確認捨棄不寫權威配置且舊式 DXF 不變。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 10,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert session.dirty",
+        "assert all(x[\"manual_x_state\"]==NONE for x in session.current[\"layers\"][0][\"slots\"])",
+        "assert receipt.action==\"REORDER\"",
+        "assert session.current[\"layers\"][0][\"slots\"][0][\"manual_x_mm\"]==32",
+        "assert session.current[\"layers\"][0][\"slots\"][0][\"rotation\"][\"mode\"]==INHERIT"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-48",
+      "group": "選型與開孔",
+      "requirement": "MFG-1 缺 X 單顆／整排、Y 局部投影或主孔中心任一證據時，不得讓未知配置成為「可製造」；四組已知名義中心距不自動等於已驗收可製造。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
+        "test_name": "test_no_unapproved_size_or_single_unit_center_defaults",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1494,
+        1495,
+        1496
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError, match=\"OPEN-X\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-49",
+      "group": "選型與開孔",
+      "requirement": "W800×3 的 723/361.5 個案須核對來源 DXF 左輪廓、真正下料 CUTTING 左緣及下料→門面→箱體 X 映射；未證實前不得以此個案推導其它組合。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
+        "test_name": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1494
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 17,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert [r.revision for r in rows] == [W800_THREE_DATUM_REVISION] * 3",
+        "assert [r.status for r in rows] == [WHD_PART_DATUM_VERIFIED] * 3",
+        "assert [r.rule_id for r in rows] == [\"RECEIVING-NFB-OPEN-X-800-3\"] * 3",
+        "assert [r.slot_index for r in rows] == [0, 1, 2]",
+        "assert [r.part_id for r in rows] == [\"inner_door:upper:panel\"] * 3"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-50",
+      "group": "選型與開孔",
+      "requirement": "1100 名義 550／290／790 從箱體外頂投影到內門成品與展開 Y 具可重現雙向測試；非 1100 標「Y 基準未定」，不猜。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1495_receiving_nfb_y_projection.py",
+        "test_name": "test_approved_nominal_box_top_y_maps_to_real_1075_blank",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1495
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 15,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert state == raw_before  # no change of any prior Hole Editor feature",
+        "assert actual.rule_id == RULE_ID == \"OPEN-Y-PROJECTION\"",
+        "assert actual.revision == REVISION",
+        "assert actual.status == \"GEOMETRY_ONLY_NOT_NFB_CUTTING_CERTIFIED\"",
+        "assert actual.part_id == \"inner_door:upper:panel\""
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-51",
+      "group": "選型與開孔",
+      "requirement": "DXF 主 CUTTING 中心、ARC/CIRCLE、來源顏色及旋轉 pivot 經真圖認證；選型列表逐組正確顯示「可製造（內門）」／「僅預覽」，不可因型號孤立合格便全範圍放行。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1496_nfb_dxf_source.py",
+        "test_name": "test_unsupported_not_silently_treated_as_certified",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1496,
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 4,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert any(\"UNSUPPORTED:ELLIPSE\" in note for note in inv.diagnostics)",
+        "assert len(inv.entities) == 1",
+        "assert inv.main_hole_source_id is None",
+        "assert inv.approved_manufacturing_rule_revision is None"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-52",
+      "group": "選型與開孔",
+      "requirement": "MFG-1 輸出合法內門真實 CUTTING、消除與 legacy 相同物理孔的重複加工來源；缺必要幾何 fail-closed，MFG-1 未通過時 UI-1B 不准提交。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+        "test_name": "test_w800x3_uses_whd_723_blank_x_for_three_real_holes",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1497
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 11,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert result.manufacturing_ready",
+        "assert len(result.physical_hole_ids) == 3",
+        "assert [x[1] for x in result.verified_hole_locations] == pytest.approx(expected_world)",
+        "assert [(x[2], x[3], x[4]) for x in result.verified_hole_locations] == [",
+        "assert len(contours) == 4  # original outer CUTTING + actual 3 NFB holes"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "NFB-AC-54",
+      "group": "提交與保存",
+      "requirement": "有已提交 scope 時升根 `.p6fold` 與 quantity payload schema；舊版依凍結支援 schema 清單拒載新版本，不吞未知欄位後產出完整 DXF；全部未提交工程仍保留本功能無關的舊 schema 相容。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 2,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"old schema\"):",
+        "with pytest.raises(ValueError,match=\"孔型版本\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "NFB-AC-55",
+      "group": "DXF 與數量",
+      "requirement": "逐型號盤點真實 NFB DXF 的 Color 30／150／212 與來源可解析狀態，交付有／無／未知數量（未取得原 DXF 前不得填 0）；MFG-2 未完成時 Color 30／150 受影響底／中板保持阻斷並列於提交提醒與部分匯出清單。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1496_nfb_source_inventory_report.py",
+        "test_name": "test_complete_per_brand_audit_has_exact_links_and_null_unknown",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1496,
+        1502
+      ],
+      "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 18,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert report[\"schema\"] == \"WHD_NFB_INDEXED_SOURCE_COLOR_COVERAGE_V1\"",
+        "assert report[\"index_records\"] == 2",
+        "assert report[\"source_index_sha256\"] == sha256(before_index).hexdigest()",
+        "assert report[\"totals\"] == {",
+        "assert shihlin[\"source_sha256\"] == shihlin[\"expected_sha256\"]"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-01",
+      "group": "選型與開孔",
+      "requirement": "單一可寫 NFB 安裝層數入口，與既有本套品牌 UI 一致；金庫型不出現 NFB 專屬規則。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1491_nfb_ui1a.py",
+        "test_name": "test_no_unapproved_geometry_or_persistence_fields",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1491
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 3,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert name not in d",
+        "assert not result[\"can_manufacture\"]",
+        "assert all(x[\"absolute_x_mm\"] is None for x in result[\"layers\"])"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "SWT-AC-03",
+      "group": "選型與開孔",
+      "requirement": "每層多顆有獨立身份與型號、順序、X 位移及旋轉設定；既有中心距只於有效規格組合使用。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_insert_delete_reorder_reset_only_touched_layer_x",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 10,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert [s[\"unit_id\"] for s in swapped[\"layers\"][0][\"slots\"]]==old_ids[::-1]",
+        "assert all(s[\"manual_x_state\"]==NONE and s[\"manual_x_mm\"] is None",
+        "assert swapped[\"layers\"][1]==other",
+        "assert len(inserted[\"layers\"][0][\"slots\"])==3",
+        "assert inserted[\"layers\"][1]==other"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-05",
+      "group": "選型與開孔",
+      "requirement": "每顆來源 DXF 原圖預覽、確認／取消、主開孔中心未驗證標示清楚；不冒充可製造定位。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "test_name": "test_native_arc_circle_bulge_and_aci_preserved_in_real_source_strokes",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1492,
+        1497
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 13,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert result.status==PREVIEW_ONLY and result.source_sha256",
+        "assert result.entity_count==4 and len(result.strokes)==4",
+        "assert cache.parse_count==before+1",
+        "assert result.approved_source_pivot is None",
+        "assert result.manufacturing_ready is False"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "SWT-AC-06",
+      "group": "選型與開孔",
+      "requirement": "UI 的 Q5／Q6／Q7／Q16 行為只驗收 NFB-AC-04／19／27；本件查核名義中心距不受型號改變、非法實際幾何不得放行，Undo／取消保留既有加工。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1493,
+        1497
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 8,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert new[\"unit_id\"]==old[\"unit_id\"]",
+        "assert new[\"manual_x_mm\"]==0",
+        "assert new[\"manual_x_state\"]==UNVERIFIED",
+        "assert new[\"datum_snapshot\"] is None",
+        "assert updated[\"layers\"][0][\"slots\"][1]==state[\"layers\"][0][\"slots\"][1]"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "SWT-AC-08",
+      "group": "板件與組合體",
+      "requirement": "沒有可信來源、主孔中心或合法世界定位時，按實體物理件相依阻斷完整 NFB DXF，逐件列出來源／缺項；不阻斷可證明無依賴片。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1498_nfb_part_readiness.py",
+        "test_name": "test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1498,
+        1502
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 5,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert result.for_part(\"inner_door:upper:panel\").status==BLOCKED",
+        "assert result.for_part(\"base_plate:upper\").status==BLOCKED",
+        "assert result.for_part(\"middle_plate:upper\").status==BLOCKED",
+        "assert \"NFB_SOURCE_COLOR_SCOPE_UNKNOWN\" in result.scope_reasons",
+        "assert result.for_part(\"side_panel:left\").status==UNAFFECTED"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-10",
+      "group": "板件與組合體",
+      "requirement": "真實內門開孔與 NFB 個別中心一致，不以銘牌孔／假矩形替代；左／右耳朵真焊接接觸與打標同源。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+        "test_name": "test_w800x3_uses_whd_723_blank_x_for_three_real_holes",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1497,
+        1502
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 11,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert result.manufacturing_ready",
+        "assert len(result.physical_hole_ids) == 3",
+        "assert [x[1] for x in result.verified_hole_locations] == pytest.approx(expected_world)",
+        "assert [(x[2], x[3], x[4]) for x in result.verified_hole_locations] == [",
+        "assert len(contours) == 4  # original outer CUTTING + actual 3 NFB holes"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-11",
+      "group": "板件與組合體",
+      "requirement": "2D／3D／DXF／Save 從同一解算來源一致；受電箱 NFB 衍生切孔不同的料件不能錯誤合併。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1502_nfb_base_source_projection.py",
+        "test_name": "test_one_door_nfb_owner_projects_corresponding_base_cutting_and_marks",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1502
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 11,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert not result.manufacturing_ready",
+        "assert result.owner_hole_ids == (\"nfb:A\",\"nfb:B\")",
+        "assert result.source_sha256==SHA",
+        "assert result.physical_part_id==\"receiving:upper:base\"",
+        "assert len(result.cutting)==12  # each NFB: 4 native screws + upper circle + contour"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-12",
+      "group": "板件與組合體",
+      "requirement": "不破壞內門框末段 22 mm、46＋2T、門縫、底板原幾何、背孔／中隔與金庫型回歸。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1469_v15_acceptance.py",
+        "test_name": "test_selectable_family_save_reload_real_output_custom_bom",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1504
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 31,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert set(main._baseline_model_choices()) == {\"金庫型\", \"受電箱\", \"自訂\"}",
+        "assert modes._switch_mode(bridge._phase6_composition(app), vars(bridge), \"quantity\")",
+        "assert controls.commit_count()",
+        "assert controls.commit_count()",
+        "assert ws.quantity_model.features_for_version(second, \"head\") == captured[-1][\"feature_list_override\"]"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-13",
+      "group": "選型與開孔",
+      "requirement": "變更上游品牌前顯示待重選顆數，確認後更新跟隨者，取消時品牌／型號／位移／旋轉／覆寫狀態完全不動。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1491_nfb_ui1a.py",
+        "test_name": "test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1491
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 5,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert all(x[\"status\"]==NEEDS_RESELECTION for x in selected[\"layers\"][0][\"slots\"])",
+        "assert all(x[\"filename\"]==\"400_140X257_107.dxf\"",
+        "assert all(x[\"absolute_x_mm\"] is None for x in selected[\"layers\"][0][\"slots\"])",
+        "assert [x[\"status\"] for x in rows]==[\"MODEL_SELECTED\",NEEDS_RESELECTION]",
+        "assert old[\"set_brand\"]==\"士林\""
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "SWT-AC-14",
+      "group": "提交與保存",
+      "requirement": "套／連本套預設只能由既有本套品牌控件寫入；數量模式各版本 NFBConfig 自有預設品牌，新增版本深複製且修改互不污染。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1491,
+        1499
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 7,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert q.snapshot()[\"schema\"] == SCHEMA_V2",
+        "assert q.nfb_config_for_version(v2)[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"RECONFIRM_REQUIRED\"",
+        "assert q.nfb_config_for_version(\"quantity-v1\")[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"CONFIRMED\"",
+        "assert restored.nfb_config_for_version(\"quantity-v1\")[\"nfb_config\"][\"holes\"][0][\"manual_x_mm\"] == 0",
+        "assert restored.snapshot()[\"schema\"] == SCHEMA_V2"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "SWT-AC-15",
+      "group": "提交與保存",
+      "requirement": "按 NFB UI v1.4 §2.3.1 的單一 `manual_x_state`、快照、基準版本保存未知基準位移；Save→Reload 不自動升格製造偏移（UI-1B 才可持久化）。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 4,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert good[\"holes\"][0][\"manual_x_mm\"] == 0",
+        "with pytest.raises(ValueError, match=\"requires explicit numeric\"):",
+        "assert n[\"holes\"][0][\"manual_x_mm\"] is None",
+        "assert normalize_nfb_saved_fields({"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "SWT-AC-16",
+      "group": "選型與開孔",
+      "requirement": "新 X 基準定案，既有未知基準位移必須逐顆或按 Bay／配置批次重新確認；確認後仍逐顆驗證，不能批次跳過干涉檢查。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499,
+        1497
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 4,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert good[\"holes\"][0][\"manual_x_mm\"] == 0",
+        "with pytest.raises(ValueError, match=\"requires explicit numeric\"):",
+        "assert n[\"holes\"][0][\"manual_x_mm\"] is None",
+        "assert normalize_nfb_saved_fields({"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-17",
+      "group": "選型與開孔",
+      "requirement": "型號待重選時已知名義中心距仍可顯示，實際幾何／碰撞保持未驗證；旋轉角度可存但主孔中心缺乏時不產生假放置。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "test_name": "test_missing_and_unindexed_dxf_cannot_show_fake_contour",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1492,
+        1499
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 6,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert missing.status==MISSING",
+        "assert missing.strokes==() and missing.bounds is None",
+        "assert missing.source_sha256 is None and not missing.manufacturing_ready",
+        "assert \"未找到\" in missing.reason",
+        "assert Path(missing.source_path).parent.name==\"士林\""
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-19",
+      "group": "提交與保存",
+      "requirement": "重載／來源更新重新推導實際位置、主孔中心、碰撞與草稿，不把過期驗證狀態當存檔真值。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499,
+        1497
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 4,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"derived\"):",
+        "assert normalize_receiving_layout(layout)[\"sets\"][0][\"bays\"][0].get(\"nfb_config\") is None",
+        "with pytest.raises(ValueError,match=\"must preserve its actual NFBConfig\"):",
+        "with pytest.raises(ValueError,match=\"boolean\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-20",
+      "group": "DXF 與數量",
+      "requirement": "數量模式 NFB 衍生孔型不同時不誤合併加工料件；相同實際加工幾何依既有 CHECK `Q{加工片數}` 規則合併。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1502_existing_base_nfb_assembly.py",
+        "test_name": "test_two_real_NFB_heights_cannot_share_one_assumed_ear_group",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1502
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"distinct actual ear/base groups\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-21",
+      "group": "板件與組合體",
+      "requirement": "已提交配置內門必相依；空槽／待重選或來源解析失敗保守阻斷實際底板／中板，可信來源依 Color 30／150 的正式類別分流且已證明無相依者可正常匯出。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1498_nfb_part_readiness.py",
+        "test_name": "test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1498,
+        1502
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 5,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert result.for_part(\"inner_door:upper:panel\").status==BLOCKED",
+        "assert result.for_part(\"base_plate:upper\").status==BLOCKED",
+        "assert result.for_part(\"middle_plate:upper\").status==BLOCKED",
+        "assert \"NFB_SOURCE_COLOR_SCOPE_UNKNOWN\" in result.scope_reasons",
+        "assert result.for_part(\"side_panel:left\").status==UNAFFECTED"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-23",
+      "group": "選型與開孔",
+      "requirement": "一個舊式 Feature 與 NFB 孔應相同物理位置時完成來源關聯／排他且不重複；未驗證阻斷該片正式加工；還原未配置不失原特徵。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+        "test_name": "test_existing_legacy_circle_is_preserved_exactly_once_in_real_nfb_dxf",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1497
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 7,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert ready.manufacturing_ready",
+        "assert tuple(ready.render_data.scene.primitives[:len(before)])==before",
+        "assert sum(isinstance(p,CirclePrimitive) and p.source_id==\"legacy:door:bolt:42\"",
+        "assert len(_actual_cuttings(ready))==4",
+        "assert tuple(legacy.scene.primitives)==before"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-25",
+      "group": "提交與保存",
+      "requirement": "未選型與缺來源不導致既有 UNCONFIGURED 箱體任何新增阻斷；已提交之內門及真實存在的底板／中板依保守基線阻斷，側板不憑 EAR 延期受阻。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1498_nfb_part_readiness.py",
+        "test_name": "test_unconfigured_preserves_legacy_even_when_nfb_source_absent",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1498
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 3,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert not result.can_submit",
+        "assert all(item.status==LEGACY for item in result.decisions)",
+        "assert result.filter_export_part_ids(("
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-27",
+      "group": "選型與開孔",
+      "requirement": "單顆 X／整排 X 的內門／箱體 datum 與來源 DXF 有正式核准測例，沒有的組合不得冒稱可製造，W800×3 不能替其他箱寬解除 `OPEN-X-ROW`。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
+        "test_name": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1494
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 17,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert [r.revision for r in rows] == [W800_THREE_DATUM_REVISION] * 3",
+        "assert [r.status for r in rows] == [WHD_PART_DATUM_VERIFIED] * 3",
+        "assert [r.rule_id for r in rows] == [\"RECEIVING-NFB-OPEN-X-800-3\"] * 3",
+        "assert [r.slot_index for r in rows] == [0, 1, 2]",
+        "assert [r.part_id for r in rows] == [\"inner_door:upper:panel\"] * 3"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-28",
+      "group": "選型與開孔",
+      "requirement": "1100 上層的外頂 Y=550／290／790 正確投影到形成內門及展開局部 Y，非 1100 不猜座標。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1495_receiving_nfb_y_projection.py",
+        "test_name": "test_non_1100_upper_y_is_unapproved_not_silently_scaled",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1495
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError, match=\"unapproved cell height\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-29",
+      "group": "選型與開孔",
+      "requirement": "每顆 NFB 的主 CUTTING 開孔中心、輪廓與旋轉有真實 DXF／Feature 測例；與既有中間孔加工來源排他、不重複、不刪 legacy Feature。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1497_configured_nfb_manufacturing_release.py",
+        "test_name": "test_legacy_same_physical_hole_fails_no_duplicate_cutting",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1497
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"blocked\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-30",
+      "group": "選型與開孔",
+      "requirement": "已知四組相鄰名義孔距不是可製造清單；只對逐組核准的 W×N×Y×型號×內門 datum 顯示可製造（內門），範圍外僅預覽。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1498_nfb_part_readiness.py",
+        "test_name": "test_wrong_approved_inner_source_or_wrong_part_is_not_a_manufacturing_capability",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1498
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 1,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert result.for_part(\"inner_door:upper:panel\").status==BLOCKED"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
+        "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
+      ]
+    },
+    {
+      "id": "SWT-AC-31",
+      "group": "提交與保存",
+      "requirement": "未提交保持既有 schema 與 DXF；已有提交 scope 須根專案與 Quantity schema 升版，凍結舊版 schema 清單的舊 reader 拒載；不能對不認識新 schema 的舊版 silent export。",
+      "original_status": "EVIDENCE_CANDIDATE_ONLY",
+      "witness": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1499
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 2,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "with pytest.raises(ValueError,match=\"old schema\"):",
+        "with pytest.raises(ValueError,match=\"孔型版本\"):"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    },
+    {
+      "id": "SWT-AC-32",
+      "group": "DXF 與數量",
+      "requirement": "真 DXF Color 30／150 盤點件數與解析狀態逐檔可追溯；未取得源檔前不得假報 0。MFG-2 未完成的相依底／中板阻斷、其他無相依板件照常出圖，manifest／CHECK 計數不受污染。",
+      "original_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "witness": {
+        "path": "tests/test_issue1496_index_color_evidence.py",
+        "test_name": "test_unique_model_links_keep_missing_unknown_distinct_from_real_zero",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "owning_issues": [
+        1496,
+        1502
+      ],
+      "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
+      "assertion_count": 18,
+      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "covered_assertion_fragments": [
+        "assert catalog.records_read==2",
+        "assert len(catalog.sources)==len(audited)==3",
+        "assert [r.brand for r in rows]==[\"士林\",\"東元\",\"伍菱\"]",
+        "assert shihlin.status==UNCERTIFIED",
+        "assert shihlin.source_sha256 is not None"
+      ],
+      "missing_evidence": [
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
+        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+      ]
+    }
+  ]
+}

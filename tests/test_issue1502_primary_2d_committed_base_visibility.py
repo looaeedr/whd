@@ -42,7 +42,7 @@ def test_committed_one_tier_preserves_existing_real_base_selection():
     assert source.render_data.metadata["receiving_nfb_base_mfg2_release_approved"] is False
 
 
-def test_source_derived_center_without_manual_setting_is_visible_in_primary_2d():
+def test_source_derived_flat_pad_without_manual_setting_is_visible_in_primary_2d():
     snap = _source_snapshot()
     assert "receiving_base_plate" not in snap
     render = build_part_render_data(_spec(snap))
@@ -53,13 +53,20 @@ def test_source_derived_center_without_manual_setting_is_visible_in_primary_2d()
     assert drawn["render_data"] is scene.part("base_plate").render_data
     assert drawn["receiving_physical_part_key"] == "base_plate"
     assert drawn["receiving_tier_keys"] == ()
-    assert render.unfolded_topology.width == 772.
+    # Current submitted mixed V5 depth picks source-backed FLAT + PAD, not
+    # the old implicit CENTER. The sheet is still a real 2D part before MFG.
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
+    assert render.metadata["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert render.unfolded_topology.width == receiving_base_plate_blank_dimensions(snap)[0] == 710.
     assert render.metadata["receiving_nfb_base_mfg2_release_approved"] is False
 
 
-def test_unresolved_csv_source_cannot_display_unrelated_old_real_part():
+def test_changed_csv_source_cannot_display_previous_center_plate():
     snap = _source_snapshot(shallow="2P400")
     valid = _source_snapshot()
+    # An explicitly approved historical CENTER plate is a REAL other plate;
+    # it must not be reused for a new Bay that selects a FLAT source.
+    valid['receiving_base_plate'] = {'pattern': 'CENTER_DOUBLE_SIDE_FOLD'}
     root = SimpleNamespace(
         part_key="base_plate", render_data=build_part_render_data(_spec(valid)),
     )

@@ -62,8 +62,33 @@ def test_normal_existing_pair_export_writes_two_verified_actual_csv_dxfs(tmp_pat
                 and p.closed and p.dxf.layer=="CUTTING"]) >= 2
     assert len([p for p in b if p.dxftype()=="CIRCLE"
                 and p.dxf.layer=="CUTTING"]) == 8
-    assert len([p for p in b if p.dxftype()=="LWPOLYLINE"
-                and p.closed and p.dxf.layer=="CUTTING"]) == 5
+    # Today's committed Flat source has its original one perimeter +
+    # four EAR slots, plus source-verified PAD square locator CUTTING.
+    # Compare every saved polygon to the ACTUAL resolved FinalScene, rather
+    # than hardcoding the pre-PAD count of five or trusting metadata alone.
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    physical_base = next(p.render_data for p in parts if p.part_key == "base_plate")
+    source_cutting = [
+        p for p in physical_base.scene.primitives
+        if isinstance(p, PolylinePrimitive) and p.closed and p.layer == "CUTTING"
+    ]
+    saved_cutting = [
+        p for p in b if p.dxftype() == "LWPOLYLINE"
+        and p.closed and p.dxf.layer == "CUTTING"
+    ]
+    pad_owners = tuple(physical_base.metadata["nfb_v5_pad_square_owners"])
+    assert pad_owners and sum(count for _, count in pad_owners) == 4
+    assert len(source_cutting) == len(saved_cutting) == 5 + sum(
+        count for _, count in pad_owners
+    )
+    def source_vertices(poly):
+        return tuple((round(float(p.x), 5), round(float(p.y), 5)) for p in poly.points)
+    def saved_vertices(poly):
+        return tuple((round(float(x), 5), round(float(y), 5))
+                     for x, y in poly.get_points("xy"))
+    assert sorted(map(source_vertices, source_cutting)) == sorted(
+        map(saved_vertices, saved_cutting)
+    )
     assert any(p.dxf.layer=="BEND" for p in b)
 
 
@@ -83,7 +108,7 @@ def test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action(tmp_
         _export(stale, parts, tmp_path)
     wrong_bay = deepcopy(snapshot)
     wrong_bay["_receiving_runtime_selection"]["bay_id"] = "different"
-    with pytest.raises(ValueError, match="identity drift|IDENTITY_DRIFT"):
+    with pytest.raises(ValueError, match="identity drift|IDENTITY_DRIFT|RECEIVING_FLAT_NFB_BAY_SCOPE_DRIFT"):
         _export(wrong_bay, parts, tmp_path)
     assert not list(tmp_path.glob("*.dxf"))
 
