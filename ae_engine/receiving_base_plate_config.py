@@ -190,6 +190,7 @@ def _source_two_tier_matching_left_base_config(data):
     from .receiving_nfb_model_identity import parse_numeric_model_ref
     from .receiving_nfb_numeric_catalog import model_spec
     tiers = {0: [], 1: []}
+    depths_by_tier = {0: set(), 1: set()}
     for hole in holes:
         if not isinstance(hole, Mapping):
             return None
@@ -210,7 +211,9 @@ def _source_two_tier_matching_left_base_config(data):
                 or spec.depth_mm is None or spec.depth_mm <= 0):
             return None
         tiers[tier].append((brand, model))
-    if any(not rows for rows in tiers.values()):
+        depths_by_tier[tier].add(float(spec.depth_mm))
+    if (any(not rows for rows in tiers.values())
+            or any(len(depths) != 1 for depths in depths_by_tier.values())):
         return None
     if float(data["t"]) != 2.0:
         raise ValueError("RECEIVING_TIER_LEFT_SOURCE_REQUIRES_T2")
