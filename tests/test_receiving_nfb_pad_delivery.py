@@ -128,3 +128,33 @@ def test_committed_mixed_nfb_may_not_disappear_from_bom_if_world_x_missing():
         snap["nfb_config"])
     with pytest.raises(ValueError,match="PAD_BOM_CONFIRMED_WORLD_X"):
         pad_bom_demands_from_committed_snapshot("v1",snap,piece_count=2)
+
+
+def test_quantity_bom_pipeline_includes_per_version_pad_without_manufacturing_release(monkeypatch):
+    from types import SimpleNamespace
+    import phase6_quantity_manufacturing as quantity
+    import phase6_manufacturing_service as service
+    from ae_engine import manufacturing_api
+    snap,_=installed_pair()
+    requests=(
+        ("v1",3,SimpleNamespace(input_snapshot=deepcopy(snap))),
+        ("v2",5,SimpleNamespace(input_snapshot=deepcopy(snap))),
+    )
+    monkeypatch.setattr(quantity,"build_quantity_manufacturing_requests",
+                        lambda _base,_work: requests)
+    monkeypatch.setattr(service,"resolve",
+                        lambda _req: SimpleNamespace(geometry=SimpleNamespace(
+                            parts=(SimpleNamespace(part_key="base_plate"),))))
+    monkeypatch.setattr(manufacturing_api,"resolved_quantity_physical_demands",
+                        lambda *_args,**_kwargs: ())
+    result=quantity.resolve_quantity_manufacturing(
+        SimpleNamespace(cabinet_model="受電箱"),
+        {"custom_parts":{"items":{}}},
+    )
+    assert len(result.demands)==2
+    assert {(r.version_id,r.quantity) for r in result.demands}=={
+        ("v1",3),("v2",5)}
+    assert len({r.physical_id for r in result.demands})==1
+    assert all(r.source_part_id.startswith("nfb_pad:") for r in result.demands)
+    assert all(r.render_data.metadata["manufacturing_ready"] is False
+               for r in result.demands)
