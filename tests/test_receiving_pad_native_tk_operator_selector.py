@@ -102,9 +102,48 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         assert material.metadata["nfb_deferred_manufacturing_role"]=="PAD"
         assert material.metadata["manufacturing_ready"] is False
         assert len(material.fold_guides)==2
+        # Real native Tk 2D CUTTING/HOLE/BEND drawing; do not accept only an
+        # invisible PartRenderData or a manually invented illustration.
+        from PIL import ImageGrab
+        import numpy as np
+        from gui import render_drawing_scene, _phase6_2d_material_viewport
+        canvas_window = tk.Toplevel(root)
+        canvas_window.geometry("900x720+25+25")
+        canvas_window.lift()
+        display = tk.Canvas(canvas_window,width=880,height=690,bg="#182030")
+        display.pack(fill=tk.BOTH,expand=True)
+        _pump(root)
+        bounds = material.material.bounds
+        transform,*_ = _phase6_2d_material_viewport(
+            bounds,display.winfo_width(),display.winfo_height(),
+            top_gutter=24,right_gutter=24,bottom_gutter=24,left_gutter=24,
+        )
+        def grab():
+            x,y=display.winfo_rootx(),display.winfo_rooty()
+            w,h=display.winfo_width(),display.winfo_height()
+            return np.asarray(ImageGrab.grab(bbox=(x,y,x+w,y+h)).convert("RGB")).copy()
+        before=grab()
+        render_drawing_scene(display,material.scene,transform,
+                             skip_layers=("CHECK","STOCK"))
+        _pump(root)
+        items=tuple(display.find_all())
+        polygons=[i for i in items if display.type(i)=="polygon"]
+        screw_holes=[i for i in items if display.type(i)=="oval"]
+        blue_bends=[i for i in items if display.type(i)=="line"
+                    and display.itemcget(i,"fill")=="#0a84ff"]
+        assert (len(polygons),len(screw_holes),len(blue_bends))==(1,4,2)
+        after=grab()
+        delta=np.max(np.abs(after.astype("int16")-before.astype("int16")),axis=2)
+        changed=int(np.count_nonzero(delta>32))
+        assert changed>1000, ("PAD_TK_2D_DRAWN_BUT_NOT_VISIBLE",changed)
+        from PIL import Image
+        output=Path("pad-native-tk-2D.png")
+        Image.fromarray(after).save(output)
+        canvas_window.destroy()
         print("PAD_REAL_TK_OPERATOR_2D",identity,
               material.unfolded_topology.width,
               material.unfolded_topology.height,
-              len(material.fold_guides),flush=True)
+              "real_shapes",len(polygons),len(screw_holes),len(blue_bends),
+              "pixel_delta",changed,flush=True)
     finally:
         root.destroy()
