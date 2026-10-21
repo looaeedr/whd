@@ -53,7 +53,30 @@ def test_committed_single_csv_is_automatically_cut_in_normal_source_scene():
     base = changed[0]
     assert base.part_key == original.part_key
     assert base.offset == original.offset
-    assert len(_ears(base)) == len(_ears(original)) == 5
+    # Source geometry remains EXACTLY intact. The newly auto-selected
+    # flat PAD case additionally requires four 6x6 CUTTING locator squares.
+    # Older tests counted ALL closed contours as "EARs", incorrectly treating
+    # legitimate new PAD holes as a regression.
+    original_contours = _ears(original)
+    output_contours = _ears(base)
+    assert len(original_contours) == 5
+    assert all(contour in output_contours for contour in original_contours)
+    added_locator_squares = tuple(
+        contour for contour in output_contours
+        if contour not in original_contours
+    )
+    assert len(added_locator_squares) == 4
+    from shapely.geometry import Polygon
+    assert all(
+        contour.layer == "CUTTING"
+        and contour.color == 30
+        and len(contour.points) == 4
+        and Polygon(tuple((p.x, p.y) for p in contour.points)).area == pytest.approx(36.)
+        for contour in added_locator_squares
+    )
+    assert dict(base.render_data.metadata["nfb_v5_pad_square_owners"]) == {
+        snap["nfb_config"]["holes"][1]["physical_hole_id"]: 4
+    }
     assert len(_screws(base)) == 8
     assert base.render_data.material.area < original.render_data.material.area
     assert base.render_data.unfolded_topology == original.render_data.unfolded_topology
