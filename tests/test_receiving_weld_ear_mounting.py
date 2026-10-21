@@ -181,6 +181,20 @@ def test_fixing_plate_source_dxf_is_independent_and_reopens(tmp_path):
         with pytest.raises(FileExistsError):
             save_independent_source_flat_dxf(part_id, filepath)
 
+        # The isolated source-flat specimen is expressly NOT a certified
+        # formed manufacturing part; generic DXF export must still reject it
+        # even though the dedicated original-source round trip succeeded.
+        from ae_engine.manufacturing_api import save_part_render_data_dxf
+        from ae_engine.receiving_base_fixing_plate_geometry import (
+            build_fixing_plate_source_render_data, SMALL_SOURCE, LARGE_SOURCE,
+        )
+        kind = SMALL_SOURCE if part_id.endswith("small_source") else LARGE_SOURCE
+        flat = build_fixing_plate_source_render_data(part_id, source_kind=kind)
+        generic_path = tmp_path / ("generic-" + filepath.name)
+        with pytest.raises(ValueError, match="BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED"):
+            save_part_render_data_dxf(flat, generic_path)
+        assert not generic_path.exists()
+
 
 def test_fixing_plate_derived_selector_and_parent_stable_ids():
     from phase6_part_navigation import project_hierarchy, operator_part_selector_keys, operator_part_label
