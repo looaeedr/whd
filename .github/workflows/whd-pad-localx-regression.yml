@@ -12,6 +12,7 @@ on:
       - 'ae_engine/receiving_nfb_layer_physical_parts.py'
       - 'tests/test_receiving_nfb_pad_*.py'
       - 'tests/test_receiving_flat_pad_source_routing.py'
+      - 'tests/test_issue1502_csv_is_only_normal_finalscene_source.py'
       - '.github/workflows/whd-pad-localx-regression.yml'
   workflow_dispatch:
 
