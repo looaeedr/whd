@@ -98,3 +98,43 @@ def test_unsubmitted_and_stale_bay_identity_never_authorize_automatic_tiers():
     stale["_receiving_runtime_selection"]["bay_id"]="other"
     with pytest.raises(ValueError,match="IDENTITY_DRIFT"):
         receiving_base_plate_values(stale)
+
+
+def test_two_tier_source_equivalent_models_share_exact_physical_left_blank():
+    # Different catalog aliases, exactly identical current CSV body, opening,
+    # screw-hole groups and depths: they are NOT different physical blanks.
+    snap = _committed_two_left_tiers()
+    extra = deepcopy(snap["nfb_config"]["holes"][0])
+    extra.update(
+        physical_hole_id="nfb:alias-400",
+        slot_index=1,
+        model_filename="nfbv5:士林:3P400SN",
+        manual_x_mm=100.,
+    )
+    snap["nfb_config"]["holes"].append(extra)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    vals = receiving_base_plate_values(snap)
+    assert vals is not None
+    assert vals["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
+
+
+def test_two_tier_similar_pitches_from_other_brand_cannot_borrow_left_blank():
+    # 伍菱 has the same 44x194 pitch/depth but DIFFERENT opening source
+    # (56x96 vs 士林 57x96). Do not equate physical sources by pitch alone.
+    snap = _committed_two_left_tiers()
+    extra = deepcopy(snap["nfb_config"]["holes"][0])
+    extra.update(
+        physical_hole_id="nfb:other-brand",
+        slot_index=1,
+        model_filename="nfbv5:伍菱:3P400SN",
+        source_brand="伍菱",
+        manual_x_mm=100.,
+    )
+    snap["nfb_config"]["holes"].append(extra)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    assert receiving_base_plate_values(snap) is None
