@@ -291,6 +291,20 @@ def test_flat_second_slot_cannot_be_misread_as_third_switch_row():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    # The source adapter intentionally converts this unsupported same-tier
-    # slot into an unresolved physical blank, not a GUI-fatal exception.
-    assert receiving_base_plate_values(snap) is None
+    # Horizontal slot 2 is not vertical tier 2: only layer_index owns
+    # physical layer identity. Keep the same real flat source plate.
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+
+
+def test_three_same_tier_400_models_derive_one_real_left_source_not_three_bases():
+    snap = _one_layer_pair("3P400SN")
+    third = deepcopy(snap["nfb_config"]["holes"][0])
+    third.update(physical_hole_id="nfb:third", slot_index=2,
+                 model_filename="nfbv5:士林:2P400")
+    snap["nfb_config"]["holes"].append(third)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    assert len(snap["nfb_config"]["holes"]) == 3
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
