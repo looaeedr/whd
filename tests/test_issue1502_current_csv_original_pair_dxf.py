@@ -133,3 +133,38 @@ def test_original_gui_pair_port_auto_consumes_csv_without_extra_button():
     assert '"pair_partial_export": export_partial_nfb_door_base_pair' in gui
     assert 'text="輸出內門＋底板 DXF（成對部分）"' in modal
     assert "輸出 CSV 底板 DXF（單片）" not in modal
+
+
+def test_original_operator_left_two_source_equivalent_models_roundtrip(tmp_path):
+    # The user's LEFT original has TWO 44x194 / Ø5.1 quartets on ONE
+    # physical base. Different numeric catalog names with exactly the
+    # same source geometry must traverse the ordinary two-sheet operator
+    # export, not just the physical configuration resolver.
+    snap = _current(model_second="3P400SN")
+    from ae_engine.receiving_base_plate_config import (
+        receiving_base_plate_values, receiving_base_plate_blank_dimensions,
+    )
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
+    parts = _scene(snap)
+    receipt = _export(snap, parts, tmp_path)
+    assert receipt.source_hole_ids == ("nfb:0", "nfb:1")
+    assert len(receipt.check_q_key) == 64
+    paths = (Path(receipt.inner_door_path), Path(receipt.base_plate_path))
+    assert all(path.is_file() for path in paths)
+    assert len(list(tmp_path.glob("*.dxf"))) == 2
+    base = ezdxf.readfile(paths[1]).modelspace()
+    screws = [item for item in base
+              if item.dxftype() == "CIRCLE" and item.dxf.layer == "CUTTING"]
+    slots = [item for item in base
+             if item.dxftype() == "LWPOLYLINE" and item.closed
+             and item.dxf.layer == "CUTTING"]
+    assert len(screws) == 8
+    assert all(abs(float(h.dxf.radius) - 2.55) < 1e-6 for h in screws)
+    assert len(slots) == 5  # one blank + four original EAR fixing slots
+    assert sum(1 for h in base if h.dxf.layer == "BEND") == 2
+    door = ezdxf.readfile(paths[0]).modelspace()
+    openings = [item for item in door
+                if item.dxftype() == "LWPOLYLINE" and item.closed
+                and item.dxf.layer == "CUTTING"]
+    assert len(openings) >= 3  # actual inner-door perimeter + both NFB openings
