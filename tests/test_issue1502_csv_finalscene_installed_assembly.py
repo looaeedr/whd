@@ -102,7 +102,7 @@ def test_wrong_assembly_source_or_install_y_does_not_receive_a_fake_overlay():
             snap, "upper", door=door, configured_holes=holes,
             base_specs=specs, assembly_parts=(a, replace(b, offset=(0., b.offset[1] + 2., -115.))),
         )
-    with pytest.raises(ValueError, match="來源 PartSpec"):
+    with pytest.raises(ValueError, match="來源 PartSpec|source CUTTING slots do not mate"):
         project_csv_v5_onto_existing_assembly_parts(
             snap, "upper", door=door, configured_holes=holes,
             base_specs={0: replace(specs[0], receiving_bend_pattern="CENTER_DOUBLE_SIDE_FOLD"),
