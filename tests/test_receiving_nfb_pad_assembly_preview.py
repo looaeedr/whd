@@ -47,7 +47,8 @@ def test_different_sheet_T_does_not_falsely_claim_verified_2mm_tab_engagement():
         )
 
 
-def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins():
+@pytest.mark.parametrize("rotation",(0,90,180,270))
+def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation):
     from copy import deepcopy
     from ae_engine.receiving_base_plate_config import receiving_base_plate_values
     from ae_engine.receiving_nfb_committed_final_scene import (
@@ -70,7 +71,7 @@ def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins():
     }
     rows=snap["nfb_config"]["holes"]
     rows[0].update(model_filename="nfbv5:士林:3P400SN",source_brand="士林")
-    rows[1].update(model_filename="nfbv5:士林:100HN-s",source_brand="士林")
+    rows[1].update(model_filename="nfbv5:士林:100HN-s",source_brand="士林",rotation_deg=rotation)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     values=receiving_base_plate_values(snap)
     assert values["receiving_bend_pattern"]=="LEFT_FLAT_SIDE"
