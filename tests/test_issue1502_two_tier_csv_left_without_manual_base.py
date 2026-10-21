@@ -138,3 +138,29 @@ def test_two_tier_similar_pitches_from_other_brand_cannot_borrow_left_blank():
         snap["nfb_config"]
     )
     assert receiving_base_plate_values(snap) is None
+
+
+def test_three_horizontal_400_switches_on_one_of_two_source_left_tiers():
+    snap = _committed_two_left_tiers()
+    first = snap["nfb_config"]["holes"][0]
+    first["manual_x_mm"] = -180.
+    for slot, x, model in ((1, 0., "3P400SN"), (2, 180., "2P400")):
+        extra = deepcopy(first)
+        extra.update(physical_hole_id=f"nfb:upper:{slot}", slot_index=slot,
+                     manual_x_mm=x, model_filename=f"nfbv5:士林:{model}")
+        snap["nfb_config"]["holes"].append(extra)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    values = receiving_base_plate_values(snap)
+    assert values["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
+    specs = source_receiving_nfb_tier_base_specs(snap)
+    assert set(specs) == {0, 1}
+    targets = resolve_receiving_tier_base_z_targets(snap)
+    assert len(targets) == 2 and all(x.physical_skin_z_resolved for x in targets)
+    assert all(x.source_depths_mm == (107.,) for x in targets)
+    actual = expand_receiving_nfb_layer_parts(snap, (_source(snap),))
+    assert {p.part_key for p in actual} == {
+        "base_plate:nfb_layer:0", "base_plate:nfb_layer:1"
+    }

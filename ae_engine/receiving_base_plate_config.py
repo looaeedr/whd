@@ -177,7 +177,9 @@ def _source_two_tier_matching_left_base_config(data):
     per-model CSV owners are checked against the committed source; a model
     that could instead require RIGHT/CENTER cannot silently borrow LEFT.
     This selects an original blank *shape*, not screw X, installed Y/Z,
-    quantity, or manufacturing approval.
+    quantity, or manufacturing approval. The original two 400 screw quartets
+    are example openings, not a limit on operator-selected horizontal NFBs;
+    per-hole geometry and sheet clearance are checked downstream.
     """
     config = data.get("nfb_config")
     if (data.get("nfb_config_submitted") is not True
@@ -189,7 +191,7 @@ def _source_two_tier_matching_left_base_config(data):
     if current != config:
         raise ValueError("RECEIVING_TIER_LEFT_SOURCE_BAY_IDENTITY_DRIFT")
     holes = config.get("holes")
-    if not isinstance(holes, (list, tuple)) or not 2 <= len(holes) <= 4:
+    if not isinstance(holes, (list, tuple)) or len(holes) < 2:
         return None
     from .receiving_nfb_model_identity import parse_numeric_model_ref
     from .receiving_nfb_numeric_catalog import model_spec
@@ -228,7 +230,7 @@ def _source_two_tier_matching_left_base_config(data):
             spec.screw_offset_x_mm, spec.screw_offset_y_mm,
             float(spec.depth_mm),
         ))
-    if any(not 1 <= len(rows) <= 2 or len({r for r in rows}) != 1
+    if any(not rows or len({r for r in rows}) != 1
            for rows in tiers.values()):
         return None
     if float(data["t"]) != 2.0:
