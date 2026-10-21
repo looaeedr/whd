@@ -110,8 +110,11 @@ def test_no_submitted_nfb_and_ambiguous_flat_do_not_invent_a_plate():
     snap = _source_snapshot()
     snap["nfb_config_submitted"] = False
     assert receiving_base_plate_values(snap) is None
-    snap = _source_snapshot(shallow="2P400")  # old slot1 owner is invalid for flat
-    assert receiving_base_plate_values(snap) is None
+    snap = _source_snapshot(shallow="2P400")
+    # A horizontal second NFB slot is still the same vertical tier. The
+    # fully known identical-depth models share the real LEFT flat blank;
+    # manufacturing must still prove both current physical hole positions.
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
 
 
 def test_current_bay_identity_mismatch_is_not_cross_bay_mfg_source():
