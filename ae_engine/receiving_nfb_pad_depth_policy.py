@@ -1,17 +1,8 @@
-# -*- coding: utf-8 -*-
-"""#1503 NFB PAD eligibility, using the user's editable switch-depth CSV.
+"""#1503 read-only NFB PAD depth eligibility from current editable CSV.
 
-The PAD *preview* never moves a Base Plate or creates an ear. This old
-module must not override the later #1502/#1503 physical mounting contract:
-inner-door Z stays fixed, while the Base Plate and its two fixing plates
-translate TOGETHER with selected NFB depth; see receiving_nfb_depth_surface_policy.
-Only one physical NFB layer with exactly two selected switches of *unequal*
-known depth qualifies for a PAD proposal. This makes no manufacturing PAD
-part, thickness, BEND/DXF or automatic welding/Z adjustment.
-
-Two-layer configs, single or 3+ NFBs, and equal-depth pairs never get a PAD
-just because their brand or filenames differ. Missing/conflicting CSV source
-depths never turn into an invented 0-mm spacer.
+Compute EACH physical tier independently; no hardcoded two-NFB or
+one-tier limit. The non-manufacturing count is only an informational
+requirement, never an approved PAD part or DXF/BOM release.
 """
 from __future__ import annotations
 
@@ -40,6 +31,7 @@ class NfbPadDepthPreview:
     deeper_unit_index: int | None
     required_pad_count: int = 0
     manufacturing_ready: bool = False
+    tier_pad_counts: tuple[int, ...] = ()
 
     @property
     def candidate(self) -> bool:
@@ -49,10 +41,12 @@ class NfbPadDepthPreview:
 def preview_nfb_pad_depth(
     draft: Mapping[str, object], *, index_path: str | Path | None = None,
 ) -> NfbPadDepthPreview:
-    """Read current *effective* brand per switch, with exact selected DXF.
+    """Show PAD demand by source depth PER TIER; no manufacturing release.
 
-    'Depth difference' is evidence, NOT an approved spacer thickness: actual
-    reference faces, lower-source PAD contour and manufacturing are separate.
+    No NFB model, depth, installation-X, geometry or material is invented.
+    Numeric V5 identities come from the per-brand CSV; legacy filenames
+    retain their own catalog source. Full PAD geometry is owned by the
+    single generic generate_nfb_pad_patterns() in the committed path.
     """
     if not isinstance(draft, Mapping):
         raise TypeError("NFB draft must be a mapping")
@@ -62,41 +56,79 @@ def preview_nfb_pad_depth(
     layers = draft.get("layers")
     if not isinstance(layers, (list, tuple)) or len(layers) != 2:
         raise ValueError("NFB physical layers missing")
-    slots = layers[0].get("slots", ()) if isinstance(layers[0], Mapping) else ()
-    if not isinstance(slots, (list, tuple)):
-        raise ValueError("NFB physical slots invalid")
-    size = len(slots)
-    if count != 1 or size != 2:
-        return NfbPadDepthPreview(NOT_APPLICABLE, count, size, (), None, None, None)
-    depths = []
-    for i, slot in enumerate(slots):
-        if not isinstance(slot, Mapping):
-            raise ValueError("NFB slot must be a mapping")
-        brand = effective_nfb_slot_brand(draft, 0, i)
-        filename = slot.get("filename")
-        # A brand switch preserves its old filename until the user selects
-        # a matching model; never reinterpret that old source as new-brand.
-        if (not isinstance(filename, str) or not filename
-                or slot.get("source_brand") != brand):
-            depths.append(None)
-            continue
-        from .receiving_nfb_model_identity import (
-            parse_numeric_model_ref, selected_numeric_spec,
+    active_slots=[]
+    for layer_index in range(count):
+        layer=layers[layer_index]
+        slots=layer.get("slots",()) if isinstance(layer,Mapping) else None
+        if not isinstance(slots,(list,tuple)):
+            raise ValueError("NFB physical slots invalid")
+        active_slots.append(tuple(slots))
+    if count==1 and isinstance(layers[1],Mapping) and layers[1].get("slots"):
+        raise ValueError("NFB hidden second tier cannot contain switches")
+    total=sum(len(slots) for slots in active_slots)
+    if not total:
+        return NfbPadDepthPreview(
+            NOT_APPLICABLE,count,0,(),None,None,None,
+            tier_pad_counts=tuple(0 for _ in active_slots),
         )
-        if filename.startswith("nfbv5:"):
-            parsed = parse_numeric_model_ref(filename)
-            spec = selected_numeric_spec(brand, filename) if parsed else None
-            depths.append(spec.depth_mm if spec is not None else None)
-        else:
-            depths.append(model_depth_mm(brand, filename, path=index_path))
-    observed = tuple(depths)
-    if any(x is None for x in observed):
-        return NfbPadDepthPreview(NEEDS_SOURCE, count, size, observed, None, None, None)
-    a, b = observed
-    if a == b:
-        return NfbPadDepthPreview(NO_PAD_NEEDED, count, size, observed, 0.0, None, None)
-    shallow = 0 if a < b else 1
+
+    per_tier=[]
+    for layer_index,slots in enumerate(active_slots):
+        depths=[]
+        for slot_index,slot in enumerate(slots):
+            if not isinstance(slot,Mapping):
+                raise ValueError("NFB slot must be a mapping")
+            brand=effective_nfb_slot_brand(draft,layer_index,slot_index)
+            filename=slot.get("filename")
+            if (not isinstance(filename,str) or not filename
+                    or slot.get("source_brand") != brand):
+                depths.append(None)
+                continue
+            from .receiving_nfb_model_identity import (
+                parse_numeric_model_ref,selected_numeric_spec,
+            )
+            if filename.startswith("nfbv5:"):
+                parsed=parse_numeric_model_ref(filename)
+                spec=selected_numeric_spec(brand,filename) if parsed else None
+                depths.append(float(spec.depth_mm) if spec is not None else None)
+            else:
+                depths.append(model_depth_mm(brand,filename,path=index_path))
+        per_tier.append(tuple(depths))
+    observed=tuple(value for depths in per_tier for value in depths)
+    if any(depth is None for depth in observed):
+        return NfbPadDepthPreview(
+            NEEDS_SOURCE,count,total,observed,None,None,None,
+            tier_pad_counts=tuple(0 for _ in per_tier),
+        )
+
+    pad_counts=[]
+    steps=[]
+    for depths in per_tier:
+        if not depths:
+            pad_counts.append(0)
+            continue
+        deep=max(depths)
+        shallows=tuple(depth for depth in depths if deep-depth>1e-8)
+        pad_counts.append(len(shallows))
+        if shallows:
+            steps.append(deep-min(depths))
+    required=sum(pad_counts)
+    if total < 2 or required==0:
+        return NfbPadDepthPreview(
+            NOT_APPLICABLE if total < 2 else NO_PAD_NEEDED,
+            count,total,observed,0.0,None,None,
+            required_pad_count=0,tier_pad_counts=tuple(pad_counts),
+        )
+    # Compatibility pair indices are meaningful ONLY for exactly two
+    # switches in ONE physical tier. A multi-NFB/multi-tier group has no
+    # unique deeper/shallow pair and must not pretend otherwise.
+    single_pair=(count==1 and len(per_tier[0])==2)
+    shallow=(
+        0 if per_tier[0][0]<per_tier[0][1] else 1
+    ) if single_pair else None
+    deep=(1-shallow) if single_pair else None
     return NfbPadDepthPreview(
-        DIFFERENT_DEPTH, count, size, observed,
-        abs(b-a), shallow, 1-shallow,
+        DIFFERENT_DEPTH,count,total,observed,max(steps),
+        shallow,deep,required_pad_count=required,
+        manufacturing_ready=False,tier_pad_counts=tuple(pad_counts),
     )

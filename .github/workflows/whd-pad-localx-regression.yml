@@ -52,6 +52,7 @@ jobs:
         run: |
           python -m pytest -q \
             tests/test_receiving_nfb_pad_generator.py \
+            tests/test_receiving_nfb_pad_depth_policy_tiers.py \
             tests/test_receiving_nfb_pad_part.py \
             tests/test_receiving_nfb_pad_operator_parts.py \
             tests/test_issue1503_deferred_pad_ear_manufacturing.py \
