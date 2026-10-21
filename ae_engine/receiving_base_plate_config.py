@@ -121,21 +121,32 @@ def _source_left_flat_base_config(data):
     holes = config.get("holes") if isinstance(config, Mapping) else None
     if not isinstance(holes, (tuple, list)) or not holes:
         return None
-    models = {str(h.get("model_filename") or "") for h in holes
-              if isinstance(h, Mapping)}
-    if len(models) != 1:
-        return None
-    resolved = parse_numeric_model_ref(next(iter(models)))
-    if resolved is None:
-        return None
-    spec = model_spec(*resolved)
-    # Both source LEFT and CSV must agree *exactly*; another model/pitch
-    # cannot borrow this illustrated plate simply for matching its depth.
-    if (spec is None or spec.screw_pitch_mm != (44.0, 194.0)
-            or abs(float(spec.screw_diameter_mm or 0.0) - 5.1) > 1e-6
-            or spec.depth_mm is None
-            or abs(float(spec.depth_mm) - depth) > 1e-6):
-        return None
+    # The actual LEFT original CUTTING has TWO independent 44x194/Ø5.1
+    # hole quartets. A second selected switch (slot 1) need not reuse the
+    # exact same model name, but must share the SAME full CSV shape source.
+    shape = None
+    for hole in holes:
+        parsed = parse_numeric_model_ref(hole.get("model_filename"))
+        if parsed is None:
+            return None
+        brand, model = parsed
+        if hole.get("source_brand") not in (None, brand):
+            return None
+        spec = model_spec(brand, model)
+        # A matching depth or pitch alone is NOT permission to borrow LEFT.
+        if (spec is None or spec.screw_pitch_mm != (44.0, 194.0)
+                or abs(float(spec.screw_diameter_mm or 0.0) - 5.1) > 1e-6
+                or spec.depth_mm is None
+                or abs(float(spec.depth_mm) - depth) > 1e-6):
+            return None
+        source = (
+            brand, spec.width_mm, spec.height_mm, spec.opening_mm,
+            spec.screw_pitch_mm, spec.screw_diameter_mm,
+            spec.screw_offset_x_mm, spec.screw_offset_y_mm, spec.depth_mm,
+        )
+        if shape is not None and source != shape:
+            return None
+        shape = source
     t = float(data["t"])
     # Fixed-plate T is the source T2 and independent of the cabinet skin T.
     pitch_x = receiving_source_fixing_pitch_x_mm(
