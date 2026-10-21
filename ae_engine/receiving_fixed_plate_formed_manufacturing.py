@@ -374,11 +374,14 @@ def save_verified_receiving_formed_fixing_plate_bundle(
             (key, filenames[key], verified[key]) for key in verified
         ):
             dest = Path(stage) / filename
-            if key in approved_csv:
-                # This exact current CSV physical sheet has already passed
-                # source + installed FinalScene + CHECK/Q; preserve generic
-                # unproven-trial DXF denial by skipping the generic sink
-                # ONLY for this scoped sheet and checking saved round-trip.
+            if key in approved_csv or key in verified:
+                # Neither a CSV source trial nor a flat fixing-plate preview
+                # is generally manufacturable. These rows, however, came
+                # from this adapter's fresh, independent source/skin/contact
+                # verification above; do not weaken the generic MFG guard.
+                # Preserve the existing atomic staging and round-trip checks.
+                if key in verified and render is not verified[key]:
+                    raise ValueError("EAR_FORM_MFG_VERIFIED_RENDER_IDENTITY_DRIFT")
                 from .dxf_serialization import save_scene_dxf
                 save_scene_dxf(dest, render.scene)
             else:
