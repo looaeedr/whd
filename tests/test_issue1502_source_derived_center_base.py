@@ -169,13 +169,14 @@ def test_left_source_selected_by_400_screw_pitch_scales_with_real_side_63(
     ) == pitch
 
 
-def test_no_arbitrary_flat_right_selection_for_other_source_model():
+def test_other_complete_csv_model_uses_existing_flat_blank_not_unknown_right():
     snap = _submitted_one_shihlin_400()
     snap["nfb_config"]["holes"][0]["model_filename"] = "nfbv5:士林:3P125SN"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    assert receiving_base_plate_values(snap) is None
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
 
 
 def test_two_tier_committed_holes_do_not_reuse_one_root_flat_plate():
@@ -222,7 +223,7 @@ def test_submitted_single_400_source_replaces_obsolete_manual_width():
     ) == 620.
 
 
-def test_unknown_submitted_csv_plate_cannot_borrow_manual_pattern():
+def test_complete_csv_flat_plate_overrides_stale_manual_right_pattern():
     snap = _submitted_one_shihlin_400()
     snap["nfb_config"]["holes"][0]["model_filename"] = "nfbv5:士林:3P125SN"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
@@ -233,8 +234,9 @@ def test_unknown_submitted_csv_plate_cannot_borrow_manual_pattern():
         "shrink_top": 20., "shrink_bottom": 20.,
         "shrink_left": 45., "shrink_right": 45., "bend": 20.,
     }
-    assert receiving_base_plate_values(snap) is None
-    assert receiving_base_plate_blank_dimensions(snap) is None
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
+    assert snap["receiving_base_plate"]["pattern"] == "RIGHT_FLAT_SIDE"
 
 
 def test_unsubmitted_legacy_edit_remains_previewable_but_not_csv_certified():
@@ -278,11 +280,12 @@ def test_real_left_two_original_quartets_allow_second_nfb_slot_and_alias(second_
     ) == 670.
 
 
-def test_one_tier_cross_brand_similar_pitch_not_identical_plate_source():
-    # 伍菱 3P400SN has pitch/depth equal but its opening differs.
+def test_one_tier_cross_brand_different_apertures_share_flat_plate_not_holes():
+    # Source LEFT is one existing physical blank, not proof the NFBs are
+    # the same. Each brand retains its own current numeric screw/aperture.
     snap = _one_layer_pair("3P400SN", "伍菱")
-    with pytest.raises(ValueError, match="DIFFERENT_MODELS"):
-        receiving_base_plate_values(snap)
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
 
 
 def test_flat_second_slot_cannot_be_misread_as_third_switch_row():
