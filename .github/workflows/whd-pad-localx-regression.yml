@@ -56,6 +56,18 @@ jobs:
             tests/test_issue1502_csv_finalscene_installed_assembly.py \
             tests/test_issue1502_csv_is_only_normal_finalscene_source.py \
             --junitxml=pad-localx-junit.xml
+      - name: Produce real WHD FinalScene assembled PAD screenshot (CI SIMULATION)
+        run: |
+          python tools/receiving_pad_ci_visual_receipt.py \
+            --output WHD_PAD_REAL_ENGINE_3D_CI_SIMULATION_NOT_MFG.png
+      - name: Upload real WHD 3D visual receipt, explicitly not Windows UAT
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-3D-CI-SIMULATION-NOT-MFG-${{ github.sha }}
+          path: WHD_PAD_REAL_ENGINE_3D_CI_SIMULATION_NOT_MFG.png
+          if-no-files-found: error
+          retention-days: 7
       - name: Produce source-backed PAD DXF specimen (PREVIEW ONLY)
         run: |
           python - <<'PY'
