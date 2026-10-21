@@ -188,7 +188,11 @@ class NfbUi1aEditSession:
     def apply(self,action,operation,*args,**kwargs):
         if not isinstance(action,str) or not action:
             raise ValueError("NFB transaction action name required")
-        candidate=editable_nfb_draft(operation(self.current,*args,**kwargs))
+        # Callbacks are external edit operations.  They may mutate their input
+        # before raising on an invalid/colliding geometry.  Keep the live
+        # transaction immutable until validation succeeds.
+        isolated=deepcopy(self.current)
+        candidate=editable_nfb_draft(operation(isolated,*args,**kwargs))
         if candidate==self.current:return None
         receipt=NfbUi1aEditReceipt(action,deepcopy(self.current),deepcopy(candidate))
         self.current=candidate
