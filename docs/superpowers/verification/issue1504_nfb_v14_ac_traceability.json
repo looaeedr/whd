@@ -1,6 +1,6 @@
 {
   "schema": "WHD_NFB_V14_88AC_TRACEABILITY_V1",
-  "assessed_on": "2026-10-21",
+  "assessed_on": "2026-10-22",
   "source_documents": [
     {
       "name": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
@@ -25,9 +25,9 @@
   "counts": {
     "BLOCKED_1500_REAL_GUI": 17,
     "DEFERRED_PRODUCT_EVIDENCE": 4,
-    "EVIDENCE_CANDIDATE_ONLY": 52,
+    "EVIDENCE_CANDIDATE_ONLY": 50,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 1
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 3
   },
   "records": [
     {
@@ -529,21 +529,33 @@
         1491
       ],
       "regression_candidates": [
-        "tests/test_issue1491_nfb_ui1a.py"
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_brand_inheritance_current_csv.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_brand_inheritance_current_csv.py",
+          "test_name": "test_nfb_ac17_three_tier_followers_overrides_provenance_and_preview",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "THREE_LEVEL_BRAND_FOLLOW_OVERRIDE_STALE_V5_RESELECTION_NO_FAKE_WORLDX",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_brand_inheritance_current_csv.py::test_nfb_ac17_three_tier_followers_overrides_provenance_and_preview",
+        "other_required_assertion": "tests/test_issue1504_brand_inheritance_current_csv.py::test_swt_ac04_spoofed_catalog_and_stale_csv_never_relabel_v5_source",
+        "integration_ci": "WHD Product Regression mandatory selector; exact PR HEAD CI SUCCESS and localX readback required",
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "ui_full_operator_uat_claimed": false
+      }
     },
     {
       "id": "NFB-AC-18",
@@ -1836,21 +1848,33 @@
       ],
       "regression_candidates": [
         "tests/test_issue1491_nfb_ui1a.py",
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1504_brand_inheritance_current_csv.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_brand_inheritance_current_csv.py",
+          "test_name": "test_swt_ac04_spoofed_catalog_and_stale_csv_never_relabel_v5_source",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_BRAND_IDENTITY_SOURCE_FAIL_CLOSED_PLUS_OVERRIDE_PERSISTENCE",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_brand_inheritance_current_csv.py::test_swt_ac04_spoofed_catalog_and_stale_csv_never_relabel_v5_source",
+        "other_required_assertion": "tests/test_issue1504_brand_inheritance_current_csv.py::test_swt_ac04_selected_brand_and_override_are_persisted_without_second_set_owner",
+        "integration_ci": "WHD Product Regression mandatory selector; exact PR HEAD CI SUCCESS and localX readback required",
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "ui_full_operator_uat_claimed": false
+      }
     },
     {
       "id": "SWT-AC-05",
@@ -2764,7 +2788,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. All other 87 are still unsigned.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 1/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 87 AC have partial or deferred evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 3/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 85 AC have partial or deferred evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
