@@ -95,3 +95,24 @@ def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins():
     bounds=triangle_bounds(skins[0].world_triangles)
     assert bounds[2][0]<skins[0].base_front_world_z_mm
     assert bounds[2][1]>skins[0].base_front_world_z_mm
+
+
+@pytest.mark.parametrize("angle", [0,90,180,270])
+def test_same_real_pad_rotates_as_selected_nfb_base_four_squares(angle):
+    from ae_engine.receiving_nfb_v5_configured_inner_door import AXES
+    shallow=_s("100HN-s",75,130,68,25,111,3.2)
+    deep=_s("3P400SN",140,257,107,44,194,5.1)
+    p,=generate_nfb_pad_patterns([shallow,deep],plate_thickness_mm=2.,
+                                  tooling=read_pad_tooling_rule())
+    kwargs=dict(pattern=p,parent_base_id="base_plate",owner_hole_id="nfb:rot",
+                world_x=35.,world_y=70.,base_front_world_z_mm=-100.)
+    base=pad_physical_preview_world_mesh(**kwargs,rotation_deg=0)
+    rotated=pad_physical_preview_world_mesh(**kwargs,rotation_deg=angle)
+    assert len(base)==len(rotated)
+    ax,ay=AXES[angle]
+    for first,other in zip(base,rotated):
+        for old,p2 in zip(first,other):
+            x,y,z=old
+            expect=(35.+(x-35.)*ax[0]+(y-70.)*ay[0],
+                    70.+(x-35.)*ax[1]+(y-70.)*ay[1],z)
+            assert p2==pytest.approx(expect,abs=1e-5)

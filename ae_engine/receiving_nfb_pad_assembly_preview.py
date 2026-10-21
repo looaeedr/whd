@@ -33,7 +33,7 @@ class NfbPadDisplaySkin:
 
 def pad_physical_preview_world_mesh(pattern, *, parent_base_id,
                                     owner_hole_id, world_x, world_y,
-                                    base_front_world_z_mm):
+                                    base_front_world_z_mm,rotation_deg=0):
     """Draw full T sheet from the common unfolded CUTTING & signed BENDs.
 
     The material's center NFB web is at local Z=0. Four small tabs extend
@@ -73,7 +73,19 @@ def pad_physical_preview_world_mesh(pattern, *, parent_base_id,
         folded,"offset",None,
         (float(world_x),float(world_y),target_core_mid_z+mesh_mid_z),
     )
-    solids=tuple(thicken_triangle_surface(placed,pattern.plate_thickness_mm))
+    # Rotate the REAL folded 3D mesh about its selected NFB installation
+    # centre using the EXACT V5 axes that also rotated the Base squares.
+    from .receiving_nfb_v5_configured_inner_door import AXES
+    if type(rotation_deg) is not int or rotation_deg not in AXES:
+        raise ValueError("PAD_SELECTED_NFB_ROTATION_INVALID")
+    ux,uy=AXES[rotation_deg]
+    cx,cy=float(world_x),float(world_y)
+    rotated=tuple(tuple((
+        cx + (float(pt[0])-cx)*ux[0] + (float(pt[1])-cy)*uy[0],
+        cy + (float(pt[0])-cx)*ux[1] + (float(pt[1])-cy)*uy[1],
+        float(pt[2]),
+    ) for pt in face) for face in placed)
+    solids=tuple(thicken_triangle_surface(rotated,pattern.plate_thickness_mm))
     if not solids:
         raise ValueError("PAD_FOLDED_PHYSICAL_SHEET_EMPTY")
     return solids
@@ -165,6 +177,7 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
                 pattern,parent_base_id=parent,owner_hole_id=entry.physical_hole_id,
                 world_x=entry.world_x_mm,world_y=y.box_world_y_mm,
                 base_front_world_z_mm=world.base_nfb_face_world_z_mm,
+                rotation_deg=entry.rotation_deg,
             )
             result.append(NfbPadDisplaySkin(
                 part_id=f"nfb_pad:{entry.physical_hole_id}",
