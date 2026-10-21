@@ -561,8 +561,26 @@ def sync_authoritative_derived_parts(
     from ae_engine.receiving_nfb_pad_operator_parts import (
         committed_nfb_pad_draft_parts,
     )
+    # The original Hole Editor commits current NFB ProfileFeatures into
+    # the authoritative workspace before the async geometry snapshot is
+    # republished. A root-only snapshot still has the PREVIOUS features
+    # at this point and _submitted_csv_holes legitimately returns ().
+    # Reuse the CURRENT workspace's actual verified features, not inferred
+    # slot X, to make 2D source ownership match the subsequent 3D resolve.
+    # In dry-run projected workspace use only its projected features.
+    live_features = workspace.part_features_snapshot()
+    pad_source = {
+        **snapshot,
+        "part_features": {
+            **source_part_features,
+            **{
+                str(key): value for key, value in live_features.items()
+                if isinstance(key, str) and isinstance(value, (tuple, list))
+            },
+        },
+    }
     try:
-        pad_preview_parts = committed_nfb_pad_draft_parts(snapshot)
+        pad_preview_parts = committed_nfb_pad_draft_parts(pad_source)
     except (ValueError, TypeError, KeyError, OSError):
         pad_preview_parts = ()
     navigation.sync_derived_parts(
