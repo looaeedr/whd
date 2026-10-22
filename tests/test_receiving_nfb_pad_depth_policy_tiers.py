@@ -85,3 +85,26 @@ def test_hidden_populated_layer_is_not_silently_dropped():
     d["layer_count"]=1
     with pytest.raises(ValueError,match="hidden"):
         preview_nfb_pad_depth(d)
+
+
+def test_existing_numeric_v5_model_without_depth_is_unknown_not_exception():
+    # 1PBH is a *real selectable model* in current 士林 V5 CSV but does
+    # not have NFB深_mm. No sibling/filename is permitted to supply it.
+    draft=_draft(("3P400SN", "1PBH"))
+    p=preview_nfb_pad_depth(draft)
+    assert p.status==NEEDS_SOURCE
+    assert p.depth_mm==(107.,None)
+    assert p.required_pad_count==0
+    assert p.tier_pad_counts==(0,)
+    assert p.candidate_delta_mm is None
+    assert p.manufacturing_ready is False
+
+
+def test_extra_empty_layer_does_not_cancel_existing_physical_tier_pad():
+    draft=_draft(("3P400SN", "100HN-s"), ())
+    p=preview_nfb_pad_depth(draft)
+    assert p.status==DIFFERENT_DEPTH
+    assert p.layer_count==2
+    assert p.tier_pad_counts==(1,0)
+    assert p.required_pad_count==1
+    assert p.manufacturing_ready is False
