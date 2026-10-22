@@ -5,6 +5,7 @@ on:
     branches: [localX]
     paths:
       - 'ae_engine/receiving_nfb_pad_*.py'
+      - 'tests/test_receiving_nfb_pad_pair_manufacturing.py'
       - 'ae_engine/receiving_nfb_v5_actual_base_screws.py'
       - 'ae_engine/receiving_nfb_v5_part_only_manufacturing.py'
       - 'ae_engine/receiving_nfb_depth_surface_policy.py'
@@ -57,6 +58,7 @@ jobs:
             tests/test_receiving_nfb_pad_part.py \
             tests/test_receiving_nfb_pad_operator_parts.py \
             tests/test_receiving_nfb_pad_delivery.py \
+            tests/test_receiving_nfb_pad_pair_manufacturing.py \
             tests/test_issue1503_deferred_pad_ear_manufacturing.py \
             tests/test_receiving_nfb_pad_assembly_preview.py \
             tests/test_receiving_nfb_pad_preview_cache.py \
@@ -96,6 +98,17 @@ jobs:
         with:
           name: whd-pad-base-physical-BOM-DXF-TRIAL-NOT-MFG-${{ github.sha }}
           path: WHD_PAD_BASE_SOURCE_VERIFIED_TRIAL_NOT_MFG/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Export independently certified PAD plus Base pair as part-only CHECK/Q DXF
+        run: |
+          python -m tools.receiving_pad_pair_part_only_receipt
+      - name: Upload audited PAD+Base part-only CHECK/Q DXFs and BOM
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-base-verified-PART-ONLY-CHECK-Q-${{ github.sha }}
+          path: WHD_PAD_BASE_CHECK_Q_PAIR_PART_ONLY/
           if-no-files-found: error
           retention-days: 7
       - name: Produce real WHD FinalScene assembled PAD screenshot (CI SIMULATION)
