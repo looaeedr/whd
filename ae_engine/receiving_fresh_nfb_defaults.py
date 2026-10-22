@@ -65,7 +65,11 @@ def seed_fresh_receiving_nfb_source(snapshot):
         return value
     set_row, bay = layout["sets"][0], layout["sets"][0]["bays"][0]
     if bay.get("nfb_config_submitted") is True:
-        return value
+        # Never reseed an operator-edited Bay. Refresh runtime aliases from
+        # its real saved owner instead of returning a stale root projection.
+        return project_receiving_bay_legacy_aliases(
+            value, set_index=0, bay_index=0, validate_common=False,
+        )
     # This is an explicit first-switch initializer, not an automatic repair
     # for an intentionally unconfigured or saved project.
     brand = str(set_row.get("switch_brand") or DEFAULT_BRAND)
