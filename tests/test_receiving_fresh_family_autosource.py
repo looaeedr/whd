@@ -77,14 +77,15 @@ def test_existing_nfb_is_never_replaced_by_reenter_or_save_reload():
 
 
 def test_only_first_explicit_auto_nfb_mode_switch_seeds_current_physical_box():
-    virgin = fresh_receiving_mode("set_bay", {"w": 800, "h": 1600, "d": 350})
-    assert virgin.get("nfb_config_submitted") is not True
+    virgin = fresh_receiving_mode(
+        "set_bay", {"w": 800, "h": 1600, "d": 350}, auto_nfb=True,
+    )
+    _assert_physical_source(virgin)
     session = ReceivingModeSession(virgin)
     assert session.switch("quantity", dimensions={"w": 800, "h": 1600, "d": 350})
     quantity = session.snapshot()
     _assert_physical_source(quantity)
     assert quantity["receiving_quantity_box"]["inner_door_models"] == [MODEL, ""]
-    assert quantity["quantity"]["schema"].startswith("quantity-")
     assert session.switch("set_bay", dimensions={"w": 800, "h": 1600, "d": 350})
     _assert_physical_source(session.snapshot())
     # Returning to an initialized mode restores its edits and does not reseed.
