@@ -54,6 +54,23 @@ PYTEST_PATHS = (
     "tests/test_issue1501_live_partial_writer.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+    # #1503/#1504: PAD+real Base full-T mating, per-tier CHECK/Q DXF/BOM,
+    # normal Tk 2D and source guards must run BEFORE a localX PR merges.
+    # The PAD push-only workflow is supplementary, not the PR merge gate.
+    "tests/test_receiving_nfb_pad_pair_manufacturing.py",
+    "tests/test_receiving_pad_native_tk_operator_selector.py",
+    "tests/test_receiving_flat_pad_source_routing.py",
+    "tests/test_receiving_nfb_pad_generator.py",
+    "tests/test_receiving_nfb_pad_depth_policy_tiers.py",
+    "tests/test_receiving_nfb_pad_part.py",
+    "tests/test_receiving_nfb_pad_operator_parts.py",
+    "tests/test_receiving_nfb_pad_delivery.py",
+    "tests/test_receiving_nfb_pad_assembly_preview.py",
+    "tests/test_receiving_nfb_pad_preview_cache.py",
+    "tests/test_receiving_nfb_pad_real_renderer.py",
+    "tests/test_receiving_nfb_pad_base_mating.py",
+    "tests/test_receiving_flat_base_single_nfb_true_z.py",
+    "tests/test_receiving_nfb_depth_surface_policy.py",
     # #1503: per-tier physical Base Plate skin + EAR target Z unified regression.
     "tests/test_receiving_tier_ear_assembly_xy.py",
     "tests/test_receiving_tier_ear_z_targets.py",
