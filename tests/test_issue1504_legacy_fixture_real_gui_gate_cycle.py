@@ -67,7 +67,9 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
         assert app.load_project_file() == str(FIXTURE)
         root.update()
         app = main.fold_designer_app
-        before = app.designer_workspace.snapshot()
+        # Workspace data is a part/feature DTO, not the full Receiving
+        # input; project authority lives in the existing input snapshot.
+        before = dict(app._phase6_input_snapshot)
         assert before["model"] == "受電箱"
         assert not contains_submitted_nfb(before)
         audit.append("OPEN_REAL_LEGACY_UNCONFIGURED_PASS")
@@ -98,7 +100,7 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
         window = None
         root.update()
         assert not contains_submitted_nfb(
-            app.designer_workspace.snapshot()
+            app._phase6_input_snapshot
         )
         audit.append("REAL_MODAL_CANCEL_NO_NFB_LEAK_PASS")
 
@@ -121,7 +123,7 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
         )
         assert app.load_project_file() == str(destination)
         root.update()
-        reloaded = app.designer_workspace.snapshot()
+        reloaded = dict(app._phase6_input_snapshot)
         assert not contains_submitted_nfb(reloaded)
         assert (reloaded["w"],reloaded["h"],reloaded["d"]) == (800,1600,350)
         assert sha256(FIXTURE.read_bytes()).hexdigest() == source_hash
