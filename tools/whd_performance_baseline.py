@@ -630,6 +630,20 @@ def worker(args):
                     'snapshot.' + str(key): stable_fingerprint(value)
                     for key, value in inputs['snapshot'].items()
                 })
+                # Diagnostic only: distinguish changed physical Bay/Joint
+                # from an irrelevant layout metadata field after tail edit.
+                def layout_paths(value, prefix, depth):
+                    if depth > 7:
+                        return
+                    keys[prefix] = stable_fingerprint(value)
+                    if isinstance(value, dict):
+                        for child, item in value.items():
+                            layout_paths(item, prefix + '.' + str(child), depth + 1)
+                    elif isinstance(value, (list, tuple)):
+                        for index, item in enumerate(value):
+                            layout_paths(item, prefix + '[' + str(index) + ']', depth + 1)
+                layout_paths(inputs['snapshot']['receiving_layout'],
+                             'layout', 0)
                 return keys
             cache_before = scoped_bay0_cache_components()
             # Tail addition/removal go through existing real operator UI.
