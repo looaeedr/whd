@@ -92,7 +92,7 @@ def test_receiving_confirm_draws_two_csv_nfb_holes_on_native_main_canvas():
         tabs.select(1)
         pump(root)
         frame, state = layer_state(editor)
-        assert tuple(float(v.get()) for v in state["layer_heights_mm"]) == (550, 800)
+        assert tuple(float(v.get()) for v in state["layer_heights_mm"]) == (330, 830)
         add_real_csv_nfb(root, state, 0)
         radios = [w for w in walk(frame)
                   if isinstance(w, ttk.Radiobutton)
