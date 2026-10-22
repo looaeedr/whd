@@ -52,9 +52,9 @@ def test_approved_v14_has_all_88_unique_original_acceptance_ids():
     obj = _data()
     assert obj["schema"] == SCHEMA
     rows = obj["records"]
-    assert len(rows) == 98
+    assert len(rows) == 88
     ids = [r["id"] for r in rows]
-    assert len(set(ids)) == 98
+    assert len(set(ids)) == 88
     assert set(ids) == {
         *(f"NFB-AC-{n:02d}" for n in range(1, 57)),
         *(f"SWT-AC-{n:02d}" for n in range(1, 33)),
@@ -132,7 +132,7 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
 def test_manifest_review_summary_is_recomputed_from_records():
     obj = _data()
     counts = dict(Counter(r["status"] for r in obj["records"]))
-    assert sum(counts.values()) == 98
+    assert sum(counts.values()) == 88
     assert obj["counts"] == counts
     assert counts["DEFERRED_PRODUCT_EVIDENCE"] >= 3
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
@@ -144,7 +144,7 @@ def test_manifest_review_summary_is_recomputed_from_records():
 
 def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
     data = _data()
-    assert data["exact_test_function_witnesses_count"] == 98
+    assert data["exact_test_function_witnesses_count"] == 88
     assert data["assertion_witness_note"]
     found = 0
     for item in data["records"]:
@@ -168,7 +168,7 @@ def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_fl
             actual = {n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
             assert witness["test_name"] in actual, item["id"]
             found += 1
-    assert found == 98
+    assert found == 88
 
 
 def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
