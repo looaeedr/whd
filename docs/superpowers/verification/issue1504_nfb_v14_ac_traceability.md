@@ -7,7 +7,7 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-22，逐條實證簽核）
 
-> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **9/88 當期來源／UI 編輯／保存範圍具直接自動化完整 AC 斷言**（`NFB-AC-30`、`NFB-AC-17`、`SWT-AC-04`、`NFB-AC-10`、`SWT-AC-02`、`NFB-AC-25`、`NFB-AC-22`、`SWT-AC-15`、`SWT-AC-03`），其他 79 項仍未簽核；新增 SWT-AC-03 須依當次 PR exact HEAD CI SUCCESS 才可併入 GitHub localX；不可用測試檔存在或 CI 綠燈概括 88 項。
+> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **13/88 個來源範圍的完整自動化 AC 斷言**（原 9 項＋`NFB-AC-48`、`NFB-AC-49`、`NFB-AC-50`、`SWT-AC-28`）；其他 75 項尚未簽核。本批必須以 exact PR HEAD 全套 Product CI SUCCESS ＋ GitHub localX readback 才生效；不可用測試檔存在或 CI 綠燈概括 88 項。
 
 原規格與來源 SHA256 不變：
 - `WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md` — `2fcf48521b913435b01639b9fa1b3ef7789ec93724033e332cedd4c85e1d0eef`
@@ -25,6 +25,15 @@ whd_schema: WHD_DOC_META_V1
 - 使用現行兩款士林 `nfbv5:` CSV 型號，以真正 `editable_nfb_draft`、位移/角度修改、調換、插入、刪除來源證明：兩層三顆身份不重複，每顆型號、手動 X、旋轉獨立；重排只清受影響層的失效 X，另一層保持；源頭名義孔距只允許既有規格組合，且永不自動得出絕對 X 或製造核准。
 - `NFB-AC-05` 的單層／單顆繼承、0/90/180/270、覆寫與 Q16 旋轉保留、不鏡射都新增測試，但原 AC 還有 **MFG-1 真 CUTTING/pivot** 範圍。既有四角實際出圖測試採歷史 DXF 來源，不可當作當前 CSV V5 的直接物理證據；所以 NFB-AC-05 **仍 EVIDENCE_CANDIDATE_ONLY**，沒有擅簽。
 - 只提升 SWT-AC-03 的自動化 UI 編輯 AC（須 exact SHA CI），不解除 17 項舊 GUI 雙案、4 項 MFG 延期、X 未核准定位及正式 X `/推推` 閘門。
+
+## 2026-10-22｜剩餘 79 項一次盤點及四項來源核銷（來源範圍，待 exact CI）
+
+- 原 88 AC 已有 9 項核銷，剩餘 **79 項全部找到主測試函式，集中於 23 個已被 canonical Product Regression 選入的檔案**。逐條追溯與未覆蓋邊界見 [`issue1504_79_pending_ac_batch_source_audit.json`](issue1504_79_pending_ac_batch_source_audit.json)。CI 選入主檔不等於跨入口 GUI／製造全條 AC 已驗證；不得再把這 79 項當作未跑測試重跑。
+- 本批直接核銷 `NFB-AC-48`：缺單顆／整排 X、Y 或主孔實體中心即保守拒絕；**名義中心距不核准實體 X 或製造**。實際負例由 `test_issue1497_nfb_cutting_preflight.py`、`test_issue1494_nfb_x_shadow_projection.py`、`test_issue1504_current_nfb_y_ac10_swt02.py` 的既有函式共同驗證。
+- `NFB-AC-49`：真 WHD W800×3 DXF 源輪廓、723 展開 CUTTING 基準、內門面到箱體座標的正反向 X 測試；**僅此個案，沒有替其他 W×N 或正式製造 X 解除限制**。
+- `NFB-AC-50` 與 `SWT-AC-28`：舊 1100 高 550／290／790 名義 Y 與內門成形／展開可逆投影；非 1100 不猜。現行操作高度 330／830 的新規格另由相同真板件投影測試驗證，不倒退成舊預設；若無完整來源仍非正式 CUTTING 核准。
+- 79 項基準盤點分類是 44 主要證據候選、17 #1500 GUI 真雙案、14 #1502 已交付但全 AC 尚需比對、4 #1503 PAD/EAR 整箱不同範圍。四項來源簽核後預期為 **13 已簽、40 候選、17 GUI、14 #1502、4 #1503，共 88**。不可把 PAD＋Base PART-ONLY、已驗 EAR 打標重新列作從未施工，也不得恢復已被現行 CSV／Z 規則覆蓋的舊限制。
+- **不在本批冒簽的完整驗收**：NFB-AC-05 現行 CSV V5 四角物理 CUTTING/pivot 尚須直接 DXF 証據；NFB-AC-54／SWT-AC-31 舊 reader 和 DXF 向下相容；17 條雙舊案真 GUI；完整整櫃 MFG-2／焊接與跨板件全域接觸。正式 X 仍必須另外 `/推推`。
 
 ## 現行權威（覆蓋舊例，非第二份 AC 規格）
 
@@ -126,9 +135,9 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-45 | #1500 | BLOCKED_1500_REAL_GUI | UI-1B | 還原為未配置後不殘留可複製或重啟的 NFBConfig 休眠內容；同一 transaction Undo 可完整恢復先前提交設定及守衛結果，legacy 製造與本套品牌 owner 不變。 |
 | NFB-AC-46 | #1499、#1500 | BLOCKED_1500_REAL_GUI | UI-1B（已提交檔守衛）／MFG-1（內門阻斷） | 守衛功能旗標關閉但載入已提交 NFBConfig 的檔案，不得當作 UNCONFIGURED 照舊匯出缺 NFB 孔的完整 DXF；阻止受影響完整匯出並明確警示。 |
 | NFB-AC-47 | #1493 | EVIDENCE_CANDIDATE_ONLY | UI-1A | UI-1A 關閉有未提交變更的 NFB 面板須確認；取消關閉時保留編輯會話，確認捨棄不寫權威配置且舊式 DXF 不變。 |
-| NFB-AC-48 | #1494、#1495、#1496 | EVIDENCE_CANDIDATE_ONLY | MFG-1（進場） | MFG-1 缺 X 單顆／整排、Y 局部投影或主孔中心任一證據時，不得讓未知配置成為「可製造」；四組已知名義中心距不自動等於已驗收可製造。 |
-| NFB-AC-49 | #1494 | EVIDENCE_CANDIDATE_ONLY | MFG-1（X 進場） | W800×3 的 723/361.5 個案須核對來源 DXF 左輪廓、真正下料 CUTTING 左緣及下料→門面→箱體 X 映射；未證實前不得以此個案推導其它組合。 |
-| NFB-AC-50 | #1495 | EVIDENCE_CANDIDATE_ONLY | UI-1A（未定顯示）／MFG-1（Y 進場） | 1100 名義 550／290／790 從箱體外頂投影到內門成品與展開 Y 具可重現雙向測試；非 1100 標「Y 基準未定」，不猜。 |
+| NFB-AC-48 | #1494、#1495、#1496 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | MFG-1（進場） | MFG-1 缺 X 單顆／整排、Y 局部投影或主孔中心任一證據時，不得讓未知配置成為「可製造」；四組已知名義中心距不自動等於已驗收可製造。 |
+| NFB-AC-49 | #1494 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | MFG-1（X 進場） | W800×3 的 723/361.5 個案須核對來源 DXF 左輪廓、真正下料 CUTTING 左緣及下料→門面→箱體 X 映射；未證實前不得以此個案推導其它組合。 |
+| NFB-AC-50 | #1495 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（未定顯示）／MFG-1（Y 進場） | 1100 名義 550／290／790 從箱體外頂投影到內門成品與展開 Y 具可重現雙向測試；非 1100 標「Y 基準未定」，不猜。 |
 | NFB-AC-51 | #1496、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（提示）／MFG-1（解析與能力） | DXF 主 CUTTING 中心、ARC/CIRCLE、來源顏色及旋轉 pivot 經真圖認證；選型列表逐組正確顯示「可製造（內門）」／「僅預覽」，不可因型號孤立合格便全範圍放行。 |
 | NFB-AC-52 | #1497 | EVIDENCE_CANDIDATE_ONLY | MFG-1（製造）／UI-1B（閘門） | MFG-1 輸出合法內門真實 CUTTING、消除與 legacy 相同物理孔的重複加工來源；缺必要幾何 fail-closed，MFG-1 未通過時 UI-1B 不准提交。 |
 | NFB-AC-53 | #1498、#1500 | BLOCKED_1500_REAL_GUI | MFG-1（能力）／UI-1B（提交） | 機器可驗證的版本化 MFG-1 能力註冊驅動提交可用性，不靠 GUI 手動旗標；能力不可用禁止新提交／提交型複製，但既有已提交專案不降級成未配置。 |
@@ -162,7 +171,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-25 | #1498 | EVIDENCE_CANDIDATE_ONLY | MFG-1（依賴）／UI-1B（提交） | 未選型與缺來源不導致既有 UNCONFIGURED 箱體任何新增阻斷；已提交之內門及真實存在的底板／中板依保守基線阻斷，側板不憑 EAR 延期受阻。 |
 | SWT-AC-26 | #1500 | BLOCKED_1500_REAL_GUI | UI-1A（提交鎖定）／UI-1B（READY 後啟用） | 真實板件依賴守衛未驗收前，UI 確認與會提交到未配置 Bay 的複製操作均不可用；不影響舊式內門／底板／中板出圖。 |
 | SWT-AC-27 | #1494 | EVIDENCE_CANDIDATE_ONLY | MFG-1（X 進場） | 單顆 X／整排 X 的內門／箱體 datum 與來源 DXF 有正式核准測例，沒有的組合不得冒稱可製造，W800×3 不能替其他箱寬解除 `OPEN-X-ROW`。 |
-| SWT-AC-28 | #1495 | EVIDENCE_CANDIDATE_ONLY | UI-1A（提示）／MFG-1（Y 進場） | 1100 上層的外頂 Y=550／290／790 正確投影到形成內門及展開局部 Y，非 1100 不猜座標。 |
+| SWT-AC-28 | #1495 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（提示）／MFG-1（Y 進場） | 1100 上層的外頂 Y=550／290／790 正確投影到形成內門及展開局部 Y，非 1100 不猜座標。 |
 | SWT-AC-29 | #1497 | EVIDENCE_CANDIDATE_ONLY | MFG-1（NFB-DXF 進場／內門切孔） | 每顆 NFB 的主 CUTTING 開孔中心、輪廓與旋轉有真實 DXF／Feature 測例；與既有中間孔加工來源排他、不重複、不刪 legacy Feature。 |
 | SWT-AC-30 | #1498 | EVIDENCE_CANDIDATE_ONLY | UI-1A（標示）／MFG-1（能力註冊） | 已知四組相鄰名義孔距不是可製造清單；只對逐組核准的 W×N×Y×型號×內門 datum 顯示可製造（內門），範圍外僅預覽。 |
 | SWT-AC-31 | #1499 | EVIDENCE_CANDIDATE_ONLY | UI-1B（Save／Reload／降級回歸） | 未提交保持既有 schema 與 DXF；已有提交 scope 須根專案與 Quantity schema 升版，凍結舊版 schema 清單的舊 reader 拒載；不能對不認識新 schema 的舊版 silent export。 |
@@ -170,7 +179,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 88 項確切測試函式（部分自動化證據，不代表整條 AC 驗收）
 
-**88/88 條已找到確切的 Python 測試函式；9/88 條有當期範圍的完整 AC 自動化斷言，仍需本 PR exact HEAD CI 全綠後生效。** 這只確認函式名稱、候選檔案與原 owner 一致，並經 AST 檢查它真的存在。尚未逐條證明所有操作、UI、加工、裝配與現場斷言均完整覆蓋。
+**88/88 條已找到確切的 Python 測試函式；13/88 條有當期範圍的完整 AC 自動化斷言，仍需本 PR exact HEAD CI 全綠後生效。** 這只確認函式名稱、候選檔案與原 owner 一致，並經 AST 檢查它真的存在。尚未逐條證明所有操作、UI、加工、裝配與現場斷言均完整覆蓋。
 
 如單條需求含多種操作，以下只代表其中一部分證據。例如 #1500 的真實 UI 操作與 #1502 的實體製造仍必須單獨驗收，不得因測試函式存在而放行。
 
@@ -223,9 +232,9 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-45 | `tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy` | BLOCKED_1500_REAL_GUI |
 | NFB-AC-46 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` | BLOCKED_1500_REAL_GUI |
 | NFB-AC-47 | `tests/test_issue1493_nfb_draft_transactions.py::test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions` | EVIDENCE_CANDIDATE_ONLY |
-| NFB-AC-48 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_no_unapproved_size_or_single_unit_center_defaults` | EVIDENCE_CANDIDATE_ONLY |
-| NFB-AC-49 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly` | EVIDENCE_CANDIDATE_ONLY |
-| NFB-AC-50 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_approved_nominal_box_top_y_maps_to_real_1075_blank` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-48 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_no_unapproved_size_or_single_unit_center_defaults` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
+| NFB-AC-49 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
+| NFB-AC-50 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_approved_nominal_box_top_y_maps_to_real_1075_blank` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-51 | `tests/test_issue1496_nfb_dxf_source.py::test_unsupported_not_silently_treated_as_certified` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-52 | `tests/test_issue1497_w800_three_canonical_cutting.py::test_w800x3_uses_whd_723_blank_x_for_three_real_holes` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-53 | `tests/test_issue1498_nfb_part_readiness.py::test_ready_requires_actual_per_hole_x_y_and_rotation_proof` | BLOCKED_1500_REAL_GUI |
@@ -259,7 +268,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-25 | `tests/test_issue1498_nfb_part_readiness.py::test_unconfigured_preserves_legacy_even_when_nfb_source_absent` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-26 | `tests/test_issue1500_nfb_transactions.py::test_first_submission_includes_held_plates_in_warning_but_commits_inner_config` | BLOCKED_1500_REAL_GUI |
 | SWT-AC-27 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly` | EVIDENCE_CANDIDATE_ONLY |
-| SWT-AC-28 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_non_1100_upper_y_is_unapproved_not_silently_scaled` | EVIDENCE_CANDIDATE_ONLY |
+| SWT-AC-28 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_non_1100_upper_y_is_unapproved_not_silently_scaled` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-29 | `tests/test_issue1497_configured_nfb_manufacturing_release.py::test_legacy_same_physical_hole_fails_no_duplicate_cutting` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-30 | `tests/test_issue1498_nfb_part_readiness.py::test_wrong_approved_inner_source_or_wrong_part_is_not_a_manufacturing_capability` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-31 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` | EVIDENCE_CANDIDATE_ONLY |
