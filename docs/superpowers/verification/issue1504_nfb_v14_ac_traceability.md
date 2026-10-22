@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 
 > **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **20/88 個當期來源範圍的完整自動化 AC 斷言**（原 13 項＋本批 `NFB-AC-06`、`NFB-AC-08`、`NFB-AC-26`、`NFB-AC-33`、`NFB-AC-37`、`SWT-AC-17`、`SWT-AC-25`）；其他 68 項尚未簽核。本批必須以 exact PR HEAD 全套 Product CI SUCCESS ＋ GitHub localX readback 才生效；不可用測試檔存在或 CI 綠燈概括 88 項。
 
-## 2026-10-22 CURRENT｜七項來源鏈集中核銷（需 #2056 exact HEAD CI 與 localX readback）
+## 2026-10-22 CURRENT｜七項來源鏈集中核銷（需 #2057 exact HEAD CI 與 localX readback）
 
 - **NFB-AC-06**：UI-1A 真草稿 Cancel／Escape／Undo、非法變更無來源洩漏，Native Hole Editor NFB 預覽非法索引不污染一般孔位／舊孔，主頁籤確定前不寫 Bay。
 - **NFB-AC-08**：Quantity 版本 add/select/delete/deep-copy，每版真不同 NFB 型號、X／rotation／件數，以 `.p6fold` Save→Reload 精確保存，未核准 X 不在複製時偷轉 APPROVED。
