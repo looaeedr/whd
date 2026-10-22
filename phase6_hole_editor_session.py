@@ -195,11 +195,16 @@ class Phase6HoleEditorSession:
                     self.active_features[:] = before
                     self._selected_index = -1
         elif kind == "preview_all":
-            self._begin_active_if_needed()
-            self.active_features[:] = list(action.features or ())
+            # The Receiving NFB tab stages all CSV holes through this same
+            # transaction. Validate the requested selection against the
+            # proposed features BEFORE altering the caller-owned live list
+            # or starting an active edit; a rejected preview must be inert.
+            proposed = list(action.features or ())
             index = int(action.selected_index if action.selected_index is not None else -1)
-            if index != -1 and not 0 <= index < len(self.active_features):
+            if index != -1 and not 0 <= index < len(proposed):
                 raise IndexError(index)
+            self._begin_active_if_needed()
+            self.active_features[:] = proposed
             self._selected_index = index
         else:
             raise ValueError(f"unsupported hole editor action: {kind}")
