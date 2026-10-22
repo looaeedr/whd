@@ -160,6 +160,9 @@ PYTEST_PATHS = (
     # #1504 AC-22/SWT-15: current CSV V5 UI unknown-X and actual Bay/Quantity
     # .p6fold persistent identity, explicit zero/NONE, no fake approval.
     "tests/test_issue1504_ac22_swt15_current_x_persistence.py",
+    # #1504 source-owned V5 NFB independent slot identities, ordering and
+    # X, quarter-turn inheritance, no mirrors or nominal-to-MFG promotion.
+    "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py",
     "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py",
     "tests/test_issue1504_quantity_ear_z_set_identity.py",
     # #1504 exact function audit uncovered these five previously unselected
