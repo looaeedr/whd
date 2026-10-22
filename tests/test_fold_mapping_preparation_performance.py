@@ -189,8 +189,11 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
                 # The loaded Receiving project above was deliberately
                 # unconfigured. A NEW Family selection now creates one real
                 # CSV NFB, changing physical CUTTING and Base/EAR topology.
-                assert app._phase6_input_snapshot['nfb_config_submitted'] is True
-                assert len(app._phase6_input_snapshot['nfb_config']['holes']) == 1
+                # Current Set1/Bay1 is the persistence owner; the root
+                # compatibility alias need not be present until selection.
+                actual = app._phase6_input_snapshot['receiving_layout']['sets'][0]['bays'][0]
+                assert actual['nfb_config_submitted'] is True
+                assert len(actual['nfb_config']['holes']) == 1
                 assert signature() != receiving
             else:
                 assert signature() != receiving
