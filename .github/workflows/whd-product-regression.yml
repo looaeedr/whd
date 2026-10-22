@@ -20,6 +20,7 @@ on:
       - 'tools/phase6_bridge_anti_regrowth_guard.py'
       - 'tools/product_ci_regression.py'
       - 'tools/product_ci_green_reuse.py'
+      - 'tools/whd_v15_acceptance_evidence.py'
       - 'docs/architecture/phase6_bridge_anti_regrowth_baseline.json'
       - 'docs/superpowers/checkpoints/issue532-c0-final-classification.json'
       - '.github/workflows/whd-product-regression.yml'
@@ -66,22 +67,9 @@ jobs:
         run: |
           set -euo pipefail
           test -s trusted-timezone-policy/tools/change_lane_gate.py
+          test -s trusted-timezone-policy/tools/localx_publish_gate.py
           cp trusted-timezone-policy/tools/change_lane_gate.py tools/change_lane_gate.py
-      - name: Taiwan timezone hard gate for CI and changed Python sources
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          from tools.change_lane_gate import require_taipei_timezone, require_new_code_taipei
-          print("TAIWAN_TIMEZONE_HARD_GATE_PASS " + require_taipei_timezone())
-          print("new_python_lines_checked=" + str(require_new_code_taipei(
-              Path("."),
-              "${{ github.event.pull_request.base.sha }}",
-              "${{ github.event.pull_request.head.sha }}",
-          )))
-          PY
-
+          cp trusted-timezone-policy/tools/localx_publish_gate.py tools/localx_publish_gate.py
       - name: Taiwan timezone hard gate for CI and changed Python sources
         shell: bash
         run: |

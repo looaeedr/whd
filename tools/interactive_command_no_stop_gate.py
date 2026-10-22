@@ -91,7 +91,11 @@ def execute_authorized_step(
     """
     attempted: list[str] = []
     blocked: list[str] = []
+    denied = set(observation.rejected_actions)
     for action in observation.authorized_actions:
+        if action in denied:
+            blocked.append(action)
+            continue
         if action not in handlers:
             continue
         attempted.append(action)

@@ -24,6 +24,8 @@ CHECK_NAME = "Canonical Product Regression"
 GLOBAL_DEPENDENCY_PATHS = {
     ".github/workflows/whd-product-regression.yml",
     "tools/product_ci_regression.py",
+    "tools/product_ci_green_reuse.py",
+    "tools/whd_v15_acceptance_evidence.py",
     "tools/phase6_bridge_anti_regrowth_guard.py",
     "requirements.txt",
     "pytest.ini",
@@ -81,21 +83,23 @@ def surface(path: str) -> str:
     if p in GLOBAL_DEPENDENCY_PATHS or p.startswith("requirements"):
         return "global"
     if (
-        p.startswith("ae_engine/")
-        or p.startswith("gui_modules/")
-        or p.startswith("phase6_")
-        or p == "fold_designer_bridge.py"
-        or (p.startswith("tests/") and not p.startswith("tests/process/"))
-    ):
-        return "product"
-    if (
         p.startswith(".agents/")
         or p == "AGENTS.md"
         or p.startswith("tests/process/")
+        or p.startswith("tests/governance/")
+        or p.startswith("tests/knowledge/")
         or p.startswith("個人AI檔案庫/")
         or p.startswith("coord/")
     ):
         return "governance"
+    if (
+        p.startswith("ae_engine/")
+        or p.startswith("gui_modules/")
+        or p.startswith("phase6_")
+        or p == "fold_designer_bridge.py"
+        or p.startswith("tests/")
+    ):
+        return "product"
     if p.startswith(".github/"):
         return "global"
     if p.startswith("tools/"):
@@ -137,26 +141,45 @@ def decide_green_reuse(
 
 
 def _prior_green(repo: str, sha: str, token: str) -> bool:
-    url = f"https://api.github.com/repos/{repo}/commits/{sha}/check-runs?per_page=100"
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "whd-product-ci-green-reuse",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=20) as response:
-        payload = json.load(response)
-    for item in payload.get("check_runs", []):
-        if (
-            item.get("name") == CHECK_NAME
-            and item.get("status") == "completed"
-            and item.get("conclusion") == "success"
-        ):
-            return True
-    return False
+    matching: list[dict[str, object]] = []
+    page = 1
+    while True:
+        url = (
+            f"https://api.github.com/repos/{repo}/commits/{sha}/check-runs"
+            f"?per_page=100&page={page}"
+        )
+        req = urllib.request.Request(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "User-Agent": "whd-product-ci-green-reuse",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=20) as response:
+            payload = json.load(response)
+        runs = payload.get("check_runs", [])
+        if not isinstance(runs, list):
+            return False
+        for item in runs:
+            if isinstance(item, dict) and item.get("name") == CHECK_NAME:
+                matching.append(item)
+        if len(runs) < 100:
+            break
+        page += 1
+    if not matching:
+        return False
+    if any(item.get("status") != "completed" for item in matching):
+        return False
+    latest = max(
+        enumerate(matching),
+        key=lambda pair: (
+            int(pair[1].get("id")) if isinstance(pair[1].get("id"), int) else -1,
+            pair[0],
+        ),
+    )[1]
+    return latest.get("conclusion") == "success"
 
 
 def classify(repo: str, head_sha: str, base_sha: str, token: str) -> dict[str, object]:

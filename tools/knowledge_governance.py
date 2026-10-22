@@ -781,7 +781,10 @@ def _write_json(path: Path, payload: Mapping[str, object]) -> None:
 
 
 def _load_inventory(path: Path) -> Mapping[str, object]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise GovernanceError(f"{path}: invalid JSON: {exc}") from exc
     if not isinstance(payload, dict):
         raise GovernanceError("inventory root must be an object")
     return payload
