@@ -44,3 +44,36 @@ def test_all_newly_selected_owner_regression_files_have_live_test_functions():
                  if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
                  and n.name.startswith("test_")]
         assert len(tests) >= 5, candidate
+
+
+# #1503 PAD used to run only on a post-merge localX push. Every product
+# manufacturing/assembly/GUI test must also execute on the PR exact HEAD.
+# This is intentionally separate from the old 8-owner regression contract.
+REQUIRED_PAD = (
+    "tests/test_receiving_nfb_pad_pair_manufacturing.py",
+    "tests/test_receiving_pad_native_tk_operator_selector.py",
+    "tests/test_receiving_flat_pad_source_routing.py",
+    "tests/test_receiving_nfb_pad_generator.py",
+    "tests/test_receiving_nfb_pad_depth_policy_tiers.py",
+    "tests/test_receiving_nfb_pad_part.py",
+    "tests/test_receiving_nfb_pad_operator_parts.py",
+    "tests/test_receiving_nfb_pad_delivery.py",
+    "tests/test_receiving_nfb_pad_assembly_preview.py",
+    "tests/test_receiving_nfb_pad_preview_cache.py",
+    "tests/test_receiving_nfb_pad_real_renderer.py",
+    "tests/test_receiving_nfb_pad_base_mating.py",
+    "tests/test_receiving_flat_base_single_nfb_true_z.py",
+    "tests/test_receiving_nfb_depth_surface_policy.py",
+)
+
+
+def test_pad_part_only_mfg_and_real_operator_suites_cannot_disappear_from_pr_ci():
+    for candidate in REQUIRED_PAD:
+        assert PYTEST_PATHS.count(candidate) == 1, candidate
+        source = ROOT / candidate
+        assert source.is_file(), candidate
+        nodes = ast.parse(source.read_text(encoding="utf-8")).body
+        assert any(
+            isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and n.name.startswith("test_") for n in nodes
+        ), candidate
