@@ -52,9 +52,9 @@ def test_approved_v14_has_all_88_unique_original_acceptance_ids():
     obj = _data()
     assert obj["schema"] == SCHEMA
     rows = obj["records"]
-    assert len(rows) == 88
+    assert len(rows) == 108
     ids = [r["id"] for r in rows]
-    assert len(set(ids)) == 88
+    assert len(set(ids)) == 108
     assert set(ids) == {
         *(f"NFB-AC-{n:02d}" for n in range(1, 57)),
         *(f"SWT-AC-{n:02d}" for n in range(1, 33)),
@@ -115,7 +115,7 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
             assert r["blocking_issues"] == [1503]
         else:
             assert not r["blocking_issues"]
-    assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15"}
+    assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-05"}
     assert rows["NFB-AC-30"]["blocking_issues"] == []
 
 
@@ -132,19 +132,19 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
 def test_manifest_review_summary_is_recomputed_from_records():
     obj = _data()
     counts = dict(Counter(r["status"] for r in obj["records"]))
-    assert sum(counts.values()) == 88
+    assert sum(counts.values()) == 108
     assert obj["counts"] == counts
     assert counts["DEFERRED_PRODUCT_EVIDENCE"] >= 3
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
     assert counts["SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"] == 14
     assert counts["BLOCKED_1500_REAL_GUI"] == 17
-    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 45
-    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 8
+    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 43
+    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 10
 
 
 def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
     data = _data()
-    assert data["exact_test_function_witnesses_count"] == 88
+    assert data["exact_test_function_witnesses_count"] == 108
     assert data["assertion_witness_note"]
     found = 0
     for item in data["records"]:
@@ -168,7 +168,7 @@ def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_fl
             actual = {n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
             assert witness["test_name"] in actual, item["id"]
             found += 1
-    assert found == 88
+    assert found == 108
 
 
 def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
@@ -185,10 +185,10 @@ def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
 def test_one_full_ac_requires_source_specific_runtime_witness_and_ci_selection():
     obj = _data()
     assert obj["exact_test_function_witnesses_review"].startswith(
-        "88/88 FUNCTION_IDENTITIES_VERIFIED; 8/88 FULL_AC_AUTOMATED_SIGNED"
+        "88/88 FUNCTION_IDENTITIES_VERIFIED; 10/88 FULL_AC_AUTOMATED_SIGNED"
     )
     signed = {r["id"]: r for r in obj["records"] if r["accepted"]}
-    assert set(signed) == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15"}
+    assert set(signed) == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-05"}
     from tools.product_ci_regression import PYTEST_PATHS
     # Do not accept a filename or an unrelated witness.  Exact path, native
     # numeric CSV fail-closed and old source-scoped MFG1 preflight are mandatory.
@@ -235,7 +235,7 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
     assert "732-mm" in rule and "Do not infer plate X" in rule
     assert "remain unapproved" in rule
     assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
-    assert {r["id"] for r in obj["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15"}
+    assert {r["id"] for r in obj["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-05"}
 
     # The human review must not silently retain an older X-centering claim.
     text = MANIFEST.with_suffix(".md").read_text(encoding="utf-8")
@@ -252,8 +252,8 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     assert d["counts"] == {
         "BLOCKED_1500_REAL_GUI": 17,
         "DEFERRED_PRODUCT_EVIDENCE": 4,
-        "EVIDENCE_CANDIDATE_ONLY": 45,
-        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 8,
+        "EVIDENCE_CANDIDATE_ONLY": 43,
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 10,
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     }
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
@@ -289,7 +289,7 @@ def test_current_csv_ear_and_true_skin_supersessions_never_mutate_original_ac():
     assert "PAD blank/material/thickness/Z/BOM" in rule
     assert "welding-workmanship certification" in source["cannot_be_inferred"]
     assert "full" not in d["review_status"].lower()
-    assert {r["id"] for r in d["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15"}
+    assert {r["id"] for r in d["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-05"}
     # Historical original AC-13 falsely held Base Plate Z fixed; preserve
     # the original phrase for traceability and declare its current override.
     row = {r["id"]: r for r in d["records"]}
@@ -461,3 +461,43 @@ def test_ac22_swt15_source_owned_x_and_save_reload_witnesses_are_mandatory():
         for name in (primary, extra, negative):
             assert name in functions
             assert any(isinstance(n, ast.Assert) for n in ast.walk(functions[name]))
+
+
+
+def test_swt03_nfb05_current_v5_edit_witnesses_are_exact_and_mandatory():
+    """No signed slot/rotation AC by name alone or a synthetic model."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    proof = "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py"
+    assert PYTEST_PATHS.count(proof) == 1
+    nodes = ast.parse((ROOT / proof).read_text(encoding="utf-8")).body
+    functions = {n.name: n for n in nodes if isinstance(n, ast.FunctionDef)}
+    checks = {
+        "SWT-AC-03": (
+            "test_swt_ac03_current_csv_units_keep_independent_identity_model_x_and_rotation",
+            "test_swt_ac03_reorder_insert_delete_reset_only_touched_tier_and_keep_true_pitch",
+        ),
+        "NFB-AC-05": (
+            "test_nfb_ac05_layer_inheritance_override_model_reselection_and_all_quarter_turns",
+            "test_nfb_ac05_mirror_non_quarter_angle_and_unindexed_source_all_rejected",
+        ),
+    }
+    rows = {r["id"]: r for r in _data()["records"]}
+    for key, (main, negative) in checks.items():
+        row = rows[key]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["blocking_issues"] == []
+        assert row["identified_test_functions"] == [{
+            "path": proof, "test_name": main,
+            "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS", "accepted": True,
+        }]
+        evidence = row["acceptance_evidence"]
+        assert evidence["primary_assertion"] == proof + "::" + main
+        assert evidence["other_required_assertion"] == proof + "::" + negative
+        assert evidence["original_ac_text_unchanged"] is True
+        assert evidence["factory_release"] is False
+        assert evidence["human_windows_uat_claimed"] is False
+        assert evidence["ui_full_operator_uat_claimed"] is False
+        for name in (main, negative):
+            assert name in functions
+            assert any(isinstance(x, ast.Assert) for x in ast.walk(functions[name]))
