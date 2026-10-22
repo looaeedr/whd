@@ -82,6 +82,20 @@ def read_standard_part_profiles(part_key, profiles, original_snapshot):
             "door_fold_b": _profile_value(y, "door_fold_b", original_snapshot.get("door_fold_b", 20)),
             "door_fold_t": _profile_value(y, "door_fold_t", original_snapshot.get("door_fold_t", 20)),
         }
+    if (str(part_key) == "base_plate"
+            and str(original_snapshot.get("model") or "").strip()
+            in {"受電箱", "RECEIVING"}):
+        # The Receiving root base is NOT the generic four-flange plate.
+        # Its X can contain four physical bends (or none for a flat side),
+        # while Y still has the source BEND20. The true source is the
+        # committed NFB/CSV-derived FinalScene, not base_plate_bend.
+        # Never reverse-project the physical profile or a stale workspace
+        # cache back into the generic four-equal-bends setting.
+        from ae_engine.receiving_base_plate_3d_profiles import (
+            receiving_base_plate_3d_profiles,
+        )
+        if receiving_base_plate_3d_profiles(original_snapshot) is not None:
+            return {}
     if _is_base_plate_part_key(part_key):
         vals = [
             _profile_value(x, "base_bend_l", original_snapshot.get("base_plate_bend", 20)),
