@@ -54,7 +54,11 @@ def _current_brand_config(snapshot):
         si, bi = active.get("set_index"), active.get("bay_index")
         if (type(si) is not int or si < 0 or si >= len(sets)
                 or sets[si].get("stable_id") != active.get("set_id")):
-            raise ValueError("EAR_Z_SET_IDENTITY_DRIFT")
+            raise ValueError(
+                "EAR_Z_SET_IDENTITY_DRIFT:"
+                f" selected_index={si!r} selected_id={active.get('set_id')!r}"
+                f" current_ids={tuple(row.get('stable_id') for row in sets)!r}"
+            )
         selected_set = sets[si]
         bays = selected_set.get("bays")
         if (not isinstance(bays, (tuple, list)) or type(bi) is not int
