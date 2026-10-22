@@ -752,9 +752,21 @@ def family_model_transition(
             from ae_engine.receiving_fresh_nfb_defaults import (
                 seed_fresh_receiving_nfb_source,
             )
+            from ae_engine.receiving_layout import (
+                RECEIVING_RUNTIME_SELECTION_KEY, new_receiving_layout,
+            )
             snapshot["active_mode"] = "set_bay"
             snapshot.pop("quantity", None)
             snapshot.pop("receiving_quantity_box", None)
+            snapshot.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
+            # A NEW Family is not a re-entry into the previous project's
+            # unconfigured Quantity/Bay. Reusing its saved ReceivingLayout
+            # can carry an alternate switch brand and silently skip the
+            # required one-NFB initial source. Start Set1/Bay1 from the
+            # current Family dimensions, then seed the CSV-derived source.
+            snapshot["receiving_layout"] = new_receiving_layout(
+                width=snapshot["w"], height=snapshot["h"], depth=snapshot["d"],
+            )
             snapshot = seed_fresh_receiving_nfb_source(snapshot)
         if "ui_text_size" in settings_values:
             snapshot["ui_text_size"] = settings_values["ui_text_size"]
