@@ -647,6 +647,17 @@ def apply_settings_profile_projection(
     clone = required("clone_profile")
 
     snapshot = materialize(plan.snapshot)
+    # Settings freezes dataclasses into plain mappings to keep its own
+    # boundary deterministic. Actual Receiving Hole Editor Features belong
+    # to the already-committed manufacturing/workspace snapshot, NOT to
+    # Settings. Copy their typed source back before any downstream
+    # ReceivingLayout validation (otherwise genuine ProfileFeature rows
+    # become plain dicts and every Bay selector fails on a model switch).
+    live = getattr(app, "_phase6_input_snapshot", {}) or {}
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        for key in ("receiving_layout", "part_features"):
+            if key in live and key in snapshot:
+                snapshot[key] = deepcopy(live[key])
     app._phase6_input_snapshot.update(snapshot)
 
     box_profile = materialize(plan.box_body_profile)
