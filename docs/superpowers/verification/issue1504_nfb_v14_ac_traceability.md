@@ -7,6 +7,13 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-22，逐條實證簽核）
 
+## CURRENT｜#1503 已結案後的阻擋狀態回讀（2026-10-22 台灣時間）
+
+- **#1503 CLOSED/completed**：EAR／SIDE 打標與單雙層 PAD＋Base **PART-ONLY** 2D、3D、BOM、正式 CHECK/Q DXF 已有 GitHub CI 與 R5-2600 Windows 原生 GUI／片件收據，不能繼續把 #1503 當 *OPEN* 依賴，或宣稱 PAD 只有預覽。
+- 本次機器矩陣 `open_gates` 改為 **#1500、#1504**；四條歷史 `DEFERRED_PRODUCT_EVIDENCE`（NFB-AC-13/41、SWT-AC-09/22）不再綁定已結案的 #1503。**它們仍是未簽 AC**：其中原文字有被後續實體 Z／PAD 交付覆蓋的歷史範圍，整箱 MFG-2／NC、焊接工藝／全域碰撞仍須獨立物理證據。不得把 PART-ONLY 收據升格成全箱工廠放行。
+- **簽核數量仍為 20／88**，只修正過期阻擋指向；既有 17 條雙原始舊案 GUI 與 14 條 #1502 已交付但未滿原 AC 仍各自維持原狀。本頁後續提及「#1503 尚 OPEN／僅 PAD 延期」屬歷史記錄，不能覆蓋此 CURRENT readback；正式 X 未授權發布。
+
+
 > **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **20/88 個當期來源範圍的完整自動化 AC 斷言**（原 13 項＋本批 `NFB-AC-06`、`NFB-AC-08`、`NFB-AC-26`、`NFB-AC-33`、`NFB-AC-37`、`SWT-AC-17`、`SWT-AC-25`）；其他 68 項尚未簽核。本批必須以 exact PR HEAD 全套 Product CI SUCCESS ＋ GitHub localX readback 才生效；不可用測試檔存在或 CI 綠燈概括 88 項。
 
 ## 2026-10-22 CURRENT｜七項來源鏈集中核銷（需 #2057 exact HEAD CI 與 localX readback）

@@ -3,7 +3,8 @@
 
 A test filename is NOT proof that an AC passed. Some independent automated
 ACs may be signed only with actual multi-assertion runtime tests in mandatory
-CI, while #1500 real-source GUI and #1503 independent PAD remain unsanctioned.
+CI, while #1500 real-source GUI and full-cabinet manufacturing remain unsigned;
+#1503 PART-ONLY has already closed.
 """
 from __future__ import annotations
 
@@ -96,7 +97,7 @@ def test_all_owner_and_candidate_paths_exist_without_claiming_tests_prove_ac():
 
 def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
     data = _data()
-    assert set(data["open_gates"]) == {1500, 1503, 1504}
+    assert set(data["open_gates"]) == {1500, 1504}
     rows = {r["id"]: r for r in data["records"]}
     assert rows["NFB-AC-34"]["status"] == "BLOCKED_1500_REAL_GUI"
     assert rows["NFB-AC-14"]["status"] == "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
@@ -112,7 +113,11 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
                 "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED"
             )
         elif r["status"] == "DEFERRED_PRODUCT_EVIDENCE":
-            assert r["blocking_issues"] == [1503]
+            assert r["blocking_issues"] == []
+            assert r["post_1503_close_scope"] == (
+                "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
+            )
+            assert r["accepted"] is False
         else:
             assert not r["blocking_issues"]
     assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25"}
@@ -218,7 +223,7 @@ def test_one_full_ac_requires_source_specific_runtime_witness_and_ci_selection()
         assert any(isinstance(n, ast.Assert) for n in ast.walk(matches[0]))
     assert e["factory_release"] is False
     assert e["human_windows_uat_claimed"] is False
-    assert set(obj["open_gates"]) == {1500, 1503, 1504}
+    assert set(obj["open_gates"]) == {1500, 1504}
 
 
 def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
@@ -249,6 +254,7 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     d = _data()
     assert d["assessed_on"] == "2026-10-22"
     assert 1502 not in d["open_gates"]
+    assert 1503 not in d["open_gates"]
     assert d["counts"] == {
         "BLOCKED_1500_REAL_GUI": 17,
         "DEFERRED_PRODUCT_EVIDENCE": 4,
