@@ -16,7 +16,7 @@ from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 import hashlib
 import json
-from numbers import Real
+from numbers import Integral, Real
 from typing import Any
 
 
@@ -78,6 +78,13 @@ def freeze_manufacturing_value(value: Any) -> Any:
         return value
     if isinstance(value, Enum):
         return freeze_manufacturing_value(value.value)
+    # Receiving Set/Bay and NFB slot IDs are integers, not decimal
+    # dimensions.  Casting 0 to 0.0 here makes the canonical scope validator
+    # reject a perfectly matched committed physical Bay during Quantity/BOM
+    # request replay. Match the existing Settings freeze contract: preserve
+    # integer identity, while keeping real dimensions numeric-equivalent.
+    if isinstance(value, Integral):
+        return int(value)
     if isinstance(value, Real):
         return round(float(value), 12)
     if callable(value):
