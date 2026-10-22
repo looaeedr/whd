@@ -52,6 +52,18 @@ def _current_brand_config(snapshot):
     active = snapshot.get(RECEIVING_RUNTIME_SELECTION_KEY)
     if isinstance(active, Mapping):
         si, bi = active.get("set_index"), active.get("bay_index")
+        # An immutable Phase6 manufacturing DTO transports numeric integers
+        # as floats. Normalize only integral, finite quantity indices; the
+        # independent persisted Set/Bay stable-ID checks below stay strict.
+        # Set/Bay snapshots and fractional/forged selectors are NOT rescued.
+        if snapshot.get("active_mode") == "quantity":
+            for label, number in (("set_index", si), ("bay_index", bi)):
+                if (type(number) is float and isfinite(number)
+                        and number.is_integer()):
+                    if label == "set_index":
+                        si = int(number)
+                    else:
+                        bi = int(number)
         if (type(si) is not int or si < 0 or si >= len(sets)
                 or sets[si].get("stable_id") != active.get("set_id")):
             raise ValueError(
