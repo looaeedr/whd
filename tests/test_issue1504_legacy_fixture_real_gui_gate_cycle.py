@@ -125,9 +125,21 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
             assert (saved_features.get(owner) or []) == (features or []), owner
         assert all(not features for owner, features in saved_features.items()
                    if owner not in original_features), "unapproved migrated hole"
-        for key in ("door_layout_columns", "inner_doors", "part_profiles"):
+        for key in ("door_layout_columns", "inner_doors"):
             assert saved["snapshot"].get(key) == old["snapshot"].get(key), key
-        audit.append("REAL_SAVE_PRESERVES_OLD_FEATURES_PASS")
+        # V1 cached Fold profiles are DERIVED from old geometry and may be
+        # migrated to the CURRENT fold rule. Don't freeze stale old cache
+        # values as manufacturing authority: preserve every original part
+        # owner and require valid positive folded segments after rebuild.
+        before_profiles = old["snapshot"].get("part_profiles") or {}
+        saved_profiles = saved["snapshot"].get("part_profiles") or {}
+        assert set(before_profiles).issubset(saved_profiles)
+        for owner in before_profiles:
+            axes = saved_profiles[owner]
+            assert all(axis in axes and axes[axis] for axis in ("X", "Y")), owner
+            assert all(float(segment["len"]) > 0 for axis in ("X", "Y")
+                       for segment in axes[axis]), owner
+        audit.append("REAL_SAVE_PRESERVES_OLD_FEATURES_AND_VALID_PROFILES_PASS")
 
         monkeypatch.setattr(
             filedialog, "askopenfilename", lambda **_kw: str(destination),
@@ -137,8 +149,20 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
         reloaded = dict(app._phase6_input_snapshot)
         assert not contains_submitted_nfb(reloaded)
         assert (reloaded["w"],reloaded["h"],reloaded["d"]) == (800,1600,350)
+        # One more native GUI save after opening the upgraded project must
+        # be idempotent: genuine unexpected profile loss/drift stays RED.
+        resaved_path = tmp_path / "old-reopened-again.p6fold"
+        monkeypatch.setattr(
+            filedialog, "asksaveasfilename",
+            lambda **_kw: str(resaved_path),
+        )
+        assert app.save_project_file_as()
+        resaved = read_project(resaved_path)
+        assert resaved["snapshot"].get("part_profiles") == saved_profiles
+        assert resaved["snapshot"].get("part_features") == saved_features
+        assert not contains_submitted_nfb(resaved["snapshot"])
         assert sha256(FIXTURE.read_bytes()).hexdigest() == source_hash
-        audit.append("REAL_REOPEN_NO_DORMANT_NFB_PASS")
+        audit.append("REAL_REOPEN_NO_DORMANT_NFB_AND_STABLE_PROFILES_PASS")
         print("ISSUE1504_LEGACY_GUI_SOURCE_RECEIPT=" + json.dumps({
             "source": str(FIXTURE.relative_to(Path(__file__).parents[1])),
             "source_sha256": source_hash,
