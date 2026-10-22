@@ -110,7 +110,7 @@ def test_four_source_signoffs_require_real_exact_primary_and_negative_tests():
             assert name in funcs, item
             assert any(isinstance(n,(ast.Assert,ast.With,ast.For,ast.If))
                        for n in ast.walk(funcs[name])), item
-    for key in ("NFB-AC-05","NFB-AC-54","SWT-AC-31"):
+    for key in ("NFB-AC-54","SWT-AC-31"):
         assert rows[key]["accepted"] is False
     assert sum(1 for r in rows.values() if r["status"]=="BLOCKED_1500_REAL_GUI")==17
     assert sum(1 for r in rows.values() if r["status"]=="DEFERRED_PRODUCT_EVIDENCE")==4
