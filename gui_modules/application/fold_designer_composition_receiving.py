@@ -3369,19 +3369,20 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     if any(getattr(row, "source_type", None) ==
                            "NFB_CSV_SOURCE" for row in features):
                         from ae_engine.receiving_nfb_csv_committed_config import (
-                            committed_csv_nfb_config,
+                            committed_csv_nfb_config, preview_quantity_nfb_submission,
                         )
-                        from ae_engine.receiving_quantity_box import project_common_box
                         typed = committed_csv_nfb_config(part_key, features, config)
                         quantity = self.app.designer_workspace.quantity_model
-                        if quantity is None:
-                            raise ValueError("單只 NFB 需要目前的數量模式版本")
+                        # Validate a DETACHED version plus the real Family
+                        # projection first. A rejected Confirm All must not
+                        # leave an already-submitted live quantity NFBConfig.
+                        projected = preview_quantity_nfb_submission(
+                            projected, quantity, typed,
+                        )
                         quantity.set_version_nfb_config(
                             quantity.selected_version_id, submitted=True,
                             config=typed,
                         )
-                        projected["quantity"] = quantity.snapshot()
-                        projected = project_common_box(projected)
                     # Reset only the transient Set/Bay selector: CURRENT
                     # quantity's fresh synthetic Bay must never inherit a
                     # pointer into an obsolete persisted Set. Keep the strict

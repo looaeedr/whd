@@ -166,6 +166,9 @@ PYTEST_PATHS = (
     # #1504 batched current CSV V5 editor Undo/cancel → independent quantity
     # versions → real project Save/Reload/rotation, source fail-closed.
     "tests/test_issue1504_batched_current_nfb_transactions.py",
+    # #1504: real Single/Quantity Confirm All validates detached NFB+Family
+    # before any live version mutation; rejects bad source/geometry atomically.
+    "tests/test_issue1504_quantity_nfb_confirm_atomic.py",
     # #1504 source-owned V5 NFB independent slot identities, ordering and
     # X, quarter-turn inheritance, no mirrors or nominal-to-MFG promotion.
     "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py",
