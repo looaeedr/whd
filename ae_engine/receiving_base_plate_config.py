@@ -317,17 +317,22 @@ def receiving_base_plate_values(snapshot):
         # parametric PAD, sheet face, and physical depth. If no flat
         # source matches, retain the original CENTER resolver fallback.
         source_config = _source_left_flat_base_config(data)
-    if source_config is None:
+    if source_config is None and not explicit_center:
         source_config = _source_center_base_config(data)
-    if source_config is None:
+    if source_config is None and not explicit_center:
         source_config = _source_left_flat_base_config(data)
-    if source_config is None:
+    if source_config is None and not explicit_center:
         source_config = _source_two_tier_matching_left_base_config(data)
     if source_config is not None:
-        # Matching legacy values are geometrically equivalent and may remain
-        # in the project file, but the source-derived values own this PartSpec.
-        # Mismatching legacy values are not silently promoted to authority.
+        # A real source-validated selection remains manufacturing authority.
         config = source_config
+    elif explicit_center:
+        # The operator explicitly changed the BasePlate variant from the
+        # initial auto-selected LEFT template. Never show LEFT while the
+        # manual UI says CENTER; keep this original CENTER sheet editable.
+        # Missing two-depth source proof still blocks full manufacturing
+        # through the existing physical EAR/FinalScene release gate.
+        config = preferred
     elif data.get("nfb_config_submitted") is True:
         # A submitted *numeric CSV V5* model is not proof that an unknown
         # RIGHT/flat/tier source exists. Do not revive a manual pattern when
