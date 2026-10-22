@@ -88,3 +88,54 @@ def test_committed_editor_centers_project_360_without_moving_base_or_guessing_x(
     ]
     assert world_x[0] is not None and world_x[1] is not None
     assert world_x[1] - world_x[0] == pytest.approx(360.0)
+
+
+def test_real_w800_same_tier_two_csv_screw_groups_keep_360_pitch_and_four_mounts(
+    tmp_path,
+):
+    """Check original FinalScene and reopened DXF, not an invented diagram."""
+    from copy import deepcopy
+    import ezdxf
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
+    from tests.test_issue1502_current_csv_original_pair_dxf import _scene, _export
+
+    snapshot = _current(model_second="3P400SN")
+    for hole, x in zip(snapshot["nfb_config"]["holes"], (-180., 180.)):
+        hole["manual_x_mm"] = x
+    snapshot["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snapshot["nfb_config"]
+    )
+    result = _scene(snapshot)
+    base = next(part.render_data for part in result
+                if part.part_key == "base_plate")
+    groups = {}
+    for item in base.scene.primitives:
+        if not (isinstance(item, CirclePrimitive)
+                and item.source_type == "NFB_V5_NUMERIC_BASE_TRIAL"):
+            continue
+        owner = str(item.source_id).split(":screw:", 1)[0]
+        groups.setdefault(owner, []).append(item)
+    assert set(groups) == {"nfb:0", "nfb:1"}
+    assert all(len(entries) == 4 for entries in groups.values())
+    means = {
+        owner: sum(float(hole.center.x) for hole in entries) / 4.
+        for owner, entries in groups.items()
+    }
+    assert means["nfb:1"] - means["nfb:0"] == pytest.approx(360.)
+    assert len([item for item in base.scene.primitives
+                if isinstance(item, PolylinePrimitive)
+                and item.closed and item.layer == "CUTTING"]) == 5
+
+    receipt = _export(snapshot, result, tmp_path)
+    stored = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    circles = [item for item in stored
+               if item.dxftype() == "CIRCLE" and item.dxf.layer == "CUTTING"]
+    assert len(circles) == 8
+    observed = sorted(round(float(item.dxf.center.x), 6) for item in circles)
+    expected = sorted(round(float(item.center.x), 6)
+                      for entries in groups.values() for item in entries)
+    assert observed == expected
+    assert len([item for item in stored
+                if item.dxftype() == "LWPOLYLINE"
+                and item.closed and item.dxf.layer == "CUTTING"]) == 5
