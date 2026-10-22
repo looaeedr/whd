@@ -7,9 +7,15 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-23，逐條實證簽核）
 
+## CURRENT｜2026-10-23 #1504 AC-05 現行 CSV V5 真 CUTTING／DXF 旋轉驗收（exact CI 後生效）
+
+- 本批候選由 **22／88 → 23／88**，尚餘 **65**；NFB-AC-05 原要求與來源 SHA 保留，現行 `nfbv5:士林:2P400` 經提交 `NFBConfig` → 原內門 FinalScene → 原操作入口 `export_current_csv_nfb_door_base_pair` → 實際存檔 DXF 回讀。四種角度 0／90／180／270 分別以 CSV 真矩形頂點、實體門折邊 UV datum、固定 pivot 獨立比對 CUTTING；負例非法角度禁止寫任何 DXF。
+- 搭配原 #2050 的層預設／單顆覆寫／換型保留角度／禁止鏡射及 #2057 的已提交 V5 rotation Save→Reload，以正負多個函式佐證，強制入 Product CI。0／180 對中心對稱矩形會有同一實體 CUTTING，角度保存及右手軸定義另行檢驗，不能虛報 180 變出不同切孔。
+- 只簽當期 **來源已知 W800 上層真內門 PART-ONLY** 範圍，不擴充其它箱寬的 WORLD-X、整櫃 MFG-2／NC、焊接與 Windows 兩舊案全 GUI。正式 X 仍僅 `/推推`；**沒有 exact PR HEAD 五階段 SUCCESS 及 GitHub localX 回讀不得計入 23**。
+
 ## CURRENT｜2026-10-23 #1504 AC-04／AC-19 來源交易核銷（需 exact CI + localX readback）
 
-- **本批候選由 20／88 → 22／88，尚餘 66 條**；原 88 項 AC 文字與來源 SHA 完全不改。新增 `tests/test_issue1504_ac04_ac19_source_transactions.py` 供正式 Product CI 逐項驗證：Q5／Q6／Q7 操作只清受影響層的位移與 datum，另一層及穩定單顆 ID 保留；0／12.5／−0.125 mm 不失精度，非法 NaN、Inf、bool 等輸入原子拒絕；Q16 更換當期 V5 CSV 型號只保留 X／名義中心距、不核准 WORLD-X，來源或幾何非法時整筆不修改；Undo／Cancel 還原。
+- **2026-10-23 前一批由 20／88 → 22／88（當時尚餘 66 條）**；原 88 項 AC 文字與來源 SHA 完全不改。新增 `tests/test_issue1504_ac04_ac19_source_transactions.py` 供正式 Product CI 逐項驗證：Q5／Q6／Q7 操作只清受影響層的位移與 datum，另一層及穩定單顆 ID 保留；0／12.5／−0.125 mm 不失精度，非法 NaN、Inf、bool 等輸入原子拒絕；Q16 更換當期 V5 CSV 型號只保留 X／名義中心距、不核准 WORLD-X，來源或幾何非法時整筆不修改；Undo／Cancel 還原。
 - 已保留 #1493 的混合 legacy ID／allocator 舊版、#1497 Q16 物理切孔批次拒絕與正反證據，防止只看測試檔名冒簽。新批次完成 **exact PR HEAD Product Regression 五階段 SUCCESS、GitHub localX 合併 SHA fresh readback** 才能生效。
 - **17 條 #1500 真雙舊案 GUI、14 條 #1502 已交付待全 AC、4 條全箱歷史延期均不改為 PASS**；NFB-AC-05 現行 CSV 物理旋轉及 NFB-AC-54／SWT-AC-31 舊 reader 仍未簽。無 Windows 最新版本實測；正式 X 不動，需另外 `/推推`。
 
@@ -20,7 +26,7 @@ whd_schema: WHD_DOC_META_V1
 - **截至本段 2026-10-22 回讀，簽核數量為 20／88**，只修正過期阻擋指向；既有 17 條雙原始舊案 GUI 與 14 條 #1502 已交付但未滿原 AC 仍各自維持原狀。本頁後續提及「#1503 尚 OPEN／僅 PAD 延期」屬歷史記錄，不能覆蓋此 CURRENT readback；正式 X 未授權發布。
 
 
-> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **22/88 個當期來源範圍的完整自動化 AC 斷言（以本批 exact CI＋localX readback 生效為前提）**（原 13 項＋本批 `NFB-AC-06`、`NFB-AC-08`、`NFB-AC-26`、`NFB-AC-33`、`NFB-AC-37`、`SWT-AC-17`、`SWT-AC-25`，再加本批 `NFB-AC-04`、`NFB-AC-19`）；其他 66 項尚未簽核。本批必須以 exact PR HEAD 全套 Product CI SUCCESS ＋ GitHub localX readback 才生效；不可用測試檔存在或 CI 綠燈概括 88 項。
+> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **23/88 個當期來源範圍的完整自動化 AC 斷言（以本批 exact CI＋localX readback 生效為前提）**（原 13 項＋本批 `NFB-AC-06`、`NFB-AC-08`、`NFB-AC-26`、`NFB-AC-33`、`NFB-AC-37`、`SWT-AC-17`、`SWT-AC-25`，再加本批 `NFB-AC-04`、`NFB-AC-19`）；其他 65 項尚未簽核。本批必須以 exact PR HEAD 全套 Product CI SUCCESS ＋ GitHub localX readback 才生效；不可用測試檔存在或 CI 綠燈概括 88 項。
 
 ## 2026-10-22 CURRENT｜七項來源鏈集中核銷（需 #2057 exact HEAD CI 與 localX readback）
 
@@ -78,7 +84,7 @@ whd_schema: WHD_DOC_META_V1
 
 - **NFB-AC-10／SWT-AC-02（2026-10-22）**：增補 `tests/test_issue1504_current_nfb_y_ac10_swt02.py`，區分「舊工程沒有人工高度→1100 名義 550／290／790」與「CURRENT 來源已設定→330／830」，同一真內門 part／folded UV 可逆投影；非 1100 不借用名義公式、未核准 W×N 不猜 X 或製造 WORLD-X。只有 exact HEAD canonical CI 五階段全綠、localX merge/readback 後才是當期範圍簽核，**不復原舊 UI 預設**。
 
-## 88 條狀態（最新由上方 22/88 及機器矩陣決定；下方早期回顧僅為歷史）
+## 88 條狀態（最新由上方 23/88 及機器矩陣決定；下方早期回顧僅為歷史）
 
 - `BLOCKED_1500_REAL_GUI`：17 條 — #1500 正式提交／跨連複製／還原與 Undo GUI 整合尚待完整確認
 - `DEFERRED_PRODUCT_EVIDENCE`：4 條 — #1503 僅 PAD 產品製造／獨立工藝證據延期，已核准 EAR 不重做
@@ -116,7 +122,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-02 | #1491、#1500 | BLOCKED_1500_REAL_GUI | UI-1A／UI-1B（提交下限） | 未提交可零槽；正式提交後層數 1／2、至少一槽，刪除最後槽不得隱式退回未配置；1→2、2→1 遵守 Q12／Q17／Q18。 |
 | NFB-AC-03 | #1492 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 真實廠牌 DXF 列表、右側預覽、縮放／平移／重設；選檔不污染正式狀態。 |
 | NFB-AC-04 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（編輯）／MFG-1（幾何違法回滾） | 配置卡重排序與 2D 位移明確分離；mm 欄位精確；Q5／Q6／Q7 清除受影響層全部位移；Q16 保留位移、名義孔距不動，重新驗證非法回滾。 |
-| NFB-AC-05 | #1493、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（設定）／MFG-1（真實旋轉） | 整層預設與單顆角度覆寫互不混淆；0/90/180/270 正確、禁止鏡像；更換型號保留設定。 |
+| NFB-AC-05 | #1493、#1497 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（設定）／MFG-1（真實旋轉） | 整層預設與單顆角度覆寫互不混淆；0/90/180/270 正確、禁止鏡像；更換型號保留設定。 |
 | NFB-AC-06 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（取消 Undo）／MFG-1（幾何違法） | 離開／取消／Undo 不漏出暫存變更；範圍／碰撞非法時保留上次合法配置。 |
 | NFB-AC-07 | #1500 | BLOCKED_1500_REAL_GUI | UI-1B | Bay 複製需覆寫確認、整組深複製；來源及目標之後獨立。 |
 | NFB-AC-08 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B | 數量模式不同 `version_id` 可保存不同 NFB；版本增刪／切換／深複製／重讀均保持身份。 |
@@ -213,7 +219,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-02 | `tests/test_issue1491_nfb_ui1a.py::test_empty_slot_keeps_physical_order_and_requires_no_fake_hole` | BLOCKED_1500_REAL_GUI |
 | NFB-AC-03 | `tests/test_issue1492_nfb_real_dxf_preview.py::test_pan_zoom_reset_never_reopens_source_or_changes_manufacturing` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-04 | `tests/test_issue1493_nfb_draft_transactions.py::test_insert_delete_reorder_reset_only_touched_layer_x` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
-| NFB-AC-05 | `tests/test_issue1504_swt03_nfb05_current_unit_rotation.py::test_nfb_ac05_layer_inheritance_override_model_reselection_and_all_quarter_turns` | EVIDENCE_CANDIDATE_ONLY（現行 V5 製造 CUTTING 旋轉證據未全） |
+| NFB-AC-05 | `tests/test_issue1504_swt03_nfb05_current_unit_rotation.py::test_nfb_ac05_layer_inheritance_override_model_reselection_and_all_quarter_turns` | ACCEPTED_AUTOMATED_CURRENT_SCOPE（現行 V5 製造 CUTTING 旋轉證據未全） |
 | NFB-AC-06 | `tests/test_issue1493_nfb_draft_transactions.py::test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-07 | `tests/test_issue1500_nfb_transactions.py::test_copy_submitted_source_into_independently_verified_target_unit_id` | BLOCKED_1500_REAL_GUI |
 | NFB-AC-08 | `tests/test_issue1499_nfb_persistence.py::test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
