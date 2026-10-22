@@ -110,3 +110,59 @@ def seed_fresh_receiving_nfb_source(snapshot):
     return project_receiving_bay_legacy_aliases(
         value, set_index=0, bay_index=0, validate_common=True,
     )
+
+
+def seed_fresh_receiving_quantity_nfb_source(snapshot):
+    """Source-owned first NFB for a newly initialized Quantity version.
+
+    QuantityModel owns submission, the common box owns model/height, and
+    part_features owns real native inner-door CUTTING. The synthetic one-Bay
+    is NEVER written independently as another NFB authority.
+    """
+    from copy import deepcopy
+    from .cabinet_types import policy as cabinet_policy
+    from .receiving_nfb_csv_editor_features import editor_nfb_features_from_csv
+    from .receiving_nfb_csv_committed_config import committed_csv_nfb_config
+    from .receiving_quantity_box import BOX_KEY, project_common_box
+    from .receiving_shared_settings import SETTING_DEFAULTS
+    from phase6_quantity_model import QuantityModel
+
+    value = deepcopy(dict(snapshot or {}))
+    if (value.get("model") not in ("受電箱", "RECEIVING")
+            or value.get("active_mode") != "quantity"):
+        return value
+    box = dict(value.get(BOX_KEY) or {})
+    if box.get("switch_brand", DEFAULT_BRAND) != DEFAULT_BRAND:
+        return value
+    model = QuantityModel.from_payload(value["quantity"])
+    if model.nfb_config_for_version(model.selected_version_id):
+        return value
+    spec = model_spec(DEFAULT_BRAND, DEFAULT_MODEL)
+    if spec is None or not spec.dimensionally_complete:
+        raise ValueError("RECEIVING_DEFAULT_NFB_CURRENT_CSV_INCOMPLETE")
+    selected = numeric_model_ref(DEFAULT_BRAND, DEFAULT_MODEL)
+    heights = list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
+    config = {"layers": 1, "models": [selected, ""],
+              "layer_heights_mm": heights}
+    box["inner_door_layers"] = 1
+    box["inner_door_models"] = [selected, ""]
+    box["inner_door_layer_heights_mm"] = heights
+    value[BOX_KEY] = box
+    value = project_common_box(value)
+    panels = [p for p in cabinet_policy.derive_inner_door_panels(value)
+              if str(p.cell_key) == "0:0"]
+    if len(panels) != 1:
+        raise ValueError("RECEIVING_DEFAULT_NFB_UPPER_PANEL_NOT_UNIQUE")
+    part_id = panels[0].stable_id
+    features = editor_nfb_features_from_csv(value, config)
+    if len(features) != 1:
+        raise ValueError("RECEIVING_DEFAULT_NFB_CSV_OPENING_NOT_UNIQUE")
+    committed = committed_csv_nfb_config(part_id, features, config)
+    model.set_version_nfb_config(
+        model.selected_version_id, submitted=True, config=committed,
+    )
+    value["quantity"] = model.snapshot()
+    part_features = deepcopy(dict(value.get("part_features") or {}))
+    part_features[part_id] = list(features)
+    value["part_features"] = part_features
+    return project_common_box(value)
