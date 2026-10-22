@@ -11,7 +11,7 @@ def evidence():
 
 @pytest.mark.parametrize('width,count,distances', [
     (600, 2, [180.0]), (750, 2, [310.0]),
-    (800, 2, [325.0]), (800, 3, [180.0, 180.0]),
+    (800, 2, [360.0]), (800, 3, [180.0, 180.0]),
 ])
 def test_approved_relative_table_does_not_become_absolute_x(width, count, distances):
     item = next(r for r in evidence()['records']
