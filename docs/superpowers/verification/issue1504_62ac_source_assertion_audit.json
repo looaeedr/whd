@@ -1,7 +1,7 @@
 {
   "schema": "WHD_1504_62AC_BATCH_ASSERTION_AUDIT_V1",
   "assessed_on": "2026-10-22",
-  "source": "GitHub localX baseline + PR #2045 exact worktree",
+  "source": "GitHub localX PR #2045 source assertions; runtime primary-witness readback on PR #2046 SUCCESS (not full AC)",
   "scope": "48 original candidates (including provisional AC25) + 14 scoped localX 1502",
   "group_order": [
     "選型與開孔",
@@ -38,7 +38,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 3,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert name not in d",
         "assert not result[\"can_manufacture\"]",
@@ -46,7 +46,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -67,7 +66,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 8,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert len(original)==4",
         "assert vp.to_world(115,87,400,300)==pytest.approx(w)",
@@ -77,7 +76,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -98,7 +96,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 10,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert [s[\"unit_id\"] for s in swapped[\"layers\"][0][\"slots\"]]==old_ids[::-1]",
         "assert all(s[\"manual_x_state\"]==NONE and s[\"manual_x_mm\"] is None",
@@ -107,8 +105,7 @@
         "assert inserted[\"layers\"][1]==other"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -129,7 +126,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 9,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert effective_nfb_rotation(changed,0,0)==90",
         "assert same[\"layers\"][0][\"slots\"][0][\"rotation\"]=={\"mode\":OVERRIDE,\"value\":90}",
@@ -138,8 +135,7 @@
         "assert effective_nfb_rotation(changed_again,0,0)==90"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -159,7 +155,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 10,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert session.dirty",
         "assert all(x[\"manual_x_state\"]==NONE for x in session.current[\"layers\"][0][\"slots\"])",
@@ -169,7 +165,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -190,7 +185,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 7,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert q.snapshot()[\"schema\"] == SCHEMA_V2",
         "assert q.nfb_config_for_version(v2)[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"RECONFIRM_REQUIRED\"",
@@ -200,7 +195,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -222,15 +216,14 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 3,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert approved.for_part(\"inner_door:upper:panel\").status==READY",
         "assert missing.for_part(\"inner_door:upper:panel\").status==BLOCKED",
         "assert approved.scope.identity != missing.scope.identity"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -251,7 +244,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 22,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert by_handle[upper_h].layer == \"BASE_CUT\"",
         "assert by_handle[upper_h].effective_color_aci == 30",
@@ -260,8 +253,7 @@
         "assert by_handle[other_h].effective_color_aci == 30"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -281,7 +273,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 11,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert not result.manufacturing_ready",
         "assert result.owner_hole_ids == (\"nfb:A\",\"nfb:B\")",
@@ -290,8 +282,7 @@
         "assert len(result.cutting)==12  # each NFB: 4 native screws + upper circle + contour"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -311,7 +302,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 11,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert ear.slot_pair_indexes == slot_pair",
         "assert ear.fixing_center_from_inside_skin_mm == pytest.approx(63.0)",
@@ -320,8 +311,7 @@
         "assert readiness.for_part(door.part_id).status == READY"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -341,7 +331,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 6,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert cache.load(\"士林\",source.name,index_path=index) is first",
         "assert second.source_sha256!=first.source_sha256",
@@ -351,7 +341,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -372,7 +361,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 5,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert r[\"layers\"][0][\"adjacent_x_mm\"]==pitch",
         "assert r[\"layers\"][0][\"nominal_y_from_top_mm\"]==550.0",
@@ -381,8 +370,7 @@
         "assert r[\"status\"]==PREVIEW_ONLY"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -403,7 +391,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 8,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert new[\"unit_id\"]==old[\"unit_id\"]",
         "assert new[\"manual_x_mm\"]==0",
@@ -412,8 +400,7 @@
         "assert updated[\"layers\"][0][\"slots\"][1]==state[\"layers\"][0][\"slots\"][1]"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -433,7 +420,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 9,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert same_layer[\"layers\"][0][\"brand\"]=={\"mode\":OVERRIDE,\"value\":\"士林\"}",
         "assert same_unit[\"layers\"][0][\"slots\"][0][\"brand\"]=={\"mode\":OVERRIDE,\"value\":\"士林\"}",
@@ -443,7 +430,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -465,7 +451,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 9,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert same_layer[\"layers\"][0][\"brand\"]=={\"mode\":OVERRIDE,\"value\":\"士林\"}",
         "assert same_unit[\"layers\"][0][\"slots\"][0][\"brand\"]=={\"mode\":OVERRIDE,\"value\":\"士林\"}",
@@ -475,7 +461,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -496,7 +481,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 4,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert good[\"holes\"][0][\"manual_x_mm\"] == 0",
         "with pytest.raises(ValueError, match=\"requires explicit numeric\"):",
@@ -504,8 +489,7 @@
         "assert normalize_nfb_saved_fields({"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -526,7 +510,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 7,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert q.snapshot()[\"schema\"] == SCHEMA_V2",
         "assert q.nfb_config_for_version(v2)[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"RECONFIRM_REQUIRED\"",
@@ -535,8 +519,7 @@
         "assert restored.snapshot()[\"schema\"] == SCHEMA_V2"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -556,15 +539,14 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 3,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert approved.for_part(\"inner_door:upper:panel\").status==READY",
         "assert missing.for_part(\"inner_door:upper:panel\").status==BLOCKED",
         "assert approved.scope.identity != missing.scope.identity"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -584,7 +566,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 13,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert draft == before and stale == snapshot",
         "assert preview[\"status\"] == PREVIEW_ONLY",
@@ -593,8 +575,7 @@
         "assert layer[\"adjacent_x_mm\"] == pitch"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -615,7 +596,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 9,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert effective_nfb_rotation(changed,0,0)==90",
         "assert same[\"layers\"][0][\"slots\"][0][\"rotation\"]=={\"mode\":OVERRIDE,\"value\":90}",
@@ -624,8 +605,7 @@
         "assert effective_nfb_rotation(changed_again,0,0)==90"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -646,7 +626,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 6,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert initial.status == PREVIEW_ONLY",
         "assert denied.status == BLOCKED",
@@ -655,8 +635,7 @@
         "assert denied.manufacturing_ready is False"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -677,7 +656,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 9,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert batch.status == PREVIEW_ONLY",
         "assert len(batch.items) == 2",
@@ -686,8 +665,7 @@
         "assert len(batch.items[1].preview_outline_uv_xy) == 4"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -708,7 +686,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 4,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError,match=\"derived\"):",
         "assert normalize_receiving_layout(layout)[\"sets\"][0][\"bays\"][0].get(\"nfb_config\") is None",
@@ -716,8 +694,7 @@
         "with pytest.raises(ValueError,match=\"boolean\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -737,15 +714,14 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 3,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError, match=\"NFB_BASE_MFG2_NOT_RELEASED_FOR_BATCH_EXPORT\"):",
         "assert calls == []",
         "assert not root.exists()"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -765,7 +741,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 10,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert session.dirty",
         "assert all(x[\"manual_x_state\"]==NONE for x in session.current[\"layers\"][0][\"slots\"])",
@@ -774,8 +750,7 @@
         "assert session.current[\"layers\"][0][\"slots\"][0][\"rotation\"][\"mode\"]==INHERIT"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -795,7 +770,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 5,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert raw[\"schema\"] == PROJECT_SCHEMA_V2",
         "assert all(\"nfb_config\" not in b",
@@ -804,8 +779,7 @@
         "assert QuantityModel().snapshot()[\"schema\"] == SCHEMA"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -825,14 +799,13 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 2,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError,match=\"blocked\"):",
         "assert not output.exists()"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -853,15 +826,14 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 3,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert result.for_part(\"base_plate:upper\").status==BLOCKED",
         "assert result.for_part(\"middle_plate:upper\").status==BLOCKED",
         "assert result.for_part(\"side_panel:left\").status==UNAFFECTED"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -882,7 +854,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 14,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert status=={\"inner1\":READY,\"base1\":UNAFFECTED,",
         "assert m.authorized_part_ids==(\"inner1\",\"base1\",\"side1\")",
@@ -891,8 +863,7 @@
         "assert m.partial_only and not m.whole_ready"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -913,7 +884,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 6,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert result.for_part(\"inner_door:upper:panel\").status==READY",
         "assert \"BASE_PLATE_PHYSICAL_ID_UNRESOLVED\" in result.scope_reasons",
@@ -922,8 +893,7 @@
         "with pytest.raises(ValueError,match=\"dependencies unresolved\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -943,7 +913,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 10,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert session.dirty",
         "assert all(x[\"manual_x_state\"]==NONE for x in session.current[\"layers\"][0][\"slots\"])",
@@ -953,7 +923,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -976,13 +945,12 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 1,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError, match=\"OPEN-X\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1002,7 +970,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 17,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert [r.revision for r in rows] == [W800_THREE_DATUM_REVISION] * 3",
         "assert [r.status for r in rows] == [WHD_PART_DATUM_VERIFIED] * 3",
@@ -1011,8 +979,7 @@
         "assert [r.part_id for r in rows] == [\"inner_door:upper:panel\"] * 3"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1032,7 +999,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 15,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert state == raw_before  # no change of any prior Hole Editor feature",
         "assert actual.rule_id == RULE_ID == \"OPEN-Y-PROJECTION\"",
@@ -1041,8 +1008,7 @@
         "assert actual.part_id == \"inner_door:upper:panel\""
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1063,7 +1029,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 4,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert any(\"UNSUPPORTED:ELLIPSE\" in note for note in inv.diagnostics)",
         "assert len(inv.entities) == 1",
@@ -1072,7 +1038,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1093,7 +1058,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 11,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert result.manufacturing_ready",
         "assert len(result.physical_hole_ids) == 3",
@@ -1103,7 +1068,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1124,14 +1088,13 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 2,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError,match=\"old schema\"):",
         "with pytest.raises(ValueError,match=\"孔型版本\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1152,7 +1115,7 @@
       "source": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 18,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert report[\"schema\"] == \"WHD_NFB_INDEXED_SOURCE_COLOR_COVERAGE_V1\"",
         "assert report[\"index_records\"] == 2",
@@ -1161,8 +1124,7 @@
         "assert shihlin[\"source_sha256\"] == shihlin[\"expected_sha256\"]"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1182,7 +1144,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 3,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert name not in d",
         "assert not result[\"can_manufacture\"]",
@@ -1190,7 +1152,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1211,7 +1172,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 10,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert [s[\"unit_id\"] for s in swapped[\"layers\"][0][\"slots\"]]==old_ids[::-1]",
         "assert all(s[\"manual_x_state\"]==NONE and s[\"manual_x_mm\"] is None",
@@ -1220,8 +1181,7 @@
         "assert inserted[\"layers\"][1]==other"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1242,7 +1202,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 13,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert result.status==PREVIEW_ONLY and result.source_sha256",
         "assert result.entity_count==4 and len(result.strokes)==4",
@@ -1252,7 +1212,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1274,7 +1233,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 8,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert new[\"unit_id\"]==old[\"unit_id\"]",
         "assert new[\"manual_x_mm\"]==0",
@@ -1284,7 +1243,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1306,7 +1264,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 5,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert result.for_part(\"inner_door:upper:panel\").status==BLOCKED",
         "assert result.for_part(\"base_plate:upper\").status==BLOCKED",
@@ -1315,8 +1273,7 @@
         "assert result.for_part(\"side_panel:left\").status==UNAFFECTED"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1337,7 +1294,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 11,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert result.manufacturing_ready",
         "assert len(result.physical_hole_ids) == 3",
@@ -1346,8 +1303,7 @@
         "assert len(contours) == 4  # original outer CUTTING + actual 3 NFB holes"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1367,7 +1323,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 11,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert not result.manufacturing_ready",
         "assert result.owner_hole_ids == (\"nfb:A\",\"nfb:B\")",
@@ -1376,8 +1332,7 @@
         "assert len(result.cutting)==12  # each NFB: 4 native screws + upper circle + contour"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1397,7 +1352,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 31,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert set(main._baseline_model_choices()) == {\"金庫型\", \"受電箱\", \"自訂\"}",
         "assert modes._switch_mode(bridge._phase6_composition(app), vars(bridge), \"quantity\")",
@@ -1406,8 +1361,7 @@
         "assert ws.quantity_model.features_for_version(second, \"head\") == captured[-1][\"feature_list_override\"]"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1427,7 +1381,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 5,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert all(x[\"status\"]==NEEDS_RESELECTION for x in selected[\"layers\"][0][\"slots\"])",
         "assert all(x[\"filename\"]==\"400_140X257_107.dxf\"",
@@ -1437,7 +1391,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1459,7 +1412,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 7,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert q.snapshot()[\"schema\"] == SCHEMA_V2",
         "assert q.nfb_config_for_version(v2)[\"nfb_config\"][\"holes\"][0][\"manual_x_state\"] == \"RECONFIRM_REQUIRED\"",
@@ -1469,7 +1422,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1490,7 +1442,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 4,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert good[\"holes\"][0][\"manual_x_mm\"] == 0",
         "with pytest.raises(ValueError, match=\"requires explicit numeric\"):",
@@ -1499,7 +1451,6 @@
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1521,7 +1472,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 4,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert good[\"holes\"][0][\"manual_x_mm\"] == 0",
         "with pytest.raises(ValueError, match=\"requires explicit numeric\"):",
@@ -1529,8 +1480,7 @@
         "assert normalize_nfb_saved_fields({"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1551,7 +1501,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 6,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert missing.status==MISSING",
         "assert missing.strokes==() and missing.bounds is None",
@@ -1560,8 +1510,7 @@
         "assert Path(missing.source_path).parent.name==\"士林\""
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1582,7 +1531,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 4,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError,match=\"derived\"):",
         "assert normalize_receiving_layout(layout)[\"sets\"][0][\"bays\"][0].get(\"nfb_config\") is None",
@@ -1590,8 +1539,7 @@
         "with pytest.raises(ValueError,match=\"boolean\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1611,13 +1559,12 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 1,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError,match=\"distinct actual ear/base groups\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1638,7 +1585,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 5,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert result.for_part(\"inner_door:upper:panel\").status==BLOCKED",
         "assert result.for_part(\"base_plate:upper\").status==BLOCKED",
@@ -1647,8 +1594,7 @@
         "assert result.for_part(\"side_panel:left\").status==UNAFFECTED"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1668,7 +1614,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 7,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert ready.manufacturing_ready",
         "assert tuple(ready.render_data.scene.primitives[:len(before)])==before",
@@ -1677,8 +1623,7 @@
         "assert tuple(legacy.scene.primitives)==before"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1698,15 +1643,14 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 3,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert not result.can_submit",
         "assert all(item.status==LEGACY for item in result.decisions)",
         "assert result.filter_export_part_ids(("
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1726,7 +1670,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 17,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert [r.revision for r in rows] == [W800_THREE_DATUM_REVISION] * 3",
         "assert [r.status for r in rows] == [WHD_PART_DATUM_VERIFIED] * 3",
@@ -1735,8 +1679,7 @@
         "assert [r.part_id for r in rows] == [\"inner_door:upper:panel\"] * 3"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1756,13 +1699,12 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 1,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError, match=\"unapproved cell height\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1782,13 +1724,12 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 1,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError,match=\"blocked\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1808,13 +1749,12 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 1,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert result.for_part(\"inner_door:upper:panel\").status==BLOCKED"
       ],
       "missing_evidence": [
         "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN",
         "TWO_LEGACY_PROJECT_REAL_GUI_CHAIN_NOT_VERIFIED"
       ]
     },
@@ -1835,14 +1775,13 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 2,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "with pytest.raises(ValueError,match=\"old schema\"):",
         "with pytest.raises(ValueError,match=\"孔型版本\"):"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     },
     {
@@ -1863,7 +1802,7 @@
       "source": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
       "assertion_review": "PRIMARY_FUNCTION_DIRECT_ASSERTIONS_PRESENT_FULL_AC_NOT_YET_REVIEWED",
       "assertion_count": 18,
-      "runtime_result": "PENDING_EXACT_SHA_CI",
+      "runtime_result": "PRIMARY_WITNESS_MATCHED_SUCCESS_39723294524_NOT_FULL_AC",
       "covered_assertion_fragments": [
         "assert catalog.records_read==2",
         "assert len(catalog.sources)==len(audited)==3",
@@ -1872,9 +1811,31 @@
         "assert shihlin.source_sha256 is not None"
       ],
       "missing_evidence": [
-        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED",
-        "EXACT_HEAD_COMPLETE_CI_NOT_YET_GREEN"
+        "FULL_REQUIREMENT_MULTI_STEP_CHAIN_NOT_YET_MATCHED"
       ]
     }
-  ]
+  ],
+  "primary_witness_runtime_receipt": {
+    "source_pr": 2046,
+    "run_id": 39723294524,
+    "exact_tested_head": "2b0a9db8f57f86f91c291b6c46f58d93d6b4e021",
+    "run_conclusion": "SUCCESS",
+    "preflight": "SUCCESS",
+    "shards": {
+      "0": "SUCCESS",
+      "1": "SUCCESS",
+      "2": "SUCCESS"
+    },
+    "canonical": "SUCCESS",
+    "primary_witness_AC_count": 62,
+    "unique_primary_functions": 44,
+    "group_counts": {
+      "選型與開孔": 29,
+      "提交與保存": 19,
+      "板件與組合體": 9,
+      "DXF 與數量": 5
+    },
+    "scope": "PRIMARY_WITNESS_CASES_ONLY_NOT_FULL_AC_OR_WINDOWS_UAT",
+    "evidence_url": "https://github.com/looaeedr/whd/issues/1504#issuecomment-6333263717"
+  }
 }
