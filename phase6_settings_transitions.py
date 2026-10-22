@@ -745,6 +745,17 @@ def family_model_transition(
             if key != "ui_text_size"
         }
         snapshot.update(defaults)
+        if target_model == "受電箱":
+            # A newly selected Family must immediately own one real CSV NFB,
+            # its inner-door CUTTING and derived Base/EAR sources. This path
+            # never runs for a saved project's load/reload normalization.
+            from ae_engine.receiving_fresh_nfb_defaults import (
+                seed_fresh_receiving_nfb_source,
+            )
+            snapshot["active_mode"] = "set_bay"
+            snapshot.pop("quantity", None)
+            snapshot.pop("receiving_quantity_box", None)
+            snapshot = seed_fresh_receiving_nfb_source(snapshot)
         if "ui_text_size" in settings_values:
             snapshot["ui_text_size"] = settings_values["ui_text_size"]
 
