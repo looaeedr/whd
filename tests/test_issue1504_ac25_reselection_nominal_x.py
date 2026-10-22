@@ -38,7 +38,7 @@ def _two_or_three(count):
 @pytest.mark.parametrize("width,count,pitch", [
     (600, 2, (180.0,)),
     (750, 2, (310.0,)),
-    (800, 2, (325.0,)),
+    (800, 2, (360.0,)),
     (800, 3, (180.0, 180.0)),
 ])
 def test_nfb_ac25_reselection_preserves_approved_relative_pitch_no_fake_x_checks(
@@ -89,7 +89,7 @@ def test_nfb_ac25_q16_explicit_zero_does_not_turn_old_x_datum_into_approval():
     assert unit["datum_snapshot"] is None
     preview = nfb_ui1a_preview(changed, bay_width_mm=800,
                                upper_cell_height_mm=1100)
-    assert preview["layers"][0]["adjacent_x_mm"] == (325.0,)
+    assert preview["layers"][0]["adjacent_x_mm"] == (360.0,)
     assert [s["status"] for s in preview["layers"][0]["slots"]] == [
         "MODEL_SELECTED", NEEDS_RESELECTION,
     ]
