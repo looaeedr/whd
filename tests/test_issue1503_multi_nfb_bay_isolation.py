@@ -49,9 +49,11 @@ def test_multi_candidate_applies_source_owned_two_tier_nfb_to_only_selected_bays
         "Two physical Bays may share source candidate but not hole identity"
     )
     assert bays[0]["nfb_config"]["holes"][0]["physical_hole_id"] in first_holes
+    # An EXPLICIT re-Apply is now a source-owned, atomic replacement. It
+    # must be idempotent, not a second physical CUTTING owner; mixed/manual
+    # double CUTTING is independently rejected by the replacement validator.
     original = adapter.layout
-    with pytest.raises(ValueError, match="雙重|覆寫"):
-        adapter.apply_inner_door_candidate_to_bays(
-            config, 0, (0,), version_id=version_id
-        )
+    assert adapter.apply_inner_door_candidate_to_bays(
+        config, 0, (0,), version_id=version_id
+    ) == (0,)
     assert adapter.layout == original
