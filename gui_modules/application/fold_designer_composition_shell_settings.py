@@ -842,6 +842,12 @@ def settings_application_project_ui_values(
             self.capabilities.workspace.navigation().replace_receiving_mode(
                 deepcopy(app._phase6_input_snapshot),
             )
+            # ReceivingCapabilityOwner caches a Set/Bay adapter independently
+            # of the workspace. Reusing the prior (unconfigured) adapter
+            # causes sync_receiving_current_bay() to overwrite this fresh
+            # submitted NFB with the old Bay on the next UI refresh.
+            # Rebind it to the committed new Family source before projecting.
+            self.receiving_adapter(namespace, reset=True)
         remembered = getattr(plan, "remember_non_receiving_structure", None)
         if remembered is not None:
             app._phase6_non_receiving_structure_state = deepcopy(remembered)
