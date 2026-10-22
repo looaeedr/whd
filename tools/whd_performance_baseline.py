@@ -593,6 +593,40 @@ def worker(args):
                 raise AssertionError('Forced Bay0 miss did not run real manufacturing')
             if full is first:
                 raise AssertionError('Forced full comparison reused old view object')
+            # On a warm miss, report the exact cache-key component that
+            # changed. No geometry, cache contents or acceptance thresholds
+            # are modified; this is a source-scoped diagnostic receipt.
+            def scoped_bay0_cache_components():
+                from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+                from gui_modules.application.fold_designer_composition_receiving import (
+                    _receiving_bay_preview_fingerprint_snapshot,
+                    _receiving_bay_preview_face_features_key,
+                )
+                from phase6_settings_profile_projection import project_part_dimensions
+                from phase6_sync_envelope import stable_fingerprint
+                source = dict(designer._phase6_input_snapshot)
+                snapshot = project_receiving_bay_legacy_aliases(source, set_index=0, bay_index=0)
+                settings = {
+                    **dict(designer._settings_values),
+                    **{key: snapshot[key] for key in ('w', 'h', 'd')},
+                }
+                snapshot.update(settings)
+                snapshot['part_dimensions'] = project_part_dimensions(snapshot)
+                workspace = designer.designer_workspace
+                inputs = {
+                    'snapshot': _receiving_bay_preview_fingerprint_snapshot(
+                        snapshot, set_index=0, bay_index=0, allow_suffix_topology_reuse=True,
+                    ),
+                    'profiles': workspace.part_profiles_snapshot(),
+                    'features': workspace.part_features_snapshot(),
+                    'face_features': _receiving_bay_preview_face_features_key(
+                        workspace.part_face_features_snapshot(),
+                    ),
+                    'box_profile': designer.state.profiles_vault.get('箱身', ()),
+                    'corners': designer._phase6_corner_state,
+                }
+                return {name: stable_fingerprint(value) for name, value in inputs.items()}
+            cache_before = scoped_bay0_cache_components()
             # Tail addition/removal go through existing real operator UI.
             win = open_modal()
             settle(root, owners)
@@ -606,6 +640,11 @@ def worker(args):
                                   bay0_request, validate=assert_same_parts)
             if (after_append is not full
                     or rows[-1]['counts'].get('manufacturing_solve', 0)):
+                cache_after = scoped_bay0_cache_components()
+                changed = [key for key in cache_before
+                           if cache_before[key] != cache_after[key]]
+                print('ISSUE1817_BAY0_CACHE_MISS_COMPONENTS: ' + repr(changed),
+                      file=sys.stderr, flush=True)
                 raise AssertionError('Unaffected Bay0 rebuilt after UI tail append')
             win = open_modal()
             settle(root, owners)
