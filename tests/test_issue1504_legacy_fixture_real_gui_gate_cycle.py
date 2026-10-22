@@ -113,8 +113,16 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
         saved = read_project(destination)
         assert saved["schema"] == PROJECT_SCHEMA_V2
         assert not contains_submitted_nfb(saved["snapshot"])
-        for key in ("part_features", "door_layout_columns",
-                    "inner_doors", "part_profiles"):
+        # Legacy V1 projects may gain new, EMPTY part keys on migration.
+        # Preserve every old feature owner byte-for-byte in content, and
+        # forbid accidentally creating a nonempty/new manufactured feature.
+        original_features = old["snapshot"].get("part_features") or {}
+        saved_features = saved["snapshot"].get("part_features") or {}
+        for owner, features in original_features.items():
+            assert saved_features.get(owner) == features, owner
+        assert all(not features for owner, features in saved_features.items()
+                   if owner not in original_features), "unapproved migrated hole"
+        for key in ("door_layout_columns", "inner_doors", "part_profiles"):
             assert saved["snapshot"].get(key) == old["snapshot"].get(key), key
         audit.append("REAL_SAVE_PRESERVES_OLD_FEATURES_PASS")
 
