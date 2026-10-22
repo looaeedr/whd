@@ -69,10 +69,7 @@ def test_unresolved_physical_source_never_creates_base_on_a_saved_project():
     )
     assert _canonical_part_keys(host) == ("box_body",)
 
-def test_submitted_two_tier_csv_without_physical_blank_cannot_add_base_or_ears():
-    """The missing-source gate must also hold *after* NFB acceptance."""
-    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-    from phase6_manufacturing_adapter import _canonical_part_keys
+def _two_tier_csv_without_manual_base():
     source = _snapshot()
     source.pop("receiving_base_plate")
     source["nfb_config_submitted"] = True
@@ -85,17 +82,47 @@ def test_submitted_two_tier_csv_without_physical_blank_cannot_add_base_or_ears()
              "model_filename": "nfbv5:士林:2P400", "source_brand": "士林"},
         ],
     }
-    assert receiving_base_plate_values(source) is None, (
-        "TEST_INVALID: submitted but absent physical source is now auto-resolvable"
-    )
+    return source
+
+
+def test_stale_two_tier_csv_bay_identity_blocks_unapproved_base_without_fallback():
+    """NFB root/Bay mismatch is a true RED, not 'no matching blank'."""
+    import pytest
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    from phase6_manufacturing_adapter import _canonical_part_keys
+    source = _two_tier_csv_without_manual_base()
+    # The loaded Bay still owns the old one-tier NFB. A different root
+    # config must NEVER manufacture or silently borrow a physical Base.
+    with pytest.raises(ValueError, match="EAR_Z_NFB_SOURCE_IDENTITY_DRIFT"):
+        receiving_base_plate_values(source)
     host = SimpleNamespace(
         designer_workspace=SimpleNamespace(available_parts=("box_body",)),
         _phase6_input_snapshot=source,
     )
     assert _canonical_part_keys(host) == ("box_body",), (
-        "SUBMITTED_CSV_WITHOUT_PHYSICAL_SOURCE_MUST_NOT_CREATE_BASE"
+        "STALE_BAY_IDENTITY_MUST_NEVER_REGISTER_BASE"
     )
 
+
+def test_source_joined_two_tier_csv_derives_real_base_without_manual_choice():
+    """Current CSV V5 dual tiers share the source-derived physical root."""
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+    from phase6_manufacturing_adapter import _canonical_part_keys
+    source = _two_tier_csv_without_manual_base()
+    source["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        source["nfb_config"]
+    )
+    assert "receiving_base_plate" not in source
+    values = receiving_base_plate_values(source)
+    assert values is not None and values["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_LEFT
+    host = SimpleNamespace(
+        designer_workspace=SimpleNamespace(available_parts=("box_body",)),
+        _phase6_input_snapshot=source,
+    )
+    assert _canonical_part_keys(host) == ("box_body", "base_plate"), (
+        "COMMITTED_TWO_TIER_SOURCE_BASE_MUST_EXIST"
+    )
 
 def test_mfg_raw_part_provider_never_recursively_resolves_itself():
     """Regression from real Windows double->single project switch."""

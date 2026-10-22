@@ -77,3 +77,29 @@ def test_pad_part_only_mfg_and_real_operator_suites_cannot_disappear_from_pr_ci(
             isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
             and n.name.startswith("test_") for n in nodes
         ), candidate
+
+
+# #1500/#1504: old Receiving project end-to-end native Tk and saved
+# physical Base source used to be present in repo but absent from PR CI.
+# Keep the real file-based/GUI regression alive rather than sign an AC by path.
+REQUIRED_LEGACY_GUI = (
+    "tests/test_issue1503_reopen_base_presence.py",
+    "tests/test_issue1503_saved_project_gui_red.py",
+)
+
+
+def test_actual_legacy_receiving_gui_and_reopen_regressions_run_before_merge():
+    for candidate in REQUIRED_LEGACY_GUI:
+        assert PYTEST_PATHS.count(candidate) == 1, candidate
+        source = ROOT / candidate
+        assert source.is_file(), candidate
+        functions = [node.name for node in ast.parse(
+            source.read_text(encoding="utf-8")
+        ).body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name.startswith("test_")]
+        assert len(functions) >= 4, (candidate, functions)
+    text = (ROOT / REQUIRED_LEGACY_GUI[1]).read_text(encoding="utf-8")
+    # Preserve the real native operator path, not a shim or synthetic-only test.
+    for needle in ("load_phase6_project(", "last_unified_hole_editor",
+                   "確定全部", "save_project_file_as", "query_assembly_render_data"):
+        assert needle in text, needle

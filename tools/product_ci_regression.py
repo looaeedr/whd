@@ -105,6 +105,11 @@ PYTEST_PATHS = (
     "tests/test_issue1503_auto_side_marks_in_normal_export.py",
     # #1503 Windows real project-open UAT: current per-hole CSV V5 identity survives .p6fold v3.
     "tests/test_issue1503_nfb_v5_p6fold_roundtrip.py",
+    # #1500/#1503/#1504: old .p6fold native Tk source→Confirm All→
+    # real Base/EAR 2D/3D/SIDE marks→Save/Reload, and original saved
+    # BasePlate source retention. These must run on *PR* exact HEAD.
+    "tests/test_issue1503_reopen_base_presence.py",
+    "tests/test_issue1503_saved_project_gui_red.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1503 actual native Tk Confirm All -> physical CSV NFB -> 2D/3D
     # Base Plates and true four EAR-side 3D MARKING, including multi candidate

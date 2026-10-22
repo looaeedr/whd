@@ -525,9 +525,19 @@ def _canonical_part_keys(app: Any) -> tuple[str, ...]:
         from ae_engine.receiving_base_fixing_plate import (
             receiving_base_fixing_plate_previews,
         )
-        current = tuple(receiving_base_fixing_plate_previews(
-            snapshot, available_parts=("base_plate",),
-        ))
+        try:
+            current = tuple(receiving_base_fixing_plate_previews(
+                snapshot, available_parts=("base_plate",),
+            ))
+        except ValueError as exc:
+            # Switching/reloading a saved Bay may briefly carry a stale
+            # root NFB alias before its committed per-Bay identity is
+            # projected. Never reintroduce unverified EAR sheets here after
+            # the BasePlate guard above rejected that source. Other geometry
+            # faults still surface rather than being hidden as empty parts.
+            if str(exc) != "EAR_Z_NFB_SOURCE_IDENTITY_DRIFT":
+                raise
+            current = ()
         if len(current) == 4 and len({row.part_id for row in current}) == 4:
             values = tuple(
                 part for part in values
