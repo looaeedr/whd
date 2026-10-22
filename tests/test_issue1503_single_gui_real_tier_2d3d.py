@@ -402,6 +402,24 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
             groups=actual_group_resolver(*args,**kwargs)
             emitted_groups.extend(groups)
             return groups
+        # Never bypass EAR Z identity checks. Preserve exact runtime
+        # source/selector evidence when an authentic GUI export is rejected.
+        authority = designer._phase6_input_snapshot
+        active = authority.get("_receiving_runtime_selection")
+        sets = (authority.get("receiving_layout") or {}).get("sets") or ()
+        print("ISSUE1503_REAL_GUI_EAR_Z_SOURCE_IDENTITY", {
+            "active_mode": authority.get("active_mode"),
+            "selection": active,
+            "current_set_ids": tuple(row.get("stable_id") for row in sets),
+            "current_bay_ids": tuple(
+                tuple(b.get("stable_id") for b in row.get("bays") or ())
+                for row in sets
+            ),
+            "quantity_selected_version": (
+                (authority.get("quantity") or {}).get("selected_version_id")
+            ),
+            "nfb_submitted": authority.get("nfb_config_submitted"),
+        }, flush=True)
         for setting in designer.output_export_vars.values():
             setting.set(True)
         with (
