@@ -190,6 +190,50 @@ def set_nfb_manual_x(draft,layer_index,slot_index,offset_mm,*,datum=None):
 
 
 @dataclass(frozen=True)
+class NfbXResetImpact:
+    """The exact before→after physical unit IDs whose X datum was removed.
+
+    This is a preview/transaction receipt for operator visibility only,
+    never a new source of world-X or permission to manufacture.
+    """
+    layer_index: int
+    unit_ids: tuple[str, ...]
+
+    @property
+    def count(self):
+        return len(self.unit_ids)
+
+
+def nfb_x_reset_impact(before, after, layer_index):
+    """Count only formerly placed/datum-bearing slots actually cleared.
+
+    Include a deleted slot if its X or datum was present; never count an
+    untouched sibling layer, a newly inserted empty slot, or a change of
+    offset value as though the original X was *cleared*.
+    """
+    old = _get_layer(editable_nfb_draft(before), layer_index)
+    new = _get_layer(editable_nfb_draft(after), layer_index)
+    remaining = {slot["unit_id"]: slot for slot in new["slots"]}
+    affected = []
+    for slot in old["slots"]:
+        had_basis = (
+            slot["manual_x_mm"] is not None
+            or slot["manual_x_state"] != NONE
+            or slot["datum_snapshot"] is not None
+        )
+        if not had_basis:
+            continue
+        current = remaining.get(slot["unit_id"])
+        if current is None or (
+            current["manual_x_mm"] is None
+            and current["manual_x_state"] == NONE
+            and current["datum_snapshot"] is None
+        ):
+            affected.append(slot["unit_id"])
+    return NfbXResetImpact(layer_index, tuple(affected))
+
+
+@dataclass(frozen=True)
 class NfbUi1aEditReceipt:
     action: str
     old_draft: dict
