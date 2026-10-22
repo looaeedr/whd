@@ -2262,10 +2262,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     mode=OVERRIDE, value=expected_brand,
                 )
             draft_state["draft"] = added
+            current_first = layer_height_vars[0].get().strip()
+            fresh_first = float(SETTING_DEFAULTS["inner_door_layer_heights_mm"][0])
             if (index == 1 and len(added["layers"][1]["slots"]) == 1
-                    and layer_height_vars[0].get().strip() in ("550", "550.0")):
-                # Two-row NFB layout uses the requested first-row default.
-                # Other operator-entered first-row heights are never reset.
+                    and current_first in (
+                        "550", "550.0", f"{fresh_first:g}", str(fresh_first)
+                    )):
+                # Adding the first second-row NFB changes an untouched
+                # first-row default to 300. Both the historical 550 and the
+                # current Family 330 are valid untouched defaults. Never
+                # reset another operator-chosen height.
                 layer_height_vars[0].set("300")
             sync_chosen()
             repaint(index)
