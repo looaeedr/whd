@@ -238,8 +238,25 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         assert any(getattr(primitive, "radius", None) == 4 for primitive in head.scene.primitives)
         for index, (_, key, data) in enumerate(drawings):
             output = tmp_path / f"common-piece-{index}.dxf"
-            manufacturing_api.save_part_render_data_dxf(data,output,overwrite=True)
-            assert manufacturing_api.verify_saved_part_render_data_dxf(data,output).ok, key
+            metadata = dict(getattr(data, "metadata", {}) or {})
+            if (metadata.get("nfb_v5_trial_status")
+                    and metadata.get("nfb_trial_export_approved") is not True):
+                # Fresh Quantity mode has a real current-CSV NFB, unlike an
+                # old empty project. Preview is valid, but shop DXF is
+                # deliberately blocked until NFB trial approval. Test that
+                # the manufacturing guard actually rejects with no file.
+                with pytest.raises(ValueError, match="NFB V5 未驗證試作"):
+                    manufacturing_api.save_part_render_data_dxf(
+                        data, output, overwrite=True,
+                    )
+                assert not output.exists(), key
+            else:
+                manufacturing_api.save_part_render_data_dxf(
+                    data, output, overwrite=True,
+                )
+                assert manufacturing_api.verify_saved_part_render_data_dxf(
+                    data, output,
+                ).ok, key
         before_calls = dict(calls)
         before_draws = view.geometry_draw_count
         started = time.perf_counter()

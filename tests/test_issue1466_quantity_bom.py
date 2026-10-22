@@ -91,6 +91,17 @@ def test_real_quantity_bom_30_plus_20_custom_100_and_read_only(family, back_mode
                                 lambda *a: dict(w=900, h=1700, d=400))
             assert modes._switch_mode(bridge._phase6_composition(app), vars(bridge), "quantity")
             root.update()
+            # This legacy BOM regression intentionally exercises a saved
+            # UNCONFIGURED Quantity scope; a newly switched Family now has a
+            # source-backed NFB by default and requires separate NFB export
+            # certification. Reapply the exact former unconfigured fixture
+            # through the real mode snapshot port, not by weakening that gate.
+            from phase6_receiving_modes import fresh_receiving_mode
+            modes._apply_mode_snapshot(
+                bridge._phase6_composition(app), vars(bridge),
+                fresh_receiving_mode("quantity", {"w": 900, "h": 1700, "d": 400}),
+            )
+            root.update()
             from ae_engine.receiving_quantity_box import update_common_box
             composition = bridge._phase6_composition(app)
             common = update_common_box(modes._current_mode_snapshot(composition, vars(bridge)),

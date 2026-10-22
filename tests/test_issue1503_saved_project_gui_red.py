@@ -87,9 +87,14 @@ def test_fresh_single_editor_shows_csv_400_and_can_confirm_without_manual_base(t
         assert rows[0]["assigned"].size() == 1
         assert str(rows[0]["assigned"].get(0)) == "2P400"
         assert rows[1]["assigned"].size() == 0
-        assert not designer.designer_workspace.quantity_model.nfb_config_for_version(
+        # First-time Quantity mode is now source-initialized by the user-
+        # requested Receiving Family rule. Re-entering the editor must not
+        # create a second copy or pretend the single CSV NFB is only a draft.
+        initial = designer.designer_workspace.quantity_model.nfb_config_for_version(
             designer.designer_workspace.quantity_model.selected_version_id
-        ), "Opening draft is never implicit persistence"
+        )
+        assert initial and initial["nfb_config_submitted"] is True
+        assert len(initial["nfb_config"]["holes"]) == 1
         _buttons(frame, "確定")[0].invoke()
         _pump(root)
         _buttons(editor, "確定全部")[0].invoke()

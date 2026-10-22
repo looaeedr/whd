@@ -18,11 +18,12 @@ from tests.test_receiving_two_tier_physical_base_parts import _two_tier, _source
 
 def test_exact_two_tier_source_survives_real_manufacturing_dto_roundtrip():
     current = _two_tier()
-    # Important: actual DTO roundtrip changes int layer IDs to 2.0 / 0.0.
+    # CURRENT DTO preserves physical integer identities. Still verify the
+    # explicit restore helper for historical float-valued payloads below.
     thawed = thaw_manufacturing_value(freeze_manufacturing_value(current))
-    assert type(thawed["nfb_config"]["layer_count"]) is float
+    assert type(thawed["nfb_config"]["layer_count"]) is int
     assert type(thawed["receiving_layout"]["sets"][0]["bays"][0]
-                ["nfb_config"]["holes"][0]["layer_index"]) is float
+                ["nfb_config"]["holes"][0]["layer_index"]) is int
     restored = restore_receiving_nfb_dto_selectors(thawed)
     for cfg in (restored["nfb_config"],
                 restored["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]):

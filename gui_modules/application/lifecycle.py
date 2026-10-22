@@ -608,6 +608,28 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
     for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
         if key in workspace_state:
             snapshot[key] = deepcopy(workspace_state[key])
+    # This is the primary main-GUI project save (not the separate Fold
+    # Designer snapshot). Its live door controls own current offsets; the
+    # workspace's saved singleton Bay may still carry first-entry 80 mm.
+    # Reconcile only the physical current Bay, preserving all NFB fields and
+    # all other Bays without silently discarding user door edits at reload.
+    if (snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("active_mode", "set_bay") == "set_bay"
+            and isinstance(snapshot.get("receiving_layout"), dict)
+            and snapshot.get("inner_doors")):
+        layout = snapshot["receiving_layout"]
+        sets = layout.get("sets") or []
+        if len(sets) == 1 and len(sets[0].get("bays") or []) == 1:
+            from ae_engine.receiving_layout import (
+                RECEIVING_DOOR_STATE_KEYS, update_receiving_bay,
+            )
+            snapshot["receiving_layout"] = update_receiving_bay(
+                layout, set_index=0, bay_index=0,
+                door_state={
+                    key: deepcopy(snapshot[key])
+                    for key in RECEIVING_DOOR_STATE_KEYS if key in snapshot
+                },
+            )
     snapshot["workspace"] = workspace
     if "assembly_placements" in workspace:
         snapshot["assembly_placements"] = deepcopy(workspace["assembly_placements"])

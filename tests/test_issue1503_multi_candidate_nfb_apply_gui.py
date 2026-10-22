@@ -59,7 +59,7 @@ def select_two(root,frame,state):
     assert state['layers'].get()==2
     assert state['nfb_physical_layers'].get()==2
 
-def check_heights(state,first='550',second='800'):
+def check_heights(state,first='330',second='830'):
     vals=tuple(round(float(v.get())) for v in state['layer_heights_mm'])
     assert vals==(int(first),int(second)), f'wrong default heights {vals}'
     print('HEIGHTS',vals, flush=True)
@@ -94,6 +94,11 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         editor=getattr(box,'last_unified_hole_editor',None)
         assert editor is not None and editor.winfo_exists(),'native hole editor not opened'
         tabs=editor._receiving_config_tabs
+        from ae_engine.cabinet_types import policy
+        part=policy.derive_inner_door_panels(designer._phase6_input_snapshot)[0].stable_id
+        physical_before=tuple(designer.designer_workspace.features_for(part))
+        baseline_pending=tuple(editor._receiving_pending_features())
+        assert len(baseline_pending)==1, 'fresh Bay must open with one current CSV hole'
         assert tabs.tab(0,'text').strip()=='開孔編輯' and tabs.tab(1,'text').strip()=='受電箱'
         print('EDITOR_TABS',tabs.tab(0,'text'),tabs.tab(1,'text'), flush=True)
         tabs.select(1)
@@ -103,12 +108,14 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         add(root,modal,state,0)
         select_two(root,modal,state)
         add(root,modal,state,1)
-        check_heights(state,'300','800')
+        check_heights(state,'300','830')
         assert len(buttons(modal,'取消'))==1
         buttons(modal,'取消')[0].invoke()
         pump(root)
         assert tabs.index(tabs.select())==0,'cancel not returned to main'
-        assert not editor._receiving_pending_features(), 'cancel left NFB holes'
+        assert tuple(editor._receiving_pending_features())==baseline_pending, (
+            'cancel must restore original one-NFB physical baseline without new holes'
+        )
         assert getattr(editor,'_receiving_staged_config',None) is None, 'cancel staged NFB settings'
         print('TAB_CANCEL_ROLLBACK_PASS',flush=True)
         tabs.select(1)
@@ -118,7 +125,7 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         add(root,modal,state,0)
         select_two(root,modal,state)
         add(root,modal,state,1)
-        check_heights(state,'300','800')
+        check_heights(state,'300','830')
         confirm=buttons(modal,'確定')
         assert len(confirm)==1,'missing tab 確定'
         confirm[0].invoke()
@@ -129,11 +136,14 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         assert len(pending)==2,'tab 確定 did not bring 2 holes to main, '+str(len(pending))+', warning='+warning
         assert all(f.source_type=='NFB_CSV_SOURCE' for f in pending)
         staged=getattr(editor,'_receiving_staged_config',None)
-        assert staged is not None and staged['layer_heights_mm']==[300,800]
+        assert staged is not None and staged['layer_heights_mm']==[300,830]
         print('TAB_CONFIRM_NATIVE_HOLES_PASS',len(pending),flush=True)
-        from ae_engine.cabinet_types import policy
-        part=policy.derive_inner_door_panels(designer._phase6_input_snapshot)[0].stable_id
-        assert not designer.designer_workspace.features_for(part),'tab confirmation prematurely wrote physical part'
+        # The version editor is a CANDIDATE transaction, not the physical
+        # Bay writer. Compare with the exact workspace before entering, while
+        # separately verifying the one submitted NFB already in the Bay.
+        assert tuple(designer.designer_workspace.features_for(part))==physical_before, (
+            'tab Confirm must not overwrite the current physical workspace'
+        )
         print('NO_PREMATURE_PHYSICAL_WRITE_PASS',flush=True)
         # Native Confirm All is the transaction boundary, not this tab's 確定.
         main_confirm=buttons(editor,'確定全部')
@@ -147,15 +157,18 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         version=library['versions'][0]
         config=version['config']
         assert len(config['features'][part])==2,'multi candidate missing two typed NFB holes'
-        assert config['layer_heights_mm']==[300,800]
+        assert config['layer_heights_mm']==[300,830]
         physical=designer.designer_workspace.features_for(part)
-        assert not physical, 'multi candidate unexpectedly wrote live physical part'
+        assert tuple(physical)==physical_before, (
+            'multi candidate unexpectedly modified physical part before explicit Apply'
+        )
         print('MULTI_CONFIRM_ALL_CANDIDATE_PASS',version['id'],len(config['features'][part]),flush=True)
         # Version X must not create a physical NFB before Apply.
         from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
         active=designer._phase6_input_snapshot['receiving_layout']
         bay=active['sets'][0]['bays'][0]
-        assert bay.get('nfb_config_submitted') is not True
+        assert bay.get('nfb_config_submitted') is True
+        assert bay['nfb_config']['layer_count']==1
         adapter=ReceivingSetBayAdapter(active)
         applied=adapter.apply_inner_door_candidate_to_bays(config,0,(0,),version_id=version['id'])
         assert applied==(0,)

@@ -137,6 +137,29 @@ def _snapshot_workspace_state(self, snapshot):
     for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout"):
         if key in workspace_state:
             snapshot[key] = deepcopy(workspace_state[key])
+    # The primary GUI's inner-door offset/checkbox controls are live editing
+    # sources. Once a fresh Receiving Family has an actual persisted Bay,
+    # saving only those root UI fields would leave the Bay's initial 80-mm
+    # door_state as older authority and silently overwrite edited 70/105 mm
+    # after Save/Reload. Project the current main GUI door controls into its
+    # uniquely owned singleton Bay, without changing other/multi Bay data.
+    if (snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("active_mode", "set_bay") == "set_bay"
+            and isinstance(snapshot.get("receiving_layout"), dict)):
+        layout = snapshot["receiving_layout"]
+        sets = layout.get("sets") or []
+        if (len(sets) == 1 and len(sets[0].get("bays") or []) == 1
+                and snapshot.get("inner_doors")):
+            from ae_engine.receiving_layout import (
+                RECEIVING_DOOR_STATE_KEYS, update_receiving_bay,
+            )
+            source_door = {
+                key: deepcopy(snapshot[key]) for key in RECEIVING_DOOR_STATE_KEYS
+                if key in snapshot
+            }
+            snapshot["receiving_layout"] = update_receiving_bay(
+                layout, set_index=0, bay_index=0, door_state=source_door,
+            )
     custom = workspace_state.get("custom_parts")
     if custom is not None:
         snapshot["custom_parts"] = deepcopy(custom)

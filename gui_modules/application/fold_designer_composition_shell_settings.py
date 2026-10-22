@@ -647,6 +647,17 @@ def apply_settings_profile_projection(
     clone = required("clone_profile")
 
     snapshot = materialize(plan.snapshot)
+    # Settings freezes dataclasses into plain mappings to keep its own
+    # boundary deterministic. Actual Receiving Hole Editor Features belong
+    # to the already-committed manufacturing/workspace snapshot, NOT to
+    # Settings. Copy their typed source back before any downstream
+    # ReceivingLayout validation (otherwise genuine ProfileFeature rows
+    # become plain dicts and every Bay selector fails on a model switch).
+    live = getattr(app, "_phase6_input_snapshot", {}) or {}
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        for key in ("receiving_layout", "part_features"):
+            if key in live and key in snapshot:
+                snapshot[key] = deepcopy(live[key])
     app._phase6_input_snapshot.update(snapshot)
 
     box_profile = materialize(plan.box_body_profile)
@@ -818,6 +829,25 @@ def settings_application_project_ui_values(
         return
 
     if baseline_stage == "commit" and plan is not None:
+        if old_model != "受電箱" and new_model == "受電箱":
+            # FamilyModelPlan already committed the newly initialized
+            # Set1/Bay1 NFB source to _phase6_input_snapshot. An old loaded
+            # Quantity/Vault workspace still owns its previous mode/layout,
+            # and a later Settings/derived pass can silently reproject that
+            # unconfigured Bay over the new source (KeyError on real Bay
+            # nfb_config_submitted). Sync the workspace authority NOW,
+            # before the one Family profile/geometry projection begins.
+            # Only an explicit NEW Family switch reaches this block; normal
+            # project load and subsequent user Bay edits are untouched.
+            self.capabilities.workspace.navigation().replace_receiving_mode(
+                deepcopy(app._phase6_input_snapshot),
+            )
+            # ReceivingCapabilityOwner caches a Set/Bay adapter independently
+            # of the workspace. Reusing the prior (unconfigured) adapter
+            # causes sync_receiving_current_bay() to overwrite this fresh
+            # submitted NFB with the old Bay on the next UI refresh.
+            # Rebind it to the committed new Family source before projecting.
+            self.receiving_adapter(namespace, reset=True)
         remembered = getattr(plan, "remember_non_receiving_structure", None)
         if remembered is not None:
             app._phase6_non_receiving_structure_state = deepcopy(remembered)

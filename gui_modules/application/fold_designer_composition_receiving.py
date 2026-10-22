@@ -1392,6 +1392,7 @@ def _switch_mode(self, namespace, target):
     source = _current_mode_snapshot(self, namespace)
     planned = deepcopy(session)
     was_dirty = app.designer_workspace.dirty
+    original_workspace = deepcopy(app.designer_workspace.snapshot())
     applying = False
     try:
         changed = planned.switch(target, dimensions=dimensions, current_snapshot=source)
@@ -1402,6 +1403,16 @@ def _switch_mode(self, namespace, target):
     except (ValueError, RuntimeError, OSError, OverflowError, GEOSException) as exc:
         if applying:
             _apply_mode_snapshot(self, namespace, source)
+            # A failed first-time new mode must leave the PREVIOUS physical
+            # workspace byte-for-byte intact, including currently empty or
+            # operator-edited native inner-door Features. Reprojecting the
+            # previous Bay alone can silently materialize a second CSV
+            # opening into the visible workspace after a failed transaction.
+            restored_owner = deepcopy(source)
+            restored_owner.update(deepcopy(original_workspace))
+            self.capabilities.workspace.navigation().replace_receiving_mode(
+                restored_owner,
+            )
             if not was_dirty:
                 app.designer_workspace.mark_clean()
         messagebox.showwarning("模式未切換", str(exc), parent=app.root)
@@ -2253,10 +2264,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     mode=OVERRIDE, value=expected_brand,
                 )
             draft_state["draft"] = added
+            current_first = layer_height_vars[0].get().strip()
+            fresh_first = float(SETTING_DEFAULTS["inner_door_layer_heights_mm"][0])
             if (index == 1 and len(added["layers"][1]["slots"]) == 1
-                    and layer_height_vars[0].get().strip() in ("550", "550.0")):
-                # Two-row NFB layout uses the requested first-row default.
-                # Other operator-entered first-row heights are never reset.
+                    and current_first in (
+                        "550", "550.0", f"{fresh_first:g}", str(fresh_first)
+                    )):
+                # Adding the first second-row NFB changes an untouched
+                # first-row default to 300. Both the historical 550 and the
+                # current Family 330 are valid untouched defaults. Never
+                # reset another operator-chosen height.
                 layer_height_vars[0].set("300")
             sync_chosen()
             repaint(index)
