@@ -625,7 +625,12 @@ def worker(args):
                     'box_profile': designer.state.profiles_vault.get('箱身', ()),
                     'corners': designer._phase6_corner_state,
                 }
-                return {name: stable_fingerprint(value) for name, value in inputs.items()}
+                keys = {name: stable_fingerprint(value) for name, value in inputs.items()}
+                keys.update({
+                    'snapshot.' + str(key): stable_fingerprint(value)
+                    for key, value in inputs['snapshot'].items()
+                })
+                return keys
             cache_before = scoped_bay0_cache_components()
             # Tail addition/removal go through existing real operator UI.
             win = open_modal()
