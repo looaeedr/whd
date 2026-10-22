@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 30,
+    "EVIDENCE_CANDIDATE_ONLY": 28,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 23,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 25,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -966,13 +966,25 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py",
+        "tests/test_issue1504_ac04_ac19_source_transactions.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
+        {
+          "path": "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py",
+          "test_name": "test_ac27_swt06_valid_q16_preserves_two_unit_identity_pitch_and_revalidates_real_v5_dxfs",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
+        }
+      ],
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_identified_test_functions_before_20261023": [
         {
           "path": "tests/test_issue1497_nfb_cutting_preflight.py",
           "test_name": "test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole",
@@ -980,7 +992,22 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "acceptance_evidence": {
+        "scope": "CURRENT CSV V5 Shihlin verified W800 two model centres nominal pitch 360 mm: Q16 preserves both X/unit identities and per-unit offset pending re-verification, recomputes one real installed inner-door + base PartSpec/FinalScene and reopens both operator-exported DXF; actual geometry differs when replacing 3P125SN with 3P400SN. Adjacent overlapping actual V5 CUTTING and unresolved numeric model reject atomically before write; old manufacturing bytes remain exactly unchanged on invalid replacement, source-edit Undo/Cancel unaffected.",
+        "primary_assertion": "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py::test_ac27_swt06_valid_q16_preserves_two_unit_identity_pitch_and_revalidates_real_v5_dxfs",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py::test_ac27_swt06_invalid_q16_actual_v5_cutting_collision_rolls_back_all_existing_dxfs",
+          "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py::test_ac27_swt06_failed_q16_session_undo_and_cancel_keep_existing_v5_manufacturing",
+          "tests/test_issue1504_ac04_ac19_source_transactions.py::test_ac19_q16_preserves_exact_offset_identity_nominal_pitch_and_rejects_bad_model",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action"
+        ],
+        "source_sha_pins_unchanged": true,
+        "original_ac_text_unchanged": true,
+        "factory_release": false,
+        "ui_full_operator_uat_claimed": false,
+        "human_windows_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-28",
@@ -2180,13 +2207,25 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py",
+        "tests/test_issue1504_ac04_ac19_source_transactions.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
+        {
+          "path": "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py",
+          "test_name": "test_ac27_swt06_valid_q16_preserves_two_unit_identity_pitch_and_revalidates_real_v5_dxfs",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
+        }
+      ],
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_identified_test_functions_before_20261023": [
         {
           "path": "tests/test_issue1493_nfb_draft_transactions.py",
           "test_name": "test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry",
@@ -2194,7 +2233,22 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "acceptance_evidence": {
+        "scope": "CURRENT CSV V5 Shihlin verified W800 two model centres nominal pitch 360 mm: Q16 preserves both X/unit identities and per-unit offset pending re-verification, recomputes one real installed inner-door + base PartSpec/FinalScene and reopens both operator-exported DXF; actual geometry differs when replacing 3P125SN with 3P400SN. Adjacent overlapping actual V5 CUTTING and unresolved numeric model reject atomically before write; old manufacturing bytes remain exactly unchanged on invalid replacement, source-edit Undo/Cancel unaffected.",
+        "primary_assertion": "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py::test_ac27_swt06_valid_q16_preserves_two_unit_identity_pitch_and_revalidates_real_v5_dxfs",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py::test_ac27_swt06_invalid_q16_actual_v5_cutting_collision_rolls_back_all_existing_dxfs",
+          "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py::test_ac27_swt06_failed_q16_session_undo_and_cancel_keep_existing_v5_manufacturing",
+          "tests/test_issue1504_ac04_ac19_source_transactions.py::test_ac19_q16_preserves_exact_offset_identity_nominal_pitch_and_rejects_bad_model",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action"
+        ],
+        "source_sha_pins_unchanged": true,
+        "original_ac_text_unchanged": true,
+        "factory_release": false,
+        "ui_full_operator_uat_claimed": false,
+        "human_windows_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "SWT-AC-07",
@@ -3105,7 +3159,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 23/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 65 AC have partial, GUI, or deferred manufacturing evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 25/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 63 AC have partial, GUI, or deferred manufacturing evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",

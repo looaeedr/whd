@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-23，逐條實證簽核）
 
+## CURRENT｜2026-10-23 #1504 AC-27／SWT-06 V5 真實原子回滾（exact CI 後生效）
+
+- 本批在上一批 23/88 之後，針對 `NFB-AC-27`、`SWT-AC-06` 補現行 `nfbv5:士林:2P400`＋`3P125SN`→`3P400SN` 的真正物理回歸。Q16 變更保留原兩顆 X 與身份、已知 W800×2 名義 360 mm，但位移仍未驗證；真 `NfbConfig` 重新導出既有內門／底板 FinalScene 和兩份 DXF，對照來源幾何、原檔保存、實際加工圖元。
+- 故意以相同實際 X 造成兩顆新 CUTTING 彼此碰撞，及以不在 CSV 的型號造成來源失效，均必須整批拒絕，不能替換／覆蓋之前已合法存下的任何 DXF；Q16 Undo／Cancel 保持既有正確加工資料位元完全不變。
+- **25/88 簽核仍是本 PR exact HEAD Product Regression 五階段 GREEN＋`localX` readback 後才可生效**，現階段不得擅稱 GUI Windows 實機、任意 WORLD-X、整箱 MFG-2/NC 或焊接核准。原始 88 AC 文字與 SHA pin 不變，先前 SHADOW-DXF 測例保留但不當作這兩條現行物理主證。
+
 ## CURRENT｜2026-10-23 #1504 AC-05 現行 CSV V5 真 CUTTING／DXF 旋轉驗收（exact CI 後生效）
 
 - 本批候選由 **22／88 → 23／88**，尚餘 **65**；NFB-AC-05 原要求與來源 SHA 保留，現行 `nfbv5:士林:2P400` 經提交 `NFBConfig` → 原內門 FinalScene → 原操作入口 `export_current_csv_nfb_door_base_pair` → 實際存檔 DXF 回讀。四種角度 0／90／180／270 分別以 CSV 真矩形頂點、實體門折邊 UV datum、固定 pivot 獨立比對 CUTTING；負例非法角度禁止寫任何 DXF。
@@ -144,7 +150,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-24 | #1498 | EVIDENCE_CANDIDATE_ONLY | UI-1B（狀態）／MFG-1（板件守衛） | 逐顆「已驗證／未驗證」及原因正確；已提交配置由當前來源推導 DRAFT／CONFIGURED；DRAFT 只阻斷 NFB 依賴未完成的物理板件，不阻斷無關片／Bay／版本，列受阻身份。 |
 | NFB-AC-25 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A | 「型號待重選」仍可依已核准名義表顯示相對中心距；實際 X 定位、碰撞、越界各自未驗證，沒有憑空置中。 |
 | NFB-AC-26 | #1493、#1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（角度）／UI-1B（重載） | 儲存單顆 90° 等旋轉設定並重載；主開孔中心未驗證時不產生假旋轉放置／已驗證顯示。 |
-| NFB-AC-27 | #1493、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（設定）／MFG-1（幾何回滾） | Q16 型號變更／待重選恢復不改已知名義中心距，保留位移並重驗整層實際幾何；具完整資料且非法時全筆原子回滾。 |
+| NFB-AC-27 | #1493、#1497 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（設定）／MFG-1（幾何回滾） | Q16 型號變更／待重選恢復不改已知名義中心距，保留位移並重驗整層實際幾何；具完整資料且非法時全筆原子回滾。 |
 | NFB-AC-28 | #1499、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1B（重新確認）／MFG-1（逐顆驗證） | 未驗證位移至少可按 Bay／配置批次重新確認，先提示條件差異與受影響清單；逐顆非法者不能批次放行。 |
 | NFB-AC-29 | #1499、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1B（重載）／MFG-1（重新解析） | Save→Reload／來源 DXF 變動後重新推導主孔中心、位置、越界及草稿結論，不信任專案舊衍生驗證旗標。 |
 | NFB-AC-30 | #1494 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（中心距）／MFG-1（防假孔） | 已知名義中心距不依賴已選型號外形；缺型號不抹掉中心距，但未驗證的實際製造孔不得輸出。 |
@@ -179,7 +185,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-03 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A | 每層多顆有獨立身份與型號、順序、X 位移及旋轉設定；既有中心距只於有效規格組合使用。 |
 | SWT-AC-04 | #1491、#1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（繼承）／UI-1B（保存） | 品牌繼承 A：只更新跟隨者，保留覆寫；當生效廠牌與舊檔不合，顯示待重選，不能默默替換。 |
 | SWT-AC-05 | #1492、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（來源預覽）／MFG-1（主孔） | 每顆來源 DXF 原圖預覽、確認／取消、主開孔中心未驗證標示清楚；不冒充可製造定位。 |
-| SWT-AC-06 | #1493、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（設定）／MFG-1（非法回滾） | UI 的 Q5／Q6／Q7／Q16 行為只驗收 NFB-AC-04／19／27；本件查核名義中心距不受型號改變、非法實際幾何不得放行，Undo／取消保留既有加工。 |
+| SWT-AC-06 | #1493、#1497 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（設定）／MFG-1（非法回滾） | UI 的 Q5／Q6／Q7／Q16 行為只驗收 NFB-AC-04／19／27；本件查核名義中心距不受型號改變、非法實際幾何不得放行，Undo／取消保留既有加工。 |
 | SWT-AC-07 | #1499、#1500 | BLOCKED_1500_REAL_GUI | UI-1B | UI-1B 提交守衛啟用後，Bay 深複製及數量版本深複製獨立，`.p6fold` Save→Reload 保留已提交配置及使用者設定；UI-1A 僅編輯預覽不可聲稱已保存配置。 |
 | SWT-AC-08 | #1498、#1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-1（內門）／MFG-2（其他板件） | 沒有可信來源、主孔中心或合法世界定位時，按實體物理件相依阻斷完整 NFB DXF，逐件列出來源／缺項；不阻斷可證明無依賴片。 |
 | SWT-AC-09 | #1503 | DEFERRED_PRODUCT_EVIDENCE | UI-1A（禁偽墊高）／PAD（延期） | 來源上方開孔、下方墊高不混淆；**本期不輸出墊高或自動改底板位置**。 |
@@ -241,7 +247,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-24 | `tests/test_issue1498_nfb_part_readiness.py::test_each_set_bay_version_independent_and_no_cross_scope_ready_cache` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-25 | `tests/test_issue1504_ac25_reselection_nominal_x.py::test_nfb_ac25_reselection_preserves_approved_relative_pitch_no_fake_x_checks` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-26 | `tests/test_issue1493_nfb_draft_transactions.py::test_angle_inherit_explicit_same_override_no_mirror` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
-| NFB-AC-27 | `tests/test_issue1497_nfb_cutting_preflight.py::test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-27 | `tests/test_issue1497_nfb_cutting_preflight.py::test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-28 | `tests/test_issue1497_nfb_cutting_preflight.py::test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-29 | `tests/test_issue1499_nfb_persistence.py::test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-30 | `tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting`（另含同檔 CSV 無來源不產生 CUTTING + #1497 X 未認證拒絕） | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
@@ -276,7 +282,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-03 | `tests/test_issue1504_swt03_nfb05_current_unit_rotation.py::test_swt_ac03_current_csv_units_keep_independent_identity_model_x_and_rotation` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-04 | `tests/test_issue1504_brand_inheritance_current_csv.py::test_swt_ac04_spoofed_catalog_and_stale_csv_never_relabel_v5_source` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-05 | `tests/test_issue1492_nfb_real_dxf_preview.py::test_native_arc_circle_bulge_and_aci_preserved_in_real_source_strokes` | EVIDENCE_CANDIDATE_ONLY |
-| SWT-AC-06 | `tests/test_issue1493_nfb_draft_transactions.py::test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry` | EVIDENCE_CANDIDATE_ONLY |
+| SWT-AC-06 | `tests/test_issue1493_nfb_draft_transactions.py::test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-07 | `tests/test_issue1499_nfb_persistence.py::test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy` | BLOCKED_1500_REAL_GUI |
 | SWT-AC-08 | `tests/test_issue1498_nfb_part_readiness.py::test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero` | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC |
 | SWT-AC-09 | `tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf` | DEFERRED_PRODUCT_EVIDENCE |
