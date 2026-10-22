@@ -163,6 +163,7 @@ PYTEST_PATHS = (
     "tests/test_issue1504_79ac_batch_acceptance_gate.py",
     # #1504 seven exact multi-witness source signoffs; no GUI/MFG overclaims.
     "tests/test_issue1504_seven_ac_source_signoff_batch.py",
+    "tests/test_issue1504_ac04_ac19_source_transactions.py",
     "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
     "tests/test_issue1504_brand_inheritance_current_csv.py",
     "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
