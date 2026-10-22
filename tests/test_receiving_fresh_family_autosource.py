@@ -134,4 +134,4 @@ def test_manufacturing_transport_keeps_real_set_bay_indices_as_integers():
     assert runtime == original
     assert type(runtime["set_index"]) is int
     assert type(runtime["bay_index"]) is int
-    _assert_physical_source(received)
+    assert received["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] == source["nfb_config"]
