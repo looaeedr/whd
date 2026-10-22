@@ -192,6 +192,11 @@ def _apply_cabinet_family_for_current_model(self):
         box_profile = build_box_body_profile(snap)
         workspace = self.workspace_controller.workspace_snapshot()
         workspace["receiving_layout"] = deepcopy(initial["receiving_layout"])
+        # A submitted default Bay without its matching physical CUTTING in
+        # Workspace is only half initialized: first view looks empty, then a
+        # later mode rollback suddenly inserts a new ProfileFeature. Commit
+        # the *same* real CSV inner-door source on the original first switch.
+        workspace["part_features"] = deepcopy(initial.get("part_features") or {})
         workspace["box_body_profile"] = box_profile
         workspace["box_body_structure"] = structure
         self._store_fold_designer_workspace(workspace)
