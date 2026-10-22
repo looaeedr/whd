@@ -152,6 +152,9 @@ PYTEST_PATHS = (
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     "tests/test_issue1500_nfb_operator_gui_transactions.py",
     "tests/test_issue1504_v14_ac_traceability.py",
+    # One reconciliation of 79 original unsigned ACs to actual CI source tests;
+    # 4 source-scoped signed only; real GUI/MFG and old-reader gates remain.
+    "tests/test_issue1504_79ac_batch_acceptance_gate.py",
     "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
     "tests/test_issue1504_brand_inheritance_current_csv.py",
     "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
