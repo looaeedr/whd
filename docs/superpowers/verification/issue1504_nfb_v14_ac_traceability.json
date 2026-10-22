@@ -23,9 +23,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 44,
+    "EVIDENCE_CANDIDATE_ONLY": 40,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 9,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 13,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -1540,21 +1540,40 @@
         "tests/test_issue1496_nfb_dxf_source.py",
         "tests/test_issue1496_nfb_index_unique_sources.py",
         "tests/test_issue1496_nfb_source_inventory_report.py",
-        "tests/test_issue1496_real_nfb_source_observation.py"
+        "tests/test_issue1496_real_nfb_source_observation.py",
+        "tests/test_issue1497_nfb_cutting_preflight.py",
+        "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
+        "tests/test_issue1497_configured_nfb_manufacturing_release.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
-          "test_name": "test_no_unapproved_size_or_single_unit_center_defaults",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1497_nfb_cutting_preflight.py",
+          "test_name": "test_unresolved_x_never_generates_a_fake_center_or_manufacturable_hole",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "NO_MFG_ADMISSION_WITH_MISSING_X_Y_MODEL_CENTER_AND_NOMINAL_PITCH_IS_NOT_ABSOLUTE_X",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1497_nfb_cutting_preflight.py::test_unresolved_x_never_generates_a_fake_center_or_manufacturable_hole",
+        "other_required_assertions": [
+          "tests/test_issue1494_nfb_x_shadow_projection.py::test_no_unapproved_size_or_single_unit_center_defaults",
+          "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_nfb_ac10_outside_source_matrix_remains_unknown_not_centered",
+          "tests/test_issue1497_configured_nfb_manufacturing_release.py::test_missing_absolute_x_invalid_y_and_geometry_collision_fail_no_output"
+        ],
+        "integration_ci": "exact PR HEAD mandatory Product Regression + GitHub localX merge/readback",
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-49",
@@ -1569,19 +1588,33 @@
         "tests/test_issue1494_nfb_x_shadow_projection.py",
         "tests/test_issue1494_receiving_nfb_x_evidence.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
           "path": "tests/test_issue1494_nfb_x_shadow_projection.py",
           "test_name": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "W800_X3_REAL_WHD_DXF_SOURCE_723_BLANK_LEFT_CUTTING_FACE_WORLD_REVERSIBLE_NO_OTHER_WN_RELEASE",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1494_nfb_x_shadow_projection.py::test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
+        "other_required_assertions": [
+          "tests/test_issue1494_nfb_x_shadow_projection.py::test_no_unapproved_size_or_single_unit_center_defaults"
+        ],
+        "integration_ci": "exact PR HEAD mandatory Product Regression + GitHub localX merge/readback",
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-50",
@@ -1592,21 +1625,38 @@
         1495
       ],
       "regression_candidates": [
-        "tests/test_issue1495_receiving_nfb_y_projection.py"
+        "tests/test_issue1495_receiving_nfb_y_projection.py",
+        "tests/test_issue1504_current_nfb_y_ac10_swt02.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
           "path": "tests/test_issue1495_receiving_nfb_y_projection.py",
           "test_name": "test_approved_nominal_box_top_y_maps_to_real_1075_blank",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "Y1100_HISTORICAL_NOMINAL_REVERSE_PROJECTION_AND_CURRENT_OPERATOR_330_830_OVERRIDE",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1495_receiving_nfb_y_projection.py::test_approved_nominal_box_top_y_maps_to_real_1075_blank",
+        "other_required_assertions": [
+          "tests/test_issue1495_receiving_nfb_y_projection.py::test_non_1100_upper_y_is_unapproved_not_silently_scaled",
+          "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_nfb_ac10_current_330_830_operator_y_roundtrips_real_panel",
+          "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_swt_ac02_legacy_nominal_and_unknown_non1100_y_never_guess"
+        ],
+        "integration_ci": "exact PR HEAD mandatory Product Regression + GitHub localX merge/readback",
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-51",
@@ -2697,21 +2747,37 @@
         1495
       ],
       "regression_candidates": [
-        "tests/test_issue1495_receiving_nfb_y_projection.py"
+        "tests/test_issue1495_receiving_nfb_y_projection.py",
+        "tests/test_issue1504_current_nfb_y_ac10_swt02.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
           "path": "tests/test_issue1495_receiving_nfb_y_projection.py",
-          "test_name": "test_non_1100_upper_y_is_unapproved_not_silently_scaled",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "test_name": "test_approved_nominal_box_top_y_maps_to_real_1075_blank",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "Y1100_NOMINAL_DOOR_BLANK_PHYSICAL_PROJECTION_NO_NON1100_GUESS",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1495_receiving_nfb_y_projection.py::test_approved_nominal_box_top_y_maps_to_real_1075_blank",
+        "other_required_assertions": [
+          "tests/test_issue1495_receiving_nfb_y_projection.py::test_non_1100_upper_y_is_unapproved_not_silently_scaled",
+          "tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_nfb_ac10_current_330_830_operator_y_roundtrips_real_panel"
+        ],
+        "integration_ci": "exact PR HEAD mandatory Product Regression + GitHub localX merge/readback",
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "SWT-AC-29",
@@ -2868,7 +2934,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. All other 87 are still unsigned.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 9/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 79 AC have partial or deferred evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 13/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 75 AC have partial or deferred evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
