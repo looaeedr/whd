@@ -829,6 +829,19 @@ def settings_application_project_ui_values(
         return
 
     if baseline_stage == "commit" and plan is not None:
+        if old_model != "受電箱" and new_model == "受電箱":
+            # FamilyModelPlan already committed the newly initialized
+            # Set1/Bay1 NFB source to _phase6_input_snapshot. An old loaded
+            # Quantity/Vault workspace still owns its previous mode/layout,
+            # and a later Settings/derived pass can silently reproject that
+            # unconfigured Bay over the new source (KeyError on real Bay
+            # nfb_config_submitted). Sync the workspace authority NOW,
+            # before the one Family profile/geometry projection begins.
+            # Only an explicit NEW Family switch reaches this block; normal
+            # project load and subsequent user Bay edits are untouched.
+            self.capabilities.workspace.navigation().replace_receiving_mode(
+                deepcopy(app._phase6_input_snapshot),
+            )
         remembered = getattr(plan, "remember_non_receiving_structure", None)
         if remembered is not None:
             app._phase6_non_receiving_structure_state = deepcopy(remembered)
