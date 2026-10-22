@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 33,
+    "EVIDENCE_CANDIDATE_ONLY": 31,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 20,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 22,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -125,21 +125,41 @@
         1493
       ],
       "regression_candidates": [
-        "tests/test_issue1493_nfb_draft_transactions.py"
+        "tests/test_issue1493_nfb_draft_transactions.py",
+        "tests/test_issue1504_ac04_ac19_source_transactions.py",
+        "tests/test_issue1497_nfb_cutting_preflight.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1493_nfb_draft_transactions.py",
-          "test_name": "test_insert_delete_reorder_reset_only_touched_layer_x",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac04_ac19_source_transactions.py",
+          "test_name": "test_ac04_q5_q6_q7_reset_only_changed_layer_and_preserve_other_layer",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT UI-1A slot reorder vs physical X: Q5/Q6/Q7 clear only touched-layer manual X and datum, preserve other layer and stable unit IDs; fractional mm and zero exact; Q16 preserves offsets/nominal pitch and invalid geometry/source fails atomically",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_ac04_ac19_source_transactions.py::test_ac04_q5_q6_q7_reset_only_changed_layer_and_preserve_other_layer",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac04_ac19_source_transactions.py::test_ac19_q16_preserves_exact_offset_identity_nominal_pitch_and_rejects_bad_model",
+          "tests/test_issue1504_ac04_ac19_source_transactions.py::test_ac04_ac19_fractional_mm_bad_input_cancel_and_undo_have_no_partial_mutation",
+          "tests/test_issue1493_nfb_draft_transactions.py::test_ac04_mixed_legacy_unit_ids_never_reuse_an_existing_identity",
+          "tests/test_issue1493_nfb_draft_transactions.py::test_ac04_stale_next_number_is_reconciled_without_changing_unit_identity",
+          "tests/test_issue1497_nfb_cutting_preflight.py::test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-05",
@@ -647,21 +667,39 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1504_ac04_ac19_source_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1493_nfb_draft_transactions.py",
-          "test_name": "test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac04_ac19_source_transactions.py",
+          "test_name": "test_ac19_q16_preserves_exact_offset_identity_nominal_pitch_and_rejects_bad_model",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT UI-1A Q5/Q6/Q7 touched-layer X state NONE/snapshot cleanup; Q16 retains X and nominal pitch but invalidates actual geometry, rejects invalid current source and physical batch; Cancel/Undo restores exact transaction",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_ac04_ac19_source_transactions.py::test_ac19_q16_preserves_exact_offset_identity_nominal_pitch_and_rejects_bad_model",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac04_ac19_source_transactions.py::test_ac04_q5_q6_q7_reset_only_changed_layer_and_preserve_other_layer",
+          "tests/test_issue1504_ac04_ac19_source_transactions.py::test_ac04_ac19_fractional_mm_bad_input_cancel_and_undo_have_no_partial_mutation",
+          "tests/test_issue1493_nfb_draft_transactions.py::test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
+          "tests/test_issue1497_nfb_cutting_preflight.py::test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-20",
@@ -3047,7 +3085,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. All other 87 are still unsigned.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 20/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 68 AC have partial, GUI, or deferred manufacturing evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 22/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 66 AC have partial, GUI, or deferred manufacturing evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
