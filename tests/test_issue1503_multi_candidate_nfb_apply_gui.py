@@ -59,7 +59,7 @@ def select_two(root,frame,state):
     assert state['layers'].get()==2
     assert state['nfb_physical_layers'].get()==2
 
-def check_heights(state,first='550',second='800'):
+def check_heights(state,first='330',second='830'):
     vals=tuple(round(float(v.get())) for v in state['layer_heights_mm'])
     assert vals==(int(first),int(second)), f'wrong default heights {vals}'
     print('HEIGHTS',vals, flush=True)
