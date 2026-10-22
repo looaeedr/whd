@@ -236,6 +236,7 @@ def test_original_gui_pad_base_export_action_routes_real_two_tier_pair(tmp_path,
         export_receiving_pad_base_part_only_dxf,
     )
     import gui_modules.project.export_actions as actions
+    import tkinter.simpledialog as dialog
     import fold_designer_bridge as bridge
     snap,parts=_mixed_source_two_tiers()
     assert snap["nfb_config_submitted"] is True
@@ -243,9 +244,9 @@ def test_original_gui_pad_base_export_action_routes_real_two_tier_pair(tmp_path,
         assembly_parts=parts))
     monkeypatch.setattr(bridge,"_phase6_final_scene_adapter",
                         lambda _designer: adapter)
-    monkeypatch.setattr(actions.simpledialog,"askstring",
+    monkeypatch.setattr(dialog,"askstring",
                         Mock(side_effect=["SPCC","LASER"]))
-    monkeypatch.setattr(actions.simpledialog,"askinteger",
+    monkeypatch.setattr(dialog,"askinteger",
                         Mock(return_value=2))
     monkeypatch.setattr(actions.filedialog,"askdirectory",
                         Mock(return_value=str(tmp_path)))
