@@ -115,7 +115,7 @@ def test_source_joined_two_tier_csv_derives_real_base_without_manual_choice():
     )
     assert "receiving_base_plate" not in source
     values = receiving_base_plate_values(source)
-    assert values is not None and values["pattern"] == RECEIVING_BASE_PATTERN_LEFT
+    assert values is not None and values["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_LEFT
     host = SimpleNamespace(
         designer_workspace=SimpleNamespace(available_parts=("box_body",)),
         _phase6_input_snapshot=source,
