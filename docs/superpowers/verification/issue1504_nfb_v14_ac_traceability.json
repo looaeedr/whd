@@ -19,7 +19,6 @@
   "review_status": "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490",
   "open_gates": [
     1500,
-    1503,
     1504
   ],
   "counts": {
@@ -455,9 +454,7 @@
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "DEFERRED_PRODUCT_EVIDENCE",
-      "blocking_issues": [
-        1503
-      ],
+      "blocking_issues": [],
       "accepted": false,
       "identified_test_functions": [
         {
@@ -472,7 +469,8 @@
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT correction: a submitted NFB depth NEVER moves the inner door; it DOES move the real BasePlate and its left/right EARs together in world Z to keep their true contact skins. Base X remains centered; Y follows the tier NFB aperture height, and per-switch X only moves NFB screws. Unapproved independent PAD blank is still blocked.",
         "authority_issue": 1502
-      }
+      },
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
     },
     {
       "id": "NFB-AC-14",
@@ -1397,9 +1395,7 @@
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "DEFERRED_PRODUCT_EVIDENCE",
-      "blocking_issues": [
-        1503
-      ],
+      "blocking_issues": [],
       "accepted": false,
       "identified_test_functions": [
         {
@@ -1409,7 +1405,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
     },
     {
       "id": "NFB-AC-42",
@@ -2222,9 +2219,7 @@
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "DEFERRED_PRODUCT_EVIDENCE",
-      "blocking_issues": [
-        1503
-      ],
+      "blocking_issues": [],
       "accepted": false,
       "identified_test_functions": [
         {
@@ -2239,7 +2234,8 @@
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT correction: changing selected NFB depth moves the real BasePlate and paired EARs together in Z; it does NOT implicitly create a PAD. The upper aperture/lower original screw-group provenance cannot be treated as a PAD blank.",
         "authority_issue": 1502
-      }
+      },
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
     },
     {
       "id": "SWT-AC-10",
@@ -2667,9 +2663,7 @@
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "DEFERRED_PRODUCT_EVIDENCE",
-      "blocking_issues": [
-        1503
-      ],
+      "blocking_issues": [],
       "accepted": false,
       "identified_test_functions": [
         {
@@ -2684,7 +2678,8 @@
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT EAR is no longer unverified: original 固定片.dxf T2/BEND23 formed-geometry signed +90, real side skin physical contact and original side UV MARKING per-part DXF were verified, including Windows-native Tk 2D/3D. PAD/welding workmanship and unconditional whole-cabinet NC remain unapproved.",
         "authority_issue": 1503
-      }
+      },
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
     },
     {
       "id": "SWT-AC-23",
