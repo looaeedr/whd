@@ -19,7 +19,7 @@ from phase6_receiving_modes import fresh_receiving_mode
 @pytest.mark.parametrize("width,quantity,pitch", [
     (600, 2, (180.0,)),
     (750, 2, (310.0,)),
-    (800, 2, (325.0,)),
+    (800, 2, (360.0,)),
     (800, 3, (180.0, 180.0)),
 ])
 def test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting(
