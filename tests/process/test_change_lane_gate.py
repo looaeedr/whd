@@ -18,6 +18,7 @@ from tools.change_lane_gate import (
     is_previously_merged_localx_product_history,
     is_historical_verified_x_ci_governance,
     parse_name_status_zero,
+    require_new_code_taipei,
     require_x_only_governance_history,
 )
 
@@ -441,6 +442,61 @@ class ChangeLaneTests(unittest.TestCase):
                 changed_paths=["gui.py"],
                 comments=[],
             )
+
+
+    def test_quoted_non_ascii_diff_header_and_denied_action_and_missing_sop_blob(self):
+        from tools.interactive_command_no_stop_gate import (
+            WorkObservation,
+            execute_authorized_step,
+        )
+
+        # D3-07: quoted non-ASCII path in git diff must not inherit prior tests/ path
+        quoted_patch = (
+            "+++ b/tests/test_ok.py\n"
+            "+datetime.now()\n"
+            '+++ "b/\\345\\237\\272\\346\\272\\226/bad.py"\n'
+            "+now = datetime.now()\n"
+        ).encode("utf-8")
+        with patch(
+            "tools.change_lane_gate.subprocess.run",
+            return_value=subprocess.CompletedProcess([], 0, quoted_patch),
+        ):
+            with self.assertRaisesRegex(ChangeLaneDenied, "HOST_LOCAL_CLOCK"):
+                require_new_code_taipei(Path("."), BASE, HEAD)
+
+        # D3-08: missing SOP blob in historical check returns False instead of CalledProcessError
+        sop_commit = next(iter(HISTORICAL_REVERTED_SOP_COMMITS))
+        sop_path, _ = HISTORICAL_REVERTED_SOP_COMMITS[sop_commit]
+        with patch(
+            "tools.change_lane_gate.subprocess.run",
+            side_effect=subprocess.CalledProcessError(128, ["git", "rev-parse"]),
+        ):
+            self.assertFalse(
+                is_historical_reverted_sop_history(
+                    Path("."),
+                    commit=sop_commit,
+                    paths=[sop_path],
+                    x_sha=BASE,
+                    localx_sha=HEAD,
+                )
+            )
+
+        # D3-06: execute_authorized_step skips observation.rejected_actions
+        called = []
+        obs = WorkObservation(
+            authorized_actions=("gh_api_merge", "read_ci_logs"),
+            rejected_actions=("gh_api_merge",),
+        )
+        res = execute_authorized_step(
+            obs,
+            {
+                "gh_api_merge": lambda: called.append("gh_api_merge"),
+                "read_ci_logs": lambda: called.append("read_ci_logs"),
+            },
+        )
+        self.assertEqual(res.completed_action, "read_ci_logs")
+        self.assertEqual(called, ["read_ci_logs"])
+        self.assertIn("gh_api_merge", res.blocked)
 
 
 if __name__ == "__main__":

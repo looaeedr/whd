@@ -19,13 +19,12 @@
   "review_status": "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490",
   "open_gates": [
     1500,
-    1503,
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 40,
+    "EVIDENCE_CANDIDATE_ONLY": 33,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 13,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 20,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -185,21 +184,41 @@
         1493
       ],
       "regression_candidates": [
-        "tests/test_issue1493_nfb_draft_transactions.py"
+        "tests/test_issue1493_nfb_draft_transactions.py",
+        "tests/test_issue1504_batched_current_nfb_transactions.py",
+        "tests/test_receiving_nfb_entry_scoped_transactions.py",
+        "tests/test_issue1504_native_nfb_preview_transaction.py",
+        "tests/test_issue1504_quantity_nfb_confirm_atomic.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1493_nfb_draft_transactions.py",
-          "test_name": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_batched_current_nfb_transactions.py",
+          "test_name": "test_ac06_native_edit_cancel_undo_illegal_mutating_callback_and_authority_save",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT native UI-1A modal and original HoleEditor: Cancel/Escape/Undo and invalid edit/geometry restore prior legal source; no Bay write before main confirm",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_batched_current_nfb_transactions.py::test_ac06_native_edit_cancel_undo_illegal_mutating_callback_and_authority_save",
+        "other_required_assertions": [
+          "tests/test_receiving_nfb_entry_scoped_transactions.py::test_cancel_before_main_confirm_preserves_previous_board_and_candidates",
+          "tests/test_issue1504_native_nfb_preview_transaction.py::test_rejected_nfb_full_preview_preserves_existing_active_edit_and_cancel",
+          "tests/test_issue1504_quantity_nfb_confirm_atomic.py::test_invalid_real_family_box_rejects_confirmation_without_changing_quantity"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-07",
@@ -240,21 +259,37 @@
         1499
       ],
       "regression_candidates": [
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1504_batched_current_nfb_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_batched_current_nfb_transactions.py",
+          "test_name": "test_ac08_quantity_version_id_deep_clone_switch_delete_save_reload_identity",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT quantity version lifecycle: distinct NFB source, model/X/rotation and piece count by version_id; add, select, deep-copy, delete, actual project Save/Reload all preserve identity",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_batched_current_nfb_transactions.py::test_ac08_quantity_version_id_deep_clone_switch_delete_save_reload_identity",
+        "other_required_assertions": [
+          "tests/test_issue1499_nfb_persistence.py::test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+          "tests/test_issue1504_batched_current_nfb_transactions.py::test_version_copy_never_promotes_unknown_x_to_confirmed_or_cross_scope"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-09",
@@ -419,9 +454,7 @@
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "DEFERRED_PRODUCT_EVIDENCE",
-      "blocking_issues": [
-        1503
-      ],
+      "blocking_issues": [],
       "accepted": false,
       "identified_test_functions": [
         {
@@ -436,7 +469,8 @@
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT correction: a submitted NFB depth NEVER moves the inner door; it DOES move the real BasePlate and its left/right EARs together in world Z to keep their true contact skins. Base X remains centered; Y follows the tier NFB aperture height, and per-switch X only moves NFB screws. Unapproved independent PAD blank is still blocked.",
         "authority_issue": 1502
-      }
+      },
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
     },
     {
       "id": "NFB-AC-14",
@@ -826,21 +860,37 @@
       ],
       "regression_candidates": [
         "tests/test_issue1493_nfb_draft_transactions.py",
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1504_batched_current_nfb_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1493_nfb_draft_transactions.py",
-          "test_name": "test_angle_inherit_explicit_same_override_no_mirror",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_batched_current_nfb_transactions.py",
+          "test_name": "test_ac26_current_v5_quarter_turn_saved_bay_reload_does_not_fake_absolute_placement",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT numeric V5 model: independently persisted 90/180-degree unit rotation on real Bay Save/Reload and inherit/override; unknown physical X never becomes approved or fake rotated world placement",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_batched_current_nfb_transactions.py::test_ac26_current_v5_quarter_turn_saved_bay_reload_does_not_fake_absolute_placement",
+        "other_required_assertions": [
+          "tests/test_issue1493_nfb_draft_transactions.py::test_angle_inherit_explicit_same_override_no_mirror",
+          "tests/test_issue1504_batched_current_nfb_transactions.py::test_version_copy_never_promotes_unknown_x_to_confirmed_or_cross_scope"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-27",
@@ -1046,21 +1096,38 @@
         1499
       ],
       "regression_candidates": [
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1498_nfb_part_readiness.py",
+        "tests/test_receiving_nfb_entry_scoped_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
           "path": "tests/test_issue1499_nfb_persistence.py",
           "test_name": "test_unconfigured_bay_and_quantity_keep_legacy_schema",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "UNCONFIGURED new Bay/quantity keeps legacy schema, no forced NFB slots, no change to legacy physical export eligibility; not a claim that all historical DXF are byte-identical or whole-cabinet export approved",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1499_nfb_persistence.py::test_unconfigured_bay_and_quantity_keep_legacy_schema",
+        "other_required_assertions": [
+          "tests/test_issue1498_nfb_part_readiness.py::test_unconfigured_preserves_legacy_even_when_nfb_source_absent",
+          "tests/test_receiving_nfb_entry_scoped_transactions.py::test_cancel_before_main_confirm_preserves_previous_board_and_candidates"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-34",
@@ -1168,19 +1235,34 @@
         "tests/test_issue1497_w800_three_canonical_cutting.py",
         "tests/test_issue1497_w800_three_ui_worldx.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
           "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
           "test_name": "test_legacy_same_location_or_same_physical_owner_blocks_atomic_export",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "W800x3 actual-source DXF source-identity and physical collision exclusivity; same position/ID rejects atomically before writing; nonconflicting legacy circle is retained once in actual CUTTING DXF and its source scene remains unmodified",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1497_w800_three_canonical_cutting.py::test_legacy_same_location_or_same_physical_owner_blocks_atomic_export",
+        "other_required_assertions": [
+          "tests/test_issue1497_w800_three_canonical_cutting.py::test_existing_legacy_circle_is_preserved_exactly_once_in_real_nfb_dxf",
+          "tests/test_issue1497_configured_nfb_manufacturing_release.py::test_legacy_same_physical_hole_fails_no_duplicate_cutting"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-38",
@@ -1313,9 +1395,7 @@
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "DEFERRED_PRODUCT_EVIDENCE",
-      "blocking_issues": [
-        1503
-      ],
+      "blocking_issues": [],
       "accepted": false,
       "identified_test_functions": [
         {
@@ -1325,7 +1405,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
     },
     {
       "id": "NFB-AC-42",
@@ -2138,9 +2219,7 @@
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "DEFERRED_PRODUCT_EVIDENCE",
-      "blocking_issues": [
-        1503
-      ],
+      "blocking_issues": [],
       "accepted": false,
       "identified_test_functions": [
         {
@@ -2155,7 +2234,8 @@
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT correction: changing selected NFB depth moves the real BasePlate and paired EARs together in Z; it does NOT implicitly create a PAD. The upper aperture/lower original screw-group provenance cannot be treated as a PAD blank.",
         "authority_issue": 1502
-      }
+      },
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
     },
     {
       "id": "SWT-AC-10",
@@ -2392,21 +2472,39 @@
       ],
       "regression_candidates": [
         "tests/test_issue1492_nfb_real_dxf_preview.py",
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_batched_current_nfb_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1492_nfb_real_dxf_preview.py",
-          "test_name": "test_missing_and_unindexed_dxf_cannot_show_fake_contour",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1491_nfb_ui1a.py",
+          "test_name": "test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "Known nominal pitch stays available with source model requiring reselection; no real placement/collision approval when main center/CSV source invalid; rotation survives real NFB Bay Save/Reload without manufacturing false-positive",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1491_nfb_ui1a.py::test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name",
+        "other_required_assertions": [
+          "tests/test_issue1491_nfb_ui1a.py::test_nominal_pitch_exact_but_never_absolute_x",
+          "tests/test_issue1504_batched_current_nfb_transactions.py::test_ac26_current_v5_quarter_turn_saved_bay_reload_does_not_fake_absolute_placement",
+          "tests/test_issue1492_nfb_real_dxf_preview.py::test_missing_and_unindexed_dxf_cannot_show_fake_contour"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "SWT-AC-18",
@@ -2565,9 +2663,7 @@
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "DEFERRED_PRODUCT_EVIDENCE",
-      "blocking_issues": [
-        1503
-      ],
+      "blocking_issues": [],
       "accepted": false,
       "identified_test_functions": [
         {
@@ -2582,7 +2678,8 @@
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT EAR is no longer unverified: original 固定片.dxf T2/BEND23 formed-geometry signed +90, real side skin physical contact and original side UV MARKING per-part DXF were verified, including Windows-native Tk 2D/3D. PAD/welding workmanship and unconditional whole-cabinet NC remain unapproved.",
         "authority_issue": 1503
-      }
+      },
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
     },
     {
       "id": "SWT-AC-23",
@@ -2667,19 +2764,35 @@
       "regression_candidates": [
         "tests/test_issue1498_nfb_part_readiness.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
           "path": "tests/test_issue1498_nfb_part_readiness.py",
           "test_name": "test_unconfigured_preserves_legacy_even_when_nfb_source_absent",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "UNCONFIGURED legacy unaffected; submitted missing/ambiguous NFB source blocks only physical dependent inner door and existing physical Base/Middle IDs, independent side panels stay exportable without unapproved EAR",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1498_nfb_part_readiness.py::test_unconfigured_preserves_legacy_even_when_nfb_source_absent",
+        "other_required_assertions": [
+          "tests/test_issue1498_nfb_part_readiness.py::test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero",
+          "tests/test_issue1498_nfb_part_readiness.py::test_real_base_color30_and_marking212_have_specific_base_dependency",
+          "tests/test_issue1498_nfb_part_readiness.py::test_shihlin_upper_source_allows_inner_door_but_blocks_middle_only"
+        ],
+        "exact_pr_ci_and_localX_readback_required": true,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "SWT-AC-26",
@@ -2934,7 +3047,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. All other 87 are still unsigned.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 13/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 75 AC have partial or deferred evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 20/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 68 AC have partial, GUI, or deferred manufacturing evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",

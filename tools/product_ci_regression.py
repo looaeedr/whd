@@ -42,6 +42,7 @@ PYTEST_PATHS = (
     "tests/test_manufacturing_mesh_reuse.py",
     "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",
+    "tests/test_ci_bounded_install.py",
     "tests/test_issue1464_custom_manufacturing.py",
     "tests/test_issue1465_quantity_ui.py",
     "tests/test_issue1466_quantity_bom.py",
@@ -160,6 +161,8 @@ PYTEST_PATHS = (
     # One reconciliation of 79 original unsigned ACs to actual CI source tests;
     # 4 source-scoped signed only; real GUI/MFG and old-reader gates remain.
     "tests/test_issue1504_79ac_batch_acceptance_gate.py",
+    # #1504 seven exact multi-witness source signoffs; no GUI/MFG overclaims.
+    "tests/test_issue1504_seven_ac_source_signoff_batch.py",
     "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
     "tests/test_issue1504_brand_inheritance_current_csv.py",
     "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
@@ -496,7 +499,10 @@ def _merge_shard_junit(paths: list[Path], count: int, output: Path) -> None:
 
 
 def _verify_full_receipt(report: Path) -> None:
-    from whd_v15_acceptance_evidence import verify
+    try:
+        from tools.whd_v15_acceptance_evidence import verify
+    except ModuleNotFoundError:
+        from whd_v15_acceptance_evidence import verify
     receipt = verify(report)
     print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} "
           f"passed_cases={receipt['passed_cases']}", flush=True)

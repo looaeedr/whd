@@ -43,7 +43,9 @@ GOVERNANCE_EXACT_FILES = frozenset({
     "tools/phase6_skill_preflight.py",
     "tools/knowledge_governance.py",
     "tools/change_test_profile.py",
+    "tools/interactive_command_no_stop_gate.py",
     "tests/process/test_change_lane_gate.py",
+    "tests/process/test_change_test_profile.py",
     "tests/process/test_localx_publish_gate.py",
     "tests/test_phase6_skill_preflight_gate.py",
     "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -214,7 +216,7 @@ def require_new_code_taipei(repo_root: Path, base_sha: str, head_sha: str) -> in
             raise ChangeLaneDenied("TAIWAN_TIMEZONE_HARD_GATE_FAILED:INVALID_SHA")
     try:
         patch = subprocess.run(
-            ["git", "diff", "--unified=0", "--no-ext-diff",
+            ["git", "-c", "core.quotepath=false", "diff", "--unified=0", "--no-ext-diff",
              f"{base_sha}...{head_sha}", "--", "*.py"],
             cwd=repo_root, capture_output=True, check=True,
         ).stdout.decode("utf-8", "strict")
@@ -225,6 +227,8 @@ def require_new_code_taipei(repo_root: Path, base_sha: str, head_sha: str) -> in
     for line in patch.splitlines():
         if line.startswith("+++ b/"):
             path = line[6:]
+        elif line.startswith('+++ "b/') and line.endswith('"'):
+            path = line[7:-1]
         elif line.startswith("+") and not line.startswith("+++"):
             # Test fixtures frequently *quote* prohibited syntax; production
             # code is the enforced part of this migration-safe source guard.
@@ -381,19 +385,22 @@ def is_historical_reverted_sop_history(
     if expected is None or paths != [expected[0]]:
         return False
     path, original_blob = expected
-    merge_base = subprocess.run(
-        ["git", "merge-base", x_sha, localx_sha], cwd=repo_root,
-        capture_output=True, check=True,
-    ).stdout.decode("ascii", "strict").strip()
-    if not re.fullmatch(r"[0-9a-f]{40}", merge_base):
-        return False
-    for rev in (x_sha, merge_base):
-        blob = subprocess.run(
-            ["git", "rev-parse", f"{rev}:{path}"], cwd=repo_root,
+    try:
+        merge_base = subprocess.run(
+            ["git", "merge-base", x_sha, localx_sha], cwd=repo_root,
             capture_output=True, check=True,
         ).stdout.decode("ascii", "strict").strip()
-        if blob != original_blob:
+        if not re.fullmatch(r"[0-9a-f]{40}", merge_base):
             return False
+        for rev in (x_sha, merge_base):
+            blob = subprocess.run(
+                ["git", "rev-parse", f"{rev}:{path}"], cwd=repo_root,
+                capture_output=True, check=True,
+            ).stdout.decode("ascii", "strict").strip()
+            if blob != original_blob:
+                return False
+    except (OSError, UnicodeError, subprocess.CalledProcessError):
+        return False
     return True
 
 
