@@ -119,7 +119,10 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
         original_features = old["snapshot"].get("part_features") or {}
         saved_features = saved["snapshot"].get("part_features") or {}
         for owner, features in original_features.items():
-            assert saved_features.get(owner) == features, owner
+            # V1 may store explicitly empty legacy feature owners. Saving
+            # canonically omits an empty owner; this is not a lost hole.
+            # Every NONEMPTY old feature is still required without changes.
+            assert (saved_features.get(owner) or []) == (features or []), owner
         assert all(not features for owner, features in saved_features.items()
                    if owner not in original_features), "unapproved migrated hole"
         for key in ("door_layout_columns", "inner_doors", "part_profiles"):
