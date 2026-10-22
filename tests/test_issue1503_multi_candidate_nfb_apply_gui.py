@@ -94,6 +94,9 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         editor=getattr(box,'last_unified_hole_editor',None)
         assert editor is not None and editor.winfo_exists(),'native hole editor not opened'
         tabs=editor._receiving_config_tabs
+        from ae_engine.cabinet_types import policy
+        part=policy.derive_inner_door_panels(designer._phase6_input_snapshot)[0].stable_id
+        physical_before=tuple(designer.designer_workspace.features_for(part))
         baseline_pending=tuple(editor._receiving_pending_features())
         assert len(baseline_pending)==1, 'fresh Bay must open with one current CSV hole'
         assert tabs.tab(0,'text').strip()=='開孔編輯' and tabs.tab(1,'text').strip()=='受電箱'
@@ -135,9 +138,12 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         staged=getattr(editor,'_receiving_staged_config',None)
         assert staged is not None and staged['layer_heights_mm']==[300,830]
         print('TAB_CONFIRM_NATIVE_HOLES_PASS',len(pending),flush=True)
-        from ae_engine.cabinet_types import policy
-        part=policy.derive_inner_door_panels(designer._phase6_input_snapshot)[0].stable_id
-        assert len(designer.designer_workspace.features_for(part))==1, ('tab confirm must retain existing initial one-NFB physical source')
+        # The version editor is a CANDIDATE transaction, not the physical
+        # Bay writer. Compare with the exact workspace before entering, while
+        # separately verifying the one submitted NFB already in the Bay.
+        assert tuple(designer.designer_workspace.features_for(part))==physical_before, (
+            'tab Confirm must not overwrite the current physical workspace'
+        )
         print('NO_PREMATURE_PHYSICAL_WRITE_PASS',flush=True)
         # Native Confirm All is the transaction boundary, not this tab's 確定.
         main_confirm=buttons(editor,'確定全部')
@@ -153,7 +159,9 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         assert len(config['features'][part])==2,'multi candidate missing two typed NFB holes'
         assert config['layer_heights_mm']==[300,830]
         physical=designer.designer_workspace.features_for(part)
-        assert len(physical)==1, 'multi candidate unexpectedly modified existing one-NFB physical source'
+        assert tuple(physical)==physical_before, (
+            'multi candidate unexpectedly modified physical part before explicit Apply'
+        )
         print('MULTI_CONFIRM_ALL_CANDIDATE_PASS',version['id'],len(config['features'][part]),flush=True)
         # Version X must not create a physical NFB before Apply.
         from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
