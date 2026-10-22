@@ -644,6 +644,30 @@ def worker(args):
                             layout_paths(item, prefix + '[' + str(index) + ']', depth + 1)
                 layout_paths(inputs['snapshot']['receiving_layout'],
                              'layout', 0)
+                raw_set = snapshot['receiving_layout']['sets'][0]
+                trimmed_set = inputs['snapshot']['receiving_layout']['sets'][0]
+                raw_bays = raw_set['bays']
+                keys['_reason_detail'] = {
+                    'raw_bays': len(raw_bays),
+                    'filtered_bays': len(trimmed_set['bays']),
+                    'raw_joints': len(raw_set['joints']),
+                    'filtered_joints': len(trimmed_set['joints']),
+                    'flags': {
+                        key: bool(snapshot.get(key))
+                        for key in ('assembly_joints','custom_parts','joint_relief_state')
+                    },
+                    'layout_schema': snapshot['receiving_layout'].get('schema'),
+                    'settings_schema_ok': all(
+                        isinstance(row, dict) and set(row) == {'refs','values'}
+                        for row in raw_set.get('settings', {}).values()
+                    ),
+                    'bays_having_refs': {
+                        kind: [
+                            bay['stable_id'] in row.get('refs', {})
+                            for bay in raw_bays[:2]
+                        ] for kind,row in raw_set.get('settings', {}).items()
+                    },
+                }
                 return keys
             cache_before = scoped_bay0_cache_components()
             # Tail addition/removal go through existing real operator UI.
@@ -663,6 +687,10 @@ def worker(args):
                 changed = [key for key in cache_before
                            if cache_before[key] != cache_after[key]]
                 print('ISSUE1817_BAY0_CACHE_MISS_COMPONENTS: ' + repr(changed),
+                      file=sys.stderr, flush=True)
+                print('ISSUE1817_CACHE_REASON_DETAIL: before=' +
+                      repr(cache_before['_reason_detail']) +
+                      ' after=' + repr(cache_after['_reason_detail']),
                       file=sys.stderr, flush=True)
                 raise AssertionError('Unaffected Bay0 rebuilt after UI tail append')
             win = open_modal()
