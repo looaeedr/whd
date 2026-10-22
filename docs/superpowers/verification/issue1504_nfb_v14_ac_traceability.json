@@ -195,7 +195,6 @@
         }
       ],
       "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
-      "current_scope_remaining_evidence": "NFB-AC-05 UI rotation inheritance/no-mirror is tested with current CSV V5, but its MFG-1 phase still needs a direct current-CSV source-owned physical CUTTING rotation/pivot DXF witness (0/90/180/270). Legacy synthetic-DXF physical rotation tests are not V5 certification.",
       "acceptance_evidence": {
         "scope": "Current numeric CSV V5 2P400: all four quarter turns independently projected from actual source opening corners against installed inner-door FinalScene CUTTING and original operator saved/reopened DXF, stable physical pivot; UI layer/per-unit explicit same-angle overrides, Q16 rotation retained, no mirrors, invalid angle fails without DXF, persisted source-aware V5 rotation stays non-authoritative until valid physical source.",
         "original_ac_text_unchanged": true,
@@ -213,7 +212,8 @@
         "human_windows_uat_claimed": false,
         "ui_full_operator_uat_claimed": false,
         "other_ac_signoff_implied": false
-      }
+      },
+      "historical_scope_remaining_evidence_before_20261023": "NFB-AC-05 UI rotation inheritance/no-mirror is tested with current CSV V5, but its MFG-1 phase still needs a direct current-CSV source-owned physical CUTTING rotation/pivot DXF witness (0/90/180/270). Legacy synthetic-DXF physical rotation tests are not V5 certification."
     },
     {
       "id": "NFB-AC-06",
