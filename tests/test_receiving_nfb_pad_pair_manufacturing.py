@@ -225,3 +225,50 @@ def test_both_real_tiers_pad_and_base_have_independent_owners_and_total_q(tmp_pa
     assert sum(r["quantity"] for r in doc["dxf"])==8
     assert sum(len(r["source_ids"]) for r in doc["dxf"])==4
     assert len(set(r["physical_id"] for r in doc["sources"]))==2
+
+
+
+def test_original_gui_pad_base_export_action_routes_real_two_tier_pair(tmp_path,monkeypatch):
+    """Product action's exact Set/Bay/qty material UI route uses the same proof."""
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    from gui_modules.project.export_actions import (
+        export_receiving_pad_base_part_only_dxf,
+    )
+    import gui_modules.project.export_actions as actions
+    import fold_designer_bridge as bridge
+    snap,parts=_mixed_source_two_tiers()
+    assert snap["nfb_config_submitted"] is True
+    adapter=SimpleNamespace(query_assembly_render_data=lambda: SimpleNamespace(
+        assembly_parts=parts))
+    monkeypatch.setattr(bridge,"_phase6_final_scene_adapter",
+                        lambda _designer: adapter)
+    monkeypatch.setattr(actions.simpledialog,"askstring",
+                        Mock(side_effect=["SPCC","LASER"]))
+    monkeypatch.setattr(actions.simpledialog,"askinteger",
+                        Mock(return_value=2))
+    monkeypatch.setattr(actions.filedialog,"askdirectory",
+                        Mock(return_value=str(tmp_path)))
+    success=Mock()
+    errors=Mock()
+    monkeypatch.setattr(actions.messagebox,"showinfo",success)
+    monkeypatch.setattr(actions.messagebox,"showerror",errors)
+    panel=SimpleNamespace(
+        fold_designer_app=SimpleNamespace(_phase6_input_snapshot=snap),
+        _flush_phase6_authoritative_state=lambda:None,
+    )
+    r=export_receiving_pad_base_part_only_dxf(panel)
+    errors.assert_not_called()
+    success.assert_called_once()
+    assert r is not None
+    assert r.scope=="RECEIVING_PAD_BASE_PAIR_PART_ONLY_CHECK_Q"
+    assert (r.pad_piece_count,r.base_piece_count)==(2,2)
+    assert len(r.files)==2
+    directory=tmp_path/next(iter(p.name for p in tmp_path.iterdir()))
+    assert len(list(directory.glob("*.dxf")))==2
+    manifest=json.loads(
+        (directory/"PAD_BASE_PAIR_PART_ONLY_CHECK_Q_RECEIPT.json"
+         ).read_text(encoding="utf-8"))
+    assert manifest["full_cabinet_manufacturing_released"] is False
+    assert manifest["pad_total"]==2
+    assert manifest["base_total"]==2
