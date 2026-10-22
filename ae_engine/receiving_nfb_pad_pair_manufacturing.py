@@ -105,29 +105,60 @@ def export_verified_pad_base_part_only(
            or abs(rec.seating_witness.regular_leg_front_gap_mm)>1e-4
            for rec in records):
         raise ValueError("PAD_PAIR_REAL_FULL_T2_CONTACT_OR_COLLISION_UNVERIFIED")
-    source_count=0
     from .receiving_nfb_committed_final_scene import _submitted_csv_holes
     found=_submitted_csv_holes(snapshot)
     if found is None or not found:
         raise ValueError("PAD_PAIR_CURRENT_COMMITTED_NFB_SOURCE_MISSING")
     _,holes=found
+    if any(h.layer_count != holes[0].layer_count for h in holes):
+        raise ValueError("PAD_PAIR_SOURCE_TIER_COUNT_DRIFT")
+    total_layers=holes[0].layer_count
+    if total_layers not in (1,2):
+        raise ValueError("PAD_PAIR_UNSUPPORTED_SOURCE_TIER_COUNT")
+    # Every physical NFB tier has its OWN unmodified Base source, screw
+    # locations, four-hole PAD owners and actual installed Z. Never reuse
+    # the first tier's whole-Bay NFB hole count for the second Base.
+    expected_ids={}
+    for hole in holes:
+        tier=hole.slot_index
+        if type(tier) is not int or tier not in range(total_layers):
+            raise ValueError("PAD_PAIR_SOURCE_TIER_OWNER_INVALID")
+        base_id=("base_plate" if total_layers==1
+                 else f"base_plate:nfb_layer:{tier}")
+        expected_ids.setdefault(base_id,set()).add(hole.physical_hole_id)
     parent_map={p.part_key:p for p in tuple(assembly_parts)}
     physical={}
     by_parent={}
     for record in records:
         parent=parent_map.get(record.parent_base_id)
-        if parent is None:
+        if parent is None or record.parent_base_id not in expected_ids:
             raise ValueError("PAD_PAIR_BASE_PARENT_DISCONNECTED")
-        if (record.parent_base_id,record.physical_id) in physical:
+        if record.owner_hole_id not in expected_ids[record.parent_base_id]:
+            raise ValueError("PAD_PAIR_PAD_HOLE_TIER_OWNER_DRIFT")
+        if any(row.physical_id==record.physical_id
+               for row in by_parent.get(record.parent_base_id,())):
             raise ValueError("PAD_PAIR_DUPLICATE_SOURCE_OWNER")
         by_parent.setdefault(record.parent_base_id,[]).append(record)
-    for parent_id,members in by_parent.items():
+    for parent_id,members in sorted(by_parent.items()):
         parent=parent_map[parent_id]
-        if parent_id != "base_plate":
-            # The existing two-tier physical Base Sheet MFG source is still
-            # a separate unreleased contract, not inferred from tier labels.
-            raise ValueError("PAD_PAIR_TIER_BASE_MANUFACTURING_NOT_CERTIFIED")
-        _require_real_base_cutting_only(parent,len(holes),len(members))
+        metadata=parent.render_data.metadata
+        if total_layers==2:
+            from .receiving_nfb_layer_physical_parts import PREVIEW_STATUS
+            tier=int(parent_id.rsplit(":",1)[-1])
+            if (parent_id != f"base_plate:nfb_layer:{tier}"
+                    or metadata.get("stable_id")!=parent_id
+                    or metadata.get("nfb_layer_index")!=tier
+                    or metadata.get("nfb_layer_manufacturing_status")!=PREVIEW_STATUS
+                    or metadata.get("nfb_tier_real_skin_z_resolved") is not True
+                    or parent.render_data.unfolded_topology.piece_id!=parent_id):
+                raise ValueError("PAD_PAIR_TIER_BASE_PHYSICAL_SOURCE_NOT_VERIFIED")
+        if set(metadata.get("nfb_v5_hole_ids") or ())!=expected_ids[parent_id]:
+            raise ValueError("PAD_PAIR_BASE_NFB_HOLE_TIER_OWNER_DRIFT")
+        if set(dict(metadata.get("nfb_v5_pad_square_owners") or ()))!={
+                row.owner_hole_id for row in members}:
+            raise ValueError("PAD_PAIR_BASE_PAD_SQUARE_TIER_OWNER_DRIFT")
+        _require_real_base_cutting_only(
+            parent,len(expected_ids[parent_id]),len(members))
         physical[parent_id]=parent.render_data
         for record in members:
             _require_pad_cutting_only(record.render_data)

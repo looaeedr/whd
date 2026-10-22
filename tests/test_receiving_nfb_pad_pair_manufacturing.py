@@ -100,3 +100,79 @@ def test_cannot_certify_foreign_cutting_line_on_actual_base(tmp_path):
             parameters=ManufacturingParameters("SPCC",2.,"LASER"),
         )
     assert not folder.exists()
+
+
+
+def _mixed_source_two_tiers():
+    """Two actual independent Base PartRenderData, one with a PAD pair."""
+    from copy import deepcopy
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        apply_committed_csv_v5_to_canonical_parts,
+    )
+    from tests.test_issue1502_current_csv_original_two_tier_dxf import (
+        _current_two_tiers, _actual_scene,
+    )
+    snapshot=_current_two_tiers()
+    first=snapshot["nfb_config"]["holes"][0]
+    first.update(
+        model_filename="nfbv5:士林:3P400SN",manual_x_mm=-150.,
+    )
+    pad=deepcopy(first)
+    pad.update(
+        physical_hole_id="tier:0:pad:1",
+        model_filename="nfbv5:士林:100HN-s",
+        layer_index=0,slot_index=1,manual_x_mm=150.,
+    )
+    snapshot["nfb_config"]["holes"].append(pad)
+    snapshot["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
+        snapshot["nfb_config"]
+    )
+    return snapshot,_actual_scene(snapshot)
+
+
+def test_same_source_rule_manufactures_only_pad_bearing_tier_with_real_check_q(tmp_path):
+    from ae_engine.receiving_nfb_pad_delivery import (
+        resolve_committed_pad_physical_delivery,
+    )
+    snapshot,parts=_mixed_source_two_tiers()
+    records=resolve_committed_pad_physical_delivery(snapshot,parts,piece_count=2)
+    assert len(records)==1
+    assert records[0].parent_base_id=="base_plate:nfb_layer:0"
+    assert records[0].seating_witness.full_thickness_seated
+    assert records[0].seating_witness.base_slab_collision_verified
+    target=tmp_path/"real-tier-0-pair"
+    output=export_verified_pad_base_part_only(
+        snapshot,parts,target,version_id="two-tier-v1",box_count=2,
+        parameters=ManufacturingParameters("SPCC",2.,"LASER"),
+    )
+    assert output.per_box_pad_count==1
+    assert (output.pad_piece_count,output.base_piece_count)==(2,2)
+    assert len(output.files)==2
+    import ezdxf
+    for filename in output.files:
+        entity=tuple(ezdxf.readfile(target/filename).modelspace())
+        assert sum(x.dxf.layer=="CHECK" and x.dxftype() in ("TEXT","MTEXT")
+                   for x in entity)==1
+    manifest=json.loads(
+        (target/"PAD_BASE_PAIR_PART_ONLY_CHECK_Q_RECEIPT.json").read_text(
+            encoding="utf-8"))
+    assert manifest["sources"][0]["parent_base_id"]=="base_plate:nfb_layer:0"
+
+
+def test_two_tier_pair_rejects_stale_parent_owner_before_export(tmp_path):
+    from dataclasses import replace
+    snapshot,parts=_mixed_source_two_tiers()
+    tier0=next(p for p in parts if p.part_key=="base_plate:nfb_layer:0")
+    broken=replace(tier0,render_data=replace(
+        tier0.render_data,metadata={
+            **tier0.render_data.metadata,"nfb_layer_index":1,
+        }))
+    out=tmp_path/"wrong-tier-NO-OUTPUT"
+    with pytest.raises(ValueError,match="PAD_PAIR_TIER_BASE_PHYSICAL_SOURCE_NOT_VERIFIED"):
+        export_verified_pad_base_part_only(
+            snapshot,tuple(broken if p.part_key==tier0.part_key else p
+                           for p in parts),
+            out,version_id="v",box_count=1,
+            parameters=ManufacturingParameters("SPCC",2.,"LASER"),
+        )
+    assert not out.exists()
