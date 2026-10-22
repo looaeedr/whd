@@ -66,7 +66,28 @@ def test_batch_signoff_seven_require_independent_real_executed_assertions():
             }
             assert func in funcs, exact
             fn = funcs[func]
-            assert any(isinstance(node, ast.Assert) for node in ast.walk(fn)), exact
+            # Negative manufacturing/collision witnesses intentionally
+            # assert rejection with pytest.raises(...) rather than a bare
+            # `assert`. Demand either an actual assert OR an explicit
+            # pytest.raises context with an exception class. A filename or
+            # marker without executable assertions is never accepted.
+            def _explicit_rejection(node):
+                return (
+                    isinstance(node, (ast.With, ast.AsyncWith))
+                    and any(
+                        isinstance(item.context_expr, ast.Call)
+                        and isinstance(item.context_expr.func, ast.Attribute)
+                        and isinstance(item.context_expr.func.value, ast.Name)
+                        and item.context_expr.func.value.id == "pytest"
+                        and item.context_expr.func.attr == "raises"
+                        and bool(item.context_expr.args)
+                        for item in node.items
+                    )
+                )
+            assert any(
+                isinstance(node, ast.Assert) or _explicit_rejection(node)
+                for node in ast.walk(fn)
+            ), exact
 
 
 def test_unsigned_high_risk_ac_requirements_remain_blocked():
