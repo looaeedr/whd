@@ -72,6 +72,12 @@ def test_committed_editor_centers_project_360_without_moving_base_or_guessing_x(
     # The existing original-editor feature is the physical placement source,
     # not the nominal table's unverified origin.
     committed = dict(snapshot)
+    # The Receiving-tab height is committed alongside the original editor
+    # aperture features; using a stale 550-mm legacy Y here would correctly
+    # fail the physical source check even when the X group is 360-mm apart.
+    committed["receiving_inner_door_layer_heights_mm"] = list(
+        selected["layer_heights_mm"]
+    )
     committed["part_features"] = {panel.stable_id: list(features)}
     world_x = [
         _source_world_x_from_committed_editor_feature(
