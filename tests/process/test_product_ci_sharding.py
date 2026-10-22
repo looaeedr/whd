@@ -199,3 +199,15 @@ def test_release_test_runner_select_batch_isolates_remaining_suffix_after_first_
     ])
     selected = select_batch(["c", "d", "e", "f"], journal, default_batch_size=4)
     assert selected == ["c", "d"]
+
+
+def test_collected_nodeid_normalizes_windows_path_without_mutating_parameter_escapes():
+    from tools.whd_v15_acceptance_evidence import _collected_nodeid
+
+    original = r"tests\test_receiving_nfb_depth_surface_policy.py::test_case[\u58eb\u6797-refs0]"
+    expected = r"tests/test_receiving_nfb_depth_surface_policy.py::test_case[\u58eb\u6797-refs0]"
+    assert _collected_nodeid(original) == expected
+    assert _collected_nodeid("tests/test_example.py::TestClass::test_case") == (
+        "tests/test_example.py::TestClass::test_case"
+    )
+    assert _collected_nodeid("1802 tests collected") is None

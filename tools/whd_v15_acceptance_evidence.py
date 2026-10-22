@@ -15,6 +15,15 @@ MATRIX = ROOT / "docs/superpowers/verification/issue1469-v15-acceptance-matrix.j
 LIBRARY = ROOT / "個人AI檔案庫/第二層_專案與SOP"
 
 
+def _collected_nodeid(line: str) -> str | None:
+    """Normalize only pytest's path; parameter IDs may contain literal backslashes."""
+    path, separator, remainder = line.strip().partition("::")
+    normalized_path = path.replace("\\", "/")
+    if not separator or not normalized_path.startswith("tests/"):
+        return None
+    return f"{normalized_path}::{remainder}"
+
+
 def _case_nodeid(case: ET.Element) -> str:
     raw_classname = case.get("classname", "")
     name = case.get("name", "")
@@ -46,9 +55,8 @@ def verify(junit_path):
     collected = subprocess.check_output([sys.executable, "-m", "pytest", "--collect-only", "-q", *PYTEST_PATHS],
         cwd=ROOT, text=True)
     expected_cases = {
-        line.strip().replace("\\", "/")
-        for line in collected.splitlines()
-        if line.strip().replace("\\", "/").startswith("tests/") and "::" in line
+        nodeid for line in collected.splitlines()
+        if (nodeid := _collected_nodeid(line)) is not None
     }
     actual_cases = [_case_nodeid(case) for case in cases]
     if set(actual_cases) != expected_cases or len(actual_cases) != len(expected_cases):
