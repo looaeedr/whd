@@ -11,6 +11,7 @@ import json
 
 import pytest
 
+from ae_engine.receiving_nfb_x_projection import nominal_nfb_x_group
 from ae_engine.receiving_nfb_ui1a import new_nfb_ui1a_draft
 from ae_engine.receiving_nfb_ui1a_edits import set_nfb_manual_x
 from ae_engine.receiving_layout import new_receiving_layout, update_receiving_bay
@@ -26,7 +27,7 @@ DATUM = {
     "box_width_mm": 800,
     "layer_index": 0,
     "unit_ids_in_order": ["unit:one", "unit:two"],
-    "nominal_rule_revision": "NFB_NOMINAL_SOURCE_20261010",
+    "nominal_rule_revision": nominal_nfb_x_group(800, 2).revision,
 }
 
 
@@ -116,6 +117,7 @@ def test_nfb_ac22_v5_bay_x_zero_none_datum_order_save_reopen_never_auto_approves
     assert [h["unit_id"] for h in holes] == ["unit:one", "unit:two"]
     assert [h["manual_x_state"] for h in holes] == ["UNVERIFIED_BASIS", "NONE"]
     assert [h["manual_x_mm"] for h in holes] == [0, None]
+    assert nominal_nfb_x_group(800, 2).manufacturing_ready is False
     assert holes[0]["datum_snapshot"] == DATUM
     assert holes[1]["datum_snapshot"] is None
     assert all(h["model_filename"] == MODEL and h["source_brand"] == "士林"
