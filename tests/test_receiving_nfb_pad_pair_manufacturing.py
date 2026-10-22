@@ -79,3 +79,24 @@ def test_pair_does_not_manufacture_when_actual_assembled_parent_is_missing(tmp_p
             parameters=ManufacturingParameters("SPCC",2.,"LASER"),
         )
     assert not out.exists()
+
+
+def test_cannot_certify_foreign_cutting_line_on_actual_base(tmp_path):
+    from dataclasses import replace
+    from ae_engine.sheetmetal_drawing import DrawingScene,LinePrimitive
+    from ae_engine.sheetmetal_geometry import Vec2
+    snap,parts=installed_pair()
+    parent,=parts
+    data=parent.render_data
+    # Malicious/ad-hoc toolpath does not change original PAD four cutouts:
+    # a count-only collision check would miss the extra manufacturing cut.
+    injected=LinePrimitive(Vec2(3.,4.),Vec2(10.,12.),"CUTTING")
+    corrupted=replace(parent,render_data=replace(
+        data,scene=DrawingScene([*data.scene.primitives,injected])))
+    folder=tmp_path/"MUST_NOT_WRITE"
+    with pytest.raises(ValueError,match="PAD_PAIR_BASE_UNRECOGNIZED_CUTTING"):
+        export_verified_pad_base_part_only(
+            snap,(corrupted,),folder,version_id="v1",box_count=2,
+            parameters=ManufacturingParameters("SPCC",2.,"LASER"),
+        )
+    assert not folder.exists()
