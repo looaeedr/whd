@@ -176,3 +176,52 @@ def test_two_tier_pair_rejects_stale_parent_owner_before_export(tmp_path):
             parameters=ManufacturingParameters("SPCC",2.,"LASER"),
         )
     assert not out.exists()
+
+
+
+def test_both_real_tiers_pad_and_base_have_independent_owners_and_total_q(tmp_path):
+    """Every physical tier is solved independently, even if sheets nest/group."""
+    from copy import deepcopy
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        apply_committed_csv_v5_to_canonical_parts,
+    )
+    from tests.test_issue1502_current_csv_original_two_tier_dxf import (
+        _actual_scene,
+    )
+    from ae_engine.receiving_nfb_pad_delivery import (
+        resolve_committed_pad_physical_delivery,
+    )
+    snap,_=_mixed_source_two_tiers()
+    second=snap["nfb_config"]["holes"][1]
+    second.update(model_filename="nfbv5:士林:3P400SN",manual_x_mm=-150.)
+    pad=deepcopy(second)
+    pad.update(physical_hole_id="tier:1:pad:1",
+               model_filename="nfbv5:士林:100HN-s",
+               layer_index=1,slot_index=1,manual_x_mm=150.)
+    snap["nfb_config"]["holes"].append(pad)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
+        snap["nfb_config"])
+    actual=_actual_scene(snap)
+    records=resolve_committed_pad_physical_delivery(
+        snap,actual,piece_count=2)
+    assert len(records)==2
+    assert {r.parent_base_id for r in records}=={
+        "base_plate:nfb_layer:0","base_plate:nfb_layer:1"}
+    assert all(r.full_thickness_contact_certified
+               and r.seating_witness.base_slab_collision_verified
+               for r in records)
+    target=tmp_path/"two-tier-all-sheets"
+    result=export_verified_pad_base_part_only(
+        snap,actual,target,version_id="two-layer-source-v1",box_count=2,
+        parameters=ManufacturingParameters("SPCC",2.,"LASER"))
+    assert (result.per_box_pad_count,result.pad_piece_count,
+            result.base_piece_count)==(2,4,4)
+    doc=json.loads((target/"PAD_BASE_PAIR_PART_ONLY_CHECK_Q_RECEIPT.json"
+                    ).read_text(encoding="utf-8"))
+    assert {r["parent_base_id"] for r in doc["sources"]}=={
+        "base_plate:nfb_layer:0","base_plate:nfb_layer:1"}
+    # Equivalence may nest identical sheet stock into the same CHECK/Q DXF,
+    # but source identities and total physical quantities cannot disappear.
+    assert sum(r["quantity"] for r in doc["dxf"])==8
+    assert sum(len(r["source_ids"]) for r in doc["dxf"])==4
+    assert len(set(r["physical_id"] for r in doc["sources"]))==2
