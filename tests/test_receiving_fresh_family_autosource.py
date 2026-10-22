@@ -135,3 +135,96 @@ def test_manufacturing_transport_keeps_real_set_bay_indices_as_integers():
     assert type(runtime["set_index"]) is int
     assert type(runtime["bay_index"]) is int
     assert received["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] == source["nfb_config"]
+
+
+def _two_tier_candidate_with_real_csv(source):
+    from ae_engine.receiving_nfb_csv_editor_features import (
+        editor_nfb_features_from_csv,
+    )
+    panel = next(p for p in policy.derive_inner_door_panels(source)
+                 if str(p.cell_key) == "0:0")
+    payload = {
+        "layers": 2,
+        "models": [MODEL, MODEL],
+        "layer_heights_mm": [300.0, 830.0],
+    }
+    features = editor_nfb_features_from_csv(source, payload)
+    assert len(features) == 2
+    return {**payload, "features": {panel.stable_id: list(features)}}, panel.stable_id
+
+
+def test_explicit_candidate_apply_replaces_initial_one_nfb_without_double_cutting():
+    from gui_modules.application.receiving_set_bay_adapter import (
+        ReceivingSetBayAdapter,
+    )
+    from ae_engine.receiving_layout import resize_receiving_bays
+    initial = _fresh_set()
+    old_bay = deepcopy(initial["receiving_layout"]["sets"][0]["bays"][0])
+    candidate, part_id = _two_tier_candidate_with_real_csv(initial)
+    expanded = resize_receiving_bays(
+        initial["receiving_layout"], set_index=0, bay_count=2,
+    )
+    other_before = deepcopy(expanded["sets"][0]["bays"][1])
+    adapter = ReceivingSetBayAdapter(expanded)
+    old = adapter.layout
+    assert old["sets"][0]["bays"][0]["nfb_config_submitted"] is True
+    assert adapter.apply_inner_door_candidate_to_bays(
+        candidate, 0, (0,), version_id="inner-door-v1",
+    ) == (0,)
+    after = adapter.layout
+    changed = after["sets"][0]["bays"][0]
+    assert changed["stable_id"] == old_bay["stable_id"]
+    assert changed["nfb_config_submitted"] is True
+    assert changed["nfb_config"]["layer_count"] == 2
+    assert len(changed["nfb_config"]["holes"]) == 2
+    assert [hole["layer_index"] for hole in changed["nfb_config"]["holes"]] == [0, 1]
+    assert len(setting_value(after["sets"][0], 0, "inner_door_features")[part_id]) == 2
+    assert all(hole["physical_hole_id"].startswith(changed["stable_id"] + ":")
+               for hole in changed["nfb_config"]["holes"])
+    assert after["sets"][0]["bays"][1] == other_before
+    # Re-applying the same version must replace, never append duplicate holes.
+    adapter.apply_inner_door_candidate_to_bays(
+        candidate, 0, (0,), version_id="inner-door-v1",
+    )
+    assert adapter.layout == after
+
+
+def test_submitted_nfb_rejects_mixed_manual_cutting_with_no_partial_change():
+    from gui_modules.application.receiving_set_bay_adapter import (
+        ReceivingSetBayAdapter,
+    )
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, Vec2
+    original = _fresh_set()
+    candidate, part_id = _two_tier_candidate_with_real_csv(original)
+    candidate["features"][part_id].append(
+        CircleFeature(
+            diameter=5.0, anchor=FeatureAnchor.TOP_RIGHT,
+            offset=Vec2(-20.0, -20.0),
+        )
+    )
+    adapter = ReceivingSetBayAdapter(original["receiving_layout"])
+    before = adapter.layout
+    with pytest.raises(ValueError, match="非 NFB CUTTING"):
+        adapter.apply_inner_door_candidate_to_bays(
+            candidate, 0, (0,), version_id="inner-door-v1",
+        )
+    assert adapter.layout == before
+
+
+def test_explicit_quantity_allocation_replaces_submitted_one_nfb_same_source():
+    from gui_modules.application.receiving_set_bay_adapter import (
+        ReceivingSetBayAdapter,
+    )
+    from ae_engine.receiving_inner_door_candidates import create_inner_candidate
+    initial = _fresh_set()
+    config, part_id = _two_tier_candidate_with_real_csv(initial)
+    library, version = create_inner_candidate(None, config)
+    adapter = ReceivingSetBayAdapter(initial["receiving_layout"])
+    assert adapter.apply_inner_door_quantity_configuration(
+        library, {version: 1}, {(0, 0): version}, expected_counts=(1,),
+    ) == 1
+    bay = adapter.layout["sets"][0]["bays"][0]
+    assert bay["nfb_config_submitted"] is True
+    assert bay["nfb_config"]["layer_count"] == 2
+    assert len(bay["nfb_config"]["holes"]) == 2
+    assert len(setting_value(adapter.layout["sets"][0], 0, "inner_door_features")[part_id]) == 2
