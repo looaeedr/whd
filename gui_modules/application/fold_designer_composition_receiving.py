@@ -1921,6 +1921,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             delete_nfb_slot, move_nfb_slot, replace_nfb_slot_model,
             set_nfb_manual_x, set_nfb_layer_rotation,
             set_nfb_slot_rotation, effective_nfb_rotation,
+            nfb_x_reset_impact,
         )
         from ae_engine.receiving_nfb_ui1a import (
             INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
@@ -2084,6 +2085,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         nfb_preview_panel = {"panel": None}
         nfb_source_viewed = {"value": False}
 
+        def show_x_clear_impact(before, layer_index):
+            impact = nfb_x_reset_impact(before, draft_state["draft"], layer_index)
+            if impact.count:
+                warning.set(
+                    f"第{layer_index + 1}層已清除 {impact.count} 顆 X 位移／基準快照；"
+                    "其他層不變，按「復原 NFB」可還原"
+                )
+            else:
+                warning.set(f"第{layer_index + 1}層沒有 X 位移被清除；其他層不變")
+            return impact
+
         def sync_chosen():
             for layer in range(2):
                 chosen[layer][:] = [
@@ -2197,8 +2209,20 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         "繼承本層" if brand_state["mode"] == INHERIT
                         else brand_state["value"]
                     )
+                    # Programmatic Undo/repaint does not emit the Tk listbox
+                    # selection event. Never leave a stale X or angle in its
+                    # operator field after restoring the prior datum snapshot.
+                    selected_slot = slots[selected_now[0]]
+                    angle = selected_slot.get("rotation", {"mode": INHERIT, "value": None})
+                    entry["unit_rotation_var"].set(
+                        "跟隨本層" if angle["mode"] == INHERIT else str(angle["value"])
+                    )
+                    mm = selected_slot.get("manual_x_mm")
+                    entry["manual_x_var"].set("" if mm is None else f"{mm:g}")
                 else:
                     entry["slot_brand_var"].set("繼承本層")
+                    entry["unit_rotation_var"].set("跟隨本層")
+                    entry["manual_x_var"].set("")
             paint_draft_preview()
 
         def refresh_source(*, force=False):
@@ -2241,6 +2265,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             poll_job["id"] = modal.after(1800, poll_source)
 
         def add_switch(index):
+            before_x_change = deepcopy(draft_state["draft"])
             selected = layer_rows[index]["available"].curselection()
             if not selected:
                 warning.set("請先選擇 CSV 開關型號")
@@ -2277,15 +2302,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 layer_height_vars[0].set("300")
             sync_chosen()
             repaint(index)
-            warning.set("")
+            show_x_clear_impact(before_x_change, index)
 
         def add_empty_slot(index):
+            before_x_change = deepcopy(draft_state["draft"])
             draft_state["draft"] = insert_nfb_slot(
                 draft_state["draft"],index,
                 len(draft_state["draft"]["layers"][index]["slots"]),
             )
             sync_chosen()
             repaint(index)
+            show_x_clear_impact(before_x_change, index)
 
         def replace_selected_slot(index):
             selected = layer_rows[index]["assigned"].curselection()
@@ -2304,6 +2331,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             warning.set("")
 
         def remove_switch(index):
+            before_x_change = deepcopy(draft_state["draft"])
             selected = layer_rows[index]["assigned"].curselection()
             if not selected:
                 return
@@ -2313,6 +2341,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             sync_chosen()
             repaint(index)
             refresh_source(force=True)
+            show_x_clear_impact(before_x_change, index)
 
         def preview_available(index):
             selected = layer_rows[index]["available"].curselection()
@@ -2339,18 +2368,19 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             count=len(draft_state["draft"]["layers"][index]["slots"])
             if not 0<=dest<count:return
             try:
+                before_x_change = deepcopy(draft_state["draft"])
                 draft_state["draft"]=move_nfb_slot(draft_state["draft"],index,old,dest)
                 sync_chosen()
                 repaint(index)
                 layer_rows[index]["assigned"].selection_clear(0,tk.END)
                 layer_rows[index]["assigned"].selection_set(dest)
-                warning.set("已調整順序：本層 X 位移重設，其他層不變")
+                show_x_clear_impact(before_x_change, index)
             except (ValueError,IndexError) as exc:
                 warning.set(str(exc))
 
         def undo_nfb_draft():
             try:
-                edit_session.undo()
+                receipt = edit_session.undo()
                 dict.__setitem__(draft_state,"draft",edit_session.current)
                 sync_chosen()
                 nfb_physical_layers.set(edit_session.current["layer_count"])
@@ -2365,7 +2395,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     repaint(i)
                 change_layers_visibility_only()
                 refresh_source(force=True)
-                warning.set("已復原 NFB 草稿上一筆交易")
+                restored = [
+                    (i, nfb_x_reset_impact(receipt.old_draft, receipt.new_draft, i).count)
+                    for i in range(2)
+                ]
+                impact_text = "、".join(
+                    f"第{i + 1}層 {count} 顆" for i, count in restored if count
+                )
+                warning.set(
+                    f"已復原 {impact_text}的 X 位移與基準快照；其他層不變"
+                    if impact_text else "已復原 NFB 草稿上一筆交易"
+                )
             except ValueError as exc:
                 warning.set(str(exc))
 
@@ -2407,14 +2447,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 return
             typed=row["manual_x_var"].get().strip()
             try:
+                before_x_change = deepcopy(draft_state["draft"])
                 value=None if not typed else float(typed)
                 draft_state["draft"]=set_nfb_manual_x(
                     draft_state["draft"],index,selected[0],value,
                 )
-                warning.set(
-                    "X 位移保留為未驗證草稿，不是絕對製造座標"
-                    if value is not None else "本顆位移已清除"
-                )
+                if value is None:
+                    show_x_clear_impact(before_x_change, index)
+                else:
+                    warning.set("X 位移保留為未驗證草稿，不是絕對製造座標")
                 paint_draft_preview()
             except ValueError as exc:
                 warning.set(str(exc))
@@ -2767,6 +2808,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         buttons = ttk.Frame(frame)
         buttons.pack(anchor="e", pady=(10, 0))
         ttk.Button(buttons, text="取消", command=lambda: close_editor()).pack(
+            side="left", padx=5,
+        )
+        # A single operator Undo beside Confirm/Cancel, not extra slot
+        # controls: Q5/Q6/Q7 must actually be reversible in this GUI.
+        ttk.Button(buttons, text="復原 NFB", command=undo_nfb_draft).pack(
             side="left", padx=5,
         )
         ttk.Button(buttons, text="確定", command=confirm).pack(side="left")
