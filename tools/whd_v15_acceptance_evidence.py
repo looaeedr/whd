@@ -15,6 +15,18 @@ MATRIX = ROOT / "docs/superpowers/verification/issue1469-v15-acceptance-matrix.j
 LIBRARY = ROOT / "個人AI檔案庫/第二層_專案與SOP"
 
 
+def _case_nodeid(case: ET.Element) -> str:
+    raw_classname = case.get("classname", "")
+    name = case.get("name", "")
+    parts = [p for p in raw_classname.split(".") if p]
+    for idx in range(len(parts), 0, -1):
+        candidate_rel = "/".join(parts[:idx]) + ".py"
+        if (ROOT / candidate_rel).is_file():
+            qualifiers = parts[idx:]
+            return "::".join([candidate_rel, *qualifiers, name])
+    return raw_classname.replace(".", "/") + ".py::" + name
+
+
 def verify(junit_path):
     matrix = json.loads(MATRIX.read_text(encoding="utf-8"))
     spec = ROOT / matrix["spec"]
@@ -33,8 +45,12 @@ def verify(junit_path):
     from tools.product_ci_regression import PYTEST_PATHS
     collected = subprocess.check_output([sys.executable, "-m", "pytest", "--collect-only", "-q", *PYTEST_PATHS],
         cwd=ROOT, text=True)
-    expected_cases = {line.strip() for line in collected.splitlines() if line.startswith("tests/") and "::" in line}
-    actual_cases = [case.get("classname", "").replace(".", "/") + ".py::" + case.get("name", "") for case in cases]
+    expected_cases = {
+        line.strip().replace("\\", "/")
+        for line in collected.splitlines()
+        if line.strip().replace("\\", "/").startswith("tests/") and "::" in line
+    }
+    actual_cases = [_case_nodeid(case) for case in cases]
     if set(actual_cases) != expected_cases or len(actual_cases) != len(expected_cases):
         raise ValueError("JUnit is not the full canonical parameterized collection")
     results = {}
@@ -43,13 +59,16 @@ def verify(junit_path):
             raise ValueError(f"missing tests for {row['id']}")
         matches = []
         for nodeid in row["tests"]:
-            path, function = nodeid.split("::")
-            classname = path.removesuffix(".py").replace("/", ".")
+            parts = nodeid.split("::")
+            path = parts[0]
+            qualifiers = parts[1:-1]
+            function = parts[-1]
+            classname = ".".join([path.removesuffix(".py").replace("/", "."), *qualifiers])
             found = [case for case in cases if case.get("classname") == classname
                 and case.get("name", "").split("[", 1)[0] == function]
             if not found:
                 raise ValueError(f"{row['id']} has no fresh case for {nodeid}")
-            matches.extend(f"{path}::{case.get('name')}" for case in found)
+            matches.extend("::".join([path, *qualifiers, case.get("name", "")]) for case in found)
         results[row["id"]] = sorted(set(matches))
     authority = (LIBRARY / "09_WHD_Canonical_Authority_Map.md").read_text(encoding="utf-8")
     current = Counter(re.findall(r"WHD_AUTHORITY contract=(\S+) role=CURRENT", authority))

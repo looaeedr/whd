@@ -38,6 +38,7 @@ def test_feature_geometry_combines_feature_and_geometry_stages():
     assert profile["full_gate_kind"] == "PRODUCT_FULL_REGRESSION"
 
 
+
 def test_update_gets_compatibility_and_migration_before_full_regression():
     from tools.change_test_profile import build_test_profile
     profile = build_test_profile(task="更新 project config format", changed_files=["phase6_project_file.py", "tests/test_phase6_project_file.py"])
@@ -106,3 +107,21 @@ def test_governance_label_cannot_hide_product_code_from_product_full_regression(
         explicit_type="GOVERNANCE",
     )
     assert profile["full_gate_kind"] == "PRODUCT_FULL_REGRESSION"
+
+
+
+def test_active_governance_tools_infer_governance_profile_without_explicit_override():
+    from tools.change_test_profile import build_test_profile
+    profile = build_test_profile(
+        task="path classification logic",
+        changed_files=[
+            "tools/change_lane_gate.py",
+            "tools/localx_publish_gate.py",
+            "tools/phase6_skill_preflight.py",
+            "tools/knowledge_governance.py",
+            "tools/interactive_command_no_stop_gate.py",
+            "tests/process/test_change_lane_gate.py",
+        ],
+    )
+    assert profile["change_type"] == "GOVERNANCE"
+    assert profile["full_gate_kind"] == "GOVERNANCE_FULL_SUITE"

@@ -83,8 +83,22 @@ def _contains_keyword(task: str, keyword: str) -> bool:
     return key in lowered
 
 
+_GOVERNANCE_TOOL_EXACT = {
+    "tools/change_lane_gate.py",
+    "tools/localx_publish_gate.py",
+    "tools/phase6_skill_preflight.py",
+    "tools/knowledge_governance.py",
+    "tools/interactive_command_no_stop_gate.py",
+}
+
+
 def _is_governance_path(path: str) -> bool:
-    return path.startswith(_GOVERNANCE_PREFIXES) or path.startswith(_GOVERNANCE_TOOL_PREFIXES)
+    return (
+        path in _GOVERNANCE_TOOL_EXACT
+        or path.startswith(_GOVERNANCE_PREFIXES)
+        or path.startswith(_GOVERNANCE_TOOL_PREFIXES)
+    )
+
 
 
 def _is_docs_metadata_path(path: str) -> bool:
