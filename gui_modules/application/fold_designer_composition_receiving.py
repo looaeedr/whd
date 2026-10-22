@@ -2397,7 +2397,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 refresh_source(force=True)
                 restored = [
                     (i, nfb_x_reset_impact(receipt.old_draft, receipt.new_draft, i).count)
-                    for i in range(2)
+                    for i in range(receipt.old_draft["layer_count"])
                 ]
                 impact_text = "、".join(
                     f"第{i + 1}層 {count} 顆" for i, count in restored if count
