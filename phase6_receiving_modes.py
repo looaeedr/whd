@@ -51,14 +51,13 @@ def fresh_receiving_mode(mode, dimensions, *, thickness=2.0, auto_nfb=False):
         result = project_common_box(result)
     if auto_nfb:
         from ae_engine.receiving_fresh_nfb_defaults import (
+            seed_fresh_receiving_nfb_source,
             seed_fresh_receiving_quantity_nfb_source,
         )
-        result = seed_fresh_receiving_quantity_nfb_source(result)
-    elif auto_nfb:
-        from ae_engine.receiving_fresh_nfb_defaults import (
-            seed_fresh_receiving_nfb_source,
-        )
-        result = seed_fresh_receiving_nfb_source(result)
+        if mode == QUANTITY_MODE:
+            result = seed_fresh_receiving_quantity_nfb_source(result)
+        else:
+            result = seed_fresh_receiving_nfb_source(result)
     return result
 
 
