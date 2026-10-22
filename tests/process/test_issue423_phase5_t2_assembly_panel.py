@@ -94,13 +94,26 @@ def _make_panel(root, on_visibility_changed=lambda: None):
     return m, panel
 
 
-def test_t2_actions_contract_is_frozen_and_narrow():
+
+def test_t2_actions_contract_is_frozen_and_narrow(tk_root):
     m = _module()
-    actions = m.AssemblyPanelActions(on_visibility_changed=lambda: None)
+    calls = []
+    actions = m.AssemblyPanelActions(
+        on_visibility_changed=lambda: calls.append("visibility"),
+        on_multi_settings=lambda: calls.append("multi"),
+        on_single_settings=lambda: calls.append("single"),
+    )
     with pytest.raises(FrozenInstanceError):
         actions.on_visibility_changed = lambda: None
-    assert tuple(actions.__dataclass_fields__) == ("on_visibility_changed",)
-
+    assert tuple(actions.__dataclass_fields__) == (
+        "on_visibility_changed", "on_multi_settings", "on_single_settings",
+    )
+    panel = m.Phase6AssemblyPanel(tk_root, actions=actions)
+    panel.single_settings_button.invoke()
+    panel.multi_settings_button.invoke()
+    panel.notify_visibility_changed()
+    assert calls == ["single", "multi", "visibility"]
+    assert m.AssemblyPanelActions(on_visibility_changed=lambda: None).on_multi_settings is None
 
 def test_t2_panel_builds_host_canvas_scrollbar_and_content(tk_root):
     _, panel = _make_panel(tk_root)
@@ -284,11 +297,10 @@ def test_t2_collapse_is_presentation_only_and_updates_stash(tk_root):
     assert "door" not in panel.visible_vars
 
 
+
 def test_t2_module_has_no_bridge_app_display_mode_or_manufacturing_authority():
     m = _module()
     source = inspect.getsource(m)
-    lower = source.lower()
-
     assert "fold_designer_bridge" not in source
     assert "designer_workspace" not in source
     assert "_phase6_3d_display_mode" not in source
@@ -296,8 +308,9 @@ def test_t2_module_has_no_bridge_app_display_mode_or_manufacturing_authority():
     assert "resolve_geometry(" not in source
     assert "manufacturing_api" not in source
     assert "project_controller" not in source
-    assert "assembly_box_body_piece_visible_vars" not in source
-    # Current panel may consume the presentation-layer projection helper; the
-    # invariant is that it does not own manufacturing/geometry authority.
+    # Legacy UI registries are now owned by the panel, never manufacturing.
+    assert "def install_legacy_aliases" in source
+    assert "assembly_box_body_piece_visible_vars" in source
     assert "from phase6_assembly_presentation import" in source
     assert "project_box_body_piece_rows" in source
+
