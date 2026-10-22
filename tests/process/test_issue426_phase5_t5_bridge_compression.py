@@ -24,14 +24,7 @@ T0_BOUNDARY = (
 )
 
 CURRENT_REFRESH_CALLS = (
-    (
-        "_phase6_apply_settings_profile_projection",
-        "_phase6_refresh_assembly_parts_panel_if_topology_changed",
-    ),
-    (
-        "_phase6_refresh_assembly_parts_panel_if_topology_changed",
-        "_phase6_refresh_assembly_parts_panel",
-    ),
+    # Product/settings topology is now guarded by Phase6AssemblyPanel owner.
     ("_phase6_install_part_editor_compatibility", "_phase6_refresh_assembly_parts_panel"),
     ("_fix11_refresh_part_buttons", "_phase6_refresh_assembly_parts_panel"),
 )
@@ -138,42 +131,66 @@ def test_t5_refresh_callsite_inventory_tracks_accepted_owner_seams():
     assert _refresh_call_inventory() == CURRENT_REFRESH_CALLS
 
 
-def test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths():
-    conditional = _function_source(
-        "_phase6_refresh_assembly_parts_panel_if_topology_changed"
+
+def test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths(tk_root):
+    from unittest.mock import patch
+    panel = Phase6AssemblyPanel(
+        tk_root, actions=AssemblyPanelActions(on_visibility_changed=lambda: None),
     )
-    assert "if current == wanted:" in conditional
-    assert "return False" in conditional
-    assert "_phase6_refresh_assembly_parts_panel(self)" in conditional
+    panel.render(presentation.AssemblyPresentationModel(entries=(
+        presentation.AssemblyPresentationRow(
+            part_key="head", label="封頭", visible_seed=True,
+        ),
+    )))
+    host = SimpleNamespace()
+    with patch.object(panel, "render_available_parts") as render:
+        assert panel.refresh_if_topology_changed(
+            host, ("head",), selector_keys=tuple, label_for=str,
+        ) is False
+        render.assert_not_called()
+        assert panel.refresh_if_topology_changed(
+            host, ("head", "tail"), selector_keys=tuple, label_for=str,
+        ) is True
+        render.assert_called_once()
 
+    conditional = _function_source("_phase6_refresh_assembly_parts_panel_if_topology_changed")
+    assert ".refresh_assembly_parts_panel_if_topology_changed(globals())" in conditional
     refresh_buttons = _function_source("_fix11_refresh_part_buttons")
-    assert 'getattr(self, "assembly_parts_panel", None) is not None' in refresh_buttons
     assert "_phase6_refresh_assembly_parts_panel(self)" in refresh_buttons
-
     installer = _function_source("_phase6_install_part_editor_compatibility")
     assert "_phase6_refresh_assembly_parts_panel(self)" in installer
-
     init = _function_source("_fix11_init")
     assert "_phase6_install_part_editor_compatibility(self)" in init
     assert "_phase6_refresh_assembly_parts_panel(self)" not in init
 
 
 def test_t5_mount_unmount_transition_sources_match_shared_host_owner():
+    from phase6_navigation_view_adapter import project_assembly_mode
+    mounted = []
+    cleared = []
+    host = SimpleNamespace()
+    project_assembly_mode(
+        host,
+        mount_shared_content=mounted.append,
+        pack_right_panel=lambda widget: None,
+        clear_drawing_edge_controls=lambda: cleared.append(True),
+        tk_both="both",
+    )
+    assert mounted == ["assembly"]
+    assert cleared == [True]
+
     show = _function_source("_phase6_show_assembly")
     corner = _function_source("_phase6_show_corner_data")
     activate = _function_source("_fix11_activate_part")
-
-    # #429/#431 moved presentation mount ownership into the one shared-content
-    # controller.  Bridge entrypoints select a mode; they must no longer pack
-    # or forget the Assembly panel directly.
-    assert '_phase6_mount_shared_content(self, "assembly")' in show
-    assert '_phase6_mount_shared_content(self, "corner_data")' in corner
-    assert '_phase6_mount_shared_content(self, "single")' in activate
-
+    assert "_navigation_view_project_assembly_mode(" in show
+    assert "mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode)" in show
+    assert "_navigation_view_show_corner_data_mode(" in corner
+    assert "mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode)" in corner
+    # Single-part activation projects through the navigation owner.
+    assert "_navigation_view_" in activate
     for source in (show, corner, activate):
         assert "assembly_panel.pack(" not in source
         assert "assembly_panel.pack_forget()" not in source
-
 
 def test_t5_repeated_bridge_refresh_preserves_alias_identity_and_ui_state(tk_root):
     panel = Phase6AssemblyPanel(
@@ -280,8 +297,13 @@ def test_t5_compatibility_boundary_count_does_not_grow():
     assert present == T0_BOUNDARY
     assert len(present) == 6
 
-def test_t5_legacy_alias_installer_keeps_t0_proven_registry_names():
-    source = _function_source("_phase6_install_assembly_panel_aliases")
+
+def test_t5_legacy_alias_installer_keeps_t0_proven_registry_names(tk_root):
+    panel = Phase6AssemblyPanel(
+        tk_root, actions=AssemblyPanelActions(on_visibility_changed=lambda: None),
+    )
+    host = SimpleNamespace()
+    panel.install_legacy_aliases(host)
     expected = {
         "assembly_parts_panel": "host",
         "assembly_parts_canvas": "canvas",
@@ -302,9 +324,10 @@ def test_t5_legacy_alias_installer_keeps_t0_proven_registry_names():
         "assembly_box_body_piece_corner_vars": "box_piece_corner_vars",
     }
     for legacy, owner in expected.items():
-        assert f"self.{legacy} = owner.{owner}" in source
-
-
+        assert getattr(host, legacy) is getattr(panel, owner)
+    assert ".install_assembly_panel_aliases(owner)" in _function_source(
+        "_phase6_install_assembly_panel_aliases",
+    )
 
 def test_t5_corner_snapshot_is_retained_because_t0_has_test_reader():
     source = inspect.getsource(Phase6AssemblyPanel.set_corner_texts)
