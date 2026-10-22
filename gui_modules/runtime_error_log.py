@@ -6,7 +6,10 @@ when an exception is reported, so normal Tk/Matplotlib rendering stays unchanged
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 from pathlib import Path
 import os
 import platform
@@ -44,7 +47,7 @@ def write_runtime_exception(
         return Path(prior)
 
     path = Path(log_path) if log_path is not None else default_runtime_log_path()
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(TAIPEI_TZ).isoformat()
     trace = "".join(traceback.format_exception(type(exc), exc, tb or exc.__traceback__))
     lines = [
         f"[{timestamp}] {SCHEMA}",

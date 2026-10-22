@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 from typing import Callable, Mapping
 
 from phase6_project_session import ProjectSession
@@ -31,7 +34,7 @@ class Phase6ProjectController:
 
     @staticmethod
     def _default_clock() -> str:
-        return datetime.now().astimezone().isoformat(timespec="seconds")
+        return datetime.now(TAIPEI_TZ).isoformat(timespec="seconds")
 
     @property
     def project_path(self) -> str | None:
