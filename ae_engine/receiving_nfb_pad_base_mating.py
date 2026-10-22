@@ -198,7 +198,7 @@ def verify_pad_solid_inside_real_base_cutouts(
     does NOT certify all other cabinet solids or production contact.
     """
     from math import isfinite
-    from shapely.geometry import Point,LineString,Polygon
+    from shapely.geometry import Point,LineString,Polygon,MultiPoint
     from shapely.ops import unary_union
 
     base=float(base_front_world_z_mm)
@@ -251,15 +251,18 @@ def verify_pad_solid_inside_real_base_cutouts(
         if not xy:
             continue
         tested+=1
-        if len(xy)==1:
-            excess=not opening.covers(Point(xy[0]))
-        elif len(xy)==2:
-            excess=LineString(xy).difference(opening).length>tol
+        # Projection of a vertical 3D face may have 3-4 collinear
+        # vertices or repeated endpoints. Its convex hull is the exact
+        # projected region of a clipped *convex* triangle, so it does not
+        # manufacture overlap by constructing an invalid zero-area polygon.
+        geometry=MultiPoint(xy).convex_hull
+        outside=geometry.difference(opening)
+        if geometry.geom_type == "Polygon":
+            excess=outside.area>tol*tol
+        elif geometry.geom_type == "LineString":
+            excess=outside.length>tol
         else:
-            geometry=Polygon(xy)
-            if not geometry.is_valid:
-                raise ValueError("PAD_BASE_SLAB_COLLISION_TRIANGLE_PROJECTION_INVALID")
-            excess=geometry.difference(opening).area>tol*tol
+            excess=not outside.is_empty
         if excess:
             raise ValueError("PAD_BASE_SLAB_SOLID_INTERFERES_WITH_REAL_BASE_MATERIAL")
     if tested<4:
