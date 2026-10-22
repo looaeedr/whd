@@ -48,15 +48,17 @@ def test_bom_is_a_separate_real_physical_pad_per_installed_shallower_nfb():
     assert len(demand.tooling_sha256)==64
     assert demand.tab_tip_mating_preview_verified is True
     assert demand.seating_witness.all_four_real_cut_squares_verified
-    assert demand.seating_witness.tab_insertion_mm == pytest.approx(1.)
+    assert demand.seating_witness.tab_insertion_mm == pytest.approx(2.)
     assert demand.seating_witness.full_thickness_required_mm == pytest.approx(2.)
-    assert demand.seating_witness.tab_back_skin_shortfall_mm == pytest.approx(1.)
-    assert demand.seating_witness.regular_leg_front_gap_mm == pytest.approx(1.)
-    assert demand.full_thickness_contact_certified is False
+    assert demand.seating_witness.tab_back_skin_shortfall_mm == pytest.approx(0.)
+    assert demand.seating_witness.regular_leg_front_gap_mm == pytest.approx(0.)
+    assert demand.full_thickness_contact_certified is True
     from ae_engine.receiving_nfb_pad_fit_witness import (
         require_manufacturable_pad_base_interface,
     )
-    with pytest.raises(ValueError,match="PAD_MFG_FULL_BASE_SEAT_NOT_VERIFIED"):
+    # Full T2 engagement is now truly proven, but independent collision
+    # and paired CHECK/Q remain explicit production gates.
+    with pytest.raises(ValueError,match="PAD_MFG_TRUE_SOLID_COLLISION_NOT_VERIFIED"):
         require_manufacturable_pad_base_interface(demand.seating_witness)
     assert demand.full_volume_collision_certified is False
     assert demand.manufacturing_ready is False
@@ -90,9 +92,9 @@ def test_real_pad_and_its_matching_base_dxf_reopen_as_atomic_trial_bundle(tmp_pa
     assert receipt["manufacturing_ready"] is False
     assert receipt["do_not_use_for_production"] is True
     assert receipt["parts"][0]["quantity"]==4
-    assert receipt["parts"][0]["tab_back_skin_shortfall_mm"]==pytest.approx(1.)
-    assert receipt["parts"][0]["regular_leg_front_gap_mm"]==pytest.approx(1.)
-    assert receipt["parts"][0]["full_thickness_contact_certified"] is False
+    assert receipt["parts"][0]["tab_back_skin_shortfall_mm"]==pytest.approx(0.)
+    assert receipt["parts"][0]["regular_leg_front_gap_mm"]==pytest.approx(0.)
+    assert receipt["parts"][0]["full_thickness_contact_certified"] is True
     assert len(receipt["dxf"])==2
     assert len(tuple(target.glob("*.dxf")))==2
     assert (target/"NOT_FOR_PRODUCTION.txt").exists()

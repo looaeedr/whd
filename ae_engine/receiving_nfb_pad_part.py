@@ -122,9 +122,17 @@ def build_nfb_pad_draft_part(
     # Three segment x fold: each vertical leg bends in the same direction,
     # core is the central NFB mounting web. The two tabs extend the tips.
     x_profile=(
-        {"len":a,"angle":90.,"core":"PAD_LEFT_LEG"},
+        # The sharp-fold engine maps material length onto a mid-surface.
+        # A real T sheet has its end along the two vertical legs at the
+        # OUTSIDE finished face, while CUTTING and BEND retain the exact
+        # original 37+71+37 source lengths. Add only T/2 to the formed
+        # mid-surface projection, never a blank/bend allowance.
+        {"len":a,"angle":90.,"core":"PAD_LEFT_LEG",
+         "phase6_key":"PAD_LEFT_LEG","formed_length":a+pattern.plate_thickness_mm/2},
         {"len":b-a,"angle":90.,"core":"W_PART"},
-        {"len":total_w-b,"core":"PAD_RIGHT_LEG"},
+        {"len":total_w-b,"core":"PAD_RIGHT_LEG",
+         "phase6_key":"PAD_RIGHT_LEG",
+         "formed_length":total_w-b+pattern.plate_thickness_mm/2},
     )
     y_profile=({"len":h,"core":"H"},)
     return NfbPadDraftPart(
