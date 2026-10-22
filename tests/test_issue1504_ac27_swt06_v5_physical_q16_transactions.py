@@ -59,6 +59,14 @@ def _files(receipt):
     return paths
 
 
+
+def _save(snapshot, parts, output_dir):
+    # The original operator chooses an existing folder. Missing directories
+    # are an I/O precondition error, not evidence of geometric rejection.
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return _export(snapshot, parts, output_dir)
+
+
 def _shapes(path):
     msp = ezdxf.readfile(path).modelspace()
     circles = tuple(sorted(
@@ -89,7 +97,7 @@ def test_ac27_swt06_valid_q16_preserves_two_unit_identity_pitch_and_revalidates_
     )
     assert nominal_before["layers"][0]["adjacent_x_mm"] == (360.0,)
     old = _physical("3P125SN")
-    saved_before = _export(old, _scene(old), tmp_path / "before")
+    saved_before = _save(old, _scene(old), tmp_path / "before")
     original_paths = _files(saved_before)
     original_geometries = tuple(_shapes(path) for path in original_paths)
     assert len(original_geometries[1][0]) == 8
@@ -117,7 +125,7 @@ def test_ac27_swt06_valid_q16_preserves_two_unit_identity_pitch_and_revalidates_
     assert tuple(p["manual_x_mm"] for p in new["nfb_config"]["holes"]) == (-180., 180.)
     original_new_snapshot = deepcopy(new)
     new_scene = _scene(new)
-    saved_after = _export(new, new_scene, tmp_path / "after")
+    saved_after = _save(new, new_scene, tmp_path / "after")
     paths_after = _files(saved_after)
     geometry_after = tuple(_shapes(path) for path in paths_after)
     assert saved_after.source_hole_ids == ("nfb:0", "nfb:1")
@@ -135,7 +143,7 @@ def test_ac27_swt06_invalid_q16_actual_v5_cutting_collision_rolls_back_all_exist
     before = _physical("3P125SN")
     frozen = deepcopy(before)
     real_scene = _scene(before)
-    saved = _export(before, real_scene, tmp_path / "baseline")
+    saved = _save(before, real_scene, tmp_path / "baseline")
     paths = _files(saved)
     old_bytes = tuple(p.read_bytes() for p in paths)
     old_shapes = tuple(_shapes(p) for p in paths)
@@ -149,8 +157,10 @@ def test_ac27_swt06_invalid_q16_actual_v5_cutting_collision_rolls_back_all_exist
     )
     with pytest.raises(ValueError, match="碰撞|相交|overlap|NFB|FINALSCENE"):
         _scene(candidate)
-    with pytest.raises(ValueError):
-        _export(candidate, real_scene, tmp_path / "rejected")
+    rejected_dir = tmp_path / "rejected"
+    rejected_dir.mkdir()
+    with pytest.raises(ValueError, match="FINALSCENE|DIFFERS|CSV|NFB"):
+        _export(candidate, real_scene, rejected_dir)
     assert not list((tmp_path / "rejected").glob("*.dxf"))
     assert not list((tmp_path / "rejected").glob("*.tmp"))
     assert tuple(p.read_bytes() for p in paths) == old_bytes
@@ -175,7 +185,7 @@ def test_ac27_swt06_failed_q16_session_undo_and_cancel_keep_existing_v5_manufact
     tmp_path,
 ):
     baseline = _physical("3P125SN")
-    receipt = _export(baseline, _scene(baseline), tmp_path / "existing")
+    receipt = _save(baseline, _scene(baseline), tmp_path / "existing")
     paths = _files(receipt)
     before_bytes = tuple(p.read_bytes() for p in paths)
     session = NfbUi1aEditSession(_draft())
