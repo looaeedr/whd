@@ -176,7 +176,15 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
             assert counts['bends'] < 1000, counts
             assert counts['solve'] <= 1, counts
             assert app._phase6_input_snapshot['model'] == family
-            assert (signature() == receiving) == (family == '受電箱')
+            if family == '受電箱':
+                # The loaded Receiving project above was deliberately
+                # unconfigured. A NEW Family selection now creates one real
+                # CSV NFB, changing physical CUTTING and Base/EAR topology.
+                assert app._phase6_input_snapshot['nfb_config_submitted'] is True
+                assert len(app._phase6_input_snapshot['nfb_config']['holes']) == 1
+                assert signature() != receiving
+            else:
+                assert signature() != receiving
     finally:
         _receiving_switch_deadlock_guard('destroy root')
         root.destroy()
