@@ -23,9 +23,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 45,
+    "EVIDENCE_CANDIDATE_ONLY": 43,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 8,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 10,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -158,21 +158,33 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1493_nfb_draft_transactions.py",
-          "test_name": "test_angle_inherit_explicit_same_override_no_mirror",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py",
+          "test_name": "test_nfb_ac05_layer_inheritance_override_model_reselection_and_all_quarter_turns",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_LAYER_VS_UNIT_QUARTER_TURN_OVERRIDE_MODEL_RESELECTION_NO_MIRROR",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py::test_nfb_ac05_layer_inheritance_override_model_reselection_and_all_quarter_turns",
+        "other_required_assertion": "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py::test_nfb_ac05_mirror_non_quarter_angle_and_unindexed_source_all_rejected",
+        "integration_ci": "WHD Product Regression exact PR HEAD CI required + localX readback",
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-06",
@@ -1874,21 +1886,33 @@
         1493
       ],
       "regression_candidates": [
-        "tests/test_issue1493_nfb_draft_transactions.py"
+        "tests/test_issue1493_nfb_draft_transactions.py",
+        "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1493_nfb_draft_transactions.py",
-          "test_name": "test_insert_delete_reorder_reset_only_touched_layer_x",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py",
+          "test_name": "test_swt_ac03_current_csv_units_keep_independent_identity_model_x_and_rotation",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_UNIT_OWNER_MODEL_ORDER_X_ROTATION_AND_NOMINAL_PITCH_PREVIEW",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py::test_swt_ac03_current_csv_units_keep_independent_identity_model_x_and_rotation",
+        "other_required_assertion": "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py::test_swt_ac03_reorder_insert_delete_reset_only_touched_tier_and_keep_true_pitch",
+        "integration_ci": "WHD Product Regression exact PR HEAD CI required + localX readback",
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "SWT-AC-04",
@@ -2854,7 +2878,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. All other 87 are still unsigned.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 8/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 80 AC have partial or deferred evidence.",
+  "exact_test_function_witnesses_review": "810/88 FUNCTION_IDENTITIES_VERIFIED; 8/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 78 AC have partial or deferred evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
