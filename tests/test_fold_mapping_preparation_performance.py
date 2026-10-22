@@ -162,7 +162,16 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
             assert app.designer_workspace.active_mode == mode
             assert counts['bends'] < 1000, counts
             assert counts['solve'] <= 1, counts
-            assert signature() == receiving
+            if mode == 'set_bay':
+                # New Set/Bay is a different physical source from this
+                # previously saved, intentionally unconfigured Quantity
+                # fixture. The first Family entry must populate NFB CUTTING.
+                assert signature() != receiving
+                assert app._phase6_input_snapshot['nfb_config_submitted'] is True
+            else:
+                # Returning to the saved unconfigured Quantity buffer never
+                # invents/reseeds a fresh NFB over its historical state.
+                assert signature() == receiving
             _receiving_switch_deadlock_guard('close mode ' + mode)
             window._receiving_multi_close()
             root.update()
