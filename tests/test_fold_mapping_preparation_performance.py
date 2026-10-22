@@ -196,6 +196,13 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
                 actual = app._phase6_input_snapshot['receiving_layout']['sets'][0]['bays'][0]
                 assert actual['nfb_config_submitted'] is True
                 assert len(actual['nfb_config']['holes']) == 1
+                # Family transitions must also retire the prior cached
+                # Set/Bay adapter. Otherwise the next selector refresh
+                # reprojects the loaded empty Bay over the committed NFB.
+                current_adapter = bridge._phase6_composition(app).receiving_adapter(
+                    vars(bridge)
+                )
+                assert current_adapter.layout['sets'][0]['bays'][0] == actual
                 assert signature() != receiving
             else:
                 assert signature() != receiving
