@@ -14,6 +14,26 @@ from typing import Any
 from .receiving_inner_door_hole_editor import sync_inner_door_hole_editor_button
 
 
+def _activation_profiles_from_authoritative_source(key, snapshot, stored, defaults):
+    """A configured Receiving Base uses its physical source, not old UI cache.
+
+    Generic/base_plate_bend workspace profiles may survive project reloads.
+    They cannot override the actual NFB-derived CUTTING/BEND topology. An
+    unconfigured legacy project keeps its previous editable preview behavior.
+    """
+    is_receiving = str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
+    if key == "base_plate" and is_receiving:
+        x = tuple(defaults.get("X", ()) or ())
+        y = tuple(defaults.get("Y", ()) or ())
+        if (x and y
+                and all(str(row.get("phase6_key") or "").startswith("receiving_")
+                        for row in x + y)):
+            return defaults, True
+    if stored is None:
+        return defaults, True
+    return stored, False
+
+
 class Phase6PartSessionOwner:
     """Own application-level part activation/save compatibility orchestration."""
 
@@ -62,6 +82,19 @@ class Phase6PartSessionOwner:
             app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(app._phase6_endcap_fw_state)
             bridge._phase6_rebuild_linked_endcaps(app)
             return
+        if (key == 'base_plate'
+                and str(app._phase6_input_snapshot.get('model') or '').strip()
+                in {'受電箱', 'RECEIVING'}):
+            from ae_engine.receiving_base_plate_3d_profiles import (
+                receiving_base_plate_3d_profiles,
+            )
+            physical = receiving_base_plate_3d_profiles(app._phase6_input_snapshot)
+            if physical is not None:
+                # Source-owned folds are read-only derived projections. Saving
+                # an old generic editor buffer would revive a wrong sheet when
+                # the operator next selects this part or saves the project.
+                app.designer_workspace.stash_profiles(key, physical)
+                return
         profiles = {'X': bridge.clone_profile(app.state.profiles.get('X', [])), 'Y': bridge.clone_profile(app.state.profiles.get('Y', []))}
         app.designer_workspace.stash_profiles(key, profiles)
         if key in bridge.ENDCAP_FW_PARTS:
@@ -303,9 +336,11 @@ class Phase6PartSessionOwner:
                     default_profiles = app.designer_workspace.profiles_for(key, {}) or {}
                 else:
                     default_profiles = bridge.build_standard_part_profiles(app._phase6_input_snapshot, key)
-                profiles = app.designer_workspace.profiles_for(key)
-                if profiles is None:
-                    profiles = default_profiles
+                profiles, source_refresh = _activation_profiles_from_authoritative_source(
+                    key, app._phase6_input_snapshot,
+                    app.designer_workspace.profiles_for(key), default_profiles,
+                )
+                if source_refresh:
                     navigation.stash_profiles(key, profiles)
                 app.state.profiles['X'] = bridge.clone_profile(profiles.get('X', []))
                 app.state.profiles['Y'] = bridge.clone_profile(profiles.get('Y', []))
