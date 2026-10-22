@@ -1,12 +1,20 @@
 # #1504｜62 項候選／#1502 已交付實際斷言稽核＋17 項 GUI 串行驗收
 
+## CURRENT｜2026-10-22 exact runtime 補正（不重新施工、不冒充完整 AC）
+
+- [PR #2046 Product Regression #39723294524](https://github.com/looaeedr/whd/actions/runs/39723294524) exact tested HEAD `2b0a9db8f57f86f91c291b6c46f58d93d6b4e021`：Preflight、Shard0／1／2、Canonical 均 SUCCESS；合計 **1625 passed／0 failed**。已依 [#1504 實際執行核對](https://github.com/looaeedr/whd/issues/1504#issuecomment-6333263717) 確認 62 項 primary witness 的匹配執行：選型開孔 29／29、提交保存 19／19、板件組合 9／9、DXF 數量 5／5，44 個去重函式。機器稽核 JSON 已同步移除 62 筆錯誤的「等待該次完整 CI」標籤，改存 **run ID + exact SHA**。
+- **這只是 62 項 primary witness PASS，不是 62 項完整 AC 通過。** 完整斷言、跨步驟操作與 17 項 GUI 真正同案串行仍應分開核對；原 88 AC matrix 不因此升級簽核、Windows UAT 沒有被聲稱完成。
+- #1503 已在 PAD 專項 [#39717486059](https://github.com/looaeedr/whd/actions/runs/39717486059) 取得 **190 passed／0 failed**，包含單層及雙層 PAD＋對應 Base PART-ONLY DXF/CHECK Q/BOM；不再沿用「PAD 只有預覽」的過期說法，也不得冒充整櫃 MFG-2。#2047 把 PAD workflow 中 14 個過去未進主 PR CI 的檔案補進 canonical regression，須另以 **#2047 exact HEAD** 的全量 CI SUCCESS 為整合條件。
+- 真實倉庫專案 A 已有部分 Linux 真 Tk 開啟／Cancel／Save／Reload 實測；專案 B 原始位元組尚未有合法 GUI/UAT 執行來源，**17 項完整 GUI AC 仍為 0／17 signed**。
+
+
 > 2026-10-22（Asia/Taipei）。這是 **查核與缺口表，不是放行表**。來源為 #1504 綁定原 88 AC 文字及 PR #2045 的實際 Python 測試函式。每列精確連回既有測試，已讀取測試內容而非僅比對檔名；完整 CURRENT AC 的端到端條件尚須獨立判定。
 
 ## 判定口徑
 
 - 共 62 項＝原 48 項候選（含本 PR 中 AC-25 暫列候選，不能當成第六項正式通過）＋14 項 #1502 已交付但未完全簽核；不對這 62 項整批修改 accepted 欄。
 - 函式存在、有 `assert` 或 `pytest.raises`，只證明找到具體斷言；**不等於 AC 的所有使用者操作與物理／製造條件完整**。函式內容概要列在下方，每項保留 source-only/real-GUI/DXF 條件缺口。
-- 前次 #2045 Product Regression RED 的主因包括 PAD 共用方孔與舊 CHECK/Q 固定五輪廓衝突、主畫面 2D 舊 CENTER 期待值；修正由後續 exact SHA CI 決定是否通過。執行環境取消的 Shard 不得算 PASS。
+- #2045 舊 RED（PAD 共用方孔與舊 CHECK/Q 衝突、主 2D 舊 CENTER 期待）已有現行修復，#2046 完整 CI SUCCESS；**舊失敗不能繼續當最新阻擋**。但 primary witness PASS 仍不等於全部 AC 完整通過。
 - #1502 已交付 14 項繼續標 `SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC`；本表不重寫原 88 AC，也不宣告 #1500 真 GUI／PAD 完整製造／Windows 驗收。
 
 ## 選型與開孔（29 項）
