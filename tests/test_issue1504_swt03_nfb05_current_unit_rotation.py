@@ -59,7 +59,7 @@ def test_swt_ac03_current_csv_units_keep_independent_identity_model_x_and_rotati
     assert [effective_nfb_rotation(state,0,i) for i in (0,1)] == [90,180]
     assert effective_nfb_rotation(state,1,0) == 270
     nominal = nominal_nfb_x_group(800,2)
-    assert nominal.adjacent_distances_mm == (325.,)
+    assert nominal.adjacent_distances_mm == (360.,)
     assert nominal.absolute_centers_mm is None
     assert nominal.manufacturing_ready is False
     preview = nfb_ui1a_preview(

@@ -164,3 +164,58 @@ def present_receiving_ear_side_piece_2d(
     if "stamp" in locals():
         host._receiving_ear_side_2d_display_cache = (stamp, *result)
     return result
+
+
+def present_receiving_ear_side_designer_piece_3d(
+    host, snapshot, geometry, source_piece, piece_key,
+):
+    """FoldDesigner single-piece view uses the SAME source 2D EAR UV lines.
+
+    Assembly already has true contact marks. The selected physical SIDE
+    previously returned its raw FinalScene, so the independent part displayed
+    no EAR MARKING despite a valid submitted NFB. This is a cached, read-only
+    VIEW copy only; actual manufacturing and DXF owners stay unchanged.
+    """
+    from hashlib import sha256
+
+    key = str(piece_key)
+    original = source_piece.render_data
+    if (key not in {"box_body:left_side", "box_body:right_side"}
+            or snapshot.get("model") not in ("受電箱", "RECEIVING")
+            or snapshot.get("nfb_config_submitted") is not True):
+        host.last_receiving_ear_single_piece_blocker = None
+        return original
+    aggregate = geometry.part("box_body").render_data
+    owners = tuple(
+        (
+            row.role,
+            (row.render_data.metadata or {}).get("baseline_source_sha256"),
+            repr(tuple(row.render_data.scene.primitives or ())),
+        )
+        for row in tuple(getattr(aggregate, "pieces", ()) or ())
+    )
+    stamp = sha256(repr((snapshot, key, owners)).encode("utf-8")).hexdigest()
+    cache = getattr(host, "_receiving_ear_single_piece_display_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+    row = cache.get(key)
+    if row is not None and row[0] == stamp:
+        host.last_receiving_ear_single_piece_blocker = row[2]
+        return row[1]
+    try:
+        displayed = project_receiving_ear_side_piece_2d_preview(
+            snapshot, source_piece, piece_key=key,
+            geometry=geometry,
+            dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
+            sheet_thickness=float(snapshot["t"]),
+            display_only_marking_overlap=True,
+        ).render_data
+        blocker = None
+    except (ValueError, TypeError, RuntimeError, KeyError) as exc:
+        # Never fabricate a contact line or block ordinary material inspection
+        # if a real source/UV/bend conflict exists. Preserve the reason.
+        displayed, blocker = original, str(exc)
+    host.last_receiving_ear_single_piece_blocker = blocker
+    cache[key] = (stamp, displayed, blocker)
+    host._receiving_ear_single_piece_display_cache = cache
+    return displayed

@@ -409,6 +409,19 @@ def _phase6_box_body_piece_render_data(self, part_key):
     )
     if piece is None:
         raise ValueError(f"BoxBody physical piece is not present in current structure: {key}")
+    # Match the assembly's genuine EAR-side contact marks in the operator's
+    # independent physical-side 3D view. This never mutates manufacturing
+    # geometry or authorizes a DXF/weld; the exact world->UV display copy is
+    # also used by the main window's 2D side-piece preview.
+    if key in {"box_body:left_side", "box_body:right_side"}:
+        snapshot = getattr(self, "_phase6_input_snapshot", None)
+        if isinstance(snapshot, Mapping):
+            from gui_modules.application.receiving_ear_side_2d import (
+                present_receiving_ear_side_designer_piece_3d,
+            )
+            return present_receiving_ear_side_designer_piece_3d(
+                self, snapshot, resolved, piece, key,
+            )
     return piece.render_data
 
 

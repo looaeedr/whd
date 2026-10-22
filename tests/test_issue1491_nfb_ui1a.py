@@ -54,7 +54,7 @@ def test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_sa
 
 
 @pytest.mark.parametrize("width,quantity,pitch", [
-    (600,2,(180.0,)), (750,2,(310.0,)), (800,2,(325.0,)),
+    (600,2,(180.0,)), (750,2,(310.0,)), (800,2,(360.0,)),
     (800,3,(180.0,180.0)),
 ])
 def test_nominal_pitch_exact_but_never_absolute_x(width,quantity,pitch):

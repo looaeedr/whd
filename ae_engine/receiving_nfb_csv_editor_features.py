@@ -179,10 +179,13 @@ def editor_nfb_features_from_csv(snapshot: Mapping, config, *, current_features=
     from .receiving_nfb_model_identity import parse_numeric_model_ref
     from .receiving_nfb_numeric_catalog import model_spec
     from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    from .receiving_nfb_x_projection import nominal_nfb_x_group
     from .receiving_shared_settings import switch_filenames_in_layer, validate_setting
     from .sheetmetal_feature_surface import feature_is_strictly_within_surface
     from .sheetmetal_features import feature_surface_from_structural_result
-    from .sheetmetal_part_adapters import build_door_result, DoorFrameEdges
+    from .sheetmetal_part_adapters import (
+        build_door_result, DoorFrameEdges, derive_door_layout_cells,
+    )
     from shapely.geometry import Polygon
     from .cabinet_types import policy
     from dataclasses import replace
@@ -199,6 +202,15 @@ def editor_nfb_features_from_csv(snapshot: Mapping, config, *, current_features=
     if len(panels) != 1:
         raise ValueError("內門開孔編輯需要唯一的上層實體內門")
     panel = panels[0]
+    # Use the current physical Bay, never the whole multi-Bay cabinet width.
+    cell = next((
+        item for item in derive_door_layout_cells(
+            projected.get("door_layout_columns") or (),
+        )
+        if f"{item.column_index}:{item.row_index}" == str(panel.cell_key)
+    ), None)
+    if cell is None:
+        raise ValueError("NFB 內門原始實體作用區不存在")
     structural = build_door_result(
         w=panel.width, h=panel.height, t=panel.thickness,
         fw=25.0, gap_w=0.0, gap_h=0.0,
@@ -231,6 +243,28 @@ def editor_nfb_features_from_csv(snapshot: Mapping, config, *, current_features=
         if y.part_id != panel.stable_id:
             raise ValueError("NFB 開口未對應目前編輯的內門")
         face_y = y.unfolded_uv_y_mm - (panel.fold_bottom - panel.thickness)
+        # A known relative pitch is an editable VISUAL initial layout only.
+        # Centering this draft does not certify either absolute world X.
+        relative_pitch = None
+        bay_width = float(cell.start_width)
+        if bay_width.is_integer():
+            try:
+                relative_pitch = nominal_nfb_x_group(
+                    int(bay_width), len(names),
+                ).adjacent_distances_mm
+            except ValueError:
+                pass  # Unsupported combinations retain the old draft layout.
+        if relative_pitch is not None:
+            if len(relative_pitch) != len(names) - 1:
+                raise ValueError("NFB 相鄰開孔中心距資料與顆數不一致")
+            row_centres = [(float(panel.width) - sum(relative_pitch)) / 2.0]
+            for distance in relative_pitch:
+                row_centres.append(row_centres[-1] + float(distance))
+        else:
+            row_centres = [
+                float(panel.width) * (i + 1) / (len(names) + 1)
+                for i in range(len(names))
+            ]
         for slot_index, ref in enumerate(names):
             parsed = parse_numeric_model_ref(ref)
             if parsed is None:
@@ -243,7 +277,7 @@ def editor_nfb_features_from_csv(snapshot: Mapping, config, *, current_features=
                 source_hashes[brand] = sha256(brand_csv_path(brand).read_bytes()).hexdigest()
             # Initial native-editor positions are only a visual starting point:
             # they must not be mistaken for a certified manufacturing X datum.
-            face_x = float(panel.width) * (slot_index + 1) / (len(names) + 1)
+            face_x = row_centres[slot_index]
             points = tuple(Vec2(face_x + float(x), face_y + float(y))
                            for x, y in spec.opening_corners_xy_mm)
             polygon = Polygon([(p.x, p.y) for p in points])

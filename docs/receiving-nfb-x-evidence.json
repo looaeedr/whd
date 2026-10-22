@@ -253,11 +253,13 @@
       "box_outer_width_mm": 800,
       "nfb_count": 2,
       "nominal_adjacent_center_distances_mm": [
-        325
+        360
       ],
       "nominal_source": {
         "reference_index": 0,
-        "section": "2.4"
+        "section": "2.4",
+        "current_override": "USER_CONFIRMED_2026-10-22_W800_TWO_NFB_PITCH_360_MM",
+        "historical_reference_pitch_mm": 325
       },
       "x_status": "PREVIEW_ONLY",
       "certified_x_revision": null,

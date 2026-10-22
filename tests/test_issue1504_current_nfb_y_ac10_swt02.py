@@ -112,7 +112,7 @@ def test_nfb_ac10_current_330_830_operator_y_roundtrips_real_panel(
     "width,count,pitch",
     [(600,1,None), (750,1,None), (800,1,None),
      (600,2,(180.,)), (750,2,(310.,)),
-     (800,2,(325.,)), (800,3,(180.,180.))],
+     (800,2,(360.,)), (800,3,(180.,180.))],
 )
 def test_nfb_ac10_only_approved_nominal_pitch_and_no_world_x(width,count,pitch):
     group = nominal_nfb_x_group(width,count)
