@@ -94,6 +94,8 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         editor=getattr(box,'last_unified_hole_editor',None)
         assert editor is not None and editor.winfo_exists(),'native hole editor not opened'
         tabs=editor._receiving_config_tabs
+        baseline_pending=tuple(editor._receiving_pending_features())
+        assert len(baseline_pending)==1, 'fresh Bay must open with one current CSV hole'
         assert tabs.tab(0,'text').strip()=='開孔編輯' and tabs.tab(1,'text').strip()=='受電箱'
         print('EDITOR_TABS',tabs.tab(0,'text'),tabs.tab(1,'text'), flush=True)
         tabs.select(1)
@@ -108,7 +110,9 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         buttons(modal,'取消')[0].invoke()
         pump(root)
         assert tabs.index(tabs.select())==0,'cancel not returned to main'
-        assert not editor._receiving_pending_features(), 'cancel left NFB holes'
+        assert tuple(editor._receiving_pending_features())==baseline_pending, (
+            'cancel must restore original one-NFB physical baseline without new holes'
+        )
         assert getattr(editor,'_receiving_staged_config',None) is None, 'cancel staged NFB settings'
         print('TAB_CANCEL_ROLLBACK_PASS',flush=True)
         tabs.select(1)
