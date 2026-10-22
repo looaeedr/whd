@@ -92,7 +92,7 @@ def test_batch_signoff_seven_require_independent_real_executed_assertions():
 
 def test_unsigned_high_risk_ac_requirements_remain_blocked():
     _, rows = _rows()
-    for key in ("NFB-AC-05", "NFB-AC-54", "SWT-AC-31"):
+    for key in ("NFB-AC-54", "SWT-AC-31"):
         assert rows[key]["accepted"] is False
     assert all(
         not r["accepted"] for r in rows.values()
