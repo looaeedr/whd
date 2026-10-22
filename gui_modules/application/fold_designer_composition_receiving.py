@@ -1392,6 +1392,7 @@ def _switch_mode(self, namespace, target):
     source = _current_mode_snapshot(self, namespace)
     planned = deepcopy(session)
     was_dirty = app.designer_workspace.dirty
+    original_workspace = deepcopy(app.designer_workspace.snapshot())
     applying = False
     try:
         changed = planned.switch(target, dimensions=dimensions, current_snapshot=source)
@@ -1402,6 +1403,14 @@ def _switch_mode(self, namespace, target):
     except (ValueError, RuntimeError, OSError, OverflowError, GEOSException) as exc:
         if applying:
             _apply_mode_snapshot(self, namespace, source)
+            # A failed first-time new mode must leave the PREVIOUS physical
+            # workspace byte-for-byte intact, including currently empty or
+            # operator-edited native inner-door Features. Reprojecting the
+            # previous Bay alone can silently materialize a second CSV
+            # opening into the visible workspace after a failed transaction.
+            self.capabilities.workspace.navigation().replace_receiving_mode(
+                original_workspace,
+            )
             if not was_dirty:
                 app.designer_workspace.mark_clean()
         messagebox.showwarning("模式未切換", str(exc), parent=app.root)
