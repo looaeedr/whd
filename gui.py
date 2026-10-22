@@ -1909,6 +1909,8 @@ class Phase6ApplicationHost:
     export_multi_door_layout_dxfs = _phase6_project_export.export_multi_door_layout_dxfs
     export_multi_door_indicator_box_parts = _phase6_project_export.export_multi_door_indicator_box_parts
     export_selected_dxf = _phase6_project_export.export_selected_dxf
+    export_receiving_pad_base_part_only_dxf = (
+        _phase6_project_export.export_receiving_pad_base_part_only_dxf)
     export_receiving_ear_side_check_dxf = _phase6_project_export.export_receiving_ear_side_check_dxf
     export_receiving_ear_side_manufacturing_dxf = _phase6_project_export.export_receiving_ear_side_manufacturing_dxf
     _single_door_indicator_state_snapshot = _phase6_project_export._single_door_indicator_state_snapshot

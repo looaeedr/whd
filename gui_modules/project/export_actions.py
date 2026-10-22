@@ -934,6 +934,86 @@ def export_selected_dxf(self):
     )
 
 
+def export_receiving_pad_base_part_only_dxf(self):
+    """One explicit operator action for source-verified PAD+Base paired Q DXF.
+
+    Full cabinet batch manufacturing is independent and remains guarded.
+    Material/process and quantity must be provided by the operator, not
+    inferred from an NFB model name or baked in as a supplier default.
+    """
+    from pathlib import Path
+    from tkinter import simpledialog
+    from ae_engine.manufacturing_equivalence import ManufacturingParameters
+    from ae_engine.receiving_nfb_pad_pair_manufacturing import (
+        export_verified_pad_base_part_only,
+    )
+    from ae_engine.manufacturing_export import safe_dxf_part_stem
+    try:
+        self._flush_phase6_authoritative_state()
+        designer = getattr(self, "fold_designer_app", None)
+        snapshot = getattr(designer, "_phase6_input_snapshot", None)
+        if (not isinstance(snapshot, Mapping)
+                or snapshot.get("model") not in ("受電箱", "RECEIVING")
+                or snapshot.get("nfb_config_submitted") is not True):
+            raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
+        from ae_engine.receiving_nfb_pad_operator_parts import (
+            committed_nfb_pad_draft_parts,
+        )
+        if not committed_nfb_pad_draft_parts(snapshot):
+            raise ValueError("目前沒有已提交且具已確認孔位的 PAD 實體板件")
+        from fold_designer_bridge import _phase6_final_scene_adapter
+        scene = _phase6_final_scene_adapter(designer).query_assembly_render_data()
+        parts=tuple(scene.assembly_parts)
+        if not parts:
+            raise ValueError("PAD＋底板沒有已核對的 3D 實體裝配")
+        material=simpledialog.askstring(
+            "PAD＋底板材質", "輸入本批材質／規格（例如專案既有的材質代號）：")
+        if material is None:
+            return
+        material=material.strip()
+        if not material:
+            raise ValueError("PAD＋底板出圖需要明確材質，不可使用預設猜測")
+        process=simpledialog.askstring(
+            "PAD＋底板製程", "輸入本批製程或製造路線：")
+        if process is None:
+            return
+        process=process.strip()
+        if not process:
+            raise ValueError("PAD＋底板出圖需要明確製程")
+        qty=simpledialog.askinteger(
+            "PAD＋底板版本件數", "這個箱體版本的數量：",
+            initialvalue=1,minvalue=1)
+        if qty is None:
+            return
+        runtime=snapshot.get("_receiving_runtime_selection")
+        if not isinstance(runtime, Mapping):
+            raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
+        set_id=str(runtime.get("set_id") or "").strip()
+        bay_id=str(runtime.get("bay_id") or "").strip()
+        if not set_id or not bay_id:
+            raise ValueError("PAD＋底板缺少 Set／Bay 實際識別碼")
+        version_id=f"{set_id}__{bay_id}"
+        root=filedialog.askdirectory(title="選擇 PAD＋底板 CHECK/Q 輸出資料夾")
+        if not root:
+            return
+        output=Path(root)/(safe_dxf_part_stem(version_id)+"__PAD_BASE_PAIR_CHECK_Q")
+        result=export_verified_pad_base_part_only(
+            snapshot,parts,output,version_id=version_id,box_count=qty,
+            parameters=ManufacturingParameters(material,float(snapshot["t"]),process),
+        )
+    except (ValueError, TypeError, KeyError, FileExistsError, OSError) as exc:
+        messagebox.showerror("PAD＋底板無法製造輸出", str(exc))
+        return
+    messagebox.showinfo(
+        "PAD＋底板 CHECK/Q 部分出圖完成",
+        f"已核對並輸出 PAD {result.pad_piece_count} 片、"
+        f"底板 {result.base_piece_count} 片。\\n"
+        f"資料夾：{result.output_directory}\\n"
+        "此出圖只包含 PAD＋底板；不代表整箱製造已驗收。",
+    )
+    return result
+
+
 def _single_door_indicator_state_snapshot(self):
     if self.is_indicator_box_var.get():
         mode = "indicator_box"

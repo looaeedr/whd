@@ -13,6 +13,9 @@ on:
       - 'phase6_quantity_manufacturing.py'
       - 'gui_modules/application/fold_designer_composition_shell_settings.py'
       - 'gui_modules/application/fold_designer_manufacturing_projection.py'
+      - 'gui_modules/project/export_actions.py'
+      - 'gui_modules/layout/left_panel.py'
+      - 'gui.py'
       - 'ae_engine/receiving_tier_ear_z_targets.py'
       - 'ae_engine/receiving_nfb_layer_physical_parts.py'
       - 'tests/test_receiving_nfb_pad_*.py'
@@ -87,6 +90,7 @@ jobs:
           path: |
             pad-tk-junit.xml
             pad-native-tk-2D.png
+            '*__PAD_BASE_PAIR_CHECK_Q/**'
           if-no-files-found: warn
           retention-days: 7
       - name: Verify source-joined PAD and actual Base DXF bundle with BOM

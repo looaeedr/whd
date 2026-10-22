@@ -146,6 +146,34 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
               "real_shapes",len(polygons),len(screw_holes),len(blue_bends),
               "pixel_delta",changed,flush=True)
 
+        # Same REAL Tk shell's dedicated Part-only manufacturing button:
+        # set operator-supplied material/process/count explicitly. This must
+        # call the live PAD+actual Base assembly and emit verified Q3 DXF,
+        # not reuse the old preview-only PDF or an unscoped export.
+        from unittest.mock import patch
+        import json
+        assert app.btn_export_pad_base.winfo_exists()
+        with (
+            patch("tkinter.simpledialog.askstring",side_effect=("SPCC","LASER")),
+            patch("tkinter.simpledialog.askinteger",return_value=3),
+            patch("tkinter.filedialog.askdirectory",return_value=str(tmp_path)),
+            patch("tkinter.messagebox.showerror",
+                  side_effect=AssertionError("PAD_NATIVE_TK_EXPORT_REJECTED")),
+            patch("tkinter.messagebox.showinfo") as info,
+        ):
+            app.btn_export_pad_base.invoke()
+        _pump(root)
+        packages=tuple(tmp_path.glob("*__PAD_BASE_PAIR_CHECK_Q"))
+        assert len(packages)==1,("PAD_NATIVE_TK_NO_PAIRED_EXPORT",packages)
+        manifest=json.loads((packages[0]/
+            "PAD_BASE_PAIR_PART_ONLY_CHECK_Q_RECEIPT.json").read_text(encoding="utf-8"))
+        assert manifest["pad_total"]==3
+        assert manifest["base_total"]==3
+        assert len(tuple(packages[0].glob("*.dxf")))==2
+        assert info.called
+        print("PAD_REAL_TK_BUTTON_PART_ONLY_Q_DXF_PASS",
+              manifest["pad_total"],manifest["base_total"],flush=True)
+
         # Full native Save As -> load saved project -> rebuild the 2D owner.
         # A derived PAD must follow the authoritative saved NFB config and
         # real committed editor features, not an ephemeral in-memory list.

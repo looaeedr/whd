@@ -156,6 +156,20 @@ def build_left_panel(host, ctrl_pad_frame):
     )
     host.btn_export.pack(fill=tk.X, pady=(8, 0))
 
+    # #1503 isolated receiving PAD+Base part-only CHECK/Q. The main full
+    # cabinet DXF button above retains its existing MFG-2 safety guards.
+    host.btn_export_pad_base = tk.Button(
+        ctrl_pad_frame,
+        text="受電箱：墊高片＋底板 CHECK/Q 出圖",
+        font=('Microsoft JhengHei', 10, 'bold'),
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_ACCENT_HOVER,
+        activeforeground=host.COLOR_TEXT,
+        bd=1, height=2, cursor="hand2",
+        command=host.export_receiving_pad_base_part_only_dxf,
+    )
+    host.btn_export_pad_base.pack(fill=tk.X, pady=(4, 0))
+
 
 
     # ==========================================
