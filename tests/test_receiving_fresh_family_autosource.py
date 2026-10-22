@@ -121,3 +121,17 @@ def test_unrelated_existing_project_not_overwritten_by_first_switch_helper():
     data["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = config
     assert seed_fresh_receiving_nfb_source(data)["nfb_config"] == config
     assert seed_fresh_receiving_nfb_source({"model":"金庫型"}) == {"model":"金庫型"}
+
+
+def test_manufacturing_transport_keeps_real_set_bay_indices_as_integers():
+    from phase6_manufacturing_contracts import (
+        freeze_manufacturing_value, thaw_manufacturing_value,
+    )
+    source = _fresh_set()
+    original = source["_receiving_runtime_selection"]
+    received = thaw_manufacturing_value(freeze_manufacturing_value(source))
+    runtime = received["_receiving_runtime_selection"]
+    assert runtime == original
+    assert type(runtime["set_index"]) is int
+    assert type(runtime["bay_index"]) is int
+    _assert_physical_source(received)
