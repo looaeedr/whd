@@ -181,6 +181,13 @@ def _apply_cabinet_family_for_current_model(self):
         from ae_engine.receiving_fresh_nfb_defaults import (
             seed_fresh_receiving_nfb_source,
         )
+        from ae_engine.receiving_layout import new_receiving_layout
+        # Known-Family selection is a new cabinet. Do not inherit an old
+        # edited Bay from a previous Receiving session through workspace.
+        snap["receiving_layout"] = new_receiving_layout(
+            width=snap["w"], height=snap["h"], depth=snap["d"],
+        )
+        snap["active_mode"] = "set_bay"
         initial = seed_fresh_receiving_nfb_source(snap)
         box_profile = build_box_body_profile(snap)
         workspace = self.workspace_controller.workspace_snapshot()
