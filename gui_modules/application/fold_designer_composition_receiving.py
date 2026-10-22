@@ -1408,8 +1408,10 @@ def _switch_mode(self, namespace, target):
             # operator-edited native inner-door Features. Reprojecting the
             # previous Bay alone can silently materialize a second CSV
             # opening into the visible workspace after a failed transaction.
+            restored_owner = deepcopy(source)
+            restored_owner.update(deepcopy(original_workspace))
             self.capabilities.workspace.navigation().replace_receiving_mode(
-                original_workspace,
+                restored_owner,
             )
             if not was_dirty:
                 app.designer_workspace.mark_clean()
