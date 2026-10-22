@@ -14,7 +14,7 @@ from ae_engine.receiving_nfb_ui1a import (
     INHERIT, OVERRIDE, new_nfb_ui1a_draft, nfb_ui1a_preview,
 )
 from ae_engine.receiving_nfb_ui1a_edits import (
-    NfbUi1aEditSession, effective_nfb_rotation, set_nfb_manual_x,
+    NfbUi1aEditSession, editable_nfb_draft, effective_nfb_rotation, set_nfb_manual_x,
     set_nfb_slot_rotation, set_nfb_layer_rotation, move_nfb_slot,
 )
 from ae_engine.receiving_layout import new_receiving_layout, update_receiving_bay
@@ -46,7 +46,10 @@ def _draft():
 
 def test_ac06_native_edit_cancel_undo_illegal_mutating_callback_and_authority_save(tmp_path):
     old = _draft()
-    original = deepcopy(old)
+    source_before_session = deepcopy(old)
+    # The edit session intentionally upgrades a raw model draft with stable IDs,
+    # angle and X fields; compare to that canonical baseline, not raw input.
+    original = editable_nfb_draft(old)
     session = NfbUi1aEditSession(old)
     assert session.apply("X", set_nfb_manual_x, 0, 0, 0,
                          datum={"box_width_mm": 800}) is not None
@@ -75,7 +78,7 @@ def test_ac06_native_edit_cancel_undo_illegal_mutating_callback_and_authority_sa
     session.apply("TEMP_X", set_nfb_manual_x, 1, 0, 18)
     assert session.dirty
     assert session.escape() == original
-    assert not session.dirty and old == original
+    assert not session.dirty and old == source_before_session
 
     # The modal session does not secretly submit a NFB configuration to Bay.
     layout = new_receiving_layout(width=800, height=1600, depth=350)
