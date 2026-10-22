@@ -1,0 +1,1880 @@
+{
+  "schema": "WHD_ISSUE1504_79_PENDING_SOURCE_AUDIT_V1",
+  "source_branch_head": "10a566fa371df7ce0844f7f9369f4da3186651f3",
+  "canonical_previous_product_ci": {
+    "run_id": 39756915302,
+    "tested_sha": "e3f47acfc54933c75d51542ab5313c7f08242f27",
+    "result": "SUCCESS",
+    "passed": 1768
+  },
+  "invariant_total_ac": 88,
+  "already_signed_before_batch": 9,
+  "source_pending_before_batch": 79,
+  "unique_primary_test_files": 23,
+  "primary_file_selected_count": 79,
+  "grouped_ids": {
+    "EVIDENCE_CANDIDATE_ONLY": [
+      "NFB-AC-01",
+      "NFB-AC-03",
+      "NFB-AC-04",
+      "NFB-AC-05",
+      "NFB-AC-06",
+      "NFB-AC-08",
+      "NFB-AC-09",
+      "NFB-AC-15",
+      "NFB-AC-18",
+      "NFB-AC-19",
+      "NFB-AC-20",
+      "NFB-AC-21",
+      "NFB-AC-23",
+      "NFB-AC-24",
+      "NFB-AC-26",
+      "NFB-AC-27",
+      "NFB-AC-28",
+      "NFB-AC-29",
+      "NFB-AC-32",
+      "NFB-AC-33",
+      "NFB-AC-37",
+      "NFB-AC-47",
+      "NFB-AC-48",
+      "NFB-AC-49",
+      "NFB-AC-50",
+      "NFB-AC-51",
+      "NFB-AC-52",
+      "NFB-AC-54",
+      "SWT-AC-01",
+      "SWT-AC-05",
+      "SWT-AC-06",
+      "SWT-AC-12",
+      "SWT-AC-13",
+      "SWT-AC-14",
+      "SWT-AC-16",
+      "SWT-AC-17",
+      "SWT-AC-19",
+      "SWT-AC-23",
+      "SWT-AC-25",
+      "SWT-AC-27",
+      "SWT-AC-28",
+      "SWT-AC-29",
+      "SWT-AC-30",
+      "SWT-AC-31"
+    ],
+    "BLOCKED_1500_REAL_GUI": [
+      "NFB-AC-02",
+      "NFB-AC-07",
+      "NFB-AC-16",
+      "NFB-AC-34",
+      "NFB-AC-35",
+      "NFB-AC-36",
+      "NFB-AC-40",
+      "NFB-AC-42",
+      "NFB-AC-43",
+      "NFB-AC-45",
+      "NFB-AC-46",
+      "NFB-AC-53",
+      "NFB-AC-56",
+      "SWT-AC-07",
+      "SWT-AC-18",
+      "SWT-AC-24",
+      "SWT-AC-26"
+    ],
+    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": [
+      "NFB-AC-11",
+      "NFB-AC-12",
+      "NFB-AC-14",
+      "NFB-AC-31",
+      "NFB-AC-38",
+      "NFB-AC-39",
+      "NFB-AC-44",
+      "NFB-AC-55",
+      "SWT-AC-08",
+      "SWT-AC-10",
+      "SWT-AC-11",
+      "SWT-AC-20",
+      "SWT-AC-21",
+      "SWT-AC-32"
+    ],
+    "DEFERRED_PRODUCT_EVIDENCE": [
+      "NFB-AC-13",
+      "NFB-AC-41",
+      "SWT-AC-09",
+      "SWT-AC-22"
+    ]
+  },
+  "signoff_boundary": "PRIMARY_TEST_INCLUDED_IN_CI_DOES_NOT_IMPLY_FULL_AC; NO_WINDOWS_UAT_OR_MFG2_CLAIM",
+  "batch_signed_candidate_ids": [
+    "NFB-AC-48",
+    "NFB-AC-49",
+    "NFB-AC-50",
+    "SWT-AC-28"
+  ],
+  "entries": [
+    {
+      "id": "NFB-AC-01",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1491
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1491_nfb_ui1a.py",
+        "function": "test_no_unapproved_geometry_or_persistence_fields",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-02",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A／UI-1B（提交下限）",
+      "owner_issues": [
+        1491,
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1491_nfb_ui1a.py",
+        "function": "test_empty_slot_keeps_physical_order_and_requires_no_fake_hole",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-03",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1492
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "function": "test_pan_zoom_reset_never_reopens_source_or_changes_manufacturing",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-04",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（編輯）／MFG-1（幾何違法回滾）",
+      "owner_issues": [
+        1493
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1493_nfb_draft_transactions.py",
+        "function": "test_insert_delete_reorder_reset_only_touched_layer_x",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-05",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（設定）／MFG-1（真實旋轉）",
+      "owner_issues": [
+        1493,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py",
+        "function": "test_nfb_ac05_layer_inheritance_override_model_reselection_and_all_quarter_turns",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE",
+        "CURRENT_CSV_V5_PHYSICAL_PIVOT_ROTATION_NOT_VALIDATED"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-06",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（取消 Undo）／MFG-1（幾何違法）",
+      "owner_issues": [
+        1493
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1493_nfb_draft_transactions.py",
+        "function": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-07",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B",
+      "owner_issues": [
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_copy_submitted_source_into_independently_verified_target_unit_id",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-08",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B",
+      "owner_issues": [
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-09",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（重載）／MFG-1（板件守衛）",
+      "owner_issues": [
+        1498,
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-11",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1（主孔）／MFG-2（其餘來源組）",
+      "owner_issues": [
+        1496,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1496_nfb_dxf_source.py",
+        "function": "test_color_sources_preserve_entity_layer_and_block_inheritance",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-12",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-2",
+      "owner_issues": [
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1502_nfb_base_source_projection.py",
+        "function": "test_one_door_nfb_owner_projects_corresponding_base_cutting_and_marks",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-13",
+      "previous_status": "DEFERRED_PRODUCT_EVIDENCE",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（不可移底板）／PAD（後續實作）",
+      "owner_issues": [
+        1503
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+        "function": "test_unapproved_brand_pad_depth_does_not_move_or_cut_base",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_WORDING_HAS_SUPERSEDED_CSV_EAR_PAD_Z_CLAUSES",
+        "DISTINGUISH_SIGNED_PART_ONLY_FROM_WHOLE_CABINET_MFG2_AND_WELD",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE",
+        "NO_FAKE_RECEIVING_MIDDLE_PLATE_OR_SUPERSEDED_BASE_IMMOBILITY_RULE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-14",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-2（完整跨板件）",
+      "owner_issues": [
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
+        "function": "test_ear_mounting_does_not_invent_base_or_change_verified_inner_NFB",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-15",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1492
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "function": "test_cache_changes_with_real_source_identity_and_bounded_memory",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-16",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（取消）／UI-1B（重載）／MFG-1（舊孔出圖不變）",
+      "owner_issues": [
+        1499,
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_unconfigured_bay_and_quantity_keep_legacy_schema",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-18",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1491
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1491_nfb_ui1a.py",
+        "function": "test_nominal_pitch_exact_but_never_absolute_x",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-19",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（清位移）／MFG-1（違法回滾）",
+      "owner_issues": [
+        1493,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1493_nfb_draft_transactions.py",
+        "function": "test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-20",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1491
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1491_nfb_ui1a.py",
+        "function": "test_single_set_brand_owner_and_explicit_same_value_overrides",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-21",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（預設）／UI-1B（版本保存）",
+      "owner_issues": [
+        1491,
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1491_nfb_ui1a.py",
+        "function": "test_single_set_brand_owner_and_explicit_same_value_overrides",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-23",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（重新確認）／MFG-1（製造阻斷）",
+      "owner_issues": [
+        1499,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-24",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（狀態）／MFG-1（板件守衛）",
+      "owner_issues": [
+        1498
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-26",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（角度）／UI-1B（重載）",
+      "owner_issues": [
+        1493,
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1493_nfb_draft_transactions.py",
+        "function": "test_angle_inherit_explicit_same_override_no_mirror",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-27",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（設定）／MFG-1（幾何回滾）",
+      "owner_issues": [
+        1493,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1497_nfb_cutting_preflight.py",
+        "function": "test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-28",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（重新確認）／MFG-1（逐顆驗證）",
+      "owner_issues": [
+        1499,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1497_nfb_cutting_preflight.py",
+        "function": "test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-29",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（重載）／MFG-1（重新解析）",
+      "owner_issues": [
+        1499,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-31",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-2",
+      "owner_issues": [
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1502_nfb_base_batch_export_gate.py",
+        "function": "test_one_unreleased_base_rejects_entire_multi_bay_export_before_io",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-32",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1493
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1493_nfb_draft_transactions.py",
+        "function": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-33",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（未提交）／UI-1B（儲存）／MFG-1（舊式 DXF）",
+      "owner_issues": [
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_unconfigured_bay_and_quantity_keep_legacy_schema",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-34",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（停用）／UI-1B（首次提交／重載）",
+      "owner_issues": [
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_first_submission_includes_held_plates_in_warning_but_commits_inner_config",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-35",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B",
+      "owner_issues": [
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-36",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（禁止提交複製）／UI-1B（正式深複製）",
+      "owner_issues": [
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-37",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1",
+      "owner_issues": [
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1497_w800_three_canonical_cutting.py",
+        "function": "test_legacy_same_location_or_same_physical_owner_blocks_atomic_export",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-38",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1（守衛）／UI-1B（提交）／MFG-2（加工分流）",
+      "owner_issues": [
+        1498,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_real_base_color30_and_marking212_have_specific_base_dependency",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-39",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（部分清單）／MFG-2（最終加工判等）",
+      "owner_issues": [
+        1501,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1501_nfb_export_manifest.py",
+        "function": "test_shihlin_color150_partial_only_counts_real_pieces",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-40",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B",
+      "owner_issues": [
+        1499,
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-41",
+      "previous_status": "DEFERRED_PRODUCT_EVIDENCE",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（納管驗證）／PAD（延期聲明）",
+      "owner_issues": [
+        1503
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+        "function": "test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_WORDING_HAS_SUPERSEDED_CSV_EAR_PAD_Z_CLAUSES",
+        "DISTINGUISH_SIGNED_PART_ONLY_FROM_WHOLE_CABINET_MFG2_AND_WELD",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE",
+        "NO_FAKE_RECEIVING_MIDDLE_PLATE_OR_SUPERSEDED_BASE_IMMOBILITY_RULE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-42",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（停用）／UI-1B（啟用）",
+      "owner_issues": [
+        1491,
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_ui1b_bridge.py",
+        "function": "test_live_submit_rechecks_bay_source_and_snapshot_before_adapter_write",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-43",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B",
+      "owner_issues": [
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-44",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1（守衛）／UI-1B（提交）／MFG-2（底／中板）",
+      "owner_issues": [
+        1498,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_missing_real_plate_id_is_scope_blocker_not_an_invented_part",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-45",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B",
+      "owner_issues": [
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-46",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（已提交檔守衛）／MFG-1（內門阻斷）",
+      "owner_issues": [
+        1499,
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-47",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1493
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1493_nfb_draft_transactions.py",
+        "function": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-48",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1（進場）",
+      "owner_issues": [
+        1494,
+        1495,
+        1496
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1494_nfb_x_shadow_projection.py",
+        "function": "test_no_unapproved_size_or_single_unit_center_defaults",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": true,
+      "unverified_scope": [
+        "EXACT_BATCH_PR_PRODUCT_CI_AND_LOCALX_READBACK_PENDING"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-49",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1（X 進場）",
+      "owner_issues": [
+        1494
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1494_nfb_x_shadow_projection.py",
+        "function": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": true,
+      "unverified_scope": [
+        "EXACT_BATCH_PR_PRODUCT_CI_AND_LOCALX_READBACK_PENDING"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-50",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（未定顯示）／MFG-1（Y 進場）",
+      "owner_issues": [
+        1495
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1495_receiving_nfb_y_projection.py",
+        "function": "test_approved_nominal_box_top_y_maps_to_real_1075_blank",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": true,
+      "unverified_scope": [
+        "EXACT_BATCH_PR_PRODUCT_CI_AND_LOCALX_READBACK_PENDING"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-51",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1A（提示）／MFG-1（解析與能力）",
+      "owner_issues": [
+        1496,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1496_nfb_dxf_source.py",
+        "function": "test_unsupported_not_silently_treated_as_certified",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-52",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1（製造）／UI-1B（閘門）",
+      "owner_issues": [
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1497_w800_three_canonical_cutting.py",
+        "function": "test_w800x3_uses_whd_723_blank_x_for_three_real_holes",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-53",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1（能力）／UI-1B（提交）",
+      "owner_issues": [
+        1498,
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_ready_requires_actual_per_hole_x_y_and_rotation_proof",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-54",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B（Save／Reload／降級回歸）",
+      "owner_issues": [
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE",
+        "FROZEN_LEGACY_READER_AND_DXF_EQUALITY_NOT_VERIFIED"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-55",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "MFG-1（盤點／守衛）／UI-1B（告知）／MFG-2（正式加工）",
+      "owner_issues": [
+        1496,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1496_nfb_source_inventory_report.py",
+        "function": "test_complete_per_brand_audit_has_exact_links_and_null_unknown",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "NFB-AC-56",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
+      "phase": "UI-1B",
+      "owner_issues": [
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-01",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1491
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1491_nfb_ui1a.py",
+        "function": "test_no_unapproved_geometry_or_persistence_fields",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-05",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（來源預覽）／MFG-1（主孔）",
+      "owner_issues": [
+        1492,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "function": "test_native_arc_circle_bulge_and_aci_preserved_in_real_source_strokes",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-06",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（設定）／MFG-1（非法回滾）",
+      "owner_issues": [
+        1493,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1493_nfb_draft_transactions.py",
+        "function": "test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-07",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1B",
+      "owner_issues": [
+        1499,
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-08",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（內門）／MFG-2（其他板件）",
+      "owner_issues": [
+        1498,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-09",
+      "previous_status": "DEFERRED_PRODUCT_EVIDENCE",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（禁偽墊高）／PAD（延期）",
+      "owner_issues": [
+        1503
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+        "function": "test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_WORDING_HAS_SUPERSEDED_CSV_EAR_PAD_Z_CLAUSES",
+        "DISTINGUISH_SIGNED_PART_ONLY_FROM_WHOLE_CABINET_MFG2_AND_WELD",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE",
+        "NO_FAKE_RECEIVING_MIDDLE_PLATE_OR_SUPERSEDED_BASE_IMMOBILITY_RULE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-10",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（內門）／MFG-2（EAR 依正式核准）",
+      "owner_issues": [
+        1497,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1497_w800_three_canonical_cutting.py",
+        "function": "test_w800x3_uses_whd_723_blank_x_for_three_real_holes",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-11",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-2",
+      "owner_issues": [
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1502_nfb_base_source_projection.py",
+        "function": "test_one_door_nfb_owner_projects_corresponding_base_cutting_and_marks",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-12",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A／MFG-1／UI-1B／MFG-2／PAD（各階段回歸）",
+      "owner_issues": [
+        1504
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1469_v15_acceptance.py",
+        "function": "test_selectable_family_save_reload_real_output_custom_bom",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-13",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A",
+      "owner_issues": [
+        1491
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1491_nfb_ui1a.py",
+        "function": "test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-14",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（獨立）／UI-1B（保存）",
+      "owner_issues": [
+        1491,
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-16",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1B（批次確認）／MFG-1（真實驗證）",
+      "owner_issues": [
+        1499,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-17",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（預覽）／UI-1B（重載）",
+      "owner_issues": [
+        1492,
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "function": "test_missing_and_unindexed_dxf_cannot_show_fake_contour",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-18",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（守衛）／UI-1B（狀態）",
+      "owner_issues": [
+        1498,
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-19",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1B（重載）／MFG-1（幾何推導）",
+      "owner_issues": [
+        1499,
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-20",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-2",
+      "owner_issues": [
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1502_existing_base_nfb_assembly.py",
+        "function": "test_two_real_NFB_heights_cannot_share_one_assumed_ear_group",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-21",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（依賴守衛）／MFG-2（實際板件）",
+      "owner_issues": [
+        1498,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-22",
+      "previous_status": "DEFERRED_PRODUCT_EVIDENCE",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（側板非 EAR 阻斷）／PAD（延期）",
+      "owner_issues": [
+        1503
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+        "function": "test_existing_base_ear_slots_are_not_confused_with_unapproved_ear_parts",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_WORDING_HAS_SUPERSEDED_CSV_EAR_PAD_Z_CLAUSES",
+        "DISTINGUISH_SIGNED_PART_ONLY_FROM_WHOLE_CABINET_MFG2_AND_WELD",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "NO_FAKE_RECEIVING_MIDDLE_PLATE_OR_SUPERSEDED_BASE_IMMOBILITY_RULE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-23",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1",
+      "owner_issues": [
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1497_w800_three_canonical_cutting.py",
+        "function": "test_existing_legacy_circle_is_preserved_exactly_once_in_real_nfb_dxf",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-24",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（不提交）／MFG-1（守衛）／UI-1B（保存）／MFG-2（分組）",
+      "owner_issues": [
+        1500,
+        1501,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-25",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（依賴）／UI-1B（提交）",
+      "owner_issues": [
+        1498
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_unconfigured_preserves_legacy_even_when_nfb_source_absent",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-26",
+      "previous_status": "BLOCKED_1500_REAL_GUI",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（提交鎖定）／UI-1B（READY 後啟用）",
+      "owner_issues": [
+        1500
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1500_nfb_transactions.py",
+        "function": "test_first_submission_includes_held_plates_in_warning_but_commits_inner_config",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "SECOND_ORIGINAL_LEGACY_PROJECT_GUI_CHAIN",
+        "SOURCE_SCOPE_REAL_SAVE_RELOAD_2D_3D_DXF_Q_AND_UNDO",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-27",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（X 進場）",
+      "owner_issues": [
+        1494
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1494_nfb_x_shadow_projection.py",
+        "function": "test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-28",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（提示）／MFG-1（Y 進場）",
+      "owner_issues": [
+        1495
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1495_receiving_nfb_y_projection.py",
+        "function": "test_non_1100_upper_y_is_unapproved_not_silently_scaled",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": true,
+      "unverified_scope": [
+        "EXACT_BATCH_PR_PRODUCT_CI_AND_LOCALX_READBACK_PENDING"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-29",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（NFB-DXF 進場／內門切孔）",
+      "owner_issues": [
+        1497
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1497_configured_nfb_manufacturing_release.py",
+        "function": "test_legacy_same_physical_hole_fails_no_duplicate_cutting",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-30",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1A（標示）／MFG-1（能力註冊）",
+      "owner_issues": [
+        1498
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1498_nfb_part_readiness.py",
+        "function": "test_wrong_approved_inner_source_or_wrong_part_is_not_a_manufacturing_capability",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-31",
+      "previous_status": "EVIDENCE_CANDIDATE_ONLY",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "UI-1B（Save／Reload／降級回歸）",
+      "owner_issues": [
+        1499
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1499_nfb_persistence.py",
+        "function": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "PRIMARY_ASSERTION_IS_REAL_BUT_FULL_REQUIREMENT_CHAIN_NOT_PROVEN",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE",
+        "FROZEN_LEGACY_READER_AND_DXF_EQUALITY_NOT_VERIFIED"
+      ],
+      "requirements_original_unchanged": true
+    },
+    {
+      "id": "SWT-AC-32",
+      "previous_status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "source_original_ac": "WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md",
+      "phase": "MFG-1（盤點／依賴）／UI-1B（告知）／MFG-2（出圖）",
+      "owner_issues": [
+        1496,
+        1502
+      ],
+      "primary_witness": {
+        "file": "tests/test_issue1496_index_color_evidence.py",
+        "function": "test_unique_model_links_keep_missing_unknown_distinct_from_real_zero",
+        "source_is_in_canonical_pr_ci": true,
+        "full_ac_proven": false
+      },
+      "signed_by_current_batch_candidate": false,
+      "unverified_scope": [
+        "ORIGINAL_AC_MULTIPART_OR_MFG_CLAUSE_NOT_YET_RECONCILED",
+        "DO_NOT_REPEAT_ALREADY_DELIVERED_SOURCE_SCOPED_MFG",
+        "PHYSICAL_SOURCE_AND_RELEASE_SAFETY_REQUIRE_DIRECT_WITNESS",
+        "UI_BEHAVIOR_REQUIRES_OPERATOR_OR_DIRECT_WIDGET_WITNESS_WHERE_APPLICABLE"
+      ],
+      "requirements_original_unchanged": true
+    }
+  ]
+}
