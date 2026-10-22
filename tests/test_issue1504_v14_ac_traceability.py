@@ -554,3 +554,26 @@ def test_ac27_swt06_current_v5_physical_q16_source_signoff_requires_real_dxf_neg
         assert evidence["ui_full_operator_uat_claimed"] is False
         assert evidence["original_ac_text_unchanged"] is True
         assert row["identified_test_functions"][0]["accepted"] is True
+
+
+def test_ac32_visible_x_reset_undo_patch_is_not_falsely_full_gui_signed():
+    from tools.product_ci_regression import PYTEST_PATHS
+    import ast
+    from pathlib import Path
+    path = "tests/test_issue1504_ac32_nfb_x_impact_operator.py"
+    assert PYTEST_PATHS.count(path) == 1
+    functions = {node.name: node for node in ast.parse(
+        (ROOT / path).read_text(encoding="utf-8")
+    ).body if isinstance(node, ast.FunctionDef)}
+    for name in (
+        "test_ac32_q5_q6_q7_reports_exact_layer_count_and_undo_restores_all_basis",
+        "test_ac32_manual_clear_one_selected_slot_includes_zero_and_snapshot_no_residue",
+        "test_ac32_compact_original_tk_ui_exposes_affected_count_and_reachable_undo",
+    ):
+        assert name in functions
+        assert any(isinstance(a, ast.Assert) for a in ast.walk(functions[name]))
+    row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-32")
+    assert row["accepted"] is False
+    assert row["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    assert path in row["regression_candidates"]
+    assert "true integrated Receiving NFB modal" in row["current_scope_remaining_evidence"]
