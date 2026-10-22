@@ -315,6 +315,9 @@ PYTEST_PATHS = (
     "tests/test_receiving_inner_editor_no_csv_opening_popup.py",
     "tests/test_receiving_native_nfb_tab_flow.py",
     "tests/test_receiving_nfb_main_canvas_visual.py",
+    # #1504 native NFB full-preview invalid index cannot alter live HoleEditor
+    # draft, existing operator holes, Undo or Cancel All transactions.
+    "tests/test_issue1504_native_nfb_preview_transaction.py",
     "tests/test_phase6_t16_receiving_placement.py",
     "tests/test_phase6_t17_receiving_inner_door_80.py",
     "tests/test_issue1113_receiving_joint_lock_geometry.py",
