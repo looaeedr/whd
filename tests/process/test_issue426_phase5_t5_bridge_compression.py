@@ -186,8 +186,8 @@ def test_t5_mount_unmount_transition_sources_match_shared_host_owner():
     assert "mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode)" in show
     assert "_navigation_view_show_corner_data_mode(" in corner
     assert "mount_shared_content=lambda mode: _phase6_mount_shared_content(self, mode)" in corner
-    # Single-part activation projects through the navigation owner.
-    assert "_navigation_view_" in activate
+    # Single-part activation is owned by the session controller, not direct Tk packing.
+    assert "_phase6_part_session_owner(self).activate_part(" in activate
     for source in (show, corner, activate):
         assert "assembly_panel.pack(" not in source
         assert "assembly_panel.pack_forget()" not in source
