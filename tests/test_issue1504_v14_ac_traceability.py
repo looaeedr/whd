@@ -472,8 +472,8 @@ def test_ac22_swt15_source_owned_x_and_save_reload_witnesses_are_mandatory():
 
 
 
-def test_swt03_source_owned_v5_slots_signed_but_nfb05_mfg_rotation_remains_unsigned():
-    """UI-1A proof cannot be relabeled as current V5 MFG-1 CUTTING approval."""
+def test_swt03_ui_scope_and_ac05_independent_current_v5_physical_dxfs():
+    """UI-only SWT03 evidence stays distinct from AC05 physical CSV/DXF proof."""
     from tools.product_ci_regression import PYTEST_PATHS
     proof = "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py"
     assert PYTEST_PATHS.count(proof) == 1
@@ -498,15 +498,23 @@ def test_swt03_source_owned_v5_slots_signed_but_nfb05_mfg_rotation_remains_unsig
     for name in (primary, second):
         assert name in functions
         assert any(isinstance(x, ast.Assert) for x in ast.walk(functions[name]))
-    pending = rows["NFB-AC-05"]
-    assert pending["accepted"] is False
-    assert pending["status"] == "EVIDENCE_CANDIDATE_ONLY"
-    assert pending["identified_test_functions"][0] == {
-        "path": proof,
-        "test_name": "test_nfb_ac05_layer_inheritance_override_model_reselection_and_all_quarter_turns",
-        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-        "accepted": False,
-    }
-    assert "current-CSV" in pending["current_scope_remaining_evidence"]
-    assert "DXF" in pending["current_scope_remaining_evidence"]
-    assert "NFB-AC-05" not in {r["id"] for r in _data()["records"] if r["accepted"]}
+    # The original SWT-03 UI-only signoff remains unchanged; AC-05 now
+    # has independent CURRENT CSV V5 physical FinalScene + saved DXF proof.
+    physical = rows["NFB-AC-05"]
+    assert physical["accepted"] is True
+    assert physical["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    path = "tests/test_issue1504_ac05_v5_physical_rotation_dxf.py"
+    assert PYTEST_PATHS.count(path) == 1
+    assert physical["identified_test_functions"][0]["path"] == path
+    assert physical["acceptance_evidence"]["factory_release"] is False
+    assert physical["acceptance_evidence"]["human_windows_uat_claimed"] is False
+    needed = [physical["acceptance_evidence"]["primary_assertion"],
+              *physical["acceptance_evidence"]["other_required_assertions"]]
+    assert len(needed) >= 5
+    for exact in needed:
+        filename, func = exact.split("::")
+        assert PYTEST_PATHS.count(filename) == 1
+        ast_body = ast.parse((ROOT / filename).read_text(encoding="utf-8")).body
+        defs = {n.name: n for n in ast_body if isinstance(n, ast.FunctionDef)}
+        assert func in defs
+        assert any(isinstance(x, ast.Assert) for x in ast.walk(defs[func]))
