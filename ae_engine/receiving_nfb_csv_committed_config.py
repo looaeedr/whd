@@ -9,6 +9,7 @@ UNVERIFIED_BASIS, never fabricated as CONFIRMED shop datum.
 from __future__ import annotations
 
 from hashlib import sha256
+from copy import deepcopy
 
 from .receiving_nfb_model_identity import numeric_model_ref
 from .receiving_nfb_numeric_catalog import brand_csv_path, model_spec
@@ -79,3 +80,25 @@ def committed_csv_nfb_config(part_key, features, config):
         "layer_count": count,
         "holes": [seen[key] for key in sorted(seen)],
     })
+
+
+def preview_quantity_nfb_submission(snapshot, quantity_model, config):
+    """Validate all quantity NFB source/projection BEFORE mutating live owner.
+
+    Confirm All is one logical commit: an invalid Family/door/quantity box
+    must not leave the version marked submitted while the physical sheet
+    remains unchanged. Re-run the same canonical validators on a detached
+    model and return only a candidate projection; caller commits later.
+    """
+    from phase6_quantity_model import QuantityModel
+    from .receiving_quantity_box import project_common_box
+
+    if not isinstance(quantity_model, QuantityModel):
+        raise ValueError("單只 NFB 需要目前的數量模式版本")
+    candidate = QuantityModel.from_payload(quantity_model.snapshot())
+    candidate.set_version_nfb_config(
+        candidate.selected_version_id, submitted=True, config=config,
+    )
+    projected = deepcopy(dict(snapshot))
+    projected["quantity"] = candidate.snapshot()
+    return project_common_box(projected)
