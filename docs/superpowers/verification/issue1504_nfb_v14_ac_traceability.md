@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-23，逐條實證簽核）
 
+## CURRENT｜2026-10-23 #1504 AC-32 操作端缺陷修補（暫不簽核）
+
+- 原始緊湊 NFB 編輯器只有加入／移除，`undo_nfb_draft` 函式未綁任何可見控件；原 X 被 Q5/Q6/Q7 重設時只顯示模糊訊息或沒有訊息，Undo 後所選顆位的舊 X 文字亦未從 session 刷新。此次在不重開舊「空槽／替換／換序」多餘按鈕的前提，補上頁尾 **「復原 NFB」**、原 `warning` 顯示 **第幾層＋幾顆**、按 `unit_id` 比對刪除／重排／新增／單顆清除前後真 X／datum，並在 Undo 後刷新原欄位。
+- 新 `tests/test_issue1504_ac32_nfb_x_impact_operator.py` 以現行 CSV V5 source slot session、分層兩顆、0mm 與 datum snapshots 驗證 Q5/Q6/Q7 精準計數、未觸層不變、手動清除／重複清除／非法輸入／Undo／Cancel。並以 Tk widget smoke＋真 GUI 來源 code binding 確認可見顯示與可觸發 callback。
+- **AC-32 保持 `EVIDENCE_CANDIDATE_ONLY` 不納入已簽數**：上述來源／Tk smoke 不等同原兩份真舊案整條 NFB GUI「加入→清除→Undo→取消／確定→Save→Reload」實機操作。此回合未進 Windows，不冒稱 AC-32 全 GUI 完成。簽核仍 **25／88，63 未簽**，正式 X 不動。
+
 ## CURRENT｜2026-10-23 #1504 AC-27／SWT-06 V5 真實原子回滾（exact CI 後生效）
 
 - 本批在上一批 23/88 之後，針對 `NFB-AC-27`、`SWT-AC-06` 補現行 `nfbv5:士林:2P400`＋`3P125SN`→`3P400SN` 的真正物理回歸。Q16 變更保留原兩顆 X 與身份、已知 W800×2 名義 360 mm，但位移仍未驗證；真 `NfbConfig` 重新導出既有內門／底板 FinalScene 和兩份 DXF，對照來源幾何、原檔保存、實際加工圖元。
