@@ -65,7 +65,8 @@ def test_real_fold_profiles_put_both_legs_on_same_base_contact_side():
     core=folded_profile_segment_center_from_envelope(pad.x_profile,1)
     right=folded_profile_segment_center_from_envelope(pad.x_profile,2)
     assert left[1] == pytest.approx(right[1],abs=1e-8)
-    assert (core[1]-left[1]) == pytest.approx(p.rise_mm/2,abs=1e-8)
+    assert (core[1]-left[1]) == pytest.approx(
+        (p.rise_mm+p.plate_thickness_mm/2)/2,abs=1e-8)
     assert pad.x_profile[0]["angle"] == pad.x_profile[1]["angle"]
     assert left[1] < core[1]  # Both tabs project rearward (-Z) toward physical Base Plate
 

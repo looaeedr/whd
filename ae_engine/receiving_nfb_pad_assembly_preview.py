@@ -63,7 +63,9 @@ def pad_physical_preview_world_mesh(pattern, *, parent_base_id,
         raise ValueError("PAD_FOLDED_FINALSCENE_MESH_EMPTY")
     zmin,zmax=map(float,bounds[2])
     if (not isclose(zmax,0.,abs_tol=1e-5)
-            or not isclose(zmin,-pattern.rise_mm,abs_tol=1e-5)):
+            or not isclose(
+                zmin,-pattern.rise_mm-pattern.plate_thickness_mm/2,
+                abs_tol=1e-5)):
         raise ValueError("PAD_SIGNED_REAL_FOLD_NOT_INTO_BASE")
     # The sheet's front physical skin, not its zero-thickness mid-surface,
     # must meet the smaller NFB's mounting face at depth rise from the base.
