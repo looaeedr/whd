@@ -167,7 +167,9 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
                 # previously saved, intentionally unconfigured Quantity
                 # fixture. The first Family entry must populate NFB CUTTING.
                 assert signature() != receiving
-                assert app._phase6_input_snapshot['nfb_config_submitted'] is True
+                active = app._phase6_input_snapshot['receiving_layout']['sets'][0]['bays'][0]
+                assert active['nfb_config_submitted'] is True
+                assert len(active['nfb_config']['holes']) == 1
             else:
                 # Returning to the saved unconfigured Quantity buffer never
                 # invents/reseeds a fresh NFB over its historical state.
