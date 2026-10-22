@@ -576,4 +576,12 @@ def test_ac32_visible_x_reset_undo_patch_is_not_falsely_full_gui_signed():
     assert row["accepted"] is False
     assert row["status"] == "EVIDENCE_CANDIDATE_ONLY"
     assert path in row["regression_candidates"]
+    assert len(row["identified_test_functions"]) == 1
+    assert row["identified_test_functions"][0]["path"] == "tests/test_issue1493_nfb_draft_transactions.py"
+    assert row["additional_partial_witnesses"] == [{
+        "path": path,
+        "test_name": "test_ac32_q5_q6_q7_reports_exact_layer_count_and_undo_restores_all_basis",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": False,
+    }]
     assert "true integrated Receiving NFB modal" in row["current_scope_remaining_evidence"]
