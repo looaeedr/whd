@@ -90,7 +90,7 @@ def preview_nfb_pad_depth(
             if filename.startswith("nfbv5:"):
                 parsed=parse_numeric_model_ref(filename)
                 spec=selected_numeric_spec(brand,filename) if parsed else None
-                depths.append(float(spec.depth_mm) if spec is not None else None)
+                depths.append(float(spec.depth_mm) if (spec is not None and spec.depth_mm is not None) else None)
             else:
                 depths.append(model_depth_mm(brand,filename,path=index_path))
         per_tier.append(tuple(depths))
