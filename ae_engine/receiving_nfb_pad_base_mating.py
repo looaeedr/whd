@@ -182,3 +182,85 @@ def verify_real_pad_mesh_tab_engagement(
         raise ValueError("PAD_MESH_MATING_TAB_MISSING_IN_REAL_BASE_SQUARE")
     return tuple(tuple((float(x), float(y)) for x, y in polygon.exterior.coords[:-1])
                  for polygon in squares_world)
+
+
+def verify_pad_solid_inside_real_base_cutouts(
+    triangles, squares_world, *, base_front_world_z_mm: float,
+    thickness_mm: float, tolerance: float = 1e-4,
+) -> None:
+    """Check the actual thickened PAD skin throughout the real Base T slab.
+
+    Intersect ALL world-mesh triangles with the OPEN interval between the
+    Base front/back skins. Every resulting 3D skin surface must project
+    entirely into a verified real cutting square. A tip-only witness is
+    insufficient: the entire solid edge in the sheet's volume must fit.
+    This establishes local Base *slab* interference clearance only. It
+    does NOT certify all other cabinet solids or production contact.
+    """
+    from math import isfinite
+    from shapely.geometry import Point,LineString,Polygon
+    from shapely.ops import unary_union
+
+    base=float(base_front_world_z_mm)
+    t=float(thickness_mm)
+    tol=float(tolerance)
+    if (not all(isfinite(v) for v in (base,t,tol))
+            or t <= 0 or tol <= 0 or tol >= min(t/4,0.01)):
+        raise ValueError("PAD_BASE_SLAB_COLLISION_INVALID_TOLERANCE_OR_DATUM")
+    squares=tuple(Polygon(square) for square in squares_world)
+    if (len(squares)!=4
+            or any(not p.is_valid or p.area<=0 for p in squares)):
+        raise ValueError("PAD_BASE_SLAB_COLLISION_ACTUAL_CUT_SQUARES_MISSING")
+    opening=unary_union(squares).buffer(tol)
+    lower=base-t-tol/2
+    upper=base-tol/2
+
+    def clip(vertices,level,keep_ge):
+        if not vertices:
+            return []
+        output=[]
+        for a,b in zip(vertices,vertices[1:]+vertices[:1]):
+            va=float(a[2])-level
+            vb=float(b[2])-level
+            inside_a=va>=0 if keep_ge else va<=0
+            inside_b=vb>=0 if keep_ge else vb<=0
+            if inside_a:
+                output.append(a)
+            if inside_a != inside_b:
+                weight=va/(va-vb)
+                output.append(tuple(a[i]+weight*(b[i]-a[i]) for i in range(3)))
+        return output
+
+    tested=0
+    for tri in triangles:
+        if len(tri)!=3:
+            raise ValueError("PAD_BASE_SLAB_COLLISION_TRIANGLES_INVALID")
+        vertices=[tuple(map(float,p)) for p in tri]
+        if any(not all(isfinite(v) for v in point) for point in vertices):
+            raise ValueError("PAD_BASE_SLAB_COLLISION_NONFINITE_VERTICES")
+        vertices=clip(vertices,lower,True)
+        vertices=clip(vertices,upper,False)
+        if len(vertices)<2:
+            continue
+        xy=[]
+        for x,y,_ in vertices:
+            if not xy or abs(x-xy[-1][0])+abs(y-xy[-1][1])>1e-9:
+                xy.append((x,y))
+        if len(xy)>1 and xy[0]==xy[-1]:
+            xy.pop()
+        if not xy:
+            continue
+        tested+=1
+        if len(xy)==1:
+            excess=not opening.covers(Point(xy[0]))
+        elif len(xy)==2:
+            excess=LineString(xy).difference(opening).length>tol
+        else:
+            geometry=Polygon(xy)
+            if not geometry.is_valid:
+                raise ValueError("PAD_BASE_SLAB_COLLISION_TRIANGLE_PROJECTION_INVALID")
+            excess=geometry.difference(opening).area>tol*tol
+        if excess:
+            raise ValueError("PAD_BASE_SLAB_SOLID_INTERFERES_WITH_REAL_BASE_MATERIAL")
+    if tested<4:
+        raise ValueError("PAD_BASE_SLAB_COLLISION_SAMPLED_SOLID_MISSING")

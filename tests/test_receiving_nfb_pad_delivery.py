@@ -48,6 +48,7 @@ def test_bom_is_a_separate_real_physical_pad_per_installed_shallower_nfb():
     assert len(demand.tooling_sha256)==64
     assert demand.tab_tip_mating_preview_verified is True
     assert demand.seating_witness.all_four_real_cut_squares_verified
+    assert demand.seating_witness.base_slab_collision_verified is True
     assert demand.seating_witness.tab_insertion_mm == pytest.approx(2.)
     assert demand.seating_witness.full_thickness_required_mm == pytest.approx(2.)
     assert demand.seating_witness.tab_back_skin_shortfall_mm == pytest.approx(0.)

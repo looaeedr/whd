@@ -23,6 +23,7 @@ class PadBaseSeatingWitness:
     regular_leg_front_gap_mm: float
     all_four_real_cut_squares_verified: bool
     full_thickness_seated: bool
+    base_slab_collision_verified: bool = False
     actual_volume_collision_verified: bool = False
     manufacturing_ready: bool = False
 
@@ -74,6 +75,7 @@ def inspect_pad_base_seating(skin, pad_draft) -> PadBaseSeatingWitness:
         regular_leg_front_gap_mm=regular_gap,
         all_four_real_cut_squares_verified=True,
         full_thickness_seated=seated,
+        base_slab_collision_verified=skin.base_slab_collision_verified,
         actual_volume_collision_verified=False,
         manufacturing_ready=False,
     )

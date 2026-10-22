@@ -28,6 +28,7 @@ class NfbPadDisplaySkin:
     source_flat_and_bend_verified: bool = True
     actual_base_squares_present: bool = True
     four_tab_mesh_mating_verified: bool = False
+    base_slab_collision_verified: bool = False
     manufacturing_ready: bool = False
     assembly_contact_certified: bool = False
 
@@ -162,6 +163,7 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
         from .receiving_nfb_pad_base_mating import (
             verify_real_pad_base_square_cuts,
             verify_real_pad_mesh_tab_engagement,
+            verify_pad_solid_inside_real_base_cutouts,
         )
         real_square_uv_by_owner={}
         for candidate in patterns:
@@ -203,13 +205,18 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
             # selected-CSV square, at the actual Base Plate world Z. A render
             # with a shifted or upside-down PAD is now refused, not displayed
             # on the strength of four source square counts alone.
-            verify_real_pad_mesh_tab_engagement(
+            real_squares_world=verify_real_pad_mesh_tab_engagement(
                 triangles,pattern,
                 real_square_uv_by_owner[entry.physical_hole_id],
                 world_x_mm=entry.world_x_mm,
                 world_y_mm=y.box_world_y_mm,
                 base_front_world_z_mm=world.base_nfb_face_world_z_mm,
                 rotation_deg=entry.rotation_deg,
+            )
+            verify_pad_solid_inside_real_base_cutouts(
+                triangles,real_squares_world,
+                base_front_world_z_mm=world.base_nfb_face_world_z_mm,
+                thickness_mm=pattern.plate_thickness_mm,
             )
             result.append(NfbPadDisplaySkin(
                 part_id=f"nfb_pad:{entry.physical_hole_id}",
@@ -220,5 +227,6 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
                 pad_front_world_z_mm=world.base_nfb_face_world_z_mm+pattern.rise_mm,
                 rise_mm=pattern.rise_mm,
                 four_tab_mesh_mating_verified=True,
+                base_slab_collision_verified=True,
             ))
     return tuple(result)
