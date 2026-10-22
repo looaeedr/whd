@@ -157,6 +157,9 @@ PYTEST_PATHS = (
     "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
     "tests/test_issue1502_current_csv_pad_check_q_provenance.py",
     "tests/test_issue1504_ac25_reselection_nominal_x.py",
+    # #1504 AC-22/SWT-15: current CSV V5 UI unknown-X and actual Bay/Quantity
+    # .p6fold persistent identity, explicit zero/NONE, no fake approval.
+    "tests/test_issue1504_ac22_swt15_current_x_persistence.py",
     "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py",
     "tests/test_issue1504_quantity_ear_z_set_identity.py",
     # #1504 exact function audit uncovered these five previously unselected

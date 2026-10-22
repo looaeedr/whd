@@ -7,11 +7,18 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-22，逐條實證簽核）
 
-> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **6/88 已完成當期範圍自動化完整 AC 斷言**（`NFB-AC-30`、`NFB-AC-17`、`SWT-AC-04`、`NFB-AC-10`、`SWT-AC-02`、`NFB-AC-25`），其他 82 項仍未簽核；不可用測試檔存在或 CI 綠燈概括 88 項。
+> **本表原文逐字保留，另列 CURRENT 覆蓋規則。** 原核准的 56 NFB AC + 32 SWT AC 共有 88 項；目前 `88/88` test-function 路徑可定位，但不能因此宣告 `88/88` 已通過。目前 **8/88 當期來源／保存範圍具直接自動化完整 AC 斷言**（`NFB-AC-30`、`NFB-AC-17`、`SWT-AC-04`、`NFB-AC-10`、`SWT-AC-02`、`NFB-AC-25`、`NFB-AC-22`、`SWT-AC-15`），其他 80 項仍未簽核；新增兩項須依當次 PR exact HEAD CI SUCCESS 才可併入 GitHub localX；不可用測試檔存在或 CI 綠燈概括 88 項。
 
 原規格與來源 SHA256 不變：
 - `WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md` — `2fcf48521b913435b01639b9fa1b3ef7789ec93724033e332cedd4c85e1d0eef`
 - `WHD_受電箱_開關層數_耳朵打標與內門開孔_規格書_20261010_v1.4.md` — `f4441937f43bf70de1224cf74926b8cfe031dc6eef6f18f165bd6bf6a8a2e5e1`
+
+## 2026-10-22 CURRENT｜NFB-AC-22 + SWT-AC-15 直接保存證據（待本 PR exact SHA CI）
+
+- 同一現行 `nfbv5:士林:2P400` 型號，使用真 UI-1A 編輯 `set_nfb_manual_x` 驗證 **明確 X=0 為 UNVERIFIED_BASIS**，清除位移改為 `NONE` 而非偷偷置中；草稿無製造核准狀態。
+- 真 `write_project` → 原始 `.p6fold` JSON → `read_project` → 再儲存重開：確認 Bay 的單一來源品牌、層／顆順序、箱寬、基準快照與名義規則版本不失，且零位移與 NONE 有別；root schema 僅在提交時升 v3。
+- Quantity 各版本以現行 `phase6-quantity-v2` 保存相同未知 X，重讀仍不變；嘗試寫入 `manufacturing_ready/approved` 或非法 X 會被拒，未提交工程仍保留舊 schema。
+- **範圍是 NFB X 編輯／持久化的自動化 AC，不是 Windows 雙案完整 GUI UAT、X 物理座標核准、整櫃 DXF/焊接/MFG-2 放行。** 機器矩陣只提升上述兩項，不動 17 項 #1500 GUI 阻擋或 4 項 #1503 全局延期。
 
 ## 現行權威（覆蓋舊例，非第二份 AC 規格）
 
@@ -87,7 +94,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-19 | #1493、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（清位移）／MFG-1（違法回滾） | Q5／Q6／Q7 只清受影響層全部手動位移，對應狀態改 NONE 並清舊快照；Q16 保留位移／名義孔距，重驗整層非法原子回滾；操作 Undo／Cancel 可完整還原。 |
 | NFB-AC-20 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 改本套／本配置／層預設品牌前正確預告將待重選顆數；取消狀態完全不變，確認才套用；同值明確覆寫仍維持覆寫身份。 |
 | NFB-AC-21 | #1491、#1499 | EVIDENCE_CANDIDATE_ONLY | UI-1A（預設）／UI-1B（版本保存） | 數量模式每個版本的本配置預設廠牌與三級繼承獨立；深複製後修改甲不影響乙；套／連本套品牌僅既有控件可寫。 |
-| NFB-AC-22 | #1499 | EVIDENCE_CANDIDATE_ONLY | UI-1B | X datum 未定仍可輸入含明確 0 的位移，Save→Reload 保存 UNVERIFIED_BASIS、箱寬／層／顆 ID 順序／名義規則版本；沒有位移用 NONE；不保存衍生製造通過狀態。 |
+| NFB-AC-22 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B | X datum 未定仍可輸入含明確 0 的位移，Save→Reload 保存 UNVERIFIED_BASIS、箱寬／層／顆 ID 順序／名義規則版本；沒有位移用 NONE；不保存衍生製造通過狀態。 |
 | NFB-AC-23 | #1499、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1B（重新確認）／MFG-1（製造阻斷） | 新 X 基準確立後，舊位移不能自動生效，須比較條件並經使用者重新確認；受影響顆未確認前維持草稿與製造阻斷。 |
 | NFB-AC-24 | #1498 | EVIDENCE_CANDIDATE_ONLY | UI-1B（狀態）／MFG-1（板件守衛） | 逐顆「已驗證／未驗證」及原因正確；已提交配置由當前來源推導 DRAFT／CONFIGURED；DRAFT 只阻斷 NFB 依賴未完成的物理板件，不阻斷無關片／Bay／版本，列受阻身份。 |
 | NFB-AC-25 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A | 「型號待重選」仍可依已核准名義表顯示相對中心距；實際 X 定位、碰撞、越界各自未驗證，沒有憑空置中。 |
@@ -136,7 +143,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-12 | #1504 | EVIDENCE_CANDIDATE_ONLY | UI-1A／MFG-1／UI-1B／MFG-2／PAD（各階段回歸） | 不破壞內門框末段 22 mm、46＋2T、門縫、底板原幾何、背孔／中隔與金庫型回歸。 |
 | SWT-AC-13 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 變更上游品牌前顯示待重選顆數，確認後更新跟隨者，取消時品牌／型號／位移／旋轉／覆寫狀態完全不動。 |
 | SWT-AC-14 | #1491、#1499 | EVIDENCE_CANDIDATE_ONLY | UI-1A（獨立）／UI-1B（保存） | 套／連本套預設只能由既有本套品牌控件寫入；數量模式各版本 NFBConfig 自有預設品牌，新增版本深複製且修改互不污染。 |
-| SWT-AC-15 | #1499 | EVIDENCE_CANDIDATE_ONLY | UI-1B | 按 NFB UI v1.4 §2.3.1 的單一 `manual_x_state`、快照、基準版本保存未知基準位移；Save→Reload 不自動升格製造偏移（UI-1B 才可持久化）。 |
+| SWT-AC-15 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B | 按 NFB UI v1.4 §2.3.1 的單一 `manual_x_state`、快照、基準版本保存未知基準位移；Save→Reload 不自動升格製造偏移（UI-1B 才可持久化）。 |
 | SWT-AC-16 | #1499、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1B（批次確認）／MFG-1（真實驗證） | 新 X 基準定案，既有未知基準位移必須逐顆或按 Bay／配置批次重新確認；確認後仍逐顆驗證，不能批次跳過干涉檢查。 |
 | SWT-AC-17 | #1492、#1499 | EVIDENCE_CANDIDATE_ONLY | UI-1A（預覽）／UI-1B（重載） | 型號待重選時已知名義中心距仍可顯示，實際幾何／碰撞保持未驗證；旋轉角度可存但主孔中心缺乏時不產生假放置。 |
 | SWT-AC-18 | #1498、#1500 | BLOCKED_1500_REAL_GUI | MFG-1（守衛）／UI-1B（狀態） | 未提交配置維持既有加工；已提交草稿逐顆顯示原因，依真實受影響板件阻斷，不波及可證明無依賴實體件；詳 NFB-AC-24／38／39。 |
@@ -157,7 +164,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 88 項確切測試函式（部分自動化證據，不代表整條 AC 驗收）
 
-**88/88 條已找到確切的 Python 測試函式；6/88 條有當期範圍的完整 AC 自動化斷言，仍需本 PR exact HEAD CI 全綠後生效。** 這只確認函式名稱、候選檔案與原 owner 一致，並經 AST 檢查它真的存在。尚未逐條證明所有操作、UI、加工、裝配與現場斷言均完整覆蓋。
+**88/88 條已找到確切的 Python 測試函式；8/88 條有當期範圍的完整 AC 自動化斷言，仍需本 PR exact HEAD CI 全綠後生效。** 這只確認函式名稱、候選檔案與原 owner 一致，並經 AST 檢查它真的存在。尚未逐條證明所有操作、UI、加工、裝配與現場斷言均完整覆蓋。
 
 如單條需求含多種操作，以下只代表其中一部分證據。例如 #1500 的真實 UI 操作與 #1502 的實體製造仍必須單獨驗收，不得因測試函式存在而放行。
 
@@ -184,7 +191,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-19 | `tests/test_issue1493_nfb_draft_transactions.py::test_q16_replace_model_preserves_x_and_identity_but_unverifies_geometry` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-20 | `tests/test_issue1491_nfb_ui1a.py::test_single_set_brand_owner_and_explicit_same_value_overrides` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-21 | `tests/test_issue1491_nfb_ui1a.py::test_single_set_brand_owner_and_explicit_same_value_overrides` | EVIDENCE_CANDIDATE_ONLY |
-| NFB-AC-22 | `tests/test_issue1499_nfb_persistence.py::test_confirmed_x_zero_is_not_missing_and_none_is_not_zero` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-22 | `tests/test_issue1504_ac22_swt15_current_x_persistence.py::test_nfb_ac22_v5_bay_x_zero_none_datum_order_save_reopen_never_auto_approves` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-23 | `tests/test_issue1499_nfb_persistence.py::test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-24 | `tests/test_issue1498_nfb_part_readiness.py::test_each_set_bay_version_independent_and_no_cross_scope_ready_cache` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-25 | `tests/test_issue1504_ac25_reselection_nominal_x.py::test_nfb_ac25_reselection_preserves_approved_relative_pitch_no_fake_x_checks` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
@@ -233,7 +240,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-12 | `tests/test_issue1469_v15_acceptance.py::test_selectable_family_save_reload_real_output_custom_bom` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-13 | `tests/test_issue1491_nfb_ui1a.py::test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-14 | `tests/test_issue1499_nfb_persistence.py::test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate` | EVIDENCE_CANDIDATE_ONLY |
-| SWT-AC-15 | `tests/test_issue1499_nfb_persistence.py::test_confirmed_x_zero_is_not_missing_and_none_is_not_zero` | EVIDENCE_CANDIDATE_ONLY |
+| SWT-AC-15 | `tests/test_issue1504_ac22_swt15_current_x_persistence.py::test_swt_ac15_quantity_v5_x_zero_none_version_isolation_and_reopen` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-16 | `tests/test_issue1499_nfb_persistence.py::test_confirmed_x_zero_is_not_missing_and_none_is_not_zero` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-17 | `tests/test_issue1492_nfb_real_dxf_preview.py::test_missing_and_unindexed_dxf_cannot_show_fake_contour` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-18 | `tests/test_issue1498_nfb_part_readiness.py::test_each_set_bay_version_independent_and_no_cross_scope_ready_cache` | BLOCKED_1500_REAL_GUI |
