@@ -15,6 +15,7 @@ VERIFY=ROOT/"docs"/"superpowers"/"verification"
 AUDIT=VERIFY/"issue1504_79_pending_ac_batch_source_audit.json"
 MATRIX=VERIFY/"issue1504_nfb_v14_ac_traceability.json"
 BATCH={"NFB-AC-48","NFB-AC-49","NFB-AC-50","SWT-AC-28"}
+FOLLOWUP={"NFB-AC-06","NFB-AC-08","NFB-AC-26","NFB-AC-33","NFB-AC-37","SWT-AC-17","SWT-AC-25"}
 BASELINE_GROUPS={
     "EVIDENCE_CANDIDATE_ONLY":44,
     "BLOCKED_1500_REAL_GUI":17,
@@ -22,9 +23,9 @@ BASELINE_GROUPS={
     "DEFERRED_PRODUCT_EVIDENCE":4,
 }
 AFTER_GROUPS={
-    "EVIDENCE_CANDIDATE_ONLY":40,
+    "EVIDENCE_CANDIDATE_ONLY":33,
     "BLOCKED_1500_REAL_GUI":17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE":13,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE":20,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC":14,
     "DEFERRED_PRODUCT_EVIDENCE":4,
 }
@@ -42,7 +43,7 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
     assert len({e["id"] for e in entries})==79
     assert audit["batch_signed_candidate_ids"]==sorted(BATCH)
     assert {e["id"] for e in entries}==(
-        {k for k,v in rows.items() if not v["accepted"]}|BATCH
+        {k for k,v in rows.items() if not v["accepted"]}|BATCH|FOLLOWUP
     )
     assert sum(len(v) for v in audit["grouped_ids"].values())==79
     assert {k:len(v) for k,v in audit["grouped_ids"].items()}==BASELINE_GROUPS
@@ -72,6 +73,13 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
         if key in BATCH:
             assert row["accepted"] is True
             assert entry["signed_by_current_batch_candidate"] is True
+        elif key in FOLLOWUP:
+            # The 79-AC audit is an immutable snapshot of the earlier state;
+            # later directly witnessed signoffs do not alter that history.
+            assert row["accepted"] is True
+            assert entry["signed_by_current_batch_candidate"] is False
+            assert entry["previous_status"] == "EVIDENCE_CANDIDATE_ONLY"
+            assert row["acceptance_evidence"]["original_ac_text_unchanged"] is True
         else:
             assert row["accepted"] is False
             assert entry["signed_by_current_batch_candidate"] is False
