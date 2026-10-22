@@ -123,3 +123,8 @@
 ## 最終交付規則
 
 將 88 項明確分為 `SIGNED_CURRENT_AUTOMATED`／`PARTIAL_ASSERTIONS_DELIVERED`／`PRODUCT_DEFECT_RED`／`GUI_UAT_DEFERRED`／`MFG_SOURCE_DEFERRED`。每一項只附精確來源、測試／真操作證據和不符合的斷言，**不為數量湊全綠、不無限擴施工**；#1504 以查明狀態及限制為收尾口徑。正式 X 仍需使用者 `/推推`。
+
+### 2026-10-22 Linux 真 Tk 舊專案補證（尚待 exact CI）
+
+- 新增 `tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py`：使用 GitHub 內原始 `issue1503_legacy_receiving_without_nfb_base.p6fold` 透過 `BoxCalculatorGUI` 真實執行 `load_project_file`、Receiving 原始多連視窗、NFB 未具來源時 disabled 提交／複製／還原／Undo、取消、`save_project_file_as`、重新載入及 legacy Features 保持，印出附 fixture SHA 的 `ISSUE1504_LEGACY_GUI_SOURCE_RECEIPT`。
+- 此測試只是**專案 A 的部分真 Tk 操作證據**，尚待完整 CI；沒有程式捏造來源確認、沒有操作專案 B，也沒有聲稱完成 2D/3D/打標/DXF GUI 檢查或 17 項 AC 人工簽核。未獲完整 GUI 收據前原矩陣保持 17 項 BLOCKED。

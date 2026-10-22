@@ -177,3 +177,38 @@ def test_v5_csv_missing_depth_or_cross_brand_blocks_only_affected_tier_z():
     assert not resolve_receiving_tier_base_z_targets(
         snap
     )[1].physical_skin_z_resolved
+
+
+def test_quantity_frozen_integral_indices_restore_but_stable_ids_stay_guarded():
+    """Phase6 Real-DTO 0.0 is an identity 0 only with exact saved Set/Bay."""
+    from ae_engine.receiving_tier_ear_z_targets import _current_brand_config
+    snap = _two_tier()
+    original = _current_brand_config(snap)
+    snap["active_mode"] = "quantity"
+    selected = snap["_receiving_runtime_selection"]
+    selected["set_index"] = 0.0
+    selected["bay_index"] = 0.0
+    assert _current_brand_config(snap) == original
+    # Do not mutate project authority while interpreting the request DTO.
+    assert selected["set_index"] == 0.0
+    assert selected["bay_index"] == 0.0
+
+    for value in (0.5, -1.0, float("nan"), float("inf"), True):
+        altered = deepcopy(snap)
+        altered["_receiving_runtime_selection"]["set_index"] = value
+        with pytest.raises(ValueError, match="EAR_Z_SET_IDENTITY_DRIFT"):
+            _current_brand_config(altered)
+    for key, value, pattern in (
+        ("set_id", "stale-set", "EAR_Z_SET_IDENTITY_DRIFT"),
+        ("bay_id", "stale-bay", "EAR_Z_BAY_IDENTITY_DRIFT"),
+    ):
+        altered = deepcopy(snap)
+        altered["_receiving_runtime_selection"][key] = value
+        with pytest.raises(ValueError, match=pattern):
+            _current_brand_config(altered)
+
+    # There is no indiscriminate relaxation for non-quantity callers.
+    setbay = deepcopy(snap)
+    setbay["active_mode"] = "set_bay"
+    with pytest.raises(ValueError, match="EAR_Z_SET_IDENTITY_DRIFT"):
+        _current_brand_config(setbay)

@@ -252,6 +252,12 @@ def commit_receiving_current_bay_controls(self, namespace):
         from ae_engine.receiving_quantity_box import update_common_box
         candidate = update_common_box(_current_mode_snapshot(self, namespace),
                                      {axis: getattr(app, "v_" + axis).get() for axis in ("w", "h", "d")})
+        # Quantity re-creates a source-owned singleton Receiving Set/Bay.
+        # dict.update() does not delete the previous Set/Bay runtime pointer,
+        # even though project_common_box() removed it from the candidate.
+        # A stale pointer would pass to EAR Z export and falsely drift.
+        from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
+        app._phase6_input_snapshot.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
         app._phase6_input_snapshot.update(candidate)
         app.designer_workspace.set_receiving_common_box(candidate["receiving_quantity_box"])
         self.receiving_adapter(namespace, reset=True)
@@ -3376,6 +3382,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         )
                         projected["quantity"] = quantity.snapshot()
                         projected = project_common_box(projected)
+                    # Reset only the transient Set/Bay selector: CURRENT
+                    # quantity's fresh synthetic Bay must never inherit a
+                    # pointer into an obsolete persisted Set. Keep the strict
+                    # manufacturing identity guard intact.
+                    from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
+                    self.app._phase6_input_snapshot.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
                     self.app._phase6_input_snapshot.update(projected)
                     # The workspace is the in-memory canonical mode owner.
                     # The next scheduler/SetBay sync otherwise restores its
