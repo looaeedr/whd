@@ -169,3 +169,36 @@ def test_ac24_original_gui_nfb_dependent_selection_does_not_mask_current_bay(tmp
         )
     assert visited and all(item[2] is None for item in visited)
     assert not list(tmp_path.glob("*.dxf"))
+
+
+def test_ac09_invalid_saved_nfb_still_displays_real_unrelated_head_from_same_bay():
+    from ae_engine.receiving_nfb_v5_diagnostics import (
+        current_v5_nfb_diagnostics, actual_unrelated_nfb_scene_parts,
+    )
+    source=_source_with_missing_second_model()
+    original=deepcopy(source)
+    set_row=source["receiving_layout"]["sets"][0]
+    second=set_row["bays"][1]
+    only_scene=deepcopy(source["receiving_layout"])
+    only_scene["sets"][0]["bays"][1]["nfb_config_submitted"]=False
+    physical=project_receiving_bay_legacy_aliases({
+        **source,"receiving_layout":only_scene,
+    },set_index=0,bay_index=1)
+    actual=_full_receiving_geometry(physical)
+    independent=actual_unrelated_nfb_scene_parts(
+        actual.parts,dependent_part_ids=(),
+    )
+    assert "head" in independent
+    current=current_v5_nfb_diagnostics(
+        second,set_id=set_row["stable_id"],bay_id=second["stable_id"],
+        version_id="inner-door-v1",
+        dependent_part_ids=("base_plate",),
+        unaffected_part_ids=independent,
+    )
+    assert current["derived_state"]=="DRAFT"
+    assert "NFB_CSV_MODEL_MISSING" in current["unit_rows"][0]["reasons"]
+    assert any(row["part_id"]=="head" and row["status"]=="NFB_UNAFFECTED"
+               for row in current["part_rows"])
+    assert any(row["part_id"]=="base_plate" and row["status"]=="BLOCKED"
+               for row in current["part_rows"])
+    assert source==original
