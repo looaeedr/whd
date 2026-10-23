@@ -80,3 +80,33 @@ def test_ac24_unconfirmed_world_x_blocks_original_dxf_not_unrelated_scope(tmp_pa
     with pytest.raises(ValueError):
         _export(snap,dest)
     assert not list(dest.glob("*.dxf"))
+
+
+@pytest.mark.parametrize("fault", (
+    "same_layer_slot", "wrong_layer_count", "missing_slot",
+))
+def test_ac24_original_part_writer_rejects_collision_stale_count_or_unowned_slot(tmp_path,fault):
+    snap=_current()
+    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
+    second=snap["nfb_config"]["holes"][1]
+    if fault=="same_layer_slot":
+        second["slot_index"]=snap["nfb_config"]["holes"][0]["slot_index"]
+    elif fault=="wrong_layer_count":
+        second["layer_count"]=2
+    else:
+        second.pop("slot_index")
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
+        snap["nfb_config"],
+    )
+    report=_status(snap)
+    assert report["derived_state"]=="DRAFT"
+    assert report["part_rows"][0]["status"]=="BLOCKED"
+    assert report["part_rows"][1]["status"]=="NFB_UNAFFECTED"
+    if fault=="same_layer_slot":
+        assert all(not row["configuration_verified"] for row in report["unit_rows"])
+        assert all("NFB_DUPLICATE_LAYER_UNIT_OWNER" in row["reasons"]
+                   for row in report["unit_rows"])
+    output=tmp_path/fault
+    with pytest.raises(ValueError,match="NFB_COMMITTED_CSV_LAYER_UNIT_OWNER_INVALID"):
+        _export(snap,output)
+    assert not list(output.glob("*.dxf"))
