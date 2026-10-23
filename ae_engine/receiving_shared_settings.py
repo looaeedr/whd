@@ -4,6 +4,8 @@ from copy import deepcopy
 from collections.abc import Mapping
 from math import isfinite
 
+from .sheetmetal_feature_core import CircleFeature, RectFeature, ProfileFeature
+
 SETTING_DEFAULTS = {
     "back_panel_mode": "FULL",
     "head_features": [],
@@ -101,7 +103,10 @@ def validate_setting(kind, value):
                 or float(value[0]) >= float(value[1])):
             raise ValueError("第一層／第二層高度須為正數、由上往下遞增（mm）")
         value = [float(v) for v in value]
-    elif not isinstance(value, (list, tuple)):
+    elif not isinstance(value, (list, tuple)) or any(
+        not isinstance(f, (CircleFeature, RectFeature, ProfileFeature))
+        for f in value
+    ):
         raise ValueError("封頭尾設定必須是 Hole Editor feature 清單")
     else:
         value = list(value)
