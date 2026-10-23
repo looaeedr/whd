@@ -546,6 +546,8 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
     try:
         canonical = _export_selected_resolved_parts(self, folder, flags)
     except Exception as ex:
+        import traceback
+        traceback.print_exc()
         return [], [f"canonical resolved export: {ex}"]
     if canonical is not None:
         return canonical
@@ -987,7 +989,23 @@ def export_receiving_pad_base_part_only_dxf(self):
             return
         runtime=snapshot.get("_receiving_runtime_selection")
         if not isinstance(runtime, Mapping):
-            raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
+            # Recover the exact one-Bay source identity only from the current
+            # saved singleton. Never borrow another Bay or a previous selector.
+            layout=snapshot.get("receiving_layout")
+            sets=layout.get("sets") if isinstance(layout, Mapping) else None
+            if (snapshot.get("active_mode", "set_bay") != "set_bay"
+                    or not isinstance(sets, (list, tuple)) or len(sets) != 1
+                    or not isinstance(sets[0].get("bays"), (list, tuple))
+                    or len(sets[0]["bays"]) != 1
+                    or sets[0]["bays"][0].get("nfb_config_submitted") is not True
+                    or sets[0]["bays"][0].get("nfb_config") != snapshot.get("nfb_config")):
+                raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
+            runtime={
+                "set_id": sets[0]["stable_id"],
+                "bay_id": sets[0]["bays"][0]["stable_id"],
+                "set_index": 0, "bay_index": 0,
+            }
+            snapshot={**snapshot, "_receiving_runtime_selection": runtime}
         set_id=str(runtime.get("set_id") or "").strip()
         bay_id=str(runtime.get("bay_id") or "").strip()
         if not set_id or not bay_id:
