@@ -220,11 +220,17 @@ class FourCornerTypePolicy:
 
     def fw_for(self, corner_name: str) -> float:
         name = str(corner_name or "")
+        raw = self.fw
         if name.startswith("bottom") and self.bottom_fw is not None:
-            return float(self.bottom_fw)
-        if name.startswith("top") and self.top_fw is not None:
-            return float(self.top_fw)
-        return float(self.fw)
+            raw = self.bottom_fw
+        elif name.startswith("top") and self.top_fw is not None:
+            raw = self.top_fw
+        if isinstance(raw, bool):
+            raise GeometryError("FW 不可為布林值")
+        number = float(raw)
+        if not math.isfinite(number) or number < 0:
+            raise GeometryError("FW 不可小於 0")
+        return number
 
 
 @dataclass(frozen=True)
