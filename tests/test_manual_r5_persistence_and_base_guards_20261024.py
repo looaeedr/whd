@@ -145,3 +145,22 @@ def test_r6_pad_tooling_rejects_fake_sha_and_boolean_dimension(tmp_path):
     path.write_text('{"schema":"RECEIVING_NFB_PAD_TOOLING_V1"}', encoding="utf-8")
     with pytest.raises(ValueError, match="加工規則格式"):
         read_pad_tooling_rule(path)
+
+
+def test_r6_nfb_depth_and_surface_chain_reject_bool_mechanical_dimensions():
+    from ae_engine.receiving_nfb_depth_surface_policy import (
+        receiving_nfb_second_side_fold_mm, resolve_receiving_nfb_surface_chain,
+    )
+    with pytest.raises(ValueError, match="must not be boolean"):
+        receiving_nfb_second_side_fold_mm(
+            reference_nfb_depth_mm=True,
+            secondary_nfb_depth_mm=60., base_plate_thickness_mm=1.5,
+        )
+    with pytest.raises(ValueError, match="must not be boolean"):
+        resolve_receiving_nfb_surface_chain(
+            inner_door_outer_face_from_front_mm=True,
+            inner_door_thickness_mm=1.5,
+            base_plate_thickness_mm=1.5,
+            fixing_plate_thickness_mm=1.5,
+            reference_nfb_depth_mm=60., secondary_nfb_depth_mm=30.,
+        )
