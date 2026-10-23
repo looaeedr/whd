@@ -108,15 +108,22 @@ def current_v5_nfb_diagnostics(
                                   ",".join(spec.missing_fields))
         if hole.get("manual_x_state") != "CONFIRMED":
             errors.append("NFB_WORLD_X_RECONFIRM_REQUIRED")
-        # A saved CONFIRMED coordinate still needs live CSV/scene/bounds
-        # verification before *any* manufactured cutting is approved.
+        # Physical material is shared by the NFB installation: missing
+        # actual inner-door/base material affects every unit here, even if
+        # its numeric CSV and saved X are otherwise perfectly valid.
+        errors.extend(physical_reasons)
+        reasons = tuple(dict.fromkeys(errors))
+        # "Configuration verified" means only the current saved NFB source,
+        # placement and physical source existence have been checked. It is
+        # NEVER a manufacturing (CUTTING/3D/DXF) certificate.
         rows.append({
             "physical_hole_id": hole["physical_hole_id"],
             "layer_index": layer,
             "slot_index": slot,
             "model_filename": hole["model_filename"],
-            "source_status": "SOURCE_PRESENT_RECHECK_ONLY" if not errors else "UNVERIFIED",
-            "reasons": tuple(dict.fromkeys(errors)),
+            "source_status": "SOURCE_PRESENT_RECHECK_ONLY" if not reasons else "UNVERIFIED",
+            "configuration_verified": not bool(reasons),
+            "reasons": reasons,
             "manufacturing_verified": False,
         })
 
