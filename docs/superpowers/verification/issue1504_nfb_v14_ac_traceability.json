@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 39,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 40,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 14,
+    "EVIDENCE_CANDIDATE_ONLY": 13,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -705,21 +705,43 @@
       ],
       "regression_candidates": [
         "tests/test_issue1491_nfb_ui1a.py",
-        "tests/test_issue1504_unified_inner_nfb_layer_count.py"
+        "tests/test_issue1504_unified_inner_nfb_layer_count.py",
+        "tests/test_issue1504_ac18_original_tk_datum.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_nominal_pitch_exact_but_never_absolute_x",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac18_original_tk_datum.py",
+          "test_name": "test_ac18_original_tk_single_layer_count_changes_only_real_draft_and_undo",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "CURRENT_CSV_V5_ORIGINAL_TK_UI1A_SINGLE_LAYER_COUNT_SOURCE_REAL_RADIO_CHANGE_UNDO_BOTH_TIERS_AND_VISIBLE_PREVIEW_ONLY_X_ABSOLUTE_UNAPPROVED_RELATIVE_PITCH_AND_NON1100_Y_UNKNOWN; REAL_WINDOWS_UAT_MFG_FACTORY_NOT_PROVEN",
+        "primary_assertion": "tests/test_issue1504_ac18_original_tk_datum.py::test_ac18_original_tk_single_layer_count_changes_only_real_draft_and_undo",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac18_original_tk_datum.py::test_ac18_real_tk_nominal_pitch_not_world_x_and_non1100_y_shows_unknown",
+          "tests/test_issue1504_unified_inner_nfb_layer_count.py::test_single_current_layer_count_owns_both_inner_door_and_nfb_mounting_tiers",
+          "tests/test_issue1504_unified_inner_nfb_layer_count.py::test_multi_settings_has_no_second_writable_tier_widget_outside_original_nfb_editor",
+          "tests/test_issue1491_nfb_ui1a.py::test_nominal_pitch_exact_but_never_absolute_x",
+          "tests/test_issue1491_nfb_ui1a.py::test_two_layers_y_290_790_only_for_actual_1100_basis"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "exact_head_product_ci_required": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false
+      },
+      "current_scope_remaining_evidence": "2026-10-23 exact source-scoped native Tk layer owner: original WHD Receiving inner editor actual 1/2 Radiobuttons are sole IntVar owner of inner-door and NFB installation layers; real click modifies transient draft and Undo restores, nothing persisted. Original Tk now visibly shows X 基準未定 (nominal adjacent pitch only) and non-1100 Y 未定 despite editable preview-height reference; absolute X/physical Y manufacturing never granted. Exact prior #2093 HEAD Product CI and Tk baseline all GREEN; AC18 scoped signoff PR requires its own exact HEAD CI and localX merge/readback. Two original Windows .p6fold project GUI UAT and actual MFG/DXF/Q are not claimed or signed."
     },
     {
       "id": "NFB-AC-19",
@@ -3592,7 +3614,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 39/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 49 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 40/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 48 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
