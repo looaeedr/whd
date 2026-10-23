@@ -447,11 +447,9 @@ def _existing_conflict_geometry(primitive, material):
         return disk.boundary if layer == "MARKING" else disk
     if isinstance(primitive, PolylinePrimitive):
         coords = [(float(p.x), float(p.y)) for p in primitive.points]
-        if not coords:
+        if len(set(coords)) < (3 if primitive.closed else 2):
             return None
         line_coords = coords + [coords[0]] if primitive.closed else coords
-        if len(line_coords) < 2:
-            return None
         line = LineString(line_coords)
         if layer == "MARKING" or not primitive.closed:
             return line
