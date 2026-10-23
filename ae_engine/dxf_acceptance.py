@@ -256,16 +256,62 @@ def _actual_bends(msp, tolerance: float):
     return tuple(sorted(rows))
 
 
-def _rows_close(expected, actual, tolerance: float) -> bool:
+def _one_to_one_tolerance_match(expected, actual, compatible) -> bool:
+    """Require a COMPLETE unique matching, not greedy first-fit pairing.
+
+    Sorted near-coincident BEND stations or CUTTING holes can overlap inside
+    one coordinate tolerance. A first-fit choice may steal another row's only
+    legal partner and falsely report a manufacturing DXF mismatch.
+    """
     if len(expected) != len(actual):
         return False
-    for erow, arow in zip(expected, actual):
+    # Common case: canonical DXF sorting already aligns every entity.
+    # Keep that original linear-time path; build the matching graph only
+    # when near-equal numeric ordering has changed across serialization.
+    if all(compatible(row, found) for row, found in zip(expected, actual)):
+        return True
+    edges = [
+        tuple(index for index, found in enumerate(actual) if compatible(row, found))
+        for row in expected
+    ]
+    if any(not options for options in edges):
+        return False
+    assigned = {}
+
+    def augment(row_index, visited):
+        for col in edges[row_index]:
+            if col in visited:
+                continue
+            visited.add(col)
+            if col not in assigned or augment(assigned[col], visited):
+                assigned[col] = row_index
+                return True
+        return False
+
+    # Match the most constrained expected rows first; augmenting paths can
+    # still reassign matches when several candidates share one tolerance.
+    return all(
+        augment(index, set())
+        for index in sorted(range(len(edges)), key=lambda i: len(edges[i]))
+    )
+
+
+def _rows_close(expected, actual, tolerance: float) -> bool:
+    from math import isfinite
+    if not isfinite(float(tolerance)) or tolerance < 0:
+        return False
+
+    def same(erow, arow):
         if len(erow) != len(arow) or erow[0] != arow[0]:
             return False
-        for ev, av in zip(erow[1:], arow[1:]):
-            if abs(float(ev) - float(av)) > tolerance:
-                return False
-    return True
+        try:
+            pairs = tuple((float(ev), float(av)) for ev, av in zip(erow[1:], arow[1:]))
+        except (TypeError, ValueError, OverflowError):
+            return False
+        return all(isfinite(ev) and isfinite(av) and abs(ev - av) <= tolerance
+                   for ev, av in pairs)
+
+    return _one_to_one_tolerance_match(expected, actual, same)
 
 
 def _expected_cutting_circles(scene):
@@ -294,14 +340,20 @@ def _actual_cutting_circles(msp):
 
 
 def _circle_rows_close(expected, actual, tolerance: float) -> bool:
-    if len(expected) != len(actual):
+    from math import isfinite
+    if not isfinite(float(tolerance)) or tolerance < 0:
         return False
-    return all(
-        abs(ex - ax) <= tolerance
-        and abs(ey - ay) <= tolerance
-        and abs(er - ar) <= tolerance
-        for (ex, ey, er), (ax, ay, ar) in zip(expected, actual)
-    )
+
+    def same(erow, arow):
+        try:
+            values = tuple((float(ev), float(av)) for ev, av in zip(erow, arow))
+        except (TypeError, ValueError, OverflowError):
+            return False
+        return (len(erow) == len(arow) == 3
+                and all(isfinite(ev) and isfinite(av) and abs(ev - av) <= tolerance
+                        for ev, av in values))
+
+    return _one_to_one_tolerance_match(expected, actual, same)
 
 
 def _same_line_geometry(a, b, tolerance: float) -> bool:

@@ -55,10 +55,15 @@ def _norm(v):
 
 
 def _normalize(v, tolerance):
-    mag = _norm(v)
-    if mag <= float(tolerance):
+    coords = tuple(float(value) for value in v)
+    tol = float(tolerance)
+    if (len(coords) != 3 or not all(math.isfinite(v) for v in coords)
+            or not math.isfinite(tol) or tol <= 0):
+        raise ValueError("degenerate vector or nonpositive tolerance")
+    magnitude = _norm(coords)
+    if not math.isfinite(magnitude) or magnitude <= tol:
         raise ValueError("degenerate vector")
-    return tuple(float(value) / mag for value in v)
+    return tuple(value / magnitude for value in coords)
 
 
 # DM8-C1: these public primitives keep the pre-existing neutral geometry
@@ -74,10 +79,10 @@ vector_norm = _norm
 
 def vector_unit(v, *, tolerance: float, error_message: str = "degenerate vector"):
     """Normalize a vector with a caller-selected contract tolerance."""
-    magnitude = vector_norm(v)
-    if magnitude <= float(tolerance):
-        raise ValueError(error_message)
-    return tuple(float(value) / magnitude for value in v)
+    try:
+        return _normalize(v, tolerance)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(error_message) from exc
 
 
 def triangle_unit_normal(triangle, *, tolerance: float, error_message: str):
@@ -412,7 +417,7 @@ def _world_point_to_flat(point, record):
     gamma = (d00 * d21 - d01 * d20) / denom
     alpha = 1.0 - beta - gamma
     weights = (alpha, beta, gamma)
-    if any(value < -flat_tol or value > 1.0 + flat_tol for value in weights):
+    if any(not math.isfinite(value) or value < -flat_tol or value > 1.0 + flat_tol for value in weights):
         return None
 
     reconstructed = tuple(
@@ -421,7 +426,8 @@ def _world_point_to_flat(point, record):
         + gamma * float(c[i])
         for i in range(3)
     )
-    if _norm(_sub(point, reconstructed)) > tol:
+    residual = _norm(_sub(point, reconstructed))
+    if not math.isfinite(residual) or residual > tol:
         return None
 
     u = (
@@ -434,7 +440,7 @@ def _world_point_to_flat(point, record):
         + beta * float(flat[1][1])
         + gamma * float(flat[2][1])
     )
-    return (u, v)
+    return (u, v) if math.isfinite(u) and math.isfinite(v) else None
 
 
 def _world_point_to_flat_planar_affine(point, record):
@@ -470,16 +476,19 @@ def _world_point_to_flat_planar_affine(point, record):
     beta = (d11 * d20 - d01 * d21) / denom
     gamma = (d00 * d21 - d01 * d20) / denom
     alpha = 1.0 - beta - gamma
+    if not all(math.isfinite(value) for value in (alpha, beta, gamma)):
+        return None
     reconstructed = tuple(
         alpha * float(a[i])
         + beta * float(b[i])
         + gamma * float(c_world[i])
         for i in range(3)
     )
-    if _norm(_sub(point, reconstructed)) > tol:
+    residual = _norm(_sub(point, reconstructed))
+    if not math.isfinite(residual) or residual > tol:
         return None
 
-    return (
+    mapped = (
         alpha * float(flat[0][0])
         + beta * float(flat[1][0])
         + gamma * float(flat[2][0]),
@@ -487,6 +496,7 @@ def _world_point_to_flat_planar_affine(point, record):
         + beta * float(flat[1][1])
         + gamma * float(flat[2][1]),
     )
+    return mapped if all(math.isfinite(value) for value in mapped) else None
 
 
 def backproject_mapped_skin_world_points(
@@ -513,49 +523,69 @@ def backproject_mapped_skin_world_points(
     )
     resolved = []
     for raw in tuple(points or ()):
-        point = tuple(float(v) for v in raw)
-        candidates = []
-        for record in mapping:
-            mapped = _world_point_to_flat(point, record)
-            if mapped is not None:
-                candidates.append(mapped)
-        if not candidates:
-            affine_candidates = []
+        try:
+            point = tuple(float(v) for v in raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            return LocatorBackprojectionResult(
+                status="SKIPPED_FAIL_CLOSED",
+                diagnostic_code="BACKPROJECTION_FAILED", flat_points=(),
+                evidence={"reason": f"invalid world point: {exc}"},
+            )
+        if len(point) != 3 or not all(math.isfinite(v) for v in point):
+            return LocatorBackprojectionResult(
+                status="SKIPPED_FAIL_CLOSED",
+                diagnostic_code="BACKPROJECTION_FAILED", flat_points=(),
+                evidence={"reason": "world point must have three finite coordinates"},
+            )
+        try:
+            candidates = []
             for record in mapping:
-                mapped = _world_point_to_flat_planar_affine(point, record)
+                mapped = _world_point_to_flat(point, record)
                 if mapped is not None:
-                    affine_candidates.append(mapped)
-            if not affine_candidates:
-                return LocatorBackprojectionResult(
-                    status="SKIPPED_FAIL_CLOSED",
-                    diagnostic_code="BACKPROJECTION_FAILED",
-                    flat_points=(),
-                    evidence={
-                        "reason": "point is outside authoritative mapped-skin planes",
-                        "world_point": point,
-                        "mapping_record_count": len(mapping),
-                    },
-                )
-
-            owner = affine_candidates[0]
-            for candidate in affine_candidates[1:]:
-                distance = math.hypot(
-                    float(candidate[0]) - float(owner[0]),
-                    float(candidate[1]) - float(owner[1]),
-                )
-                if distance > tolerance:
+                    candidates.append(mapped)
+            if not candidates:
+                # Legitimate points can lie on the same physical plane but
+                # outside an individual mapped triangle. Keep this fallback
+                # on the NORMAL execution path, never under an except/return.
+                affine_candidates = []
+                for record in mapping:
+                    mapped = _world_point_to_flat_planar_affine(point, record)
+                    if mapped is not None:
+                        affine_candidates.append(mapped)
+                if not affine_candidates:
                     return LocatorBackprojectionResult(
                         status="SKIPPED_FAIL_CLOSED",
-                        diagnostic_code="BACKPROJECTION_FAILED",
-                        flat_points=(),
+                        diagnostic_code="BACKPROJECTION_FAILED", flat_points=(),
                         evidence={
-                            "reason": "planar affine mapping is not unique",
+                            "reason": "point is outside authoritative mapped-skin planes",
                             "world_point": point,
                             "mapping_record_count": len(mapping),
-                            "candidate_count": len(affine_candidates),
                         },
                     )
-            candidates = [owner]
+                owner = affine_candidates[0]
+                for candidate in affine_candidates[1:]:
+                    distance = math.hypot(
+                        float(candidate[0]) - float(owner[0]),
+                        float(candidate[1]) - float(owner[1]),
+                    )
+                    if not math.isfinite(distance) or distance > tolerance:
+                        return LocatorBackprojectionResult(
+                            status="SKIPPED_FAIL_CLOSED",
+                            diagnostic_code="BACKPROJECTION_FAILED", flat_points=(),
+                            evidence={
+                                "reason": "planar affine mapping is not unique",
+                                "world_point": point,
+                                "mapping_record_count": len(mapping),
+                                "candidate_count": len(affine_candidates),
+                            },
+                        )
+                candidates = [owner]
+        except (IndexError, TypeError, ValueError, OverflowError, ZeroDivisionError) as exc:
+            return LocatorBackprojectionResult(
+                status="SKIPPED_FAIL_CLOSED",
+                diagnostic_code="BACKPROJECTION_FAILED", flat_points=(),
+                evidence={"reason": f"malformed mapped-skin record: {exc}"},
+            )
 
         owner = candidates[0]
         for candidate in candidates[1:]:
