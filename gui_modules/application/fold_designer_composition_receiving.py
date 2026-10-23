@@ -3088,6 +3088,52 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 }
             bundle=committed_nfb_evidence.get((set_index,bay_index))
             if bundle is None:
+                # #1504 AC-09/24: the CURRENT CSV saved NFBConfig has no old
+                # manufacturer's DXF receipt (and needs none). Inspect each
+                # current source row, layer/unit and real part owner without
+                # granting physical CUTTING or storing a second DRAFT flag.
+                from ae_engine.receiving_nfb_v5_diagnostics import (
+                    current_v5_nfb_diagnostics,
+                )
+                from ae_engine.receiving_shared_settings import setting_value
+                current = nfb_physical_bay_snapshot(set_index, bay_index)
+                dependent = []
+                try:
+                    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+                    upper = tuple(p for p in derive_inner_door_panels(current)
+                                  if str(p.cell_key).split(":")[-1] == "0")
+                    if len(upper) == 1:
+                        dependent.append(upper[0].stable_id)
+                except (ValueError, TypeError, KeyError, IndexError):
+                    pass  # Still report each saved hole when geometry is invalid.
+                try:
+                    from ae_engine.receiving_base_plate_config import (
+                        receiving_base_plate_values,
+                    )
+                    from ae_engine.receiving_nfb_layer_physical_parts import (
+                        source_receiving_nfb_tier_base_specs,
+                    )
+                    count = bay["nfb_config"]["layer_count"]
+                    if count == 1 and receiving_base_plate_values(current) is not None:
+                        dependent.append("base_plate")
+                    elif count == 2:
+                        specs = source_receiving_nfb_tier_base_specs(
+                            current, require_source_z=False,
+                        )
+                        dependent.extend(spec.physical_id for spec in specs.values())
+                except (ValueError, TypeError, KeyError, IndexError):
+                    pass  # Never invent a missing physical base identity.
+                v5 = current_v5_nfb_diagnostics(
+                    bay,
+                    set_id=str(owner["stable_id"]),
+                    bay_id=str(bay["stable_id"]),
+                    version_id=setting_value(
+                        owner, bay_index, "inner_door_version_id",
+                    ),
+                    dependent_part_ids=tuple(dict.fromkeys(dependent)),
+                )
+                if v5 is not None:
+                    return v5
                 # Numeric CSV is the CURRENT committed NFB source.  The old
                 # DXF proof cache is deliberately empty for this route; never
                 # tell the operator a valid CSV pair is unmanufacturable only
