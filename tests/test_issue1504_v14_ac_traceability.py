@@ -834,3 +834,26 @@ def test_ac01_real_receiving_only_tk_entry_has_exact_selected_positive_and_negat
     # SWT-AC-01 additionally requires proof of a UNIQUE writeable layer
     # count UI entry; visible Receiving-only NFB by itself does not sign it.
     assert rows["SWT-AC-01"]["accepted"] is False
+
+
+def test_unified_inner_door_nfb_installed_tier_count_is_one_tk_owner_not_two():
+    from tools.product_ci_regression import PYTEST_PATHS
+    import ast as _ast
+    path = "tests/test_issue1504_unified_inner_nfb_layer_count.py"
+    assert PYTEST_PATHS.count(path) == 1
+    funcs = {_n.name: _n for _n in _ast.parse(
+        (ROOT / path).read_text(encoding="utf-8"),
+    ).body if isinstance(_n, _ast.FunctionDef)}
+    for name in (
+        "test_single_current_layer_count_owns_both_inner_door_and_nfb_mounting_tiers",
+        "test_real_tk_single_variable_reaches_original_draft_and_undo_without_second_owner",
+        "test_existing_legacy_count_and_nfb_draft_no_longer_have_an_inequality_gate",
+    ):
+        assert name in funcs
+        assert any(isinstance(node, _ast.Assert)
+                   for node in _ast.walk(funcs[name]))
+    rows = {r["id"]: r for r in _data()["records"]}
+    assert rows["SWT-AC-01"]["accepted"] is False
+    assert any(item["path"] == path and item["accepted"] is False
+               for item in rows["SWT-AC-01"]["additional_partial_witnesses"])
+    assert path in rows["NFB-AC-18"]["regression_candidates"]
