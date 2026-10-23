@@ -1949,7 +1949,7 @@
       "identified_test_functions": [
         {
           "path": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py",
-          "test_name": "test_ac54_swt31_current_v5_submitted_set_bay_upgrades_root_and_preserves_all_operators",
+          "test_name": "test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
           "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
           "accepted": true
         }
@@ -1963,7 +1963,7 @@
       },
       "acceptance_evidence": {
         "scope": "Current V5 numeric CSV nfbv5:士林:2P400 identity and exact operator data: Set/Bay and quantity .p6fold write->raw JSON->read->write; only submitted scope promotes root project schema v3 and Quantity schema v2, unsubmitted remains root v2 and Quantity v1; legacy v1/v2 project schema downgrade blocked rather than silently drop NFB, legacy quantity schema rejects V5 submission; independent quantity versions and operator zero X, source brand, rotation, datum, physical-hole identity, other future operator fields retained; derived manufacturing readiness never persisted.",
-        "primary_assertion": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_submitted_set_bay_upgrades_root_and_preserves_all_operators",
+        "primary_assertion": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
         "other_required_assertions": [
           "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_quantity_upgrades_both_schemas_and_isolates_versions",
           "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_legacy_reader_cannot_silently_drop_current_v5_submitted",
@@ -3116,7 +3116,7 @@
       "identified_test_functions": [
         {
           "path": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py",
-          "test_name": "test_ac54_swt31_current_v5_submitted_set_bay_upgrades_root_and_preserves_all_operators",
+          "test_name": "test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
           "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
           "accepted": true
         }
@@ -3130,7 +3130,7 @@
       },
       "acceptance_evidence": {
         "scope": "Current V5 numeric CSV nfbv5:士林:2P400 identity and exact operator data: Set/Bay and quantity .p6fold write->raw JSON->read->write; only submitted scope promotes root project schema v3 and Quantity schema v2, unsubmitted remains root v2 and Quantity v1; legacy v1/v2 project schema downgrade blocked rather than silently drop NFB, legacy quantity schema rejects V5 submission; independent quantity versions and operator zero X, source brand, rotation, datum, physical-hole identity, other future operator fields retained; derived manufacturing readiness never persisted.",
-        "primary_assertion": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_submitted_set_bay_upgrades_root_and_preserves_all_operators",
+        "primary_assertion": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
         "other_required_assertions": [
           "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_quantity_upgrades_both_schemas_and_isolates_versions",
           "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_legacy_reader_cannot_silently_drop_current_v5_submitted",
