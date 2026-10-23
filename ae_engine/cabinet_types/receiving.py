@@ -533,9 +533,10 @@ def is_receiving_snapshot(snapshot) -> bool:
     """Recognize the one model Source of Truth plus the short-lived legacy split field."""
     data = dict(snapshot or {})
     model = str(data.get("model") or "").strip()
-    if model == "受電箱":
+    if model == "受電箱" or model.upper() == "RECEIVING":
         return True
-    return str(data.get("cabinet_type") or "").strip() == "受電箱"
+    cabinet_type = str(data.get("cabinet_type") or "").strip()
+    return cabinet_type == "受電箱" or cabinet_type.upper() == "RECEIVING"
 
 
 def resolve_box_body_structure_state(state=None):

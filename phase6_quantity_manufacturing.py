@@ -37,7 +37,7 @@ def build_quantity_manufacturing_requests(base_request, workspace_snapshot):
     source["model"] = base_request.cabinet_model
     require_valid_quantity_features(source)
     owner = QuantityModel.from_payload(live["quantity"])
-    if source["model"] == "受電箱":
+    if source["model"] in ("受電箱", "RECEIVING"):
         from ae_engine.receiving_quantity_box import project_common_box
         source = project_common_box(source)
     base = base_request
@@ -48,7 +48,7 @@ def build_quantity_manufacturing_requests(base_request, workspace_snapshot):
         selected.select(version_id)
         snapshot = deepcopy(source)
         snapshot["quantity"] = selected.snapshot()
-        if snapshot["model"] == "受電箱":
+        if snapshot["model"] in ("受電箱", "RECEIVING"):
             # Rebuild the SOURCE-owned singleton Bay for THIS version.
             # Previously only the initial selected version was projected
             # before the loop, and all later versions could borrow its NFB

@@ -419,6 +419,38 @@ def _clip_layered_profile_feature(context, feature, local_center, piece):
     ))
 
     results = []
+    # ProfileFeature.points is the PRIMARY profile in the core source
+    # contract; layered_profiles carries *additional* process contours.
+    # The previous side-panel branch walked only the layers, silently
+    # dropping a distinct main CUTTING outline. Deduplicate only when the
+    # same source contour is already represented by one of its layers.
+    primary = tuple(
+        context.local_to_unfolded(
+            local_center + _rotate_local_point(point, feature.rotation_deg)
+        ) for point in feature.points
+    )
+
+    def source_contour_key(points):
+        ordered = tuple(points)
+        return ordered[:-1] if len(ordered) > 1 and ordered[0] == ordered[-1] else ordered
+
+    primary_key = source_contour_key(primary)
+    represented_in_layers = any(
+        str(layer).upper() == str(feature.layer).upper()
+        and source_contour_key(tuple(
+            context.local_to_unfolded(
+                local_center + _rotate_local_point(pt, feature.rotation_deg)
+            ) for pt in pts
+        )) == primary_key
+        for layer, pts, _closed in feature.layered_profiles
+    )
+    if len(primary) >= 2 and not represented_in_layers:
+        results.extend(_clip_one_resolved_feature(
+            ResolvedProfile(
+                points=primary, layer=feature.layer, source_type=feature.source_type
+            ),
+            clip_geometry,
+        ))
     for layer, points, closed in feature.layered_profiles:
         mapped = tuple(
             context.local_to_unfolded(local_center + _rotate_local_point(point, feature.rotation_deg))
@@ -545,12 +577,21 @@ def resolve_box_body_piece_face_features(
         )
         for feature in face_features.get(face_key, ()):
             center = feature_finished_point(feature, float(d), float(h))
-            stores[piece.key].append(_resolve_feature_at_local_center(context, feature, center))
+            layered = _clip_layered_profile_feature(context, feature, center, piece)
+            if layered is not None:
+                stores[piece.key].extend(layered)
+                continue
+            resolved_feature = _resolve_feature_at_local_center(context, feature, center)
+            stores[piece.key].extend(
+                _clip_resolved_feature_to_piece(resolved_feature, piece, face_context=context)
+            )
 
     # Side-back mode owns one independent flat back panel.  Map back features
     # directly into its flat panel coordinate system using the same global WH face.
     if structure.structure_type is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-        back_piece = next(p for p in structure.pieces if p.role == "back")
+        back_piece = next((p for p in structure.pieces if p.role == "back"), None)
+        if back_piece is None:
+            return stores
         offset = float(back_piece.formed_w_start)
         panel_w = float(back_piece.formed_width)
         from .sheetmetal_features import BoxBodyFaceContext

@@ -169,7 +169,7 @@ class Phase6FinalSceneViewAdapter:
         Failure leaves the cabinet 3D usable without painting an uncertified
         EAR. No padding, DXF intermediates, new PartSpec, or production gate.
         """
-        if snapshot.get("model") != "受電箱" or snapshot.get("nfb_config_submitted") is not True:
+        if snapshot.get("model") not in ("受電箱", "RECEIVING") or snapshot.get("nfb_config_submitted") is not True:
             self.last_formed_ear_display_blocker = None
             return ()
         import hashlib

@@ -145,7 +145,13 @@ def normalize_set_settings(raw, bays):
     return result
 
 
+def _require_valid_index(index, length, message):
+    if isinstance(index, bool) or not isinstance(index, int) or index < 0 or index >= length:
+        raise IndexError(message)
+
+
 def setting_value(set_row, bay_index, kind):
+    _require_valid_index(bay_index, len(set_row["bays"]), "連選取超出範圍")
     bay = set_row["bays"][bay_index]
     if kind not in SETTING_DEFAULTS:
         raise ValueError("不支援的每連設定")
@@ -158,7 +164,9 @@ def setting_value(set_row, bay_index, kind):
 def edit_setting(layout, *, set_index, bay_index, kind, value):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(result["sets"]), "組選取超出範圍")
     selected = result["sets"][set_index]
+    _require_valid_index(bay_index, len(selected["bays"]), "連選取超出範圍")
     selected["settings"] = normalize_set_settings(selected.get("settings"), selected["bays"])
     row = selected["settings"][kind]
     bay_id = selected["bays"][bay_index]["stable_id"]
@@ -169,17 +177,20 @@ def edit_setting(layout, *, set_index, bay_index, kind, value):
 def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(result["sets"]), "組選取超出範圍")
     selected = result["sets"][set_index]
     indices = tuple(dict.fromkeys(bay_indices))
+    if isinstance(source_bay_index, bool) or any(isinstance(i, bool) for i in indices):
+        raise IndexError("連選取超出範圍")
     if len(indices) < 2 or source_bay_index not in indices:
         raise ValueError("連動需選擇至少兩連，並包含來源連")
+    for index in indices:
+        _require_valid_index(index, len(selected["bays"]), "連選取超出範圍")
     selected["settings"] = normalize_set_settings(selected.get("settings"), selected["bays"])
     row = selected["settings"][kind]
     source_id = selected["bays"][source_bay_index]["stable_id"]
     ref = row["refs"][source_id]
     for index in indices:
-        if index < 0 or index >= len(selected["bays"]):
-            raise IndexError("連選取超出範圍")
         row["refs"][selected["bays"][index]["stable_id"]] = ref
     return normalize_receiving_layout(result)
 
@@ -187,7 +198,9 @@ def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
 def unlink_setting(layout, *, set_index, bay_index, kind):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(result["sets"]), "組選取超出範圍")
     selected = result["sets"][set_index]
+    _require_valid_index(bay_index, len(selected["bays"]), "連選取超出範圍")
     selected["settings"] = normalize_set_settings(selected.get("settings"), selected["bays"])
     row = selected["settings"][kind]
     bay_id = selected["bays"][bay_index]["stable_id"]

@@ -136,7 +136,7 @@ def rebuild_door_layout_ui(host):
                     activebackground=host.COLOR_PANEL, activeforeground="#ff6b6b"
                 ).pack(side=tk.LEFT, padx=(1, 0))
 
-            if str(host.baseline_var.get() or "").strip() == "受電箱":
+            if str(host.baseline_var.get() or "").strip() in {"受電箱", "RECEIVING"}:
                 cell_key = f"{column_index}:{row_index}"
                 inner_var = tk.BooleanVar(
                     master=host.root,

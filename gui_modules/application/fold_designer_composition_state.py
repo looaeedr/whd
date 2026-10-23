@@ -383,8 +383,8 @@ def export_selected_dxf_from_3d(self):
         if not messagebox.askokcancel(
             "底板固定片｜來源平面圖",
             "只匯出原始 DXF 的獨立平面 CUTTING／參考線。"
-            "\\n本廠不使用折彎補償；大片來源未有正式折線，折向／焊接接觸及 Z 尚待驗證，不能當作正式加工圖。"
-            "\\n是否繼續匯出來源平面圖？",
+            "\n本廠不使用折彎補償；大片來源未有正式折線，折向／焊接接觸及 Z 尚待驗證，不能當作正式加工圖。"
+            "\n是否繼續匯出來源平面圖？",
         ):
             return None
         side = key.rsplit(":", 1)[-1]
@@ -401,7 +401,7 @@ def export_selected_dxf_from_3d(self):
         except Exception as exc:
             messagebox.showerror("來源 DXF 匯出失敗", str(exc))
             return None
-        messagebox.showinfo("已匯出來源平面圖", "檔案：" + str(saved) + "\\n未核准為正式折彎／焊接加工圖。")
+        messagebox.showinfo("已匯出來源平面圖", "檔案：" + str(saved) + "\n未核准為正式折彎／焊接加工圖。")
         return saved
     return self._capabilities.project.export_selected_dxf()
 
@@ -488,7 +488,7 @@ def current_relief_source_signature(self, namespace, required_parts):
 
     clone = required("clone_profile")
     box_profile = clone(
-        (getattr(app.state, "profiles_vault", {}) or {}).get("箱身", ()) or ()
+        (getattr(getattr(app, "state", None), "profiles_vault", {}) or {}).get("箱身", ()) or ()
     )
     formed_left, formed_right = formed_box_body_fw_widths(
         box_profile,
@@ -502,7 +502,7 @@ def current_relief_source_signature(self, namespace, required_parts):
         scalar_source=source,
         joint_graph_fingerprint=resolved_joint_graph_fingerprint(graph_snapshot),
         structure_state=deepcopy(
-            app.designer_workspace.box_body_structure_state() or {}
+            getattr(app.designer_workspace, "box_body_structure_state", lambda: None)() or {}
         ),
         cabinet_family=str(
             source.get("model") or source.get("cabinet_type") or ""
@@ -511,7 +511,7 @@ def current_relief_source_signature(self, namespace, required_parts):
         formed_right=formed_right,
         box_body_profile=box_profile,
         part_profiles={
-            key: deepcopy(app.designer_workspace.profiles_for(key, {}) or {})
+            key: deepcopy(getattr(app.designer_workspace, "profiles_for", lambda _k, _d=None: {})(key, {}) or {})
             for key in wanted
         },
     )
@@ -536,8 +536,8 @@ def serialize_assembly_relief_state(self, namespace):
         key for key in ("head", "tail") if key in available
     )
     source_signature = dict(
-        self.current_relief_source_signature(
-            namespace, required_parts
+        required("_phase6_current_relief_source_signature")(
+            app, required_parts
         )
         or {}
     )

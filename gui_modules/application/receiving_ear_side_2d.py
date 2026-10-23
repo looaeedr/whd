@@ -30,7 +30,7 @@ def project_receiving_ear_side_piece_2d_preview(
     key = str(piece_key)
     if key not in {"box_body:left_side", "box_body:right_side"}:
         raise ValueError("EAR_2D_PREVIEW_EXPECTS_PHYSICAL_SIDE")
-    if snapshot.get("model") != "受電箱" or snapshot.get("nfb_config_submitted") is not True:
+    if snapshot.get("model") not in ("受電箱", "RECEIVING") or snapshot.get("nfb_config_submitted") is not True:
         raise ValueError("EAR_2D_PREVIEW_REQUIRES_SUBMITTED_RECEIVING")
     if str(getattr(source_piece, "role", "") or "").lower() != key.split(":", 1)[1]:
         raise ValueError("EAR_2D_PREVIEW_PIECE_ROLE_MISMATCH")
@@ -115,7 +115,7 @@ def present_receiving_ear_side_piece_2d(
             snapshot = dict(canonical)
         else:
             snapshot = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
-        if snapshot.get("model") != "受電箱":
+        if snapshot.get("model") not in ("受電箱", "RECEIVING"):
             return source_piece, None
         if snapshot.get("nfb_config_submitted") is not True:
             # A legacy/unconfigured Receiving side has no EAR weld footprint;
