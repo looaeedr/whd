@@ -1515,8 +1515,17 @@ def _open_common_box(self, namespace):
         source = _current_mode_snapshot(self, namespace)
         candidate = update_common_box(source, changes)
         _apply_mode_snapshot(self, namespace, candidate)
+        from .receiving_settings_preview_2d import CommittedPreviewError
         for listener in tuple(listeners):
-            listener()
+            try:
+                listener()
+            except CommittedPreviewError:
+                # The committed edit is valid but its current NFB source may
+                # require model reselection. The view already invalidated all
+                # stale geometry and reported the exact reason. Keep Common
+                # Box editable for repair; never turn this into a manufacturing
+                # receipt or silently re-use the previous drawing.
+                continue
     def dimensions(width, height, depth, door_columns=None):
         changes = {"w": width, "h": height, "d": depth}
         if door_columns is not None:
@@ -3886,7 +3895,19 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
             if build_manufacturing_cache_key(designer).fingerprint != getattr(
                 designer, "_phase6_last_resolved_manufacturing_signature", None
             ):
-                resolve_for_app(designer)
+                try:
+                    resolve_for_app(designer)
+                except ValueError as exc:
+                    # Switching a Quantity version brand can invalidate a
+                    # previously inherited NFB CSV model. The operator must
+                    # still be able to close the settings dialog and reselect
+                    # that model; manufacturing remains blocked with no new
+                    # receipt or stale source success.
+                    if not str(exc).startswith(
+                        "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION:"
+                    ):
+                        raise
+                    designer.settings_status_var.set(str(exc))
             return result
         scheduler.executor = execute_with_receiving_receipt
 
