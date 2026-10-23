@@ -585,3 +585,54 @@ def test_ac32_visible_x_reset_undo_patch_is_not_falsely_full_gui_signed():
         "accepted": False,
     }]
     assert "true integrated Receiving NFB modal" in row["current_scope_remaining_evidence"]
+
+
+def test_ac54_swt31_current_v5_project_schema_exact_regression_and_no_old_binary_claim():
+    """A schema filename alone is not V5 end-to-end serialization proof."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py"
+    assert PYTEST_PATHS.count(path) == 1
+    source = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+    functions = {
+        node.name: node for node in source.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    names = {
+        "test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
+        "test_ac54_swt31_current_v5_quantity_upgrades_both_schemas_and_isolates_versions",
+        "test_ac54_swt31_legacy_reader_cannot_silently_drop_current_v5_submitted",
+        "test_ac54_swt31_legacy_quantity_schema_with_embedded_v5_rejected_without_mutation",
+        "test_ac54_swt31_current_v5_unsubmitted_retains_existing_schema_and_no_nfb_authority",
+    }
+    assert names.issubset(functions)
+    for name in names:
+        assert any(isinstance(n, ast.Assert) for n in ast.walk(functions[name]))
+        assert any(isinstance(n, ast.Call) for n in ast.walk(functions[name]))
+    rows = {row["id"]: row for row in _data()["records"]}
+    for key in ("NFB-AC-54", "SWT-AC-31"):
+        row = rows[key]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["identified_test_functions"] == [{
+            "path": path,
+            "test_name": "test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
+            "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+            "accepted": True,
+        }]
+        evidence = row["acceptance_evidence"]
+        for exact in (evidence["primary_assertion"],
+                      *evidence["other_required_assertions"]):
+            file_name, function = exact.split("::")
+            assert PYTEST_PATHS.count(file_name) == 1
+            defs = {
+                node.name: node for node in ast.parse(
+                    (ROOT / file_name).read_text(encoding="utf-8")
+                ).body if isinstance(node, ast.FunctionDef)
+            }
+            assert function in defs
+            assert any(isinstance(n, ast.Assert) for n in ast.walk(defs[function]))
+        assert evidence["external_historical_binary_read_executed"] is False
+        assert evidence["real_two_old_project_windows_gui_uat"] is False
+        assert evidence["factory_release"] is False
+        assert evidence["human_windows_uat_claimed"] is False
+        assert evidence["original_ac_text_unchanged"] is True
