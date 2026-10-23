@@ -2660,7 +2660,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 width=12, state="readonly",
             )
             slot_brand_select.pack(side="left", padx=3)
-            brand_row.grid_remove()
+            # AC-20/SWT-13: do not hide the only real layer/unit brand
+            # override widgets. Their effective parent remains the existing
+            # Set or currently selected Quantity version, not a second owner.
             rotation_row=ttk.Frame(section)
             rotation_row.grid(row=4,column=0,columnspan=3,sticky="w",pady=(2,4))
             ttk.Label(rotation_row,text="本層角度").pack(side="left")
@@ -2725,6 +2727,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 selected = layer_rows[idx]["assigned"].curselection()
                 if not selected:
                     warning.set("請先選取一個實際 NFB 顆位或空槽")
+                    # A readonly Combobox changes its text before firing the
+                    # selection event; never leave an uncommitted fake choice.
+                    layer_rows[idx]["slot_brand_var"].set("繼承本層")
                     return
                 value = layer_rows[idx]["slot_brand_var"].get()
                 before = draft_state["draft"]
