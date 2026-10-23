@@ -23,6 +23,8 @@ class HoleEditorAction:
 
     @classmethod
     def select(cls, index: int) -> "HoleEditorAction":
+        if isinstance(index, bool):
+            raise TypeError("hole editor index cannot be a boolean")
         return cls("select", index=int(index))
 
     @classmethod
@@ -60,6 +62,8 @@ class HoleEditorAction:
         *,
         selected_index: int = -1,
     ) -> "HoleEditorAction":
+        if isinstance(selected_index, bool):
+            raise TypeError("hole editor selected_index cannot be a boolean")
         return cls(
             "preview_all",
             features=tuple(features),
@@ -199,6 +203,8 @@ class Phase6HoleEditorSession:
             # transaction. Validate the requested selection against the
             # proposed features BEFORE altering the caller-owned live list
             # or starting an active edit; a rejected preview must be inert.
+            if isinstance(action.selected_index, bool):
+                raise TypeError("hole editor selected_index cannot be a boolean")
             proposed = list(action.features or ())
             index = int(action.selected_index if action.selected_index is not None else -1)
             if index != -1 and not 0 <= index < len(proposed):
@@ -241,8 +247,8 @@ class Phase6HoleEditorSession:
         return self.snapshot()
 
     def _required_index(self, index: int | None) -> int:
-        if index is None:
-            raise ValueError("action requires index")
+        if index is None or isinstance(index, bool):
+            raise ValueError("action requires integer index")
         index = int(index)
         if not 0 <= index < len(self.active_features):
             raise IndexError(index)

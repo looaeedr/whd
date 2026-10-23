@@ -84,16 +84,28 @@ def load_pipe_catalog(base_dir) -> list[HoleDefinition]:
 
 
 def custom_circle_definition(diameter: float, *, blind: bool = False) -> HoleDefinition:
+    import math
+    if isinstance(diameter, bool):
+        raise ValueError("自訂圓孔直徑不得為布林值")
+    d = float(diameter)
+    if not math.isfinite(d) or d <= 0:
+        raise ValueError("自訂圓孔直徑必須大於 0 且為有限數值")
     return HoleDefinition(
         name="自訂圓孔", shape="circle", process=("BLIND_HOLE" if blind else "CUTTING"),
-        diameter=float(diameter),
+        diameter=d,
     )
 
 
 def custom_rectangle_definition(width: float, height: float, *, blind: bool = False) -> HoleDefinition:
+    import math
+    if isinstance(width, bool) or isinstance(height, bool):
+        raise ValueError("自訂方孔尺寸不得為布林值")
+    w, h = float(width), float(height)
+    if not math.isfinite(w) or not math.isfinite(h) or w <= 0 or h <= 0:
+        raise ValueError("自訂方孔寬高必須大於 0 且為有限數值")
     return HoleDefinition(
         name="自訂方孔", shape="rectangle", process=("BLIND_HOLE" if blind else "CUTTING"),
-        width=float(width), height=float(height),
+        width=w, height=h,
     )
 
 
@@ -156,6 +168,8 @@ def feature_from_definition(definition: HoleDefinition, point: Vec2, width: floa
     from .sheetmetal_features import (
         CircleFeature, RectFeature, ProfileFeature, placement_from_finished_point,
     )
+    if isinstance(rotation_deg, bool):
+        raise ValueError("rotation_deg cannot be a boolean")
     placement = placement_from_finished_point(point, width, height)
     rotation = int(rotation_deg) % 360
     if definition.shape == 'circle':

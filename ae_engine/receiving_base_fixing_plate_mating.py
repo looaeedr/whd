@@ -73,6 +73,17 @@ def resolve_base_fixing_plate_xy_mating(
     name = str(side)
     if name not in ("left", "right"):
         raise ValueError("FIXING_PLATE_SIDE_INVALID")
+    if isinstance(data, Mapping) and ("w" in data or "t" in data):
+        raw_w = data.get("w")
+        raw_t = data.get("t")
+        if isinstance(raw_w, bool) or isinstance(raw_t, bool):
+            raise ValueError("FIXING_PLATE_GEOMETRY_NONFINITE")
+        try:
+            if not (isfinite(float(raw_w)) and isfinite(float(raw_t))):
+                raise ValueError("FIXING_PLATE_GEOMETRY_NONFINITE")
+        except (TypeError, ValueError) as exc:
+            if str(exc) == "FIXING_PLATE_GEOMETRY_NONFINITE":
+                raise
     preview = next((
         p for p in receiving_base_fixing_plate_previews(
             data, available_parts=("base_plate",)

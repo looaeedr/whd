@@ -7,12 +7,19 @@ the true X/Y/DXF mapping work remains governed by #1494–#1497.
 from __future__ import annotations
 from copy import deepcopy
 from ae_engine.receiving_layout import normalize_receiving_layout
+
+
+def _require_valid_index(index, length: int, message: str) -> None:
+    if isinstance(index, bool) or not isinstance(index, int) or index < 0 or index >= length:
+        raise IndexError(message)
 from ae_engine.receiving_shared_settings import setting_value
 
 
 def paired_bay_parts(layout, *, set_index, bay_index):
     data = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(data["sets"]), "組選取超出範圍")
     set_row = data["sets"][set_index]
+    _require_valid_index(bay_index, len(set_row["bays"]), "連選取超出範圍")
     bay = set_row["bays"][bay_index]
     return {
         "set_id": str(set_row["stable_id"]),
@@ -31,6 +38,7 @@ def paired_bay_parts(layout, *, set_index, bay_index):
 
 def paired_set_parts(layout, *, set_index):
     data = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(data["sets"]), "組選取超出範圍")
     return tuple(paired_bay_parts(data, set_index=set_index, bay_index=i)
                  for i in range(len(data["sets"][set_index]["bays"])))
 

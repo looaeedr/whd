@@ -8,10 +8,25 @@ from .sheetmetal_geometry import box_body_height_from_corner_policies
 
 
 def _number(value, default=0.0):
+    if isinstance(value, bool):
+        return float(default)
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError):
         return float(default)
+    return parsed if math.isfinite(parsed) else float(default)
+
+
+def _pick(settings, snapshot, key, default=0.0):
+    raw = settings.get(key)
+    if raw is not None and not isinstance(raw, bool):
+        try:
+            parsed = float(raw)
+            if math.isfinite(parsed):
+                return parsed
+        except (TypeError, ValueError):
+            pass
+    return _number(snapshot.get(key, default), default)
 
 
 def folded_outside_envelope(triangles, thickness):
@@ -66,7 +81,7 @@ def resolve_operator_finished_dimensions(
     snapshot = dict(snapshot or {})
     settings = dict(settings or {})
     t = _number(
-        thickness if thickness is not None else settings.get("t", snapshot.get("t", 2.0)),
+        thickness if thickness is not None else _pick(settings, snapshot, "t", 2.0),
         2.0,
     )
 
@@ -83,9 +98,9 @@ def resolve_operator_finished_dimensions(
 
     dims = dict((snapshot.get("part_dimensions") or {}).get(key, {}) or {})
     if key == "box_body":
-        w = _number(settings.get("w", snapshot.get("w", 0.0)), 0.0)
-        h = _number(settings.get("h", snapshot.get("h", 0.0)), 0.0)
-        d = _number(settings.get("d", snapshot.get("d", 0.0)), 0.0)
+        w = _pick(settings, snapshot, "w", 0.0)
+        h = _pick(settings, snapshot, "h", 0.0)
+        d = _pick(settings, snapshot, "d", 0.0)
         if head_corner_policy is not None and tail_corner_policy is not None:
             h = box_body_height_from_corner_policies(
                 h, t,
@@ -95,7 +110,7 @@ def resolve_operator_finished_dimensions(
         return float(w), float(h), float(d)
 
     if dims.get("width") and dims.get("height"):
-        return float(dims["width"]), float(dims["height"])
+        return _number(dims["width"], 0.0), _number(dims["height"], 0.0)
     if key in {"head", "tail"}:
-        return float(snapshot.get("w", 0.0)), float(snapshot.get("d", 0.0))
+        return _pick(settings, snapshot, "w", 0.0), _pick(settings, snapshot, "d", 0.0)
     return None

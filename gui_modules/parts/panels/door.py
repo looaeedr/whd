@@ -23,11 +23,15 @@ def collect_door_input(payload):
     return result
 
 def _parse_layout_value(var, label):
+    import math
+    raw = var.get()
+    if isinstance(raw, bool):
+        raise ValueError(f"{label}不是有效數字")
     try:
-        value = float(var.get())
-    except ValueError as exc:
+        value = float(raw)
+    except (TypeError, ValueError) as exc:
         raise ValueError(f"{label}不是有效數字") from exc
-    if value <= 0:
+    if not math.isfinite(value) or value <= 0:
         raise ValueError(f"{label}必須大於 0")
     return value
 
@@ -304,27 +308,44 @@ def normalize_door_indicator_state(state):
             mode = "indicator"
         else:
             mode = "none"
-    try:
-        layers = max(1, min(6, int(raw.get("layers", 1))))
-    except (TypeError, ValueError):
+    import math
+    raw_layers = raw.get("layers", 1)
+    if isinstance(raw_layers, bool):
         layers = 1
-    groups = list(raw.get("groups", [2] * 6))
+    else:
+        try:
+            layers = max(1, min(6, int(raw_layers)))
+        except (TypeError, ValueError):
+            layers = 1
+    raw_groups = raw.get("groups")
+    groups = list(raw_groups) if isinstance(raw_groups, (list, tuple)) else [2] * 6
     while len(groups) < 6:
         groups.append(2)
     normalized_groups = []
     for value in groups[:6]:
+        if isinstance(value, bool):
+            normalized_groups.append(2)
+            continue
         try:
             normalized_groups.append(max(1, int(value)))
         except (TypeError, ValueError):
             normalized_groups.append(2)
+    def _safe_offset(val):
+        if isinstance(val, bool) or val is None:
+            return 0.0
+        try:
+            parsed = float(val)
+        except (TypeError, ValueError):
+            return 0.0
+        return parsed if math.isfinite(parsed) else 0.0
     return {
         "mode": mode,
         "enabled": mode == "indicator",
         "box_enabled": mode == "indicator_box",
         "layers": layers,
         "groups": normalized_groups,
-        "offset_x": float(raw.get("offset_x", 0.0) or 0.0),
-        "offset_y": float(raw.get("offset_y", 0.0) or 0.0),
+        "offset_x": _safe_offset(raw.get("offset_x", 0.0)),
+        "offset_y": _safe_offset(raw.get("offset_y", 0.0)),
         "is_box_dist": bool(raw.get("is_box_dist", False)),
     }
 

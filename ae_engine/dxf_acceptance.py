@@ -256,16 +256,27 @@ def _actual_bends(msp, tolerance: float):
     return tuple(sorted(rows))
 
 
+def _single_row_close(erow, arow, tolerance: float) -> bool:
+    if len(erow) != len(arow) or erow[0] != arow[0]:
+        return False
+    return all(abs(float(ev) - float(av)) <= tolerance for ev, av in zip(erow[1:], arow[1:]))
+
+
 def _rows_close(expected, actual, tolerance: float) -> bool:
     if len(expected) != len(actual):
         return False
-    for erow, arow in zip(expected, actual):
-        if len(erow) != len(arow) or erow[0] != arow[0]:
+    if all(_single_row_close(erow, arow, tolerance) for erow, arow in zip(expected, actual)):
+        return True
+    remaining = list(actual)
+    for erow in expected:
+        match_idx = next(
+            (idx for idx, arow in enumerate(remaining) if _single_row_close(erow, arow, tolerance)),
+            None,
+        )
+        if match_idx is None:
             return False
-        for ev, av in zip(erow[1:], arow[1:]):
-            if abs(float(ev) - float(av)) > tolerance:
-                return False
-    return True
+        remaining.pop(match_idx)
+    return not remaining
 
 
 def _expected_cutting_circles(scene):
@@ -296,12 +307,27 @@ def _actual_cutting_circles(msp):
 def _circle_rows_close(expected, actual, tolerance: float) -> bool:
     if len(expected) != len(actual):
         return False
-    return all(
+    if all(
         abs(ex - ax) <= tolerance
         and abs(ey - ay) <= tolerance
         and abs(er - ar) <= tolerance
         for (ex, ey, er), (ax, ay, ar) in zip(expected, actual)
-    )
+    ):
+        return True
+    remaining = list(actual)
+    for ex, ey, er in expected:
+        match_idx = next(
+            (
+                idx
+                for idx, (ax, ay, ar) in enumerate(remaining)
+                if abs(ex - ax) <= tolerance and abs(ey - ay) <= tolerance and abs(er - ar) <= tolerance
+            ),
+            None,
+        )
+        if match_idx is None:
+            return False
+        remaining.pop(match_idx)
+    return not remaining
 
 
 def _same_line_geometry(a, b, tolerance: float) -> bool:

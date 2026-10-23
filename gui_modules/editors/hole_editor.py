@@ -487,8 +487,11 @@ class HoleEditorReferenceActions:
         raw = self.reference_variables[(axis, mode)].get().strip()
         if not raw:
             return
+        import math
         try:
             value = float(raw)
+            if not math.isfinite(value):
+                raise ValueError("reference value must be finite")
         except ValueError:
             if show_errors:
                 self.show_format_error()

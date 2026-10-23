@@ -163,7 +163,11 @@ def _cutting_side_pattern(
         radius = float(feature.radius)
         diameter = 2.0 * radius
         if (
-            u - radius < -_TOL
+            not isfinite(u)
+            or not isfinite(v)
+            or not isfinite(radius)
+            or radius <= 0.0
+            or u - radius < -_TOL
             or u + radius > float(effective_depth) + _TOL
             or v - radius < -_TOL
             or v + radius > float(effective_height) + _TOL
@@ -297,6 +301,10 @@ def resolve_receiving_joint_lock_pattern(
     baseline_resolver: Callable[..., Mapping[str, object]] | None = None,
 ) -> ReceivingJointLockResolution:
     """Resolve one adjacent-Bay side-lock Joint from the certified baseline owner."""
+    if isinstance(set_index, bool) or not isinstance(set_index, int):
+        raise TypeError("Receiving set_index must be an int")
+    if isinstance(joint_index, bool) or not isinstance(joint_index, int):
+        raise TypeError("Receiving joint_index must be an int")
     normalized = normalize_receiving_layout(layout)
     sets = normalized["sets"]
     if set_index < 0 or set_index >= len(sets):

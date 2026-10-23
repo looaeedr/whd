@@ -974,14 +974,17 @@ def resolve_receiving_joint_markings(
 
     snapshot_map = dict(snapshot or {})
     dimensions = tuple(dimensions or ())
-    dividers = derive_box_body_dividers(
-        snapshot_map.get("door_layout_columns") or (),
-        depth=float(snapshot_map.get("d", dimensions[2] if len(dimensions) > 2 else 0.0)),
-        thickness=float(sheet_thickness),
-        layout_scope=str(snapshot_map.get("door_layout_scope") or "receiving-main"),
-        model_name=str(snapshot_map.get("model") or "受電箱"),
-        frame_width=float(snapshot_map.get("fw", 29.0)),
-    )
+    try:
+        dividers = derive_box_body_dividers(
+            snapshot_map.get("door_layout_columns") or (),
+            depth=float(snapshot_map.get("d", dimensions[2] if len(dimensions) > 2 else 0.0)),
+            thickness=float(sheet_thickness),
+            layout_scope=str(snapshot_map.get("door_layout_scope") or "receiving-main"),
+            model_name=str(snapshot_map.get("model") or "受電箱"),
+            frame_width=float(snapshot_map.get("fw", 29.0)),
+        )
+    except (KeyError, TypeError, ValueError):
+        dividers = ()
     divider_by_id = {str(row.stable_id): row for row in dividers}
 
     rows_by_owner = {}
@@ -1155,6 +1158,11 @@ def resolve_receiving_joint_markings(
                 attached_part_id=str(result.attached_part_id),
                 diagnostic_code="MARK_OUTSIDE_FINAL_MATERIAL",
                 detail=str(exc),
+                policy=(
+                    RECEIVING_DIVIDER_SIDE_PLATE_POLICY
+                    if str(result.joint_family_id) == RECEIVING_DIVIDER_SIDE_PLATE_POLICY.joint_family_id
+                    else RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY
+                ),
             )
             if result.status == "EMITTED"
             else result

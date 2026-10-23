@@ -8,6 +8,7 @@
 """Reference-edge editing, neighbor spacing, and round-hole fill helpers."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Iterable
@@ -231,7 +232,11 @@ def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterab
     feature = items[current_index]
     current_ref = feature_reference_point(feature, anchor, width, height)
     distances = reference_distances(surface, items, current_index, anchor, width, height, reference_guide)
+    if isinstance(value, bool):
+        raise ValueError("reference distance cannot be a boolean")
     axis = axis.lower(); mode = mode.lower(); value = float(value)
+    if not math.isfinite(value):
+        raise ValueError("reference distance must be finite")
     target_ref = Vec2(current_ref.x, current_ref.y)
     if axis == "x":
         side = distances.x_side
@@ -318,14 +323,18 @@ def align_circle_to_neighbor(
 
 def _round_pattern_pitch(feature: CircleFeature, driver: str, value: float) -> float:
     driver = str(driver).lower()
+    if isinstance(value, bool):
+        raise ValueError("round-hole spacing value cannot be a boolean")
     value = float(value)
+    if not math.isfinite(value):
+        raise ValueError("round-hole spacing value must be finite")
     if driver == "center":
         pitch = value
     elif driver == "gap":
         pitch = circle_center_distance_from_gap(value, feature.diameter, feature.diameter)
     else:
         raise ValueError("driver must be center or gap")
-    if pitch <= 0:
+    if not math.isfinite(pitch) or pitch <= 0:
         raise ValueError("round-hole pitch must be > 0")
     return pitch
 

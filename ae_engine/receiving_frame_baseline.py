@@ -64,6 +64,14 @@ def receiving_frame_source(role: str, *, material_width: float, span: float,
                            source_path: Path | None = None):
     if role not in ("left", "right", "top"):
         raise ValueError("RECEIVING_FRAME_SOURCE_IS_NOT_AN_INNER_FRAME")
+    import math
+    tag_hint, (hint_width, _) = SOURCE_ROLES[role][0], SOURCE_ROLES[role][1]
+    if isinstance(material_width, bool) or isinstance(span, bool):
+        raise ValueError(f"RECEIVING_FRAME_SOURCE_{tag_hint}_DIMENSIONS_INVALID")
+    if not math.isfinite(float(material_width)) or abs(float(material_width) - hint_width) > TOL:
+        raise ValueError(f"RECEIVING_FRAME_SOURCE_{tag_hint}_WIDTH_MISMATCH")
+    if not math.isfinite(float(span)) or float(span) <= 110.0:
+        raise ValueError(f"RECEIVING_FRAME_SOURCE_{tag_hint}_SPAN_TOO_SHORT")
     path = Path(source_path or frame_source_file())
     if not path.is_file():
         raise FileNotFoundError(f"受電箱框專用基準檔不存在：{path}")
@@ -72,10 +80,13 @@ def receiving_frame_source(role: str, *, material_width: float, span: float,
         raise ValueError("RECEIVING_FRAME_SOURCE_UNVERIFIED")
     msp = doc.modelspace()
     tag, (sample_width, sample_span), (x0, y0), rotate, outline = _reference_record(msp, role=role)
+    if isinstance(material_width, bool) or isinstance(span, bool):
+        raise ValueError(f"RECEIVING_FRAME_SOURCE_{tag}_DIMENSIONS_INVALID")
     width, span = float(material_width), float(span)
-    if abs(width-sample_width) > TOL:
+    import math
+    if not math.isfinite(width) or abs(width-sample_width) > TOL:
         raise ValueError(f"RECEIVING_FRAME_SOURCE_{tag}_WIDTH_MISMATCH")
-    if span <= 110.0:
+    if not math.isfinite(span) or span <= 110.0:
         raise ValueError(f"RECEIVING_FRAME_SOURCE_{tag}_SPAN_TOO_SHORT")
 
     def point(source_x, source_y):

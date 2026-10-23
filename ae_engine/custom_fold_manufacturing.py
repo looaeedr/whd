@@ -24,12 +24,17 @@ def _validate(spec):
         if isinstance(value,bool) or not math.isfinite(float(value)) or value<=0:
             raise ValueError("custom thickness/span must be finite and positive")
     rows=spec.fold_profile
-    if len(rows)<2 or rows[-1].angle not in (None,0):
+    if len(rows)<2 or rows[-1].angle not in (None,0) or isinstance(rows[-1].angle,bool):
         raise ValueError("custom Fold needs a terminal row with no bend")
-    for row in rows:
-        if not math.isfinite(row.length) or row.length<=0:
+    for idx,row in enumerate(rows):
+        if isinstance(row.length,bool) or not math.isfinite(row.length) or row.length<=0:
             raise ValueError("custom material segment must be finite and positive")
-        if row.angle is not None and (not math.isfinite(row.angle) or abs(row.angle)!=90):
+        if row.formed_length is not None and (isinstance(row.formed_length,bool) or not math.isfinite(row.formed_length) or row.formed_length<=0):
+            raise ValueError("custom formed segment must be finite and positive")
+        if row.angle is not None and isinstance(row.angle,bool):
+            raise ValueError("custom Fold supports explicit 90 degree bends")
+        is_terminal = idx == len(rows) - 1
+        if not is_terminal and row.angle not in (None,0) and (not math.isfinite(row.angle) or abs(row.angle)!=90):
             raise ValueError("custom Fold supports explicit 90 degree bends")
     if not any(row.angle in (-90,90) for row in rows[:-1]):
         raise ValueError("custom Fold requires a real bend")

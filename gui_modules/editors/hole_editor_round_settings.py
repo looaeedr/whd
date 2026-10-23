@@ -265,11 +265,14 @@ class _RoundHoleSettingsDialog:
         ).pack(side=tk.RIGHT, padx=6)
 
     def _sync_from_center(self, _event=None):
+        import math
         if self.sync_guard:
             return
         try:
             value = float(self.round_center.get())
         except ValueError:
+            return
+        if not math.isfinite(value):
             return
         self.round_driver.set("center")
         self.sync_guard = True
@@ -280,11 +283,14 @@ class _RoundHoleSettingsDialog:
             self.sync_guard = False
 
     def _sync_from_gap(self, _event=None):
+        import math
         if self.sync_guard:
             return
         try:
             value = float(self.round_gap.get())
         except ValueError:
+            return
+        if not math.isfinite(value):
             return
         self.round_driver.set("gap")
         self.sync_guard = True
@@ -295,10 +301,13 @@ class _RoundHoleSettingsDialog:
             self.sync_guard = False
 
     def _driver_value(self):
+        import math
         try:
             value = float(self.round_center.get() if self.round_driver.get() == "center" else self.round_gap.get())
         except ValueError as exc:
             raise ValueError("孔心距 / 間距必須是數字") from exc
+        if not math.isfinite(value):
+            raise ValueError("孔心距 / 間距必須是有限數值")
         if self.round_driver.get() == "center" and value <= 0:
             raise ValueError("孔心距必須大於 0")
         if self.round_driver.get() == "gap" and value < 0:

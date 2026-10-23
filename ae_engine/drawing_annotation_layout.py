@@ -444,10 +444,13 @@ def _quantity_text_box(text):
     width = max(max(map(len, lines)), 1) * height * 0.8
     total_height = height * (1 + 1.5 * (len(lines) - 1))
     attachment = int(text.attachment_point)
-    column = (attachment - 1) % 3
-    row = (attachment - 1) // 3
-    x = float(text.insert.x) - (0, width / 2, width)[column]
-    y = float(text.insert.y) - (total_height, total_height / 2, 0)[row]
+    x = float(text.insert.x)
+    y = float(text.insert.y)
+    if 1 <= attachment <= 9:
+        column = (attachment - 1) % 3
+        row = (attachment - 1) // 3
+        x = x - (0, width / 2, width)[column]
+        y = y - (total_height, total_height / 2, 0)[row]
     return box(x, y, x + width, y + total_height)
 
 

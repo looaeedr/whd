@@ -37,7 +37,7 @@ class CadcraftControlClient:
     def __init__(self, port: int, *, timeout: float = 3.0):
         if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
             raise CadcraftControlError("CADCRAFT_INVALID_CONTROL_PORT")
-        if not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
             raise CadcraftControlError("CADCRAFT_INVALID_CONTROL_TIMEOUT")
         self.port = port
         self.timeout = float(timeout)
@@ -83,7 +83,7 @@ class CadcraftControlClient:
                                parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
         except (UnicodeError, ValueError, TypeError) as exc:
             raise CadcraftControlError("CADCRAFT_CONTROL_INVALID_JSON") from exc
-        if not isinstance(reply, dict) or reply.get("id") != ident or not isinstance(reply.get("ok"), bool):
+        if not isinstance(reply, dict) or isinstance(reply.get("id"), bool) or reply.get("id") != ident or not isinstance(reply.get("ok"), bool):
             raise CadcraftControlError("CADCRAFT_CONTROL_REPLY_ID_OR_STATUS")
         if not reply["ok"]:
             state = reply.get("state")

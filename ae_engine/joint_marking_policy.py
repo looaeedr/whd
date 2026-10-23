@@ -208,9 +208,13 @@ def _plane_basis(normal):
 def _project_polygon(points, origin, u, v):
     projected = []
     for raw in tuple(points or ()):
-        if len(tuple(raw)) != 3:
+        coords = tuple(raw)
+        if len(coords) != 3:
             raise ValueError("world polygon point must be 3D")
-        delta = _sub3(tuple(float(x) for x in raw), origin)
+        pt3 = tuple(float(x) for x in coords)
+        if not all(math.isfinite(val) for val in pt3):
+            raise ValueError("world polygon point must be finite")
+        delta = _sub3(pt3, origin)
         projected.append((_dot3(delta, u), _dot3(delta, v)))
     if len(projected) < 3:
         raise ValueError("bounded region requires at least three points")
@@ -240,12 +244,14 @@ def validate_expected_region_coverage(
         plane = tuple(expected_region.supporting_plane or ())
         if len(plane) != 2:
             raise ValueError("expected region supporting plane is unresolved")
-        origin = tuple(float(x) for x in plane[0])
-        normal = tuple(float(x) for x in expected_region.outward_normal)
+        origin = tuple(float(x) for x in tuple(plane[0] or ()))
+        normal = tuple(float(x) for x in tuple(expected_region.outward_normal or ()))
+        if len(origin) != 3 or len(normal) != 3 or not all(math.isfinite(val) for val in (*origin, *normal)):
+            raise ValueError("expected region supporting plane vectors must be finite 3D")
         u, v = _plane_basis(normal)
         expected = _project_polygon(expected_region.world_polygon, origin, u, v)
         overlap = _project_polygon(overlap_world, origin, u, v)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, IndexError) as exc:
         return ContactSpanValidationResult(
             status="SKIPPED_FAIL_CLOSED",
             diagnostic_code="OVERLAP_AUTHORITY_MISSING",

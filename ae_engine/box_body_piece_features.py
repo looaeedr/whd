@@ -419,6 +419,34 @@ def _clip_layered_profile_feature(context, feature, local_center, piece):
     ))
 
     results = []
+    primary = tuple(
+        context.local_to_unfolded(
+            local_center + _rotate_local_point(point, feature.rotation_deg)
+        ) for point in feature.points
+    )
+
+    def source_contour_key(pts_seq):
+        ordered = tuple(pts_seq)
+        return ordered[:-1] if len(ordered) > 1 and ordered[0] == ordered[-1] else ordered
+
+    primary_key = source_contour_key(primary)
+    feature_layer_upper = str(feature.layer).upper()
+    represented_in_layers = any(
+        (str(layer).upper() == feature_layer_upper or feature_layer_upper == "FROM_DXF")
+        and source_contour_key(tuple(
+            context.local_to_unfolded(
+                local_center + _rotate_local_point(pt, feature.rotation_deg)
+            ) for pt in pts
+        )) == primary_key
+        for layer, pts, _closed in feature.layered_profiles
+    )
+    if len(primary) >= 2 and not represented_in_layers and feature_layer_upper != "FROM_DXF":
+        results.extend(_clip_one_resolved_feature(
+            ResolvedProfile(
+                points=primary, layer=feature.layer, source_type=feature.source_type
+            ),
+            clip_geometry,
+        ))
     for layer, points, closed in feature.layered_profiles:
         mapped = tuple(
             context.local_to_unfolded(local_center + _rotate_local_point(point, feature.rotation_deg))

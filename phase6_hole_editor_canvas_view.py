@@ -187,7 +187,15 @@ class Phase6HoleEditorCanvasView:
         elif isinstance(resolved_feature, ResolvedRect):
             points = resolved_feature.points
         else:
-            points = resolved_feature.points
+            points = tuple(resolved_feature.points or ())
+            if not points and getattr(resolved_feature, "layered_profiles", None):
+                points = tuple(
+                    pt
+                    for _layer, layer_pts, _closed in resolved_feature.layered_profiles
+                    for pt in (layer_pts or ())
+                )
+        if not points:
+            return None
         canvas_points = [tr.world_to_canvas(point) for point in points]
         xs = [point[0] for point in canvas_points]
         ys = [point[1] for point in canvas_points]
@@ -326,6 +334,8 @@ class Phase6HoleEditorCanvasView:
             canvas.create_oval(cx-6, cy-6, cx+6, cy+6, outline="#ffd60a", width=2)
             if selected < len(self._resolved):
                 selected_rect = self._resolved_canvas_rect(self._resolved[selected])
+                if selected_rect is None:
+                    selected_rect = (cx-10, cy-10, cx+10, cy+10)
             else:
                 selected_rect = (cx-10, cy-10, cx+10, cy+10)
             self._place_reference_overlays(frame, reference_point, selected_rect)
