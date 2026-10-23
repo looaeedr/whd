@@ -2,10 +2,9 @@
 """#1504 AC-21/SWT-14: real CURRENT CSV quantity-version partial evidence.
 
 This proves physical V5 source provenance, independent version copies,
-three-tier transient UI inheritance and .p6fold persistence.  It deliberately
-DOES NOT claim each version has its own editable DEFAULT BRAND: the current
-operator's Single brand selector is still bound to the common box.  That
-missing GUI/domain owner remains an explicit unsigned acceptance blocker.
+three-tier transient UI inheritance, .p6fold persistence, and real original
+Tk single-box brand selection. A full two-old-project Windows operator UAT
+remains separate and must not be inferred from these regression tests.
 """
 from copy import deepcopy
 from pathlib import Path
@@ -308,3 +307,81 @@ def test_ac21_swt14_quantity_change_parent_preserves_model_and_no_new_ready():
     q.select(first)
     scope["quantity"]=q.snapshot()
     assert quantity_inherited_nfb_brand_conflicts(scope)==()
+
+
+def test_ac21_swt14_real_tk_single_brand_selector_scopes_two_versions(monkeypatch):
+    """Actual Single GUI combobox must write only the selected Quantity version.
+
+    Unlike source-string checks, this follows the operator's Tk event through
+    original Receiving mode, workspace transaction and re-opened dialog.
+    """
+    import tkinter as tk
+    from tkinter import messagebox
+    import gui
+    import fold_designer_bridge as bridge
+    from ae_engine.receiving_quantity_box import BOX_KEY
+
+    warnings = []
+    monkeypatch.setattr(messagebox, "showwarning",
+                        lambda *args, **kw: warnings.append(args))
+    monkeypatch.setattr(messagebox, "showerror",
+                        lambda *args, **kw: warnings.append(args))
+    root = tk.Tk()
+    root.withdraw()
+    window = None
+    try:
+        main = gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("受電箱")
+        root.update()
+        app = main.open_original_fold_designer()
+        root.update()
+
+        window = bridge._phase6_open_receiving_single_settings(app)
+        root.update()
+        assert window.title() == "單只設定"
+        assert app.designer_workspace.active_mode == "quantity"
+        first = app.designer_workspace.quantity_model.selected_version_id
+        brand = window._receiving_multi_brand_selector
+        assert brand.get() == "士林"
+        brand.set("東元")
+        brand.event_generate("<<ComboboxSelected>>")
+        root.update()
+
+        saved = app.designer_workspace.snapshot()["quantity"]
+        model = QuantityModel.from_payload(saved)
+        assert model.snapshot()["schema"] == SCHEMA_V3
+        assert model.nfb_parent_brand_for_version(first) == "東元"
+        # Common physical W/H/D box remains immutable as NFB parent authority.
+        assert app._phase6_input_snapshot[BOX_KEY]["switch_brand"] == "士林"
+        window._receiving_multi_close()
+        window = None
+        root.update()
+
+        # Deep-copy from first version, then change only second via REAL GUI.
+        second = app.designer_workspace.quantity_model.add_version()
+        assert second != first
+        window = bridge._phase6_open_receiving_single_settings(app)
+        root.update()
+        brand = window._receiving_multi_brand_selector
+        assert brand.get() == "東元"
+        brand.set("士林")
+        brand.event_generate("<<ComboboxSelected>>")
+        root.update()
+
+        q = QuantityModel.from_payload(app.designer_workspace.snapshot()["quantity"])
+        assert q.nfb_parent_brand_for_version(first) == "東元"
+        assert q.nfb_parent_brand_for_version(second) == "士林"
+        assert app._phase6_input_snapshot[BOX_KEY]["switch_brand"] == "士林"
+        window._receiving_multi_close()
+        window = None
+        root.update()
+
+        app.designer_workspace.quantity_model.select(first)
+        window = bridge._phase6_open_receiving_single_settings(app)
+        root.update()
+        assert window._receiving_multi_brand_selector.get() == "東元"
+        assert not warnings
+    finally:
+        if window is not None and window.winfo_exists():
+            window.destroy()
+        root.destroy()
