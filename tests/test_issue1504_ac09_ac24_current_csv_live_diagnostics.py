@@ -222,6 +222,25 @@ def test_ac24_v5_typed_model_identity_accepts_optional_persisted_source_brand():
         _inspect(source)
     assert original=="士林"
 
+
+def test_ac24_duplicate_physical_slot_or_stale_layer_count_keeps_draft_unverified():
+    saved=_bay(count=2)
+    duplicate=deepcopy(saved)
+    duplicate["nfb_config"]["holes"][1]["layer_index"]=0
+    duplicate["nfb_config"]["holes"][1]["slot_index"]=0
+    report=_inspect(duplicate)
+    assert report["derived_state"]=="DRAFT"
+    assert "NFB_DUPLICATE_LAYER_UNIT_OWNER" in report["unit_rows"][1]["reasons"]
+    assert report["part_rows"][0]["status"]=="BLOCKED"
+    mismatched=deepcopy(saved)
+    mismatched["nfb_config"]["holes"][1]["layer_count"]=1
+    report=_inspect(mismatched)
+    assert report["derived_state"]=="DRAFT"
+    assert "NFB_UNIT_LAYER_COUNT_MISMATCH" in report["unit_rows"][1]["reasons"]
+    assert report["part_rows"][-1]["status"]=="NFB_UNAFFECTED"
+    assert saved==_bay(count=2)
+
+
 def test_ac24_forbid_forged_green_status_and_gui_source_is_connected():
     current=_inspect(_bay())
     for bad in (
