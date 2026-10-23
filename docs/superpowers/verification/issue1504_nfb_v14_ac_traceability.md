@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-23，逐條實證簽核）
 
+## CURRENT｜2026-10-23 #1504 NFB-AC-01 原始 Tk 家族專屬 UI 自動簽核（exact CI 後生效）
+
+- 真正已安裝的 `ReceivingCapabilityOwner` 依**註冊箱型名稱**判斷功能，不以字串猜測。金庫型／控制箱／配電箱從「單只／多連」任一入口都應在建立視窗前結束，不應改動原工作區、原一般 Hole Editor 的門／封頭／封尾入口。假造內門 ID 也必須在 Vault 專案被真實板件核對拒絕。
+- 直接執行原 `receiving_multi_settings_window.open_multi_settings` 的**真 Tk Toplevel**，兩種模式都必須出現且只出現一個可用的 NFB 品牌選擇器；品牌值從既有控件讀出，變更仍回原有 setter，不增加第二套品牌權威。新增 `tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py` 為 CI 必跑，還有 exact function witness 追溯。
+- **簽核界線**：NFB-AC-01 當期 Tk UI「受電箱專屬／他箱不變」的程式與 GUI 入口行為，非兩份原始舊案 Windows 全流程，非全部幾何製造；**SWT-AC-01 不同驗收**，單一層數入口是否唯一仍未簽。核對 exact tested HEAD 五階段 GREEN 且合併 localX 回讀後，才 29／88→**30／88**，剩 **58**（23 source、17 GUI、14 scoped、4 deferred）。
+
 ## CURRENT｜2026-10-23 #1504 品牌繼承只有一套（修正先前過度設計推論；未簽核）
 
 - **規則只有一套**：`effective_nfb_layer_brand`／`effective_nfb_slot_brand` 按「本套／本配置 → 層 → 顆」運算；同值覆寫仍保留覆寫身份，換來源品牌的舊型號保留原來源並變為待重選。數量模式不需要第二套繼承、第二個全域 Set 品牌或任何寫死品牌。
@@ -155,7 +161,7 @@ whd_schema: WHD_DOC_META_V1
 
 | AC | Owner | 尚缺驗收 | 階段 | 核准原文 |
 |---|---|---|---|---|
-| NFB-AC-01 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 受電箱才看見 NFB UI；其他箱型既有 Hole Editor 不變。 |
+| NFB-AC-01 | #1491 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A | 受電箱才看見 NFB UI；其他箱型既有 Hole Editor 不變。 |
 | NFB-AC-02 | #1491、#1500 | BLOCKED_1500_REAL_GUI | UI-1A／UI-1B（提交下限） | 未提交可零槽；正式提交後層數 1／2、至少一槽，刪除最後槽不得隱式退回未配置；1→2、2→1 遵守 Q12／Q17／Q18。 |
 | NFB-AC-03 | #1492 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 真實廠牌 DXF 列表、右側預覽、縮放／平移／重設；選檔不污染正式狀態。 |
 | NFB-AC-04 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（編輯）／MFG-1（幾何違法回滾） | 配置卡重排序與 2D 位移明確分離；mm 欄位精確；Q5／Q6／Q7 清除受影響層全部位移；Q16 保留位移、名義孔距不動，重新驗證非法回滾。 |
@@ -252,7 +258,7 @@ whd_schema: WHD_DOC_META_V1
 
 | AC | 測試函式識別（僅部分證據） | 未完成狀態 |
 |---|---|---|
-| NFB-AC-01 | `tests/test_issue1491_nfb_ui1a.py::test_no_unapproved_geometry_or_persistence_fields` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-01 | `tests/test_issue1491_nfb_ui1a.py::test_no_unapproved_geometry_or_persistence_fields` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-02 | `tests/test_issue1491_nfb_ui1a.py::test_empty_slot_keeps_physical_order_and_requires_no_fake_hole` | BLOCKED_1500_REAL_GUI |
 | NFB-AC-03 | `tests/test_issue1492_nfb_real_dxf_preview.py::test_pan_zoom_reset_never_reopens_source_or_changes_manufacturing` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-04 | `tests/test_issue1493_nfb_draft_transactions.py::test_insert_delete_reorder_reset_only_touched_layer_x` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
