@@ -55,6 +55,43 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
         self.assertIn("只有正式發布查核才使用精確 `ref=cleanup/2d-3d-sync`", agents)
         self.assertIn("不得作為日常產品／治理施工基準", agents)
 
+    def test_slash_push_remote_default_has_no_extra_local_approval(self):
+        """A user /推推 is acceptance + GitHub release authority, not a DC request."""
+        agents = AGENTS.read_text(encoding="utf-8")
+        push = (ROOT / ".agents/skills/engineering/推推/SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        packaging = (
+            ROOT / ".agents/skills/engineering/phase6-release-packaging/SKILL.md"
+        ).read_text(encoding="utf-8")
+        policy = agents.split(
+            "## `/推推` 發布先行、X 回同步硬閘門", 1,
+        )[1].split("## 全域台灣時區硬閘門", 1)[0]
+
+        self.assertIn("`/推推` 預設 GitHub-only", policy)
+        self.assertIn("不讀本機、不另問「GitHub-only」授權", policy)
+        self.assertIn("本機未同步不阻擋遠端發布", policy)
+        self.assertIn("owner exact `/推推` 留言", policy)
+        self.assertIn("非強制 fast-forward", policy)
+        self.assertIn("本機同步待辦不影響 GitHub 發布", policy)
+        self.assertIn("LOCAL_SYNC_PENDING", policy)
+        self.assertIn("GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1", policy)
+        for retired_gate in (
+            "預設本機優先",
+            "只有完成 Windows UAT",
+            "未取得 GitHub-only 明確授權時",
+            "一般 `/推推` 繼續遵守上方本機優先",
+        ):
+            with self.subTest(retired_gate=retired_gate):
+                self.assertNotIn(retired_gate, policy)
+
+        self.assertIn("唯一預設路線：GitHub-only", push)
+        self.assertIn("最後一步是正式 GitHub Release", push)
+        self.assertIn("不再具有執行權威", push)
+        self.assertIn("由使用者當次 `/推推`", packaging)
+        self.assertIn("不允許治理直送 X", packaging)
+        self.assertNotIn("直接 PR／CI 合併 X，不經 `localX`", packaging)
+
     def test_open_pr_head_and_base_refs_fail_closed(self):
         """An OPEN PR protects its head AND base refs from cleanup."""
         from tools.branch_cleanup_ref_guard import (
