@@ -800,7 +800,7 @@
           "accepted": false
         }
       ],
-      "current_scope_remaining_evidence": "2026-10-23: single unified NFB brand inheritance function is already authoritative. Quantity / SetBay use same effective_nfb_slot_brand, not distinct rules or a new QuantityModel brand field. Fixed three Receiving inner editor source call sites to derive parent brand from active mode: quantity existing receiving_quantity_box.switch_brand; SetBay existing Set.switch_brand. Saved V5 physical model brand and override provenance unchanged. Still requires actual per-version GUI semantics with Confirm/Cancel/Switch/Clone, two original Windows projects; NO full AC signoff.",
+      "current_scope_remaining_evidence": "2026-10-23: single unified NFB brand inheritance function is already authoritative. Quantity / SetBay use same effective_nfb_slot_brand, not distinct rules or a new QuantityModel brand field. Fixed five Receiving inner editor source call sites to derive parent brand from active mode: quantity existing receiving_quantity_box.switch_brand; SetBay existing Set.switch_brand. Saved V5 physical model brand and override provenance unchanged. Still requires actual per-version GUI semantics with Confirm/Cancel/Switch/Clone, two original Windows projects; NO full AC signoff.",
       "source_gap_reproduced_20261023": true
     },
     {
@@ -2629,7 +2629,7 @@
           "accepted": false
         }
       ],
-      "current_scope_remaining_evidence": "2026-10-23: single unified NFB brand inheritance function is already authoritative. Quantity / SetBay use same effective_nfb_slot_brand, not distinct rules or a new QuantityModel brand field. Fixed three Receiving inner editor source call sites to derive parent brand from active mode: quantity existing receiving_quantity_box.switch_brand; SetBay existing Set.switch_brand. Saved V5 physical model brand and override provenance unchanged. Still requires actual per-version GUI semantics with Confirm/Cancel/Switch/Clone, two original Windows projects; NO full AC signoff.",
+      "current_scope_remaining_evidence": "2026-10-23: single unified NFB brand inheritance function is already authoritative. Quantity / SetBay use same effective_nfb_slot_brand, not distinct rules or a new QuantityModel brand field. Fixed five Receiving inner editor source call sites to derive parent brand from active mode: quantity existing receiving_quantity_box.switch_brand; SetBay existing Set.switch_brand. Saved V5 physical model brand and override provenance unchanged. Still requires actual per-version GUI semantics with Confirm/Cancel/Switch/Clone, two original Windows projects; NO full AC signoff.",
       "source_gap_reproduced_20261023": true
     },
     {
