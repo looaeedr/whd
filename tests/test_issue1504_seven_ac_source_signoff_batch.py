@@ -32,9 +32,9 @@ def test_batch_signoff_seven_require_independent_real_executed_assertions():
     assert len(matrix["records"]) == 88
     assert matrix["counts"] == dict(Counter(r["status"] for r in rows.values()))
     assert matrix["counts"] == {
-        "EVIDENCE_CANDIDATE_ONLY": 21,
+        "EVIDENCE_CANDIDATE_ONLY": 20,
         "BLOCKED_1500_REAL_GUI": 17,
-        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 32,
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 33,
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
         "DEFERRED_PRODUCT_EVIDENCE": 4,
     }
@@ -103,4 +103,4 @@ def test_unsigned_high_risk_ac_requirements_remain_blocked():
             "DEFERRED_PRODUCT_EVIDENCE",
         }
     )
-    assert sum(r["accepted"] for r in rows.values()) == 32
+    assert sum(r["accepted"] for r in rows.values()) == 33
