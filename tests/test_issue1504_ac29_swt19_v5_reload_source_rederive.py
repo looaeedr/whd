@@ -17,6 +17,7 @@ import pytest
 import ae_engine.receiving_nfb_numeric_catalog as catalog
 import ae_engine.receiving_nfb_v5_configured_inner_door as physical_door
 import ae_engine.receiving_nfb_v5_actual_base_screws as physical_base_screws
+import ae_engine.receiving_nfb_v5_check_q_preview as check_q
 from ae_engine.receiving_nfb_model_identity import numeric_model_ref
 from ae_engine.sheetmetal_drawing import PolylinePrimitive
 from phase6_project_file import PROJECT_SCHEMA_V1, PROJECT_SCHEMA_V3, write_project, read_project
@@ -46,6 +47,11 @@ def _isolated_csv(monkeypatch, tmp_path):
     # must patch BOTH: leaving only one redirected correctly fails closed
     # at the real "inner door versus base source mismatch" hard gate.
     monkeypatch.setattr(physical_base_screws, "brand_csv_path", lambda brand: (
+        private if brand == "士林" else original
+    ))
+    # The operator's CHECK/Q independently rehashes the very same source;
+    # never bypass its hard gate or accept a door/base-only simulated source.
+    monkeypatch.setattr(check_q, "brand_csv_path", lambda brand: (
         private if brand == "士林" else original
     ))
     assert catalog.model_spec("士林", "2P400") is not None
@@ -189,7 +195,7 @@ def test_ac29_swt19_csv_bytes_change_requires_fresh_finalscene_and_dxf(
 
 
 @pytest.mark.parametrize("new_size,error_pattern", (
-    ("310X96", "碰撞|相交|overlap"),
+    ("400X96", "碰撞|相交|overlap"),
     ("750X96", "超出|內門平面|碰到"),
 ))
 def test_ac29_swt19_source_revised_collision_or_boundary_cannot_use_old_green(
