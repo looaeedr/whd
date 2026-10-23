@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 24,
+    "EVIDENCE_CANDIDATE_ONLY": 23,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 29,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 30,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -38,21 +38,47 @@
         1491
       ],
       "regression_candidates": [
-        "tests/test_issue1491_nfb_ui1a.py"
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_no_unapproved_geometry_or_persistence_fields",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py",
+          "test_name": "test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_primary_witness_before_20261023": {
+        "path": "tests/test_issue1491_nfb_ui1a.py",
+        "test_name": "test_no_unapproved_geometry_or_persistence_fields",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "acceptance_evidence": {
+        "scope": "Real Tk Receiving Single and Multi operator Toplevel created from the installed GUI with the actual readonly NFB brand selector wired to existing source control; canonical ReceivingCapabilityOwner maps actual registered cabinet family, restricts receiving modal before any widget mutation on non-Receiving Vault/control/distribution families (both entry modes); actual Receiving-only inner-door editor cannot intercept generic door/head/tail and cannot create a physical inner panel in a Vault project. No new NFB layer/count rule or brand authority; current original generic Hole Editor untouched. Does not claim Windows two-project UAT or original generic Hole Editor entire visual cycle.",
+        "primary_assertion": "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py::test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py::test_ac01_nonreceiving_family_never_mounts_nfb_dialog_or_mutates_hole_editor",
+          "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py::test_ac01_original_generic_hole_editor_door_entry_remains_unpatched",
+          "tests/test_issue1491_nfb_ui1a.py::test_no_unapproved_geometry_or_persistence_fields"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false,
+        "real_tk_widget_created": true,
+        "nonreceiving_canonical_family_gate_verified": true,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "NFB-AC-02",
@@ -3347,7 +3373,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 29/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 59 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 30/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 58 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
