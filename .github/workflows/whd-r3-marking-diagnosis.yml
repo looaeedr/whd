@@ -1,0 +1,29 @@
+name: WHD R3 MARKING Diagnosis (temporary)
+on:
+  pull_request:
+    branches: [localX]
+permissions:
+  contents: read
+jobs:
+  strict-dxf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install native Tk dependencies
+        run: |
+          sudo apt-get -o Acquire::Retries=2 update -qq
+          sudo apt-get -o Acquire::Retries=2 install -y -qq xvfb
+          python -m pip install --retries 3 --timeout 20 -r requirements.txt pytest matplotlib ezdxf
+      - name: Real GUI source and saved-DXF exact readback
+        env:
+          TZ: Asia/Taipei
+          PYTHONUNBUFFERED: '1'
+        run: |
+          timeout --signal=TERM --kill-after=5s 210s xvfb-run -a python -m pytest -vv -s --tb=short -o faulthandler_timeout=60 tests/test_issue1503_single_gui_real_tier_2d3d.py::test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
