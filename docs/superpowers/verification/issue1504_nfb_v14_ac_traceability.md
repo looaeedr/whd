@@ -1,3 +1,13 @@
+## 2026-10-23（台灣）｜#1504 獨立 Draft PR #2098｜AC-03 來源範圍簽核候選（40→41，未整合）
+
+- **隔離狀態**：使用者指示先不要合併 GitHub `localX`；本段為 `fix/issue1504-ac03-ac15-current-v5-signoff-20261023` 的**候選**，必須 exact HEAD Product Regression 全綠才能簽，未合併前不計入 `localX` 已核銷 40/88。
+- **原 88 AC 原文／兩份來源 SHA 完全保留**：NFB-AC-03 歷史 DXF 清單按 2026-10-21 已定現行 CSV V5 數值來源解讀，不把舊 DXF 當作 V5 必須資料；舊 DXF 真 ARC/CIRCLE/BULGE / 缺失來源 fail-closed 保留在相容測試。
+- **原生 GUI 來源證據**：`tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write` 實際從 WHD 原內門編輯器開 Tk，在可見的來源面板選 V5 型號、按放大/縮小/重設和 Canvas 拖曳；project snapshot 不變，沒有創造可製造 CUTTING 或填造世界 X/Y。原 GUI 來源面板於 PR #2095 恢復映射。
+- **AC-15 尚待獨立核對（仍候選）**：發現原 Tk 已配置顆位純選取事件用 `refresh_source(force=True)` 強制更新全廠牌 CSV 清單，改成 `refresh_source()` 保留品牌／來源簽章變更才刷新；新增六次真 Tk 重複選取不重新列舉型號且不改專案／草稿的測試，仍須 exact HEAD CI 與效能回讀，不能拿 AC-03 代簽 AC-15。
+- **候選矩陣**：41 accepted current-scope（僅隔離分支）／12 candidate／17 #1500 Windows 雙舊案全 GUI blocked／14 #1502 scoped／4 deferred，共 88。兩舊 Windows 原始工程完整操作鏈、全箱製造、正式物理 X/Y、焊接驗收均未簽；`#1504` OPEN、正式 X 不動。
+
+---
+
 ## CURRENT｜2026-10-23 NFB-AC-24 逐顆狀態／雙 Bay／多版本／實體板件自動化簽核候選
 
 ## CURRENT｜2026-10-23 AC-18 唯一層數控制與 X/Y 未定可見提示來源範圍候選（39 → 40）
