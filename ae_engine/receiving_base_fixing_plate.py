@@ -21,6 +21,7 @@ each actual production request.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Mapping
 
 from .receiving_base_plate_config import RECEIVING_FAMILIES
@@ -78,10 +79,14 @@ def receiving_base_fixing_plate_previews(
             or (BASE_FIXING_PLATE_PARENT_ID not in parts
                 and not any(p.startswith("base_plate:nfb_layer:") for p in parts))):
         return ()
+    if isinstance(data.get("w"), bool) or isinstance(data.get("t"), bool):
+        return ()
     try:
         w = float(data.get("w", 0))
         side_t = float(data.get("t", 0))
     except (TypeError, ValueError, OverflowError):
+        return ()
+    if not (isfinite(w) and isfinite(side_t)):
         return ()
     # Preserve historical pattern-only preview inputs (which are NOT a
     # fully configured physical BasePlate). A legacy flat preview may name
@@ -93,7 +98,11 @@ def receiving_base_fixing_plate_previews(
                if isinstance(config, Mapping) else "")
     if not pattern:
         from .receiving_base_plate_config import receiving_base_plate_values
-        actual_source = receiving_base_plate_values(data)
+        try:
+            actual_source = receiving_base_plate_values(data)
+        except (KeyError, TypeError, ValueError):
+            # A preview must not imply a certified manufacturing plate.
+            return ()
         pattern = (str(actual_source["receiving_bend_pattern"])
                    if actual_source is not None else "")
     from .sheetmetal_part_adapters import (

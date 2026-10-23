@@ -295,25 +295,45 @@ def reconcile_box_body_structure_for_total_w_change(
     two = result["configs"][two_key]
     if two.get("left_w") is not None or two.get("right_w") is not None:
         driver = str(two.get("driver") or "left")
-        if driver == "right" and two.get("right_w") is not None:
-            result = set_two_piece_width(result, total, "right", two["right_w"], manual=False)
-        else:
-            value = two.get("left_w")
-            if value is None:
-                value = total - float(two["right_w"])
-            result = set_two_piece_width(result, total, "left", value, manual=False)
+        try:
+            if driver == "default":
+                result = set_two_piece_width(result, total, "left", total / 2.0, manual=False)
+                result["configs"][two_key]["driver"] = "default"
+            elif driver == "right" and two.get("right_w") is not None:
+                result = set_two_piece_width(result, total, "right", two["right_w"], manual=False)
+            else:
+                value = two.get("left_w")
+                if value is None:
+                    value = total - float(two["right_w"])
+                result = set_two_piece_width(result, total, "left", value, manual=False)
+        except ValueError:
+            if result.get("active_type") == two_key:
+                raise
+            result["configs"][two_key].update(
+                left_w=None, right_w=None, driver="default"
+            )
 
     three_key = BoxBodyStructureType.THREE_PIECE_W_SPLIT.value
     three = result["configs"][three_key]
     if any(three.get(key) is not None for key in ("left_w", "middle_w", "right_w")):
         driver = str(three.get("driver") or "side")
-        if driver == "middle" and three.get("middle_w") is not None:
-            result = set_three_piece_width(result, total, "middle", three["middle_w"], manual=False)
-        else:
-            side = three.get("left_w") if three.get("left_w") is not None else three.get("right_w")
-            if side is None:
-                side = (total - float(three["middle_w"])) / 2.0
-            result = set_three_piece_width(result, total, "left", side, manual=False)
+        try:
+            if driver == "default":
+                result = set_three_piece_width(result, total, "left", 50.0, manual=False)
+                result["configs"][three_key]["driver"] = "default"
+            elif driver == "middle" and three.get("middle_w") is not None:
+                result = set_three_piece_width(result, total, "middle", three["middle_w"], manual=False)
+            else:
+                side = three.get("left_w") if three.get("left_w") is not None else three.get("right_w")
+                if side is None:
+                    side = (total - float(three["middle_w"])) / 2.0
+                result = set_three_piece_width(result, total, "left", side, manual=False)
+        except ValueError:
+            if result.get("active_type") == three_key:
+                raise
+            result["configs"][three_key].update(
+                left_w=None, middle_w=None, right_w=None, driver="default"
+            )
 
     return result
 

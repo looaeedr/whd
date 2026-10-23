@@ -6,11 +6,18 @@ from collections.abc import Mapping
 def validate_positions(layout, available_ids, quantities, assigned, *, expected_counts=None):
     if not isinstance(layout, Mapping) or not isinstance(layout.get("sets"), (list, tuple)):
         raise ValueError("受電箱套／連資料不合法")
-    counts = tuple(len(row["bays"]) for row in layout["sets"])
+    sets = layout["sets"]
+    if any(not isinstance(row, Mapping) or not isinstance(row.get("bays"), (list, tuple))
+           for row in sets):
+        raise ValueError("受電箱套／連資料不合法")
+    counts = tuple(len(row["bays"]) for row in sets)
     if not counts or any(n < 1 for n in counts):
         raise ValueError("受電箱沒有可配置的連")
-    if expected_counts is not None and tuple(expected_counts) != counts:
-        raise ValueError("總連數已變動，請重新確認數量配置")
+    if expected_counts is not None:
+        if (not isinstance(expected_counts, (list, tuple))
+                or any(type(value) is not int for value in expected_counts)
+                or tuple(expected_counts) != counts):
+            raise ValueError("總連數已變動，請重新確認數量配置")
     if not isinstance(quantities, Mapping) or not quantities:
         raise ValueError("請先加入候選版本與數量")
     if not isinstance(assigned, Mapping):
@@ -28,7 +35,9 @@ def validate_positions(layout, available_ids, quantities, assigned, *, expected_
         raise ValueError("每一連均須指定版本，不得重複或遺漏")
     positions = tuple((si, bi) for si, count in enumerate(counts)
                       for bi in range(count))
-    if set(assigned) != set(positions):
+    if (any(not isinstance(key, tuple) or len(key) != 2
+            or type(key[0]) is not int or type(key[1]) is not int
+            for key in assigned) or set(assigned) != set(positions)):
         raise ValueError("配置連位與目前套／連不一致")
     used = dict.fromkeys(quantities, 0)
     for version_id in assigned.values():

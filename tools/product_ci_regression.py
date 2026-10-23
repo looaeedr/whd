@@ -395,6 +395,8 @@ PYTEST_PATHS = (
     "tests/test_manual_audit_source_guards_20261023.py",
     # Directly audited R4 source gaps missing from merged localX.
     "tests/test_manual_r4_verified_source_gaps_20261024.py",
+    # R5 saved Quantity/Bay, NFB and physical base plate source guarantees.
+    "tests/test_manual_r5_persistence_and_base_guards_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",

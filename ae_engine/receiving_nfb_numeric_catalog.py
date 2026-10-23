@@ -144,7 +144,7 @@ def read_numeric_specs(brand: str, *, path: str | Path | None = None
             if None in row or any(value is None for value in row.values()):
                 raise ValueError(f"NFB V5 第 {line} 行欄位數不符")
             model = row["型號"].strip()
-            if not model or any(char in model for char in ("/", "\\", "\x00")):
+            if not model or any(char in model for char in (":", "/", "\\", "\x00")):
                 raise ValueError(f"NFB V5 第 {line} 行型號不合法")
             identity = model.casefold()
             if identity in seen:
