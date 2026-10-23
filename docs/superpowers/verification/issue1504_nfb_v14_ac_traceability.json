@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 36,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 38,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 17,
+    "EVIDENCE_CANDIDATE_ONLY": 15,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -782,19 +782,41 @@
       "regression_candidates": [
         "tests/test_issue1491_nfb_ui1a.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_single_set_brand_owner_and_explicit_same_value_overrides",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py",
+          "test_name": "test_ac20_original_inner_tk_layer_brand_cancel_confirm_undo",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "brand_preview_transaction_gui_scope_completed_20261023": true,
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_SOURCE_ONLY_ORIGINAL_TK_SINGLE_QUANTITY_PARENT_AND_INNER_EDITOR_LAYER_UNIT_BRAND_RESELECTION_WARNING_ATOMIC_CANCEL_CONFIRM_UNDO_EXPLICIT_SAME_VALUE_OVERRIDE_AND_STALE_CSV_MANUFACTURING_FAIL_CLOSED; NOT TWO_ORIGINAL_WINDOWS_PROJECT_UAT_OR_FACTORY_RELEASE",
+        "primary_assertion": "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py::test_ac20_original_inner_tk_layer_brand_cancel_confirm_undo",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac20_swt13_brand_confirm.py::test_ac20_original_single_tk_brand_reselection_warning_cancel_is_atomic",
+          "tests/test_issue1504_ac20_swt13_brand_confirm.py::test_ac20_saved_parent_impact_counts_only_newly_stale_followers_without_mutation",
+          "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py::test_swt13_original_inner_tk_unit_cancel_and_same_brand_override",
+          "tests/test_issue1504_ac20_swt13_brand_confirm.py::test_swt13_layer_and_explicit_unit_brand_impact_reuses_one_inheritance_rule",
+          "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py::test_set_bay_brand_owner_unchanged_by_quantity_entry_routing"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "exact_head_product_ci_required": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false
+      },
+      "current_scope_remaining_evidence": "2026-10-23 CURRENT CSV V5 source-scoped GUI: original native Tk Quantity Single parent and original NFB inner editor layer/unit ComboboxSelected pre-change counts, cancel rollback (exact draft/workspace), confirm source provenance retained, undo restores, explicit same-brand OVERRIDE remains. Read-only submitted-source impact counts ignore existing stale and followers already overridden. Current numeric V5 manufactures fail-closed on inherited brand mismatch; no second Set/Quantity brand owner. Exact new-HEAD CI and localX merge readback required. Two external original Windows projects GUI→Save/Reload→DXF/Q, full factory/whole-box evidence not executed and remain separately unsigned."
     },
     {
       "id": "NFB-AC-21",
@@ -2716,19 +2738,41 @@
       "regression_candidates": [
         "tests/test_issue1491_nfb_ui1a.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_brand_change_does_not_silently_swap_csv_filename_even_if_other_brand_same_name",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py",
+          "test_name": "test_swt13_original_inner_tk_unit_cancel_and_same_brand_override",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "brand_preview_transaction_gui_scope_completed_20261023": true,
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_SOURCE_ONLY_ORIGINAL_TK_SINGLE_QUANTITY_PARENT_AND_INNER_EDITOR_LAYER_UNIT_BRAND_RESELECTION_WARNING_ATOMIC_CANCEL_CONFIRM_UNDO_EXPLICIT_SAME_VALUE_OVERRIDE_AND_STALE_CSV_MANUFACTURING_FAIL_CLOSED; NOT TWO_ORIGINAL_WINDOWS_PROJECT_UAT_OR_FACTORY_RELEASE",
+        "primary_assertion": "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py::test_swt13_original_inner_tk_unit_cancel_and_same_brand_override",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py::test_ac20_original_inner_tk_layer_brand_cancel_confirm_undo",
+          "tests/test_issue1504_ac20_swt13_brand_confirm.py::test_ac20_original_single_tk_brand_reselection_warning_cancel_is_atomic",
+          "tests/test_issue1504_ac20_swt13_brand_confirm.py::test_swt13_layer_and_explicit_unit_brand_impact_reuses_one_inheritance_rule",
+          "tests/test_issue1504_ac20_swt13_brand_confirm.py::test_ac20_saved_parent_impact_counts_only_newly_stale_followers_without_mutation",
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_changed_quantity_parent_marks_inherited_v5_model_reselect"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "exact_head_product_ci_required": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false
+      },
+      "current_scope_remaining_evidence": "2026-10-23 CURRENT CSV V5 source-scoped GUI: original native Tk Quantity Single parent and original NFB inner editor layer/unit ComboboxSelected pre-change counts, cancel rollback (exact draft/workspace), confirm source provenance retained, undo restores, explicit same-brand OVERRIDE remains. Read-only submitted-source impact counts ignore existing stale and followers already overridden. Current numeric V5 manufactures fail-closed on inherited brand mismatch; no second Set/Quantity brand owner. Exact new-HEAD CI and localX merge readback required. Two external original Windows projects GUI→Save/Reload→DXF/Q, full factory/whole-box evidence not executed and remain separately unsigned."
     },
     {
       "id": "SWT-AC-14",
@@ -3523,7 +3567,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 36/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 52 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 38/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 50 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",

@@ -1,5 +1,13 @@
 ## CURRENT｜2026-10-23 NFB-AC-24 逐顆狀態／雙 Bay／多版本／實體板件自動化簽核候選
 
+## CURRENT｜2026-10-23 #1504 AC-20／SWT-13 原生品牌預告交易自動化範圍簽核候選（36 → 38）
+
+- GitHub `localX@0c9aa8bb31c59e4f6022b145614958676f7221dd` 已合併 [PR #2089](https://github.com/looaeedr/whd/pull/2089)：原 NFB 編輯器不再隱藏本層／單顆品牌下拉，確定與取消沿用既有唯一 NFB 品牌繼承權威，無顆位時不能留下假選單值。
+- exact PR HEAD `7b71a8018e5ea087d9bc805029c77b5e036c4c41` 的 [Product Regression](https://github.com/looaeedr/whd/actions/runs/39960281061) Preflight／Shard 0、1、2／Canonical、[Tk Performance](https://github.com/looaeedr/whd/actions/runs/39960281243) 全 SUCCESS。Shard 1 真執行 `test_ac20_original_inner_tk_layer_brand_cancel_confirm_undo` 與 `test_swt13_original_inner_tk_unit_cancel_and_same_brand_override` 均 PASSED。
+- **NFB-AC-20／SWT-AC-13 的本次簽核候選僅限**：現行 CSV V5、原生 Tk 單只上游品牌、原編輯器層／顆顯示與事件，待重選數量預告、取消不變、確定保留原來源、復原、同值覆寫保留身份及製造 fail-closed。**36 → 38** 需此簽核分支 exact HEAD full Product CI GREEN、合併 localX 與 SHA readback 才生效。
+- 88 AC 原始文字／source SHA 不改。兩份原始 Windows 專案 GUI→存檔重開→2D/3D/MARKING→DXF／Q 端到端、完整製造／焊接未驗；其餘 **50** 項不冒簽。正式 X 只准明確 `/推推`。
+
+
 ## CURRENT｜2026-10-23 #1504 AC-21／SWT-14 真 Tk 版本品牌候選簽核（34 → 36）
 
 - GitHub `localX@61fbdf3654247e0aac0cea85c4f193988096a4c6` 已合併 [#2086](https://github.com/looaeedr/whd/pull/2086)，原 PR `04945f0c` exact HEAD：Preflight、Shard 0/1/2、Canonical、效能基準全 SUCCESS。
