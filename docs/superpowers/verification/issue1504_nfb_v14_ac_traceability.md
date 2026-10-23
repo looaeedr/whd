@@ -1,3 +1,10 @@
+## CURRENT｜2026-10-23 NFB-AC-09 獨立修復分支自動化簽核候選
+
+- 現行數值 CSV V5 之已提交 NFBConfig 經 .p6fold Save→Reload、兩連真實 FinalScene 逐顆失效、原 NFB 清單、原 GUI 頭蓋獨立出圖及底板／EAR 真製造 DXF 守衛正反向斷言；AC 原文與來源 SHA 均保持原狀。
+- 主要證據：`tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac09_original_gui_selected_head_uses_isolated_current_bay_preview`，並有各 Bay CSV 失效、獨立物理板件／真 DXF 零輸出負例。
+- 本 **Draft 分支** AC-09 當期自動化驗收範圍列為 33/88 候選，剩 55 項；仍需 exact HEAD CI 全綠。使用者指示暫不合併 GitHub `localX`，故 **localX 正式整合矩陣仍 32/88**。
+- AC-24 保留未簽：不能用逐顆 CSV 來源可讀誤代替原製造 CUTTING/CHECK-Q 的逐顆最終認證。原兩份 Windows 舊案完整 GUI UAT、整箱製造亦未冒稱完成。
+
 ## CURRENT｜2026-10-23 #1504 NFB-AC-47 關閉未提交草稿與取消確認（exact CI 後生效）
 
 - 原 UI-1A standalone NFB 面板只有**實際修改**才須確認捨棄：草稿選型、層數、內門/NFB 共用層高和型號。單純查看 DXF 預覽不是修改，不再誤跳確認。
@@ -183,7 +190,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-06 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（取消 Undo）／MFG-1（幾何違法） | 離開／取消／Undo 不漏出暫存變更；範圍／碰撞非法時保留上次合法配置。 |
 | NFB-AC-07 | #1500 | BLOCKED_1500_REAL_GUI | UI-1B | Bay 複製需覆寫確認、整組深複製；來源及目標之後獨立。 |
 | NFB-AC-08 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B | 數量模式不同 `version_id` 可保存不同 NFB；版本增刪／切換／深複製／重讀均保持身份。 |
-| NFB-AC-09 | #1498、#1499 | EVIDENCE_CANDIDATE_ONLY | UI-1B（重載）／MFG-1（板件守衛） | 已經合法提交但後續因板件未完成或來源失效而未驗證的草稿可 Save→Reload；只阻斷真正依賴 NFB 缺項的物理板件，列明 Set／Bay／版本／層／顆與原因；不連坐同 Bay 無關板件。 |
+| NFB-AC-09 | #1498、#1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B（重載）／MFG-1（板件守衛） | 已經合法提交但後續因板件未完成或來源失效而未驗證的草稿可 Save→Reload；只阻斷真正依賴 NFB 缺項的物理板件，列明 Set／Bay／版本／層／顆與原因；不連坐同 Bay 無關板件。 |
 | NFB-AC-10 | #1494、#1495 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（名義顯示）／MFG-1（物理投影） | 1100 高 Y=550 或 290/790；表列已證實的 X 孔距正確；其他高度／寬度不能推測。 |
 | NFB-AC-11 | #1496、#1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-1（主孔）／MFG-2（其餘來源組） | 真實來源 ARC、CIRCLE、多 layer／entity color、上下資料組皆完整識別；主開孔 pivot 正確。 |
 | NFB-AC-12 | #1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-2 | 同顆跨板件孔／打標有穩定關聯，所有合法製造圖元位於正確實體板件，不被當成一張板。 |
