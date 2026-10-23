@@ -97,7 +97,8 @@ class NfbDxfSourcePreviewPanel:
             self.identity.set(f"{brand}｜{spec.model}｜開孔 {spec.opening_mm or '未知'}")
             missing="、".join(spec.missing_fields)
             self.reason.set("V5 數值孔位（未經實體／製造驗證）"
-                            + (f"｜缺：{missing}" if missing else "｜數值齊全，仍不可製造"))
+                            + (f"｜缺：{missing}｜禁止製造"
+                               if missing else "｜數值齊全，仍不可製造"))
             self.paint()
             return
         self._numeric_mode=False

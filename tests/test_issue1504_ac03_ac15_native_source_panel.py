@@ -32,7 +32,8 @@ def test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write
         row["available"].event_generate("<<ListboxSelect>>")
         root.update()
         assert panel.identity.get().startswith("士林｜")
-        assert "僅預覽" in panel.reason.get() or "不可製造" in panel.reason.get()
+        assert ("禁止製造" in panel.reason.get()
+                or "不可製造" in panel.reason.get())
         assert panel._numeric_spec is not None
         assert panel.canvas.find_withtag("nfb-dxf")
         assert panel._numeric_zoom == 1.0
