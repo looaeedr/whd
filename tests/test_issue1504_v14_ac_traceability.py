@@ -120,7 +120,7 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
             assert r["accepted"] is False
         else:
             assert not r["blocking_issues"]
-    assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06"}
+    assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31"}
     assert rows["NFB-AC-30"]["blocking_issues"] == []
 
 
@@ -143,8 +143,8 @@ def test_manifest_review_summary_is_recomputed_from_records():
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
     assert counts["SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"] == 14
     assert counts["BLOCKED_1500_REAL_GUI"] == 17
-    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 28
-    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 25
+    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 26
+    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 27
 
 
 def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
@@ -190,10 +190,10 @@ def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
 def test_one_full_ac_requires_source_specific_runtime_witness_and_ci_selection():
     obj = _data()
     assert obj["exact_test_function_witnesses_review"].startswith(
-        "88/88 FUNCTION_IDENTITIES_VERIFIED; 25/88 FULL_AC_AUTOMATED_SIGNED"
+        "88/88 FUNCTION_IDENTITIES_VERIFIED; 27/88 FULL_AC_AUTOMATED_SIGNED"
     )
     signed = {r["id"]: r for r in obj["records"] if r["accepted"]}
-    assert set(signed) == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06"}
+    assert set(signed) == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31"}
     from tools.product_ci_regression import PYTEST_PATHS
     # Do not accept a filename or an unrelated witness.  Exact path, native
     # numeric CSV fail-closed and old source-scoped MFG1 preflight are mandatory.
@@ -240,7 +240,7 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
     assert "732-mm" in rule and "Do not infer plate X" in rule
     assert "remain unapproved" in rule
     assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
-    assert {r["id"] for r in obj["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06"}
+    assert {r["id"] for r in obj["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31"}
 
     # The human review must not silently retain an older X-centering claim.
     text = MANIFEST.with_suffix(".md").read_text(encoding="utf-8")
@@ -258,8 +258,8 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     assert d["counts"] == {
         "BLOCKED_1500_REAL_GUI": 17,
         "DEFERRED_PRODUCT_EVIDENCE": 4,
-        "EVIDENCE_CANDIDATE_ONLY": 28,
-        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 25,
+        "EVIDENCE_CANDIDATE_ONLY": 26,
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 27,
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     }
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
@@ -295,7 +295,7 @@ def test_current_csv_ear_and_true_skin_supersessions_never_mutate_original_ac():
     assert "PAD blank/material/thickness/Z/BOM" in rule
     assert "welding-workmanship certification" in source["cannot_be_inferred"]
     assert "full" not in d["review_status"].lower()
-    assert {r["id"] for r in d["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06"}
+    assert {r["id"] for r in d["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31"}
     # Historical original AC-13 falsely held Base Plate Z fixed; preserve
     # the original phrase for traceability and declare its current override.
     row = {r["id"]: r for r in d["records"]}
@@ -585,3 +585,70 @@ def test_ac32_visible_x_reset_undo_patch_is_not_falsely_full_gui_signed():
         "accepted": False,
     }]
     assert "true integrated Receiving NFB modal" in row["current_scope_remaining_evidence"]
+
+
+def test_ac54_swt31_current_v5_project_schema_exact_regression_and_no_old_binary_claim():
+    """A schema filename alone is not V5 end-to-end serialization proof."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py"
+    assert PYTEST_PATHS.count(path) == 1
+    source = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+    functions = {
+        node.name: node for node in source.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    names = {
+        "test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
+        "test_ac54_swt31_current_v5_quantity_upgrades_both_schemas_and_isolates_versions",
+        "test_ac54_swt31_legacy_reader_cannot_silently_drop_current_v5_submitted",
+        "test_ac54_swt31_legacy_quantity_schema_with_embedded_v5_rejected_without_mutation",
+        "test_ac54_swt31_current_v5_unsubmitted_retains_existing_schema_and_no_nfb_authority",
+    }
+    assert names.issubset(functions)
+    for name in names:
+        assert any(isinstance(n, ast.Assert) for n in ast.walk(functions[name]))
+        assert any(isinstance(n, ast.Call) for n in ast.walk(functions[name]))
+    rows = {row["id"]: row for row in _data()["records"]}
+    for key in ("NFB-AC-54", "SWT-AC-31"):
+        row = rows[key]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["identified_test_functions"] == [{
+            "path": path,
+            "test_name": "test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
+            "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+            "accepted": True,
+        }]
+        evidence = row["acceptance_evidence"]
+        for exact in (evidence["primary_assertion"],
+                      *evidence["other_required_assertions"]):
+            file_name, function = exact.split("::")
+            assert PYTEST_PATHS.count(file_name) == 1
+            defs = {
+                node.name: node for node in ast.parse(
+                    (ROOT / file_name).read_text(encoding="utf-8")
+                ).body if isinstance(node, ast.FunctionDef)
+            }
+            assert function in defs
+            # Explicit rejection tests use pytest.raises, not a literal
+            # 'assert'.  Require a real with-raises check rather than
+            # weakening the historical-schema negative witness gate.
+            body = defs[function]
+            direct = any(isinstance(n, ast.Assert) for n in ast.walk(body))
+            rejected = any(
+                isinstance(node, ast.With)
+                and any(
+                    isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Attribute)
+                    and item.context_expr.func.attr == "raises"
+                    and bool(item.context_expr.args)
+                    for item in node.items
+                )
+                for node in ast.walk(body)
+            )
+            assert direct or rejected, exact
+        assert evidence["external_historical_binary_read_executed"] is False
+        assert evidence["real_two_old_project_windows_gui_uat"] is False
+        assert evidence["factory_release"] is False
+        assert evidence["human_windows_uat_claimed"] is False
+        assert evidence["original_ac_text_unchanged"] is True

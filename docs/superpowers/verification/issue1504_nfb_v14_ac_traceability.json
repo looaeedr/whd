@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 28,
+    "EVIDENCE_CANDIDATE_ONLY": 26,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 25,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 27,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -1939,21 +1939,49 @@
         1499
       ],
       "regression_candidates": [
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py",
+          "test_name": "test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_primary_witness_before_20261023": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "acceptance_evidence": {
+        "scope": "Current V5 numeric CSV nfbv5:士林:2P400 identity and exact operator data: Set/Bay and quantity .p6fold write->raw JSON->read->write; only submitted scope promotes root project schema v3 and Quantity schema v2, unsubmitted remains root v2 and Quantity v1; legacy v1/v2 project schema downgrade blocked rather than silently drop NFB, legacy quantity schema rejects V5 submission; independent quantity versions and operator zero X, source brand, rotation, datum, physical-hole identity, other future operator fields retained; derived manufacturing readiness never persisted.",
+        "primary_assertion": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_quantity_upgrades_both_schemas_and_isolates_versions",
+          "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_legacy_reader_cannot_silently_drop_current_v5_submitted",
+          "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_legacy_quantity_schema_with_embedded_v5_rejected_without_mutation",
+          "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_unsubmitted_retains_existing_schema_and_no_nfb_authority",
+          "tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "external_historical_binary_read_executed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "NFB-AC-55",
@@ -3078,21 +3106,49 @@
         1499
       ],
       "regression_candidates": [
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py",
+          "test_name": "test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_primary_witness_before_20261023": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_old_schema_reader_must_not_silently_strip_new_nfb_scope",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "acceptance_evidence": {
+        "scope": "Current V5 numeric CSV nfbv5:士林:2P400 identity and exact operator data: Set/Bay and quantity .p6fold write->raw JSON->read->write; only submitted scope promotes root project schema v3 and Quantity schema v2, unsubmitted remains root v2 and Quantity v1; legacy v1/v2 project schema downgrade blocked rather than silently drop NFB, legacy quantity schema rejects V5 submission; independent quantity versions and operator zero X, source brand, rotation, datum, physical-hole identity, other future operator fields retained; derived manufacturing readiness never persisted.",
+        "primary_assertion": "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_quantity_upgrades_both_schemas_and_isolates_versions",
+          "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_legacy_reader_cannot_silently_drop_current_v5_submitted",
+          "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_legacy_quantity_schema_with_embedded_v5_rejected_without_mutation",
+          "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py::test_ac54_swt31_current_v5_unsubmitted_retains_existing_schema_and_no_nfb_authority",
+          "tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "external_historical_binary_read_executed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "SWT-AC-32",
@@ -3169,7 +3225,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 25/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 63 AC have partial, GUI, or deferred manufacturing evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 27/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 61 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
