@@ -369,3 +369,91 @@ def test_swt05_original_inner_tk_confirm_saves_candidate_not_manufacturing(monke
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_swt05_embedded_original_hole_editor_cancel_then_confirm_stages_only(monkeypatch):
+    """Original embedded tab routes to parent stage; never commits on tab confirm."""
+    from types import SimpleNamespace
+    import tkinter as tk
+    from tkinter import ttk
+    from ae_engine.receiving_layout import new_receiving_layout
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from gui_modules.application import fold_designer_composition_receiving as comp
+    from gui_modules.application import receiving_multi_settings_window as view
+
+    captured = {}
+    monkeypatch.setattr(
+        view, "open_multi_settings",
+        lambda _root, **kwargs: captured.update(kwargs) or object(),
+    )
+    root = tk.Tk()
+    root.withdraw()
+    adapter = ReceivingSetBayAdapter(
+        new_receiving_layout(width=800, height=1600, depth=350),
+    )
+    app = SimpleNamespace(
+        root=root,
+        _phase6_input_snapshot={"active_mode": "set_bay", "model": "受電箱"},
+        _settings_values={},
+        _phase6_box_whd={"w": 800, "h": 1600, "d": 350, "t": 2},
+        _phase6_endcap_bottom_wrap_state={},
+        designer_workspace=SimpleNamespace(active_mode="set_bay"),
+    )
+    assembly = SimpleNamespace(
+        app=app, receiving_layout_applicable=lambda: True,
+        receiving_adapter=lambda _ns: adapter,
+        receiving_switch_adapter=lambda _ns: SimpleNamespace(brand="士林"),
+        corner_transaction_payload=lambda _ns: {},
+        collect_workspace_state=lambda _ns: {},
+    )
+    comp.open_receiving_multi_settings(assembly, "test")
+    editor = captured["get_inner_candidate_ports"]()["edit"]
+    parent = tk.Toplevel(root)
+    parent._receiving_settings_mode = "single"
+    staged, saved, closed = [], [], []
+    parent._receiving_stage_config = lambda config, holes: staged.append(
+        (deepcopy(config), holes)
+    )
+    parent._receiving_pending_features = lambda: ()
+    container = ttk.Frame(parent)
+    container.pack(fill="both", expand=True)
+    original = deepcopy(app._phase6_input_snapshot)
+    try:
+        first = editor("inner-door", None, lambda version: saved.append(version),
+                       embed_parent=container,
+                       after_closed=lambda: closed.append(True))
+        root.update()
+        assert first.winfo_exists()
+        assert first._receiving_inner_switch_state["direct_to_drawing"] is True
+        assert first._receiving_inner_switch_state["rows"][0]["assigned"].size() >= 1
+        assert "X 基準未定" in first._receiving_inner_switch_state["nfb_draft_status"].get()
+        assert "僅預覽" in first._receiving_inner_switch_state["nfb_draft_status"].get()
+        _button(first, "取消").invoke()
+        root.update()
+        assert not first.winfo_exists()
+        assert closed == [True]
+        assert not staged and not saved
+        assert app._phase6_input_snapshot == original
+        assert KEY not in app._phase6_input_snapshot
+
+        second = editor("inner-door", None, lambda version: saved.append(version),
+                        embed_parent=container)
+        root.update()
+        assert second._receiving_inner_switch_state["rows"][0]["assigned"].size() >= 1
+        _button(second, "確定").invoke()
+        root.update()
+        assert not second.winfo_exists()
+        assert len(staged) == 1
+        config, features = staged[0]
+        assert config["layers"] == 1
+        assert features and all(feature.source_type == "NFB_CSV_SOURCE"
+                                for feature in features)
+        assert saved == [None]
+        # Confirm on the tab is staging only; the parent Hole Editor owns final
+        # application. The project state and factory release remain untouched.
+        assert app._phase6_input_snapshot == original
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if parent.winfo_exists():
+            parent.destroy()
+        root.destroy()
