@@ -795,7 +795,7 @@
         },
         {
           "path": "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py",
-          "test_name": "test_all_three_real_gui_nfb_source_call_sites_use_same_active_mode_owner",
+          "test_name": "test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner",
           "witness_scope": "SOURCE_BINDING_FIX_NOT_FULL_GUI_VERSION_DEFAULT_SIGNOFF",
           "accepted": false
         }
@@ -2624,7 +2624,7 @@
         },
         {
           "path": "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py",
-          "test_name": "test_all_three_real_gui_nfb_source_call_sites_use_same_active_mode_owner",
+          "test_name": "test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner",
           "witness_scope": "SOURCE_BINDING_FIX_NOT_FULL_GUI_VERSION_DEFAULT_SIGNOFF",
           "accepted": false
         }
