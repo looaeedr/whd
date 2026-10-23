@@ -1,3 +1,13 @@
+## 2026-10-24（台灣）｜#1504 Draft #2098｜NFB-AC-15 當期來源互動效能簽核候選（41→42，**不合 localX**）
+
+- 前一 HEAD `34049d8561d5a168d9df2fee4b8b5503b9f66c59` 的 [Product CI #39987562353](https://github.com/looaeedr/whd/actions/runs/39987562353) Preflight、Shard0/1/2、Canonical 全 SUCCESS（2063 passed / 0 failed），[Tk Baseline #39987562346](https://github.com/looaeedr/whd/actions/runs/39987562346) SUCCESS；AC-03 的 41/88 隔離來源範圍候選已獲完整 CI 證據。**此次 AC-15 新 commit 的 exact HEAD 要重新全 CI 驗證，不能沿用舊 SHA 冒簽。**
+- 原 AC-15 不改原文：僅選取高亮應不重建整箱 3D、不每次重讀來源，操作不應卡頓。已修原 Tk 層顆選取強制 CSV catalog reload、預覽每次重新 parse V5 CSV。當期新增 `test_ac15_original_tk_two_model_highlight_has_bounded_latency_no_full_3d`，在真原 NFB Tk 編輯器來回切換兩個實際 V5 型號 24 次，監控原 FinalScene renderer 入口不得進入、量測當期 warm-path median < 150 ms、P95 < 300 ms、僅首兩次讀 CSV，且工程與草稿不變。
+- 其他必要負向驗證：同來源重選不重讀 CSV、兩型號快取最多 8 筆、CSV 版本變更/刪除 fail closed、舊 DXF 缺失與多種圖元來源僅預覽。
+- 範圍嚴格限 **CURRENT CSV V5 原 Tk 來源選取及 Linux Xvfb 雲端效能**；一般 [#39987562346](https://github.com/looaeedr/whd/actions/runs/39987562346) Performance run 未提供原 DXF index/path，**不能冒稱舊 DXF 實測延遲**，不推論 Windows 真機、完整製造、未知 X/Y 或全箱性能。
+- 本獨立分支矩陣候選 **42 ACCEPTED_AUTOMATED_CURRENT_SCOPE／11 EVIDENCE_CANDIDATE_ONLY／17 GUI blocked／14 #1502 scoped／4 deferred = 88**。禁止合併 localX，正式 X 未發布；兩份核准來源原始 AC 與 SHA 不變、2026-10-22 稽核日期不變。#1504 OPEN。
+
+---
+
 ## 2026-10-23（台灣）｜#1504 獨立 Draft PR #2098｜AC-03 來源範圍簽核候選（40→41，未整合）
 
 - **隔離狀態**：使用者指示先不要合併 GitHub `localX`；本段為 `fix/issue1504-ac03-ac15-current-v5-signoff-20261023` 的**候選**，必須 exact HEAD Product Regression 全綠才能簽，未合併前不計入 `localX` 已核銷 40/88。
