@@ -128,7 +128,7 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         # Add a second layer in-memory; the preview must change before saving.
         next(
             radio for radio in _radios(modal)
-            if radio.cget("text") == "2" and radio.cget("value") == "2"
+            if radio.cget("text") == "2" and str(radio.cget("value")) == "2"
         ).invoke()
         root.update()
         assert new_state["layers"].get() == 2
