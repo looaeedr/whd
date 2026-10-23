@@ -113,9 +113,13 @@ def _reloaded_project(snapshot, tmp_path):
     assert result["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] == original_config
     assert result["nfb_config"]["holes"] == original_config["holes"]
     assert physical == snapshot
-    # Selection is a runtime-only UI state and must not be serialized.
-    assert "_receiving_runtime_selection" not in result
-    result["_receiving_runtime_selection"] = deepcopy(
+    # The saved file must not carry a stale runtime selection.  The CURRENT
+    # project reader deliberately reprojects the primary Set/Bay identities
+    # into an in-memory runtime selection on reload.  Verify both halves.
+    import json
+    encoded = json.loads(stored)
+    assert "_receiving_runtime_selection" not in encoded["snapshot"]
+    assert result["_receiving_runtime_selection"] == (
         physical["_receiving_runtime_selection"]
     )
     assert result["nfb_config_submitted"] is True
