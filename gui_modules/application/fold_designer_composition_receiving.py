@@ -3129,6 +3129,29 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             has_base_source = True
                 except (ValueError, TypeError, KeyError, IndexError):
                     pass  # Missing source is DRAFT, never an invented plate.
+                # The same current Bay FinalScene used by the original
+                # partial-DXF action identifies truly unrelated physical
+                # sheets. It is never a manufacturing authorization. Use
+                # the candidate-layout virtual cache rather than resynthesizing
+                # unrelated parts from model names or an older Bay.
+                from ae_engine.receiving_nfb_v5_diagnostics import (
+                    actual_unrelated_nfb_scene_parts,
+                )
+                unrelated = ()
+                try:
+                    actual = self.receiving_bay_preview_request(
+                        namespace, set_index, bay_index,
+                        preview_layout=adapter.layout,
+                    )
+                    unrelated = actual_unrelated_nfb_scene_parts(
+                        actual.render_data.assembly_parts,
+                        dependent_part_ids=tuple(dependent),
+                    )
+                except (ValueError, TypeError, KeyError, IndexError,
+                        AttributeError, OSError):
+                    # Fail closed: when current FinalScene cannot be resolved,
+                    # do not claim any unrelated physical sheet was inspected.
+                    unrelated = ()
                 v5 = current_v5_nfb_diagnostics(
                     bay,
                     set_id=str(owner["stable_id"]),
@@ -3137,6 +3160,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         owner, bay_index, "inner_door_version_id",
                     ),
                     dependent_part_ids=tuple(dict.fromkeys(dependent)),
+                    unaffected_part_ids=unrelated,
                     missing_required_physical_roles=tuple(
                         role for role, sourced in (
                             ("INNER_DOOR", has_door_source),
