@@ -88,7 +88,7 @@ def _expect_current(row, world_x):
     assert "nfb_trial_export_approved" not in hole
 
 
-def test_ac54_swt31_current_v5_submitted_set_bay_upgrades_root_and_preserves_all_operators(
+def test_ac54_swt31_current_v5_submitted_set_bay_schema_upgrades_root_and_preserves_all_operators(
     tmp_path,
 ):
     layout = update_receiving_bay(
