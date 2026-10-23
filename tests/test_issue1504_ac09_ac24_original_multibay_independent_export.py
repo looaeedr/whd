@@ -80,7 +80,7 @@ def test_ac24_actual_head_is_not_inferred_from_unrendered_nfb_part(tmp_path):
                                            if p.part_key!="head"))
         return geom
     root=tmp_path/"unverified-head"
-    with pytest.raises(ValueError,match="CSV|SOURCE|NO_SELECTED|NO_SELECTED_PHYSICAL"):
+    with pytest.raises(ValueError,match="INDEPENDENT_PHYSICAL_SOURCE_MISSING"):
         export_current_receiving_multibay_dxf(
             source,physical_bay_geometry_provider=missing_head,
             flags=_flags(box_body=False,head=True,tail=False,door=False,
