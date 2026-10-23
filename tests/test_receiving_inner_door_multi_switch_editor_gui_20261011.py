@@ -109,7 +109,7 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         assert first["assigned"].get(0, tk.END) == ("A", "B", "A")
 
         confirm = next(b for b in _buttons(modal)
-                       if b.cget("text") == "確認")
+                       if b.cget("text") == "確定")
         confirm.invoke()
         root.update()
         assert saved_ids == ["inner-door-v1"]
@@ -150,7 +150,7 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         assert new_state["rows"][0]["available"].get(0, tk.END) == ("A", "C")
         assert new_state["rows"][0]["assigned"].get(0, tk.END) == ("A", "B", "A")
         next(b for b in _buttons(modal)
-             if b.cget("text") == "確認").invoke()
+             if b.cget("text") == "確定").invoke()
         root.update()
         assert "已不在廠牌 CSV" in new_state["warning"].get()
         assert inner_config(app._phase6_input_snapshot[KEY], saved_ids[0])["models"][0] == [
