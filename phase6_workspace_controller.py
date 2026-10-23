@@ -225,6 +225,17 @@ class Phase6WorkspaceController:
         self._assembly_placements = self._clone(dict(value or {}))
         return self.assembly_placements_snapshot()
 
+    def update_custom_part_metadata(self, key: str, **changes) -> bool:
+        """Commit Designer-edited custom metadata to the shared Workspace owner.
+
+        Metadata-only edits must not replace QuantityModel versions, change
+        the selected part, or invalidate cabinet manufacturing geometry.
+        """
+        changed = self._shared_state.update_custom_part(key, **changes)
+        if changed:
+            self._authoritative = True
+        return changed
+
     def part_features_snapshot(self) -> dict[str, list]:
         result = self._clone(getattr(self, "_part_features", {}))
         if self._quantity_model is not None:
