@@ -4,7 +4,7 @@
 - 已將 `nfb_physical_layers` 改為原 `layers` 的**同物件相容別名**，移除隱藏物理層控制、反覆雙向同步和永不成立的層數相異守衛；原內門版本層數 radio 單一可寫，候選資料／草稿／Undo／確定皆由這個值推導。沒有新增規則、欄位或製造權威。
 - 多連設定舊 `內門層數` 的獨立下拉寫入也已停止掛載；保留「內門版本」的原編輯/版本管理與既有連動操作。從原 NFB 配置編輯器選 1／2 層，是唯一主動改值入口。
 - 新 `tests/test_issue1504_unified_inner_nfb_layer_count.py` 從真原 UI AST 檢查只有一組層數 radio、實際 Tk IntVar 改值與 UI-1A 草稿 Undo，並加入 CI。**不要把本來就相同的層數拆成第二項驗證或第二個入口。**
-- #2077 前一輪因 3 個簽核表 hard-coded signed-set 忘記同步 `NFB-AC-01` 而 CI 紅燈（雖 PR 被合併）；本次必以 exact HEAD 完整 Product Regression GREEN 修正／確認。矩陣依現行為 30/88，SWT-AC-01 保留其原 AC 原文，不額外新增「第二種安裝層」驗收條件。
+- #2077 前一輪因 3 個簽核表 hard-coded signed-set 忘記同步 `NFB-AC-01` 而 CI 紅燈（雖 PR 被合併）；本次必以 exact HEAD 完整 Product Regression GREEN 修正／確認。矩陣若 exact Product Regression 五階段全綠並合入 localX 回讀，從 30/88 簽成 **31/88**；SWT-AC-01 是原單一層數項目，不額外新增「第二種安裝層」驗收條件。
 
 ---
 whd_doc_role: REFERENCE
@@ -225,7 +225,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-54 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B（Save／Reload／降級回歸） | 有已提交 scope 時升根 `.p6fold` 與 quantity payload schema；舊版依凍結支援 schema 清單拒載新版本，不吞未知欄位後產出完整 DXF；全部未提交工程仍保留本功能無關的舊 schema 相容。 |
 | NFB-AC-55 | #1496、#1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-1（盤點／守衛）／UI-1B（告知）／MFG-2（正式加工） | 逐型號盤點真實 NFB DXF 的 Color 30／150／212 與來源可解析狀態，交付有／無／未知數量（未取得原 DXF 前不得填 0）；MFG-2 未完成時 Color 30／150 受影響底／中板保持阻斷並列於提交提醒與部分匯出清單。 |
 | NFB-AC-56 | #1500 | BLOCKED_1500_REAL_GUI | UI-1B | UI-1B 不提供「忽略草稿強制舊式內門出圖」覆寫；可以撤銷提交、還原未配置並 Undo。 |
-| SWT-AC-01 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 單一可寫 NFB 安裝層數入口，與既有本套品牌 UI 一致；金庫型不出現 NFB 專屬規則。 |
+| SWT-AC-01 | #1491 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A | 單一可寫 NFB 安裝層數入口，與既有本套品牌 UI 一致；金庫型不出現 NFB 專屬規則。 |
 | SWT-AC-02 | #1495 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（名義）／MFG-1（投影） | 上層 1100：一層每顆共用名義 Y=550、兩層上 Y=290／下 Y=790；非 1100 顯示未定，不偷用公式。 |
 | SWT-AC-03 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A | 每層多顆有獨立身份與型號、順序、X 位移及旋轉設定；既有中心距只於有效規格組合使用。 |
 | SWT-AC-04 | #1491、#1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（繼承）／UI-1B（保存） | 品牌繼承 A：只更新跟隨者，保留覆寫；當生效廠牌與舊檔不合，顯示待重選，不能默默替換。 |
@@ -322,7 +322,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-54 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-55 | `tests/test_issue1496_nfb_source_inventory_report.py::test_complete_per_brand_audit_has_exact_links_and_null_unknown` | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC |
 | NFB-AC-56 | `tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy` | BLOCKED_1500_REAL_GUI |
-| SWT-AC-01 | `tests/test_issue1491_nfb_ui1a.py::test_no_unapproved_geometry_or_persistence_fields` | EVIDENCE_CANDIDATE_ONLY |
+| SWT-AC-01 | `tests/test_issue1491_nfb_ui1a.py::test_no_unapproved_geometry_or_persistence_fields` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-02 | `tests/test_issue1504_current_nfb_y_ac10_swt02.py::test_swt_ac02_legacy_nominal_and_unknown_non1100_y_never_guess` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-03 | `tests/test_issue1504_swt03_nfb05_current_unit_rotation.py::test_swt_ac03_current_csv_units_keep_independent_identity_model_x_and_rotation` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-04 | `tests/test_issue1504_brand_inheritance_current_csv.py::test_swt_ac04_spoofed_catalog_and_stale_csv_never_relabel_v5_source` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
