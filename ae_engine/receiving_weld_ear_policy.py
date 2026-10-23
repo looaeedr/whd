@@ -50,6 +50,8 @@ def receiving_source_fixing_pitch_x_mm(
     For W800/T2: inside side skins at +/-398, source slot centre 63 from
     each inside skin, so X = +/-335 and pitch = 670. No bend compensation.
     """
+    if isinstance(box_outer_width_mm, bool) or isinstance(box_side_thickness_mm, bool):
+        raise ValueError("Receiving cabinet width and side thickness must not be boolean")
     w, side_t = float(box_outer_width_mm), float(box_side_thickness_mm)
     if not all(isfinite(v) for v in (w, side_t)) or side_t <= 0:
         raise ValueError("Receiving cabinet width and side thickness must be finite and positive")
@@ -92,7 +94,7 @@ def resolve_receiving_large_weld_ear_fit(
         fixing_hole_pitch_x_mm, fixing_hole_pitch_y_mm,
         ear_weld_edge_to_hole_center_mm, ear_thickness_mm,
     )
-    if any(not isfinite(float(v)) for v in values):
+    if any(isinstance(v, bool) or not isfinite(float(v)) for v in values):
         raise ValueError("Receiving weld-ear dimensions must be finite")
     box_w, side_t, pitch_x, pitch_y, edge_to_hole, ear_t = map(float, values)
     if side_t <= 0 or ear_t <= 0 or edge_to_hole <= 0:
