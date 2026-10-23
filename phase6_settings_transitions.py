@@ -712,15 +712,23 @@ def family_model_transition(
     snapshot["model"] = target_model
     defaults: dict[str, object] = {}
     family_values: dict[str, object] = {}
+    target_family = cabinet_family_policy.canonical_family_name(target_model)
+    old_snapshot_family = cabinet_family_policy.canonical_family_name(
+        old_snapshot_model
+    )
 
     if (
         not new_editable
         and target_model
-        and target_model != old_snapshot_model
+        and target_family != old_snapshot_family
     ):
         runtime_presets = dict(snapshot.get("_runtime_family_presets") or {})
         preset_runtime = deepcopy(
-            dict(runtime_presets.get(target_model) or {})
+            dict(
+                runtime_presets.get(target_model)
+                or runtime_presets.get(target_family)
+                or {}
+            )
         )
         preset_base = dict(preset_runtime.get("settings") or {})
         if not preset_base:
@@ -745,7 +753,7 @@ def family_model_transition(
             if key != "ui_text_size"
         }
         snapshot.update(defaults)
-        if target_model == "受電箱":
+        if target_family == "受電箱":
             # A newly selected Family must immediately own one real CSV NFB,
             # its inner-door CUTTING and derived Base/EAR sources. This path
             # never runs for a saved project's load/reload normalization.
@@ -831,16 +839,21 @@ def family_model_transition(
         else deepcopy(dict(current_structure))
     )
 
-    if target_model == "受電箱" and current is not None:
-        if old_snapshot_model != "受電箱":
+    if target_family == "受電箱":
+        if old_snapshot_family != "受電箱" and current is not None:
             remember_structure = deepcopy(current)
         desired_structure = cabinet_family_policy.resolve_box_body_structure_state(
-            target_model, current
+            target_model,
+            current if old_snapshot_family == "受電箱" else current,
         )
-    elif old_snapshot_model == "受電箱":
+    elif old_snapshot_family == "受電箱":
         runtime_presets = dict(snapshot.get("_runtime_family_presets") or {})
         preset_runtime = deepcopy(
-            dict(runtime_presets.get(target_model) or {})
+            dict(
+                runtime_presets.get(target_model)
+                or runtime_presets.get(target_family)
+                or {}
+            )
         )
         previous = preset_runtime.get("box_body_structure")
         if previous is None:

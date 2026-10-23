@@ -190,7 +190,7 @@ def operator_part_label(
     door_match = re.fullmatch(r"door_c(\d+)_r(\d+)", key)
     if door_match:
         col, row = (int(door_match.group(1)), int(door_match.group(2)))
-        if model == "受電箱" and len(columns) == 1 and col == 1:
+        if model in ("受電箱", "RECEIVING") and len(columns) == 1 and col == 1:
             if row == 1:
                 return "上門"
             if row == 2:
@@ -200,7 +200,7 @@ def operator_part_label(
     base_match = re.fullmatch(r"base_plate_c(\d+)_r(\d+)", key)
     if base_match:
         col, row = (int(base_match.group(1)), int(base_match.group(2)))
-        if model == "受電箱" and len(columns) == 1 and col == 1:
+        if model in ("受電箱", "RECEIVING") and len(columns) == 1 and col == 1:
             if row == 1:
                 return "上門底板"
             if row == 2:

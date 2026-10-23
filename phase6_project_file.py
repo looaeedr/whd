@@ -232,11 +232,15 @@ def _materialize_project_snapshot(snapshot):
     result = _normalize_authoritative_door_state(result)
     if is_receiving_snapshot(result):
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
+        base_without_door = {
+            k: v for k, v in result.items()
+            if k not in RECEIVING_DOOR_STATE_KEYS
+        }
         for selected in result["receiving_layout"]["sets"]:
             for bay in selected["bays"]:
                 if "door_state" not in bay:
                     continue
-                view = {**result, **bay["door_state"], "w": bay["width"], "h": bay["height"], "d": bay["depth"]}
+                view = {**base_without_door, **bay["door_state"], "w": bay["width"], "h": bay["height"], "d": bay["depth"]}
                 normalized = _normalize_authoritative_door_state(view)
                 bay["door_state"] = {key: deepcopy(normalized[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in normalized}
     from phase6_quantity_model import normalize_quantity_snapshot

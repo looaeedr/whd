@@ -134,6 +134,15 @@ class ReceivingModeSession:
             candidate["receiving_hole_candidates"] = normalize_candidates(
                 current["receiving_hole_candidates"]
             )
+        if "receiving_inner_door_candidates" in current:
+            from ae_engine.receiving_inner_door_candidates import (
+                normalize_inner_candidates,
+            )
+            candidate["receiving_inner_door_candidates"] = (
+                normalize_inner_candidates(
+                    current["receiving_inner_door_candidates"]
+                )
+            )
         self._buffers[self._mode] = current
         self._active = candidate
         self._mode = target

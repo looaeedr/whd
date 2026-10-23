@@ -57,7 +57,7 @@ def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
     from .contracts import ResolvedManufacturingGeometry
     if not isinstance(geometry, ResolvedManufacturingGeometry):
         raise ValueError("EAR_SIDE_CHECK_ACTUAL_MANUFACTURING_GEOMETRY_REQUIRED")
-    if (snapshot.get("model") != "受電箱"
+    if (snapshot.get("model") not in ("受電箱", "RECEIVING")
             or snapshot.get("nfb_config_submitted") is not True
             or len(tuple(dimensions or ())) != 3
             or float(snapshot["w"]) <= 0
@@ -143,6 +143,8 @@ def _readback_marking_lines(path, expected_segments):
         if match is None:
             raise ValueError("EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_MISSING")
         actual.pop(match)
+    if actual:
+        raise ValueError("EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA")
 
 
 def export_receiving_ear_side_check_only_dxf(

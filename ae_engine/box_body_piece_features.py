@@ -545,12 +545,21 @@ def resolve_box_body_piece_face_features(
         )
         for feature in face_features.get(face_key, ()):
             center = feature_finished_point(feature, float(d), float(h))
-            stores[piece.key].append(_resolve_feature_at_local_center(context, feature, center))
+            layered = _clip_layered_profile_feature(context, feature, center, piece)
+            if layered is not None:
+                stores[piece.key].extend(layered)
+                continue
+            resolved_feature = _resolve_feature_at_local_center(context, feature, center)
+            stores[piece.key].extend(
+                _clip_resolved_feature_to_piece(resolved_feature, piece, face_context=context)
+            )
 
     # Side-back mode owns one independent flat back panel.  Map back features
     # directly into its flat panel coordinate system using the same global WH face.
     if structure.structure_type is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-        back_piece = next(p for p in structure.pieces if p.role == "back")
+        back_piece = next((p for p in structure.pieces if p.role == "back"), None)
+        if back_piece is None:
+            return stores
         offset = float(back_piece.formed_w_start)
         panel_w = float(back_piece.formed_width)
         from .sheetmetal_features import BoxBodyFaceContext

@@ -36,7 +36,7 @@ def sync_fold_designer_manual_corner_context(host, active_part):
 
 
 def fixed_corner_summary(host, part_key, current_cabinet_type_name):
-    if current_cabinet_type_name == "受電箱" and part_key in {"head", "tail"}:
+    if current_cabinet_type_name in {"受電箱", "RECEIVING"} and part_key in {"head", "tail"}:
         joint_state = dict(getattr(host, "assembly_joint_state", {}) or {})
         bottom_relation = edge_relation_for_part(joint_state, part_key, "BOTTOM")
         if bottom_relation is AssemblyJointRelation.WRAP:

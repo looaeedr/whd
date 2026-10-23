@@ -60,7 +60,7 @@ def approved_nominal_y_mm(layer_count: int) -> tuple[float, ...]:
 def _inner_door_y_basis(snapshot: Mapping[str, object], inner_door_id: str):
     """Resolve real part/placement/core-band; reject unsupported datum changes."""
     data = dict(snapshot or {})
-    if str(data.get("model", "")).strip() != "受電箱":
+    if str(data.get("model", "")).strip() not in {"受電箱", "RECEIVING"}:
         raise ValueError("OPEN-Y-PROJECTION requires Receiving family")
     if not bool(data.get("multi_door_enabled")):
         raise ValueError("OPEN-Y-PROJECTION requires enabled Door topology")
