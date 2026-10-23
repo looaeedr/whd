@@ -67,6 +67,7 @@ def test_ac09_valid_real_numeric_csv_is_recheck_only_not_manufacturing_ready():
     assert view["set_id"]=="setA" and view["bay_id"]=="B1"
     assert view["version_id"]=="inner-door-v1"
     assert view["unit_rows"][0]["source_status"]=="SOURCE_PRESENT_RECHECK_ONLY"
+    assert view["unit_rows"][0]["configuration_verified"] is True
     assert view["unit_rows"][0]["reasons"]==()
     assert view["unit_rows"][0]["manufacturing_verified"] is False
     assert view["manufacturing_ready"] is False
@@ -92,6 +93,8 @@ def test_ac24_two_tiers_per_hole_reasons_do_not_hide_draft_or_other_part():
     assert [r["layer_index"] for r in view["unit_rows"]]==[0,1]
     assert [r["slot_index"] for r in view["unit_rows"]]==[0,0]
     assert view["unit_rows"][0]["reasons"]==()
+    assert view["unit_rows"][0]["configuration_verified"] is True
+    assert view["unit_rows"][1]["configuration_verified"] is False
     assert view["unit_rows"][1]["reasons"]==("NFB_WORLD_X_RECONFIRM_REQUIRED",)
     assert all(x["status"]=="BLOCKED" for x in view["part_rows"][:2])
     assert view["part_rows"][2]["status"]=="NFB_UNAFFECTED"
@@ -256,7 +259,11 @@ def test_ac09_missing_real_inner_or_base_source_remains_draft_after_valid_csv():
         )
         assert view["derived_state"]=="DRAFT"
         assert not view["manufacturing_ready"]
+        assert view["unit_rows"][0]["configuration_verified"] is False
+        assert view["unit_rows"][0]["source_status"]=="UNVERIFIED"
         for role in roles:
+            assert ("NFB_REAL_"+role+"_SOURCE_MISSING"
+                    in view["unit_rows"][0]["reasons"])
             assert "NFB_REAL_"+role+"_SOURCE_MISSING" in view["unresolved_dependencies"]
         assert view["part_rows"][0]["status"]=="BLOCKED"
         assert view["part_rows"][1]["status"]=="NFB_UNAFFECTED"
@@ -330,6 +337,73 @@ def test_ac24_real_scene_independence_requires_unique_current_rendered_part():
         actual_unrelated_nfb_scene_parts(
             scene.parts+(scene.parts[0],),dependent_part_ids=(),
         )
+
+
+def test_ac24_quantity_version_saved_reload_uses_selected_version_only(tmp_path):
+    from phase6_quantity_model import QuantityModel
+    from ae_engine.receiving_quantity_box import project_common_box
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+
+    quantity=QuantityModel()
+    first=quantity.selected_version_id
+    quantity.set_version_nfb_config(
+        first,submitted=True,config=_bay(version="one")["nfb_config"],
+    )
+    second=quantity.add_version()
+    quantity.set_version_nfb_config(
+        second,submitted=True,
+        config=_bay(version="two",state="RECONFIRM_REQUIRED")["nfb_config"],
+    )
+    source={"model":"受電箱","active_mode":"quantity",
+            "receiving_quantity_box":{"w":800,"h":1600,"d":350},
+            "quantity":quantity.snapshot()}
+    saved=read_project(write_project(tmp_path/"two-versions.p6fold",{
+        "schema":PROJECT_SCHEMA_V1,"snapshot":source,
+    }))["snapshot"]
+    original=deepcopy(saved)
+    seen={}
+    for vid in (first,second):
+        current=QuantityModel.from_payload(saved["quantity"])
+        current.select(vid)
+        project=project_common_box({
+            **saved,"quantity":current.snapshot(),
+        })
+        bay=project["receiving_layout"]["sets"][0]["bays"][0]
+        row=current_v5_nfb_diagnostics(
+            bay,set_id="quantity-current",bay_id=bay["stable_id"],
+            version_id=vid,
+            dependent_part_ids=("base_plate",),
+            unaffected_part_ids=("head",),
+        )
+        assert row["version_id"]==vid
+        assert row["nfb_config_submitted"] is True
+        assert row["manufacturing_ready"] is False
+        assert row["part_rows"][1]["status"]=="NFB_UNAFFECTED"
+        seen[vid]=row
+    assert seen[first]["derived_state"]=="CONFIGURED"
+    assert seen[first]["unit_rows"][0]["configuration_verified"] is True
+    assert seen[second]["derived_state"]=="DRAFT"
+    assert seen[second]["unit_rows"][0]["configuration_verified"] is False
+    assert seen[second]["unit_rows"][0]["reasons"]==(
+        "NFB_WORLD_X_RECONFIRM_REQUIRED",
+    )
+    assert seen[first]["unit_rows"][0]["physical_hole_id"]!=(
+        seen[second]["unit_rows"][0]["physical_hole_id"])
+    assert saved==original
+
+
+def test_ac24_conflicting_unit_certificate_is_rejected_by_gui():
+    current=_inspect(_bay())
+    unverified={**current,"unit_rows":(
+        {**current["unit_rows"][0],"configuration_verified":False},
+    )}
+    with pytest.raises(ValueError,match="verification/reasons mismatch"):
+        nfb_manifest_display_lines(unverified)
+    incorrect={**current,"unit_rows":(
+        {**current["unit_rows"][0],"manufacturing_verified":True},
+    )}
+    with pytest.raises(ValueError,match="cannot fake manufacturing approval"):
+        nfb_manifest_display_lines(incorrect)
 
 
 def test_ac24_forbid_forged_green_status_and_gui_source_is_connected():
