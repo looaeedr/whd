@@ -99,6 +99,8 @@ def export_current_receiving_multibay_dxf(
         only_independent=(
             bool(selected_logical)
             and all(p.part_key in unrelated for p in selected_logical)
+            and not any(bool(enabled) for key, enabled in flags.items()
+                        if key not in {"head", "tail", "door"})
         )
         if (is_csv and not only_independent
                 and not _submitted_csv_holes(source)):
