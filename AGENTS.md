@@ -70,7 +70,7 @@ whd_schema: WHD_DOC_META_V1
 - **GitHub 雙端回讀與本機獨立待辦**：確認 GitHub `HEAD(localX) == HEAD(X)` 且發布 PR merged、正式 GitHub Release/tag 已依原 gate 公開建立，才能回報 `OFFICIAL_RELEASED + LOCAL_SYNC_PENDING`（本機未知時）；未證實 Release 只能回報 `OFFICIAL_RELEASE_PENDING`，不得把 PR 合併當作最終完成。只有另有本機 SHA 實證時才可聲稱三方對齊；本機未同步不阻擋遠端發布，亦不重複索取 `/推推`、不 reset／force。
 - **通道不變**：治理／技能／非本體文件也由最新 GitHub `localX` 開分支、適用治理 CI 通過後 PR 合回 `localX`；正式 X 的產品／混合發布只需使用者當次 `/推推` 及受信任 gate，不要求另行 Windows UAT 證明。不得以過時治理直送 X 說明或 CoreELEC 副本繞過這條邊界。
 
-## 當次明確 GitHub-only 產品發布例外 `GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1`
+## 已退役的 GitHub-only 額外授權例外 `GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1`（歷史識別）
 
 此歷史名稱（`GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1`）保留供舊紀錄辨識，**不再要求 `/推推` 之外額外的 GitHub-only 口令**。現行 `/推推` 預設就是 GitHub-only：核對遠端 `localX` 已整合相應產品 PR、fresh head/base SHA、正式 X-only 治理歷史、GitHub owner exact `/推推` 留言、必跑 CI（含正式 X PR）與無衝突；來源 SHA 或產品範圍變動時重新核對測試和授權涵蓋範圍，禁止沿用不相符的舊證據。本機同步待辦不影響 GitHub 發布。
 
