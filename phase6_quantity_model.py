@@ -330,6 +330,13 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
     if for_save:
         for key in _SESSION_KEYS:
             result.pop(key, None)
+    # Capture canonical nested authority BEFORE scrubbing workspace's
+    # persistence-only aliases, otherwise quantity-version data disappears.
+    workspace_quantity = None
+    workspace_receiving_box = None
+    if isinstance(result.get("workspace"), Mapping):
+        workspace_quantity = result["workspace"].get("quantity")
+        workspace_receiving_box = result["workspace"].get("receiving_quantity_box")
     if for_save and isinstance(result.get("workspace"), Mapping):
         workspace = deepcopy(dict(result["workspace"]))
         for key in _SESSION_KEYS:
@@ -346,6 +353,10 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
         result.pop("receiving_quantity_box", None)
         return result
     payload = result.get("quantity")
+    if payload is None and workspace_quantity is not None:
+        payload = workspace_quantity
+    if receiving and result.get("receiving_quantity_box") is None and workspace_receiving_box is not None:
+        result["receiving_quantity_box"] = workspace_receiving_box
     if payload is None:
         if receiving:
             raise ValueError("受電箱數量模式必須由明確初始化的共用箱體與孔型版本建立")
@@ -399,11 +410,21 @@ def quantity_only_change(previous, current):
     old, new = deepcopy(dict(previous)), deepcopy(dict(current))
     changed = False
     for payload in (old, new):
-        workspace = payload.get("workspace") or {}
+        workspace = payload.get("workspace")
+        if workspace is not None and not isinstance(workspace, Mapping):
+            return False
+        workspace = workspace or {}
         if payload.get("active_mode", workspace.get("active_mode")) != QUANTITY_MODE:
             return False
+        top_q = payload.get("quantity")
+        nested_q = workspace.get("quantity")
+        if top_q is None and nested_q is None:
+            return False
         try:
-            QuantityModel.from_payload(payload.get("quantity") or workspace.get("quantity"))
+            if top_q is not None:
+                QuantityModel.from_payload(top_q)
+            if nested_q is not None:
+                QuantityModel.from_payload(nested_q)
         except (TypeError, ValueError):
             return False
     for before, after in ((old, new), (old.get("workspace") or {}, new.get("workspace") or {})):
