@@ -91,7 +91,7 @@ def test_set_bay_brand_owner_unchanged_by_quantity_entry_routing():
     assert "nfb_brand" not in layout["sets"][0]
 
 
-def test_all_three_real_gui_nfb_source_call_sites_use_same_active_mode_owner():
+def test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner():
     gui = (Path(__file__).resolve().parents[1] /
            "gui_modules/application/fold_designer_composition_receiving.py"
            ).read_text(encoding="utf-8")
@@ -108,6 +108,8 @@ def test_all_three_real_gui_nfb_source_call_sites_use_same_active_mode_owner():
     assert 'selected_brand=current_nfb_parent_brand(),' in inner
     assert 'set_brand=current_nfb_parent_brand(),' in inner
     assert 'current_owner = current_nfb_parent_brand()' in inner
+    assert 'selected_brand = current_nfb_parent_brand()' in inner
+    assert inner.count("current_nfb_parent_brand()") == 5
     assert 'self.receiving_switch_adapter(namespace).brand' not in inner
     # A branch-specific brand inference would produce two inconsistent lists
     # or overwrite a selected model's own V5 source identity. There is one
