@@ -167,6 +167,7 @@ PYTEST_PATHS = (
     "tests/test_issue1504_ac05_v5_physical_rotation_dxf.py",
     "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py",
     "tests/test_issue1504_ac32_nfb_x_impact_operator.py",
+    "tests/test_issue1504_ac32_original_inner_tk_x_undo.py",
     "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py",
     "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
     "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
