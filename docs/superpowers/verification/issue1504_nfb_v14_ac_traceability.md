@@ -7,6 +7,13 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-23，逐條實證簽核）
 
+## CURRENT｜2026-10-23 #1504 品牌繼承只有一套（修正先前過度設計推論；未簽核）
+
+- **規則只有一套**：`effective_nfb_layer_brand`／`effective_nfb_slot_brand` 按「本套／本配置 → 層 → 顆」運算；同值覆寫仍保留覆寫身份，換來源品牌的舊型號保留原來源並變為待重選。數量模式不需要第二套繼承、第二個全域 Set 品牌或任何寫死品牌。
+- 已修 **5 個真正取值錯誤**：受電箱內門 NFB 的首次 CSV 預設、編輯草稿建立、CSV 刷新、確認選型、內門型號合法性驗證都由同一 `current_nfb_parent_brand()` 取目前有效的資料作用範圍。套／連讀既有 Set 品牌；數量模式讀既有共用單箱體品牌，再統一送給同一草稿繼承運算。**不新增品牌資料欄位、schema 或重覆機制**。
+- `tests/test_issue1504_one_nfb_brand_rule_mode_projection.py` 在真士林／東元 CSV 型號與完整 Quantity 單箱體投影上核對本配置／本層／單顆各種覆寫及五個真 GUI 程式入口；仍未宣稱各版本在整個 GUI 切換、確認／取消後的權威完整簽核。
+- AC-21 與 SWT-14 **仍暫未簽核**，截至本輪 29／88：不得以「不同型號可各別儲存」推論已通過原始每版本品牌配置端到端 GUI 驗收；尚需真 GUI 測試。此修正沒有動正式 X、沒有使用 DC。
+
 ## CURRENT｜2026-10-23 #1504 AC-21／SWT-14 數量版本品牌權威缺口查核（保持未簽）
 
 - 已讀現行 `QuantityModel`、`receiving_quantity_box` 與 GUI 真入口：數量模式 `single_brand()` 仍取 `receiving_quantity_box.switch_brand`，`set_single_brand()` 更改的也只有**共用箱體**，而非選取中的單一孔型版本品牌預設；因此 AC-21／SWT-14 的「每版本本配置預設品牌」不能假借當期已通過的版本深複製測試冒簽。

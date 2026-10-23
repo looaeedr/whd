@@ -744,3 +744,31 @@ def test_ac21_swt14_current_v5_partial_witnesses_cannot_inflate_29_acceptances()
         assert all(w["accepted"] is False
                    for w in row["additional_partial_witnesses"])
         assert "receiving_quantity_box.switch_brand" in row["current_scope_remaining_evidence"]
+
+
+def test_unified_nfb_brand_rule_current_gui_entry_fix_does_not_fake_ac21_swt14_signoff():
+    """Same existing brand algorithm with mode-specific INPUT owner, not 2 rules."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py"
+    assert PYTEST_PATHS.count(path) == 1
+    funcs = {
+        node.name: node for node in ast.parse(
+            (ROOT / path).read_text(encoding="utf-8")
+        ).body if isinstance(node, ast.FunctionDef)
+    }
+    for name in (
+        "test_quantity_brand_projects_original_owner_to_same_nfb_layer_unit_rule",
+        "test_quantity_brand_override_reuses_existing_three_tier_rule_exactly",
+        "test_set_bay_brand_owner_unchanged_by_quantity_entry_routing",
+        "test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner",
+    ):
+        assert name in funcs
+        assert any(isinstance(n, ast.Assert) for n in ast.walk(funcs[name]))
+    rows={r["id"]:r for r in _data()["records"]}
+    for key in ("NFB-AC-21","SWT-AC-14"):
+        row=rows[key]
+        assert row["accepted"] is False
+        assert row["status"] == "EVIDENCE_CANDIDATE_ONLY"
+        assert len(row["identified_test_functions"]) == 1
+        assert "same effective_nfb_slot_brand" in row["current_scope_remaining_evidence"]
+        assert all(w["accepted"] is False for w in row["additional_partial_witnesses"])
