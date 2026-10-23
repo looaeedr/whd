@@ -268,22 +268,45 @@ def _scene_with_replaced_primary_cutting(scene, material):
     )
 
     primitives = tuple(getattr(scene, "primitives", ()) or ())
-    existing_hole_polys = []
-    seen_primary = False
-    for primitive in primitives:
+    has_segmented_cutting = any(
+        str(getattr(p, "layer", "")).upper() == "CUTTING"
+        and (
+            isinstance(p, LinePrimitive)
+            or (isinstance(p, PolylinePrimitive) and not p.closed)
+        )
+        for p in primitives
+    )
+    closed_cutting_polys = []
+    for index, primitive in enumerate(primitives):
         if (
             isinstance(primitive, PolylinePrimitive)
             and str(primitive.layer).upper() == "CUTTING"
             and primitive.closed
+            and len(primitive.points) >= 3
         ):
-            if not seen_primary:
-                seen_primary = True
-                continue
-            if len(primitive.points) >= 3:
-                try:
-                    existing_hole_polys.append(Polygon([(p.x, p.y) for p in primitive.points]))
-                except Exception:
-                    pass
+            try:
+                poly = Polygon([(p.x, p.y) for p in primitive.points])
+                if not poly.is_valid:
+                    poly = poly.buffer(0)
+            except Exception:
+                poly = None
+            closed_cutting_polys.append((index, poly))
+
+    primary_index = None
+    if closed_cutting_polys:
+        best_index, best_poly = max(
+            closed_cutting_polys,
+            key=lambda item: float(item[1].area) if item[1] is not None and not item[1].is_empty else -1.0,
+        )
+        if best_poly is not None and not best_poly.is_empty:
+            if not has_segmented_cutting or float(best_poly.area) > float(exterior.area) * 0.5:
+                primary_index = best_index
+
+    existing_hole_polys = [
+        poly
+        for index, poly in closed_cutting_polys
+        if index != primary_index and poly is not None and not poly.is_empty
+    ]
 
     new_interior_Loops = []
     for ring in getattr(exterior, "interiors", ()):
@@ -307,18 +330,24 @@ def _scene_with_replaced_primary_cutting(scene, material):
 
     out = DrawingScene()
     replaced = False
-    for primitive in primitives:
+    for index, primitive in enumerate(primitives):
         is_primary_cutting = (
-            not replaced
-            and isinstance(primitive, PolylinePrimitive)
-            and str(primitive.layer).upper() == "CUTTING"
-            and primitive.closed
+            index == primary_index
+            if primary_index is not None
+            else (
+                str(getattr(primitive, "layer", "")).upper() == "CUTTING"
+                and (
+                    isinstance(primitive, LinePrimitive)
+                    or (isinstance(primitive, PolylinePrimitive) and not primitive.closed)
+                )
+            )
         )
         if is_primary_cutting:
-            out.add(replacement)
-            for hole_loop in new_interior_Loops:
-                out.add(hole_loop)
-            replaced = True
+            if not replaced:
+                out.add(replacement)
+                for hole_loop in new_interior_Loops:
+                    out.add(hole_loop)
+                replaced = True
         elif isinstance(primitive, LinePrimitive) and str(primitive.layer).upper() == "BEND":
             raw_line = LineString([(float(primitive.p1.x), float(primitive.p1.y)), (float(primitive.p2.x), float(primitive.p2.y))])
             clipped = material.intersection(raw_line)
