@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-TAIPEI_TZ = ZoneInfo("Asia/Taipei")
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Mapping
+
+# Taiwan uses UTC+08:00 with no DST; avoid requiring IANA tzdata on Windows EXE.
+TAIPEI_TZ = timezone(timedelta(hours=8))
 
 from phase6_project_session import ProjectSession
 
