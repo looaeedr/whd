@@ -60,6 +60,8 @@ class NfbDxfSourcePreviewPanel:
             self.frame.configure(text="NFB 型號來源｜僅預覽")
             self._source_key=None
             self._numeric_spec=None
+            self._numeric_zoom=1.0
+            self._numeric_pan=(0.0,0.0)
             self.viewport.preview=None
             self.identity.set("空槽｜尚未選型")
             self.reason.set("空槽不是開孔；無製造幾何")
@@ -77,14 +79,21 @@ class NfbDxfSourcePreviewPanel:
                     raise ValueError("廠牌 CSV 已無此型號")
             except (ValueError,OSError,UnicodeError) as exc:
                 self._numeric_spec=None
+                self._source_key=None
                 self.viewport.preview=None
                 self.identity.set(f"{brand}｜{parsed[1] if parsed else filename}")
                 self.reason.set(f"V5 數值來源未定：{exc}｜禁止製造")
                 self.paint()
                 return
+            key=("v5",brand,filename,spec)
+            if key!=self._source_key:
+                # A new model's viewport must not inherit the old model's
+                # pan/zoom. Re-selecting the same model keeps operator view.
+                self._numeric_zoom=1.0
+                self._numeric_pan=(0.0,0.0)
             self._numeric_spec=spec
             self.viewport.preview=None
-            self._source_key=("v5",brand,filename,spec)
+            self._source_key=key
             self.identity.set(f"{brand}｜{spec.model}｜開孔 {spec.opening_mm or '未知'}")
             missing="、".join(spec.missing_fields)
             self.reason.set("V5 數值孔位（未經實體／製造驗證）"
