@@ -215,13 +215,41 @@ jobs:
         run: |
           set -euo pipefail
           python -c 'import ezdxf, matplotlib, pytest, shapely; print("CI_CANONICAL_IMPORTS_PASS")'
-      - name: Fetch every successful shard JUnit
+      - name: Fetch every successful shard JUnit (isolated bounded retries)
         if: needs.prepare.outputs.reuse != 'true'
-        uses: actions/download-artifact@v4
-        with:
-          pattern: whd-ci-shard-*
-          path: junit
-          merge-multiple: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p junit
+          # A combined actions/download-artifact request can lose one blob
+          # even when each shard uploaded a valid JUnit. Download by explicit
+          # artifact name from this exact run; never reuse another run's proof.
+          for shard in 0 1 2; do
+            ok=false
+            for attempt in 1 2 3; do
+              rm -f "junit/shard-${shard}.xml"
+              echo "CI_JUNIT_DOWNLOAD_START shard=${shard} attempt=${attempt}/3 run=${GITHUB_RUN_ID}"
+              if timeout 120s gh run download "${GITHUB_RUN_ID}" \
+                   --repo "${GITHUB_REPOSITORY}" \
+                   --name "whd-ci-shard-${shard}" --dir junit \
+                   && test -s "junit/shard-${shard}.xml"; then
+                ok=true
+                echo "CI_JUNIT_DOWNLOAD_PASS shard=${shard} attempt=${attempt}"
+                break
+              fi
+              echo "CI_JUNIT_DOWNLOAD_RETRY shard=${shard} attempt=${attempt}"
+              sleep "${attempt}"
+            done
+            if [ "${ok}" != true ]; then
+              echo "::error::CI_JUNIT_DOWNLOAD_FAILED shard=${shard} run=${GITHUB_RUN_ID}"
+              exit 1
+            fi
+          done
+          test -s junit/shard-0.xml
+          test -s junit/shard-1.xml
+          test -s junit/shard-2.xml
       - name: Merge and verify every canonical case and all 52 CPR/AC rows
         if: needs.prepare.outputs.reuse != 'true'
         shell: bash
