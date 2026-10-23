@@ -371,6 +371,11 @@ PYTEST_PATHS = (
     "tests/test_phase6_project_file.py::test_d2_02_snapshot_and_live_sync_preserve_door_distance_datum_and_per_cell_indicator_states",
     "tests/test_phase6_project_file.py::test_d2_03_fold_designer_part_spec_uses_per_cell_indicator_state_for_multi_door",
     "tests/test_phase6_project_file.py::test_d2_04_and_d2_05_timestamps_use_taipei_timezone",
+    # Bridge registry-choice NameError and Taipei diagnostics output must stay
+    # in the exact-head, no-skip product PR gate (not manual-only verification).
+    "tests/test_phase6_diagnostics_ownership.py",
+    "tests/test_issue446_registry_diagnostics_presentation_owner.py",
+    "tests/test_issue624_phase7_a7_bridge_residual_reduction.py::test_issue1221_registry_presentation_translation_is_panel_owned",
 )
 
 
