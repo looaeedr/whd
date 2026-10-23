@@ -483,3 +483,25 @@ def test_d1_12_calculate_z_length_and_y_depth_negative_inputs():
     y_pos = calculate_y_depth(ytop1=20.0, ybottom1=18.0, D_val=200.0, T_val=2.0, FW_val=25.0)
     y_neg = calculate_y_depth(ytop1=-20.0, ybottom1=-18.0, D_val=200.0, T_val=2.0, FW_val=-25.0)
     assert y_neg == pytest.approx(y_pos)
+
+
+@pytest.mark.parametrize("intent", ("INSERT", "INSERT_OVERLAY", "OVERLAY"))
+def test_d1_certified_default_graph_resolves_both_top_corners(intent):
+    """Do not silently replace certified Head/Tail relief with provisional 3D."""
+    from ae_engine.assembly_joint import (
+        apply_preset_defaults, resolve_actual_graph, _joint_region_matches_corner,
+    )
+    from ae_engine.corner_resolver import registry_intent_for_corner
+    from ae_engine.sheetmetal_geometry import CornerTypeId
+
+    assert _joint_region_matches_corner("top_edge", "top_left")
+    assert _joint_region_matches_corner("top_mating_zone", "top_right")
+    assert not _joint_region_matches_corner("top_edge", "bottom_left")
+    assert not _joint_region_matches_corner("bottom_mating_zone", "top_right")
+    assert not _joint_region_matches_corner("top_left", "top_right")
+
+    parts = ("box_body", "head", "tail")
+    graph = resolve_actual_graph(parts, apply_preset_defaults(intent, parts=parts))
+    for endcap in ("head", "tail"):
+        for corner in ("top_left", "top_right"):
+            assert registry_intent_for_corner(graph, endcap, corner) is CornerTypeId(intent)
