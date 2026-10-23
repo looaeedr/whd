@@ -171,6 +171,7 @@ PYTEST_PATHS = (
     "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
     "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
     "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py",
+    "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py",
     "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
     "tests/test_issue1504_brand_inheritance_current_csv.py",
     "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
