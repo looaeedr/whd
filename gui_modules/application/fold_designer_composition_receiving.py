@@ -1515,8 +1515,17 @@ def _open_common_box(self, namespace):
         source = _current_mode_snapshot(self, namespace)
         candidate = update_common_box(source, changes)
         _apply_mode_snapshot(self, namespace, candidate)
+        from .receiving_settings_preview_2d import CommittedPreviewError
         for listener in tuple(listeners):
-            listener()
+            try:
+                listener()
+            except CommittedPreviewError:
+                # The committed edit is valid but its current NFB source may
+                # require model reselection. The view already invalidated all
+                # stale geometry and reported the exact reason. Keep Common
+                # Box editable for repair; never turn this into a manufacturing
+                # receipt or silently re-use the previous drawing.
+                continue
     def dimensions(width, height, depth, door_columns=None):
         changes = {"w": width, "h": height, "d": depth}
         if door_columns is not None:

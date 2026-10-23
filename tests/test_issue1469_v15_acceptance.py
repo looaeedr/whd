@@ -109,6 +109,11 @@ def test_selectable_family_save_reload_real_output_custom_bom(family, first_coun
             ports["change"]("inner_door_layers", 2)
             ports["brand"]("東元")
             root.update()
+            # Old Quantity common-brand edit cannot rebrand an already saved
+            # Shihlin CSV model. No stale physical preview may be shown.
+            preview = win._phase6_receiving_preview_2d
+            assert not preview.requests
+            assert "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION" in preview.status.get()
             # #1331 defines switch-configuration layers, not sheet multiplicity.
             # Its future switch DXF is not an authority for inventing another door.
             assert ws.snapshot()["receiving_quantity_box"]["door_state"]["inner_doors"] == actual_doors
@@ -144,7 +149,9 @@ def test_selectable_family_save_reload_real_output_custom_bom(family, first_coun
             # certification: the physical EAR mating/offset still blocks a
             # full batch. Reject without writing partial customer DXFs.
             assert not exported
-            assert any("EAR_RECEIPT_BASE_NOT_OFFSET_PLACED" in str(p)
+            # A stale inherited numeric V5 model fails even before the
+            # independent EAR mating guard. Keep zero DXF and exact reason.
+            assert any("NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION" in str(p)
                        for p in problems), problems
             assert ws.snapshot() == before and path.read_bytes() == saved
             return
