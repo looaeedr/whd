@@ -760,7 +760,7 @@ def test_unified_nfb_brand_rule_current_gui_entry_fix_does_not_fake_ac21_swt14_s
         "test_quantity_brand_projects_original_owner_to_same_nfb_layer_unit_rule",
         "test_quantity_brand_override_reuses_existing_three_tier_rule_exactly",
         "test_set_bay_brand_owner_unchanged_by_quantity_entry_routing",
-        "test_all_three_real_gui_nfb_source_call_sites_use_same_active_mode_owner",
+        "test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner",
     ):
         assert name in funcs
         assert any(isinstance(n, ast.Assert) for n in ast.walk(funcs[name]))
