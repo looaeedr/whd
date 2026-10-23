@@ -264,6 +264,14 @@ def _joint_region_matches_corner(joint_region: str, corner_region: str) -> bool:
     if stored == corner:
         return True
 
+    # Standard Head/Tail graph edges describe whole TOP/BOTTOM mating lines.
+    # They must participate in both physical corners on that end; otherwise
+    # resolving a certified TOP joint pattern wrongly falls back to 3D.
+    # Keep explicit corner regions strict and never match the opposite end.
+    for axis in ("top", "bottom"):
+        if stored in (f"{axis}_edge", f"{axis}_mating_zone"):
+            return axis in corner and (("bottom" if axis == "top" else "top") not in corner)
+
     def side_token(value: str) -> str | None:
         if "left" in value:
             return "left"
