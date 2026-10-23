@@ -61,18 +61,22 @@ class AnnotationLayoutResult:
 
 def _text_region(text: TextPrimitive) -> AnnotationRegion:
     # Deterministic engineering-text approximation.  This is layout geometry,
-    # not manufacturing geometry.  Attachment 5 is center/center in current
-    # annotation planner; other attachments use insertion as lower-left.
+    # not manufacturing geometry.  Supports MTEXT attachment points 1..9.
     height = max(float(text.char_height), 1e-9)
     width = max(height * 0.6 * max(len(str(text.text)), 1), height * 0.6)
     x = float(text.insert.x)
     y = float(text.insert.y)
-    if int(text.attachment_point) == 5:
+    attachment = int(text.attachment_point)
+    if 1 <= attachment <= 9:
+        column = (attachment - 1) % 3
+        row = (attachment - 1) // 3
+        x0 = x - (0.0, width / 2.0, width)[column]
+        y0 = y - (height, height / 2.0, 0.0)[row]
         return AnnotationRegion(
-            x - width / 2.0,
-            y - height / 2.0,
-            x + width / 2.0,
-            y + height / 2.0,
+            x0,
+            y0,
+            x0 + width,
+            y0 + height,
             "ANNOTATION_TEXT",
         )
     return AnnotationRegion(x, y, x + width, y + height, "ANNOTATION_TEXT")
@@ -178,13 +182,14 @@ def _annotation_dimension_line_regions(
             continue
         if not isinstance(primitive, LinePrimitive):
             continue
-        if str(primitive.layer).upper() != "DIMENSION":
+        layer = str(primitive.layer).upper()
+        if layer not in {"DIMENSION", "TEXT"}:
             continue
         rows.append(_line_region(
             primitive.p1,
             primitive.p2,
             max(float(clearance), 0.0),
-            "DIMENSION",
+            "LEADER" if layer == "TEXT" else "DIMENSION",
         ))
     return tuple(rows)
 
