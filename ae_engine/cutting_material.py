@@ -124,6 +124,21 @@ def material_from_cutting_components(*, primary, secondary=(), linework=()):
     elif linework:
         secondary.extend(_snapped_linework_polygons(linework, primary))
 
+    if primary is not None and secondary:
+        outer_candidates = [
+            polygon
+            for polygon in secondary
+            if not polygon.is_empty
+            and float(polygon.area) > float(primary.area) * (1.0 + 1e-6)
+            and polygon.buffer(1e-6).covers(primary)
+        ]
+        if outer_candidates:
+            new_primary = max(outer_candidates, key=lambda polygon: float(polygon.area))
+            secondary = [primary] + [
+                polygon for polygon in secondary if polygon is not new_primary
+            ]
+            primary = new_primary
+
     minx, miny, maxx, maxy = map(float, primary.bounds)
     sx, sy = max(1.0, maxx - minx), max(1.0, maxy - miny)
     tolx, toly = max(1e-6, sx * 1e-4), max(1e-6, sy * 1e-4)

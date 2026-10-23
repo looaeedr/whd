@@ -272,10 +272,15 @@ def ensure_receiving_layout(snapshot: Mapping[str, object] | None) -> dict[str, 
                         bay[f"{role}_features"] = deepcopy(source_features.get(role, []))
                 selected["settings"] = normalize_set_settings(None, template_bays)
     if "door_layout_columns" in result:
-        door_state = {key: deepcopy(result[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in result}
-        for selected in layout["sets"]:
-            for bay in selected["bays"]:
-                bay.setdefault("door_state", deepcopy(door_state))
+        # Legacy root door controls belong to the primary Bay only. They must
+        # neither overwrite an explicitly configured primary Bay nor broadcast
+        # to other Bays (including Bays without any door_state).
+        primary_bay = layout["sets"][0]["bays"][0]
+        if "door_state" not in primary_bay:
+            primary_bay["door_state"] = {
+                key: deepcopy(result[key])
+                for key in RECEIVING_DOOR_STATE_KEYS if key in result
+            }
     result["receiving_layout"] = layout
     return result
 
@@ -584,6 +589,38 @@ def project_receiving_bay_legacy_aliases(
         for key in RECEIVING_DOOR_STATE_KEYS:
             result.pop(key, None)
         result.update(deepcopy(bay["door_state"]))
+    else:
+        # A legacy root door source may explicitly describe a manufactured
+        # inner-door assembly even when Bay N has no saved door_state. Only in
+        # that fully sourced case should Bay N receive its own *transient*
+        # family-default geometry. A minimal/unconfigured old project must
+        # remain unconfigured: manufacturing cannot invent saved d/t authority.
+        has_manufacturing_door_source = (
+            bool(result.get("multi_door_enabled"))
+            and bool(result.get("door_layout_columns"))
+            and bool(result.get("inner_doors"))
+            and all(result.get(key) is not None for key in ("w", "h", "d", "t"))
+        )
+        for key in RECEIVING_DOOR_STATE_KEYS:
+            result.pop(key, None)
+        if has_manufacturing_door_source:
+            from ae_engine.cabinet_types import receiving
+            template = receiving.default_door_layout_columns()
+            default_height = sum(float(v) for v in template[0][1])
+            bay_height = float(bay["height"])
+            factor = bay_height / default_height
+            heights = [float(v) * factor for v in template[0][1]]
+            heights[-1] = bay_height - sum(heights[:-1])
+            result.update({
+                "multi_door_enabled": True,
+                "door_layout_scope": receiving.DEFAULT_DOOR_LAYOUT_SCOPE,
+                "door_layout_columns": [[float(bay["width"]), heights]],
+                "inner_doors": receiving.default_inner_doors(
+                    thickness=float(result["t"]),
+                    depth=float(bay["depth"]),
+                    frame_width=float(result.get("fw", receiving.BOX_BODY_DEFAULTS["fw"])),
+                ),
+            })
     for key in ("nfb_config_submitted", "nfb_config"):
         result.pop(key, None)
         if key in bay:

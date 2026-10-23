@@ -244,16 +244,15 @@ def registry_source_display(
     presentation_field="source",
 ):
     raw = str(value or "")
-    candidate = raw
+    candidate = _registry_operator_text(
+        raw, part_labels=part_labels
+    )
     for token, label in sorted(
         _REGISTRY_SOURCE_DISPLAY_TOKENS.items(),
         key=lambda item: len(item[0]),
         reverse=True,
     ):
         candidate = candidate.replace(token, label)
-    candidate = _registry_operator_text(
-        candidate, part_labels=part_labels
-    )
     for token, label in sorted(
         _REGISTRY_FORMULA_DISPLAY_TOKENS.items(),
         key=lambda item: len(item[0]),
@@ -274,26 +273,17 @@ def registry_source_display(
 
 def registry_source_raw(value, *, part_labels):
     text = str(value or "")
-    for raw, label in sorted(
-        _REGISTRY_SOURCE_DISPLAY_TOKENS.items(),
-        key=lambda item: len(item[1]),
-        reverse=True,
-    ):
-        text = text.replace(label, raw)
+    reverse_map: dict[str, str] = {}
+    for raw, label in _REGISTRY_SOURCE_DISPLAY_TOKENS.items():
+        reverse_map[label] = raw
+    for raw, label in REGISTRY_OPERATOR_LABELS.items():
+        if raw == "ENDS" and label in reverse_map:
+            continue
+        reverse_map[label] = raw
+    for raw, label in dict(part_labels or {}).items():
+        reverse_map[label] = raw
     for label, raw in sorted(
-        (
-            (label, raw)
-            for raw, label in REGISTRY_OPERATOR_LABELS.items()
-        ),
-        key=lambda item: len(item[0]),
-        reverse=True,
-    ):
-        text = text.replace(label, raw)
-    for label, raw in sorted(
-        (
-            (label, raw)
-            for raw, label in dict(part_labels or {}).items()
-        ),
+        reverse_map.items(),
         key=lambda item: len(item[0]),
         reverse=True,
     ):
@@ -450,9 +440,17 @@ class Phase6RegistryDiagnosticsPanel:
         def display_changed(*_args):
             if busy["value"]:
                 return
+            current_display = display_var.get()
+            if current_display in (
+                _REGISTRY_PRESENTATION_FALLBACK,
+                _REGISTRY_PRESENTATION_EMPTY,
+            ):
+                return
+            if current_display == to_display(raw_var.get()):
+                return
             busy["value"] = True
             try:
-                raw_var.set(to_raw(display_var.get()))
+                raw_var.set(to_raw(current_display))
             finally:
                 busy["value"] = False
 
@@ -593,18 +591,27 @@ class Phase6RegistryDiagnosticsPanel:
                 self.relief_registry_preconditions_var,
                 ",".join(str(v) for v in (raw.get("preconditions", ()) or ())),
             ),
+            (
+                self.relief_registry_symmetry_var,
+                raw.get("symmetry", "MIRROR_IF_GEOMETRY_SYMMETRIC"),
+            ),
             (self.relief_registry_source_var, str(raw.get("source", ""))),
         )
         for var, value in setters:
             var.set(str(value))
 
         sig = list(raw.get("joint_signature", ()) or ())
+        self.relief_registry_target_role_var.set(
+            str(sig[0].get("target_role", "BOX_SIDE")) if sig else "BOX_SIDE"
+        )
         extra = sig[1].get("relation") if len(sig) > 1 else "NONE"
         self.relief_registry_extra_joint_var.set(str(extra))
         if len(sig) > 1:
             self.relief_registry_extra_target_role_var.set(
                 str(sig[1].get("target_role", "REAR_PANEL"))
             )
+        else:
+            self.relief_registry_extra_target_role_var.set("REAR_PANEL")
         return raw
 
     def refresh_joint_rows(self, rows=None):

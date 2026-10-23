@@ -32,6 +32,7 @@ class PolylinePrimitive:
     layer: str
     closed: bool = False
     color: int | None = None
+    semantic_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -76,12 +77,12 @@ class DrawingScene:
     def extend(self, primitives) -> None:
         self.primitives.extend(primitives)
 
-    def add_polyline(self, points, *, layer: str, closed: bool = False, color: int | None = None) -> None:
+    def add_polyline(self, points, *, layer: str, closed: bool = False, color: int | None = None, semantic_id: str | None = None) -> None:
         if color is None:
             color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(layer)
         self.add(PolylinePrimitive(
             tuple(p if isinstance(p, Vec2) else Vec2(float(p[0]), float(p[1])) for p in points),
-            layer, bool(closed), color,
+            layer, bool(closed), color, semantic_id,
         ))
 
     def add_line(self, p1, p2, *, layer: str, color: int | None = None) -> None:

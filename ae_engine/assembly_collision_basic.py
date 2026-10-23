@@ -257,6 +257,7 @@ def _iter_line_geometries(geom):
 
 def _scene_with_replaced_primary_cutting(scene, material):
     from shapely.geometry import LineString, Polygon
+    from shapely.ops import polygonize, unary_union
     from .sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
     from .sheetmetal_geometry import Vec2
 
@@ -265,25 +266,96 @@ def _scene_with_replaced_primary_cutting(scene, material):
         points=_vec2_points_from_polygon_exterior(exterior),
         layer="CUTTING",
         closed=True,
+        semantic_id="OUTER_BOUNDARY",
     )
 
     primitives = tuple(getattr(scene, "primitives", ()) or ())
-    existing_hole_polys = []
-    seen_primary = False
-    for primitive in primitives:
+    has_segmented_cutting = any(
+        str(getattr(p, "layer", "")).upper() == "CUTTING"
+        and (
+            isinstance(p, LinePrimitive)
+            or (isinstance(p, PolylinePrimitive) and not p.closed)
+        )
+        for p in primitives
+    )
+    closed_cutting_polys = []
+    for index, primitive in enumerate(primitives):
         if (
             isinstance(primitive, PolylinePrimitive)
             and str(primitive.layer).upper() == "CUTTING"
             and primitive.closed
+            and len(primitive.points) >= 3
         ):
-            if not seen_primary:
-                seen_primary = True
-                continue
-            if len(primitive.points) >= 3:
-                try:
-                    existing_hole_polys.append(Polygon([(p.x, p.y) for p in primitive.points]))
-                except Exception:
-                    pass
+            try:
+                poly = Polygon([(p.x, p.y) for p in primitive.points])
+                if not poly.is_valid:
+                    poly = poly.buffer(0)
+            except Exception:
+                poly = None
+            closed_cutting_polys.append((index, poly))
+
+    # A scene may contain both a closed outline and a segmented copy of the
+    # *same* outline. Identify the original segmented exterior by polygonizing
+    # its edges, rather than deleting every CUTTING line (internal linework can
+    # describe real holes). Relief may trim the *new* exterior, so compare
+    # against the old exterior as a containing region.
+    segmented_lines = []
+    for index, primitive in enumerate(primitives):
+        if str(getattr(primitive, "layer", "")).upper() != "CUTTING":
+            continue
+        if isinstance(primitive, LinePrimitive):
+            coords = ((primitive.p1.x, primitive.p1.y), (primitive.p2.x, primitive.p2.y))
+        elif isinstance(primitive, PolylinePrimitive) and not primitive.closed:
+            coords = tuple((p.x, p.y) for p in primitive.points)
+        else:
+            continue
+        if len(coords) < 2 or len(set(coords)) < 2:
+            continue
+        segmented_lines.append((index, LineString(coords)))
+
+    segmented_polygons = tuple(
+        poly for poly in polygonize(unary_union([line for _, line in segmented_lines]))
+        if not poly.is_empty and float(poly.area) > 1e-9
+    ) if segmented_lines else ()
+    segmented_outer = (
+        max(segmented_polygons, key=lambda poly: float(poly.area))
+        if segmented_polygons else None
+    )
+    outer_segment_indices = set()
+    if segmented_outer is not None:
+        segmented_outer_exterior = Polygon(segmented_outer.exterior)
+        if segmented_outer_exterior.buffer(1e-6).covers(exterior):
+            boundary = segmented_outer_exterior.boundary.buffer(1e-6)
+            outer_segment_indices = {
+                index for index, line in segmented_lines if boundary.covers(line)
+            }
+
+    primary_index = None
+    if closed_cutting_polys:
+        best_index, best_poly = max(
+            closed_cutting_polys,
+            key=lambda item: float(item[1].area) if item[1] is not None and not item[1].is_empty else -1.0,
+        )
+        if best_poly is not None and not best_poly.is_empty:
+            # The largest closed shape can still be an interior cutout if
+            # the real exterior is segmented. Never promote it by area alone.
+            if (
+                str(getattr(primitives[best_index], "semantic_id", "") or "").upper() == "OUTER_BOUNDARY"
+                or best_poly.buffer(1e-6).covers(exterior)
+            ):
+                primary_index = best_index
+
+    existing_hole_polys = [
+        poly
+        for index, poly in closed_cutting_polys
+        if index != primary_index and poly is not None and not poly.is_empty
+    ]
+    # Existing linework holes remain linework, so don't emit a duplicate
+    # closed loop for the same material interior.
+    existing_hole_polys.extend(
+        poly for poly in segmented_polygons
+        if poly is not segmented_outer or not outer_segment_indices
+    )
 
     new_interior_Loops = []
     for ring in getattr(exterior, "interiors", ()):
@@ -307,18 +379,25 @@ def _scene_with_replaced_primary_cutting(scene, material):
 
     out = DrawingScene()
     replaced = False
-    for primitive in primitives:
+    for index, primitive in enumerate(primitives):
+        is_segmented = (
+            str(getattr(primitive, "layer", "")).upper() == "CUTTING"
+            and (
+                isinstance(primitive, LinePrimitive)
+                or (isinstance(primitive, PolylinePrimitive) and not primitive.closed)
+            )
+        )
         is_primary_cutting = (
-            not replaced
-            and isinstance(primitive, PolylinePrimitive)
-            and str(primitive.layer).upper() == "CUTTING"
-            and primitive.closed
+            index == primary_index
+            or index in outer_segment_indices
+            or (primary_index is None and not outer_segment_indices and is_segmented)
         )
         if is_primary_cutting:
-            out.add(replacement)
-            for hole_loop in new_interior_Loops:
-                out.add(hole_loop)
-            replaced = True
+            if not replaced:
+                out.add(replacement)
+                for hole_loop in new_interior_Loops:
+                    out.add(hole_loop)
+                replaced = True
         elif isinstance(primitive, LinePrimitive) and str(primitive.layer).upper() == "BEND":
             raw_line = LineString([(float(primitive.p1.x), float(primitive.p1.y)), (float(primitive.p2.x), float(primitive.p2.y))])
             clipped = material.intersection(raw_line)

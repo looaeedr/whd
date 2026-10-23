@@ -378,6 +378,10 @@ PYTEST_PATHS = (
     "tests/test_phase6_diagnostics_ownership.py",
     "tests/test_issue446_registry_diagnostics_presentation_owner.py",
     "tests/test_issue624_phase7_a7_bridge_residual_reduction.py::test_issue1221_registry_presentation_translation_is_panel_owned",
+    # Original 14-bug audit plus independent boundary guards must run on PR
+    # exact HEAD; a manual 27-pass smoke run is not a manufacturing receipt.
+    "tests/test_deep_audit_14_bugs_regression.py",
+    "tests/test_deep_audit_14_bugs_boundary_guards.py",
 )
 
 

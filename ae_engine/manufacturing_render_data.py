@@ -348,7 +348,13 @@ def material_polygon_from_final_scene(scene):
                     poly = poly.buffer(0)
                 if poly.is_empty or float(poly.area) <= 1e-9:
                     continue
-                if primary is None:
+                if str(getattr(primitive, "semantic_id", "") or "").upper() == "OUTER_BOUNDARY":
+                    # Tagged structural stock beats insertion order: a hole can
+                    # appear before the outer contour in translated scenes.
+                    if primary is not None:
+                        secondary.append(primary)
+                    primary = poly
+                elif primary is None:
                     primary = poly
                 else:
                     secondary.append(poly)
@@ -384,14 +390,14 @@ def _translated_scene(scene, dx: float, dy: float = 0.0):
     out = DrawingScene()
     for primitive in scene.primitives:
         if isinstance(primitive, PolylinePrimitive):
-            out.add(PolylinePrimitive(tuple(point(p) for p in primitive.points), primitive.layer, primitive.closed, primitive.color))
+            out.add(PolylinePrimitive(tuple(point(p) for p in primitive.points), primitive.layer, primitive.closed, primitive.color, primitive.semantic_id))
         elif isinstance(primitive, LinePrimitive):
             out.add(LinePrimitive(point(primitive.p1), point(primitive.p2), primitive.layer, primitive.color))
         elif isinstance(primitive, CirclePrimitive):
             out.add(CirclePrimitive(point(primitive.center), primitive.radius, primitive.layer, primitive.color,
                                     primitive.source_type, primitive.source_id))
         elif isinstance(primitive, TextPrimitive):
-            out.add(TextPrimitive(primitive.text, point(primitive.insert), primitive.layer, primitive.char_height, primitive.attachment_point, primitive.color))
+            out.add(TextPrimitive(primitive.text, point(primitive.insert), primitive.layer, primitive.char_height, primitive.attachment_point, primitive.color, primitive.semantic_id))
         else:
             raise TypeError(f"Unsupported drawing primitive: {type(primitive)!r}")
     return out
