@@ -14,6 +14,32 @@ def nfb_manifest_display_lines(view):
         return ("未配置 NFB｜依原有加工流程",)
     if state=="BLOCKED":
         return ("NFB 尚不可匯出："+str(view.get("reason","尚未重驗來源")),)
+    if state=="CSV_V5_SCOPED_DIAGNOSTIC":
+        if (view.get("actual_export_count") is not None or view.get("rows")
+                or view.get("manufacturing_ready") is not False
+                or view.get("whole_ready") is not False):
+            raise ValueError("CSV V5 status must not claim manufactured parts")
+        lines=["現行 CSV NFB 已提交｜"+str(view.get("derived_state"))
+               +"｜逐顆來源診斷（實體仍須在出圖時重驗）"]
+        for unit in view.get("unit_rows", ()):
+            if unit.get("manufacturing_verified") is not False:
+                raise ValueError("CSV V5 unit cannot fake manufacturing approval")
+            layer, slot = unit.get("layer_index"), unit.get("slot_index")
+            label=(f"第{layer+1 if type(layer) is int else '?'}層／"
+                   f"第{slot+1 if type(slot) is int else '?'}顆")
+            errors=tuple(unit.get("reasons") or ())
+            state_text=("未驗證："+"、".join(errors) if errors
+                        else "CSV 來源可讀／實體待驗")
+            lines.append(label+"｜"+str(unit.get("physical_hole_id"))
+                         +"｜"+str(unit.get("model_filename"))+"｜"+state_text)
+        for part in view.get("part_rows", ()):
+            if part.get("nfb_affected") is True:
+                lines.append("物理板件 "+str(part["part_id"])+"｜NFB 依賴待驗")
+            elif part.get("nfb_affected") is False:
+                lines.append("物理板件 "+str(part["part_id"])+"｜不受 NFB 缺項連坐")
+            else:
+                raise ValueError("CSV V5 part evidence invalid")
+        return tuple(lines)
     if state=="CSV_SOURCE_RECHECK_ONLY":
         # This is not WHOLE_READY or a source-scoped manufacturing receipt.
         # Never invent a piece count from the current CSV identity alone.
