@@ -80,6 +80,7 @@ def test_active_snapshot_captures_exact_render_data_and_render_error():
     snapshot = diagnostics.build_active_diagnostic_snapshot(context, _render_data_with_hole)
     assert snapshot["schema"] == "phase6-fold-diagnostic-v1"
     assert snapshot["active_part"] == "door"
+    assert snapshot["saved_at"].endswith("+08:00")
     assert snapshot["final_geometry"]["material"]["interior_count"] == 1
     assert snapshot["render_error"] is None
 
@@ -146,3 +147,35 @@ def test_bridge_reexports_diagnostic_serializers_without_duplicate_implementatio
         "def _phase6_write_diagnostic_json(",
     ):
         assert definition not in source
+
+
+def test_bridge_form_choice_compatibility_routes_with_valid_present_token(monkeypatch):
+    import fold_designer_bridge as bridge
+
+    captured = {}
+
+    def fake_build_registry_choice(
+        parent,
+        variable,
+        choices,
+        *,
+        present_token,
+        width=18,
+        presentation_field="choice",
+    ):
+        captured["parent"] = parent
+        captured["variable"] = variable
+        captured["choices"] = choices
+        captured["width"] = width
+        captured["presentation_field"] = presentation_field
+        captured["presented_part"] = present_token("box_body", presentation_field="part", source_adapter="registry_choice")
+        captured["presented_side"] = present_token("TOP", presentation_field="side", source_adapter="registry_choice")
+        return "choice-combo"
+
+    monkeypatch.setattr(bridge, "build_registry_choice", fake_build_registry_choice)
+    widget = bridge._phase6_form_choice("parent-widget", "var-widget", ["box_body"], width=22, presentation_field="part")
+    assert widget == "choice-combo"
+    assert captured["width"] == 22
+    assert captured["presentation_field"] == "part"
+    assert captured["presented_part"] == "箱身"
+    assert captured["presented_side"] == "上方"

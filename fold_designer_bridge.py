@@ -64,7 +64,7 @@ from phase6_settings_profile_projection import (
     project_part_dimensions,
 )
 from phase6_project_controller import Phase6ProjectController
-from phase6_registry_diagnostics_panel import build_registry_choice
+from phase6_registry_diagnostics_panel import build_registry_choice, registry_present_token
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 from phase6_navigation_view_adapter import (
     refresh_structure_tree as _navigation_view_refresh_structure_tree,
@@ -1940,7 +1940,7 @@ _phase6_form_choice = lambda parent, variable, choices, width=18, presentation_f
     parent,
     variable,
     choices,
-    present_token=_phase6_registry_present_token,
+    present_token=lambda value, **kwargs: registry_present_token(value, part_label=_phase6_part_label, **kwargs),
     width=width,
     presentation_field=presentation_field,
 )
