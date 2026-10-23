@@ -854,6 +854,11 @@ def _apply_fold_designer_live_snapshot(self, payload):
                     # Typed surface features remain the canonical owner for
                     # feature kinds that the legacy hole projection cannot carry.
                     pass
+                if hasattr(self, "_derived_cache_owner"):
+                    self._derived_cache_owner.invalidate("geometry")
+                if hasattr(self, "_authoritative_part_render_cache"):
+                    self._authoritative_part_render_cache.pop("head", None)
+                    self._authoritative_part_render_cache.pop("tail", None)
             self.project_controller.capture_committed(self._compose_phase6_project_snapshot_from_main_gui())
             self._phase6_last_fold_designer_revision=revision
             self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")

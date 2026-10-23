@@ -1770,16 +1770,10 @@ def _phase6_on_ui_text_size_changed(self, *_args):
 
 
 def _phase6_is_derived_physical_part_key(value):
-    key = str(value or "")
-    return (
-        re.fullmatch(r"door_c\d+_r\d+", key) is not None
-        or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
-        or key.startswith("base_plate:fixing_plate:")
-        or _phase6_is_box_body_physical_piece_key(key)
-        or key.startswith("box_body:divider:")
-        or (key.startswith("inner_door:") and key.endswith("_frame"))
-        or (key.startswith("inner_door:") and key.endswith(":panel"))
+    from phase6_settings_profile_projection import (
+        is_derived_physical_part_key,
     )
+    return is_derived_physical_part_key(value)
 
 
 def _phase6_part_label(value: object, *, snapshot=None) -> str:
@@ -2336,7 +2330,11 @@ def _phase6_finish_legacy_host_compatibility(self, snapshot):
 def _phase6_bootstrap_workspace_profiles(self, snapshot):
     stored_profiles = snapshot.get("part_profiles") or {}
     for key in self.designer_workspace.available_parts:
-        if key == "box_body" or self.designer_workspace.custom_part(key) is not None:
+        if (
+            key == "box_body"
+            or _phase6_is_derived_physical_part_key(key)
+            or self.designer_workspace.custom_part(key) is not None
+        ):
             continue
         source = stored_profiles.get(key)
         if source:
@@ -2886,7 +2884,12 @@ def _phase6_refresh_linked_part_profiles(self, changed_keys):
     box_profile = self.state.profiles_vault.get("箱身", [])
     linked = build_linked_endcap_xy_profiles(snapshot, box_profile)
     for key in self.designer_workspace.available_parts:
-        if key == active or key == "box_body":
+        if (
+            key == active
+            or key == "box_body"
+            or _phase6_is_derived_physical_part_key(key)
+            or self.designer_workspace.custom_part(key) is not None
+        ):
             continue
         existing = self.designer_workspace.profiles_for(key, {}) or {}
         if key in ENDCAP_FW_PARTS:
@@ -2958,12 +2961,19 @@ def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, 
         copy_material_length("d_right", ("d_left", "d_right"))
         copy_material_length("fw_right", ("fw_left", "fw_right"))
         copy_material_length("zr2", ("zr2",))
+        copy_material_length("zr1", ("zr1",))
         # Rear fold is piece-local. Persist it only in this physical piece's
         # canonical profile; do not back-write the legacy shared default.
     else:
         back = piece_by_key.get("back_panel")
         if back is not None:
-            t = max(1.0e-9, float(self._phase6_input_snapshot.get("t", 0.0)))
+            t_val = _num(
+                getattr(self, "_settings_values", {}).get(
+                    "t", getattr(self, "_phase6_input_snapshot", {}).get("t", 2.0)
+                ),
+                2.0,
+            )
+            t = max(1.0e-9, float(t_val))
             total_w = float(_phase6_box_structure_w(self))
             comp_t = (total_w - float(back.get("len", 0.0))) / t
             structure = set_side_back_geometry(
@@ -2973,8 +2983,14 @@ def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, 
     # Shared cabinet dimensions remain authoritative and are updated from the
     # edited physical piece before its piece-local topology is persisted.
     if aggregate:
+        t_comp = _num(
+            getattr(self, "_settings_values", {}).get(
+                "t", getattr(self, "_phase6_input_snapshot", {}).get("t", 2.0)
+            ),
+            2.0,
+        )
         apply_outside_dimension_compensation(
-            aggregate, float(self._phase6_input_snapshot.get("t", 0.0))
+            aggregate, float(t_comp)
         )
         values = read_box_body_profile(aggregate, self._phase6_input_snapshot)
         if role == "left_side":

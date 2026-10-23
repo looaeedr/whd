@@ -310,12 +310,45 @@ def _remap_door_layout_owned_data(self, mapper):
     for attr in (
         "door_layout_features", "door_layout_indicator_states",
         "door_layout_indicator_box_features", "door_layout_indicator_door_features",
+        "door_layout_handle_edges",
     ):
         setattr(
             self,
             attr,
             _remap_door_layout_owned_data_impl(getattr(self, attr, {}), mapper),
         )
+    surface_features = getattr(self, "surface_features", None)
+    if isinstance(surface_features, dict):
+        for key in [k for k in surface_features if str(k).startswith("door_c")]:
+            surface_features.pop(key, None)
+        for cell_key, items in getattr(self, "door_layout_features", {}).items():
+            try:
+                col_s, row_s = str(cell_key).split(":", 1)
+                phys_key = f"door_c{int(col_s) + 1}_r{int(row_s) + 1}"
+            except (TypeError, ValueError):
+                continue
+            surface_features[phys_key] = list(items)
+    inner_doors = getattr(self, "receiving_inner_doors", None)
+    if isinstance(inner_doors, list):
+        remapped_inner_doors = []
+        for item in inner_doors:
+            if not isinstance(item, dict):
+                continue
+            cell_key = str(item.get("cell_key", ""))
+            try:
+                col_s, row_s = cell_key.split(":", 1)
+                target = mapper(int(col_s), int(row_s))
+            except (TypeError, ValueError):
+                target = None
+            if target is None:
+                continue
+            new_cell_key = f"{target[0]}:{target[1]}"
+            updated_item = dict(item)
+            updated_item["cell_key"] = new_cell_key
+            if hasattr(self, "_receiving_inner_door_stable_id_for_cell"):
+                updated_item["stable_id"] = self._receiving_inner_door_stable_id_for_cell(new_cell_key)
+            remapped_inner_doors.append(updated_item)
+        self.receiving_inner_doors = remapped_inner_doors
 
 def remove_door_layout_column(self, column_index):
     if not self.door_layout_columns:

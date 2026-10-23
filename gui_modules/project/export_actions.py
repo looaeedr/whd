@@ -1069,3 +1069,9 @@ def _apply_multi_door_indicator_state(self, key, state):
     else:
         target.clear()
         target.update(normalized)
+    designer = getattr(self, "fold_designer_app", None)
+    if designer is not None and isinstance(getattr(designer, "_phase6_input_snapshot", None), dict):
+        designer._phase6_input_snapshot["door_layout_indicator_states"] = {
+            k: dict(v) for k, v in self.door_layout_indicator_states.items()
+        }
+    self._request_phase6_update("geometry")

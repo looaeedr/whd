@@ -182,6 +182,10 @@ class Phase6WorkspaceController:
             self._assembly_placements = self._clone(dict(raw.get("assembly_placements") or {}))
         if "part_features" in raw:
             self._part_features = self._clone(dict(raw.get("part_features") or {}))
+            if self._quantity_model is not None and "quantity" not in raw:
+                for part in ("head", "tail"):
+                    if part in self._part_features:
+                        self._quantity_model.set_features(part, self._part_features[part])
         if "part_face_features" in raw:
             self._part_face_features = self._clone(dict(raw.get("part_face_features") or {}))
         return self.workspace_snapshot()
@@ -242,8 +246,9 @@ class Phase6WorkspaceController:
         }
         if "custom_parts" in result:
             snapshot["custom_parts"] = result["custom_parts"]
-        if getattr(self, "_part_features", None):
-            snapshot["part_features"] = self.part_features_snapshot()
+        part_features = self.part_features_snapshot()
+        if part_features:
+            snapshot["part_features"] = part_features
         if getattr(self, "_part_face_features", None):
             snapshot["part_face_features"] = self._clone(self._part_face_features)
         if getattr(self, "_assembly_placements", None):
