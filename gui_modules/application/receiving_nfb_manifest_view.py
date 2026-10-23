@@ -45,6 +45,9 @@ def nfb_manifest_display_lines(view):
                 lines.append("物理板件 "+str(part["part_id"])+"｜不受 NFB 缺項連坐")
             else:
                 raise ValueError("CSV V5 part evidence invalid")
+        for reason in tuple(view.get("unresolved_dependencies") or ()):
+            if str(reason).startswith("NFB_REAL_"):
+                lines.append("缺少實體板件來源｜"+str(reason))
         return tuple(lines)
     if state=="CSV_SOURCE_RECHECK_ONLY":
         # This is not WHOLE_READY or a source-scoped manufacturing receipt.
