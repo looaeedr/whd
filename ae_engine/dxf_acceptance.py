@@ -265,6 +265,11 @@ def _one_to_one_tolerance_match(expected, actual, compatible) -> bool:
     """
     if len(expected) != len(actual):
         return False
+    # Common case: canonical DXF sorting already aligns every entity.
+    # Keep that original linear-time path; build the matching graph only
+    # when near-equal numeric ordering has changed across serialization.
+    if all(compatible(row, found) for row, found in zip(expected, actual)):
+        return True
     edges = [
         tuple(index for index, found in enumerate(actual) if compatible(row, found))
         for row in expected
