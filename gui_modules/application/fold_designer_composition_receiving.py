@@ -2068,10 +2068,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         modal._receiving_editor_scroll = modal_scroll
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
                         else version_label(version_id))).pack(anchor="w")
-        # Legacy inner-door candidate layers and NFB physical layers are
-        # DIFFERENT concepts. The #1491 draft must not rewrite either owner.
+        # Inner-door layer count IS the NFB mounting tier count. One Tk
+        # value drives original candidate data, UI-1A draft and preview.
+        # Keep the old name as an alias for stable existing test/GUI ports,
+        # never create a second writable tier-count variable.
         layers = tk.IntVar(master=modal, value=initial["layers"])
-        nfb_physical_layers = tk.IntVar(master=modal, value=initial["layers"])
+        nfb_physical_layers = layers
         layer_height_vars = tuple(
             tk.StringVar(master=modal, value=f"{float(v):g}")
             for v in initial["layer_heights_mm"]
@@ -2105,9 +2107,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         ttk.Label(summary_row, textvariable=preview_status).pack(
             side="right", anchor="ne",
         )
-        # Keep legacy draft in memory but remove its unapproved controls.
-        physical_row = ttk.Frame(frame)
-        ttk.Label(physical_row, text="NFB 物理層（未提交草稿）").pack(side="left")
+        # The retired extra NFB physical-tier row must not be created:
+        # the visible inner-door layer selector is the sole writer.
         chosen = [list(switch_filenames_in_layer(slot))
                   for slot in initial["models"]]
         layer_rows = []
@@ -2520,7 +2521,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         nfb_preview_panel["panel"].frame.pack_forget()
 
         def sync_visible_layers():
-            nfb_physical_layers.set(layers.get())
             change_layers()
 
         for count in (1, 2):
@@ -2530,12 +2530,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 # inner-door layer choice so a two-layer save remains valid.
                 command=lambda: sync_visible_layers(),
             ).pack(side="left", padx=8)
-            ttk.Radiobutton(
-                physical_row, text=str(count), value=count,
-                variable=nfb_physical_layers,
-                command=lambda: change_layers(),
-            ).pack(side="left", padx=7)
-
+ 
         for idx in range(2):
             section = ttk.LabelFrame(slot_columns, text=f"第 {idx+1} 層開關")
             section.pack(fill="x", pady=(4, 6))
@@ -2748,10 +2743,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         def confirm():
             try:
                 from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
-                # #1491 is transient UI-1A only. Distinct NFB physical layer
-                # count cannot be flattened into legacy inner-door layers.
-                if nfb_physical_layers.get() != layers.get():
-                    raise ValueError("NFB 物理層與內門版本層數不同，不能覆寫成舊候選")
+                # Inner-door tiers and NFB mounting tiers already share one
+                # validated value. Do not invent another independent count.
                 # Current CSV CUTTING is saved as typed physical Hole Editor
                 # Features; no original DXF or lossy legacy brand/rotation
                 # serializer is required for this new settings entry.
