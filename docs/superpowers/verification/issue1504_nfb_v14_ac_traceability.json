@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 26,
+    "EVIDENCE_CANDIDATE_ONLY": 24,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 27,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 29,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -1057,21 +1057,52 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+        "tests/test_issue1901_csv_native_editor.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+          "test_name": "test_ac29_swt19_reload_current_v5_rederives_real_centres_and_cutting",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_primary_witness_before_20261023": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT numeric CSV V5 source rederive after actual .p6fold Save/Reload, not replay of legacy DXF SHADOW: original W800 Receiving physical upper inner-door + installed base sheet. Isolated byte-copy real 士林 CSV edited after save and full FinalScene; regenerated 2D physical door CUTTING and persisted original door/base operator DXF differ as source dimensions change. Previously green FinalScene export rejected as stale; saved old DXF unchanged; boundary and sibling CUTTING overlap reject full batch with no invalid files. Original Hole Editor staged source CSV proof becomes stale after byte change, must re-stage actual current source before native features; readiness never serialized as truth.",
+        "primary_assertion": "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac29_swt19_reload_current_v5_rederives_real_centres_and_cutting",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac29_swt19_csv_bytes_change_requires_fresh_finalscene_and_dxf",
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac29_swt19_source_revised_collision_or_boundary_cannot_use_old_green",
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac29_swt19_original_hole_editor_csv_proof_from_before_reload_cannot_be_reused",
+          "tests/test_issue1499_nfb_persistence.py::test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+          "tests/test_issue1901_csv_native_editor.py::test_csv_bytes_changed_rejects_old_opening",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "source_dxf_historical_binary_rechecked": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "NFB-AC-30",
@@ -2704,21 +2735,52 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+        "tests/test_issue1901_csv_native_editor.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+          "test_name": "test_ac29_swt19_reload_current_v5_rederives_real_centres_and_cutting",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_primary_witness_before_20261023": {
+        "path": "tests/test_issue1499_nfb_persistence.py",
+        "test_name": "test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT numeric CSV V5 source rederive after actual .p6fold Save/Reload, not replay of legacy DXF SHADOW: original W800 Receiving physical upper inner-door + installed base sheet. Isolated byte-copy real 士林 CSV edited after save and full FinalScene; regenerated 2D physical door CUTTING and persisted original door/base operator DXF differ as source dimensions change. Previously green FinalScene export rejected as stale; saved old DXF unchanged; boundary and sibling CUTTING overlap reject full batch with no invalid files. Original Hole Editor staged source CSV proof becomes stale after byte change, must re-stage actual current source before native features; readiness never serialized as truth.",
+        "primary_assertion": "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac29_swt19_reload_current_v5_rederives_real_centres_and_cutting",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac29_swt19_csv_bytes_change_requires_fresh_finalscene_and_dxf",
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac29_swt19_source_revised_collision_or_boundary_cannot_use_old_green",
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac29_swt19_original_hole_editor_csv_proof_from_before_reload_cannot_be_reused",
+          "tests/test_issue1499_nfb_persistence.py::test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback",
+          "tests/test_issue1901_csv_native_editor.py::test_csv_bytes_changed_rejects_old_opening",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "source_dxf_historical_binary_rechecked": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "factory_release": false,
+        "physical_absolute_position_grant": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "SWT-AC-20",
@@ -3225,7 +3287,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 27/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 61 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 29/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 59 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
