@@ -65,20 +65,25 @@ def _current_brand_config(snapshot):
                     else:
                         bi = int(number)
         if (type(si) is not int or si < 0 or si >= len(sets)
+                or not isinstance(sets[si], Mapping)
                 or sets[si].get("stable_id") != active.get("set_id")):
             raise ValueError(
                 "EAR_Z_SET_IDENTITY_DRIFT:"
                 f" selected_index={si!r} selected_id={active.get('set_id')!r}"
-                f" current_ids={tuple(row.get('stable_id') for row in sets)!r}"
+                f" current_ids={tuple(row.get('stable_id') if isinstance(row, Mapping) else None for row in sets)!r}"
             )
         selected_set = sets[si]
         bays = selected_set.get("bays")
         if (not isinstance(bays, (tuple, list)) or type(bi) is not int
                 or bi < 0 or bi >= len(bays)
+                or not isinstance(bays[bi], Mapping)
                 or bays[bi].get("stable_id") != active.get("bay_id")):
             raise ValueError("EAR_Z_BAY_IDENTITY_DRIFT")
         bay = bays[bi]
-    elif (len(sets) == 1 and len(sets[0].get("bays") or ()) == 1):
+    elif (len(sets) == 1 and isinstance(sets[0], Mapping)
+          and isinstance(sets[0].get("bays"), (tuple, list))
+          and len(sets[0]["bays"]) == 1
+          and isinstance(sets[0]["bays"][0], Mapping)):
         selected_set = sets[0]
         bay = selected_set["bays"][0]
     else:
@@ -102,7 +107,9 @@ def _tier_source_depths(legacy_brand, config, layer_index):
     intentionally use different brands. Missing or inconsistent identity
     blocks only that tier's Z readiness rather than borrowing another model.
     """
-    from .receiving_nfb_model_identity import selected_numeric_spec
+    from .receiving_nfb_model_identity import (
+        parse_numeric_model_ref, selected_numeric_spec,
+    )
     from .receiving_switch_model_catalog import model_depth_mm
 
     count = config.get("layer_count")
@@ -113,10 +120,20 @@ def _tier_source_depths(legacy_brand, config, layer_index):
         tier = hole.get("layer_index", 0 if count == 1 else None)
         if tier != layer_index:
             continue
-        brand = hole.get("source_brand", legacy_brand)
         filename = hole.get("model_filename")
-        if (not isinstance(brand, str) or not brand
-                or not isinstance(filename, str) or not filename):
+        if not isinstance(filename, str) or not filename:
+            return ()
+        # V5 encodes a canonical physical brand inside the model ID.
+        # Do not require an obsolete Set.switch_brand field or borrow a
+        # different Bay's brand for the same physical switch.
+        if filename.startswith("nfbv5:"):
+            identity = parse_numeric_model_ref(filename)
+            if identity is None or hole.get("source_brand") not in (None, identity[0]):
+                return ()
+            brand = identity[0]
+        else:
+            brand = hole.get("source_brand", legacy_brand)
+        if not isinstance(brand, str) or not brand:
             return ()
         try:
             if filename.startswith("nfbv5:"):
