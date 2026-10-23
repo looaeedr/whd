@@ -271,11 +271,16 @@ def ensure_receiving_layout(snapshot: Mapping[str, object] | None) -> dict[str, 
                     for role in ("head", "tail"):
                         bay[f"{role}_features"] = deepcopy(source_features.get(role, []))
                 selected["settings"] = normalize_set_settings(None, template_bays)
-    if "door_layout_columns" in result and not any("door_state" in bay for selected in layout["sets"] for bay in selected["bays"]):
-        door_state = {key: deepcopy(result[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in result}
-        for selected in layout["sets"]:
-            for bay in selected["bays"]:
-                bay.setdefault("door_state", deepcopy(door_state))
+    if "door_layout_columns" in result:
+        # Legacy root door controls belong to the primary Bay only. They must
+        # neither overwrite an explicitly configured primary Bay nor broadcast
+        # to other Bays (including Bays without any door_state).
+        primary_bay = layout["sets"][0]["bays"][0]
+        if "door_state" not in primary_bay:
+            primary_bay["door_state"] = {
+                key: deepcopy(result[key])
+                for key in RECEIVING_DOOR_STATE_KEYS if key in result
+            }
     result["receiving_layout"] = layout
     return result
 
