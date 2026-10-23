@@ -14,8 +14,11 @@ from gui_modules.application.receiving_multi_settings_window import open_multi_s
 
 
 def test_inner_version_selector_manager_quantity_and_real_highlights():
+    # A withdrawn parent leaves its transient child Canvas unmapped (1x1)
+    # on native Windows, causing synthetic clicks to miss the real Bay.
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("360x250+20+20")
+    root.update_idletasks()
     layout = {
         "value": resize_receiving_bays(
             new_receiving_layout(width=800, height=1600, depth=350),
@@ -106,12 +109,16 @@ def test_inner_version_selector_manager_quantity_and_real_highlights():
         root.update()
         assert win._receiving_multi_candidate_selected[ROLE] == v2
 
-        hitbox = win._receiving_multi_canvas._receiving_bay_hitboxes[1]
+        canvas = win._receiving_multi_canvas
+        assert canvas.winfo_ismapped()
+        assert canvas.winfo_width() > 1 and canvas.winfo_height() > 1
+        hitbox = canvas._receiving_bay_hitboxes[1]
         x0, y0, x1, y1 = hitbox
         win._receiving_multi_canvas.event_generate(
             "<Button-1>", x=int((x0+x1)/2), y=int((y0+y1)/2),
         )
         root.update()
+        assert win._receiving_multi_applied["selected_bays"] == (0, 1)
         host = win._receiving_multi_settings_host
         row = next(
             frame for frame in host.winfo_children()

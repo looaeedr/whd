@@ -386,6 +386,11 @@ PYTEST_PATHS = (
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
+    # #2083 native-Tk acceptance: exercise current numeric CSV V5 candidate
+    # identity, stale-model rejection, real highlighted Bay selection and
+    # quantity manager; do not silently rely on legacy DXF-only test fixtures.
+    "tests/test_receiving_inner_door_multi_switch_editor_gui_20261011.py",
+    "tests/test_receiving_inner_door_version_gui_20261011.py",
 )
 
 
