@@ -258,8 +258,8 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     assert d["counts"] == {
         "BLOCKED_1500_REAL_GUI": 17,
         "DEFERRED_PRODUCT_EVIDENCE": 4,
-        "EVIDENCE_CANDIDATE_ONLY": 19,
-        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 34,
+        "EVIDENCE_CANDIDATE_ONLY": 17,
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 36,
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     }
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
@@ -715,7 +715,7 @@ def test_ac29_swt19_current_v5_source_drift_has_real_reloaded_project_cutting_an
 
 
 def test_ac21_swt14_current_v5_partial_witnesses_cannot_inflate_29_acceptances():
-    """Source-level isolation passes; per-version GUI brand default remains a gap."""
+    """Verify scoped Tk/version witnesses and keep full Windows UAT separate."""
     from tools.product_ci_regression import PYTEST_PATHS
     path = "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py"
     assert PYTEST_PATHS.count(path) == 1
