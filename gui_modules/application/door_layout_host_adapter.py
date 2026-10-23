@@ -401,6 +401,36 @@ def _remap_door_layout_owned_data(self, mapper):
             except (TypeError, ValueError):
                 continue
         controller.replace_part_features(part_features)
+        if id_changes and hasattr(controller, "part_face_features_snapshot"):
+            controller.replace_part_face_features(
+                remap_inner_part_keys(controller.part_face_features_snapshot())
+            )
+
+    # The open Fold Designer owns a second live workspace. Move its physical
+    # inner-door and per-cell features in the same transaction rather than
+    # allowing an old stable_id to be republished over the main Workspace.
+    designer = getattr(self, "fold_designer_app", None)
+    designer_workspace = getattr(designer, "designer_workspace", None)
+    if designer_workspace is not None:
+        designer_features = remap_inner_part_keys(
+            designer_workspace.part_features_snapshot()
+        )
+        for key in tuple(designer_features):
+            if str(key).startswith("door_c"):
+                designer_features.pop(key, None)
+        for cell_key, items in getattr(self, "door_layout_features", {}).items():
+            try:
+                col_s, row_s = str(cell_key).split(":", 1)
+                designer_features[f"door_c{int(col_s) + 1}_r{int(row_s) + 1}"] = list(items)
+            except (TypeError, ValueError):
+                continue
+        designer_workspace.replace_part_features(designer_features)
+        if id_changes and hasattr(designer_workspace, "part_face_features_snapshot"):
+            designer_workspace.replace_part_face_features(
+                remap_inner_part_keys(
+                    designer_workspace.part_face_features_snapshot()
+                )
+            )
 
     if isinstance(inner_doors, list):
         self.receiving_inner_doors = remapped_inner_doors
