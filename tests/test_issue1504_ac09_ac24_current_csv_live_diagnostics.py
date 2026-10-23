@@ -98,6 +98,10 @@ def test_ac24_two_tiers_per_hole_reasons_do_not_hide_draft_or_other_part():
     lines=nfb_manifest_display_lines(view)
     assert any("第2層／第1顆" in line and "WORLD_X_RECONFIRM_REQUIRED" in line
                for line in lines)
+    assert any("物理板件 base_plate" in line
+               and "WORLD_X_RECONFIRM_REQUIRED" in line for line in lines)
+    assert any("物理板件 side_panel:left" in line
+               and "不受 NFB 缺項連坐" in line for line in lines)
     # Derivation is read-only: the submitted config remains persistable.
     assert bay["nfb_config_submitted"] is True
     assert "readiness" not in bay["nfb_config"]
