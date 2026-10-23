@@ -115,8 +115,10 @@ def baseline_entity_layer(ent):
 
 def baseline_cutting_bounds(msp):
     """Return structural CUTTING bounds without MARKING/DATUM/BLIND_HOLE pollution."""
+    import math
+
     xs, ys = [], []
-    for ent in msp:
+    for ent in iter_baseline_entities(msp):
         if baseline_entity_layer(ent) != "CUTTING" or ent.dxftype() == "REGION":
             continue
         kind = ent.dxftype()
@@ -127,7 +129,7 @@ def baseline_cutting_bounds(msp):
         elif kind == "LINE":
             xs.extend([float(ent.dxf.start.x), float(ent.dxf.end.x)])
             ys.extend([float(ent.dxf.start.y), float(ent.dxf.end.y)])
-        elif kind in {"CIRCLE", "ARC"}:
+        elif kind == "CIRCLE":
             cx, cy, radius = (
                 float(ent.dxf.center.x),
                 float(ent.dxf.center.y),
@@ -135,6 +137,23 @@ def baseline_cutting_bounds(msp):
             )
             xs.extend([cx - radius, cx + radius])
             ys.extend([cy - radius, cy + radius])
+        elif kind == "ARC":
+            cx, cy, radius = (
+                float(ent.dxf.center.x),
+                float(ent.dxf.center.y),
+                float(ent.dxf.radius),
+            )
+            start_a = float(ent.dxf.start_angle) % 360.0
+            end_a = float(ent.dxf.end_angle) % 360.0
+            span = (end_a - start_a) % 360.0
+            sample_angles = [start_a, end_a]
+            for cardinal in (0.0, 90.0, 180.0, 270.0):
+                if abs(span) <= 1e-9 or ((cardinal - start_a) % 360.0) <= span + 1e-9:
+                    sample_angles.append(cardinal)
+            for deg in sample_angles:
+                rad = math.radians(deg)
+                xs.append(cx + radius * math.cos(rad))
+                ys.append(cy + radius * math.sin(rad))
     if not xs or not ys:
         return None
     return min(xs), min(ys), max(xs), max(ys)

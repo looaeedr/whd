@@ -366,9 +366,9 @@ def read_box_body_profile(profile: Sequence[Mapping[str, object]], original: Map
             raise ValueError("左右 FW 必須相同")
         fw_value = fw_left
     elif fw_left_seg is not None:
-        fw_value = _ui_len(fw_left_seg.get("len"))
+        fw_value = engine_segment_length_to_ui(fw_left_seg) if material_profile else _ui_len(fw_left_seg.get("len"))
     elif fw_right_seg is not None:
-        fw_value = _ui_len(fw_right_seg.get("len"))
+        fw_value = engine_segment_length_to_ui(fw_right_seg) if material_profile else _ui_len(fw_right_seg.get("len"))
     else:
         fw_value = _ui_len(original.get("fw"))
 
@@ -544,7 +544,10 @@ def build_linked_endcap_xy_profiles(snapshot: Mapping[str, object], box_profile:
         default_y = defaults[part]["Y"]
         core_index = next(i for i, row in enumerate(default_y) if row.get("core") == "D-T")
         by_key = {row.get("phase6_key"): row for row in default_y if row.get("phase6_key")}
-        effective_fw = _ui_len(resolve_endcap_fw(snapshot, part, state=fw_state))
+        raw_fw = resolve_endcap_fw(snapshot, part, state=fw_state)
+        if cabinet_family_policy.endcap_fw_profile_uses_material_dimensions(snapshot):
+            raw_fw = max(0.0, float(raw_fw) - 2.0 * t)
+        effective_fw = _ui_len(raw_fw)
         # ytop1 is the end-cap's own non-FW front material. Tail stores it after
         # the D core because of native orientation, so never infer this budget
         # from list position.

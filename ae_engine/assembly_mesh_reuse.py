@@ -33,7 +33,7 @@ def reuse_local_mesh(build):
         # distinct legacy fallback rules. Do not round or normalize inputs.
         def profile_key(rows):
             return tuple(tuple(_segment_value(row, field, None)
-                               for field in ('length', 'len', 'angle', 'core'))
+                               for field in ('length', 'len', 'formed_length', 'angle', 'core', 'phase6_key'))
                          for row in rows)
         key = (build, material.wkb, profile_key(xp), profile_key(yp),
                tuple((str(axis), polygon.wkb) for axis, polygon in exemptions),

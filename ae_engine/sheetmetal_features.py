@@ -949,9 +949,19 @@ def resolve_features_in_finished_face(
                 )
             )
         else:
+            layered = tuple(
+                (
+                    layer,
+                    tuple(center + _rotate_local_point(p, feature.rotation_deg) for p in pts),
+                    bool(closed),
+                )
+                for layer, pts, closed in getattr(feature, "layered_profiles", ()) or ()
+            )
             resolved.append(ResolvedProfile(
                 points=tuple(center + _rotate_local_point(p, feature.rotation_deg) for p in feature.points),
-                layer=feature.layer, source_type=feature.source_type,
+                layer=feature.layer,
+                source_type=feature.source_type,
+                layered_profiles=layered,
             ))
     return resolved
 

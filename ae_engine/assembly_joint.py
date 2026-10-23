@@ -338,13 +338,14 @@ class ResolvedAssemblyGraph:
             if joint.subject_part != part and joint.target_part != part:
                 continue
             if region is not None:
+                if joint.subject_part == part and joint.subject_region:
+                    if not _joint_region_matches_corner(joint.subject_region, region):
+                        continue
+                if joint.target_part == part and joint.target_region:
+                    if not _joint_region_matches_corner(joint.target_region, region):
+                        continue
                 if joint.edge:
                     if not _joint_edge_matches_corner(joint.edge, region):
-                        continue
-                else:
-                    if joint.subject_part == part and not _joint_region_matches_corner(joint.subject_region, region):
-                        continue
-                    if joint.target_part == part and not _joint_region_matches_corner(joint.target_region, region):
                         continue
             result.append(joint)
         return tuple(result)

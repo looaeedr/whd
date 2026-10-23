@@ -567,9 +567,17 @@ def get_box_body_baseline_face_features(
                         source_type="baseline",
                     ))
                 else:
+                    raw_layered = getattr(feature, "layered_profiles", ()) or ()
+                    if raw_layered:
+                        layered = tuple(
+                            (layer, tuple(ctx.unfolded_to_local(p) for p in pts), bool(closed))
+                            for layer, pts, closed in raw_layered
+                        )
+                    else:
+                        layered = ((feature.layer, local_points, False),)
                     face_features[face_key].append(ResolvedProfile(
                         points=local_points, layer=feature.layer, source_type="baseline",
-                        layered_profiles=((feature.layer, local_points, False),),
+                        layered_profiles=layered,
                     ))
                 break
     return face_features

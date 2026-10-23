@@ -1838,6 +1838,7 @@ def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
             endcap_x_profile=end_x,
             endcap_y_profile=end_y,
             sheet_thickness=thickness,
+            box_body_structure_state=_phase6_box_structure_state(self),
         )
         if ephemeral is None:
             raise ValueError(f"candidate formula does not apply to {part_key}")

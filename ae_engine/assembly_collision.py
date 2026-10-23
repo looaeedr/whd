@@ -16,6 +16,11 @@ from . import divider_relief_solver as _divider_relief_solver
 from . import endcap_world_relief_solver as _endcap_world_relief_solver
 
 
+from .assembly_geometry import (
+    MeshInterferenceDiagnostic,
+    detect_world_mesh_surface_interference,
+    restore_unrelieved_endcap_material,
+)
 from .assembly_collision_basic import (
     AssemblyRole,
     OwnershipAction,
@@ -545,8 +550,11 @@ from .assembly_collision_corner import (
     apply_verified_endcap_relief_material,
 )
 def _render_data_rebuilt_from_material(endcap_render_data, material):
+    from .manufacturing_render_data import fold_guides_from_final_scene
     scene = _scene_with_replaced_primary_cutting(endcap_render_data.scene, material)
-    return replace(endcap_render_data, scene=scene, material=material)
+    recomputed_guides = fold_guides_from_final_scene(scene)
+    fold_guides = recomputed_guides if recomputed_guides else tuple(getattr(endcap_render_data, "fold_guides", ()) or ())
+    return replace(endcap_render_data, scene=scene, material=material, fold_guides=fold_guides)
 
 
 def _build_box_body_world_solid(
