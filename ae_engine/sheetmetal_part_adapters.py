@@ -11,7 +11,9 @@ translation layer used by both GUI preview and DXF serialization.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+import math
 
 from .sheetmetal_features import RectGuide
 
@@ -70,6 +72,15 @@ class PartitionCompletion:
     excess: float = 0.0
 
 
+def _finite_float(value, name="value") -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must not be bool")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{name} must be finite")
+    return number
+
+
 def complete_partition(fixed_values, total, *, tolerance=1e-9) -> PartitionCompletion:
     """Append one positive remainder to fixed values when space remains.
 
@@ -77,11 +88,13 @@ def complete_partition(fixed_values, total, *, tolerance=1e-9) -> PartitionCompl
     deliberately not folded back into that list, so editing it can promote it to
     a fixed value before this helper is called again.
     """
-    total = float(total)
-    tolerance = float(tolerance)
+    total = _finite_float(total, "partition total")
+    tolerance = _finite_float(tolerance, "partition tolerance")
+    if tolerance < 0:
+        raise ValueError("partition tolerance must be >= 0")
     if total <= 0:
         raise ValueError("partition total must be > 0")
-    fixed = tuple(float(value) for value in fixed_values)
+    fixed = tuple(_finite_float(value, "partition entry") for value in fixed_values)
     if any(value <= 0 for value in fixed):
         raise ValueError("partition values must be > 0")
 
@@ -101,8 +114,8 @@ def derive_door_layout_cells(columns) -> tuple[DoorLayoutCell, ...]:
         if len(column) != 2:
             raise ValueError("each door layout column must be (width, heights)")
         width, heights = column
-        width = float(width)
-        heights = tuple(float(value) for value in heights)
+        width = _finite_float(width, "door column width")
+        heights = tuple(_finite_float(value, "door row height") for value in heights)
         if width <= 0:
             raise ValueError("door layout column width must be > 0")
         if not heights or any(value <= 0 for value in heights):
@@ -162,18 +175,29 @@ def door_part_features_to_layout_feature_map(columns, part_features) -> dict[str
 
 def validate_door_layout_dimensions(columns, *, total_width, total_height, tolerance=1e-6) -> tuple[DoorLayoutCell, ...]:
     """Validate layout start dimensions against the enclosure WHD face size."""
+    target_width = _finite_float(total_width, "total_width")
+    target_height = _finite_float(total_height, "total_height")
+    tol = _finite_float(tolerance, "door layout tolerance")
+    if tol < 0:
+        raise ValueError("door layout tolerance must be >= 0")
     normalized = []
-    for width, heights in columns:
-        normalized.append((float(width), tuple(float(v) for v in heights)))
+    for column in columns:
+        if len(column) != 2:
+            raise ValueError("each door layout column must be (width, heights)")
+        width, heights = column
+        normalized.append((
+            _finite_float(width, "door column width"),
+            tuple(_finite_float(v, "door row height") for v in heights),
+        ))
     cells = derive_door_layout_cells(normalized)
     width_sum = sum(width for width, _ in normalized)
-    if abs(width_sum - float(total_width)) > float(tolerance):
-        raise ValueError(f"door layout column widths sum to {width_sum:g}, expected W={float(total_width):g}")
+    if abs(width_sum - target_width) > tol:
+        raise ValueError(f"door layout column widths sum to {width_sum:g}, expected W={target_width:g}")
     for index, (_width, heights) in enumerate(normalized, start=1):
         height_sum = sum(heights)
-        if abs(height_sum - float(total_height)) > float(tolerance):
+        if abs(height_sum - target_height) > tol:
             raise ValueError(
-                f"door layout column {index} heights sum to {height_sum:g}, expected H={float(total_height):g}"
+                f"door layout column {index} heights sum to {height_sum:g}, expected H={target_height:g}"
             )
     return cells
 
@@ -185,12 +209,14 @@ def calculate_door_finished_size(*, w, h, t, fw, gap_w, gap_h, frame_edges: Door
     still applied on both sides of each axis.
     """
     edges = frame_edges or DoorFrameEdges()
-    w = float(w)
-    h = float(h)
-    t = float(t)
-    fw = float(fw)
-    gap_w = float(gap_w)
-    gap_h = float(gap_h)
+    w = _finite_float(w, "w")
+    h = _finite_float(h, "h")
+    t = _finite_float(t, "t")
+    fw = _finite_float(fw, "fw")
+    gap_w = _finite_float(gap_w, "gap_w")
+    gap_h = _finite_float(gap_h, "gap_h")
+    if t <= 0 or fw < 0 or gap_w < 0 or gap_h < 0:
+        raise ValueError("door thickness must be positive; FW and gaps nonnegative")
     frame_span = fw + 2.0 * t
     finished_w = w - frame_span * (int(edges.left) + int(edges.right)) - 2.0 * gap_w
     finished_h = h - frame_span * (int(edges.top) + int(edges.bottom)) - 2.0 * gap_h
@@ -229,9 +255,11 @@ def build_box_body_result_from_fold_profile(
         raise ValueError("box body fold profile requires D-W-D core")
 
     def value(row, name, default=None):
-        if isinstance(row, dict):
-            return row.get(name, default)
-        return getattr(row, name, default)
+        if isinstance(row, Mapping):
+            current = row.get(name, default)
+        else:
+            current = getattr(row, name, default)
+        return default if current is None else current
 
     d_indexes = [i for i, row in enumerate(rows) if value(row, "core") == "D"]
     w_indexes = [i for i, row in enumerate(rows) if value(row, "core") == "W"]
@@ -242,7 +270,9 @@ def build_box_body_result_from_fold_profile(
     w_index = w_indexes[0]
     segments = []
     for index, row in enumerate(rows):
-        length = float(value(row, "length", value(row, "len", 0.0)))
+        length = _finite_float(
+            value(row, "length", value(row, "len", 0.0)), "fold segment length"
+        )
         if index == left_d:
             name = "depth_left"
         elif index == w_index:
