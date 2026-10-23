@@ -142,6 +142,20 @@ def highlighted_nfb_manifest_lines(ports, set_index, highlighted_bays):
                 prefix+"｜"+nfb_manifest_display_lines(dict(current))[0]
             )
             continue
+        if state=="CSV_V5_SCOPED_DIAGNOSTIC":
+            set_id,bay_id=current.get("set_id"),current.get("bay_id")
+            if (not isinstance(set_id,str) or not set_id.strip()
+                    or not isinstance(bay_id,str) or not bay_id.strip()):
+                raise ValueError("NFB CSV V5 scoped identity is missing")
+            version=current.get("version_id")
+            if version is not None and not isinstance(version,str):
+                raise ValueError("NFB CSV V5 version identity invalid")
+            lines.append(
+                prefix+f"｜Set {set_id}／Bay {bay_id}／版本 "
+                +(version if version else "即時設定")
+            )
+            lines.extend(nfb_manifest_display_lines(dict(current)))
+            continue
         ids=tuple(current.get(key) for key in ("set_id","bay_id","version_id"))
         if any(not isinstance(value,str) or not value.strip() for value in ids):
             raise ValueError("NFB live manifest missing Set/Bay/version stable IDs")
