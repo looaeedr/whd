@@ -99,15 +99,34 @@ def _phase6_assembly_placement_for_part(snapshot, part_key):
     if re.fullmatch(r"door_c\d+_r\d+", key):
         return _phase6_door_part_assembly_placement(snapshot, key)
     if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith(":bottom_frame")):
+        from math import isfinite
+
+        workspace = snapshot.get("workspace") or {}
+        if not isinstance(workspace, Mapping):
+            raise ValueError("assembly workspace must be a mapping")
         placements = (
             snapshot.get("assembly_placements")
-            or (snapshot.get("workspace") or {}).get("assembly_placements")
+            or workspace.get("assembly_placements")
             or {}
         )
+        if not isinstance(placements, Mapping):
+            raise ValueError("assembly placements must be a mapping")
         if key in placements:
             item = placements[key]
-            kind = item.get("placement_kind", "offset")
-            offset = tuple(float(v) for v in item.get("world_offset", (0.0, 0.0, 0.0)))
+            if not isinstance(item, Mapping):
+                raise ValueError(f"invalid stored assembly placement: {key}")
+            kind = str(item.get("placement_kind") or "offset")
+            raw_offset = item.get("world_offset")
+            if (not isinstance(raw_offset, (list, tuple))
+                    or len(raw_offset) != 3
+                    or any(isinstance(v, bool) for v in raw_offset)):
+                raise ValueError(f"invalid 3D assembly offset: {key}")
+            try:
+                offset = tuple(float(v) for v in raw_offset)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(f"invalid numeric assembly offset: {key}") from exc
+            if not all(isfinite(v) for v in offset):
+                raise ValueError(f"nonfinite assembly offset: {key}")
             return kind, offset
         try:
             from ae_engine.assembly_placement import resolve_assembly_placement
@@ -589,7 +608,17 @@ def _phase6_signature_canonical_value(value):
     if isinstance(value, bool) or value is None or isinstance(value, str):
         return value
     if isinstance(value, (int, float)):
-        return round(float(value), 12)
+        from math import isfinite
+
+        # An invalid manufacturing dimension may NEVER share a cache key
+        # with a literal marker such as "__NaN__", or another invalid value.
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("nonfinite manufacturing signature value") from exc
+        if not isfinite(number):
+            raise ValueError("nonfinite manufacturing signature value")
+        return round(number, 12)
     if isinstance(value, Mapping):
         return {str(key): _phase6_signature_canonical_value(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
