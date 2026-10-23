@@ -227,3 +227,71 @@ def test_ac15_v5_preview_cache_invalidates_changed_or_missing_csv_source(monkeyp
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_ac15_original_tk_two_model_highlight_has_bounded_latency_no_full_3d(monkeypatch):
+    """Measure source-view highlight, not an unrelated whole-cabinet benchmark."""
+    from math import ceil
+    from statistics import median
+    from time import perf_counter
+    from ae_engine import receiving_nfb_numeric_catalog as catalog
+    from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+    from phase6_final_scene_view import Phase6FinalSceneViewAdapter
+
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        state = modal._receiving_inner_switch_state
+        first = state["rows"][0]
+        assert first["available"].size() >= 2
+        for model_index in (0, 1):
+            first["available"].selection_clear(0, "end")
+            first["available"].selection_set(model_index)
+            _button(first["section"], "＋加入").invoke()
+            root.update()
+        assert first["assigned"].size() == 2
+        project_before = deepcopy(app._phase6_input_snapshot)
+        draft_before = deepcopy(state["nfb_draft"]["draft"])
+        panel = modal._receiving_inner_nfb_dxf_panel
+        panel._numeric_sources.clear()
+        panel._source_key = None
+
+        reads = []
+        actual_read = catalog.read_numeric_specs
+
+        def count_csv_reads(brand, *args, **kwargs):
+            reads.append(brand)
+            return actual_read(brand, *args, **kwargs)
+
+        monkeypatch.setattr(catalog, "read_numeric_specs", count_csv_reads)
+
+        def forbidden_scene_render(*_args, **_kwargs):
+            raise AssertionError("Highlight may not rebuild full FinalScene 3D")
+
+        monkeypatch.setattr(Phase6FinalSceneRenderer, "render", forbidden_scene_render)
+        monkeypatch.setattr(Phase6FinalSceneViewAdapter, "render_cutting_mesh",
+                            forbidden_scene_render)
+        elapsed_ms = []
+        for slot in (0, 1) * 12:
+            started = perf_counter()
+            first["assigned"].selection_clear(0, "end")
+            first["assigned"].selection_set(slot)
+            first["assigned"].event_generate("<<ListboxSelect>>")
+            root.update()
+            elapsed_ms.append((perf_counter() - started) * 1000.0)
+            assert panel._numeric_spec is not None
+            assert panel.canvas.find_withtag("nfb-dxf")
+        p95_ms = sorted(elapsed_ms)[ceil(.95 * len(elapsed_ms)) - 1]
+        median_ms = median(elapsed_ms)
+        # A full 2D/3D solve would be orders of magnitude slower. Bounds apply
+        # only to this original Tk source-selection path on the CI runner.
+        assert median_ms < 150.0, median_ms
+        assert p95_ms < 300.0, p95_ms
+        assert reads == ["士林", "士林"], reads
+        assert len(panel._numeric_sources) == 2
+        assert app._phase6_input_snapshot == project_before
+        assert state["nfb_draft"]["draft"] == draft_before
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
