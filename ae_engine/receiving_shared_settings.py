@@ -103,6 +103,8 @@ def validate_setting(kind, value):
         value = [float(v) for v in value]
     elif not isinstance(value, (list, tuple)):
         raise ValueError("封頭尾設定必須是 Hole Editor feature 清單")
+    else:
+        value = list(value)
     return deepcopy(value)
 
 

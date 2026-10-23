@@ -52,8 +52,13 @@ def test_quantity_projection_retains_submitted_v5_but_drops_retired_bay_identity
     assert config==projected["nfb_config"]
     assert legacy_brand==set_row["switch_brand"]
     selected=project_receiving_bay_legacy_aliases(projected)
-    assert selected[RECEIVING_RUNTIME_SELECTION_KEY]["set_id"]==set_row["stable_id"]
-    assert selected[RECEIVING_RUNTIME_SELECTION_KEY]["bay_id"]==bay["stable_id"]
+    # Quantity must NOT persist or reintroduce a retired Set/Bay runtime
+    # selector. The single current projection's real stable IDs own identity.
+    assert RECEIVING_RUNTIME_SELECTION_KEY not in selected
+    selected_set=selected["receiving_layout"]["sets"][0]
+    selected_bay=selected_set["bays"][0]
+    assert selected_set["stable_id"]==set_row["stable_id"]
+    assert selected_bay["stable_id"]==bay["stable_id"]
     assert _current_brand_config(selected)[1]==config
 
 

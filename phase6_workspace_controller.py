@@ -151,15 +151,30 @@ class Phase6WorkspaceController:
         if raw.get("quantity") is not None:
             quantity = QuantityModel.from_payload(raw["quantity"])
         if "active_mode" in raw:
-            self._active_mode = raw["active_mode"]
-            self._quantity_model = quantity
+            requested_mode = raw["active_mode"]
+            # Reject incomplete true mode transitions before changing the
+            # current authoritative controller state.
+            if (requested_mode == "quantity" and quantity is None
+                    and self._active_mode != "quantity"):
+                raise ValueError("切換數量模式必須提供 quantity 權威資料")
+            self._active_mode = requested_mode
+            if requested_mode != "quantity":
+                self._quantity_model = None
+            elif quantity is not None:
+                self._quantity_model = quantity
+            # Existing quantity mode + partial part_features keeps its
+            # authoritative model; the selected version is updated below.
         elif quantity is not None:
             self._active_mode = "quantity"
             self._quantity_model = quantity
-        if "receiving_layout" in raw or "active_mode" in raw:
+        if "receiving_layout" in raw:
             self._receiving_layout = self._clone(raw.get("receiving_layout"))
-        if "active_mode" in raw or "receiving_quantity_box" in raw:
+        elif "active_mode" in raw and self._active_mode == "quantity":
+            self._receiving_layout = None
+        if "receiving_quantity_box" in raw:
             self._receiving_quantity_box = self._clone(raw.get("receiving_quantity_box"))
+        elif "active_mode" in raw and self._active_mode != "quantity":
+            self._receiving_quantity_box = None
         existing = raw.get("existing_parts") if "existing_parts" in raw else (
             self._shared_state.existing_parts if self._authoritative else self._fallback_existing_parts
         )
@@ -182,6 +197,10 @@ class Phase6WorkspaceController:
             self._assembly_placements = self._clone(dict(raw.get("assembly_placements") or {}))
         if "part_features" in raw:
             self._part_features = self._clone(dict(raw.get("part_features") or {}))
+            if self._quantity_model is not None and "quantity" not in raw:
+                for part in ("head", "tail"):
+                    if part in self._part_features:
+                        self._quantity_model.set_features(part, self._part_features[part])
         if "part_face_features" in raw:
             self._part_face_features = self._clone(dict(raw.get("part_face_features") or {}))
         return self.workspace_snapshot()
@@ -205,6 +224,17 @@ class Phase6WorkspaceController:
     def replace_assembly_placements(self, value: Mapping[str, object] | None) -> dict[str, dict[str, object]]:
         self._assembly_placements = self._clone(dict(value or {}))
         return self.assembly_placements_snapshot()
+
+    def update_custom_part_metadata(self, key: str, **changes) -> bool:
+        """Commit Designer-edited custom metadata to the shared Workspace owner.
+
+        Metadata-only edits must not replace QuantityModel versions, change
+        the selected part, or invalidate cabinet manufacturing geometry.
+        """
+        changed = self._shared_state.update_custom_part(key, **changes)
+        if changed:
+            self._authoritative = True
+        return changed
 
     def part_features_snapshot(self) -> dict[str, list]:
         result = self._clone(getattr(self, "_part_features", {}))
@@ -242,8 +272,9 @@ class Phase6WorkspaceController:
         }
         if "custom_parts" in result:
             snapshot["custom_parts"] = result["custom_parts"]
-        if getattr(self, "_part_features", None):
-            snapshot["part_features"] = self.part_features_snapshot()
+        part_features = self.part_features_snapshot()
+        if part_features:
+            snapshot["part_features"] = part_features
         if getattr(self, "_part_face_features", None):
             snapshot["part_face_features"] = self._clone(self._part_face_features)
         if getattr(self, "_assembly_placements", None):
