@@ -126,16 +126,8 @@ def project_common_box(snapshot):
     result.pop("nfb_config", None)
     quantity = result.get("quantity")
     if isinstance(quantity, Mapping):
-        from phase6_quantity_model import QuantityModel, SCHEMA_V3
+        from phase6_quantity_model import QuantityModel
         model = QuantityModel.from_payload(quantity)
-        # Preserve EXACT pre-v3 common-box projection/cache semantics for all
-        # existing projects. Only an explicitly version-owned V3 brand may
-        # replace the synthetic singleton Set's in-memory NFB parent.
-        # Never write that selected brand back into the common physical box.
-        if quantity.get("schema") == SCHEMA_V3:
-            row["switch_brand"] = model.nfb_parent_brand_for_version(
-                model.selected_version_id, legacy_default=box["switch_brand"],
-            )
         submitted = model.nfb_config_for_version(model.selected_version_id)
         if submitted:
             bay.update(deepcopy(submitted))

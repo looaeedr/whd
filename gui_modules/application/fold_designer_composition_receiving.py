@@ -1626,34 +1626,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def single_brand():
         from ae_engine.receiving_quantity_box import normalize_common_box
-        from phase6_quantity_model import QuantityModel
         source = _current_mode_snapshot(self, namespace)
-        box = normalize_common_box(source.get("receiving_quantity_box"))
-        quantity = QuantityModel.from_payload(source["quantity"])
-        return quantity.nfb_parent_brand_for_version(
-            quantity.selected_version_id, legacy_default=box["switch_brand"],
-        )
+        return normalize_common_box(source.get("receiving_quantity_box"))["switch_brand"]
 
     def set_single_brand(value):
-        from ae_engine.receiving_quantity_box import normalize_common_box
-        from phase6_quantity_model import QuantityModel
+        from ae_engine.receiving_quantity_box import update_common_box
         source = _current_mode_snapshot(self, namespace)
         if source.get("active_mode") != "quantity":
             raise ValueError("單只品牌需在單箱體模式設定")
-        quantity = QuantityModel.from_payload(source["quantity"])
-        box = normalize_common_box(source.get("receiving_quantity_box"))
-        if (quantity.nfb_parent_brand_for_version(
-                quantity.selected_version_id, legacy_default=box["switch_brand"])
-                == value
-                and all("nfb_parent_brand" in row
-                        for row in quantity.snapshot()["versions"])):
+        if single_brand() == value:
             return False
-        if not quantity.set_version_nfb_parent_brand(
-                quantity.selected_version_id, value,
-                legacy_default=box["switch_brand"]):
-            return False
-        candidate = deepcopy(source)
-        candidate["quantity"] = quantity.snapshot()
+        candidate = update_common_box(source, {"switch_brand": value})
         _apply_mode_snapshot(self, namespace, candidate)
         return True
 
@@ -1670,9 +1653,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     def current_nfb_parent_brand():
         """The SAME Set→layer→unit inheritance uses the active mode's owner.
 
-        Set/Bay reads the existing Set brand; Quantity reads its selected
-        version NFB parent. Historical common-box brand is migration-only.
-        Every saved V5 hole keeps its original source/override identity.
+        Set/Bay reads the existing Set brand; quantity reads its original
+        common-box brand.  Neither creates a second brand authority, and
+        each saved V5 hole retains its own actual source/override identity.
         """
         if _current_mode_snapshot(self, namespace).get("active_mode") == "quantity":
             return single_brand()

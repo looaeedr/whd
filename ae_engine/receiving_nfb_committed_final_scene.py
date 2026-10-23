@@ -179,16 +179,6 @@ def _submitted_csv_holes(snapshot):
         return ()
     if any(p is None for p in parsed):
         raise ValueError("NFB_COMMITTED_CSV_MIXED_UNRESOLVED_SOURCE")
-    # Quantity version parent changed while an INHERIT unit still points at
-    # a different brand's saved V5 model: preserve its identity but forbid
-    # any CURRENT manufacturing source, pending explicit operator reselection.
-    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
-    stale_units = quantity_inherited_nfb_brand_conflicts(snapshot)
-    if stale_units:
-        raise ValueError(
-            "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION:" +
-            ",".join(stale_units)
-        )
     count = config.get("layer_count")
     if type(count) is not int or count not in (1, 2):
         raise ValueError("NFB_COMMITTED_CSV_INVALID_LAYER_COUNT")

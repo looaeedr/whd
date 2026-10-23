@@ -52,13 +52,6 @@ def _current_single_tier_csv_holes(snapshot, inner_door_id):
     if (not isinstance(snapshot, Mapping)
             or snapshot.get("nfb_config_submitted") is not True):
         raise ValueError("CSV_BASE_EXPORT_REQUIRES_SUBMITTED_NFB_CONFIG")
-    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
-    stale_units = quantity_inherited_nfb_brand_conflicts(snapshot)
-    if stale_units:
-        raise ValueError(
-            "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION:" +
-            ",".join(stale_units)
-        )
     centers = receiving_nfb_layer_centers(snapshot, inner_door_id)
     if len(centers) != 1 or centers[0].layer_index != 0:
         raise ValueError("CSV_BASE_EXPORT_ONLY_ONE_ACTUAL_TIER")
