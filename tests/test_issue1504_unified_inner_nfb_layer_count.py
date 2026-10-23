@@ -84,6 +84,7 @@ def test_real_tk_single_variable_reaches_original_draft_and_undo_without_second_
             ).pack(side="left")
         old = new_nfb_ui1a_draft(set_brand="士林", layer_count=1)
         session = NfbUi1aEditSession(old)
+        original_session = session.original
         assert nfb_physical_layers is layers
         layers.set(tier_count)
         assert nfb_physical_layers.get() == tier_count
@@ -96,7 +97,11 @@ def test_real_tk_single_variable_reaches_original_draft_and_undo_without_second_
             session.undo()
             nfb_physical_layers.set(session.current["layer_count"])
             assert layers.get() == 1
-        assert session.cancel() == old
+        # The installed edit session assigns stable unit IDs and rotation
+        # defaults on entry; compare with its normalized original, not
+        # with the raw incoming UI-1A DTO.
+        assert session.cancel() == original_session
+        assert old["layer_count"] == 1
         assert len([x for x in buttons.winfo_children()
                     if isinstance(x, ttk.Radiobutton)]) == 2
     finally:
