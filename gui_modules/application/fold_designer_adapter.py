@@ -822,23 +822,31 @@ class Phase6FoldDesignerComposition:
             owner = getattr(app, "_phase6_assembly_panel_owner", None)
             if owner is not None:
                 keys, box_pieces = owner.resolve_visibility(parts)
-                # Both real NFB tier source blanks inherit the existing
-                # Base Plate checkbox, not two extra unmanaged controls.
-                tier_keys = {
-                    str(p.part_key) for p in tuple(parts or ())
-                    if str(p.part_key).startswith("base_plate:nfb_layer:")
-                }
-                if tier_keys:
-                    root_var = owner.visible_vars.get("base_plate")
-                    root_visible = bool(
-                        root_var.get() if root_var is not None else True
-                    )
-                    if not root_visible:
-                        keys = tuple(k for k in keys if k not in tier_keys)
-                return keys, box_pieces
-            return Phase6AssemblyPanel._resolve_visibility_with_vars(
-                parts, {}, {}
-            )
+                visible_vars = owner.visible_vars
+            else:
+                visible_vars = dict(
+                    getattr(app, "assembly_part_visible_vars", None) or {}
+                )
+                piece_vars = dict(
+                    getattr(app, "assembly_box_body_piece_visible_vars", None) or {}
+                )
+                keys, box_pieces = Phase6AssemblyPanel._resolve_visibility_with_vars(
+                    parts, visible_vars, piece_vars
+                )
+            # Both real NFB tier source blanks inherit the existing
+            # Base Plate checkbox, not two extra unmanaged controls.
+            tier_keys = {
+                str(p.part_key) for p in tuple(parts or ())
+                if str(p.part_key).startswith("base_plate:nfb_layer:")
+            }
+            if tier_keys:
+                root_var = visible_vars.get("base_plate")
+                root_visible = bool(
+                    root_var.get() if root_var is not None else True
+                )
+                if not root_visible:
+                    keys = tuple(k for k in keys if k not in tier_keys)
+            return keys, box_pieces
 
         def render_committed():
             if not getattr(app, "preview_3d_enabled", True):
@@ -866,6 +874,13 @@ class Phase6FoldDesignerComposition:
                 return app.submit_update_intent("display", commit=True)
             finally:
                 app._phase6_force_sync_preview = False
+
+        def operator_dimensions(part_key=None):
+            fn = required("_phase6_operator_finished_dimensions")
+            try:
+                return fn(app, part_key)
+            except TypeError:
+                return fn(app)
 
         return FinalSceneCompositionPorts(
             number_text=number_text,
@@ -897,9 +912,7 @@ class Phase6FoldDesignerComposition:
             formed_size_text=formed_size_text,
             blank_text=blank_text,
             refresh_box_body_piece_info=refresh_box_body_piece_info,
-            operator_dimensions=lambda part_key=None: operator_finished_dimensions_for_app(
-                app, part_key
-            ),
+            operator_dimensions=operator_dimensions,
             cabinet_family=lambda: required("_phase6_current_cabinet_family")(app),
             assembly_blank_text=assembly_blank_text,
             active_mesh_profiles=lambda material: required(

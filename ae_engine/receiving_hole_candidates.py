@@ -9,6 +9,8 @@ from collections.abc import Mapping
 from copy import deepcopy
 import re
 
+from .sheetmetal_feature_core import CircleFeature, ProfileFeature, RectFeature
+
 SCHEMA = "receiving-hole-candidates-v1"
 ROLES = ("head", "tail")
 
@@ -63,7 +65,10 @@ def normalize_candidates(value=None):
             match = re.fullmatch(rf"{role}-v([1-9][0-9]*)", str(version_id))
             if match is None or version_id in seen:
                 raise ValueError("候選版本 ID 重複或不合法")
-            if not isinstance(entry["features"], (list, tuple)):
+            if not isinstance(entry["features"], (list, tuple)) or any(
+                not isinstance(f, (CircleFeature, RectFeature, ProfileFeature))
+                for f in entry["features"]
+            ):
                 raise ValueError("候選孔位必須為 Feature 清單")
             seen.add(version_id)
             clean.append({"id": version_id, "features": deepcopy(list(entry["features"]))})
@@ -86,7 +91,10 @@ def candidate_features(value, role, version_id):
 
 def create_candidate(value, role, features):
     role = role_key(role)
-    if not isinstance(features, (list, tuple)):
+    if not isinstance(features, (list, tuple)) or any(
+        not isinstance(f, (CircleFeature, RectFeature, ProfileFeature))
+        for f in features
+    ):
         raise ValueError("孔位必須為 Feature 清單")
     result = normalize_candidates(value)
     block = result[role]
@@ -98,7 +106,10 @@ def create_candidate(value, role, features):
 
 def update_candidate(value, role, version_id, features):
     role = role_key(role)
-    if not isinstance(features, (list, tuple)):
+    if not isinstance(features, (list, tuple)) or any(
+        not isinstance(f, (CircleFeature, RectFeature, ProfileFeature))
+        for f in features
+    ):
         raise ValueError("孔位必須為 Feature 清單")
     result = normalize_candidates(value)
     for item in result[role]["versions"]:

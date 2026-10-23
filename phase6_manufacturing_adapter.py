@@ -624,6 +624,12 @@ def build_manufacturing_request(
             axis: box_dimensions[axis] for axis in ("w", "h", "d")
             if axis in box_dimensions
         })
+    for axis in ("w", "h", "d"):
+        if axis in box_dimensions:
+            snapshot.setdefault(axis, box_dimensions[axis])
+        elif axis in settings:
+            snapshot.setdefault(axis, settings[axis])
+    snapshot.setdefault("t", _num(settings.get("t", snapshot.get("t", 2.0)), 2.0))
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
@@ -686,7 +692,7 @@ def build_manufacturing_request(
         canonical_part_keys=_canonical_part_keys(app),
         parts=tuple(part_inputs),
         operator_finished_dimensions=_finished_dimensions_for_part(
-            app, "", finished_dimensions_provider
+            app, "box_body", finished_dimensions_provider
         ),
         assembly_intent=_assembly_intent(app),
         allow_3d_fallback=bool(
@@ -829,18 +835,29 @@ def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
 
 def resolve_for_app(app: Any) -> Any:
     """Single compatibility entry from app/Tk world into manufacturing."""
+    import sys
+
     render_provider = getattr(app, "_scene_query_callback", None)
     part_spec_provider = getattr(app, "_part_spec_query_callback", None)
     publish_live_state = getattr(app, "_phase6_publish_live_state", None)
+    bridge_mod = sys.modules.get("fold_designer_bridge")
+    dim_fn = getattr(
+        bridge_mod,
+        "_phase6_operator_finished_dimensions",
+        operator_finished_dimensions_for_app,
+    )
+    def _call_dim_fn(key=None):
+        try:
+            return dim_fn(app, key)
+        except TypeError:
+            return dim_fn(app)
+
     return resolve_manufacturing_for_app(
         app,
         scene_payload_builder=lambda key: build_scene_payload_for_app(app, key),
         render_data_provider=render_provider,
         part_spec_provider=part_spec_provider,
-        finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(
-            app,
-            key,
-        ),
+        finished_dimensions_provider=_call_dim_fn,
         publish_live_state=publish_live_state,
         require_render_provider=True,
     )

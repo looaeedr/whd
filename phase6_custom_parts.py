@@ -10,7 +10,7 @@ Profiles and manufacturing geometry belong to the Fold/manufacturing owners.
 Names never serve as IDs; the persisted allocator never recycles deleted IDs.
 """
 from copy import deepcopy
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 import math
 import re
 
@@ -106,28 +106,43 @@ def custom_part_only_change(previous, current):
     if not isinstance(previous,Mapping) or not isinstance(current,Mapping):
         return False
     old,new=deepcopy(dict(previous)),deepcopy(dict(current))
-    changed=False
     a=dict(old.get("workspace") or {}).get("custom_parts") or old.get("custom_parts") or {}
     b=dict(new.get("workspace") or {}).get("custom_parts") or new.get("custom_parts") or {}
-    keys=set(dict(a.get("items") or {}))
-    if not keys or keys != set(dict(b.get("items") or {})):
+    if not isinstance(a,Mapping) or not isinstance(b,Mapping):
         return False
+    a_items=dict(a.get("items") or {})
+    b_items=dict(b.get("items") or {})
+    keys=set(a_items)
+    if not keys or keys != set(b_items):
+        return False
+    changed = (a != b)
     for before,after in ((old,new),(old.get("workspace") or {},new.get("workspace") or {})):
-        for name in ("custom_parts","part_profiles","part_features","part_face_features"):
-            changed=changed or before.get(name) != after.get(name)
+        if not isinstance(before,Mapping) or not isinstance(after,Mapping):
+            continue
+        for name in ("part_profiles","part_features","part_face_features"):
+            m_before = before.get(name) if isinstance(before.get(name), Mapping) else {}
+            m_after = after.get(name) if isinstance(after.get(name), Mapping) else {}
+            for key in keys:
+                if m_before.get(key) != m_after.get(key):
+                    changed = True
         for block in (before,after):
             catalog=block.get("custom_parts")
             if isinstance(catalog,Mapping):
-                for row in dict(catalog.get("items") or {}).values():
-                    for field in ("display_name","per_box_count","fold_axis","transverse_length"):
-                        row.pop(field,None)
+                items=catalog.get("items")
+                if isinstance(items,Mapping):
+                    for row in items.values():
+                        if isinstance(row,MutableMapping):
+                            for field in ("display_name","per_box_count","fold_axis","transverse_length"):
+                                row.pop(field,None)
             for name in ("part_profiles","part_features","part_face_features"):
                 mapping=block.get(name)
-                if isinstance(mapping,Mapping):
+                if isinstance(mapping,MutableMapping):
                     for key in keys:
                         mapping.pop(key,None)
                     if not mapping:
                         block.pop(name,None)
+                elif mapping is None:
+                    block.pop(name,None)
     for block in (old,new):
         for key in ("origin","revision","fingerprint","transaction_id","delta"):
             block.pop(key,None)

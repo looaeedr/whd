@@ -232,6 +232,7 @@ class Phase6DesignerWorkspace:
         if self._selected_part == key:
             self._selected_part = None
         self._assembly_placements.pop(key, None)
+        self._prune_assembly_placements(self.available_parts)
         self._dirty = True
         return True
 

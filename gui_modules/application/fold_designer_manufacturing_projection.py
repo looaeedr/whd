@@ -181,7 +181,14 @@ def _authoritative_render_data(self, spec, context=None):
         cache = self._authoritative_part_render_cache = owner.cache("authoritative_render")
     owner = getattr(self, "_derived_cache_owner", None)
     cache_key = (repr(spec), repr(ctx))
-    snapshot = getattr(self, "_phase6_input_snapshot", None)
+    app = getattr(self, "fold_designer_app", None)
+    snapshot = (
+        getattr(app, "_phase6_input_snapshot", None)
+        if app is not None
+        else None
+    )
+    if snapshot is None:
+        snapshot = getattr(self, "_phase6_input_snapshot", None)
     # EndCap raw material is independent of a different Bay's W/H/D only
     # when the exact typed inputs are identical and no pre-solved assembly
     # cuts/embedded relief are present. Do not retain final solved endcaps.
@@ -475,7 +482,14 @@ def _query_fold_designer_render_data(self, part_key, payload):
         # being queried. This exact same source drives 2D material and
         # 3D formed weld contacts; it cannot grant manufacturing release.
         source = dict(payload or {})
-        live = getattr(self, "_phase6_input_snapshot", None)
+        app = getattr(self, "fold_designer_app", None)
+        live = (
+            getattr(app, "_phase6_input_snapshot", None)
+            if app is not None
+            else None
+        )
+        if live is None:
+            live = getattr(self, "_phase6_input_snapshot", None)
         if isinstance(live, Mapping):
             for name in ("nfb_config", "nfb_config_submitted"):
                 source.pop(name, None)
@@ -512,7 +526,14 @@ def _query_fold_designer_render_data(self, part_key, payload):
         # physical panel and finished-face features. It reads no DXF/source
         # file. Do not apply this cross-transaction reuse to frame/divider
         # factories: those read dedicated physical baseline source data.
-        snapshot = getattr(self, "_phase6_input_snapshot", None)
+        app = getattr(self, "fold_designer_app", None)
+        snapshot = (
+            getattr(app, "_phase6_input_snapshot", None)
+            if app is not None
+            else None
+        )
+        if snapshot is None:
+            snapshot = getattr(self, "_phase6_input_snapshot", None)
         owner = getattr(self, "_derived_cache_owner", None)
         eligible = (
             isinstance(snapshot, Mapping)

@@ -996,6 +996,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     )
     proxy_workspace = Phase6DesignerWorkspace.from_snapshot({
         **snapshot, "existing_parts": workspace.available_parts,
+        "custom_parts": workspace.custom_parts_snapshot(),
         "part_profiles": workspace.part_profiles_snapshot(),
         "part_features": {**workspace.part_features_snapshot(), **snapshot.get("part_features", {})},
         "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": joint_faces},
@@ -1514,7 +1515,12 @@ def _open_common_box(self, namespace):
     def dimensions(width, height, depth, door_columns=None):
         changes = {"w": width, "h": height, "d": depth}
         if door_columns is not None:
-            door = deepcopy(box.get("door_state", {}))
+            from ae_engine.sheetmetal_part_adapters import validate_door_layout_dimensions
+
+            validate_door_layout_dimensions(door_columns, total_width=width, total_height=height)
+            current_box = normalize_common_box(_current_mode_snapshot(self, namespace).get(BOX_KEY))
+            door = deepcopy(current_box.get("door_state", {}))
+            door["multi_door_enabled"] = True
             door["door_layout_columns"] = [[w, list(hs)] for w, hs in door_columns]
             changes["door_state"] = door
         change_common(changes)

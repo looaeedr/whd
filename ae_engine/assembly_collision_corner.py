@@ -468,11 +468,11 @@ def _polygon_parts(geometry):
     if geometry is None or getattr(geometry, "is_empty", True):
         return []
     if getattr(geometry, "geom_type", "") == "Polygon":
-        return [geometry]
-    return [
-        geom for geom in getattr(geometry, "geoms", ())
-        if getattr(geom, "geom_type", "") == "Polygon" and float(geom.area) > 1e-9
-    ]
+        return [geometry] if float(getattr(geometry, "area", 0.0)) > 1e-9 else []
+    polygons = []
+    for geom in getattr(geometry, "geoms", ()):
+        polygons.extend(_polygon_parts(geom))
+    return polygons
 
 
 def _corner_name_for_component(component, blank_bounds, *, tolerance=1e-6):

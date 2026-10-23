@@ -450,6 +450,8 @@ def _phase6_box_body_true_world_piece_meshes(part, *, dimensions, thickness):
     pieces = tuple(getattr(getattr(part, "render_data", None), "pieces", ()) or ())
     if not pieces:
         return ()
+    if max((float(getattr(p, "formed_w_end", 0.0) or 0.0) for p in pieces), default=0.0) <= 0.0:
+        return ()
     if str(getattr(part, "part_key", "")) != "box_body":
         raise ValueError("multi-piece world skins must originate in box_body")
     if dimensions is None or len(dimensions) != 3:
