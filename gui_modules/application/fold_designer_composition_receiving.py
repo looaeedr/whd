@@ -1650,6 +1650,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         return True
 
+    def current_nfb_parent_brand():
+        """The SAME Set→layer→unit inheritance uses the active mode's owner.
+
+        Set/Bay reads the existing Set brand; quantity reads its original
+        common-box brand.  Neither creates a second brand authority, and
+        each saved V5 hole retains its own actual source/override identity.
+        """
+        if _current_mode_snapshot(self, namespace).get("active_mode") == "quantity":
+            return single_brand()
+        return self.receiving_switch_adapter(namespace).brand
+
     def finalize_global_brand():
         # After the modal has closed, project and submit once for the latest
         # selected brand. The operator can change brands without a 3D reload.
@@ -2025,7 +2036,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             initial["models"] = initial_fresh_receiving_nfb_models(
                 initial["models"],
                 layer_count=initial["layers"],
-                selected_brand=self.receiving_switch_adapter(namespace).brand,
+                selected_brand=current_nfb_parent_brand(),
             )
         parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
         from .receiving_inner_door_hole_editor import inner_door_commit_target
@@ -2114,7 +2125,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     value=self.session.current
                 dict.__setitem__(self,key,value)
         draft_state = _NfbDraftState({"draft": new_nfb_ui1a_draft(
-            set_brand=self.receiving_switch_adapter(namespace).brand,
+            set_brand=current_nfb_parent_brand(),
             layer_count=nfb_physical_layers.get(), model_layers=initial["models"],
         )})
         edit_session = NfbUi1aEditSession(draft_state["draft"])
@@ -2269,7 +2280,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         def refresh_source(*, force=False):
             if not modal.winfo_exists():
                 return
-            current_owner = self.receiving_switch_adapter(namespace).brand
+            current_owner = current_nfb_parent_brand()
             if current_owner != draft_state["draft"]["set_brand"]:
                 draft_state["draft"] = reconcile_set_brand(
                     draft_state["draft"], current_owner,
