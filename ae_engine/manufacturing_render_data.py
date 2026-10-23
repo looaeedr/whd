@@ -391,7 +391,7 @@ def _translated_scene(scene, dx: float, dy: float = 0.0):
             out.add(CirclePrimitive(point(primitive.center), primitive.radius, primitive.layer, primitive.color,
                                     primitive.source_type, primitive.source_id))
         elif isinstance(primitive, TextPrimitive):
-            out.add(TextPrimitive(primitive.text, point(primitive.insert), primitive.layer, primitive.char_height, primitive.attachment_point, primitive.color))
+            out.add(TextPrimitive(primitive.text, point(primitive.insert), primitive.layer, primitive.char_height, primitive.attachment_point, primitive.color, primitive.semantic_id))
         else:
             raise TypeError(f"Unsupported drawing primitive: {type(primitive)!r}")
     return out

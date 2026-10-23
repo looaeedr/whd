@@ -450,6 +450,8 @@ def _existing_conflict_geometry(primitive, material):
         if not coords:
             return None
         line_coords = coords + [coords[0]] if primitive.closed else coords
+        if len(line_coords) < 2:
+            return None
         line = LineString(line_coords)
         if layer == "MARKING" or not primitive.closed:
             return line
@@ -462,7 +464,7 @@ def _existing_conflict_geometry(primitive, material):
         # The outer stock/material CUTTING profile contains Final Material and
         # is a boundary, not a filled forbidden feature. Smaller closed CUTTING
         # profiles are cutouts and use their interior for conflict checks.
-        if polygon.covers(material):
+        if polygon.buffer(1e-6).covers(material):
             return polygon.boundary
         return polygon
     return None
