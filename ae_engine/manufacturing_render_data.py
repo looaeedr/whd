@@ -114,9 +114,15 @@ class MaterialSegment:
     source: str
 
     def __post_init__(self):
+        import math
+        if isinstance(self.length, bool):
+            raise ValueError("MaterialSegment length must not be boolean")
+        raw_len = float(self.length)
+        if not math.isfinite(raw_len):
+            raise ValueError("MaterialSegment length must be finite")
         object.__setattr__(self, "axis", str(self.axis).upper())
         object.__setattr__(self, "name", str(self.name))
-        object.__setattr__(self, "length", max(0.0, float(self.length)))
+        object.__setattr__(self, "length", max(0.0, raw_len))
         object.__setattr__(self, "source", str(self.source))
 
 

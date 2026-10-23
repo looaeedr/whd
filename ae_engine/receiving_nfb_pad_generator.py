@@ -34,9 +34,14 @@ class PadToolingRule:
         values = (self.tab_projection_mm, self.tab_height_mm,
                   self.tab_end_inset_mm, self.base_square_side_mm,
                   self.base_square_center_inset_x_mm)
-        if not self.revision or len(self.source_dxf_sha256) != 64:
+        if (not isinstance(self.revision, str) or not self.revision.strip()
+                or not isinstance(self.source_dxf_sha256, str)
+                or len(self.source_dxf_sha256) != 64
+                or any(ch not in "0123456789abcdefABCDEF" for ch in self.source_dxf_sha256)):
             raise ValueError("PAD 共用加工規則來源身分不完整")
-        if not all(isfinite(v) and v > 0 for v in values):
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in values):
+            raise ValueError("PAD 共用加工規則需要有限正數")
+        if not all(isfinite(float(v)) and float(v) > 0 for v in values):
             raise ValueError("PAD 共用加工規則需要有限正數")
 
 
@@ -44,8 +49,14 @@ def read_pad_tooling_rule(path: str | Path | None = None) -> PadToolingRule:
     """Load at runtime. There are no brand/model-specific tooling defaults."""
     source = (Path(path) if path is not None else
               Path(__file__).resolve().parents[1] / TOOLING_RELATIVE_PATH)
-    record = json.loads(source.read_text(encoding="utf-8"))
-    if record.get("schema") != "RECEIVING_NFB_PAD_TOOLING_V1":
+    try:
+        record = json.loads(source.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError("PAD 共用加工規則格式不正確") from exc
+    if not isinstance(record, dict) or record.get("schema") != "RECEIVING_NFB_PAD_TOOLING_V1":
+        raise ValueError("PAD 共用加工規則格式不正確")
+    missing = [name for name in PadToolingRule.__dataclass_fields__ if name not in record]
+    if missing:
         raise ValueError("PAD 共用加工規則格式不正確")
     rule = PadToolingRule(**{name: record[name] for name in
         PadToolingRule.__dataclass_fields__})
@@ -113,7 +124,8 @@ def _screws(spec) -> tuple[tuple[Point2, ...], float]:
     dx = getattr(spec,"screw_offset_x_mm",None)
     dy = getattr(spec,"screw_offset_y_mm",None)
     if (not isinstance(pitch,(tuple,list)) or len(pitch)!=2 or
-            diameter is None or dx is None or dy is None):
+            diameter is None or dx is None or dy is None or
+            any(isinstance(v, bool) for v in (*pitch, diameter, dx, dy))):
         raise ValueError("PAD NFB CSV 缺少完整螺絲孔規格")
     px,py,d,ox,oy = map(float,(*pitch,diameter,dx,dy))
     if (not all(isfinite(v) for v in (px,py,d,ox,oy)) or
@@ -134,16 +146,20 @@ def generate_nfb_pad_patterns(
     projected real mounting pattern; missing source measurements are errors.
     """
     tooling.validate()
-    selected = tuple(selected_nfb)
-    if not selected:
-        return ()
+    if isinstance(plate_thickness_mm, bool):
+        raise ValueError("PAD 板厚必須為有限正數")
     t = float(plate_thickness_mm)
     if not isfinite(t) or t <= 0:
         raise ValueError("PAD 板厚必須為有限正數")
+    selected = tuple(selected_nfb)
+    if not selected:
+        return ()
     for spec in selected:
         if any(getattr(spec, name, None) is None for name in (
                 "brand","model","width_mm","height_mm","depth_mm")):
             raise ValueError("PAD 所選 NFB 缺少 CSV 寬高深來源")
+        if any(isinstance(getattr(spec, n), bool) for n in ("width_mm", "height_mm", "depth_mm")):
+            raise ValueError("PAD 所選 NFB 寬高深不合法")
         if not all(isfinite(float(getattr(spec,n))) and float(getattr(spec,n))>0
                    for n in ("width_mm","height_mm","depth_mm")):
             raise ValueError("PAD 所選 NFB 寬高深不合法")

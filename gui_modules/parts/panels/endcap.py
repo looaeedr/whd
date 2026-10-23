@@ -10,6 +10,9 @@ from tkinter import ttk
 def setup_tab_endcap_ui(self, tab_frame, key):
     """建立封頭或封尾分頁 UI，key='head' 或 'tail'"""
     label_map = {'head': '封頭', 'tail': '封尾'}
+    key = str(key or '').strip().lower()
+    if key not in label_map:
+        raise ValueError(f"Unsupported endcap tab key: {key!r}")
     # 頂部控制列
     top_ctrl = tk.Frame(tab_frame, bg=self.COLOR_BG)
     top_ctrl.pack(fill=tk.X, padx=10, pady=5)

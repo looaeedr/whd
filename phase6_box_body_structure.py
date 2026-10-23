@@ -10,7 +10,35 @@ from __future__ import annotations
 
 from copy import deepcopy
 from enum import Enum
+import math
 from typing import Mapping
+
+
+def _coerce_bool_flag(value, *, default: bool = True) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return bool(default)
+    if isinstance(value, (int, float)):
+        if not math.isfinite(float(value)):
+            return bool(default)
+        return bool(value)
+    if isinstance(value, str):
+        token = value.strip().lower()
+        if token in {"1", "true", "yes", "y", "on"}:
+            return True
+        if token in {"0", "false", "no", "n", "off", ""}:
+            return False
+    return bool(value)
+
+
+def _finite_float(value, *, field: str) -> float:
+    if isinstance(value, bool) or value is None:
+        raise ValueError(f"{field} 必須為有效數值")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{field} 必須為有限數值")
+    return number
 
 
 class BoxBodyStructureType(str, Enum):
@@ -116,17 +144,24 @@ def normalize_box_body_structure_state(
         return result
 
     result["active_type"] = _structure_type(value.get("active_type")).value
-    if "locked" in value:
-        result["locked"] = bool(value.get("locked"))
+    if "locked" in value and value.get("locked") is not None:
+        result["locked"] = _coerce_bool_flag(value.get("locked"), default=True)
     elif legacy_locked is not None:
-        result["locked"] = bool(legacy_locked)
+        result["locked"] = _coerce_bool_flag(legacy_locked, default=True)
 
     incoming_configs = value.get("configs")
     if isinstance(incoming_configs, Mapping):
         for type_id in BoxBodyStructureType:
             incoming = incoming_configs.get(type_id.value)
             if isinstance(incoming, Mapping):
-                result["configs"][type_id.value].update(deepcopy(dict(incoming)))
+                copied = deepcopy(dict(incoming))
+                if (
+                    type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT
+                    and "piece_profiles" in copied
+                    and not isinstance(copied["piece_profiles"], Mapping)
+                ):
+                    copied["piece_profiles"] = {}
+                result["configs"][type_id.value].update(copied)
     return result
 
 
@@ -148,7 +183,7 @@ def activate_structure_with_defaults(
     """
     result = set_active_structure(state, type_id)
     kind = _structure_type(type_id)
-    total = float(total_w)
+    total = _finite_float(total_w, field="箱身總寬 W")
     cfg = result["configs"][kind.value]
 
     if kind is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
@@ -172,7 +207,7 @@ def activate_structure_with_defaults(
 
 def set_structure_locked(state: Mapping[str, object] | None, locked: bool) -> dict:
     result = normalize_box_body_structure_state(state)
-    result["locked"] = bool(locked)
+    result["locked"] = _coerce_bool_flag(locked, default=True)
     return result
 
 
@@ -219,7 +254,7 @@ def update_structure_config(
 
 
 def _manual_integer(value, *, field: str) -> float:
-    number = float(value)
+    number = _finite_float(value, field=field)
     if not number.is_integer():
         raise ValueError(f"{field} 人工輸入只接受整數")
     return number
@@ -227,7 +262,7 @@ def _manual_integer(value, *, field: str) -> float:
 
 def resolve_two_piece_widths(state: Mapping[str, object] | None, total_w: float) -> tuple[float, float]:
     """解析 W 二分包外寬；保存值若與總 W 矛盾則 fail closed。"""
-    total = float(total_w)
+    total = _finite_float(total_w, field="箱身總寬 W")
     if total < 100.0:
         raise ValueError("W 二分需要左右兩側都至少 50 mm")
     normalized = normalize_box_body_structure_state(state)
@@ -237,14 +272,14 @@ def resolve_two_piece_widths(state: Mapping[str, object] | None, total_w: float)
     if left is None and right is None:
         return total / 2.0, total / 2.0
     if left is None:
-        right = float(right)
+        right = _finite_float(right, field="right_w")
         left = total - right
     elif right is None:
-        left = float(left)
+        left = _finite_float(left, field="left_w")
         right = total - left
     else:
-        left = float(left)
-        right = float(right)
+        left = _finite_float(left, field="left_w")
+        right = _finite_float(right, field="right_w")
         if abs((left + right) - total) > 1e-9:
             raise ValueError("W 二分保存尺寸總和與箱身 W 不一致，拒絕產生幾何")
     if left < 50.0 or right < 50.0:
@@ -264,8 +299,8 @@ def set_two_piece_width(
     side = str(side).lower()
     if side not in {"left", "right"}:
         raise ValueError("W 二分只能修改 left 或 right")
-    number = _manual_integer(value, field="W 分配") if manual else float(value)
-    total = float(total_w)
+    number = _manual_integer(value, field="W 分配") if manual else _finite_float(value, field="W 分配")
+    total = _finite_float(total_w, field="箱身總寬 W")
     other = total - number
     if number < 50.0 or other < 50.0:
         raise ValueError("W 二分左右包外寬都不得小於 50 mm")
@@ -289,7 +324,7 @@ def reconcile_box_body_structure_for_total_w_change(
     complementary dimensions against the new total W.
     """
     result = normalize_box_body_structure_state(state)
-    total = float(total_w)
+    total = _finite_float(total_w, field="箱身總寬 W")
 
     two_key = BoxBodyStructureType.TWO_PIECE_W_SPLIT.value
     two = result["configs"][two_key]
@@ -299,13 +334,10 @@ def reconcile_box_body_structure_for_total_w_change(
             if driver == "default":
                 result = set_two_piece_width(result, total, "left", total / 2.0, manual=False)
                 result["configs"][two_key]["driver"] = "default"
-            elif driver == "right" and two.get("right_w") is not None:
+            elif (driver == "right" or two.get("left_w") is None) and two.get("right_w") is not None:
                 result = set_two_piece_width(result, total, "right", two["right_w"], manual=False)
             else:
-                value = two.get("left_w")
-                if value is None:
-                    value = total - float(two["right_w"])
-                result = set_two_piece_width(result, total, "left", value, manual=False)
+                result = set_two_piece_width(result, total, "left", two.get("left_w"), manual=False)
         except ValueError:
             if result.get("active_type") == two_key:
                 raise
@@ -341,7 +373,7 @@ def reconcile_box_body_structure_for_total_w_change(
 
 def set_join_seam_bend(state: Mapping[str, object] | None, type_id, value) -> dict:
     """更新 W 分件共用接合折邊；>=50 僅是 warning，不阻擋。"""
-    bend = float(value)
+    bend = _finite_float(value, field="中央接合折邊")
     if bend < 12.0:
         raise ValueError("中央接合折邊不得小於 12 mm")
     key = _structure_type(type_id)
@@ -352,32 +384,37 @@ def set_join_seam_bend(state: Mapping[str, object] | None, type_id, value) -> di
 
 def resolve_three_piece_widths(state: Mapping[str, object] | None, total_w: float) -> tuple[float, float, float]:
     """解析 W 三分；左右連動，中間吸收剩餘，未設定時預設 50/(W-100)/50。"""
-    total = float(total_w)
+    total = _finite_float(total_w, field="箱身總寬 W")
     normalized = normalize_box_body_structure_state(state)
     cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_W_SPLIT.value]
     left = cfg.get("left_w")
     middle = cfg.get("middle_w")
     right = cfg.get("right_w")
+    if left is not None:
+        left = _finite_float(left, field="left_w")
+    if middle is not None:
+        middle = _finite_float(middle, field="middle_w")
+    if right is not None:
+        right = _finite_float(right, field="right_w")
+    if left is not None and right is not None and abs(left - right) > 1e-9:
+        raise ValueError("W 三分保存尺寸左右不一致，拒絕產生幾何")
+    if middle is not None and (left is not None or right is not None):
+        side_val = left if left is not None else right
+        if abs((2.0 * side_val + middle) - total) > 1e-9:
+            raise ValueError("W 三分保存尺寸總和與箱身 W 不一致，拒絕產生幾何")
     if left is None and middle is None and right is None:
         left = right = 50.0
         middle = total - 100.0
     elif left is not None and middle is not None and right is not None:
-        left = float(left)
-        middle = float(middle)
-        right = float(right)
-        if abs(left - right) > 1e-9:
-            raise ValueError("W 三分保存尺寸左右不一致，拒絕產生幾何")
-        if abs((left + middle + right) - total) > 1e-9:
-            raise ValueError("W 三分保存尺寸總和與箱身 W 不一致，拒絕產生幾何")
+        pass
     else:
         driver = str(cfg.get("driver") or "side")
         if driver == "middle" and middle is not None:
-            middle = float(middle)
             left = right = (total - middle) / 2.0
         else:
             side = left if left is not None else right
             if side is None:
-                side = (total - float(middle)) / 2.0
+                side = (total - middle) / 2.0
             left = right = float(side)
             middle = total - 2.0 * float(side)
     if float(left) <= 0 or float(right) <= 0 or float(middle) <= 0:
@@ -396,8 +433,8 @@ def set_three_piece_width(
     field = str(field).lower()
     if field not in {"left", "middle", "right"}:
         raise ValueError("W 三分只能修改 left / middle / right")
-    number = _manual_integer(value, field="W 分配") if manual else float(value)
-    total = float(total_w)
+    number = _manual_integer(value, field="W 分配") if manual else _finite_float(value, field="W 分配")
+    total = _finite_float(total_w, field="箱身總寬 W")
     if field == "middle":
         middle = number
         left = right = (total - middle) / 2.0
@@ -424,10 +461,14 @@ def set_side_back_piece_profile(
     role = str(role or "").strip()
     if role not in {"left_side", "back", "right_side"}:
         raise ValueError(f"unsupported side/back physical role: {role}")
+    if isinstance(profile, (str, bytes, Mapping)):
+        raise ValueError(f"{role} Fold profile must be a sequence of segment mappings")
     rows = []
     for raw in tuple(profile or ()):
+        if not isinstance(raw, Mapping):
+            raise ValueError(f"{role} Fold segment must be a mapping")
         row = deepcopy(dict(raw))
-        length = float(row.get("len", 0.0))
+        length = _finite_float(row.get("len"), field=f"{role} Fold segment length")
         if length <= 0:
             raise ValueError(f"{role} Fold segment length must be > 0")
         row["len"] = length
@@ -460,11 +501,15 @@ def side_rear_bend_material_length(
     state: Mapping[str, object] | None, thickness: float
 ) -> float:
     """Resolve the physical/material rear flange exactly once."""
+    t = _finite_float(thickness, field="板厚")
+    if t <= 0:
+        raise ValueError("板厚必須大於 0")
     normalized = normalize_box_body_structure_state(state)
     cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    value = float(cfg.get("side_rear_bend", 15.0))
+    raw_bend = cfg.get("side_rear_bend")
+    value = 15.0 if raw_bend is None else _finite_float(raw_bend, field="側板後折")
     if side_rear_bend_dimension_space(normalized) == "OUTSIDE":
-        value -= float(thickness)
+        value -= t
     if value <= 0:
         raise ValueError("側板後折換算後料尺寸必須大於 0")
     return value
@@ -474,11 +519,17 @@ def side_rear_bend_outside_length(
     state: Mapping[str, object] | None, thickness: float
 ) -> float:
     """Resolve the operator-facing outside rear flange without changing geometry."""
+    t = _finite_float(thickness, field="板厚")
+    if t <= 0:
+        raise ValueError("板厚必須大於 0")
     normalized = normalize_box_body_structure_state(state)
     cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    value = float(cfg.get("side_rear_bend", 15.0))
+    raw_bend = cfg.get("side_rear_bend")
+    value = 15.0 if raw_bend is None else _finite_float(raw_bend, field="側板後折")
+    if value <= 0:
+        raise ValueError("側板後折必須大於 0")
     if side_rear_bend_dimension_space(normalized) == "MATERIAL":
-        value += float(thickness)
+        value += t
     if value <= 0:
         raise ValueError("側板後折包外尺寸必須大於 0")
     return value
@@ -494,7 +545,7 @@ def set_side_back_geometry(
     """更新側背分離專屬參數；dimension space 必須顯式保存。"""
     values = {}
     if side_rear_bend is not None:
-        bend = float(side_rear_bend)
+        bend = _finite_float(side_rear_bend, field="側板後折")
         if bend <= 0:
             raise ValueError("側板後折必須大於 0")
         values["side_rear_bend"] = bend
@@ -504,7 +555,7 @@ def set_side_back_geometry(
             raise ValueError("側板後折 dimension space 只接受 MATERIAL / OUTSIDE")
         values["side_rear_bend_dimension_space"] = space
     if back_width_comp_t is not None:
-        comp = float(back_width_comp_t)
+        comp = _finite_float(back_width_comp_t, field="後面板寬補償")
         if comp < 0:
             raise ValueError("後面板寬補償不可小於 0T")
         values["back_width_comp_t"] = comp

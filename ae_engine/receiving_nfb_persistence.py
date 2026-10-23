@@ -58,7 +58,8 @@ def normalize_nfb_config(config):
         if not isinstance(hole, dict):
             raise ValueError("NFBConfig hole must be an object")
         owner = hole.get("physical_hole_id")
-        if not isinstance(owner, str) or not owner.strip() or owner in seen:
+        if (not isinstance(owner, str) or not owner.strip()
+                or owner != owner.strip() or owner in seen):
             raise ValueError("NFB physical_hole_id missing/duplicate")
         seen.add(owner)
         model = hole.get("model_filename")
@@ -136,13 +137,22 @@ def contains_submitted_nfb(scope):
         return True
     receiving = scope.get("receiving_layout")
     if isinstance(receiving, Mapping):
-        for selected in receiving.get("sets", ()) or ():
-            for bay in selected.get("bays", ()) or ():
-                if isinstance(bay, Mapping) and bay.get("nfb_config_submitted") is True:
-                    return True
+        sets = receiving.get("sets", ())
+        if isinstance(sets, (list, tuple)):
+            for selected in sets:
+                if not isinstance(selected, Mapping):
+                    continue
+                bays = selected.get("bays", ())
+                if not isinstance(bays, (list, tuple)):
+                    continue
+                for bay in bays:
+                    if isinstance(bay, Mapping) and bay.get("nfb_config_submitted") is True:
+                        return True
     quantity = scope.get("quantity")
     if isinstance(quantity, Mapping):
-        for version in quantity.get("versions", ()) or ():
-            if isinstance(version, Mapping) and version.get("nfb_config_submitted") is True:
-                return True
+        versions = quantity.get("versions", ())
+        if isinstance(versions, (list, tuple)):
+            for version in versions:
+                if isinstance(version, Mapping) and version.get("nfb_config_submitted") is True:
+                    return True
     return False

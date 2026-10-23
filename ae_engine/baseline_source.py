@@ -67,7 +67,7 @@ def load_baseline_dxf_source_with_status(path, *, allow_unverified_source=False)
         return cached, BASELINE_SOURCE_VERIFIED
     try:
         doc = ezdxf.readfile(normalized)
-    except OSError:
+    except (OSError, ezdxf.DXFError):
         if allow_unverified_source and normalized in _BASELINE_DXF_LAST_GOOD:
             return _BASELINE_DXF_LAST_GOOD[normalized], BASELINE_SOURCE_UNVERIFIED
         raise
@@ -133,7 +133,7 @@ def baseline_cutting_bounds(msp):
             cx, cy, radius = (
                 float(ent.dxf.center.x),
                 float(ent.dxf.center.y),
-                float(ent.dxf.radius),
+                abs(float(ent.dxf.radius)),
             )
             xs.extend([cx - radius, cx + radius])
             ys.extend([cy - radius, cy + radius])
@@ -141,7 +141,7 @@ def baseline_cutting_bounds(msp):
             cx, cy, radius = (
                 float(ent.dxf.center.x),
                 float(ent.dxf.center.y),
-                float(ent.dxf.radius),
+                abs(float(ent.dxf.radius)),
             )
             start_a = float(ent.dxf.start_angle) % 360.0
             end_a = float(ent.dxf.end_angle) % 360.0
@@ -154,6 +154,8 @@ def baseline_cutting_bounds(msp):
                 rad = math.radians(deg)
                 xs.append(cx + radius * math.cos(rad))
                 ys.append(cy + radius * math.sin(rad))
+    xs = [x for x in xs if math.isfinite(x)]
+    ys = [y for y in ys if math.isfinite(y)]
     if not xs or not ys:
         return None
     return min(xs), min(ys), max(xs), max(ys)

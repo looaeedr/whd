@@ -190,10 +190,12 @@ def _factor_or_override(
     thickness: float,
     name: str,
 ) -> float:
-    value = override if override is not None else factor * thickness
-    if value < 0:
+    if isinstance(override, bool) or isinstance(factor, bool) or isinstance(thickness, bool):
+        raise GeometryError(f"{name} must not be boolean")
+    raw = float(override) if override is not None else float(factor) * float(thickness)
+    if not math.isfinite(raw) or raw < 0:
         raise GeometryError(f"{name} must not be negative")
-    return float(value)
+    return raw
 
 
 def calculate_endcap_relief_dimensions(
@@ -360,6 +362,14 @@ def _endcap_manual_material_polygon(
     """Material polygon for manual/unknown EndCap using CornerType selections."""
     _require_shapely()
     _validate_endcap(g)
+    for override_fold in (
+        relief_left_fold,
+        relief_right_fold,
+        bottom_relief_left_fold,
+        bottom_relief_right_fold,
+    ):
+        if override_fold is not None and (isinstance(override_fold, bool) or not math.isfinite(float(override_fold))):
+            raise GeometryError("manual EndCap relief fold override must be a finite number")
     left_basis = abs(g.left_fold if relief_left_fold is None else float(relief_left_fold))
     right_basis = abs(g.right_fold if relief_right_fold is None else float(relief_right_fold))
     bottom_left_basis = abs(

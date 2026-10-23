@@ -61,8 +61,11 @@ def _phase6_door_part_assembly_placement(snapshot, part_key):
     cell = next((item for item in cells if door_layout_part_key(item) == key), None)
     if cell is None:
         raise ValueError(f"門格 stable_id 不存在於 authoritative topology: {key}")
-    total_w = float(dict(snapshot or {}).get("w", sum(width for width, _ in columns)))
-    total_h = float(dict(snapshot or {}).get("h", sum(columns[0][1])))
+    snap = dict(snapshot or {})
+    raw_w = snap.get("w")
+    raw_h = snap.get("h")
+    total_w = float(sum(width for width, _ in columns) if raw_w is None else raw_w)
+    total_h = float(sum(columns[0][1]) if raw_h is None else raw_h)
     x_before = sum(columns[index][0] for index in range(cell.column_index))
     y_before = sum(columns[cell.column_index][1][:cell.row_index])
     center_x = -total_w / 2.0 + x_before + cell.start_width / 2.0
@@ -72,6 +75,7 @@ def _phase6_door_part_assembly_placement(snapshot, part_key):
 
 def _phase6_assembly_placement_for_part(snapshot, part_key):
     key = str(part_key or "")
+    snapshot = dict(snapshot or {}) if isinstance(snapshot, Mapping) else {}
     family = cabinet_family_policy.canonical_family_name(snapshot)
     if key.startswith("base_plate:fixing_plate:"):
         # The supplied DXF fully owns the sheet/holes, not the finished
@@ -104,11 +108,12 @@ def _phase6_assembly_placement_for_part(snapshot, part_key):
             or (snapshot.get("workspace") or {}).get("assembly_placements")
             or {}
         )
-        if key in placements:
+        if isinstance(placements, Mapping) and key in placements and isinstance(placements[key], Mapping):
             item = placements[key]
-            kind = item.get("placement_kind", "offset")
-            offset = tuple(float(v) for v in item.get("world_offset", (0.0, 0.0, 0.0)))
-            return kind, offset
+            kind = str(item.get("placement_kind") or "offset")
+            raw_offset = item.get("world_offset")
+            coords = tuple(float(v) for v in (raw_offset if isinstance(raw_offset, (list, tuple)) and len(raw_offset) == 3 else (0.0, 0.0, 0.0)))
+            return kind, coords
         try:
             from ae_engine.assembly_placement import resolve_assembly_placement
             placement = resolve_assembly_placement(snapshot, key)
@@ -139,12 +144,15 @@ def _phase6_relief_polygon_coords(geometry):
 
 
 def _phase6_assembly_relief_clearance(self):
+    import math
     var = getattr(self, "assembly_relief_clearance_var", None)
-    raw = var.get() if var is not None else "0"
     try:
+        raw = var.get() if var is not None else "0"
         value = float(str(raw).strip() or "0")
-    except (TypeError, ValueError):
+    except Exception:
         value = 0.0
+    if not math.isfinite(value):
+        return 0.0
     return max(0.0, value)
 
 
@@ -354,6 +362,7 @@ def _phase6_expand_box_body_fw_world_mid(
         return tuple(world_mid_piece or ())
 
     rows = [tuple(tuple(float(v) for v in point) for point in tri) for tri in tuple(world_mid_piece or ())]
+    selected = [index for index in selected if index < len(rows)]
     xs = [float(point[0]) for index in selected for point in rows[index]]
     if not xs:
         return tuple(rows)
@@ -369,7 +378,8 @@ def _phase6_expand_box_body_fw_world_mid(
     core_lo, core_hi = core_bands[0]
     core_selected = [
         index for index, item in enumerate(tuple(mapped or ()))
-        if len(tuple(getattr(item, "flat", ()) or ())) == 3
+        if index < len(rows)
+        and len(tuple(getattr(item, "flat", ()) or ())) == 3
         and core_lo + float(tolerance) < (
             sum(float(point[0]) for point in item.flat) / 3.0
         ) < core_hi - float(tolerance)
@@ -488,6 +498,9 @@ def _phase6_shift_multistage_terminal_fold_world_mid(piece, mapped, world_mid_pi
         tuple(tuple(float(v) for v in point) for point in tri)
         for tri in tuple(world_mid_piece or ())
     ]
+    selected = [index for index in selected if index < len(rows)]
+    if not selected:
+        return tuple(rows)
     tangents = []
     mapped_all = tuple(mapped or ())
     for index in selected:
@@ -558,6 +571,7 @@ def _phase6_joint_relief_state_item_matches(item, joint, source_material):
         or not bool(item.get("verified"))
     ):
         return False
+    import math
     try:
         saved_bounds = tuple(float(v) for v in item.get("source_material_bounds", ()))
         saved_area = float(item.get("source_material_area"))
@@ -565,7 +579,11 @@ def _phase6_joint_relief_state_item_matches(item, joint, source_material):
         current_area = float(source_material.area)
     except Exception:
         return False
-    return len(saved_bounds) == 4 and all(abs(a-b) <= 1e-6 for a,b in zip(saved_bounds,current_bounds)) and abs(saved_area-current_area) <= 1e-6
+    if len(saved_bounds) != 4 or len(current_bounds) != 4:
+        return False
+    if not all(math.isfinite(v) for v in (*saved_bounds, *current_bounds, saved_area, current_area)):
+        return False
+    return all(abs(a - b) <= 1e-6 for a, b in zip(saved_bounds, current_bounds)) and abs(saved_area - current_area) <= 1e-6
 
 
 def _phase6_cut_geometry_from_state_item(item):
@@ -586,15 +604,22 @@ def _phase6_cut_geometry_from_state_item(item):
 
 def _phase6_signature_canonical_value(value):
     """Normalize representation-only differences before manufacturing caching."""
+    import math
+    from enum import Enum
+    if isinstance(value, Enum):
+        return _phase6_signature_canonical_value(value.value)
     if isinstance(value, bool) or value is None or isinstance(value, str):
         return value
     if isinstance(value, (int, float)):
-        return round(float(value), 12)
+        num = float(value)
+        if not math.isfinite(num):
+            return "__NaN__" if math.isnan(num) else ("__Inf__" if num > 0 else "__-Inf__")
+        return round(num, 12)
     if isinstance(value, Mapping):
         return {str(key): _phase6_signature_canonical_value(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
         return tuple(_phase6_signature_canonical_value(item) for item in value)
-    if isinstance(value, set):
+    if isinstance(value, (set, frozenset)):
         normalized = [_phase6_signature_canonical_value(item) for item in value]
         return tuple(sorted(normalized, key=repr))
     enum_value = getattr(value, "value", None)
@@ -737,7 +762,7 @@ def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickne
     if body is not None:
         body_pieces = tuple(getattr(body.render_data, "pieces", ()) or ())
         if body_pieces:
-            total_w = max(float(getattr(piece, "formed_w_end", 0.0)) for piece in body_pieces)
+            total_w = max(float(getattr(piece, "formed_w_end", None) or 0.0) for piece in body_pieces)
             mapped_rows = []
             structure_mid = []
             piece_counts = []
@@ -965,9 +990,12 @@ def _phase6_request_profiles_for_material(part_input, material):
     key = str(part_input.part_key or "")
     x_prof = [dict(seg) for seg in tuple(part_input.x_profile or ())]
     y_prof = [dict(seg) for seg in tuple(part_input.y_profile or ())]
-    minx, miny, maxx, maxy = material.bounds
+    bounds = tuple(getattr(material, "bounds", ()) or ()) if material is not None else ()
+    if len(bounds) != 4:
+        return x_prof, y_prof
+    minx, miny, maxx, maxy = bounds
 
-    if key == "box_body":
+    if key == "box_body" or is_box_body_physical_piece_key(key):
         return x_prof, [{"len": float(maxy - miny)}]
     if key.startswith("box_body:divider:") or (
         key.startswith("inner_door:") and key.endswith("_frame")
