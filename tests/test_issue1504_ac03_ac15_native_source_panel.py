@@ -393,7 +393,18 @@ def test_swt05_embedded_original_hole_editor_cancel_then_confirm_stages_only(mon
     )
     app = SimpleNamespace(
         root=root,
-        _phase6_input_snapshot={"active_mode": "set_bay", "model": "受電箱"},
+        _phase6_input_snapshot={
+            "active_mode": "set_bay", "model": "受電箱",
+            # The original physical Hole Editor requires a real receiving
+            # inner-door cell. A headless adapter without it must fail closed.
+            "multi_door_enabled": True,
+            "door_layout_scope": "receiving-main",
+            "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+            "inner_doors": [{
+                "stable_id": "upper", "cell_key": "0:0",
+                "included_frame_sides": ["top", "left", "right"],
+            }],
+        },
         _settings_values={},
         _phase6_box_whd={"w": 800, "h": 1600, "d": 350, "t": 2},
         _phase6_endcap_bottom_wrap_state={},
@@ -442,7 +453,7 @@ def test_swt05_embedded_original_hole_editor_cancel_then_confirm_stages_only(mon
         assert second._receiving_inner_switch_state["rows"][0]["assigned"].size() >= 1
         _button(second, "確定").invoke()
         root.update()
-        assert not second.winfo_exists()
+        assert not second.winfo_exists(), second._receiving_inner_switch_state["warning"].get()
         assert len(staged) == 1
         config, features = staged[0]
         assert config["layers"] == 1
