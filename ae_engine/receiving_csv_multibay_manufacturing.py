@@ -82,6 +82,18 @@ def export_current_receiving_multibay_dxf(
         logical={p.part_key for p in actual.parts}
         if len(logical)!=len(actual.parts):
             raise ValueError("RECEIVING_MULTIBAY_DUPLICATE_LOGICAL_PHYSICAL_OWNER")
+        only_independent_intent=(
+            any(bool(flags.get(key)) for key in ("head", "tail", "door"))
+            and not any(bool(value) for key,value in flags.items()
+                        if key not in {"head", "tail", "door"})
+        )
+        if only_independent_intent:
+            requested=tuple(key for key in ("head", "tail", "door")
+                            if bool(flags.get(key)))
+            if any(key not in logical for key in requested):
+                raise ValueError(
+                    "RECEIVING_MULTIBAY_SELECTED_INDEPENDENT_PHYSICAL_SOURCE_MISSING"
+                )
         is_csv=source.get("nfb_config_submitted") is True
         selected_logical=tuple(p for p in actual.parts
             if p.part_key.startswith("custom:")
