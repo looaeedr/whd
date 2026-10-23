@@ -630,7 +630,23 @@ def test_ac54_swt31_current_v5_project_schema_exact_regression_and_no_old_binary
                 ).body if isinstance(node, ast.FunctionDef)
             }
             assert function in defs
-            assert any(isinstance(n, ast.Assert) for n in ast.walk(defs[function]))
+            # Explicit rejection tests use pytest.raises, not a literal
+            # 'assert'.  Require a real with-raises check rather than
+            # weakening the historical-schema negative witness gate.
+            body = defs[function]
+            direct = any(isinstance(n, ast.Assert) for n in ast.walk(body))
+            rejected = any(
+                isinstance(node, ast.With)
+                and any(
+                    isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Attribute)
+                    and item.context_expr.func.attr == "raises"
+                    and bool(item.context_expr.args)
+                    for item in node.items
+                )
+                for node in ast.walk(body)
+            )
+            assert direct or rejected, exact
         assert evidence["external_historical_binary_read_executed"] is False
         assert evidence["real_two_old_project_windows_gui_uat"] is False
         assert evidence["factory_release"] is False
