@@ -183,25 +183,45 @@ def update_common_box(snapshot, changes):
 
 def quantity_feature_errors(snapshot):
     """Re-resolve every version against the existing finished-face authority."""
-    if snapshot.get("active_mode") != "quantity":
+    if not isinstance(snapshot, Mapping) or snapshot.get("active_mode") != "quantity":
         return ()
     from phase6_quantity_model import QuantityModel
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
     from ae_engine.sheetmetal_features import (
         resolve_endcap_finished_face_guide, feature_surface_from_rect,
         feature_is_within_surface,
     )
-    box = normalize_common_box(snapshot.get(BOX_KEY)) if snapshot.get("model") == "受電箱" else {axis: positive_dimension(snapshot.get(axis), axis) for axis in ("w", "d")}
+    box = (
+        normalize_common_box(snapshot.get(BOX_KEY))
+        if (is_receiving_snapshot(snapshot) or BOX_KEY in snapshot)
+        else {axis: positive_dimension(snapshot.get(axis), axis) for axis in ("w", "d")}
+    )
+    raw_t = snapshot.get("t")
     model = QuantityModel.from_payload(snapshot.get("quantity"))
-    guide = resolve_endcap_finished_face_guide(box["w"], box["d"], float(snapshot.get("t", 2)))
-    surface = feature_surface_from_rect("endcap_finished_face", guide.min_point, guide.max_point)
+    # A missing persisted T is not permission to manufacture with a guessed
+    # 2.0-mm sheet. Fail closed for versions containing hole features while
+    # keeping this diagnostic function non-throwing on legacy snapshots.
+    surface = None
+    if raw_t is not None:
+        try:
+            t = positive_dimension(raw_t, "t")
+            guide = resolve_endcap_finished_face_guide(box["w"], box["d"], t)
+            surface = feature_surface_from_rect(
+                "endcap_finished_face", guide.min_point, guide.max_point,
+            )
+        except (TypeError, ValueError, AttributeError, OverflowError):
+            surface = None
     errors = []
     for version in model.snapshot()["versions"]:
         for role in ("head", "tail"):
             for index, feature in enumerate(version[f"{role}_features"], 1):
-                try:
-                    valid = feature_is_within_surface(surface, feature, box["w"], box["d"])
-                except (AttributeError, TypeError, ValueError, KeyError, OverflowError):
+                if surface is None:
                     valid = False
+                else:
+                    try:
+                        valid = feature_is_within_surface(surface, feature, box["w"], box["d"])
+                    except (AttributeError, TypeError, ValueError, KeyError, OverflowError):
+                        valid = False
                 if not valid:
                     errors.append(f'{version["version_id"]}／{"封頭" if role == "head" else "封尾"}／特徵 {index} 越界或失效')
     return tuple(errors)

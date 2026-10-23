@@ -146,10 +146,13 @@ def mirror_drawing_scene_x(scene: DrawingScene, min_x: float, max_x: float) -> D
                 source_type=primitive.source_type, source_id=primitive.source_id,
             ))
         elif isinstance(primitive, TextPrimitive):
+            attachment = primitive.attachment_point
+            if str(primitive.layer).upper() == "CHECK":
+                attachment = {1: 3, 3: 1, 4: 6, 6: 4, 7: 9, 9: 7}.get(int(attachment), attachment)
             mirrored.add(TextPrimitive(
                 text=primitive.text, insert=mirror_point_x(primitive.insert, min_x, max_x),
                 layer=primitive.layer, char_height=primitive.char_height,
-                attachment_point=primitive.attachment_point, color=primitive.color,
+                attachment_point=attachment, color=primitive.color,
                 semantic_id=primitive.semantic_id,
             ))
         else:

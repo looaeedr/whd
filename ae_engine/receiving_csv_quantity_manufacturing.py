@@ -135,6 +135,29 @@ def export_current_csv_quantity_manufacturing(
             if (snapshot.get("nfb_config_submitted") is not True
                     or snapshot.get("nfb_config") != actual_saved["nfb_config"]):
                 raise ValueError("RECEIVING_CSV_QUANTITY_SAVED_SOURCE_NOT_CURRENT")
+            # Rebuild the current selected version's canonical one-Bay
+            # calculation view. Manufacturing identity comes exclusively
+            # from the verified QuantityModel version, never a saved Set/Bay
+            # selector. The downstream full CSV check still verifies exact
+            # live Bay/config/physical-sheet identities.
+            from .receiving_quantity_box import project_common_box
+            snapshot = project_common_box(snapshot)
+            layout = snapshot["receiving_layout"]
+            if (len(layout["sets"]) != 1
+                    or len(layout["sets"][0]["bays"]) != 1
+                    or snapshot.get("nfb_config") != actual_saved["nfb_config"]
+                    or snapshot.get("nfb_config_submitted") is not True):
+                raise ValueError("RECEIVING_CSV_QUANTITY_PROJECTED_OWNER_DRIFT")
+            selected_set = layout["sets"][0]
+            selected_bay = selected_set["bays"][0]
+            if (selected_bay.get("nfb_config") != actual_saved["nfb_config"]
+                    or selected_bay.get("nfb_config_submitted") is not True):
+                raise ValueError("RECEIVING_CSV_QUANTITY_BAY_SOURCE_DRIFT")
+            snapshot["_receiving_runtime_selection"] = {
+                "set_index": 0, "bay_index": 0,
+                "set_id": selected_set["stable_id"],
+                "bay_id": selected_bay["stable_id"],
+            }
             original=version.geometry
             body_selected = bool(flags.get("box_body"))
             if body_selected:

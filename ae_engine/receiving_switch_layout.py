@@ -23,6 +23,8 @@ def _brand(value: object) -> str:
 
 
 def _count(value: object, *, label: str) -> int:
+    if isinstance(value, (bool, float)):
+        raise ValueError(f"{label} must be an integer")
     try:
         result = int(value)
     except (TypeError, ValueError) as exc:
