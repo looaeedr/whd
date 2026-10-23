@@ -21,6 +21,11 @@ from ae_engine.contracts import (
     AssemblyGeometryToleranceContract, JointMarkingProductionStatus,
 )
 from ae_engine.manufacturing_render_data import MaterialSegment
+from ae_engine.sheetmetal_features import (
+    CanvasTransform, Vec2, expand_linear_pattern, expand_grid_pattern,
+    indicator_box_opening_size,
+)
+from types import SimpleNamespace
 from ae_engine.sheetmetal_corner_policy import (
     CornerTypeResidual, GeometryError, compose_corner_residual,
     CornerTypeSelection, CornerTypeId, corner_selection_residual,
@@ -115,3 +120,18 @@ def test_r6_corner_second_cut_needs_complete_physical_geometry():
     for height in (True, float("nan")):
         with pytest.raises(GeometryError):
             box_body_height_from_corner_policies(height, 2.)
+
+
+def test_r6_canvas_hole_pattern_and_fw_guard_real_numeric_inputs():
+    for value in (True, float("nan"), float("inf")):
+        with pytest.raises(ValueError):
+            CanvasTransform(scale=value, origin_x=0., origin_y=0.)
+    feature = SimpleNamespace(offset=Vec2(0., 0.))
+    with pytest.raises(ValueError, match="boolean"):
+        expand_linear_pattern(feature, count=True, pitch=10., axis="x")
+    with pytest.raises(ValueError, match="integers"):
+        expand_grid_pattern(feature, rows=2.5, columns=2, pitch_x=10., pitch_y=10.)
+    with pytest.raises(ValueError, match="boolean"):
+        indicator_box_opening_size([1], thickness=True)
+    with pytest.raises(ValueError, match="thickness"):
+        indicator_box_opening_size([1], thickness=float("nan"))
