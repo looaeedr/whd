@@ -759,7 +759,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理", command=open_manager,
                 ).pack(anchor="e", pady=(5, 0))
         else:
-            actions(settings_host, "inner_door_layers")
+            # Inner-door tiers ARE NFB mounting tiers: the original NFB
+            # configuration editor is the only writable layer selector.
+            # Do not recreate the retired independent multi-settings
+            # Combobox; keep the original inner-door version workflow.
             if get_inner_candidate_ports is not None:
                 actions(settings_host, "inner_door_layers", role="inner-door")
                 ttk.Button(
