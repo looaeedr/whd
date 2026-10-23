@@ -892,7 +892,17 @@ def test_ac24_required_live_per_unit_real_part_scope_and_no_saved_derived_green(
         definitions={node.name:node for node in tree.body
                      if isinstance(node,ast.FunctionDef)}
         assert fn in definitions
-        assert any(isinstance(node,ast.Assert)
+        # Negative proof is a true executable pytest.raises guard, not a
+        # no-op asserted marker. Test suites can use either form.
+        def _is_negative_assertion(node):
+            return (isinstance(node, ast.With) and any(
+                isinstance(item.context_expr, ast.Call)
+                and isinstance(item.context_expr.func, ast.Attribute)
+                and isinstance(item.context_expr.func.value, ast.Name)
+                and item.context_expr.func.value.id == "pytest"
+                and item.context_expr.func.attr == "raises"
+                for item in node.items))
+        assert any(isinstance(node, ast.Assert) or _is_negative_assertion(node)
                    for node in ast.walk(definitions[fn]))
     for flag in ("factory_release","human_windows_uat_claimed",
                  "ui_full_operator_uat_claimed"):
