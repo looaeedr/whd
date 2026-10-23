@@ -1156,7 +1156,8 @@
         1493
       ],
       "regression_candidates": [
-        "tests/test_issue1493_nfb_draft_transactions.py"
+        "tests/test_issue1493_nfb_draft_transactions.py",
+        "tests/test_issue1504_ac32_nfb_x_impact_operator.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -1170,7 +1171,16 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_scope_remaining_evidence": "2026-10-23 source-owned GUI fix: exact affected tier/unit count shown by Tk warning textvariable for Q5/Q6/Q7 and per-slot X clear; NfbUi1aEditSession Undo is now wired to a visible NFB Undo footer button and resets displayed X/rotation fields. Four current CSV V5 source/Tk-control smoke tests are mandatory. Still require true integrated Receiving NFB modal operator screenshot/action sequence, including both original old .p6fold projects, before signing AC32 as full GUI acceptance. No Windows GUI UAT at this PR SHA.",
+      "additional_partial_witnesses": [
+        {
+          "path": "tests/test_issue1504_ac32_nfb_x_impact_operator.py",
+          "test_name": "test_ac32_q5_q6_q7_reports_exact_layer_count_and_undo_restores_all_basis",
+          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+          "accepted": false
+        }
+      ]
     },
     {
       "id": "NFB-AC-33",
