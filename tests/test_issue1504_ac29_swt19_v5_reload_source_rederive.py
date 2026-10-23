@@ -208,3 +208,52 @@ def test_ac29_swt19_source_revised_collision_or_boundary_cannot_use_old_green(
     assert tuple(p.read_bytes() for p in old_paths) == old_bytes
     assert old_dir.joinpath(old_paths[0].name).is_file()
     assert reloaded["nfb_config"]["holes"][0]["manual_x_mm"] == -90.
+
+
+def test_ac29_swt19_original_hole_editor_csv_proof_from_before_reload_cannot_be_reused(
+    monkeypatch, tmp_path,
+):
+    import ae_engine.receiving_nfb_csv_editor_features as editor
+    from ae_engine.receiving_nfb_csv_editor_features import (
+        stage_csv_openings, csv_openings_to_editor_features,
+    )
+    from tests.test_issue1901_csv_native_editor import _real_csv_door
+
+    csv_path, original_bytes = _isolated_csv(monkeypatch, tmp_path)
+    monkeypatch.setattr(editor, "brand_csv_path", lambda brand: csv_path)
+    snapshot, panel, original_trial, draft = _real_csv_door()
+    original = stage_csv_openings(
+        original_trial, snapshot=snapshot, draft=draft, current_features=(),
+    )
+    before = csv_openings_to_editor_features(
+        original, snapshot=snapshot, draft=draft, current_features=(),
+    )
+    assert len(before) == 1
+    assert before[0].source_type == "NFB_CSV_SOURCE"
+    assert before[0].layer == "CUTTING"
+
+    _update_opening(csv_path, "65X96")
+    assert csv_path.read_bytes() != original_bytes
+    with pytest.raises(ValueError, match="CSV 已更新"):
+        csv_openings_to_editor_features(
+            original, snapshot=snapshot, draft=draft, current_features=(),
+        )
+    # A genuine repeat source read has to reconstruct the new actual opening:
+    # neither Save/Reload nor a past successful source proof authorizes reuse.
+    new_trial = physical_door.trial_configured_nfb_v5_inner_door_render_data(
+        snapshot, panel.inner_door_id,
+        holes=(physical_door.NfbV5ConfiguredInnerDoorHole(
+            "nfb:quantity:unit1", "士林", V5, 0., 1, 0,
+        ),),
+    )
+    restaged = stage_csv_openings(
+        new_trial, snapshot=snapshot, draft=draft, current_features=(),
+    )
+    after = csv_openings_to_editor_features(
+        restaged, snapshot=snapshot, draft=draft, current_features=(),
+    )
+    assert len(after) == 1
+    assert after[0].source_type == "NFB_CSV_SOURCE"
+    assert after[0].points[1].x - after[0].points[0].x == pytest.approx(65.)
+    assert before[0].points[1].x - before[0].points[0].x == pytest.approx(57.)
+    assert before != after
