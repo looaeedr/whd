@@ -206,6 +206,20 @@ class Phase6PartSessionOwner:
                 if geometry_changed:
                     install_profiles(reset=True)
                 app._phase6_input_snapshot["custom_parts"]=app.designer_workspace.snapshot()["custom_parts"]
+                # The custom catalog already lives in the shared Workspace.
+                # Publish the operator's metadata edit directly to that owner
+                # rather than relying on the scene/live-sync fast-path to
+                # classify a display-name-only change as geometry.
+                host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
+                workspace_owner = getattr(host, "workspace_controller", None)
+                if workspace_owner is not None:
+                    workspace_owner.update_custom_part_metadata(
+                        key,
+                        **{field: current[field] for field in (
+                            "display_name", "fold_axis",
+                            "transverse_length", "per_box_count",
+                        )},
+                    )
                 prior_metadata=dict(current)
                 app._refresh_part_buttons()
                 if geometry_changed:
