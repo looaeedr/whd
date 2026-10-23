@@ -96,3 +96,55 @@ def test_ac15_model_switch_resets_view_without_reusing_stale_source_or_writing(m
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_ac15_native_tk_assigned_highlight_reuses_unchanged_csv_catalog(monkeypatch):
+    """Real selected-slot events must not reload the V5 catalog on every click.
+
+    Brand/source signature changes may still reload via refresh_source().
+    This tests the original inner-door editor event handler, not a mock panel.
+    """
+    from ae_engine import receiving_nfb_model_identity as model_catalog
+
+    original = model_catalog.numeric_model_refs
+    loads = []
+
+    def counted_refs(brand, *args, **kwargs):
+        loads.append(brand)
+        return original(brand, *args, **kwargs)
+
+    # inner_edit imports the catalog function when the real editor is opened.
+    monkeypatch.setattr(model_catalog, "numeric_model_refs", counted_refs)
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        state = modal._receiving_inner_switch_state
+        first = state["rows"][0]
+        assert first["available"].size() > 0
+        first["available"].selection_set(0)
+        _button(first["section"], "＋加入").invoke()
+        root.update()
+        assert first["assigned"].size() == 1
+        before = deepcopy(app._phase6_input_snapshot)
+        before_draft = deepcopy(state["nfb_draft"]["draft"])
+        baseline_loads = len(loads)
+        assert baseline_loads > 0
+
+        for _ in range(6):
+            first["assigned"].selection_clear(0, "end")
+            first["assigned"].selection_set(0)
+            first["assigned"].event_generate("<<ListboxSelect>>")
+            root.update()
+
+        assert len(loads) == baseline_loads, (
+            "Highlighting an unchanged V5 slot must not re-read the catalog"
+        )
+        assert app._phase6_input_snapshot == before
+        assert state["nfb_draft"]["draft"] == before_draft
+        assert KEY not in app._phase6_input_snapshot
+        panel = modal._receiving_inner_nfb_dxf_panel
+        assert panel._numeric_spec is not None
+        assert panel.canvas.find_withtag("nfb-dxf")
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
