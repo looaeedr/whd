@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 23,
+    "EVIDENCE_CANDIDATE_ONLY": 22,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 30,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 31,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -681,7 +681,8 @@
         1491
       ],
       "regression_candidates": [
-        "tests/test_issue1491_nfb_ui1a.py"
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_unified_inner_nfb_layer_count.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -2154,21 +2155,49 @@
         1491
       ],
       "regression_candidates": [
-        "tests/test_issue1491_nfb_ui1a.py"
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_unified_inner_nfb_layer_count.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_no_unapproved_geometry_or_persistence_fields",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_unified_inner_nfb_layer_count.py",
+          "test_name": "test_single_current_layer_count_owns_both_inner_door_and_nfb_mounting_tiers",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_primary_witness_before_20261023": {
+        "path": "tests/test_issue1491_nfb_ui1a.py",
+        "test_name": "test_no_unapproved_geometry_or_persistence_fields",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "acceptance_evidence": {
+        "scope": "Current original Receiving editor uses ONE actual Tk IntVar for the inner-door and NFB installation tier count: hidden second physical-tier radios removed, redundant multi-settings writable count call retired, 1/2 visible selector drives the same UI-1A draft and original candidate serialization, Undo restores one count. Uses the EXISTING Set/Quantity single inherited parent-brand authority, not an independent tier or brand model. Nonreceiving Vault/control/distribution UI entry and generic Hole Editor gate are exercised by current actual Tk regression for NFB-AC-01; no NFB rules in Vault. This is current automated UI-level scope, not two old .p6fold Windows complete GUI acceptance and not physical factory output.",
+        "primary_assertion": "tests/test_issue1504_unified_inner_nfb_layer_count.py::test_single_current_layer_count_owns_both_inner_door_and_nfb_mounting_tiers",
+        "other_required_assertions": [
+          "tests/test_issue1504_unified_inner_nfb_layer_count.py::test_real_tk_single_variable_reaches_original_draft_and_undo_without_second_owner",
+          "tests/test_issue1504_unified_inner_nfb_layer_count.py::test_multi_settings_has_no_second_writable_tier_widget_outside_original_nfb_editor",
+          "tests/test_issue1504_unified_inner_nfb_layer_count.py::test_existing_legacy_count_and_nfb_draft_no_longer_have_an_inequality_gate",
+          "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py::test_ac01_nonreceiving_family_never_mounts_nfb_dialog_or_mutates_hole_editor",
+          "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py::test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
+          "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py::test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "SWT-AC-02",
@@ -3373,7 +3402,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 30/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 58 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 31/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 57 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
