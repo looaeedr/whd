@@ -170,7 +170,12 @@ def _readback_marking_lines(path, expected_segments, *, original_scene=None, che
                 raise ValueError("EAR_SIDE_CHECK_SAVED_SOURCE_MARKING_LINE_MISSING")
             complete_actual.pop(matched)
         if complete_actual:
-            raise ValueError("EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA")
+            raise ValueError(
+                "EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA"
+                f": actual_lines={len(full_expected)+len(complete_actual)}"
+                f" source_lines={len(full_expected)}"
+                f" remainder={complete_actual[:5]!r}"
+            )
         return
     # Backwards-compatible path for independent forged-extra readback tests.
     if original_scene is not None:
@@ -191,7 +196,10 @@ def _readback_marking_lines(path, expected_segments, *, original_scene=None, che
                 raise ValueError("EAR_SIDE_CHECK_SAVED_SOURCE_MARKING_LINE_MISSING")
             actual.pop(match)
     if actual:
-        raise ValueError("EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA")
+        raise ValueError(
+            "EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA"
+            f": unmatched={len(actual)} sample={actual[:5]!r}"
+        )
 
 
 def export_receiving_ear_side_check_only_dxf(
