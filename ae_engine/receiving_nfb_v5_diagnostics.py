@@ -20,6 +20,7 @@ def current_v5_nfb_diagnostics(
     set_id: str, bay_id: str, version_id: str | None,
     dependent_part_ids: Sequence[str] = (),
     unaffected_part_ids: Sequence[str] = (),
+    missing_required_physical_roles: Sequence[str] = (),
 ) -> dict[str, object] | None:
     """Inspect each saved hole; return None only for a wholly legacy NFB config.
 
@@ -50,6 +51,14 @@ def current_v5_nfb_diagnostics(
             or len(set((*dependencies, *unaffected))) != len(dependencies) + len(unaffected)):
         raise ValueError("NFB actual part IDs missing, duplicate or overlapping")
 
+    missing_roles = tuple(missing_required_physical_roles)
+    if (len(set(missing_roles)) != len(missing_roles)
+            or any(role not in ("INNER_DOOR", "BASE_PLATE")
+                   for role in missing_roles)):
+        raise ValueError("NFB missing physical roles must be source-derived")
+    physical_reasons = tuple(
+        f"NFB_REAL_{role}_SOURCE_MISSING" for role in missing_roles
+    )
     layer_count = config.get("layer_count")
     rows: list[dict[str, object]] = []
     csv_by_brand: dict[str, dict[str, object] | None] = {}
@@ -111,7 +120,7 @@ def current_v5_nfb_diagnostics(
             "manufacturing_verified": False,
         })
 
-    good = all(not row["reasons"] for row in rows)
+    good = not physical_reasons and all(not row["reasons"] for row in rows)
     state = "CONFIGURED" if good else "DRAFT"
     common = ("NFB_CURRENT_CSV_PHYSICAL_CUTTING_RECHECK_REQUIRED",)
     return {
@@ -121,15 +130,17 @@ def current_v5_nfb_diagnostics(
         "unit_rows": tuple(rows),
         "part_rows": tuple(
             {"part_id": x, "nfb_affected": True, "status": "RECHECK_ONLY" if good else "BLOCKED",
-             "reasons": common if good else tuple(dict.fromkeys(
-                 reason for row in rows for reason in row["reasons"]))}
+             "reasons": common if good else tuple(dict.fromkeys((
+                 *physical_reasons,
+                 *(reason for row in rows for reason in row["reasons"]),
+             )))}
             for x in dependencies
         ) + tuple(
             {"part_id": x, "nfb_affected": False, "status": "NFB_UNAFFECTED",
              "reasons": ()} for x in unaffected
         ),
         "actual_export_count": None, "rows": (),
-        "unresolved_dependencies": common,
+        "unresolved_dependencies": tuple((*physical_reasons, *common)),
         "whole_ready": False, "manufacturing_ready": False,
         "reason": "目前只核對數值 CSV 與已提交逐顆資料，實體板件須在出圖時重驗",
     }
