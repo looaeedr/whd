@@ -144,3 +144,36 @@ def current_v5_nfb_diagnostics(
         "whole_ready": False, "manufacturing_ready": False,
         "reason": "目前只核對數值 CSV 與已提交逐顆資料，實體板件須在出圖時重驗",
     }
+
+
+def actual_unrelated_nfb_scene_parts(
+    physical_parts: Sequence[object], *, dependent_part_ids: Sequence[str],
+) -> tuple[str, ...]:
+    """Identify genuinely existing, source-rendered, NFB-independent sheets.
+
+    Never infer part IDs from nominal W/H/D, raw UI flags, or an old cached
+    NFB receipt. The exact Bay FinalScene is the physical existence witness.
+    Box sides are intentionally excluded: their EAR marking may depend on
+    the installed NFB base. This is a *NFB dependency* classification only;
+    it does NOT grant fabrication/export readiness to the unrelated sheets.
+    """
+    eligible = frozenset({
+        "head", "tail", "door", "box_body:back_panel",
+    })
+    dependent = frozenset(dependent_part_ids)
+    if any(not isinstance(x, str) or not x.strip() for x in dependent):
+        raise ValueError("NFB actual dependencies require real part IDs")
+    found = set()
+    unaffected = []
+    for physical in tuple(physical_parts):
+        key = getattr(physical, "part_key", None)
+        render = getattr(physical, "render_data", None)
+        if not isinstance(key, str) or not key.strip():
+            raise ValueError("NFB actual FinalScene part identity missing")
+        if key in found:
+            raise ValueError("NFB actual FinalScene duplicate physical owner")
+        found.add(key)
+        if (key in eligible and key not in dependent
+                and getattr(render, "scene", None) is not None):
+            unaffected.append(key)
+    return tuple(unaffected)
