@@ -473,8 +473,31 @@ class Phase6BendingUI(original.BendingUI):
             and getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
         )
         if is_symmetric_box:
-            mirror_idx = len(segs) - 1 - idx
-            if mirror_idx != idx:
+            pair = {
+                "zl1": "zr1", "zr1": "zl1",
+                "zl2": "zr2", "zr2": "zl2",
+                "fw_left": "fw_right", "fw_right": "fw_left",
+                "d_left": "d_right", "d_right": "d_left",
+            }
+            source_key = str(segs[idx].get("phase6_key") or "")
+            if source_key in pair:
+                target_key = pair[source_key]
+                mirror_idx = next(
+                    (i for i, seg in enumerate(segs) if str(seg.get("phase6_key") or "") == target_key),
+                    None,
+                )
+            elif source_key:
+                mirror_idx = None
+            else:
+                candidate_idx = len(segs) - 1 - idx
+                if (
+                    0 <= candidate_idx < len(segs)
+                    and not str(segs[candidate_idx].get("phase6_key") or "")
+                ):
+                    mirror_idx = candidate_idx
+                else:
+                    mirror_idx = None
+            if mirror_idx is not None and mirror_idx != idx:
                 if not (0 <= mirror_idx < len(segs)) or not can_remove_segment(segs[mirror_idx]):
                     return
                 remove_indexes.append(mirror_idx)

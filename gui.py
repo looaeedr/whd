@@ -1650,6 +1650,7 @@ class Phase6ApplicationHost:
 
         def sync_features():
             self.door_layout_features[key] = list(features)
+            self.surface_features[physical_key] = list(features)
             if workspace is not None and physical_key in workspace.available_parts:
                 workspace.stash_features(physical_key, features)
                 designer.submit_update_intent('geometry', commit=True)

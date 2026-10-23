@@ -271,7 +271,7 @@ def ensure_receiving_layout(snapshot: Mapping[str, object] | None) -> dict[str, 
                     for role in ("head", "tail"):
                         bay[f"{role}_features"] = deepcopy(source_features.get(role, []))
                 selected["settings"] = normalize_set_settings(None, template_bays)
-    if "door_layout_columns" in result:
+    if "door_layout_columns" in result and not any("door_state" in bay for selected in layout["sets"] for bay in selected["bays"]):
         door_state = {key: deepcopy(result[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in result}
         for selected in layout["sets"]:
             for bay in selected["bays"]:
@@ -584,6 +584,9 @@ def project_receiving_bay_legacy_aliases(
         for key in RECEIVING_DOOR_STATE_KEYS:
             result.pop(key, None)
         result.update(deepcopy(bay["door_state"]))
+    elif int(set_index) != 0 or int(bay_index) != 0:
+        for key in RECEIVING_DOOR_STATE_KEYS:
+            result.pop(key, None)
     for key in ("nfb_config_submitted", "nfb_config"):
         result.pop(key, None)
         if key in bay:

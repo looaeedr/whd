@@ -163,6 +163,9 @@ def is_derived_physical_part_key(value: object) -> bool:
     return (
         re.fullmatch(r"door_c\d+_r\d+", key) is not None
         or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
+        or key.startswith("base_plate:fixing_plate:")
+        or key.startswith("base_plate:nfb_layer:")
+        or key.startswith("nfb_pad:")
         or is_box_body_physical_piece_key(key)
         or key.startswith("box_body:divider:")
         or (key.startswith("inner_door:") and key.endswith("_frame"))
