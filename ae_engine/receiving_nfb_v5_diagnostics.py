@@ -53,6 +53,7 @@ def current_v5_nfb_diagnostics(
     layer_count = config.get("layer_count")
     rows: list[dict[str, object]] = []
     csv_by_brand: dict[str, dict[str, object] | None] = {}
+    slot_owners: set[tuple[int, int]] = set()
     for index, hole in enumerate(holes):
         identity = parsed[index]
         layer = hole.get("layer_index", 0 if layer_count == 1 else None)
@@ -63,6 +64,16 @@ def current_v5_nfb_diagnostics(
             errors.append("NFB_LAYER_OWNER_INVALID")
         if type(slot) is not int or slot < 0:
             errors.append("NFB_UNIT_SLOT_INVALID")
+        if type(hole.get("layer_count", layer_count)) is not int or (
+            hole.get("layer_count", layer_count) != layer_count
+        ):
+            errors.append("NFB_UNIT_LAYER_COUNT_MISMATCH")
+        if (type(layer) is int and 0 <= layer < 2
+                and type(slot) is int and slot >= 0):
+            owner = (layer, slot)
+            if owner in slot_owners:
+                errors.append("NFB_DUPLICATE_LAYER_UNIT_OWNER")
+            slot_owners.add(owner)
         if identity is None:
             errors.append("NFB_CURRENT_CSV_LEGACY_MIXED_SOURCE")
         else:
