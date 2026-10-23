@@ -1469,11 +1469,17 @@ def _switch_mode(self, namespace, target):
 def _common_preview_request(self, namespace):
     """Read committed physical-sheet drawings; the caller is a Scheduler."""
     from ae_engine.receiving_quantity_box import require_valid_quantity_features
-    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key, resolve_for_app
     require_valid_quantity_features(_current_mode_snapshot(self, namespace))
     signature = build_manufacturing_cache_key(self.app).fingerprint
     if signature != getattr(self.app, "_phase6_last_resolved_manufacturing_signature", None):
-        raise ValueError("共用箱體預覽尚未對應目前已提交設定")
+        # The operator may open Common Box just after a mode switch or a
+        # Save/Reload, before a manufacturing receipt for this exact snapshot
+        # has been cached. Resolve from current committed inputs, not stale
+        # Set/Bay geometry; keep errors visible rather than displaying old parts.
+        resolve_for_app(self.app)
+        if signature != getattr(self.app, "_phase6_last_resolved_manufacturing_signature", None):
+            raise ValueError("共用箱體預覽尚未對應目前已提交設定")
     geometry = getattr(self.app, "_phase6_last_resolved_manufacturing_geometry", None)
     if geometry is None:
         raise ValueError("共用箱體製造結果尚未完成")
