@@ -183,6 +183,29 @@ def test_r3_8_readback_marking_lines_rejects_extra_marking_lines(tmp_path):
         _readback_marking_lines(dxf_path, [((0.0, 0.0), (10.0, 0.0))])
 
 
+
+def test_r3_8_readback_preserves_existing_side_marking_but_rejects_unowned_extra(tmp_path):
+    """A real side sheet may contain original MARKING; it is NOT an extra EAR mark."""
+    import ezdxf
+    from ae_engine.receiving_fixed_plate_side_check_dxf import _readback_marking_lines
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    source=DrawingScene()
+    source.add_line((20., 5.), (30., 5.), layer="MARKING")
+    document=ezdxf.new("R2010")
+    space=document.modelspace()
+    expected=((0., 0.), (10., 0.))
+    space.add_line(*expected, dxfattribs={"layer": "MARKING"})
+    space.add_line((20., 5.), (30., 5.), dxfattribs={"layer": "MARKING"})
+    path=tmp_path / "baseline_and_weld_check_only.dxf"
+    document.saveas(path)
+    _readback_marking_lines(path, [expected], original_scene=source)
+    space.add_line((40., 5.), (50., 5.), dxfattribs={"layer": "MARKING"})
+    document.saveas(path)
+    with pytest.raises(ValueError, match="EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA"):
+        _readback_marking_lines(path, [expected], original_scene=source)
+
+
 def test_r3_9_receiving_shared_settings_rejects_negative_and_bool_indices():
     """R3-9: setting_value, edit_setting, share_setting, and unlink_setting reject negative and bool indices."""
     from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays

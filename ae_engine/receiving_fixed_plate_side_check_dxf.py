@@ -116,7 +116,7 @@ def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
     return uv, physical, side_parts, previews
 
 
-def _readback_marking_lines(path, expected_segments):
+def _readback_marking_lines(path, expected_segments, *, original_scene=None):
     """Strict one-to-one source-world-derived MARKING line readback.
 
     Generic DXF acceptance covers total layer counts and stock geometry;
@@ -143,6 +143,27 @@ def _readback_marking_lines(path, expected_segments):
         if match is None:
             raise ValueError("EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_MISSING")
         actual.pop(match)
+    # The CHECK scene intentionally copies the source SIDE sheet before
+    # appending EAR weld footprints. Existing operator MARKING lines are
+    # legitimate, not surplus weld marks. Verify those source lines
+    # independently, then reject ALL remaining unexpected LINEs.
+    if original_scene is not None:
+        from .sheetmetal_drawing import LinePrimitive
+        for primitive in original_scene.primitives:
+            if (not isinstance(primitive, LinePrimitive)
+                    or str(primitive.layer).upper() != "MARKING"):
+                continue
+            source_line=(
+                float(primitive.p1.x), float(primitive.p1.y),
+                float(primitive.p2.x), float(primitive.p2.y),
+            )
+            match=next(
+                (i for i, line in enumerate(actual)
+                 if _same_line_geometry(source_line, line, 1e-6)), None,
+            )
+            if match is None:
+                raise ValueError("EAR_SIDE_CHECK_SAVED_SOURCE_MARKING_LINE_MISSING")
+            actual.pop(match)
     if actual:
         raise ValueError("EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA")
 
@@ -203,6 +224,7 @@ def export_receiving_ear_side_check_only_dxf(
             _readback_marking_lines(
                 staged_path,
                 (segment for row in by_side[side] for segment in row.marking_segments),
+                original_scene=original.scene,
             )
             staged[side] = staged_path
         committed = _atomic_commit_staged_dxfs(
