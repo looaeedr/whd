@@ -987,8 +987,21 @@ def export_receiving_pad_base_part_only_dxf(self):
             initialvalue=1,minvalue=1)
         if qty is None:
             return
+        # A Quantity version is never a persistent Set/Bay identity.
+        # Derive source proof from exactly its submitted version.
+        quantity_version = None
+        if snapshot.get("active_mode") == "quantity":
+            from phase6_quantity_model import QuantityModel
+            from ae_engine.receiving_quantity_box import project_common_box
+            model = QuantityModel.from_payload(snapshot.get("quantity"))
+            quantity_version = model.selected_version_id
+            committed = model.nfb_config_for_version(quantity_version)
+            if (committed.get("nfb_config_submitted") is not True
+                    or committed.get("nfb_config") != snapshot.get("nfb_config")):
+                raise ValueError("PAD＋底板數量版本的 NFB 來源已失效")
+            snapshot = project_common_box(snapshot)
         runtime=snapshot.get("_receiving_runtime_selection")
-        if not isinstance(runtime, Mapping):
+        if quantity_version is None and not isinstance(runtime, Mapping):
             # Recover the exact one-Bay source identity only from the current
             # saved singleton. Never borrow another Bay or a previous selector.
             layout=snapshot.get("receiving_layout")
@@ -1006,11 +1019,14 @@ def export_receiving_pad_base_part_only_dxf(self):
                 "set_index": 0, "bay_index": 0,
             }
             snapshot={**snapshot, "_receiving_runtime_selection": runtime}
-        set_id=str(runtime.get("set_id") or "").strip()
-        bay_id=str(runtime.get("bay_id") or "").strip()
-        if not set_id or not bay_id:
-            raise ValueError("PAD＋底板缺少 Set／Bay 實際識別碼")
-        version_id=f"{set_id}__{bay_id}"
+        if quantity_version is not None:
+            version_id = quantity_version
+        else:
+            set_id=str(runtime.get("set_id") or "").strip()
+            bay_id=str(runtime.get("bay_id") or "").strip()
+            if not set_id or not bay_id:
+                raise ValueError("PAD＋底板缺少 Set／Bay 實際識別碼")
+            version_id=f"{set_id}__{bay_id}"
         root=filedialog.askdirectory(title="選擇 PAD＋底板 CHECK/Q 輸出資料夾")
         if not root:
             return
