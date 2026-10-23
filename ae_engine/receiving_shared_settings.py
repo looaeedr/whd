@@ -79,7 +79,8 @@ def validate_setting(kind, value):
     elif kind == "inner_door_models":
         value = switch_model_layers(value)
     elif kind == "inner_door_features":
-        from .sheetmetal_features import CircleFeature, RectFeature, ProfileFeature
+        # The feature classes are imported at module scope. A local import
+        # would shadow them for the sibling head/tail branches (UnboundLocalError).
         if not isinstance(value, Mapping):
             raise ValueError("內門孔位必須依實體板件 ID 保存")
         normalized = {}
