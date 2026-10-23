@@ -82,15 +82,41 @@ def export_current_receiving_multibay_dxf(
         logical={p.part_key for p in actual.parts}
         if len(logical)!=len(actual.parts):
             raise ValueError("RECEIVING_MULTIBAY_DUPLICATE_LOGICAL_PHYSICAL_OWNER")
-        if (source.get("nfb_config_submitted") is True
-                and not _submitted_csv_holes(source)):
-            raise ValueError("RECEIVING_MULTIBAY_SUBMITTED_CSV_NOT_CURRENT")
+        only_independent_intent=(
+            any(bool(flags.get(key)) for key in ("head", "tail", "door"))
+            and not any(bool(value) for key,value in flags.items()
+                        if key not in {"head", "tail", "door"})
+        )
+        if only_independent_intent:
+            requested=tuple(key for key in ("head", "tail", "door")
+                            if bool(flags.get(key)))
+            if any(key not in logical for key in requested):
+                raise ValueError(
+                    "RECEIVING_MULTIBAY_SELECTED_INDEPENDENT_PHYSICAL_SOURCE_MISSING"
+                )
         is_csv=source.get("nfb_config_submitted") is True
         selected_logical=tuple(p for p in actual.parts
             if p.part_key.startswith("custom:")
             or bool(flags.get(_resolved_export_intention_key(p.part_key),False)))
         if not selected_logical:
             continue
+        # Actual HEAD/TAIL/outer DOOR FinalScene sheets have no NFB cutting
+        # dependency. Selecting ONLY these physically present sheets must not
+        # require valid NFB source for some other unselected sheet. Side
+        # sheets are intentionally excluded (NFB EAR weld-marking dependency).
+        from .receiving_nfb_v5_diagnostics import actual_unrelated_nfb_scene_parts
+        unrelated=actual_unrelated_nfb_scene_parts(
+            actual.parts,dependent_part_ids=(),
+        )
+        only_independent=(
+            bool(selected_logical)
+            and all(p.part_key in unrelated for p in selected_logical)
+            and not any(bool(enabled) for key, enabled in flags.items()
+                        if key not in {"head", "tail", "door"})
+        )
+        if (is_csv and not only_independent
+                and not _submitted_csv_holes(source)):
+            raise ValueError("RECEIVING_MULTIBAY_SUBMITTED_CSV_NOT_CURRENT")
         selected=replace(actual,parts=selected_logical)
         # The source-facing body SIDE MARKING proves its own flange contact
         # on THIS Bay. Do not import the marks or EARs of Bay 1 into Bay 2.
@@ -115,7 +141,7 @@ def export_current_receiving_multibay_dxf(
         if len({key for key,_ in physical_rows})!=len(physical_rows):
             raise ValueError("RECEIVING_MULTIBAY_DUPLICATE_SHEET_SOURCE")
         approved=set()
-        if is_csv:
+        if is_csv and not only_independent:
             approved=_verified_current_csv_manufacturing_owners(
                 source,actual,selected,
             )

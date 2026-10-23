@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """#1504 unified brand inheritance: active-mode source, one unchanged rule.
 
-No new NFB brand rule, no second Set owner, no per-version hard-coded brand.
-Only the existing UI's input owner changes when switching to quantity.
+No new NFB brand rule, no second Set owner, each Quantity version owns its NFB parent brand (not the common physical box).
+The SAME original Set→layer→unit inheritance engine applies in both modes.
 """
 from pathlib import Path
 
@@ -41,8 +41,8 @@ def test_quantity_brand_projects_original_owner_to_same_nfb_layer_unit_rule():
     assert parse_numeric_model_ref(shihlin)[0] == "士林"
     assert parse_numeric_model_ref(teco)[0] == "東元"
 
-    # Same NFB UI-1A inheritance engine in both modes; no mode-specific
-    # brand inheritance function or new QuantityModel brand schema.
+    # Same NFB UI-1A inheritance engine; the Quantity version is now the
+    # selected-parent owner, while legacy common-box input remains readable.
     for brand, expected_ref in (("士林", shihlin), ("東元", teco)):
         current = _brand_for_quantity(brand)
         draft = new_nfb_ui1a_draft(
@@ -95,8 +95,12 @@ def test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner()
     gui = (Path(__file__).resolve().parents[1] /
            "gui_modules/application/fold_designer_composition_receiving.py"
            ).read_text(encoding="utf-8")
-    # Existing Single and Multi selectors keep their canonical write ports.
-    assert 'candidate = update_common_box(source, {"switch_brand": value})' in gui
+    # Quantity writes the selected VERSION parent, not the common dimensions.
+    # Set/Bay continues using the one existing Set.switch_brand port.
+    assert 'candidate = update_common_box(source, {"switch_brand": value})' not in gui
+    assert 'quantity.set_version_nfb_parent_brand(' in gui
+    assert 'quantity.nfb_parent_brand_for_version(' in gui
+    assert 'candidate["quantity"] = quantity.snapshot()' in gui
     assert 'adapter.set_global_brand(value)' in gui
     assert 'def current_nfb_parent_brand():' in gui
     assert 'if _current_mode_snapshot(self, namespace).get("active_mode") == "quantity":' in gui

@@ -52,6 +52,13 @@ def _current_single_tier_csv_holes(snapshot, inner_door_id):
     if (not isinstance(snapshot, Mapping)
             or snapshot.get("nfb_config_submitted") is not True):
         raise ValueError("CSV_BASE_EXPORT_REQUIRES_SUBMITTED_NFB_CONFIG")
+    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
+    stale_units = quantity_inherited_nfb_brand_conflicts(snapshot)
+    if stale_units:
+        raise ValueError(
+            "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION:" +
+            ",".join(stale_units)
+        )
     centers = receiving_nfb_layer_centers(snapshot, inner_door_id)
     if len(centers) != 1 or centers[0].layer_index != 0:
         raise ValueError("CSV_BASE_EXPORT_ONLY_ONE_ACTUAL_TIER")
@@ -86,6 +93,7 @@ def _current_single_tier_csv_holes(snapshot, inner_door_id):
         raise ValueError("CSV_BASE_EXPORT_NO_COMMITTED_HOLES")
     entries = []
     seen = set()
+    seen_slots = set()
     for row in rows:
         if not isinstance(row, Mapping):
             raise ValueError("CSV_BASE_EXPORT_INVALID_HOLE")
@@ -95,6 +103,14 @@ def _current_single_tier_csv_holes(snapshot, inner_door_id):
         x = row.get("manual_x_mm")
         hole_id = row.get("physical_hole_id")
         layer = row.get("layer_index", 0)
+        slot = row.get("slot_index")
+        # This is the genuine single-tier Base PART_ONLY writer, not the
+        # multi-tier FinalScene path. Its horizontal NFB unit index must
+        # match the same canonical NFBConfig identity as the UI-1B DRAFT
+        # diagnostic; an absent/duplicate slot cannot yield a valid DXF.
+        if type(slot) is not int or slot < 0 or slot in seen_slots:
+            raise ValueError("CSV_BASE_EXPORT_LAYER_UNIT_OWNER_INVALID")
+        seen_slots.add(slot)
         if (parsed is None or parsed[0] != brand
                 or not isinstance(hole_id, str) or not hole_id
                 or hole_id in seen

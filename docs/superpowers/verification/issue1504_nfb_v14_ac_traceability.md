@@ -1,3 +1,17 @@
+## CURRENT｜2026-10-23 NFB-AC-24 逐顆狀態／雙 Bay／多版本／實體板件自動化簽核候選
+
+- 新修正：同層同槽重複兩顆 NFB 的**每一顆**都標示配置未驗證與 `NFB_DUPLICATE_LAYER_UNIT_OWNER`，不再只阻擋後加入那顆；配置狀態仍由已提交 NFBConfig + 現行 V5 CSV + 實體來源**每次重新推導**。
+- NFB `configuration_verified`、`manufacturing_verified`、`source_status` 等全部是**衍生顯示**，不得寫回 `.p6fold` 的唯一 NFBConfig；GUI 不得把「配置已驗證」冒稱「CUTTING 製造合格」。
+- CI 斷言範圍：兩 Bay `.p6fold` Save→Reload 一連 DRAFT 一連 CONFIGURED 不交叉；Quantity 兩個版本確認狀態與存檔重開互不污染；逐顆 X/來源/板件缺失原因可見、同 Bay 真實 HEAD 不受 NFB 依賴連坐；實際 PART_ONLY/GUI 底板及側板依賴仍 fail-closed，沒有假的 DXF 產生。
+- **33/88 → 34/88 僅為本 Draft 修復分支的當期自動化範圍候選**，需 exact HEAD 五階段 Product CI + Performance 綠燈才算該分支候選通過；因使用者命令暫不合併，GitHub `localX` 仍以它自己實際矩陣為準，不能宣告正式 X 完工。尚未簽 **54**；兩份舊 Windows 端到端 GUI／完整製造驗收未執行。
+
+## CURRENT｜2026-10-23 NFB-AC-09 獨立修復分支自動化簽核候選
+
+- 現行數值 CSV V5 之已提交 NFBConfig 經 .p6fold Save→Reload、兩連真實 FinalScene 逐顆失效、原 NFB 清單、原 GUI 頭蓋獨立出圖及底板／EAR 真製造 DXF 守衛正反向斷言；AC 原文與來源 SHA 均保持原狀。
+- 主要證據：`tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac09_original_gui_selected_head_uses_isolated_current_bay_preview`，並有各 Bay CSV 失效、獨立物理板件／真 DXF 零輸出負例。
+- 本 **Draft 分支** AC-09 當期自動化驗收範圍列為 33/88 候選，剩 55 項；仍需 exact HEAD CI 全綠。使用者指示暫不合併 GitHub `localX`，故 **localX 正式整合矩陣仍 32/88**。
+- AC-24 保留未簽：不能用逐顆 CSV 來源可讀誤代替原製造 CUTTING/CHECK-Q 的逐顆最終認證。原兩份 Windows 舊案完整 GUI UAT、整箱製造亦未冒稱完成。
+
 ## CURRENT｜2026-10-23 #1504 NFB-AC-47 關閉未提交草稿與取消確認（exact CI 後生效）
 
 - 原 UI-1A standalone NFB 面板只有**實際修改**才須確認捨棄：草稿選型、層數、內門/NFB 共用層高和型號。單純查看 DXF 預覽不是修改，不再誤跳確認。
@@ -183,7 +197,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-06 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（取消 Undo）／MFG-1（幾何違法） | 離開／取消／Undo 不漏出暫存變更；範圍／碰撞非法時保留上次合法配置。 |
 | NFB-AC-07 | #1500 | BLOCKED_1500_REAL_GUI | UI-1B | Bay 複製需覆寫確認、整組深複製；來源及目標之後獨立。 |
 | NFB-AC-08 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B | 數量模式不同 `version_id` 可保存不同 NFB；版本增刪／切換／深複製／重讀均保持身份。 |
-| NFB-AC-09 | #1498、#1499 | EVIDENCE_CANDIDATE_ONLY | UI-1B（重載）／MFG-1（板件守衛） | 已經合法提交但後續因板件未完成或來源失效而未驗證的草稿可 Save→Reload；只阻斷真正依賴 NFB 缺項的物理板件，列明 Set／Bay／版本／層／顆與原因；不連坐同 Bay 無關板件。 |
+| NFB-AC-09 | #1498、#1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B（重載）／MFG-1（板件守衛） | 已經合法提交但後續因板件未完成或來源失效而未驗證的草稿可 Save→Reload；只阻斷真正依賴 NFB 缺項的物理板件，列明 Set／Bay／版本／層／顆與原因；不連坐同 Bay 無關板件。 |
 | NFB-AC-10 | #1494、#1495 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（名義顯示）／MFG-1（物理投影） | 1100 高 Y=550 或 290/790；表列已證實的 X 孔距正確；其他高度／寬度不能推測。 |
 | NFB-AC-11 | #1496、#1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-1（主孔）／MFG-2（其餘來源組） | 真實來源 ARC、CIRCLE、多 layer／entity color、上下資料組皆完整識別；主開孔 pivot 正確。 |
 | NFB-AC-12 | #1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-2 | 同顆跨板件孔／打標有穩定關聯，所有合法製造圖元位於正確實體板件，不被當成一張板。 |
@@ -198,7 +212,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-21 | #1491、#1499 | EVIDENCE_CANDIDATE_ONLY | UI-1A（預設）／UI-1B（版本保存） | 數量模式每個版本的本配置預設廠牌與三級繼承獨立；深複製後修改甲不影響乙；套／連本套品牌僅既有控件可寫。 |
 | NFB-AC-22 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B | X datum 未定仍可輸入含明確 0 的位移，Save→Reload 保存 UNVERIFIED_BASIS、箱寬／層／顆 ID 順序／名義規則版本；沒有位移用 NONE；不保存衍生製造通過狀態。 |
 | NFB-AC-23 | #1499、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1B（重新確認）／MFG-1（製造阻斷） | 新 X 基準確立後，舊位移不能自動生效，須比較條件並經使用者重新確認；受影響顆未確認前維持草稿與製造阻斷。 |
-| NFB-AC-24 | #1498 | EVIDENCE_CANDIDATE_ONLY | UI-1B（狀態）／MFG-1（板件守衛） | 逐顆「已驗證／未驗證」及原因正確；已提交配置由當前來源推導 DRAFT／CONFIGURED；DRAFT 只阻斷 NFB 依賴未完成的物理板件，不阻斷無關片／Bay／版本，列受阻身份。 |
+| NFB-AC-24 | #1498 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B（狀態）／MFG-1（板件守衛） | 逐顆「已驗證／未驗證」及原因正確；已提交配置由當前來源推導 DRAFT／CONFIGURED；DRAFT 只阻斷 NFB 依賴未完成的物理板件，不阻斷無關片／Bay／版本，列受阻身份。 |
 | NFB-AC-25 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A | 「型號待重選」仍可依已核准名義表顯示相對中心距；實際 X 定位、碰撞、越界各自未驗證，沒有憑空置中。 |
 | NFB-AC-26 | #1493、#1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（角度）／UI-1B（重載） | 儲存單顆 90° 等旋轉設定並重載；主開孔中心未驗證時不產生假旋轉放置／已驗證顯示。 |
 | NFB-AC-27 | #1493、#1497 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（設定）／MFG-1（幾何回滾） | Q16 型號變更／待重選恢復不改已知名義中心距，保留位移並重驗整層實際幾何；具完整資料且非法時全筆原子回滾。 |
@@ -295,7 +309,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-21 | `tests/test_issue1491_nfb_ui1a.py::test_single_set_brand_owner_and_explicit_same_value_overrides` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-22 | `tests/test_issue1504_ac22_swt15_current_x_persistence.py::test_nfb_ac22_v5_bay_x_zero_none_datum_order_save_reopen_never_auto_approves` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-23 | `tests/test_issue1499_nfb_persistence.py::test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate` | EVIDENCE_CANDIDATE_ONLY |
-| NFB-AC-24 | `tests/test_issue1498_nfb_part_readiness.py::test_each_set_bay_version_independent_and_no_cross_scope_ready_cache` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-24 | `tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac24_p6fold_save_reload_duplicate_units_both_unverified_without_spread` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-25 | `tests/test_issue1504_ac25_reselection_nominal_x.py::test_nfb_ac25_reselection_preserves_approved_relative_pitch_no_fake_x_checks` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-26 | `tests/test_issue1493_nfb_draft_transactions.py::test_angle_inherit_explicit_same_override_no_mirror` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-27 | `tests/test_issue1497_nfb_cutting_preflight.py::test_q16_invalid_model_change_blocks_whole_batch_without_moving_other_hole` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |

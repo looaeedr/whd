@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 21,
+    "EVIDENCE_CANDIDATE_ONLY": 19,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 32,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 34,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -368,21 +368,44 @@
       ],
       "regression_candidates": [
         "tests/test_issue1498_nfb_part_readiness.py",
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py",
+        "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py",
+        "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1498_nfb_part_readiness.py",
-          "test_name": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py",
+          "test_name": "test_ac09_original_gui_selected_head_uses_isolated_current_bay_preview",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "Current CSV V5: saved two-Bay NFB source drifts, live source/part evidence, original GUI head-only DXF and original dependent Base/EAR guards; no historical Windows or whole manufacturing claim.",
+        "primary_assertion": "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac09_original_gui_selected_head_uses_isolated_current_bay_preview",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac09_original_multibay_dxf_only_real_head_not_blocked_by_unselected_bad_nfb",
+          "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac09_invalid_saved_nfb_still_displays_real_unrelated_head_from_same_bay",
+          "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac09_two_current_bays_save_reload_source_invalidation_is_per_bay",
+          "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py::test_ac09_invalid_saved_model_blocks_original_part_export_with_no_dxf"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "exact_head_ci_and_localx_readback_required": true,
+        "github_localx_merge_deferred_by_explicit_user_instruction": true
+      }
     },
     {
       "id": "NFB-AC-10",
@@ -909,21 +932,49 @@
         1498
       ],
       "regression_candidates": [
-        "tests/test_issue1498_nfb_part_readiness.py"
+        "tests/test_issue1498_nfb_part_readiness.py",
+        "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py",
+        "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py",
+        "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1498_nfb_part_readiness.py",
-          "test_name": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py",
+          "test_name": "test_ac24_p6fold_save_reload_duplicate_units_both_unverified_without_spread",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "acceptance_evidence": {
+        "scope": "Current CSV V5 exact source-aware automatic GUI callback/read-only NFB manifest, per-hole validated vs unvalidated and DRAFT from persisted scope, p6fold Save→Reload 2 Bay + quantity versions, duplicate same-tier same-slot owner both rejected, physically sourced unrelated HEAD not blocked while original PART_ONLY dependent sheets fail-closed. Not two old Windows legacy GUI full operator UAT or whole factory release.",
+        "primary_assertion": "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac24_p6fold_save_reload_duplicate_units_both_unverified_without_spread",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac24_duplicate_physical_slot_or_stale_layer_count_keeps_draft_unverified",
+          "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac24_quantity_version_saved_reload_uses_selected_version_only",
+          "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac24_derived_readiness_must_not_persist_into_canonical_nfb_config",
+          "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac24_conflicting_unit_certificate_is_rejected_by_gui",
+          "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac24_two_tiers_per_hole_reasons_do_not_hide_draft_or_other_part",
+          "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac24_requested_nfb_or_side_sheet_still_cannot_bypass_missing_source",
+          "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac24_original_gui_nfb_dependent_selection_does_not_mask_current_bay",
+          "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py::test_ac24_unconfirmed_world_x_blocks_original_dxf_not_unrelated_scope",
+          "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py::test_ac24_original_part_writer_rejects_collision_stale_count_or_unowned_slot"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "github_localx_merge_deferred_by_explicit_user_instruction": true,
+        "exact_head_ci_required": true
+      }
     },
     {
       "id": "NFB-AC-25",
@@ -3430,7 +3481,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 32/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 56 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 34/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 54 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",

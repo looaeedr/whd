@@ -388,10 +388,34 @@ def _export_selected_resolved_parts(self, folder, flags):
                 export_current_receiving_multibay_dxf,
             )
             composition = receiving_bridge._phase6_composition(designer)
+            # AC-09/24: HEAD/TAIL/outer DOOR have no NFB source dependency.
+            # Preview an isolated Bay whose unselected NFB is unsubmitted;
+            # the actual saved source still owns every manufacturing gate.
+            independent_only = (
+                any(bool(flags.get(key)) for key in ("head", "tail", "door"))
+                and not any(bool(value) for key, value in flags.items()
+                            if key not in {"head", "tail", "door"})
+            )
             def actual_bay_geometry(set_index, bay_index):
-                current = composition.receiving_bay_preview_request(
-                    vars(receiving_bridge), set_index, bay_index,
-                )
+                if independent_only:
+                    preview_layout=dict(saved_layout)
+                    preview_sets=list(saved_layout["sets"])
+                    preview_set=dict(preview_sets[set_index])
+                    preview_bays=list(preview_set["bays"])
+                    preview_bay=dict(preview_bays[bay_index])
+                    preview_bay["nfb_config_submitted"]=False
+                    preview_bays[bay_index]=preview_bay
+                    preview_set["bays"]=preview_bays
+                    preview_sets[set_index]=preview_set
+                    preview_layout["sets"]=preview_sets
+                    current=composition.receiving_bay_preview_request(
+                        vars(receiving_bridge), set_index, bay_index,
+                        preview_layout=preview_layout,
+                    )
+                else:
+                    current=composition.receiving_bay_preview_request(
+                        vars(receiving_bridge), set_index, bay_index,
+                    )
                 anchor = receiving_bay_assembly_offsets(
                     saved_layout, set_index=set_index,
                 )[bay_index]

@@ -1469,11 +1469,17 @@ def _switch_mode(self, namespace, target):
 def _common_preview_request(self, namespace):
     """Read committed physical-sheet drawings; the caller is a Scheduler."""
     from ae_engine.receiving_quantity_box import require_valid_quantity_features
-    from phase6_manufacturing_adapter import build_manufacturing_cache_key
+    from phase6_manufacturing_adapter import build_manufacturing_cache_key, resolve_for_app
     require_valid_quantity_features(_current_mode_snapshot(self, namespace))
     signature = build_manufacturing_cache_key(self.app).fingerprint
     if signature != getattr(self.app, "_phase6_last_resolved_manufacturing_signature", None):
-        raise ValueError("共用箱體預覽尚未對應目前已提交設定")
+        # The operator may open Common Box just after a mode switch or a
+        # Save/Reload, before a manufacturing receipt for this exact snapshot
+        # has been cached. Resolve from current committed inputs, not stale
+        # Set/Bay geometry; keep errors visible rather than displaying old parts.
+        resolve_for_app(self.app)
+        if signature != getattr(self.app, "_phase6_last_resolved_manufacturing_signature", None):
+            raise ValueError("共用箱體預覽尚未對應目前已提交設定")
     geometry = getattr(self.app, "_phase6_last_resolved_manufacturing_geometry", None)
     if geometry is None:
         raise ValueError("共用箱體製造結果尚未完成")
@@ -1626,17 +1632,34 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def single_brand():
         from ae_engine.receiving_quantity_box import normalize_common_box
+        from phase6_quantity_model import QuantityModel
         source = _current_mode_snapshot(self, namespace)
-        return normalize_common_box(source.get("receiving_quantity_box"))["switch_brand"]
+        box = normalize_common_box(source.get("receiving_quantity_box"))
+        quantity = QuantityModel.from_payload(source["quantity"])
+        return quantity.nfb_parent_brand_for_version(
+            quantity.selected_version_id, legacy_default=box["switch_brand"],
+        )
 
     def set_single_brand(value):
-        from ae_engine.receiving_quantity_box import update_common_box
+        from ae_engine.receiving_quantity_box import normalize_common_box
+        from phase6_quantity_model import QuantityModel
         source = _current_mode_snapshot(self, namespace)
         if source.get("active_mode") != "quantity":
             raise ValueError("單只品牌需在單箱體模式設定")
-        if single_brand() == value:
+        quantity = QuantityModel.from_payload(source["quantity"])
+        box = normalize_common_box(source.get("receiving_quantity_box"))
+        if (quantity.nfb_parent_brand_for_version(
+                quantity.selected_version_id, legacy_default=box["switch_brand"])
+                == value
+                and all("nfb_parent_brand" in row
+                        for row in quantity.snapshot()["versions"])):
             return False
-        candidate = update_common_box(source, {"switch_brand": value})
+        if not quantity.set_version_nfb_parent_brand(
+                quantity.selected_version_id, value,
+                legacy_default=box["switch_brand"]):
+            return False
+        candidate = deepcopy(source)
+        candidate["quantity"] = quantity.snapshot()
         _apply_mode_snapshot(self, namespace, candidate)
         return True
 
@@ -1653,9 +1676,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     def current_nfb_parent_brand():
         """The SAME Set→layer→unit inheritance uses the active mode's owner.
 
-        Set/Bay reads the existing Set brand; quantity reads its original
-        common-box brand.  Neither creates a second brand authority, and
-        each saved V5 hole retains its own actual source/override identity.
+        Set/Bay reads the existing Set brand; Quantity reads its selected
+        version NFB parent. Historical common-box brand is migration-only.
+        Every saved V5 hole keeps its original source/override identity.
         """
         if _current_mode_snapshot(self, namespace).get("active_mode") == "quantity":
             return single_brand()
@@ -3088,6 +3111,102 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 }
             bundle=committed_nfb_evidence.get((set_index,bay_index))
             if bundle is None:
+                # #1504 AC-09/24: the CURRENT CSV saved NFBConfig has no old
+                # manufacturer's DXF receipt (and needs none). Inspect each
+                # current source row, layer/unit and real part owner without
+                # granting physical CUTTING or storing a second DRAFT flag.
+                from ae_engine.receiving_nfb_v5_diagnostics import (
+                    current_v5_nfb_diagnostics,
+                )
+                from ae_engine.receiving_shared_settings import setting_value
+                current = nfb_physical_bay_snapshot(set_index, bay_index)
+                dependent = []
+                has_door_source = False
+                has_base_source = False
+                try:
+                    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+                    upper = tuple(p for p in derive_inner_door_panels(current)
+                                  if str(p.cell_key).split(":")[-1] == "0")
+                    if len(upper) == 1:
+                        dependent.append(upper[0].stable_id)
+                        has_door_source = True
+                except (ValueError, TypeError, KeyError, IndexError):
+                    pass  # Keep saved NFB units visible even if door is unresolved.
+                try:
+                    from ae_engine.receiving_base_plate_config import (
+                        receiving_base_plate_values,
+                    )
+                    from ae_engine.receiving_nfb_layer_physical_parts import (
+                        source_receiving_nfb_tier_base_specs,
+                    )
+                    count = bay["nfb_config"]["layer_count"]
+                    if count == 1 and receiving_base_plate_values(current) is not None:
+                        dependent.append("base_plate")
+                        has_base_source = True
+                    elif count == 2:
+                        specs = source_receiving_nfb_tier_base_specs(
+                            current, require_source_z=False,
+                        )
+                        if set(specs) == {0, 1}:
+                            dependent.extend(spec.physical_id for spec in specs.values())
+                            has_base_source = True
+                except (ValueError, TypeError, KeyError, IndexError):
+                    pass  # Missing source is DRAFT, never an invented plate.
+                # The same current Bay FinalScene used by the original
+                # partial-DXF action identifies truly unrelated physical
+                # sheets. It is never a manufacturing authorization. Use
+                # the candidate-layout virtual cache rather than resynthesizing
+                # unrelated parts from model names or an older Bay.
+                from ae_engine.receiving_nfb_v5_diagnostics import (
+                    actual_unrelated_nfb_scene_parts,
+                )
+                unrelated = ()
+                try:
+                    # A stale NFB must not prevent resolving completely
+                    # independent HEAD/TAIL/outer DOOR sources. Clone only
+                    # this Bay's submission flag for the read-only scene,
+                    # never the saved NFBConfig or manufacturing authority.
+                    preview_layout=dict(adapter.layout)
+                    preview_sets=list(adapter.layout["sets"])
+                    preview_set=dict(preview_sets[set_index])
+                    preview_bays=list(preview_set["bays"])
+                    preview_bay=dict(preview_bays[bay_index])
+                    preview_bay["nfb_config_submitted"]=False
+                    preview_bays[bay_index]=preview_bay
+                    preview_set["bays"]=preview_bays
+                    preview_sets[set_index]=preview_set
+                    preview_layout["sets"]=preview_sets
+                    actual = self.receiving_bay_preview_request(
+                        namespace, set_index, bay_index,
+                        preview_layout=preview_layout,
+                    )
+                    unrelated = actual_unrelated_nfb_scene_parts(
+                        actual.render_data.assembly_parts,
+                        dependent_part_ids=tuple(dependent),
+                    )
+                except (ValueError, TypeError, KeyError, IndexError,
+                        AttributeError, OSError):
+                    # Fail closed: when current FinalScene cannot be resolved,
+                    # do not claim any unrelated physical sheet was inspected.
+                    unrelated = ()
+                v5 = current_v5_nfb_diagnostics(
+                    bay,
+                    set_id=str(owner["stable_id"]),
+                    bay_id=str(bay["stable_id"]),
+                    version_id=setting_value(
+                        owner, bay_index, "inner_door_version_id",
+                    ),
+                    dependent_part_ids=tuple(dict.fromkeys(dependent)),
+                    unaffected_part_ids=unrelated,
+                    missing_required_physical_roles=tuple(
+                        role for role, sourced in (
+                            ("INNER_DOOR", has_door_source),
+                            ("BASE_PLATE", has_base_source),
+                        ) if not sourced
+                    ),
+                )
+                if v5 is not None:
+                    return v5
                 # Numeric CSV is the CURRENT committed NFB source.  The old
                 # DXF proof cache is deliberately empty for this route; never
                 # tell the operator a valid CSV pair is unmanufacturable only

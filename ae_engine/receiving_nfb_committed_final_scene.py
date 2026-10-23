@@ -179,6 +179,16 @@ def _submitted_csv_holes(snapshot):
         return ()
     if any(p is None for p in parsed):
         raise ValueError("NFB_COMMITTED_CSV_MIXED_UNRESOLVED_SOURCE")
+    # Quantity version parent changed while an INHERIT unit still points at
+    # a different brand's saved V5 model: preserve its identity but forbid
+    # any CURRENT manufacturing source, pending explicit operator reselection.
+    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
+    stale_units = quantity_inherited_nfb_brand_conflicts(snapshot)
+    if stale_units:
+        raise ValueError(
+            "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION:" +
+            ",".join(stale_units)
+        )
     count = config.get("layer_count")
     if type(count) is not int or count not in (1, 2):
         raise ValueError("NFB_COMMITTED_CSV_INVALID_LAYER_COUNT")
@@ -249,12 +259,24 @@ def _submitted_csv_holes(snapshot):
         return ()
     holes = []
     seen = set()
+    occupied_slots = set()
     for row, model in zip(validated["holes"], parsed):
         tier = row.get("layer_index", 0 if count == 1 else None)
+        unit = row.get("slot_index")
         brand = row.get("source_brand") or model[0]
         hole_id = row.get("physical_hole_id")
-        if (tier not in owners or brand != model[0]
-                or hole_id in seen):
+        # AC-24: the read-only UI marks every unit of a conflicting
+        # (layer, slot) unverified. The ORIGINAL manufacture source must
+        # reject that same conflict even if every model and world X is valid.
+        # No second stored READY or independently invented hole location.
+        if (type(tier) is not int or tier not in owners
+                or type(unit) is not int or unit < 0
+                or type(row.get("layer_count", count)) is not int
+                or row.get("layer_count", count) != count
+                or (tier, unit) in occupied_slots):
+            raise ValueError("NFB_COMMITTED_CSV_LAYER_UNIT_OWNER_INVALID")
+        occupied_slots.add((tier, unit))
+        if (brand != model[0] or hole_id in seen):
             raise ValueError("NFB_COMMITTED_CSV_OWNER_OR_MODEL_MISMATCH")
         x = row.get("manual_x_mm")
         if row.get("manual_x_state") != "CONFIRMED" or x is None:
