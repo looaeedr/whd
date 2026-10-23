@@ -29,7 +29,7 @@ from types import SimpleNamespace
 from ae_engine.sheetmetal_corner_policy import (
     CornerTypeResidual, GeometryError, compose_corner_residual,
     CornerTypeSelection, CornerTypeId, corner_selection_residual,
-    box_body_height_from_corner_policies,
+    box_body_height_from_corner_policies, FourCornerTypePolicy,
 )
 
 
@@ -135,3 +135,16 @@ def test_r6_canvas_hole_pattern_and_fw_guard_real_numeric_inputs():
         indicator_box_opening_size([1], thickness=True)
     with pytest.raises(ValueError, match="thickness"):
         indicator_box_opening_size([1], thickness=float("nan"))
+
+
+def test_r6_four_corner_fw_cannot_hide_boolean_or_nonfinite_override():
+    corner = CornerTypeSelection(CornerTypeId.CROSS)
+    for invalid in (True, float("nan"), float("inf"), -2.):
+        cfg = FourCornerTypePolicy(
+            corner, corner, corner, corner,
+            fw=20., bottom_fw=invalid,
+        )
+        with pytest.raises(GeometryError):
+            cfg.fw_for("bottom_left")
+    valid = FourCornerTypePolicy(corner, corner, corner, corner, fw=20.)
+    assert valid.fw_for("top_right") == 20.
