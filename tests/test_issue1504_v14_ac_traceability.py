@@ -743,7 +743,7 @@ def test_ac21_swt14_current_v5_partial_witnesses_cannot_inflate_29_acceptances()
         assert len(row["identified_test_functions"]) == 1
         assert all(w["accepted"] is False
                    for w in row["additional_partial_witnesses"])
-        assert "版本品牌" in row["current_scope_remaining_evidence"]
+        assert "nfb_parent_brand" in row["current_scope_remaining_evidence"]
 
 
 def test_unified_nfb_brand_rule_current_gui_entry_fix_does_not_fake_ac21_swt14_signoff():

@@ -310,6 +310,9 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         assert not brand_view.requests
         assert "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION" in brand_view.status.get()
         assert app.designer_workspace.snapshot()["receiving_quantity_box"]["switch_brand"] == "東元"
+        # The following Save/Reload equality must compare the latest
+        # committed Common Box, not the pre-brand-change local snapshot.
+        box = deepcopy(app.designer_workspace.snapshot()["receiving_quantity_box"])
         brand_win.destroy()
         path = tmp_path / "quantity-real.p6fold"
         monkeypatch.setattr(filedialog,"asksaveasfilename",lambda **kw:str(path))
