@@ -44,20 +44,34 @@ def _normalize_authoritative_door_state(snapshot):
     for key in _TRANSIENT_DERIVED_SNAPSHOT_KEYS:
         result.pop(key, None)
 
+    import math
     model = str(result.get("model") or "").strip()
     from ae_engine.cabinet_types.receiving import is_receiving_snapshot
     if is_receiving_snapshot(result) and result.get("door_nameplate_center_datum_top") is None:
         from ae_engine.cabinet_types.receiving import DOOR_NAMEPLATE_CENTER_DATUM_TOP
         result["door_nameplate_center_datum_top"] = float(DOOR_NAMEPLATE_CENTER_DATUM_TOP)
     elif result.get("door_nameplate_center_datum_top") is not None:
-        result["door_nameplate_center_datum_top"] = float(result["door_nameplate_center_datum_top"])
+        raw = result["door_nameplate_center_datum_top"]
+        if isinstance(raw, bool) or not math.isfinite(float(raw)):
+            raise ValueError(f"invalid door_nameplate_center_datum_top: {raw!r}")
+        result["door_nameplate_center_datum_top"] = float(raw)
 
     raw_columns = list(result.get("door_layout_columns") or ())
     columns = []
     for row in raw_columns:
-        if not isinstance(row, (list, tuple)) or len(row) < 2:
+        if (not isinstance(row, (list, tuple)) or len(row) != 2
+                or isinstance(row[0], bool)
+                or not isinstance(row[1], (list, tuple))):
             raise ValueError(f"invalid door layout column: {row!r}")
-        columns.append([float(row[0]), [float(v) for v in row[1]]])
+        width = float(row[0])
+        if not math.isfinite(width):
+            raise ValueError(f"invalid door layout column width: {row[0]!r}")
+        heights = []
+        for value in row[1]:
+            if isinstance(value, bool) or not math.isfinite(float(value)):
+                raise ValueError(f"invalid door layout cell height: {value!r}")
+            heights.append(float(value))
+        columns.append([width, heights])
     if "door_layout_columns" in result or columns:
         result["door_layout_columns"] = columns
 
