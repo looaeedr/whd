@@ -92,7 +92,8 @@ def draw_box_body_piece_preview(
     )
 
     source = render_data.metadata.get("baseline_source_path")
-    source_hint = f"\n專用基準：{str(source).rsplit('/', 1)[-1]}" if source else ""
+    source_name = str(source).replace("\\", "/").rsplit("/", 1)[-1] if source else ""
+    source_hint = f"\n專用基準：{source_name}" if source else ""
     if render_data.metadata.get("ear_side_mark_preview_only"):
         count = int(render_data.metadata.get("ear_side_mark_preview_count") or 0)
         source_hint += f"\n固定片焊接區：{count} 條 MARKING 預覽（未核准製造）"

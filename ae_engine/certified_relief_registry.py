@@ -351,45 +351,22 @@ def _linked_fw_insert_overlay_v1(
     if primary_v <= 0.0:
         return None
 
-    cuts = []
-    reliefs = []
+    cuts, reliefs = [], []
     face = str(rule.joint_face or "TOP").upper()
     semantic_corners = _assembly_joint_corner_names(endcap_y_profile, face)
-    if face.endswith("_LEFT"):
-        requested_pairs = ((semantic_corners[0], "yl1"),)
-    elif face.endswith("_RIGHT"):
-        requested_pairs = ((semantic_corners[1], "yr1"),)
-    else:
-        requested_pairs = tuple(zip(semantic_corners, ("yl1", "yr1")))
+    requested_pairs = ((semantic_corners[0], "yl1"),) if face.endswith("_LEFT") else (((semantic_corners[1], "yr1"),) if face.endswith("_RIGHT") else tuple(zip(semantic_corners, ("yl1", "yr1"))))
     for corner_name, side_key in requested_pairs:
         side_fold = _profile_segment_length(endcap_x_profile, side_key, None)
         if side_fold is None:
             return None
         side = abs(float(side_fold))
-        primary_u = side + float(fw)
-        secondary_u = side + secondary_retain_t * t
-        resolved = ResolvedCornerRelief(
-            primary_u=primary_u,
-            primary_v=primary_v,
-            secondary_u=secondary_u,
-            secondary_depth=secondary_depth,
-        )
+        resolved = ResolvedCornerRelief(primary_u=side + float(fw), primary_v=primary_v, secondary_u=side + secondary_retain_t * t, secondary_depth=secondary_depth)
         cut = _physical_cut_from_relief(corner_name, resolved, bounds)
         if cut.is_empty:
             return None
         measurement = _measure_canonical_corner_cut(cut, corner_name, bounds, 0.0)
-        if (
-            int(rule.topology_levels) == 2
-            and resolved.secondary_u is not None
-            and resolved.secondary_depth is not None
-            and measurement.secondary_u is None
-            and measurement.secondary_depth is None
-        ):
-            measurement = replace(
-                measurement,
-                secondary_u=float(resolved.secondary_u),
-                secondary_depth=float(resolved.secondary_depth),
-            )
+        if int(rule.topology_levels) == 2 and resolved.secondary_u is not None and resolved.secondary_depth is not None and measurement.secondary_u is None and measurement.secondary_depth is None:
+            measurement = replace(measurement, secondary_u=float(resolved.secondary_u), secondary_depth=float(resolved.secondary_depth))
         cuts.append(cut)
         reliefs.append(BackprojectedCornerRelief(corner_name, cut, measurement))
     return CertifiedReliefResult(rule=rule, cut_polygons=tuple(cuts), corner_reliefs=tuple(reliefs))

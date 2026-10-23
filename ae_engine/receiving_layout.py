@@ -190,10 +190,10 @@ def primary_bay(layout: Mapping[str, object]) -> dict[str, object]:
 def derive_bay_lock_state(layout: Mapping[str, object], *, set_index: int = 0, bay_index: int = 0) -> tuple[bool, bool]:
     normalized = normalize_receiving_layout(layout)
     sets = normalized["sets"]
-    if set_index < 0 or set_index >= len(sets):
+    if type(set_index) is not int or set_index < 0 or set_index >= len(sets):
         raise IndexError("Receiving set_index out of range")
     bays = sets[set_index]["bays"]
-    if bay_index < 0 or bay_index >= len(bays):
+    if type(bay_index) is not int or bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     return bay_index > 0, bay_index < len(bays) - 1
 
@@ -334,7 +334,7 @@ class ReceivingBayProjectionError(ValueError):
 def _layout_set(layout: Mapping[str, object], set_index: int) -> tuple[dict[str, object], dict[str, object]]:
     normalized = normalize_receiving_layout(layout)
     sets = normalized["sets"]
-    if set_index < 0 or set_index >= len(sets):
+    if type(set_index) is not int or set_index < 0 or set_index >= len(sets):
         raise IndexError("Receiving set_index out of range")
     return normalized, sets[set_index]
 
@@ -482,7 +482,7 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
     """Update persisted per-Bay fields without touching sibling Bay objects."""
     normalized, selected = _layout_set(layout, set_index)
     bays = selected["bays"]
-    if bay_index < 0 or bay_index >= len(bays):
+    if type(bay_index) is not int or bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     bay = deepcopy(dict(bays[bay_index]))
     allowed = {"width", "height", "depth", "back_panel_mode", "door_state",
@@ -583,7 +583,7 @@ def project_receiving_bay_legacy_aliases(
     persisted_layout = deepcopy(result["receiving_layout"])
     normalized, selected = _layout_set(persisted_layout, set_index)
     bays = selected["bays"]
-    if bay_index < 0 or bay_index >= len(bays):
+    if type(bay_index) is not int or bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     bay = bays[bay_index]
     result["receiving_layout"] = persisted_layout
@@ -698,7 +698,7 @@ def receiving_joint_alignment_editability(
     """Return whether D/H alignment controls can affect this adjacent Bay pair."""
     _normalized, selected = _layout_set(layout, set_index)
     joints = selected["joints"]
-    if joint_index < 0 or joint_index >= len(joints):
+    if type(joint_index) is not int or joint_index < 0 or joint_index >= len(joints):
         raise IndexError("Receiving joint_index out of range")
     left = selected["bays"][joint_index]
     right = selected["bays"][joint_index + 1]
@@ -719,7 +719,7 @@ def update_receiving_joint_alignment(
     """Update alignment only on axes where unequal dimensions make it meaningful."""
     normalized, selected = _layout_set(layout, set_index)
     joints = selected["joints"]
-    if joint_index < 0 or joint_index >= len(joints):
+    if type(joint_index) is not int or joint_index < 0 or joint_index >= len(joints):
         raise IndexError("Receiving joint_index out of range")
     editable = receiving_joint_alignment_editability(
         normalized, set_index=set_index, joint_index=joint_index
@@ -755,7 +755,12 @@ def receiving_destructive_tail_ids(
     normalized = normalize_receiving_layout(layout)
     removed: list[str] = []
     if set_count is not None:
-        wanted = int(set_count)
+        if isinstance(set_count, (bool, float)):
+            raise ValueError("Receiving set_count must be an integer")
+        try:
+            wanted = int(set_count)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Receiving set_count must be an integer") from exc
         if wanted < 1:
             raise ValueError("Receiving Set1 cannot be removed")
         for row in normalized["sets"][wanted:]:
@@ -766,7 +771,12 @@ def receiving_destructive_tail_ids(
         if set_index is None:
             raise ValueError("set_index is required for Bay truncation")
         _, selected = _layout_set(normalized, set_index)
-        wanted = int(bay_count)
+        if isinstance(bay_count, (bool, float)):
+            raise ValueError("Receiving bay_count must be an integer")
+        try:
+            wanted = int(bay_count)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Receiving bay_count must be an integer") from exc
         if wanted < 1:
             raise ValueError("Receiving Set must contain at least one Bay")
         removed.extend(str(bay["stable_id"]) for bay in selected["bays"][wanted:])
@@ -849,11 +859,11 @@ def receiving_bay_joint_face_features(layout, *, set_index, bay_index, thickness
     """取得本連相鄰接合的 canonical lock feature；原有非接合特徵保留。"""
     from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
     normalized, selected = _layout_set(layout, set_index)
-    if bay_index < 0 or bay_index >= len(selected["bays"]):
+    if type(bay_index) is not int or bay_index < 0 or bay_index >= len(selected["bays"]):
         raise IndexError("連選取超出範圍")
     result = {face: [feature for feature in values if getattr(feature, "source_type", "") != "receiving_joint_side_lock"] for face, values in dict(existing or {}).items()}
     for joint_index in (bay_index - 1, bay_index):
-        if joint_index < 0 or joint_index >= len(selected["joints"]):
+        if type(joint_index) is not int or joint_index < 0 or joint_index >= len(selected["joints"]):
             continue
         resolved = resolve_receiving_joint_lock_pattern(normalized, set_index=set_index, joint_index=joint_index, thickness=thickness, frame_width=frame_width)
         participant = resolved.right_bay if joint_index == bay_index - 1 else resolved.left_bay

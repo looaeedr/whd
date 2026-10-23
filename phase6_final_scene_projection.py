@@ -408,7 +408,9 @@ def _phase6_assembly_physical_dimension_lines(part, *, thickness):
         role = str(getattr(piece, "role", "") or "")
         if role not in ("left_side", "right_side"):
             continue
-        segs = tuple(piece.fold_profile or ())
+        segs = tuple(getattr(piece, "fold_profile", None) or ())
+        if not segs:
+            continue
         rows = [
             {
                 "len": float(seg.length),

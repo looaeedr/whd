@@ -2800,7 +2800,7 @@ def _phase6_show_assembly(self, initial=False):
     if assembly_owner is not None:
         assembly_owner.set_multi_settings_visible(
             str(getattr(self, "_phase6_input_snapshot", {}).get("model") or
-                getattr(getattr(self, "baseline_model_var", None), "get", lambda: "")()) == "受電箱"
+                getattr(getattr(self, "baseline_model_var", None), "get", lambda: "")()) in ("受電箱", "RECEIVING")
         )
     _navigation_view_project_assembly_mode(
         self,

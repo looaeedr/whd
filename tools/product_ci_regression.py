@@ -384,6 +384,8 @@ PYTEST_PATHS = (
     "tests/test_deep_audit_14_bugs_regression.py",
     "tests/test_deep_audit_14_bugs_boundary_guards.py",
     "tests/test_deep_audit_round2_bugfixes.py",
+    # The R3 code-only audit and its closure boundary cases are product gates.
+    "tests/test_deep_audit_round3_bugfixes.py",
 )
 
 

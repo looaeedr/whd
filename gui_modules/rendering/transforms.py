@@ -15,6 +15,9 @@ class YMirroredPreviewTransform:
     def world_to_canvas(self, point):
         return self._base.world_to_canvas(mirror_point_y(point, self.height))
 
+    def canvas_to_world(self, cx, cy):
+        return mirror_point_y(self._base.canvas_to_world(cx, cy), self.height)
+
 
 def phase6_2d_material_viewport(
     bounds, canvas_width, canvas_height, *,

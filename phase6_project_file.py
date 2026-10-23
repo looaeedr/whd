@@ -45,7 +45,8 @@ def _normalize_authoritative_door_state(snapshot):
         result.pop(key, None)
 
     model = str(result.get("model") or "").strip()
-    if model == "受電箱" and result.get("door_nameplate_center_datum_top") is None:
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+    if is_receiving_snapshot(result) and result.get("door_nameplate_center_datum_top") is None:
         from ae_engine.cabinet_types.receiving import DOOR_NAMEPLATE_CENTER_DATUM_TOP
         result["door_nameplate_center_datum_top"] = float(DOOR_NAMEPLATE_CENTER_DATUM_TOP)
     elif result.get("door_nameplate_center_datum_top") is not None:
@@ -232,11 +233,15 @@ def _materialize_project_snapshot(snapshot):
     result = _normalize_authoritative_door_state(result)
     if is_receiving_snapshot(result):
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
+        base_without_door = {
+            k: v for k, v in result.items()
+            if k not in RECEIVING_DOOR_STATE_KEYS
+        }
         for selected in result["receiving_layout"]["sets"]:
             for bay in selected["bays"]:
                 if "door_state" not in bay:
                     continue
-                view = {**result, **bay["door_state"], "w": bay["width"], "h": bay["height"], "d": bay["depth"]}
+                view = {**base_without_door, **bay["door_state"], "w": bay["width"], "h": bay["height"], "d": bay["depth"]}
                 normalized = _normalize_authoritative_door_state(view)
                 bay["door_state"] = {key: deepcopy(normalized[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in normalized}
     from phase6_quantity_model import normalize_quantity_snapshot
