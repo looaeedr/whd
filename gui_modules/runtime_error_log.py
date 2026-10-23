@@ -6,10 +6,10 @@ when an exception is reported, so normal Tk/Matplotlib rendering stays unchanged
 
 from __future__ import annotations
 
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 
-TAIPEI_TZ = ZoneInfo("Asia/Taipei")
+# Taiwan uses UTC+08:00 with no DST; works without tzdata on Windows EXE.
+TAIPEI_TZ = timezone(timedelta(hours=8))
 from pathlib import Path
 import os
 import platform
