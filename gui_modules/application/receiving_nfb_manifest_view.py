@@ -28,8 +28,11 @@ def nfb_manifest_display_lines(view):
             label=(f"第{layer+1 if type(layer) is int else '?'}層／"
                    f"第{slot+1 if type(slot) is int else '?'}顆")
             errors=tuple(unit.get("reasons") or ())
-            state_text=("未驗證："+"、".join(errors) if errors
-                        else "CSV 來源可讀／實體待驗")
+            configured=unit.get("configuration_verified")
+            if type(configured) is not bool or configured is bool(errors):
+                raise ValueError("NFB unit configuration verification/reasons mismatch")
+            state_text=("配置未驗證："+ "、".join(errors) if errors
+                        else "配置已驗證｜CSV 來源可讀／實體待驗")
             lines.append(label+"｜"+str(unit.get("physical_hole_id"))
                          +"｜"+str(unit.get("model_filename"))+"｜"+state_text)
         for part in view.get("part_rows", ()):
