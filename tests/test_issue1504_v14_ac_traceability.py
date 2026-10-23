@@ -652,3 +652,63 @@ def test_ac54_swt31_current_v5_project_schema_exact_regression_and_no_old_binary
         assert evidence["factory_release"] is False
         assert evidence["human_windows_uat_claimed"] is False
         assert evidence["original_ac_text_unchanged"] is True
+
+
+def test_ac29_swt19_current_v5_source_drift_has_real_reloaded_project_cutting_and_fail_closed_witnesses():
+    """No legacy DXF/SHADOW or stale flag can stand in for changed CSV geometry."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py"
+    assert PYTEST_PATHS.count(path) == 1
+    names = (
+        "test_ac29_swt19_reload_current_v5_rederives_real_centres_and_cutting",
+        "test_ac29_swt19_csv_bytes_change_requires_fresh_finalscene_and_dxf",
+        "test_ac29_swt19_source_revised_collision_or_boundary_cannot_use_old_green",
+        "test_ac29_swt19_original_hole_editor_csv_proof_from_before_reload_cannot_be_reused",
+    )
+    functions = {
+        node.name: node for node in ast.parse(
+            (ROOT / path).read_text(encoding="utf-8")
+        ).body if isinstance(node, ast.FunctionDef)
+    }
+    for name in names:
+        assert name in functions
+        assert any(isinstance(node, ast.Assert) for node in ast.walk(functions[name]))
+        assert any(isinstance(node, ast.Call) for node in ast.walk(functions[name]))
+    rows = {r["id"]: r for r in _data()["records"]}
+    for key in ("NFB-AC-29", "SWT-AC-19"):
+        row = rows[key]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert len(row["identified_test_functions"]) == 1
+        primary = row["identified_test_functions"][0]
+        assert primary["path"] == path and primary["test_name"] == names[0]
+        assert primary["witness_scope"] == "FULL_AC_AUTOMATED_ASSERTIONS"
+        evidence = row["acceptance_evidence"]
+        assert evidence["primary_assertion"] == path + "::" + names[0]
+        for name in names[1:]:
+            assert path + "::" + name in evidence["other_required_assertions"]
+        for exact in (evidence["primary_assertion"],
+                      *evidence["other_required_assertions"]):
+            file_name, function = exact.split("::")
+            assert PYTEST_PATHS.count(file_name) == 1
+            target = {
+                node.name: node for node in ast.parse(
+                    (ROOT / file_name).read_text(encoding="utf-8")
+                ).body if isinstance(node, ast.FunctionDef)
+            }
+            assert function in target
+            assert any(
+                isinstance(node, ast.Assert)
+                or (isinstance(node, ast.With) and any(
+                    isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Attribute)
+                    and item.context_expr.func.attr == "raises"
+                    for item in node.items
+                ))
+                for node in ast.walk(target[function])
+            ), exact
+        assert evidence["source_dxf_historical_binary_rechecked"] is False
+        assert evidence["real_two_old_project_windows_gui_uat"] is False
+        assert evidence["factory_release"] is False
+        assert evidence["human_windows_uat_claimed"] is False
+        assert evidence["original_ac_text_unchanged"] is True
