@@ -265,7 +265,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         get_candidate_ports=None, get_inner_candidate_ports=None,
                         select_bay=None,
                         on_setting_selected=None, get_brand=None,
-                        set_brand=None, get_settings_ports=None,
+                        set_brand=None, get_brand_change_impact=None,
+                        get_settings_ports=None,
                         get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
                         get_initial_door_marks=None,
@@ -390,8 +391,24 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_selector.pack(side="left")
     def apply_brand(_event=None):
         if set_brand is not None:
+            previous = get_brand() if get_brand else "士林"
+            proposed = brand_var.get()
+            if proposed == previous:
+                return
             try:
-                if set_brand(brand_var.get()):
+                affected = (get_brand_change_impact(proposed)
+                            if get_brand_change_impact is not None else 0)
+                if affected and not messagebox.askyesno(
+                    "確認切換 NFB 廠牌",
+                    f"此次切換將有 {affected} 顆 NFB 原型號待重選。"
+                    "確認後保留舊型號來源，但禁止未重選前製造。是否繼續？",
+                    parent=win,
+                ):
+                    # ComboboxSelected changes Tk presentation first. Restore
+                    # it without a product write, Undo entry or geometry solve.
+                    brand_var.set(previous)
+                    return
+                if set_brand(proposed):
                     brand_changed["value"] = True
                     win.after_idle(show_setting_controls)
             except (ValueError, IndexError, RuntimeError) as exc:
