@@ -780,7 +780,9 @@
         1491
       ],
       "regression_candidates": [
-        "tests/test_issue1491_nfb_ui1a.py"
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_ac20_swt13_brand_confirm.py",
+        "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py"
       ],
       "evidence_level": "FULL_AC_ASSERTION_AUDITED",
       "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
@@ -2736,7 +2738,9 @@
         1491
       ],
       "regression_candidates": [
-        "tests/test_issue1491_nfb_ui1a.py"
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_ac20_swt13_brand_confirm.py",
+        "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py"
       ],
       "evidence_level": "FULL_AC_ASSERTION_AUDITED",
       "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
