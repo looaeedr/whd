@@ -996,17 +996,24 @@ def open_part_hole_editor(host, part_key):
 
         def sync_features():
             host.surface_features[part_key] = list(features)
-            host.workspace_controller.replace_part_features(part_key, features)
+            # Phase6WorkspaceController.replace_part_features accepts ONE
+            # complete mapping, not (part_key, features). Preserve unrelated
+            # parts and include explicit clearing of edited holes.
+            workspace_features = host.workspace_controller.part_features_snapshot()
+            workspace_features[part_key] = list(features)
             if part_key == "door":
                 for indicator_key in ("indicator_box", "indicator_door"):
-                    host.workspace_controller.replace_part_features(
-                        indicator_key,
-                        host.surface_features.get(indicator_key, []),
+                    workspace_features[indicator_key] = list(
+                        host.surface_features.get(indicator_key, [])
                     )
+            host.workspace_controller.replace_part_features(workspace_features)
             if hasattr(host, "_derived_cache_owner"):
                 host._derived_cache_owner.invalidate("geometry")
             if hasattr(host, "_authoritative_part_render_cache"):
-                host._authoritative_part_render_cache.pop(part_key, None)
+                for affected in (part_key, "indicator_box", "indicator_door"):
+                    host._authoritative_part_render_cache.pop(affected, None)
+            if hasattr(host, "_request_phase6_update"):
+                host._request_phase6_update("geometry")
 
         editor_context['feature_list_override'] = features
         editor_context['sync_callback'] = sync_features

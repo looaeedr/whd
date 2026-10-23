@@ -151,8 +151,18 @@ class Phase6WorkspaceController:
         if raw.get("quantity") is not None:
             quantity = QuantityModel.from_payload(raw["quantity"])
         if "active_mode" in raw:
+            previous_mode = self._active_mode
             self._active_mode = raw["active_mode"]
-            self._quantity_model = quantity
+            if self._active_mode != "quantity":
+                self._quantity_model = None
+            elif quantity is not None:
+                self._quantity_model = quantity
+            elif previous_mode != "quantity":
+                # A true mode transition needs an explicit QuantityModel.
+                # A partial update must not manufacture an empty version.
+                raise ValueError("切換數量模式必須提供 quantity 權威資料")
+            # Existing quantity mode + partial part_features keeps its
+            # authoritative model; the selected version is updated below.
         elif quantity is not None:
             self._active_mode = "quantity"
             self._quantity_model = quantity

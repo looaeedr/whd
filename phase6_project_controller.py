@@ -158,6 +158,10 @@ class Phase6ProjectController:
             snapshot["active_mode"] = owner["active_mode"]
         if snapshot.get("active_mode") == "quantity":
             snapshot.pop("receiving_layout", None)
+            # The workspace payload is serialized independently of the root
+            # snapshot. Strip retired Set/Bay state there as well, otherwise
+            # reload can resurrect the previous Receiving layout.
+            shared_workspace.pop("receiving_layout", None)
         elif owner.get("receiving_layout") is not None:
             snapshot["receiving_layout"] = deepcopy(owner["receiving_layout"])
         if owner.get("receiving_quantity_box") is not None:
@@ -242,6 +246,11 @@ class Phase6ProjectController:
             "receiving_quantity_box",
             "receiving_layout",
         ):
+            if (
+                optional_key == "receiving_layout"
+                and owner.get("active_mode") == "quantity"
+            ):
+                continue
             if optional_key in owner and owner[optional_key] is not None:
                 result[optional_key] = deepcopy(owner[optional_key])
         return result

@@ -382,6 +382,8 @@ PYTEST_PATHS = (
     # exact HEAD; a manual 27-pass smoke run is not a manufacturing receipt.
     "tests/test_deep_audit_14_bugs_regression.py",
     "tests/test_deep_audit_14_bugs_boundary_guards.py",
+    # R2 production bug repair must remain covered after the original 14.
+    "tests/test_deep_audit_round2_bugfixes.py",
 )
 
 

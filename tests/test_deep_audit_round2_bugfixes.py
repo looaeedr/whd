@@ -540,3 +540,119 @@ def test_r2_18_mirror_drawing_scene_x_reflects_check_text_attachment_point():
     text_prim = next(p for p in mirrored.primitives if isinstance(p, TextPrimitive))
     assert text_prim.insert == Vec2(90.0, 20.0)
     assert text_prim.attachment_point == 3
+
+
+def test_r2_3_partial_active_quantity_commit_keeps_existing_version_and_head_features():
+    owner = Phase6WorkspaceController()
+    owner.commit_workspace({
+        "active_mode": "quantity",
+        "quantity": {
+            "schema": "phase6-quantity-v1",
+            "selected_version_id": "quantity-v1",
+            "next_version_number": 2,
+            "versions": [{
+                "version_id": "quantity-v1", "piece_count": 2,
+                "head_features": [], "tail_features": [],
+            }],
+        },
+    })
+    hole = _circle(35.0, 45.0)
+    result = owner.commit_workspace({
+        "active_mode": "quantity",
+        "part_features": {"head": [hole], "tail": []},
+    })
+    assert result["quantity"]["versions"][0]["piece_count"] == 2
+    assert result["quantity"]["versions"][0]["head_features"] == [hole]
+    assert result["part_features"]["head"] == [hole]
+
+
+def test_r2_9_inner_door_panel_hole_ownership_migrates_with_cell_stable_id():
+    class Owner:
+        features = {
+            "inner_door:c2r1:panel": ["inner_hole"],
+            "door_c2_r1": ["outer_hole"],
+            "head": ["head_hole"],
+        }
+
+        def part_features_snapshot(self):
+            return {k: list(v) for k, v in self.features.items()}
+
+        def replace_part_features(self, value):
+            self.features = {k: list(v) for k, v in value.items()}
+
+    owner = Owner()
+    host = SimpleNamespace(
+        workspace_controller=owner,
+        door_layout_features={"1:0": ["outer_hole"]},
+        door_layout_indicator_states={},
+        door_layout_indicator_box_features={},
+        door_layout_indicator_door_features={},
+        door_layout_handle_edges={},
+        surface_features=dict(owner.features),
+        receiving_inner_doors=[{"cell_key": "1:0", "stable_id": "c2r1"}],
+        _receiving_inner_door_stable_id_for_cell=lambda cell: "upper" if cell == "0:0" else "c2r1",
+    )
+    door_layout_host_adapter._remap_door_layout_owned_data(
+        host, lambda column, row: (0, row) if column == 1 else None,
+    )
+    assert host.receiving_inner_doors[0]["stable_id"] == "upper"
+    for source in (host.surface_features, owner.features):
+        assert source["inner_door:upper:panel"] == ["inner_hole"]
+        assert source["door_c1_r1"] == ["outer_hole"]
+        assert source["head"] == ["head_hole"]
+        assert "inner_door:c2r1:panel" not in source
+        assert "door_c2_r1" not in source
+
+
+def test_r2_17_nested_geometry_collection_selects_real_segment():
+    class Material:
+        def intersection(self, _line):
+            return GeometryCollection([
+                GeometryCollection([Point(0, 0), LineString([(15, 0), (85, 0)])]),
+                Point(100, 0),
+            ])
+    bend = _clip_axis_bend(
+        "top", LineString([(0, 0), (100, 0)]), Material(), vertical=False,
+    )
+    assert bend.p1 == Vec2(15.0, 0.0)
+    assert bend.p2 == Vec2(85.0, 0.0)
+
+
+def test_r2_15_missing_thickness_cannot_authorize_quantity_hole():
+    source = {
+        "model": "RECEIVING", "active_mode": "quantity", "t": None,
+        "receiving_quantity_box": {
+            "w": 600., "h": 800., "d": 300., "back_panel_mode": "FULL",
+        },
+        "quantity": {
+            "schema": "phase6-quantity-v1",
+            "selected_version_id": "quantity-v1", "next_version_number": 2,
+            "versions": [{
+                "version_id": "quantity-v1", "piece_count": 1,
+                "head_features": [_circle(300., 100.)], "tail_features": [],
+            }],
+        },
+    }
+    assert len(quantity_feature_errors(source)) == 1
+
+
+def test_r2_5_quantity_project_payload_strips_nested_set_bay_state():
+    base = {"receiving_layout": {"legacy": True}}
+    owner = {
+        "active_mode": "quantity", "quantity": {"versions": []},
+        "receiving_layout": {"legacy": True},
+    }
+    payload = Phase6ProjectController.build_designer_payload(
+        schema="phase6-test", model="受電箱", base_snapshot=base,
+        settings={}, box_whd={}, assembly_type=None, endcap_fw={},
+        corner_state={}, corner_pair_same=False,
+        owner_workspace=owner,
+        workspace={"receiving_layout": {"legacy": True}, "part_profiles": {}},
+        box_body_profile=[], assembly_relief={}, final_geometry={},
+    )
+    assert "receiving_layout" not in payload["snapshot"]
+    assert "receiving_layout" not in payload["snapshot"]["workspace"]
+    export = Phase6ProjectController.build_workspace_export(
+        owner_workspace=owner, box_body_profile=[], structure_state={},
+    )
+    assert "receiving_layout" not in export

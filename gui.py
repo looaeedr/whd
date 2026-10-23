@@ -1600,8 +1600,15 @@ class Phase6ApplicationHost:
                     k: list(v) for k, v in self.door_layout_indicator_door_features.items()
                 }
                 designer.submit_update_intent("geometry", commit=True)
-            elif hasattr(self, "_derived_cache_owner"):
-                self._derived_cache_owner.invalidate("geometry")
+            else:
+                # Per-cell indicator maps on the host are the authoritative
+                # source even when the 3D Fold Designer has never been opened.
+                if hasattr(self, "_derived_cache_owner"):
+                    self._derived_cache_owner.invalidate("geometry")
+                if hasattr(self, "_authoritative_part_render_cache"):
+                    self._authoritative_part_render_cache.pop(component, None)
+                if hasattr(self, "_request_phase6_update"):
+                    self._request_phase6_update("geometry")
 
         self._open_unified_hole_editor(
             component, f"{title} [{key}]", surface, width, height,
@@ -1666,7 +1673,9 @@ class Phase6ApplicationHost:
         def sync_features():
             self.door_layout_features[key] = list(features)
             self.surface_features[physical_key] = list(features)
-            self.workspace_controller.replace_part_features(physical_key, features)
+            workspace_features = self.workspace_controller.part_features_snapshot()
+            workspace_features[physical_key] = list(features)
+            self.workspace_controller.replace_part_features(workspace_features)
             if workspace is not None and physical_key in workspace.available_parts:
                 workspace.stash_features(physical_key, features)
             if designer is not None and isinstance(getattr(designer, "_phase6_input_snapshot", None), dict):
@@ -1688,6 +1697,8 @@ class Phase6ApplicationHost:
                     self._derived_cache_owner.invalidate("geometry")
                 if hasattr(self, "_authoritative_part_render_cache"):
                     self._authoritative_part_render_cache.pop(physical_key, None)
+                if hasattr(self, "_request_phase6_update"):
+                    self._request_phase6_update("geometry")
         indicator_state = self._door_layout_indicator_state_for_key(key)
         indicator_context = DoorIndicatorContext(
             finished_width=finished_w, finished_height=finished_h,

@@ -13,9 +13,10 @@ from enum import Enum
 from typing import Iterable
 
 try:
-    from shapely.geometry import LineString as ShapelyLineString
+    from shapely.geometry import LineString as ShapelyLineString, Point as ShapelyPoint
 except Exception:  # pragma: no cover
     ShapelyLineString = None
+    ShapelyPoint = None
 
 from .sheetmetal_geometry import Vec2
 from .sheetmetal_feature_core import (
@@ -140,8 +141,25 @@ def _surface_axis_edges(surface: FeatureSurface, point: Vec2) -> tuple[float, fl
     vi = surface.polygon.intersection(v)
     if hi.is_empty or vi.is_empty:
         return float(minx), float(maxx), float(miny), float(maxy)
-    hminx, _, hmaxx, _ = hi.bounds
-    _, vminy, _, vmaxy = vi.bounds
+    # A cutout or disconnected contour can create multiple segments on a
+    # single axis. Only the segment *containing the seed* defines the local
+    # refill span; the union bounds would bridge empty material.
+    center = ShapelyPoint(float(point.x), float(point.y))
+
+    def local_component(geometry):
+        def lines(item):
+            if item.geom_type == "LineString" and item.length > 0:
+                yield item
+            else:
+                for child in getattr(item, "geoms", ()):
+                    yield from lines(child)
+        candidates = [line for line in lines(geometry) if line.distance(center) <= 1e-7]
+        if candidates:
+            return max(candidates, key=lambda line: float(line.length)).bounds
+        return geometry.bounds
+
+    hminx, _, hmaxx, _ = local_component(hi)
+    _, vminy, _, vmaxy = local_component(vi)
     return float(hminx), float(hmaxx), float(vminy), float(vmaxy)
 
 

@@ -139,10 +139,15 @@ def _clip_axis_bend(name: str, line: LineString, material, vertical: bool) -> Be
     if clipped.is_empty:
         raise GeometryError(f"bend {name} does not intersect material")
     if clipped.geom_type in ("MultiLineString", "GeometryCollection"):
-        line_parts = [
-            geom for geom in getattr(clipped, "geoms", ())
-            if getattr(geom, "geom_type", None) == "LineString" and geom.length > 0
-        ]
+        def positive_lines(geometry):
+            if geometry.geom_type == "LineString":
+                if geometry.length > 0:
+                    yield geometry
+            else:
+                for component in getattr(geometry, "geoms", ()):
+                    yield from positive_lines(component)
+
+        line_parts = tuple(positive_lines(clipped))
         if line_parts:
             clipped = max(line_parts, key=lambda geom: geom.length)
     if clipped.geom_type != "LineString" or clipped.length <= 0:

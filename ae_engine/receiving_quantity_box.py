@@ -197,13 +197,20 @@ def quantity_feature_errors(snapshot):
         else {axis: positive_dimension(snapshot.get(axis), axis) for axis in ("w", "d")}
     )
     raw_t = snapshot.get("t")
-    t = positive_dimension(2.0 if raw_t is None else raw_t, "t")
     model = QuantityModel.from_payload(snapshot.get("quantity"))
-    try:
-        guide = resolve_endcap_finished_face_guide(box["w"], box["d"], t)
-        surface = feature_surface_from_rect("endcap_finished_face", guide.min_point, guide.max_point)
-    except Exception:
-        surface = None
+    # A missing persisted T is not permission to manufacture with a guessed
+    # 2.0-mm sheet. Fail closed for versions containing hole features while
+    # keeping this diagnostic function non-throwing on legacy snapshots.
+    surface = None
+    if raw_t is not None:
+        try:
+            t = positive_dimension(raw_t, "t")
+            guide = resolve_endcap_finished_face_guide(box["w"], box["d"], t)
+            surface = feature_surface_from_rect(
+                "endcap_finished_face", guide.min_point, guide.max_point,
+            )
+        except (TypeError, ValueError, AttributeError, OverflowError):
+            surface = None
     errors = []
     for version in model.snapshot()["versions"]:
         for role in ("head", "tail"):
