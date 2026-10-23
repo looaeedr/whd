@@ -1,6 +1,6 @@
 {
   "schema": "WHD_NFB_V14_88AC_TRACEABILITY_V1",
-  "assessed_on": "2026-10-22",
+  "assessed_on": "2026-10-23",
   "source_documents": [
     {
       "name": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 40,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 41,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 13,
+    "EVIDENCE_CANDIDATE_ONLY": 12,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -121,25 +121,48 @@
         1492
       ],
       "regression_candidates": [
-        "tests/test_issue1492_nfb_real_dxf_preview.py"
+        "tests/test_issue1492_nfb_real_dxf_preview.py",
+        "tests/test_issue1504_ac03_ac15_native_source_panel.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1492_nfb_real_dxf_preview.py",
-          "test_name": "test_pan_zoom_reset_never_reopens_source_or_changes_manufacturing",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac03_ac15_native_source_panel.py",
+          "test_name": "test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT 2026-10-21: NFB brand/model geometry is the user's per-brand numeric NFB數值規格.csv and committed NFBConfig, NOT a mandatory legacy manufacturer DXF file. Original DXF preview acceptance wording is historical compatibility scope, not a current CSV selection prerequisite.",
         "authority_issue": 1502
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_CSV_V5_ORIGINAL_INNER_TK_SOURCE_ONLY_PANEL_AND_LEGACY_DXF_COMPATIBILITY__NOT_ABSOLUTE_CUTTING_APPROVAL",
+        "primary_assertion": "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac15_model_switch_resets_view_without_reusing_stale_source_or_writing",
+          "tests/test_issue1492_nfb_real_dxf_preview.py::test_native_arc_circle_bulge_and_aci_preserved_in_real_source_strokes",
+          "tests/test_issue1492_nfb_real_dxf_preview.py::test_missing_and_unindexed_dxf_cannot_show_fake_contour",
+          "tests/test_issue1492_nfb_real_dxf_preview.py::test_pan_zoom_reset_never_reopens_source_or_changes_manufacturing"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "current_csv_v5_primary_model_authority": true,
+        "legacy_dxf_compatibility_tested_as_source_preview_only": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false,
+        "exact_head_full_ci_required": true,
+        "integrated_localx_claimed": false
       }
     },
     {
@@ -3614,7 +3637,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 40/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 48 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 41/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (BRANCH CANDIDATE, EXACT_HEAD_CI_AND_INTEGRATION_PENDING); remaining 47 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
