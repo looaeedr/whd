@@ -6,7 +6,9 @@ adjustments are applied by the registry/solver on top of this baseline.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+import math
 
 
 @dataclass(frozen=True)
@@ -21,13 +23,41 @@ def _rows(profile):
     return tuple(profile or ())
 
 
+def _row_key(row):
+    if isinstance(row, Mapping):
+        return str(row.get("phase6_key") or "")
+    return str(getattr(row, "phase6_key", "") or "")
+
+
+def _row_length(row) -> float:
+    if isinstance(row, Mapping):
+        value = row.get("length")
+        if value is None:
+            value = row.get("len", 0.0)
+    else:
+        value = getattr(row, "length", None)
+        if value is None:
+            value = getattr(row, "len", 0.0)
+    if isinstance(value, bool):
+        raise ValueError("corner fold length cannot be bool")
+    result = float(value or 0.0)
+    if not math.isfinite(result):
+        raise ValueError("corner fold length must be finite")
+    return abs(result)
+
+
 def _by_key(profile):
-    return {str(getattr(row, "phase6_key", "") or ""): row for row in _rows(profile) if getattr(row, "phase6_key", None)}
+    return {_row_key(row): row for row in _rows(profile) if _row_key(row)}
+
+
+_VALID_CORNER_NAMES = {"top_left", "top_right", "bottom_left", "bottom_right"}
 
 
 def standard_corner_geometry(corner_name, x_profile, y_profile, *, nominal_fold_left=None, nominal_fold_right=None):
     """Measure material edge -> innermost actual fold using semantic Fold Profile keys."""
-    name = str(corner_name)
+    name = str(corner_name or "").strip().lower()
+    if name not in _VALID_CORNER_NAMES:
+        raise ValueError(f"Unsupported corner_name: {corner_name!r}")
     x = _by_key(x_profile)
     y = _by_key(y_profile)
     left = "left" in name
@@ -35,18 +65,18 @@ def standard_corner_geometry(corner_name, x_profile, y_profile, *, nominal_fold_
 
     if "endcap_w_flat" in x:
         nominal = nominal_fold_left if left else nominal_fold_right
-        u = 0.0 if nominal is None else float(nominal)
+        u = 0.0 if nominal is None else abs(float(nominal))
         u_evidence = "nominal_fold_left" if left else "nominal_fold_right"
     else:
         key = "yl1" if left else "yr1"
         if key in x:
-            u = float(x[key].length)
+            u = _row_length(x[key])
             u_evidence = key
         else:
             nominal = nominal_fold_left if left else nominal_fold_right
             if nominal is None:
                 raise ValueError(f"STANDARD missing X fold evidence for {name}")
-            u = float(nominal)
+            u = abs(float(nominal))
             u_evidence = "nominal_fold_left" if left else "nominal_fold_right"
 
     if top:
@@ -54,7 +84,8 @@ def standard_corner_geometry(corner_name, x_profile, y_profile, *, nominal_fold_
         evidence = []
         for key in ("ytop1", "fw"):
             if key in y:
-                values.append(float(y[key].length)); evidence.append(key)
+                values.append(_row_length(y[key]))
+                evidence.append(key)
         if not values:
             raise ValueError(f"STANDARD missing top Y fold evidence for {name}")
         v = sum(values)
@@ -62,10 +93,12 @@ def standard_corner_geometry(corner_name, x_profile, y_profile, *, nominal_fold_
     else:
         if "ybottom1" not in y:
             raise ValueError(f"STANDARD missing bottom Y fold evidence for {name}")
-        v = float(y["ybottom1"].length)
+        v = _row_length(y["ybottom1"])
         v_evidence = "ybottom1"
 
-    return StandardCornerGeometry(name, max(0.0, u), max(0.0, v), (u_evidence, v_evidence))
+    if not all(math.isfinite(z) for z in (u, v)):
+        raise ValueError("corner projection must be finite")
+    return StandardCornerGeometry(name, u, v, (u_evidence, v_evidence))
 
 
 def nearby_corner_relations(graph, part: str, corner_name: str) -> tuple[str, ...]:
