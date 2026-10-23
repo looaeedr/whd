@@ -393,9 +393,7 @@ PYTEST_PATHS = (
     "tests/test_deep_audit_14_bugs_boundary_guards.py",
     # Manual R4–R6 source repairs: marking, DXF, assembly placement, cache.
     "tests/test_manual_audit_source_guards_20261023.py",
-    # Source-reviewed R5 receiving quantity Save, allocation and Base Plate safety.
-    "tests/test_manual_r5_persistence_and_base_guards_20261024.py",
-    # Manually traced R5 persistence, allocation and physical BasePlate guards.
+    # Manually traced R5 receiving Save, allocation and physical BasePlate guards.
     "tests/test_manual_r5_persistence_and_base_guards_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
