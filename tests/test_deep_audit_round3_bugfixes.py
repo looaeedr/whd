@@ -206,6 +206,38 @@ def test_r3_8_readback_preserves_existing_side_marking_but_rejects_unowned_extra
         _readback_marking_lines(path, [expected], original_scene=source)
 
 
+def test_r3_8_saved_check_scene_requires_exact_one_to_one_marking_inventory(tmp_path):
+    """The actual CHECK scene is the authority for *all* saved MARKING lines.
+
+    Previous logic checked only the EAR rows plus one original subset; an
+    unrelated, canonical scene-owned mark could be called an unexpected EAR.
+    An extra inserted DXF entity must still fail independently.
+    """
+    import ezdxf
+    from ae_engine.receiving_fixed_plate_side_check_dxf import _readback_marking_lines
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    check=DrawingScene()
+    weld=((0., 0.), (10., 0.))
+    check.add_line(*weld, layer="MARKING")
+    check.add_line((20., 5.), (30., 5.), layer="MARKING")
+    check.add_line((40., 5.), (50., 5.), layer="MARKING")
+    doc=ezdxf.new("R2010")
+    space=doc.modelspace()
+    for item in check.primitives:
+        space.add_line(
+            (item.p1.x, item.p1.y), (item.p2.x, item.p2.y),
+            dxfattribs={"layer": "MARKING"},
+        )
+    path=tmp_path / "verified_check_only.dxf"
+    doc.saveas(path)
+    _readback_marking_lines(path, [weld], check_scene=check)
+    space.add_line((90., 8.), (99., 8.), dxfattribs={"layer": "MARKING"})
+    doc.saveas(path)
+    with pytest.raises(ValueError, match="EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA"):
+        _readback_marking_lines(path, [weld], check_scene=check)
+
+
 def test_r3_9_receiving_shared_settings_rejects_negative_and_bool_indices():
     """R3-9: setting_value, edit_setting, share_setting, and unlink_setting reject negative and bool indices."""
     from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays
