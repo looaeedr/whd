@@ -281,7 +281,7 @@ def legacy_hole_to_feature(hole: dict) -> Feature:
     htype = hole["type"]
     offset = Vec2(float(hole["x"]), float(hole["y"]))
     params = hole.get("params", {})
-    rotation = int(params.get("rotation_deg", 0))
+    rotation = _normalize_rotation(params.get("rotation_deg", 0))
     explicit_layer = params.get("layer")
 
     if "points" in params:
@@ -545,8 +545,28 @@ class DoorIndicatorContext:
         )
 
 
+def _normalize_indicator_groups(layer_groups) -> tuple[int, ...]:
+    groups = []
+    for raw in layer_groups:
+        if isinstance(raw, bool):
+            raise ValueError("indicator group counts must not be bool")
+        try:
+            val = int(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("indicator group must be an integer") from exc
+        # No silent rounding or float-to-int truncation of user group counts.
+        if str(raw).strip() not in (str(val),) and not (
+            isinstance(raw, float) and raw.is_integer()
+        ):
+            raise ValueError("indicator group must be an integer")
+        if val <= 0:
+            raise ValueError("indicator group counts must be > 0")
+        groups.append(val)
+    return tuple(groups)
+
+
 def indicator_box_outer_size(layer_groups: list[int] | tuple[int, ...]) -> tuple[float, float]:
-    groups = tuple(int(v) for v in layer_groups)
+    groups = _normalize_indicator_groups(layer_groups)
     if not groups:
         raise ValueError("indicator box requires at least one layer")
     if any(v <= 0 for v in groups):
@@ -578,7 +598,7 @@ def resolve_door_indicator_features(
     The returned coordinates are unfolded/world coordinates and are shared by
     GUI preview and DXF serialization.
     """
-    groups = [int(value) for value in layer_groups]
+    groups = list(_normalize_indicator_groups(layer_groups))
     layers = len(groups)
     if layers == 0:
         return []
@@ -769,7 +789,7 @@ def resolve_door_indicator_layout(
     layer_groups: list[int] | tuple[int, ...],
     offset: Vec2 = Vec2(0.0, 0.0),
 ) -> DoorIndicatorLayout:
-    groups = tuple(int(value) for value in layer_groups)
+    groups = _normalize_indicator_groups(layer_groups)
     if not groups:
         raise ValueError("door indicator layout requires at least one layer")
     g_max = max(groups) if groups else 1
@@ -984,9 +1004,27 @@ def hit_test_resolved_features(
             if poly.buffer(tolerance).covers(ShapelyPoint(point.x, point.y)):
                 return index
         else:
-            poly = ShapelyPolygon([(p.x, p.y) for p in feature.points])
-            if poly.buffer(tolerance).covers(ShapelyPoint(point.x, point.y)):
-                return index
+            target = ShapelyPoint(point.x, point.y)
+            candidates = (
+                ((feature.points, len(feature.points) >= 3),)
+                if feature.points
+                else tuple((pts, bool(closed)) for _layer, pts, closed
+                           in getattr(feature, "layered_profiles", ()))
+            )
+            for pts, closed in candidates:
+                coords = [(p.x, p.y) for p in pts]
+                if len(coords) >= 3 and closed:
+                    geometry = ShapelyPolygon(coords)
+                    matches = geometry.buffer(tolerance).covers(target)
+                elif len(coords) >= 2:
+                    geometry = ShapelyLineString(coords)
+                    matches = geometry.distance(target) <= max(tolerance, 1.5)
+                elif len(coords) == 1:
+                    matches = ShapelyPoint(coords[0]).distance(target) <= max(tolerance, 1.5)
+                else:
+                    matches = False
+                if matches:
+                    return index
     return None
 
 

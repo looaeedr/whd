@@ -255,12 +255,15 @@ def resolved_features_to_primitives(features) -> tuple[DrawingPrimitive, ...]:
         elif isinstance(feature, ResolvedProfile):
             if getattr(feature, "layered_profiles", ()):
                 for layer, points, closed in feature.layered_profiles:
-                    color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(layer, 3)
-                    primitives.append(PolylinePrimitive(points=tuple(points), layer=layer, closed=closed, color=color))
-            else:
+                    # A one-point guide is not a physical DXF polyline.
+                    if len(points) >= 2:
+                        color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(layer, 3)
+                        primitives.append(PolylinePrimitive(points=tuple(points), layer=layer, closed=closed, color=color))
+            elif len(feature.points) >= 2:
                 color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(feature.layer, 3)
                 primitives.append(PolylinePrimitive(
-                    points=tuple(feature.points), layer=feature.layer, closed=True, color=color
+                    points=tuple(feature.points), layer=feature.layer,
+                    closed=(len(feature.points) > 2), color=color
                 ))
         else:
             raise TypeError(f"Unsupported resolved feature: {type(feature)!r}")
@@ -426,13 +429,21 @@ def build_endcap_check(
     finished_width: float, finished_depth: float, part_label: str,
 ) -> tuple[TextPrimitive, ...]:
     primary, secondary, bottom = _relief_strings(relief)
+    # This annotation is about unfolded material and its actual bends.
+    # finished_width/finished_depth are assembly dimensions and are not
+    # authoritative input for per-flange CUTTING and BEND sizes.
+    core_width = geometry.total_width - abs(geometry.left_fold) - abs(geometry.right_fold)
+    core_depth = (
+        geometry.total_depth - abs(geometry.top_first_fold)
+        - abs(geometry.fw) - abs(geometry.bottom_fold)
+    )
     text = (
         f"W = {_fmt(geometry.total_width)} mm\n"
         f"H = {_fmt(geometry.total_depth)} mm\n"
         f"Part: {part_label}\n"
         f"{primary}\n{secondary}\n{bottom}\n"
-        f"折彎尺寸: {_fmt(finished_width - 4*geometry.thickness)}*{_fmt(finished_depth - 3*geometry.thickness)}\n"
-        f"折彎(寬): {_fmt(abs(geometry.left_fold))} {_fmt(finished_width - 4*geometry.thickness)} {_fmt(abs(geometry.right_fold))}\n"
-        f"折彎(深): {_fmt(geometry.top_first_fold)} {_fmt(geometry.fw)} {_fmt(finished_depth - 3*geometry.thickness)} {_fmt(geometry.bottom_fold)}"
+        f"折彎尺寸: {_fmt(core_width)}*{_fmt(core_depth)}\n"
+        f"折彎(寬): {_fmt(abs(geometry.left_fold))} {_fmt(core_width)} {_fmt(abs(geometry.right_fold))}\n"
+        f"折彎(深): {_fmt(geometry.top_first_fold)} {_fmt(geometry.fw)} {_fmt(core_depth)} {_fmt(geometry.bottom_fold)}"
     )
     return (_check_text(text, geometry.total_width, geometry.total_depth),)

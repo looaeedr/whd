@@ -232,6 +232,8 @@ class Phase6DesignerWorkspace:
         if self._selected_part == key:
             self._selected_part = None
         self._assembly_placements.pop(key, None)
+        # Child assemblies of removed parts cannot retain stale weld datums.
+        self._prune_assembly_placements(self.available_parts)
         self._dirty = True
         return True
 
