@@ -148,3 +148,82 @@ def test_ac15_native_tk_assigned_highlight_reuses_unchanged_csv_catalog(monkeypa
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_ac15_v5_preview_cache_reuses_two_models_without_reparsing_csv(monkeypatch):
+    """Read two actual numeric models once, not the entire CSV on every click."""
+    from ae_engine import receiving_nfb_numeric_catalog as catalog
+
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        refs = numeric_model_refs("士林")
+        assert len(refs) >= 2
+        panel = modal._receiving_inner_nfb_dxf_panel
+        panel._numeric_sources.clear()
+        panel._source_key = None
+
+        original = catalog.read_numeric_specs
+        reads = []
+
+        def counted_read(brand, *args, **kwargs):
+            reads.append(brand)
+            return original(brand, *args, **kwargs)
+
+        monkeypatch.setattr(catalog, "read_numeric_specs", counted_read)
+        before = deepcopy(app._phase6_input_snapshot)
+        for filename in (refs[0], refs[1], refs[0], refs[1], refs[0]):
+            panel.show("士林", filename)
+            root.update()
+            assert panel._numeric_spec is not None
+            assert panel.canvas.find_withtag("nfb-dxf")
+        assert reads == ["士林", "士林"]
+        assert len(panel._numeric_sources) == 2
+        assert app._phase6_input_snapshot == before
+        assert KEY not in before
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
+
+
+def test_ac15_v5_preview_cache_invalidates_changed_or_missing_csv_source(monkeypatch, tmp_path):
+    """Only the viewport caches; changed/missing files force fresh or fail closed."""
+    from gui_modules.application import receiving_nfb_source_preview as preview
+
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        panel = modal._receiving_inner_nfb_dxf_panel
+        model = numeric_model_refs("士林")[0]
+        fake_csv = tmp_path / "source-revision.csv"
+        fake_csv.write_text("revision-one", encoding="utf-8")
+        monkeypatch.setattr(preview, "brand_csv_path", lambda _brand: fake_csv)
+        source = preview.selected_numeric_spec
+        read_count = []
+
+        def counted_spec(brand, filename):
+            read_count.append((brand, filename))
+            return source(brand, filename)
+
+        monkeypatch.setattr(preview, "selected_numeric_spec", counted_spec)
+        snapshot = deepcopy(app._phase6_input_snapshot)
+
+        panel.show("士林", model)
+        panel.zoom(1.25)
+        panel.show("士林", model)
+        assert len(read_count) == 1
+        assert panel._numeric_zoom > 1
+        fake_csv.write_text("revision-two-is-longer", encoding="utf-8")
+        panel.show("士林", model)
+        assert len(read_count) == 2
+        assert panel._numeric_zoom == 1.0
+        fake_csv.unlink()
+        panel.show("士林", model)
+        assert panel._numeric_spec is None
+        assert panel._source_key is None
+        assert panel.viewport.preview is None
+        assert "禁止製造" in panel.reason.get()
+        assert app._phase6_input_snapshot == snapshot
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
