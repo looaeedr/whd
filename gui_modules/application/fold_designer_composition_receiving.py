@@ -3895,7 +3895,19 @@ def _restore_receiving_assembly_after_modal(owner, namespace):
             if build_manufacturing_cache_key(designer).fingerprint != getattr(
                 designer, "_phase6_last_resolved_manufacturing_signature", None
             ):
-                resolve_for_app(designer)
+                try:
+                    resolve_for_app(designer)
+                except ValueError as exc:
+                    # Switching a Quantity version brand can invalidate a
+                    # previously inherited NFB CSV model. The operator must
+                    # still be able to close the settings dialog and reselect
+                    # that model; manufacturing remains blocked with no new
+                    # receipt or stale source success.
+                    if not str(exc).startswith(
+                        "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION:"
+                    ):
+                        raise
+                    designer.settings_status_var.set(str(exc))
             return result
         scheduler.executor = execute_with_receiving_receipt
 
