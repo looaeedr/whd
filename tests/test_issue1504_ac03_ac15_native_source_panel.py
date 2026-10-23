@@ -295,3 +295,77 @@ def test_ac15_original_tk_two_model_highlight_has_bounded_latency_no_full_3d(mon
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_swt05_original_inner_tk_per_unit_preview_cancel_discards_draft(monkeypatch):
+    """Real original UI: selecting a V5 unit source is not a manufacturing edit."""
+    from tkinter import messagebox
+
+    notices = []
+    monkeypatch.setattr(
+        messagebox, "askyesno",
+        lambda title, body, **_kw: notices.append((title, body)) or True,
+    )
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        original = deepcopy(app._phase6_input_snapshot)
+        first = modal._receiving_inner_switch_state["rows"][0]
+        assert first["available"].size() >= 1
+        first["available"].selection_set(0)
+        _button(first["section"], "＋加入").invoke()
+        first["assigned"].selection_set(0)
+        first["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        panel = modal._receiving_inner_nfb_dxf_panel
+        assert panel.frame.winfo_ismapped()
+        assert panel._numeric_spec is not None
+        assert panel.canvas.find_withtag("nfb-dxf")
+        assert "禁止製造" in panel.reason.get() or "不可製造" in panel.reason.get()
+        assert app._phase6_input_snapshot == original
+        _button(modal, "取消").invoke()
+        root.update()
+        assert not modal.winfo_exists()
+        assert app._phase6_input_snapshot == original
+        assert KEY not in app._phase6_input_snapshot
+        assert len(notices) == 1
+        assert "捨棄" in notices[0][0]
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
+
+
+def test_swt05_original_inner_tk_confirm_saves_candidate_not_manufacturing(monkeypatch):
+    """Confirming standalone version stores its source choice, not CUTTING."""
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        before = deepcopy(app._phase6_input_snapshot)
+        first = modal._receiving_inner_switch_state["rows"][0]
+        first["available"].selection_set(0)
+        _button(first["section"], "＋加入").invoke()
+        first["assigned"].selection_set(0)
+        first["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        panel = modal._receiving_inner_nfb_dxf_panel
+        source = modal._receiving_inner_switch_state["nfb_draft"]["draft"]["layers"][0]["slots"][0]["filename"]
+        assert source in numeric_model_refs("士林")
+        assert panel._numeric_spec is not None
+        assert KEY not in before
+        _button(modal, "確定").invoke()
+        root.update()
+        assert not modal.winfo_exists()
+        assert KEY in app._phase6_input_snapshot
+        from ae_engine.receiving_inner_door_candidates import normalize_inner_candidates, inner_versions, inner_config, ROLE
+        library = normalize_inner_candidates(app._phase6_input_snapshot[KEY])
+        versions = inner_versions(library)
+        assert len(versions) == 1
+        version = versions[0]
+        candidate = inner_config(library, version["id"])
+        assert source in str(candidate["models"][0])
+        assert before["model"] == app._phase6_input_snapshot["model"]
+        # A candidate is not a live manufacturing transaction nor 3D rebuild.
+        assert not any("CUTTING" in str(k) for k in app._phase6_input_snapshot)
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
