@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from .receiving_nfb_model_identity import parse_numeric_model_ref
-from .receiving_nfb_numeric_catalog import model_spec
+from .receiving_nfb_numeric_catalog import read_numeric_specs
 from .receiving_nfb_persistence import normalize_nfb_saved_fields
 
 
@@ -52,7 +52,7 @@ def current_v5_nfb_diagnostics(
 
     layer_count = config.get("layer_count")
     rows: list[dict[str, object]] = []
-    csv_cache: dict[tuple[str, str], tuple[str, ...]] = {}
+    csv_by_brand: dict[str, dict[str, object] | None] = {}
     for index, hole in enumerate(holes):
         identity = parsed[index]
         layer = hole.get("layer_index", 0 if layer_count == 1 else None)
@@ -69,20 +69,23 @@ def current_v5_nfb_diagnostics(
             brand, model = identity
             if hole.get("source_brand", brand) != brand:
                 errors.append("NFB_CSV_BRAND_SOURCE_MISMATCH")
-            key = (brand, model)
-            if key not in csv_cache:
+            if brand not in csv_by_brand:
                 try:
-                    spec = model_spec(brand, model)
-                    if spec is None:
-                        csv_cache[key] = ("NFB_CSV_MODEL_MISSING",)
-                    elif not spec.dimensionally_complete:
-                        csv_cache[key] = ("NFB_CSV_REQUIRED_DIMENSIONS_MISSING:" +
-                                          ",".join(spec.missing_fields),)
-                    else:
-                        csv_cache[key] = ()
+                    csv_by_brand[brand] = {
+                        item.model: item for item in read_numeric_specs(brand)
+                    }
                 except (OSError, ValueError, UnicodeError):
-                    csv_cache[key] = ("NFB_CSV_SOURCE_UNAVAILABLE_OR_INVALID",)
-            errors.extend(csv_cache[key])
+                    csv_by_brand[brand] = None
+            candidates = csv_by_brand[brand]
+            if candidates is None:
+                errors.append("NFB_CSV_SOURCE_UNAVAILABLE_OR_INVALID")
+            else:
+                spec = candidates.get(model)
+                if spec is None:
+                    errors.append("NFB_CSV_MODEL_MISSING")
+                elif not spec.dimensionally_complete:
+                    errors.append("NFB_CSV_REQUIRED_DIMENSIONS_MISSING:" +
+                                  ",".join(spec.missing_fields))
         if hole.get("manual_x_state") != "CONFIRMED":
             errors.append("NFB_WORLD_X_RECONFIRM_REQUIRED")
         # A saved CONFIRMED coordinate still needs live CSV/scene/bounds
