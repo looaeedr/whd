@@ -206,6 +206,7 @@ PYTEST_PATHS = (
     # #1503 depth-only PAD predicate: exact 1 layer / 2 units / unequal CSV depths.
     "tests/test_receiving_switch_model_catalog_20261011.py",
     "tests/test_issue1492_nfb_real_dxf_preview.py",
+    "tests/test_issue1504_ac03_ac15_native_source_panel.py",
     "tests/test_issue1493_nfb_draft_transactions.py",
     "tests/test_issue1497_nfb_cutting_preflight.py",
     "tests/test_issue1497_configured_nfb_manufacturing_release.py",
@@ -390,8 +391,7 @@ PYTEST_PATHS = (
     # exact HEAD; a manual 27-pass smoke run is not a manufacturing receipt.
     "tests/test_deep_audit_14_bugs_regression.py",
     "tests/test_deep_audit_14_bugs_boundary_guards.py",
-    # R4-R6 source review: no synthetic MARKING/placement, correct saved-DXF
-    # pair matching, bounded DXF geometry and cache identity.
+    # Manual R4–R6 source repairs: marking, DXF, assembly placement, cache.
     "tests/test_manual_audit_source_guards_20261023.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.

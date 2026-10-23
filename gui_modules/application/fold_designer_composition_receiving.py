@@ -2599,8 +2599,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         editor_body.pack(fill="both", expand=True, pady=(4, 6))
         slot_columns = ttk.Frame(editor_body)
         slot_columns.pack(side="left", fill="both", expand=True)
+        # AC-03/15: selection already calls show() on this original
+        # source-only panel. It must be mapped for the operator to see it.
+        # This does not publish CUTTING or create another editor/owner.
         nfb_preview_panel["panel"] = NfbDxfSourcePreviewPanel(editor_body)
-        nfb_preview_panel["panel"].frame.pack_forget()
 
         def sync_visible_layers():
             change_layers()
