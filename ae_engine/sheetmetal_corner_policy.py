@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal
+import math
 
 from .sheetmetal_geometry_core import (
     DEFAULT_TOLERANCE,
@@ -68,12 +69,14 @@ def corner_selection_residual(
     fw: float,
 ) -> CornerTypeResidual:
     """把單一截角製造語意解析成不含折邊基底的截角尺寸。"""
+    if isinstance(thickness, bool) or isinstance(fw, bool):
+        raise GeometryError("板厚與 FW 不可為布林值")
     selection = normalize_corner_selection(selection)
     t = float(thickness)
     frame_width = float(fw)
-    if t <= 0:
+    if not math.isfinite(t) or t <= 0:
         raise GeometryError("板厚必須大於 0")
-    if frame_width < 0:
+    if not math.isfinite(frame_width) or frame_width < 0:
         raise GeometryError("FW 不可小於 0")
 
     if selection.type_id is CornerTypeId.CROSS:
@@ -141,19 +144,39 @@ def compose_corner_residual(
     allow_axis_swap: bool = False,
 ) -> ResolvedCornerRelief:
     """Compose an already-defined intrinsic corner rule with fold geometry."""
+    if isinstance(fold_u, bool) or isinstance(fold_v, bool):
+        raise GeometryError("折邊尺寸不可為布林值")
     fu = abs(float(fold_u))
     fv = abs(float(fold_v))
+    if not (math.isfinite(fu) and math.isfinite(fv)):
+        raise GeometryError("折邊尺寸必須為有限值")
     du, dv = residual.primary
+    if isinstance(du, bool) or isinstance(dv, bool) or not all(
+        math.isfinite(float(value)) for value in (du, dv)
+    ):
+        raise GeometryError("截角殘差必須為有限數值")
+    if (residual.secondary_u is None) != (residual.secondary_depth is None):
+        raise GeometryError("第二級截角參數不完整")
+    slot_fields = (residual.slot_width, residual.slot_straight_depth, residual.slot_radius)
+    if any(value is not None for value in slot_fields):
+        if not all(value is not None for value in slot_fields):
+            raise GeometryError("十字截角槽參數不完整")
+        if any(isinstance(v, bool) or not math.isfinite(float(v)) for v in slot_fields):
+            raise GeometryError("十字截角槽參數必須為有限值")
     if allow_axis_swap and int(rotation_quadrants) % 2:
         du, dv = dv, du
-    primary_u = fu + du
-    primary_v = fv + dv
-    actual_secondary_u = None if residual.secondary_u is None else fu + residual.secondary_u
+    primary_u = fu + float(du)
+    primary_v = fv + float(dv)
+    actual_secondary_u = None if residual.secondary_u is None else fu + float(residual.secondary_u)
     if primary_u < 0 or primary_v < 0:
         raise GeometryError("折邊與截角類型組合後，第一級截角尺寸不可為負值")
-    if actual_secondary_u is not None and actual_secondary_u < 0:
+    if actual_secondary_u is not None and (not math.isfinite(actual_secondary_u) or actual_secondary_u < 0):
         raise GeometryError("第二級截角尺寸不可為負值")
-    if residual.secondary_depth is not None and residual.secondary_depth < 0:
+    if residual.secondary_depth is not None and (
+        isinstance(residual.secondary_depth, bool)
+        or not math.isfinite(float(residual.secondary_depth))
+        or float(residual.secondary_depth) < 0
+    ):
         raise GeometryError("第二級截角深度不可為負值")
     if residual.slot_width is not None:
         if residual.slot_width > primary_u + DEFAULT_TOLERANCE:
@@ -197,11 +220,17 @@ class FourCornerTypePolicy:
 
     def fw_for(self, corner_name: str) -> float:
         name = str(corner_name or "")
+        raw = self.fw
         if name.startswith("bottom") and self.bottom_fw is not None:
-            return float(self.bottom_fw)
-        if name.startswith("top") and self.top_fw is not None:
-            return float(self.top_fw)
-        return float(self.fw)
+            raw = self.bottom_fw
+        elif name.startswith("top") and self.top_fw is not None:
+            raw = self.top_fw
+        if isinstance(raw, bool):
+            raise GeometryError("FW 不可為布林值")
+        number = float(raw)
+        if not math.isfinite(number) or number < 0:
+            raise GeometryError("FW 不可小於 0")
+        return number
 
 
 @dataclass(frozen=True)
@@ -304,8 +333,10 @@ def box_body_vertical_offsets(
     tail_corner_policy: FourCornerTypePolicy | None = None,
 ) -> tuple[float, float]:
     """只由截角類型推導並回傳 ``(下方, 上方)`` 外高偏移。"""
+    if isinstance(thickness, bool):
+        raise GeometryError("板厚必須大於 0")
     t = float(thickness)
-    if t <= 0:
+    if not math.isfinite(t) or t <= 0:
         raise GeometryError("板厚必須大於 0")
     head = head_corner_policy or VAULT_ENDCAP_CORNER_POLICY
     tail = tail_corner_policy or VAULT_ENDCAP_CORNER_POLICY
@@ -323,13 +354,17 @@ def box_body_height_from_corner_policies(
     tail_corner_policy: FourCornerTypePolicy | None = None,
 ) -> float:
     """由封頭／封尾截角裝配語意推導箱身實際高度。"""
+    if isinstance(height, bool):
+        raise GeometryError("箱身高度計算後必須大於 0")
     h = float(height)
+    if not math.isfinite(h):
+        raise GeometryError("箱身高度計算後必須大於 0")
     bottom, top = box_body_vertical_offsets(
         thickness,
         head_corner_policy=head_corner_policy,
         tail_corner_policy=tail_corner_policy,
     )
     result = h - bottom - top
-    if result <= 0:
+    if not math.isfinite(result) or result <= 0:
         raise GeometryError("箱身高度計算後必須大於 0")
     return result
