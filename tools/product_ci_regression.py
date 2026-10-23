@@ -176,6 +176,7 @@ PYTEST_PATHS = (
     "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py",
     "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py",
     "tests/test_issue1504_unified_inner_nfb_layer_count.py",
+    "tests/test_issue1504_ac18_original_tk_datum.py",
     "tests/test_issue1504_ac47_operator_discard_confirm.py",
     "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py",
     "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py",

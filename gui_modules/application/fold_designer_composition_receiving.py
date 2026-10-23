@@ -2195,6 +2195,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         dict.__setitem__(draft_state,"draft",edit_session.current)
         source_state = {"files": [(), ()], "signature": [None, None]}
         draft_summary = tk.StringVar(master=modal, value="")
+        # AC-18: the computed datum/preview-only warning was previously
+        # hidden in a StringVar with no Tk display. Show it beside the sole
+        # layer-count control, not as another source of configuration.
+        ttk.Label(frame, textvariable=draft_summary, wraplength=760,
+                  justify="left").pack(fill="x", anchor="w", pady=(0, 3))
         initial_nfb_draft = deepcopy(draft_state["draft"])
         nfb_preview_panel = {"panel": None}
         nfb_source_viewed = {"value": False}
@@ -2262,7 +2267,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
                 cells = derive_door_layout_cells(columns) if columns else ()
                 upper = [c for c in cells if c.row_index == 0]
-                height = float(upper[0].start_height) if len(upper) == 1 else -1.0
+                # Match the work-area fallback already used by the height
+                # input validator. -1 was incorrectly masking every preview
+                # when the project has no explicit door-layout columns.
+                height = (float(upper[0].start_height) if len(upper) == 1
+                          else float(snapshot.get("h", 0.0)))
+                if height <= 0:
+                    raise ValueError("內門作業區高度未定")
                 projection = nfb_ui1a_preview(
                     draft_state["draft"], bay_width_mm=width,
                     upper_cell_height_mm=height,
@@ -2271,10 +2282,20 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 segments = []
                 for entry in projection["layers"]:
                     pitch = entry["adjacent_x_mm"]
-                    x_label = ("相鄰 " + "／".join(str(int(p)) for p in pitch) + " mm"
+                    # Adjacent pitch is never an approved per-unit or
+                    # per-row absolute X datum.
+                    x_label = ("X 基準未定（相鄰孔距 " +
+                               "／".join(f"{p:g}" for p in pitch) + " mm，僅參考）"
                                if pitch is not None else "X 基準未定")
                     y = entry["nominal_y_from_top_mm"]
-                    y_label = (f"名義 Y {y:g} mm" if y is not None else "Y 未定")
+                    # Entered tier height in a non-1100 work area is useful
+                    # to preview, but never licenses a nominal approved Y.
+                    y_label = (
+                        f"Y 未定（草稿高度 {y:g} mm，未核准定位）"
+                        if abs(height - 1100.0) >= 1e-6 and y is not None
+                        else (f"名義 Y {y:g} mm（僅預覽）" if y is not None
+                              else "Y 未定")
+                    )
                     stale = sum(x["status"] == NEEDS_RESELECTION
                                 for x in entry["slots"])
                     segments.append(
