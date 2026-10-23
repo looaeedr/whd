@@ -393,8 +393,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         if set_brand is not None:
             previous = get_brand() if get_brand else "士林"
             proposed = brand_var.get()
-            if proposed == previous:
-                return
+            # Do not short-circuit same displayed Set brand: the one global
+            # Set/Bay selector may still need to update other Sets that carry
+            # a different inherited brand. set_brand() owns the no-op check.
             try:
                 affected = (get_brand_change_impact(proposed)
                             if get_brand_change_impact is not None else 0)
