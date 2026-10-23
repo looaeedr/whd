@@ -758,7 +758,8 @@
       "regression_candidates": [
         "tests/test_issue1491_nfb_ui1a.py",
         "tests/test_issue1499_nfb_persistence.py",
-        "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py"
+        "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+        "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -791,9 +792,15 @@
           "test_name": "test_ac21_swt14_quantity_brand_ui_actual_owner_gap_remains_unsigned",
           "witness_scope": "REPRODUCED_UNRESOLVED_GUI_OWNER_GAP",
           "accepted": false
+        },
+        {
+          "path": "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py",
+          "test_name": "test_all_three_real_gui_nfb_source_call_sites_use_same_active_mode_owner",
+          "witness_scope": "SOURCE_BINDING_FIX_NOT_FULL_GUI_VERSION_DEFAULT_SIGNOFF",
+          "accepted": false
         }
       ],
-      "current_scope_remaining_evidence": "2026-10-23 current quantity Single brand selector reads/writes shared receiving_quantity_box.switch_brand, not selected QuantityModel version NFB default; per-version independent default brand and three-level inherited GUI submission/change of one version are NOT yet proven. Tests prove only current V5 model/provenance deep-copy, save/reload/atomic reject, draft brand inheritance, plus explicit source gap. Keep UNSIGNED until original per-version brand authority and UI operator workflow are implemented and tested.",
+      "current_scope_remaining_evidence": "2026-10-23: single unified NFB brand inheritance function is already authoritative. Quantity / SetBay use same effective_nfb_slot_brand, not distinct rules or a new QuantityModel brand field. Fixed three Receiving inner editor source call sites to derive parent brand from active mode: quantity existing receiving_quantity_box.switch_brand; SetBay existing Set.switch_brand. Saved V5 physical model brand and override provenance unchanged. Still requires actual per-version GUI semantics with Confirm/Cancel/Switch/Clone, two original Windows projects; NO full AC signoff.",
       "source_gap_reproduced_20261023": true
     },
     {
@@ -2580,7 +2587,8 @@
       "regression_candidates": [
         "tests/test_issue1491_nfb_ui1a.py",
         "tests/test_issue1499_nfb_persistence.py",
-        "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py"
+        "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+        "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -2613,9 +2621,15 @@
           "test_name": "test_ac21_swt14_quantity_brand_ui_actual_owner_gap_remains_unsigned",
           "witness_scope": "REPRODUCED_UNRESOLVED_GUI_OWNER_GAP",
           "accepted": false
+        },
+        {
+          "path": "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py",
+          "test_name": "test_all_three_real_gui_nfb_source_call_sites_use_same_active_mode_owner",
+          "witness_scope": "SOURCE_BINDING_FIX_NOT_FULL_GUI_VERSION_DEFAULT_SIGNOFF",
+          "accepted": false
         }
       ],
-      "current_scope_remaining_evidence": "2026-10-23 current quantity Single brand selector reads/writes shared receiving_quantity_box.switch_brand, not selected QuantityModel version NFB default; per-version independent default brand and three-level inherited GUI submission/change of one version are NOT yet proven. Tests prove only current V5 model/provenance deep-copy, save/reload/atomic reject, draft brand inheritance, plus explicit source gap. Keep UNSIGNED until original per-version brand authority and UI operator workflow are implemented and tested.",
+      "current_scope_remaining_evidence": "2026-10-23: single unified NFB brand inheritance function is already authoritative. Quantity / SetBay use same effective_nfb_slot_brand, not distinct rules or a new QuantityModel brand field. Fixed three Receiving inner editor source call sites to derive parent brand from active mode: quantity existing receiving_quantity_box.switch_brand; SetBay existing Set.switch_brand. Saved V5 physical model brand and override provenance unchanged. Still requires actual per-version GUI semantics with Confirm/Cancel/Switch/Clone, two original Windows projects; NO full AC signoff.",
       "source_gap_reproduced_20261023": true
     },
     {
