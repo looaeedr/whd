@@ -14,11 +14,13 @@ jobs:
       matrix:
         include:
           - case: quantity-receiving
-            selector: tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save[受電箱]
+            selector: tests/test_issue1465_quantity_ui.py
+            keyword: test_real_gui_quantity_controls_holes_and_manual_save
           - case: custom-editor
             selector: tests/test_issue1464_custom_manufacturing.py::test_real_gui_custom_manufacturing_editor_reload
           - case: quantity-bom
-            selector: tests/test_issue1466_quantity_bom.py::test_real_quantity_bom_30_plus_20_custom_100_and_read_only[受電箱-FULL-1]
+            selector: tests/test_issue1466_quantity_bom.py
+            keyword: test_real_quantity_bom_30_plus_20_custom_100_and_read_only and FULL
           - case: receiving-pad
             selector: tests/test_receiving_pad_native_tk_operator_selector.py::test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet
           - case: receiving-real-tier
@@ -39,6 +41,19 @@ jobs:
       - name: Capture full failure and bounded hang traceback
         env:
           SELECTOR: ${{ matrix.selector }}
+          KEYWORD: ${{ matrix.keyword || '' }}
         run: |
           export PYTHONUNBUFFERED=1
-          timeout --signal=TERM --kill-after=5s 115s xvfb-run -a python -m pytest -vv -s --tb=short -o faulthandler_timeout=25 "$SELECTOR"
+          timeout --signal=TERM --kill-after=5s 160s xvfb-run -a python - "$SELECTOR" "$KEYWORD" <<'PY'
+          import sys
+          import tkinter.messagebox as messagebox
+          def unexpected_warning(*args, **kwargs):
+              print("WHD_R2_UNEXPECTED_MODAL_WARNING=" + repr((args, kwargs)), flush=True)
+              raise AssertionError("Blocking warning from live mode transition: " + repr(args))
+          messagebox.showwarning = unexpected_warning
+          import pytest
+          selected = ["-vv", "-s", "--tb=short", "-o", "faulthandler_timeout=25", sys.argv[1]]
+          if sys.argv[2]:
+              selected += ["-k", sys.argv[2]]
+          raise SystemExit(pytest.main(selected))
+          PY
