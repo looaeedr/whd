@@ -120,7 +120,7 @@ def test_r6_v5_numeric_csv_forbids_identity_delimiter(tmp_path):
     from ae_engine.receiving_nfb_numeric_catalog import HEADER, read_numeric_specs
     source = tmp_path / "NFB數值規格.csv"
     source.write_text(
-        ",".join(HEADER) + "\n" + "BAD:MODEL,60,100,40,50X90,25X80,5,0,0\\n",
+        ",".join(HEADER) + "\n" + "BAD:MODEL,60,100,40,50X90,25X80,5,0,0\n",
         encoding="utf-8-sig",
     )
     with pytest.raises(ValueError, match="型號不合法"):
