@@ -67,7 +67,7 @@ def current_v5_nfb_diagnostics(
             errors.append("NFB_CURRENT_CSV_LEGACY_MIXED_SOURCE")
         else:
             brand, model = identity
-            if hole.get("source_brand", brand) != brand:
+            if hole.get("source_brand") not in (None, brand):
                 errors.append("NFB_CSV_BRAND_SOURCE_MISMATCH")
             if brand not in csv_by_brand:
                 try:
