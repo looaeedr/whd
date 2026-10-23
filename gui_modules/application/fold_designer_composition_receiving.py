@@ -3139,9 +3139,23 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 )
                 unrelated = ()
                 try:
+                    # A stale NFB must not prevent resolving completely
+                    # independent HEAD/TAIL/outer DOOR sources. Clone only
+                    # this Bay's submission flag for the read-only scene,
+                    # never the saved NFBConfig or manufacturing authority.
+                    preview_layout=dict(adapter.layout)
+                    preview_sets=list(adapter.layout["sets"])
+                    preview_set=dict(preview_sets[set_index])
+                    preview_bays=list(preview_set["bays"])
+                    preview_bay=dict(preview_bays[bay_index])
+                    preview_bay["nfb_config_submitted"]=False
+                    preview_bays[bay_index]=preview_bay
+                    preview_set["bays"]=preview_bays
+                    preview_sets[set_index]=preview_set
+                    preview_layout["sets"]=preview_sets
                     actual = self.receiving_bay_preview_request(
                         namespace, set_index, bay_index,
-                        preview_layout=adapter.layout,
+                        preview_layout=preview_layout,
                     )
                     unrelated = actual_unrelated_nfb_scene_parts(
                         actual.render_data.assembly_parts,
