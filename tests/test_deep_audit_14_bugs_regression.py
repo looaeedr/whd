@@ -278,7 +278,12 @@ def test_bug4_receiving_multi_bay_projection_does_not_leak_bay0_door_state():
         snapshot, set_index=0, bay_index=1, validate_common=True
     )
     assert projected_bay1["w"] == 800.0
-    assert not projected_bay1.get("multi_door_enabled", False)
+    # A Bay with no persisted door_state receives this Bay's family default,
+    # not Bay 0's edited 600-mm door layout.
+    assert projected_bay1["multi_door_enabled"] is True
+    assert projected_bay1["door_layout_columns"][0][0] == 800.0
+    assert projected_bay1["door_layout_columns"] != snapshot["door_layout_columns"]
+    assert "door_state" not in projected_bay1["receiving_layout"]["sets"][0]["bays"][1]
 
 
 def test_bug5_translated_scene_preserves_text_primitive_semantic_id():

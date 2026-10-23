@@ -63,7 +63,12 @@ def test_bug4_legacy_root_door_state_migrates_only_into_primary_bay():
     bay1 = project_receiving_bay_legacy_aliases(
         migrated, set_index=0, bay_index=1, validate_common=True,
     )
-    assert not bay1.get("multi_door_enabled", False)
+    assert bay1["multi_door_enabled"] is True
+    assert bay1["door_layout_columns"][0][0] == float(bays[1]["width"])
+    # 1800-mm Bay defaults are scaled from the family's 800x1600 template,
+    # not the primary Bay's one-row 1800-mm operator override.
+    assert bay1["door_layout_columns"] == [[600.0, [1237.5, 562.5]]]
+    assert "door_state" not in bay1["receiving_layout"]["sets"][0]["bays"][1]
 
 
 def test_bug4_primary_migration_when_second_bay_already_configured():
