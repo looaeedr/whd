@@ -270,6 +270,68 @@ def test_ac09_missing_real_inner_or_base_source_remains_draft_after_valid_csv():
         )
 
 
+def test_ac09_actual_two_bay_finalscenes_identify_only_real_unrelated_sheets():
+    # Use the same real physical two-Bay resolved PartRenderData consumed by
+    # existing #1502 original selected-DXF manufacturing integration.
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    from ae_engine.receiving_nfb_v5_diagnostics import actual_unrelated_nfb_scene_parts
+    from tests.test_issue1502_current_csv_multi_bay_once import _multi, _provider
+    source=_multi()
+    provide,calls=_provider(source)
+    scopes=[]
+    for index in (0,1):
+        scene=provide(0,index)
+        keys={part.part_key for part in scene.parts}
+        assert "head" in keys and "box_body" in keys and "base_plate" in keys
+        dependent=tuple(key for key in keys
+                        if key=="base_plate" or key.startswith("inner_door:"))
+        independent=actual_unrelated_nfb_scene_parts(
+            scene.parts,dependent_part_ids=dependent,
+        )
+        assert "head" in independent
+        assert "box_body" not in independent  # folded SIDE EAR may depend on NFB
+        assert "base_plate" not in independent
+        assert all(part in keys for part in independent)
+        projected=project_receiving_bay_legacy_aliases(
+            source,set_index=0,bay_index=index,
+        )
+        selected=projected["receiving_layout"]["sets"][0]["bays"][index]
+        scope=current_v5_nfb_diagnostics(
+            selected,set_id=source["receiving_layout"]["sets"][0]["stable_id"],
+            bay_id=selected["stable_id"],version_id=None,
+            dependent_part_ids=dependent,unaffected_part_ids=independent,
+        )
+        assert scope["set_id"]==source["receiving_layout"]["sets"][0]["stable_id"]
+        assert scope["bay_id"]==selected["stable_id"]
+        assert any(r["part_id"]=="head" and r["status"]=="NFB_UNAFFECTED"
+                   for r in scope["part_rows"])
+        assert all(r["status"]!="NFB_UNAFFECTED"
+                   for r in scope["part_rows"] if r["nfb_affected"])
+        assert not scope["manufacturing_ready"]
+        scopes.append(scope)
+    assert calls==[(0,0),(0,1)]
+    assert scopes[0]["bay_id"]!=scopes[1]["bay_id"]
+
+
+def test_ac24_real_scene_independence_requires_unique_current_rendered_part():
+    from ae_engine.receiving_nfb_v5_diagnostics import actual_unrelated_nfb_scene_parts
+    from tests.test_issue1502_current_csv_multi_bay_once import _multi,_provider
+    scene=_provider(_multi())[0](0,0)
+    unrelated=actual_unrelated_nfb_scene_parts(
+        scene.parts,dependent_part_ids=("base_plate",),
+    )
+    assert "head" in unrelated
+    from types import SimpleNamespace
+    forged=SimpleNamespace(part_key="head",render_data=SimpleNamespace(scene=None))
+    assert actual_unrelated_nfb_scene_parts(
+        (forged,),dependent_part_ids=(),
+    )==()
+    with pytest.raises(ValueError,match="duplicate physical owner"):
+        actual_unrelated_nfb_scene_parts(
+            scene.parts+(scene.parts[0],),dependent_part_ids=(),
+        )
+
+
 def test_ac24_forbid_forged_green_status_and_gui_source_is_connected():
     current=_inspect(_bay())
     for bad in (
