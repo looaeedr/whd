@@ -1,0 +1,44 @@
+name: WHD R2 Targeted GUI Diagnosis
+on:
+  pull_request:
+    branches: [localX]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case: quantity-receiving
+            selector: tests/test_issue1465_quantity_ui.py::test_real_gui_quantity_controls_holes_and_manual_save[受電箱]
+          - case: custom-editor
+            selector: tests/test_issue1464_custom_manufacturing.py::test_real_gui_custom_manufacturing_editor_reload
+          - case: quantity-bom
+            selector: tests/test_issue1466_quantity_bom.py::test_real_quantity_bom_30_plus_20_custom_100_and_read_only[受電箱-FULL-1]
+          - case: receiving-pad
+            selector: tests/test_receiving_pad_native_tk_operator_selector.py::test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet
+          - case: receiving-real-tier
+            selector: tests/test_issue1503_single_gui_real_tier_2d3d.py::test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
+    name: R2 diagnosis / ${{ matrix.case }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install GUI dependencies
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Capture full failure and bounded hang traceback
+        env:
+          SELECTOR: ${{ matrix.selector }}
+        run: |
+          export PYTHONUNBUFFERED=1
+          timeout --signal=TERM --kill-after=5s 115s xvfb-run -a python -m pytest -vv -s --tb=short -o faulthandler_timeout=25 "$SELECTOR"
