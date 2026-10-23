@@ -16,6 +16,7 @@ import pytest
 
 import ae_engine.receiving_nfb_numeric_catalog as catalog
 import ae_engine.receiving_nfb_v5_configured_inner_door as physical_door
+import ae_engine.receiving_nfb_v5_actual_base_screws as physical_base_screws
 from ae_engine.receiving_nfb_model_identity import numeric_model_ref
 from ae_engine.sheetmetal_drawing import PolylinePrimitive
 from phase6_project_file import PROJECT_SCHEMA_V1, PROJECT_SCHEMA_V3, write_project, read_project
@@ -38,6 +39,13 @@ def _isolated_csv(monkeypatch, tmp_path):
         private if brand == "士林" else original
     ))
     monkeypatch.setattr(physical_door, "brand_csv_path", lambda brand: (
+        private if brand == "士林" else original
+    ))
+    # Door and already-installed base each independently pin the SAME bytes
+    # through their own imported brand_csv_path alias. Test-source isolation
+    # must patch BOTH: leaving only one redirected correctly fails closed
+    # at the real "inner door versus base source mismatch" hard gate.
+    monkeypatch.setattr(physical_base_screws, "brand_csv_path", lambda brand: (
         private if brand == "士林" else original
     ))
     assert catalog.model_spec("士林", "2P400") is not None
