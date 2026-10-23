@@ -19,7 +19,7 @@ from ae_engine.receiving_nfb_ui1a import (
     reconcile_set_brand, effective_nfb_slot_brand, nfb_ui1a_preview,
 )
 from ae_engine.receiving_nfb_persistence import normalize_nfb_config
-from phase6_quantity_model import QuantityModel, SCHEMA_V2
+from phase6_quantity_model import QuantityModel, SCHEMA_V2, SCHEMA_V3
 from phase6_project_file import PROJECT_SCHEMA_V1, PROJECT_SCHEMA_V3, write_project, read_project
 
 
@@ -156,23 +156,97 @@ def test_ac21_swt14_invalid_cross_brand_current_v5_submission_is_atomic():
     assert normalize_nfb_config(_config(a, 0))["holes"][0]["source_brand"] == "士林"
 
 
-def test_ac21_swt14_quantity_brand_ui_actual_owner_gap_remains_unsigned():
-    # Audit rather than an invented full GUI acceptance: currently the
-    # existing 'single' brand selection is common-box scope, and the
-    # per-version config is only read in current editor's Confirm All.
-    gui = (Path(__file__).resolve().parents[1] /
-           "gui_modules/application/fold_designer_composition_receiving.py").read_text(
-               encoding="utf-8"
-           )
-    assert 'source.get("receiving_quantity_box")' in gui
-    assert 'def single_brand():' in gui
-    assert 'update_common_box(source, {"switch_brand": value})' in gui
-    assert 'quantity.set_version_nfb_config(' in gui
+def test_ac21_swt14_quantity_selected_version_parent_brand_is_single_owner(tmp_path):
+    from ae_engine.receiving_quantity_box import project_common_box
+    a,b=_refs()
+    q=QuantityModel()
+    first=q.selected_version_id
+    q.set_version_nfb_config(first, submitted=True, config=_config(a, 0))
+    second=q.add_version()
+    q.set_version_nfb_config(second, submitted=True,
+                             config=_config(b, 180, brand_mode=OVERRIDE))
+    old_first=deepcopy(q.nfb_config_for_version(first))
+    old_second=deepcopy(q.nfb_config_for_version(second))
+    assert q.set_version_nfb_parent_brand(
+        second, "東元", legacy_default="士林",
+    )
+    assert q.snapshot()["schema"] == SCHEMA_V3
+    assert q.nfb_parent_brand_for_version(first) == "士林"
+    assert q.nfb_parent_brand_for_version(second) == "東元"
+    assert q.nfb_config_for_version(first) == old_first
+    assert q.nfb_config_for_version(second) == old_second
+    base={"model":"受電箱","active_mode":"quantity",
+          "receiving_quantity_box":{"w":800,"h":1600,"d":350,
+                                    "switch_brand":"士林"},
+          "quantity":q.snapshot()}
+    assert project_common_box(base)["receiving_layout"]["sets"][0]["switch_brand"]=="東元"
+    q.select(first)
+    base["quantity"]=q.snapshot()
+    assert project_common_box(base)["receiving_layout"]["sets"][0]["switch_brand"]=="士林"
+    q.set_version_nfb_parent_brand(first,"東元",legacy_default="士林")
+    assert q.nfb_parent_brand_for_version(second) == "東元"
+    assert q.nfb_config_for_version(second) == old_second
+    q.set_version_nfb_parent_brand(first,"士林",legacy_default="士林")
+    q.select(second)
+    third=q.add_version()
+    assert q.nfb_parent_brand_for_version(third)=="東元"
+    assert q.nfb_config_for_version(third)["nfb_config"]["holes"][0][
+        "manual_x_state"]=="RECONFIRM_REQUIRED"
+    q.set_version_nfb_parent_brand(third,"士林",legacy_default="士林")
+    assert q.nfb_parent_brand_for_version(second)=="東元"
+    raw=q.snapshot()
+    path=write_project(tmp_path/"quantity-per-version-parent.p6fold",{
+        "schema":PROJECT_SCHEMA_V1,"snapshot":{**base,"quantity":raw},
+    })
+    loaded=read_project(path)["snapshot"]
+    reloaded=QuantityModel.from_payload(loaded["quantity"])
+    assert reloaded.nfb_parent_brand_for_version(first)=="士林"
+    assert reloaded.nfb_parent_brand_for_version(second)=="東元"
+    assert reloaded.nfb_parent_brand_for_version(third)=="士林"
+    assert reloaded.nfb_config_for_version(second)==old_second
+    assert loaded["receiving_quantity_box"]["switch_brand"]=="士林"
+    assert project_common_box(loaded)["receiving_layout"]["sets"][0]["switch_brand"]=="士林"
+
+
+def test_ac21_swt14_original_gui_brand_selector_uses_selected_version_only():
+    gui=(Path(__file__).resolve().parents[1] /
+         "gui_modules/application/fold_designer_composition_receiving.py"
+         ).read_text(encoding="utf-8")
+    block=gui.split("    def single_brand():",1)[1].split(
+        "    def set_global_brand(value):",1)[0]
+    assert "quantity.selected_version_id" in block
+    assert "quantity.nfb_parent_brand_for_version(" in block
+    assert "quantity.set_version_nfb_parent_brand(" in block
+    assert 'candidate["quantity"] = quantity.snapshot()' in block
+    assert 'update_common_box(source, {"switch_brand": value})' not in block
     assert 'get_brand=(single_brand if single else' in gui
     assert 'set_brand=set_single_brand if single else set_global_brand' in gui
-    # Existing multi-Set authority must remain separate: no fake
-    # second Set.switch_brand field may be added to NFBConfig.
-    assert 'if "brand" in value or "switch_brand" in value:' in (
-        Path(__file__).resolve().parents[1] /
-        "ae_engine/receiving_nfb_persistence.py"
-    ).read_text(encoding="utf-8")
+    # Neither quantity per-version parent nor Set/Bay parent may put another
+    # editable brand authority INSIDE canonical NFBConfig.
+    persistence=(Path(__file__).resolve().parents[1] /
+                 "ae_engine/receiving_nfb_persistence.py").read_text(
+                     encoding="utf-8")
+    assert 'if "brand" in value or "switch_brand" in value:' in persistence
+
+
+def test_ac21_swt14_invalid_parent_brand_and_old_v2_migrate_without_mutation():
+    a,_=_refs()
+    q=QuantityModel()
+    original=q.selected_version_id
+    q.set_version_nfb_config(original,submitted=True,config=_config(a,0))
+    before=deepcopy(q.snapshot())
+    with pytest.raises(ValueError,match="品牌"):
+        q.set_version_nfb_parent_brand(original,"FAKE",
+                                       legacy_default="士林")
+    assert q.snapshot()==before
+    assert q.snapshot()["schema"]==SCHEMA_V2
+    legacy=QuantityModel.from_payload(before)
+    assert legacy.nfb_parent_brand_for_version(original,
+                                               legacy_default="士林")=="士林"
+    legacy.set_version_nfb_parent_brand(original,"東元",
+                                         legacy_default="士林")
+    assert legacy.snapshot()["schema"]==SCHEMA_V3
+    assert before["schema"]==SCHEMA_V2
+    assert legacy.nfb_config_for_version(original)==q.nfb_config_for_version(original)
+
+
