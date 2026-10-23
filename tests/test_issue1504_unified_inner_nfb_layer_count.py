@@ -114,3 +114,18 @@ def test_existing_legacy_count_and_nfb_draft_no_longer_have_an_inequality_gate()
     assert 'stage_in_editor(config, openings)' in source
     assert 'persist_inner(saved)' in source
     assert '"nfb_draft": draft_state' in source
+
+
+def test_multi_settings_has_no_second_writable_tier_widget_outside_original_nfb_editor():
+    source = (Path(__file__).resolve().parents[1] /
+              "gui_modules/application/receiving_multi_settings_window.py"
+              ).read_text(encoding="utf-8")
+    # The version link remains; its old directly editable tier-count selector
+    # must no longer be called by the original multi-settings UI.
+    assert 'actions(settings_host, "inner_door_layers", role="inner-door")' in source
+    assert 'actions(settings_host, "inner_door_layers")' not in source
+    assert '"連動選取的連"' in source
+    # The original NFB editor is now the unique active count editor; its
+    # 1/2 layer radio is the same integer as draft and candidate layer count.
+    assert 'layers = tk.IntVar(master=modal, value=initial["layers"])' in _inner_editor_source()
+    assert 'nfb_physical_layers = layers' in _inner_editor_source()
