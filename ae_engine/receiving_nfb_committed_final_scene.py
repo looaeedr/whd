@@ -191,6 +191,33 @@ def _submitted_csv_holes(snapshot):
     from .cabinet_types.policy import derive_inner_door_panels
 
     validated = normalize_nfb_config(config)
+    if snapshot.get("active_mode") == "quantity":
+        # A Quantity version is the only persistent NFB authority in this
+        # mode. The synthetic singleton Bay is a calculation projection, not
+        # a separately saved Set/Bay or a second editable NFB configuration.
+        # Resolve its *current* identity here rather than requiring a stale
+        # Set/Bay runtime selector that quantity projection correctly removes.
+        from phase6_quantity_model import QuantityModel
+        from .receiving_quantity_box import project_common_box
+        quantity_model = QuantityModel.from_payload(snapshot.get("quantity"))
+        selected_nfb = quantity_model.nfb_config_for_version(
+            quantity_model.selected_version_id
+        )
+        if (selected_nfb.get("nfb_config_submitted") is not True
+                or selected_nfb.get("nfb_config") != config):
+            raise ValueError("NFB_COMMITTED_CSV_QUANTITY_VERSION_IDENTITY_DRIFT")
+        snapshot = project_common_box(snapshot)
+        layout = snapshot["receiving_layout"]
+        single_set = layout["sets"]
+        if len(single_set) != 1 or len(single_set[0]["bays"]) != 1:
+            raise ValueError("NFB_COMMITTED_CSV_QUANTITY_SINGLETON_REQUIRED")
+        bay = single_set[0]["bays"][0]
+        selector = {
+            "set_index": 0, "bay_index": 0,
+            "set_id": single_set[0]["stable_id"],
+            "bay_id": bay["stable_id"],
+        }
+        snapshot["_receiving_runtime_selection"] = selector
     layout = snapshot.get("receiving_layout")
     selector = snapshot.get("_receiving_runtime_selection")
     if not isinstance(layout, Mapping) or not isinstance(selector, Mapping):
