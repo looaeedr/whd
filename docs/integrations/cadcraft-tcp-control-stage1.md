@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: cadcraft-tcp-stage1-experiment
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # WHD #1959 — CADCraft v0.8.0 TCP 控制實驗（第一段）
 
 狀態：隔離試作，**不是** WHD GUI 整合／人工操作／製造驗收。
