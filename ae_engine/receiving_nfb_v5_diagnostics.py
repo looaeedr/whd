@@ -62,7 +62,18 @@ def current_v5_nfb_diagnostics(
     layer_count = config.get("layer_count")
     rows: list[dict[str, object]] = []
     csv_by_brand: dict[str, dict[str, object] | None] = {}
-    slot_owners: set[tuple[int, int]] = set()
+    # Every occupant of a conflicting actual layer/slot must be UNVERIFIED.
+    # A streaming "seen" set only blocked the second entry and incorrectly
+    # displayed the first NFB as verified even though both share one slot.
+    from collections import Counter
+    slot_counts = Counter(
+        (hole.get("layer_index", 0 if layer_count == 1 else None),
+         hole.get("slot_index"))
+        for hole in holes
+        if (type(hole.get("layer_index", 0 if layer_count == 1 else None)) is int
+            and type(hole.get("slot_index")) is int
+            and hole.get("slot_index") >= 0)
+    )
     for index, hole in enumerate(holes):
         identity = parsed[index]
         layer = hole.get("layer_index", 0 if layer_count == 1 else None)
@@ -77,12 +88,9 @@ def current_v5_nfb_diagnostics(
             hole.get("layer_count", layer_count) != layer_count
         ):
             errors.append("NFB_UNIT_LAYER_COUNT_MISMATCH")
-        if (type(layer) is int and 0 <= layer < 2
-                and type(slot) is int and slot >= 0):
-            owner = (layer, slot)
-            if owner in slot_owners:
-                errors.append("NFB_DUPLICATE_LAYER_UNIT_OWNER")
-            slot_owners.add(owner)
+        if (type(layer) is int and type(slot) is int and slot >= 0
+                and slot_counts[(layer, slot)] > 1):
+            errors.append("NFB_DUPLICATE_LAYER_UNIT_OWNER")
         if identity is None:
             errors.append("NFB_CURRENT_CSV_LEGACY_MIXED_SOURCE")
         else:
