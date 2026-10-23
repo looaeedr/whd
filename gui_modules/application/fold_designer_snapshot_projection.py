@@ -190,15 +190,23 @@ def _snapshot_workspace_state(self, snapshot):
         for key, features in dict(self.surface_features or {}).items()
     }
     if snapshot.get("multi_door_enabled") and snapshot.get("door_layout_columns"):
+        door_layout_map = getattr(self, "door_layout_features", {}) or {}
         formal_door_features = door_layout_feature_map_to_part_features(
             tuple(
                 (float(row[0]), tuple(float(v) for v in row[1]))
                 for row in snapshot["door_layout_columns"]
             ),
-            getattr(self, "door_layout_features", {}) or {},
+            door_layout_map,
         )
         for key, features in formal_door_features.items():
-            snapshot["part_features"].setdefault(key, list(features))
+            if features or key not in snapshot["part_features"]:
+                snapshot["part_features"][key] = list(features)
+            else:
+                parts = str(key).removeprefix("door_c").split("_r")
+                if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                    cell_key = (int(parts[0]) - 1, int(parts[1]) - 1)
+                    if cell_key in door_layout_map or f"{cell_key[0]}:{cell_key[1]}" in door_layout_map:
+                        snapshot["part_features"][key] = list(features)
 
     snapshot["part_face_features"] = {
         "box_body": {

@@ -329,6 +329,7 @@ def _apply_fold_designer_live_settings(self, values, *, recalculate=True):
     if not clean:
         return
     current = self.settings_service.update(clean)
+    self._phase6_main_sync_fingerprint = stable_fingerprint({"settings": current.as_dict()})
     changed = {key for key in clean if before.get(key) != current.get(key)}
     scheduler = getattr(self, "_phase6_update_scheduler", None)
     if scheduler is not None:
@@ -841,10 +842,10 @@ def _apply_fold_designer_live_snapshot(self, payload):
         quantity_changed = quantity_only_change(previous_payload, payload)
         if custom_part_only_change(previous_payload, payload) or quantity_changed:
             self.workspace_controller.commit_workspace(payload["workspace"])
+            features = self.workspace_controller.part_features_snapshot()
+            for key, items in features.items():
+                self.surface_features[str(key)] = deepcopy(list(items or ()))
             if quantity_changed:
-                features = self.workspace_controller.part_features_snapshot()
-                for role in ("head", "tail"):
-                    self.surface_features[role] = deepcopy(features.get(role, []))
                 try:
                     width, depth = float(self.w_var.get()), float(self.d_var.get())
                     self.head_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["head"]]
@@ -925,6 +926,9 @@ def _apply_fold_designer_live_snapshot(self, payload):
                 force_invalidate=not bool(payload_fingerprint),
             )
             part_features = dict(workspace.get("part_features") or payload.get("part_features") or {})
+            for key in tuple(self.surface_features):
+                if str(key).startswith("door_c") and key not in part_features:
+                    self.surface_features.pop(key, None)
             for key, features in part_features.items():
                 self.surface_features[str(key)] = list(features or ())
             try:
