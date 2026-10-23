@@ -390,6 +390,9 @@ PYTEST_PATHS = (
     # exact HEAD; a manual 27-pass smoke run is not a manufacturing receipt.
     "tests/test_deep_audit_14_bugs_regression.py",
     "tests/test_deep_audit_14_bugs_boundary_guards.py",
+    # R4-R6 source review: no synthetic MARKING/placement, correct saved-DXF
+    # pair matching, bounded DXF geometry and cache identity.
+    "tests/test_manual_audit_source_guards_20261023.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
