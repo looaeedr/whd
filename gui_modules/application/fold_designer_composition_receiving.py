@@ -2870,9 +2870,25 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # discard only this tab's draft and return to the original editor.
             # The unchanged physical-part legacy route retains its old prompt.
             settings_embedded = embed_parent is not None
-            if (not saved and not settings_embedded
-                    and (draft_state["draft"] != initial_nfb_draft
-                         or nfb_source_viewed["value"])
+            # Merely viewing a DXF/source preview is not an edit. Conversely,
+            # unsaved layer heights/models must not be lost without a prompt
+            # on the standalone UI-1A window. Embedded settings Cancel is
+            # governed by the parent Hole Editor transaction (#1901).
+            pending_changes = (
+                draft_state["draft"] != initial_nfb_draft
+                or layers.get() != initial["layers"]
+                or any(
+                    field.get().strip() != f"{float(original):g}"
+                    for field, original in zip(
+                        layer_height_vars, initial["layer_heights_mm"]
+                    )
+                )
+                or chosen != [
+                    list(switch_filenames_in_layer(item))
+                    for item in initial["models"]
+                ]
+            )
+            if (not saved and not settings_embedded and pending_changes
                     and not messagebox.askyesno(
                         "捨棄未提交的 NFB 草稿？",
                         "目前 NFB 物理層、空槽或品牌選型的預覽尚未提交。確定捨棄？",
