@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue1504-acceptance-review
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # #1504｜62 項候選／#1502 已交付實際斷言稽核＋17 項 GUI 串行驗收
 
 ## CURRENT｜2026-10-22 exact runtime 補正（不重新施工、不冒充完整 AC）
