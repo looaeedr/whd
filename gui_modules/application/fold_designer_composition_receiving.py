@@ -1672,6 +1672,32 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         _apply_mode_snapshot(self, namespace, candidate)
         return True
 
+    def preview_parent_brand_impact(value):
+        from ae_engine.receiving_nfb_brand_transition import (
+            saved_parent_new_reselections,
+        )
+        if single:
+            from ae_engine.receiving_quantity_box import normalize_common_box
+            from phase6_quantity_model import QuantityModel
+            source = _current_mode_snapshot(self, namespace)
+            q = QuantityModel.from_payload(source["quantity"])
+            common = normalize_common_box(source.get("receiving_quantity_box"))
+            old = q.nfb_parent_brand_for_version(
+                q.selected_version_id, legacy_default=common["switch_brand"],
+            )
+            return saved_parent_new_reselections(
+                q.nfb_config_for_version(q.selected_version_id), old, value,
+            )
+        adapter = self.receiving_adapter(namespace)
+        # Global brand updates EVERY Set, not merely the currently displayed
+        # Set/Bay. Each physical Bay's submitted source gets its own notice.
+        return sum(
+            saved_parent_new_reselections(
+                bay, row.get("switch_brand", "士林"), value,
+            )
+            for row in adapter.layout["sets"] for bay in row["bays"]
+        )
+
     def set_global_brand(value):
         # The original Receiving layout is the one NFB authority. In the
         # modal, edit data only; geometry rebuild on ComboboxSelected blocks
@@ -2006,6 +2032,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             set_nfb_manual_x, set_nfb_layer_rotation,
             set_nfb_slot_rotation, effective_nfb_rotation,
             nfb_x_reset_impact,
+        )
+        from ae_engine.receiving_nfb_brand_transition import (
+            draft_new_reselections,
         )
         from ae_engine.receiving_nfb_ui1a import (
             INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
@@ -2671,10 +2700,24 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
             def layer_brand_changed(_event=None, idx=idx):
                 value = layer_rows[idx]["layer_brand_var"].get()
-                draft_state["draft"] = set_nfb_layer_brand(
-                    draft_state["draft"],idx,mode=INHERIT if value=="繼承本套" else OVERRIDE,
+                before = draft_state["draft"]
+                proposed = set_nfb_layer_brand(
+                    before, idx, mode=INHERIT if value=="繼承本套" else OVERRIDE,
                     value=None if value=="繼承本套" else value,
                 )
+                affected = draft_new_reselections(before, proposed)
+                if affected and not messagebox.askyesno(
+                    "確認更改本層 NFB 廠牌",
+                    f"第{idx + 1}層有 {affected} 顆 NFB 原型號將待重選，是否繼續？",
+                    parent=modal.winfo_toplevel(),
+                ):
+                    previous = before["layers"][idx]["brand"]
+                    layer_rows[idx]["layer_brand_var"].set(
+                        "繼承本套" if previous["mode"] == INHERIT
+                        else previous["value"]
+                    )
+                    return
+                draft_state["draft"] = proposed
                 refresh_source(force=True)
                 repaint(idx)
 
@@ -2684,11 +2727,26 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     warning.set("請先選取一個實際 NFB 顆位或空槽")
                     return
                 value = layer_rows[idx]["slot_brand_var"].get()
-                draft_state["draft"] = set_nfb_slot_brand(
-                    draft_state["draft"],idx,selected[0],
+                before = draft_state["draft"]
+                slot_index = selected[0]
+                proposed = set_nfb_slot_brand(
+                    before, idx, slot_index,
                     mode=INHERIT if value=="繼承本層" else OVERRIDE,
                     value=None if value=="繼承本層" else value,
                 )
+                affected = draft_new_reselections(before, proposed)
+                if affected and not messagebox.askyesno(
+                    "確認更改單顆 NFB 廠牌",
+                    f"第{idx + 1}層有 {affected} 顆 NFB 原型號將待重選，是否繼續？",
+                    parent=modal.winfo_toplevel(),
+                ):
+                    previous = before["layers"][idx]["slots"][slot_index]["brand"]
+                    layer_rows[idx]["slot_brand_var"].set(
+                        "繼承本層" if previous["mode"] == INHERIT
+                        else previous["value"]
+                    )
+                    return
+                draft_state["draft"] = proposed
                 refresh_source(force=True)
                 repaint(idx)
 
@@ -3847,6 +3905,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_brand=(single_brand if single else
                    lambda: self.receiving_switch_adapter(namespace).brand),
         set_brand=set_single_brand if single else set_global_brand,
+        get_brand_change_impact=preview_parent_brand_impact,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
         get_original_door_marks=existing_door_marks,
         get_initial_door_marks=cached_initial_door_marks,

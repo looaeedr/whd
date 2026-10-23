@@ -326,6 +326,11 @@ def test_ac21_swt14_real_tk_single_brand_selector_scopes_two_versions(monkeypatc
                         lambda *args, **kw: warnings.append(args))
     monkeypatch.setattr(messagebox, "showerror",
                         lambda *args, **kw: warnings.append(args))
+    brand_prompts = []
+    monkeypatch.setattr(
+        messagebox, "askyesno",
+        lambda title, body, **kw: (brand_prompts.append((title, body)), True)[1],
+    )
     root = tk.Tk()
     root.withdraw()
     window = None
@@ -351,6 +356,8 @@ def test_ac21_swt14_real_tk_single_brand_selector_scopes_two_versions(monkeypatc
         model = QuantityModel.from_payload(saved)
         assert model.snapshot()["schema"] == SCHEMA_V3
         assert model.nfb_parent_brand_for_version(first) == "東元"
+        # Native Tk brand selection now requires a pre-change source warning.
+        assert brand_prompts and "顆 NFB 原型號待重選" in brand_prompts[0][1]
         # Common physical W/H/D box remains immutable as NFB parent authority.
         assert app._phase6_input_snapshot[BOX_KEY]["switch_brand"] == "士林"
         window._receiving_multi_close()

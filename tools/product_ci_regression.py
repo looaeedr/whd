@@ -170,6 +170,7 @@ PYTEST_PATHS = (
     "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py",
     "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
     "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+    "tests/test_issue1504_ac20_swt13_brand_confirm.py",
     "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py",
     "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py",
     "tests/test_issue1504_unified_inner_nfb_layer_count.py",
