@@ -3098,14 +3098,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 from ae_engine.receiving_shared_settings import setting_value
                 current = nfb_physical_bay_snapshot(set_index, bay_index)
                 dependent = []
+                has_door_source = False
+                has_base_source = False
                 try:
                     from ae_engine.cabinet_types.policy import derive_inner_door_panels
                     upper = tuple(p for p in derive_inner_door_panels(current)
                                   if str(p.cell_key).split(":")[-1] == "0")
                     if len(upper) == 1:
                         dependent.append(upper[0].stable_id)
+                        has_door_source = True
                 except (ValueError, TypeError, KeyError, IndexError):
-                    pass  # Still report each saved hole when geometry is invalid.
+                    pass  # Keep saved NFB units visible even if door is unresolved.
                 try:
                     from ae_engine.receiving_base_plate_config import (
                         receiving_base_plate_values,
@@ -3116,13 +3119,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     count = bay["nfb_config"]["layer_count"]
                     if count == 1 and receiving_base_plate_values(current) is not None:
                         dependent.append("base_plate")
+                        has_base_source = True
                     elif count == 2:
                         specs = source_receiving_nfb_tier_base_specs(
                             current, require_source_z=False,
                         )
-                        dependent.extend(spec.physical_id for spec in specs.values())
+                        if set(specs) == {0, 1}:
+                            dependent.extend(spec.physical_id for spec in specs.values())
+                            has_base_source = True
                 except (ValueError, TypeError, KeyError, IndexError):
-                    pass  # Never invent a missing physical base identity.
+                    pass  # Missing source is DRAFT, never an invented plate.
                 v5 = current_v5_nfb_diagnostics(
                     bay,
                     set_id=str(owner["stable_id"]),
@@ -3131,6 +3137,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         owner, bay_index, "inner_door_version_id",
                     ),
                     dependent_part_ids=tuple(dict.fromkeys(dependent)),
+                    missing_required_physical_roles=tuple(
+                        role for role, sourced in (
+                            ("INNER_DOOR", has_door_source),
+                            ("BASE_PLATE", has_base_source),
+                        ) if not sourced
+                    ),
                 )
                 if v5 is not None:
                     return v5
