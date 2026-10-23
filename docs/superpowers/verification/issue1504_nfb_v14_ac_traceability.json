@@ -850,7 +850,7 @@
           "accepted": false
         }
       ],
-      "current_scope_remaining_evidence": "2026-10-23: 已改 Quantity 各版本獨立 nfb_parent_brand（V3），原 receiving_quantity_box.switch_brand 僅供舊版遷移；Set/Bay 仍由原 Set.switch_brand 控件更新，保存 NFBConfig 不新增品牌第二權威。原生 Tk 選擇器跨版本操作與切換回讀正在 PR #2086 驗證；若現行 CI 不通過不得簽核。仍缺兩份舊專案 Windows 真 GUI→保存重開→DXF 全流程。",
+      "current_scope_remaining_evidence": "2026-10-23: 已改 Quantity 各版本獨立 nfb_parent_brand（V3），原 receiving_quantity_box.switch_brand 僅供舊版遷移；Set/Bay 仍由原 Set.switch_brand 控件更新。三級繼承沿用 same effective_nfb_slot_brand，保存 NFBConfig 不新增品牌第二權威。原生 Tk 選擇器跨版本操作與切換回讀正在 PR #2086 驗證；若現行 CI 不通過不得簽核。仍缺兩份舊專案 Windows 真 GUI→保存重開→DXF 全流程。",
       "source_gap_reproduced_20261023": true
     },
     {
@@ -2763,7 +2763,7 @@
           "accepted": false
         }
       ],
-      "current_scope_remaining_evidence": "2026-10-23: 已改 Quantity 各版本獨立 nfb_parent_brand（V3），原 receiving_quantity_box.switch_brand 僅供舊版遷移；Set/Bay 仍由原 Set.switch_brand 控件更新，保存 NFBConfig 不新增品牌第二權威。原生 Tk 選擇器跨版本操作與切換回讀正在 PR #2086 驗證；若現行 CI 不通過不得簽核。仍缺兩份舊專案 Windows 真 GUI→保存重開→DXF 全流程。",
+      "current_scope_remaining_evidence": "2026-10-23: 已改 Quantity 各版本獨立 nfb_parent_brand（V3），原 receiving_quantity_box.switch_brand 僅供舊版遷移；Set/Bay 仍由原 Set.switch_brand 控件更新。三級繼承沿用 same effective_nfb_slot_brand，保存 NFBConfig 不新增品牌第二權威。原生 Tk 選擇器跨版本操作與切換回讀正在 PR #2086 驗證；若現行 CI 不通過不得簽核。仍缺兩份舊專案 Windows 真 GUI→保存重開→DXF 全流程。",
       "source_gap_reproduced_20261023": true
     },
     {
