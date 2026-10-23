@@ -1,5 +1,12 @@
 ## CURRENT｜2026-10-23 NFB-AC-24 逐顆狀態／雙 Bay／多版本／實體板件自動化簽核候選
 
+## CURRENT｜2026-10-23 AC-18 唯一層數控制與 X/Y 未定可見提示來源範圍候選（39 → 40）
+
+- [PR #2093](https://github.com/looaeedr/whd/pull/2093) 的 exact HEAD `c07b1f71b840170951eb5fb608732bdee648890f` Product CI 五階段及 Tk 效能基準皆 SUCCESS，Shard0 兩條原 WHD Tk 真單選鈕、Undo 和可見 X/Y 未定測試明確 PASSED。GitHub `localX@6c6f586306190656675fd5a86807d323d687b983` merge/readback 一致。
+- **NFB-AC-18 只簽 CURRENT CSV V5 來源與原 GUI 暫存範圍**：內門層數與 NFB 安裝層數同一 Tk 控制來源；切換 1↔2 與 Undo 不產生第二權威；顯示 X 絕對 datum 未定（相鄰孔距只是名義資訊）；非 1100 作業區 Y 未定（即使有草稿高度）；僅預覽且不核准製造。
+- **39→40 生效條件**：本簽核 PR exact HEAD 全 Product CI GREEN，合 GitHub `localX` 後 SHA fresh readback。原 88 AC 文本與源 SHA 保留、17 項 #1500 GUI／14 項 #1502 scoped／4 項 deferred 不冒簽；48 未完整驗，兩份 Windows 舊專案、完整 MFG/DXF/Q 與工藝仍未驗，正式 X 須另有 `/推推`。
+
+
 ## CURRENT｜2026-10-23 #1504 AC-32 X 暫存清除與原 Tk Undo 自動化範圍簽核候選（38 → 39）
 
 - [PR #2091](https://github.com/looaeedr/whd/pull/2091) source HEAD `03f08b367fd2714d0fbc1ccdf81936b14be3d852` 的 Product Regression Preflight／Shards0,1,2／Canonical **SUCCESS**，合併 GitHub `localX@d397d06897af41a09b18b02f044f5e761e9986c1` readback 一致。
