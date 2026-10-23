@@ -130,7 +130,7 @@ def material_from_cutting_components(*, primary, secondary=(), linework=()):
             for polygon in secondary
             if not polygon.is_empty
             and float(polygon.area) > float(primary.area) * (1.0 + 1e-6)
-            and polygon.buffer(1e-6).covers(primary.representative_point())
+            and polygon.buffer(1e-6).covers(primary)
         ]
         if outer_candidates:
             new_primary = max(outer_candidates, key=lambda polygon: float(polygon.area))
