@@ -348,7 +348,13 @@ def material_polygon_from_final_scene(scene):
                     poly = poly.buffer(0)
                 if poly.is_empty or float(poly.area) <= 1e-9:
                     continue
-                if primary is None:
+                if str(getattr(primitive, "semantic_id", "") or "").upper() == "OUTER_BOUNDARY":
+                    # Tagged structural stock beats insertion order: a hole can
+                    # appear before the outer contour in translated scenes.
+                    if primary is not None:
+                        secondary.append(primary)
+                    primary = poly
+                elif primary is None:
                     primary = poly
                 else:
                     secondary.append(poly)
