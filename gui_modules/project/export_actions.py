@@ -534,6 +534,12 @@ def _export_selected_resolved_parts(self, folder, flags):
                     for row in receipts if row.side_piece_id == side
                     for segment in row.marking_segments
                 ),
+                # The NORMAL manufacturing SIDE scene contains both the
+                # certified EAR lines and its pre-existing source MARKING.
+                # Compare the entire current resolved physical source to the
+                # independently reopened DXF, not EAR rows alone. The reader
+                # still rejects every unowned or duplicate MARKING LINE.
+                check_scene=physical.scene,
             )
     return ([os.path.basename(path) for path in outputs.values()], [])
 
