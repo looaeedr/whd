@@ -384,7 +384,7 @@ def _translated_scene(scene, dx: float, dy: float = 0.0):
     out = DrawingScene()
     for primitive in scene.primitives:
         if isinstance(primitive, PolylinePrimitive):
-            out.add(PolylinePrimitive(tuple(point(p) for p in primitive.points), primitive.layer, primitive.closed, primitive.color))
+            out.add(PolylinePrimitive(tuple(point(p) for p in primitive.points), primitive.layer, primitive.closed, primitive.color, primitive.semantic_id))
         elif isinstance(primitive, LinePrimitive):
             out.add(LinePrimitive(point(primitive.p1), point(primitive.p2), primitive.layer, primitive.color))
         elif isinstance(primitive, CirclePrimitive):
