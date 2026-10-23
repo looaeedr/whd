@@ -681,7 +681,8 @@
         1491
       ],
       "regression_candidates": [
-        "tests/test_issue1491_nfb_ui1a.py"
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_unified_inner_nfb_layer_count.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -2154,7 +2155,8 @@
         1491
       ],
       "regression_candidates": [
-        "tests/test_issue1491_nfb_ui1a.py"
+        "tests/test_issue1491_nfb_ui1a.py",
+        "tests/test_issue1504_unified_inner_nfb_layer_count.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -2168,7 +2170,16 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "additional_partial_witnesses": [
+        {
+          "path": "tests/test_issue1504_unified_inner_nfb_layer_count.py",
+          "test_name": "test_single_current_layer_count_owns_both_inner_door_and_nfb_mounting_tiers",
+          "witness_scope": "ONE_SHARED_TK_TIER_STATE_NO_SEPARATE_NFB_LAYER_OWNER",
+          "accepted": false
+        }
+      ],
+      "current_scope_remaining_evidence": "User confirmed inner-door layer count IS NFB mounting tiers: source now uses ONE tk.IntVar with original NFB UI-1A draft, candidate version, Confirm and Undo. Ghost NFB physical layer selector removed; no separate business rule or independent physical layer acceptance requirement. This source-level fix does not yet claim two historical Windows GUI project UAT."
     },
     {
       "id": "SWT-AC-02",
