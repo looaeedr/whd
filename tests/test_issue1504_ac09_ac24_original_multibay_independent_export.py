@@ -61,7 +61,7 @@ def test_ac24_requested_nfb_or_side_sheet_still_cannot_bypass_missing_source(tmp
                base_plate=False,indicator_box=False,indicator_door=False),
     ):
         out=tmp_path/("base-selected" if selected["base_plate"] else "side-selected")
-        with pytest.raises(ValueError,match="CSV|SOURCE|CURRENT"):
+        with pytest.raises(ValueError,match="CSV|SOURCE|CURRENT|BASE"):
             export_current_receiving_multibay_dxf(
                 snapshot,
                 physical_bay_geometry_provider=lambda si,bi:
