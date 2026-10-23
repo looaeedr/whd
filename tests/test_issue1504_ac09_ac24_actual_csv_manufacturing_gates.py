@@ -107,6 +107,9 @@ def test_ac24_original_part_writer_rejects_collision_stale_count_or_unowned_slot
         assert all("NFB_DUPLICATE_LAYER_UNIT_OWNER" in row["reasons"]
                    for row in report["unit_rows"])
     output=tmp_path/fault
-    with pytest.raises(ValueError,match="NFB_COMMITTED_CSV_LAYER_UNIT_OWNER_INVALID"):
+    expected = ("RECEIVING_NFB_LAYER_HOLE_COUNT_DRIFT"
+                if fault == "wrong_layer_count"
+                else "CSV_BASE_EXPORT_LAYER_UNIT_OWNER_INVALID")
+    with pytest.raises(ValueError,match=expected):
         _export(snap,output)
     assert not list(output.glob("*.dxf"))
