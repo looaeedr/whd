@@ -260,6 +260,9 @@ def test_ac09_missing_real_inner_or_base_source_remains_draft_after_valid_csv():
             assert "NFB_REAL_"+role+"_SOURCE_MISSING" in view["unresolved_dependencies"]
         assert view["part_rows"][0]["status"]=="BLOCKED"
         assert view["part_rows"][1]["status"]=="NFB_UNAFFECTED"
+        text_lines=nfb_manifest_display_lines(view)
+        for role in roles:
+            assert any("缺少實體板件來源" in line and role in line for line in text_lines)
     with pytest.raises(ValueError,match="source-derived"):
         current_v5_nfb_diagnostics(
             saved,set_id="setA",bay_id="B1",version_id="inner-door-v1",
