@@ -34,7 +34,13 @@ def nfb_manifest_display_lines(view):
                          +"｜"+str(unit.get("model_filename"))+"｜"+state_text)
         for part in view.get("part_rows", ()):
             if part.get("nfb_affected") is True:
-                lines.append("物理板件 "+str(part["part_id"])+"｜NFB 依賴待驗")
+                reasons=tuple(part.get("reasons") or ())
+                if not reasons:
+                    raise ValueError("NFB affected physical part needs reasons")
+                lines.append(
+                    "物理板件 "+str(part["part_id"])+"｜NFB 依賴待驗｜"
+                    +"、".join(str(reason) for reason in reasons)
+                )
             elif part.get("nfb_affected") is False:
                 lines.append("物理板件 "+str(part["part_id"])+"｜不受 NFB 缺項連坐")
             else:
