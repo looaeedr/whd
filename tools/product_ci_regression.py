@@ -206,6 +206,7 @@ PYTEST_PATHS = (
     # #1503 depth-only PAD predicate: exact 1 layer / 2 units / unequal CSV depths.
     "tests/test_receiving_switch_model_catalog_20261011.py",
     "tests/test_issue1492_nfb_real_dxf_preview.py",
+    "tests/test_issue1504_ac03_ac15_native_source_panel.py",
     "tests/test_issue1493_nfb_draft_transactions.py",
     "tests/test_issue1497_nfb_cutting_preflight.py",
     "tests/test_issue1497_configured_nfb_manufacturing_release.py",
