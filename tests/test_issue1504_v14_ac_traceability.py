@@ -772,3 +772,65 @@ def test_unified_nfb_brand_rule_current_gui_entry_fix_does_not_fake_ac21_swt14_s
         assert len(row["identified_test_functions"]) == 1
         assert "same effective_nfb_slot_brand" in row["current_scope_remaining_evidence"]
         assert all(w["accepted"] is False for w in row["additional_partial_witnesses"])
+
+
+def test_ac01_real_receiving_only_tk_entry_has_exact_selected_positive_and_negative_witnesses():
+    """Do not sign a mere file/path name: demand real Tk tests + family gates."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py"
+    assert PYTEST_PATHS.count(path) == 1
+    funcs = {
+        node.name: node for node in ast.parse(
+            (ROOT / path).read_text(encoding="utf-8")
+        ).body if isinstance(node, ast.FunctionDef)
+    }
+    expected = {
+        "test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
+        "test_ac01_nonreceiving_family_never_mounts_nfb_dialog_or_mutates_hole_editor",
+        "test_ac01_original_generic_hole_editor_door_entry_remains_unpatched",
+    }
+    assert expected.issubset(funcs)
+    for name in expected:
+        assert any(isinstance(node, ast.Assert) for node in ast.walk(funcs[name]))
+        assert any(isinstance(node, ast.Call) for node in ast.walk(funcs[name]))
+    positive = funcs["test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family"]
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "open_multi_settings"
+        for node in ast.walk(positive)
+    )
+    blocked = funcs["test_ac01_nonreceiving_family_never_mounts_nfb_dialog_or_mutates_hole_editor"]
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "open_receiving_multi_settings"
+        for node in ast.walk(blocked)
+    )
+    rows = {r["id"]:r for r in _data()["records"]}
+    row = rows["NFB-AC-01"]
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["identified_test_functions"] == [{
+        "path":path,
+        "test_name":"test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
+        "witness_scope":"FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted":True,
+    }]
+    evidence=row["acceptance_evidence"]
+    assert evidence["real_tk_widget_created"] is True
+    assert evidence["nonreceiving_canonical_family_gate_verified"] is True
+    assert evidence["human_windows_uat_claimed"] is False
+    assert evidence["ui_full_operator_uat_claimed"] is False
+    for item in (evidence["primary_assertion"], *evidence["other_required_assertions"]):
+        source, func = item.split("::")
+        assert PYTEST_PATHS.count(source) == 1
+        names = {
+            n.name for n in ast.parse(
+                (ROOT / source).read_text(encoding="utf-8")
+            ).body if isinstance(n, ast.FunctionDef)
+        }
+        assert func in names
+    # SWT-AC-01 additionally requires proof of a UNIQUE writeable layer
+    # count UI entry; visible Receiving-only NFB by itself does not sign it.
+    assert rows["SWT-AC-01"]["accepted"] is False
