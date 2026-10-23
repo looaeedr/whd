@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 22,
+    "EVIDENCE_CANDIDATE_ONLY": 21,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 31,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 32,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -1769,21 +1769,49 @@
         1493
       ],
       "regression_candidates": [
-        "tests/test_issue1493_nfb_draft_transactions.py"
+        "tests/test_issue1493_nfb_draft_transactions.py",
+        "tests/test_issue1504_ac47_operator_discard_confirm.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1493_nfb_draft_transactions.py",
-          "test_name": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac47_operator_discard_confirm.py",
+          "test_name": "test_ac47_unsaved_slot_reject_discard_keeps_full_draft_and_editor",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_primary_witness_before_20261023": {
+        "path": "tests/test_issue1493_nfb_draft_transactions.py",
+        "test_name": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      },
+      "acceptance_evidence": {
+        "scope": "Current original Receiving UI-1A standalone close_editor executed from source: unsaved NFB slot or selected models, tier count or tier height prompts before WM close/Escape/Cancel; operator refusal preserves modal and draft, confirmed discard only destroys draft widget/timer and cannot write candidate/project/DXF; preview-only is not an unsaved edit. Embedded original Hole Editor continues its existing Cancel-to-Main staged-only behavior without a redundant second confirmation. Covers current automated GUI callback seam, not the two-original-project Windows UAT or real machine DXF export.",
+        "primary_assertion": "tests/test_issue1504_ac47_operator_discard_confirm.py::test_ac47_unsaved_slot_reject_discard_keeps_full_draft_and_editor",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac47_operator_discard_confirm.py::test_ac47_operator_confirms_discard_without_any_authority_write",
+          "tests/test_issue1504_ac47_operator_discard_confirm.py::test_ac47_preview_only_has_no_phantom_unsaved_change_prompt",
+          "tests/test_issue1504_ac47_operator_discard_confirm.py::test_ac47_uncommitted_height_and_model_choices_require_discard_confirmation",
+          "tests/test_issue1504_ac47_operator_discard_confirm.py::test_ac47_embedded_cancel_returns_main_without_a_second_close_prompt",
+          "tests/test_issue1504_ac47_operator_discard_confirm.py::test_ac47_confirmed_save_skips_discard_prompt_and_ui1a_wm_close_is_wired",
+          "tests/test_issue1493_nfb_draft_transactions.py::test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "NFB-AC-48",
@@ -3402,7 +3430,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 31/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 57 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 32/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 56 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",

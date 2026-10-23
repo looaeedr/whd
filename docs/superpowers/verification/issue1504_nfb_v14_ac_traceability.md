@@ -1,3 +1,9 @@
+## CURRENT｜2026-10-23 #1504 NFB-AC-47 關閉未提交草稿與取消確認（exact CI 後生效）
+
+- 原 UI-1A standalone NFB 面板只有**實際修改**才須確認捨棄：草稿選型、層數、內門/NFB 共用層高和型號。單純查看 DXF 預覽不是修改，不再誤跳確認。
+- 新必跑 `tests/test_issue1504_ac47_operator_discard_confirm.py` **直接執行原始 `close_editor()` 回呼**，核對拒絕關閉保留草稿/視窗、確認捨棄銷毀編輯暫存但不進專案/候選/DXF 寫入、Windows close/Escape/Cancel 同一路徑；嵌入原 Hole Editor 的受電箱頁維持取消直回主頁籤（原 Confirm All/Cancel All 才是權威），不新建第二套確認。
+- **簽核邊界**：現行 UI-1A callback 自動化來源範圍，不冒稱 Windows 兩份舊案完整真 GUI→製造 UAT；原 88 AC 文本/來源 SHA 不變。exact HEAD Product CI 五階段全部成功、合併 GitHub localX 回讀後，才由 **31/88 → 32/88**；未簽 **56**（21 source／17 真 GUI／14 scoped／4 deferred）。
+
 ## CURRENT｜2026-10-23 #1504 內門層數＝NFB 安裝層數（消除冗餘層數權威）
 
 - 使用者已定義 **內門層數就是 NFB 安裝層數**。原 UI 竟為它們各建一個 `tk.IntVar`，隱藏的 `NFB 物理層` 控件又建立兩個無用按鈕；即使畫面隱藏仍暗藏兩套層數，還在確定時檢查兩者不相等的假差異。
@@ -215,7 +221,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-44 | #1498、#1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-1（守衛）／UI-1B（提交）／MFG-2（底／中板） | 已提交但空槽／待重選／來源解析失敗時，對應內門與實際存在的底板／中板均不可出完整製造 DXF；來源可信且確認未使用 Color 30／150 時，底板／中板不因 NFB 被阻斷；左右側板不因尚未批准的 EAR 需求被阻斷。 |
 | NFB-AC-45 | #1500 | BLOCKED_1500_REAL_GUI | UI-1B | 還原為未配置後不殘留可複製或重啟的 NFBConfig 休眠內容；同一 transaction Undo 可完整恢復先前提交設定及守衛結果，legacy 製造與本套品牌 owner 不變。 |
 | NFB-AC-46 | #1499、#1500 | BLOCKED_1500_REAL_GUI | UI-1B（已提交檔守衛）／MFG-1（內門阻斷） | 守衛功能旗標關閉但載入已提交 NFBConfig 的檔案，不得當作 UNCONFIGURED 照舊匯出缺 NFB 孔的完整 DXF；阻止受影響完整匯出並明確警示。 |
-| NFB-AC-47 | #1493 | EVIDENCE_CANDIDATE_ONLY | UI-1A | UI-1A 關閉有未提交變更的 NFB 面板須確認；取消關閉時保留編輯會話，確認捨棄不寫權威配置且舊式 DXF 不變。 |
+| NFB-AC-47 | #1493 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A | UI-1A 關閉有未提交變更的 NFB 面板須確認；取消關閉時保留編輯會話，確認捨棄不寫權威配置且舊式 DXF 不變。 |
 | NFB-AC-48 | #1494、#1495、#1496 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | MFG-1（進場） | MFG-1 缺 X 單顆／整排、Y 局部投影或主孔中心任一證據時，不得讓未知配置成為「可製造」；四組已知名義中心距不自動等於已驗收可製造。 |
 | NFB-AC-49 | #1494 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | MFG-1（X 進場） | W800×3 的 723/361.5 個案須核對來源 DXF 左輪廓、真正下料 CUTTING 左緣及下料→門面→箱體 X 映射；未證實前不得以此個案推導其它組合。 |
 | NFB-AC-50 | #1495 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（未定顯示）／MFG-1（Y 進場） | 1100 名義 550／290／790 從箱體外頂投影到內門成品與展開 Y 具可重現雙向測試；非 1100 標「Y 基準未定」，不猜。 |
@@ -312,7 +318,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-44 | `tests/test_issue1498_nfb_part_readiness.py::test_missing_real_plate_id_is_scope_blocker_not_an_invented_part` | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC |
 | NFB-AC-45 | `tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy` | BLOCKED_1500_REAL_GUI |
 | NFB-AC-46 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` | BLOCKED_1500_REAL_GUI |
-| NFB-AC-47 | `tests/test_issue1493_nfb_draft_transactions.py::test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-47 | `tests/test_issue1504_ac47_operator_discard_confirm.py::test_ac47_unsaved_slot_reject_discard_keeps_full_draft_and_editor` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-48 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_no_unapproved_size_or_single_unit_center_defaults` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-49 | `tests/test_issue1494_nfb_x_shadow_projection.py::test_w800_three_canonical_x_comes_from_actual_whd_cutting_and_assembly` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-50 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_approved_nominal_box_top_y_maps_to_real_1075_blank` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
