@@ -1,5 +1,12 @@
 ## CURRENT｜2026-10-23 NFB-AC-24 逐顆狀態／雙 Bay／多版本／實體板件自動化簽核候選
 
+## CURRENT｜2026-10-23 #1504 AC-21／SWT-14 真 Tk 版本品牌候選簽核（34 → 36）
+
+- GitHub `localX@61fbdf3654247e0aac0cea85c4f193988096a4c6` 已合併 [#2086](https://github.com/looaeedr/whd/pull/2086)，原 PR `04945f0c` exact HEAD：Preflight、Shard 0/1/2、Canonical、效能基準全 SUCCESS。
+- NFB-AC-21／SWT-AC-14：原受電箱單只設定真 Tk Combobox 逐版本品牌選擇、版本深複製及切回、V3 持久化 Save→Reload、相同三級品牌繼承、CSV V5 型號待重選時拒絕製造且可修復設定；Set/Bay 原有本套品牌控件不變，原 §7 AC 原文與來源 SHA 保留。
+- **僅自動化來源範圍 34／88 → 36／88 候選**，此簽核分支需 exact HEAD Product CI 全綠並合併 GitHub `localX` 後才生效。餘 52 項不冒簽，兩份舊 Windows 專案 GUI→製造 DXF 未驗，正式 X 僅 `/推推`。
+
+
 - 新修正：同層同槽重複兩顆 NFB 的**每一顆**都標示配置未驗證與 `NFB_DUPLICATE_LAYER_UNIT_OWNER`，不再只阻擋後加入那顆；配置狀態仍由已提交 NFBConfig + 現行 V5 CSV + 實體來源**每次重新推導**。
 - NFB `configuration_verified`、`manufacturing_verified`、`source_status` 等全部是**衍生顯示**，不得寫回 `.p6fold` 的唯一 NFBConfig；GUI 不得把「配置已驗證」冒稱「CUTTING 製造合格」。
 - CI 斷言範圍：兩 Bay `.p6fold` Save→Reload 一連 DRAFT 一連 CONFIGURED 不交叉；Quantity 兩個版本確認狀態與存檔重開互不污染；逐顆 X/來源/板件缺失原因可見、同 Bay 真實 HEAD 不受 NFB 依賴連坐；實際 PART_ONLY/GUI 底板及側板依賴仍 fail-closed，沒有假的 DXF 產生。
