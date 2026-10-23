@@ -433,3 +433,34 @@ def test_r3_10_layout_index_rejects_noninteger_before_python_indexing():
     for invalid in (True, 1.0):
         with pytest.raises(ValueError):
             receiving_destructive_tail_ids(layout, set_count=invalid)
+
+
+def test_r3_8_all_current_side_dxf_sinks_check_full_marking_scene():
+    """Every physical DXF export must explain its EAR and existing MARKING.
+
+    The CHECK-only path was already strict, but normal BoxBody, Formed EAR,
+    Quantity/Q and multi-Bay sinks previously passed just EAR segments and
+    rejected legitimate original side MARKING. No sink may silently revert to
+    an EAR-only readback or disable the extra-entity guard.
+    """
+    import ast
+    from pathlib import Path
+
+    paths = (
+        "ae_engine/receiving_fixed_plate_side_check_dxf.py",
+        "ae_engine/receiving_fixed_plate_formed_manufacturing.py",
+        "ae_engine/receiving_csv_quantity_manufacturing.py",
+        "ae_engine/receiving_csv_multibay_manufacturing.py",
+        "gui_modules/project/export_actions.py",
+    )
+    for path in paths:
+        tree = ast.parse(Path(path).read_text(encoding="utf-8"))
+        calls = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_readback_marking_lines"
+        ]
+        assert calls, f"No MARKING readback call: {path}"
+        assert all(any(arg.arg == "check_scene" for arg in call.keywords)
+                   for call in calls), f"EAR-only readback: {path}"

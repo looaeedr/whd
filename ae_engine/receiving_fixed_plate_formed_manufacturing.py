@@ -421,6 +421,9 @@ def save_verified_receiving_formed_fixing_plate_bundle(
                 written[matched[0]],
                 (segment for row in uv if row.side_piece_id == side
                  for segment in row.marking_segments),
+                # The same current resolved SIDE source generated the DXF.
+                # Independently verify all original + EAR MARKING lines.
+                check_scene=source.scene,
             )
         result = _atomic_commit_staged_dxfs(
             written, root, overwrite=overwrite,

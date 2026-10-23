@@ -290,7 +290,12 @@ def export_current_csv_quantity_manufacturing(
             member=group_for.get((vid,physical_id))
             if member is None:
                 raise ValueError("RECEIVING_CSV_QUANTITY_SIDE_GROUP_MISSING")
-            _readback_marking_lines(staged[member.key],segments)
+            _readback_marking_lines(
+                staged[member.key], segments,
+                # Q annotations do not authorize extra process lines;
+                # the corresponding current source group is authoritative.
+                check_scene=member.render_data.scene,
+            )
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,
         )

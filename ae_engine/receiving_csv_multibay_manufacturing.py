@@ -171,7 +171,7 @@ def export_current_receiving_multibay_dxf(
                 marking_proofs.append((matches[0][1],tuple(
                     seg for receipt in uv if receipt.side_piece_id==side
                     for seg in receipt.marking_segments
-                )))
+                ),owner.scene))
     if not output_rows:
         raise ValueError("RECEIVING_MULTIBAY_NO_SELECTED_PHYSICAL_SHEETS")
     root=Path(output_dir)
@@ -195,9 +195,11 @@ def export_current_receiving_multibay_dxf(
                 raise ValueError("RECEIVING_MULTIBAY_SAVED_DXF_ROUNDTRIP_FAILED:"+
                                  namespace+":"+key)
             staged[namespace+":"+key]=path
-        for filename,segments in marking_proofs:
+        for filename,segments,source_scene in marking_proofs:
             _readback_marking_lines(
-                Path(staging)/filename,segments,
+                Path(staging)/filename, segments,
+                # Physical Bay source scoped before any other Bay is processed.
+                check_scene=source_scene,
             )
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,
