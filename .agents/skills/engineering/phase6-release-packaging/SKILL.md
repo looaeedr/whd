@@ -156,7 +156,7 @@ FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh ex
 
 本 Skill 負責 FULL／UPDATE 封包的 baseline、測試、pristine extraction、驗收及 durable checkpoint，**不單獨授權 repository 施工、DC 或 X 發布**。日常施工與 `/推推` 發布流程依最新 GitHub `localX` 的 CURRENT `AGENTS.md`；正式 X 只提供受信任發布 gate，不得拿 X 的舊文件覆蓋現行流程。
 
-1. **`/派工` 的產品施工**：由 GitHub／排程／雲端真正執行器建立合法工作分支，完成修改、測試、提交、push、PR（base=`localX`）、exact HEAD CI；GREEN 後直接 GitHub PR 整合遠端 `localX` 並回讀。**不預設 DC、本機同步或 Windows UAT**；本機僅在另有當次明確操作授權時介入，不可暗改產品。
+1. **`/派工` 的產品施工**：由 GitHub／排程／雲端真正執行器建立合法工作分支，完成修改、測試、提交、push、PR（base=`localX`）、exact HEAD CI；GREEN 後直接進入 `LOCALX_INTEGRATION`，以 GitHub PR 整合遠端 `localX` 並回讀。**不預設 DC、本機同步或 Windows UAT**；本機僅在另有當次明確操作授權時介入，不可暗改產品。
 2. **`/接手`**：只有使用者當次明確授權，才可經 RC → CoreELEC `whd-dev:/workspace/whd` 在本機進行產品施工、測試與交付；此前不能用 Skill 路由、出包要求或普通「繼續」取得 DC 權限。
 3. **非產品治理／技能／專用測試**：治理與技能變更也先由 GitHub 工作分支 PR + 適用治理 CI 合併 `localX`；正式 X 一律使用使用者當次 `/推推`、受信任 X gate，**不允許治理直送 X**，亦不得為治理修改探測使用者本機。
 4. **產品正式 X 發布**：使用者**當次 `/推推`** 即驗收與 GitHub-only 發布授權，直接以 GitHub 遠端 `localX` 做 exact PR／SHA／owner comment／CI／merge/readback，再安全回同步遠端 `localX` 並核對正式 GitHub Release/tag。Windows 本機未同步／未測試僅列待辦，不阻擋發布、不需額外 GitHub-only 指令。禁止直接 patch X 或 `main`，也不得把 release ZIP、測試 GREEN 或本 Skill 自身當成發布許可。
