@@ -7,7 +7,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields, is_dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+TAIPEI_TZ = timezone(timedelta(hours=8))
 from enum import Enum
 import json
 from pathlib import Path
@@ -131,7 +133,7 @@ def build_active_diagnostic_snapshot(
 ) -> dict:
     result = {
         "schema": DIAGNOSTIC_SCHEMA,
-        "saved_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "saved_at": datetime.now(TAIPEI_TZ).isoformat(timespec="seconds"),
         "model": str(context.model or "").strip(),
         "active_part": context.active_part,
         "settings": json_safe(context.settings),
