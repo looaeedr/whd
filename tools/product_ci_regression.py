@@ -175,6 +175,7 @@ PYTEST_PATHS = (
     "tests/test_issue1504_unified_inner_nfb_layer_count.py",
     "tests/test_issue1504_ac47_operator_discard_confirm.py",
     "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py",
+    "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py",
     "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
     "tests/test_issue1504_brand_inheritance_current_csv.py",
     "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
