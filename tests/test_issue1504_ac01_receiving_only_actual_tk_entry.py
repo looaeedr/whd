@@ -159,7 +159,7 @@ def test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family(
         assert win.title() == ("單只設定" if mode == "quantity" else "多連設定")
         selector = win._receiving_multi_brand_selector
         assert isinstance(selector, ttk.Combobox)
-        assert selector.cget("state") == "readonly"
+        assert selector.instate(("readonly",)) is True
         assert tuple(selector.cget("values")) == RECEIVING_SWITCH_BRANDS
         assert win._receiving_multi_brand_var.get() == brand
         assert selector in tuple(_walk(win))
@@ -170,6 +170,7 @@ def test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family(
         alternative = "東元" if brand == "士林" else "士林"
         selector.set(alternative)
         selector.event_generate("<<ComboboxSelected>>")
+        root.update()
         assert changes == [alternative]
         win._receiving_multi_close()
         assert not win.winfo_exists()
