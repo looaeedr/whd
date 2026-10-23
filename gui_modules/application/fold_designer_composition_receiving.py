@@ -2803,7 +2803,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     if sorted(selected_models) != sorted(expected_models):
                         raise ValueError("NFB CSV 選型與開孔設定不同步，請重新檢查")
                 else:
-                    selected_brand = self.receiving_switch_adapter(namespace).brand
+                    selected_brand = current_nfb_parent_brand()
                     latest_files = (set(numeric_model_refs(selected_brand))
                                     | set(model_filenames(selected_brand)))
                     if any(filename not in latest_files
@@ -2931,7 +2931,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         persist_inner(delete_inner_candidate(inner_library(), version_id))
 
     def verify_inner_models(config):
-        selected_brand = self.receiving_switch_adapter(namespace).brand
+        selected_brand = current_nfb_parent_brand()
         allowed = (set(numeric_model_refs(selected_brand))
                    | set(model_filenames(selected_brand)))
         for layer_slot in config["models"][:config["layers"]]:
