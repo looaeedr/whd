@@ -757,7 +757,8 @@
       ],
       "regression_candidates": [
         "tests/test_issue1491_nfb_ui1a.py",
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -771,7 +772,29 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "additional_partial_witnesses": [
+        {
+          "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+          "test_name": "test_ac21_swt14_current_v5_each_version_model_brand_and_operator_basis_are_independent",
+          "witness_scope": "PARTIAL_AUTOMATED_CURRENT_CSV_NOT_VERSION_DEFAULT_BRAND_GUI",
+          "accepted": false
+        },
+        {
+          "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+          "test_name": "test_ac21_swt14_three_tier_current_csv_brand_inheritance_never_rewrites_model",
+          "witness_scope": "PARTIAL_AUTOMATED_CURRENT_CSV_NOT_VERSION_DEFAULT_BRAND_GUI",
+          "accepted": false
+        },
+        {
+          "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+          "test_name": "test_ac21_swt14_quantity_brand_ui_actual_owner_gap_remains_unsigned",
+          "witness_scope": "REPRODUCED_UNRESOLVED_GUI_OWNER_GAP",
+          "accepted": false
+        }
+      ],
+      "current_scope_remaining_evidence": "2026-10-23 current quantity Single brand selector reads/writes shared receiving_quantity_box.switch_brand, not selected QuantityModel version NFB default; per-version independent default brand and three-level inherited GUI submission/change of one version are NOT yet proven. Tests prove only current V5 model/provenance deep-copy, save/reload/atomic reject, draft brand inheritance, plus explicit source gap. Keep UNSIGNED until original per-version brand authority and UI operator workflow are implemented and tested.",
+      "source_gap_reproduced_20261023": true
     },
     {
       "id": "NFB-AC-22",
@@ -2556,7 +2579,8 @@
       ],
       "regression_candidates": [
         "tests/test_issue1491_nfb_ui1a.py",
-        "tests/test_issue1499_nfb_persistence.py"
+        "tests/test_issue1499_nfb_persistence.py",
+        "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -2570,7 +2594,29 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "additional_partial_witnesses": [
+        {
+          "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+          "test_name": "test_ac21_swt14_current_v5_each_version_model_brand_and_operator_basis_are_independent",
+          "witness_scope": "PARTIAL_AUTOMATED_CURRENT_CSV_NOT_VERSION_DEFAULT_BRAND_GUI",
+          "accepted": false
+        },
+        {
+          "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+          "test_name": "test_ac21_swt14_three_tier_current_csv_brand_inheritance_never_rewrites_model",
+          "witness_scope": "PARTIAL_AUTOMATED_CURRENT_CSV_NOT_VERSION_DEFAULT_BRAND_GUI",
+          "accepted": false
+        },
+        {
+          "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+          "test_name": "test_ac21_swt14_quantity_brand_ui_actual_owner_gap_remains_unsigned",
+          "witness_scope": "REPRODUCED_UNRESOLVED_GUI_OWNER_GAP",
+          "accepted": false
+        }
+      ],
+      "current_scope_remaining_evidence": "2026-10-23 current quantity Single brand selector reads/writes shared receiving_quantity_box.switch_brand, not selected QuantityModel version NFB default; per-version independent default brand and three-level inherited GUI submission/change of one version are NOT yet proven. Tests prove only current V5 model/provenance deep-copy, save/reload/atomic reject, draft brand inheritance, plus explicit source gap. Keep UNSIGNED until original per-version brand authority and UI operator workflow are implemented and tested.",
+      "source_gap_reproduced_20261023": true
     },
     {
       "id": "SWT-AC-15",

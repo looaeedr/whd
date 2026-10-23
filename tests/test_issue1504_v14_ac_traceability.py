@@ -712,3 +712,35 @@ def test_ac29_swt19_current_v5_source_drift_has_real_reloaded_project_cutting_an
         assert evidence["factory_release"] is False
         assert evidence["human_windows_uat_claimed"] is False
         assert evidence["original_ac_text_unchanged"] is True
+
+
+def test_ac21_swt14_current_v5_partial_witnesses_cannot_inflate_29_acceptances():
+    """Source-level isolation passes; per-version GUI brand default remains a gap."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py"
+    assert PYTEST_PATHS.count(path) == 1
+    functions = {
+        node.name: node for node in ast.parse(
+            (ROOT / path).read_text(encoding="utf-8")
+        ).body if isinstance(node, ast.FunctionDef)
+    }
+    required = (
+        "test_ac21_swt14_current_v5_each_version_model_brand_and_operator_basis_are_independent",
+        "test_ac21_swt14_three_tier_current_csv_brand_inheritance_never_rewrites_model",
+        "test_ac21_swt14_invalid_cross_brand_current_v5_submission_is_atomic",
+        "test_ac21_swt14_quantity_brand_ui_actual_owner_gap_remains_unsigned",
+    )
+    for name in required:
+        assert name in functions
+        assert any(isinstance(node, ast.Assert) for node in ast.walk(functions[name]))
+    rows = {r["id"]:r for r in _data()["records"]}
+    for key in ("NFB-AC-21","SWT-AC-14"):
+        row=rows[key]
+        assert row["accepted"] is False
+        assert row["status"] == "EVIDENCE_CANDIDATE_ONLY"
+        assert row["source_gap_reproduced_20261023"] is True
+        assert path in row["regression_candidates"]
+        assert len(row["identified_test_functions"]) == 1
+        assert all(w["accepted"] is False
+                   for w in row["additional_partial_witnesses"])
+        assert "receiving_quantity_box.switch_brand" in row["current_scope_remaining_evidence"]

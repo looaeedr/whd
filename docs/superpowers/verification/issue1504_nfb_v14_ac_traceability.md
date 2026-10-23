@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-23，逐條實證簽核）
 
+## CURRENT｜2026-10-23 #1504 AC-21／SWT-14 數量版本品牌權威缺口查核（保持未簽）
+
+- 已讀現行 `QuantityModel`、`receiving_quantity_box` 與 GUI 真入口：數量模式 `single_brand()` 仍取 `receiving_quantity_box.switch_brand`，`set_single_brand()` 更改的也只有**共用箱體**，而非選取中的單一孔型版本品牌預設；因此 AC-21／SWT-14 的「每版本本配置預設品牌」不能假借當期已通過的版本深複製測試冒簽。
+- 新 `tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py` 使用原士林、東元 **numeric CSV V5** 型號，驗證各版本已儲存的來源品牌／型號／X datum、克隆後逐顆位移必重新確認、版本 A/B 更新和取消不互相污染、真正 `.p6fold Save→Reload`、三層暫存草稿繼承／覆寫及不明品牌拒載。另以原 GUI 來源綁定作可獨立檢查的缺口證據。
+- **仍為 29／88，NFB-AC-21 和 SWT-AC-14 都是 `EVIDENCE_CANDIDATE_ONLY`**：必須再把數量模式「每個孔型版本的品牌預設與本層／單顆繼承」接回唯一版本權威，經新增版本及切換版／確定／取消／存檔重開的真 GUI 驗收才可簽。不得新增另一個 Set.switch_brand 權威、不得影響套／連舊全域品牌控件。此 PR 不宣稱已完成該功能，也沒有 Windows 全 GUI 驗收。
+
 ## CURRENT｜2026-10-23 #1504 AC-29／SWT-19 現行 V5 CSV 來源變更與重載幾何失效（exact CI 後生效）
 
 - `NFB-AC-29`／`SWT-AC-19` 原規格的歷史 DXF source 不可用於當期新選型：以 **真正士林 `NFB數值規格.csv` 的隔離位元組副本**（無異動 canonical），在受電箱 W800 的正常實體內門＋底板同一 `NFBConfig` 中測 `.p6fold Save→Reload`。未變來源須重新導出相同真實 FinalScene/CUTTING；CSV 同一型號開孔數值變動後，絕不能沿用原 Scene、緩存有效標誌或已輸出的 DXF。新 `FinalScene`／原操作內門＋底板 DXF 必須真實重新計算不同孔輪廓，舊合法 DXF 不受影響。
