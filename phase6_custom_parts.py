@@ -126,6 +126,8 @@ def custom_part_only_change(previous, current):
                 if isinstance(mapping,Mapping):
                     for key in keys:
                         mapping.pop(key,None)
+                    if not mapping:
+                        block.pop(name,None)
     for block in (old,new):
         for key in ("origin","revision","fingerprint","transaction_id","delta"):
             block.pop(key,None)

@@ -138,9 +138,14 @@ def _clip_axis_bend(name: str, line: LineString, material, vertical: bool) -> Be
     clipped = material.intersection(line)
     if clipped.is_empty:
         raise GeometryError(f"bend {name} does not intersect material")
-    if clipped.geom_type == "MultiLineString":
-        clipped = max(clipped.geoms, key=lambda geom: geom.length)
-    if clipped.geom_type != "LineString":
+    if clipped.geom_type in ("MultiLineString", "GeometryCollection"):
+        line_parts = [
+            geom for geom in getattr(clipped, "geoms", ())
+            if getattr(geom, "geom_type", None) == "LineString" and geom.length > 0
+        ]
+        if line_parts:
+            clipped = max(line_parts, key=lambda geom: geom.length)
+    if clipped.geom_type != "LineString" or clipped.length <= 0:
         raise GeometryError(f"bend {name} did not clip to a line")
     coords = list(clipped.coords)
     a = Vec2(float(coords[0][0]), float(coords[0][1]))

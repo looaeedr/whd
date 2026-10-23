@@ -384,6 +384,8 @@ def resize_receiving_bays(layout: Mapping[str, object], *, set_index: int, bay_c
     inherit the previous Joint alignment. Truncation removes only the tail.
     """
     normalized, selected = _layout_set(layout, set_index)
+    if isinstance(bay_count, (bool, float)):
+        raise ValueError("Receiving bay_count must be an integer")
     try:
         wanted = int(bay_count)
     except (TypeError, ValueError) as exc:
@@ -456,6 +458,8 @@ def append_receiving_set(layout: Mapping[str, object]) -> dict[str, object]:
 def resize_receiving_sets(layout: Mapping[str, object], *, set_count: int) -> dict[str, object]:
     """Progressive tail-only Set resize; Set1 is permanent."""
     normalized = normalize_receiving_layout(layout)
+    if isinstance(set_count, (bool, float)):
+        raise ValueError("Receiving set_count must be an integer")
     try:
         wanted = int(set_count)
     except (TypeError, ValueError) as exc:
@@ -567,6 +571,10 @@ def project_receiving_bay_legacy_aliases(
     result = ensure_receiving_layout(snapshot)
     if "receiving_layout" not in result:
         return result
+    is_quantity_mode = result.get("active_mode") == "quantity"
+    if is_quantity_mode:
+        set_index = 0
+        bay_index = 0
     persisted_layout = deepcopy(result["receiving_layout"])
     normalized, selected = _layout_set(persisted_layout, set_index)
     bays = selected["bays"]
@@ -574,12 +582,15 @@ def project_receiving_bay_legacy_aliases(
         raise IndexError("Receiving bay_index out of range")
     bay = bays[bay_index]
     result["receiving_layout"] = persisted_layout
-    result[RECEIVING_RUNTIME_SELECTION_KEY] = {
-        "set_index": int(set_index),
-        "bay_index": int(bay_index),
-        "set_id": str(selected["stable_id"]),
-        "bay_id": str(bay["stable_id"]),
-    }
+    if is_quantity_mode:
+        result.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
+    else:
+        result[RECEIVING_RUNTIME_SELECTION_KEY] = {
+            "set_index": int(set_index),
+            "bay_index": int(bay_index),
+            "set_id": str(selected["stable_id"]),
+            "bay_id": str(bay["stable_id"]),
+        }
     if "door_state" in bay:
         for key in RECEIVING_DOOR_STATE_KEYS:
             result.pop(key, None)
@@ -595,10 +606,19 @@ def project_receiving_bay_legacy_aliases(
     result["h"] = float(bay["height"])
     result["d"] = float(bay["depth"])
     _set_transient_back_panel_mode(result, str(bay["back_panel_mode"]))
-    if "settings" in selected:
+    should_project_settings = "settings" in selected or (
+        not is_quantity_mode
+        and any("settings" in row for row in normalized["sets"])
+    )
+    if should_project_settings:
+        effective_selected = (
+            selected
+            if "settings" in selected
+            else {**selected, "settings": normalize_set_settings(None, bays)}
+        )
         features = deepcopy(dict(result.get("surface_features") or {}))
         for role in ("head", "tail"):
-            features[role] = setting_value(selected, bay_index, f"{role}_features")
+            features[role] = setting_value(effective_selected, bay_index, f"{role}_features")
         result["surface_features"] = features
         part_features = deepcopy(dict(result.get("part_features") or {}))
         for role in ("head", "tail"):
@@ -610,14 +630,14 @@ def project_receiving_bay_legacy_aliases(
             for key in tuple(part_features):
                 if str(key).startswith("inner_door:") and str(key).endswith(":panel"):
                     part_features[key] = []
-            part_features.update(setting_value(selected, bay_index, "inner_door_features"))
+            part_features.update(setting_value(effective_selected, bay_index, "inner_door_features"))
         result["part_features"] = part_features
-        result["receiving_inner_door_layers"] = setting_value(selected, bay_index, "inner_door_layers")
+        result["receiving_inner_door_layers"] = setting_value(effective_selected, bay_index, "inner_door_layers")
         result["receiving_inner_door_models"] = setting_value(
-            selected, bay_index, "inner_door_models"
+            effective_selected, bay_index, "inner_door_models"
         )
         result["receiving_inner_door_layer_heights_mm"] = setting_value(
-            selected, bay_index, "inner_door_layer_heights_mm"
+            effective_selected, bay_index, "inner_door_layer_heights_mm"
         )
     if validate_common:
         try:

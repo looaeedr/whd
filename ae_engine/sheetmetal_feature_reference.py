@@ -399,13 +399,15 @@ def generate_round_refill(
         raise ValueError(f"unsupported round refill direction: {direction}")
     pitch = _round_pattern_pitch(seed, driver, value)
     center = feature_finished_point(seed, width, height)
-    minx, miny, maxx, maxy = (float(v) for v in surface.polygon.bounds)
+    minx, maxx, miny, maxy = _surface_axis_edges(surface, center)
     r = float(seed.diameter) / 2.0
 
     horizontal = direction in {"left", "right", "both_horizontal"}
     lo = (minx + r) if horizontal else (miny + r)
     hi = (maxx - r) if horizontal else (maxy - r)
-    span = max(0.0, hi - lo)
+    if hi < lo:
+        return ()
+    span = hi - lo
     count = max(1, int(span // pitch) + 1)
     used = pitch * (count - 1)
     if direction in {"left", "down"}:

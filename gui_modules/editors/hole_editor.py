@@ -901,7 +901,8 @@ def _indicator_door_context(host, values):
     result = build_door_result(
         w=spec.width, h=spec.height, t=values["t"], fw=values["fw"],
         gap_w=values["door_gap_w"], gap_h=values["door_gap_h"],
-        fold_left=19.0, fold_right=19.0, fold_top=19.0, fold_bottom=19.0,
+        fold_left=spec.fold_left, fold_right=spec.fold_right,
+        fold_top=spec.fold_top, fold_bottom=spec.fold_bottom,
     )
     return {
         "title": "指示燈小門", "surface": surface,
@@ -979,7 +980,33 @@ def open_part_hole_editor(host, part_key):
         def sync_features():
             app.designer_workspace.stash_features(part_key, features)
             host.surface_features[part_key] = list(features)
+            if part_key == "door":
+                for indicator_key in ("indicator_box", "indicator_door"):
+                    if indicator_key in app.designer_workspace.available_parts:
+                        app.designer_workspace.stash_features(
+                            indicator_key,
+                            host.surface_features.get(indicator_key, []),
+                        )
             app.submit_update_intent('geometry', commit=True)
+
+        editor_context['feature_list_override'] = features
+        editor_context['sync_callback'] = sync_features
+    else:
+        features = host.surface_features.setdefault(part_key, [])
+
+        def sync_features():
+            host.surface_features[part_key] = list(features)
+            host.workspace_controller.replace_part_features(part_key, features)
+            if part_key == "door":
+                for indicator_key in ("indicator_box", "indicator_door"):
+                    host.workspace_controller.replace_part_features(
+                        indicator_key,
+                        host.surface_features.get(indicator_key, []),
+                    )
+            if hasattr(host, "_derived_cache_owner"):
+                host._derived_cache_owner.invalidate("geometry")
+            if hasattr(host, "_authoritative_part_render_cache"):
+                host._authoritative_part_render_cache.pop(part_key, None)
 
         editor_context['feature_list_override'] = features
         editor_context['sync_callback'] = sync_features

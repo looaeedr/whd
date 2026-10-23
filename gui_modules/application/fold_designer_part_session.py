@@ -53,12 +53,22 @@ class Phase6PartSessionOwner:
         key = app.designer_workspace.active_part
         if not key:
             return
-        if app.designer_workspace.custom_part(key) is not None:
-            app.designer_workspace.stash_profiles(key, {axis:bridge.clone_profile(app.state.profiles.get(axis,())) for axis in ("X","Y")})
-            return
         try:
             app.bend_ui.save()
         except Exception:
+            return
+        custom_spec = app.designer_workspace.custom_part(key)
+        if custom_spec is not None:
+            profiles = {axis: bridge.clone_profile(app.state.profiles.get(axis, ())) for axis in ("X", "Y")}
+            fold_axis = str(getattr(custom_spec, "fold_axis", "X")).upper()
+            t_val = bridge._num(
+                getattr(app, "_settings_values", {}).get(
+                    "t", getattr(app, "_phase6_input_snapshot", {}).get("t", 2.0)
+                ),
+                2.0,
+            )
+            bridge.apply_outside_dimension_compensation(profiles.get(fold_axis, []), float(t_val))
+            app.designer_workspace.stash_profiles(key, profiles)
             return
         bridge._phase6_replace_mapping(app, '_phase6_box_whd', {'w': bridge.original.get_int(app.v_w.get()), 'h': bridge.original.get_int(app.v_h.get()), 'd': bridge.original.get_int(app.v_d.get())})
         if bridge._phase6_is_box_body_physical_piece_key(key):

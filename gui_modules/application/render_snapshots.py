@@ -133,6 +133,8 @@ def door_layout_divider_frame_snapshot(host, columns, val):
             thickness=t_val,
             layout_scope=getattr(host, "door_layout_scope", "main"),
             handle_edges=getattr(host, "door_layout_handle_edges", {}),
+            model_name=host._baseline_source_model() if hasattr(host, "_baseline_source_model") else "",
+            frame_width=float(val.get("fw", ae.FW)),
         )
         for div in dividers:
             placement = assembly_placement.resolve_assembly_placement(project_snapshot, div.stable_id)
