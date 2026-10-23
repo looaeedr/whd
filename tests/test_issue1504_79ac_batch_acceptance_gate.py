@@ -15,7 +15,7 @@ VERIFY=ROOT/"docs"/"superpowers"/"verification"
 AUDIT=VERIFY/"issue1504_79_pending_ac_batch_source_audit.json"
 MATRIX=VERIFY/"issue1504_nfb_v14_ac_traceability.json"
 BATCH={"NFB-AC-48","NFB-AC-49","NFB-AC-50","SWT-AC-28"}
-FOLLOWUP={"NFB-AC-06","NFB-AC-08","NFB-AC-26","NFB-AC-33","NFB-AC-37","SWT-AC-17","SWT-AC-25","NFB-AC-04","NFB-AC-19","NFB-AC-05","NFB-AC-27","SWT-AC-06"}
+FOLLOWUP={"NFB-AC-06","NFB-AC-08","NFB-AC-26","NFB-AC-33","NFB-AC-37","SWT-AC-17","SWT-AC-25","NFB-AC-04","NFB-AC-19","NFB-AC-05","NFB-AC-27","SWT-AC-06","NFB-AC-54","SWT-AC-31"}
 BASELINE_GROUPS={
     "EVIDENCE_CANDIDATE_ONLY":44,
     "BLOCKED_1500_REAL_GUI":17,
@@ -23,9 +23,9 @@ BASELINE_GROUPS={
     "DEFERRED_PRODUCT_EVIDENCE":4,
 }
 AFTER_GROUPS={
-    "EVIDENCE_CANDIDATE_ONLY":28,
+    "EVIDENCE_CANDIDATE_ONLY":26,
     "BLOCKED_1500_REAL_GUI":17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE":25,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE":27,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC":14,
     "DEFERRED_PRODUCT_EVIDENCE":4,
 }
@@ -111,6 +111,8 @@ def test_four_source_signoffs_require_real_exact_primary_and_negative_tests():
             assert any(isinstance(n,(ast.Assert,ast.With,ast.For,ast.If))
                        for n in ast.walk(funcs[name])), item
     for key in ("NFB-AC-54","SWT-AC-31"):
-        assert rows[key]["accepted"] is False
+        row=rows[key]
+        assert row["accepted"] is True
+        assert row["acceptance_evidence"]["external_historical_binary_read_executed"] is False
     assert sum(1 for r in rows.values() if r["status"]=="BLOCKED_1500_REAL_GUI")==17
     assert sum(1 for r in rows.values() if r["status"]=="DEFERRED_PRODUCT_EVIDENCE")==4
