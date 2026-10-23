@@ -961,7 +961,8 @@
           "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py::test_ac24_two_tiers_per_hole_reasons_do_not_hide_draft_or_other_part",
           "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac24_requested_nfb_or_side_sheet_still_cannot_bypass_missing_source",
           "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py::test_ac24_original_gui_nfb_dependent_selection_does_not_mask_current_bay",
-          "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py::test_ac24_unconfirmed_world_x_blocks_original_dxf_not_unrelated_scope"
+          "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py::test_ac24_unconfirmed_world_x_blocks_original_dxf_not_unrelated_scope",
+          "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py::test_ac24_original_part_writer_rejects_collision_stale_count_or_unowned_slot"
         ],
         "original_ac_text_unchanged": true,
         "source_sha_pins_unchanged": true,
