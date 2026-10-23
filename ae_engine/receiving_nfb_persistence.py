@@ -19,6 +19,11 @@ DERIVED_KEYS = frozenset({
     "collision", "collisions", "preview", "preview_only", "approved",
     "certified_x_revision", "nfb_trial_export_approved",
     "physical_part_readiness", "diagnostics",
+    # #1504 AC-24 live verification is a READ-ONLY projection; it is not
+    # an operator-entered field, and must never become another saved truth.
+    "configuration_verified", "manufacturing_verified", "source_status",
+    "unit_rows", "part_rows", "derived_state", "unresolved_dependencies",
+    "actual_export_count", "whole_ready",
 })
 NFB_FIELDS = frozenset({"nfb_config_submitted", "nfb_config"})
 
