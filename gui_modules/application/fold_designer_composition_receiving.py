@@ -572,6 +572,45 @@ def _receiving_bay_preview_face_features_key(face_features):
     return {**face_features, "box_body": retained}
 
 
+def _receiving_default_local_joints_only(rows):
+    """Allow suffix cache reuse only for certified local default EndCap joints.
+
+    The real GUI creates intent-derived Head/Tail to BoxBody joints even in a
+    fresh receiving project. These do not connect distant Bays. Any user,
+    solver, family, unknown or revised joint still fails closed to full solve.
+    """
+    from collections.abc import Mapping
+
+    if rows is None:
+        return True
+    if not isinstance(rows, (list, tuple)):
+        return False
+    for raw in rows:
+        if not isinstance(raw, Mapping):
+            return False
+        part, target = raw.get("subject_part"), raw.get("target_part")
+        edge, source = raw.get("edge"), raw.get("source")
+        if (part not in ("head", "tail") or target != "box_body"
+                or edge not in ("TOP", "BOTTOM", "LEFT", "RIGHT")
+                or raw.get("revision") != 1):
+            return False
+        origin = raw.get("migration_origin")
+        if source == "INTENT_DERIVED":
+            if origin != "ASSEMBLY_INTENT":
+                return False
+        elif source == "LEGACY_MIGRATED":
+            if origin not in ("ASSEMBLY_TYPE", "ENDCAP_BOTTOM_WRAP"):
+                return False
+        else:
+            return False
+        joint_id = raw.get("joint_id", "")
+        if (not isinstance(joint_id, str)
+                or not joint_id.startswith(f"{part}:box_body:{edge.lower()}:")
+                or not joint_id.endswith(":intent_derived")):
+            return False
+    return True
+
+
 def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_index,
                                                  allow_upstream_translation=False,
                                                  allow_suffix_topology_reuse=False):
@@ -620,8 +659,10 @@ def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_inde
     # non-neighboring Bays. Even with both optimization flags disabled, the
     # ordinary path below would still hide trailing dimensions. Never reuse
     # a possibly stale FinalScene: retain the entire authoritative key.
-    if any(fingerprint_snapshot.get(field)
-           for field in ("assembly_joints", "custom_parts", "joint_relief_state")):
+    if (fingerprint_snapshot.get("custom_parts")
+            or fingerprint_snapshot.get("joint_relief_state")
+            or not _receiving_default_local_joints_only(
+                fingerprint_snapshot.get("assembly_joints"))):
         return fingerprint_snapshot
     keep_count = min(len(bays), bay_index + 2)
     trim_suffix = allow_suffix_topology_reuse and keep_count < len(bays)

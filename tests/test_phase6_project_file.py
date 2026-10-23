@@ -637,3 +637,289 @@ def test_p6fold_round_trip_preserves_receiving_bottom_wrap_linkage_and_reserves(
     loaded = project.read_project(path)
 
     assert loaded["snapshot"]["endcap_bottom_wrap"] == state
+
+
+def test_d2_01_reset_door_indicator_offset_y_does_not_raise_name_error():
+    from types import SimpleNamespace
+    from gui import Phase6ApplicationHost
+
+    calls = []
+    dummy = SimpleNamespace(
+        door_indicator_offset_y=15.0,
+        draw_preview=lambda: calls.append("draw_preview"),
+    )
+    Phase6ApplicationHost.reset_door_indicator_offset_y(dummy)
+    assert dummy.door_indicator_offset_y == 0.0
+    assert calls == ["draw_preview"]
+
+
+def test_d2_02_snapshot_and_live_sync_preserve_door_distance_datum_and_per_cell_indicator_states():
+    from types import SimpleNamespace
+    from gui import Phase6ApplicationHost
+    from gui_modules.application.fold_designer_snapshot_projection import _snapshot_base_state
+    from gui_modules.application.fold_designer_composition_state import corner_transaction_payload
+    from ae_engine.sheetmetal_geometry import CornerTypeId
+
+    class _Var:
+        def __init__(self, value):
+            self.value = value
+
+        def get(self):
+            return self.value
+
+        def set(self, value):
+            self.value = value
+
+    host = SimpleNamespace(
+        workspace_controller=SimpleNamespace(active_part="door"),
+        baseline_var=_Var("自動控制箱 (無底座)"),
+        project_controller=SimpleNamespace(project_path=None),
+        w_var=_Var("600"),
+        h_var=_Var("800"),
+        d_var=_Var("250"),
+        t_var=_Var("2.0"),
+        fw_z_var=_Var("25"),
+        zl1_var=_Var("15"),
+        zl2_var=_Var("25"),
+        zr2_var=_Var("25"),
+        zr1_var=_Var("15"),
+        yl1_var=_Var("15"),
+        yr1_var=_Var("15"),
+        ytop1_var=_Var("15"),
+        ybottom1_var=_Var("15"),
+        door_gap_w_var=_Var("2.5"),
+        door_gap_h_var=_Var("2.5"),
+        door_fold_l_var=_Var("20"),
+        door_fold_r_var=_Var("20"),
+        door_fold_t_var=_Var("20"),
+        door_fold_b_var=_Var("20"),
+        base_plate_shrink_top_var=_Var("0"),
+        base_plate_shrink_bottom_var=_Var("0"),
+        base_plate_shrink_left_var=_Var("0"),
+        base_plate_shrink_right_var=_Var("0"),
+        base_plate_bend_var=_Var("20"),
+        is_box_dist_var=_Var(True),
+        multi_door_enabled_var=_Var(True),
+        door_layout_scope="main",
+        door_layout_handle_edges={"0:0": "right"},
+        receiving_inner_doors=[{"stable_id": "inner_door_c1_r1"}],
+        door_nameplate_center_datum_top=120.0,
+        door_layout_indicator_states={
+            "0:0": {
+                "enabled": True,
+                "mode": "indicator_box",
+                "layers": 2,
+                "groups": [3, 4, 2, 2, 2, 2],
+                "offset_x": 12.5,
+                "offset_y": -8.0,
+                "is_box_dist": True,
+            },
+            "1:0": {
+                "enabled": False,
+                "mode": "none",
+                "layers": 1,
+                "groups": [2, 2, 2, 2, 2, 2],
+                "offset_x": 0.0,
+                "offset_y": 0.0,
+                "is_box_dist": False,
+            },
+        },
+        door_layout_indicator_box_features={"0:0": [{"id": "ib-feat-1"}]},
+        door_layout_indicator_door_features={"0:0": [{"id": "id-feat-1"}]},
+        endcap_fw_state={},
+        endcap_bottom_wrap_state={},
+        assembly_relief_state={},
+        door_layout_columns=[[300.0, [800.0]], [300.0, [800.0]]],
+        get_door_layout_columns=lambda: [(300.0, [800.0]), (300.0, [800.0])],
+        _current_box_assembly_type=lambda: CornerTypeId.INSERT_OVERLAY,
+        _collect_main_setting_values=lambda: {},
+        _serialize_manual_corner_state=lambda: {},
+        manual_corner_pair_same={},
+        _baseline_model_choices=lambda: ["自動控制箱 (無底座)", "自訂"],
+    )
+
+    base_snap = _snapshot_base_state(host)
+    assert base_snap["use_box_distance"] is True
+    assert base_snap["door_nameplate_center_datum_top"] == 120.0
+    assert base_snap["door_layout_indicator_states"]["0:0"]["mode"] == "indicator_box"
+    assert base_snap["door_layout_indicator_states"]["0:0"]["offset_x"] == 12.5
+    assert base_snap["door_layout_indicator_box_features"] == {"0:0": [{"id": "ib-feat-1"}]}
+    assert base_snap["door_layout_indicator_door_features"] == {"0:0": [{"id": "id-feat-1"}]}
+
+    fake_app = SimpleNamespace(
+        _phase6_input_snapshot=dict(base_snap),
+        _settings_values={},
+        _phase6_box_whd={"w": 600.0, "h": 800.0, "d": 250.0},
+        _phase6_corner_state={},
+        _phase6_corner_pair_same={},
+        _phase6_endcap_fw_state={},
+        _phase6_endcap_bottom_wrap_state={},
+        _phase6_assembly_type=CornerTypeId.INSERT_OVERLAY,
+        active_part_key="door",
+        baseline_model_var=_Var("自動控制箱 (無底座)"),
+    )
+    fake_composition = SimpleNamespace(
+        app=fake_app,
+        _required=lambda ns, name: (lambda v: list(v or ())) if name == "clone_profile" else (lambda v: {}),
+        collect_workspace_state=lambda ns: {"existing_parts": ["box_body", "door"]},
+        serialize_assembly_relief_state=lambda ns: {},
+    )
+    tx_payload = corner_transaction_payload(fake_composition, {})
+    assert tx_payload["use_box_distance"] is True
+    assert tx_payload["door_nameplate_center_datum_top"] == 120.0
+    assert tx_payload["door_layout_indicator_states"]["0:0"]["offset_x"] == 12.5
+    assert tx_payload["door_layout_indicator_box_features"] == {"0:0": [{"id": "ib-feat-1"}]}
+    assert tx_payload["door_layout_indicator_door_features"] == {"0:0": [{"id": "id-feat-1"}]}
+
+    reload_target = SimpleNamespace(
+        settings_service=SimpleNamespace(snapshot=lambda: {}),
+        _apply_fold_designer_live_settings=lambda *a, **k: None,
+        _apply_manual_corner_snapshot=lambda *a, **k: None,
+        _set_box_assembly_type=lambda *a, **k: None,
+        _apply_endcap_fw_snapshot=lambda *a, **k: None,
+        multi_door_enabled_var=_Var(False),
+        set_door_layout_columns=lambda cols: None,
+        is_box_dist_var=_Var(False),
+        door_nameplate_center_datum_top=None,
+        door_layout_indicator_states={},
+        door_layout_indicator_box_features={},
+        door_layout_indicator_door_features={},
+        _store_fold_designer_workspace=lambda *a, **k: None,
+        _sync_fold_designer_manual_corner_context=lambda *a, **k: None,
+        _reload_current_baseline_features=lambda *a, **k: None,
+        _request_phase6_update=lambda *a, **k: None,
+    )
+    base_snap_with_profile = dict(base_snap, box_body_profile=[{"len": 100.0, "angle": 90.0}])
+    Phase6ApplicationHost._apply_original_fold_designer_snapshot(reload_target, base_snap_with_profile)
+    assert reload_target.is_box_dist_var.get() is True
+    assert reload_target.door_nameplate_center_datum_top == 120.0
+    assert reload_target.door_layout_indicator_states["0:0"]["offset_x"] == 12.5
+    assert reload_target.door_layout_indicator_box_features == {"0:0": [{"id": "ib-feat-1"}]}
+    assert reload_target.door_layout_indicator_door_features == {"0:0": [{"id": "id-feat-1"}]}
+
+    live_target = SimpleNamespace(
+        _fold_designer_live_sync_guard=False,
+        baseline_var=_Var("自動控制箱 (無底座)"),
+        _apply_fold_designer_live_settings=lambda *a, **k: None,
+        _apply_manual_corner_snapshot=lambda *a, **k: None,
+        _set_box_assembly_type=lambda *a, **k: None,
+        _phase6_current_existing_parts=lambda: ["box_body", "door"],
+        _apply_endcap_fw_snapshot=lambda *a, **k: None,
+        _store_fold_designer_workspace=lambda *a, **k: None,
+        _apply_existing_parts_from_fold_workspace=lambda *a, **k: None,
+        surface_features={},
+        w_var=_Var("600"),
+        d_var=_Var("250"),
+        set_door_layout_columns=lambda cols: None,
+        get_door_layout_columns=lambda: [(300.0, [800.0]), (300.0, [800.0])],
+        multi_door_enabled_var=_Var(False),
+        is_box_dist_var=_Var(False),
+        door_nameplate_center_datum_top=None,
+        door_layout_indicator_states={},
+        door_layout_indicator_box_features={},
+        door_layout_indicator_door_features={},
+        _sync_fold_designer_manual_corner_context=lambda *a, **k: None,
+        refresh_corner_type_panel=lambda *a, **k: None,
+        _phase6_update_scheduler=SimpleNamespace(mark_dirty=lambda *a, **k: None),
+        project_controller=SimpleNamespace(capture_committed=lambda *a, **k: None),
+        _compose_phase6_project_snapshot_from_main_gui=lambda: {},
+    )
+    Phase6ApplicationHost._apply_fold_designer_live_snapshot(live_target, tx_payload)
+    assert live_target.is_box_dist_var.get() is True
+    assert live_target.door_nameplate_center_datum_top == 120.0
+    assert live_target.door_layout_indicator_states["0:0"]["offset_x"] == 12.5
+    assert live_target.door_layout_indicator_box_features == {"0:0": [{"id": "ib-feat-1"}]}
+    assert live_target.door_layout_indicator_door_features == {"0:0": [{"id": "id-feat-1"}]}
+
+
+def test_d2_03_fold_designer_part_spec_uses_per_cell_indicator_state_for_multi_door():
+    from types import SimpleNamespace
+    from ae_engine import manufacturing_api
+    from gui import Phase6ApplicationHost
+    from gui_modules.application.manufacturing_adapter import _door_part_spec_from_values
+
+    class _Var:
+        def __init__(self, value):
+            self.value = value
+
+        def get(self):
+            return self.value
+
+    host = SimpleNamespace(
+        _fold_designer_corner_policy_from_payload=lambda corner_state, part, fw: None,
+        _current_cabinet_type_name=lambda: "自動控制箱 (無底座)",
+        _apply_cabinet_family_endcap_policy=lambda resolved, part, **kw: resolved,
+        _door_material_frame_width=lambda fw, t, model_name=None: float(fw) - float(t),
+        door_nameplate_center_datum_top=None,
+    )
+    host._door_part_spec_from_values = _door_part_spec_from_values.__get__(host, SimpleNamespace)
+
+    payload = {
+        "model": "自動控制箱 (無底座)",
+        "w": 800.0,
+        "h": 1000.0,
+        "d": 250.0,
+        "t": 2.0,
+        "fw": 25.0,
+        "indicator_layer_groups": (6, 6),
+        "door_indicator_groups": (6, 6),
+        "door_indicator_box_enabled": True,
+        "door_indicator_offset": (99.0, 99.0),
+        "use_box_distance": True,
+        "door_layout_columns": [
+            [400.0, [1000.0]],
+            [400.0, [1000.0]],
+        ],
+        "door_layout_indicator_states": {
+            "0:0": {
+                "enabled": True,
+                "mode": "indicator",
+                "layers": 2,
+                "groups": [3, 5, 2, 2, 2, 2],
+                "offset_x": 15.0,
+                "offset_y": -10.0,
+                "is_box_dist": True,
+            },
+            "1:0": {
+                "enabled": False,
+                "mode": "none",
+                "layers": 1,
+                "groups": [2, 2, 2, 2, 2, 2],
+                "offset_x": 0.0,
+                "offset_y": 0.0,
+                "is_box_dist": False,
+            },
+        },
+    }
+
+    spec_0, _ = Phase6ApplicationHost._fold_designer_part_spec_from_payload(host, "door_c1_r1", payload)
+    spec_1, _ = Phase6ApplicationHost._fold_designer_part_spec_from_payload(host, "door_c2_r1", payload)
+
+    assert spec_0.indicator_hole is None
+    assert spec_0.door_indicator == (3, 5)
+    assert spec_0.door_indicator_offset == (15.0, -10.0)
+    assert spec_0.use_box_distance is True
+
+    assert spec_1.indicator_hole is None
+    assert spec_1.door_indicator is None
+    assert spec_1.door_indicator_offset == (0.0, 0.0)
+    assert spec_1.use_box_distance is False
+
+
+def test_d2_04_and_d2_05_timestamps_use_taipei_timezone(tmp_path):
+    from phase6_project_controller import Phase6ProjectController
+    from gui_modules.runtime_error_log import write_runtime_exception
+
+    ts = Phase6ProjectController._default_clock()
+    assert ts.endswith("+08:00")
+
+    log_path = tmp_path / "runtime_err.log"
+    try:
+        raise RuntimeError("boom-tz-check")
+    except RuntimeError as exc:
+        write_runtime_exception("unit-test", exc, log_path=log_path)
+
+    content = log_path.read_text(encoding="utf-8")
+    assert "+08:00]" in content
+
+

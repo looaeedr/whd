@@ -293,7 +293,7 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
     )
     if has_resolved_geometry:
         render_data = build_part_render_data(spec, context)
-        save_scene_dxf(filepath, render_data.scene)
+        save_part_render_data_dxf(render_data, filepath, overwrite=True)
         return "final_scene_end_cap_export", baseline, expected
     if baseline is not None:
         _call(

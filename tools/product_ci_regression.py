@@ -361,6 +361,13 @@ PYTEST_PATHS = (
     "tests/test_phase6_project_file.py::test_main_connected_designer_project_save_as_persists_current_live_canonical_state",
     "tests/test_phase6_project_file.py::test_project_round_trip_preserves_verified_joint_relief_state",
     "tests/test_phase6_project_file.py::test_p6fold_round_trip_preserves_receiving_bottom_wrap_linkage_and_reserves",
+    # D1-01..D1-12 production geometry/manufacturing regressions.
+    "tests/test_d1_geometry_manufacturing_fixes.py",
+    # D2-01..D2-05 GUI save/reload, per-cell door indicator and Taiwan clock.
+    "tests/test_phase6_project_file.py::test_d2_01_reset_door_indicator_offset_y_does_not_raise_name_error",
+    "tests/test_phase6_project_file.py::test_d2_02_snapshot_and_live_sync_preserve_door_distance_datum_and_per_cell_indicator_states",
+    "tests/test_phase6_project_file.py::test_d2_03_fold_designer_part_spec_uses_per_cell_indicator_state_for_multi_door",
+    "tests/test_phase6_project_file.py::test_d2_04_and_d2_05_timestamps_use_taipei_timezone",
 )
 
 

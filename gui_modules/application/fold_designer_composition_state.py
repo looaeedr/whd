@@ -134,6 +134,18 @@ def corner_transaction_payload(self, namespace):
         "model": str(app.baseline_model_var.get() or "").strip(),
         "settings": dict(getattr(app, "_settings_values", {})),
         "multi_door_enabled": bool(source.get("multi_door_enabled", False)),
+        "use_box_distance": bool(source.get("use_box_distance", False)),
+        "inner_doors": deepcopy(source.get("inner_doors") or []),
+        "door_nameplate_center_datum_top": source.get("door_nameplate_center_datum_top"),
+        "door_layout_indicator_states": deepcopy(
+            source.get("door_layout_indicator_states") or {}
+        ),
+        "door_layout_indicator_box_features": deepcopy(
+            source.get("door_layout_indicator_box_features") or {}
+        ),
+        "door_layout_indicator_door_features": deepcopy(
+            source.get("door_layout_indicator_door_features") or {}
+        ),
         "door_layout_columns": deepcopy(
             source.get("door_layout_columns") or []
         ),

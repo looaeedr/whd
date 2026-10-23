@@ -1726,7 +1726,7 @@ class Phase6ApplicationHost:
         self.door_indicator_offset_y = 0.0
         self.draw_preview()
 
-        draw_hole_editor_hint(canvas, cw, endcap=False)
+
 
     def _door_layout_cell_at_canvas_point(self, x, y):
         return _door_layout_cell_at_canvas_point_impl(self.door_layout_cell_bounds, x, y)

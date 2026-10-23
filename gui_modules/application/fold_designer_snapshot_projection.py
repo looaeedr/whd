@@ -15,6 +15,7 @@ from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, door_layout_featu
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
+from gui_modules.parts.panels.door import normalize_door_indicator_state
 
 def _snapshot_base_state(self):
     """Project current GUI adapters into the existing Fold Designer snapshot schema."""
@@ -75,6 +76,16 @@ def _snapshot_base_state(self):
         "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
         "inner_doors": deepcopy(getattr(self, "receiving_inner_doors", []) or []),
         "door_nameplate_center_datum_top": getattr(self, "door_nameplate_center_datum_top", None),
+        "door_layout_indicator_states": {
+            str(key): normalize_door_indicator_state(state)
+            for key, state in dict(getattr(self, "door_layout_indicator_states", {}) or {}).items()
+        },
+        "door_layout_indicator_box_features": deepcopy(
+            getattr(self, "door_layout_indicator_box_features", {}) or {}
+        ),
+        "door_layout_indicator_door_features": deepcopy(
+            getattr(self, "door_layout_indicator_door_features", {}) or {}
+        ),
         "box_body_active_piece": box_body_active_piece,
     }
     if getattr(self, "door_layout_columns", None):

@@ -215,6 +215,18 @@ def _build_formula_result(*, rule, endcap_render_data, box_body_x_profile, endca
         if cut.is_empty:
             return None
         measurement = _measure_canonical_corner_cut(cut, corner_name, bounds, 0.0)
+        if (
+            int(rule.topology_levels) == 2
+            and resolved.secondary_u is not None
+            and resolved.secondary_depth is not None
+            and measurement.secondary_u is None
+            and measurement.secondary_depth is None
+        ):
+            measurement = replace(
+                measurement,
+                secondary_u=float(resolved.secondary_u),
+                secondary_depth=float(resolved.secondary_depth),
+            )
         cuts.append(cut)
         reliefs.append(BackprojectedCornerRelief(corner_name, cut, measurement))
     return CertifiedReliefResult(rule=rule, cut_polygons=tuple(cuts), corner_reliefs=tuple(reliefs))
@@ -275,7 +287,15 @@ def _top_insert_structural_contact_v1(
     height = float(fw) + 1.0 * t
     cuts = []
     reliefs = []
-    for corner_name in _assembly_joint_corner_names(endcap_y_profile):
+    face = str(rule.joint_face or "TOP").upper()
+    semantic_corners = _assembly_joint_corner_names(endcap_y_profile, face)
+    if face.endswith("_LEFT"):
+        requested_corners = (semantic_corners[0],)
+    elif face.endswith("_RIGHT"):
+        requested_corners = (semantic_corners[1],)
+    else:
+        requested_corners = semantic_corners
+    for corner_name in requested_corners:
         width = _structural_contact_width(
             corner_name=corner_name,
             blank_bounds=blank_bounds,
@@ -333,7 +353,15 @@ def _linked_fw_insert_overlay_v1(
 
     cuts = []
     reliefs = []
-    for corner_name, side_key in zip(_assembly_joint_corner_names(endcap_y_profile), ("yl1", "yr1")):
+    face = str(rule.joint_face or "TOP").upper()
+    semantic_corners = _assembly_joint_corner_names(endcap_y_profile, face)
+    if face.endswith("_LEFT"):
+        requested_pairs = ((semantic_corners[0], "yl1"),)
+    elif face.endswith("_RIGHT"):
+        requested_pairs = ((semantic_corners[1], "yr1"),)
+    else:
+        requested_pairs = tuple(zip(semantic_corners, ("yl1", "yr1")))
+    for corner_name, side_key in requested_pairs:
         side_fold = _profile_segment_length(endcap_x_profile, side_key, None)
         if side_fold is None:
             return None
@@ -350,6 +378,18 @@ def _linked_fw_insert_overlay_v1(
         if cut.is_empty:
             return None
         measurement = _measure_canonical_corner_cut(cut, corner_name, bounds, 0.0)
+        if (
+            int(rule.topology_levels) == 2
+            and resolved.secondary_u is not None
+            and resolved.secondary_depth is not None
+            and measurement.secondary_u is None
+            and measurement.secondary_depth is None
+        ):
+            measurement = replace(
+                measurement,
+                secondary_u=float(resolved.secondary_u),
+                secondary_depth=float(resolved.secondary_depth),
+            )
         cuts.append(cut)
         reliefs.append(BackprojectedCornerRelief(corner_name, cut, measurement))
     return CertifiedReliefResult(rule=rule, cut_polygons=tuple(cuts), corner_reliefs=tuple(reliefs))
@@ -506,6 +546,18 @@ def _data_formula_evaluator(
         if cut.is_empty:
             return None
         measurement = _measure_canonical_corner_cut(cut, corner_name, bounds, 0.0)
+        if (
+            int(rule.topology_levels) == 2
+            and resolved.secondary_u is not None
+            and resolved.secondary_depth is not None
+            and measurement.secondary_u is None
+            and measurement.secondary_depth is None
+        ):
+            measurement = replace(
+                measurement,
+                secondary_u=float(resolved.secondary_u),
+                secondary_depth=float(resolved.secondary_depth),
+            )
         cuts.append(cut)
         reliefs.append(BackprojectedCornerRelief(corner_name, cut, measurement))
     result = CertifiedReliefResult(
@@ -530,6 +582,7 @@ def evaluate_editable_endcap_rule_record(
     endcap_x_profile,
     endcap_y_profile,
     sheet_thickness,
+    box_body_structure_state=None,
 ) -> CertifiedReliefResult | None:
     """Evaluate one editable rule without inserting it into the runtime registry.
 
@@ -553,25 +606,8 @@ def evaluate_editable_endcap_rule_record(
         endcap_y_profile=endcap_y_profile,
         sheet_thickness=sheet_thickness,
         rule=rule,
+        box_body_structure_state=box_body_structure_state,
     )
-
-
-def build_runtime_relief_rules_from_external(path: str | Path | None = None) -> tuple[CertifiedReliefRule, ...]:
-    rows = [row for row in load_external_relief_rule_records(path) if bool(row.get("active", True))]
-    return tuple(
-        _rule_from_record(
-            row,
-            None if str(row.get("rule_domain") or "ENDCAP_RELIEF").strip().upper() == "DIVIDER_CROSS"
-            else _data_formula_evaluator,
-        )
-        for row in rows
-    )
-
-
-def reload_runtime_relief_rules(path: str | Path | None = None) -> tuple[CertifiedReliefRule, ...]:
-    global _RULES
-    _RULES = build_runtime_relief_rules_from_external(path)
-    return _RULES
 
 
 _SPECIAL_RULE_EVALUATORS = {
@@ -585,16 +621,30 @@ _SPECIAL_RULE_EVALUATORS = {
 }
 
 
-def _build_initial_runtime_rules() -> tuple[CertifiedReliefRule, ...]:
-    rows = [row for row in load_external_relief_rule_records() if bool(row.get("active", True))]
+def _select_runtime_rule_evaluator(row: Mapping[str, object]):
+    if str(row.get("rule_domain") or "ENDCAP_RELIEF").strip().upper() == "DIVIDER_CROSS":
+        return None
+    if int(row.get("revision", 1) or 1) == 1:
+        return _SPECIAL_RULE_EVALUATORS.get(str(row.get("rule_id")), _data_formula_evaluator)
+    return _data_formula_evaluator
+
+
+def build_runtime_relief_rules_from_external(path: str | Path | None = None) -> tuple[CertifiedReliefRule, ...]:
+    rows = [row for row in load_external_relief_rule_records(path) if bool(row.get("active", True))]
     return tuple(
-        _rule_from_record(
-            row,
-            None if str(row.get("rule_domain") or "ENDCAP_RELIEF").strip().upper() == "DIVIDER_CROSS"
-            else _SPECIAL_RULE_EVALUATORS.get(str(row.get("rule_id")), _data_formula_evaluator),
-        )
+        _rule_from_record(row, _select_runtime_rule_evaluator(row))
         for row in rows
     )
+
+
+def reload_runtime_relief_rules(path: str | Path | None = None) -> tuple[CertifiedReliefRule, ...]:
+    global _RULES
+    _RULES = build_runtime_relief_rules_from_external(path)
+    return _RULES
+
+
+def _build_initial_runtime_rules() -> tuple[CertifiedReliefRule, ...]:
+    return build_runtime_relief_rules_from_external()
 
 
 _RULES: tuple[CertifiedReliefRule, ...] = _build_initial_runtime_rules()
@@ -803,6 +853,8 @@ def lookup_certified_endcap_relief(
             evaluator_kwargs["box_body_structure_state"] = box_body_structure_state
         result = rule.evaluator(**evaluator_kwargs)
         if result is not None:
+            if result.rule is not rule:
+                result = replace(result, rule=rule)
             _validate_certified_relief_result_topology(result)
             matches.append(result)
     if not matches:
@@ -851,9 +903,16 @@ def lookup_certified_endcap_relief_from_graph(
         results.append(local)
     first = results[0]
     if any(item.rule_id != first.rule_id or item.rule_revision != first.rule_revision for item in results[1:]):
-        return None
+        combined_rule = replace(
+            first.rule,
+            rule_id="+".join(str(item.rule_id) for item in results),
+            revision=max(int(item.rule_revision) for item in results),
+            joint_face="TOP",
+        )
+    else:
+        combined_rule = first.rule if str(first.rule.joint_face or "TOP").upper() == "TOP" else replace(first.rule, joint_face="TOP")
     return CertifiedReliefResult(
-        rule=first.rule,
+        rule=combined_rule,
         cut_polygons=tuple(poly for item in results for poly in tuple(item.cut_polygons or ())),
         corner_reliefs=tuple(rel for item in results for rel in tuple(item.corner_reliefs or ())),
         geometry_evidence={
