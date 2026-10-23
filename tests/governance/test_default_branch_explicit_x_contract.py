@@ -88,7 +88,7 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
         self.assertIn("唯一預設路線：GitHub-only", push)
         self.assertIn("最後一步是正式 GitHub Release", push)
         self.assertIn("不再具有執行權威", push)
-        self.assertIn("由使用者當次 `/推推`", packaging)
+        self.assertIn("使用者**當次 `/推推`** 即驗收", packaging)
         self.assertIn("不允許治理直送 X", packaging)
         self.assertNotIn("直接 PR／CI 合併 X，不經 `localX`", packaging)
 
