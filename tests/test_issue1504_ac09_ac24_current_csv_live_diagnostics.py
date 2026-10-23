@@ -14,7 +14,7 @@ import pytest
 
 from ae_engine.receiving_nfb_v5_diagnostics import current_v5_nfb_diagnostics
 from ae_engine.receiving_nfb_numeric_catalog import (
-    HEADER, brand_csv_path, model_choices, model_spec,
+    HEADER, brand_csv_path, read_numeric_specs,
 )
 from ae_engine.receiving_layout import (
     new_receiving_layout, resize_receiving_bays, update_receiving_bay,
@@ -27,9 +27,10 @@ from phase6_project_file import PROJECT_SCHEMA_V1, PROJECT_SCHEMA_V3, write_proj
 
 
 def _model(brand="士林"):
-    values = model_choices(brand)
-    assert values, brand
-    return values[0]
+    specs = read_numeric_specs(brand)
+    available = [spec.model for spec in specs if spec.dimensionally_complete]
+    assert available, brand
+    return available[0]
 
 
 def _bay(brand="士林", *, count=1, version="b1", state="CONFIRMED"):
