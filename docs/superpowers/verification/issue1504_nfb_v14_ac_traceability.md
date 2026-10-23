@@ -1,3 +1,10 @@
+## CURRENT｜2026-10-23 #1504 內門層數＝NFB 安裝層數（消除冗餘層數權威）
+
+- 使用者已定義 **內門層數就是 NFB 安裝層數**。原 UI 竟為它們各建一個 `tk.IntVar`，隱藏的 `NFB 物理層` 控件又建立兩個無用按鈕；即使畫面隱藏仍暗藏兩套層數，還在確定時檢查兩者不相等的假差異。
+- 已將 `nfb_physical_layers` 改為原 `layers` 的**同物件相容別名**，移除隱藏物理層控制、反覆雙向同步和永不成立的層數相異守衛；原內門版本層數 radio 單一可寫，候選資料／草稿／Undo／確定皆由這個值推導。沒有新增規則、欄位或製造權威。
+- 新 `tests/test_issue1504_unified_inner_nfb_layer_count.py` 從真原 UI AST 檢查只有一組層數 radio、實際 Tk IntVar 改值與 UI-1A 草稿 Undo，並加入 CI。**不要把本來就相同的層數拆成第二項驗證或第二個入口。**
+- #2077 前一輪因 3 個簽核表 hard-coded signed-set 忘記同步 `NFB-AC-01` 而 CI 紅燈（雖 PR 被合併）；本次必以 exact HEAD 完整 Product Regression GREEN 修正／確認。矩陣依現行為 30/88，SWT-AC-01 保留其原 AC 原文，不額外新增「第二種安裝層」驗收條件。
+
 ---
 whd_doc_role: REFERENCE
 whd_contract: issue1504-nfb-v14-ac-traceability
