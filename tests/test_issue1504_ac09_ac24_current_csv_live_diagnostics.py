@@ -209,6 +209,19 @@ def test_ac24_legacy_mixed_and_cross_part_guards():
     ) is None
 
 
+
+def test_ac24_v5_typed_model_identity_accepts_optional_persisted_source_brand():
+    source=_bay()
+    original=source["nfb_config"]["holes"][0]["source_brand"]
+    source["nfb_config"]["holes"][0].pop("source_brand")
+    assert _inspect(source)["derived_state"]=="CONFIGURED"
+    source["nfb_config"]["holes"][0]["source_brand"]=None
+    assert _inspect(source)["derived_state"]=="CONFIGURED"
+    source["nfb_config"]["holes"][0]["source_brand"]="東元"
+    with pytest.raises(ValueError,match="mismatch"):
+        _inspect(source)
+    assert original=="士林"
+
 def test_ac24_forbid_forged_green_status_and_gui_source_is_connected():
     current=_inspect(_bay())
     for bad in (
