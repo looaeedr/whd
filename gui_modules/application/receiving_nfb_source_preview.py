@@ -9,6 +9,7 @@ from ae_engine.receiving_nfb_2d_preview import Nfb2DViewport, NfbDxfPreviewCache
 from ae_engine.receiving_nfb_model_identity import (
     parse_numeric_model_ref, selected_numeric_spec,
 )
+from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
 
 _ACI_COLORS = {30:"#ffb064", 150:"#54c6ff", 212:"#cfb6ff", 3:"#69df90"}
 
@@ -31,6 +32,9 @@ class NfbDxfSourcePreviewPanel:
         self._numeric_mode=False
         self._numeric_zoom=1.0
         self._numeric_pan=(0.0,0.0)
+        # Ephemeral source-only preview cache; never store manufacturing authority.
+        # Keys include brand, model and source file revision.
+        self._numeric_sources={}
         self.identity=tk.StringVar(master=self.frame,value="請選取左側 NFB 型號")
         self.reason=tk.StringVar(master=self.frame,value="尚未選擇 NFB 型號來源｜僅預覽")
         bar=ttk.Frame(self.frame)
@@ -74,9 +78,20 @@ class NfbDxfSourcePreviewPanel:
             try:
                 if parsed is None or parsed[0]!=brand:
                     raise ValueError("V5 型號與選定廠牌不符")
-                spec=selected_numeric_spec(brand,filename)
+                source_stamp=brand_csv_path(brand).stat()
+                key=("v5",brand,filename,source_stamp.st_mtime_ns,
+                     source_stamp.st_ctime_ns,source_stamp.st_size)
+                spec=self._numeric_sources.get(key)
                 if spec is None:
-                    raise ValueError("廠牌 CSV 已無此型號")
+                    # Selecting/highlighting the same source must not
+                    # reparse every row of the numeric brand CSV.
+                    spec=selected_numeric_spec(brand,filename)
+                    if spec is None:
+                        raise ValueError("廠牌 CSV 已無此型號")
+                    self._numeric_sources[key]=spec
+                    # Bound memory across repeated model/brand revisions.
+                    if len(self._numeric_sources)>8:
+                        self._numeric_sources.pop(next(iter(self._numeric_sources)))
             except (ValueError,OSError,UnicodeError) as exc:
                 self._numeric_spec=None
                 self._source_key=None
@@ -85,7 +100,6 @@ class NfbDxfSourcePreviewPanel:
                 self.reason.set(f"V5 數值來源未定：{exc}｜禁止製造")
                 self.paint()
                 return
-            key=("v5",brand,filename,spec)
             if key!=self._source_key:
                 # A new model's viewport must not inherit the old model's
                 # pan/zoom. Re-selecting the same model keeps operator view.
