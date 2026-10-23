@@ -250,3 +250,61 @@ def test_ac21_swt14_invalid_parent_brand_and_old_v2_migrate_without_mutation():
     assert legacy.nfb_config_for_version(original)==q.nfb_config_for_version(original)
 
 
+
+def test_ac21_swt14_changed_quantity_parent_marks_inherited_v5_model_reselect():
+    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_v5_part_only_manufacturing import _current_single_tier_csv_holes
+    a,b=_refs()
+    q=QuantityModel()
+    first=q.selected_version_id
+    q.set_version_nfb_config(first,submitted=True,config=_config(a,0))
+    q.set_version_nfb_parent_brand(first,"東元",legacy_default="士林")
+    data={"model":"受電箱","active_mode":"quantity",
+          "receiving_quantity_box":{"w":800,"h":1600,"d":350,
+                                    "switch_brand":"士林"},
+          "quantity":q.snapshot(),"nfb_config_submitted":True,
+          "nfb_config":q.nfb_config_for_version(first)["nfb_config"]}
+    original=deepcopy(data)
+    assert quantity_inherited_nfb_brand_conflicts(data)==(
+        "nfb:quantity:upper:one",
+    )
+    with pytest.raises(ValueError,match="NEEDS_RESELECTION"):
+        _submitted_csv_holes(data)
+    with pytest.raises(ValueError,match="NEEDS_RESELECTION"):
+        _current_single_tier_csv_holes(data,"upper")
+    assert data==original
+    override=deepcopy(data)
+    q.set_version_nfb_config(first,submitted=True,
+                             config=_config(a,0,brand_mode=OVERRIDE))
+    override["quantity"]=q.snapshot()
+    override["nfb_config"]=q.nfb_config_for_version(first)["nfb_config"]
+    assert quantity_inherited_nfb_brand_conflicts(override)==()
+    # Existing explicit per-unit override remains an independent source.
+    assert parse_numeric_model_ref(override["nfb_config"]["holes"][0][
+        "model_filename"])[0]=="士林"
+
+
+def test_ac21_swt14_quantity_change_parent_preserves_model_and_no_new_ready():
+    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
+    a,_=_refs()
+    q=QuantityModel()
+    first=q.selected_version_id
+    q.set_version_nfb_config(first,submitted=True,config=_config(a,0))
+    first_before=deepcopy(q.nfb_config_for_version(first))
+    second=q.add_version()
+    q.set_version_nfb_parent_brand(second,"東元",legacy_default="士林")
+    result=q.snapshot()
+    assert q.nfb_config_for_version(first)==first_before
+    assert result["versions"][0]["nfb_parent_brand"]=="士林"
+    assert result["versions"][1]["nfb_parent_brand"]=="東元"
+    assert "manufacturing_verified" not in str(result)
+    scope={"active_mode":"quantity","quantity":result,
+           "receiving_quantity_box":{"w":800,"h":1600,"d":350,
+                                     "switch_brand":"士林"}}
+    assert quantity_inherited_nfb_brand_conflicts(scope)==(
+        "nfb:quantity:upper:one",
+    )
+    q.select(first)
+    scope["quantity"]=q.snapshot()
+    assert quantity_inherited_nfb_brand_conflicts(scope)==()

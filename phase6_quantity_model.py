@@ -277,6 +277,31 @@ class QuantityModel:
         }
 
 
+def quantity_inherited_nfb_brand_conflicts(snapshot):
+    """Derived current-version inherited-model conflicts, NEVER saved READY."""
+    if not isinstance(snapshot, Mapping) or snapshot.get("active_mode") != QUANTITY_MODE:
+        return ()
+    from ae_engine.receiving_quantity_box import normalize_common_box
+    from ae_engine.receiving_nfb_model_identity import parse_numeric_model_ref
+    model = QuantityModel.from_payload(snapshot["quantity"])
+    fields = model.nfb_config_for_version(model.selected_version_id)
+    if fields.get("nfb_config_submitted") is not True:
+        return ()
+    common = normalize_common_box(snapshot.get("receiving_quantity_box"))
+    parent = model.nfb_parent_brand_for_version(
+        model.selected_version_id, legacy_default=common["switch_brand"],
+    )
+    conflicts = []
+    for hole in fields["nfb_config"]["holes"]:
+        mode = hole.get("brand_mode", "INHERIT")
+        if mode not in ("INHERIT", "OVERRIDE"):
+            raise ValueError("NFB quantity brand override mode invalid")
+        identity = parse_numeric_model_ref(hole["model_filename"])
+        if mode == "INHERIT" and identity is not None and identity[0] != parent:
+            conflicts.append(hole["physical_hole_id"])
+    return tuple(conflicts)
+
+
 def normalize_quantity_snapshot(snapshot, *, for_save=False):
     """Migrate legacy projects and strip transient/inactive mode data on Save.
 
