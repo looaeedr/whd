@@ -1,5 +1,13 @@
 ## CURRENT｜2026-10-23 NFB-AC-24 逐顆狀態／雙 Bay／多版本／實體板件自動化簽核候選
 
+## CURRENT｜2026-10-23 #1504 AC-32 X 暫存清除與原 Tk Undo 自動化範圍簽核候選（38 → 39）
+
+- [PR #2091](https://github.com/looaeedr/whd/pull/2091) source HEAD `03f08b367fd2714d0fbc1ccdf81936b14be3d852` 的 Product Regression Preflight／Shards0,1,2／Canonical **SUCCESS**，合併 GitHub `localX@d397d06897af41a09b18b02f044f5e761e9986c1` readback 一致。
+- **NFB-AC-32 僅自動化來源範圍**：原生 WHD Tk 內門編輯器以程式準備既有兩顆 X=12.5／0 與基準快照，實際按「－移除」顯示第 1 層清除 2 顆，實際按「復原 NFB」還原 stable unit ID、兩組 X 與基準快照，實際按「取消」不落工程／候選。原 Q5/Q6/Q7 的不同操作、未受影響層、非法輸入與重覆清除由現有來源測試獨立覆核。
+- **38→39 的生效前提**：本簽核 PR exact HEAD 全 Product CI GREEN 及 GitHub `localX` merge/readback。**原兩份 Windows 舊專案實機 GUI／原操作員輸入正式絕對 X／完整製造 DXF/Q／焊接工藝未驗，不宣稱通過。**
+- 88 AC 原始文字與來源 SHA 不變；其他 49 項保留原本阻擋／候選；正式 X 不發布，僅 `/推推` 可放行。
+
+
 ## CURRENT｜2026-10-23 #1504 AC-20／SWT-13 原生品牌預告交易自動化範圍簽核候選（36 → 38）
 
 - GitHub `localX@0c9aa8bb31c59e4f6022b145614958676f7221dd` 已合併 [PR #2089](https://github.com/looaeedr/whd/pull/2089)：原 NFB 編輯器不再隱藏本層／單顆品牌下拉，確定與取消沿用既有唯一 NFB 品牌繼承權威，無顆位時不能留下假選單值。

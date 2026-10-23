@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 38,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 39,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 15,
+    "EVIDENCE_CANDIDATE_ONLY": 14,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -1341,22 +1341,23 @@
       ],
       "regression_candidates": [
         "tests/test_issue1493_nfb_draft_transactions.py",
-        "tests/test_issue1504_ac32_nfb_x_impact_operator.py"
+        "tests/test_issue1504_ac32_nfb_x_impact_operator.py",
+        "tests/test_issue1504_ac32_original_inner_tk_x_undo.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1493_nfb_draft_transactions.py",
-          "test_name": "test_cancel_escape_undo_restore_stable_unit_ids_brand_x_and_conditions",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac32_original_inner_tk_x_undo.py",
+          "test_name": "test_ac32_original_inner_tk_remove_reports_two_real_x_resets_and_undo_restores",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_scope_remaining_evidence": "2026-10-23 source-owned GUI fix: exact affected tier/unit count shown by Tk warning textvariable for Q5/Q6/Q7 and per-slot X clear; NfbUi1aEditSession Undo is now wired to a visible NFB Undo footer button and resets displayed X/rotation fields. Four current CSV V5 source/Tk-control smoke tests are mandatory. Still require true integrated Receiving NFB modal operator screenshot/action sequence, including both original old .p6fold projects, before signing AC32 as full GUI acceptance. No Windows GUI UAT at this PR SHA.",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_scope_remaining_evidence": "2026-10-23 CURRENT CSV V5 operator-source-scope: existing X/datum conditions seeded on original NFB UI1A transient draft, actual integrated WHD inner-editor Tk remove generated exact first-tier 2 affected units (including X=0) and no stale remaining basis, actual Undo restored both IDs, X 12.5/0 and datum_snapshots, actual Cancel did not persist candidate. Exact PR #2091 native test log PASS. Q5/Q6/Q7 domain reset and negative validation covered. This does NOT prove originally saved Windows .p6fold project operator placement input, exact absolute X manufacturing datum, other tiers/bays end-to-end, two old Windows projects, DXF or factory release; these stay separately unsigned. Must pass scoped signoff exact HEAD CI and localX readback.",
       "additional_partial_witnesses": [
         {
           "path": "tests/test_issue1504_ac32_nfb_x_impact_operator.py",
@@ -1364,7 +1365,27 @@
           "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
           "accepted": false
         }
-      ]
+      ],
+      "acceptance_evidence": {
+        "scope": "CURRENT_CSV_V5_SOURCE_SCOPED_ORIGINAL_TK_DELETE_X_CLEAR_LAYER_IMPACT_AND_UNDO: persisted-like datum conditions seeded in transient UI1A draft; actual WHD Tk remove/Undo/Cancel clicked; physical unit IDs and nonzero/zero offsets and datum_snapshots restored; not real operator world-X placement, two original Windows UAT, manufacturing output or factory release",
+        "primary_assertion": "tests/test_issue1504_ac32_original_inner_tk_x_undo.py::test_ac32_original_inner_tk_remove_reports_two_real_x_resets_and_undo_restores",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac32_original_inner_tk_x_undo.py::test_ac32_original_inner_cancel_after_pending_x_change_never_writes_candidate",
+          "tests/test_issue1504_ac32_nfb_x_impact_operator.py::test_ac32_q5_q6_q7_reports_exact_layer_count_and_undo_restores_all_basis",
+          "tests/test_issue1504_ac32_nfb_x_impact_operator.py::test_ac32_manual_clear_one_selected_slot_includes_zero_and_snapshot_no_residue",
+          "tests/test_issue1504_ac32_nfb_x_impact_operator.py::test_ac32_no_old_basis_no_ghost_count_and_failed_transaction_is_atomic",
+          "tests/test_issue1504_ac32_nfb_x_impact_operator.py::test_ac32_compact_original_tk_ui_exposes_affected_count_and_reachable_undo"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "exact_head_product_ci_required": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-33",
@@ -3571,7 +3592,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 38/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 50 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 39/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 49 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",

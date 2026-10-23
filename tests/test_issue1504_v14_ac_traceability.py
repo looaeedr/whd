@@ -120,7 +120,7 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
             assert r["accepted"] is False
         else:
             assert not r["blocking_issues"]
-    assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13"}
+    assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13", "NFB-AC-32"}
     assert rows["NFB-AC-30"]["blocking_issues"] == []
 
 
@@ -143,8 +143,8 @@ def test_manifest_review_summary_is_recomputed_from_records():
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
     assert counts["SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"] == 14
     assert counts["BLOCKED_1500_REAL_GUI"] == 17
-    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 15
-    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 38
+    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 14
+    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 39
 
 
 def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
@@ -190,10 +190,10 @@ def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
 def test_one_full_ac_requires_source_specific_runtime_witness_and_ci_selection():
     obj = _data()
     assert obj["exact_test_function_witnesses_review"].startswith(
-        "88/88 FUNCTION_IDENTITIES_VERIFIED; 38/88 FULL_AC_AUTOMATED_SIGNED"
+        "88/88 FUNCTION_IDENTITIES_VERIFIED; 39/88 FULL_AC_AUTOMATED_SIGNED"
     )
     signed = {r["id"]: r for r in obj["records"] if r["accepted"]}
-    assert set(signed) == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13"}
+    assert set(signed) == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13", "NFB-AC-32"}
     from tools.product_ci_regression import PYTEST_PATHS
     # Do not accept a filename or an unrelated witness.  Exact path, native
     # numeric CSV fail-closed and old source-scoped MFG1 preflight are mandatory.
@@ -240,7 +240,7 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
     assert "732-mm" in rule and "Do not infer plate X" in rule
     assert "remain unapproved" in rule
     assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
-    assert {r["id"] for r in obj["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13"}
+    assert {r["id"] for r in obj["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13", "NFB-AC-32"}
 
     # The human review must not silently retain an older X-centering claim.
     text = MANIFEST.with_suffix(".md").read_text(encoding="utf-8")
@@ -258,8 +258,8 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     assert d["counts"] == {
         "BLOCKED_1500_REAL_GUI": 17,
         "DEFERRED_PRODUCT_EVIDENCE": 4,
-        "EVIDENCE_CANDIDATE_ONLY": 15,
-        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 38,
+        "EVIDENCE_CANDIDATE_ONLY": 14,
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 39,
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     }
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
@@ -295,7 +295,7 @@ def test_current_csv_ear_and_true_skin_supersessions_never_mutate_original_ac():
     assert "PAD blank/material/thickness/Z/BOM" in rule
     assert "welding-workmanship certification" in source["cannot_be_inferred"]
     assert "full" not in d["review_status"].lower()
-    assert {r["id"] for r in d["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13"}
+    assert {r["id"] for r in d["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13", "NFB-AC-32"}
     # Historical original AC-13 falsely held Base Plate Z fixed; preserve
     # the original phrase for traceability and declare its current override.
     row = {r["id"]: r for r in d["records"]}
@@ -573,18 +573,27 @@ def test_ac32_visible_x_reset_undo_patch_is_not_falsely_full_gui_signed():
         assert name in functions
         assert any(isinstance(a, ast.Assert) for a in ast.walk(functions[name]))
     row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-32")
-    assert row["accepted"] is False
-    assert row["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    # Historical source-only evidence must remain intact even after the
+    # additional real original Tk transaction is signed for CURRENT scope.
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
     assert path in row["regression_candidates"]
     assert len(row["identified_test_functions"]) == 1
-    assert row["identified_test_functions"][0]["path"] == "tests/test_issue1493_nfb_draft_transactions.py"
+    assert row["identified_test_functions"][0]["path"] == (
+        "tests/test_issue1504_ac32_original_inner_tk_x_undo.py"
+    )
     assert row["additional_partial_witnesses"] == [{
         "path": path,
         "test_name": "test_ac32_q5_q6_q7_reports_exact_layer_count_and_undo_restores_all_basis",
         "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
         "accepted": False,
     }]
-    assert "true integrated Receiving NFB modal" in row["current_scope_remaining_evidence"]
+    proof = row["acceptance_evidence"]
+    assert proof["ui_full_operator_uat_claimed"] is False
+    assert proof["real_two_old_project_windows_gui_uat"] is False
+    assert proof["physical_absolute_position_grant"] is False
+    assert "Windows" in row["current_scope_remaining_evidence"]
+    assert "actual integrated WHD inner-editor Tk" in row["current_scope_remaining_evidence"]
 
 
 def test_ac54_swt31_current_v5_project_schema_exact_regression_and_no_old_binary_claim():
@@ -991,3 +1000,45 @@ def test_ac20_swt13_scoped_signoff_requires_original_native_tk_cancel_undo_and_c
             assert any(isinstance(a, ast.Assert) for a in ast.walk(funcs[0])), exact
         assert "CSV V5" in row["current_scope_remaining_evidence"]
         assert "Windows" in row["current_scope_remaining_evidence"]
+
+
+def test_ac32_scoped_signoff_requires_real_original_tk_x_reset_and_undo_proof():
+    """Seed old UI1A draft datum, but require real original Tk removal and Undo."""
+    import ast
+    from tools.product_ci_regression import PYTEST_PATHS
+    row = {r["id"]: r for r in _data()["records"]}["NFB-AC-32"]
+    evidence = row["acceptance_evidence"]
+    witness = row["identified_test_functions"][0]
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert witness["accepted"] is True
+    assert evidence["primary_assertion"] == witness["path"] + "::" + witness["test_name"]
+    assert evidence["original_ac_text_unchanged"] is True
+    assert evidence["source_sha_pins_unchanged"] is True
+    assert evidence["factory_release"] is False
+    assert evidence["human_windows_uat_claimed"] is False
+    assert evidence["real_two_old_project_windows_gui_uat"] is False
+    assert evidence["ui_full_operator_uat_claimed"] is False
+    assert evidence["physical_absolute_position_grant"] is False
+    assert "seeded" in evidence["scope"]
+    refs = [evidence["primary_assertion"], *evidence["other_required_assertions"]]
+    assert len(refs) >= 6 and len(set(refs)) == len(refs)
+    assert refs[0] == (
+        "tests/test_issue1504_ac32_original_inner_tk_x_undo.py"
+        "::test_ac32_original_inner_tk_remove_reports_two_real_x_resets_and_undo_restores"
+    )
+    assert (
+        "tests/test_issue1504_ac32_original_inner_tk_x_undo.py"
+        "::test_ac32_original_inner_cancel_after_pending_x_change_never_writes_candidate"
+    ) in refs
+    for name in refs:
+        path, test = name.split("::")
+        assert PYTEST_PATHS.count(path) == 1, name
+        functions = [
+            n for n in ast.parse((ROOT / path).read_text(encoding="utf-8")).body
+            if isinstance(n, ast.FunctionDef) and n.name == test
+        ]
+        assert len(functions) == 1, name
+        assert any(isinstance(x, ast.Assert) for x in ast.walk(functions[0])), name
+    assert "Windows" in row["current_scope_remaining_evidence"]
