@@ -245,6 +245,28 @@ def test_ac24_duplicate_physical_slot_or_stale_layer_count_keeps_draft_unverifie
     assert saved==_bay(count=2)
 
 
+def test_ac09_missing_real_inner_or_base_source_remains_draft_after_valid_csv():
+    saved=_bay()
+    for roles in (("BASE_PLATE",),("INNER_DOOR",),("INNER_DOOR","BASE_PLATE")):
+        view=current_v5_nfb_diagnostics(
+            saved,set_id="setA",bay_id="B1",version_id="inner-door-v1",
+            dependent_part_ids=("inner_door:upper:panel",),
+            unaffected_part_ids=("side_panel:left",),
+            missing_required_physical_roles=roles,
+        )
+        assert view["derived_state"]=="DRAFT"
+        assert not view["manufacturing_ready"]
+        for role in roles:
+            assert "NFB_REAL_"+role+"_SOURCE_MISSING" in view["unresolved_dependencies"]
+        assert view["part_rows"][0]["status"]=="BLOCKED"
+        assert view["part_rows"][1]["status"]=="NFB_UNAFFECTED"
+    with pytest.raises(ValueError,match="source-derived"):
+        current_v5_nfb_diagnostics(
+            saved,set_id="setA",bay_id="B1",version_id="inner-door-v1",
+            missing_required_physical_roles=("UNKNOWN_ROLE",),
+        )
+
+
 def test_ac24_forbid_forged_green_status_and_gui_source_is_connected():
     current=_inspect(_bay())
     for bad in (
