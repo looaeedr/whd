@@ -88,3 +88,84 @@ def test_ac24_actual_head_is_not_inferred_from_unrendered_nfb_part(tmp_path):
             output_dir=root,
         )
     assert not list(root.glob("*.dxf"))
+
+
+def test_ac09_original_gui_selected_head_uses_isolated_current_bay_preview(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    import fold_designer_bridge as bridge
+    from gui_modules.project import export_actions as actions
+    from phase6_final_scene_contracts import AssemblyScenePart
+    from ae_engine.receiving_layout import receiving_bay_assembly_offsets
+    from tests.test_issue1502_multibay_original_gui_export_integration import (
+        _native_callback_host,
+    )
+    snapshot=_source_with_missing_second_model()
+    original=deepcopy(snapshot)
+    host=_native_callback_host(monkeypatch,snapshot,[])
+    calls=[]
+    class SourcePhysicalComposition:
+        def receiving_bay_preview_request(self,namespace,si,bi,*,preview_layout=None):
+            assert namespace is bridge.__dict__
+            assert preview_layout is not None
+            bay=preview_layout["sets"][si]["bays"][bi]
+            assert bay["nfb_config_submitted"] is False
+            assert snapshot["receiving_layout"]["sets"][si]["bays"][bi][
+                "nfb_config_submitted"] is True
+            physical=project_receiving_bay_legacy_aliases({
+                **snapshot,"receiving_layout":preview_layout,
+            },set_index=si,bay_index=bi)
+            actual=_full_receiving_geometry(physical)
+            shift=receiving_bay_assembly_offsets(
+                snapshot["receiving_layout"],set_index=si,
+            )[bi]
+            calls.append((si,bi))
+            return SimpleNamespace(render_data=SimpleNamespace(
+                assembly_parts=tuple(AssemblyScenePart(
+                    part_key=p.part_key,render_data=p.render_data,
+                    x_profile=p.x_profile,y_profile=p.y_profile,
+                    placement=p.placement,
+                    offset=tuple(a+b for a,b in zip(p.offset,shift)),
+                ) for p in actual.parts)
+            ))
+    monkeypatch.setattr(
+        bridge,"_phase6_composition",lambda designer:SourcePhysicalComposition(),
+    )
+    names,errors=actions._export_selected_resolved_parts(
+        host,str(tmp_path),
+        _flags(box_body=False,head=True,tail=False,door=False,
+               base_plate=False,indicator_box=False,indicator_door=False),
+    )
+    assert not errors
+    assert calls==[(0,0),(0,1)]
+    assert len(names)==2 and all("head" in name for name in names)
+    assert all(ezdxf.readfile(str(path)).modelspace() is not None
+               for path in tmp_path.glob("*.dxf"))
+    assert snapshot==original
+
+
+def test_ac24_original_gui_nfb_dependent_selection_does_not_mask_current_bay(tmp_path,monkeypatch):
+    import fold_designer_bridge as bridge
+    from gui_modules.project import export_actions as actions
+    from tests.test_issue1502_multibay_original_gui_export_integration import (
+        _native_callback_host,
+    )
+    snapshot=_source_with_missing_second_model()
+    host=_native_callback_host(monkeypatch,snapshot,[])
+    visited=[]
+    class MustUseActualNfb:
+        def receiving_bay_preview_request(self,namespace,si,bi,*,preview_layout=None):
+            visited.append((si,bi,preview_layout))
+            assert preview_layout is None
+            if bi==1:
+                raise ValueError("CURRENT_CSV_NFB_SOURCE_INVALID")
+            return __import__("types").SimpleNamespace(render_data=__import__(
+                "types").SimpleNamespace(assembly_parts=()))
+    monkeypatch.setattr(bridge,"_phase6_composition",lambda _:MustUseActualNfb())
+    with pytest.raises(ValueError,match="CURRENT_CSV_NFB_SOURCE_INVALID|FINALSCENE"):
+        actions._export_selected_resolved_parts(
+            host,str(tmp_path),
+            _flags(box_body=True,head=True,tail=False,door=False,
+                   base_plate=True,indicator_box=False,indicator_door=False),
+        )
+    assert visited and all(item[2] is None for item in visited)
+    assert not list(tmp_path.glob("*.dxf"))
