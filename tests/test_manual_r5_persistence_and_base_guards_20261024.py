@@ -103,3 +103,45 @@ def test_r5_malformed_nfb_submission_inventory_never_raises_or_claims_true():
     assert contains_submitted_nfb(
         {"quantity": {"versions": [{"nfb_config_submitted": True}]}}
     ) is True
+
+
+def test_r6_invalid_v5_and_legacy_model_identity_does_not_become_source():
+    from ae_engine.receiving_nfb_model_identity import (
+        validate_stored_model_ref, display_model_ref,
+    )
+    for invalid in ("  TEST.dxf", "TEST .dxf ", "AB:C.dxf", ".dxf", " : .dxf"):
+        with pytest.raises(ValueError):
+            validate_stored_model_ref(invalid)
+    with pytest.raises(ValueError, match="NFB V5"):
+        display_model_ref("nfbv5:士林:MODEL:INVALID")
+
+
+def test_r6_v5_numeric_csv_forbids_identity_delimiter(tmp_path):
+    from ae_engine.receiving_nfb_numeric_catalog import HEADER, read_numeric_specs
+    source = tmp_path / "NFB數值規格.csv"
+    source.write_text(
+        ",".join(HEADER) + "\n" + "BAD:MODEL,60,100,40,50X90,25X80,5,0,0\\n",
+        encoding="utf-8-sig",
+    )
+    with pytest.raises(ValueError, match="型號不合法"):
+        read_numeric_specs("士林", path=source)
+
+
+def test_r6_pad_tooling_rejects_fake_sha_and_boolean_dimension(tmp_path):
+    from ae_engine.receiving_nfb_pad_generator import PadToolingRule, read_pad_tooling_rule
+    valid = {
+        "revision": "test",
+        "source_dxf_sha256": "a"*64,
+        "tab_projection_mm": 2., "tab_height_mm": 2.,
+        "tab_end_inset_mm": 5., "base_square_side_mm": 4.,
+        "base_square_center_inset_x_mm": 10.,
+    }
+    PadToolingRule(**valid).validate()
+    for field, value in (("source_dxf_sha256", "z"*64), ("tab_height_mm", True)):
+        invalid = dict(valid, **{field: value})
+        with pytest.raises(ValueError):
+            PadToolingRule(**invalid).validate()
+    path = tmp_path / "bad-tooling.json"
+    path.write_text('{"schema":"RECEIVING_NFB_PAD_TOOLING_V1"}', encoding="utf-8")
+    with pytest.raises(ValueError, match="加工規則格式"):
+        read_pad_tooling_rule(path)
