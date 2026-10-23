@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+import math
 from typing import Iterable
 
 from .sheetmetal_geometry import (
@@ -273,7 +274,13 @@ def resolve_box_body_face_features(
     return resolved
 
 def _normalize_rotation(rotation_deg: int | float) -> int:
-    value = int(round(float(rotation_deg))) % 360
+    # A dimension entered as 89.9 degrees is NOT a legal 90-degree fold.
+    if isinstance(rotation_deg, bool) or not isinstance(rotation_deg, (int, float)):
+        raise ValueError("rotation must be 0/90/180/270/360 degrees")
+    raw = float(rotation_deg)
+    if not math.isfinite(raw) or abs(raw - round(raw)) > 1e-9:
+        raise ValueError("rotation must be 0/90/180/270/360 degrees")
+    value = int(round(raw)) % 360
     if value not in (0, 90, 180, 270):
         raise ValueError("rotation must be 0/90/180/270/360 degrees")
     return value
