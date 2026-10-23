@@ -546,8 +546,6 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
     try:
         canonical = _export_selected_resolved_parts(self, folder, flags)
     except Exception as ex:
-        import traceback
-        traceback.print_exc()
         return [], [f"canonical resolved export: {ex}"]
     if canonical is not None:
         return canonical
