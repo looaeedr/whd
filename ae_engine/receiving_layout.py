@@ -590,29 +590,37 @@ def project_receiving_bay_legacy_aliases(
             result.pop(key, None)
         result.update(deepcopy(bay["door_state"]))
     else:
-        # An unconfigured Bay still needs its own family-default door
-        # projection for manufacturing consumers. Derive it from this Bay's
-        # dimensions and the registered Receiving defaults; never reuse the
-        # root/primary Bay's editable door_state.
-        from ae_engine.cabinet_types import receiving
+        # A legacy root door source may explicitly describe a manufactured
+        # inner-door assembly even when Bay N has no saved door_state. Only in
+        # that fully sourced case should Bay N receive its own *transient*
+        # family-default geometry. A minimal/unconfigured old project must
+        # remain unconfigured: manufacturing cannot invent saved d/t authority.
+        has_manufacturing_door_source = (
+            bool(result.get("multi_door_enabled"))
+            and bool(result.get("door_layout_columns"))
+            and bool(result.get("inner_doors"))
+            and all(result.get(key) is not None for key in ("w", "h", "d", "t"))
+        )
         for key in RECEIVING_DOOR_STATE_KEYS:
             result.pop(key, None)
-        template = receiving.default_door_layout_columns()
-        default_height = sum(float(v) for v in template[0][1])
-        bay_height = float(bay["height"])
-        factor = bay_height / default_height
-        heights = [float(v) * factor for v in template[0][1]]
-        heights[-1] = bay_height - sum(heights[:-1])
-        result.update({
-            "multi_door_enabled": True,
-            "door_layout_scope": receiving.DEFAULT_DOOR_LAYOUT_SCOPE,
-            "door_layout_columns": [[float(bay["width"]), heights]],
-            "inner_doors": receiving.default_inner_doors(
-                thickness=float(result.get("t", 2.0)),
-                depth=float(bay["depth"]),
-                frame_width=float(result.get("fw", receiving.BOX_BODY_DEFAULTS["fw"])),
-            ),
-        })
+        if has_manufacturing_door_source:
+            from ae_engine.cabinet_types import receiving
+            template = receiving.default_door_layout_columns()
+            default_height = sum(float(v) for v in template[0][1])
+            bay_height = float(bay["height"])
+            factor = bay_height / default_height
+            heights = [float(v) * factor for v in template[0][1]]
+            heights[-1] = bay_height - sum(heights[:-1])
+            result.update({
+                "multi_door_enabled": True,
+                "door_layout_scope": receiving.DEFAULT_DOOR_LAYOUT_SCOPE,
+                "door_layout_columns": [[float(bay["width"]), heights]],
+                "inner_doors": receiving.default_inner_doors(
+                    thickness=float(result["t"]),
+                    depth=float(bay["depth"]),
+                    frame_width=float(result.get("fw", receiving.BOX_BODY_DEFAULTS["fw"])),
+                ),
+            })
     for key in ("nfb_config_submitted", "nfb_config"):
         result.pop(key, None)
         if key in bay:

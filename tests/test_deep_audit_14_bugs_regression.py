@@ -280,9 +280,10 @@ def test_bug4_receiving_multi_bay_projection_does_not_leak_bay0_door_state():
     assert projected_bay1["w"] == 800.0
     # A Bay with no persisted door_state receives this Bay's family default,
     # not Bay 0's edited 600-mm door layout.
-    assert projected_bay1["multi_door_enabled"] is True
-    assert projected_bay1["door_layout_columns"][0][0] == 800.0
-    assert projected_bay1["door_layout_columns"] != snapshot["door_layout_columns"]
+    # This fixture has no saved inner-door authority: Bay 1 stays
+    # unconfigured, without borrowing Bay 0's operator door layout.
+    assert not projected_bay1.get("multi_door_enabled", False)
+    assert "door_layout_columns" not in projected_bay1
     assert "door_state" not in projected_bay1["receiving_layout"]["sets"][0]["bays"][1]
 
 

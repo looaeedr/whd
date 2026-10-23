@@ -63,11 +63,8 @@ def test_bug4_legacy_root_door_state_migrates_only_into_primary_bay():
     bay1 = project_receiving_bay_legacy_aliases(
         migrated, set_index=0, bay_index=1, validate_common=True,
     )
-    assert bay1["multi_door_enabled"] is True
-    assert bay1["door_layout_columns"][0][0] == float(bays[1]["width"])
-    # 1800-mm Bay defaults are scaled from the family's 800x1600 template,
-    # not the primary Bay's one-row 1800-mm operator override.
-    assert bay1["door_layout_columns"] == [[600.0, [1237.5, 562.5]]]
+    assert not bay1.get("multi_door_enabled", False)
+    assert "door_layout_columns" not in bay1
     assert "door_state" not in bay1["receiving_layout"]["sets"][0]["bays"][1]
 
 
@@ -190,3 +187,39 @@ def test_bug10_degenerate_cutting_polyline_does_not_crash(points, closed):
     )
     material = Polygon([(0, 0), (100, 0), (100, 100), (0, 100)])
     assert _existing_conflict_geometry(primitive, material) is None
+
+
+def test_bug4_manufacturing_bay_family_default_requires_complete_saved_authority():
+    layout = resize_receiving_bays(
+        new_receiving_layout(width=600.0, height=1800.0, depth=500.0),
+        set_index=0, bay_count=2,
+    )
+    for bay in layout["sets"][0]["bays"]:
+        bay.pop("door_state", None)
+    source = {
+        "model": "受電箱",
+        "w": 600.0, "h": 1800.0, "d": 500.0, "fw": 29.0,
+        "receiving_layout": layout,
+        "multi_door_enabled": True,
+        "door_layout_columns": [(600.0, (1800.0,))],
+        "inner_doors": [{
+            "stable_id": "upper", "cell_key": "0:0",
+            "included_frame_sides": ["top", "left", "right"],
+        }],
+    }
+    # A partially migrated project without a saved thickness cannot invent
+    # manufacturing authority merely because legacy root door fields exist.
+    incomplete = project_receiving_bay_legacy_aliases(
+        source, set_index=0, bay_index=1, validate_common=True,
+    )
+    assert not incomplete.get("multi_door_enabled", False)
+    assert "door_layout_columns" not in incomplete
+
+    complete = project_receiving_bay_legacy_aliases(
+        {**source, "t": 2.0}, set_index=0, bay_index=1, validate_common=True,
+    )
+    assert complete["multi_door_enabled"] is True
+    assert complete["door_layout_columns"] == [[600.0, [1237.5, 562.5]]]
+    assert complete["door_layout_columns"] != source["door_layout_columns"]
+    assert len(complete["inner_doors"]) == 1
+    assert "door_state" not in complete["receiving_layout"]["sets"][0]["bays"][1]
