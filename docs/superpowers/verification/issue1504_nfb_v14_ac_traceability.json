@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "EVIDENCE_CANDIDATE_ONLY": 19,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 36,
     "BLOCKED_1500_REAL_GUI": 17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 34,
+    "EVIDENCE_CANDIDATE_ONLY": 17,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -811,19 +811,19 @@
         "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
         "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_single_set_brand_owner_and_explicit_same_value_overrides",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+          "test_name": "test_ac21_swt14_real_tk_single_brand_selector_scopes_two_versions",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "additional_partial_witnesses": [
         {
           "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
@@ -850,8 +850,29 @@
           "accepted": false
         }
       ],
-      "current_scope_remaining_evidence": "2026-10-23: 已改 Quantity 各版本獨立 nfb_parent_brand（V3），原 receiving_quantity_box.switch_brand 僅供舊版遷移；Set/Bay 仍由原 Set.switch_brand 控件更新。三級繼承沿用 same effective_nfb_slot_brand，保存 NFBConfig 不新增品牌第二權威。原生 Tk 選擇器跨版本操作與切換回讀正在 PR #2086 驗證；若現行 CI 不通過不得簽核。仍缺兩份舊專案 Windows 真 GUI→保存重開→DXF 全流程。",
-      "source_gap_reproduced_20261023": true
+      "current_scope_remaining_evidence": "Current CSV V5 native Tk Quantity version parent brand V3, deep clone A/B, original GUI selector isolation, project SaveReload and 3-tier source/override, exact stale inherited model manufacturing refusal verified by source-scoped Product CI. Two original Windows old-project GUI->SaveReload->DXF and factory release remain unsigned.",
+      "source_gap_reproduced_20261023": true,
+      "current_version_brand_gui_gap_resolved_20261023": true,
+      "acceptance_evidence": {
+        "scope": "CURRENT_CSV_V5_NATIVE_TK_QUANTITY_PER_VERSION_PARENT_BRAND_AND_SAME_THREE_TIER_INHERITANCE_DEEP_CLONE_P6FOLD_SOURCE_FAIL_CLOSED",
+        "primary_assertion": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_real_tk_single_brand_selector_scopes_two_versions",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_quantity_selected_version_parent_brand_is_single_owner",
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_three_tier_current_csv_brand_inheritance_never_rewrites_model",
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_changed_quantity_parent_marks_inherited_v5_model_reselect",
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_original_gui_brand_selector_uses_selected_version_only",
+          "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py::test_set_bay_brand_owner_unchanged_by_quantity_entry_routing"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "exact_head_product_ci_required": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "NFB-AC-22",
@@ -2724,19 +2745,19 @@
         "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
         "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+          "test_name": "test_ac21_swt14_quantity_selected_version_parent_brand_is_single_owner",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "additional_partial_witnesses": [
         {
           "path": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
@@ -2763,8 +2784,29 @@
           "accepted": false
         }
       ],
-      "current_scope_remaining_evidence": "2026-10-23: 已改 Quantity 各版本獨立 nfb_parent_brand（V3），原 receiving_quantity_box.switch_brand 僅供舊版遷移；Set/Bay 仍由原 Set.switch_brand 控件更新。三級繼承沿用 same effective_nfb_slot_brand，保存 NFBConfig 不新增品牌第二權威。原生 Tk 選擇器跨版本操作與切換回讀正在 PR #2086 驗證；若現行 CI 不通過不得簽核。仍缺兩份舊專案 Windows 真 GUI→保存重開→DXF 全流程。",
-      "source_gap_reproduced_20261023": true
+      "current_scope_remaining_evidence": "Current CSV V5 native Tk Quantity version parent brand V3, deep clone A/B, original GUI selector isolation, project SaveReload and 3-tier source/override, exact stale inherited model manufacturing refusal verified by source-scoped Product CI. Two original Windows old-project GUI->SaveReload->DXF and factory release remain unsigned.",
+      "source_gap_reproduced_20261023": true,
+      "current_version_brand_gui_gap_resolved_20261023": true,
+      "acceptance_evidence": {
+        "scope": "CURRENT_CSV_V5_NATIVE_TK_QUANTITY_PER_VERSION_PARENT_BRAND_AND_SAME_THREE_TIER_INHERITANCE_DEEP_CLONE_P6FOLD_SOURCE_FAIL_CLOSED",
+        "primary_assertion": "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_quantity_selected_version_parent_brand_is_single_owner",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_real_tk_single_brand_selector_scopes_two_versions",
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_quantity_change_parent_preserves_model_and_no_new_ready",
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_invalid_parent_brand_and_old_v2_migrate_without_mutation",
+          "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_changed_quantity_parent_marks_inherited_v5_model_reselect",
+          "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py::test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "exact_head_product_ci_required": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "SWT-AC-15",
@@ -3481,7 +3523,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 34/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 54 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 36/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE; remaining 52 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
