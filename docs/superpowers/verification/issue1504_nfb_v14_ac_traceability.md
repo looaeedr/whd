@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-23，逐條實證簽核）
 
+## CURRENT｜2026-10-23 #1504 AC-54／SWT-31 當期 V5 專案格式互通（exact CI 後生效）
+
+- 以**現行數值 CSV** `nfbv5:士林:2P400` 的真品牌／型號、X=0、每顆身份、旋轉角、來源 datum 與使用者自有附加欄位，實際走 `write_project→.p6fold JSON→read_project→write_project`。受電箱 Set/Bay 已提交須根 schema v3，未提交仍是 v2；數量模式已提交同時根 v3＋`phase6-quantity-v2`，未提交回到根 v2＋數量 v1。不同孔型版本獨立，不偷將未提交標為有效。
+- 負向實測：將真已提交 `.p6fold` 降級標記為舊根 v1／v2 時當期 reader **必須拒載**，同樣以數量 schema v1 搭配含 NFB 欄位須拒載，不能無聲丟掉品牌、型號、位移、datum、旋轉或其餘欄位。製造 Ready 不持久化。
+- **核銷界線**：當期原始讀寫契約＋凍結 schema 版本拒載測試；未執行舊版安裝包 binary，也沒有兩舊工程 Windows 真 GUI 或整櫃製造驗收。原 88 AC 原文、來源 SHA 與以前 historical witnesses 保留。exact HEAD 五階段 Product Regression GREEN 且合併 `localX` 回讀後，才由 25／88→**27／88**；餘 **61**（26 source candidates、17 #1500 真 GUI、14 #1502 既有 scoped、4 full cabinet）。
+
 ## CURRENT｜2026-10-23 #1504 AC-32 操作端缺陷修補（暫不簽核）
 
 - 原始緊湊 NFB 編輯器只有加入／移除，`undo_nfb_draft` 函式未綁任何可見控件；原 X 被 Q5/Q6/Q7 重設時只顯示模糊訊息或沒有訊息，Undo 後所選顆位的舊 X 文字亦未從 session 刷新。此次在不重開舊「空槽／替換／換序」多餘按鈕的前提，補上頁尾 **「復原 NFB」**、原 `warning` 顯示 **第幾層＋幾顆**、按 `unit_id` 比對刪除／重排／新增／單顆清除前後真 X／datum，並在 Undo 後刷新原欄位。
@@ -183,7 +189,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-51 | #1496、#1497 | EVIDENCE_CANDIDATE_ONLY | UI-1A（提示）／MFG-1（解析與能力） | DXF 主 CUTTING 中心、ARC/CIRCLE、來源顏色及旋轉 pivot 經真圖認證；選型列表逐組正確顯示「可製造（內門）」／「僅預覽」，不可因型號孤立合格便全範圍放行。 |
 | NFB-AC-52 | #1497 | EVIDENCE_CANDIDATE_ONLY | MFG-1（製造）／UI-1B（閘門） | MFG-1 輸出合法內門真實 CUTTING、消除與 legacy 相同物理孔的重複加工來源；缺必要幾何 fail-closed，MFG-1 未通過時 UI-1B 不准提交。 |
 | NFB-AC-53 | #1498、#1500 | BLOCKED_1500_REAL_GUI | MFG-1（能力）／UI-1B（提交） | 機器可驗證的版本化 MFG-1 能力註冊驅動提交可用性，不靠 GUI 手動旗標；能力不可用禁止新提交／提交型複製，但既有已提交專案不降級成未配置。 |
-| NFB-AC-54 | #1499 | EVIDENCE_CANDIDATE_ONLY | UI-1B（Save／Reload／降級回歸） | 有已提交 scope 時升根 `.p6fold` 與 quantity payload schema；舊版依凍結支援 schema 清單拒載新版本，不吞未知欄位後產出完整 DXF；全部未提交工程仍保留本功能無關的舊 schema 相容。 |
+| NFB-AC-54 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B（Save／Reload／降級回歸） | 有已提交 scope 時升根 `.p6fold` 與 quantity payload schema；舊版依凍結支援 schema 清單拒載新版本，不吞未知欄位後產出完整 DXF；全部未提交工程仍保留本功能無關的舊 schema 相容。 |
 | NFB-AC-55 | #1496、#1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-1（盤點／守衛）／UI-1B（告知）／MFG-2（正式加工） | 逐型號盤點真實 NFB DXF 的 Color 30／150／212 與來源可解析狀態，交付有／無／未知數量（未取得原 DXF 前不得填 0）；MFG-2 未完成時 Color 30／150 受影響底／中板保持阻斷並列於提交提醒與部分匯出清單。 |
 | NFB-AC-56 | #1500 | BLOCKED_1500_REAL_GUI | UI-1B | UI-1B 不提供「忽略草稿強制舊式內門出圖」覆寫；可以撤銷提交、還原未配置並 Undo。 |
 | SWT-AC-01 | #1491 | EVIDENCE_CANDIDATE_ONLY | UI-1A | 單一可寫 NFB 安裝層數入口，與既有本套品牌 UI 一致；金庫型不出現 NFB 專屬規則。 |
@@ -216,7 +222,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-28 | #1495 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1A（提示）／MFG-1（Y 進場） | 1100 上層的外頂 Y=550／290／790 正確投影到形成內門及展開局部 Y，非 1100 不猜座標。 |
 | SWT-AC-29 | #1497 | EVIDENCE_CANDIDATE_ONLY | MFG-1（NFB-DXF 進場／內門切孔） | 每顆 NFB 的主 CUTTING 開孔中心、輪廓與旋轉有真實 DXF／Feature 測例；與既有中間孔加工來源排他、不重複、不刪 legacy Feature。 |
 | SWT-AC-30 | #1498 | EVIDENCE_CANDIDATE_ONLY | UI-1A（標示）／MFG-1（能力註冊） | 已知四組相鄰名義孔距不是可製造清單；只對逐組核准的 W×N×Y×型號×內門 datum 顯示可製造（內門），範圍外僅預覽。 |
-| SWT-AC-31 | #1499 | EVIDENCE_CANDIDATE_ONLY | UI-1B（Save／Reload／降級回歸） | 未提交保持既有 schema 與 DXF；已有提交 scope 須根專案與 Quantity schema 升版，凍結舊版 schema 清單的舊 reader 拒載；不能對不認識新 schema 的舊版 silent export。 |
+| SWT-AC-31 | #1499 | ACCEPTED_AUTOMATED_CURRENT_SCOPE | UI-1B（Save／Reload／降級回歸） | 未提交保持既有 schema 與 DXF；已有提交 scope 須根專案與 Quantity schema 升版，凍結舊版 schema 清單的舊 reader 拒載；不能對不認識新 schema 的舊版 silent export。 |
 | SWT-AC-32 | #1496、#1502 | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC | MFG-1（盤點／依賴）／UI-1B（告知）／MFG-2（出圖） | 真 DXF Color 30／150 盤點件數與解析狀態逐檔可追溯；未取得源檔前不得假報 0。MFG-2 未完成的相依底／中板阻斷、其他無相依板件照常出圖，manifest／CHECK 計數不受污染。 |
 
 ## 88 項確切測試函式（部分自動化證據，不代表整條 AC 驗收）
@@ -280,7 +286,7 @@ whd_schema: WHD_DOC_META_V1
 | NFB-AC-51 | `tests/test_issue1496_nfb_dxf_source.py::test_unsupported_not_silently_treated_as_certified` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-52 | `tests/test_issue1497_w800_three_canonical_cutting.py::test_w800x3_uses_whd_723_blank_x_for_three_real_holes` | EVIDENCE_CANDIDATE_ONLY |
 | NFB-AC-53 | `tests/test_issue1498_nfb_part_readiness.py::test_ready_requires_actual_per_hole_x_y_and_rotation_proof` | BLOCKED_1500_REAL_GUI |
-| NFB-AC-54 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` | EVIDENCE_CANDIDATE_ONLY |
+| NFB-AC-54 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | NFB-AC-55 | `tests/test_issue1496_nfb_source_inventory_report.py::test_complete_per_brand_audit_has_exact_links_and_null_unknown` | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC |
 | NFB-AC-56 | `tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy` | BLOCKED_1500_REAL_GUI |
 | SWT-AC-01 | `tests/test_issue1491_nfb_ui1a.py::test_no_unapproved_geometry_or_persistence_fields` | EVIDENCE_CANDIDATE_ONLY |
@@ -313,7 +319,7 @@ whd_schema: WHD_DOC_META_V1
 | SWT-AC-28 | `tests/test_issue1495_receiving_nfb_y_projection.py::test_non_1100_upper_y_is_unapproved_not_silently_scaled` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-29 | `tests/test_issue1497_configured_nfb_manufacturing_release.py::test_legacy_same_physical_hole_fails_no_duplicate_cutting` | EVIDENCE_CANDIDATE_ONLY |
 | SWT-AC-30 | `tests/test_issue1498_nfb_part_readiness.py::test_wrong_approved_inner_source_or_wrong_part_is_not_a_manufacturing_capability` | EVIDENCE_CANDIDATE_ONLY |
-| SWT-AC-31 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` | EVIDENCE_CANDIDATE_ONLY |
+| SWT-AC-31 | `tests/test_issue1499_nfb_persistence.py::test_old_schema_reader_must_not_silently_strip_new_nfb_scope` | ACCEPTED_AUTOMATED_CURRENT_SCOPE |
 | SWT-AC-32 | `tests/test_issue1496_index_color_evidence.py::test_unique_model_links_keep_missing_unknown_distinct_from_real_zero` | SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC |
 
 
