@@ -237,7 +237,14 @@ def test_ac24_duplicate_physical_slot_or_stale_layer_count_keeps_draft_unverifie
     duplicate["nfb_config"]["holes"][1]["slot_index"]=0
     report=_inspect(duplicate)
     assert report["derived_state"]=="DRAFT"
-    assert "NFB_DUPLICATE_LAYER_UNIT_OWNER" in report["unit_rows"][1]["reasons"]
+    assert all(
+        "NFB_DUPLICATE_LAYER_UNIT_OWNER" in row["reasons"]
+        and row["configuration_verified"] is False
+        and row["manufacturing_verified"] is False
+        for row in report["unit_rows"]
+    )
+    assert all("配置未驗證" in line for line in
+               nfb_manifest_display_lines(report) if "第" in line and "顆" in line)
     assert report["part_rows"][0]["status"]=="BLOCKED"
     mismatched=deepcopy(saved)
     mismatched["nfb_config"]["holes"][1]["layer_count"]=1
@@ -404,6 +411,56 @@ def test_ac24_conflicting_unit_certificate_is_rejected_by_gui():
     )}
     with pytest.raises(ValueError,match="cannot fake manufacturing approval"):
         nfb_manifest_display_lines(incorrect)
+
+
+def test_ac24_p6fold_save_reload_duplicate_units_both_unverified_without_spread(tmp_path):
+    source=_bay(count=2,version="collision")
+    source["nfb_config"]["holes"][1]["layer_index"]=0
+    saved=new_receiving_layout(width=800,height=1600,depth=350)
+    saved=resize_receiving_bays(saved,set_index=0,bay_count=2)
+    saved=update_receiving_bay(
+        saved,set_index=0,bay_index=0,
+        nfb_config_submitted=True,nfb_config=source["nfb_config"],
+    )
+    other=_bay(version="independent")
+    saved=update_receiving_bay(
+        saved,set_index=0,bay_index=1,
+        nfb_config_submitted=True,nfb_config=other["nfb_config"],
+    )
+    project={"schema":PROJECT_SCHEMA_V1,
+             "snapshot":{"model":"受電箱","active_mode":"set_bay",
+                         "receiving_layout":saved}}
+    reopened=read_project(write_project(tmp_path/"two-bay-owners.p6fold",project))
+    before=deepcopy(reopened)
+    bays=reopened["snapshot"]["receiving_layout"]["sets"][0]["bays"]
+    collision=_inspect(bays[0],bay_id=bays[0]["stable_id"],version="version0")
+    independent=_inspect(bays[1],bay_id=bays[1]["stable_id"],version="version1")
+    assert collision["derived_state"]=="DRAFT"
+    assert len(collision["unit_rows"])==2
+    assert all(not row["configuration_verified"] for row in collision["unit_rows"])
+    assert all("NFB_DUPLICATE_LAYER_UNIT_OWNER" in row["reasons"]
+               for row in collision["unit_rows"])
+    assert collision["part_rows"][0]["status"]=="BLOCKED"
+    assert independent["derived_state"]=="CONFIGURED"
+    assert independent["unit_rows"][0]["configuration_verified"] is True
+    assert independent["part_rows"][-1]["status"]=="NFB_UNAFFECTED"
+    assert reopened==before
+
+
+@pytest.mark.parametrize("key", (
+    "configuration_verified", "manufacturing_verified",
+    "source_status", "unit_rows", "part_rows", "derived_state",
+    "unresolved_dependencies", "actual_export_count", "whole_ready",
+))
+def test_ac24_derived_readiness_must_not_persist_into_canonical_nfb_config(key):
+    record=_bay()
+    record["nfb_config"]["holes"][0][key]="FAKE_GREEN"
+    with pytest.raises(ValueError,match="derived or invalid key"):
+        normalize_nfb_saved_fields(record)
+    source=_bay()
+    source["nfb_config"][key]="FAKE_GREEN"
+    with pytest.raises(ValueError,match="derived or invalid key"):
+        normalize_nfb_saved_fields(source)
 
 
 def test_ac24_forbid_forged_green_status_and_gui_source_is_connected():
