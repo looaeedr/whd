@@ -622,7 +622,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         ports = get_settings_ports(set_index)
         ports["select"](bay_index)
         active_ports["ports"] = ports
-        from ae_engine.receiving_shared_settings import setting_value
         # Highlighter owns the multi-selection. No second checkbox selector.
         # The canvas highlight, including an empty selection, is the ONLY apply target.
         targets = lambda: tuple(applied["selected_bays"])
@@ -634,7 +633,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 warn(exc)
         candidate_combos.clear()
 
-        def actions(parent, kind, *, role=None):
+        def actions(parent, kind, *, role):
             row = ttk.Frame(parent)
             row.pack(anchor="w", pady=3)
             ttk.Label(
