@@ -573,18 +573,27 @@ def test_ac32_visible_x_reset_undo_patch_is_not_falsely_full_gui_signed():
         assert name in functions
         assert any(isinstance(a, ast.Assert) for a in ast.walk(functions[name]))
     row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-32")
-    assert row["accepted"] is False
-    assert row["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    # Historical source-only evidence must remain intact even after the
+    # additional real original Tk transaction is signed for CURRENT scope.
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
     assert path in row["regression_candidates"]
     assert len(row["identified_test_functions"]) == 1
-    assert row["identified_test_functions"][0]["path"] == "tests/test_issue1493_nfb_draft_transactions.py"
+    assert row["identified_test_functions"][0]["path"] == (
+        "tests/test_issue1504_ac32_original_inner_tk_x_undo.py"
+    )
     assert row["additional_partial_witnesses"] == [{
         "path": path,
         "test_name": "test_ac32_q5_q6_q7_reports_exact_layer_count_and_undo_restores_all_basis",
         "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
         "accepted": False,
     }]
-    assert "true integrated Receiving NFB modal" in row["current_scope_remaining_evidence"]
+    proof = row["acceptance_evidence"]
+    assert proof["ui_full_operator_uat_claimed"] is False
+    assert proof["real_two_old_project_windows_gui_uat"] is False
+    assert proof["physical_absolute_position_grant"] is False
+    assert "Windows" in row["current_scope_remaining_evidence"]
+    assert "actual integrated WHD inner-editor Tk" in row["current_scope_remaining_evidence"]
 
 
 def test_ac54_swt31_current_v5_project_schema_exact_regression_and_no_old_binary_claim():
