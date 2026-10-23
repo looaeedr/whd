@@ -593,6 +593,83 @@ def worker(args):
                 raise AssertionError('Forced Bay0 miss did not run real manufacturing')
             if full is first:
                 raise AssertionError('Forced full comparison reused old view object')
+            # On a warm miss, report the exact cache-key component that
+            # changed. No geometry, cache contents or acceptance thresholds
+            # are modified; this is a source-scoped diagnostic receipt.
+            def scoped_bay0_cache_components():
+                from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+                from gui_modules.application.fold_designer_composition_receiving import (
+                    _receiving_bay_preview_fingerprint_snapshot,
+                    _receiving_bay_preview_face_features_key,
+                )
+                from phase6_settings_profile_projection import project_part_dimensions
+                from phase6_sync_envelope import stable_fingerprint
+                source = dict(designer._phase6_input_snapshot)
+                snapshot = project_receiving_bay_legacy_aliases(source, set_index=0, bay_index=0)
+                settings = {
+                    **dict(designer._settings_values),
+                    **{key: snapshot[key] for key in ('w', 'h', 'd')},
+                }
+                snapshot.update(settings)
+                snapshot['part_dimensions'] = project_part_dimensions(snapshot)
+                workspace = designer.designer_workspace
+                inputs = {
+                    'snapshot': _receiving_bay_preview_fingerprint_snapshot(
+                        snapshot, set_index=0, bay_index=0, allow_suffix_topology_reuse=True,
+                    ),
+                    'profiles': workspace.part_profiles_snapshot(),
+                    'features': workspace.part_features_snapshot(),
+                    'face_features': _receiving_bay_preview_face_features_key(
+                        workspace.part_face_features_snapshot(),
+                    ),
+                    'box_profile': designer.state.profiles_vault.get('箱身', ()),
+                    'corners': designer._phase6_corner_state,
+                }
+                keys = {name: stable_fingerprint(value) for name, value in inputs.items()}
+                keys.update({
+                    'snapshot.' + str(key): stable_fingerprint(value)
+                    for key, value in inputs['snapshot'].items()
+                })
+                # Diagnostic only: distinguish changed physical Bay/Joint
+                # from an irrelevant layout metadata field after tail edit.
+                def layout_paths(value, prefix, depth):
+                    if depth > 7:
+                        return
+                    keys[prefix] = stable_fingerprint(value)
+                    if isinstance(value, dict):
+                        for child, item in value.items():
+                            layout_paths(item, prefix + '.' + str(child), depth + 1)
+                    elif isinstance(value, (list, tuple)):
+                        for index, item in enumerate(value):
+                            layout_paths(item, prefix + '[' + str(index) + ']', depth + 1)
+                layout_paths(inputs['snapshot']['receiving_layout'],
+                             'layout', 0)
+                raw_set = snapshot['receiving_layout']['sets'][0]
+                trimmed_set = inputs['snapshot']['receiving_layout']['sets'][0]
+                raw_bays = raw_set['bays']
+                keys['_reason_detail'] = {
+                    'raw_bays': len(raw_bays),
+                    'filtered_bays': len(trimmed_set['bays']),
+                    'raw_joints': len(raw_set['joints']),
+                    'filtered_joints': len(trimmed_set['joints']),
+                    'flags': {
+                        key: bool(snapshot.get(key))
+                        for key in ('assembly_joints','custom_parts','joint_relief_state')
+                    },
+                    'layout_schema': snapshot['receiving_layout'].get('schema'),
+                    'settings_schema_ok': all(
+                        isinstance(row, dict) and set(row) == {'refs','values'}
+                        for row in raw_set.get('settings', {}).values()
+                    ),
+                    'bays_having_refs': {
+                        kind: [
+                            bay['stable_id'] in row.get('refs', {})
+                            for bay in raw_bays[:2]
+                        ] for kind,row in raw_set.get('settings', {}).items()
+                    },
+                }
+                return keys
+            cache_before = scoped_bay0_cache_components()
             # Tail addition/removal go through existing real operator UI.
             win = open_modal()
             settle(root, owners)
@@ -606,6 +683,15 @@ def worker(args):
                                   bay0_request, validate=assert_same_parts)
             if (after_append is not full
                     or rows[-1]['counts'].get('manufacturing_solve', 0)):
+                cache_after = scoped_bay0_cache_components()
+                changed = [key for key in cache_before
+                           if cache_before[key] != cache_after[key]]
+                print('ISSUE1817_BAY0_CACHE_MISS_COMPONENTS: ' + repr(changed),
+                      file=sys.stderr, flush=True)
+                print('ISSUE1817_CACHE_REASON_DETAIL: before=' +
+                      repr(cache_before['_reason_detail']) +
+                      ' after=' + repr(cache_after['_reason_detail']),
+                      file=sys.stderr, flush=True)
                 raise AssertionError('Unaffected Bay0 rebuilt after UI tail append')
             win = open_modal()
             settle(root, owners)

@@ -85,3 +85,53 @@ def test_manufacturing_export_never_imports_cadcraft_source_file(tmp_path):
     assert receipt.used_baseline is False
     assert any(e.dxftype()=="CIRCLE" and e.dxf.layer=="CUTTING"
                for e in ezdxf.readfile(save_path).modelspace())
+
+
+
+def test_original_whd_project_file_roundtrips_cadcraft_approved_cutting_features(tmp_path):
+    """Project .p6fold is authority, never the disposable CADCraft DXF."""
+    from phase6_project_file import PROJECT_SCHEMA, read_project, write_project
+
+    features = (
+        CircleFeature(8, FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                      Vec2(320, 350), layer="CUTTING"),
+        CircleFeature(10, FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                      Vec2(110, 130), layer="CUTTING"),
+        RectFeature(20, 12, FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                    Vec2(200, 160), rotation_deg=90, layer="CUTTING"),
+        ProfileFeature((Vec2(280, 230), Vec2(295, 230),
+                        Vec2(300, 243), Vec2(280, 248)),
+                       FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                       Vec2(0, 0), layer="CUTTING"),
+    )
+    path = write_project(tmp_path / "confirmed-door.p6fold", {
+        "schema": PROJECT_SCHEMA,
+        "snapshot": {
+            "model": "金庫型",
+            "part_features": {"door": list(features)},
+            "existing_parts": ["door"],
+            "active_part": "door",
+        },
+        "final_geometry": {"must_not_survive": True},
+    })
+    loaded = read_project(path)
+    restored = tuple(loaded["snapshot"]["part_features"]["door"])
+    assert restored == features
+    assert restored[0] is not features[0]
+    assert [type(f) for f in restored] == [type(f) for f in features]
+    assert loaded["final_geometry"] == {}
+
+    specs = dict(width=500, height=600, thickness=2, frame_width=25,
+                 gap_w=3.5, gap_h=3.5,
+                 fold_left=19, fold_right=19, fold_top=19, fold_bottom=19)
+    root = tmp_path / "authority"
+    root.mkdir()
+    context = ManufacturingContext(resource_root=root, draw_stock=False)
+    before = tmp_path / "before-reload.dxf"
+    after = tmp_path / "after-reload.dxf"
+    generate_part(DoorPartSpec(**specs, features=features), before, context)
+    generate_part(DoorPartSpec(**specs, features=restored), after, context)
+    a = Counter(_signature(e) for e in ezdxf.readfile(before).modelspace())
+    b = Counter(_signature(e) for e in ezdxf.readfile(after).modelspace())
+    assert a == b
+    assert any(kind == "CIRCLE" and layer == "CUTTING" for kind, layer, _ in b)

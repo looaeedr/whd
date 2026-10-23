@@ -20,6 +20,8 @@ on:
       - 'tools/phase6_bridge_anti_regrowth_guard.py'
       - 'tools/product_ci_regression.py'
       - 'tools/product_ci_green_reuse.py'
+      - 'tools/ci_bounded_install.py'
+      - 'tools/whd_v15_acceptance_evidence.py'
       - 'docs/architecture/phase6_bridge_anti_regrowth_baseline.json'
       - 'docs/superpowers/checkpoints/issue532-c0-final-classification.json'
       - '.github/workflows/whd-product-regression.yml'
@@ -66,22 +68,9 @@ jobs:
         run: |
           set -euo pipefail
           test -s trusted-timezone-policy/tools/change_lane_gate.py
+          test -s trusted-timezone-policy/tools/localx_publish_gate.py
           cp trusted-timezone-policy/tools/change_lane_gate.py tools/change_lane_gate.py
-      - name: Taiwan timezone hard gate for CI and changed Python sources
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          from tools.change_lane_gate import require_taipei_timezone, require_new_code_taipei
-          print("TAIWAN_TIMEZONE_HARD_GATE_PASS " + require_taipei_timezone())
-          print("new_python_lines_checked=" + str(require_new_code_taipei(
-              Path("."),
-              "${{ github.event.pull_request.base.sha }}",
-              "${{ github.event.pull_request.head.sha }}",
-          )))
-          PY
-
+          cp trusted-timezone-policy/tools/localx_publish_gate.py tools/localx_publish_gate.py
       - name: Taiwan timezone hard gate for CI and changed Python sources
         shell: bash
         run: |
@@ -118,7 +107,7 @@ jobs:
       matrix:
         shard: [0, 1, 2]
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 30
     steps:
       - name: Checkout exact PR candidate
         uses: actions/checkout@v4
@@ -129,14 +118,38 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install product test dependencies
+          cache: pip
+      # Preparation is independently bounded. The 30-minute job budget
+      # remains available for product tests instead of a hung package mirror.
+      - name: Refresh APT index (bounded retry)
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+          python tools/ci_bounded_install.py --label apt-index --attempts 2 --timeout-seconds 120 -- \
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
+      - name: Install Xvfb (bounded retry)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci_bounded_install.py --label xvfb --attempts 2 --timeout-seconds 120 -- \
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 install -y -qq xvfb
+      - name: Upgrade pip separately (bounded retry)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci_bounded_install.py --label pip-upgrade --attempts 2 --timeout-seconds 90 -- \
+            python -m pip install --retries 3 --timeout 20 --upgrade pip
+      - name: Install Python product dependencies (bounded retry)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci_bounded_install.py --label pip-product --attempts 2 --timeout-seconds 240 -- \
+            python -m pip install --retries 3 --timeout 20 -r requirements.txt pytest matplotlib ezdxf
+      - name: Verify exact test dependency imports
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -c 'import ezdxf, matplotlib, pytest, shapely, tkinter; print("CI_TEST_IMPORTS_PASS")'
       - name: Run exact canonical regression shard
         shell: bash
         run: |
@@ -188,12 +201,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install collection and acceptance dependencies
+          cache: pip
+      - name: Install canonical collection dependencies (bounded retry)
         if: needs.prepare.outputs.reuse != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+          python tools/ci_bounded_install.py --label pip-canonical --attempts 2 --timeout-seconds 240 -- \
+            python -m pip install --retries 3 --timeout 20 -r requirements.txt pytest matplotlib ezdxf
+      - name: Verify canonical dependency imports
+        if: needs.prepare.outputs.reuse != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -c 'import ezdxf, matplotlib, pytest, shapely; print("CI_CANONICAL_IMPORTS_PASS")'
       - name: Fetch every successful shard JUnit
         if: needs.prepare.outputs.reuse != 'true'
         uses: actions/download-artifact@v4

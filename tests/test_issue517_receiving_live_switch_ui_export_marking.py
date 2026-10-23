@@ -298,39 +298,22 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
         expected_root.mkdir()
         resolved = designer._phase6_resolve_manufacturing_geometry()
 
+        # A newly selected Receiving Family now contains one *real* CSV NFB
+        # by default. Its BasePlate is source-derived but X/EAR/shop release
+        # is not pre-certified. Both the canonical saver and the actual GUI
+        # bulk-export path must fail closed with ZERO customer DXFs.
         from ae_engine.manufacturing_api import save_resolved_manufacturing_geometry_dxf
-        expected = save_resolved_manufacturing_geometry_dxf(
-            resolved, expected_root, overwrite=True
-        )
-
+        assert designer._phase6_input_snapshot["nfb_config_submitted"] is True
+        with pytest.raises(ValueError, match="NFB V5 未驗證試作禁止使用正式製造 DXF 輸出"):
+            save_resolved_manufacturing_geometry_dxf(
+                resolved, expected_root, overwrite=True
+            )
         designer.output_export_button.invoke()
         _pump(root, 5)
-
-        actual_files = tuple(
-            path for path in tmp_path.glob("*.dxf")
-            if path.parent == tmp_path
+        assert not list(expected_root.glob("*.dxf"))
+        assert not list(tmp_path.glob("*.dxf")), (
+            "Actual GUI must not partially export a source-only initial NFB"
         )
-        assert len(actual_files) == len(expected), (
-            "Actual GUI DXF export is missing canonical physical parts: "
-            f"actual={sorted(p.name for p in actual_files)!r} "
-            f"canonical_count={len(expected)}"
-        )
-        # Equal file counts are not manufacturing acceptance. Reopen the
-        # ACTUAL operator-exported DXFs and use the canonical verifier to
-        # compare filenames, entity/layer counts, CUTTING material, BEND
-        # guides and CUTTING holes against the same committed physical parts.
-        # This detects wrong shapes even when GUI export count looks right.
-        from ae_engine.manufacturing_api import (
-            verify_saved_resolved_manufacturing_geometry_dxf,
-        )
-        verified = verify_saved_resolved_manufacturing_geometry_dxf(
-            resolved, tmp_path
-        )
-        assert verified.ok, [
-            (issue.part_id, issue.category, issue.detail)
-            for issue in verified.issues
-        ]
-        assert len(verified.part_results) == len(expected)
     finally:
         _close(tk, root, designer)
 

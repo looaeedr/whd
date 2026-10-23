@@ -241,34 +241,42 @@ class _TreeClick:
         return self.iid
 
 
+
 def test_t4_structure_tree_empty_piece_registry_displays_visible_and_click_is_noop(
     tk_root, monkeypatch
 ):
+    from tkinter import ttk
+    from phase6_navigation_view_adapter import refresh_structure_tree
+
     calls = []
     panel = _panel(tk_root, calls)
     _require_t4_methods(panel)
-
     fake = SimpleNamespace(
         _phase6_assembly_panel_owner=panel,
         structure_tree=_TreeClick("part:box_body:left_side"),
         _phase6_3d_display_mode="assembly",
         do_update=lambda: calls.append("direct-update"),
     )
-    assert bridge._phase6_structure_tree_visibility_var(
-        fake, "box_body:left_side"
-    ) is None
+    assert bridge._phase6_structure_tree_visibility_var(fake, "box_body:left_side") is None
 
-    refresh_source = _function_source(
-        "fold_designer_bridge.py", "_phase6_refresh_structure_tree"
+    tree = ttk.Treeview(tk_root, columns=("visibility",))
+    tree_host = SimpleNamespace(
+        structure_tree=tree,
+        designer_workspace=SimpleNamespace(available_parts=("head",), active_part=None),
+        _phase6_input_snapshot={},
     )
-    assert "visible = True if visible_var is None" in refresh_source
-    assert '"顯示" if visible else "隱藏"' in refresh_source
+    refresh_structure_tree(
+        tree_host,
+        project_rows=lambda _: (("head", None),),
+        label_for_key=lambda key, **kwargs: key,
+        visibility_var=lambda key: None,
+    )
+    assert tree.item("part:head", "values") == ("顯示",)
 
     monkeypatch.setattr(bridge, "_phase6_refresh_structure_tree", lambda _self: ())
     event = SimpleNamespace(x=1, y=1)
     assert bridge._phase6_on_structure_tree_click(fake, event) == "break"
     assert calls == []
-
 
 def test_t4_structure_tree_repopulated_piece_toggle_uses_exact_panel_var_and_action(
     tk_root, monkeypatch
@@ -306,11 +314,14 @@ def test_t4_structure_tree_repopulated_piece_toggle_uses_exact_panel_var_and_act
     assert refreshes == ["tree"]
 
 
+
 def test_t4_panel_visibility_action_has_no_display_mode_read(tk_root):
+    from gui_modules.application.fold_designer_capability_owners import (
+        AssemblyCornerCapabilityOwner, AssemblyCornerCapabilityPorts,
+    )
     calls = []
     panel = _panel(tk_root, calls)
     _require_t4_methods(panel)
-
     panel.notify_visibility_changed()
     assert calls == ["changed"]
 
@@ -318,48 +329,38 @@ def test_t4_panel_visibility_action_has_no_display_mode_read(tk_root):
     assert "_phase6_3d_display_mode" not in panel_source
     assert "display_mode" not in panel_source
 
-    target = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_on_assembly_part_visibility_changed",
-    )
-    assert "_phase6_3d_display_mode" in target
-    assert '== "assembly"' in target
-    assert "self.do_update()" in target
+    mode = {"value": "single"}
+    submissions = []
+    capability = AssemblyCornerCapabilityOwner(AssemblyCornerCapabilityPorts(
+        display_mode=lambda: mode["value"],
+        submit_update_intent=lambda: (
+            lambda reason, *, commit: submissions.append((reason, commit))
+        ),
+    ))
+    assert capability.refresh_if_assembly() is False
+    assert submissions == []
+    mode["value"] = "assembly"
+    assert capability.refresh_if_assembly() is True
+    assert submissions == [("display", True)]
 
 
 def test_t4_final_scene_query_order_and_text_producer_kinds_remain_exact():
-    source = inspect.getsource(
-        Phase6FinalSceneViewAdapter.query_assembly_render_data
-    )
-
+    source = inspect.getsource(Phase6FinalSceneViewAdapter.query_assembly_render_data)
+    # A display-only redraw must NOT force a fresh geometry publication.
+    # Geometry publication belongs to the update scheduler/executor.
+    assert "publish_live_state(" not in source
     resolve_i = source.index("dependencies.resolve_geometry()")
-    publish_i = source.index("dependencies.publish_live_state(force=True)")
     parts_i = source.index("parts = tuple(")
     corner_i = source.index("dependencies.assembly_corner_text_sink(corner_texts)")
     formed_i = source.index("dependencies.assembly_part_text_sink(")
-    blank_i = source.index(
-        "dependencies.assembly_part_text_sink(", formed_i + 1
-    )
+    blank_i = source.index("dependencies.assembly_part_text_sink(", formed_i + 1)
     piece_i = source.index("refresh_box_body(part.render_data)")
     visibility_i = source.index("dependencies.assembly_visibility(parts)")
     build_i = source.index("return self.make_assembly_scene_render_data(")
-
-    assert (
-        resolve_i
-        < publish_i
-        < parts_i
-        < corner_i
-        < formed_i
-        < blank_i
-        < piece_i
-        < visibility_i
-        < build_i
-    )
+    assert resolve_i < parts_i < corner_i < formed_i < blank_i < piece_i < visibility_i < build_i
     assert re.findall(
-        r'assembly_part_text_sink\(\s*"([^"]+)"',
-        source,
+        r'assembly_part_text_sink\(\s*"([^"]+)"', source,
     ) == ["formed", "blank"]
-
 
 
 def test_t4_bridge_final_scene_wrappers_are_thin_panel_delegates():
@@ -367,27 +368,24 @@ def test_t4_bridge_final_scene_wrappers_are_thin_panel_delegates():
     part = _function_source("phase6_assembly_panel.py", "set_part_text")
     visibility = _function_source("phase6_assembly_panel.py", "resolve_visibility")
     tree_var = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_structure_tree_visibility_var",
+        "fold_designer_bridge.py", "_phase6_structure_tree_visibility_var",
     )
     tree_set = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_set_structure_tree_visibility",
+        "fold_designer_bridge.py", "_phase6_set_structure_tree_visibility",
     )
-
     assert "corner_vars" in corner
     assert "formed_vars" in part and "blank_vars" in part
     assert "_resolve_visibility_with_vars" in visibility
     assert ".visibility_var(" in tree_var
-    assert ".notify_visibility_changed(" in tree_set
-
-    bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    assert "notify_visibility_changed=(owner.notify_visibility_changed" in tree_set
+    assert "_navigation_view_set_structure_tree_visibility(" in tree_set
+    bridge_source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
     for retired in (
         "_phase6_final_scene_corner_text_sink",
         "_phase6_final_scene_part_text_sink",
         "_phase6_final_scene_visibility",
     ):
-        assert f"def {retired}(" not in bridge
+        assert f"def {retired}(" not in bridge_source
 
 def test_t4_final_scene_adapter_keeps_all_four_presentation_ports_wired():
     # Phase 4 T1 (#479) moved application wiring ownership into the existing

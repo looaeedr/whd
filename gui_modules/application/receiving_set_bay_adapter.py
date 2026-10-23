@@ -29,6 +29,51 @@ from ae_engine.receiving_layout import (
 )
 
 
+def _candidate_committed_csv_nfb_config(source):
+    """Validate one complete NFB CSV replacement before any Bay mutation.
+
+    A candidate may replace a previously submitted NFB only when ALL its
+    physical CUTTING comes from the one native NFB source. A mix of arbitrary
+    Hole Editor CUTTING and typed NFB remains blocked against double owners.
+    """
+    from ae_engine.receiving_nfb_csv_committed_config import (
+        committed_csv_nfb_config,
+    )
+    feature_map = dict(source.get("features") or {})
+    imported = [
+        (part_id, features)
+        for part_id, features in feature_map.items()
+        if any(getattr(feat, "source_type", None) == "NFB_CSV_SOURCE"
+               for feat in features)
+    ]
+    if not imported:
+        return None
+    if len(imported) != 1:
+        raise ValueError("每個候選 NFB 必須對應唯一實體內門板件")
+    if any(
+        str(getattr(feat, "layer", "")).upper() == "CUTTING"
+        and getattr(feat, "source_type", None) != "NFB_CSV_SOURCE"
+        for features in feature_map.values() for feat in features
+    ):
+        raise ValueError("候選存在非 NFB CUTTING；不得與已提交 NFB 形成雙重開孔")
+    part_id, features = imported[0]
+    return committed_csv_nfb_config(part_id, features, source)
+
+
+def _replace_candidate_bay_nfb(layout, si, bi, csv_config):
+    """Commit the complete candidate NFB once, with this Bay's stable IDs."""
+    if csv_config is None:
+        return layout
+    bay_id = str(layout["sets"][si]["bays"][bi]["stable_id"])
+    selected = deepcopy(csv_config)
+    for hole in selected["holes"]:
+        hole["physical_hole_id"] = f"{bay_id}:{hole['physical_hole_id']}"
+    return update_receiving_bay(
+        layout, set_index=si, bay_index=bi,
+        nfb_config_submitted=True, nfb_config=selected,
+    )
+
+
 class ReceivingDestructiveEditConfirmationRequired(RuntimeError):
     def __init__(self, stable_ids: Iterable[str]):
         self.stable_ids = tuple(str(value) for value in stable_ids)
@@ -387,28 +432,15 @@ class ReceivingSetBayAdapter:
         # submit the version's existing Hole Editor NFB features into each
         # selected Bay's source projection. Manual NFB X remains unverified
         # and manufacturing-ready flags are NEVER promoted by this bridge.
-        csv_config = None
-        from ae_engine.receiving_nfb_csv_committed_config import (
-            committed_csv_nfb_config,
-        )
-        imported = [
-            (part_id, features)
-            for part_id, features in source.get("features", {}).items()
-            if any(getattr(feat, "source_type", None) == "NFB_CSV_SOURCE"
-                   for feat in features)
-        ]
-        if imported:
-            if len(imported) != 1:
-                raise ValueError("每個候選 NFB 必須對應唯一實體內門板件")
-            part_id, features = imported[0]
-            csv_config = committed_csv_nfb_config(part_id, features, source)
-        # A native Hole Editor CUTTING Feature and a submitted NFBConfig must
-        # never both own the same physical inner-door opening.
-        if source.get("features") and any(
+        csv_config = _candidate_committed_csv_nfb_config(source)
+        # Explicit Apply REPLACES the initial submitted NFB + physical
+        # features as one Bay transaction; never union them. Non-NFB or
+        # unverified mixed CUTTING cannot overwrite a submitted source.
+        if csv_config is None and source.get("features") and any(
             self._layout["sets"][set_index]["bays"][bi].get("nfb_config_submitted") is True
             for bi in selected
         ):
-            raise ValueError("此連 NFB 已提交；不得將另一份內門開孔覆寫成重複 CUTTING")
+            raise ValueError("此連 NFB 已提交；非 CSV 候選不得覆寫原開孔")
         candidate = self._layout
         for bi in selected:
             for kind, value in (
@@ -426,20 +458,9 @@ class ReceivingSetBayAdapter:
                     kind=kind, value=value,
                 )
         if csv_config is not None:
-            from ae_engine.receiving_layout import update_receiving_bay
             for bi in selected:
-                bay_id = str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
-                config_for_bay = deepcopy(csv_config)
-                # Each Bay is a distinct physical owner even when the
-                # *candidate* version is shared between many connected Bays.
-                for hole in config_for_bay["holes"]:
-                    hole["physical_hole_id"] = (
-                        f"{bay_id}:{hole['physical_hole_id']}"
-                    )
-                candidate = update_receiving_bay(
-                    candidate, set_index=set_index, bay_index=bi,
-                    nfb_config_submitted=True,
-                    nfb_config=config_for_bay,
+                candidate = _replace_candidate_bay_nfb(
+                    candidate, set_index, bi, csv_config,
                 )
         self._layout = candidate
         self._session_dirty_ids.update(
@@ -486,11 +507,18 @@ class ReceivingSetBayAdapter:
             expected_counts=expected_counts,
         )
         from ae_engine.receiving_shared_settings import validate_setting
+        # Validate the entire allocation BEFORE touching any Bay. A changed
+        # version must atomically replace its typed CSV NFB on each selected
+        # Bay, not add a second CUTTING owner or silently keep the old NFB.
+        replacements = {}
         for si, bi, config in plan:
             validate_setting("inner_door_version_id", assigned[(si, bi)])
-            if (config.get("features")
-                    and self._layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is True):
-                raise ValueError("已提交 NFB 與候選內門開孔不得成為雙重 CUTTING owner")
+            csv = _candidate_committed_csv_nfb_config(config)
+            if csv is None and config.get("features") and (
+                self._layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is True
+            ):
+                raise ValueError("已提交 NFB 與非 CSV 候選不得形成雙重 CUTTING owner")
+            replacements[(si, bi)] = csv
         candidate = self._layout
         for si, bi, config in plan:
             for kind, value in (
@@ -506,6 +534,9 @@ class ReceivingSetBayAdapter:
                 candidate = edit_setting(
                     candidate, set_index=si, bay_index=bi, kind=kind, value=value,
                 )
+            candidate = _replace_candidate_bay_nfb(
+                candidate, si, bi, replacements[(si, bi)],
+            )
         self._layout = candidate
         self._session_dirty_ids.update(
             str(candidate["sets"][si]["bays"][bi]["stable_id"])

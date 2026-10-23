@@ -52,9 +52,25 @@ def _current_brand_config(snapshot):
     active = snapshot.get(RECEIVING_RUNTIME_SELECTION_KEY)
     if isinstance(active, Mapping):
         si, bi = active.get("set_index"), active.get("bay_index")
+        # An immutable Phase6 manufacturing DTO transports numeric integers
+        # as floats. Normalize only integral, finite quantity indices; the
+        # independent persisted Set/Bay stable-ID checks below stay strict.
+        # Set/Bay snapshots and fractional/forged selectors are NOT rescued.
+        if snapshot.get("active_mode") == "quantity":
+            for label, number in (("set_index", si), ("bay_index", bi)):
+                if (type(number) is float and isfinite(number)
+                        and number.is_integer()):
+                    if label == "set_index":
+                        si = int(number)
+                    else:
+                        bi = int(number)
         if (type(si) is not int or si < 0 or si >= len(sets)
                 or sets[si].get("stable_id") != active.get("set_id")):
-            raise ValueError("EAR_Z_SET_IDENTITY_DRIFT")
+            raise ValueError(
+                "EAR_Z_SET_IDENTITY_DRIFT:"
+                f" selected_index={si!r} selected_id={active.get('set_id')!r}"
+                f" current_ids={tuple(row.get('stable_id') for row in sets)!r}"
+            )
         selected_set = sets[si]
         bays = selected_set.get("bays")
         if (not isinstance(bays, (tuple, list)) or type(bi) is not int
@@ -116,8 +132,11 @@ def _tier_source_depths(legacy_brand, config, layer_index):
         if not isfinite(number) or number <= 0:
             return ()
         depths.append(number)
-    if not 1 <= len(depths) <= 2:
+    if not depths:
         return ()
+    # Many different NFB depths on one FLAT tier are supported by independent
+    # PAD patterns. CENTER double-fold uses at most two physical faces and
+    # is explicitly rejected by the resolver when more are encountered.
     return tuple(sorted(set(depths), reverse=True))
 
 
@@ -161,11 +180,17 @@ def resolve_receiving_tier_base_z_targets(
         local_physical = dict(physical)
         # A single NFB/depth in each tier uses the same original base source
         # folded skin, not the other tier's model or its placement Z.
-        if len(depths) == 2:
-            # Only the actual source profile can certify a two-depth folded
-            # web; the resulting EAR target still is NOT approved manufacture.
+        from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+        center_fold = (local_physical["receiving_bend_pattern"]
+                       == RECEIVING_BASE_PATTERN_CENTER)
+        if center_fold and len(depths) > 2:
+            raise ValueError("EAR_Z_CENTER_ONLY_TWO_PHYSICAL_FACES")
+        if center_fold and len(depths) == 2:
+            # CENTER source owns both physical depth faces.
             local_physical["receiving_nfb_depth_pair_mm"] = depths
         else:
+            # A flat web owns ONLY the deepest real mounting face;
+            # shallower switches require separate parametric PAD bodies.
             local_physical["receiving_nfb_depth_pair_mm"] = None
         local_front, shallow = receiving_base_actual_local_nfb_skins(
             snapshot, local_physical,
@@ -173,11 +198,13 @@ def resolve_receiving_tier_base_z_targets(
         world = resolve_receiving_nfb_world_skin_datums(
             snapshot, inner_door_id=door_id,
             reference_nfb_depth_mm=depths[0],
-            secondary_nfb_depth_mm=(depths[1] if len(depths) == 2 else None),
+            secondary_nfb_depth_mm=(
+                depths[1] if center_fold and len(depths) == 2 else None
+            ),
         )
         offset_z = world.base_nfb_face_world_z_mm - local_front
         back_z = offset_z + local_front - t
-        if (len(depths) == 2 and (shallow is None
+        if (center_fold and len(depths) == 2 and (shallow is None
                 or world.shallow_nfb_face_world_z_mm is None
                 or abs(offset_z + shallow - world.shallow_nfb_face_world_z_mm) > 1e-6)):
             raise ValueError("EAR_Z_SECOND_NFB_FACE_SOURCE_MISMATCH")

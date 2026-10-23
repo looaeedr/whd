@@ -7,7 +7,7 @@ from ae_engine.cabinet_types import receiving
 from ae_engine.receiving_quantity_box import BOX_KEY, positive_dimension, project_common_box
 
 
-def fresh_receiving_mode(mode, dimensions, *, thickness=2.0):
+def fresh_receiving_mode(mode, dimensions, *, thickness=2.0, auto_nfb=False):
     """Start from Family defaults and confirmed dimensions, never another Bay."""
     from ae_engine.sheetmetal_part_adapters import complete_partition
     from ae_engine.receiving_layout import (
@@ -49,6 +49,15 @@ def fresh_receiving_mode(mode, dimensions, *, thickness=2.0):
             "door_state": {key: deepcopy(result[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in result},
         }
         result = project_common_box(result)
+    if auto_nfb:
+        from ae_engine.receiving_fresh_nfb_defaults import (
+            seed_fresh_receiving_nfb_source,
+            seed_fresh_receiving_quantity_nfb_source,
+        )
+        if mode == QUANTITY_MODE:
+            result = seed_fresh_receiving_quantity_nfb_source(result)
+        else:
+            result = seed_fresh_receiving_nfb_source(result)
     return result
 
 
@@ -89,7 +98,10 @@ class ReceivingModeSession:
         else:
             if dimensions is None:
                 return False
-            candidate = fresh_receiving_mode(target, dimensions, thickness=current.get("t", 2.0))
+            candidate = fresh_receiving_mode(
+                target, dimensions, thickness=current.get("t", 2.0),
+                auto_nfb=True,
+            )
             if self._validator is not None:
                 self._validator(deepcopy(candidate))
         # One project allocator spans both memory-only mode buffers. Retain

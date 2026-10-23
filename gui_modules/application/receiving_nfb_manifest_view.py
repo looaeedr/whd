@@ -14,6 +14,15 @@ def nfb_manifest_display_lines(view):
         return ("未配置 NFB｜依原有加工流程",)
     if state=="BLOCKED":
         return ("NFB 尚不可匯出："+str(view.get("reason","尚未重驗來源")),)
+    if state=="CSV_SOURCE_RECHECK_ONLY":
+        # This is not WHOLE_READY or a source-scoped manufacturing receipt.
+        # Never invent a piece count from the current CSV identity alone.
+        if view.get("actual_export_count") is not None or view.get("rows"):
+            raise ValueError("CSV recheck-only display cannot claim manufactured parts")
+        return (
+            "現行 CSV NFB 已提交｜內門＋底板部分 DXF 需按出圖鍵再驗證；"
+            "不代表整箱可製造",
+        )
     if state not in ("PARTIAL_ONLY","WHOLE_READY"):
         raise ValueError("NFB manufacturing view status unsupported")
     rows=tuple(view.get("rows",()))
@@ -48,7 +57,7 @@ def nfb_manifest_display_lines(view):
     header=(
         f"NFB 板件狀態：可加工 {allowed} 片（僅部分可出）"
         if state=="PARTIAL_ONLY" else
-        f"NFB 已驗證板件 {allowed} 片（PAD／耳朵尚未驗收）"
+        f"NFB 已驗證板件 {allowed} 片（PAD／整箱製造仍須獨立驗收）"
     )
     lines=[header]
     for item in rows:
@@ -101,6 +110,11 @@ def highlighted_nfb_manifest_lines(ports, set_index, highlighted_bays):
         if state=="BLOCKED":
             lines.append(prefix+"｜NFB 尚不可匯出："+str(
                 current.get("reason") or "缺少來源驗證"))
+            continue
+        if state=="CSV_SOURCE_RECHECK_ONLY":
+            lines.append(
+                prefix+"｜"+nfb_manifest_display_lines(dict(current))[0]
+            )
             continue
         ids=tuple(current.get(key) for key in ("set_id","bay_id","version_id"))
         if any(not isinstance(value,str) or not value.strip() for value in ids):

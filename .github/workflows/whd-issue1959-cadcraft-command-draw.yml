@@ -16,6 +16,12 @@ on:
       - "tools/issue1959_whd_real_manufacturing_parity.py"
       - "tests/test_issue1959_whd_real_manufacturing_parity.py"
       - "tests/test_issue1959_cadcraft_windows_native_ci_contract.py"
+      - "gui_modules/editors/cadcraft_control_bridge.py"
+      - "gui_modules/editors/cadcraft_live_return_bridge.py"
+      - "tests/test_issue1959_cadcraft_live_return.py"
+      - "tests/test_issue1959_cadcraft_tcp_control.py"
+      - "tools/issue1959_cadcraft_tcp_native_probe.py"
+      - "tools/issue1959_cadcraft_tcp_live_native_probe.py"
       - "gui_modules/editors/cadcraft_command_preview_bridge.py"
       - "gui_modules/editors/cadcraft_paths.py"
       - "tests/test_issue1959_cadcraft_relative_location.py"
@@ -23,6 +29,9 @@ on:
       - "gui_modules/editors/hole_editor_view.py"
       - "tests/test_issue1959_cadcraft_command_preview_button.py"
       - "tests/test_issue1959_cadcraft_command_button_live_tk.py"
+      - "tests/test_issue1959_native_windows_whd_button_e2e.py"
+      - "tests/test_issue1959_main_gui_save_open.py"
+      - "tests/test_issue1959_receiving_inner_3d_editor.py"
       - ".github/workflows/whd-issue1959-cadcraft-command-draw.yml"
   workflow_dispatch:
 
@@ -48,18 +57,20 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install WHD geometric dependencies and regression runner
-        run: python -m pip install -r requirements.txt ezdxf pytest
+        run: python -m pip install -r requirements.txt ezdxf pytest matplotlib
       - name: Test WHD command conversion and independent fail-closed DXF geometry audit
-        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_cadcraft_relative_location.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_windows_native_ci_contract.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_cadcraft_relative_location.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_windows_native_ci_contract.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_live_return.py
       - name: Actually invoke Hole Editor CADCraft button in a real Tk/Xvfb window
         shell: bash
+        env:
+          WHD_1959_PIXEL_RECEIPT_DIR: work/issue1959/real3d-pixels
         run: |
           set -euo pipefail
           if ! command -v xvfb-run >/dev/null; then
             sudo apt-get update -qq
             sudo apt-get install -y xvfb
           fi
-          xvfb-run -a python -m pytest -q tests/test_issue1959_cadcraft_command_button_live_tk.py
+          xvfb-run -a python -m pytest -q tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_main_gui_save_open.py tests/test_issue1959_receiving_inner_3d_editor.py
       - name: Retrieve official CADCraft v0.8.0 CLI and verify its release SHA256
         shell: bash
         run: |
@@ -111,6 +122,51 @@ jobs:
           assert proof["status"] == "PASS" and proof["entity_count"] == 3
           print("ACTUAL_NATIVE_CADCRAFT_WHD_COMMANDS_GREEN")
           PY
+      - name: Real official CADCraft desktop --control TCP new metric drawing and DXF geometry parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxkbcommon-x11-0 libxkbcommon-x11-dev
+          sudo apt-get install -y -qq libvulkan1 mesa-vulkan-drivers libgl1-mesa-dri
+          export WGPU_BACKEND=vulkan
+          export LIBGL_ALWAYS_SOFTWARE=1
+          if test -f /usr/share/vulkan/icd.d/lvp_icd.x86_64.json; then
+            export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+          fi
+          GUI="$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft"
+          test -x "$GUI"
+          mkdir -p work/issue1959
+          xvfb-run -a python -m tools.issue1959_cadcraft_tcp_native_probe \
+            --cadcraft "$GUI" \
+            --evidence work/issue1959/cadcraft-desktop-tcp-native-proof.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("work/issue1959/cadcraft-desktop-tcp-native-proof.json").read_text())
+          assert p["status"]=="PASS" and p["observed_count"]==3
+          assert p["geometry"]["status"]=="PASS" and not p["manufacturing_dxf_written"]
+          assert p["whd_session_modified"] is False and not p["windows_gui_uat_completed"]
+          print("REAL_VENDOR_DESKTOP_CONTROL_TCP_WHD_GEOMETRY_GREEN")
+          PY
+      - name: Real CADCraft GUI unsaved live TCP hole to WHD original Session, Confirm and Undo
+        shell: bash
+        run: |
+          set -euo pipefail
+          GUI="$RUNNER_TEMP/cadcraft/cadcraft-0.8.0-linux-x86_64/bin/cadcraft"
+          test -x "$GUI"
+          xvfb-run -a python -m tools.issue1959_cadcraft_tcp_live_native_probe \
+            --cadcraft "$GUI" \
+            --evidence work/issue1959/cadcraft-live-unsaved-session-proof.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path("work/issue1959/cadcraft-live-unsaved-session-proof.json").read_text())
+          assert p["status"]=="PASS" and p["new_holes_in_whd_session"]==1
+          assert p["disk_original_unchanged"] and p["session_confirm"] and p["session_undo"]
+          assert p["manual_cadcraft_save"] is False and not p["manufacturing_dxf_written"]
+          print("REAL_VENDOR_UNSAVED_GUI_TCP_WHD_SESSION_GREEN")
+          PY
       - name: Stage actual CADCraft output into original WHD Session then test Cancel Confirm Undo
         run: |
           python -m tools.issue1959_cadcraft_session_trial \
@@ -138,6 +194,11 @@ jobs:
           p=json.loads(Path("work/issue1959/WHD-original-manufacturing-parity.json").read_text())
           assert p["status"]=="PASS" and p["new_cutting_holes"]==3
           assert p["manufacturing_cutting_from_whd"] is True
+          assert p["project_file_saved_and_reloaded"] is True
+          assert p["reloaded_part_features_count"] == 4
+          assert p["persisted_feature_types"] == ["CircleFeature","CircleFeature","RectFeature","ProfileFeature"]
+          assert p["reloaded_manufacturing_dxf_geometry_parity"] is True
+          assert p["top_level_gui_save_click_tested"] is False
           assert p["cadcraft_dxf_used_as_manufacturing_source"] is False
           assert p["windows_gui_uat_completed"] is False
           print("REAL_WHD_MANUFACTURING_CUTTING_FROM_CADCRAFT_APPROVED_FEATURES_GREEN")
@@ -173,10 +234,12 @@ jobs:
           python-version: "3.12"
       - name: Install real Windows WHD geometry dependencies
         shell: pwsh
-        run: python -m pip install -r requirements.txt ezdxf pytest
+        run: python -m pip install -r requirements.txt ezdxf pytest matplotlib
       - name: Real Windows WHD coordinate and Session regressions
         shell: pwsh
-        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_command_button_live_tk.py
+        env:
+          WHD_1959_PIXEL_RECEIPT_DIR: work/issue1959-win/real3d-pixels
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_cadcraft_live_return.py tests/test_issue1959_main_gui_save_open.py tests/test_issue1959_receiving_inner_3d_editor.py
       - name: Verify publisher SHA256 and unpack official Windows x64 CADCraft v0.8.0
         shell: pwsh
         run: |
@@ -200,7 +263,36 @@ jobs:
           if ($executables.Count -ne 1) { throw "CADCRAFT_WINDOWS_CLI_NOT_UNIQUE" }
           $cli = $executables[0].FullName
           "CADCRAFT_CLI=$cli" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $guis = @(Get-ChildItem (Join-Path $dir "unpacked") -Recurse -File -Filter "cadcraft.exe")
+          if ($guis.Count -ne 1) { throw "CADCRAFT_WINDOWS_GUI_NOT_UNIQUE" }
+          "CADCRAFT_GUI=$($guis[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "OFFICIAL_WINDOWS_CADCRAFT_RELEASE_SHA256 $actual"
+      - name: Actual Windows CADCraft desktop GUI unsaved TCP to WHD Session Confirm Undo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path "work/issue1959-win" | Out-Null
+          python -m tools.issue1959_cadcraft_tcp_live_native_probe --cadcraft "$env:CADCRAFT_GUI" --evidence "work/issue1959-win/cadcraft-native-gui-unsaved-return.json"
+          if ($LASTEXITCODE -ne 0) { throw "CADCRAFT_REAL_WINDOWS_GUI_TCP_RETURN_RED" }
+          @'
+          import json
+          from pathlib import Path
+          p = json.loads(Path("work/issue1959-win/cadcraft-native-gui-unsaved-return.json").read_text(encoding="utf-8"))
+          assert p["status"] == "PASS" and p["new_holes_in_whd_session"] == 1
+          assert p["session_confirm"] and p["session_undo"] and p["disk_original_unchanged"]
+          assert p["manual_cadcraft_save"] is False and not p["manufacturing_dxf_written"]
+          assert p["windows_user_gui_uat"] is False
+          print("WINDOWS_NATIVE_VENDOR_GUI_TCP_UNSAVED_WHD_SESSION_GREEN")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw "WINDOWS_NATIVE_GUI_TCP_RECEIPT_INVALID" }
+      - name: Real WHD Tk button opens native CADCraft GUI live unsaved Confirm Cancel Undo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue1959-native-button-config"
+          python -m pytest -q tests/test_issue1959_native_windows_whd_button_e2e.py
+          if ($LASTEXITCODE -ne 0) { throw "WHD_WINDOWS_NATIVE_TK_BUTTON_CADCRAFT_TCP_RED" }
+          Write-Host "REAL_WINDOWS_WHD_TK_NATIVE_CADCRAFT_UNSAVED_RETURN_GREEN"
       - name: Windows native CADCraft draws actual WHD holes and saves disposable PNG DXF
         shell: pwsh
         run: |
@@ -223,6 +315,10 @@ jobs:
           p = json.loads(Path("work/issue1959-win/whd-manufacturing-proof.json").read_text())
           assert p["status"] == "PASS" and p["new_cutting_holes"] == 3
           assert p["manufacturing_cutting_from_whd"] and not p["windows_gui_uat_completed"]
+          assert p["project_file_saved_and_reloaded"] is True
+          assert p["reloaded_part_features_count"] == 4
+          assert p["reloaded_manufacturing_dxf_geometry_parity"] is True
+          assert p["top_level_gui_save_click_tested"] is False
           print("WINDOWS_NATIVE_CADCRAFT_TO_WHD_MANUFACTURING_GREEN")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "WHD_WINDOWS_MANUFACTURING_EVIDENCE_RED" }

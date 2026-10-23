@@ -45,10 +45,10 @@ def calculate_z_length(zl1=None, zl2=None, zr1=None, zr2=None, z_comp=None, W_va
     
     total_length = (
         abs(zl1) + 
-        zl2 + 
+        abs(zl2) + 
         abs(zr1) + 
-        zr2 + 
-        (2 * fw) + 
+        abs(zr2) + 
+        (2 * abs(fw)) + 
         w + 
         (2 * d) - 
         (6 * t) + 
@@ -87,7 +87,7 @@ def calculate_y_depth(ytop1=None, ybottom1=None, D_val=None, T_val=None, FW_val=
     t = T_val if T_val is not None else T
     fw = FW_val if FW_val is not None else FW
     
-    total_depth = d - (3 * t) + ytop1 + fw + ybottom1
+    total_depth = d - (3 * t) + abs(ytop1) + abs(fw) + abs(ybottom1)
     return total_depth
 
 

@@ -1726,7 +1726,7 @@ class Phase6ApplicationHost:
         self.door_indicator_offset_y = 0.0
         self.draw_preview()
 
-        draw_hole_editor_hint(canvas, cw, endcap=False)
+
 
     def _door_layout_cell_at_canvas_point(self, x, y):
         return _door_layout_cell_at_canvas_point_impl(self.door_layout_cell_bounds, x, y)
@@ -1909,6 +1909,8 @@ class Phase6ApplicationHost:
     export_multi_door_layout_dxfs = _phase6_project_export.export_multi_door_layout_dxfs
     export_multi_door_indicator_box_parts = _phase6_project_export.export_multi_door_indicator_box_parts
     export_selected_dxf = _phase6_project_export.export_selected_dxf
+    export_receiving_pad_base_part_only_dxf = (
+        _phase6_project_export.export_receiving_pad_base_part_only_dxf)
     export_receiving_ear_side_check_dxf = _phase6_project_export.export_receiving_ear_side_check_dxf
     export_receiving_ear_side_manufacturing_dxf = _phase6_project_export.export_receiving_ear_side_manufacturing_dxf
     _single_door_indicator_state_snapshot = _phase6_project_export._single_door_indicator_state_snapshot

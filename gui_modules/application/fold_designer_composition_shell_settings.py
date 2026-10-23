@@ -291,6 +291,21 @@ def sync_authoritative_derived_parts(
     source_part_features = dict(snapshot.get("part_features") or {})
     known_feature_keys = set(workspace.part_features_snapshot())
     source_parts = tuple(snapshot.get("existing_parts") or ())
+    # A saved v3 Receiving project may omit the original BasePlate from the
+    # historical existing_parts list despite having a committed NFB and an
+    # authentic physical source. The manufacturing resolver can restore it,
+    # but the 2D part selector must use the SAME source authority.
+    # Never add it for drafts, unknown sources or non-Receiving families.
+    if (snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("nfb_config_submitted") is True
+            and "base_plate" not in source_parts):
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+        try:
+            original_base = receiving_base_plate_values(snapshot)
+        except (ValueError, TypeError, KeyError):
+            original_base = None
+        if original_base is not None:
+            source_parts += ("base_plate",)
     available_parts = tuple(workspace.available_parts)
 
     build_profiles = required("build_standard_part_profiles")
@@ -313,6 +328,17 @@ def sync_authoritative_derived_parts(
     # lower 500-mm section). Other families keep their existing multi-door
     # base_plate_cN_rN projection unchanged.
     receiving_single_base = str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
+    # Submitted NFB in TWO real tiers replaces the single root physical
+    # BasePlate with TWO canonical tier PartSpecs. The original root remains
+    # an internal manufacturing INPUT (registered at _canonical_part_keys),
+    # never a third item in the operator's 2D selector.
+    receiving_two_tier = (
+        receiving_single_base
+        and snapshot.get("nfb_config_submitted") is True
+        and isinstance(snapshot.get("nfb_config"), Mapping)
+        and snapshot["nfb_config"].get("layer_count") == 2
+    )
+    preserve_navigation_root = receiving_single_base and not receiving_two_tier
     base_plate_profiles = {}
     if door_rows and not receiving_single_base:
         columns = tuple(
@@ -422,7 +448,7 @@ def sync_authoritative_derived_parts(
     )
     single_base_plate_profiles = (
         build_profiles(snapshot, "base_plate")
-        if (not door_rows or receiving_single_base) and "base_plate" in source_parts and "base_plate" not in available_parts
+        if (not door_rows or preserve_navigation_root) and "base_plate" in source_parts and "base_plate" not in available_parts
         else None
     )
     request = build_derived_part_projection_request(
@@ -442,7 +468,7 @@ def sync_authoritative_derived_parts(
             single_base_plate_profiles=single_base_plate_profiles,
             active_part=workspace.active_part,
             selected_part=workspace.selected_part,
-            preserve_single_base_plate=receiving_single_base,
+            preserve_single_base_plate=preserve_navigation_root,
         )
     )
     plan = build_derived_part_sync_plan(request)
@@ -480,10 +506,16 @@ def sync_authoritative_derived_parts(
     # draft or a Base Plate with no selected physical source.
     tier_profiles = {}
     if (receiving_single_base
-            and isinstance(snapshot.get("receiving_base_plate"), Mapping)
             and snapshot.get("nfb_config_submitted") is True
             and isinstance(snapshot.get("nfb_config"), Mapping)
             and snapshot["nfb_config"].get("layer_count") == 2):
+        # Do not gate the operator's 2D tier selector on a SECOND manually
+        # saved receiving_base_plate setting. The source-only
+        # receiving_base_plate_3d_profiles(snapshot) below already returns
+        # None for an unresolved physical shape and provides the SAME
+        # submitted numeric-CSV authority as the actual Phase6 FinalScene.
+        # Previously the real 3D scene had two tiers but 2D navigation
+        # silently omitted both unless the operator re-entered a base plate.
         from ae_engine.receiving_nfb_base_assembly_xy import (
             receiving_nfb_layer_centers,
         )
@@ -522,6 +554,51 @@ def sync_authoritative_derived_parts(
         namespace="base_plate:nfb_layer:",
         part_profiles=tier_profiles,
     )
+
+    # PAD is its own genuine unfolded 2D sheet. Publish it in the existing
+    # Part selector but never as a RAW manufacturing input. The selected
+    # Bay's numeric V5 CSV and common tooling remain the sole source.
+    from ae_engine.receiving_nfb_pad_operator_parts import (
+        committed_nfb_pad_draft_parts,
+    )
+    # The original Hole Editor commits current NFB ProfileFeatures into
+    # the authoritative workspace before the async geometry snapshot is
+    # republished. A root-only snapshot still has the PREVIOUS features
+    # at this point and _submitted_csv_holes legitimately returns ().
+    # Reuse the CURRENT workspace's actual verified features, not inferred
+    # slot X, to make 2D source ownership match the subsequent 3D resolve.
+    # In dry-run projected workspace use only its projected features.
+    live_features = workspace.part_features_snapshot()
+    pad_source = {
+        **snapshot,
+        "part_features": {
+            **source_part_features,
+            **{
+                str(key): value for key, value in live_features.items()
+                if isinstance(key, str) and isinstance(value, (tuple, list))
+            },
+        },
+    }
+    try:
+        pad_preview_parts = committed_nfb_pad_draft_parts(pad_source)
+    except (ValueError, TypeError, KeyError, OSError):
+        pad_preview_parts = ()
+    navigation.sync_derived_parts(
+        namespace="nfb_pad:",
+        part_profiles={
+            part.part_id: {
+                "X": tuple(dict(row) for row in part.x_profile),
+                "Y": tuple(dict(row) for row in part.y_profile),
+            }
+            for part in pad_preview_parts
+        },
+    )
+    # No historical third root entry on two-tier navigation; once canonical
+    # tier profiles are published, reconcile a stale root that survived an
+    # older project load/single-to-two-tier transition. Never alter source
+    # geometry or modify the original saved project during this projection.
+    if receiving_two_tier and "base_plate" in workspace.available_parts:
+        navigation.remove_part("base_plate")
 
     return (
         tuple(divider_profiles),
@@ -570,6 +647,17 @@ def apply_settings_profile_projection(
     clone = required("clone_profile")
 
     snapshot = materialize(plan.snapshot)
+    # Settings freezes dataclasses into plain mappings to keep its own
+    # boundary deterministic. Actual Receiving Hole Editor Features belong
+    # to the already-committed manufacturing/workspace snapshot, NOT to
+    # Settings. Copy their typed source back before any downstream
+    # ReceivingLayout validation (otherwise genuine ProfileFeature rows
+    # become plain dicts and every Bay selector fails on a model switch).
+    live = getattr(app, "_phase6_input_snapshot", {}) or {}
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        for key in ("receiving_layout", "part_features"):
+            if key in live and key in snapshot:
+                snapshot[key] = deepcopy(live[key])
     app._phase6_input_snapshot.update(snapshot)
 
     box_profile = materialize(plan.box_body_profile)
@@ -741,6 +829,25 @@ def settings_application_project_ui_values(
         return
 
     if baseline_stage == "commit" and plan is not None:
+        if old_model != "受電箱" and new_model == "受電箱":
+            # FamilyModelPlan already committed the newly initialized
+            # Set1/Bay1 NFB source to _phase6_input_snapshot. An old loaded
+            # Quantity/Vault workspace still owns its previous mode/layout,
+            # and a later Settings/derived pass can silently reproject that
+            # unconfigured Bay over the new source (KeyError on real Bay
+            # nfb_config_submitted). Sync the workspace authority NOW,
+            # before the one Family profile/geometry projection begins.
+            # Only an explicit NEW Family switch reaches this block; normal
+            # project load and subsequent user Bay edits are untouched.
+            self.capabilities.workspace.navigation().replace_receiving_mode(
+                deepcopy(app._phase6_input_snapshot),
+            )
+            # ReceivingCapabilityOwner caches a Set/Bay adapter independently
+            # of the workspace. Reusing the prior (unconfigured) adapter
+            # causes sync_receiving_current_bay() to overwrite this fresh
+            # submitted NFB with the old Bay on the next UI refresh.
+            # Rebind it to the committed new Family source before projecting.
+            self.receiving_adapter(namespace, reset=True)
         remembered = getattr(plan, "remember_non_receiving_structure", None)
         if remembered is not None:
             app._phase6_non_receiving_structure_state = deepcopy(remembered)

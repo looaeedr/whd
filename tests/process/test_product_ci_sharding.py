@@ -169,3 +169,45 @@ def test_retired_execution_ledger_cannot_require_phase6_claim_machine():
     assert "**當時的 stale claim 防線（HISTORICAL／已退役）**" in text
     assert "**當時的 scheduler lease 規則（HISTORICAL／已退役）**" in text
     assert "**當時普通工單（HISTORICAL／SUPERSEDED）**" in text
+
+
+def test_verify_full_receipt_imports_package_qualified_evidence_module():
+    from unittest.mock import patch
+    from tools.product_ci_regression import _verify_full_receipt
+
+    with patch("tools.whd_v15_acceptance_evidence.verify", return_value={
+        "requirements": {"CPR-01": ["tests/test_a.py::test_x"]},
+        "passed_cases": 1,
+    }) as mock_verify:
+        _verify_full_receipt(Path("dummy.xml"))
+        mock_verify.assert_called_once_with(Path("dummy.xml"))
+
+
+def test_release_test_runner_select_batch_isolates_remaining_suffix_after_first_half_passes():
+    from tools.phase6_release_test_runner import select_batch
+
+    class _StubJournal:
+        def __init__(self, records):
+            self._records = records
+
+        def records(self):
+            return self._records
+
+    journal = _StubJournal([
+        {"status": "failed", "nodeids": ["a", "b", "c", "d"]},
+        {"status": "passed", "nodeids": ["a", "b"]},
+    ])
+    selected = select_batch(["c", "d", "e", "f"], journal, default_batch_size=4)
+    assert selected == ["c", "d"]
+
+
+def test_collected_nodeid_normalizes_windows_path_without_mutating_parameter_escapes():
+    from tools.whd_v15_acceptance_evidence import _collected_nodeid
+
+    original = r"tests\test_receiving_nfb_depth_surface_policy.py::test_case[\u58eb\u6797-refs0]"
+    expected = r"tests/test_receiving_nfb_depth_surface_policy.py::test_case[\u58eb\u6797-refs0]"
+    assert _collected_nodeid(original) == expected
+    assert _collected_nodeid("tests/test_example.py::TestClass::test_case") == (
+        "tests/test_example.py::TestClass::test_case"
+    )
+    assert _collected_nodeid("1802 tests collected") is None

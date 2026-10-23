@@ -174,8 +174,29 @@ def _apply_cabinet_family_for_current_model(self):
             self.manual_corner_state[part]["bottom_right"] = bottom
             self.manual_corner_pair_same[part]["bottom"] = True
         snap = self._make_original_fold_designer_snapshot()
+        # First Family selection owns a real NFB source immediately, not a
+        # hidden editor-only model draft. Persist its actual Set/Bay source in
+        # the existing workspace so opening FoldDesigner/assembly sees the
+        # same committed inner-door holes, BasePlate and derived fixing ears.
+        from ae_engine.receiving_fresh_nfb_defaults import (
+            seed_fresh_receiving_nfb_source,
+        )
+        from ae_engine.receiving_layout import new_receiving_layout
+        # Known-Family selection is a new cabinet. Do not inherit an old
+        # edited Bay from a previous Receiving session through workspace.
+        snap["receiving_layout"] = new_receiving_layout(
+            width=snap["w"], height=snap["h"], depth=snap["d"],
+        )
+        snap["active_mode"] = "set_bay"
+        initial = seed_fresh_receiving_nfb_source(snap)
         box_profile = build_box_body_profile(snap)
         workspace = self.workspace_controller.workspace_snapshot()
+        workspace["receiving_layout"] = deepcopy(initial["receiving_layout"])
+        # A submitted default Bay without its matching physical CUTTING in
+        # Workspace is only half initialized: first view looks empty, then a
+        # later mode rollback suddenly inserts a new ProfileFeature. Commit
+        # the *same* real CSV inner-door source on the original first switch.
+        workspace["part_features"] = deepcopy(initial.get("part_features") or {})
         workspace["box_body_profile"] = box_profile
         workspace["box_body_structure"] = structure
         self._store_fold_designer_workspace(workspace)

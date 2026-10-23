@@ -65,6 +65,33 @@ from phase6_final_scene_renderer import (
 )
 
 
+def receiving_base_source_display_warnings(snapshot, cabinet_family):
+    """Explain unresolved physical sources, never demand obsolete manual fields.
+
+    Current #1502 may uniquely derive a CENTER/LEFT physical base from
+    committed NFB CSV and source geometry without receiving_base_plate.
+    The same canonical resolver used by production must decide; do not
+    mistake an absent legacy manual mapping for absent material.
+    """
+    if cabinet_family != "受電箱":
+        return ()
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    try:
+        resolved = receiving_base_plate_values(snapshot)
+    except (ValueError, TypeError, KeyError) as exc:
+        return (
+            "受電箱實體底板來源驗證失敗：" + str(exc)
+            + "；不可冒用通用底板或假畫固定片打標線",
+        )
+    if resolved is None:
+        return (
+            "受電箱實體底板尚未配置或來源不足：請核對目前 NFB "
+            "CSV／已提交層別及原實體板件來源；"
+            "未證實來源前不顯示底板與固定片打標線",
+        )
+    return ()
+
+
 class Phase6FinalSceneViewAdapter:
     """Owner-free Final Scene orchestration over explicit typed ports."""
 
@@ -86,6 +113,55 @@ class Phase6FinalSceneViewAdapter:
         # source. Do not re-fold two/four EARs on every Tk Configure event.
         self._formed_ear_display_cache = None
         self.last_formed_ear_display_blocker = None
+        self._formed_pad_display_cache = None
+        self.last_formed_pad_display_blocker = None
+
+    def _formed_pad_assembly_preview(self, snapshot, visible_set, assembly_parts):
+        """Cached, source-matched PAD physical skins; DISPLAY ONLY, no MFG."""
+        if snapshot.get("model") not in ("受電箱","RECEIVING") or (
+                snapshot.get("nfb_config_submitted") is not True):
+            self.last_formed_pad_display_blocker = None
+            return ()
+        try:
+            from ae_engine.receiving_nfb_pad_preview_cache import (
+                pad_preview_source_fingerprint,
+            )
+            # Source CSV, editable shared tooling, and actual Base Plate
+            # CUTTING material all invalidate a formerly valid cached mesh.
+            source_key = pad_preview_source_fingerprint(snapshot,assembly_parts)
+        except (ValueError, TypeError, OSError, KeyError) as exc:
+            self.last_formed_pad_display_blocker = str(exc)
+            self._formed_pad_display_cache = None
+            return ()
+        cached=self._formed_pad_display_cache
+        if cached is None or cached[0]!=source_key:
+            try:
+                from ae_engine.receiving_nfb_pad_assembly_preview import (
+                    build_committed_pad_assembly_display,
+                )
+                all_skins=build_committed_pad_assembly_display(snapshot,assembly_parts)
+                if any(skin.manufacturing_ready or skin.assembly_contact_certified
+                       for skin in all_skins):
+                    raise ValueError("PAD_DISPLAY_MFG_OR_CONTACT_GATE_INVALID")
+                blocker=None
+            except (ValueError, TypeError, OSError, KeyError, AttributeError) as exc:
+                all_skins=()
+                blocker=str(exc)
+            self._formed_pad_display_cache=(source_key,all_skins,blocker)
+        else:
+            all_skins,blocker=cached[1:]
+        self.last_formed_pad_display_blocker=blocker
+        return tuple(
+            skin for skin in all_skins if skin.parent_base_id in visible_set
+        )
+
+    def _pad_display_warnings(self):
+        """Surface a PAD failure; a blank 3D must not masquerade as complete."""
+        reason = self.last_formed_pad_display_blocker
+        if not reason:
+            return ()
+        return ("PAD 3D 來源／貼合檢查未通過：" + str(reason)
+                + "；已隱藏未驗證的墊高片，正式製造輸出仍禁止",)
 
     def _formed_ear_assembly_preview(self, snapshot, visible_set):
         """Source-backed world skins, NEVER extra manufacturing assembly parts.
@@ -198,6 +274,8 @@ class Phase6FinalSceneViewAdapter:
         selected_joint_id=None,
         preserve_endcap_core_origin=False,
         formed_fixing_plate_skins=(),
+        formed_nfb_pad_skins=(),
+        warnings=(),
         render_data_cls=None,
     ):
         return _project_assembly_scene_render_data(
@@ -212,6 +290,8 @@ class Phase6FinalSceneViewAdapter:
             selected_joint_id=selected_joint_id,
             preserve_endcap_core_origin=preserve_endcap_core_origin,
             formed_fixing_plate_skins=formed_fixing_plate_skins,
+            formed_nfb_pad_skins=formed_nfb_pad_skins,
+            warnings=warnings,
             render_data_cls=render_data_cls,
         )
 
@@ -286,6 +366,22 @@ class Phase6FinalSceneViewAdapter:
             if str(getattr(part, "part_key", "")) in visible_set
         )
         cabinet_family = dependencies.cabinet_family()
+        # UI-only warning follows canonical #1502 source resolution, which
+        # may derive a plate from submitted CSV without legacy manual config.
+        source_warning = receiving_base_source_display_warnings(
+            snapshot, cabinet_family,
+        )
+        formed_ear_skins = (
+            self._formed_ear_assembly_preview(snapshot, visible_set)
+            if cabinet_family == "受電箱" else ()
+        )
+        formed_pad_skins = (
+            self._formed_pad_assembly_preview(snapshot, visible_set, parts)
+            if cabinet_family == "受電箱" else ()
+        )
+        visible_warnings = tuple(source_warning) + (
+            self._pad_display_warnings() if cabinet_family == "受電箱" else ()
+        )
         return self.make_assembly_scene_render_data(
             assembly_parts=parts,
             visible_part_keys=visible_part_keys,
@@ -299,10 +395,9 @@ class Phase6FinalSceneViewAdapter:
             ),
             selected_joint_id=None,
             preserve_endcap_core_origin=(cabinet_family == "受電箱"),
-            formed_fixing_plate_skins=(
-                self._formed_ear_assembly_preview(snapshot, visible_set)
-                if cabinet_family == "受電箱" else ()
-            ),
+            warnings=visible_warnings,
+            formed_fixing_plate_skins=formed_ear_skins,
+            formed_nfb_pad_skins=formed_pad_skins,
             render_data_cls=dependencies.assembly_render_data_cls,
         )
 

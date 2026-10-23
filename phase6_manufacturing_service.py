@@ -189,6 +189,16 @@ def resolve(request):
     )
     parts = list(expand_receiving_nfb_layer_parts(snapshot, parts))
 
+    # The current committed NFBConfig + brand CSV are the ONLY numeric NFB
+    # geometry source. Cut screws into the same canonical 2D/3D FinalScene
+    # *during normal resolution*, never behind a new GUI/export button.
+    if (snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("nfb_config_submitted") is True):
+        from ae_engine.receiving_nfb_committed_final_scene import (
+            apply_committed_csv_v5_to_canonical_parts,
+        )
+        parts = list(apply_committed_csv_v5_to_canonical_parts(snapshot, parts))
+
     if not parts:
         raise ValueError("no parts available for assembly 3D display")
 

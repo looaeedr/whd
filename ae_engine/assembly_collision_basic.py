@@ -233,8 +233,32 @@ def _vec2_points_from_polygon_exterior(polygon):
     return tuple(Vec2(float(x), float(y)) for x, y in coords)
 
 
+def _vec2_points_from_ring(ring):
+    from .sheetmetal_geometry import Vec2
+
+    coords = list(ring.coords)
+    if coords and coords[0] == coords[-1]:
+        coords = coords[:-1]
+    return tuple(Vec2(float(x), float(y)) for x, y in coords)
+
+
+def _iter_line_geometries(geom):
+    from shapely.geometry import LineString, MultiLineString, GeometryCollection
+
+    if geom is None or getattr(geom, "is_empty", True):
+        return
+    if isinstance(geom, LineString):
+        if float(geom.length) > 1e-6:
+            yield geom
+    elif isinstance(geom, (MultiLineString, GeometryCollection)):
+        for part in geom.geoms:
+            yield from _iter_line_geometries(part)
+
+
 def _scene_with_replaced_primary_cutting(scene, material):
-    from .sheetmetal_drawing import DrawingScene, PolylinePrimitive
+    from shapely.geometry import LineString, Polygon
+    from .sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
+    from .sheetmetal_geometry import Vec2
 
     exterior = _polygon_for_exterior(material)
     replacement = PolylinePrimitive(
@@ -243,9 +267,47 @@ def _scene_with_replaced_primary_cutting(scene, material):
         closed=True,
     )
 
+    primitives = tuple(getattr(scene, "primitives", ()) or ())
+    existing_hole_polys = []
+    seen_primary = False
+    for primitive in primitives:
+        if (
+            isinstance(primitive, PolylinePrimitive)
+            and str(primitive.layer).upper() == "CUTTING"
+            and primitive.closed
+        ):
+            if not seen_primary:
+                seen_primary = True
+                continue
+            if len(primitive.points) >= 3:
+                try:
+                    existing_hole_polys.append(Polygon([(p.x, p.y) for p in primitive.points]))
+                except Exception:
+                    pass
+
+    new_interior_Loops = []
+    for ring in getattr(exterior, "interiors", ()):
+        ring_pts = _vec2_points_from_ring(ring)
+        if len(ring_pts) < 3:
+            continue
+        try:
+            ring_poly = Polygon([(p.x, p.y) for p in ring_pts])
+        except Exception:
+            ring_poly = None
+        already_present = False
+        if ring_poly is not None and not ring_poly.is_empty:
+            for existing in existing_hole_polys:
+                if existing is not None and not existing.is_empty and ring_poly.symmetric_difference(existing).area <= 1e-4:
+                    already_present = True
+                    break
+        if not already_present:
+            new_interior_Loops.append(
+                PolylinePrimitive(points=ring_pts, layer="CUTTING", closed=True)
+            )
+
     out = DrawingScene()
     replaced = False
-    for primitive in getattr(scene, "primitives", ()):
+    for primitive in primitives:
         is_primary_cutting = (
             not replaced
             and isinstance(primitive, PolylinePrimitive)
@@ -254,11 +316,29 @@ def _scene_with_replaced_primary_cutting(scene, material):
         )
         if is_primary_cutting:
             out.add(replacement)
+            for hole_loop in new_interior_Loops:
+                out.add(hole_loop)
             replaced = True
+        elif isinstance(primitive, LinePrimitive) and str(primitive.layer).upper() == "BEND":
+            raw_line = LineString([(float(primitive.p1.x), float(primitive.p1.y)), (float(primitive.p2.x), float(primitive.p2.y))])
+            clipped = material.intersection(raw_line)
+            for seg in _iter_line_geometries(clipped):
+                coords = list(seg.coords)
+                if len(coords) >= 2:
+                    out.add(
+                        LinePrimitive(
+                            p1=Vec2(float(coords[0][0]), float(coords[0][1])),
+                            p2=Vec2(float(coords[-1][0]), float(coords[-1][1])),
+                            layer=primitive.layer,
+                            color=primitive.color,
+                        )
+                    )
         else:
             out.add(primitive)
     if not replaced:
         out.add(replacement)
+        for hole_loop in new_interior_Loops:
+            out.add(hole_loop)
     return out
 
 
@@ -272,8 +352,11 @@ def apply_endcap_relief_candidate(endcap_render_data, candidate: ReliefCandidate
     if material.is_empty:
         raise ValueError("EndCap relief removed all material")
 
+    from .manufacturing_render_data import fold_guides_from_final_scene
     scene = _scene_with_replaced_primary_cutting(endcap_render_data.scene, material)
-    return replace(endcap_render_data, scene=scene, material=material)
+    recomputed_guides = fold_guides_from_final_scene(scene)
+    fold_guides = recomputed_guides if recomputed_guides else tuple(getattr(endcap_render_data, "fold_guides", ()) or ())
+    return replace(endcap_render_data, scene=scene, material=material, fold_guides=fold_guides)
 
 
 def solve_boxbody_endcap_relief(

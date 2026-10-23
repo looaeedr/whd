@@ -82,6 +82,20 @@ def read_standard_part_profiles(part_key, profiles, original_snapshot):
             "door_fold_b": _profile_value(y, "door_fold_b", original_snapshot.get("door_fold_b", 20)),
             "door_fold_t": _profile_value(y, "door_fold_t", original_snapshot.get("door_fold_t", 20)),
         }
+    if (str(part_key) == "base_plate"
+            and str(original_snapshot.get("model") or "").strip()
+            in {"受電箱", "RECEIVING"}):
+        # The Receiving root base is NOT the generic four-flange plate.
+        # Its X can contain four physical bends (or none for a flat side),
+        # while Y still has the source BEND20. The true source is the
+        # committed NFB/CSV-derived FinalScene, not base_plate_bend.
+        # Never reverse-project the physical profile or a stale workspace
+        # cache back into the generic four-equal-bends setting.
+        from ae_engine.receiving_base_plate_3d_profiles import (
+            receiving_base_plate_3d_profiles,
+        )
+        if receiving_base_plate_3d_profiles(original_snapshot) is not None:
+            return {}
     if _is_base_plate_part_key(part_key):
         vals = [
             _profile_value(x, "base_bend_l", original_snapshot.get("base_plate_bend", 20)),
@@ -493,6 +507,24 @@ def _canonical_part_keys(app: Any) -> tuple[str, ...]:
     workspace = getattr(app, "designer_workspace", None)
     values = tuple(getattr(workspace, "available_parts", ()) or ())
     snapshot = getattr(app, "_phase6_input_snapshot", None)
+    # A saved Receiving v3 may have an old workspace existing_parts list
+    # without BasePlate even while its current submitted NFB CSV + actual
+    # original physical source prove that BasePlate is required. Register
+    # exactly that ONE physical root source in the manufacturing request;
+    # the canonical two-tier expander owns its replacement by tier blanks.
+    # This does NOT mutate existing_parts, invent a missing blank, or grant
+    # manufacturing readiness. No submitted/unique original -> no part.
+    if (isinstance(snapshot, Mapping)
+            and snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("nfb_config_submitted") is True
+            and "base_plate" not in values):
+        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+        try:
+            verified_source = receiving_base_plate_values(snapshot)
+        except (ValueError, TypeError, KeyError):
+            verified_source = None
+        if verified_source is not None:
+            values = values + ("base_plate",)
     if (isinstance(snapshot, Mapping)
             and snapshot.get("model") in ("受電箱", "RECEIVING")
             and snapshot.get("nfb_config_submitted") is True
@@ -507,9 +539,19 @@ def _canonical_part_keys(app: Any) -> tuple[str, ...]:
         from ae_engine.receiving_base_fixing_plate import (
             receiving_base_fixing_plate_previews,
         )
-        current = tuple(receiving_base_fixing_plate_previews(
-            snapshot, available_parts=("base_plate",),
-        ))
+        try:
+            current = tuple(receiving_base_fixing_plate_previews(
+                snapshot, available_parts=("base_plate",),
+            ))
+        except ValueError as exc:
+            # Switching/reloading a saved Bay may briefly carry a stale
+            # root NFB alias before its committed per-Bay identity is
+            # projected. Never reintroduce unverified EAR sheets here after
+            # the BasePlate guard above rejected that source. Other geometry
+            # faults still surface rather than being hidden as empty parts.
+            if str(exc) != "EAR_Z_NFB_SOURCE_IDENTITY_DRIFT":
+                raise
+            current = ()
         if len(current) == 4 and len({row.part_id for row in current}) == 4:
             values = tuple(
                 part for part in values
@@ -524,6 +566,9 @@ def _canonical_part_keys(app: Any) -> tuple[str, ...]:
         # inside the canonical manufacturing resolver. They are real 2D
         # navigation identities but not additional RAW source inputs.
         and not str(key).startswith("base_plate:nfb_layer:")
+        # User-selectable PAD 2D is source-backed but an unreleased
+        # preview, never a separate RAW manufacturing PartSpec input.
+        and not str(key).startswith("nfb_pad:")
     )
 
 

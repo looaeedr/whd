@@ -108,3 +108,32 @@ def test_receipts_cannot_approve_manufacturing_or_borrow_missing_right_side():
         build_receiving_ear_side_marking_previews(
             tuple(rows), {"box_body:left_side": _owners()["box_body:left_side"]},
         )
+
+def test_native_gui_only_can_show_ear_over_existing_joint_mark_without_manufacturing_approval():
+    rows = _receipts(_two_tier)
+    owners = _owners()
+    target = rows[0]
+    patch = target.side_source_flat_boundary
+    x = (patch[0][0] + patch[1][0]) / 2.
+    y = (patch[0][1] + patch[3][1]) / 2.
+    # Same real-world kind of cross-hair MARKING already on original SIDE.
+    owners[target.side_piece_id].scene.add_line(
+        (x - 10., y - 10.), (x + 10., y + 10.), layer="MARKING",
+    )
+    baseline = tuple(owners[target.side_piece_id].scene.primitives)
+    with pytest.raises(ValueError, match="EAR_MARK_PREVIEW_EXISTING_MARKING_CONFLICT"):
+        build_receiving_ear_side_marking_previews(rows, owners)
+    shown = build_receiving_ear_side_marking_previews(
+        rows, owners, display_only_marking_overlap=True,
+    )
+    assert tuple(owners[target.side_piece_id].scene.primitives) == baseline
+    assert sum(p.layer == "MARKING" for scene in shown.values()
+               for p in scene.primitives) == 17  # 16 EAR + 1 original
+    # Display-only exception must NEVER admit CUTTING or source BEND clashes.
+    owners[target.side_piece_id].scene.add_line(
+        (x - 10., y), (x + 10., y), layer="CUTTING",
+    )
+    with pytest.raises(ValueError, match="EXISTING_CUTTING_CONFLICT"):
+        build_receiving_ear_side_marking_previews(
+            rows, owners, display_only_marking_overlap=True,
+        )

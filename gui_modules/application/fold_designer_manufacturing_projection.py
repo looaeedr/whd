@@ -29,7 +29,7 @@ from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, derive_door_layou
 from phase6_fold_profiles import formed_box_body_fw_widths
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
 from gui_modules.parts.panels.divider import collect_divider_input
-from gui_modules.parts.panels.door import collect_door_input
+from gui_modules.parts.panels.door import collect_door_input, normalize_door_indicator_state
 from gui_modules.parts.panels.indicator_box import collect_indicator_box_input
 from gui_modules.parts.panels.multipart import collect_multipart_input
 
@@ -359,25 +359,39 @@ def _inner_door_frame_from_payload(key, payload):
         return frame
 
 
-def _query_fold_designer_render_data(self, part_key, payload):
-    from ae_engine.physical_sheet_features import with_physical_sheet_features
-
-    def sheet(render):
-        return with_physical_sheet_features(str(part_key), render, (payload or {}).get('features', ()))
-    if str(part_key or "").startswith("indicator"):
-        payload = collect_indicator_box_input(payload)
-    if str(part_key or "").startswith("box_body:part:"):
-        payload = collect_multipart_input(payload)
-    if str(part_key or "").startswith("door:"):
-        payload = collect_door_input(payload)
-    """Return the same authoritative final geometry used by 2D consumers."""
-    key = str(part_key or "")
+def _query_receiving_resolved_base_render_data(self, key, payload):
+    if key == "base_plate" and (payload or {}).get("_use_committed_relief") is not False:
+        owner = getattr(self, "fold_designer_app", None)
+        current = getattr(owner, "_phase6_input_snapshot", None)
+        if (isinstance(current, Mapping)
+                and current.get("model") in ("受電箱", "RECEIVING")
+                and current.get("nfb_config_submitted") is True
+                and isinstance(current.get("nfb_config"), Mapping)
+                and current["nfb_config"].get("layer_count") == 1):
+            from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+            try:
+                known_base = receiving_base_plate_values(current)
+            except (ValueError, TypeError, KeyError):
+                known_base = None
+            if known_base is not None:
+                resolved = getattr(owner, "_phase6_last_resolved_manufacturing_geometry", None)
+                found = next(
+                    (part for part in tuple(getattr(resolved, "parts", ()) or ())
+                     if str(part.part_key) == key), None,
+                )
+                if found is None:
+                    resolver = getattr(owner, "_phase6_resolve_manufacturing_geometry", None)
+                    if not callable(resolver):
+                        raise ValueError("RECEIVING_ONE_TIER_2D_SOURCE_UNAVAILABLE")
+                    resolved = resolver()
+                    found = next(
+                        (part for part in tuple(getattr(resolved, "parts", ()) or ())
+                         if str(part.part_key) == key), None,
+                    )
+                if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
+                    raise ValueError("RECEIVING_ONE_TIER_2D_PHYSICAL_PART_MISSING")
+                return found.render_data
     if key.startswith("base_plate:nfb_layer:"):
-        # The 2D part selector may address either physical tier directly.
-        # Its source is the current already-resolved canonical assembly,
-        # never a second guessed/fabricated BasePlatePartSpec. On the first
-        # selection resolve the real manufacturing graph once; its two
-        # tier materials are identical to the ones displayed in 3D.
         import re
         if not re.fullmatch(r"base_plate:nfb_layer:[01]", key):
             raise ValueError("RECEIVING_NFB_TIER_2D_PART_ID_INVALID")
@@ -403,6 +417,48 @@ def _query_fold_designer_render_data(self, part_key, payload):
         if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
             raise ValueError("RECEIVING_NFB_TIER_2D_PHYSICAL_PART_MISSING")
         return found.render_data
+    return None
+
+
+def _query_fold_designer_render_data(self, part_key, payload):
+    from ae_engine.physical_sheet_features import with_physical_sheet_features
+
+    def sheet(render):
+        return with_physical_sheet_features(str(part_key), render, (payload or {}).get('features', ()))
+    if str(part_key or "").startswith("indicator"):
+        payload = collect_indicator_box_input(payload)
+    if str(part_key or "").startswith("box_body:part:"):
+        payload = collect_multipart_input(payload)
+    if str(part_key or "").startswith("door:"):
+        payload = collect_door_input(payload)
+    """Return the same authoritative final geometry used by 2D consumers."""
+    key = str(part_key or "")
+    receiving_base = _query_receiving_resolved_base_render_data(self, key, payload)
+    if receiving_base is not None:
+        return receiving_base
+    if key.startswith("nfb_pad:"):
+        # The operator's current committed V5 source, never a stale
+        # navigation key or a profile-only fabricated sheet.
+        owner = getattr(self, "fold_designer_app", None)
+        current = getattr(owner, "_phase6_input_snapshot", None)
+        if not isinstance(current, Mapping):
+            raise ValueError("PAD_OPERATOR_2D_SNAPSHOT_UNAVAILABLE")
+        from ae_engine.receiving_nfb_pad_operator_parts import (
+            committed_nfb_pad_draft_parts,
+        )
+        matches = tuple(
+            part for part in committed_nfb_pad_draft_parts(current)
+            if part.part_id == key
+        )
+        if len(matches) != 1:
+            raise ValueError("PAD_OPERATOR_2D_STALE_OR_UNAUTHORIZED_PART")
+        part = matches[0]
+        if (part.manufacturing_ready
+                or part.render_data.metadata.get("manufacturing_ready")
+                or part.render_data.metadata.get("nfb_deferred_manufacturing_role")
+                    != "PAD"):
+            raise ValueError("PAD_OPERATOR_2D_MFG_GATE_INVALID")
+        return sheet(part.render_data)
     if key.startswith("base_plate:fixing_plate:"):
         # Native independent PartRenderData, not the BasePlatePartSpec blank
         # and not a drawing-only menu simulation.
@@ -573,6 +629,57 @@ def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
         structure_state=data.get("box_body_structure"),
     )
 
+def _door_part_spec_from_payload_context(
+    self, data, w, h, t, fw, model, unknown, features, policy, door_cell
+):
+    if door_cell is not None:
+        cell_key = f"{door_cell.column_index}:{door_cell.row_index}"
+        states = dict(
+            data.get("door_layout_indicator_states")
+            or getattr(self, "door_layout_indicator_states", None)
+            or {}
+        )
+        state = normalize_door_indicator_state(states.get(cell_key))
+        layers = max(1, min(6, int(state.get("layers", 1))))
+        groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
+        mode = state.get("mode", "indicator" if state.get("enabled") else "none")
+        indicator_hole = (
+            manufacturing_api.indicator_box_opening_size(groups, thickness=t)
+            if mode == "indicator_box" else None
+        )
+        direct = groups if mode == "indicator" else ()
+        ind_offset = (float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0)))
+        use_box_dist = bool(state.get("is_box_dist", False))
+    else:
+        groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or ()))
+        direct = tuple(int(v) for v in (data.get("door_indicator_groups") or ()))
+        indicator_hole = (
+            manufacturing_api.indicator_box_opening_size(groups, thickness=t)
+            if bool(data.get("door_indicator_box_enabled")) and groups else None
+        )
+        ind_offset = tuple(data.get("door_indicator_offset") or (0.0, 0.0))
+        use_box_dist = bool(data.get("use_box_distance", False))
+    return self._door_part_spec_from_values(
+        {
+            "w": w, "h": h, "t": t, "fw": fw,
+            "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
+            "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
+            "door_fold_l": float(data.get("door_fold_l", ae.door_fold_left_def)),
+            "door_fold_r": float(data.get("door_fold_r", ae.door_fold_right_def)),
+            "door_fold_t": float(data.get("door_fold_t", ae.door_fold_top_def)),
+            "door_fold_b": float(data.get("door_fold_b", ae.door_fold_bottom_def)),
+        },
+        model_name=(None if unknown else model),
+        features=features,
+        indicator_hole=indicator_hole,
+        door_indicator=(direct or None),
+        door_indicator_offset=ind_offset,
+        use_box_distance=use_box_dist,
+        corner_policy=policy,
+        frame_edges=(door_cell.edges if door_cell is not None else None),
+    )
+
+
 def _fold_designer_part_spec_from_payload(self, part_key, payload):
     """Convert Fold Designer draft state to the canonical manufacturing request."""
     (
@@ -651,29 +758,8 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             assembly_joints=data.get("assembly_joints"),
         )
     elif key == "door" or door_cell is not None:
-        groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or ()))
-        direct = tuple(int(v) for v in (data.get("door_indicator_groups") or ()))
-        indicator_hole = None
-        if bool(data.get("door_indicator_box_enabled")) and groups:
-            indicator_hole = manufacturing_api.indicator_box_opening_size(groups, thickness=t)
-        spec = self._door_part_spec_from_values(
-            {
-                "w": w, "h": h, "t": t, "fw": fw,
-                "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
-                "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
-                "door_fold_l": float(data.get("door_fold_l", ae.door_fold_left_def)),
-                "door_fold_r": float(data.get("door_fold_r", ae.door_fold_right_def)),
-                "door_fold_t": float(data.get("door_fold_t", ae.door_fold_top_def)),
-                "door_fold_b": float(data.get("door_fold_b", ae.door_fold_bottom_def)),
-            },
-            model_name=(None if unknown else model),
-            features=features,
-            indicator_hole=indicator_hole,
-            door_indicator=(direct or None),
-            door_indicator_offset=tuple(data.get("door_indicator_offset") or (0.0, 0.0)),
-            use_box_distance=bool(data.get("use_box_distance", False)),
-            corner_policy=policy,
-            frame_edges=(door_cell.edges if door_cell is not None else None),
+        spec = _door_part_spec_from_payload_context(
+            self, data, w, h, t, fw, model, unknown, features, policy, door_cell
         )
     elif key == "base_plate" or key.startswith("base_plate_c"):
         values = {

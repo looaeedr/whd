@@ -15,6 +15,7 @@ from tkinter import messagebox
 from tkinter import filedialog
 from whd_theme import WHD_THEME, apply_ttk_dark_theme
 from gui_modules.runtime_error_log import write_runtime_exception
+from gui_modules.parts.panels.door import normalize_door_indicator_state
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
@@ -558,6 +559,18 @@ def _apply_phase6_project_snapshot(self, snapshot):
         self.door_indicator_offset_x = 0.0
         self.door_indicator_offset_y = 0.0
 
+    # A saved Receiving physical source must survive even the normal
+    # Open Project route (open_designer=False). The GUI otherwise rebuilds
+    # a live snapshot containing only visible settings, and a later 3D
+    # open silently loses the user's already persisted BasePlate choice.
+    # Restore exactly this stored value, never infer a missing sheet.
+    if (model in ("受電箱", "RECEIVING")
+            and "receiving_base_plate" in snapshot):
+        effective = getattr(self, "_phase6_input_snapshot", None)
+        if isinstance(effective, dict):
+            effective["receiving_base_plate"] = deepcopy(
+                snapshot["receiving_base_plate"]
+            )
     self.workspace_controller.set_active_part(snapshot.get("active_part") or workspace.get("active_part"))
     self._active_cabinet_type = _current_cabinet_type_name(self)
     self._reload_current_baseline_features()
@@ -596,6 +609,28 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
     for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
         if key in workspace_state:
             snapshot[key] = deepcopy(workspace_state[key])
+    # This is the primary main-GUI project save (not the separate Fold
+    # Designer snapshot). Its live door controls own current offsets; the
+    # workspace's saved singleton Bay may still carry first-entry 80 mm.
+    # Reconcile only the physical current Bay, preserving all NFB fields and
+    # all other Bays without silently discarding user door edits at reload.
+    if (snapshot.get("model") in ("受電箱", "RECEIVING")
+            and snapshot.get("active_mode", "set_bay") == "set_bay"
+            and isinstance(snapshot.get("receiving_layout"), dict)
+            and snapshot.get("inner_doors")):
+        layout = snapshot["receiving_layout"]
+        sets = layout.get("sets") or []
+        if len(sets) == 1 and len(sets[0].get("bays") or []) == 1:
+            from ae_engine.receiving_layout import (
+                RECEIVING_DOOR_STATE_KEYS, update_receiving_bay,
+            )
+            snapshot["receiving_layout"] = update_receiving_bay(
+                layout, set_index=0, bay_index=0,
+                door_state={
+                    key: deepcopy(snapshot[key])
+                    for key in RECEIVING_DOOR_STATE_KEYS if key in snapshot
+                },
+            )
     snapshot["workspace"] = workspace
     if "assembly_placements" in workspace:
         snapshot["assembly_placements"] = deepcopy(workspace["assembly_placements"])
@@ -650,6 +685,18 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
     self.receiving_inner_doors = deepcopy(list(snapshot.get("inner_doors") or ()))
     datum = snapshot.get("door_nameplate_center_datum_top")
     self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+    if getattr(self, "is_box_dist_var", None) is not None and "use_box_distance" in snapshot:
+        self.is_box_dist_var.set(bool(snapshot.get("use_box_distance", False)))
+    self.door_layout_indicator_states = {
+        str(key): normalize_door_indicator_state(state)
+        for key, state in dict(snapshot.get("door_layout_indicator_states") or {}).items()
+    }
+    self.door_layout_indicator_box_features = deepcopy(
+        dict(snapshot.get("door_layout_indicator_box_features") or {})
+    )
+    self.door_layout_indicator_door_features = deepcopy(
+        dict(snapshot.get("door_layout_indicator_door_features") or {})
+    )
     ws_source = dict(snapshot.get("workspace") or {})
     box_profile = snapshot.get("box_body_profile", ws_source.get("box_body_profile"))
     if box_profile is None:
@@ -847,6 +894,24 @@ def _apply_fold_designer_live_snapshot(self, payload):
         self._apply_endcap_fw_snapshot(payload)
         self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(payload)
         self.assembly_relief_state = deepcopy(payload.get("assembly_relief") or {})
+        if "use_box_distance" in payload and getattr(self, "is_box_dist_var", None) is not None:
+            self.is_box_dist_var.set(bool(payload.get("use_box_distance", False)))
+        if "door_nameplate_center_datum_top" in payload:
+            datum = payload.get("door_nameplate_center_datum_top")
+            self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+        if "door_layout_indicator_states" in payload:
+            self.door_layout_indicator_states = {
+                str(key): normalize_door_indicator_state(state)
+                for key, state in dict(payload.get("door_layout_indicator_states") or {}).items()
+            }
+        if "door_layout_indicator_box_features" in payload:
+            self.door_layout_indicator_box_features = deepcopy(
+                dict(payload.get("door_layout_indicator_box_features") or {})
+            )
+        if "door_layout_indicator_door_features" in payload:
+            self.door_layout_indicator_door_features = deepcopy(
+                dict(payload.get("door_layout_indicator_door_features") or {})
+            )
         workspace = payload.get("workspace")
         if workspace:
             self._store_fold_designer_workspace(workspace)

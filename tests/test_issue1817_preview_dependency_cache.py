@@ -1002,3 +1002,48 @@ def test_issue1819_committed_bay_preview_capacity_limits_cache_memory_references
         )
     assert len(cache) == 32
     assert probe() is None, "evicted Result still retained by this cache"
+
+
+def test_issue1817_real_default_intent_joints_allow_tail_reuse_but_custom_joints_do_not():
+    from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_default_local_joints_only,
+    )
+
+    # Fresh GUI defaults contain EndCap-to-BoxBody joints. They are local,
+    # unlike user-authored or unknown graph dependencies.
+    migrated = migrate_legacy_snapshot_joints({
+        "existing_parts": ["box_body", "head", "tail"],
+        "assembly_type": "INSERT_OVERLAY",
+    })
+    joints = migrated["assembly_joints"]
+    assert joints
+    assert _receiving_default_local_joints_only(joints)
+    initial = _layout(count=3)
+    appended = resize_receiving_bays(initial, set_index=0, bay_count=4)
+
+    def real_suffix_key(layout, joint_rows):
+        source = {
+            "model": "受電箱",
+            "active_mode": "set_bay",
+            "receiving_layout": layout,
+            "assembly_joints": joint_rows,
+        }
+        projected = project_receiving_bay_legacy_aliases(
+            source, set_index=0, bay_index=0, validate_common=False,
+        )
+        return stable_fingerprint(_receiving_bay_preview_fingerprint_snapshot(
+            projected, set_index=0, bay_index=0,
+            allow_suffix_topology_reuse=True,
+        ))
+
+    assert real_suffix_key(initial, joints) == real_suffix_key(appended, joints)
+
+    custom = deepcopy(joints)
+    custom[0]["source"] = "USER_ADDED"
+    assert not _receiving_default_local_joints_only(custom)
+    assert real_suffix_key(initial, custom) != real_suffix_key(appended, custom)
+    unknown = deepcopy(joints)
+    unknown[0]["target_part"] = "some_other_bay"
+    assert not _receiving_default_local_joints_only(unknown)
+    assert real_suffix_key(initial, unknown) != real_suffix_key(appended, unknown)

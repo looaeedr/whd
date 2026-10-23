@@ -137,16 +137,59 @@ def check_csv_v5_base_part_only_groups(
         native = [primitive for primitive in render.scene.primitives
                   if isinstance(primitive, PolylinePrimitive)
                   and primitive.closed and str(primitive.layer).upper() == "CUTTING"]
+        # The original base still has exactly one contour and four EAR
+        # slots. A selected FLAT source may now also cut common PAD locator
+        # squares. Recompute them from the current model CSV + common tooling
+        # rule and verify each square against real source-owned screw
+        # geometry/material. Never accept a hardcoded "nine contours" count
+        # or an unverified metadata-only PAD approval.
+        from .receiving_nfb_pad_generator import (
+            generate_nfb_pad_patterns, read_pad_tooling_rule,
+        )
+        from .receiving_nfb_pad_base_mating import verify_real_pad_base_square_cuts
+        from .receiving_nfb_numeric_catalog import model_spec
+        from .receiving_nfb_v5_configured_inner_door import AXES
+        pad_patterns = ()
+        if info.get("receiving_bend_pattern") in ("LEFT_FLAT_SIDE", "RIGHT_FLAT_SIDE"):
+            physical = []
+            for pattern in part.patterns:
+                spec = model_spec(pattern.brand, pattern.model)
+                if spec is None:
+                    raise ValueError("CSV V5 PAD 當前來源型號不存在")
+                physical.append(spec)
+            pad_patterns = generate_nfb_pad_patterns(
+                physical, plate_thickness_mm=row.parameters.thickness,
+                tooling=read_pad_tooling_rule(),
+            )
+        required_pad_owners = tuple(
+            (part.hole_ids[pattern.switch_index], len(pattern.base_square_holes_xy_mm))
+            for pattern in pad_patterns
+        )
+        if (tuple(info.get("nfb_v5_pad_square_owners") or ()) != required_pad_owners):
+            raise ValueError("CSV V5 PAD 方孔來源所有權與當前規格不符")
+        actual_pad_count = 0
+        for pad in pad_patterns:
+            owner = part.hole_ids[pad.switch_index]
+            source = part.patterns[pad.switch_index]
+            axes = (source.datum.uv_axis_x, source.datum.uv_axis_y)
+            rotations = tuple(degrees for degrees, basis in AXES.items()
+                              if basis == axes)
+            if len(rotations) != 1:
+                raise ValueError("CSV V5 PAD 缺少真實旋轉基準")
+            actual_pad_count += len(verify_real_pad_base_square_cuts(
+                render, pad, owner_hole_id=owner,
+                rotation_deg=rotations[0],
+            ))
         expected_ids = {
             f"{hole_id}:screw:{i}"
             for hole_id in part.hole_ids for i in range(1, 5)
         }
         if (len(screws) != 4 * len(part.hole_ids)
                 or {item.source_id for item in screws} != expected_ids
-                or len(native) != 5
+                or len(native) != 5 + actual_pad_count
                 or render.material is None or render.material.is_empty
                 or not render.material.is_valid):
-            raise ValueError("CSV V5 底板孔數、EAR 固定孔或材料不一致")
+            raise ValueError("CSV V5 底板孔數、EAR／PAD 固定孔或材料不一致")
         # A matching source ID/count and internally consistent material alone
         # cannot prove these are the four CSV-derived screw holes. Compare
         # every actual CUTTING circle to the current numeric catalog and the

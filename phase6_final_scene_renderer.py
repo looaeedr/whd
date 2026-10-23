@@ -486,6 +486,23 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 triangles.extend(skin_tris)
                 visible_ears.append(str(formed.part_id))
             self.last_formed_ear_display_ids = tuple(visible_ears)
+            self.last_formed_pad_display_ids = ()
+            visible_pads = []
+            for pad in tuple(getattr(render_data, "formed_nfb_pad_skins", ()) or ()):
+                if (pad.manufacturing_ready or pad.assembly_contact_certified
+                        or not pad.source_flat_and_bend_verified
+                        or not pad.actual_base_squares_present):
+                    raise ValueError("PAD_3D_PREVIEW_SOURCE_OR_MFG_GATE_INVALID")
+                triangles_pad = tuple(pad.world_triangles or ())
+                if not triangles_pad:
+                    raise ValueError("PAD_3D_PREVIEW_EMPTY_MESH")
+                pad_artist = gridless_mesh_collection(
+                    triangles_pad, facecolor="#a78bfa", opacity=0.92,
+                )
+                ax.add_collection3d(pad_artist)
+                triangles.extend(triangles_pad)
+                visible_pads.append(str(pad.part_id))
+            self.last_formed_pad_display_ids = tuple(visible_pads)
             # EAR contact lines are MARKING on the mother SIDE plate, not
             # a mesh-grid overlay or an EAR CUTTING/BEND feature.  Only draw
             # when the physical box body and its actual side are visible.
@@ -697,7 +714,37 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         scene = render_data.scene
         material = render_data.material
         fold_guides = tuple(getattr(render_data, "fold_guides", ()) or ())
-        if str(request.part_key) == "box_body:left_side":
+        part_key = str(request.part_key)
+        fixed_plate_display = False
+        x_profile, y_profile = request.x_profile, request.y_profile
+        if (part_key.startswith("base_plate:fixing_plate:")
+                and (getattr(render_data, "metadata", None) or {}).get("source_profile") == "large"):
+            # #1503: the independent 3D tab previously reused blank editor
+            # profiles, hence rendered the genuine BEND23 source as FLAT.
+            # Consume the SAME source-verified signed +90 fold as assembly.
+            # Only the on-screen mesh uses the T2 MID-skin hinge at y=22.
+            # The original PartRenderData / CUTTING / DXF BEND at y=23 is
+            # unchanged; do not introduce any bend compensation.
+            from ae_engine.receiving_fixed_plate_formed_skins import (
+                verified_receiving_fixing_plate_local_fold,
+            )
+            from ae_engine.assembly_geometry import (
+                folded_mesh_with_flat_uv_from_polygon,
+                thicken_triangle_surface,
+            )
+            hinge_y, x_profile, y_profile, physical_guides = (
+                verified_receiving_fixing_plate_local_fold(render_data)
+            )
+            mapped = folded_mesh_with_flat_uv_from_polygon(
+                material, x_profile, y_profile, fold_guides=physical_guides,
+            )
+            triangles = thicken_triangle_surface(
+                tuple(face.local for face in mapped),
+                float(render_data.metadata["thickness"]),
+            )
+            fold_guides = physical_guides
+            fixed_plate_display = True
+        if part_key == "box_body:left_side":
             # This independent 3D input sink must depict the FINISHED solid,
             # not a zero-thickness material midplane.  Use the same pure
             # formed/outside correction as the assembly collision mesh,
@@ -718,7 +765,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 thickness=request.thickness, axis=2,
             )
             triangles = thicken_triangle_surface(formed, request.thickness)
-        else:
+        elif not fixed_plate_display:
             triangles = _phase6_folded_mesh_from_polygon(
                 material, request.x_profile, request.y_profile,
                 fold_guides=fold_guides,
@@ -748,10 +795,20 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             self._draw_cutting_hole_rims(
                 material, request.x_profile, request.y_profile, fold_guides,
             )
-        # A shaded solid has no triangulation grid. Explicit source BEND and
-        # MARKING stay visible independently of the physical mesh tessellation.
-        self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
-        self._draw_scene_markings(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
+        # 3D fixed-plate crease uses the signed MID-skin hinge. The DXF BEND
+        # is deliberately 1 mm away at y=23 and must remain source-exact
+        # in 2D/manufacturing, rather than be drawn as a false 3D hinge.
+        if fixed_plate_display:
+            p = self._map_xy(0., hinge_y, x_profile, y_profile, fold_guides)
+            q = self._map_xy(float(render_data.metadata["source_flat_dimensions"][0]),
+                             hinge_y, x_profile, y_profile, fold_guides)
+            self.renderer.ax3d.plot(
+                [p[0], q[0]], [p[1], q[1]], [p[2], q[2]],
+                color="#2563eb", linewidth=1.15, alpha=0.95,
+            )
+        else:
+            self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
+        self._draw_scene_markings(scene, x_profile, y_profile, fold_guides=fold_guides)
         self._draw_operator_dimensions(request, triangles)
         vertices = [point for tri in triangles for point in tri]
         xlim, ylim, zlim = _phase6_fitted_limits_from_vertices(vertices)

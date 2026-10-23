@@ -40,13 +40,29 @@ def editable_nfb_draft(draft):
     state=deepcopy(draft)
     seen=set()
     next_number=int(state.get("_next_unit_number",1))
+    if next_number < 1:
+        raise ValueError("NFB next unit number must be positive")
+    # Reserve existing persisted IDs first: mixed legacy rows can lack IDs,
+    # while a saved allocator counter can lag behind already-assigned IDs.
+    reserved=set()
+    for layer in state["layers"]:
+        for slot in layer["slots"]:
+            if "unit_id" not in slot:
+                continue
+            uid=slot["unit_id"]
+            if not isinstance(uid,str) or not uid or uid in reserved:
+                raise ValueError("NFB draft unit IDs must be unique")
+            reserved.add(uid)
     for i,layer in enumerate(state["layers"]):
         layer.setdefault("rotation_deg",0)
         if layer["rotation_deg"] not in ROTATIONS or type(layer["rotation_deg"]) is not int:
             raise ValueError("NFB layer rotation must be 0/90/180/270")
         for slot in layer["slots"]:
             if "unit_id" not in slot:
+                while f"nfb:ui1a:unit:{next_number}" in reserved:
+                    next_number+=1
                 slot["unit_id"]=f"nfb:ui1a:unit:{next_number}"
+                reserved.add(slot["unit_id"])
                 next_number+=1
             if not isinstance(slot["unit_id"],str) or slot["unit_id"] in seen:
                 raise ValueError("NFB draft unit IDs must be unique")
@@ -62,6 +78,8 @@ def editable_nfb_draft(draft):
                     and (type(slot["manual_x_mm"]) not in (int,float)
                          or not isfinite(slot["manual_x_mm"]))):
                 raise ValueError("NFB X offset must be finite")
+    while f"nfb:ui1a:unit:{next_number}" in reserved:
+        next_number+=1
     state["_next_unit_number"]=next_number
     return state
 
@@ -172,6 +190,50 @@ def set_nfb_manual_x(draft,layer_index,slot_index,offset_mm,*,datum=None):
 
 
 @dataclass(frozen=True)
+class NfbXResetImpact:
+    """The exact before→after physical unit IDs whose X datum was removed.
+
+    This is a preview/transaction receipt for operator visibility only,
+    never a new source of world-X or permission to manufacture.
+    """
+    layer_index: int
+    unit_ids: tuple[str, ...]
+
+    @property
+    def count(self):
+        return len(self.unit_ids)
+
+
+def nfb_x_reset_impact(before, after, layer_index):
+    """Count only formerly placed/datum-bearing slots actually cleared.
+
+    Include a deleted slot if its X or datum was present; never count an
+    untouched sibling layer, a newly inserted empty slot, or a change of
+    offset value as though the original X was *cleared*.
+    """
+    old = _get_layer(editable_nfb_draft(before), layer_index)
+    new = _get_layer(editable_nfb_draft(after), layer_index)
+    remaining = {slot["unit_id"]: slot for slot in new["slots"]}
+    affected = []
+    for slot in old["slots"]:
+        had_basis = (
+            slot["manual_x_mm"] is not None
+            or slot["manual_x_state"] != NONE
+            or slot["datum_snapshot"] is not None
+        )
+        if not had_basis:
+            continue
+        current = remaining.get(slot["unit_id"])
+        if current is None or (
+            current["manual_x_mm"] is None
+            and current["manual_x_state"] == NONE
+            and current["datum_snapshot"] is None
+        ):
+            affected.append(slot["unit_id"])
+    return NfbXResetImpact(layer_index, tuple(affected))
+
+
+@dataclass(frozen=True)
 class NfbUi1aEditReceipt:
     action: str
     old_draft: dict
@@ -188,7 +250,11 @@ class NfbUi1aEditSession:
     def apply(self,action,operation,*args,**kwargs):
         if not isinstance(action,str) or not action:
             raise ValueError("NFB transaction action name required")
-        candidate=editable_nfb_draft(operation(self.current,*args,**kwargs))
+        # Callbacks are external edit operations.  They may mutate their input
+        # before raising on an invalid/colliding geometry.  Keep the live
+        # transaction immutable until validation succeeds.
+        isolated=deepcopy(self.current)
+        candidate=editable_nfb_draft(operation(isolated,*args,**kwargs))
         if candidate==self.current:return None
         receipt=NfbUi1aEditReceipt(action,deepcopy(self.current),deepcopy(candidate))
         self.current=candidate

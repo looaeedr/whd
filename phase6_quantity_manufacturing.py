@@ -48,6 +48,17 @@ def build_quantity_manufacturing_requests(base_request, workspace_snapshot):
         selected.select(version_id)
         snapshot = deepcopy(source)
         snapshot["quantity"] = selected.snapshot()
+        if snapshot["model"] == "受電箱":
+            # Rebuild the SOURCE-owned singleton Bay for THIS version.
+            # Previously only the initial selected version was projected
+            # before the loop, and all later versions could borrow its NFB
+            # model/holes when manufacturing the same common box.
+            from ae_engine.receiving_quantity_box import project_common_box
+            from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+            snapshot = project_common_box(snapshot)
+            snapshot = project_receiving_bay_legacy_aliases(
+                snapshot, set_index=0, bay_index=0,
+            )
         snapshot["part_features"] = deepcopy(snapshot.get("part_features") or {})
         parts = []
         for part in base.parts:
@@ -94,6 +105,29 @@ def resolve_quantity_manufacturing(base_request, workspace_snapshot):
     demands = manufacturing_api.resolved_quantity_physical_demands(
         versions, per_box_counts=counts
     )
+    if base_request.cabinet_model in ("受電箱", "RECEIVING"):
+        # PAD is a physical sheet, not an ephemeral 3D preview. Preserve one
+        # genuine per-owner item in each version's BOM with the version box
+        # multiplicity. Never manufacture it here: the canonical DXF PAD gate
+        # still rejects trial-only parts until full T2 contact is certified.
+        from ae_engine.receiving_nfb_pad_delivery import (
+            pad_bom_demands_from_committed_snapshot,
+        )
+        pad_demands=[]
+        for version_id, piece_count, request in requests:
+            # build_quantity_manufacturing_requests already supplies a
+            # detached version-specific dict. Thawing it would coerce source
+            # integer Set/Bay indices to floats (e.g. 0 -> 0.0), which
+            # violates canonical receiving scope identity.
+            payload=request.input_snapshot
+            source=(deepcopy(payload) if isinstance(payload,dict)
+                    else thaw_manufacturing_value(payload))
+            pad_demands.extend(pad_bom_demands_from_committed_snapshot(
+                version_id,source,piece_count=piece_count))
+        seen={(row.version_id,row.physical_id) for row in demands}
+        if any((row.version_id,row.physical_id) in seen for row in pad_demands):
+            raise ValueError("PAD_QUANTITY_BOM_DUPLICATE_PHYSICAL_SOURCE")
+        demands=tuple(demands)+tuple(pad_demands)
     return QuantityManufacturingBatch(versions, demands, requests)
 
 

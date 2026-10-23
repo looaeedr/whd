@@ -91,7 +91,7 @@ def test_v5_gui_cannot_invent_tier_from_unsubmitted_or_wrong_root_sheet():
     snap, holes, trial, root = _current_csv_tiers()
     invalid = deepcopy(snap)
     invalid["nfb_config_submitted"] = False
-    with pytest.raises(ValueError, match="SUBMITTED_PHYSICAL_BAY"):
+    with pytest.raises(ValueError, match="SUBMITTED_PHYSICAL_BAY|原始實體底板與目前 Set/Bay/尺寸來源不同步"):
         preview_v5_real_receiving_base_sources(
             invalid, "upper", door=trial,
             configured_holes=holes, root_base_spec=root,

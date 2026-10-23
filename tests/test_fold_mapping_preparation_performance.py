@@ -162,7 +162,18 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
             assert app.designer_workspace.active_mode == mode
             assert counts['bends'] < 1000, counts
             assert counts['solve'] <= 1, counts
-            assert signature() == receiving
+            if mode == 'set_bay':
+                # New Set/Bay is a different physical source from this
+                # previously saved, intentionally unconfigured Quantity
+                # fixture. The first Family entry must populate NFB CUTTING.
+                assert signature() != receiving
+                active = app._phase6_input_snapshot['receiving_layout']['sets'][0]['bays'][0]
+                assert active['nfb_config_submitted'] is True
+                assert len(active['nfb_config']['holes']) == 1
+            else:
+                # Returning to the saved unconfigured Quantity buffer never
+                # invents/reseeds a fresh NFB over its historical state.
+                assert signature() == receiving
             _receiving_switch_deadlock_guard('close mode ' + mode)
             window._receiving_multi_close()
             root.update()
@@ -176,7 +187,25 @@ def test_real_family_and_single_multi_switch_bound_bend_work_and_preserve_sheets
             assert counts['bends'] < 1000, counts
             assert counts['solve'] <= 1, counts
             assert app._phase6_input_snapshot['model'] == family
-            assert (signature() == receiving) == (family == '受電箱')
+            if family == '受電箱':
+                # The loaded Receiving project above was deliberately
+                # unconfigured. A NEW Family selection now creates one real
+                # CSV NFB, changing physical CUTTING and Base/EAR topology.
+                # Current Set1/Bay1 is the persistence owner; the root
+                # compatibility alias need not be present until selection.
+                actual = app._phase6_input_snapshot['receiving_layout']['sets'][0]['bays'][0]
+                assert actual['nfb_config_submitted'] is True
+                assert len(actual['nfb_config']['holes']) == 1
+                # Family transitions must also retire the prior cached
+                # Set/Bay adapter. Otherwise the next selector refresh
+                # reprojects the loaded empty Bay over the committed NFB.
+                current_adapter = bridge._phase6_composition(app).receiving_adapter(
+                    vars(bridge)
+                )
+                assert current_adapter.layout['sets'][0]['bays'][0] == actual
+                assert signature() != receiving
+            else:
+                assert signature() != receiving
     finally:
         _receiving_switch_deadlock_guard('destroy root')
         root.destroy()

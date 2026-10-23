@@ -8,6 +8,27 @@ from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
 from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
 
 
+def _open_legacy_unconfigured_base_settings(designer):
+    """Use an ACTUAL old/unconfigured Bay for #1502 manual plate tests.
+
+    Fresh Receiving now has a real 2P400 CSV source, which correctly takes
+    ownership and locks the auto-derived BasePlate selector. This helper
+    verifies the still-supported legacy/manual editor without tampering with
+    that new default or disabling source-based safety.
+    """
+    import fold_designer_bridge as bridge
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _apply_mode_snapshot,
+    )
+    from phase6_receiving_modes import fresh_receiving_mode
+
+    old = fresh_receiving_mode(
+        "set_bay", {"w": 800, "h": 1600, "d": 350}, auto_nfb=False,
+    )
+    _apply_mode_snapshot(bridge._phase6_composition(designer), vars(bridge), old)
+    assert designer._phase6_input_snapshot.get("nfb_config_submitted") is not True
+
+
 def test_real_receiving_gui_base_bridge_and_project_roundtrip(tmp_path):
     import tkinter as tk
     import gui
@@ -22,6 +43,8 @@ def test_real_receiving_gui_base_bridge_and_project_roundtrip(tmp_path):
         host.baseline_var.set("受電箱")
         root.update()
         app = host.open_original_fold_designer()
+        root.update()
+        _open_legacy_unconfigured_base_settings(app)
         root.update()
         physical = {
             "pattern": RECEIVING_BASE_PATTERN_CENTER,
@@ -87,6 +110,8 @@ def test_receiving_operator_base_settings_submit_reset_and_real_scene(tmp_path):
         host.baseline_var.set("受電箱")
         root.update()
         app = host.open_original_fold_designer()
+        root.update()
+        _open_legacy_unconfigured_base_settings(app)
         root.update()
         assert app._phase6_input_snapshot["model"] in ("受電箱", "RECEIVING")
         app._phase6_input_snapshot.pop("receiving_base_plate", None)

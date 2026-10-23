@@ -29,7 +29,9 @@ def _geometry_of_source_primitive(item):
     return None
 
 
-def _check_source_conflicts(patch, render_data):
+def _check_source_conflicts(patch, render_data, *,
+                            display_only_marking_overlap=False,
+                            permit_independent_source_marking_crossing=False):
     if not render_data.material.covers(patch):
         raise ValueError("EAR_MARK_PREVIEW_FINAL_MATERIAL_CONFLICT")
     for guide in tuple(render_data.fold_guides or ()):
@@ -49,12 +51,31 @@ def _check_source_conflicts(patch, render_data):
             continue
         feature = _geometry_of_source_primitive(item)
         if feature is not None and patch.intersects(feature):
+            if layer == "MARKING" and display_only_marking_overlap:
+                # Display-only native operator viewport.
+                continue
+            if layer == "MARKING" and permit_independent_source_marking_crossing:
+                # Existing source JOINT X crosses the weld placement outline
+                # in actual WHD left SIDE (20.506 mm inside the footprint).
+                # A CROSSING is a different manufacturing mark, not a hole,
+                # bend, duplicate EAR perimeter or invalid welded material.
+                # Retain both source marks in the real DXF. Reject any
+                # coincident/collinear run along the new EAR outline; that
+                # would merge identities and make readback ambiguous.
+                # This option is available only to the independently
+                # authenticated physical/UV source adapter, never preview
+                # metadata nor the generic manufacturing sink.
+                if feature.intersection(patch.boundary).length <= 1e-8:
+                    continue
             raise ValueError("EAR_MARK_PREVIEW_EXISTING_" + layer + "_CONFLICT")
 
 
 def build_receiving_ear_side_marking_previews(
     receipts: tuple[ReceivingEarSideUVReceipt, ...],
     side_render_data: Mapping[str, object],
+    *,
+    display_only_marking_overlap: bool = False,
+    permit_independent_source_marking_crossing: bool = False,
 ) -> dict[str, DrawingScene]:
     """Read-only preview, copying existing side drawing without modifying it.
 
@@ -96,7 +117,13 @@ def build_receiving_ear_side_marking_previews(
                 raise ValueError("EAR_MARK_PREVIEW_SOURCE_PATCH_INVALID")
             if any(patch.intersects(previous) for previous in patches):
                 raise ValueError("EAR_MARK_PREVIEW_TIER_COLLISION")
-            _check_source_conflicts(patch, owner)
+            _check_source_conflicts(
+                patch, owner,
+                display_only_marking_overlap=display_only_marking_overlap,
+                permit_independent_source_marking_crossing=(
+                    permit_independent_source_marking_crossing
+                ),
+            )
             for p1, p2 in row.marking_segments:
                 if not patch.covers(LineString((p1, p2))):
                     raise ValueError("EAR_MARK_PREVIEW_MARK_OUTSIDE_RECEIPT")

@@ -76,9 +76,9 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
     if not isinstance(config,Mapping):
         raise ValueError("NFB_BASE_XY_CONFIG_MISSING")
     rows=config.get("holes")
-    if (not isinstance(rows,(tuple,list)) or not 1<=len(rows)<=2
+    if (not isinstance(rows,(tuple,list)) or not rows
             or (pair is not None and len(rows)!=2)):
-        raise ValueError("NFB_BASE_XY_REQUIRES_ONE_OR_TWO_SAME_ROW_HOLES")
+        raise ValueError("NFB_BASE_XY_REQUIRES_SUBMITTED_SAME_ROW_HOLES")
     y_values=[]
     x_values=[]
     projections={}
@@ -93,8 +93,8 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
         slot=row.get("layer_index", 0 if count == 1 else None)
         if type(slot) is not int or not 0 <= slot < count:
             raise ValueError("NFB_BASE_XY_EXPLICIT_LAYER_INDEX_REQUIRED")
-        # Both same-row models share ONE geometry solve. Do not rebuild the
-        # full inner-door FinalScene for every hole on a normal two-NFB row.
+        # All same-row switches share ONE geometry solve. Do not rebuild the
+        # full inner-door FinalScene for each horizontal hole.
         key=(count,slot)
         if key not in projections:
             projections[key]=project_nfb_inner_door_nominal_y(
@@ -110,7 +110,7 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
         )
         if confirmed:
             x_values.append(float(x))
-    if abs(y_values[0]-y_values[1])>1e-6:
+    if any(abs(y_values[0]-y)>1e-6 for y in y_values[1:]):
         raise ValueError("NFB_BASE_XY_DISTINCT_ROWS_REQUIRE_DISTINCT_PHYSICAL_PLATES")
     x_center=(min(x_values)+max(x_values))/2 if len(x_values)==len(rows) else None
     return ReceivingNfbBaseAssemblyXY(

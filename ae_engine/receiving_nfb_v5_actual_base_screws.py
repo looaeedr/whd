@@ -13,13 +13,14 @@ from hashlib import sha256
 from math import isfinite
 from typing import Mapping, Sequence
 
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
 from .manufacturing_render_data import (
     PartRenderData, material_polygon_from_final_scene,
 )
 from .receiving_nfb_base_process_projection import NfbActualBaseWorkFace, _work_face
+from .receiving_nfb_pad_base_mating import project_pad_base_squares
 from .receiving_nfb_numeric_catalog import brand_csv_path
 from .receiving_nfb_numeric_panel_projection import (
     NfbPanelDatum, NfbV5PanelPattern, project_nfb_v5_to_panel,
@@ -106,8 +107,32 @@ def trial_v5_screws_on_existing_receiving_base(
     )
     if not selected_entries:
         raise ValueError("NFB V5 實體底板對應層沒有開關")
+    # PAD is required only on a FLAT mounting web. A CENTER double-fold base
+    # already has source-defined mounting steps; adding PAD doubles the rise.
+    pad_by_selected_index = {}
+    if metadata.get("receiving_bend_pattern") in (
+            "LEFT_FLAT_SIDE", "RIGHT_FLAT_SIDE"):
+        from .receiving_nfb_numeric_catalog import model_spec
+        from .receiving_nfb_pad_generator import (
+            generate_nfb_pad_patterns, read_pad_tooling_rule,
+        )
+        pad_sources = []
+        for row in selected_entries:
+            selected_id = parse_numeric_model_ref(row.model_ref)
+            if selected_id is None or selected_id[0] != row.brand:
+                raise ValueError("PAD NFB 型號來源不一致")
+            physical = model_spec(row.brand, selected_id[1])
+            if physical is None:
+                raise ValueError("PAD NFB 缺少 CSV 型號來源")
+            pad_sources.append(physical)
+        generated = generate_nfb_pad_patterns(
+            pad_sources, plate_thickness_mm=float(snapshot["t"]),
+            tooling=read_pad_tooling_rule(),
+        )
+        pad_by_selected_index = {p.switch_index:p for p in generated}
     footprints = []
     patterns = []
+    pad_square_groups = []
     source_brands = {entry.brand for entry in entries}
     # Bind this current geometry trial to the exact CSV source bytes; later
     # CHECK Q must reject a stale trial rather than silently reuse old holes.
@@ -126,6 +151,9 @@ def trial_v5_screws_on_existing_receiving_base(
     # an altered CSV aperture or screw pitch between these two stages.
     if tuple(door.render_data.metadata.get("nfb_v5_source_csv_sha256") or ()) != csv_sha:
         raise ValueError("NFB V5 內門與底板使用的 CSV 來源版本不同，請重新驗證")
+    pad_selected_indices = {
+        row.physical_hole_id:i for i,row in enumerate(selected_entries)
+    }
     for entry, prior in zip(entries, door.patterns):
         if not isinstance(entry, NfbV5ConfiguredInnerDoorHole):
             raise TypeError("NFB V5 原始孔位識別格式不符")
@@ -183,6 +211,21 @@ def trial_v5_screws_on_existing_receiving_base(
             if any(circ.intersects(earlier) for earlier in footprints):
                 raise ValueError("NFB V5 底板新增螺絲孔互相碰撞")
             footprints.append(circ)
+        pad = pad_by_selected_index.get(
+            pad_selected_indices[entry.physical_hole_id]
+        )
+        if pad is not None:
+            squares = project_pad_base_squares(datum, pad)
+            for vertices in squares:
+                polygon = Polygon(vertices)
+                if (not polygon.is_valid or polygon.area <= _TOL
+                        or not face_poly.contains(polygon)
+                        or not baseline.material.contains(polygon)):
+                    raise ValueError("PAD 方孔超出底板／撞到 EAR／折邊")
+                if any(polygon.intersects(old) for old in footprints):
+                    raise ValueError("PAD 方孔與螺絲孔／其他 NFB 干涉")
+                footprints.append(polygon)
+            pad_square_groups.append((entry.physical_hole_id,squares))
         patterns.append(pattern)
 
     if source_hashes() != csv_sha:
@@ -196,6 +239,9 @@ def trial_v5_screws_on_existing_receiving_base(
                 source_type="NFB_V5_NUMERIC_BASE_TRIAL",
                 source_id=f"{entry.physical_hole_id}:screw:{index}",
             )
+    for hole_id,squares in pad_square_groups:
+        for square in squares:
+            scene.add_polyline(square,layer="CUTTING",closed=True,color=30)
     material = material_polygon_from_final_scene(scene)
     expected = baseline.material.difference(unary_union(footprints))
     if (material.is_empty or not material.is_valid
@@ -211,6 +257,10 @@ def trial_v5_screws_on_existing_receiving_base(
             "nfb_v5_tier_slot_index": tier_slot_index,
             "nfb_v5_source_models": tuple((x.brand, x.model) for x in patterns),
             "nfb_v5_source_csv_sha256": csv_sha,
+            "nfb_v5_pad_square_owners":tuple(
+                (hole_id,len(squares)) for hole_id,squares in pad_square_groups
+            ),
+            "nfb_v5_pad_manufacturing_ready":False,
             "nfb_v5_target_role": "base-plate",
             "nfb_base_mfg2_release_approved": False,
             "nfb_trial_export_approved": False,

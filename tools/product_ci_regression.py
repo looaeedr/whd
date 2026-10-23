@@ -42,6 +42,7 @@ PYTEST_PATHS = (
     "tests/test_manufacturing_mesh_reuse.py",
     "tests/test_fold_mapping_preparation_performance.py",
     "tests/process/test_product_ci_sharding.py",
+    "tests/test_ci_bounded_install.py",
     "tests/test_issue1464_custom_manufacturing.py",
     "tests/test_issue1465_quantity_ui.py",
     "tests/test_issue1466_quantity_bom.py",
@@ -54,6 +55,23 @@ PYTEST_PATHS = (
     "tests/test_issue1501_live_partial_writer.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+    # #1503/#1504: PAD+real Base full-T mating, per-tier CHECK/Q DXF/BOM,
+    # normal Tk 2D and source guards must run BEFORE a localX PR merges.
+    # The PAD push-only workflow is supplementary, not the PR merge gate.
+    "tests/test_receiving_nfb_pad_pair_manufacturing.py",
+    "tests/test_receiving_pad_native_tk_operator_selector.py",
+    "tests/test_receiving_flat_pad_source_routing.py",
+    "tests/test_receiving_nfb_pad_generator.py",
+    "tests/test_receiving_nfb_pad_depth_policy_tiers.py",
+    "tests/test_receiving_nfb_pad_part.py",
+    "tests/test_receiving_nfb_pad_operator_parts.py",
+    "tests/test_receiving_nfb_pad_delivery.py",
+    "tests/test_receiving_nfb_pad_assembly_preview.py",
+    "tests/test_receiving_nfb_pad_preview_cache.py",
+    "tests/test_receiving_nfb_pad_real_renderer.py",
+    "tests/test_receiving_nfb_pad_base_mating.py",
+    "tests/test_receiving_flat_base_single_nfb_true_z.py",
+    "tests/test_receiving_nfb_depth_surface_policy.py",
     # #1503: per-tier physical Base Plate skin + EAR target Z unified regression.
     "tests/test_receiving_tier_ear_assembly_xy.py",
     "tests/test_receiving_tier_ear_z_targets.py",
@@ -88,6 +106,11 @@ PYTEST_PATHS = (
     "tests/test_issue1503_auto_side_marks_in_normal_export.py",
     # #1503 Windows real project-open UAT: current per-hole CSV V5 identity survives .p6fold v3.
     "tests/test_issue1503_nfb_v5_p6fold_roundtrip.py",
+    # #1500/#1503/#1504: old .p6fold native Tk source→Confirm All→
+    # real Base/EAR 2D/3D/SIDE marks→Save/Reload, and original saved
+    # BasePlate source retention. These must run on *PR* exact HEAD.
+    "tests/test_issue1503_reopen_base_presence.py",
+    "tests/test_issue1503_saved_project_gui_red.py",
     "tests/test_receiving_two_tier_physical_base_parts.py",
     # #1503 actual native Tk Confirm All -> physical CSV NFB -> 2D/3D
     # Base Plates and true four EAR-side 3D MARKING, including multi candidate
@@ -98,12 +121,17 @@ PYTEST_PATHS = (
     "tests/test_issue1503_nfb_manufacturing_transport.py",
     "tests/test_issue1503_single_gui_real_tier_2d3d.py",
     "tests/test_issue1503_primary_2d_ear_source_authority.py",
+    "tests/test_receiving_fold_designer_ear_side_marks.py",
+    "tests/test_receiving_base_source_owned_part_session.py",
+    "tests/test_receiving_fresh_family_autosource.py",
     "tests/test_issue1503_primary_receiving_base_plate_source.py",
     "tests/test_issue1503_multi_candidate_nfb_apply_gui.py",
     "tests/test_issue1503_multi_nfb_bay_isolation.py",
     # #1901 GUI must consume actual #1502 source-owned multi-tier PartSpecs.
     "tests/test_issue1901_csv_v5_gui_real_tier_sources.py",
     "tests/test_issue1494_nfb_x_shadow_projection.py",
+    # Current owner-confirmed W800/2=360 must exercise real editor, Base+DXF.
+    "tests/test_receiving_w800_two_nfb_360.py",
     "tests/test_issue1496_index_color_evidence.py",
     "tests/test_issue1496_nfb_dxf_source.py",
     # Native originals require explicit WHD_NFB_SWITCH_INDEX_CSV /
@@ -128,7 +156,37 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_ui1b_bridge.py",
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+    "tests/test_issue1500_nfb_operator_gui_transactions.py",
     "tests/test_issue1504_v14_ac_traceability.py",
+    # One reconciliation of 79 original unsigned ACs to actual CI source tests;
+    # 4 source-scoped signed only; real GUI/MFG and old-reader gates remain.
+    "tests/test_issue1504_79ac_batch_acceptance_gate.py",
+    # #1504 seven exact multi-witness source signoffs; no GUI/MFG overclaims.
+    "tests/test_issue1504_seven_ac_source_signoff_batch.py",
+    "tests/test_issue1504_ac04_ac19_source_transactions.py",
+    "tests/test_issue1504_ac05_v5_physical_rotation_dxf.py",
+    "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py",
+    "tests/test_issue1504_ac32_nfb_x_impact_operator.py",
+    "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py",
+    "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
+    "tests/test_issue1504_brand_inheritance_current_csv.py",
+    "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
+    "tests/test_issue1502_current_csv_pad_check_q_provenance.py",
+    "tests/test_issue1504_ac25_reselection_nominal_x.py",
+    # #1504 AC-22/SWT-15: current CSV V5 UI unknown-X and actual Bay/Quantity
+    # .p6fold persistent identity, explicit zero/NONE, no fake approval.
+    "tests/test_issue1504_ac22_swt15_current_x_persistence.py",
+    # #1504 batched current CSV V5 editor Undo/cancel → independent quantity
+    # versions → real project Save/Reload/rotation, source fail-closed.
+    "tests/test_issue1504_batched_current_nfb_transactions.py",
+    # #1504: real Single/Quantity Confirm All validates detached NFB+Family
+    # before any live version mutation; rejects bad source/geometry atomically.
+    "tests/test_issue1504_quantity_nfb_confirm_atomic.py",
+    # #1504 source-owned V5 NFB independent slot identities, ordering and
+    # X, quarter-turn inheritance, no mirrors or nominal-to-MFG promotion.
+    "tests/test_issue1504_swt03_nfb05_current_unit_rotation.py",
+    "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py",
+    "tests/test_issue1504_quantity_ear_z_set_identity.py",
     # #1504 exact function audit uncovered these five previously unselected
     # UI-1A / native-source preview / MFG-1 preflight owner suites.
     "tests/test_issue1491_nfb_ui1a.py",
@@ -161,12 +219,35 @@ PYTEST_PATHS = (
     "tests/test_issue1502_receiving_single_base_workspace.py",
     "tests/test_issue1502_nfb_base_source_projection.py",
     # V5 CSV is the current source of NFB openings and screw pitches.
+    # #1502's source-derived plate selection and actual standalone V5 DXF
+    # were previously OMITTED from mandatory Product Regression despite
+    # source/GUI changes. Run both in every CI shard manifest, fail closed.
+    "tests/test_issue1502_source_derived_center_base.py",
+    "tests/test_issue1502_csv_v5_part_only_manufacturing.py",
+    # The normal 2D/3D selection and source-owned installed AssemblyScene
+    # must be checked as well as manufacturing DXF: visible part != release.
+    "tests/test_issue1502_primary_2d_committed_base_visibility.py",
+    "tests/test_issue1502_csv_finalscene_installed_assembly.py",
     "tests/test_issue1502_v5_csv_base_x_stable.py",
     # Same V5 CSV source geometry on separate, truly owned NFB-tier plates.
     "tests/test_issue1502_v5_csv_tier_bases.py",
     "tests/test_issue1502_v5_csv_check_q_preview.py",
     "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
     "tests/test_issue1502_nfb_finalscene_composite.py",
+    # Mandatory actual 2D/3D/DXF acceptance for current numeric CSV source:
+    # The earlier CI list omitted these new production tests, so GREEN did
+    # not establish saved-DXF reopen, EAR, quantity or multi-Bay coverage.
+    "tests/test_issue1502_csv_is_only_normal_finalscene_source.py",
+    "tests/test_issue1502_current_csv_original_pair_dxf.py",
+    "tests/test_issue1502_current_csv_original_two_tier_dxf.py",
+    "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py",
+    "tests/test_issue1502_single_button_full_csv_receiving_export.py",
+    "tests/test_issue1502_quantity_current_csv_full_batch.py",
+    "tests/test_issue1502_current_csv_multi_bay_once.py",
+    "tests/test_issue1502_multibay_original_gui_export_integration.py",
+    "tests/test_issue1502_two_tier_csv_left_without_manual_base.py",
+    "tests/test_issue1502_gui_tier_source_export_checkbox.py",
+    "tests/test_issue1502_source_side_crossing_mark_dxf.py",
     "tests/test_issue1502_lower_four_nfb_mount_source.py::test_only_original_lower_four_circles_are_mounting_screws",
     "tests/test_issue1502_lower_four_nfb_mount_source.py::test_source_lower_circle_mismatch_cannot_guess_a_quartet",
     "tests/test_issue1502_lower_four_nfb_mount_source.py::test_native_lower_screw_needs_matching_upper_NFB_source_identity",
@@ -244,6 +325,9 @@ PYTEST_PATHS = (
     "tests/test_receiving_inner_editor_no_csv_opening_popup.py",
     "tests/test_receiving_native_nfb_tab_flow.py",
     "tests/test_receiving_nfb_main_canvas_visual.py",
+    # #1504 native NFB full-preview invalid index cannot alter live HoleEditor
+    # draft, existing operator holes, Undo or Cancel All transactions.
+    "tests/test_issue1504_native_nfb_preview_transaction.py",
     "tests/test_phase6_t16_receiving_placement.py",
     "tests/test_phase6_t17_receiving_inner_door_80.py",
     "tests/test_issue1113_receiving_joint_lock_geometry.py",
@@ -277,6 +361,13 @@ PYTEST_PATHS = (
     "tests/test_phase6_project_file.py::test_main_connected_designer_project_save_as_persists_current_live_canonical_state",
     "tests/test_phase6_project_file.py::test_project_round_trip_preserves_verified_joint_relief_state",
     "tests/test_phase6_project_file.py::test_p6fold_round_trip_preserves_receiving_bottom_wrap_linkage_and_reserves",
+    # D1-01..D1-12 production geometry/manufacturing regressions.
+    "tests/test_d1_geometry_manufacturing_fixes.py",
+    # D2-01..D2-05 GUI save/reload, per-cell door indicator and Taiwan clock.
+    "tests/test_phase6_project_file.py::test_d2_01_reset_door_indicator_offset_y_does_not_raise_name_error",
+    "tests/test_phase6_project_file.py::test_d2_02_snapshot_and_live_sync_preserve_door_distance_datum_and_per_cell_indicator_states",
+    "tests/test_phase6_project_file.py::test_d2_03_fold_designer_part_spec_uses_per_cell_indicator_state_for_multi_door",
+    "tests/test_phase6_project_file.py::test_d2_04_and_d2_05_timestamps_use_taipei_timezone",
 )
 
 
@@ -420,7 +511,10 @@ def _merge_shard_junit(paths: list[Path], count: int, output: Path) -> None:
 
 
 def _verify_full_receipt(report: Path) -> None:
-    from whd_v15_acceptance_evidence import verify
+    try:
+        from tools.whd_v15_acceptance_evidence import verify
+    except ModuleNotFoundError:
+        from whd_v15_acceptance_evidence import verify
     receipt = verify(report)
     print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} "
           f"passed_cases={receipt['passed_cases']}", flush=True)

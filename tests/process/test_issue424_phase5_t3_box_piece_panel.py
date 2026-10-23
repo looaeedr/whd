@@ -309,11 +309,11 @@ def test_t3_bridge_piece_refresh_is_thin_delegate_with_existing_formatters():
     bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
     assert "def _phase6_refresh_box_body_piece_info_rows(" not in bridge
 
-def test_t3_bridge_legacy_piece_aliases_point_to_panel_registries():
-    source = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_install_assembly_panel_aliases",
-    )
+
+def test_t3_bridge_legacy_piece_aliases_point_to_panel_registries(tk_root):
+    panel = _panel(tk_root)
+    host = SimpleNamespace()
+    panel.install_legacy_aliases(host)
     expected = {
         "assembly_box_body_piece_labels": "box_piece_labels",
         "assembly_box_body_piece_sections": "box_piece_sections",
@@ -326,8 +326,14 @@ def test_t3_bridge_legacy_piece_aliases_point_to_panel_registries():
         "assembly_box_body_piece_corner_vars": "box_piece_corner_vars",
     }
     for legacy, owner in expected.items():
-        assert f"self.{legacy} = owner.{owner}" in source
-
+        assert getattr(host, legacy) is getattr(panel, owner)
+    _refresh(panel, _render_data(_piece("back", (10, 20), (30, 40), "C")))
+    assert host.assembly_box_body_piece_visible_vars is panel.box_piece_visible_vars
+    assert "box_body:back" in host.assembly_box_body_piece_visible_vars
+    bridge_source = _function_source(
+        "fold_designer_bridge.py", "_phase6_install_assembly_panel_aliases",
+    )
+    assert ".install_assembly_panel_aliases(owner)" in bridge_source
 
 def test_t3_final_scene_callback_timing_remains_render_time_box_body_only():
     source = _function_source(

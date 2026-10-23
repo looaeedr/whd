@@ -683,6 +683,21 @@ class Phase6FoldDesignerComposition:
                     error_reporter=report_render_error,
                 )
                 app.final_scene_view = self._final_scene_renderer
+
+            # The 3D renderer already identifies the exact visible physical
+            # sheet from its own rendered mesh. Reuse the original Hole Editor.
+            def open_visible_part_holes(part_key):
+                workspace = getattr(app, "designer_workspace", None)
+                if workspace is None or part_key not in workspace.available_parts:
+                    return None  # stale/removed sheet cannot open an editor
+                host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
+                if host is None or not callable(getattr(host, "open_part_hole_editor", None)):
+                    raise ValueError("3D 板件未連接原開孔編輯器")
+                return host.open_part_hole_editor(part_key)
+
+            self._final_scene_renderer.set_hole_double_click_handler(
+                open_visible_part_holes
+            )
         return self._final_scene_renderer
 
     def final_scene_ports(self, namespace):

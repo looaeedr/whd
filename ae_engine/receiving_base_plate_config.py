@@ -121,21 +121,27 @@ def _source_left_flat_base_config(data):
     holes = config.get("holes") if isinstance(config, Mapping) else None
     if not isinstance(holes, (tuple, list)) or not holes:
         return None
-    models = {str(h.get("model_filename") or "") for h in holes
-              if isinstance(h, Mapping)}
-    if len(models) != 1:
-        return None
-    resolved = parse_numeric_model_ref(next(iter(models)))
-    if resolved is None:
-        return None
-    spec = model_spec(*resolved)
-    # Both source LEFT and CSV must agree *exactly*; another model/pitch
-    # cannot borrow this illustrated plate simply for matching its depth.
-    if (spec is None or spec.screw_pitch_mm != (44.0, 194.0)
-            or abs(float(spec.screw_diameter_mm or 0.0) - 5.1) > 1e-6
-            or spec.depth_mm is None
-            or abs(float(spec.depth_mm) - depth) > 1e-6):
-        return None
+    # The real LEFT template owns one 710x300 source flat sheet, BEND20
+    # and four source EAR slots. Its illustrated 400 screw quartets are NOT
+    # the current per-NFB machining authority; committed CSV is. A selected
+    # numeric model must have full dimensions and fit this 260-mm flat face.
+    # Every actual placement and screw intersection is checked by FinalScene.
+    for hole in holes:
+        if not isinstance(hole, Mapping):
+            return None
+        parsed = parse_numeric_model_ref(hole.get("model_filename"))
+        if parsed is None:
+            return None
+        brand, model = parsed
+        if hole.get("source_brand") not in (None, brand):
+            return None
+        spec = model_spec(brand, model)
+        if (spec is None or not spec.dimensionally_complete
+                or spec.height_mm is None
+                or not 0 < float(spec.height_mm) <= 260.
+                or spec.depth_mm is None
+                or float(spec.depth_mm) > depth + 1e-6):
+            return None
     t = float(data["t"])
     # Fixed-plate T is the source T2 and independent of the cabinet skin T.
     pitch_x = receiving_source_fixing_pitch_x_mm(
@@ -157,6 +163,96 @@ def _source_left_flat_base_config(data):
     }
 
 
+
+def _source_two_tier_matching_left_base_config(data):
+    """Derive two separate source LEFT tier blanks without a manual base choice.
+
+    The source LEFT blank/BEND20/EAR slots are fixed structural geometry,
+    not a limit to the illustrated 44x194 screw pattern. Each vertical NFB
+    tier uses one sheet and its own committed numeric model(s); differing
+    source models are legitimate if complete and within the flat face.
+    Per-hole X/Y/rotation, material, and collision validation remain with
+    the normal FinalScene and original DXF export. This never recognizes
+    an unproved RIGHT sheet or grants whole-cabinet manufacturing approval.
+    """
+    config = data.get("nfb_config")
+    if (data.get("nfb_config_submitted") is not True
+            or not isinstance(config, Mapping)
+            or config.get("layer_count") != 2):
+        return None
+    from .receiving_tier_ear_z_targets import _current_brand_config
+    legacy_brand, current = _current_brand_config(data)
+    if current != config:
+        raise ValueError("RECEIVING_TIER_LEFT_SOURCE_BAY_IDENTITY_DRIFT")
+    holes = config.get("holes")
+    if not isinstance(holes, (list, tuple)) or len(holes) < 2:
+        return None
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_numeric_catalog import model_spec
+    tiers = {0: [], 1: []}
+    depths_by_tier = {0: set(), 1: set()}
+    for hole in holes:
+        if not isinstance(hole, Mapping):
+            return None
+        tier = hole.get("layer_index")
+        if (type(tier) is not int or tier not in tiers
+                or hole.get("layer_count", 2) != 2):
+            return None
+        parsed = parse_numeric_model_ref(hole.get("model_filename"))
+        if parsed is None:
+            return None
+        brand, model = parsed
+        if hole.get("source_brand") not in (None, brand):
+            return None
+        spec = model_spec(brand, model)
+        if (spec is None or not spec.dimensionally_complete
+                or spec.height_mm is None
+                or not 0 < float(spec.height_mm) <= 260.
+                or spec.depth_mm is None or spec.depth_mm <= 0):
+            return None
+        tiers[tier].append(spec)
+        depths_by_tier[tier].add(float(spec.depth_mm))
+    if any(not rows for rows in tiers.values()):
+        return None
+    from .receiving_nfb_pad_generator import (
+        read_pad_tooling_rule, generate_nfb_pad_patterns,
+    )
+    tooling = read_pad_tooling_rule()
+    for tier, sources in tiers.items():
+        if len(depths_by_tier[tier]) > 1:
+            pads = generate_nfb_pad_patterns(
+                sources, plate_thickness_mm=float(data["t"]),
+                tooling=tooling,
+            )
+            required = sum(
+                float(row.depth_mm) < max(depths_by_tier[tier])-1e-9
+                for row in sources
+            )
+            if len(pads) != required:
+                raise ValueError("RECEIVING_TIER_FLAT_PAD_SOURCE_INCOMPLETE")
+    if float(data["t"]) != 2.0:
+        raise ValueError("RECEIVING_TIER_LEFT_SOURCE_REQUIRES_T2")
+    from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+    pitch_x = receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=float(data["w"]),
+        box_side_thickness_mm=float(data["t"]),
+    )
+    source_ear_inset = 20.0
+    blank_width = pitch_x + 2.0 * source_ear_inset
+    side_shrink = (float(data["w"]) - blank_width) / 2.0
+    if blank_width <= 2.0 * source_ear_inset:
+        raise ValueError("RECEIVING_TIER_LEFT_SOURCE_BLANK_TOO_NARROW")
+    return {
+        "pattern": RECEIVING_BASE_PATTERN_LEFT,
+        "height": 300.0 + 2.0 * 20.0,
+        "shrink_top": 20.0,
+        "shrink_bottom": 20.0,
+        "shrink_left": side_shrink,
+        "shrink_right": side_shrink,
+        "bend": 20.0,
+    }
+
 def receiving_base_plate_values(snapshot):
     """Return existing BasePlatePartSpec input values; never guess a variant.
 
@@ -167,16 +263,102 @@ def receiving_base_plate_values(snapshot):
     data = dict(snapshot or {})
     if str(data.get("model") or "").strip() not in RECEIVING_FAMILIES:
         return None
-    config = data.get("receiving_base_plate")
+    # The selected/submitted NFBConfig and the current brand CSV are the
+    # physical source authority, even when an older project has saved a
+    # separate manual base pattern.  Resolve source FIRST: accepting a stale
+    # saved RIGHT/LEFT or W800 shrink silently changes the manufactured sheet.
+    # The operator's explicit LEFT source variant is respected ONLY when
+    # its actual selected numeric V5 NFBs permit a source-validated flat PAD.
+    # Otherwise do not reinterpret an old/unresolved DXF source as a PAD.
+    preferred = data.get("receiving_base_plate")
+    selected_config = data.get("nfb_config")
+    selected_rows = (selected_config.get("holes")
+                     if isinstance(selected_config, Mapping) else None)
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+    explicit_left = (data.get("nfb_config_submitted") is True
+                     and isinstance(preferred, Mapping)
+                     and preferred.get("pattern") == RECEIVING_BASE_PATTERN_LEFT
+                     and isinstance(selected_rows, (tuple, list))
+                     and bool(selected_rows))
+    v5_left = (explicit_left and all(
+        isinstance(row, Mapping)
+        and str(row.get("model_filename") or "").startswith("nfbv5:")
+        for row in selected_rows))
+    if explicit_left and not v5_left:
+        from .receiving_nfb_depth_surface_policy import (
+            committed_receiving_nfb_depth_pair_mm,
+        )
+        # A saved LEFT plate with two different legacy DXF depths must not
+        # silently become a CENTER plate or get an unverified PAD.
+        if committed_receiving_nfb_depth_pair_mm(data) is not None:
+            raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
+    # A SAME-TIER group of typed NFB V5 models uses one real flat Base
+    # Plate plus source-derived PADs for its shallower models. The former
+    # CENTER-first branch suppressed the PAD entirely in normal Tk workflows.
+    # Keep saved, explicitly selected CENTER profiles on their own existing
+    # physical path: never silently change an operator-configured sheet.
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+    explicit_center = (
+        data.get("nfb_config_submitted") is True
+        and isinstance(preferred, Mapping)
+        and preferred.get("pattern") == RECEIVING_BASE_PATTERN_CENTER
+    )
+    selected_v5 = (
+        data.get("nfb_config_submitted") is True
+        and isinstance(selected_rows, (tuple, list))
+        and bool(selected_rows)
+        and all(isinstance(row, Mapping) and
+                str(row.get("model_filename") or "").startswith("nfbv5:")
+                for row in selected_rows)
+    )
+    source_config = None
+    if selected_v5 and not explicit_center:
+        # This source resolver validates every model's current CSV,
+        # parametric PAD, sheet face, and physical depth. If no flat
+        # source matches, retain the original CENTER resolver fallback.
+        source_config = _source_left_flat_base_config(data)
+    if source_config is None:
+        source_config = _source_center_base_config(data)
+    if source_config is None:
+        source_config = _source_left_flat_base_config(data)
+    if source_config is None:
+        source_config = _source_two_tier_matching_left_base_config(data)
+    if source_config is not None:
+        # Matching legacy values are geometrically equivalent and may remain
+        # in the project file, but the source-derived values own this PartSpec.
+        # Mismatching legacy values are not silently promoted to authority.
+        config = source_config
+    elif data.get("nfb_config_submitted") is True:
+        # A submitted *numeric CSV V5* model is not proof that an unknown
+        # RIGHT/flat/tier source exists. Do not revive a manual pattern when
+        # the typed source lacks a unique physical match. Legacy DXF-backed
+        # saved jobs retain their previous preview/settings compatibility;
+        # they have separate independent manufacturing proof obligations.
+        nfb = data.get("nfb_config")
+        holes = nfb.get("holes") if isinstance(nfb, Mapping) else None
+        has_numeric_csv = (
+            isinstance(holes, (list, tuple))
+            and any(isinstance(hole, Mapping)
+                    and str(hole.get("model_filename") or "").startswith("nfbv5:")
+                    for hole in holes)
+        )
+        if has_numeric_csv:
+            # Two tiers already have separate submitted physical owners, and
+            # current CENTER/LEFT one-row source recognition cannot resolve
+            # their variant from both rows at once. Keep an existing physical
+            # root *for preview/skin target calculation only*: the tier
+            # assembly explicitly marks every resulting FinalScene unreleased.
+            # One-row unknown CSV sources must NEVER borrow a saved pattern.
+            if not (isinstance(nfb, Mapping)
+                    and nfb.get("layer_count") == 2):
+                return None
+        config = data.get("receiving_base_plate")
+    else:
+        # Older projects without submitted NFBs retain their existing manual
+        # settings for normal editing/preview; this does not certify MFG-2.
+        config = data.get("receiving_base_plate")
     if config is None:
-        # Source-backed, *unambiguous* CENTER variant requires no redundant
-        # operator-entered dimensions. Never choose LEFT versus RIGHT for a
-        # flat tier solely because both happen to pass an envelope check.
-        config = _source_center_base_config(data)
-        if config is None:
-            config = _source_left_flat_base_config(data)
-        if config is None:
-            return None
+        return None
     if not isinstance(config, Mapping):
         raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID")
     missing = tuple(key for key in _REQUIRED if key not in config)
@@ -209,13 +391,19 @@ def receiving_base_plate_values(snapshot):
         )
         pair = committed_receiving_nfb_depth_pair_mm(data)
     else:
-        # A flat-sided physical mounting face follows ONE exact submitted
-        # model depth. A mixed-depth / multi-layer NFB row is NOT silently
-        # declared to fit this flat plate; the PAD is separately controlled.
-        from .receiving_nfb_depth_surface_policy import (
-            committed_receiving_flat_nfb_depth_mm,
-        )
-        reference = committed_receiving_flat_nfb_depth_mm(data)
+        # In the two-tier shape-proven LEFT case, each tier's actual
+        # independently selected CSV model/depth owns its *own* Z datum in
+        # resolve_receiving_tier_base_z_targets. Do not ask the one-tier
+        # flat-depth helper to collapse the two physical layers into one.
+        config_now = data.get("nfb_config")
+        if (isinstance(config_now, Mapping)
+                and config_now.get("layer_count") == 2):
+            reference = None
+        else:
+            from .receiving_nfb_depth_surface_policy import (
+                committed_receiving_flat_nfb_depth_mm,
+            )
+            reference = committed_receiving_flat_nfb_depth_mm(data)
     return {
         "receiving_nfb_reference_depth_mm": reference,
         "receiving_nfb_depth_pair_mm": pair,

@@ -130,7 +130,10 @@ def test_pad_two_400_models_uses_brand_specific_csv_depth_not_filename_guess():
     assert pad.candidate_delta_mm == 4.0
     assert pad.shallower_unit_index == 1
     assert pad.deeper_unit_index == 0
-    assert pad.required_pad_count == 0  # not yet manufactured
+    # Current shared per-tier rule counts one shallow unit, but the preview
+    # must NEVER claim the PAD itself is manufacturing-ready.
+    assert pad.required_pad_count == 1
+    assert pad.tier_pad_counts == (1,)
     assert pad.manufacturing_ready is False
     preview = nfb_ui1a_preview(draft, bay_width_mm=800, upper_cell_height_mm=1100)
     assert preview["pad_depth_preview"]["status"] == DIFFERENT_DEPTH
@@ -143,17 +146,26 @@ def test_pad_not_applicable_for_other_layer_or_unit_counts_or_equal_depth():
         new_nfb_ui1a_draft, add_nfb_draft_slot, set_nfb_draft_layer_count,
     )
     from ae_engine.receiving_nfb_pad_depth_policy import (
-        preview_nfb_pad_depth, NOT_APPLICABLE, NO_PAD_NEEDED,
+        preview_nfb_pad_depth, NOT_APPLICABLE, NO_PAD_NEEDED, DIFFERENT_DEPTH,
     )
     draft = _pad_two_brand_draft()
     two_layers = set_nfb_draft_layer_count(draft, 2)
-    assert preview_nfb_pad_depth(two_layers).status == NOT_APPLICABLE
-    # One or three NFBs are never eligible, regardless of brand/depth.
+    split = preview_nfb_pad_depth(two_layers)
+    # Adding an empty physical tier does not erase the existing tier's PAD.
+    assert split.status == DIFFERENT_DEPTH
+    assert split.required_pad_count == 1
+    assert split.tier_pad_counts == (1, 0)
+    assert split.manufacturing_ready is False
+    # One NFB does not need depth equalisation; three can still need one.
     single = new_nfb_ui1a_draft(set_brand="士林", layer_count=1)
     single = add_nfb_draft_slot(single, 0, filename="400_140X257_107.dxf")
     assert preview_nfb_pad_depth(single).status == NOT_APPLICABLE
     triple = add_nfb_draft_slot(draft, 0, filename="400_140X257_107.dxf")
-    assert preview_nfb_pad_depth(triple).status == NOT_APPLICABLE
+    triple_pad = preview_nfb_pad_depth(triple)
+    assert triple_pad.status == DIFFERENT_DEPTH
+    assert triple_pad.required_pad_count == 1
+    assert triple_pad.tier_pad_counts == (1,)
+    assert triple_pad.manufacturing_ready is False
     # Different brands are not sufficient: 士林107 and 伍菱107 need no pad.
     same = _pad_two_brand_draft("伍菱", "NF400_140X257_107.dxf")
     pad = preview_nfb_pad_depth(same)

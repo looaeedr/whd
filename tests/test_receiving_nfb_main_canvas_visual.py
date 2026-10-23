@@ -38,6 +38,11 @@ def test_receiving_confirm_draws_two_csv_nfb_holes_on_native_main_canvas():
 
     def add_real_csv_nfb(root, state, index):
         row = state["rows"][index]
+        # New first-entry default owns one real Shihlin 2P400 *draft*.
+        # The original canvas test should reuse it instead of creating
+        # a second first-tier switch and then blaming duplicate geometry.
+        if row["assigned"].size() == 1 and str(row["assigned"].get(0)) == "2P400":
+            return
         options = row["available"]
         selected = next((i for i in range(options.size())
                          if "2P400" in str(options.get(i))), None)
@@ -79,11 +84,15 @@ def test_receiving_confirm_draws_two_csv_nfb_holes_on_native_main_canvas():
                          if drawing.type(i) == "polygon"
                          and drawing.itemcget(i, "outline").lower() == "#ff9f0a")
 
-        assert drawn_nfb_profiles() == ()
+        # A new Receiving cabinet already owns one real CSV NFB opening.
+        # The native editor must render its existing CUTTING before edits;
+        # do not mistake it for an uncommitted empty canvas.
+        initial = drawn_nfb_profiles()
+        assert len(initial) == 1
         tabs.select(1)
         pump(root)
         frame, state = layer_state(editor)
-        assert tuple(float(v.get()) for v in state["layer_heights_mm"]) == (550, 800)
+        assert tuple(float(v.get()) for v in state["layer_heights_mm"]) == (330, 830)
         add_real_csv_nfb(root, state, 0)
         radios = [w for w in walk(frame)
                   if isinstance(w, ttk.Radiobutton)
@@ -112,12 +121,12 @@ def test_receiving_confirm_draws_two_csv_nfb_holes_on_native_main_canvas():
         part = policy.derive_inner_door_panels(
             designer._phase6_input_snapshot
         )[0].stable_id
-        assert designer.designer_workspace.features_for(part) == []
-        # Native Cancel All still owns the transaction: nothing in the
-        # above tab interactions has written to the physical part.
+        # Tab Confirm must not alter the existing single-NFB baseline.
+        before = tuple(designer.designer_workspace.features_for(part))
         button(editor, "取消全部").invoke()
         pump(root)
-        assert designer.designer_workspace.features_for(part) == []
+        assert tuple(designer.designer_workspace.features_for(part)) == before
+        assert designer._phase6_input_snapshot["nfb_config"]["layer_count"] == 1
     finally:
         try:
             if getattr(box, "fold_designer_window", None) is not None:

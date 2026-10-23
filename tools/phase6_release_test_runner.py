@@ -214,7 +214,9 @@ def select_batch(
     if not pending:
         return []
     size = max(1, int(default_batch_size))
-    prefix = [str(item) for item in pending[:size]]
+    pending_list = [str(item) for item in pending]
+    pending_set = set(pending_list)
+    prefix = pending_list[:size]
     for record in reversed(journal.records()):
         if record.get("status") not in {"timeout", "failed"}:
             continue
@@ -222,6 +224,9 @@ def select_batch(
         if not prior:
             continue
         if prefix[: len(prior)] != prior:
+            remaining = [item for item in prior if item in pending_set]
+            if 0 < len(remaining) < len(prior) and pending_list[: len(remaining)] == remaining:
+                return remaining
             continue
         if len(prior) > 1:
             return prior[: max(1, len(prior) // 2)]

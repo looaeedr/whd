@@ -69,7 +69,7 @@ def snapshot(*, left_neighbor=None, t=2.0, upper=1100.0):
 @pytest.mark.parametrize("w,count,pitch", [
     (600, 1, None), (750, 1, None), (800, 1, None),
     (600, 2, (180.0,)), (750, 2, (310.0,)),
-    (800, 2, (325.0,)), (800, 3, (180.0, 180.0)),
+    (800, 2, (360.0,)), (800, 3, (180.0, 180.0)),
 ])
 def test_each_spec_group_only_nominal_distances_no_absolute_x(w, count, pitch):
     group = nominal_nfb_x_group(w, count)
@@ -309,7 +309,11 @@ def test_user_original_two_slot_x_sources_are_evidence_not_world_x(
     )
     assert centers[1] - centers[0] == pytest.approx(pitch)
     assert row["observed_pitch_mm"] == pitch
-    assert nominal_nfb_x_group(w, 2).adjacent_distances_mm == (pitch,)
+    # Raw uploaded 800x2 DXF really measured 325. The CURRENT operator
+    # corrected W800 double-row design pitch to 360, independently. Do not
+    # rewrite historic DXF bytes, nor silently re-certify the absolute X.
+    current_pitch = 360.0 if w == 800 else pitch
+    assert nominal_nfb_x_group(w, 2).adjacent_distances_mm == (current_pitch,)
     # Preserve native dimensions solely as source observations. A source drawing
     # may be stale: its 1-mm difference MUST NOT become WHD blank authority.
     assert outer_width - row["conditional_current_t2_gap35_blank_width_mm"] == delta
@@ -322,6 +326,7 @@ def test_user_original_two_slot_x_sources_are_evidence_not_world_x(
     assert documented["source_dxf_sha256"] == source_sha
     assert documented["source_outline_handles"] == row["source_outer_side_handles"]
     assert documented["source_layout_observation"]["observed_center_pitch_mm"] == pitch
+    assert documented["nominal_adjacent_center_distances_mm"] == [current_pitch]
     assert documented["source_layout_observation"]["status"] == "SOURCE_PITCH_OBSERVED_ONLY"
     assert documented["source_layout_observation"]["source_span_is_dimension_authority"] is False
     assert documented["source_layout_observation"]["source_span_difference_is_release_blocker"] is False

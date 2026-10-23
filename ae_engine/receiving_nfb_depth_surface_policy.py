@@ -368,23 +368,74 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
     if ("nfb_config" in snapshot and snapshot["nfb_config"] != config):
         raise ValueError("RECEIVING_FLAT_NFB_CONFIG_SCOPE_DRIFT")
     holes=config.get("holes")
-    if not isinstance(holes,(tuple,list)) or not 1<=len(holes)<=2:
-        raise ValueError("RECEIVING_FLAT_NFB_REQUIRES_ONE_OR_TWO_HOLES_SAME_ROW")
+    if not isinstance(holes,(tuple,list)) or not holes:
+        raise ValueError("RECEIVING_FLAT_NFB_REQUIRES_SUBMITTED_HOLES_SAME_ROW")
     if not all(isinstance(h,Mapping) for h in holes):
         raise ValueError("RECEIVING_FLAT_NFB_INVALID_HOLE_SOURCE")
     count=config.get("layer_count")
-    if count!=1 or any(h.get("layer_count",count)!=1 or h.get("slot_index",0)!=0
-                      for h in holes):
+    if count!=1 or any(
+        h.get("layer_count",count)!=1
+        or type(h.get("slot_index",0)) is not int
+        or h.get("slot_index",0)<0
+        for h in holes
+    ):
         raise ValueError("RECEIVING_FLAT_NFB_MULTIPLE_ROWS_NEED_DISTINCT_BASE")
+    # The source LEFT sheet proves the physical flat sheet and EAR slots.
+    # Each selected NFB's *own* complete CSV defines its screws/opening:
+    # its brand/model need not equal the illustrated original quartet.
+    # Depth equality and actual per-hole FinalScene collisions remain gates.
     models={str(h.get("model_filename") or "").strip() for h in holes}
-    if len(models)!=1 or not next(iter(models)):
+    if "" in models:
         raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
     legacy_brand=chosen.get("switch_brand")
+    # A historical DXF filename is only meaningful inside its owning Set's
+    # legacy brand column. Current nfbv5 identity owns its OWN source brand.
+    # Never reinterpret an old Shihlin DXF as a different brand on a flat base.
+    for hole in holes:
+        ref = str(hole["model_filename"])
+        override = hole.get("source_brand")
+        if (not ref.startswith("nfbv5:") and isinstance(legacy_brand,str)
+                and override is not None and override != legacy_brand):
+            raise ValueError("RECEIVING_FLAT_NFB_SOURCE_BRAND_DRIFT")
+    if len(models)!=1:
+        from .receiving_nfb_model_identity import selected_numeric_spec
+        for hole in holes:
+            model_ref=str(hole["model_filename"])
+            brand=hole.get("source_brand",legacy_brand)
+            if not model_ref.startswith("nfbv5:"):
+                raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
+            spec=selected_numeric_spec(brand,model_ref)
+            if spec is None or not spec.dimensionally_complete:
+                raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
     depths=tuple(
         _source_depth_for_submitted_hole(
             hole, legacy_set_brand=legacy_brand,
         ) for hole in holes
     )
     if any(abs(depth-depths[0])>1e-9 for depth in depths):
-        raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_DEPTHS_NEED_PAD")
+        # A flat Base Plate mounts at the DEEPEST NFB's source depth.
+        # Every shallower NFB needs its own identical parametric PAD rule.
+        # This validates geometry only: no PAD 3D mating/MFG approval.
+        from .receiving_nfb_model_identity import parse_numeric_model_ref
+        from .receiving_nfb_numeric_catalog import model_spec
+        from .receiving_nfb_pad_generator import (
+            generate_nfb_pad_patterns, read_pad_tooling_rule,
+        )
+        sources = []
+        for hole in holes:
+            parsed = parse_numeric_model_ref(hole["model_filename"])
+            if parsed is None or hole.get("source_brand") not in (None, parsed[0]):
+                raise ValueError("RECEIVING_FLAT_NFB_DIFFERENT_MODELS_NEED_PAD_OR_CENTER")
+            spec = model_spec(*parsed)
+            if spec is None or not spec.dimensionally_complete:
+                raise ValueError("RECEIVING_FLAT_NFB_PAD_SOURCE_INCOMPLETE")
+            sources.append(spec)
+        pads = generate_nfb_pad_patterns(
+            sources, plate_thickness_mm=float(snapshot.get("t",0.)),
+            tooling=read_pad_tooling_rule(),
+        )
+        required = sum(depth < max(depths)-1e-9 for depth in depths)
+        if len(pads) != required:
+            raise ValueError("RECEIVING_FLAT_NFB_PAD_MISSING_PHYSICAL_SOURCE")
+        return max(depths)
     return depths[0]

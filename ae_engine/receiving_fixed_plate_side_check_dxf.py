@@ -50,7 +50,8 @@ class ReceivingEarSideCheckDxfReceipt:
     status: str = "RECEIVING_EAR_SIDE_CHECK_DXF_ONLY"
 
 
-def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness):
+def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
+                   permit_independent_source_marking_crossing=False):
     # A GUI callback can be stale or return an unresolved object during
     # edits. Never read .parts or write manufacturing data from such input.
     from .contracts import ResolvedManufacturingGeometry
@@ -104,7 +105,12 @@ def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness):
     }
     if any(part is None for part in side_parts.values()):
         raise ValueError("EAR_SIDE_CHECK_SIDE_SOURCE_MISSING")
-    previews = build_receiving_ear_side_marking_previews(uv, side_parts)
+    previews = build_receiving_ear_side_marking_previews(
+        uv, side_parts,
+        permit_independent_source_marking_crossing=(
+            permit_independent_source_marking_crossing
+        ),
+    )
     if set(previews) != set(_SIDE_NAMES):
         raise ValueError("EAR_SIDE_CHECK_PREVIEW_OWNER_DRIFT")
     return uv, physical, side_parts, previews

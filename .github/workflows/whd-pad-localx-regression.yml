@@ -1,0 +1,181 @@
+name: WHD PAD localX source and geometry checks
+
+on:
+  push:
+    branches: [localX]
+    paths:
+      - 'ae_engine/receiving_nfb_pad_*.py'
+      - 'tests/test_receiving_nfb_pad_pair_manufacturing.py'
+      - 'ae_engine/receiving_nfb_v5_actual_base_screws.py'
+      - 'ae_engine/receiving_nfb_v5_part_only_manufacturing.py'
+      - 'ae_engine/receiving_nfb_depth_surface_policy.py'
+      - 'ae_engine/receiving_base_plate_config.py'
+      - 'phase6_quantity_manufacturing.py'
+      - 'gui_modules/application/fold_designer_composition_shell_settings.py'
+      - 'gui_modules/application/fold_designer_manufacturing_projection.py'
+      - 'gui_modules/project/export_actions.py'
+      - 'gui_modules/layout/left_panel.py'
+      - 'gui.py'
+      - 'ae_engine/receiving_tier_ear_z_targets.py'
+      - 'ae_engine/receiving_nfb_layer_physical_parts.py'
+      - 'tests/test_receiving_nfb_pad_*.py'
+      - 'tests/test_receiving_pad_native_tk_operator_selector.py'
+      - 'tests/test_receiving_flat_pad_source_routing.py'
+      - 'tests/test_issue1502_csv_is_only_normal_finalscene_source.py'
+      - 'tests/test_issue1502_csv_v5_part_only_manufacturing.py'
+      - 'tests/test_issue1502_source_derived_center_base.py'
+      - '.github/workflows/whd-pad-localx-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: whd-pad-localx-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pad-source-and-physical-regression:
+    name: PAD common source, fold and base mating
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - name: Checkout exact localX commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install WHD geometry regression requirements
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements.txt pytest matplotlib
+      - name: Validate PAD common source, physical sheet, selected base, and existing Z rules
+        run: |
+          python -m pytest -q \
+            tests/test_receiving_nfb_pad_generator.py \
+            tests/test_receiving_nfb_pad_depth_policy_tiers.py \
+            tests/test_receiving_nfb_pad_part.py \
+            tests/test_receiving_nfb_pad_operator_parts.py \
+            tests/test_receiving_nfb_pad_delivery.py \
+            tests/test_receiving_nfb_pad_pair_manufacturing.py \
+            tests/test_issue1503_deferred_pad_ear_manufacturing.py \
+            tests/test_receiving_nfb_pad_assembly_preview.py \
+            tests/test_receiving_nfb_pad_preview_cache.py \
+            tests/test_receiving_nfb_pad_real_renderer.py \
+            tests/test_receiving_nfb_pad_base_mating.py \
+            tests/test_receiving_flat_pad_source_routing.py \
+            tests/test_receiving_flat_base_single_nfb_true_z.py \
+            tests/test_receiving_nfb_depth_surface_policy.py \
+            tests/test_issue1502_csv_finalscene_installed_assembly.py \
+            tests/test_issue1502_csv_is_only_normal_finalscene_source.py \
+            tests/test_issue1502_csv_v5_part_only_manufacturing.py \
+            tests/test_issue1502_source_derived_center_base.py \
+            --junitxml=pad-localx-junit.xml
+      - name: Run real Tk PAD 2D operator selection under isolated virtual display
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth
+          xvfb-run -a python -m pytest -q -s \
+            tests/test_receiving_pad_native_tk_operator_selector.py \
+            --junitxml=pad-tk-junit.xml
+      - name: Preserve real Tk operator 2D selection witness
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-tk-2D-${{ github.sha }}
+          path: |
+            pad-tk-junit.xml
+            pad-native-tk-2D.png
+            '*__PAD_BASE_PAIR_CHECK_Q/**'
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Verify source-joined PAD and actual Base DXF bundle with BOM
+        run: |
+          python -m tools.receiving_pad_delivery_receipt
+      - name: Attach PAD physical BOM and inspected trial DXF package
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-base-physical-BOM-DXF-TRIAL-NOT-MFG-${{ github.sha }}
+          path: WHD_PAD_BASE_SOURCE_VERIFIED_TRIAL_NOT_MFG/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Export independently certified PAD plus Base pair as part-only CHECK/Q DXF
+        run: |
+          python -m tools.receiving_pad_pair_part_only_receipt
+      - name: Upload audited PAD+Base part-only CHECK/Q DXFs and BOM
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-base-verified-PART-ONLY-CHECK-Q-${{ github.sha }}
+          path: WHD_PAD_BASE_CHECK_Q_PAIR_PART_ONLY/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Produce real WHD FinalScene assembled PAD screenshot (CI SIMULATION)
+        run: |
+          python -m tools.receiving_pad_ci_visual_receipt \
+            --output WHD_PAD_REAL_ENGINE_3D_CI_SIMULATION_NOT_MFG.png
+      - name: Upload real WHD 3D visual receipt, explicitly not Windows UAT
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-3D-CI-SIMULATION-NOT-MFG-${{ github.sha }}
+          path: WHD_PAD_REAL_ENGINE_3D_CI_SIMULATION_NOT_MFG.png
+          if-no-files-found: error
+          retention-days: 7
+      - name: Produce source-backed PAD DXF specimen (PREVIEW ONLY)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from ae_engine.receiving_nfb_numeric_catalog import model_spec
+          from ae_engine.receiving_nfb_pad_generator import (
+              generate_nfb_pad_patterns, read_pad_tooling_rule,
+          )
+          from ae_engine.receiving_nfb_pad_part import build_nfb_pad_draft_part
+          from ae_engine.dxf_serialization import save_scene_dxf
+          import ezdxf
+
+          selected = (model_spec("士林", "100HN-s"), model_spec("士林", "3P400SN"))
+          if any(row is None or not row.dimensionally_complete for row in selected):
+              raise ValueError("PAD specimen selected source CSV incomplete")
+          pattern, = generate_nfb_pad_patterns(
+              selected, plate_thickness_mm=2., tooling=read_pad_tooling_rule(),
+          )
+          draft = build_nfb_pad_draft_part(
+              pattern, parent_base_id="base_plate",
+              owner_hole_id="ci-preview-NFB-100HN-s",
+          )
+          if draft.manufacturing_ready or draft.render_data.metadata["manufacturing_ready"]:
+              raise ValueError("Preview cannot claim manufacturing approval")
+          path = Path("PAD_100HN-s_PREVIEW_NOT_MFG.dxf")
+          save_scene_dxf(path, draft.render_data.scene)
+          drawing = ezdxf.readfile(path)
+          actual = tuple(drawing.modelspace())
+          if (sum(e.dxftype()=="CIRCLE" and e.dxf.layer=="CUTTING" for e in actual)!=4
+                  or sum(e.dxftype()=="LINE" and e.dxf.layer=="BEND" for e in actual)!=2
+                  or sum(e.dxftype()=="LWPOLYLINE" and e.dxf.layer=="CUTTING"
+                         and e.closed for e in actual)!=1):
+              raise ValueError("PAD specimen reopening failed geometry checksum")
+          print("PAD_PREVIEW_ONLY_GEOMETRY_RECEIPT", path, pattern.blank_width_mm,
+                pattern.rise_mm, draft.render_data.unfolded_topology.width)
+          PY
+      - name: Upload explicitly non-manufacturing PAD specimen
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-PREVIEW-NOT-MFG-${{ github.sha }}
+          path: PAD_100HN-s_PREVIEW_NOT_MFG.dxf
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve independent test receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-pad-localx-junit-${{ github.sha }}
+          path: pad-localx-junit.xml
+          if-no-files-found: warn
+          retention-days: 7

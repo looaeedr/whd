@@ -134,6 +134,13 @@ def project_common_box(snapshot):
             result.update(deepcopy(submitted))
     row["settings"] = normalize_set_settings(None, row["bays"])
     result["receiving_layout"] = layout
+    # Quantity mode has just replaced the entire Set/Bay identity graph.
+    # A previous Set/Bay runtime selector (even with index 0) is NOT the
+    # identity of this new synthetic singleton. Remove that ephemeral pointer;
+    # consumers needing a selector must project this actual layout afresh.
+    # Do not weaken the strict EAR_Z_SET_IDENTITY_DRIFT manufacturer guard.
+    from .receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
+    result.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
     result["receiving_inner_door_layers"] = box["inner_door_layers"]
     result.pop("receiving_switch_layout", None)
     return result

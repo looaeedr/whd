@@ -9,9 +9,15 @@ def logical_part_present(existing_parts, logical_key):
     existing = set(str(key) for key in (existing_parts or ()))
     key = str(logical_key or "")
     if key == "door":
-        return "door" in existing or any(item.startswith("door_c") for item in existing)
+        return ("door" in existing
+                or any(item.startswith("door_c") for item in existing)
+                or any(item.startswith("inner_door:") for item in existing))
     if key == "base_plate":
-        return "base_plate" in existing or any(item.startswith("base_plate_c") for item in existing)
+        return ("base_plate" in existing
+                or any(item.startswith("base_plate_c") for item in existing)
+                or any(item in {
+                    "base_plate:nfb_layer:0", "base_plate:nfb_layer:1"
+                } for item in existing))
     if key == "box_body":
         return "box_body" in existing or any(item.startswith("box_body:") for item in existing)
     return key in existing

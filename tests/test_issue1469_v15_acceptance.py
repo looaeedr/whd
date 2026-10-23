@@ -139,11 +139,12 @@ def test_selectable_family_save_reload_real_output_custom_bom(family, first_coun
         flags = dict.fromkeys(("box_body", "head", "tail", "door", "base_plate", "indicator_box", "indicator_door"), True)
         exported, problems = _export_selected_parts(main, str(tmp_path), {}, flags, False)
         if family == "受電箱":
-            # W900 quantity-mode fixture has NO approved physical Receiving
-            # bottom-plate variant. A full batch must not invent the old
-            # generic plate just to keep unrelated quantity tests green.
+            # Fresh Quantity mode now owns the real Shihlin CSV NFB and
+            # derives a flat Base/EAR preview. This is NOT manufacturing
+            # certification: the physical EAR mating/offset still blocks a
+            # full batch. Reject without writing partial customer DXFs.
             assert not exported
-            assert any("RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING" in str(p)
+            assert any("EAR_RECEIPT_BASE_NOT_OFFSET_PLACED" in str(p)
                        for p in problems), problems
             assert ws.snapshot() == before and path.read_bytes() == saved
             return

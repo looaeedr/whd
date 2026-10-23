@@ -73,7 +73,9 @@ def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_sour
     Full-cabinet export and verification keep the conservative default.
     """
     rows = []
-    for part in tuple(getattr(resolved_geometry, 'parts', ()) or ()):
+    physical = tuple(getattr(resolved_geometry, 'parts', ()) or ())
+    physical_ids = {str(getattr(p, 'part_key', '') or '') for p in physical}
+    for part in physical:
         key = str(getattr(part, 'part_key', '') or '').strip()
         if not key:
             raise ValueError('resolved manufacturing part missing part_key')
@@ -87,12 +89,27 @@ def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_sour
         # PAD/EAR guard still checks all remaining manufacturing rows.
         meta = getattr(render_data, 'metadata', None)
         if (key.startswith('base_plate:fixing_plate:')
-                and getattr(part, 'placement', None) == 'standalone'
                 and isinstance(meta, Mapping)
                 and meta.get('physical_part_role') == 'BASE_FIXING_PLATE'
                 and meta.get('formed_geometry_verified') is False
                 and not include_unreleased_source_flats):
-            continue
+            # Standalone source flats are view/BOM only. Installed previews
+            # have placement="offset"; exclude these only with real parent
+            # ownership and the original source fingerprint. An unrelated
+            # offset part with the same key must reach the export guard.
+            placement = getattr(part, 'placement', None)
+            if placement == 'standalone':
+                continue
+            if placement == 'offset':
+                from .receiving_base_fixing_plate_geometry import SOURCE_DXF_SHA256
+                parent = str(meta.get('parent_base_id') or '')
+                if (parent.startswith('base_plate')
+                        and parent in physical_ids
+                        and meta.get('stable_id') == key
+                        and meta.get('source_dxf_sha256') == SOURCE_DXF_SHA256
+                        and meta.get('source_cutting_verified') is True
+                        and meta.get('source_bend_verified') is True):
+                    continue
         pieces = tuple(getattr(render_data, 'pieces', ()) or ())
         if pieces:
             for index, piece in enumerate(pieces, start=1):
@@ -205,7 +222,10 @@ def _reject_unapproved_nfb_pad_ear_manufacturing(rows) -> None:
         if any(value.casefold().startswith((
                 'base_plate:fixing_plate:', 'base_fixing_plate:',
                 'bottom_fixing_plate:')) for value in ids) or role == 'BASE_FIXING_PLATE':
-            raise ValueError('BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED')
+            raise ValueError(
+                'BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED: '
+                + str(output_key) + ' / ' + str(metadata.get('stable_id') or '')
+            )
         if role in {'PAD', 'EAR'} or nfb_part or nfb_markers:
             raise ValueError('NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED')
 
@@ -236,6 +256,30 @@ def _validate_nfb_base_part_scope(rows, *, part_only: bool,
     return approved
 
 
+def reject_unverified_receiving_nfb_tier_base(
+    render_data, *, output_key: str = "",
+) -> None:
+    """Deny unapproved physical NFB tier bases at the DXF boundary.
+
+    Neither a forged manufacturing_ready value nor a renamed output key can
+    certify real EAR contact, source BEND and NFB screw CUTTING. Future
+    release requires an explicit part-scoped CSV verification adapter.
+    """
+    # Shared single-part and batch export boundary: one PAD/EAR draft
+    # must never escape by calling save_part_render_data_dxf directly.
+    _reject_unapproved_nfb_pad_ear_manufacturing(
+        ((str(output_key), None, render_data),)
+    )
+    meta = getattr(render_data, "metadata", None)
+    metadata = meta if isinstance(meta, Mapping) else {}
+    tier_id = "base_plate:nfb_layer:"
+    identity = str(metadata.get("stable_id") or "")
+    if (str(output_key).startswith(tier_id)
+            or identity.startswith(tier_id)
+            or "nfb_layer_manufacturing_status" in metadata):
+        raise ValueError("RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED")
+
+
 def _save_resolved_rows_atomic(
     rows,
     output_dir,
@@ -249,6 +293,9 @@ def _save_resolved_rows_atomic(
     rows = tuple(rows)
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)
     for output_key, _, render_data in rows:
+        reject_unverified_receiving_nfb_tier_base(
+            render_data, output_key=str(output_key),
+        )
         metadata = getattr(render_data, "metadata", None)
         if (isinstance(metadata, Mapping)
                 and metadata.get("receiving_base_plate_unconfigured") is True):

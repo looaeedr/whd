@@ -169,6 +169,9 @@ def save_part_render_data_dxf(
     if (metadata.get("nfb_v5_trial_status")
             and metadata.get("nfb_trial_export_approved") is not True):
         raise ValueError("NFB V5 未驗證試作禁止使用正式製造 DXF 輸出")
+    # Specific V5 trial guard takes priority, then the more general tier
+    # physical-base gate handles unsourced/forged non-V5 scenes.
+    _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
     return _manufacturing_export.save_part_render_data_dxf(
         render_data.scene,
         output_path,
@@ -290,7 +293,7 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
     )
     if has_resolved_geometry:
         render_data = build_part_render_data(spec, context)
-        save_scene_dxf(filepath, render_data.scene)
+        save_part_render_data_dxf(render_data, filepath, overwrite=True)
         return "final_scene_end_cap_export", baseline, expected
     if baseline is not None:
         _call(
@@ -324,7 +327,10 @@ def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: Manufact
     # geometry and apply local seam reliefs consistently with 2D/render.
     if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:
         render_data = build_part_render_data(spec, context)
-        save_scene_dxf(filepath, render_data.scene)
+        # The legacy generic BasePlate exporter bypassed the shared FinalScene
+        # manufacturing guard. Use exactly the same guarded serializer as
+        # resolved/batch DXF; generate_part already provides a temp file.
+        save_part_render_data_dxf(render_data, filepath, overwrite=True)
         return "final_scene_base_plate_structure_export", None, None
     exporter = ae.export_unknown_base_plate_dxf if spec.corner_policy is not None else ae.export_base_plate_dxf
     kwargs = {"corner_policy": spec.corner_policy} if spec.corner_policy is not None else {}

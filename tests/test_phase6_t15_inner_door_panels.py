@@ -208,11 +208,21 @@ def test_derived_sheet_holes_confirm_cancel_reload_and_real_dxf(tmp_path, monkey
             assert count(edited) == count(baseline) + 1, key
             assert not edited.material.contains(point), key
             assert tuple(edited.fold_guides) == tuple(baseline.fold_guides)
-            exported = save_part_render_data_dxf(edited, tmp_path / f'{keys.index(key)}.dxf')
-            circles = [e for e in ezdxf.readfile(exported).modelspace()
-                       if e.dxftype() == 'CIRCLE' and e.dxf.layer == 'CUTTING']
-            assert any(e.dxf.radius == pytest.approx(.5) and e.dxf.center.x == pytest.approx(point.x)
-                       and e.dxf.center.y == pytest.approx(point.y) for e in circles), key
+            output = tmp_path / f'{keys.index(key)}.dxf'
+            if key.startswith('base_plate:fixing_plate:'):
+                # The Hole Editor may preserve a source-flat fixing-plate
+                # feature, but an arbitrary edited preview is NOT the
+                # separately source/skin/side-contact-certified folded EAR.
+                # The generic DXF output must remain fail-closed.
+                with pytest.raises(ValueError, match='BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED'):
+                    save_part_render_data_dxf(edited, output)
+                assert not output.exists(), key
+            else:
+                exported = save_part_render_data_dxf(edited, output)
+                circles = [e for e in ezdxf.readfile(exported).modelspace()
+                           if e.dxftype() == 'CIRCLE' and e.dxf.layer == 'CUTTING']
+                assert any(e.dxf.radius == pytest.approx(.5) and e.dxf.center.x == pytest.approx(point.x)
+                           and e.dxf.center.y == pytest.approx(point.y) for e in circles), key
             host.open_part_hole_editor(key)
             contexts[-1][1]['feature_list_override'].clear()
             button(host.last_unified_hole_editor, '取消全部').invoke()

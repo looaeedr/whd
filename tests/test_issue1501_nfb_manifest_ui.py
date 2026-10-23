@@ -179,3 +179,59 @@ def test_missing_source_status_never_becomes_approved_manufacturing_count():
     assert "第2套／第4連" in lines[0]
     assert "SOURCE_REVALIDATION_REQUIRED" in lines[0]
     assert "可加工" not in lines[0]
+
+
+def test_committed_current_csv_manifest_is_scope_recheck_not_fake_mfg_green():
+    """A verified CSV identity is not an old-DXF failure or factory approval."""
+    receipt = {
+        "status": "CSV_SOURCE_RECHECK_ONLY",
+        "reason": "現行 CSV 已提交；內門＋底板部分 DXF 須於出圖時重新驗證",
+        "actual_export_count": None,
+        "rows": (),
+        "unresolved_dependencies": (
+            "WHOLE_CABINET_MANUFACTURING_NOT_APPROVED",
+        ),
+    }
+    lines = nfb_manifest_display_lines(receipt)
+    assert len(lines) == 1 and "現行 CSV NFB 已提交" in lines[0]
+    assert "部分 DXF" in lines[0] and "再驗證" in lines[0]
+    assert "不代表整箱可製造" in lines[0]
+    assert "可加工 1 片" not in lines[0] and "已驗證板件" not in lines[0]
+    combined = highlighted_nfb_manifest_lines(
+        {"manifest": lambda si, bi: receipt}, 0, (1,),
+    )
+    assert len(combined) == 1
+    assert "第1套／第2連" in combined[0]
+    assert combined[0].endswith(lines[0])
+
+
+@pytest.mark.parametrize("fake", (
+    {"actual_export_count": 2},
+    {"actual_export_count": 0},
+    {"rows": [{"part_id": "fake", "may_export": True}]},
+))
+def test_current_csv_scope_recheck_rejects_fake_green_piece_counts(fake):
+    receipt = {"status": "CSV_SOURCE_RECHECK_ONLY",
+               "actual_export_count": None, "rows": ()}
+    receipt.update(fake)
+    with pytest.raises(ValueError, match="cannot claim manufactured parts"):
+        nfb_manifest_display_lines(receipt)
+    with pytest.raises(ValueError, match="cannot claim manufactured parts"):
+        highlighted_nfb_manifest_lines(
+            {"manifest": lambda *_: receipt}, 0, (0,),
+        )
+
+
+def test_manifest_ear_current_source_does_not_revert_to_obsolete_all_deferred():
+    record = {
+        "status": "WHOLE_READY", "actual_export_count": 1,
+        "rows": [{
+            "part_id": "inner", "role": "INNER_DOOR",
+            "status": "READY", "actual_count": 1,
+            "may_export": True, "reasons": (),
+        }],
+        "unresolved_dependencies": (),
+    }
+    text = nfb_manifest_display_lines(record)[0]
+    assert "PAD" in text and "整箱製造" in text
+    assert "耳朵尚未驗收" not in text

@@ -49,6 +49,26 @@ def draw_box_body_piece_preview(
         transform,
         skip_layers=("CHECK", "STOCK"),
     )
+    # Visual emphasis ONLY: the preview seam appends exactly N authentic
+    # source-flat EAR UV receipt MARKING lines after the unchanged original
+    # side scene. Repaint THOSE existing true segments in bright yellow.
+    # No new geometry, manufacturing source, DXF or approval is created.
+    if render_data.metadata.get("ear_side_mark_preview_only"):
+        from ae_engine.sheetmetal_drawing import LinePrimitive
+        count = int(render_data.metadata.get("ear_side_mark_preview_count") or 0)
+        all_primitives = tuple(render_data.scene.primitives or ())
+        preview_lines = all_primitives[-count:] if count > 0 else ()
+        if (len(preview_lines) == count
+                and all(isinstance(item, LinePrimitive)
+                        and str(item.layer).upper() == "MARKING"
+                        for item in preview_lines)):
+            for item in preview_lines:
+                x1, y1 = transform.world_to_canvas(item.p1)
+                x2, y2 = transform.world_to_canvas(item.p2)
+                canvas.create_line(
+                    x1, y1, x2, y2, fill="#facc15", width=2.3,
+                    tags=("receiving_source_ear_marking_preview",),
+                )
 
     label = host._box_body_piece_label(part_key)
     formed = tuple(
@@ -76,6 +96,11 @@ def draw_box_body_piece_preview(
     if render_data.metadata.get("ear_side_mark_preview_only"):
         count = int(render_data.metadata.get("ear_side_mark_preview_count") or 0)
         source_hint += f"\n固定片焊接區：{count} 條 MARKING 預覽（未核准製造）"
+        if render_data.metadata.get("ear_side_existing_marking_overlap_display_mode"):
+            source_hint += (
+                "\n⚠ 既有打標可能與固定片接觸輪廓重疊；"
+                "此畫面僅供檢視，並非正式製造放行"
+            )
     if ear_marking_preview_blocker:
         source_hint += f"\n⚠ 固定片打標未顯示：{ear_marking_preview_blocker}"
     fit_error = render_data.metadata.get("baseline_fit_error")
