@@ -167,10 +167,14 @@ class Phase6WorkspaceController:
         elif quantity is not None:
             self._active_mode = "quantity"
             self._quantity_model = quantity
-        if "receiving_layout" in raw or "active_mode" in raw:
+        if "receiving_layout" in raw:
             self._receiving_layout = self._clone(raw.get("receiving_layout"))
-        if "active_mode" in raw or "receiving_quantity_box" in raw:
+        elif "active_mode" in raw and self._active_mode == "quantity":
+            self._receiving_layout = None
+        if "receiving_quantity_box" in raw:
             self._receiving_quantity_box = self._clone(raw.get("receiving_quantity_box"))
+        elif "active_mode" in raw and self._active_mode != "quantity":
+            self._receiving_quantity_box = None
         existing = raw.get("existing_parts") if "existing_parts" in raw else (
             self._shared_state.existing_parts if self._authoritative else self._fallback_existing_parts
         )

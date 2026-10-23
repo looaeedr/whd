@@ -544,8 +544,10 @@ def test_r2_18_mirror_drawing_scene_x_reflects_check_text_attachment_point():
 
 def test_r2_3_partial_active_quantity_commit_keeps_existing_version_and_head_features():
     owner = Phase6WorkspaceController()
+    common_box = {"w": 600., "h": 800., "d": 300., "back_panel_mode": "FULL"}
     owner.commit_workspace({
         "active_mode": "quantity",
+        "receiving_quantity_box": common_box,
         "quantity": {
             "schema": "phase6-quantity-v1",
             "selected_version_id": "quantity-v1",
@@ -561,6 +563,7 @@ def test_r2_3_partial_active_quantity_commit_keeps_existing_version_and_head_fea
         "active_mode": "quantity",
         "part_features": {"head": [hole], "tail": []},
     })
+    assert result["receiving_quantity_box"] == common_box
     assert result["quantity"]["versions"][0]["piece_count"] == 2
     assert result["quantity"]["versions"][0]["head_features"] == [hole]
     assert result["part_features"]["head"] == [hole]
@@ -656,3 +659,15 @@ def test_r2_5_quantity_project_payload_strips_nested_set_bay_state():
         owner_workspace=owner, box_body_profile=[], structure_state={},
     )
     assert "receiving_layout" not in export
+
+
+def test_r2_3_partial_set_bay_commit_does_not_drop_current_layout():
+    owner = Phase6WorkspaceController()
+    source_layout = {"schema": "source-layout", "sets": ["unchanged"]}
+    owner.commit_workspace({
+        "active_mode": "set_bay", "receiving_layout": source_layout,
+    })
+    result = owner.commit_workspace({
+        "active_mode": "set_bay", "part_features": {"door": []},
+    })
+    assert result["receiving_layout"] == source_layout
