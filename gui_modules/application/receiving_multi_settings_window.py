@@ -637,25 +637,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         def actions(parent, kind, *, role=None):
             row = ttk.Frame(parent)
             row.pack(anchor="w", pady=3)
-            if role is None:
-                from ae_engine.receiving_shared_settings import setting_value
-                current = setting_value(ports["row"](), bay_index, kind)
-                value = tk.StringVar(master=win, value=str(current))
-                ttk.Label(row, text="內門層數").pack(side="left")
-                selector = ttk.Combobox(
-                    row, textvariable=value, values=("1", "2"),
-                    width=5, state="readonly",
-                )
-                selector.pack(side="left", padx=3)
-                # Previously "編輯" only committed the layer count.
-                # Choosing 1/2 now applies it immediately to highlighted Bays.
-                selector.bind(
-                    "<<ComboboxSelected>>",
-                    lambda _event: perform(
-                        lambda: ports["change"](kind, int(value.get()), targets())
-                    ),
-                )
-                return
             ttk.Label(
                 row, text={"head": "封頭孔", "tail": "封尾孔",
                            "inner-door": "內門版本"}[role],
@@ -759,7 +740,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理", command=open_manager,
                 ).pack(anchor="e", pady=(5, 0))
         else:
-            actions(settings_host, "inner_door_layers")
             if get_inner_candidate_ports is not None:
                 actions(settings_host, "inner_door_layers", role="inner-door")
                 ttk.Button(
