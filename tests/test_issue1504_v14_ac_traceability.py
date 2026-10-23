@@ -255,11 +255,13 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     assert d["assessed_on"] == "2026-10-22"
     assert 1502 not in d["open_gates"]
     assert 1503 not in d["open_gates"]
+    # Original #1502 closure remains immutable; subsequent AC-03 scoped
+    # signoff updates only current matrix, not the 2026-10-22 audit date.
     assert d["counts"] == {
         "BLOCKED_1500_REAL_GUI": 17,
         "DEFERRED_PRODUCT_EVIDENCE": 4,
-        "EVIDENCE_CANDIDATE_ONLY": 13,
-        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 40,
+        "EVIDENCE_CANDIDATE_ONLY": 12,
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 41,
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     }
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
