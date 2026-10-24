@@ -462,3 +462,36 @@ def test_r4_54_actual_endcap_flange_dimensions_and_two_point_open_marking():
     assert "折彎尺寸: 260*92" in check[0].text
     assert "折彎(寬): 20 260 20" in check[0].text
     assert "折彎(深): 15 25 92 18" in check[0].text
+
+
+@pytest.mark.parametrize("bad", [
+    True, False, float("nan"), float("inf"), float("-inf"),
+])
+def test_r4_52_folded_mesh_bounds_reject_nonphysical_world_xyz(bad):
+    """R4 #52: a corrupt 3D point must never become 0/1 mm display dimensions."""
+    from ae_engine.display_dimensions import (
+        folded_outside_envelope, resolve_operator_finished_dimensions,
+    )
+    normal = (((0., 0., 0.), (100., 0., 0.), (0., 100., 0.)),)
+    dimensions, bounds = folded_outside_envelope(normal, thickness=2.)
+    assert dimensions == pytest.approx((100., 100., 4.))
+    assert bounds[2] == pytest.approx((-2., 2.))
+
+    corrupt = (((bad, 0., 0.), (100., 0., 0.), (0., 100., 0.)),)
+    with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
+        folded_outside_envelope(corrupt, thickness=2.)
+    with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
+        resolve_operator_finished_dimensions(
+            "box_body", snapshot={"w": 800., "h": 1600., "d": 350.},
+            triangles=corrupt, thickness=2.,
+        )
+
+
+@pytest.mark.parametrize("bad_vertex", [(0., 0.), (0., 0., 0., 0.), None])
+def test_r4_52_folded_mesh_rejects_wrong_world_xyz_arity(bad_vertex):
+    from ae_engine.display_dimensions import folded_outside_envelope
+    with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
+        folded_outside_envelope(
+            (((0., 0., 0.), (100., 0., 0.), bad_vertex),),
+            thickness=2.,
+        )
