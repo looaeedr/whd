@@ -161,6 +161,13 @@ def _fold_designer_corner_policy_from_payload(corner_state, part_key, fw):
         )
     return policy_from_corner_state(selections, fw=float(fw))
 
+def _read_live_receiving_snapshot(self):
+    """Prefer live Fold Designer application ownership over a stale bridge copy."""
+    app = getattr(self, "fold_designer_app", None)
+    live = getattr(app, "_phase6_input_snapshot", None) if app is not None else None
+    return live if live is not None else getattr(self, "_phase6_input_snapshot", None)
+
+
 def _authoritative_render_data(self, spec, context=None):
     """Build raw 2D/3D material from the exact typed manufacturing PartSpec.
 
@@ -181,7 +188,7 @@ def _authoritative_render_data(self, spec, context=None):
         cache = self._authoritative_part_render_cache = owner.cache("authoritative_render")
     owner = getattr(self, "_derived_cache_owner", None)
     cache_key = (repr(spec), repr(ctx))
-    snapshot = getattr(self, "_phase6_input_snapshot", None)
+    snapshot = _read_live_receiving_snapshot(self)
     # EndCap raw material is independent of a different Bay's W/H/D only
     # when the exact typed inputs are identical and no pre-solved assembly
     # cuts/embedded relief are present. Do not retain final solved endcaps.
@@ -475,7 +482,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
         # being queried. This exact same source drives 2D material and
         # 3D formed weld contacts; it cannot grant manufacturing release.
         source = dict(payload or {})
-        live = getattr(self, "_phase6_input_snapshot", None)
+        live = _read_live_receiving_snapshot(self)
         if isinstance(live, Mapping):
             for name in ("nfb_config", "nfb_config_submitted"):
                 source.pop(name, None)
@@ -512,7 +519,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
         # physical panel and finished-face features. It reads no DXF/source
         # file. Do not apply this cross-transaction reuse to frame/divider
         # factories: those read dedicated physical baseline source data.
-        snapshot = getattr(self, "_phase6_input_snapshot", None)
+        snapshot = _read_live_receiving_snapshot(self)
         owner = getattr(self, "_derived_cache_owner", None)
         eligible = (
             isinstance(snapshot, Mapping)
