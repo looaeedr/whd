@@ -17,10 +17,17 @@ def collect_divider_input(part_key, payload, *, default_depth, default_thickness
         return amount
 
     data = dict(payload or {})
+    raw_columns = data.get("door_layout_columns") or ()
+    # Reject corrupt saved topology before indexing a row or iterating heights.
+    # Source dimensions and physical projection remain unchanged.
+    if (not isinstance(raw_columns, (list, tuple))
+            or any(not isinstance(row, (list, tuple)) or len(row) != 2
+                   or not isinstance(row[1], (list, tuple)) for row in raw_columns)):
+        raise ValueError(f"中隔缺少 authoritative multi-door topology: {part_key}")
     columns = tuple(
         (positive_dimension(row[0], "中隔欄寬"),
          tuple(positive_dimension(value, "中隔列高") for value in row[1]))
-        for row in tuple(data.get("door_layout_columns") or ())
+        for row in raw_columns
     )
     if not columns or any(not heights for _width, heights in columns):
         raise ValueError(f"中隔缺少 authoritative multi-door topology: {part_key}")

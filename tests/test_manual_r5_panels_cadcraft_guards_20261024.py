@@ -98,3 +98,19 @@ def test_r5_73_readonly_mapping_is_converted_to_real_sheet_feature(monkeypatch):
     assert isinstance(captured["features"][0], CircleFeature)
     assert captured["features"][0].diameter == 12.
     assert result.scene is not None
+
+@pytest.mark.parametrize("bad_columns", [
+    "400", {"width": 400},
+    ((400.,),),
+    ((400., 600.),),
+    ((400., "600"),),
+    ((400., None),),
+    ((400., (600.,), "extra"),),
+])
+def test_r5_95_malformed_divider_layout_shape_is_controlled_validation_error(bad_columns):
+    """Saved 2D door topology is not an unchecked list of arbitrary Python rows."""
+    with pytest.raises(ValueError, match="中隔缺少 authoritative multi-door topology"):
+        collect_divider_input(
+            "box_body:divider:1", {"door_layout_columns": bad_columns},
+            default_depth=250., default_thickness=2.,
+        )
