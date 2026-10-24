@@ -295,3 +295,32 @@ def test_r5_r6_manual_116_receiving_base_and_fixed_plate_sources_reject_huge_num
     )
     assert fit.fixing_center_from_inside_skin_mm == pytest.approx(63.0)
     assert fit.nominal_fold_from_weld_edge_mm == pytest.approx(23.0)
+
+
+@pytest.mark.parametrize("field,raw", [
+    ("w", True), ("t", False),
+    ("w", 10 ** 400), ("t", 10 ** 400),
+    ("w", float("nan")), ("t", float("inf")),
+])
+def test_r5_manual_116_base_blank_raw_dimensions_reach_real_physical_guard(field, raw):
+    """No preliminary float() may turn bool into 1 mm or leak OverflowError."""
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
+    from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+
+    saved = {
+        "model": "受電箱", "w": 800.0, "t": 2.0,
+        "nfb_config_submitted": False,
+        "receiving_base_plate": {
+            "pattern": RECEIVING_BASE_PATTERN_LEFT, "height": 340.0,
+            "shrink_top": 20.0, "shrink_bottom": 20.0,
+            "shrink_left": 45.0, "shrink_right": 45.0,
+            "bend": 20.0,
+        },
+    }
+    # Real structural builder: W800 - 2*45 = 710, H340 - 2*20 = 300.
+    assert receiving_base_plate_blank_dimensions(saved) == pytest.approx((710.0, 300.0))
+    damaged = {**saved, field: raw}
+    with pytest.raises(ValueError, match="must not be bool|must be finite"):
+        receiving_base_plate_blank_dimensions(damaged)
+    # Rejecting the bad request cannot mutate the operator's original source.
+    assert saved["w"] == 800.0 and saved["t"] == 2.0
