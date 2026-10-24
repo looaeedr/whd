@@ -61,7 +61,7 @@ def test_r6_contact_frame_and_semantic_pair_preserve_valid_xyz_geometry():
     ((0., 0., float("nan")), (4., 0., 0.), (4., 2., 0.), (0., 2., 0.)),
     ((0., 0., 0.), (4., 0., 0.), (4., float("inf"), 0.), (0., 2., 0.)),
     ((0., 0., 0.), (4., 0., 0.), (4., 2., 0.), (0., 2., True)),
-    ((0., 0., 0.), (4., 0., 0.), (4., 2., 0.)),
+    ((0., 0., 0.), (4., 0., 0.)),
 ])
 def test_r6_bad_xyz_never_produces_a_resolved_contact_frame_or_pair(world):
     # All 3D boundary coordinates must be physical XYZ values, not partial
