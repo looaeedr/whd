@@ -343,3 +343,15 @@ def test_ac44_partial_manifest_must_not_authorize_forged_blocked_or_nonboolean_r
     # A real independently unaffected SIDE must remain available in the
     # very same manifest; this is per-part, not all-or-nothing blocking.
     assert forged.require_export(("side1",), partial=True) == ("side1",)
+
+
+def test_ac44_duplicate_physical_part_cannot_hide_a_blocked_legacy_source(tmp_path):
+    """A forged second row with the same part ID must not replace its owner."""
+    from dataclasses import replace
+
+    current = derive_nfb_partial_export_manifest(**_prepared(tmp_path))
+    original = next(row for row in current.rows if row.part_id == "inner1")
+    duplicate = replace(original, role=OTHER, status=UNAFFECTED, may_export=True)
+    forged = replace(current, rows=(*current.rows, duplicate))
+    with pytest.raises(ValueError, match="duplicate physical part BLOCKED"):
+        forged.require_export(("inner1",), partial=True)
