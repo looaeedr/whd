@@ -409,6 +409,8 @@ PYTEST_PATHS = (
     "tests/test_manual_r5_second_source_guards_20261024.py",
     # R5 #92/#94/#95 CADCraft and Door/Divider numeric source contract.
     "tests/test_manual_r5_panels_cadcraft_guards_20261024.py",
+    # R5 #91 physical Door topology must be saved as finite numeric authority.
+    "tests/test_manual_r5_91_saved_door_topology_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
