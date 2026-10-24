@@ -192,7 +192,10 @@ def _mapped_semantic_axis(mapping, axis, normal, *, remove_axis=None):
 def _finite_overlap_world_rows(points):
     """Require physical XYZ coordinates before any contact-frame projection."""
     try:
-        rows = tuple(tuple(float(v) for v in point) for point in tuple(points or ()))
+        raw_rows = tuple(tuple(point) for point in tuple(points or ()))
+        if any(isinstance(value, bool) for row in raw_rows for value in row):
+            raise ValueError("boolean XYZ coordinate is not physical geometry")
+        rows = tuple(tuple(float(v) for v in row) for row in raw_rows)
     except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError("legal contact overlap must have finite XYZ points") from exc
     if len(rows) < 3 or any(
