@@ -725,3 +725,10 @@ def test_r2_14_invalid_stored_nfb_brand_never_silently_defaults_to_shihlin(bad):
     with pytest.raises(ValueError, match="unsupported Receiving switch brand"):
         normalize_receiving_switch_layout(stored)
     assert new_receiving_switch_layout()["switch_brand"] == "士林"
+
+@pytest.mark.parametrize("bad", [False, True, 0, "士林", [], ()])
+def test_r2_14_corrupt_saved_switch_layout_cannot_reset_brand_and_tiers(bad):
+    from ae_engine.receiving_switch_layout import normalize_receiving_switch_layout
+    with pytest.raises(ValueError, match="Receiving switch layout must be a mapping"):
+        normalize_receiving_switch_layout(bad)
+    assert normalize_receiving_switch_layout(None)["switch_brand"] == "士林"
