@@ -56,21 +56,27 @@ def _normalize_authoritative_door_state(snapshot):
             raise ValueError(f"invalid door_nameplate_center_datum_top: {raw!r}")
         result["door_nameplate_center_datum_top"] = float(raw)
 
+    def persisted_layout_mm(value, *, label):
+        # Project authority must be JSON numeric, not a Tk entry string or
+        # a boolean. Reject malformed topology before divider/DXF derivation.
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"invalid {label}: {value!r}")
+        measured = float(value)
+        if not math.isfinite(measured):
+            raise ValueError(f"invalid {label}: {value!r}")
+        return measured
+
     raw_columns = list(result.get("door_layout_columns") or ())
     columns = []
     for row in raw_columns:
         if (not isinstance(row, (list, tuple)) or len(row) != 2
-                or isinstance(row[0], bool)
                 or not isinstance(row[1], (list, tuple))):
             raise ValueError(f"invalid door layout column: {row!r}")
-        width = float(row[0])
-        if not math.isfinite(width):
-            raise ValueError(f"invalid door layout column width: {row[0]!r}")
-        heights = []
-        for value in row[1]:
-            if isinstance(value, bool) or not math.isfinite(float(value)):
-                raise ValueError(f"invalid door layout cell height: {value!r}")
-            heights.append(float(value))
+        width = persisted_layout_mm(row[0], label="door layout column width")
+        heights = [
+            persisted_layout_mm(value, label="door layout cell height")
+            for value in row[1]
+        ]
         columns.append([width, heights])
     if "door_layout_columns" in result or columns:
         result["door_layout_columns"] = columns
