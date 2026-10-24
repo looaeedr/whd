@@ -359,10 +359,17 @@ class ReceivingSetBayAdapter:
         features = validate_setting(kind, features)
         if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
             raise ValueError("選取的套不存在")
-        indices = tuple(sorted(set(bay_indices)))
+        # Verify each source Bay ID before set(): True equals integer Bay 1,
+        # and nested/None selections must fail atomically rather than crash.
+        try:
+            supplied = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError("請在簡易圖高亮有效的連") from exc
         count = len(self._layout["sets"][set_index]["bays"])
-        if not indices or any(type(i) is not int or not 0 <= i < count for i in indices):
+        if (not supplied or any(
+                type(i) is not int or not 0 <= i < count for i in supplied)):
             raise ValueError("請在簡易圖高亮有效的連")
+        indices = tuple(sorted(set(supplied)))
         candidate = self._layout
         for bay_index in indices:
             candidate = unlink_setting(
@@ -496,10 +503,15 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的版本角色")
         if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
             raise ValueError("套不存在")
-        indices = tuple(sorted(set(bay_indices)))
+        try:
+            supplied = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError("請先高亮有效的連") from exc
         count = len(self._layout["sets"][set_index]["bays"])
-        if not indices or any(type(bi) is not int or not 0 <= bi < count for bi in indices):
+        if (not supplied or any(
+                type(bi) is not int or not 0 <= bi < count for bi in supplied)):
             raise ValueError("請先高亮有效的連")
+        indices = tuple(sorted(set(supplied)))
         from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
         kind = role.replace("-", "_") + "_version_id"
         candidate = self._layout
