@@ -15,6 +15,7 @@ change identity.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Mapping, Sequence
 
 from .contracts import FoldProfileSegment
@@ -48,6 +49,8 @@ def inner_door_frame_formed_occupation(thickness: float) -> float:
     It lies perpendicular to the shared 46-mm web; never treat 50 mm as an
     outer-door-relative inset.  At T=2: web 46 + 2*T = 50 mm.
     """
+    if isinstance(thickness, bool) or not math.isfinite(float(thickness)):
+        raise ValueError("inner-door frame material thickness must be a finite number")
     t = float(thickness)
     if t <= 0.0:
         raise ValueError("inner-door frame material thickness must be positive")
@@ -193,6 +196,8 @@ def derive_inner_door_frames(
     included_sides: Sequence[str] = FRAME_SIDES,
 ) -> tuple[InnerDoorFramePart, ...]:
     door_id = _stable_inner_door_id(inner_door_id)
+    if isinstance(thickness, bool) or not math.isfinite(float(thickness)):
+        raise ValueError("inner-door frame thickness must be a finite number")
     t = float(thickness)
     if t <= 0:
         raise ValueError("inner-door frame thickness must be > 0")
@@ -209,7 +214,10 @@ def derive_inner_door_frames(
             continue
         if side not in spans:
             raise ValueError(f"missing explicit inner-door frame span: {side}")
-        span = float(spans[side])
+        raw_span = spans[side]
+        if isinstance(raw_span, bool) or not math.isfinite(float(raw_span)):
+            raise ValueError(f"inner-door frame span must be finite: {side}")
+        span = float(raw_span)
         if span <= 0:
             raise ValueError(f"inner-door frame span must be > 0: {side}")
         signed = _FRAME_SIGNED_CHAINS[side]
