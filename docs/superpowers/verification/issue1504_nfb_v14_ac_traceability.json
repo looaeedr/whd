@@ -22,10 +22,10 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 52,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 53,
     "BLOCKED_1500_REAL_GUI": 17,
     "EVIDENCE_CANDIDATE_ONLY": 6,
-    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 9,
+    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 8,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
   "records": [
@@ -2862,21 +2862,52 @@
         "tests/test_issue1502_nfb_middle_3d_witness.py",
         "tests/test_issue1502_nfb_middle_plate_physical_shadow.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
           "path": "tests/test_issue1498_nfb_part_readiness.py",
           "test_name": "test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
-      "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34"
+      "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
+      "acceptance_evidence": {
+        "scope": "CURRENT_SOURCE_SCOPED_MFG1_PART_READINESS_AND_PARTIAL_SOURCE_FAILCLOSED__AUTOMATED_ONLY",
+        "original_ac_text_unchanged": true,
+        "primary_assertion": "tests/test_issue1498_nfb_part_readiness.py::test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero",
+        "other_required_assertions": [
+          "tests/test_issue1498_nfb_part_readiness.py::test_ready_requires_actual_per_hole_x_y_and_rotation_proof",
+          "tests/test_issue1498_nfb_part_readiness.py::test_missing_real_plate_id_is_scope_blocker_not_an_invented_part",
+          "tests/test_issue1501_nfb_export_manifest.py::test_ac38_real_dxf_color_inventory_drives_physical_partial_manifest",
+          "tests/test_issue1501_nfb_export_manifest.py::test_saved_hole_moved_or_rotated_requires_new_cutting_proof",
+          "tests/test_issue1501_nfb_export_manifest.py::test_source_sha_change_invalidates_nfb_but_not_proven_other",
+          "tests/test_issue1501_nfb_export_manifest.py::test_other_part_without_independent_unaffected_proof_stays_held",
+          "tests/test_issue1502_nfb_base_batch_export_gate.py::test_one_unreleased_base_rejects_entire_multi_bay_export_before_io",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action"
+        ],
+        "verified_source_scope": "Actual DXF Color30/150/212 reader -> current Bay/source SHA -> typed physical part manifest and counts; missing, ambiguous, bad-pivot, nonfinite or unconfirmed location prevent full NFB DXF. Source model or XY/rotation changed revokes even a stale zero-Color30 claim; only independently proven OTHER may partial export. Whole multi-Bay batch refuses unreleased base before any DXF IO.",
+        "source_geometry_and_part_owner_asserted": true,
+        "unverified_full_batch_rejected_before_file_io": true,
+        "declared_current_scope_only": true,
+        "tested_product_ci_before_matrix_change": "40089103937 / 7ac00e33875919e40066d8215f1d647f300f81d5 / 52 canonical / 2558 passed",
+        "matrix_only_change_requires_exact_head_ci": true,
+        "integrated_localx_claimed": false,
+        "factory_release": false,
+        "whole_cabinet_mfg2_granted": false,
+        "physical_absolute_position_grant": false,
+        "legacy_supplier_source_profile_certification": false,
+        "source_unmapped_brand_or_arbitrary_world_x_granted": false,
+        "ui_full_operator_uat_claimed": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "SWT-AC-09",
@@ -4110,7 +4141,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 52/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 39 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 53/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 39 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
