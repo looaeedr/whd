@@ -485,6 +485,10 @@ class JointMarkingProductionStatus:
         if isinstance(self.production_policy_count, bool) or not isinstance(self.production_policy_count, int):
             raise ValueError("production_policy_count must be an integer")
         count = self.production_policy_count
+        # A future production-activation flag is not a generic truthy field.
+        # For example bool("false") is True and must never enable MARKING.
+        if type(self.activation_enabled) is not bool:
+            raise ValueError("activation_enabled must be boolean")
         if not state:
             raise ValueError("gate_state must be nonblank")
         if disposition not in {"BLOCK_EXPORT", "ALLOW_EXPORT_WITH_DIAGNOSTIC", "UNRESOLVED"}:
@@ -492,7 +496,7 @@ class JointMarkingProductionStatus:
         if count < 0:
             raise ValueError("production_policy_count must be >= 0")
         object.__setattr__(self, "gate_state", state)
-        object.__setattr__(self, "activation_enabled", bool(self.activation_enabled))
+        object.__setattr__(self, "activation_enabled", self.activation_enabled)
         object.__setattr__(self, "export_disposition", disposition)
         object.__setattr__(self, "production_policy_count", count)
 
