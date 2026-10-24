@@ -162,3 +162,34 @@ def test_r6_unselected_flat_nfb_depth_rejects_corrupt_one_bay_without_crash(inva
         {"stable_id": "set-1", "bays": [{"stable_id": "bay-1", "nfb_config_submitted": False}]},
     ]}}
     assert committed_receiving_flat_nfb_depth_mm(unsubmitted) is None
+
+@pytest.mark.parametrize("total_rows,unit_rows", [(True, 1), (1, True)])
+def test_r6_flat_base_layer_count_is_exact_integer_not_bool(total_rows, unit_rows):
+    from ae_engine.receiving_nfb_depth_surface_policy import committed_receiving_flat_nfb_depth_mm
+    source = {"receiving_layout": {"sets": [{"bays": [{
+        "nfb_config_submitted": True,
+        "nfb_config": {"layer_count": total_rows, "holes": [{
+            "model_filename": "nfbv5:士林:MODEL_TEST",
+            "layer_count": unit_rows, "slot_index": 0,
+        }]},
+    }]}]}}
+    with pytest.raises(ValueError, match="RECEIVING_FLAT_NFB_MULTIPLE_ROWS_NEED_DISTINCT_BASE"):
+        committed_receiving_flat_nfb_depth_mm(source)
+
+
+def test_r6_v5_model_owns_brand_even_if_legacy_set_brand_is_stale(monkeypatch):
+    from ae_engine import receiving_nfb_model_identity as identity
+    from ae_engine.receiving_nfb_depth_surface_policy import _source_depth_for_submitted_hole
+    ref = "nfbv5:士林:MODEL_TEST"
+    monkeypatch.setattr(
+        identity, "selected_numeric_spec",
+        lambda brand, model: SimpleNamespace(depth_mm=107.)
+        if (brand, model) == ("士林", ref) else None,
+    )
+    assert _source_depth_for_submitted_hole(
+        {"model_filename": ref}, legacy_set_brand="東元",
+    ) == 107.
+    with pytest.raises(ValueError, match="RECEIVING_NFB_DEPTH_V5_BRAND_IDENTITY_MISMATCH"):
+        _source_depth_for_submitted_hole(
+            {"model_filename": ref, "source_brand": "東元"}, legacy_set_brand="東元",
+        )
