@@ -34,6 +34,7 @@ except Exception:  # pragma: no cover - exercised only on minimal deployments
 from .sheetmetal_geometry_core import (
     DEFAULT_TOLERANCE,
     GeometryError,
+    finite_geometry_number,
     Vec2,
     BendLine,
     Flange,
@@ -164,6 +165,9 @@ def line_intersection(
 
 
 def _validate_endcap(g: EndCapGeometry) -> None:
+    for name in ("total_width", "total_depth", "thickness", "fw", "left_fold",
+                 "right_fold", "top_first_fold", "bottom_fold"):
+        finite_geometry_number(getattr(g, name), name)
     if g.thickness <= 0:
         raise GeometryError("板厚必須大於 0")
     if g.total_width <= 0 or g.total_depth <= 0:
@@ -178,7 +182,11 @@ def _factor_or_override(
     thickness: float,
     name: str,
 ) -> float:
-    value = override if override is not None else factor * thickness
+    checked_factor = finite_geometry_number(factor, name + " factor")
+    checked_thickness = finite_geometry_number(thickness, "thickness")
+    value = finite_geometry_number(
+        override if override is not None else checked_factor * checked_thickness, name
+    )
     if value < 0:
         raise GeometryError(f"{name} must not be negative")
     return float(value)
@@ -288,6 +296,7 @@ def calculate_endcap_relief_dimensions(
         bottom_height=bottom_left.primary_v,
     )
     for name, value in dims.__dict__.items():
+        finite_geometry_number(value, name)
         if value < 0:
             raise GeometryError(f"relief dimension {name} must not be negative")
     if dims.top_primary_height <= 0:
