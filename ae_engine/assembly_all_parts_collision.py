@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import combinations
 from math import isfinite
+from collections.abc import Mapping
 
 from .assembly_geometry import detect_world_mesh_surface_interference
 
@@ -143,12 +144,18 @@ def _certified_pair_allowances(diagnostics):
     for row in tuple(diagnostics or ()):
         if (
             str(getattr(row, "candidate_status", "")) != "CERTIFIED_REGISTRY_VERIFIED"
-            or bool(getattr(row, "illegal_penetration", True))
+            # A real solver emits exact bool, never 0/None/empty containers.
+            or getattr(row, "illegal_penetration", True) is not False
             or str(getattr(row, "target_part", "")) != "box_body"
         ):
             continue
         divider = str(getattr(row, "subject_part", ""))
-        post = dict((getattr(row, "evidence", {}) or {}).get("post") or {})
+        evidence = getattr(row, "evidence", None)
+        if not isinstance(evidence, Mapping):
+            continue
+        post = evidence.get("post")
+        if not isinstance(post, Mapping):
+            continue
         if not divider.startswith("box_body:divider:"):
             continue
         count = post.get("true_thickness_penetrating_band_count", -1)

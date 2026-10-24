@@ -357,3 +357,35 @@ def test_r4_51_final_scene_headless_owner_obeys_box_piece_and_nfb_tier_visibilit
     assert "box_body" in keys and "door" in keys
     assert "base_plate" not in keys and "base_plate:nfb_layer:0" not in keys
     assert visible_pieces == ("box_body:right",)
+
+@pytest.mark.parametrize("bad", [None, 0, 0., (), [], {}, "false"])
+def test_r4_69_only_explicit_false_illegal_penetration_may_certify_relief(bad):
+    from types import SimpleNamespace
+    from ae_engine.assembly_all_parts_collision import _certified_pair_allowances
+
+    row = SimpleNamespace(
+        candidate_status="CERTIFIED_REGISTRY_VERIFIED",
+        illegal_penetration=False,
+        subject_part="box_body:divider:1",
+        target_part="box_body",
+        evidence={"post": {"true_thickness_penetrating_band_count": 0}},
+    )
+    assert len(_certified_pair_allowances((row,))) == 2
+    row.illegal_penetration = bad
+    assert _certified_pair_allowances((row,)) == frozenset()
+
+
+@pytest.mark.parametrize("bad_evidence", [True, 0, "invalid", [],
+                                         {"post": True}, {"post": "invalid"}])
+def test_r4_69_malformed_certified_relief_evidence_fails_closed_not_crashes(bad_evidence):
+    from types import SimpleNamespace
+    from ae_engine.assembly_all_parts_collision import _certified_pair_allowances
+
+    row = SimpleNamespace(
+        candidate_status="CERTIFIED_REGISTRY_VERIFIED",
+        illegal_penetration=False,
+        subject_part="box_body:divider:1",
+        target_part="box_body",
+        evidence=bad_evidence,
+    )
+    assert _certified_pair_allowances((row,)) == frozenset()
