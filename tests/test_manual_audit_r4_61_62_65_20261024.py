@@ -237,5 +237,8 @@ def test_r4_62_huge_or_bad_saved_frame_thickness_and_span_fail_closed(invalid):
         derive_inner_door_frames("door1", spans={**spans, "left": invalid}, thickness=2.0)
 
     assert inner_door_frame_formed_occupation(2.0) == 50.0
-    frames = derive_inner_door_frames("door1", spans=spans, thickness=2.0)
+    frames = derive_inner_door_frames(
+        "door1", spans=spans, thickness=2.0,
+        included_sides=("top", "left", "right"),
+    )
     assert {frame.side: frame.span for frame in frames} == spans
