@@ -80,7 +80,7 @@ def test_r6_valid_full_and_partial_back_skins_keep_source_dimensions_and_offset(
 @pytest.mark.parametrize("bad", [True, False, nan, inf, -inf, "NaN"])
 def test_r6_operator_side_back_source_rejects_nonfinite_or_bool(key, bad):
     _snapshot, state = _source()
-    with pytest.raises(ValueError, match="必須為有限數值"):
+    with pytest.raises(ValueError, match="有限數值"):
         set_side_back_geometry(state, **{key: bad})
 
 
