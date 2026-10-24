@@ -291,3 +291,18 @@ def test_staged_nfb_added_follow_field_and_nested_datum_mutation_fail_closed(
     with pytest.raises(ValueError,match="staged config changed"):
         assert_live_verified_nfb(Adapter(),fresh,
                                  current_snapshot=kwargs["snapshot"])
+
+
+@pytest.mark.parametrize("world_x", (10 ** 400, -(10 ** 400)))
+def test_ac28_extreme_operator_world_x_fails_closed_before_any_manufacturing(
+    tmp_path, monkeypatch, world_x,
+):
+    """Unrepresentable real-world coordinate is rejected without a stage or DXF."""
+    kwargs, unit, emitted = _setup(tmp_path, monkeypatch)
+    staged_before = kwargs["draft"]["layers"][0]["slots"][0].copy()
+    with pytest.raises(ValueError, match="explicit finite WORLD X"):
+        verify_nfb_ui1a_for_submit(**{
+            **kwargs, "world_x_by_unit": {unit: world_x},
+        })
+    assert emitted == []
+    assert kwargs["draft"]["layers"][0]["slots"][0] == staged_before
