@@ -166,7 +166,7 @@ def activate_structure_with_defaults(
     """
     result = set_active_structure(state, type_id)
     kind = _structure_type(type_id)
-    total = float(total_w)
+    total = _finite_dimension(total_w, field="箱身分片初始總寬")
     cfg = result["configs"][kind.value]
 
     if kind is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
