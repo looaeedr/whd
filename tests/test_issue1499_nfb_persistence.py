@@ -519,3 +519,45 @@ def test_quantity_live_projection_rechecks_shared_w_against_version_x_before_ren
     ]["holes"][0]
     assert accepted["manual_x_state"] == "CONFIRMED"
     assert accepted["manual_x_mm"] == 0
+
+
+@pytest.mark.parametrize("invalid_state", [[], {"state": "CONFIRMED"}, ["NONE"]])
+def test_r6_manual_116_rejects_unhashable_saved_x_state_at_all_source_owners(invalid_state):
+    """Corrupt JSON must raise the same validation error, not leak TypeError."""
+    damaged = _config(state=invalid_state)
+    original = deepcopy(damaged)
+    with pytest.raises(ValueError, match="manual_x_state unsupported"):
+        normalize_nfb_config(damaged)
+    with pytest.raises(ValueError, match="manual_x_state unsupported"):
+        normalize_nfb_saved_fields({
+            "nfb_config_submitted": True, "nfb_config": damaged,
+            "width": 800,
+        })
+    with pytest.raises(ValueError, match="manual_x_state unsupported"):
+        update_receiving_bay(
+            _layout(), set_index=0, bay_index=0,
+            nfb_config_submitted=True, nfb_config=damaged,
+        )
+    quantity = QuantityModel()
+    before = quantity.snapshot()
+    with pytest.raises(ValueError, match="manual_x_state unsupported"):
+        quantity.set_version_nfb_config(
+            quantity.selected_version_id, submitted=True, config=damaged,
+        )
+    assert quantity.snapshot() == before
+    assert damaged == original
+    # Real legacy manual X confirmations still retain their physical datum.
+    accepted = normalize_nfb_config(_config(x=0, state="CONFIRMED"))
+    assert accepted["holes"][0]["manual_x_mm"] == 0
+    assert accepted["holes"][0]["manual_x_state"] == "CONFIRMED"
+
+
+def test_r6_manual_116_huge_json_integer_is_a_controlled_invalid_nfb_dimension():
+    """Finite manufacture coordinates cannot skip validation via float overflow."""
+    damaged = _config(x=10 ** 400, state="CONFIRMED")
+    with pytest.raises(ValueError, match="must be finite"):
+        normalize_nfb_config(damaged)
+    with pytest.raises(ValueError, match="must be finite"):
+        normalize_nfb_saved_fields({
+            "nfb_config_submitted": True, "nfb_config": damaged,
+        })
