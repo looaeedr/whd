@@ -136,7 +136,17 @@ def normalize_nfb_saved_fields(row):
             and (not isinstance(snapshot["model_filename"], str)
                  or snapshot["model_filename"] != hole["model_filename"])
         )
-        if stale_rotation or stale_model:
+        # A saved physical Bay has a stable identity. Compare it only when
+        # both the datum and this concrete Bay actually record one. Quantity
+        # version rows and old pre-ID snapshots must not invent a Bay owner.
+        bay_owner = row.get("stable_id")
+        stale_bay = (
+            "bay_id" in snapshot
+            and isinstance(bay_owner, str) and bool(bay_owner)
+            and (not isinstance(snapshot["bay_id"], str)
+                 or snapshot["bay_id"] != bay_owner)
+        )
+        if stale_rotation or stale_model or stale_bay:
             hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     physical_width = row.get("width")
     if physical_width is not None:
