@@ -211,7 +211,24 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
         return {}
 
     values = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    values.update(dict(getattr(app, "_settings_values", {}) or {}))
+    settings_overlay = dict(getattr(app, "_settings_values", {}) or {})
+    if (values.get("model") in ("受電箱", "RECEIVING")
+            and isinstance(values.get("_receiving_runtime_selection"), Mapping)):
+        # Exact Set/Bay is the only authority for Door, NFB and placement.
+        # build_manufacturing_request already carries this Bay's dimensions;
+        # do not overwrite projected Door cells with the global settings
+        # during the second part-payload serialization seam.
+        from ae_engine.receiving_layout import (
+            RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
+        )
+        per_bay = set(RECEIVING_DOOR_STATE_KEYS) | {
+            RECEIVING_RUNTIME_SELECTION_KEY, "receiving_layout",
+            "nfb_config", "nfb_config_submitted",
+        }
+        settings_overlay = {
+            k: v for k, v in settings_overlay.items() if k not in per_bay
+        }
+    values.update(settings_overlay)
     values.update(dict(getattr(app, "_phase6_box_whd", {}) or {}))
     workspace = getattr(app, "designer_workspace", None)
     state = getattr(app, "state", None)
