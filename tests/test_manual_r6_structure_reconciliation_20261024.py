@@ -106,3 +106,23 @@ def test_r6_transaction_width_must_preserve_raw_input_for_physical_guard(bad):
     assert saved == untouched
     valid = reconcile_width_structure(saved, 800.)
     assert valid == body.reconcile_box_body_structure_for_total_w_change(saved, 800.)
+
+
+@pytest.mark.parametrize("invalid_width", [0, 0.0, -1.0, -800.0])
+def test_r6_operator_total_width_must_be_positive_even_without_active_split(invalid_width):
+    """Unsplit/empty saved structures cannot authorize zero or negative box W."""
+    from phase6_settings_transitions import reconcile_width_structure
+    for active in (
+        body.BoxBodyStructureType.INTEGRAL.value,
+        body.BoxBodyStructureType.TWO_PIECE_W_SPLIT.value,
+    ):
+        saved = body.default_box_body_structure_state()
+        saved["active_type"] = active
+        before = deepcopy(saved)
+        with pytest.raises(ValueError, match="箱身總寬"):
+            reconcile_width_structure(saved, invalid_width)
+        assert saved == before
+    good = body.default_box_body_structure_state()
+    assert reconcile_width_structure(good, 800.) == (
+        body.reconcile_box_body_structure_for_total_w_change(good, 800.)
+    )
