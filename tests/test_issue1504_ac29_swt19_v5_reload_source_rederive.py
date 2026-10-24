@@ -382,6 +382,7 @@ def test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit(
     No simulated 3D triangles or independent approximations: the renderer
     triangulates the same physical FinalScene that produces verified DXF.
     """
+    from dataclasses import replace
     from types import SimpleNamespace
     from matplotlib.figure import Figure
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -389,19 +390,50 @@ def test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit(
     from phase6_final_scene_contracts import (
         AssemblySceneRenderData, FinalSceneViewRequest,
     )
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
+    from ae_engine.receiving_base_plate_3d_profiles import (
+        receiving_base_plate_3d_profiles,
+    )
 
     _isolated_csv(monkeypatch, tmp_path)
     original = _valid_project()
     original_parts = _scene(original)
 
-    def actual_mesh(parts):
+    def actual_mesh(parts, snapshot):
+        # The _scene() helper is intentionally a 2D/DXF sheet fixture and
+        # carries EMPTY 3D profiles. A genuine 3D request must instead use
+        # the exact manufacturing-owned Fold Profiles from the same source.
+        door_profiles = inner_door_panel_part_profiles(
+            derive_inner_door_panels(snapshot)
+        )
+        base_profiles = receiving_base_plate_3d_profiles(snapshot)
+        assert base_profiles is not None
+        formed_parts = []
+        for part in parts:
+            profile = (door_profiles[part.part_key]
+                       if part.part_key in door_profiles
+                       else base_profiles if part.part_key == "base_plate"
+                       else None)
+            assert profile is not None, part.part_key
+            width = sum(float(v["len"]) for v in profile["X"])
+            height = sum(float(v["len"]) for v in profile["Y"])
+            minx, miny, maxx, maxy = part.render_data.material.bounds
+            assert width == pytest.approx(maxx - minx)
+            assert height == pytest.approx(maxy - miny)
+            formed_parts.append(replace(
+                part,
+                x_profile=tuple(dict(v) for v in profile["X"]),
+                y_profile=tuple(dict(v) for v in profile["Y"]),
+            ))
+
         figure = Figure(figsize=(5., 4.))
         ax = figure.add_subplot(111, projection="3d")
         renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax))
         triangles = renderer.render(FinalSceneViewRequest(
             part_key="assembly",
             render_data=AssemblySceneRenderData(
-                assembly_parts=tuple(parts), show_interference=False,
+                assembly_parts=tuple(formed_parts), show_interference=False,
             ),
             x_profile=(), y_profile=(),
             finished_dimensions=(800., 1600., 350.),
@@ -419,11 +451,11 @@ def test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit(
             for face in triangles
         )
 
-    old_mesh = actual_mesh(original_parts)
+    old_mesh = actual_mesh(original_parts, original)
     restored, file = _reloaded_project(original, tmp_path)
     assert file.exists()
     reloaded_parts = _scene(restored)
-    assert actual_mesh(reloaded_parts) == old_mesh
+    assert actual_mesh(reloaded_parts, restored) == old_mesh
 
     moved = deepcopy(restored)
     moved["nfb_config"]["holes"][1]["manual_x_mm"] -= 20.
@@ -431,7 +463,7 @@ def test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit(
         moved["nfb_config"]
     )
     new_parts = _scene(moved)
-    new_mesh = actual_mesh(new_parts)
+    new_mesh = actual_mesh(new_parts, moved)
     assert new_mesh != old_mesh
     # The physical part positions stay fixed. Only source CUTTING shifts.
     assert tuple(p.offset for p in new_parts) == tuple(
