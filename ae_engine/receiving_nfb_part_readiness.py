@@ -179,8 +179,14 @@ def _verified_physical_hole_locations(
         if not isinstance(row, tuple) or len(row) != 5:
             return False
         hole_id, x, count, slot, rotation = row
+        if type(x) not in (float, int):
+            return False
+        try:
+            valid_x = isfinite(float(x))
+        except (OverflowError, ValueError):
+            return False
         if (not isinstance(hole_id, str) or hole_id not in ids or
-                type(x) not in (float, int) or not isfinite(float(x)) or
+                not valid_x or
                 type(count) is not int or count not in (1, 2) or
                 type(slot) is not int or not 0 <= slot < count or
                 type(rotation) is not int or rotation not in (0, 90, 180, 270)):

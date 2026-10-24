@@ -558,3 +558,33 @@ def test_ac23_copy_target_rejects_explicit_original_bay_datum_owner():
     assert confirmed == []
     assert original == frozen
     assert "nfb_config" not in original["sets"][0]["bays"][1]
+
+
+@pytest.mark.parametrize("huge_x", (10 ** 400, -(10 ** 400)))
+def test_ac28_huge_integer_cutting_x_blocks_batch_before_confirmation(huge_x):
+    """A bad hole in Bay 2 cannot skip Bay 1 or call approval for either."""
+    original = layout()
+    frozen = deepcopy(original)
+    _, _, actual = evidence(original, 1)
+    corrupt = replace(
+        actual,
+        verified_hole_locations=(("nfb:1:slot1", huge_x, 1, 0, 90),),
+    )
+    scope1, inventory1, _ = evidence(original, 1)
+    called = []
+    with pytest.raises(ValueError, match="verified physical X/Y/rotation evidence"):
+        submit_nfb_bays(
+            original, set_index=0, bay_indices=(0, 1), version_id="v1",
+            configs={
+                0: config(owner="nfb:0:slot1"),
+                1: config(owner="nfb:1:slot1"),
+            },
+            evidence={
+                0: evidence(original, 0),
+                1: (scope1, inventory1, corrupt),
+            },
+            confirm=lambda _: called.append(True) or True,
+        )
+    assert called == []
+    assert original == frozen
+    assert all("nfb_config" not in bay for bay in original["sets"][0]["bays"])
