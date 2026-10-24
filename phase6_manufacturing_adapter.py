@@ -624,6 +624,15 @@ def build_manufacturing_request(
             axis: box_dimensions[axis] for axis in ("w", "h", "d")
             if axis in box_dimensions
         })
+    # A request assembled from a sparse input snapshot must still carry the
+    # actual operator W/H/D/T of THIS app, never infer geometry from a cached
+    # display or a different Bay. Existing authoritative values take priority.
+    for axis in ("w", "h", "d"):
+        if axis in box_dimensions:
+            snapshot.setdefault(axis, box_dimensions[axis])
+        elif axis in settings:
+            snapshot.setdefault(axis, settings[axis])
+    snapshot.setdefault("t", _num(settings.get("t", snapshot.get("t", 2.0)), 2.0))
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
@@ -686,7 +695,7 @@ def build_manufacturing_request(
         canonical_part_keys=_canonical_part_keys(app),
         parts=tuple(part_inputs),
         operator_finished_dimensions=_finished_dimensions_for_part(
-            app, "", finished_dimensions_provider
+            app, "box_body", finished_dimensions_provider
         ),
         assembly_intent=_assembly_intent(app),
         allow_3d_fallback=bool(
