@@ -2,6 +2,7 @@
 from types import SimpleNamespace
 import pytest
 from ae_engine.receiving_inner_door_pairing import paired_bay_parts, paired_set_parts
+from ae_engine.receiving_layout import new_receiving_layout
 from ae_engine.receiving_frame_baseline import receiving_frame_source
 from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
 from ae_engine.sheetmetal_features import ResolvedProfile, Vec2
@@ -10,8 +11,7 @@ from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession
 
 
 def _layout():
-    return {"sets": [{"stable_id": "set-1",
-                       "bays": [{"stable_id": "bay-1", "w": 800., "h": 1800., "d": 400.}]}]}
+    return new_receiving_layout(width=800., height=1800., depth=400.)
 
 
 @pytest.mark.parametrize("bad", [-1, True, False])
@@ -23,7 +23,7 @@ def test_r5_80_rejects_bad_set_bay_indices(bad):
     ):
         with pytest.raises((IndexError, ValueError)):
             fn()
-    assert paired_bay_parts(_layout(), set_index=0, bay_index=0)["bay_id"] == "bay-1"
+    assert paired_bay_parts(_layout(), set_index=0, bay_index=0)["bay_id"] == "receiving:set:1:bay:1"
 
 
 @pytest.mark.parametrize("bad", [True, float("nan"), float("inf")])
