@@ -173,7 +173,12 @@ def test_swt12_actual_workspace_inner_door_csv_confirm_preserves_other_physical_
     for owner in ("box_body", "head", "tail", "door", "base_plate"):
         assert saved.get(owner, []) == before.get(owner, [])
         assert workspace.features_for(owner) == before.get(owner, [])
-    assert _physical_baseline(state) == original_geometry
+    # Derive real physical owners from the committed Workspace snapshot,
+    # not from the untouched input (which would make this regression vacuous).
+    committed = deepcopy(state)
+    committed.update(workspace.snapshot())
+    assert committed["part_features"][panel.stable_id] == list(staged)
+    assert _physical_baseline(committed) == original_geometry
     assert all(k == panel.stable_id or saved[k] == before.get(k, [])
                for k in saved)
 
