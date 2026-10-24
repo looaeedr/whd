@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 try:
     from shapely.geometry import box, LineString
@@ -55,6 +56,10 @@ class FourSideBendExtentPolicy:
 
 
 def _validate_four_side_geometry(g: FourSideFlangeGeometry) -> None:
+    for value in (g.total_width, g.total_height, g.thickness,
+                  g.left_fold, g.right_fold, g.top_fold, g.bottom_fold):
+        if isinstance(value, bool) or not math.isfinite(float(value)):
+            raise GeometryError("FourSide geometry dimensions must be finite numbers")
     if g.total_width <= 0 or g.total_height <= 0:
         raise GeometryError("blank dimensions must be greater than zero")
     if g.thickness <= 0:
