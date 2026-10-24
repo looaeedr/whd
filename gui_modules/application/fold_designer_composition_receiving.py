@@ -1042,7 +1042,19 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         return {**dict(payload), "features": proxy_workspace.features_for(key), "face_features": proxy_workspace.face_features_for(key)}
     def render_bay_part(key, payload):
         source_payload = feature_payload(key, payload)
-        render = lambda: app._scene_query_callback(key, source_payload)
+        def render():
+            try:
+                return app._scene_query_callback(key, source_payload)
+            except ValueError as exc:
+                raise ValueError(
+                    f"RECEIVING_BAY_RENDER_SOURCE_DIAGNOSTIC:part={key}; "
+                    f"requested_set={set_index},bay={bay_index}; "
+                    f"projected_w={snapshot.get('w')!r},h={snapshot.get('h')!r}; "
+                    f"projected_selection={snapshot.get('_receiving_runtime_selection')!r}; "
+                    f"render_payload_w={source_payload.get('w')!r},h={source_payload.get('h')!r}; "
+                    f"render_payload_selection={source_payload.get('_receiving_runtime_selection')!r}; "
+                    f"cause={exc}"
+                ) from exc
         if preview_layout is not None:
             # Candidate editing is isolated from committed Bay material reuse.
             return render()
@@ -1064,7 +1076,15 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         part_spec_provider=lambda key, payload: app._part_spec_query_callback(key, feature_payload(key, payload)),
         finished_dimensions_provider=dimensions,
     )
-    resolved = resolve(request).geometry
+    try:
+        resolved = resolve(request).geometry
+    except ValueError as exc:
+        raise ValueError(
+            f"RECEIVING_BAY_RESOLVE_SOURCE_DIAGNOSTIC:set={set_index},bay={bay_index}; "
+            f"projected_w={snapshot.get('w')!r},h={snapshot.get('h')!r}; "
+            f"projected_selection={snapshot.get('_receiving_runtime_selection')!r}; "
+            f"cause={exc}"
+        ) from exc
     from ae_engine.receiving_layout import receiving_bay_assembly_offsets
     bay_offset = receiving_bay_assembly_offsets(snapshot["receiving_layout"], set_index=set_index)[bay_index]
     parts = tuple(AssemblyScenePart(
