@@ -436,11 +436,18 @@ class ReceivingSetBayAdapter:
         version_id = validate_setting("inner_door_version_id", version_id)
         if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
             raise ValueError("選取的套不存在")
-        selected = tuple(sorted(set(bay_indices)))
+        # Validate highlight members *before* set(): True aliases integer
+        # Bay 1 and nested unhashable UI values otherwise raise TypeError.
+        # Neither may alter any physical NFB Bay or candidate assignment.
+        try:
+            supplied = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError("請在簡易圖高亮有效的連") from exc
         count = len(self._layout["sets"][set_index]["bays"])
-        if not selected or any(type(i) is not int or not 0 <= i < count
-                               for i in selected):
+        if (not supplied or any(type(i) is not int or not 0 <= i < count
+                                for i in supplied)):
             raise ValueError("請在簡易圖高亮有效的連")
+        selected = tuple(sorted(set(supplied)))
         # Stage a candidate's current CSV source identities. Merely saving a
         # version does not touch any physical Bay; only explicit Apply can
         # submit the version's existing Hole Editor NFB features into each
