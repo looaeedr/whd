@@ -150,6 +150,34 @@ def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
             raise ValueError("NFB configured X/Y slot/rotation differs from actual CUTTING")
 
 
+def _verify_explicit_x_datum_owner(
+    config, *, set_id: str, bay_id: str, version_id: str,
+    door: NfbValidatedInnerDoorRender,
+):
+    """A recorded per-hole X scope must match the actual machining owner.
+
+    This checks only fields the operator's original datum actually recorded.
+    A legacy snapshot with no explicit owner is not assigned a fictional ID
+    or source fingerprint. CUTTING SHA is intentionally distinguished from
+    the brand-owned CSV V5 model identity.
+    """
+    expected = {
+        "set_id": set_id,
+        "bay_id": bay_id,
+        "version_id": version_id,
+        "cutting_source_sha256": door.source_sha256,
+    }
+    for hole in config["holes"]:
+        snapshot = hole["datum_snapshot"]
+        for key, value in expected.items():
+            if key in snapshot and (
+                    not isinstance(snapshot[key], str)
+                    or snapshot[key] != value):
+                raise ValueError(
+                    "NFB X datum owner changed; operator reconfirmation required"
+                )
+
+
 def _ready(
     set_row, bay, *,
     version_id: str,
@@ -269,6 +297,10 @@ def submit_nfb_bays(
                 or actual_holes != set(door.physical_hole_ids)):
             raise ValueError("NFB configured brand/model/physical-hole IDs differ from verified CUTTING")
         _verify_hole_locations(config, door)
+        _verify_explicit_x_datum_owner(
+            config, set_id=set_row["stable_id"], bay_id=bay["stable_id"],
+            version_id=version_id, door=door,
+        )
         reports.append(_ready(set_row, bay, version_id=version_id,
                               scope=scope, inventory=inventory,
                               verified_inner_door=door))
@@ -333,6 +365,10 @@ def copy_submitted_nfb_bay(
             or actual_holes != set(door.physical_hole_ids)):
         raise ValueError("NFB copied source/model/physical-hole IDs not verified for target")
     _verify_hole_locations(configured, door)
+    _verify_explicit_x_datum_owner(
+        configured, set_id=row["stable_id"], bay_id=target["stable_id"],
+        version_id=version_id, door=door,
+    )
     readiness = _ready(row,target,version_id=version_id,scope=scope,
                        inventory=inv,verified_inner_door=door)
     preview = _preview(
