@@ -148,3 +148,17 @@ def test_r6_four_corner_fw_cannot_hide_boolean_or_nonfinite_override():
             cfg.fw_for("bottom_left")
     valid = FourCornerTypePolicy(corner, corner, corner, corner, fw=20.)
     assert valid.fw_for("top_right") == 20.
+
+@pytest.mark.parametrize("invalid_bay", [None, False, 0, "bad", [], ()])
+def test_r6_unselected_flat_nfb_depth_rejects_corrupt_one_bay_without_crash(invalid_bay):
+    """A malformed saved Bay cannot become the physical flat-base depth owner."""
+    from ae_engine.receiving_nfb_depth_surface_policy import committed_receiving_flat_nfb_depth_mm
+
+    snapshot = {"receiving_layout": {"sets": [
+        {"stable_id": "set-1", "bays": [invalid_bay]},
+    ]}}
+    assert committed_receiving_flat_nfb_depth_mm(snapshot) is None
+    unsubmitted = {"receiving_layout": {"sets": [
+        {"stable_id": "set-1", "bays": [{"stable_id": "bay-1", "nfb_config_submitted": False}]},
+    ]}}
+    assert committed_receiving_flat_nfb_depth_mm(unsubmitted) is None
