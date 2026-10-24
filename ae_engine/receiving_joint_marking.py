@@ -873,11 +873,28 @@ def _emitted_result(
     )
 
 
+def _rollback_staged_joint_marking_results(results, cause):
+    """Fail staged MARKING atomically without losing each physical policy owner."""
+    return tuple(
+        replace(
+            result,
+            status="SKIPPED_FAIL_CLOSED",
+            mark_ids=(),
+            diagnostic_code="MARK_OUTSIDE_FINAL_MATERIAL",
+            diagnostic_detail=str(cause),
+            evidence={},
+        ) if result.status == "EMITTED" else result
+        for result in results
+    )
+
+
 def _write_rows(geometry, rows_by_owner):
     enriched = geometry
     for owner_key, rows in sorted(rows_by_owner.items()):
         data = owner_render_data(enriched, owner_key)
         if data is None:
+            if rows:
+                raise ValueError(f"MISSING_MARKING_OWNER: {owner_key}")
             continue
         scene, metadata = _clean_prior_joint_markings(data)
         ordered = tuple(
@@ -1193,17 +1210,7 @@ def resolve_receiving_joint_markings(
     except (KeyError, TypeError, ValueError) as exc:
         # Atomic activation: if any staged receiver line cannot be written to its
         # canonical owner, expose diagnostics but do not publish half a marking set.
-        failed = tuple(
-            _fail(
-                locator_part_id=str(result.locator_part_id),
-                attached_part_id=str(result.attached_part_id),
-                diagnostic_code="MARK_OUTSIDE_FINAL_MATERIAL",
-                detail=str(exc),
-            )
-            if result.status == "EMITTED"
-            else result
-            for result in results
-        )
+        failed = _rollback_staged_joint_marking_results(results, exc)
         enriched = geometry
         results = list(failed)
 

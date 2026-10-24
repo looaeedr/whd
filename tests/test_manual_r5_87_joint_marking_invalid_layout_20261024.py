@@ -89,3 +89,47 @@ def test_r5_87_bad_saved_door_id_does_not_crash_frame_derivation_diagnostics(mon
     assert result.results[0].diagnostic_code == "STALE_STABLE_ID"
     assert result.results[0].attached_part_id.startswith("invalid-inner-door:")
     assert tuple(result.geometry.diagnostics) == result.results
+
+
+def test_r5_87_atomic_rollback_keeps_original_divider_and_inner_door_policy_ids():
+    from ae_engine.contracts import ResolvedJointMarkingResult
+    divider = owner.RECEIVING_DIVIDER_SIDE_PLATE_POLICY
+    inner = owner.RECEIVING_INNER_DOOR_MOTHER_PLATE_POLICY
+    emitted = tuple(
+        ResolvedJointMarkingResult(
+            policy_id=policy.policy_id,
+            policy_revision=policy.revision,
+            locator_part_id="box_body:left_side",
+            attached_part_id=f"inner-door-{index}",
+            status="EMITTED", mark_ids=(f"mark-{index}",),
+            evidence={"stale_contact": "must-clear"},
+        ) for index, policy in enumerate((divider, inner))
+    )
+    skipped = ResolvedJointMarkingResult(
+        policy_id=divider.policy_id, policy_revision=divider.revision,
+        locator_part_id="box_body:right_side", attached_part_id="other",
+        status="SKIPPED_FAIL_CLOSED", diagnostic_code="CONTACT_NOT_FOUND",
+    )
+    failed = owner._rollback_staged_joint_marking_results(
+        emitted + (skipped,), ValueError("missing actual marking owner"),
+    )
+    assert [row.policy_id for row in failed] == [divider.policy_id, inner.policy_id, divider.policy_id]
+    assert [row.policy_revision for row in failed] == [divider.revision, inner.revision, divider.revision]
+    for row in failed[:2]:
+        assert row.status == "SKIPPED_FAIL_CLOSED"
+        assert row.mark_ids == ()
+        assert row.evidence == {}
+        assert row.diagnostic_code == "MARK_OUTSIDE_FINAL_MATERIAL"
+    assert failed[2] is skipped
+
+
+def test_r5_87_write_rows_rejects_missing_physical_marking_owner():
+    geometry = ResolvedManufacturingGeometry(parts=())
+    with pytest.raises(ValueError, match="MISSING_MARKING_OWNER"):
+        owner._write_rows(
+            geometry, {"box_body:left_side": ({
+                "attached_part_id": "inner-door-a",
+                "boundary_role": "SIDE_POSITIVE",
+                "mark_id": "mark-r5-87",
+            },)},
+        )
