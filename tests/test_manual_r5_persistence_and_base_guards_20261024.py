@@ -170,3 +170,54 @@ def test_r5_90_saved_mode_cannot_be_a_noncanonical_object(invalid_mode):
     """Corrupt saved mode is invalid project data, never an unhandled TypeError."""
     with pytest.raises(ValueError, match="不合法的箱體操作模式"):
         normalize_quantity_snapshot({"active_mode": invalid_mode}, for_save=True)
+
+@pytest.mark.parametrize("bad", [None, True, False, -1., float("nan"), float("inf"), "-1", "0.1", [], {}])
+def test_r5_76_dxf_acceptance_rejects_invalid_tolerances_before_readback(tmp_path, bad):
+    """Untrusted verification tolerances must never be able to bless invalid CUTTING."""
+    from ae_engine.dxf_acceptance import (
+        _rows_close, _circle_rows_close, verify_saved_part_render_data_dxf,
+    )
+    from types import SimpleNamespace
+
+    assert _rows_close(((("BEND", 1., 2.),)), ((("BEND", 1., 2.),)), bad) is False
+    assert _circle_rows_close(((1., 2., 3.),), ((1., 2., 3.),), bad) is False
+    for field in ("coordinate_tolerance", "area_tolerance"):
+        result = verify_saved_part_render_data_dxf(
+            SimpleNamespace(), tmp_path / "nonexistent.dxf", **{field: bad},
+        )
+        assert result.ok is False
+        assert result.issues[0].category == "INVALID_TOLERANCE"
+
+
+def test_r5_76_dxf_readback_rejects_nonfinite_area_tolerance_on_real_changed_cutting(tmp_path):
+    """The saved DXF is independently reopened: NaN area tolerance cannot erase a mismatch."""
+    import ezdxf
+    from ae_engine import manufacturing_api as api
+    from ae_engine.sheetmetal_drawing import DrawingScene, PolylinePrimitive
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    scene = DrawingScene()
+    scene.add(PolylinePrimitive(
+        points=(Vec2(0., 0.), Vec2(100., 0.), Vec2(100., 60.), Vec2(0., 60.)),
+        layer="CUTTING", closed=True,
+    ))
+    render = api.PartRenderData(
+        scene=scene,
+        material=api.material_polygon_from_final_scene(scene),
+        fold_guides=api.fold_guides_from_final_scene(scene),
+    )
+    path = tmp_path / "r5-76-changed-cutting.dxf"
+    api.save_part_render_data_dxf(render, path, overwrite=True)
+    doc = ezdxf.readfile(path)
+    outline = tuple(doc.modelspace().query('LWPOLYLINE[layer=="CUTTING"]'))[0]
+    pts = list(outline.get_points())
+    pts[1] = (95., pts[1][1], *pts[1][2:])
+    outline.set_points(pts)
+    doc.saveas(path)
+
+    good = api.verify_saved_part_render_data_dxf(render, path)
+    assert good.ok is False
+    assert any(issue.category == "CUTTING_MISMATCH" for issue in good.issues)
+    blocked = api.verify_saved_part_render_data_dxf(render, path, area_tolerance=float("nan"))
+    assert blocked.ok is False
+    assert blocked.issues[0].category == "INVALID_TOLERANCE"
