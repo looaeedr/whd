@@ -297,6 +297,8 @@ def resolve_receiving_joint_lock_pattern(
     baseline_resolver: Callable[..., Mapping[str, object]] | None = None,
 ) -> ReceivingJointLockResolution:
     """Resolve one adjacent-Bay side-lock Joint from the certified baseline owner."""
+    if type(set_index) is not int or type(joint_index) is not int:
+        raise TypeError("Receiving lock indices must be integers, not bool")
     normalized = normalize_receiving_layout(layout)
     sets = normalized["sets"]
     if set_index < 0 or set_index >= len(sets):
