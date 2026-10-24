@@ -192,7 +192,11 @@ def audit_all_physical_part_pairs(world_triangles_by_part, *,
     keys = tuple(sorted(k for k, v in raw.items()
                         if k != "box_body" and v and (selected is None or k in selected)))
     if selected is not None:
-        missing = tuple(sorted(key for key in selected if key not in raw))
+        # A visible, named sheet with no triangles is NOT a checked sheet.
+        # Omitting it from the pair list would produce a false "no collision".
+        missing = tuple(sorted(
+            key for key in selected if key not in raw or not raw[key]
+        ))
         if missing:
             raise ValueError("ASSEMBLY_COLLISION_MISSING_VISIBLE_PARTS: " + ", ".join(missing))
     meshes = {key: tuple(raw[key]) for key in keys}
