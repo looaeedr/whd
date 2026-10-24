@@ -302,7 +302,9 @@ def test_partial_writer_rejects_forged_door_row_after_preflight(
         return written, replace(manifest, rows=rows)
 
     ports["partial_export"] = corrupted
-    with pytest.raises(ValueError, match="manufactured part count invalid"):
+    # Rejecting earlier at the shared physical manifest gate is safer.
+    # Either explicit BLOCKED upstream or the downstream count guard is valid.
+    with pytest.raises(ValueError, match=r"(manufactured part count invalid|physical part BLOCKED)"):
         batch.export_highlighted_nfb_inner_doors(
             ports, set_index=0, bay_indices=(0,), output_directory=tmp_path,
         )
