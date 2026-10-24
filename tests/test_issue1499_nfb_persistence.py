@@ -641,3 +641,42 @@ def test_ac23_matching_explicit_source_without_width_does_not_fabricate_reconfir
         "nfb_config_submitted": True, "nfb_config": config,
     })
     assert row["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+
+
+@pytest.mark.parametrize("stale_bay", ("previous-bay", None, True))
+def test_ac23_persisted_named_bay_x_authority_must_match_real_bay_owner(
+    tmp_path, stale_bay,
+):
+    """Saved X evidence from a different Bay may not silently stay CONFIRMED."""
+    original = _layout()
+    config = _config(x=0)
+    config["holes"][0]["datum_snapshot"]["bay_id"] = stale_bay
+    injected = deepcopy(original)
+    bay = injected["sets"][0]["bays"][0]
+    bay["nfb_config_submitted"] = True
+    bay["nfb_config"] = config
+    before = deepcopy(injected)
+    projected = normalize_receiving_layout(injected)
+    current = projected["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert current["manual_x_mm"] == 0
+    assert current["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert injected == before
+    output = write_project(tmp_path / "different-bay-x.p6fold", _payload(injected))
+    reopened = read_project(output)["snapshot"]["receiving_layout"]
+    assert reopened["sets"][0]["bays"][0]["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "RECONFIRM_REQUIRED"
+
+
+def test_ac23_saved_matching_bay_identity_preserves_operator_approved_zero():
+    original = _layout()
+    actual_bay = original["sets"][0]["bays"][0]["stable_id"]
+    config = _config(x=0)
+    config["holes"][0]["datum_snapshot"]["bay_id"] = actual_bay
+    updated = update_receiving_bay(
+        original, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=config,
+    )
+    current = updated["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert current["manual_x_mm"] == 0
+    assert current["manual_x_state"] == "CONFIRMED"
