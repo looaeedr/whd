@@ -8,6 +8,7 @@ existing controllers/AE/session seams.
 from __future__ import annotations
 
 from dataclasses import replace
+from math import isfinite
 from tkinter import messagebox
 
 from phase6_hole_editor_session import HoleEditorAction
@@ -489,7 +490,9 @@ class HoleEditorReferenceActions:
             return
         try:
             value = float(raw)
-        except ValueError:
+            if not isfinite(value):
+                raise ValueError("reference distance must be finite")
+        except (TypeError, ValueError, OverflowError):
             if show_errors:
                 self.show_format_error()
                 self.refresh_reference_fields()
