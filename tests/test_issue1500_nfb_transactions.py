@@ -414,3 +414,23 @@ def test_ac23_malformed_highlighted_bay_selection_rejected_atomically(indices):
         )
     assert called == []
     assert original == frozen
+
+
+def test_ac23_two_bay_stale_second_datum_blocks_both_and_skips_confirmation():
+    """An otherwise good Bay must not be partly committed before Bay 2 fails."""
+    original = layout()
+    unchanged = deepcopy(original)
+    config0 = config(owner="nfb:0:slot1", x=0)
+    config1 = config(owner="nfb:1:slot1", x=0)
+    config1["holes"][0]["datum_snapshot"]["width"] = 750
+    callbacks = []
+    with pytest.raises(ValueError, match="operator confirmation"):
+        submit_nfb_bays(
+            original, set_index=0, bay_indices=(0, 1), version_id="v1",
+            configs={0: config0, 1: config1},
+            evidence={0: evidence(original, 0), 1: evidence(original, 1)},
+            confirm=lambda _: callbacks.append("unexpected") or True,
+        )
+    assert callbacks == []
+    assert original == unchanged
+    assert all("nfb_config" not in bay for bay in original["sets"][0]["bays"])
