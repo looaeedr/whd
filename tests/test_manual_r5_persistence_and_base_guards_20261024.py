@@ -164,3 +164,9 @@ def test_r6_nfb_depth_and_surface_chain_reject_bool_mechanical_dimensions():
             fixing_plate_thickness_mm=1.5,
             reference_nfb_depth_mm=60., secondary_nfb_depth_mm=30.,
         )
+
+@pytest.mark.parametrize("invalid_mode", [[], {}, ["quantity"], {"mode": "quantity"}, True, 1])
+def test_r5_90_saved_mode_cannot_be_a_noncanonical_object(invalid_mode):
+    """Corrupt saved mode is invalid project data, never an unhandled TypeError."""
+    with pytest.raises(ValueError, match="不合法的箱體操作模式"):
+        normalize_quantity_snapshot({"active_mode": invalid_mode}, for_save=True)
