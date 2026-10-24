@@ -262,3 +262,29 @@ def test_r4_53_explicit_open_three_point_profile_does_not_pick_empty_triangle_in
     )
     assert hit_test_resolved_features(Vec2(50., 20.), (profile,), tolerance=0.) == 0
     assert hit_test_resolved_features(Vec2(35., 10.), (profile,), tolerance=0.) is None
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf")])
+def test_r4_69_physical_aabb_rejects_nonphysical_world_vertices(bad):
+    from ae_engine.assembly_all_parts_collision import _bounds, audit_all_physical_part_pairs
+    good_triangle = (((0., 0., 0.), (2., 0., 0.), (0., 2., 0.)),)
+    broken_triangle = (((0., 0., 0.), (bad, 0., 0.), (0., 2., 0.)),)
+    assert _bounds(good_triangle) == ((0., 2.), (0., 2.), (0., 0.))
+    with pytest.raises(ValueError, match="ASSEMBLY_COLLISION_INVALID_WORLD_MESH"):
+        _bounds(broken_triangle)
+    with pytest.raises(ValueError, match="ASSEMBLY_COLLISION_INVALID_WORLD_MESH"):
+        audit_all_physical_part_pairs({
+            "box_body:left_side": broken_triangle,
+            "box_body:right_side": good_triangle,
+        })
+
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), -1., "inf"])
+def test_r4_69_physical_collision_refuses_invalid_aabb_and_intersection_tolerance(bad):
+    from ae_engine.assembly_all_parts_collision import audit_all_physical_part_pairs
+    a = (((0., 0., 0.), (2., 0., 0.), (0., 2., 0.)),)
+    b = (((200., 200., 0.), (202., 200., 0.), (200., 202., 0.)),)
+    valid = audit_all_physical_part_pairs({"head": a, "tail": b}, tolerance=1e-5)
+    assert valid.evaluated_pair_count == 1
+    assert valid.pairs[0].status == "AABB_SEPARATED"
+    with pytest.raises(ValueError, match="ASSEMBLY_COLLISION_INVALID_TOLERANCE"):
+        audit_all_physical_part_pairs({"head": a, "tail": b}, tolerance=bad)
