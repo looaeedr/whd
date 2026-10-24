@@ -235,3 +235,42 @@ def test_ac52_legitimate_historical_dxf_names_still_use_unchanged_legacy_path():
         snapshot["nfb_config"]
     )
     assert _submitted_csv_holes(snapshot) == ()
+
+
+@pytest.mark.parametrize("invalid_identity", [
+    "nfbv5:士林:",
+    None,
+    "legacy/escape.dxf",
+])
+def test_ac52_original_pair_writer_rejects_corrupt_reloaded_model_before_dxf_publish(
+    invalid_identity, tmp_path,
+):
+    """The actual original operator must never publish from a stale scene.
+
+    A valid submitted source first produces real paired manufacturing DXFs.
+    Corrupt *only* the saved physical model identity, keep the previous
+    resolved FinalScene, and exercise the same original two-sheet writer.
+    The already exported source evidence and its bytes must remain untouched.
+    """
+    valid = _valid_project()
+    assembly = _scene(valid)
+    valid_before = deepcopy(valid)
+    first = _save(valid, assembly, tmp_path / "baseline")
+    existing = _files(first)
+    original_bytes = tuple(path.read_bytes() for path in existing)
+    assert all(original_bytes)
+
+    broken = deepcopy(valid)
+    for row in broken["nfb_config"]["holes"]:
+        row["model_filename"] = deepcopy(invalid_identity)
+    broken["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        broken["nfb_config"]
+    )
+    broken_before = deepcopy(broken)
+    rejected = tmp_path / "rejected"
+    rejected.mkdir()
+    with pytest.raises(ValueError):
+        _export(broken, assembly, rejected)
+    assert not list(rejected.iterdir())
+    assert tuple(path.read_bytes() for path in existing) == original_bytes
+    assert broken == broken_before and valid == valid_before
