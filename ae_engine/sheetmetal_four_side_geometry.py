@@ -121,6 +121,7 @@ def _four_side_material_polygon(
     g: FourSideFlangeGeometry,
     policy: RectCornerReliefPolicy | FourCornerTypePolicy,
 ):
+    _validate_four_side_geometry(g)
     _require_shapely()
     w, h = g.total_width, g.total_height
     blank = box(0.0, 0.0, w, h)
