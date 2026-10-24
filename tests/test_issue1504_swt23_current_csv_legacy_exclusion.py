@@ -156,3 +156,33 @@ def test_swt23_unrelated_legacy_cutting_survives_current_csv_save_reload_and_unc
     assert old_feature_scene is not None
     assert old_feature_scene.metadata["nfb_legacy_feature_count"] == 1
     assert first_shapes == tuple(_shapes(path) for path in _files(first))
+
+
+@pytest.mark.parametrize("invalid_v5", [
+    "nfbv5:士林:",
+    "nfbv5:士林:BAD/KEY",
+    "nfbv5:士林:BAD:EXTRA",
+])
+def test_ac52_all_invalid_v5_refs_cannot_silently_fall_back_to_blank_finalscene(
+    invalid_v5, tmp_path,
+):
+    """#1504 AC52: a submitted malformed CSV identity must fail closed.
+
+    Previously all-invalid refs missed the mixed-source guard, skipping all
+    NFB holes and returning raw door/base parts. This exercises the real
+    saved Bay and installed FinalScene, not a synthetic renderer.
+    """
+    snapshot = _valid_project()
+    before = deepcopy(snapshot)
+    submitted = deepcopy(snapshot)
+    holes = submitted["nfb_config"]["holes"]
+    assert holes
+    for hole in holes:
+        hole["model_filename"] = invalid_v5
+    submitted["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        submitted["nfb_config"]
+    )
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_MALFORMED_V5_IDENTITY"):
+        _scene(submitted)
+    assert snapshot == before
+    assert not list(tmp_path.glob("*.dxf"))
