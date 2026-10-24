@@ -19,7 +19,7 @@ from .receiving_nfb_v5_configured_inner_door import (
 from .receiving_nfb_v5_live_base_preview import (
     project_csv_v5_onto_existing_assembly_parts,
 )
-from .receiving_nfb_model_identity import parse_numeric_model_ref
+from .receiving_nfb_model_identity import PREFIX, parse_numeric_model_ref
 
 
 def _physical_feature_from_transport(value):
@@ -175,6 +175,17 @@ def _submitted_csv_holes(snapshot):
         parse_numeric_model_ref(row.get("model_filename"))
         if isinstance(row, Mapping) else None for row in rows
     )
+    # The legacy DXF pathway is valid only if every row is genuinely legacy.
+    # An unparseable V5-prefixed record is a damaged CSV identity, not a
+    # licence to skip current source-owned CUTTING and manufacture a blank.
+    if any(
+        isinstance(row, Mapping)
+        and isinstance(row.get("model_filename"), str)
+        and row["model_filename"].startswith(PREFIX)
+        and identity is None
+        for row, identity in zip(rows, parsed)
+    ):
+        raise ValueError("NFB_COMMITTED_CSV_MALFORMED_V5_IDENTITY")
     if not any(parsed):
         return ()
     if any(p is None for p in parsed):
