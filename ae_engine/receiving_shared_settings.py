@@ -24,6 +24,29 @@ SETTING_DEFAULTS = {
     "inner_door_version_id": None,
 }
 
+def default_receiving_nfb_layer_heights(layer_count):
+    """One manufacturing Y authority for newly chosen 1/2 NFB tiers.
+
+    Keep the stored two-slot schema: in one-tier mode the second slot is
+    inactive, while the visible first tier uses the approved 1100-cell 550.
+    The existing shared 330/830 defaults apply only once two tiers exist.
+    """
+    if type(layer_count) is not int or layer_count not in (1, 2):
+        raise ValueError("NFB height defaults require exactly 1 or 2 tiers")
+    heights = list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
+    if layer_count == 1:
+        from .receiving_nfb_y_projection import approved_nominal_y_mm
+        heights[0] = float(approved_nominal_y_mm(1)[0])
+    return heights
+
+
+def transition_receiving_nfb_layer_heights(heights, *, old_count, new_count):
+    """Change untouched defaults on a tier-count edit, never rewrite custom Y."""
+    old = default_receiving_nfb_layer_heights(old_count)
+    target = default_receiving_nfb_layer_heights(new_count)
+    actual = validate_setting("inner_door_layer_heights_mm", heights)
+    return target if old_count != new_count and actual == old else actual
+
 
 def switch_filenames_in_layer(slot):
     """Return physical switch occurrences, never deduplicate quantity."""
