@@ -1022,7 +1022,17 @@ def hit_test_resolved_features(
     features: Iterable[ResolvedFeature],
     tolerance: float = 0.0,
 ) -> int | None:
-    tolerance = max(0.0, float(tolerance))
+    # The pick radius determines WHICH real Hole Editor feature is edited.
+    # Infinity would match unrelated holes; bool would become a 1-mm radius.
+    if isinstance(tolerance, bool):
+        raise ValueError("hit-test tolerance must be finite and nonboolean")
+    try:
+        measured = float(tolerance)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("hit-test tolerance must be finite") from exc
+    if not math.isfinite(measured):
+        raise ValueError("hit-test tolerance must be finite")
+    tolerance = max(0.0, measured)
     for index, feature in enumerate(features):
         if isinstance(feature, ResolvedCircle):
             dx = point.x - feature.center.x
