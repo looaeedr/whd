@@ -256,7 +256,7 @@ def test_r5_r6_manual_116_receiving_base_and_fixed_plate_sources_reject_huge_num
         },
     }
     valid = receiving_base_plate_values(original)
-    assert valid["height"] == pytest.approx(340.0)
+    assert valid["h"] == pytest.approx(340.0)
     assert valid["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_LEFT
     for field in ("height", "shrink_left", "bend"):
         damaged = {**original, "receiving_base_plate": {
