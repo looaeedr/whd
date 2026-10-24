@@ -495,3 +495,92 @@ def test_r4_52_folded_mesh_rejects_wrong_world_xyz_arity(bad_vertex):
             (((0., 0., 0.), (100., 0., 0.), bad_vertex),),
             thickness=2.,
         )
+
+
+@pytest.mark.parametrize("bad", [None, 0., -5., True, float("nan"), float("inf"), 10 ** 400])
+def test_r4_70_partially_missing_box_piece_world_datum_blocks_physical_3d(bad, monkeypatch):
+    """One real Box Body piece must never hide another unlocated physical sheet."""
+    from types import SimpleNamespace
+    import phase6_final_scene_projection as projection
+    import phase6_manufacturing_geometry as manufacturing
+
+    pieces = (
+        SimpleNamespace(role="left", formed_w_end=400.),
+        SimpleNamespace(role="right", formed_w_end=bad),
+    )
+    part = SimpleNamespace(part_key="box_body", render_data=SimpleNamespace(pieces=pieces))
+
+    def forbidden_manufacturing(*_args, **_kwargs):
+        raise AssertionError("partial physical datum must not enter world-space geometry")
+
+    monkeypatch.setattr(manufacturing, "_phase6_build_joint_world_geometry", forbidden_manufacturing)
+    with pytest.raises(ValueError, match="BOX_BODY_PIECE_OUTSIDE_DATUM"):
+        projection._phase6_box_body_true_world_piece_meshes(
+            part, dimensions=(800., 1600., 350.), thickness=2.,
+        )
+    with pytest.raises(ValueError, match="BOX_BODY_PIECE_OUTSIDE_DATUM"):
+        projection._phase6_box_body_structure_meshes(part.render_data, thickness=2.)
+
+
+def test_r4_70_both_true_physical_piece_datums_use_original_world_skin(monkeypatch):
+    from types import SimpleNamespace
+    import phase6_final_scene_projection as projection
+    import phase6_manufacturing_geometry as manufacturing
+
+    triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
+    left = SimpleNamespace(role="left", formed_w_end=400.)
+    right = SimpleNamespace(role="right", formed_w_end=800.)
+    part = SimpleNamespace(
+        part_key="box_body", render_data=SimpleNamespace(pieces=(left, right)),
+    )
+    monkeypatch.setattr(
+        manufacturing, "_phase6_build_joint_world_geometry",
+        lambda *_args, **_kwargs: {"world_triangles_by_part": {
+            "box_body:left": (triangle,), "box_body:right": (triangle,),
+        }},
+    )
+    assert projection._phase6_box_body_true_world_piece_meshes(
+        part, dimensions=(800., 1600., 350.), thickness=2.,
+    ) == ((left, (triangle,)), (right, (triangle,)))
+
+
+def test_r4_70_side_back_left_sheet_uses_formed_outer_width_not_zero_span(monkeypatch):
+    """Current three-piece SIDE/BACK structure legitimately anchors left side at W=0."""
+    from types import SimpleNamespace
+    import phase6_final_scene_projection as projection
+    import phase6_manufacturing_geometry as manufacturing
+
+    triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
+    left = SimpleNamespace(
+        role="left_side", formed_w_start=0., formed_w_end=0.,
+        formed_outer_width=350.,
+    )
+    back = SimpleNamespace(
+        role="back", formed_w_start=100., formed_w_end=700.,
+        formed_outer_width=600.,
+    )
+    right = SimpleNamespace(
+        role="right_side", formed_w_start=800., formed_w_end=800.,
+        formed_outer_width=350.,
+    )
+    part = SimpleNamespace(
+        part_key="box_body", render_data=SimpleNamespace(pieces=(left, back, right)),
+    )
+    monkeypatch.setattr(
+        manufacturing, "_phase6_build_joint_world_geometry",
+        lambda *_args, **_kwargs: {"world_triangles_by_part": {
+            "box_body:left_side": (triangle,),
+            "box_body:back": (triangle,),
+            "box_body:right_side": (triangle,),
+        }},
+    )
+    assert projection._phase6_box_body_true_world_piece_meshes(
+        part, dimensions=(800., 1600., 350.), thickness=2.,
+    ) == ((left, (triangle,)), (back, (triangle,)), (right, (triangle,)))
+
+    unlocated = SimpleNamespace(role="left_side", formed_w_end=0.)
+    part.render_data.pieces = (unlocated, back, right)
+    with pytest.raises(ValueError, match="BOX_BODY_PIECE_OUTSIDE_DATUM_INCOMPLETE"):
+        projection._phase6_box_body_true_world_piece_meshes(
+            part, dimensions=(800., 1600., 350.), thickness=2.,
+        )
