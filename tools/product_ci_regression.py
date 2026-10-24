@@ -431,6 +431,8 @@ PYTEST_PATHS = (
     "tests/test_manual_r6_corner_composition_validity_20261024.py",
     # R6 restored side/back panel contract and physical widths are finite.
     "tests/test_manual_r6_side_back_panel_source_finite_20261024.py",
+    # R6 assembly/collision UI clearance never permits unlimited nonfinite gap.
+    "tests/test_manual_r6_assembly_clearance_finite_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
