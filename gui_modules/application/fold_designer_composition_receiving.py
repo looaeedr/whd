@@ -934,7 +934,21 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         source, set_index=set_index, bay_index=bay_index,
     )
     settings = {**dict(app._settings_values), **{key: snapshot[key] for key in ("w", "h", "d")}}
-    snapshot.update(settings)
+    # Global settings are defaults, NOT authority for a selected Bay's Door
+    # topology, NFB submission or Set/Bay identity. Updating the full map
+    # used to reintroduce stale root door_layout_columns after a Bay resize
+    # (900x1700 over the old 800x1600), failing OPEN-Y manufacture.
+    from ae_engine.receiving_layout import (
+        RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
+    )
+    bay_authoritative = set(RECEIVING_DOOR_STATE_KEYS) | {
+        "nfb_config", "nfb_config_submitted",
+        "receiving_layout", RECEIVING_RUNTIME_SELECTION_KEY,
+    }
+    snapshot.update({
+        name: value for name, value in settings.items()
+        if name not in bay_authoritative
+    })
     snapshot["part_dimensions"] = project_part_dimensions(snapshot)
     from phase6_sync_envelope import stable_fingerprint
     # Only normal committed Bay previews may rebase world placement. Candidate
