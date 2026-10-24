@@ -7,6 +7,7 @@ remain in their existing AE modules.
 
 from __future__ import annotations
 
+from math import isfinite
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -269,7 +270,9 @@ class _RoundHoleSettingsDialog:
             return
         try:
             value = float(self.round_center.get())
-        except ValueError:
+        except (TypeError, ValueError, OverflowError):
+            return
+        if not isfinite(value):
             return
         self.round_driver.set("center")
         self.sync_guard = True
@@ -284,7 +287,9 @@ class _RoundHoleSettingsDialog:
             return
         try:
             value = float(self.round_gap.get())
-        except ValueError:
+        except (TypeError, ValueError, OverflowError):
+            return
+        if not isfinite(value):
             return
         self.round_driver.set("gap")
         self.sync_guard = True
@@ -297,8 +302,10 @@ class _RoundHoleSettingsDialog:
     def _driver_value(self):
         try:
             value = float(self.round_center.get() if self.round_driver.get() == "center" else self.round_gap.get())
-        except ValueError as exc:
+        except (TypeError, ValueError, OverflowError) as exc:
             raise ValueError("孔心距 / 間距必須是數字") from exc
+        if not isfinite(value):
+            raise ValueError("孔心距 / 間距必須是有限數字")
         if self.round_driver.get() == "center" and value <= 0:
             raise ValueError("孔心距必須大於 0")
         if self.round_driver.get() == "gap" and value < 0:
