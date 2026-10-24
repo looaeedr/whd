@@ -130,7 +130,7 @@ def seed_fresh_receiving_quantity_nfb_source(snapshot):
     from .receiving_nfb_csv_editor_features import editor_nfb_features_from_csv
     from .receiving_nfb_csv_committed_config import committed_csv_nfb_config
     from .receiving_quantity_box import BOX_KEY, project_common_box
-        from phase6_quantity_model import QuantityModel
+    from phase6_quantity_model import QuantityModel
 
     value = deepcopy(dict(snapshot or {}))
     if (value.get("model") not in ("受電箱", "RECEIVING")
