@@ -117,13 +117,13 @@ def test_swt12_current_nfb_staging_does_not_change_original_vault_family():
         "door_gap_w": 3.5, "door_gap_h": 3.5,
         "multi_door_enabled": False, "part_dimensions": {},
     }
-    before = deepcopy(vault)
     from types import SimpleNamespace
     holder = SimpleNamespace(
         _settings_values=deepcopy(vault),
         _phase6_input_snapshot=vault,
     )
     original = bridge._phase6_recalculate_part_dimensions(holder)
+    before = deepcopy(vault)  # Normal initial recalculation is expected to populate dimensions.
     editor_nfb_features_from_csv(state, {
         "layers": 1, "layer_heights_mm": [550.0, 800.0],
         "models": [numeric_model_ref("士林", "2P400"), ""],
@@ -138,8 +138,14 @@ def test_swt12_current_nfb_staging_does_not_change_original_vault_family():
 def test_swt12_actual_workspace_inner_door_csv_confirm_preserves_other_physical_owners():
     """A confirmed original-editor hole belongs to the inner panel only."""
     from phase6_designer_workspace import Phase6DesignerWorkspace
+    from phase6_receiving_modes import fresh_receiving_mode
 
-    state = _w800()
+    # Initialize through the real receiving Quantity constructor; do not bypass
+    # its required shared-box and saved version owner.
+    state = fresh_receiving_mode(
+        "quantity", {"w": 800, "h": 1600, "d": 350}, thickness=2.0,
+    )
+    state.update(_w800())
     panel = policy.derive_inner_door_panels(state)[0]
     state.update({
         "active_mode": "quantity",
