@@ -89,6 +89,7 @@ def _reset_layer_x(layer):
         slot["manual_x_mm"]=None
         slot["manual_x_state"]=NONE
         slot["datum_snapshot"]=None
+        slot.pop("datum_revision",None)
 
 
 def insert_nfb_slot(draft, layer_index, position, *, filename=None, brand=None):
@@ -141,10 +142,12 @@ def replace_nfb_slot_model(draft,layer_index,slot_index,filename,*,catalog):
     result=select_nfb_slot_model(state,layer_index,slot_index,filename,catalog=catalog)
     current=_get_slot(result,layer_index,slot_index)
     if before!=(current["filename"],current["source_brand"]):
+        # A changed model invalidates its old X source revision even when
+        # an older draft carried no explicit coordinate.
+        current["datum_snapshot"]=None
+        current.pop("datum_revision",None)
         if current["manual_x_mm"] is not None:
             current["manual_x_state"]=UNVERIFIED
-            # Q16 retains the operator offset, but never the old source datum.
-            current["datum_snapshot"]=None
     return result
 
 
@@ -180,12 +183,15 @@ def set_nfb_manual_x(draft,layer_index,slot_index,offset_mm,*,datum=None):
         slot["manual_x_mm"]=None
         slot["manual_x_state"]=NONE
         slot["datum_snapshot"]=None
+        slot.pop("datum_revision",None)
         return state
     if type(offset_mm) not in (int,float) or not isfinite(offset_mm):
         raise ValueError("NFB manual X offset must be finite, including zero")
     slot["manual_x_mm"]=float(offset_mm)
     slot["manual_x_state"]=UNVERIFIED
     slot["datum_snapshot"]=deepcopy(datum)
+    # A freshly authored draft X is never approved by a prior revision.
+    slot.pop("datum_revision",None)
     return state
 
 
