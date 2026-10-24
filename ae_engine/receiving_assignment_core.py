@@ -22,11 +22,24 @@ def validate_positions(layout, available_ids, quantities, assigned, *, expected_
         raise ValueError("請先加入候選版本與數量")
     if not isinstance(assigned, Mapping):
         raise ValueError("配置對應必須是連位與候選版本的映射")
-    ids = set(available_ids)
+    # Candidate inventories are sequences of version IDs, not a single
+    # string (set("v1") would otherwise authorize fake "v" and "1" IDs).
+    # The persisted candidate libraries own real nonempty string identities.
+    if isinstance(available_ids, (str, bytes, Mapping)):
+        raise ValueError("候選版本 ID 清單不合法")
+    try:
+        source_ids = tuple(available_ids)
+    except TypeError as exc:
+        raise ValueError("候選版本 ID 清單不合法") from exc
+    if any(not isinstance(version_id, str) or not version_id
+           for version_id in source_ids):
+        raise ValueError("候選版本 ID 清單不合法")
+    ids = set(source_ids)
     if not ids:
         raise ValueError("沒有可配置的候選版本")
     required = sum(counts)
-    if any(version_id not in ids or type(qty) is not int or qty <= 0
+    if any(not isinstance(version_id, str) or not version_id
+           or version_id not in ids or type(qty) is not int or qty <= 0
            for version_id, qty in quantities.items()):
         raise ValueError("版本或配置數量不合法")
     if sum(quantities.values()) != required:
@@ -41,7 +54,7 @@ def validate_positions(layout, available_ids, quantities, assigned, *, expected_
         raise ValueError("配置連位與目前套／連不一致")
     used = dict.fromkeys(quantities, 0)
     for version_id in assigned.values():
-        if version_id not in used:
+        if not isinstance(version_id, str) or version_id not in used:
             raise ValueError("配置中含未選擇的候選版本")
         used[version_id] += 1
     if any(used[key] != count for key, count in quantities.items()):
