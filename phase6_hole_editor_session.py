@@ -23,7 +23,9 @@ class HoleEditorAction:
 
     @classmethod
     def select(cls, index: int) -> "HoleEditorAction":
-        return cls("select", index=int(index))
+        if type(index) is not int:
+            raise TypeError("Hole Editor selected index must be an integer, not bool")
+        return cls("select", index=index)
 
     @classmethod
     def insert(cls, feature: Any) -> "HoleEditorAction":
@@ -60,10 +62,12 @@ class HoleEditorAction:
         *,
         selected_index: int = -1,
     ) -> "HoleEditorAction":
+        if type(selected_index) is not int:
+            raise TypeError("Hole Editor preview index must be an integer, not bool")
         return cls(
             "preview_all",
             features=tuple(features),
-            selected_index=int(selected_index),
+            selected_index=selected_index,
         )
 
 
@@ -200,7 +204,10 @@ class Phase6HoleEditorSession:
             # proposed features BEFORE altering the caller-owned live list
             # or starting an active edit; a rejected preview must be inert.
             proposed = list(action.features or ())
-            index = int(action.selected_index if action.selected_index is not None else -1)
+            raw_index = action.selected_index if action.selected_index is not None else -1
+            if type(raw_index) is not int:
+                raise ValueError("Hole Editor preview index must be integer, not bool")
+            index = raw_index
             if index != -1 and not 0 <= index < len(proposed):
                 raise IndexError(index)
             self._begin_active_if_needed()
@@ -243,7 +250,8 @@ class Phase6HoleEditorSession:
     def _required_index(self, index: int | None) -> int:
         if index is None:
             raise ValueError("action requires index")
-        index = int(index)
+        if type(index) is not int:
+            raise ValueError("Hole Editor index must be integer, not bool")
         if not 0 <= index < len(self.active_features):
             raise IndexError(index)
         return index
