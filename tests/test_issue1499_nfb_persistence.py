@@ -604,3 +604,40 @@ def test_ac23_explicit_matching_rotation_and_model_datum_keeps_confirmation():
         nfb_config_submitted=True, nfb_config=config,
     )
     assert updated["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+
+
+@pytest.mark.parametrize(("basis_key", "bad_value"), (
+    ("rotation_deg", 180),
+    ("rotation_deg", "90"),
+    ("model_filename", "nfbv5:士林:3P125SN"),
+))
+def test_ac23_explicit_stale_model_or_angle_rechecks_without_bay_width_context(
+    basis_key, bad_value,
+):
+    """A direct saved owner record must reject a contradictory X basis too."""
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    hole = config["holes"][0]
+    hole["datum_snapshot"].update({
+        "rotation_deg": 90, "model_filename": hole["model_filename"],
+    })
+    hole["datum_snapshot"][basis_key] = bad_value
+    source = {"nfb_config_submitted": True, "nfb_config": config}
+    frozen = deepcopy(source)
+    result = normalize_nfb_saved_fields(source)
+    saved = result["nfb_config"]["holes"][0]
+    assert saved["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert saved["manual_x_mm"] == 0
+    assert saved["datum_snapshot"] == hole["datum_snapshot"]
+    assert source == frozen
+
+
+def test_ac23_matching_explicit_source_without_width_does_not_fabricate_reconfirm():
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    config["holes"][0]["datum_snapshot"].update({
+        "rotation_deg": 90,
+        "model_filename": config["holes"][0]["model_filename"],
+    })
+    row = normalize_nfb_saved_fields({
+        "nfb_config_submitted": True, "nfb_config": config,
+    })
+    assert row["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
