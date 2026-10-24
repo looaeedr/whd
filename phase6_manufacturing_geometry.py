@@ -608,14 +608,27 @@ def _phase6_joint_relief_state_item_matches(item, joint, source_material):
         or item.get("verified") is not True
     ):
         return False
+    import math
+    raw_bounds = item.get("source_material_bounds", ())
+    raw_area = item.get("source_material_area")
+    # Saved proof is not a display value: bool must never alias 0/1 mm or
+    # 0/1 mm2 and reuse a previous cutting result after source changes.
+    if (not isinstance(raw_bounds, (tuple, list)) or len(raw_bounds) != 4
+            or isinstance(raw_area, bool)
+            or any(isinstance(v, bool) for v in raw_bounds)):
+        return False
     try:
-        saved_bounds = tuple(float(v) for v in item.get("source_material_bounds", ()))
-        saved_area = float(item.get("source_material_area"))
+        saved_bounds = tuple(float(v) for v in raw_bounds)
+        saved_area = float(raw_area)
         current_bounds = tuple(float(v) for v in source_material.bounds)
         current_area = float(source_material.area)
-    except Exception:
+    except (TypeError, ValueError, OverflowError):
         return False
-    return len(saved_bounds) == 4 and all(abs(a-b) <= 1e-6 for a,b in zip(saved_bounds,current_bounds)) and abs(saved_area-current_area) <= 1e-6
+    if (len(current_bounds) != 4 or not all(math.isfinite(v) for v in
+            (*saved_bounds, *current_bounds, saved_area, current_area))):
+        return False
+    return (all(abs(a-b) <= 1e-6 for a, b in zip(saved_bounds, current_bounds))
+            and abs(saved_area-current_area) <= 1e-6)
 
 
 def _phase6_cut_geometry_from_state_item(item):
