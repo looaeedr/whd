@@ -324,6 +324,8 @@ def reconcile_box_body_structure_for_total_w_change(
     """
     result = normalize_box_body_structure_state(state)
     total = _finite_dimension(total_w, field="箱身總寬")
+    if total <= 0:
+        raise ValueError("箱身總寬必須大於 0")
 
     two_key = BoxBodyStructureType.TWO_PIECE_W_SPLIT.value
     two = result["configs"][two_key]
