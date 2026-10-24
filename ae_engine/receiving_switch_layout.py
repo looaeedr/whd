@@ -52,8 +52,10 @@ def new_receiving_switch_layout(*, brand: object = RECEIVING_SWITCH_BRANDS[0]) -
 
 
 def normalize_receiving_switch_layout(layout: Mapping[str, object] | None) -> dict[str, object]:
-    if not isinstance(layout, Mapping):
+    if layout is None:
         return new_receiving_switch_layout()
+    if not isinstance(layout, Mapping):
+        raise ValueError("Receiving switch layout must be a mapping")
     if str(layout.get("schema") or "") != RECEIVING_SWITCH_LAYOUT_SCHEMA:
         raise ValueError(f"unsupported Receiving switch layout schema: {layout.get('schema')!r}")
     raw_layers = layout.get("layers")
