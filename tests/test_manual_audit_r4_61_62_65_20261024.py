@@ -244,3 +244,33 @@ def test_r4_62_saved_inner_door_frame_numeric_overflow_has_typed_error(source, f
     with pytest.raises(ValueError, match="inner-door frame (thickness|span) must be"):
         derive_inner_door_frames("upper", spans=spans, thickness=t)
     assert inner_door_frame_formed_occupation(2.) == pytest.approx(50.)
+
+
+@pytest.mark.parametrize("source", ["depth", "thickness", "frame_width", "horizontal_thickness"])
+def test_r4_62_real_divider_generation_rejects_oversized_sources(source):
+    """Corrupt structural divider input must be controlled before 2D/3D geometry."""
+    payload = {
+        "depth": 350., "thickness": 2., "frame_width": 29.,
+        "layout_scope": "box_body",
+    }
+    columns = [(400., [1100.]), (400., [1100.])]
+    if source == "horizontal_thickness":
+        columns = [(800., [550., 550.])]
+        payload["thickness"] = 10 ** 400
+    else:
+        payload[source] = 10 ** 400
+    with pytest.raises(ValueError, match="divider (depth/thickness/span|frame_width) must be"):
+        derive_box_body_dividers(columns, **payload)
+
+    vertical = derive_box_body_dividers(
+        [(400., [1100.]), (400., [1100.])],
+        depth=350., thickness=2., frame_width=29., layout_scope="box_body",
+    )
+    assert len(vertical) == 1 and vertical[0].axis == "VERTICAL"
+    assert vertical[0].span == pytest.approx(1100.)
+    horizontal = derive_box_body_dividers(
+        [(800., [550., 550.])],
+        depth=350., thickness=2., frame_width=29., layout_scope="box_body",
+    )
+    assert len(horizontal) == 1 and horizontal[0].axis == "HORIZONTAL"
+    assert horizontal[0].span > 0.
