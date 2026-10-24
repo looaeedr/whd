@@ -158,7 +158,9 @@ def _profile_material_segments(axis: str, rows, *, source: str) -> tuple[Materia
     result = []
     for index, row in enumerate(tuple(rows or ())):
         name = str(getattr(row, "phase6_key", None) or getattr(row, "core", None) or f"segment_{index}")
-        result.append(MaterialSegment(axis, name, float(getattr(row, "length", 0.0)), source))
+        # Pass raw source to MaterialSegment before float() could turn True/False
+        # into fabricated 1/0 mm of physical blank material.
+        result.append(MaterialSegment(axis, name, getattr(row, "length", 0.0), source))
     return tuple(result)
 
 
