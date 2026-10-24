@@ -71,3 +71,16 @@ def test_r5_89_hole_session_bool_selection_never_mutates():
     with pytest.raises(ValueError):
         session.execute(HoleEditorAction("preview_all", features=(), selected_index=False))
     assert session.snapshot() == before
+
+
+@pytest.mark.parametrize("invalid", [True, False, float("nan"), float("inf"), float("-inf"), 10 ** 400])
+def test_r5_86_final_joint_frame_cannot_store_nonphysical_coordinate(invalid):
+    """World U/V/Y/Z may never silently canonicalize a bool or NaN to a hole."""
+    from ae_engine.receiving_joint_locks import (
+        _canonical_number, ReceivingJointLockPatternError,
+        RECEIVING_LOCK_PATTERN_BOUNDS_VIOLATION,
+    )
+    with pytest.raises(ReceivingJointLockPatternError, match=RECEIVING_LOCK_PATTERN_BOUNDS_VIOLATION):
+        _canonical_number(invalid)
+    assert _canonical_number(1.2345678904) == 1.23456789
+    assert _canonical_number(-0.5) == -0.5
