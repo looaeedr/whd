@@ -434,3 +434,34 @@ def test_ac23_two_bay_stale_second_datum_blocks_both_and_skips_confirmation():
     assert callbacks == []
     assert original == unchanged
     assert all("nfb_config" not in bay for bay in original["sets"][0]["bays"])
+
+
+@pytest.mark.parametrize("malformed_locations", (
+    (("nfb:0:slot1", "0", 1, 0, 90),),
+    (("nfb:0:slot1", True, 1, 0, 90),),
+    (("nfb:0:slot1", 0., True, 0, 90),),
+    (("nfb:0:slot1", 0., 1, False, 90),),
+    (("nfb:0:slot1", 0., 1, 0, "90"),),
+    (["nfb:0:slot1", 0., 1, 0, 90],),
+    (("nfb:0:slot1", 0., 1, 0),),
+    (([], 0., 1, 0, 90),),
+))
+def test_ac23_malformed_verified_cutting_witness_rejects_before_operator_confirmation(
+    malformed_locations,
+):
+    """A typed render with malformed real hole observations is never consent."""
+    original = layout()
+    before = deepcopy(original)
+    scope, source, verified = evidence(original, 0)
+    corrupted = replace(verified, verified_hole_locations=malformed_locations)
+    confirmation = []
+    with pytest.raises(ValueError, match="verified physical X/Y/rotation evidence"):
+        submit_nfb_bays(
+            original, set_index=0, bay_indices=(0,), version_id="v1",
+            configs={0: config(owner="nfb:0:slot1")},
+            evidence={0: (scope, source, corrupted)},
+            confirm=lambda _: confirmation.append(True) or True,
+        )
+    assert confirmation == []
+    assert original == before
+    assert "nfb_config" not in original["sets"][0]["bays"][0]
