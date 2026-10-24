@@ -301,3 +301,14 @@ def test_ac38_real_dxf_color_inventory_drives_physical_partial_manifest(
     assert revoked.authorized_part_ids == ("side1",)
     assert revoked.actual_export_count == 3
     assert not revoked.whole_ready
+
+
+@pytest.mark.parametrize("invalid_flag", (0, 1, None, "", "true", [], {}))
+def test_ac39_partial_export_requires_explicit_boolean(invalid_flag, tmp_path):
+    manifest = derive_nfb_partial_export_manifest(**_prepared(tmp_path))
+    assert manifest.partial_only and not manifest.whole_ready
+    with pytest.raises(TypeError, match="explicit boolean"):
+        manifest.require_export(("inner1",), partial=invalid_flag)
+    assert manifest.require_export(("inner1",), partial=True) == ("inner1",)
+    with pytest.raises(ValueError, match="partial only"):
+        manifest.require_export(("inner1",), partial=False)
