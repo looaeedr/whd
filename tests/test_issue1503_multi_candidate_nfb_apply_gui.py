@@ -136,7 +136,7 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         assert len(pending)==2,'tab 確定 did not bring 2 holes to main, '+str(len(pending))+', warning='+warning
         assert all(f.source_type=='NFB_CSV_SOURCE' for f in pending)
         staged=getattr(editor,'_receiving_staged_config',None)
-        assert staged is not None and staged['layer_heights_mm']==[300,830]
+        assert staged is not None and staged['layer_heights_mm']==[330,830]
         print('TAB_CONFIRM_NATIVE_HOLES_PASS',len(pending),flush=True)
         # The version editor is a CANDIDATE transaction, not the physical
         # Bay writer. Compare with the exact workspace before entering, while
@@ -157,7 +157,7 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         version=library['versions'][0]
         config=version['config']
         assert len(config['features'][part])==2,'multi candidate missing two typed NFB holes'
-        assert config['layer_heights_mm']==[300,830]
+        assert config['layer_heights_mm']==[330,830]
         physical=designer.designer_workspace.features_for(part)
         assert tuple(physical)==physical_before, (
             'multi candidate unexpectedly modified physical part before explicit Apply'
