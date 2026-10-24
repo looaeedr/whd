@@ -7,6 +7,12 @@ import phase6_box_body_structure as body
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf"), True, False, "NaN", "Infinity"])
 @pytest.mark.parametrize("fn", [
     lambda bad: body.resolve_two_piece_widths({}, bad),
+    lambda bad: body.activate_structure_with_defaults(
+        {}, body.BoxBodyStructureType.TWO_PIECE_W_SPLIT, bad
+    ),
+    lambda bad: body.activate_structure_with_defaults(
+        {}, body.BoxBodyStructureType.THREE_PIECE_W_SPLIT, bad
+    ),
     lambda bad: body.set_two_piece_width({}, 800, "left", bad, manual=False),
     lambda bad: body.set_two_piece_width({}, bad, "left", 200, manual=False),
     lambda bad: body.set_three_piece_width({}, 800, "middle", bad, manual=False),
