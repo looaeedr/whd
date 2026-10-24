@@ -488,3 +488,67 @@ def test_ac23_boolean_bay_mapping_keys_cannot_alias_integer_target(bool_in):
     assert confirmed == []
     assert original == frozen
     assert "nfb_config" not in original["sets"][0]["bays"][1]
+
+
+@pytest.mark.parametrize(("owner_key", "other_value"), (
+    ("set_id", "another-physical-set"),
+    ("bay_id", "another-physical-bay"),
+    ("version_id", "previous-version"),
+    ("cutting_source_sha256", "0" * 64),
+    ("cutting_source_sha256", True),
+))
+def test_ac23_explicit_datum_owner_change_requires_new_operator_approval(
+    owner_key, other_value,
+):
+    """Old per-hole Set/Bay/version/CUTTING source X proof cannot be reused."""
+    original = layout()
+    frozen = deepcopy(original)
+    supplied = config(owner="nfb:0:slot1")
+    supplied["holes"][0]["datum_snapshot"][owner_key] = other_value
+    confirmed = []
+    with pytest.raises(ValueError, match="X datum owner.*reconfirmation"):
+        submit_nfb_bays(
+            original, set_index=0, bay_indices=(0,), version_id="v1",
+            configs={0: supplied}, evidence={0: evidence(original, 0)},
+            confirm=lambda _: confirmed.append(True) or True,
+        )
+    assert confirmed == []
+    assert original == frozen
+    assert "nfb_config" not in original["sets"][0]["bays"][0]
+
+
+def test_ac23_explicit_matching_owner_source_preserves_valid_approved_zero_x():
+    original = layout()
+    supplied = config(owner="nfb:0:slot1")
+    supplied["holes"][0]["datum_snapshot"].update({
+        "set_id": original["sets"][0]["stable_id"],
+        "bay_id": original["sets"][0]["bays"][0]["stable_id"],
+        "version_id": "v1",
+        "cutting_source_sha256": SHA,
+    })
+    result = do_submit(original, configs={0: supplied})
+    assert result.changed is True
+    hole = result.layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert hole["manual_x_mm"] == 0 and hole["manual_x_state"] == "CONFIRMED"
+
+
+def test_ac23_copy_target_rejects_explicit_original_bay_datum_owner():
+    original = do_submit(layout()).layout
+    frozen = deepcopy(original)
+    source_bay = original["sets"][0]["bays"][0]["stable_id"]
+    target = config(owner="nfb:1:slot1", x=100)
+    target["holes"][0]["datum_snapshot"].update({
+        "bay_id": source_bay, "version_id": "v1",
+        "cutting_source_sha256": SHA,
+    })
+    confirmed = []
+    with pytest.raises(ValueError, match="X datum owner.*reconfirmation"):
+        copy_submitted_nfb_bay(
+            original, set_index=0, source_bay_index=0, target_bay_index=1,
+            version_id="v1", target_config=target,
+            evidence=evidence(original, 1, x=100),
+            confirm=lambda _: confirmed.append(True) or True,
+        )
+    assert confirmed == []
+    assert original == frozen
+    assert "nfb_config" not in original["sets"][0]["bays"][1]
