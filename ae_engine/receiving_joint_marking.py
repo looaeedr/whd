@@ -811,10 +811,50 @@ def _longest_contact_boundary(contact: ResolvedLegalContact):
     return rows[0][2], rows[0][3]
 
 
-def _backproject_contact_boundary(contact):
+def _front_contact_boundary(contact: ResolvedLegalContact, expected_world_z: float):
+    """Mark the actual FRONT (+Z) contacting flange edge, not longest/center.
+
+    The installed front edge is the user's outer-door inward datum. The
+    last flange may extend any length toward the rear; that length cannot
+    shift the installation mark.
+    """
+    import math
+
+    target = float(expected_world_z)
+    if not math.isfinite(target):
+        raise ValueError("Receiving frame front Z datum must be finite")
+    points = tuple(tuple(float(v) for v in p) for p in tuple(contact.overlap_world or ()))
+    if len(points) < 3:
+        raise ValueError("Receiving frame has no bounded physical contact footprint")
+    rows = []
+    for index, a in enumerate(points):
+        b = points[(index + 1) % len(points)]
+        if (abs(a[2] - target) > 1e-5
+                or abs(b[2] - target) > 1e-5):
+            continue
+        length = _norm(_sub(b, a))
+        if length <= 1e-9:
+            continue
+        signature = tuple(round(v, 9) for point in sorted((a, b)) for v in point)
+        rows.append((-float(length), signature, a, b))
+    if not rows:
+        raise ValueError(
+            "RECEIVING_FRAME_FRONT_CONTACT_Z_MISMATCH: "
+            f"requested front Z={target:g}, "
+            f"actual contact Z={tuple(round(p[2], 6) for p in points)!r}"
+        )
+    rows.sort(key=lambda row: (row[0], row[1]))
+    return rows[0][2], rows[0][3]
+
+
+def _backproject_contact_boundary(contact, *, frame_front_world_z=None):
     from .assembly_marking_geometry import backproject_locator_world_points
 
-    world_segment = _longest_contact_boundary(contact)
+    world_segment = (
+        _longest_contact_boundary(contact)
+        if frame_front_world_z is None
+        else _front_contact_boundary(contact, frame_front_world_z)
+    )
     projected = backproject_locator_world_points(contact, world_segment)
     if projected.status != "RESOLVED" or len(projected.flat_points) != 2:
         raise ValueError(
@@ -826,8 +866,11 @@ def _backproject_contact_boundary(contact):
 def _mark_row(
     *, locator_id: str, attached_id: str, boundary_role: str, contact,
     policy_id: str = RECEIVING_POLICY_ID,
+    frame_front_world_z=None,
 ):
-    world_segment, flat_segment = _backproject_contact_boundary(contact)
+    world_segment, flat_segment = _backproject_contact_boundary(
+        contact, frame_front_world_z=frame_front_world_z
+    )
     p1, p2 = flat_segment
     data = {
         "mark_id": stable_joint_mark_id(
@@ -1049,6 +1092,13 @@ def resolve_receiving_joint_markings(
     results = []
     for item in items:
         door_id = str(item["stable_id"])
+        from .assembly_placement import resolve_inner_door_panel_placement
+        # Outer-door inward distance defines the frame's FRONT, independent
+        # of its final 22-mm flange length. The panel datum already carries
+        # the exact family depth contract and this door's configured inset.
+        frame_front_world_z = float(
+            resolve_inner_door_panel_placement(snapshot_map, door_id).world_offset[2]
+        )
         included = {
             str(side).strip().lower()
             for side in tuple(item.get("included_frame_sides") or ("top", "left", "right"))
@@ -1128,6 +1178,7 @@ def resolve_receiving_joint_markings(
                         attached_id=frame_id,
                         boundary_role=boundary_role,
                         contact=contact,
+                        frame_front_world_z=frame_front_world_z,
                     )
                     # Fail before writeback when the contact-derived line cannot
                     # land on the true locator mother plate.
