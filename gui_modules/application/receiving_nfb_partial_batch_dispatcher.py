@@ -113,6 +113,18 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
             if manifest.scope.identity != (
                     expected.get("set_id"), expected.get("bay_id"), expected.get("version_id")):
                 raise ValueError("NFB writer Set/Bay/version ownership changed")
+            # Matching Set/Bay/version does not prove that the writer kept the
+            # same physical panel: verify the BEFORE/AFTER inner-door owner.
+            expected_inner_ids = tuple(
+                row.get("part_id") for row in expected.get("rows", ())
+                if isinstance(row, Mapping) and row.get("role") == INNER_DOOR
+                and row.get("status") == "READY"
+                and row.get("may_export") is True
+            )
+            if (len(expected_inner_ids) != 1
+                    or not isinstance(expected_inner_ids[0], str)
+                    or expected_inner_ids[0] != manifest.scope.inner_door_part_id):
+                raise ValueError("NFB writer physical inner-door ownership changed")
             manifest.require_export((manifest.scope.inner_door_part_id,), partial=True)
             if (manifest.scope.submitted is not True
                     or manifest.scope.inner_door_part_id not in
