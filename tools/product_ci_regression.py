@@ -207,6 +207,8 @@ PYTEST_PATHS = (
     "tests/test_receiving_switch_model_catalog_20261011.py",
     "tests/test_issue1492_nfb_real_dxf_preview.py",
     "tests/test_issue1504_ac03_ac15_native_source_panel.py",
+    "tests/test_issue1504_swt12_cross_owner_baseline.py",
+    "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py",
     "tests/test_issue1493_nfb_draft_transactions.py",
     "tests/test_issue1497_nfb_cutting_preflight.py",
     "tests/test_issue1497_configured_nfb_manufacturing_release.py",
@@ -215,6 +217,9 @@ PYTEST_PATHS = (
     # even though test cases existed: actual 1100 Y, saved NFB schema,
     # source-scoped per-piece partial export. No duplicate selectors.
     "tests/test_issue1495_receiving_nfb_y_projection.py",
+    # Actual highlighted Set/Bay dimension adapter: NFB X invalidation must
+    # preserve the one-normalization batch performance contract.
+    "tests/test_issue1112_receiving_set_bay_editor.py",
     "tests/test_issue1499_nfb_persistence.py",
     "tests/test_issue1501_nfb_export_manifest.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
