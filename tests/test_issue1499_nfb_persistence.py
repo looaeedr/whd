@@ -556,3 +556,51 @@ def test_ac23_unhashable_receiving_mode_fails_closed(malformed_mode):
     with pytest.raises(ValueError, match="箱體操作模式"):
         normalize_quantity_snapshot(source, for_save=True)
     assert source == before
+
+
+@pytest.mark.parametrize(("basis_key", "changed_value"), (
+    ("rotation_deg", 180),
+    ("rotation_deg", "90"),
+    ("model_filename", "nfbv5:士林:3P125SN"),
+))
+def test_ac23_explicit_saved_rotation_or_model_datum_mismatch_requires_reconfirmation(
+    tmp_path, basis_key, changed_value,
+):
+    """A named X owner proof may not survive incompatible saved model/angle."""
+    layout = _layout()
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    hole = config["holes"][0]
+    hole["datum_snapshot"] = {
+        "width": 800, "thickness": 2, "rotation_deg": 90,
+        "model_filename": "nfbv5:士林:2P400",
+    }
+    if basis_key == "rotation_deg" and isinstance(changed_value, str):
+        hole["datum_snapshot"]["rotation_deg"] = changed_value
+    else:
+        hole[basis_key] = changed_value
+    saved = deepcopy(layout)
+    saved["sets"][0]["bays"][0]["nfb_config_submitted"] = True
+    saved["sets"][0]["bays"][0]["nfb_config"] = config
+    before = deepcopy(saved)
+    normalized = normalize_receiving_layout(saved)
+    current = normalized["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert current["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert current["manual_x_mm"] == 0
+    assert current["datum_snapshot"] == hole["datum_snapshot"]
+    assert saved == before
+    path = write_project(tmp_path / "recheck-named-source.p6fold", _payload(saved))
+    reopened = read_project(path)["snapshot"]["receiving_layout"]["sets"][0]["bays"][0]
+    assert reopened["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+
+
+def test_ac23_explicit_matching_rotation_and_model_datum_keeps_confirmation():
+    layout = _layout()
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    config["holes"][0]["datum_snapshot"].update({
+        "rotation_deg": 90, "model_filename": "nfbv5:士林:2P400",
+    })
+    updated = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=config,
+    )
+    assert updated["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
