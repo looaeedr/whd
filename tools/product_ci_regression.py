@@ -405,6 +405,8 @@ PYTEST_PATHS = (
     "tests/test_manual_r7_custom_and_finite_guard_20261024.py",
     # R5 #72/#74/#75/#78/#79 source-verified regressions.
     "tests/test_manual_r5_source_numeric_holes_20261024.py",
+    # R6 saved structure locks, conflicting partial widths, and EndCap key bounds.
+    "tests/test_manual_r6_structure_reconciliation_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
