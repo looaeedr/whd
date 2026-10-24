@@ -307,3 +307,25 @@ def test_matching_new_width_basis_can_be_explicitly_reconfirmed_without_guesswor
     assert hole["manual_x_state"] == "CONFIRMED"
     assert hole["manual_x_mm"] == 0
     assert hole["datum_snapshot"]["width"] == 750
+
+
+@pytest.mark.parametrize("recorded_datum_width, expected_state", [
+    (750, "CONFIRMED"),
+    (800, "RECONFIRM_REQUIRED"),
+])
+def test_old_project_numeric_string_width_respects_current_x_reconfirmation(
+    recorded_datum_width, expected_state,
+):
+    raw = _layout()
+    bay = raw["sets"][0]["bays"][0]
+    bay["width"] = "750"  # Original Receiving parser accepts numeric text.
+    config = _config(x=0)
+    config["holes"][0]["datum_snapshot"] = {
+        "width": recorded_datum_width, "thickness": 2,
+    }
+    bay["nfb_config_submitted"] = True
+    bay["nfb_config"] = config
+    normalized = normalize_receiving_layout(raw)
+    checked = normalized["sets"][0]["bays"][0]
+    assert checked["width"] == pytest.approx(750)
+    assert checked["nfb_config"]["holes"][0]["manual_x_state"] == expected_state
