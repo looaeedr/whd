@@ -30,21 +30,32 @@ class StripFoldChain:
         return sum(float(s.length) + float(s.compensation) for s in self.segments)
 
 
+def _finite_strip_number(value, error_message: str) -> float:
+    if isinstance(value, bool):
+        raise GeometryError(error_message)
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise GeometryError(error_message) from exc
+    if not math.isfinite(result):
+        raise GeometryError(error_message)
+    return result
+
+
 def _validate_strip_chain(chain: StripFoldChain) -> None:
-    if (isinstance(chain.height, bool) or not math.isfinite(float(chain.height))
-            or chain.height <= 0):
+    if _finite_strip_number(
+        chain.height, "strip height must be greater than zero"
+    ) <= 0:
         raise GeometryError("strip height must be greater than zero")
     if len(chain.segments) < 2:
         raise GeometryError("strip chain requires at least two segments")
     for segment in chain.segments:
-        if (isinstance(segment.length, bool)
-                or isinstance(segment.compensation, bool)
-                or not math.isfinite(float(segment.length))
-                or not math.isfinite(float(segment.compensation))):
-            raise GeometryError(f"segment {segment.name} dimensions must be finite numbers")
-        if segment.length < 0:
+        message = f"segment {segment.name} dimensions must be finite numbers"
+        length = _finite_strip_number(segment.length, message)
+        compensation = _finite_strip_number(segment.compensation, message)
+        if length < 0:
             raise GeometryError(f"segment {segment.name} length must not be negative")
-        if segment.length + segment.compensation <= 0:
+        if length + compensation <= 0:
             raise GeometryError(f"segment {segment.name} effective length must be positive")
 
 

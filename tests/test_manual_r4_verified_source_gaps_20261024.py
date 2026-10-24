@@ -584,3 +584,53 @@ def test_r4_70_side_back_left_sheet_uses_formed_outer_width_not_zero_span(monkey
         projection._phase6_box_body_true_world_piece_meshes(
             part, dimensions=(800., 1600., 350.), thickness=2.,
         )
+
+
+def test_r4_61_oversized_json_strip_geometry_fails_closed_without_changing_bends():
+    from ae_engine.sheetmetal_geometry_core import GeometryError
+    from ae_engine.sheetmetal_strip_geometry import (
+        FoldSegment, StripFoldChain, build_strip_outline, build_strip_bend_segments,
+    )
+    valid = StripFoldChain(
+        segments=(FoldSegment("left", 30., 0.), FoldSegment("core", 70., 0.)),
+        height=100.,
+    )
+    assert [(p.x, p.y) for p in build_strip_outline(valid)][:3] == [
+        (0., 0.), (100., 0.), (100., 100.),
+    ]
+    assert [row.p1.x for row in build_strip_bend_segments(valid)] == [30.]
+    bad_cases = (
+        StripFoldChain(valid.segments, 10 ** 400),
+        StripFoldChain((FoldSegment("left", 10 ** 400), valid.segments[1]), 100.),
+        StripFoldChain((FoldSegment("left", 30., 10 ** 400), valid.segments[1]), 100.),
+    )
+    for bad in bad_cases:
+        with pytest.raises(GeometryError, match="strip height|segment left"):
+            build_strip_outline(bad)
+        with pytest.raises(GeometryError, match="strip height|segment left"):
+            build_strip_bend_segments(bad)
+
+
+def test_r4_61_oversized_json_four_side_and_corner_relief_fail_closed():
+    from dataclasses import replace
+    from ae_engine.sheetmetal_geometry_core import CornerTypeSelection, GeometryError
+    from ae_engine.sheetmetal_four_side_geometry import (
+        FourSideFlangeGeometry, RectCornerReliefPolicy,
+        _validate_four_side_geometry, _validate_four_side,
+    )
+    g = FourSideFlangeGeometry(300., 400., 2., 19., 19., 19., 19.)
+    policy = RectCornerReliefPolicy(25., 25., 25., 25., 25., 25.)
+    _validate_four_side(g, policy)
+    for field in ("total_width", "total_height", "thickness",
+                  "left_fold", "right_fold", "top_fold", "bottom_fold"):
+        with pytest.raises(GeometryError, match="FourSide geometry dimensions must be finite numbers"):
+            _validate_four_side_geometry(replace(g, **{field: 10 ** 400}))
+    for field in ("bottom_left_x", "bottom_right_x", "top_left_x",
+                  "top_right_x", "bottom_y", "top_y"):
+        with pytest.raises(GeometryError, match="relief dimensions must be finite numbers"):
+            _validate_four_side(g, replace(policy, **{field: 10 ** 400}))
+    with pytest.raises(GeometryError, match="corner rotation must be a finite integer"):
+        CornerTypeSelection(type_id="C01", rotation_quadrants=10 ** 400)
+    with pytest.raises(GeometryError, match="截角量必須為有限數值"):
+        CornerTypeSelection(type_id="C01", amount_t=10 ** 400)
+    assert CornerTypeSelection(type_id="C01", rotation_quadrants=4).rotation_quadrants == 0

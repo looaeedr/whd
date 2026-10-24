@@ -175,7 +175,10 @@ class CornerTypeSelection:
         object.__setattr__(self, "type_id", type_id)
         if isinstance(self.rotation_quadrants, bool):
             raise GeometryError("corner rotation must not be bool")
-        rotation = float(self.rotation_quadrants)
+        try:
+            rotation = float(self.rotation_quadrants)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise GeometryError("corner rotation must be a finite integer") from exc
         if not math.isfinite(rotation) or not rotation.is_integer():
             raise GeometryError("corner rotation must be a finite integer")
         object.__setattr__(self, "rotation_quadrants", int(rotation) % 4)
@@ -185,7 +188,10 @@ class CornerTypeSelection:
                 return None
             if isinstance(value, bool):
                 raise GeometryError(f"{field}不可為布林值")
-            result = float(value)
+            try:
+                result = float(value)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise GeometryError(f"{field}必須為有限數值") from exc
             if not math.isfinite(result):
                 raise GeometryError(f"{field}必須為有限數值")
             return result
