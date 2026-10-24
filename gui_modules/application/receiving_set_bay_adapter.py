@@ -278,11 +278,22 @@ class ReceivingSetBayAdapter:
                 candidate = deepcopy(self._layout)
             # Existing update_receiving_bay() casts numeric inputs to float
             # before canonical normalization; preserve that data contract.
-            candidate["sets"][index]["bays"][bay_index] = {
+            updated_bay = {
                 **current, **{axis: float(value) for axis, value in changes.items()
                               if axis in ("width", "height", "depth")},
                 **({"door_state": changes["door_state"]} if "door_state" in changes else {}),
             }
+            if (float(current["width"]) != width
+                    and updated_bay.get("nfb_config_submitted") is True):
+                # This fast multi-selection operator intentionally bypasses
+                # update_receiving_bay's repeated full-layout normalization.
+                # It must still enforce that same per-Bay X datum invalidation
+                # when the physical width changes; never keep old confirmed X.
+                from ae_engine.receiving_nfb_persistence import reconfirm_copied_nfb_config
+                updated_bay["nfb_config"] = reconfirm_copied_nfb_config(
+                    updated_bay["nfb_config"]
+                )
+            candidate["sets"][index]["bays"][bay_index] = updated_bay
             dirty.append(str(current["stable_id"]))
         if not dirty:
             return 0
