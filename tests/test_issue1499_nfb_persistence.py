@@ -519,3 +519,43 @@ def test_quantity_live_projection_rechecks_shared_w_against_version_x_before_ren
     ]["holes"][0]
     assert accepted["manual_x_state"] == "CONFIRMED"
     assert accepted["manual_x_mm"] == 0
+
+
+@pytest.mark.parametrize("malformed_state", [[], {}, ["CONFIRMED"], {"value": "CONFIRMED"}])
+def test_ac23_unhashable_saved_nfb_x_state_is_a_controlled_rejection(
+    malformed_state, tmp_path,
+):
+    """#1504: corrupt saved operator X state cannot crash or authorize DXF."""
+    layout = _layout()
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    config["holes"][0]["manual_x_state"] = deepcopy(malformed_state)
+    layout["sets"][0]["bays"][0]["nfb_config_submitted"] = True
+    layout["sets"][0]["bays"][0]["nfb_config"] = config
+    original = deepcopy(layout)
+    with pytest.raises(ValueError, match="manual_x_state"):
+        normalize_receiving_layout(layout)
+    assert layout == original
+    # Use the real .p6fold writer boundary, not a fabricated manifest.
+    with pytest.raises(ValueError, match="manual_x_state"):
+        write_project(tmp_path / "invalid-x-state.p6fold", _payload(layout))
+
+
+@pytest.mark.parametrize("malformed_schema", [[], {}, ["phase6-quantity-v3"]])
+def test_ac23_unhashable_quantity_schema_fails_closed(malformed_schema):
+    """A malformed V3 owner may not escape the canonical version validator."""
+    model = QuantityModel().snapshot()
+    model["schema"] = deepcopy(malformed_schema)
+    with pytest.raises(ValueError, match="孔型版本格式"):
+        QuantityModel.from_payload(model)
+
+
+@pytest.mark.parametrize("malformed_mode", [[], {}, ["quantity"]])
+def test_ac23_unhashable_receiving_mode_fails_closed(malformed_mode):
+    """A corrupt .p6fold mode must reject rather than crash on set membership."""
+    from phase6_quantity_model import normalize_quantity_snapshot
+
+    source = {"model": "受電箱", "active_mode": deepcopy(malformed_mode)}
+    before = deepcopy(source)
+    with pytest.raises(ValueError, match="箱體操作模式"):
+        normalize_quantity_snapshot(source, for_save=True)
+    assert source == before
