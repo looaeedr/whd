@@ -167,7 +167,16 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
             report_source.write_text(json.dumps({
                 "whole_cabinet_complete": False,
                 "actual_export_count": len(staged),
-                "exported": [manifest.report() for _, _, manifest in staged],
+                # The per-Bay manifest counts every potentially eligible
+                # physical piece; this action actually publishes ONE selected
+                # inner-door DXF per Bay. Never report an eligible side/base
+                # sheet as if this partial operation manufactured it.
+                "exported": [{
+                    **manifest.report(),
+                    "eligible_physical_piece_count": manifest.actual_export_count,
+                    "actual_export_count": 1,
+                    "actually_emitted_part_ids": [manifest.scope.inner_door_part_id],
+                } for _, _, manifest in staged],
                 "not_exported_bays": held,
                 "deferred_assembly": ["PAD", "EAR_ATTACHMENT"],
             }, ensure_ascii=False, indent=2), encoding="utf-8")
