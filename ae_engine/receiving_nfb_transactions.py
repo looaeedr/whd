@@ -246,7 +246,12 @@ def submit_nfb_bays(
     """Explicit operator Apply of fully verified per-Bay physical NFB locations."""
     state, indices = _selected(layout, set_index, bay_indices)
     set_row = state["sets"][set_index]
-    if set(configs) != set(indices) or set(evidence) != set(indices):
+    # A bool key compares equal to integer 0/1 in Python mappings but is
+    # NOT a real selected Bay index. Check the exact owner-key type first.
+    if (not isinstance(configs, Mapping) or not isinstance(evidence, Mapping)
+            or any(type(i) is not int for i in configs)
+            or any(type(i) is not int for i in evidence)
+            or set(configs) != set(indices) or set(evidence) != set(indices)):
         raise ValueError("NFB configs/evidence must cover exactly highlighted Bays")
     plans, reports = [], []
     for bi in indices:
