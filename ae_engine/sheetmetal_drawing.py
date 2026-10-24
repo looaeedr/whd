@@ -253,18 +253,37 @@ def resolved_features_to_primitives(features) -> tuple[DrawingPrimitive, ...]:
                 points=tuple(feature.points), layer=feature.layer, closed=True, color=color
             ))
         elif isinstance(feature, ResolvedProfile):
-            if getattr(feature, "layered_profiles", ()):
-                for layer, points, closed in feature.layered_profiles:
-                    # A one-point guide is not a physical DXF polyline.
-                    if len(points) >= 2:
-                        color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(layer, 3)
-                        primitives.append(PolylinePrimitive(points=tuple(points), layer=layer, closed=closed, color=color))
-            elif len(feature.points) >= 2:
+            layers = tuple(getattr(feature, "layered_profiles", ()) or ())
+            primary = tuple(feature.points)
+            # The core ProfileFeature contract has one primary contour PLUS
+            # additional process layers. A prior branch here suppressed the
+            # primary CUTTING contour whenever a MARKING layer was present.
+            # FROM_DXF is different: its source bounds are NOT independent
+            # machining geometry; only the imported process layers are.
+            def contour_key(points):
+                pts = tuple(points)
+                return pts[:-1] if len(pts) > 1 and pts[0] == pts[-1] else pts
+
+            represented = any(
+                str(layer).upper() == str(feature.layer).upper()
+                and contour_key(points) == contour_key(primary)
+                for layer, points, _closed in layers
+            )
+            if len(primary) >= 2 and (not layers or (
+                str(feature.layer).upper() != "FROM_DXF" and not represented
+            )):
                 color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(feature.layer, 3)
                 primitives.append(PolylinePrimitive(
-                    points=tuple(feature.points), layer=feature.layer,
-                    closed=(len(feature.points) > 2), color=color
+                    points=primary, layer=feature.layer,
+                    closed=(len(primary) > 2), color=color
                 ))
+            for layer, points, closed in layers:
+                # A one-point guide is not a physical DXF polyline.
+                if len(points) >= 2:
+                    color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(layer, 3)
+                    primitives.append(PolylinePrimitive(
+                        points=tuple(points), layer=layer, closed=closed, color=color
+                    ))
         else:
             raise TypeError(f"Unsupported resolved feature: {type(feature)!r}")
     return tuple(primitives)
