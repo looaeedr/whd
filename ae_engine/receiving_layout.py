@@ -27,12 +27,17 @@ _DERIVED_LAYOUT_KEYS = {
 
 
 def _number(value: object, *, label: str) -> float:
+    # A Bay is persisted physical WHD authority, never a display/string truth.
+    # float(True) == 1 and NaN <= 0 is false, both unsafe for real sheets.
+    from math import isfinite
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a positive finite number")
     try:
         result = float(value)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"{label} must be numeric") from exc
-    if result <= 0.0:
-        raise ValueError(f"{label} must be > 0")
+    if not isfinite(result) or result <= 0.0:
+        raise ValueError(f"{label} must be a positive finite number")
     return result
 
 
