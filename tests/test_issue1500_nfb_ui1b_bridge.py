@@ -291,3 +291,109 @@ def test_staged_nfb_added_follow_field_and_nested_datum_mutation_fail_closed(
     with pytest.raises(ValueError,match="staged config changed"):
         assert_live_verified_nfb(Adapter(),fresh,
                                  current_snapshot=kwargs["snapshot"])
+
+
+def _two_verified_bays(tmp_path, monkeypatch):
+    """Real source DXF and individually fingerprinted world-X per physical Bay."""
+    from dataclasses import replace
+
+    kwargs, _, _ = _setup(tmp_path, monkeypatch)
+    kwargs["layout"]["sets"][0]["bays"].append({"stable_id": "bay-b"})
+    first = verify_nfb_ui1a_for_submit(**kwargs)
+    second_input = dict(kwargs)
+    second_input.update({
+        "bay_index": 1,
+        "physical_scope": replace(kwargs["physical_scope"], bay_id="bay-b"),
+    })
+    second = verify_nfb_ui1a_for_submit(**second_input)
+    assert first.config["holes"][0]["physical_hole_id"] != second.config["holes"][0]["physical_hole_id"]
+    return kwargs, first, second
+
+
+def test_ac28_source_verified_two_bay_submit_is_one_atomic_operator_transaction(
+    tmp_path, monkeypatch,
+):
+    """Batch has exactly one confirmation and distinct per-Bay source authority."""
+    from types import SimpleNamespace
+    from ae_engine.receiving_nfb_ui1b_bridge import submit_live_verified_nfb_batch
+
+    kwargs, first, second = _two_verified_bays(tmp_path, monkeypatch)
+    calls, confirmations = [], []
+
+    class Adapter:
+        layout = kwargs["layout"]
+        def submit_nfb_to_bays(self, **arguments):
+            calls.append(arguments)
+            assert arguments["bay_indices"] == (0, 1)
+            assert set(arguments["configs"]) == {0, 1}
+            assert set(arguments["evidence"]) == {0, 1}
+            assert all(
+                arguments["evidence"][bi][2].physical_hole_ids[0]
+                == arguments["configs"][bi]["holes"][0]["physical_hole_id"]
+                for bi in (0, 1)
+            )
+            arguments["confirm"](SimpleNamespace(
+                impacted_parts=("inner-a",), blocking_reasons=(),
+            ))
+            return SimpleNamespace(changed=True)
+
+    outcome = submit_live_verified_nfb_batch(
+        Adapter(), (second, first),
+        current_snapshots={0: kwargs["snapshot"], 1: kwargs["snapshot"]},
+        confirm=lambda preview: confirmations.append(preview) or True,
+    )
+    assert outcome.changed
+    assert len(calls) == len(confirmations) == 1
+
+
+def test_ac28_stale_second_bay_aborts_full_batch_before_confirmation(
+    tmp_path, monkeypatch,
+):
+    from ae_engine.receiving_nfb_ui1b_bridge import submit_live_verified_nfb_batch
+
+    kwargs, first, second = _two_verified_bays(tmp_path, monkeypatch)
+    called = []
+
+    class Adapter:
+        layout = kwargs["layout"]
+        def submit_nfb_to_bays(self, **arguments):
+            called.append(arguments)
+            raise AssertionError("Batch must never partially commit")
+
+    kwargs["layout"]["sets"][0]["bays"][1]["width"] = 750
+    with pytest.raises(ValueError, match="Bay has changed"):
+        submit_live_verified_nfb_batch(
+            Adapter(), (first, second),
+            current_snapshots={0: kwargs["snapshot"], 1: kwargs["snapshot"]},
+            confirm=lambda preview: called.append(preview) or True,
+        )
+    assert called == []
+
+
+@pytest.mark.parametrize("invalid", ("duplicate", "mixed_version", "missing_snapshot"))
+def test_ac28_batch_rejects_mixed_or_ambiguous_physical_owners_before_confirmation(
+    tmp_path, monkeypatch, invalid,
+):
+    from dataclasses import replace
+    from ae_engine.receiving_nfb_ui1b_bridge import submit_live_verified_nfb_batch
+
+    kwargs, first, second = _two_verified_bays(tmp_path, monkeypatch)
+    bundles = (first, first) if invalid == "duplicate" else (
+        first, replace(second, version_id="v2")
+        if invalid == "mixed_version" else second
+    )
+    snapshots = (
+        {0: kwargs["snapshot"]}
+        if invalid == "missing_snapshot"
+        else {0: kwargs["snapshot"], 1: kwargs["snapshot"]}
+    )
+    class Adapter:
+        layout = kwargs["layout"]
+        def submit_nfb_to_bays(self, **_):
+            pytest.fail("Invalid physical batch must not commit")
+
+    with pytest.raises(ValueError, match="batch|Set/Bay/version|snapshot"):
+        submit_live_verified_nfb_batch(
+            Adapter(), bundles, current_snapshots=snapshots,
+            confirm=lambda _: pytest.fail("Invalid batch must not confirm"),
+        )
