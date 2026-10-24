@@ -41,7 +41,11 @@ class PadToolingRule:
             raise ValueError("PAD 共用加工規則來源身分不完整")
         if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in values):
             raise ValueError("PAD 共用加工規則需要有限正數")
-        if not all(isfinite(float(v)) and float(v) > 0 for v in values):
+        try:
+            numeric = tuple(float(v) for v in values)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("PAD 共用加工規則需要有限正數") from exc
+        if not all(isfinite(v) and v > 0 for v in numeric):
             raise ValueError("PAD 共用加工規則需要有限正數")
 
 
@@ -126,7 +130,10 @@ def _screws(spec) -> tuple[tuple[Point2, ...], float]:
             diameter is None or dx is None or dy is None or
             any(isinstance(v, bool) for v in (*pitch, diameter, dx, dy))):
         raise ValueError("PAD NFB CSV 缺少完整螺絲孔規格")
-    px,py,d,ox,oy = map(float,(*pitch,diameter,dx,dy))
+    try:
+        px,py,d,ox,oy = map(float,(*pitch,diameter,dx,dy))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("PAD NFB CSV 螺絲孔規格不合法") from exc
     if (not all(isfinite(v) for v in (px,py,d,ox,oy)) or
             min(px,py,d)<=0):
         raise ValueError("PAD NFB CSV 螺絲孔規格不合法")
@@ -147,7 +154,10 @@ def generate_nfb_pad_patterns(
     tooling.validate()
     if isinstance(plate_thickness_mm, bool):
         raise ValueError("PAD 板厚必須為有限正數")
-    t = float(plate_thickness_mm)
+    try:
+        t = float(plate_thickness_mm)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("PAD 板厚必須為有限正數") from exc
     if not isfinite(t) or t <= 0:
         raise ValueError("PAD 板厚必須為有限正數")
     selected = tuple(selected_nfb)
@@ -160,8 +170,13 @@ def generate_nfb_pad_patterns(
         if any(isinstance(getattr(spec, name), bool)
                for name in ("width_mm", "height_mm", "depth_mm")):
             raise ValueError("PAD 所選 NFB 寬高深不合法")
-        if not all(isfinite(float(getattr(spec,n))) and float(getattr(spec,n))>0
-                   for n in ("width_mm","height_mm","depth_mm")):
+        try:
+            physical_dimensions = tuple(
+                float(getattr(spec, n)) for n in ("width_mm", "height_mm", "depth_mm")
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("PAD 所選 NFB 寬高深不合法") from exc
+        if not all(isfinite(v) and v > 0 for v in physical_dimensions):
             raise ValueError("PAD 所選 NFB 寬高深不合法")
     deepest = max(float(s.depth_mm) for s in selected)
     results = []
