@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 48,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 49,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 9,
+    "EVIDENCE_CANDIDATE_ONLY": 8,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 10,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -3589,21 +3589,65 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
-          "test_name": "test_existing_legacy_circle_is_preserved_exactly_once_in_real_nfb_dxf",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py",
+          "test_name": "test_swt23_current_csv_same_physical_legacy_hole_blocks_without_writing",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_V5_INNER_DOOR_LEGACY_OWNERSHIP_ONLY",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_pre_current_review": {
+        "status": "EVIDENCE_CANDIDATE_ONLY",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1497_w800_three_canonical_cutting.py",
+            "test_name": "test_existing_legacy_circle_is_preserved_exactly_once_in_real_nfb_dxf",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "SUPPORTED_CURRENT_NUMERIC_CSV_V5_W800_SAME_PHYSICAL_INNER_DOOR_OLD_HOLE_COLLISION_CSV_ALIAS_EXCLUSION_LEGACY_FEATURE_SAVE_RELOAD_AND_UNCONFIGURE_PRESERVATION__NOT_UNCONDITIONAL_MANUFACTURING",
+        "primary_assertion": "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py::test_swt23_current_csv_same_physical_legacy_hole_blocks_without_writing",
+        "other_required_assertions": [
+          "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py::test_swt23_unrelated_legacy_cutting_survives_current_csv_save_reload_and_unconfigure",
+          "tests/test_issue1502_csv_is_only_normal_finalscene_source.py::test_existing_editor_csv_feature_is_alias_not_duplicate_source",
+          "tests/test_issue1502_csv_is_only_normal_finalscene_source.py::test_non_csv_editor_features_are_not_erased_by_source_projection",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action",
+          "tests/test_issue1497_w800_three_canonical_cutting.py::test_legacy_same_location_or_same_physical_owner_blocks_atomic_export"
+        ],
+        "owner_path": "ae_engine.receiving_nfb_committed_final_scene.apply_committed_csv_v5_to_canonical_parts",
+        "actual_legacy_renderer": "ae_engine.receiving_nfb_legacy_feature_bridge.existing_inner_door_feature_finalscene",
+        "physical_collision_owner": "ae_engine.receiving_nfb_v5_configured_inner_door.trial_configured_nfb_v5_inner_door_render_data",
+        "exact_source_commit": "1ad8129c78b112cf4003942e4a72da6efcc7da63",
+        "product_ci_run": "https://github.com/looaeedr/whd/actions/runs/40058158669",
+        "product_ci_receipt": "WHD_V15_ACCEPTANCE_GREEN requirements=52 passed_cases=2082",
+        "performance_run": "https://github.com/looaeedr/whd/actions/runs/40058158645",
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "physical_absolute_position_grant": false,
+        "arbitrary_unproven_model_mfg_release": false,
+        "pad_weld_contact_approved": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false
+      }
     },
     {
       "id": "SWT-AC-24",
@@ -3969,7 +4013,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 48/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-14 and SWT-AC-11 signed using exact 2080-case source CI, actual 2D/3D Fold Profiles, Save-Reload and DXF/Q source parity. Remaining 40 AC keep original scoped gates; Draft unmerged, not Windows UAT or full-cabinet MFG2 release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 49/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 39 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
@@ -3994,5 +4038,6 @@
     "SWT-AC-32": "Color30/150 inventory is valid for legacy sources but does not manufacture an absent Receiving 中板. Actual current NFB CSV and source material role + real CHECK Q/manifest are the current owner."
   },
   "historical_pre_20261024_review_text_at_43": "88/88 FUNCTION_IDENTITIES_VERIFIED; 43/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (ISOLATED BRANCH CANDIDATE, EXACT HEAD CI PENDING, NO LOCALX MERGE); remaining 45 AC require separate physical/GUI/product evidence.",
-  "historical_pre_20261024_46ac_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 46/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; the 46 accepted rows carry named executable witnesses and a prior exact source HEAD GREEN receipt, but latest incremental cross-stage regression and updated audit guards require a new exact source CI GREEN. Remaining 42 AC retain their individual gates. No localX merge, Windows UAT or unconditional MFG-2 approval."
+  "historical_pre_20261024_46ac_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 46/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; the 46 accepted rows carry named executable witnesses and a prior exact source HEAD GREEN receipt, but latest incremental cross-stage regression and updated audit guards require a new exact source CI GREEN. Remaining 42 AC retain their individual gates. No localX merge, Windows UAT or unconditional MFG-2 approval.",
+  "historical_pre_swt23_review_text": "88/88 FUNCTION_IDENTITIES_VERIFIED; 48/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-14 and SWT-AC-11 signed using exact 2080-case source CI, actual 2D/3D Fold Profiles, Save-Reload and DXF/Q source parity. Remaining 40 AC keep original scoped gates; Draft unmerged, not Windows UAT or full-cabinet MFG2 release."
 }
