@@ -397,3 +397,20 @@ def test_ac23_copied_bay_stale_width_rejects_before_transaction():
         )
     assert first == frozen
     assert "nfb_config" not in first["sets"][0]["bays"][1]
+
+
+@pytest.mark.parametrize("indices", (
+    None, 0, [0, []], [[0]], [True], ["0"], [0, 0], [-1], [999],
+))
+def test_ac23_malformed_highlighted_bay_selection_rejected_atomically(indices):
+    """An invalid Bay selector cannot reach operator confirmation or mutate."""
+    original = layout()
+    frozen = deepcopy(original)
+    called = []
+    with pytest.raises(ValueError, match="distinct real highlighted Bays"):
+        restore_nfb_bays_unconfigured(
+            original, set_index=0, bay_indices=indices,
+            confirm=lambda _: called.append(True) or True,
+        )
+    assert called == []
+    assert original == frozen
