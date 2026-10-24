@@ -184,7 +184,15 @@ def _factor_or_override(
     thickness: float,
     name: str,
 ) -> float:
+    # Factory relief overrides feed real CUTTING: finite guards apply to
+    # both explicit measurements and the factor used to derive defaults.
+    if isinstance(factor, bool) or not math.isfinite(float(factor)):
+        raise GeometryError(f"{name} factor must be finite")
+    if isinstance(thickness, bool) or not math.isfinite(float(thickness)):
+        raise GeometryError("thickness must be finite")
     value = override if override is not None else factor * thickness
+    if isinstance(value, bool) or not math.isfinite(float(value)):
+        raise GeometryError(f"{name} must be finite")
     if value < 0:
         raise GeometryError(f"{name} must not be negative")
     return float(value)

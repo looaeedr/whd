@@ -75,6 +75,8 @@ def _validate_four_side(g: FourSideFlangeGeometry, policy: RectCornerReliefPolic
         policy.top_left_x, policy.top_right_x,
         policy.bottom_y, policy.top_y,
     )
+    if any(isinstance(v, bool) or not math.isfinite(float(v)) for v in values):
+        raise GeometryError("relief dimensions must be finite numbers")
     if any(v < 0 for v in values):
         raise GeometryError("relief dimensions must not be negative")
     if policy.bottom_left_x + policy.bottom_right_x >= g.total_width:
@@ -119,6 +121,7 @@ def _four_side_material_polygon(
     g: FourSideFlangeGeometry,
     policy: RectCornerReliefPolicy | FourCornerTypePolicy,
 ):
+    _validate_four_side_geometry(g)
     _require_shapely()
     w, h = g.total_width, g.total_height
     blank = box(0.0, 0.0, w, h)
