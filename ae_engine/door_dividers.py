@@ -209,6 +209,19 @@ def _fold_profile(
     return tuple(rows)
 
 
+def _finite_divider_physical_mm(value, message):
+    """Keep saved physical D/T/span/FW conversion failures source-scoped."""
+    if isinstance(value, bool):
+        raise ValueError(message)
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
+    if not math.isfinite(number):
+        raise ValueError(message)
+    return number
+
+
 def _part(
     *,
     layout_scope,
@@ -222,16 +235,14 @@ def _part(
     model_name=None,
     frame_width=None,
 ):
-    values = (thickness, depth, span)
-    if any(isinstance(v, bool) for v in values):
-        raise ValueError("divider depth/thickness/span must be finite numbers, not bool")
-    t, d, span = map(float, values)
-    if not all(math.isfinite(v) for v in (t, d, span)):
-        raise ValueError("divider depth/thickness/span must be finite numbers")
-    if frame_width is not None and (
-        isinstance(frame_width, bool) or not math.isfinite(float(frame_width))
-    ):
-        raise ValueError("divider frame_width must be finite")
+    t, d, span = (
+        _finite_divider_physical_mm(value, "divider depth/thickness/span must be finite numbers")
+        for value in (thickness, depth, span)
+    )
+    fw = (
+        None if frame_width is None else
+        _finite_divider_physical_mm(frame_width, "divider frame_width must be finite")
+    )
     if t <= 0 or d <= 0 or span <= 0:
         raise ValueError("divider depth/thickness/span must be > 0")
 
@@ -242,7 +253,7 @@ def _part(
         depth=d,
         thickness=t,
         handle_side=bool(handle_side),
-        frame_width=(None if frame_width is None else float(frame_width)),
+        frame_width=fw,
     )
     if family_contract is not None:
         material = tuple(float(v) for v in family_contract["material_lengths"])
@@ -357,10 +368,19 @@ def derive_box_body_dividers(
         lower_key = f"{col}:{row + 1}"
         handle_side = handles.get(upper_key) == "BOTTOM" or handles.get(lower_key) == "TOP"
         span = float(cell.start_width)
+        # Structural divider span uses the same physical T gate as _part;
+        # float(huge JSON int) must not overflow before that contract.
+        side_t = (
+            _finite_divider_physical_mm(
+                thickness, "divider depth/thickness/span must be finite numbers",
+            )
+            if getattr(cell.edges, "left", False) or getattr(cell.edges, "right", False)
+            else None
+        )
         if getattr(cell.edges, "left", False):
-            span -= float(thickness)
+            span -= side_t
         if getattr(cell.edges, "right", False):
-            span -= float(thickness)
+            span -= side_t
         result.append(_part(
             layout_scope=layout_scope,
             axis="HORIZONTAL",
