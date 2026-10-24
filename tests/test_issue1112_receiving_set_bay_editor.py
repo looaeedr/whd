@@ -193,8 +193,29 @@ def test_t007_each_bay_reuses_existing_common_door_validation_and_fails_closed_w
     projected = project_receiving_bay_legacy_aliases(snap, set_index=0, bay_index=0)
     assert projected["w"] == pytest.approx(800)
 
+    # The current Receiving Family supports a transient, source-derived
+    # full-size door for a Bay without its own authored door_state. An old
+    # assertion requiring rejection merely because Bay2 is W900 was superseded
+    # by this legitimate per-Bay projection, not by relaxed validation.
+    before = deepcopy(snap)
+    source_derived = project_receiving_bay_legacy_aliases(
+        snap, set_index=0, bay_index=1,
+    )
+    assert source_derived["w"] == pytest.approx(900)
+    assert source_derived["door_layout_columns"][0][0] == pytest.approx(900)
+    assert snap == before
+
+    # A *genuinely authored* W800 door partition on physical Bay2 W900
+    # must STILL fail the original manufacturing validation, with Bay scope.
+    stale = deepcopy(snap)
+    stale["receiving_layout"] = update_receiving_bay(
+        layout, set_index=0, bay_index=1, door_state={
+            "multi_door_enabled": True,
+            "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        },
+    )
     with pytest.raises(ReceivingBayProjectionError) as exc:
-        project_receiving_bay_legacy_aliases(snap, set_index=0, bay_index=1)
+        project_receiving_bay_legacy_aliases(stale, set_index=0, bay_index=1)
     assert RECEIVING_BAY_COMMON_STATE_INVALID in str(exc.value)
     assert "Set1/Bay2" in str(exc.value)
     assert "expected W=900" in str(exc.value)
