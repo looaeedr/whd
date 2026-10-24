@@ -58,7 +58,7 @@ class QuantityModel:
         if not isinstance(payload, Mapping) or set(payload) != _PAYLOAD_KEYS:
             raise ValueError("不合法的孔型版本資料")
         schema = payload["schema"]
-        if schema not in {SCHEMA, SCHEMA_V2, SCHEMA_V3}:
+        if not isinstance(schema, str) or schema not in {SCHEMA, SCHEMA_V2, SCHEMA_V3}:
             raise ValueError("不支援的孔型版本格式")
         from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
         rows = payload["versions"]
@@ -324,7 +324,7 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
             result["receiving_inner_door_candidates"]
         )
     mode = result.get("active_mode", SET_BAY_MODE if receiving else QUANTITY_MODE)
-    if mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):
+    if not isinstance(mode, str) or mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):
         raise ValueError("不合法的箱體操作模式")
     result["active_mode"] = mode
     if for_save:
