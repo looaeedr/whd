@@ -158,3 +158,32 @@ def test_r5_79_reference_edge_move_keeps_authoritative_valid_position():
             surface, (circle, circle), True, ReferenceAnchor.CENTER,
             100., 100., axis="x", mode="edge", value=30.,
         )
+
+@pytest.mark.parametrize("setting", ["char_height", "minimum_char_height", "clearance"])
+def test_r5_75_final_quantity_annotation_cannot_treat_true_as_millimetres(setting):
+    """Invalid source cannot make one-mm CHECK Q lettering or tolerance."""
+    from shapely.geometry import box
+    from ae_engine.manufacturing_render_data import PartRenderData
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from ae_engine.drawing_annotation_layout import annotate_quantity_render_data
+
+    data = PartRenderData(scene=DrawingScene(), material=box(0., 0., 200., 200.), fold_guides=())
+    with pytest.raises(ValueError, match="quantity CHECK layout"):
+        annotate_quantity_render_data(data, 2, **{setting: True})
+    valid = annotate_quantity_render_data(data, 2, char_height=10., minimum_char_height=3., clearance=1.)
+    assert any(getattr(p, "text", None) == "Q2" for p in valid.scene.primitives)
+
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf")])
+def test_r5_75_existing_quantity_text_cannot_make_nonfinite_or_boolean_footprint(bad):
+    from dataclasses import replace
+    from ae_engine.sheetmetal_geometry import Vec2
+    from ae_engine.sheetmetal_drawing import TextPrimitive
+    from ae_engine.drawing_annotation_layout import _quantity_text_box
+
+    valid = TextPrimitive("Q2", Vec2(30., 40.), "CHECK", 10., 7)
+    assert tuple(_quantity_text_box(valid).bounds) == pytest.approx((30., 40., 46., 50.))
+    with pytest.raises(ValueError, match="quantity text"):
+        _quantity_text_box(replace(valid, char_height=bad))
+    with pytest.raises(ValueError, match="quantity text"):
+        _quantity_text_box(replace(valid, insert=Vec2(bad, 40.)))
