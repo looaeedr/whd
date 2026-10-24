@@ -217,6 +217,9 @@ PYTEST_PATHS = (
     # even though test cases existed: actual 1100 Y, saved NFB schema,
     # source-scoped per-piece partial export. No duplicate selectors.
     "tests/test_issue1495_receiving_nfb_y_projection.py",
+    # Actual highlighted Set/Bay dimension adapter: NFB X invalidation must
+    # preserve the one-normalization batch performance contract.
+    "tests/test_issue1112_receiving_set_bay_editor.py",
     "tests/test_issue1499_nfb_persistence.py",
     "tests/test_issue1501_nfb_export_manifest.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
