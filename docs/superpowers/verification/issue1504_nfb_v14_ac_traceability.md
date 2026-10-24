@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue1504-nfb-v14-ac-traceability
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 ## 2026-10-24（台灣）｜#1504 隔離 Draft #2098｜SWT-AC-05 CSV V5 原生 Tk 來源範圍簽核候選（42→43，不合 localX）
 
 - **先前真 GUI 基礎證據**：SHA `9c5541d98d03fa9061ce557dcdd1a9b2acb86bd4` [Product CI #40040819937](https://github.com/looaeedr/whd/actions/runs/40040819937) Preflight、Shard0/1/2、Canonical 全 SUCCESS（2067 passed / 0 failed），[Tk Performance #40040819908](https://github.com/looaeedr/whd/actions/runs/40040819908) SUCCESS。SWT-05 獨立候選視窗「預覽後取消不寫入」「確定只存候選」兩個原生 Tk 測試 PASSED。
@@ -84,13 +91,6 @@
 - 多連設定舊 `內門層數` 的獨立下拉寫入也已停止掛載；保留「內門版本」的原編輯/版本管理與既有連動操作。從原 NFB 配置編輯器選 1／2 層，是唯一主動改值入口。
 - 新 `tests/test_issue1504_unified_inner_nfb_layer_count.py` 從真原 UI AST 檢查只有一組層數 radio、實際 Tk IntVar 改值與 UI-1A 草稿 Undo，並加入 CI。**不要把本來就相同的層數拆成第二項驗證或第二個入口。**
 - #2077 前一輪因 3 個簽核表 hard-coded signed-set 忘記同步 `NFB-AC-01` 而 CI 紅燈（雖 PR 被合併）；本次必以 exact HEAD 完整 Product Regression GREEN 修正／確認。矩陣若 exact Product Regression 五階段全綠並合入 localX 回讀，從 30/88 簽成 **31/88**；SWT-AC-01 是原單一層數項目，不額外新增「第二種安裝層」驗收條件。
-
----
-whd_doc_role: REFERENCE
-whd_contract: issue1504-nfb-v14-ac-traceability
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 
 # #1504 NFB v1.4 — 88 項 AC CURRENT 追溯（2026-10-23，逐條實證簽核）
 
