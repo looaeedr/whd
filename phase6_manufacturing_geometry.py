@@ -378,6 +378,9 @@ def _phase6_expand_box_body_fw_world_mid(
         return tuple(world_mid_piece or ())
 
     rows = [tuple(tuple(float(v) for v in point) for point in tri) for tri in tuple(world_mid_piece or ())]
+    selected = [index for index in selected if index < len(rows)]
+    if not selected:
+        return tuple(rows)
     xs = [float(point[0]) for index in selected for point in rows[index]]
     if not xs:
         return tuple(rows)
@@ -393,7 +396,8 @@ def _phase6_expand_box_body_fw_world_mid(
     core_lo, core_hi = core_bands[0]
     core_selected = [
         index for index, item in enumerate(tuple(mapped or ()))
-        if len(tuple(getattr(item, "flat", ()) or ())) == 3
+        if index < len(rows)
+        and len(tuple(getattr(item, "flat", ()) or ())) == 3
         and core_lo + float(tolerance) < (
             sum(float(point[0]) for point in item.flat) / 3.0
         ) < core_hi - float(tolerance)
@@ -512,6 +516,9 @@ def _phase6_shift_multistage_terminal_fold_world_mid(piece, mapped, world_mid_pi
         tuple(tuple(float(v) for v in point) for point in tri)
         for tri in tuple(world_mid_piece or ())
     ]
+    selected = [index for index in selected if index < len(rows)]
+    if not selected:
+        return tuple(rows)
     tangents = []
     mapped_all = tuple(mapped or ())
     for index in selected:
