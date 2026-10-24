@@ -190,6 +190,7 @@ def _submitted_csv_holes(snapshot):
                         "NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"
                     )
         selector = snapshot.get("_receiving_runtime_selection")
+        selection_resolved = False
         if isinstance(selector, Mapping) and isinstance(layout, Mapping):
             sets = layout.get("sets")
             si, bi = selector.get("set_index"), selector.get("bay_index")
@@ -201,11 +202,31 @@ def _submitted_csv_holes(snapshot):
                 if (isinstance(bays, (tuple, list))
                         and type(bi) is int and 0 <= bi < len(bays)
                         and isinstance(bays[bi], Mapping)
-                        and bays[bi].get("stable_id") == selector.get("bay_id")
-                        and bays[bi].get("nfb_config_submitted") is True):
-                    raise ValueError(
-                        "NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"
-                    )
+                        and bays[bi].get("stable_id") == selector.get("bay_id")):
+                    selection_resolved = True
+                    if bays[bi].get("nfb_config_submitted") is True:
+                        raise ValueError(
+                            "NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"
+                        )
+        if not selection_resolved and isinstance(layout, Mapping):
+            # On multi-Bay projects the missing/stale selection means we
+            # cannot identify WHICH physical Bay is being manufactured.
+            # A different submitted Bay must never be silently ignored.
+            # Preserve legacy output when every actual Bay is unconfigured.
+            sets = layout.get("sets")
+            if isinstance(sets, (tuple, list)) and any(
+                isinstance(a_set, Mapping)
+                and isinstance(a_set.get("bays"), (tuple, list))
+                and any(
+                    isinstance(bay, Mapping)
+                    and bay.get("nfb_config_submitted") is True
+                    for bay in a_set["bays"]
+                )
+                for a_set in sets
+            ):
+                raise ValueError(
+                    "NFB_COMMITTED_CSV_ACTIVE_BAY_SELECTION_UNRESOLVED"
+                )
         return ()
     config = snapshot.get("nfb_config")
     if not isinstance(config, Mapping):
