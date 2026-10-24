@@ -330,7 +330,13 @@ def reconcile_box_body_structure_for_total_w_change(
     if two.get("left_w") is not None or two.get("right_w") is not None:
         driver = str(two.get("driver") or "left")
         try:
-            if driver == "default":
+            # A partial legacy save with only a right-side width has a real
+            # operator-owned right datum, regardless of its stale driver flag.
+            # Keep that datum through later W edits instead of freezing the
+            # derived left complement or overwriting it with default halves.
+            if two.get("left_w") is None and two.get("right_w") is not None:
+                result = set_two_piece_width(result, total, "right", two["right_w"], manual=False)
+            elif driver == "default":
                 result = set_two_piece_width(result, total, "left", total / 2.0, manual=False)
                 result["configs"][two_key]["driver"] = "default"
             elif driver == "right" and two.get("right_w") is not None:
