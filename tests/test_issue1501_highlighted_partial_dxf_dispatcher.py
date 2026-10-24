@@ -269,3 +269,39 @@ def test_partial_door_export_counts_only_actual_selected_sheet(tmp_path, allow_h
         report = json.loads((tmp_path / "nfb_set1_partial_manifest.json").read_text())
         assert report["actual_export_count"] == 1
         assert report["whole_cabinet_complete"] is False
+
+
+@pytest.mark.parametrize("corruption", (
+    "status", "duplicate_physical_id", "wrong_role", "boolean_count",
+))
+def test_partial_writer_rejects_forged_door_row_after_preflight(
+    tmp_path, corruption,
+):
+    """A post-preflight typed manifest cannot reclassify a real door owner."""
+    from dataclasses import replace
+    from ae_engine.receiving_nfb_export_manifest import OTHER
+    from ae_engine.receiving_nfb_part_readiness import BLOCKED
+
+    ports, calls = _ports()
+    original = ports["partial_export"]
+
+    def corrupted(si, bi, path):
+        written, manifest = original(si, bi, path)
+        door = manifest.rows[0]
+        if corruption == "status":
+            rows = (replace(door, status=BLOCKED, may_export=True),)
+        elif corruption == "duplicate_physical_id":
+            rows = (door, replace(door, role=OTHER, actual_count=2))
+        elif corruption == "wrong_role":
+            rows = (replace(door, role=OTHER),)
+        else:
+            rows = (replace(door, actual_count=True),)
+        return written, replace(manifest, rows=rows)
+
+    ports["partial_export"] = corrupted
+    with pytest.raises(ValueError, match="manufactured part count invalid"):
+        batch.export_highlighted_nfb_inner_doors(
+            ports, set_index=0, bay_indices=(0,), output_directory=tmp_path,
+        )
+    assert len(calls) == 1
+    assert not list(tmp_path.iterdir())
