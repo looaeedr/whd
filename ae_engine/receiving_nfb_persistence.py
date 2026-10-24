@@ -33,7 +33,14 @@ def _json_value(value, *, location: str):
     if value is None or isinstance(value, (str, bool)):
         return value
     if type(value) in (int, float):
-        if not isfinite(float(value)):
+        # JSON may contain integers larger than Python float's range.
+        # A corrupt saved dimension must fail via the NFB validation gate,
+        # not escape as OverflowError during a project/Bay/quantity load.
+        try:
+            finite = isfinite(float(value))
+        except (OverflowError, ValueError) as exc:
+            raise ValueError(f"{location} must be finite") from exc
+        if not finite:
             raise ValueError(f"{location} must be finite")
         return value
     if isinstance(value, (list, tuple)):
@@ -85,7 +92,7 @@ def normalize_nfb_config(config):
             if source_brand is not None and source_brand != parsed[0]:
                 raise ValueError("NFB V5 model and saved hole source_brand mismatch")
         state = hole.get("manual_x_state", "NONE")
-        if state not in MANUAL_X_STATES:
+        if not isinstance(state, str) or state not in MANUAL_X_STATES:
             raise ValueError("NFB manual_x_state unsupported")
         hole["manual_x_state"] = state
         x = hole.get("manual_x_mm")
