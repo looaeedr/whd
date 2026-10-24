@@ -113,11 +113,20 @@ def _tier_source_depths(legacy_brand, config, layer_index):
     from .receiving_switch_model_catalog import model_depth_mm
 
     count = config.get("layer_count")
+    # Tier identity controls the real NFB depth and therefore the Base Plate
+    # world Z. Python considers True == 1 and 1.0 == 1; neither is an
+    # authoritative physical tier index from a saved configuration.
+    if (type(count) is not int or count <= 0
+            or type(layer_index) is not int
+            or not 0 <= layer_index < count):
+        return ()
     depths = []
     for hole in config.get("holes") or ():
         if not isinstance(hole, Mapping):
             raise ValueError("EAR_Z_SOURCE_HOLE_INVALID")
         tier = hole.get("layer_index", 0 if count == 1 else None)
+        if type(tier) is not int or not 0 <= tier < count:
+            return ()
         if tier != layer_index:
             continue
         filename = hole.get("model_filename")

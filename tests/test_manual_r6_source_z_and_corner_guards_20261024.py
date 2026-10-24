@@ -220,3 +220,27 @@ def test_r6_flat_nfb_pad_source_rejects_nonphysical_thickness_before_generation(
     }]}]}}
     with pytest.raises(ValueError, match="RECEIVING_FLAT_NFB_PLATE_THICKNESS_INVALID"):
         policy.committed_receiving_flat_nfb_depth_mm(source)
+
+@pytest.mark.parametrize("bad_tier", [True, False, 1., 0., "1", None, -1, 2, []])
+def test_r6_ear_z_tier_depth_source_never_coerces_boolean_or_fractional_tier(bad_tier):
+    """One NFB may not borrow a different physical tier's Z via Python equality."""
+    source = next(spec for spec in read_numeric_specs("士林") if spec.depth_mm is not None)
+    model = numeric_model_ref("士林", source.model)
+    config = {"layer_count": 2, "holes": [
+        {"layer_index": bad_tier, "model_filename": model},
+    ]}
+    assert _tier_source_depths(None, config, 1) == ()
+    # Correct immutable source still resolves only its own typed integer tier.
+    config["holes"][0]["layer_index"] = 1
+    assert _tier_source_depths(None, config, 1) == pytest.approx((source.depth_mm,))
+    assert _tier_source_depths(None, config, 0) == ()
+
+
+@pytest.mark.parametrize("bad_count", [True, False, 0, 1., "1", None])
+def test_r6_ear_z_tier_depth_requires_actual_positive_integer_layer_count(bad_count):
+    source = next(spec for spec in read_numeric_specs("士林") if spec.depth_mm is not None)
+    model = numeric_model_ref("士林", source.model)
+    config = {"layer_count": bad_count, "holes": [{"model_filename": model}]}
+    assert _tier_source_depths(None, config, 0) == ()
+    config["layer_count"] = 1
+    assert _tier_source_depths(None, config, 0) == pytest.approx((source.depth_mm,))
