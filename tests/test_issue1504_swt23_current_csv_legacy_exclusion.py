@@ -190,7 +190,7 @@ def test_ac52_all_invalid_v5_refs_cannot_silently_fall_back_to_blank_finalscene(
         _submitted_csv_holes(submitted)
     # The actual full FinalScene may correctly reject earlier (depth/brand).
     # Whichever gate runs first, it must not produce editable/manufactured
-    parts with missing source-owned NFB holes.
+    # parts with missing source-owned NFB holes.
     with pytest.raises(
         ValueError,
         match="RECEIVING_NFB_DEPTH_V5_BRAND_IDENTITY_MISMATCH|"
