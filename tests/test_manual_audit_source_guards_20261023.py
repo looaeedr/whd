@@ -176,3 +176,34 @@ def test_r6_unfolded_material_segments_do_not_coerce_boolean_length_to_one_mm():
         piece_id="sample", x_segments=x, y_segments=(),
         source="saved_fold_profile",
     ).width == pytest.approx(25.5)
+
+
+@pytest.mark.parametrize("invalid_x", [True, False, float("nan"), float("inf"), float("-inf")])
+def test_r6_manual_116_invalid_bend_line_never_omits_or_invents_material_fold(invalid_x):
+    """BEND coordinate corruption must fail closed before physical 2D/3D folding."""
+    from ae_engine.sheetmetal_drawing import DrawingScene, LinePrimitive
+    from ae_engine.sheetmetal_geometry import Vec2
+    from ae_engine.manufacturing_render_data import fold_guides_from_final_scene
+
+    corrupt = DrawingScene([LinePrimitive(Vec2(invalid_x, 0.), Vec2(1., 100.), "BEND")])
+    with pytest.raises(ValueError, match="INVALID_BEND_GUIDE_COORDINATES"):
+        fold_guides_from_final_scene(corrupt)
+    # A non-BEND marking is not a fold guide; don't introduce a new restriction.
+    nonbend = DrawingScene([LinePrimitive(Vec2(invalid_x, 0.), Vec2(1., 100.), "MARKING")])
+    assert fold_guides_from_final_scene(nonbend) == ()
+
+
+def test_r6_manual_116_valid_bend_guides_and_diagonal_filter_remain_unchanged():
+    from ae_engine.sheetmetal_drawing import DrawingScene, LinePrimitive
+    from ae_engine.sheetmetal_geometry import Vec2
+    from ae_engine.manufacturing_render_data import FoldGuide, fold_guides_from_final_scene
+
+    scene = DrawingScene([
+        LinePrimitive(Vec2(25., 0.), Vec2(25., 100.), "BEND"),
+        LinePrimitive(Vec2(0., 10.), Vec2(80., 10.), "BEND"),
+        LinePrimitive(Vec2(0., 0.), Vec2(20., 20.), "BEND"),
+    ])
+    assert fold_guides_from_final_scene(scene) == (
+        FoldGuide("x", 25., 0., 100.),
+        FoldGuide("y", 10., 0., 80.),
+    )
