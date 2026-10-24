@@ -321,9 +321,8 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
         from ae_engine.receiving_ear_side_manufacturing_marking import (
             with_verified_receiving_ear_side_markings,
         )
-        from ae_engine.manufacturing_export import (
-            resolved_physical_render_parts, resolved_physical_dxf_filename,
-        )
+        from ae_engine.manufacturing_export import resolved_physical_render_parts
+        from ae_engine.manufacturing_api import _resolved_physical_dxf_filename
         marked = with_verified_receiving_ear_side_markings(
             snapshot, resolved,
             dimensions=tuple(float(snapshot[k]) for k in ("w", "h", "d")),
@@ -331,7 +330,7 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
         )
         selected = export_actions._selected_resolved_geometry(marked, flags)
         expected = {
-            resolved_physical_dxf_filename(key): render
+            _resolved_physical_dxf_filename(key): render
             for key, render in resolved_physical_render_parts(selected)
         }
         assert set(expected).issubset(actual), (
