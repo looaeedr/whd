@@ -1,6 +1,4 @@
 """Manual source audit: physical Box Body W widths and fold lengths are finite."""
-import math
-
 import pytest
 
 import phase6_box_body_structure as body
