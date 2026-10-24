@@ -81,6 +81,8 @@ def _source_panel():
     panel._source_key = None
     panel._numeric_mode = False
     panel._numeric_spec = None
+    # __new__ bypasses the real Tk constructor: initialize the full cache contract.
+    panel._numeric_sources = {}
     panel._index_path = None
     panel.paint = lambda: None
     panel.cache = SimpleNamespace(load=lambda *a, **k: (_ for _ in ()).throw(
