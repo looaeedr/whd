@@ -195,10 +195,16 @@ def derive_nfb_partial_export_manifest(
             config_matching=True
         except (ValueError,KeyError,TypeError,IndexError):
             config_matching=False
+    # A hash-current DXF inventory is not proof for a *different saved*
+    # NFBConfig.  After model/X/layer/rotation changes or missing slots,
+    # earlier Color30/150/212 zeros cannot exempt physical base/middle
+    # plates: every dependent part must fail closed until a fresh matched
+    # inner-door source and physical owner are proven.
+    source_owner_current=source_fresh and config_matching
     readiness=derive_nfb_part_readiness(
-        scope,source_inventory=source_inventory if source_fresh else None,
+        scope,source_inventory=(source_inventory if source_owner_current else None),
         verified_inner_door=(verified_inner_door
-                             if source_fresh and config_matching else None),
+                             if source_owner_current else None),
     )
     declared={
         INNER_DOOR:{scope.inner_door_part_id},
