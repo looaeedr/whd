@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
+from math import isfinite
 
 from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
 
@@ -19,6 +20,8 @@ def commit_receiving_base_plate_settings(
     """Validate actual structural geometry then atomically commit one selection."""
     if not isinstance(input_snapshot, dict):
         raise ValueError("受電箱實體底板缺少可提交的專案狀態")
+    if not isinstance(settings_values, Mapping):
+        raise ValueError("受電箱底板設定缺少外箱尺寸來源")
     if str(input_snapshot.get("model") or "").strip() not in {"受電箱", "RECEIVING"}:
         raise ValueError("只有受電箱可選擇專用底板")
     if config is not None and not isinstance(config, Mapping):
@@ -29,8 +32,22 @@ def commit_receiving_base_plate_settings(
         for key in ("w", "t"):
             if key in settings_values:
                 probe[key] = settings_values[key]
+        if any(
+            isinstance(probe.get(k), bool)
+            or not isinstance(probe.get(k), (int, float))
+            or not isfinite(float(probe[k]))
+            or float(probe[k]) <= 0
+            for k in ("w", "t")
+        ):
+            raise ValueError("受電箱底板外箱 W/T 必須是有限正數")
         probe["receiving_base_plate"] = dict(config)
         receiving_base_plate_blank_dimensions(probe)
+        if probe.get("nfb_config_submitted") is True:
+            receiving_base_plate_blank_dimensions({
+                **probe,
+                "nfb_config_submitted": False,
+                "nfb_config": None,
+            })
 
         # Validate the true EAR mounting holes through their manufacturing
         # owner, BEFORE accepting a new pattern.  LEFT/RIGHT blanks cannot

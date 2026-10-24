@@ -56,6 +56,8 @@ def with_verified_receiving_ear_side_markings(
     side_keys = ("box_body:left_side", "box_body:right_side")
     if set(parts) != set(side_keys) or set(scenes) != set(side_keys):
         raise ValueError("EAR_SIDE_NORMAL_EXPORT_SOURCE_SIDE_PAIR_MISSING")
+    if len(uv) not in (2, 4):
+        raise ValueError("EAR_SIDE_NORMAL_EXPORT_INCOMPLETE_SIDE_MARKING")
     if len({row.ear_part_id for row in uv}) != len(uv):
         raise ValueError("EAR_SIDE_NORMAL_EXPORT_DUPLICATE_SOURCE")
     result = geometry
@@ -69,7 +71,7 @@ def with_verified_receiving_ear_side_markings(
         segments = sum(
             len(row.marking_segments) for row in uv if row.side_piece_id == side
         )
-        if segments not in (4, 8):
+        if segments != (len(uv) // 2) * 4:
             raise ValueError("EAR_SIDE_NORMAL_EXPORT_INCOMPLETE_SIDE_MARKING")
         verified = replace(
             source, scene=scenes[side],
@@ -162,8 +164,15 @@ def export_receiving_ear_side_manufacturing_marking_dxf(
         )
         rows.append((side, standard_name, side_render))
 
+    from .sheetmetal_drawing import LinePrimitive
+
     segments = {
-        side: tuple(segment for row in by_side[side] for segment in row.marking_segments)
+        side: tuple(
+            ((float(p.p1.x), float(p.p1.y)), (float(p.p2.x), float(p.p2.y)))
+            for p in tuple(getattr(parts[side].scene, "primitives", ()) or ())
+            if isinstance(p, LinePrimitive)
+            and str(getattr(p, "layer", "") or "").upper() == "MARKING"
+        ) + tuple(segment for row in by_side[side] for segment in row.marking_segments)
         for side in side_keys
     }
 

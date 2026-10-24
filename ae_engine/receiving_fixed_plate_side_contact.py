@@ -43,6 +43,17 @@ def derive_receiving_ear_side_contact_from_formed_skin(
             or not formed.actual_signed_forming_constructed
             or formed.weld_contact_verified
             or formed.manufacturing_ready
+            or any(
+                isinstance(v, bool) or not isinstance(v, (int, float)) or not isfinite(float(v))
+                for v in (
+                    formed.source_sheet_t_mm,
+                    formed.source_bend_y_mm,
+                    formed.side_wall_inside_world_x_mm,
+                    formed.actual_mid_surface_hinge_y_mm,
+                    formed.parent_base_back_skin_world_z_mm,
+                    formed.layer_index,
+                )
+            )
             or abs(float(formed.source_sheet_t_mm)-2.0) > _TOL
             or abs(float(formed.source_bend_y_mm)-23.0) > _TOL):
         raise ValueError("EAR_SIDE_CONTACT_SOURCE_FORMING_NOT_VERIFIED")

@@ -8,6 +8,7 @@ or add shop-inapplicable bend compensation.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from math import isfinite
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Mapping
@@ -207,9 +208,12 @@ def export_current_csv_nfb_door_base_pair(
     selection = snapshot.get("_receiving_runtime_selection")
     if not isinstance(selection, Mapping):
         raise ValueError("CSV_PAIR_SELECTED_SET_BAY_REQUIRED")
-    namespace = receiving_instance_namespace(
-        set_id=selection["set_id"], bay_id=selection["bay_id"],
-    )
+    try:
+        namespace = receiving_instance_namespace(
+            set_id=selection["set_id"], bay_id=selection["bay_id"],
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("CSV_PAIR_SELECTED_SET_BAY_REQUIRED") from exc
     source_snapshot = _without_derived_csv_door_features(
         snapshot, inner_door_id,
     )
@@ -237,6 +241,7 @@ def export_current_csv_nfb_door_base_pair(
                 or tuple(existing.fold_guides or ()) != tuple(expected.fold_guides or ())
                 or tuple(existing.scene.primitives) != tuple(expected.scene.primitives)
                 or existing.material is None or expected.material is None
+                or not isfinite(float(existing.material.symmetric_difference(expected.material).area))
                 or existing.material.symmetric_difference(expected.material).area > 1e-5
                 or existing.metadata.get("stable_id") != identity):
             raise ValueError("CSV_PAIR_CURRENT_FINALSCENE_DIFFERS_FROM_CSV")
@@ -354,9 +359,12 @@ def _export_current_csv_nfb_two_tier_pair(
     selection = snapshot.get("_receiving_runtime_selection")
     if not isinstance(selection, Mapping):
         raise ValueError("CSV_TWO_TIER_CURRENT_SET_BAY_MISSING")
-    namespace = receiving_instance_namespace(
-        set_id=selection["set_id"], bay_id=selection["bay_id"],
-    )
+    try:
+        namespace = receiving_instance_namespace(
+            set_id=selection["set_id"], bay_id=selection["bay_id"],
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("CSV_TWO_TIER_CURRENT_SET_BAY_MISSING") from exc
     source_snapshot = _without_derived_csv_door_features(snapshot, inner_door_id)
     door = trial_configured_nfb_v5_inner_door_render_data(
         source_snapshot, inner_door_id, holes=holes,
@@ -395,6 +403,7 @@ def _export_current_csv_nfb_two_tier_pair(
                 or tuple(render.fold_guides or ()) != tuple(proof.fold_guides or ())
                 or tuple(render.scene.primitives) != tuple(proof.scene.primitives)
                 or render.material is None or proof.material is None
+                or not isfinite(float(render.material.symmetric_difference(proof.material).area))
                 or render.material.symmetric_difference(proof.material).area > 1e-5
                 or render.metadata.get("stable_id") != key):
             raise ValueError("CSV_TWO_TIER_FINALSCENE_DIFFERS_FROM_CSV:" + key)
@@ -412,6 +421,10 @@ def _export_current_csv_nfb_two_tier_pair(
             snapshot, inner_door_id, layer_count=2, slot_index=index,
         )
         if (len(offset) != 3 or not target.physical_skin_z_resolved
+                or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not isfinite(float(v))
+                       for v in offset)
+                or not isfinite(float(y.box_world_y_mm))
+                or not isfinite(float(target.world_offset_z_mm))
                 or abs(float(offset[0])) > 1e-6
                 or abs(float(offset[1]) - float(y.box_world_y_mm)) > 1e-6
                 or abs(float(offset[2]) - float(target.world_offset_z_mm)) > 1e-6):

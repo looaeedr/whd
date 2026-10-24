@@ -87,15 +87,27 @@ class Phase6RegistryDiagnosticsController:
         validator,
         evaluator,
     ) -> dict:
+        import math
         candidate_id = self.require_current_candidate(current_record)
         raw = validator(current_record)
         base = dict(base_variables or {})
+        raw_t = base.get("T")
+        raw_fw = base.get("FW")
+        if isinstance(raw_t, bool) or isinstance(raw_fw, bool) or raw_t is None or raw_fw is None:
+            raise ValueError("base_variables must provide numeric T and FW")
+        try:
+            base_t = float(raw_t)
+            base_fw = float(raw_fw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("base_variables must provide numeric T and FW") from exc
+        if not math.isfinite(base_t) or not math.isfinite(base_fw) or base_t <= 0.0 or base_fw <= 0.0:
+            raise ValueError("base_variables T and FW must be positive finite numbers")
         samples = []
-        for t in (max(0.5, base["T"] * 0.75), base["T"], base["T"] * 1.25):
+        for t in (max(0.5, base_t * 0.75), base_t, base_t * 1.25):
             for fw in (
-                max(t * 2, base["FW"] * 0.8),
-                base["FW"],
-                base["FW"] * 1.2,
+                max(t * 2, base_fw * 0.8),
+                base_fw,
+                base_fw * 1.2,
             ):
                 variables = dict(base, T=t, FW=fw)
                 evaluator(raw, variables)
@@ -200,7 +212,9 @@ class Phase6RegistryDiagnosticsController:
         errors,
         measurement_text,
     ) -> tuple[str, str]:
-        solutions = dict(solutions or {})
+        solutions = {
+            k: v for k, v in dict(solutions or {}).items() if v is not None
+        }
         errors = dict(errors or {})
         labels = {"head": "封頭", "tail": "封尾"}
 

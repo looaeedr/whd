@@ -39,6 +39,11 @@ def require_highlighted_nfb_inner_doors(ports, set_index, bay_indices, *, allow_
     selected = _selection(set_index, bay_indices)
     if type(allow_held) is not bool:
         raise TypeError("NFB partial selection must be boolean")
+    if not isinstance(ports, Mapping):
+        raise TypeError("NFB operator ports required")
+    report = ports.get("manifest")
+    if not callable(report) or not callable(ports.get("partial_export")):
+        raise ValueError("NFB live partial manufacturing ports unavailable")
     if allow_held:
         ready = []
         for bi in selected:
@@ -50,11 +55,6 @@ def require_highlighted_nfb_inner_doors(ports, set_index, bay_indices, *, allow_
         if not ready:
             raise ValueError("NFB highlighted selection has no READY inner-door parts")
         return tuple(ready)
-    if not isinstance(ports, Mapping):
-        raise TypeError("NFB operator ports required")
-    report = ports.get("manifest")
-    if not callable(report) or not callable(ports.get("partial_export")):
-        raise ValueError("NFB live partial manufacturing ports unavailable")
     for bay_index in selected:
         view = report(set_index, bay_index)
         if not isinstance(view, Mapping) or view.get("status") not in (
@@ -87,7 +87,19 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
     selected = require_highlighted_nfb_inner_doors(
         ports, set_index, requested, allow_held=allow_held,
     )
-    current_views = {bi: ports["manifest"](set_index, bi) for bi in requested}
+    current_views = {}
+    for bi in requested:
+        try:
+            view = ports["manifest"](set_index, bi)
+        except (ValueError, TypeError, KeyError, IndexError, OSError) as exc:
+            if bi in selected:
+                raise
+            view = {"reason": str(exc)}
+        if not isinstance(view, Mapping):
+            if bi in selected:
+                raise ValueError("NFB highlighted Bay needs fresh submitted DXF proof")
+            view = {"reason": "Invalid manifest view"}
+        current_views[bi] = view
     root = Path(output_directory)
     if not root.is_dir():
         raise ValueError("NFB partial export destination must already exist")

@@ -66,6 +66,11 @@ def export_verified_receiving_nfb_inner_door(
         current_snapshot, bundle.snapshot_at_verification,
     ):
         raise ValueError("NFB 實體內門已變更，須重新驗證後才可出圖")
+    if (isinstance(bundle.set_index, bool) or not isinstance(bundle.set_index, int)
+            or bundle.set_index < 0
+            or isinstance(bundle.bay_index, bool) or not isinstance(bundle.bay_index, int)
+            or bundle.bay_index < 0):
+        raise ValueError("NFB 目前套／連已不存在")
     try:
         group = layout["sets"][bundle.set_index]
         bay = group["bays"][bundle.bay_index]
@@ -123,7 +128,7 @@ def export_verified_receiving_nfb_inner_door(
         raise ValueError("NFB 現行 DXF 原檔不存在，無法重新驗證") from exc
     if profile.source_sha256 != bundle.source_inventory.source_sha256:
         raise ValueError("NFB DXF 已修改，請重新核對當前來源後再出圖")
-    proof_metadata = getattr(bundle.verified_door.render_data, "metadata", {})
+    proof_metadata = getattr(bundle.verified_door.render_data, "metadata", None) or {}
     if (proof_metadata.get("nfb_source_handle")
             != profile.source_sha256 + ":" + profile.upper_handle
             or proof_metadata.get("nfb_profile_revision") != profile.revision):

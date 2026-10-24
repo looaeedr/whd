@@ -7,6 +7,7 @@ requirement, never an approved PAD part or DXF/BOM release.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from pathlib import Path
 from typing import Mapping
 
@@ -90,7 +91,14 @@ def preview_nfb_pad_depth(
             if filename.startswith("nfbv5:"):
                 parsed=parse_numeric_model_ref(filename)
                 spec=selected_numeric_spec(brand,filename) if parsed else None
-                depths.append(float(spec.depth_mm) if (spec is not None and spec.depth_mm is not None) else None)
+                raw_depth = spec.depth_mm if spec is not None else None
+                valid_depth = (
+                    not isinstance(raw_depth, bool)
+                    and isinstance(raw_depth, (int, float))
+                    and isfinite(float(raw_depth))
+                    and float(raw_depth) > 0
+                )
+                depths.append(float(raw_depth) if valid_depth else None)
             else:
                 depths.append(model_depth_mm(brand,filename,path=index_path))
         per_tier.append(tuple(depths))

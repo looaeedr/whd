@@ -173,9 +173,13 @@ def operator_part_label(
         return f"底板（NFB 第{int(key.rsplit(':',1)[-1])+1}層）"
 
     snap = dict(snapshot or {})
-    catalog = snap.get("custom_parts") or dict(snap.get("workspace") or {}).get("custom_parts") or {}
-    descriptor = dict(catalog.get("items") or {}).get(key)
-    if descriptor is not None:
+    workspace_snap = snap.get("workspace")
+    catalog = snap.get("custom_parts") or (
+        workspace_snap.get("custom_parts") if isinstance(workspace_snap, Mapping) else {}
+    ) or {}
+    items = catalog.get("items") if isinstance(catalog, Mapping) else None
+    descriptor = items.get(key) if isinstance(items, Mapping) else None
+    if isinstance(descriptor, Mapping) and descriptor.get("display_name"):
         return str(descriptor["display_name"])
     model = str(
         snap.get("model")

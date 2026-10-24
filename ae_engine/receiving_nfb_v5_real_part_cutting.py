@@ -87,7 +87,12 @@ def trial_v5_numeric_cutting_on_real_part(
             raise ValueError("NFB V5 矩形開孔幾何不合法")
         footprints.append(outline)
     if pattern.screw_centres_uv_mm is not None:
-        radius = pattern.screw_diameter_mm / 2.0
+        if not pattern.screw_centres_uv_mm:
+            raise ValueError("NFB V5 缺少螺絲孔座標")
+        if (isinstance(pattern.screw_diameter_mm, bool)
+                or not isinstance(pattern.screw_diameter_mm, (int, float))):
+            raise ValueError("NFB V5 螺絲孔徑不合法")
+        radius = float(pattern.screw_diameter_mm) / 2.0
         if not isfinite(radius) or radius <= 0:
             raise ValueError("NFB V5 螺絲孔徑不合法")
         footprints.extend(

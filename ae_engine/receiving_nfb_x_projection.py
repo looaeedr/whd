@@ -188,7 +188,12 @@ def _physical_w800_basis(snapshot: Mapping[str, object], inner_door_id: str):
     # An inconsistent cabinet W silently shifts every NFB shadow in later
     # columns, even when the target W800 panel itself is geometrically valid.
     total_columns_w = sum(float(column[0]) for column in columns)
-    cabinet_w = float(data.get("w", 0.0))
+    raw_w = data.get("w", 0.0)
+    raw_t = data.get("t")
+    if (isinstance(raw_w, bool) or not isinstance(raw_w, (int, float))
+            or isinstance(raw_t, bool) or not isinstance(raw_t, (int, float))):
+        raise ValueError("OPEN-X-W800x3 invalid cabinet W/T dimensional authority")
+    cabinet_w = float(raw_w)
     if (not isfinite(cabinet_w) or not isfinite(total_columns_w)
             or abs(total_columns_w - cabinet_w) > 1e-6):
         raise ValueError("OPEN-X-W800x3 column widths do not equal cabinet world width")
@@ -201,7 +206,7 @@ def _physical_w800_basis(snapshot: Mapping[str, object], inner_door_id: str):
     cell = next((c for c in cells if f"{c.column_index}:{c.row_index}" == cell_key), None)
     if (cell is None or abs(float(cell.start_width)-800.0) > 1e-7
             or cell.row_index != 0 or abs(float(cell.start_height)-1100.0) > 1e-7
-            or abs(float(data["t"])-2.0) > 1e-7):
+            or abs(float(raw_t)-2.0) > 1e-7):
         raise ValueError("OPEN-X-W800x3 only witnessed W800 T2 top 1100 cell")
     panels = [p for p in cabinet_family_policy.derive_inner_door_panels(data)
               if p.inner_door_id == inner_door_id and p.cell_key == cell_key]
@@ -305,6 +310,8 @@ def reverse_shadow_w800_three_source_x(
 ) -> float:
     """Reconstruct source X under the SAME unapproved, positive-X assumption."""
     source_left, centers = _source_three_centers(original_source, closed_cutting_reference)
+    if isinstance(candidate_world_x_mm, bool) or not isinstance(candidate_world_x_mm, (int, float)):
+        raise ValueError("OPEN-X shadow world X must be finite")
     x = float(candidate_world_x_mm)
     if not isfinite(x):
         raise ValueError("OPEN-X shadow world X must be finite")
@@ -411,6 +418,8 @@ def reverse_w800_three_whd_x(
     expected = resolve_w800_three_whd_x(
         snapshot, inner_door_id, slot_index=slot_index,
     )
+    if isinstance(box_world_x_mm, bool) or not isinstance(box_world_x_mm, (int, float)):
+        raise ValueError("OPEN-X-W800x3 canonical world X must be finite")
     world = float(box_world_x_mm)
     if not isfinite(world):
         raise ValueError("OPEN-X-W800x3 canonical world X must be finite")

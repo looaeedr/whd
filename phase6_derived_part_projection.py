@@ -13,6 +13,7 @@ stable plan describing the workspace intent to apply elsewhere.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
@@ -37,7 +38,9 @@ def _freeze(value: Any) -> Any:
     if isinstance(value, (set, frozenset)):
         frozen = tuple(_freeze(item) for item in value)
         return FrozenSequenceValue(tuple(sorted(frozen, key=repr)))
-    return value
+    if value is None or isinstance(value, (str, int, float, bool, bytes)):
+        return value
+    return deepcopy(value)
 
 
 def _thaw(value: Any) -> Any:
@@ -45,7 +48,9 @@ def _thaw(value: Any) -> Any:
         return {key: _thaw(item) for key, item in value.items}
     if isinstance(value, FrozenSequenceValue):
         return [_thaw(item) for item in value.items]
-    return value
+    if value is None or isinstance(value, (str, int, float, bool, bytes)):
+        return value
+    return deepcopy(value)
 
 
 @dataclass(frozen=True)
@@ -187,18 +192,32 @@ def build_derived_part_projection_request(
     selected_repair = None
     if door_keys:
         first_door = door_keys[0]
-        first_base = first_door.replace("door_", "base_plate_", 1)
+        candidate_base = first_door.replace("door_", "base_plate_", 1)
+        first_base = (
+            candidate_base
+            if candidate_base in data.base_plate_profiles
+            else next(iter(data.base_plate_profiles), None)
+        )
         if data.active_part == "door":
             active_repair = first_door
-        elif data.active_part == "base_plate" and not data.preserve_single_base_plate:
+        elif data.active_part == "base_plate" and not data.preserve_single_base_plate and first_base is not None:
             active_repair = first_base
         elif data.preserve_single_base_plate and str(data.active_part or "").startswith("base_plate_c") and "base_plate" in source_parts:
             active_repair = "base_plate"
         if data.selected_part == "door":
             selected_repair = first_door
-        elif data.selected_part == "base_plate" and not data.preserve_single_base_plate:
+        elif data.selected_part == "base_plate" and not data.preserve_single_base_plate and first_base is not None:
             selected_repair = first_base
         elif data.preserve_single_base_plate and str(data.selected_part or "").startswith("base_plate_c") and "base_plate" in source_parts:
+            selected_repair = "base_plate"
+    else:
+        if str(data.active_part or "").startswith("door_c") and "door" in source_parts:
+            active_repair = "door"
+        elif str(data.active_part or "").startswith("base_plate_c") and "base_plate" in source_parts:
+            active_repair = "base_plate"
+        if str(data.selected_part or "").startswith("door_c") and "door" in source_parts:
+            selected_repair = "door"
+        elif str(data.selected_part or "").startswith("base_plate_c") and "base_plate" in source_parts:
             selected_repair = "base_plate"
 
     return DerivedPartProjectionRequest(

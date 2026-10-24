@@ -20,11 +20,18 @@ _NAMED_FONT_NAMES = (
 
 
 def _scaled_size(size: int | float, factor: float) -> int:
-    size = int(round(float(size)))
+    import math
+    if isinstance(size, bool) or isinstance(factor, bool):
+        raise ValueError("font size and scale factor must be finite numbers, not bool")
+    raw_size = float(size)
+    raw_factor = float(factor)
+    if not math.isfinite(raw_size) or not math.isfinite(raw_factor) or raw_factor <= 0.0:
+        raise ValueError("font size and scale factor must be positive finite numbers")
+    size = int(round(raw_size))
     if size == 0:
         return 1
     sign = -1 if size < 0 else 1
-    return sign * max(1, int(round(abs(size) * float(factor))))
+    return sign * max(1, int(round(abs(size) * raw_factor)))
 
 
 def scaled_font_tuple(family: str, size: int | float, *styles: str, factor: float = 1.0):
@@ -193,6 +200,10 @@ class TextScaleController:
             item_ids = canvas.find_all()
         except Exception:
             return
+        live_ids = set(item_ids)
+        for stale_id in tuple(fonts.keys()):
+            if stale_id not in live_ids:
+                fonts.pop(stale_id, None)
         for item_id in item_ids:
             try:
                 if canvas.type(item_id) != "text":

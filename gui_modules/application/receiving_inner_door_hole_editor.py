@@ -48,10 +48,16 @@ def inner_door_work_area_guide(snapshot, panel, structural):
     if cell is None:
         raise ValueError(f"內門 {panel.inner_door_id} 找不到所屬作業區 {cell_key}")
 
+    from math import isfinite
+    raw_gap_h = snapshot.get("door_gap_h")
+    if raw_gap_h is None:
+        raw_gap_h = DOOR_DEFAULTS["door_gap_h"]
+    if isinstance(raw_gap_h, bool) or not isinstance(raw_gap_h, (int, float)) or not isfinite(float(raw_gap_h)):
+        raise ValueError("內門作業區 door_gap_h 必須是有限數值")
     vertical = inner_door_panel_vertical_contract(
         cell_height=cell.start_height,
         thickness=panel.thickness,
-        gap_h=float(snapshot.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"])),
+        gap_h=float(raw_gap_h),
     )
     # Panel is vertically lower inside its work-area cell by half the top-frame
     # occupation. In local unfolded-door coordinates the CELL center is higher
@@ -215,10 +221,12 @@ def open_inner_door_hole_editor(
         baseline_status_text="金庫型門板共用折彎／截角；內門孔位獨立",
     )
     editor = window or getattr(host, "last_unified_hole_editor", None)
-    if settings_mode is not None:
+    if editor is not None:
         editor._receiving_staged_config = None
         editor._receiving_settings_mode = settings_mode
-        editor._receiving_candidate_version = selected_candidate_version
+        editor._receiving_candidate_version = (
+            selected_candidate_version if settings_mode is not None else None
+        )
     receiving_page = getattr(editor, "_receiving_config_frame", None)
     if receiving_page is not None:
         # Reuse the existing Receiving Set/Bay candidate/NFB data authority,

@@ -46,6 +46,8 @@ def pad_preview_source_fingerprint(snapshot, assembly_parts) -> str:
         if material is None or material.is_empty:
             raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_MISSING")
         h.update(key.encode("utf-8"))
+        h.update(repr(getattr(part,"placement",None)).encode("utf-8"))
+        h.update(repr(getattr(part,"rotation",None)).encode("utf-8"))
         h.update(repr(tuple(getattr(part,"offset",()) or ())).encode("utf-8"))
         h.update(sha256(material.wkb).digest())
         h.update(repr(tuple(getattr(data,"fold_guides",()) or ())).encode("utf-8"))

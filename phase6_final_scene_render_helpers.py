@@ -36,17 +36,25 @@ class Phase6FinalSceneRenderHelpersMixin:
                 pass
 
     def _add_mesh_boundary_lines(self, triangles, color):
+        import math
         from collections import Counter
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
         def key(point):
-            return tuple(round(float(v), 6) for v in point)
+            coords = tuple(float(v) for v in point[:3])
+            if len(coords) != 3 or not all(math.isfinite(v) for v in coords):
+                return None
+            return tuple(round(v, 6) for v in coords)
 
         edges = Counter()
         original_points = {}
-        for tri in triangles:
+        for tri in triangles or ():
+            if len(tri) < 3:
+                continue
             for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
                 ka, kb = key(a), key(b)
+                if ka is None or kb is None or ka == kb:
+                    continue
                 edge = tuple(sorted((ka, kb)))
                 edges[edge] += 1
                 original_points[ka] = a
@@ -131,17 +139,23 @@ class Phase6FinalSceneRenderHelpersMixin:
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
         def key(point):
-            return tuple(round(float(v), 6) for v in point)
+            coords = tuple(float(v) for v in point[:3])
+            if len(coords) != 3 or not all(math.isfinite(v) for v in coords):
+                return None
+            return tuple(round(v, 6) for v in coords)
 
         def normal(tri):
             a, b, c = tri[:3]
+            coords = (*a[:3], *b[:3], *c[:3])
+            if len(coords) != 9 or not all(math.isfinite(float(v)) for v in coords):
+                return None
             ux, uy, uz = (float(b[i]) - float(a[i]) for i in range(3))
             vx, vy, vz = (float(c[i]) - float(a[i]) for i in range(3))
             nx = uy * vz - uz * vy
             ny = uz * vx - ux * vz
             nz = ux * vy - uy * vx
             mag = math.sqrt(nx * nx + ny * ny + nz * nz)
-            if mag <= 1e-12:
+            if not math.isfinite(mag) or mag <= 1e-12:
                 return None
             return (nx / mag, ny / mag, nz / mag)
 
@@ -155,6 +169,8 @@ class Phase6FinalSceneRenderHelpersMixin:
                 continue
             for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
                 ka, kb = key(a), key(b)
+                if ka is None or kb is None or ka == kb:
+                    continue
                 edge = tuple(sorted((ka, kb)))
                 edges[edge].append(n)
                 original_points[ka] = a
@@ -579,7 +595,7 @@ class Phase6FinalSceneRenderHelpersMixin:
     def _draw_operator_dimensions(self, request, triangles):
         ax = self.renderer.ax3d
         dims = self._resolved_finished_dimensions(request, triangles)
-        if not dims or not all(callable(getattr(ax, name, None)) for name in ("plot", "text", "text2D")):
+        if not dims or len(dims) < 2 or not all(callable(getattr(ax, name, None)) for name in ("plot", "text", "text2D")):
             return
         width, height = dims[:2]
         depth = dims[2] if len(dims) > 2 else None

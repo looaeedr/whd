@@ -7,6 +7,8 @@ No manufacturing or project Save/Apply action is exposed here.
 """
 from __future__ import annotations
 
+from math import isfinite
+
 from ae_engine.receiving_nfb_v5_configured_inner_door import (
     NfbV5ConfiguredInnerDoorTrial, STATUS,
 )
@@ -16,9 +18,18 @@ from ae_engine.sheetmetal_drawing import (
 
 
 def _paint_real_finalscene(canvas, data, label, *, width=480, height=350):
-    xmin, ymin, xmax, ymax = (float(v) for v in data.material.bounds)
-    if xmax <= xmin or ymax <= ymin:
+    if (data is None or getattr(data, "material", None) is None
+            or data.material.is_empty
+            or len(getattr(data.material, "bounds", ())) != 4):
         raise ValueError("V5 實際內門板材展開尺寸不存在")
+    xmin, ymin, xmax, ymax = (float(v) for v in data.material.bounds)
+    if (not all(isfinite(v) for v in (xmin, ymin, xmax, ymax))
+            or xmax <= xmin or ymax <= ymin):
+        raise ValueError("V5 實際內門板材展開尺寸不存在")
+    if (isinstance(width, bool) or not isinstance(width, (int, float))
+            or isinstance(height, bool) or not isinstance(height, (int, float))
+            or not isfinite(float(width)) or not isfinite(float(height))):
+        raise ValueError("V5 預覽畫布尺寸不合法")
     width, height = max(float(width), 120), max(float(height), 160)
     scale = min((width - 40.0)/(xmax - xmin),
                 (height - 42.0)/(ymax - ymin))
@@ -134,17 +145,22 @@ def preview_v5_real_receiving_base_sources(
     current = receiving_base_plate_values(snapshot)
     if (current is None or root_base_spec.physical_id != "base_plate"
             or root_base_spec.features
-            or any(abs(float(actual) - float(expected)) > 1e-6
-                   for actual, expected in (
-                       (root_base_spec.width, snapshot["w"]),
-                       (root_base_spec.height, current["h"]),
-                       (root_base_spec.thickness, snapshot["t"]),
-                       (root_base_spec.bend, current["base_plate_bend"]),
-                       (root_base_spec.shrink_left, current["base_plate_shrink_left"]),
-                       (root_base_spec.shrink_right, current["base_plate_shrink_right"]),
-                       (root_base_spec.shrink_top, current["base_plate_shrink_top"]),
-                       (root_base_spec.shrink_bottom, current["base_plate_shrink_bottom"]),
-                   ))
+            or any(
+                isinstance(actual, bool) or not isinstance(actual, (int, float))
+                or isinstance(expected, bool) or not isinstance(expected, (int, float))
+                or not isfinite(float(actual)) or not isfinite(float(expected))
+                or abs(float(actual) - float(expected)) > 1e-6
+                for actual, expected in (
+                    (root_base_spec.width, snapshot.get("w")),
+                    (root_base_spec.height, current["h"]),
+                    (root_base_spec.thickness, snapshot.get("t")),
+                    (root_base_spec.bend, current["base_plate_bend"]),
+                    (root_base_spec.shrink_left, current["base_plate_shrink_left"]),
+                    (root_base_spec.shrink_right, current["base_plate_shrink_right"]),
+                    (root_base_spec.shrink_top, current["base_plate_shrink_top"]),
+                    (root_base_spec.shrink_bottom, current["base_plate_shrink_bottom"]),
+                )
+            )
             or root_base_spec.receiving_bend_pattern != current["receiving_bend_pattern"]):
         raise ValueError("V5 原始實體底板與目前 Set/Bay/尺寸來源不同步")
     specs = source_receiving_nfb_tier_base_specs(snapshot)

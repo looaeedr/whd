@@ -6,10 +6,21 @@
 
 """Custom single-axis folds use the existing outside-dimension conversion."""
 from collections.abc import Mapping
+import math
 from phase6_custom_parts import CustomPartCatalog
 from phase6_fold_profiles import _outside_profile_to_material, apply_outside_dimension_compensation, profile_to_fold_segments
 from ae_engine.contracts import CustomFoldPartSpec
 from dataclasses import replace
+
+def _validated_custom_part_thickness(snapshot) -> float:
+    data = dict(snapshot or {})
+    raw_t = data.get("t", 2)
+    if isinstance(raw_t, bool):
+        raise ValueError("板厚不得為布林值")
+    t = float(raw_t)
+    if not math.isfinite(t) or not 0 < t < 17:
+        raise ValueError("自訂板件板厚必須大於0且小於包外17")
+    return t
 
 def descriptor_from_snapshot(snapshot, key):
     data = dict(snapshot or {})
@@ -21,12 +32,7 @@ def descriptor_from_snapshot(snapshot, key):
 
 def build_custom_part_profiles(snapshot, key):
     item = descriptor_from_snapshot(snapshot, key)
-    raw_t = snapshot.get("t", 2)
-    if isinstance(raw_t,bool):
-        raise ValueError("板厚不得為布林值")
-    t = float(raw_t)
-    if not 0 < t < 17:
-        raise ValueError("自訂板件板厚必須大於0且小於包外17")
+    t = _validated_custom_part_thickness(snapshot)
     axis = item["fold_axis"]
     other = "Y" if axis == "X" else "X"
     # Existing engine convention: operator +90 becomes engine -90; the
@@ -38,19 +44,27 @@ def build_custom_part_profiles(snapshot, key):
 
 def custom_part_spec(snapshot, key, *, features=(), profiles=None):
     item = descriptor_from_snapshot(snapshot,key)
+    t = _validated_custom_part_thickness(snapshot)
     rows = profiles if profiles is not None else build_custom_part_profiles(snapshot,key)
     axis = item["fold_axis"]
     other = "Y" if axis == "X" else "X"
     if not isinstance(rows,Mapping) or not rows.get(axis) or len(rows.get(other,())) != 1:
         raise ValueError("自訂板件缺少合法單軸 Fold")
     flat = rows[other][0]
-    if flat.get("angle") not in (None,0):
+    if not isinstance(flat, Mapping):
+        raise ValueError("自訂板件缺少合法單軸 Fold")
+    raw_angle = flat.get("angle")
+    if isinstance(raw_angle, bool) or raw_angle not in (None, 0, 0.0):
         raise ValueError("自訂板件另一軸不得折彎")
-    if abs(float(flat.get("len",0))-item["transverse_length"])>1e-9:
+    raw_flat_len = flat.get("len", 0)
+    if isinstance(raw_flat_len, bool):
+        raise ValueError("自訂板件另一軸尺寸不得為布林值")
+    flat_len = float(raw_flat_len)
+    if not math.isfinite(flat_len) or abs(flat_len - item["transverse_length"]) > 1e-9:
         raise ValueError("自訂板件另一軸尺寸與 metadata 不一致")
-    compensated = apply_outside_dimension_compensation([dict(row) for row in rows[axis]],snapshot.get("t",2))
+    compensated = apply_outside_dimension_compensation([dict(row) for row in rows[axis]], t)
     return CustomFoldPartSpec(physical_id=key,fold_axis=axis,
         fold_profile=tuple(replace(seg,formed_length=float(row["len"])+float(row.get("ui_len_add",0)))
                            for seg,row in zip(profile_to_fold_segments(compensated),compensated)),
-        transverse_length=item["transverse_length"],thickness=float(snapshot.get("t",2)),
+        transverse_length=item["transverse_length"],thickness=t,
         features=tuple(features))

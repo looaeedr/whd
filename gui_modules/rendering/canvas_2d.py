@@ -43,6 +43,7 @@ def render_secondary_scene(canvas, scene, transform, *, scene_renderer=render_dr
             not skipped_primary_outline
             and isinstance(primitive, PolylinePrimitive)
             and primitive.layer == "CUTTING"
+            and primitive.closed
         ):
             skipped_primary_outline = True
             continue

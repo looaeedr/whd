@@ -48,7 +48,12 @@ def build_hole_editor_cadcraft_scene(*, surface, features, width, height, baseli
     current holes are placed on CHECK, never on manufacturing CUTTING/BEND.
     Unsupported/invalid geometry fails before a preview or source change.
     """
-    w, h = float(width), float(height)
+    if isinstance(width, bool) or isinstance(height, bool):
+        raise CadcraftPreviewError("板件寬高不是有效數值")
+    try:
+        w, h = float(width), float(height)
+    except (TypeError, ValueError) as exc:
+        raise CadcraftPreviewError("板件寬高不是有效數值") from exc
     if not all(math.isfinite(value) and value > 0 for value in (w, h)):
         raise CadcraftPreviewError("板件寬高不是有效數值")
     if baseline_scene is not None and not isinstance(baseline_scene, DrawingScene):
@@ -81,7 +86,11 @@ def build_hole_editor_cadcraft_scene(*, surface, features, width, height, baseli
             # DXF-profile records already carry their own closed/open witnesses.
             if feature.layered_profiles:
                 for _layer, points, closed in feature.layered_profiles:
-                    scene.add_polyline(_points(points), layer="CHECK", closed=closed)
+                    pts = _points(points)
+                    min_pts = 3 if closed else 2
+                    if len(pts) < min_pts:
+                        raise CadcraftPreviewError("複合開孔輪廓點數不足，無法安全預覽")
+                    scene.add_polyline(pts, layer="CHECK", closed=closed)
             elif len(feature.points) >= 3:
                 scene.add_polyline(_points(feature.points), layer="CHECK", closed=True)
             else:
@@ -117,7 +126,8 @@ def open_hole_editor_cadcraft_preview(
         surface=surface, features=features, width=width, height=height,
         baseline_scene=baseline_scene,
     )
-    directory = Path(output_dir) if output_dir is not None else Path(
+    created_temp_dir = output_dir is None
+    directory = Path(output_dir) if not created_temp_dir else Path(
         tempfile.mkdtemp(prefix="whd-cadcraft-preview-")
     )
     directory.mkdir(parents=True, exist_ok=True)
@@ -131,6 +141,11 @@ def open_hole_editor_cadcraft_preview(
         spawn([binary, str(target)])  # argv only: never shell=True
     except Exception:
         target.unlink(missing_ok=True)
+        if created_temp_dir:
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
         raise
     return target
 

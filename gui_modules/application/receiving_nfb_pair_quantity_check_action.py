@@ -11,7 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
+from typing import Mapping
 
 from ae_engine.manufacturing_equivalence import ManufacturingParameters
 from ae_engine.manufacturing_quantity import PhysicalPartDemand
@@ -95,8 +97,8 @@ def group_reopened_nfb_pair_check_q(
                 or sha256(Path(pair.source_path).read_bytes()).hexdigest()
                 != receipt.source_sha256):
             raise ValueError("NFB_CHECK_Q_ORIGINAL_SOURCE_EDITED_REVERIFY_PAIR")
-        door_meta = pair.inner_door_render_data.metadata
-        base_meta = pair.base_plate_render_data.metadata
+        door_meta = pair.inner_door_render_data.metadata if isinstance(pair.inner_door_render_data.metadata, Mapping) else {}
+        base_meta = pair.base_plate_render_data.metadata if isinstance(pair.base_plate_render_data.metadata, Mapping) else {}
         if (door_meta.get("nfb_source_sha256") != receipt.source_sha256
                 or base_meta.get("nfb_source_sha256") != receipt.source_sha256
                 or door_meta.get("nfb_indexed_model") != receipt.source_model
@@ -116,7 +118,7 @@ def group_reopened_nfb_pair_check_q(
             (receipt.base_plate_part_id, BASE_PLATE, pair.base_plate_path,
              pair.base_plate_render_data, row.base_plate_parameters),
         ):
-            filename = str(Path(path).resolve())
+            filename = os.path.normcase(str(Path(path).resolve()))
             if filename in seen_files:
                 raise ValueError("NFB_CHECK_Q_REPEATED_DXF_PHYSICAL_PART")
             seen_files.add(filename)

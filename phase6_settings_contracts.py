@@ -76,7 +76,11 @@ def freeze_settings_value(value: Any) -> Any:
     if isinstance(value, Integral):
         return int(value)
     if isinstance(value, Real):
-        return round(float(value), 12)
+        import math
+        num = float(value)
+        if not math.isfinite(num):
+            raise ValueError(f"non-finite float is not valid Settings contract data: {value!r}")
+        return round(num, 12)
     if callable(value):
         raise TypeError(f"callable is not valid Settings contract data: {value!r}")
     if isinstance(value, Mapping):
@@ -188,6 +192,8 @@ class SettingsStateSnapshot:
                 _as_mapping(getattr(self, name), field_name=name),
             )
         object.__setattr__(self, "assembly_type", str(self.assembly_type or ""))
+        if isinstance(self.last_external_revision, bool):
+            raise TypeError("last_external_revision must be an int, not bool")
         object.__setattr__(
             self, "last_external_revision", int(self.last_external_revision or 0)
         )
@@ -322,6 +328,8 @@ class ExternalSettingsSyncRequest:
     settings_delta: Any = None
 
     def __post_init__(self) -> None:
+        if isinstance(self.revision, bool):
+            raise TypeError("revision must be an int, not bool")
         object.__setattr__(self, "revision", int(self.revision))
         object.__setattr__(
             self, "transaction_id", str(self.transaction_id or "")
@@ -341,6 +349,8 @@ class ExternalModelTransitionRequest:
     snapshot: Any = None
 
     def __post_init__(self) -> None:
+        if isinstance(self.revision, bool):
+            raise TypeError("revision must be an int, not bool")
         object.__setattr__(self, "model", str(self.model or ""))
         object.__setattr__(self, "revision", int(self.revision or 0))
         object.__setattr__(

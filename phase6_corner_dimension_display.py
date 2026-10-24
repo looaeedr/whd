@@ -2,6 +2,8 @@
 """Canonical corner-dimension display text shared by Main GUI and Fold Designer."""
 from __future__ import annotations
 
+import math
+
 _CORNER_LABELS = {
     "bottom_left": "左下",
     "bottom_right": "右下",
@@ -12,11 +14,16 @@ _CORNER_LABELS = {
 
 def measurement_text(measurement):
     def n(value):
+        if isinstance(value, bool):
+            raise ValueError("Corner dimension measurement cannot be bool")
         number = float(value)
+        if not math.isfinite(number):
+            raise ValueError("Corner dimension measurement must be finite")
         nearest = round(number)
         if abs(number - nearest) <= 1e-4:
-            return str(int(nearest))
-        return f"{number:.3f}".rstrip("0").rstrip(".")
+            return "0" if nearest == 0 else str(int(nearest))
+        formatted = f"{number:.3f}".rstrip("0").rstrip(".")
+        return "0" if formatted in ("-0", "") else formatted
 
     text = f"{n(measurement.primary_u)}×{n(measurement.primary_v)}"
     secondary_u = getattr(measurement, "secondary_u", None)

@@ -1,7 +1,18 @@
 """Read-only 2D preview transforms and material viewport fitting."""
 
+import math
+
 from ae_engine.sheetmetal_features import CanvasTransform
 from ae_engine.sheetmetal_drawing import mirror_point_y
+
+
+def _finite_float(value, name: str) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} cannot be bool")
+    num = float(value)
+    if not math.isfinite(num):
+        raise ValueError(f"{name} must be finite")
+    return num
 
 
 class YMirroredPreviewTransform:
@@ -9,7 +20,7 @@ class YMirroredPreviewTransform:
 
     def __init__(self, base_transform, height):
         self._base = base_transform
-        self.height = float(height)
+        self.height = _finite_float(height, "height")
         self.scale = base_transform.scale
 
     def world_to_canvas(self, point):
@@ -26,15 +37,22 @@ def phase6_2d_material_viewport(
     transform_type=CanvasTransform,
 ):
     """Fit authoritative material bounds inside the presentation viewport."""
-    minx, miny, maxx, maxy = (float(v) for v in bounds)
+    raw_bounds = tuple(bounds)
+    if len(raw_bounds) != 4:
+        raise ValueError("bounds must contain 4 numbers")
+    minx, miny, maxx, maxy = (_finite_float(v, "bounds") for v in raw_bounds)
+    if minx > maxx:
+        minx, maxx = maxx, minx
+    if miny > maxy:
+        miny, maxy = maxy, miny
     world_w = max(1.0, maxx - minx)
     world_h = max(1.0, maxy - miny)
-    cw = max(1.0, float(canvas_width))
-    ch = max(1.0, float(canvas_height))
-    left = max(8.0, float(left_gutter))
-    top = min(max(8.0, float(top_gutter)), max(8.0, ch - 24.0))
-    right = max(8.0, float(right_gutter))
-    bottom_margin = max(8.0, float(bottom_gutter))
+    cw = max(1.0, _finite_float(canvas_width, "canvas_width"))
+    ch = max(1.0, _finite_float(canvas_height, "canvas_height"))
+    left = max(8.0, _finite_float(left_gutter, "left_gutter"))
+    top = min(max(8.0, _finite_float(top_gutter, "top_gutter")), max(8.0, ch - 24.0))
+    right = max(8.0, _finite_float(right_gutter, "right_gutter"))
+    bottom_margin = max(8.0, _finite_float(bottom_gutter, "bottom_gutter"))
     available_w = max(1.0, cw - left - right)
     available_h = max(1.0, ch - top - bottom_margin)
     scale = min(available_w / world_w, available_h / world_h)

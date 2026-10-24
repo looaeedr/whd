@@ -7,6 +7,7 @@ solves or reconstructs manufacturing geometry.
 """
 from __future__ import annotations
 
+import math
 import tkinter as tk
 from tkinter import ttk
 
@@ -300,14 +301,20 @@ class Phase6CornerDataViewAdapter:
 
     @staticmethod
     def zoom_from_event(current_zoom, *, delta=0, button=0):
-        try:
-            delta = int(delta or 0)
-        except (TypeError, ValueError):
+        if isinstance(delta, bool):
             delta = 0
-        try:
-            button = int(button or 0)
-        except (TypeError, ValueError):
+        else:
+            try:
+                delta = int(delta or 0)
+            except (TypeError, ValueError, OverflowError):
+                delta = 0
+        if isinstance(button, bool):
             button = 0
+        else:
+            try:
+                button = int(button or 0)
+            except (TypeError, ValueError, OverflowError):
+                button = 0
         direction = (
             1 if (delta > 0 or button == 4)
             else -1 if (delta < 0 or button == 5)
@@ -315,10 +322,15 @@ class Phase6CornerDataViewAdapter:
         )
         if direction == 0:
             return None
-        try:
-            current = float(current_zoom or 1.0)
-        except (TypeError, ValueError):
+        if isinstance(current_zoom, bool):
             current = 1.0
+        else:
+            try:
+                current = float(current_zoom or 1.0)
+            except (TypeError, ValueError):
+                current = 1.0
+            if not math.isfinite(current) or current <= 0:
+                current = 1.0
         step = 1.12
         updated = current * step if direction > 0 else current / step
         return max(0.50, min(3.00, updated))
@@ -340,11 +352,13 @@ class Phase6CornerDataViewAdapter:
     def formed_size_text(finished_dimensions, *, number_text) -> str:
         values = []
         for value in tuple(finished_dimensions or ()):
+            if isinstance(value, bool):
+                continue
             try:
                 number = float(value)
             except (TypeError, ValueError):
                 continue
-            if number > 1e-7:
+            if math.isfinite(number) and number > 1e-7:
                 values.append(number)
         primary = sorted(values, reverse=True)[:2]
         if len(primary) < 2:
@@ -421,7 +435,7 @@ class Phase6CornerDataViewAdapter:
         cuts = [
             (x0, y0 - pv * scale, x0 + pu * scale, y0)
         ]
-        if result.get("secondary_u") is not None:
+        if result.get("secondary_u") is not None and result.get("secondary_depth") is not None:
             su = float(result["secondary_u"])
             sd = float(result["secondary_depth"])
             cuts.append(

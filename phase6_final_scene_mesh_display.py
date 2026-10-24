@@ -22,6 +22,8 @@ def gridless_mesh_collection(triangles, *, facecolor, opacity: float):
     In Matplotlib Agg, an agg-filter alpha is applied in two compositing
     stages. sqrt(opacity) restores the operator-requested net opacity.
     """
+    if isinstance(opacity, bool):
+        raise ValueError("3D sheet opacity cannot be bool")
     target = float(opacity)
     if not math.isfinite(target) or not 0.0 <= target <= 1.0:
         raise ValueError("3D sheet opacity must be finite and between 0 and 1")

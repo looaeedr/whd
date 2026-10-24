@@ -8,6 +8,7 @@ lower four-circle source before the existing atomic manufacturing writer.
 from __future__ import annotations
 
 from hashlib import sha256
+from math import isfinite
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Mapping
@@ -49,6 +50,11 @@ def prepare_verified_receiving_nfb_base_plate(
         raise ValueError("NFB base inner-door geometry changed; reverify")
     if _nfb_config_proof_sha256(bundle.config) != bundle.config_sha256_at_verification:
         raise ValueError("NFB base source-verified NFBConfig mutated")
+    if (isinstance(bundle.set_index, bool) or not isinstance(bundle.set_index, int)
+            or bundle.set_index < 0
+            or isinstance(bundle.bay_index, bool) or not isinstance(bundle.bay_index, int)
+            or bundle.bay_index < 0):
+        raise ValueError("NFB base submitted Set/Bay missing")
     try:
         selected_set = layout["sets"][bundle.set_index]
         bay = selected_set["bays"][bundle.bay_index]
@@ -81,8 +87,14 @@ def prepare_verified_receiving_nfb_base_plate(
     }
     if (base_spec.receiving_bend_pattern != physical["receiving_bend_pattern"]
             or str(base_spec.model_name or "").strip() not in ("受電箱", "RECEIVING")
-            or any(abs(float(getattr(base_spec, key)) - value) > 1e-6
-                   for key, value in expected.items())):
+            or bool(getattr(base_spec, "features", ()))
+            or any(
+                isinstance(getattr(base_spec, key, None), bool)
+                or not isinstance(getattr(base_spec, key, None), (int, float))
+                or not isfinite(float(getattr(base_spec, key)))
+                or abs(float(getattr(base_spec, key)) - float(value)) > 1e-6
+                for key, value in expected.items()
+            )):
         raise ValueError("NFB base physical spec differs from live configured plate")
     source = Path(bundle.source_path)
     import re
@@ -91,8 +103,12 @@ def prepare_verified_receiving_nfb_base_plate(
         re.escape(Path(expected_name).stem) + r"(?:[(][1-9][0-9]*[)])?[.]dxf",
         source.name, re.IGNORECASE,
     )
+    try:
+        source_bytes = source.read_bytes()
+    except OSError as exc:
+        raise ValueError("NFB base original indexed source bytes changed") from exc
     if (not allowed_copy
-            or sha256(source.read_bytes()).hexdigest() != bundle.source_inventory.source_sha256
+            or sha256(source_bytes).hexdigest() != bundle.source_inventory.source_sha256
             or bundle.verified_door.source_sha256 != bundle.source_inventory.source_sha256):
         raise ValueError("NFB base original indexed source bytes changed")
     idx = Path(index_path)
@@ -110,7 +126,7 @@ def prepare_verified_receiving_nfb_base_plate(
     profile = resolve_editable_nfb_source_profile(source, profile=matching[0])
     if profile.source_sha256 != bundle.source_inventory.source_sha256:
         raise ValueError("NFB base DXF edited after verification; verify and submit current source")
-    metadata = getattr(bundle.verified_door.render_data, "metadata", {})
+    metadata = getattr(bundle.verified_door.render_data, "metadata", None) or {}
     if (metadata.get("nfb_source_handle") != profile.source_sha256 + ":" + profile.upper_handle
             or metadata.get("nfb_profile_revision") != profile.revision):
         raise ValueError("NFB base inner-door upper original identity changed")

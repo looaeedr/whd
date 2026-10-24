@@ -127,15 +127,31 @@ def present_receiving_ear_side_piece_2d(
             return source_piece, None
 
         import hashlib
+        from math import isfinite
+        if any(
+            isinstance(snapshot.get(k), bool)
+            or not isinstance(snapshot.get(k), (int, float))
+            or not isfinite(float(snapshot[k]))
+            or float(snapshot[k]) <= 0
+            for k in ("w", "h", "d", "t")
+        ):
+            raise ValueError("EAR_2D_PREVIEW_INVALID_DIMENSIONS")
         # The source-stamp and rendered primitives participate in the cache.
         # A changed Bay, actual source hole, baseline or layer invalidates it.
+        source_data = getattr(source_piece, "render_data", None)
+        source_sig = (
+            getattr(source_piece, "role", None),
+            (getattr(source_data, "metadata", None) or {}).get("baseline_source_sha256"),
+            repr(tuple(getattr(getattr(source_data, "scene", None), "primitives", None) or ())),
+            getattr(getattr(source_data, "material", None), "wkt", None),
+        )
         owners = tuple(
             (p.role, (p.render_data.metadata or {}).get("baseline_source_sha256"),
              repr(tuple(p.render_data.scene.primitives or ())))
             for p in tuple(getattr(aggregate_render_data, "pieces", ()) or ())
         )
         stamp = hashlib.sha256(
-            repr((snapshot, key, owners)).encode("utf-8")
+            repr((snapshot, key, source_sig, owners)).encode("utf-8")
         ).hexdigest()
         cached = getattr(host, "_receiving_ear_side_2d_display_cache", None)
         if cached is not None and cached[0] == stamp:
@@ -177,6 +193,7 @@ def present_receiving_ear_side_designer_piece_3d(
     VIEW copy only; actual manufacturing and DXF owners stay unchanged.
     """
     from hashlib import sha256
+    from math import isfinite
 
     key = str(piece_key)
     original = source_piece.render_data
@@ -185,24 +202,38 @@ def present_receiving_ear_side_designer_piece_3d(
             or snapshot.get("nfb_config_submitted") is not True):
         host.last_receiving_ear_single_piece_blocker = None
         return original
-    aggregate = geometry.part("box_body").render_data
-    owners = tuple(
-        (
-            row.role,
-            (row.render_data.metadata or {}).get("baseline_source_sha256"),
-            repr(tuple(row.render_data.scene.primitives or ())),
-        )
-        for row in tuple(getattr(aggregate, "pieces", ()) or ())
-    )
-    stamp = sha256(repr((snapshot, key, owners)).encode("utf-8")).hexdigest()
-    cache = getattr(host, "_receiving_ear_single_piece_display_cache", None)
-    if not isinstance(cache, dict):
-        cache = {}
-    row = cache.get(key)
-    if row is not None and row[0] == stamp:
-        host.last_receiving_ear_single_piece_blocker = row[2]
-        return row[1]
     try:
+        if any(
+            isinstance(snapshot.get(k), bool)
+            or not isinstance(snapshot.get(k), (int, float))
+            or not isfinite(float(snapshot[k]))
+            or float(snapshot[k]) <= 0
+            for k in ("w", "h", "d", "t")
+        ):
+            raise ValueError("EAR_2D_PREVIEW_INVALID_DIMENSIONS")
+        aggregate = geometry.part("box_body").render_data
+        source_sig = (
+            getattr(source_piece, "role", None),
+            (getattr(original, "metadata", None) or {}).get("baseline_source_sha256"),
+            repr(tuple(getattr(getattr(original, "scene", None), "primitives", None) or ())),
+            getattr(getattr(original, "material", None), "wkt", None),
+        )
+        owners = tuple(
+            (
+                row.role,
+                (row.render_data.metadata or {}).get("baseline_source_sha256"),
+                repr(tuple(row.render_data.scene.primitives or ())),
+            )
+            for row in tuple(getattr(aggregate, "pieces", ()) or ())
+        )
+        stamp = sha256(repr((snapshot, key, source_sig, owners)).encode("utf-8")).hexdigest()
+        cache = getattr(host, "_receiving_ear_single_piece_display_cache", None)
+        if not isinstance(cache, dict):
+            cache = {}
+        row = cache.get(key)
+        if row is not None and row[0] == stamp:
+            host.last_receiving_ear_single_piece_blocker = row[2]
+            return row[1]
         displayed = project_receiving_ear_side_piece_2d_preview(
             snapshot, source_piece, piece_key=key,
             geometry=geometry,
@@ -211,11 +242,12 @@ def present_receiving_ear_side_designer_piece_3d(
             display_only_marking_overlap=True,
         ).render_data
         blocker = None
-    except (ValueError, TypeError, RuntimeError, KeyError) as exc:
+    except (ValueError, TypeError, RuntimeError, KeyError, AttributeError) as exc:
         # Never fabricate a contact line or block ordinary material inspection
         # if a real source/UV/bend conflict exists. Preserve the reason.
         displayed, blocker = original, str(exc)
     host.last_receiving_ear_single_piece_blocker = blocker
-    cache[key] = (stamp, displayed, blocker)
-    host._receiving_ear_single_piece_display_cache = cache
+    if "stamp" in locals() and "cache" in locals():
+        cache[key] = (stamp, displayed, blocker)
+        host._receiving_ear_single_piece_display_cache = cache
     return displayed

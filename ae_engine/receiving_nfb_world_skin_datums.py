@@ -69,6 +69,14 @@ def receiving_inner_door_real_world_skins(
     )
     if not mapped:
         raise ValueError("NFB inner-door actual folded material is empty")
+    if any(
+        isinstance(snapshot.get(k), bool)
+        or not isinstance(snapshot.get(k), (int, float))
+        or not isfinite(float(snapshot[k]))
+        or float(snapshot[k]) <= 0
+        for k in ("w", "h", "d")
+    ):
+        raise ValueError("NFB inner-door box W/H/D dimensions must be positive finite numbers")
     placement = resolve_inner_door_panel_placement(snapshot, inner_door_id)
     world = world_skin_with_flat_uv(
         mapped, placement.placement_kind,
@@ -113,13 +121,24 @@ def resolve_receiving_nfb_world_skin_datums(
     """
     from .receiving_nfb_depth_surface_policy import receiving_nfb_second_side_fold_mm
     outer, inner = receiving_inner_door_real_world_skins(snapshot, inner_door_id)
+    raw_t = snapshot.get("t", 0)
+    if (isinstance(reference_nfb_depth_mm, bool)
+            or not isinstance(reference_nfb_depth_mm, (int, float))
+            or isinstance(raw_t, bool)
+            or not isinstance(raw_t, (int, float))
+            or isinstance(fixing_plate_thickness_mm, bool)
+            or not isinstance(fixing_plate_thickness_mm, (int, float))):
+        raise ValueError("NFB depth/base/fixing thickness must be positive finite")
     deep=float(reference_nfb_depth_mm)
-    base_t=float(snapshot.get("t",0))
+    base_t=float(raw_t)
     ear_t=float(fixing_plate_thickness_mm)
     if not all(isfinite(v) and v>0 for v in (deep,base_t,ear_t)):
         raise ValueError("NFB depth/base/fixing thickness must be positive finite")
     shallow_front = shallow_back = None
     if secondary_nfb_depth_mm is not None:
+        if (isinstance(secondary_nfb_depth_mm, bool)
+                or not isinstance(secondary_nfb_depth_mm, (int, float))):
+            raise ValueError("NFB depth/base/fixing thickness must be positive finite")
         shallow=float(secondary_nfb_depth_mm)
         receiving_nfb_second_side_fold_mm(
             reference_nfb_depth_mm=deep,

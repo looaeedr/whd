@@ -9,7 +9,7 @@ This is a fit receipt, NOT weld workmanship or manufacturing certification.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isclose
+from math import isclose, isfinite
 
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
@@ -44,18 +44,24 @@ class ReceivingEarSideSkinMatingWitness:
 
 def _normal_of_skin(record):
     world = tuple(record.world)
-    if len(world) != 3 or int(record.side) not in {-1, 1}:
+    if (len(world) != 3
+            or isinstance(record.side, bool)
+            or not isinstance(record.side, int)
+            or int(record.side) not in {-1, 1}):
         return None
     a, b, c = world
-    v = tuple(float(b[i]) - float(a[i]) for i in range(3))
-    w = tuple(float(c[i]) - float(a[i]) for i in range(3))
+    try:
+        v = tuple(float(b[i]) - float(a[i]) for i in range(3))
+        w = tuple(float(c[i]) - float(a[i]) for i in range(3))
+    except (TypeError, ValueError, IndexError):
+        return None
     cross = (
         v[1]*w[2]-v[2]*w[1],
         v[2]*w[0]-v[0]*w[2],
         v[0]*w[1]-v[1]*w[0],
     )
     length = sum(value*value for value in cross)**0.5
-    if length <= 1e-9:
+    if not isfinite(length) or length <= 1e-9:
         return None
     return tuple(int(record.side)*value/length for value in cross)
 
@@ -154,9 +160,9 @@ def verify_receiving_ear_side_skin_mating(
     if not physical_leg_points:
         raise ValueError("EAR_SIDE_MATING_LEG_SOLID_MISSING")
     leg_x = tuple(float(p[0]) for p in physical_leg_points)
-    if (left and (min(leg_x) < x-_X_TOL or max(leg_x) > x+2.+_X_TOL)) or (
-        not left and (max(leg_x) > x+_X_TOL or min(leg_x) < x-2.-_X_TOL)
-    ):
+    if (not all(isfinite(v) for v in leg_x)
+            or (left and (min(leg_x) < x-_X_TOL or max(leg_x) > x+2.+_X_TOL))
+            or (not left and (max(leg_x) > x+_X_TOL or min(leg_x) < x-2.-_X_TOL))):
         raise ValueError("EAR_SIDE_MATING_THROUGH_WALL_PENETRATION")
 
     return ReceivingEarSideSkinMatingWitness(

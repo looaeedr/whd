@@ -14,7 +14,7 @@ not a false assertion that the unfinished weld/contact/MFG-2 is certified.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isclose
+from math import isclose, isfinite
 from typing import Mapping
 
 
@@ -131,6 +131,14 @@ def build_receiving_formed_fixing_plate_skins(
     )
     if xy.side not in ("left", "right"):
         raise ValueError("EAR_FORM_SIDE_INVALID")
+    for raw_val in (
+        xy.side_inside_weld_x_mm,
+        contact.base_back_skin_world_z_mm,
+        xy.base_center_y_mm,
+        xy.selected_slot_column_x_mm,
+    ):
+        if isinstance(raw_val, bool) or not isinstance(raw_val, (int, float)) or not isfinite(float(raw_val)):
+            raise ValueError("EAR_FORM_PHYSICAL_OWNER_OR_Z_UNVERIFIED")
     inward = 1.0 if xy.side == "left" else -1.0
     inside_x = float(xy.side_inside_weld_x_mm)
     base_z = float(contact.base_back_skin_world_z_mm)
@@ -180,7 +188,7 @@ def build_receiving_formed_fixing_plate_skins(
             av[0]*bv[1]-av[1]*bv[0],
         )
         magnitude = sum(v*v for v in normal)**0.5
-        if magnitude < 1e-10:
+        if not isfinite(magnitude) or magnitude < 1e-10:
             continue
         normal = tuple(v/magnitude for v in normal)
         for direction in (-1, 1):

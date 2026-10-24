@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from math import isfinite
 from typing import Mapping
 
 from shapely.geometry import LineString, Point, Polygon
@@ -36,7 +37,12 @@ def _check_source_conflicts(patch, render_data, *,
         raise ValueError("EAR_MARK_PREVIEW_FINAL_MATERIAL_CONFLICT")
     for guide in tuple(render_data.fold_guides or ()):
         axis = str(guide.axis)
-        p, lo, hi = float(guide.position), float(guide.span_start), float(guide.span_end)
+        raw_p, raw_lo, raw_hi = guide.position, guide.span_start, guide.span_end
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in (raw_p, raw_lo, raw_hi)):
+            raise ValueError("EAR_MARK_PREVIEW_INVALID_BEND")
+        p, lo, hi = float(raw_p), float(raw_lo), float(raw_hi)
+        if not all(isfinite(v) for v in (p, lo, hi)) or lo >= hi:
+            raise ValueError("EAR_MARK_PREVIEW_INVALID_BEND")
         if axis == "x":
             feature = LineString(((p, lo), (p, hi)))
         elif axis == "y":
@@ -100,6 +106,10 @@ def build_receiving_ear_side_marking_previews(
         by_side[row.side_piece_id].append(row)
     if set(by_side) != {"box_body:left_side", "box_body:right_side"}:
         raise ValueError("EAR_MARK_PREVIEW_BOTH_SIDE_OWNERS_REQUIRED")
+    if (len(by_side["box_body:left_side"]) != len(by_side["box_body:right_side"])
+            or {r.nfb_layer_index for r in by_side["box_body:left_side"]}
+               != {r.nfb_layer_index for r in by_side["box_body:right_side"]}):
+        raise ValueError("EAR_MARK_PREVIEW_INCOMPLETE_TIER_COUNT")
 
     result = {}
     for side, side_rows in sorted(by_side.items()):

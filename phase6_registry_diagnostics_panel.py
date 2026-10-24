@@ -232,8 +232,12 @@ def _registry_operator_text(value, *, part_labels):
         reverse=True,
     ):
         text = text.replace(raw, label)
-    for raw, label in dict(part_labels or {}).items():
-        text = text.replace(raw, label)
+    for raw, label in sorted(
+        dict(part_labels or {}).items(),
+        key=lambda item: len(str(item[0])),
+        reverse=True,
+    ):
+        text = text.replace(str(raw), str(label))
     return text
 
 
@@ -574,41 +578,41 @@ class Phase6RegistryDiagnosticsPanel:
             )
         )
         setters = (
-            (self.relief_registry_rule_id_var, raw.get("rule_id", "")),
-            (self.relief_registry_family_var, raw.get("cabinet_family", "ANY")),
-            (self.relief_registry_part_role_var, raw.get("part_role", "HEAD_OR_TAIL")),
-            (self.relief_registry_joint_face_var, raw.get("joint_face", "TOP")),
-            (self.relief_registry_intent_var, raw.get("assembly_intent", "INSERT_OVERLAY")),
-            (self.relief_registry_topology_var, raw.get("topology_levels", 2)),
-            (self.relief_registry_primary_u_var, formula.get("primary_u", "")),
-            (self.relief_registry_primary_v_var, formula.get("primary_v", "")),
-            (self.relief_registry_secondary_u_var, formula.get("secondary_u", "")),
+            (self.relief_registry_rule_id_var, raw.get("rule_id") or ""),
+            (self.relief_registry_family_var, raw.get("cabinet_family") or "ANY"),
+            (self.relief_registry_part_role_var, raw.get("part_role") or "HEAD_OR_TAIL"),
+            (self.relief_registry_joint_face_var, raw.get("joint_face") or "TOP"),
+            (self.relief_registry_intent_var, raw.get("assembly_intent") or "INSERT_OVERLAY"),
+            (self.relief_registry_topology_var, 2 if raw.get("topology_levels") is None else raw.get("topology_levels")),
+            (self.relief_registry_primary_u_var, formula.get("primary_u") or ""),
+            (self.relief_registry_primary_v_var, formula.get("primary_v") or ""),
+            (self.relief_registry_secondary_u_var, formula.get("secondary_u") or ""),
             (
                 self.relief_registry_secondary_depth_var,
-                formula.get("secondary_depth", ""),
+                formula.get("secondary_depth") or "",
             ),
             (
                 self.relief_registry_preconditions_var,
-                ",".join(str(v) for v in (raw.get("preconditions", ()) or ())),
+                ",".join(str(v) for v in (raw.get("preconditions", ()) or ()) if v is not None),
             ),
             (
                 self.relief_registry_symmetry_var,
-                raw.get("symmetry", "MIRROR_IF_GEOMETRY_SYMMETRIC"),
+                raw.get("symmetry") or "MIRROR_IF_GEOMETRY_SYMMETRIC",
             ),
-            (self.relief_registry_source_var, str(raw.get("source", ""))),
+            (self.relief_registry_source_var, str(raw.get("source") or "")),
         )
         for var, value in setters:
-            var.set(str(value))
+            var.set("" if value is None else str(value))
 
         sig = list(raw.get("joint_signature", ()) or ())
         self.relief_registry_target_role_var.set(
-            str(sig[0].get("target_role", "BOX_SIDE")) if sig else "BOX_SIDE"
+            str(sig[0].get("target_role") or "BOX_SIDE") if sig and isinstance(sig[0], Mapping) else "BOX_SIDE"
         )
-        extra = sig[1].get("relation") if len(sig) > 1 else "NONE"
+        extra = (sig[1].get("relation") if len(sig) > 1 and isinstance(sig[1], Mapping) else None) or "NONE"
         self.relief_registry_extra_joint_var.set(str(extra))
-        if len(sig) > 1:
+        if len(sig) > 1 and isinstance(sig[1], Mapping):
             self.relief_registry_extra_target_role_var.set(
-                str(sig[1].get("target_role", "REAR_PANEL"))
+                str(sig[1].get("target_role") or "REAR_PANEL")
             )
         else:
             self.relief_registry_extra_target_role_var.set("REAR_PANEL")

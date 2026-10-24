@@ -16,9 +16,17 @@ def mount_primary_receiving_ear_side_check(host):
     if left is None or notebook is None:
         raise ValueError("EAR_CHECK_PRIMARY_3D_WORKSPACE_MISSING")
 
+    existing_group = getattr(host, "_receiving_ear_check_primary_group", None)
     existing = getattr(host, "btn_ear_side_check_dxf", None)
-    if existing is not None and existing.winfo_exists():
+    if (existing_group is not None and existing is not None
+            and existing_group.winfo_exists() and existing.winfo_exists()
+            and getattr(existing_group, "master", None) is left):
         return existing
+    if existing_group is not None:
+        try:
+            existing_group.destroy()
+        except Exception:
+            pass
 
     group = ttk.LabelFrame(
         left, text="受電箱固定片｜側板打標檢查", padding=5,

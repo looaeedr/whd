@@ -7,6 +7,8 @@ base-plate formula.  Flat 33 and formed 35 are distinct source datums.
 """
 from __future__ import annotations
 
+from math import isfinite
+
 from .sheetmetal_part_adapters import (
     RECEIVING_BASE_PATTERN_CENTER, build_receiving_base_plate_result,
 )
@@ -19,9 +21,18 @@ def receiving_base_plate_3d_profiles(snapshot, physical=None):
         physical = receiving_base_plate_values(snapshot)
     if physical is None:
         return None
-    t = float(snapshot["t"])
+    raw_t = snapshot.get("t") if isinstance(snapshot, dict) else snapshot["t"]
+    raw_w = snapshot.get("w") if isinstance(snapshot, dict) else snapshot["w"]
+    raw_h = physical.get("h") if isinstance(physical, dict) else physical["h"]
+    raw_bend = physical.get("base_plate_bend") if isinstance(physical, dict) else physical["base_plate_bend"]
+    if any(
+        isinstance(v, bool) or not isinstance(v, (int, float)) or not isfinite(float(v)) or float(v) <= 0
+        for v in (raw_t, raw_w, raw_h, raw_bend)
+    ):
+        raise ValueError("Receiving base plate 3D profiles require positive finite W/H/T/bend")
+    t = float(raw_t)
     actual = build_receiving_base_plate_result(
-        w=float(snapshot["w"]), h=float(physical["h"]), t=t,
+        w=float(raw_w), h=float(raw_h), t=t,
         shrink_top=physical["base_plate_shrink_top"],
         shrink_bottom=physical["base_plate_shrink_bottom"],
         shrink_left=physical["base_plate_shrink_left"],

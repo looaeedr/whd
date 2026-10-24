@@ -119,9 +119,13 @@ def build_committed_pad_assembly_display(snapshot, assembly_parts):
     if physical is None or physical["receiving_bend_pattern"] not in (
             RECEIVING_BASE_PATTERN_LEFT,RECEIVING_BASE_PATTERN_RIGHT):
         return ()  # existing CENTER double-fold already solves depth.
-    by_key={str(part.part_key):part for part in assembly_parts}
-    if len(by_key)!=len(tuple(assembly_parts)):
+    parts=tuple(assembly_parts or ())
+    by_key={str(part.part_key):part for part in parts}
+    if len(by_key)!=len(parts):
         raise ValueError("PAD_DUPLICATE_BASE_SOURCE_PART")
+    raw_t=snapshot.get("t")
+    if isinstance(raw_t,bool):
+        raise ValueError("PAD_INVALID_PLATE_THICKNESS")
     count=holes[0].layer_count
     result=[]
     for tier in range(count):

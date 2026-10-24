@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
+import math
 from pathlib import Path
 from typing import Sequence
 
@@ -32,7 +33,15 @@ def _polygon(feature, width: float, height: float) -> Polygon:
     from ae_engine.sheetmetal_feature_core import _rotate_local_point
     center = feature_finished_point(feature, width, height)
     if isinstance(feature, CircleFeature):
-        return Point(center.x, center.y).buffer(float(feature.diameter) / 2, quad_segs=64)
+        if isinstance(feature.diameter, bool):
+            raise CadcraftCommandProofError("INVALID_WHD_FEATURE_FOOTPRINT")
+        diameter = float(feature.diameter)
+        if not math.isfinite(diameter) or diameter <= 0:
+            raise CadcraftCommandProofError("INVALID_WHD_FEATURE_FOOTPRINT")
+        polygon = Point(center.x, center.y).buffer(diameter / 2, quad_segs=64)
+        if not polygon.is_valid or polygon.area <= 1e-8:
+            raise CadcraftCommandProofError("INVALID_WHD_FEATURE_FOOTPRINT")
+        return polygon
     if isinstance(feature, RectFeature):
         half_width, half_height = float(feature.width) / 2, float(feature.height) / 2
         local = (
@@ -128,6 +137,11 @@ def stage_verified_cadcraft_drawing(
     if not all(isinstance(f, _ACCEPTED_TYPES) for f in current.features):
         raise CadcraftCommandProofError("UNKNOWN_EXISTING_WHD_FEATURE")
     try:
+        if isinstance(width, bool) or isinstance(height, bool):
+            raise CadcraftCommandProofError("CADCRAFT_STAGE_VALIDATION_FAILED")
+        w, h = float(width), float(height)
+        if not (math.isfinite(w) and math.isfinite(h) and w > 0 and h > 0):
+            raise CadcraftCommandProofError("CADCRAFT_STAGE_VALIDATION_FAILED")
         for feature in candidates:
             if not feature_is_strictly_within_surface(surface, feature, width, height):
                 raise CadcraftCommandProofError("OUTSIDE_WHD_PHYSICAL_SURFACE")

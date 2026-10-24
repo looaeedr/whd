@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from math import isfinite
 from pathlib import Path
+from typing import Mapping
 
 from ae_engine.cabinet_types import policy
 from ae_engine.receiving_nfb_cutting_manufacturing import read_nfb_runtime_source_profiles_csv
@@ -77,7 +79,16 @@ def verify_quantity_nfb_inner_door(version, snapshot, *, index_path=INDEX_PATH,
                 or datum.get("inner_door_id") != panel.inner_door_id
                 or datum.get("cell_key") != panel.cell_key
                 or datum.get("profile_revision") != profile.revision
-                or any(datum.get(k) != float(snapshot[k]) for k in ("w", "h", "t"))):
+                or any(
+                    isinstance(datum.get(k), bool)
+                    or not isinstance(datum.get(k), (int, float))
+                    or isinstance(snapshot.get(k), bool)
+                    or not isinstance(snapshot.get(k), (int, float))
+                    or not isfinite(float(datum[k]))
+                    or not isfinite(float(snapshot[k]))
+                    or abs(float(datum[k]) - float(snapshot[k])) > 1e-6
+                    for k in ("w", "h", "t")
+                )):
             raise ValueError("NFB version datum changed; source/coordinates need revalidation")
     ready = configured_nfb_inner_door_render_data(
         snapshot, panel.inner_door_id,
@@ -174,7 +185,8 @@ def select_quantity_nfb_partial(batch, workspace_snapshot, *,
                     "physical_hole_id", "source_brand", "model_filename",
                     "manual_x_state", "datum_revision",
                 )}
-                for hole in (version.get("nfb_config") or {}).get("holes", ())
+                for hole in ((version.get("nfb_config") or {}).get("holes") or ())
+                if isinstance(hole, Mapping)
             ] if submitted and not _independent(demand.source_part_id) else [],
             "status": status, "may_export": allowed, "reason": reason,
             "per_box_count": demand.per_box_count,
@@ -213,9 +225,12 @@ def quantity_partial_live_manifests(selection, workspace_snapshot, selected_rows
                           and row["source_part_id"].startswith("inner_door:"))
         bases = tuple(row["part_id"] for row in rows
                       if row["source_part_id"] == "base_plate"
-                      or row["source_part_id"].startswith("base_plate_"))
-        datum_ids = {hole["datum_snapshot"].get("part_id") for hole in
-                     (version.get("nfb_config") or {}).get("holes", ())}
+                      or row["source_part_id"].startswith(("base_plate_", "base_plate:")))
+        datum_ids = {
+            hole["datum_snapshot"].get("part_id")
+            for hole in ((version.get("nfb_config") or {}).get("holes") or ())
+            if isinstance(hole, Mapping) and isinstance(hole.get("datum_snapshot"), Mapping)
+        }
         targets = tuple(row["part_id"] for row in selection.rows
                         if row["version_id"] == vid
                         and row["physical_part_id"] in datum_ids

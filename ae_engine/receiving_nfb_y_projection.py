@@ -67,6 +67,8 @@ def _inner_door_y_basis(snapshot: Mapping[str, object], inner_door_id: str):
     columns = list(data.get("door_layout_columns") or ())
     if not columns:
         raise ValueError("OPEN-Y-PROJECTION requires authoritative Door cells")
+    if any(isinstance(data.get(k), bool) for k in ("h", "w", "t")):
+        raise ValueError("OPEN-Y-PROJECTION invalid box dimensional authority")
     try:
         cells = derive_door_layout_cells(columns)
         full_h = float(data["h"])
@@ -182,6 +184,8 @@ def invert_nfb_inner_door_unfolded_y(
     part, placement, _cell_key, full_h, _t, lower_fold, core, _blank_h = (
         _inner_door_y_basis(snapshot, inner_door_id)
     )
+    if isinstance(unfolded_uv_y_mm, bool) or not isinstance(unfolded_uv_y_mm, (int, float)):
+        raise ValueError("OPEN-Y-PROJECTION unfolded Y outside inner-door face core")
     v = float(unfolded_uv_y_mm)
     if not isfinite(v) or not lower_fold < v < lower_fold + core:
         raise ValueError("OPEN-Y-PROJECTION unfolded Y outside inner-door face core")

@@ -1,5 +1,6 @@
 """Presentation-only reference, engineering annotation, and dimension overlays."""
 
+import math
 import tkinter as tk
 
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
@@ -21,7 +22,9 @@ def layout_reference_overlay_rects(
     """Lay out CAD reference controls without covering the selected feature."""
     cw, ch = float(canvas_w), float(canvas_h)
     cx, cy = map(float, crosshair)
-    fl, ft, fr, fb = map(float, feature_rect)
+    raw_fl, raw_ft, raw_fr, raw_fb = map(float, feature_rect)
+    fl, fr = (raw_fl, raw_fr) if raw_fl <= raw_fr else (raw_fr, raw_fl)
+    ft, fb = (raw_ft, raw_fb) if raw_ft <= raw_fb else (raw_fb, raw_ft)
     occupied = [(fl-gap, ft-gap, fr+gap, fb+gap)]
     result = {}
 
@@ -57,8 +60,12 @@ def layout_reference_overlay_rects(
                 result[name] = rect
                 occupied.append(rect)
                 return
-        x = min(max(cx, margin+w/2), cw-margin-w/2)
-        y = min(max(cy, margin+h/2), ch-margin-h/2)
+        low_x = margin + w / 2
+        high_x = max(low_x, cw - margin - w / 2)
+        low_y = margin + h / 2
+        high_y = max(low_y, ch - margin - h / 2)
+        x = min(max(cx, low_x), high_x)
+        y = min(max(cy, low_y), high_y)
         rect = rect_for((x, y), size)
         result[name] = rect
         occupied.append(rect)
@@ -126,9 +133,11 @@ def draw_phase6_annotation_projection(
             semantic_id = str(getattr(primitive, "semantic_id", "") or "")
             axis = dimensions_by_semantic_id.get(semantic_id)
             angle = 90 if layer == "DIMENSION" and axis == "y" else 0
+            raw_attachment = getattr(primitive, "attachment_point", 1)
+            attachment_point = 1 if raw_attachment is None else int(raw_attachment)
             anchor_name = (
                 tk.CENTER
-                if int(getattr(primitive, "attachment_point", 1)) == 5
+                if attachment_point == 5
                 else tk.SW
             )
             canvas.create_text(
@@ -148,14 +157,23 @@ def draw_phase6_corner_dimension_overlay(
 ):
     """Draw per-corner sizes measured from the PartRenderData used by 3D."""
     text = text_builder(render_data)
+    if isinstance(canvas_width, bool):
+        cw = 200.0
+    else:
+        try:
+            cw = float(canvas_width)
+        except (TypeError, ValueError):
+            cw = 200.0
+        if not math.isfinite(cw):
+            cw = 200.0
     canvas.create_text(
-        max(25, float(canvas_width) - 25), 42,
+        max(25, cw - 25), 42,
         anchor=tk.NE,
         text=text,
         fill="#ffd60a",
         justify=tk.RIGHT,
         font=("Microsoft JhengHei", 9, "bold"),
-        width=max(180, int(float(canvas_width) * 0.46)),
+        width=max(180, int(cw * 0.46)),
         tags=("phase6_corner_dimensions",),
     )
     return text

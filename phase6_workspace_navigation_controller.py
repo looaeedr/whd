@@ -185,7 +185,7 @@ class Phase6WorkspaceNavigationController:
         candidate = str(key or "")
         was_active = self.active_part == candidate
         changed = bool(self._workspace.remove_part(candidate))
-        if self.remembered_box_body_child == candidate:
+        if changed and self.remembered_box_body_child == candidate:
             self.remembered_box_body_child = None
         return WorkspaceMutationResult(
             key=candidate,

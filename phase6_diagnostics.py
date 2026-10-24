@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 TAIPEI_TZ = timezone(timedelta(hours=8))
 from enum import Enum
 import json
+import math
 from pathlib import Path
 from typing import Callable, Mapping, Sequence
 
@@ -40,15 +41,17 @@ class DiagnosticSnapshotContext:
 
 
 def json_safe(value):
-    if value is None or isinstance(value, (str, int, float, bool)):
+    if value is None or isinstance(value, (str, int, bool)):
         return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
     if isinstance(value, Enum):
         return json_safe(value.value)
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return {field.name: json_safe(getattr(value, field.name)) for field in fields(value)}
     if isinstance(value, Mapping):
         return {str(k): json_safe(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, (list, tuple, set, frozenset)):
         return [json_safe(v) for v in value]
     return repr(value)
 
@@ -87,6 +90,14 @@ def serialize_scene(scene):
 
 
 def material_diagnostic(material):
+    if material is None:
+        return {
+            "geometry_type": "NoneType",
+            "bounds": [],
+            "area": 0.0,
+            "interior_count": 0,
+            "geojson": None,
+        }
     def interior_count(geom):
         if geom is None or geom.is_empty:
             return 0
@@ -96,10 +107,12 @@ def material_diagnostic(material):
             return sum(interior_count(part) for part in geom.geoms)
         return 0
 
+    raw_bounds = getattr(material, "bounds", ()) or ()
+    bounds = [float(v) for v in raw_bounds if math.isfinite(float(v))]
     return {
         "geometry_type": str(getattr(material, "geom_type", type(material).__name__)),
-        "bounds": [float(v) for v in material.bounds],
-        "area": float(material.area),
+        "bounds": bounds,
+        "area": float(getattr(material, "area", 0.0)),
         "interior_count": int(interior_count(material)),
         "geojson": json_safe(mapping(material)),
     }
@@ -166,7 +179,7 @@ def collect_final_geometry_diagnostics(
         key = str(raw_key)
         payload = payload_provider(key)
         row = {
-            "payload": payload,
+            "payload": json_safe(payload),
             "scene": None,
             "material": None,
             "fold_guides": [],

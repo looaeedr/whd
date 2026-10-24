@@ -19,21 +19,30 @@ _MAX_VERTEX_COUNT = 100
 
 def new_hole_from_cadcraft_entity(entity):
     """Convert a single new circle/closed straight contour; fail on all others."""
-    if entity.dxf.layer != _EXCHANGE_LAYER:
+    try:
+        dxf = entity.dxf
+        layer = dxf.layer
+        extrusion = tuple(dxf.get("extrusion", (0, 0, 1)))
+        thickness = dxf.get("thickness", 0)
+        dxftype = entity.dxftype()
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise CadcraftCommandProofError("INVALID_CADCRAFT_DXF_ENTITY") from exc
+    if layer != _EXCHANGE_LAYER:
         raise CadcraftCommandProofError("NEW_HOLE_NOT_ON_EXCHANGE_LAYER")
-    extrusion = tuple(entity.dxf.get("extrusion", (0, 0, 1)))
     if len(extrusion) != 3 or not all(
         _near(_number(a), b) for a, b in zip(extrusion, (0, 0, 1))
     ):
         raise CadcraftCommandProofError("NEW_HOLE_WRONG_EXTRUSION")
-    if not _near(_number(entity.dxf.get("thickness", 0)), 0):
+    if not _near(_number(thickness), 0):
         raise CadcraftCommandProofError("NEW_HOLE_NONZERO_THICKNESS")
 
-    if entity.dxftype() == "CIRCLE":
-        center = entity.dxf.center
-        x, y, z, radius = map(
-            _number, (center.x, center.y, center.z, entity.dxf.radius)
-        )
+    if dxftype == "CIRCLE":
+        try:
+            center = dxf.center
+            raw_coords = (center.x, center.y, center.z, dxf.radius)
+        except AttributeError as exc:
+            raise CadcraftCommandProofError("INVALID_NEW_CIRCLE") from exc
+        x, y, z, radius = map(_number, raw_coords)
         if not _near(z, 0) or radius <= 0:
             raise CadcraftCommandProofError("INVALID_NEW_CIRCLE")
         return CircleFeature(
@@ -41,13 +50,16 @@ def new_hole_from_cadcraft_entity(entity):
             offset=Vec2(x, y),
         )
 
-    if entity.dxftype() != "LWPOLYLINE" or not entity.closed:
+    if dxftype != "LWPOLYLINE" or not getattr(entity, "closed", False):
         raise CadcraftCommandProofError("ENTITY_COUNT_MISMATCH")
-    if not _near(_number(entity.dxf.get("const_width", 0)), 0):
+    if not _near(_number(dxf.get("const_width", 0)), 0):
         raise CadcraftCommandProofError("NEW_HOLE_POLYLINE_WIDTH")
-    if not _near(_number(entity.dxf.get("elevation", 0)), 0):
+    if not _near(_number(dxf.get("elevation", 0)), 0):
         raise CadcraftCommandProofError("NEW_HOLE_POLYLINE_ELEVATION")
-    vertices = list(entity.get_points("xyseb"))
+    try:
+        vertices = list(entity.get_points("xyseb"))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise CadcraftCommandProofError("INVALID_CLOSED_PROFILE_VERTEX_COUNT") from exc
     if not 3 <= len(vertices) <= _MAX_VERTEX_COUNT:
         raise CadcraftCommandProofError("INVALID_CLOSED_PROFILE_VERTEX_COUNT")
     if any(

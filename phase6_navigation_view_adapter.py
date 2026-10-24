@@ -145,7 +145,10 @@ def refresh_structure_tree(
                     host, project_rows=project_rows, label_for_key=label_for_key,
                     visibility_var=visibility_var,
                 )
-            tree.after_idle(retry)
+            try:
+                tree.after_idle(retry)
+            except Exception:
+                host._phase6_structure_tree_refresh_pending = False
         return ()
 
     host._phase6_structure_tree_guard = True
@@ -401,7 +404,7 @@ def refresh_sticky_structure_tree(host) -> None:
             elif manager == "grid":
                 widget.grid_remove()
         except Exception:
-            return
+            continue
 
 
 def clear_navigation_residue(host) -> None:
@@ -600,8 +603,8 @@ def refresh_part_selector(
         )
 
     active = getattr(host, "active_part_key", None)
+    mode = str(getattr(host, "_phase6_3d_display_mode", "single") or "single")
     if hasattr(host, "part_var"):
-        mode = str(getattr(host, "_phase6_3d_display_mode", "single") or "single")
         if mode == "assembly":
             host.part_var.set("組合體")
         elif mode == "corner_data":
@@ -880,9 +883,16 @@ def pack_right_panel_above_canvas(host, widget, *, tk_top, tk_x) -> bool:
     """Pack a variable-height right panel before the expanding renderer canvas."""
     if widget is None:
         return False
-    canvas_widget = host.renderer.canvas.get_tk_widget()
+    renderer = getattr(host, "renderer", None)
+    mpl_canvas = getattr(renderer, "canvas", None)
+    get_widget = getattr(mpl_canvas, "get_tk_widget", None)
+    canvas_widget = get_widget() if callable(get_widget) else None
     options = dict(side=tk_top, fill=tk_x, pady=(0, 6))
-    if canvas_widget.winfo_manager() == "pack" and canvas_widget.master is widget.master:
+    if (
+        canvas_widget is not None
+        and canvas_widget.winfo_manager() == "pack"
+        and canvas_widget.master is widget.master
+    ):
         widget.pack(before=canvas_widget, **options)
     else:
         widget.pack(**options)
