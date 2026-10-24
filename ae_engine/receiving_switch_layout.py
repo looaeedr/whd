@@ -114,8 +114,12 @@ def resize_switch_layers(layout: Mapping[str, object], layer_count: object) -> d
 def set_layer_connection_count(
     layout: Mapping[str, object], *, layer_index: int, connection_count: object
 ) -> dict[str, object]:
+    # This is a physical tier selector: True must never alias index 1,
+    # and fractional values must not be truncated to a different tier.
+    if type(layer_index) is not int:
+        raise ValueError("Receiving switch layer_index must be an integer")
     result = normalize_receiving_switch_layout(layout)
-    index = int(layer_index)
+    index = layer_index
     layers = list(result["layers"])
     if index < 0 or index >= len(layers):
         raise IndexError("Receiving switch layer_index out of range")
