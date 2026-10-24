@@ -158,13 +158,18 @@ def _phase6_relief_polygon_coords(geometry):
 
 
 def _phase6_assembly_relief_clearance(self):
+    """UI-only clearance is nonnegative finite; never widen manufacturing by infinity."""
+    from math import isfinite
+
     var = getattr(self, "assembly_relief_clearance_var", None)
     raw = var.get() if var is not None else "0"
     try:
         value = float(str(raw).strip() or "0")
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         value = 0.0
-    return max(0.0, value)
+    # Keep the existing invalid-text fallback and negative-value clamp, but
+    # reject NaN/Inf rather than letting +Inf hide every collision residual.
+    return max(0.0, value) if isfinite(value) else 0.0
 
 
 def _phase6_current_cabinet_family(self):
