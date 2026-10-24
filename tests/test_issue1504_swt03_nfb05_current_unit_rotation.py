@@ -229,3 +229,23 @@ def test_ac23_rotation_drops_orphaned_revision_even_without_manual_x():
     assert current["datum_snapshot"] is None
     assert "datum_revision" not in current
     assert original["layers"][0]["slots"][0]["datum_revision"] == "obsolete-source"
+
+
+def test_ac23_second_effective_rotation_change_keeps_pending_reconfirmation():
+    """Repeat datum changes must not demote RECONFIRM_REQUIRED to UNVERIFIED."""
+    from ae_engine.receiving_nfb_ui1a_edits import RECONFIRM
+
+    original = _draft()
+    original = set_nfb_manual_x(original, 0, 0, 0)
+    original["layers"][0]["slots"][0]["manual_x_state"] = RECONFIRM
+    original["layers"][0]["slots"][0]["datum_revision"] = "stale-rev"
+    unchanged = deepcopy(original)
+    moved = set_nfb_slot_rotation(original, 0, 0, mode=OVERRIDE, value=90)
+    first = moved["layers"][0]["slots"][0]
+    assert first["manual_x_mm"] == 0
+    assert first["manual_x_state"] == RECONFIRM
+    assert first["datum_snapshot"] is None
+    assert "datum_revision" not in first
+    repeated = set_nfb_slot_rotation(moved, 0, 0, mode=OVERRIDE, value=180)
+    assert repeated["layers"][0]["slots"][0]["manual_x_state"] == RECONFIRM
+    assert original == unchanged
