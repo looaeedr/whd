@@ -440,8 +440,11 @@ def receiving_base_plate_blank_dimensions(snapshot):
     if override is None:
         return None
     data = dict(snapshot or {})
+    # Pass the original snapshot fields to the canonical physical builder.
+    # Its _finite_float guard rejects bool/NaN/overflow before geometry.
+    # Pre-coercing here turns True into a fabricated 1-mm W/T.
     result = build_receiving_base_plate_result(
-        w=float(data["w"]), h=override["h"], t=float(data["t"]),
+        w=data["w"], h=override["h"], t=data["t"],
         shrink_top=override["base_plate_shrink_top"],
         shrink_bottom=override["base_plate_shrink_bottom"],
         shrink_left=override["base_plate_shrink_left"],
