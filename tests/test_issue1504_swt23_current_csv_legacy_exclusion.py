@@ -166,11 +166,11 @@ def test_swt23_unrelated_legacy_cutting_survives_current_csv_save_reload_and_unc
 def test_ac52_all_invalid_v5_refs_cannot_silently_fall_back_to_blank_finalscene(
     invalid_v5, tmp_path,
 ):
-    """#1504 AC52: a submitted malformed CSV identity must fail closed.
+    """#1504 AC52: fail closed at both CSV ownership and actual FinalScene.
 
-    Previously all-invalid refs missed the mixed-source guard, skipping all
-    NFB holes and returning raw door/base parts. This exercises the real
-    saved Bay and installed FinalScene, not a synthetic renderer.
+    A lower-level all-invalid V5 list previously reached the legacy fallback,
+    but the full FinalScene's earlier depth/brand owner guard also rejects it.
+    Exercise both gates independently; never call that rejection a DXF export.
     """
     snapshot = _valid_project()
     before = deepcopy(snapshot)
@@ -182,7 +182,20 @@ def test_ac52_all_invalid_v5_refs_cannot_silently_fall_back_to_blank_finalscene(
     submitted["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         submitted["nfb_config"]
     )
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    # The exact lower-level source-owner gate must independently reject
+    # malformed V5, even if an upstream geometry/depth gate is bypassed.
     with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_MALFORMED_V5_IDENTITY"):
+        _submitted_csv_holes(submitted)
+    # The actual full FinalScene may correctly reject earlier (depth/brand).
+    # Whichever gate runs first, it must not produce editable/manufactured
+    parts with missing source-owned NFB holes.
+    with pytest.raises(
+        ValueError,
+        match="RECEIVING_NFB_DEPTH_V5_BRAND_IDENTITY_MISMATCH|"
+              "NFB_COMMITTED_CSV_MALFORMED_V5_IDENTITY",
+    ):
         _scene(submitted)
     assert snapshot == before
     assert not list(tmp_path.glob("*.dxf"))
