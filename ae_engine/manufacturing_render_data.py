@@ -89,6 +89,7 @@ class FoldGuide:
 def fold_guides_from_final_scene(scene):
     """Extract normalized physical fold coverage from final BEND primitives."""
     from .sheetmetal_drawing import LinePrimitive
+    from math import isfinite
 
     guides = []
     for primitive in getattr(scene, "primitives", ()):
@@ -96,8 +97,17 @@ def fold_guides_from_final_scene(scene):
             continue
         if str(getattr(primitive, "layer", "")).upper() != "BEND":
             continue
-        x1, y1 = float(primitive.p1.x), float(primitive.p1.y)
-        x2, y2 = float(primitive.p2.x), float(primitive.p2.y)
+        # Do not let bool become 0/1 mm, or silently drop a corrupt NaN BEND.
+        # The same finished scene feeds physical render data and manufacture.
+        try:
+            raw = (primitive.p1.x, primitive.p1.y, primitive.p2.x, primitive.p2.y)
+            if any(isinstance(value, bool) for value in raw):
+                raise ValueError("boolean BEND coordinate")
+            x1, y1, x2, y2 = (float(value) for value in raw)
+            if not all(isfinite(value) for value in (x1, y1, x2, y2)):
+                raise ValueError("nonfinite BEND coordinate")
+        except (AttributeError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("INVALID_BEND_GUIDE_COORDINATES") from exc
         if abs(x1 - x2) <= 1e-7 and abs(y1 - y2) > 1e-9:
             guides.append(FoldGuide("x", (x1 + x2) / 2.0, min(y1, y2), max(y1, y2)))
         elif abs(y1 - y2) <= 1e-7 and abs(x1 - x2) > 1e-9:
