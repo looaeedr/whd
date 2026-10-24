@@ -170,3 +170,18 @@ def test_r6_saved_unverified_joint_cannot_reuse_physical_relief(verified):
     assert _phase6_joint_relief_state_item_matches(saved, joint, box(0, 0, 10, 10)) is False
     saved["verified"] = True
     assert _phase6_joint_relief_state_item_matches(saved, joint, box(0, 0, 10, 10)) is True
+
+def test_r6_immutable_set_uses_same_canonical_manufacturing_signature_as_mutable_set():
+    from phase6_manufacturing_geometry import _phase6_signature_canonical_value
+
+    live = {"head", "tail", "door"}
+    immutable = frozenset(reversed(sorted(live)))
+    assert _phase6_signature_canonical_value(live) == _phase6_signature_canonical_value(immutable)
+    assert _phase6_signature_canonical_value(immutable) == ("door", "head", "tail")
+
+
+def test_r6_immutable_set_cannot_hide_nonfinite_manufacturing_signature_value():
+    from phase6_manufacturing_geometry import _phase6_signature_canonical_value
+
+    with pytest.raises(ValueError, match="nonfinite manufacturing signature value"):
+        _phase6_signature_canonical_value(frozenset((float("inf"),)))
