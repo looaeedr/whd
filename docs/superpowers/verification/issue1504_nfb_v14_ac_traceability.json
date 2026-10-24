@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 42,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 43,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 11,
+    "EVIDENCE_CANDIDATE_ONLY": 10,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
@@ -2551,21 +2551,47 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1504_ac03_ac15_native_source_panel.py",
+        "tests/test_receiving_native_nfb_tab_flow.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1492_nfb_real_dxf_preview.py",
-          "test_name": "test_native_arc_circle_bulge_and_aci_preserved_in_real_source_strokes",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac03_ac15_native_source_panel.py",
+          "test_name": "test_swt05_embedded_original_hole_editor_cancel_then_confirm_stages_only",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_source_interpretation_20261024": "CURRENT CSV V5 brand numeric source + original Hole Editor typed Feature is primary; legacy manufacturer DXF source shape is compatibility preview only, never an input precondition or grant of absolute manufacturing X/Y.",
+      "acceptance_evidence": {
+        "scope": "CURRENT_CSV_V5_PER_UNIT_ORIGINAL_TK_SOURCE_PREVIEW__STANDALONE_CANCEL_CONFIRM_AND_EMBEDDED_STAGE_ONLY__NO_FACTORY_RELEASE",
+        "primary_assertion": "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_swt05_embedded_original_hole_editor_cancel_then_confirm_stages_only",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_swt05_original_inner_tk_per_unit_preview_cancel_discards_draft",
+          "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_swt05_original_inner_tk_confirm_saves_candidate_not_manufacturing",
+          "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write",
+          "tests/test_receiving_native_nfb_tab_flow.py::test_tab_flow_uses_native_undoable_stage_and_preserves_confirm_owner",
+          "tests/test_issue1492_nfb_real_dxf_preview.py::test_native_arc_circle_bulge_and_aci_preserved_in_real_source_strokes",
+          "tests/test_issue1492_nfb_real_dxf_preview.py::test_missing_and_unindexed_dxf_cannot_show_fake_contour"
+        ],
+        "current_csv_v5_authority": true,
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "physical_absolute_position_grant": false,
+        "other_ac_signoff_implied": false,
+        "integrated_localx_claimed": false,
+        "exact_head_full_ci_required": true
+      }
     },
     {
       "id": "SWT-AC-06",
@@ -3669,7 +3695,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 42/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (ISOLATED_BRANCH_CANDIDATE; EXACT_HEAD_CI_PENDING; NO_LOCALX_MERGE); remaining 46 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 43/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (ISOLATED BRANCH CANDIDATE, EXACT HEAD CI PENDING, NO LOCALX MERGE); remaining 45 AC require separate physical/GUI/product evidence.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
