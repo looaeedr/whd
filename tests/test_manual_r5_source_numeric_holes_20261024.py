@@ -72,3 +72,32 @@ def test_r5_79_round_pattern_rejects_invalid_pitch():
             with pytest.raises(ValueError):
                 _round_pattern_pitch(hole, driver, bad)
     assert _round_pattern_pitch(hole, "gap", 5.) == pytest.approx(15.)
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf"), 10 ** 400])
+def test_r5_74_saved_part_dimensions_cannot_become_nonphysical_display_size(bad):
+    """A stored single-part width/height must not bypass the finite source gate."""
+    for field in ("width", "height"):
+        dimensions = {"width": 723., "height": 1134.}
+        dimensions[field] = bad
+        with pytest.raises(ValueError, match="display dimensions"):
+            resolve_operator_finished_dimensions(
+                "door", snapshot={"part_dimensions": {"door": dimensions}},
+            )
+    assert resolve_operator_finished_dimensions(
+        "door", snapshot={"part_dimensions": {"door": {"width": 723., "height": 1134.}}},
+    ) == (723., 1134.)
+    assert resolve_operator_finished_dimensions(
+        "door", snapshot={"part_dimensions": {"door": {"width": None, "height": 1134.}}},
+    ) is None
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("-inf"), 10 ** 400])
+def test_r5_74_finished_display_fallback_rejects_corrupt_shape_numbers(bad):
+    with pytest.raises(ValueError, match="display dimensions"):
+        resolve_operator_finished_dimensions(
+            "head", fallback_dimensions=(bad, 350.),
+        )
+    assert resolve_operator_finished_dimensions(
+        "head", fallback_dimensions=(800., 350.),
+    ) == (800., 350.)
