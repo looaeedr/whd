@@ -342,3 +342,50 @@ def test_issue1817_batch_reflows_existing_door_state_same_as_sequential_updates(
         assert result['sets'][0]['bays'][bay_index]['door_state']['door_layout_columns'] == [
             [400.0, [1000.0, 650.0]], [450.0, [1000.0, 650.0]]]
     assert result['sets'][0]['bays'][1] == layout['sets'][0]['bays'][1]
+
+
+def test_batch_operator_width_change_demotes_only_selected_confirmed_nfb_x(monkeypatch):
+    """Real highlighted-Bay W/H/D operator may not bypass NFB datum invalidation."""
+    import gui_modules.application.receiving_set_bay_adapter as adapter_owner
+    from tests.test_issue1499_nfb_persistence import _config
+
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
+    for index in range(3):
+        layout = update_receiving_bay(
+            layout, set_index=0, bay_index=index,
+            nfb_config_submitted=True, nfb_config=_config(x=index * 100),
+        )
+    original = deepcopy(layout)
+    adapter = ReceivingSetBayAdapter(layout)
+
+    # Preserve #1817's one-normalize-per-atomic-batch performance rule.
+    real = adapter_owner.normalize_receiving_layout
+    calls = []
+    def counted(raw):
+        calls.append(1)
+        return real(raw)
+    monkeypatch.setattr(adapter_owner, "normalize_receiving_layout", counted)
+
+    assert adapter.apply_dimensions_to_bays(
+        0, (0, 2), width=900, height=1600, depth=350, expected_count=2
+    ) == 2
+    assert calls == [1]
+    bays = adapter.layout["sets"][0]["bays"]
+    for index in (0, 2):
+        old = original["sets"][0]["bays"][index]["nfb_config"]["holes"][0]
+        new = bays[index]["nfb_config"]["holes"][0]
+        assert bays[index]["width"] == 900
+        assert bays[index]["nfb_config_submitted"] is True
+        assert new["manual_x_state"] == "RECONFIRM_REQUIRED"
+        assert new["manual_x_mm"] == old["manual_x_mm"]
+        assert new["datum_snapshot"] == old["datum_snapshot"]
+        assert new["model_filename"] == old["model_filename"]
+    assert bays[1] == original["sets"][0]["bays"][1]
+    assert original == layout
+
+    assert adapter.apply_dimensions_to_bays(
+        0, (0, 2), width=900, height=1600, depth=350, expected_count=2
+    ) == 0
+    assert calls == [1]
+    assert all(adapter.layout["sets"][0]["bays"][i]["nfb_config"]["holes"][0][
+        "manual_x_state"] == "RECONFIRM_REQUIRED" for i in (0, 2))
