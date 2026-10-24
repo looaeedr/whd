@@ -173,7 +173,10 @@ def _apply(
         raise ValueError("NFB transaction blocked: " + ", ".join(preview.blocking_reasons))
     if confirm is None:
         raise ValueError("NFB transaction confirmation callback required")
-    if not bool(confirm(preview)):
+    decision = confirm(preview)
+    if type(decision) is not bool:
+        raise TypeError("NFB operator confirmation must return explicit boolean")
+    if not decision:
         return NfbTransactionOutcome(
             layout=deepcopy(original), preview=preview, receipt=None, changed=False,
         )

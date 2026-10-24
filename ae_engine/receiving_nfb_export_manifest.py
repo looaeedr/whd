@@ -93,6 +93,8 @@ class NfbPartialExportManifest:
 
     def require_export(self,part_ids:Sequence[str],*,partial=False):
         """Gate before any DXF IO; never skip blocked pieces in full export."""
+        if type(partial) is not bool:
+            raise TypeError("NFB partial export authorization must be explicit boolean")
         requested=tuple(part_ids)
         if len(set(requested))!=len(requested):
             raise ValueError("NFB partial export request repeats physical part")

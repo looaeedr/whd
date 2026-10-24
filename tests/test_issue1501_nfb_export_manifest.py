@@ -213,3 +213,20 @@ def test_cross_brand_same_filename_must_not_reuse_source_proof(tmp_path):
     assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in mismatch.unresolved_dependencies
     with pytest.raises(ValueError,match="Set brand"):
         derive_nfb_partial_export_manifest(**{**opts,"set_brand":""})
+
+
+@pytest.mark.parametrize("not_boolean", [0, 1, None, "", "true", [], {}])
+def test_ac39_partial_export_requires_explicit_boolean_operator_authorization(
+    tmp_path, not_boolean,
+):
+    """AC-39: truthy flag aliases cannot authorize a partial physical DXF."""
+    manifest = derive_nfb_partial_export_manifest(**_prepared(tmp_path))
+    assert manifest.partial_only and not manifest.whole_ready
+    assert "inner1" in manifest.authorized_part_ids
+    with pytest.raises(TypeError, match="boolean"):
+        manifest.require_export(("inner1",), partial=not_boolean)
+    # The unchanged actual physical manifest remains partial-only: a genuine
+    # operator True may proceed, but normal full export is still forbidden.
+    assert manifest.require_export(("inner1",), partial=True) == ("inner1",)
+    with pytest.raises(ValueError, match="partial only"):
+        manifest.require_export(("inner1",), partial=False)
