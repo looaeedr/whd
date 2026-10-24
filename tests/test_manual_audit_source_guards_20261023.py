@@ -232,3 +232,66 @@ def test_r6_manual_116_oversized_fold_profile_material_length_is_controlled_inva
     assert UnfoldedBlankTopology(
         "source_sheet", valid, (), source="saved_fold_profile",
     ).width == pytest.approx(25.5)
+
+
+def test_r5_r6_manual_116_receiving_base_and_fixed_plate_sources_reject_huge_numbers():
+    """Corrupt, JSON-valid dimensions must never escape physical source guards."""
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
+    from ae_engine.receiving_weld_ear_policy import (
+        receiving_source_fixing_pitch_x_mm, resolve_receiving_large_weld_ear_fit,
+    )
+    from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+
+    original = {
+        "model": "受電箱",
+        "nfb_config_submitted": False,
+        "receiving_base_plate": {
+            "pattern": RECEIVING_BASE_PATTERN_LEFT,
+            "height": 340.0,
+            "shrink_top": 20.0,
+            "shrink_bottom": 20.0,
+            "shrink_left": 45.0,
+            "shrink_right": 45.0,
+            "bend": 20.0,
+        },
+    }
+    valid = receiving_base_plate_values(original)
+    assert valid["h"] == pytest.approx(340.0)
+    assert valid["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_LEFT
+    for field in ("height", "shrink_left", "bend"):
+        damaged = {**original, "receiving_base_plate": {
+            **original["receiving_base_plate"], field: 10 ** 400,
+        }}
+        with pytest.raises(ValueError, match="RECEIVING_BASE_PLATE_CONFIG_INVALID: " + field):
+            receiving_base_plate_values(damaged)
+    assert original["receiving_base_plate"]["height"] == 340.0
+
+    for kwargs in (
+        {"box_outer_width_mm": 10 ** 400, "box_side_thickness_mm": 2.0},
+        {"box_outer_width_mm": 800.0, "box_side_thickness_mm": 10 ** 400},
+    ):
+        with pytest.raises(ValueError, match="finite and positive"):
+            receiving_source_fixing_pitch_x_mm(**kwargs)
+    for field in ("box_outer_width_mm", "fixing_hole_pitch_x_mm",
+                  "ear_weld_edge_to_hole_center_mm"):
+        params = {
+            "box_outer_width_mm": 800.0,
+            "box_side_thickness_mm": 2.0,
+            "fixing_hole_pitch_x_mm": 670.0,
+            "fixing_hole_pitch_y_mm": 210.0,
+        }
+        params[field] = 10 ** 400
+        with pytest.raises(ValueError, match="Receiving weld-ear dimensions must be finite"):
+            resolve_receiving_large_weld_ear_fit(**params)
+
+    # Keep the original measured 2026-10-18 fixed-plate BEND23, T2, 63-mm
+    # formed hole and W800 source pitch, without inventing a new formula.
+    assert receiving_source_fixing_pitch_x_mm(
+        box_outer_width_mm=800.0, box_side_thickness_mm=2.0,
+    ) == pytest.approx(670.0)
+    fit = resolve_receiving_large_weld_ear_fit(
+        box_outer_width_mm=800.0, box_side_thickness_mm=2.0,
+        fixing_hole_pitch_x_mm=670.0, fixing_hole_pitch_y_mm=210.0,
+    )
+    assert fit.fixing_center_from_inside_skin_mm == pytest.approx(63.0)
+    assert fit.nominal_fold_from_weld_edge_mm == pytest.approx(23.0)
