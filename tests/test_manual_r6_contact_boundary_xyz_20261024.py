@@ -130,4 +130,5 @@ def test_r6_public_backprojection_noniterable_sources_fail_closed(
     assert result.flat_points == ()
     valid = backproject_mapped_skin_world_points(MAPPING, ((1., 1., 0.),))
     assert valid.status == "RESOLVED"
-    assert valid.flat_points == pytest.approx(((1., 1.),))
+    assert len(valid.flat_points) == 1
+    assert valid.flat_points[0] == pytest.approx((1., 1.))
