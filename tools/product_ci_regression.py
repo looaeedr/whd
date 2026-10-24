@@ -413,6 +413,8 @@ PYTEST_PATHS = (
     "tests/test_manual_r6_structure_reconciliation_20261024.py",
     # Source verified R5 #91 persisted Door layout numeric authority.
     "tests/test_manual_r5_91_saved_door_topology_20261024.py",
+    # R5 #87 malformed Door/Divider topology must not generate unverified marking.
+    "tests/test_manual_r5_87_joint_marking_invalid_layout_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
