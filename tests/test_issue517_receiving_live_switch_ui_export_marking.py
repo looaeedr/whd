@@ -319,7 +319,10 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
         designer.output_export_button.invoke()
         _pump(root, 5)
         actual = {p.name: p for p in tmp_path.glob("*.dxf")}
-        assert actual, "Fresh Receiving's normal GUI export must create DXF sheets"
+        assert actual, (
+            "Fresh Receiving's normal GUI export must create DXF sheets; "
+            f"actual operator dialog errors={dialogs!r}"
+        )
 
         from ae_engine.receiving_ear_side_manufacturing_marking import (
             with_verified_receiving_ear_side_markings,
