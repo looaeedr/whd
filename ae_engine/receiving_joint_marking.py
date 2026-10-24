@@ -812,11 +812,12 @@ def _longest_contact_boundary(contact: ResolvedLegalContact):
 
 
 def _front_contact_boundary(contact: ResolvedLegalContact, expected_world_z: float):
-    """Mark the actual FRONT (+Z) contacting flange edge, not longest/center.
+    """The source front Z plane's REAL cross-section of a verified contact.
 
-    The installed front edge is the user's outer-door inward datum. The
-    last flange may extend any length toward the rear; that length cannot
-    shift the installation mark.
+    A pressed/formed skin can straddle the nominal frame front by T/2; the
+    required installation mark is still exactly outer-door Z minus inset.
+    Intersect the actual physical overlap, never shift it or choose its rear
+    boundary. Reject missing, disconnected or non-coplanar contacts.
     """
     import math
 
@@ -826,25 +827,45 @@ def _front_contact_boundary(contact: ResolvedLegalContact, expected_world_z: flo
     points = tuple(tuple(float(v) for v in p) for p in tuple(contact.overlap_world or ()))
     if len(points) < 3:
         raise ValueError("Receiving frame has no bounded physical contact footprint")
-    rows = []
-    for index, a in enumerate(points):
-        b = points[(index + 1) % len(points)]
-        if (abs(a[2] - target) > 1e-5
-                or abs(b[2] - target) > 1e-5):
-            continue
-        length = _norm(_sub(b, a))
-        if length <= 1e-9:
-            continue
-        signature = tuple(round(v, 9) for point in sorted((a, b)) for v in point)
-        rows.append((-float(length), signature, a, b))
-    if not rows:
+    origin, normal = contact.contact_plane
+    normal = tuple(float(v) for v in normal)
+    if abs(normal[0]) >= 1.0 - 1e-6:
+        varying_axis, fixed_axis = 1, 0  # side sheet: constant X, varying Y
+    elif abs(normal[1]) >= 1.0 - 1e-6:
+        varying_axis, fixed_axis = 0, 1  # divider/head: constant Y, varying X
+    else:
+        raise ValueError("RECEIVING_FRAME_FRONT_CONTACT_UNSUPPORTED_PLANE")
+    fixed = float(origin[fixed_axis])
+    if any(abs(p[fixed_axis] - fixed) > 1e-5 for p in points):
+        raise ValueError("RECEIVING_FRAME_FRONT_CONTACT_NOT_COPLANAR")
+    from shapely.geometry import LineString, Polygon
+    section = Polygon(tuple((p[varying_axis], p[2]) for p in points))
+    if section.is_empty or not section.is_valid or section.area <= 1e-9:
+        raise ValueError("RECEIVING_FRAME_FRONT_CONTACT_INVALID_POLYGON")
+    min_u, _min_z, max_u, _max_z = section.bounds
+    line = LineString(((min_u - 1.0, target), (max_u + 1.0, target)))
+    sliced = section.intersection(line)
+    if sliced.geom_type == "LineString":
+        segments = (sliced,)
+    elif hasattr(sliced, "geoms"):
+        segments = tuple(
+            item for item in sliced.geoms
+            if item.geom_type == "LineString" and item.length > 1e-6
+        )
+    else:
+        segments = ()
+    if len(segments) != 1 or segments[0].length <= 1e-6:
         raise ValueError(
             "RECEIVING_FRAME_FRONT_CONTACT_Z_MISMATCH: "
-            f"requested front Z={target:g}, "
-            f"actual contact Z={tuple(round(p[2], 6) for p in points)!r}"
+            f"requested front Z={target:g}, actual footprint Z="
+            f"{tuple(round(p[2], 6) for p in points)!r}"
         )
-    rows.sort(key=lambda row: (row[0], row[1]))
-    return rows[0][2], rows[0][3]
+    a, b = tuple(segments[0].coords)[0], tuple(segments[0].coords)[-1]
+    def world(p):
+        if fixed_axis == 0:
+            return (fixed, float(p[0]), target)
+        return (float(p[0]), fixed, target)
+    return world(a), world(b)
 
 
 def _backproject_contact_boundary(contact, *, frame_front_world_z=None):
