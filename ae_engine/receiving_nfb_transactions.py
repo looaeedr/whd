@@ -68,9 +68,15 @@ def _selected(layout, set_index: int, bay_indices: Sequence[int]):
     if type(set_index) is not int or not 0 <= set_index < len(normalized["sets"]):
         raise ValueError("NFB transaction requires existing Set")
     bays = normalized["sets"][set_index]["bays"]
-    targets = tuple(bay_indices)
-    if (not targets or len(targets) != len(set(targets))
-            or any(type(i) is not int or i < 0 or i >= len(bays) for i in targets)):
+    try:
+        targets = tuple(bay_indices)
+    except TypeError as exc:
+        raise ValueError("NFB transaction requires distinct real highlighted Bays") from exc
+    # Validate scalar Bay indices BEFORE hashing them: corrupted project/UI
+    # selections can carry unhashable arrays or booleans (True == 1).
+    if (not targets
+            or any(type(i) is not int or i < 0 or i >= len(bays) for i in targets)
+            or len(targets) != len(set(targets))):
         raise ValueError("NFB transaction requires distinct real highlighted Bays")
     return normalized, tuple(sorted(targets))
 
