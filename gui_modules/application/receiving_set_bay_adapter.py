@@ -496,10 +496,18 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的版本角色")
         if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
             raise ValueError("套不存在")
-        indices = tuple(sorted(set(bay_indices)))
+        # A live label is still an operation on real physical Bay identity.
+        # Validate before hashing to reject boolean aliases and unhashable
+        # UI selection values without touching any persisted label or NFB.
+        try:
+            supplied = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError("請先高亮有效的連") from exc
         count = len(self._layout["sets"][set_index]["bays"])
-        if not indices or any(type(bi) is not int or not 0 <= bi < count for bi in indices):
+        if (not supplied or any(type(bi) is not int or not 0 <= bi < count
+                                for bi in supplied)):
             raise ValueError("請先高亮有效的連")
+        indices = tuple(sorted(set(supplied)))
         from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
         kind = role.replace("-", "_") + "_version_id"
         candidate = self._layout
