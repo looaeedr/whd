@@ -302,10 +302,14 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
         face_features_for(key) if callable(face_features_for) else {}
     )
     if key == 'box_body' and workspace is not None:
+        # Detached Bay previews and minimal manufacturing facades may only
+        # provide the active part. Do not pretend missing physical-piece
+        # feature ownership exists, or crash on absent workspace methods.
+        available_parts = tuple(getattr(workspace, "available_parts", ()) or ())
         values['physical_piece_features'] = {
-            child: workspace.features_for(child)
-            for child in workspace.available_parts
-            if is_box_body_physical_piece_key(child)
+            child: features_for(child)
+            for child in available_parts
+            if is_box_body_physical_piece_key(child) and callable(features_for)
         }
     values["box_body_structure"] = (
         structure_state() if callable(structure_state) else {}
