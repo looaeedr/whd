@@ -372,3 +372,74 @@ def test_ac14_swt11_changed_nfb_source_never_reuses_an_old_3d_or_dxf(
     for index, part in enumerate(new_parts):
         assert _canonical_cutting_scene_shapes(part) == new_shapes[index]
     assert tuple(path.read_bytes() for path in old_paths) == original_bytes
+
+
+def test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit(
+    monkeypatch, tmp_path,
+):
+    """Render the same genuine installed source through the real 3D adapter.
+
+    No simulated 3D triangles or independent approximations: the renderer
+    triangulates the same physical FinalScene that produces verified DXF.
+    """
+    from types import SimpleNamespace
+    from matplotlib.figure import Figure
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+    from phase6_final_scene_contracts import (
+        AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+
+    _isolated_csv(monkeypatch, tmp_path)
+    original = _valid_project()
+    original_parts = _scene(original)
+
+    def actual_mesh(parts):
+        figure = Figure(figsize=(5., 4.))
+        ax = figure.add_subplot(111, projection="3d")
+        renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax))
+        triangles = renderer.render(FinalSceneViewRequest(
+            part_key="assembly",
+            render_data=AssemblySceneRenderData(
+                assembly_parts=tuple(parts), show_interference=False,
+            ),
+            x_profile=(), y_profile=(),
+            finished_dimensions=(800., 1600., 350.),
+            thickness=2.,
+        ))
+        skins = tuple(x for x in ax.collections
+                      if isinstance(x, Poly3DCollection))
+        assert len(skins) >= len(parts) == 2
+        assert triangles and len(triangles) > 10
+        assert len(renderer.last_cutting_material) == len(parts)
+        assert tuple(renderer.last_cutting_mesh) == tuple(triangles)
+        return tuple(
+            tuple(tuple(round(float(value), 5) for value in vertex)
+                  for vertex in face)
+            for face in triangles
+        )
+
+    old_mesh = actual_mesh(original_parts)
+    restored, file = _reloaded_project(original, tmp_path)
+    assert file.exists()
+    reloaded_parts = _scene(restored)
+    assert actual_mesh(reloaded_parts) == old_mesh
+
+    moved = deepcopy(restored)
+    moved["nfb_config"]["holes"][1]["manual_x_mm"] -= 20.
+    moved["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        moved["nfb_config"]
+    )
+    new_parts = _scene(moved)
+    new_mesh = actual_mesh(new_parts)
+    assert new_mesh != old_mesh
+    # The physical part positions stay fixed. Only source CUTTING shifts.
+    assert tuple(p.offset for p in new_parts) == tuple(
+        p.offset for p in original_parts
+    )
+    assert _canonical_cutting_scene_shapes(new_parts[0]) != (
+        _canonical_cutting_scene_shapes(original_parts[0])
+    )
+    assert _canonical_cutting_scene_shapes(new_parts[1]) == (
+        _canonical_cutting_scene_shapes(original_parts[1])
+    )
