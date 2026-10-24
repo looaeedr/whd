@@ -1,6 +1,6 @@
 {
   "schema": "WHD_NFB_V14_88AC_TRACEABILITY_V1",
-  "assessed_on": "2026-10-22",
+  "assessed_on": "2026-10-24",
   "source_documents": [
     {
       "name": "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md",
@@ -22,10 +22,10 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 43,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 46,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 10,
-    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
+    "EVIDENCE_CANDIDATE_ONLY": 9,
+    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 12,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
   "records": [
@@ -1390,23 +1390,64 @@
         "tests/test_issue1502_nfb_finalscene_composite.py",
         "tests/test_issue1502_nfb_middle_3d_witness.py",
         "tests/test_issue1502_nfb_middle_plate_physical_shadow.py",
-        "tests/test_issue1502_nfb_source_regions.py"
+        "tests/test_issue1502_nfb_source_regions.py",
+        "tests/test_issue1502_quantity_current_csv_full_batch.py",
+        "tests/test_issue1502_paired_real_dxf_check_q.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1502_nfb_base_batch_export_gate.py",
-          "test_name": "test_one_unreleased_base_rejects_entire_multi_bay_export_before_io",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1502_quantity_current_csv_full_batch.py",
+          "test_name": "test_both_actual_versions_sum_five_identical_base_and_ear_pieces",
+          "witness_scope": "FULL_AC_AUTOMATED_SUPPORTED_CSV_V5_QUANTITY_PARTS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
-      "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34"
+      "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
+      "historical_pre_current_review": {
+        "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1502_nfb_base_batch_export_gate.py",
+            "test_name": "test_one_unreleased_base_rejects_entire_multi_bay_export_before_io",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "SUPPORTED_CURRENT_NUMERIC_CSV_V5_QUANTITY_3_AND_2_ACTUAL_VERSION_PHYSICAL_DXF_Q_GROUPING_ONLY__NO_ARBITRARY_MODEL_OR_WHOLE_CABINET_MFG2_RELEASE",
+        "primary_assertion": "tests/test_issue1502_quantity_current_csv_full_batch.py::test_both_actual_versions_sum_five_identical_base_and_ear_pieces",
+        "other_required_assertions": [
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_each_version_uses_current_saved_csv_not_other_selected_version",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_changed_second_version_hole_does_not_export_stale_geometry",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_per_version_q_group_last_saved_dxf_failure_rolls_back",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_original_quantity_gui_routes_to_current_csv_not_retired_supplier_dxf",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_real_pair_same_geometry_different_source_sha_groups_exact_q",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_real_pair_different_base_machining_does_not_merge_unequal_shapes",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_changed_exported_dxf_blocks_check_before_quantity_output"
+        ],
+        "production_code_audited": "ae_engine/receiving_csv_quantity_manufacturing.py::export_current_csv_quantity_manufacturing",
+        "exact_source_commit": "f610d3889b667ab44034668462b4db5fc4d54151",
+        "product_ci_run": "https://github.com/looaeedr/whd/actions/runs/40047080799",
+        "product_ci_receipt": "WHD_V15_ACCEPTANCE_GREEN requirements=52 passed_cases=2077",
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "arbitrary_unproven_source_model_release": false,
+        "pad_material_approved": false,
+        "human_windows_uat_claimed": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false
+      }
     },
     {
       "id": "NFB-AC-32",
@@ -2843,21 +2884,22 @@
         "tests/test_issue1502_receiving_existing_base_plate_patterns.py",
         "tests/test_issue510_receiving_back_panel_modes.py",
         "tests/test_issue38_receiving_divider_baseline.py",
-        "tests/test_phase6_t15_inner_door_panels.py"
+        "tests/test_phase6_t15_inner_door_panels.py",
+        "tests/test_issue1504_swt12_cross_owner_baseline.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1469_v15_acceptance.py",
-          "test_name": "test_selectable_family_save_reload_real_output_custom_bom",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_swt12_cross_owner_baseline.py",
+          "test_name": "test_swt12_actual_workspace_inner_door_csv_confirm_preserves_other_physical_owners",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "source_scoped_candidate_review_20261024": {
         "status": "NOT_SIGNED__CROSS_OWNER_MUTATION_REGRESSION_MISSING",
         "witness_function_refs": {
@@ -2880,7 +2922,50 @@
         "original_source_sha_unchanged": true,
         "accepted": false,
         "integrated_localx_claimed": false,
-        "factory_release": false
+        "factory_release": false,
+        "subsequent_disposition": "SUPERSEDED_BY_SIGNED_CURRENT_CSV_V5_CROSS_OWNER_EVIDENCE",
+        "historical_missing_assertions_retained": true
+      },
+      "historical_pre_current_review": {
+        "status": "EVIDENCE_CANDIDATE_ONLY",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1469_v15_acceptance.py",
+            "test_name": "test_selectable_family_save_reload_real_output_custom_bom",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_CSV_V5_INNER_DOOR_SOURCE_EDITOR_TO_REAL_WORKSPACE_CONFIRM__SHEET_FRAME_DIVIDER_BASE_REAR_VAULT_OWNER_GEOMETRY_STABLE__NOT_UNCONDITIONAL_PAD_MFG2_OR_WINDOWS_UAT",
+        "primary_assertion": "tests/test_issue1504_swt12_cross_owner_baseline.py::test_swt12_actual_workspace_inner_door_csv_confirm_preserves_other_physical_owners",
+        "other_required_assertions": [
+          "tests/test_issue1504_swt12_cross_owner_baseline.py::test_swt12_current_csv_v5_stage_never_changes_inner_frame_base_divider_or_rear_owners",
+          "tests/test_issue1504_swt12_cross_owner_baseline.py::test_swt12_current_nfb_staging_does_not_change_original_vault_family",
+          "tests/test_issue1504_swt12_cross_owner_baseline.py::test_swt12_last_22_mating_flange_and_46_plus_2t_formed_occupation",
+          "tests/test_issue1504_swt12_cross_owner_baseline.py::test_swt12_nonphysical_thickness_cannot_claim_frame_occupation",
+          "tests/test_receiving_inner_frame_last_flange_contact.py::test_only_last_22_mm_flat_band_is_mating_flange",
+          "tests/test_receiving_door_dimension_projection_semantics.py::test_receiving_multi_door_dimension_projection_uses_formed_fw_29_without_adding_2t_again",
+          "tests/test_issue1502_receiving_existing_base_plate_patterns.py::test_receiving_illustration_cannot_override_family_or_mount_hole_datum",
+          "tests/test_issue510_receiving_back_panel_modes.py::test_back_panel_finalscene_uses_mode_height_four_reference_slots_and_optional_opening",
+          "tests/test_issue38_receiving_divider_baseline.py::test_receiving_divider_render_maps_all_baseline_holes_without_using_baseline_outer_cutting",
+          "tests/test_phase6_t15_inner_door_panels.py::test_inner_door_reuses_vault_certified_sheet_rules_and_fixed_19_folds"
+        ],
+        "exact_source_commit": "f610d3889b667ab44034668462b4db5fc4d54151",
+        "product_ci_run": "https://github.com/looaeedr/whd/actions/runs/40047080799",
+        "product_ci_receipt": "WHD_V15_ACCEPTANCE_GREEN requirements=52 passed_cases=2077",
+        "historical_candidate_review_retained": "source_scoped_candidate_review_20261024",
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "whole_cabinet_mfg2_release": false,
+        "physical_absolute_x_authorized": false,
+        "human_windows_uat_claimed": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false
       }
     },
     {
@@ -3237,23 +3322,64 @@
         "tests/test_issue1502_nfb_finalscene_composite.py",
         "tests/test_issue1502_nfb_middle_3d_witness.py",
         "tests/test_issue1502_nfb_middle_plate_physical_shadow.py",
-        "tests/test_issue1502_nfb_source_regions.py"
+        "tests/test_issue1502_nfb_source_regions.py",
+        "tests/test_issue1502_quantity_current_csv_full_batch.py",
+        "tests/test_issue1502_paired_real_dxf_check_q.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1502_existing_base_nfb_assembly.py",
-          "test_name": "test_two_real_NFB_heights_cannot_share_one_assumed_ear_group",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1502_quantity_current_csv_full_batch.py",
+          "test_name": "test_both_actual_versions_sum_five_identical_base_and_ear_pieces",
+          "witness_scope": "FULL_AC_AUTOMATED_SUPPORTED_CSV_V5_QUANTITY_PARTS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
-      "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34"
+      "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
+      "historical_pre_current_review": {
+        "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1502_existing_base_nfb_assembly.py",
+            "test_name": "test_two_real_NFB_heights_cannot_share_one_assumed_ear_group",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "SUPPORTED_CURRENT_NUMERIC_CSV_V5_QUANTITY_3_AND_2_ACTUAL_VERSION_PHYSICAL_DXF_Q_GROUPING_ONLY__NO_ARBITRARY_MODEL_OR_WHOLE_CABINET_MFG2_RELEASE",
+        "primary_assertion": "tests/test_issue1502_quantity_current_csv_full_batch.py::test_both_actual_versions_sum_five_identical_base_and_ear_pieces",
+        "other_required_assertions": [
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_each_version_uses_current_saved_csv_not_other_selected_version",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_changed_second_version_hole_does_not_export_stale_geometry",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_per_version_q_group_last_saved_dxf_failure_rolls_back",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_original_quantity_gui_routes_to_current_csv_not_retired_supplier_dxf",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_real_pair_same_geometry_different_source_sha_groups_exact_q",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_real_pair_different_base_machining_does_not_merge_unequal_shapes",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_changed_exported_dxf_blocks_check_before_quantity_output"
+        ],
+        "production_code_audited": "ae_engine/receiving_csv_quantity_manufacturing.py::export_current_csv_quantity_manufacturing",
+        "exact_source_commit": "f610d3889b667ab44034668462b4db5fc4d54151",
+        "product_ci_run": "https://github.com/looaeedr/whd/actions/runs/40047080799",
+        "product_ci_receipt": "WHD_V15_ACCEPTANCE_GREEN requirements=52 passed_cases=2077",
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "arbitrary_unproven_source_model_release": false,
+        "pad_material_approved": false,
+        "human_windows_uat_claimed": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false
+      }
     },
     {
       "id": "SWT-AC-21",
