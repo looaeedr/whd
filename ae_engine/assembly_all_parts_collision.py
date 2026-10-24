@@ -151,7 +151,10 @@ def _certified_pair_allowances(diagnostics):
         post = dict((getattr(row, "evidence", {}) or {}).get("post") or {})
         if not divider.startswith("box_body:divider:"):
             continue
-        if int(post.get("true_thickness_penetrating_band_count", -1)) != 0:
+        count = post.get("true_thickness_penetrating_band_count", -1)
+        # This is a manufacturing certification count, not a display field.
+        # False must not certify zero penetrating bands via int(False) == 0.
+        if type(count) is not int or count != 0:
             continue
         for side in ("box_body:left_side", "box_body:right_side"):
             approved.add(frozenset((divider,side)))
