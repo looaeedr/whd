@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import math
 from enum import Enum
 from typing import Mapping
 
@@ -105,6 +106,17 @@ def legacy_box_body_structure_locked(model_name) -> bool:
     return name not in {"自訂", "未知類型"}
 
 
+def _structure_locked_bool(value):
+    """Decode serialized operator booleans without bool("false") == True."""
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"false", "0", "off", "no", ""}:
+            return False
+        if text in {"true", "1", "on", "yes"}:
+            return True
+    return bool(value)
+
+
 def normalize_box_body_structure_state(
     value: Mapping[str, object] | None, *, legacy_locked: bool | None = None
 ) -> dict:
@@ -112,12 +124,12 @@ def normalize_box_body_structure_state(
     result = default_box_body_structure_state()
     if not isinstance(value, Mapping):
         if legacy_locked is not None:
-            result["locked"] = bool(legacy_locked)
+            result["locked"] = _structure_locked_bool(legacy_locked)
         return result
 
     result["active_type"] = _structure_type(value.get("active_type")).value
     if "locked" in value:
-        result["locked"] = bool(value.get("locked"))
+        result["locked"] = _structure_locked_bool(value.get("locked"))
     elif legacy_locked is not None:
         result["locked"] = bool(legacy_locked)
 
@@ -126,7 +138,13 @@ def normalize_box_body_structure_state(
         for type_id in BoxBodyStructureType:
             incoming = incoming_configs.get(type_id.value)
             if isinstance(incoming, Mapping):
-                result["configs"][type_id.value].update(deepcopy(dict(incoming)))
+                copied = deepcopy(dict(incoming))
+                if type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
+                    # A malformed saved Fold dictionary is not a valid
+                    # manufacturing source for any side/back physical piece.
+                    if not isinstance(copied.get("piece_profiles", {}), Mapping):
+                        copied["piece_profiles"] = {}
+                result["configs"][type_id.value].update(copied)
     return result
 
 
@@ -172,7 +190,7 @@ def activate_structure_with_defaults(
 
 def set_structure_locked(state: Mapping[str, object] | None, locked: bool) -> dict:
     result = normalize_box_body_structure_state(state)
-    result["locked"] = bool(locked)
+    result["locked"] = _structure_locked_bool(locked)
     return result
 
 
@@ -350,39 +368,45 @@ def set_join_seam_bend(state: Mapping[str, object] | None, type_id, value) -> di
 
 
 def resolve_three_piece_widths(state: Mapping[str, object] | None, total_w: float) -> tuple[float, float, float]:
-    """解析 W 三分；左右連動，中間吸收剩餘，未設定時預設 50/(W-100)/50。"""
-    total = float(total_w)
+    """Resolve explicit side/center constraints without discarding conflicts.
+
+    Left/right are the same physical outside width. The center is the
+    complementary residual only when no explicit center was persisted.
+    """
+    def positive_finite(value, label):
+        if isinstance(value, bool):
+            raise ValueError(f"W 三分{label}必須是有限正數")
+        try:
+            result = float(value)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"W 三分{label}必須是有限正數") from exc
+        if not math.isfinite(result) or result <= 0:
+            raise ValueError(f"W 三分{label}必須是有限正數")
+        return result
+
+    total = positive_finite(total_w, "箱身總寬")
     normalized = normalize_box_body_structure_state(state)
     cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_W_SPLIT.value]
-    left = cfg.get("left_w")
-    middle = cfg.get("middle_w")
-    right = cfg.get("right_w")
+    left, middle, right = (cfg.get(key) for key in ("left_w", "middle_w", "right_w"))
     if left is None and middle is None and right is None:
-        left = right = 50.0
-        middle = total - 100.0
-    elif left is not None and middle is not None and right is not None:
-        left = float(left)
-        middle = float(middle)
-        right = float(right)
-        if abs(left - right) > 1e-9:
-            raise ValueError("W 三分保存尺寸左右不一致，拒絕產生幾何")
-        if abs((left + middle + right) - total) > 1e-9:
-            raise ValueError("W 三分保存尺寸總和與箱身 W 不一致，拒絕產生幾何")
+        side = 50.0
+        middle = total - 2.0 * side
     else:
-        driver = str(cfg.get("driver") or "side")
-        if driver == "middle" and middle is not None:
-            middle = float(middle)
-            left = right = (total - middle) / 2.0
-        else:
-            side = left if left is not None else right
-            if side is None:
-                side = (total - float(middle)) / 2.0
-            left = right = float(side)
-            middle = total - 2.0 * float(side)
-    if float(left) <= 0 or float(right) <= 0 or float(middle) <= 0:
+        left = None if left is None else positive_finite(left, "左側寬")
+        right = None if right is None else positive_finite(right, "右側寬")
+        middle = None if middle is None else positive_finite(middle, "中央寬")
+        if left is not None and right is not None and abs(left - right) > 1e-9:
+            raise ValueError("W 三分保存尺寸左右不一致，拒絕產生幾何")
+        side = left if left is not None else right
+        if side is None:
+            side = (total - middle) / 2.0
+        elif middle is None:
+            middle = total - 2.0 * side
+        elif abs(2.0 * side + middle - total) > 1e-9:
+            raise ValueError("W 三分保存尺寸與箱身總寬不一致，拒絕產生幾何")
+    if side <= 0 or middle <= 0 or not math.isfinite(side) or not math.isfinite(middle):
         raise ValueError("W 三分三個包外尺寸都必須大於 0")
-    return float(left), float(middle), float(right)
-
+    return float(side), float(middle), float(side)
 
 def set_three_piece_width(
     state: Mapping[str, object] | None,
