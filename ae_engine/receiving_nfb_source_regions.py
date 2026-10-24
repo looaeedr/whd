@@ -110,19 +110,22 @@ def inspect_nfb_original_source_regions(
             or upper_reference_handle not in by_handle
             or lower_reference_handle not in by_handle):
         raise ValueError("NFB upper/lower source anchors absent or ambiguous")
+    color_by_handle={x.handle_path:x.effective_color_aci for x in inventory.entities}
     upper=by_handle[upper_reference_handle]
     lower=by_handle[lower_reference_handle]
     if (upper.dxftype()!="LWPOLYLINE" or not upper.closed
-            or upper.dxf.get("color",256)!=150
+            or color_by_handle.get(upper_reference_handle, upper.dxf.get("color",256))!=150
             or lower.dxftype()!="LWPOLYLINE" or not lower.closed
-            or lower.dxf.get("color",256)!=3):
+            or color_by_handle.get(lower_reference_handle, lower.dxf.get("color",256))!=3):
         raise ValueError("NFB physical upper/lower reference must be typed closed source")
     ux0,uy0,ux1,uy1=_rect_bounds(upper)
     lx0,ly0,lx1,ly1=_rect_bounds(lower)
-    if expected_upper_width_mm is not None and abs(ux1-ux0-expected_upper_width_mm)>1e-5:
-        raise ValueError("NFB upper source width does not match actual profile")
-    if expected_upper_height_mm is not None and abs(uy1-uy0-expected_upper_height_mm)>1e-5:
-        raise ValueError("NFB upper source height does not match actual profile")
+    if expected_upper_width_mm is not None:
+        if type(expected_upper_width_mm) not in (int, float) or not isfinite(float(expected_upper_width_mm)) or abs(ux1-ux0-float(expected_upper_width_mm))>1e-5:
+            raise ValueError("NFB upper source width does not match actual profile")
+    if expected_upper_height_mm is not None:
+        if type(expected_upper_height_mm) not in (int, float) or not isfinite(float(expected_upper_height_mm)) or abs(uy1-uy0-float(expected_upper_height_mm))>1e-5:
+            raise ValueError("NFB upper source height does not match actual profile")
     if not uy0>ly1:
         raise ValueError("NFB upper/lower original groups have no proven gap")
     split=(uy0+ly1)/2.0
@@ -136,7 +139,6 @@ def inspect_nfb_original_source_regions(
         else:
             raise ValueError("NFB original entity crosses upper/lower group split")
         joined.append((group,entity.dxf.handle))
-    color_by_handle={x.handle_path:x.effective_color_aci for x in inventory.entities}
     if (len(color_by_handle)!=len(entities)
             or any(handle not in color_by_handle for _,handle in joined)):
         raise ValueError("NFB source ancestry cannot be matched to all native handles")

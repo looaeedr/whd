@@ -5,6 +5,7 @@ It does not own project schema, workspace physical identity, manufacturing
 geometry, or committed settings.
 """
 from copy import deepcopy
+import math
 import tkinter as tk
 from tkinter import messagebox
 
@@ -76,10 +77,20 @@ def _restore_cabinet_family_runtime(self, state):
     state = dict(state or {})
     values = {}
     for key, raw in dict(state.get("settings") or {}).items():
+        if key == "draw_stock":
+            if isinstance(raw, str):
+                values[key] = raw.strip().lower() in {"1", "true", "yes", "on"}
+            else:
+                values[key] = bool(raw)
+            continue
+        if isinstance(raw, bool):
+            continue
         try:
-            values[key] = bool(raw) if key == "draw_stock" else float(raw)
+            val = float(raw)
         except (TypeError, ValueError):
             continue
+        if math.isfinite(val):
+            values[key] = val
     self._apply_fold_designer_live_settings(values, recalculate=False)
     self._apply_manual_corner_snapshot(state.get("corner_state"), state.get("corner_pair_same"))
     if state.get("endcap_bottom_wrap") is not None:
@@ -92,7 +103,12 @@ def _restore_cabinet_family_runtime(self, state):
         self.assembly_joint_state = migrate_legacy_snapshot_joints(deepcopy(joint_state))
         stable = assembly_intent_value(self.assembly_joint_state.get("assembly_type", "INSERT_OVERLAY"))
         self.box_assembly_type_var.set(assembly_intent_label(stable))
-    self.multi_door_enabled_var.set(bool(state.get("multi_door_enabled", False)))
+    raw_multi = state.get("multi_door_enabled", False)
+    if isinstance(raw_multi, str):
+        parsed_multi = raw_multi.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        parsed_multi = bool(raw_multi)
+    self.multi_door_enabled_var.set(parsed_multi)
     layout = list(state.get("door_layout_columns") or [])
     if layout:
         self.set_door_layout_columns([(float(row[0]), [float(v) for v in row[1]]) for row in layout])
@@ -102,7 +118,15 @@ def _restore_cabinet_family_runtime(self, state):
     self.door_layout_handle_edges = deepcopy(dict(state.get("door_handle_edges") or {}))
     self.receiving_inner_doors = deepcopy(state.get("receiving_inner_doors") or [])
     datum = state.get("door_nameplate_center_datum_top")
-    self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+    if datum is None:
+        self.door_nameplate_center_datum_top = None
+    elif not isinstance(datum, bool):
+        try:
+            datum_val = float(datum)
+            if math.isfinite(datum_val):
+                self.door_nameplate_center_datum_top = datum_val
+        except (TypeError, ValueError):
+            pass
     self.workspace_controller.set_box_body_structure_state(state.get("box_body_structure"))
     self.workspace_controller.set_box_body_profile(state.get("box_body_profile"))
 

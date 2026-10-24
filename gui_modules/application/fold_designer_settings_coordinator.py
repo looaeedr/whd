@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, fields
 from enum import Enum
+import math
 from types import MappingProxyType
 from typing import Any, Callable, TYPE_CHECKING
 
@@ -402,12 +403,19 @@ class Phase6FoldDesignerSettingsCoordinator:
             if key not in current:
                 continue
             if isinstance(current.get(key), bool):
-                clean[key] = bool(raw)
+                if isinstance(raw, str):
+                    clean[key] = raw.strip().lower() in {"1", "true", "yes", "on"}
+                else:
+                    clean[key] = bool(raw)
             else:
+                if isinstance(raw, bool):
+                    continue
                 try:
-                    clean[key] = float(raw)
+                    val = float(raw)
                 except (TypeError, ValueError):
                     continue
+                if math.isfinite(val):
+                    clean[key] = val
         if not clean:
             return False
 

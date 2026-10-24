@@ -595,11 +595,8 @@ def build_project_snapshot(self, namespace):
             )
         ),
         endcap_fw=deepcopy(
-            getattr(
-                app,
-                "_phase6_endcap_fw_state",
-                normalize_endcap_fw_state(base_snapshot),
-            )
+            getattr(app, "_phase6_endcap_fw_state", None)
+            or normalize_endcap_fw_state(base_snapshot)
         ),
         corner_state=getattr(app, "_phase6_corner_state", {}) or {},
         corner_pair_same=getattr(app, "_phase6_corner_pair_same", {}) or {},

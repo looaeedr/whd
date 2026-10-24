@@ -3,6 +3,7 @@
 Authoritative settings, workspace, project and manufacturing ownership remains
 with the existing services/controllers/engine.  This module only coordinates them.
 """
+import math
 import tkinter as tk
 import time
 import sys
@@ -901,10 +902,23 @@ def _apply_fold_designer_live_snapshot(self, payload):
         self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(payload)
         self.assembly_relief_state = deepcopy(payload.get("assembly_relief") or {})
         if "use_box_distance" in payload and getattr(self, "is_box_dist_var", None) is not None:
-            self.is_box_dist_var.set(bool(payload.get("use_box_distance", False)))
+            raw_box_dist = payload.get("use_box_distance", False)
+            if isinstance(raw_box_dist, str):
+                parsed_box_dist = raw_box_dist.strip().lower() in {"1", "true", "yes", "on"}
+            else:
+                parsed_box_dist = bool(raw_box_dist)
+            self.is_box_dist_var.set(parsed_box_dist)
         if "door_nameplate_center_datum_top" in payload:
             datum = payload.get("door_nameplate_center_datum_top")
-            self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+            if datum is None:
+                self.door_nameplate_center_datum_top = None
+            elif not isinstance(datum, bool):
+                try:
+                    datum_val = float(datum)
+                    if math.isfinite(datum_val):
+                        self.door_nameplate_center_datum_top = datum_val
+                except (TypeError, ValueError):
+                    pass
         if "door_layout_indicator_states" in payload:
             self.door_layout_indicator_states = {
                 str(key): normalize_door_indicator_state(state)
@@ -984,7 +998,12 @@ def _apply_fold_designer_live_snapshot(self, payload):
             if "multi_door_enabled" in payload:
                 var = getattr(self, "multi_door_enabled_var", None)
                 if var is not None:
-                    var.set(bool(payload.get("multi_door_enabled", False)))
+                    raw_multi = payload.get("multi_door_enabled", False)
+                    if isinstance(raw_multi, str):
+                        parsed_multi = raw_multi.strip().lower() in {"1", "true", "yes", "on"}
+                    else:
+                        parsed_multi = bool(raw_multi)
+                    var.set(parsed_multi)
             if "door_layout_scope" in payload:
                 self.door_layout_scope = str(payload.get("door_layout_scope") or "main")
             if "door_handle_edges" in payload:

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from copy import deepcopy
+from math import isfinite
 from typing import Callable, Mapping, Sequence
 
 from .receiving_layout import normalize_receiving_layout, update_receiving_bay
@@ -114,8 +115,15 @@ def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
         want = (key, float(hole["manual_x_mm"]), actual_count,
                 actual_slot, hole["rotation_deg"])
         observed = original[key]
-        if (len(observed) != 5 or abs(want[1] - observed[1]) > 1e-6
-                or want[2:] != observed[2:]):
+        if (
+            len(observed) != 5
+            or observed[0] != want[0]
+            or type(observed[1]) not in (int, float)
+            or not isfinite(float(observed[1]))
+            or abs(want[1] - float(observed[1])) > 1e-6
+            or any(type(v) is not int for v in observed[2:])
+            or want[2:] != observed[2:]
+        ):
             raise ValueError("NFB configured X/Y slot/rotation differs from actual CUTTING")
 
 

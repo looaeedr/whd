@@ -209,7 +209,13 @@ class Nfb2DViewport:
         self._fit=True
 
     def reset(self,width,height):
-        if width<=0 or height<=0:
+        if (
+            type(width) not in (int, float)
+            or type(height) not in (int, float)
+            or not (isfinite(float(width)) and isfinite(float(height)))
+            or width <= 0
+            or height <= 0
+        ):
             raise ValueError("NFB viewport screen dimensions invalid")
         bounds=self.preview.bounds if self.preview else None
         if bounds is None:
@@ -226,10 +232,27 @@ class Nfb2DViewport:
         self._fit=False
 
     def zoom(self,factor,width,height,*,anchor=None):
-        if not 0<factor<100 or not isfinite(factor):
+        if type(factor) not in (int, float) or not (0 < factor < 100) or not isfinite(float(factor)):
             raise ValueError("NFB viewport zoom factor invalid")
+        if (
+            type(width) not in (int, float)
+            or type(height) not in (int, float)
+            or not (isfinite(float(width)) and isfinite(float(height)))
+            or width <= 0
+            or height <= 0
+        ):
+            raise ValueError("NFB viewport screen dimensions invalid")
         if self._fit: self.reset(width,height)
-        point=anchor or (width/2,height/2)
+        if anchor is not None:
+            if (
+                not isinstance(anchor, (tuple, list))
+                or len(anchor) != 2
+                or any(type(v) not in (int, float) or not isfinite(float(v)) for v in anchor)
+            ):
+                raise ValueError("NFB viewport zoom anchor invalid")
+            point = (float(anchor[0]), float(anchor[1]))
+        else:
+            point = (width/2, height/2)
         before=self.to_world(point[0],point[1],width,height)
         self.scale=min(10000,max(1e-5,self.scale*factor))
         after=self.to_world(point[0],point[1],width,height)
@@ -239,6 +262,12 @@ class Nfb2DViewport:
     def pan(self,delta_x,delta_y):
         if self._fit:
             raise ValueError("NFB preview viewport requires initial fit")
+        if (
+            type(delta_x) not in (int, float)
+            or type(delta_y) not in (int, float)
+            or not (isfinite(float(delta_x)) and isfinite(float(delta_y)))
+        ):
+            raise ValueError("NFB viewport pan delta invalid")
         self.cx-=delta_x/self.scale
         self.cy+=delta_y/self.scale
 

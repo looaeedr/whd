@@ -8,6 +8,7 @@ numeric columns, applies these transitions, then performs presentation effects.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Callable, Mapping, Sequence
 
 from ae_engine.sheetmetal_part_adapters import (
@@ -49,8 +50,10 @@ class DoorLayoutCommitValidation:
 
 
 def _positive_total(label: str, value: float) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{label} 必須大於 0")
     value = float(value)
-    if value <= 0:
+    if not math.isfinite(value) or value <= 0:
         raise ValueError(f"{label} 必須大於 0")
     return value
 
@@ -138,6 +141,8 @@ def validate_width_commit(
 ) -> DoorLayoutCommitValidation:
     total_width = _positive_total("W", total_width)
     current = _positive_total("欄寬", current)
+    if isinstance(column_index, bool) or not (0 <= int(column_index) < len(columns)):
+        raise ValueError("欄索引超出範圍")
     column_index = int(column_index)
     other_fixed = sum(
         float(column.width)
@@ -165,7 +170,11 @@ def validate_height_commit(
 ) -> DoorLayoutCommitValidation:
     total_height = _positive_total("H", total_height)
     current = _positive_total("高度", current)
+    if isinstance(column_index, bool) or not (0 <= int(column_index) < len(columns)):
+        raise ValueError("欄索引超出範圍")
     column = columns[int(column_index)]
+    if isinstance(row_index, bool) or not (0 <= int(row_index) < len(column.heights)):
+        raise ValueError("列索引超出範圍")
     row_index = int(row_index)
     other_fixed = sum(
         float(value)

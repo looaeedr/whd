@@ -5,6 +5,7 @@ Extracted mechanically from fold_designer_adapter; public composition methods re
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, replace
+import math
 from pathlib import Path
 import tkinter as tk
 import ae_engine.ae as ae
@@ -775,11 +776,13 @@ def commit_base_plate_edge_shrink(
     if key is None:
         return False
     original = required("original")
+    if isinstance(raw_value, bool):
+        return False
     try:
         value = float(raw_value)
     except (TypeError, ValueError, original.tk.TclError):
         return False
-    if value < 0:
+    if not math.isfinite(value) or value < 0:
         return False
     self.stage_setting_update(namespace, key, value)
     self.flush_pending_settings(namespace)

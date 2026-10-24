@@ -71,6 +71,15 @@ from .cabinet_types import policy as cabinet_family_policy
 
 from .manufacturing_baseline_policy import resolve_policy, _call
 
+def _normalize_indicator_groups(groups) -> tuple[int, ...]:
+    normalized: list[int] = []
+    for v in groups:
+        if isinstance(v, bool) or (isinstance(v, float) and not v.is_integer()):
+            raise ValueError("指示燈層/組數必須為整數")
+        normalized.append(int(v))
+    return tuple(normalized)
+
+
 def _resolved_door_params(spec: DoorPartSpec, context: ManufacturingContext | None = None):
     policy = resolve_policy(context)
     t = float(spec.thickness)
@@ -115,7 +124,7 @@ def door_indicator_offset_for_finished_center(
         finished_width=float(finished_w), finished_height=float(finished_h),
         left_fold=0.0, bottom_fold=0.0,
     )
-    base_center = local_context.group_center(tuple(int(v) for v in groups))
+    base_center = local_context.group_center(_normalize_indicator_groups(groups))
     return Vec2(
         float(desired_center.x) - float(base_center.x),
         float(desired_center.y) - float(base_center.y),
@@ -126,7 +135,7 @@ def indicator_box_unfolded_size(
     groups, *, thickness: float, context: ManufacturingContext | None = None
 ) -> tuple[float, float]:
     """Return the shared indicator-box unfolded blank size."""
-    normalized = tuple(int(v) for v in groups)
+    normalized = _normalize_indicator_groups(groups)
     if not normalized or any(v <= 0 for v in normalized):
         raise ValueError("指示燈盒至少需要一層且每層組數必須大於 0")
     data = ae.get_indicator_box_data(normalized, float(thickness))
@@ -223,7 +232,7 @@ def validate_door_indicator_fit(
     if mode == "none":
         return (0.0, 0.0)
 
-    normalized_groups = tuple(int(v) for v in groups)
+    normalized_groups = _normalize_indicator_groups(groups)
     if not normalized_groups or any(v <= 0 for v in normalized_groups):
         raise ValueError("指示燈層/組數必須大於 0")
     ox, oy = float(offset[0]), float(offset[1])
@@ -306,7 +315,7 @@ def indicator_small_door_spec(
     groups, *, thickness: float, context: ManufacturingContext | None = None
 ) -> DoorPartSpec:
     policy = resolve_policy(context)
-    groups = tuple(int(v) for v in groups)
+    groups = _normalize_indicator_groups(groups)
     finished_w, finished_h = indicator_small_door_finished_size(
         groups, thickness=float(thickness), context=context
     )

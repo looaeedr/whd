@@ -11,6 +11,7 @@ from __future__ import annotations
 from copy import deepcopy
 import hashlib
 import json
+import math
 from typing import Mapping, Sequence
 
 from ae_engine.certified_relief_registry import (
@@ -97,16 +98,26 @@ def build_current_source_signature(
 
 
 def _same_number(left, right, *, tolerance: float = 1e-6) -> bool:
+    if left is None and right is None:
+        return True
+    if left is None or right is None or isinstance(left, bool) or isinstance(right, bool):
+        return False
     try:
-        return abs(float(left) - float(right)) <= tolerance
+        left_val = float(left)
+        right_val = float(right)
     except (TypeError, ValueError):
         return False
+    if not (math.isfinite(left_val) and math.isfinite(right_val)):
+        return False
+    return abs(left_val - right_val) <= tolerance
 
 
 def _active_rule_revision(rule_id, revision) -> bool:
     rule_id = str(rule_id or "")
     if not rule_id:
         return True
+    if isinstance(revision, bool) or (isinstance(revision, float) and not revision.is_integer()):
+        return False
     try:
         revision = int(revision or 0)
     except (TypeError, ValueError):
@@ -123,20 +134,32 @@ def source_matches_current(
     identity is the mechanical authority; the high-level mirror may differ while
     representing the same accepted mechanics.
     """
-    saved = dict(saved_source or {})
-    current = dict(current_source or {})
+    if not isinstance(saved_source, Mapping) or not isinstance(current_source, Mapping):
+        return False
+    saved = dict(saved_source)
+    current = dict(current_source)
     if not saved:
         return False
     try:
-        if int(saved.get("relief_contract_version", 0) or 0) != RELIEF_CONTRACT_VERSION:
+        raw_saved_ver = saved.get("relief_contract_version", 0)
+        raw_curr_ver = current.get("relief_contract_version", 0)
+        if isinstance(raw_saved_ver, bool) or isinstance(raw_curr_ver, bool):
             return False
-        if int(current.get("relief_contract_version", 0) or 0) != RELIEF_CONTRACT_VERSION:
+        if int(raw_saved_ver or 0) != RELIEF_CONTRACT_VERSION:
+            return False
+        if int(raw_curr_ver or 0) != RELIEF_CONTRACT_VERSION:
             return False
     except (TypeError, ValueError):
         return False
 
-    saved_formed = dict(saved.get("box_body_formed_fw") or {})
-    current_formed = dict(current.get("box_body_formed_fw") or {})
+    raw_saved_formed = saved.get("box_body_formed_fw")
+    raw_current_formed = current.get("box_body_formed_fw")
+    if (raw_saved_formed is not None and not isinstance(raw_saved_formed, Mapping)) or (
+        raw_current_formed is not None and not isinstance(raw_current_formed, Mapping)
+    ):
+        return False
+    saved_formed = dict(raw_saved_formed or {})
+    current_formed = dict(raw_current_formed or {})
     if saved_formed:
         for side in ("left", "right"):
             if side not in saved_formed or side not in current_formed:
@@ -146,7 +169,10 @@ def source_matches_current(
     elif require_formed_fw:
         return False
 
-    saved_parts = dict(saved.get("part_profiles") or {})
+    raw_saved_parts = saved.get("part_profiles")
+    if raw_saved_parts is not None and not isinstance(raw_saved_parts, Mapping):
+        return False
+    saved_parts = dict(raw_saved_parts or {})
     for key in _NUMERIC_SOURCE_KEYS:
         if key not in saved or key not in current:
             continue
@@ -169,9 +195,15 @@ def source_matches_current(
     if str(saved.get("cabinet_family") or "") != str(current.get("cabinet_family") or ""):
         return False
 
-    saved_rules = dict(saved.get("registry_rules") or {})
+    raw_saved_rules = saved.get("registry_rules")
+    if raw_saved_rules is not None and not isinstance(raw_saved_rules, Mapping):
+        return False
+    saved_rules = dict(raw_saved_rules or {})
     for part_key in required_parts:
-        rule = dict(saved_rules.get(str(part_key)) or {})
+        raw_rule = saved_rules.get(str(part_key))
+        if raw_rule is not None and not isinstance(raw_rule, Mapping):
+            return False
+        rule = dict(raw_rule or {})
         if not _active_rule_revision(rule.get("rule_id"), rule.get("revision")):
             return False
 
@@ -181,10 +213,19 @@ def source_matches_current(
         ):
             return False
 
-    current_parts = dict(current.get("part_profiles") or {})
+    raw_current_parts = current.get("part_profiles")
+    if raw_current_parts is not None and not isinstance(raw_current_parts, Mapping):
+        return False
+    current_parts = dict(raw_current_parts or {})
     for part_key in required_parts:
-        saved_axes = dict(saved_parts.get(str(part_key)) or {})
-        current_axes = dict(current_parts.get(str(part_key)) or {})
+        raw_saved_axes = saved_parts.get(str(part_key))
+        raw_current_axes = current_parts.get(str(part_key))
+        if (raw_saved_axes is not None and not isinstance(raw_saved_axes, Mapping)) or (
+            raw_current_axes is not None and not isinstance(raw_current_axes, Mapping)
+        ):
+            return False
+        saved_axes = dict(raw_saved_axes or {})
+        current_axes = dict(raw_current_axes or {})
         for axis in ("X", "Y"):
             if axis not in saved_axes:
                 continue
@@ -197,11 +238,19 @@ def source_matches_current(
 
 def committed_relief_cuts(state, part_key: str, current_source):
     """Return persisted cut polygons only when the replay contract is still valid."""
-    state = deepcopy(dict(state or {}))
+    if not isinstance(state, Mapping):
+        return ()
+    state = deepcopy(dict(state))
     if not bool(state.get("enabled")):
         return ()
     part_key = str(part_key)
-    part = dict((state.get("parts") or {}).get(part_key, {}) or {})
+    raw_parts = state.get("parts")
+    if not isinstance(raw_parts, Mapping):
+        return ()
+    raw_part = raw_parts.get(part_key)
+    if not isinstance(raw_part, Mapping):
+        return ()
+    part = dict(raw_part)
     if not bool(part.get("verified")) and not bool(part.get("canonical_accepted")):
         return ()
 
@@ -212,7 +261,10 @@ def committed_relief_cuts(state, part_key: str, current_source):
         if not _active_rule_revision(rule_id, rule_revision):
             return ()
 
-    source = dict(state.get("source") or {})
+    raw_source = state.get("source")
+    if not isinstance(raw_source, Mapping):
+        return ()
+    source = dict(raw_source)
     if not source_matches_current(
         source, current_source, [part_key], require_formed_fw=False
     ):

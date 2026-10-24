@@ -44,7 +44,16 @@ def load_external_relief_rule_records(path: str | Path | None = None) -> tuple[d
         payload = json.loads(target.read_text(encoding="utf-8"))
     except Exception as exc:
         raise CertifiedReliefRegistryError(f"cannot load certified relief registry: {target}: {exc}") from exc
-    if int(payload.get("schema_version", 0) or 0) != 2:
+    if not isinstance(payload, dict):
+        raise CertifiedReliefRegistryError("certified relief registry payload must be an object")
+    raw_schema_ver = payload.get("schema_version", 0)
+    if isinstance(raw_schema_ver, (bool, float)):
+        raise CertifiedReliefRegistryError("unsupported certified relief registry schema_version")
+    try:
+        schema_ver = int(raw_schema_ver or 0)
+    except (TypeError, ValueError) as exc:
+        raise CertifiedReliefRegistryError("unsupported certified relief registry schema_version") from exc
+    if schema_ver != 2:
         raise CertifiedReliefRegistryError("unsupported certified relief registry schema_version")
     rules = payload.get("rules")
     if not isinstance(rules, list):
@@ -55,14 +64,26 @@ def load_external_relief_rule_records(path: str | Path | None = None) -> tuple[d
         if not isinstance(raw, dict):
             raise CertifiedReliefRegistryError("registry rule must be an object")
         rid = str(raw.get("rule_id") or "").strip()
-        rev = int(raw.get("revision", 0) or 0)
+        raw_rev = raw.get("revision", 0)
+        if isinstance(raw_rev, (bool, float)):
+            raise CertifiedReliefRegistryError("registry rule requires rule_id and revision>=1")
+        try:
+            rev = int(raw_rev or 0)
+        except (TypeError, ValueError) as exc:
+            raise CertifiedReliefRegistryError("registry rule requires rule_id and revision>=1") from exc
         if not rid or rev < 1:
             raise CertifiedReliefRegistryError("registry rule requires rule_id and revision>=1")
         key = (rid, rev)
         if key in seen:
             raise CertifiedReliefRegistryError(f"duplicate registry revision: {rid}@{rev}")
         seen.add(key)
-        topology = int(raw.get("topology_levels", 0) or 0)
+        raw_topology = raw.get("topology_levels", 0)
+        if isinstance(raw_topology, (bool, float)):
+            raise CertifiedReliefRegistryError(f"invalid topology_levels: {rid}@{rev}")
+        try:
+            topology = int(raw_topology or 0)
+        except (TypeError, ValueError) as exc:
+            raise CertifiedReliefRegistryError(f"invalid topology_levels: {rid}@{rev}") from exc
         if topology not in (1, 2):
             raise CertifiedReliefRegistryError(f"invalid topology_levels: {rid}@{rev}")
         rule_domain = str(raw.get("rule_domain") or "ENDCAP_RELIEF").strip().upper()
@@ -104,7 +125,13 @@ def _formula_ast_value(node, variables):
     if isinstance(node, ast.Name):
         if node.id not in _ALLOWED_FORMULA_NAMES or node.id not in variables:
             raise CertifiedReliefRegistryError(f"formula variable not allowed or unresolved: {node.id}")
-        value = float(variables[node.id])
+        raw_var = variables[node.id]
+        if isinstance(raw_var, bool):
+            raise CertifiedReliefRegistryError(f"formula variable cannot be boolean: {node.id}")
+        try:
+            value = float(raw_var)
+        except (TypeError, ValueError) as exc:
+            raise CertifiedReliefRegistryError(f"formula variable is not numeric: {node.id}") from exc
         if not math.isfinite(value):
             raise CertifiedReliefRegistryError(f"formula variable is not finite: {node.id}")
         return value

@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import math
 from typing import Iterable
 
 try:
@@ -72,13 +73,24 @@ def feature_surface_from_structural_result(surface_id: str, result, *, allow_fea
 
 
 def feature_surface_from_rect(surface_id: str, min_point: Vec2, max_point: Vec2, *, allow_features: bool = True) -> FeatureSurface:
+    min_x, min_y = float(min_point.x), float(min_point.y)
+    max_x, max_y = float(max_point.x), float(max_point.y)
+    if not (
+        math.isfinite(min_x)
+        and math.isfinite(min_y)
+        and math.isfinite(max_x)
+        and math.isfinite(max_y)
+        and max_x > min_x
+        and max_y > min_y
+    ):
+        raise ValueError("feature_surface_from_rect requires max_point > min_point on both axes")
     return feature_surface_from_outline(
         surface_id,
         (
-            Vec2(min_point.x, min_point.y),
-            Vec2(max_point.x, min_point.y),
-            Vec2(max_point.x, max_point.y),
-            Vec2(min_point.x, max_point.y),
+            Vec2(min_x, min_y),
+            Vec2(max_x, min_y),
+            Vec2(max_x, max_y),
+            Vec2(min_x, max_y),
         ),
         allow_features=allow_features,
     )
@@ -227,13 +239,15 @@ class PlacementGuideSet:
 
 
 def resolve_endcap_finished_face_guide(width: float, depth: float, thickness: float) -> RectGuide:
+    if isinstance(width, bool) or isinstance(depth, bool) or isinstance(thickness, bool):
+        raise ValueError("width/depth/thickness cannot be boolean")
     width = float(width)
     depth = float(depth)
     thickness = float(thickness)
-    if thickness <= 0:
+    if not math.isfinite(thickness) or thickness <= 0:
         raise ValueError("thickness must be > 0")
-    if width <= 0 or depth <= 0:
-        raise ValueError("width/depth must be > 0")
+    if not (math.isfinite(width) and math.isfinite(depth)) or width <= 4.0 * thickness or depth <= 3.0 * thickness:
+        raise ValueError("width must exceed 4*thickness and depth must exceed 3*thickness")
     return RectGuide(
         min_point=Vec2(2.0 * thickness, 2.0 * thickness),
         max_point=Vec2(width - 2.0 * thickness, depth - thickness),

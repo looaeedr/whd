@@ -83,8 +83,11 @@ def read_nfb_upper_source_profiles(path: str | Path) -> tuple[NfbUpperSourceProf
         digest = str(item["source_sha256"]).lower()
         if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
             raise ValueError("NFB profile requires original DXF sha256")
-        size = tuple(float(v) for v in item["upper_size_mm"])
-        if len(size) != 2 or min(size) <= 0:
+        raw_size = item["upper_size_mm"]
+        if not isinstance(raw_size, (list, tuple)) or len(raw_size) != 2 or any(isinstance(v, bool) for v in raw_size):
+            raise ValueError("NFB upper Color150 dimensions invalid")
+        size = tuple(float(v) for v in raw_size)
+        if not all(isfinite(v) and v > 0 for v in size):
             raise ValueError("NFB upper Color150 dimensions invalid")
         rows.append(NfbUpperSourceProfile(
             brand=brand, indexed_filename=filename, source_sha256=digest,

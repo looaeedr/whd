@@ -105,13 +105,16 @@ def verify_saved_resolved_manufacturing_geometry_batch_dxf(
 ):
     """Reopen an exact multi-instance inventory and reject missing/extra/colliding files."""
     from .dxf_acceptance import ResolvedDxfAcceptanceIssue, ResolvedDxfAcceptanceResult
+    from .manufacturing_export import safe_dxf_instance_namespace
 
     root = Path(output_dir)
     expected: dict[str, tuple[str, object]] = {}
+    seen_namespaces: set[str] = set()
     for instance_namespace, resolved_geometry in tuple(instances or ()):
-        namespace = str(instance_namespace or '').strip()
-        if not namespace:
-            raise ValueError('manufacturing instance namespace is empty')
+        namespace = safe_dxf_instance_namespace(instance_namespace)
+        if namespace in seen_namespaces:
+            raise ValueError(f'duplicate manufacturing instance namespace: {namespace}')
+        seen_namespaces.add(namespace)
         for part_id, render_data in resolved_physical_render_parts(resolved_geometry):
             filename = resolved_physical_dxf_filename(
                 part_id, instance_namespace=namespace

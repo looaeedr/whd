@@ -256,7 +256,7 @@ def build_part_scene(
             if used_stretched_baseline:
                 data = _call(
                     ae._build_stretched_end_cap_scene,
-                    resolved.model_name, resolved.width, resolved.height or resolved.depth, resolved.depth,
+                    resolved.model_name, resolved.width, resolved.depth if resolved.height is None else resolved.height, resolved.depth,
                     resolved.thickness, resolved.frame_width,
                     x_topology=resolved.x_topology,
                     box_body_formed_fw_left=resolved.box_body_formed_fw_left,

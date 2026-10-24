@@ -478,8 +478,16 @@ def _data_formula_evaluator(
             "ytop1": 0.0 if ytop is None else abs(float(ytop)),
             "ybottom1": 0.0 if ybottom is None else abs(float(ybottom)),
             "rear_bend": 0.0 if rear_bend is None else abs(float(rear_bend)),
-            "mating_width": float((formed_fw if flat_x and formed_fw is not None else metadata.get("effective_mating_width", fw)) or fw),
-            "effective_mating_width": float((formed_fw if flat_x and formed_fw is not None else metadata.get("effective_mating_width", fw)) or fw),
+            "mating_width": float(
+                fw
+                if (formed_fw if flat_x and formed_fw is not None else metadata.get("effective_mating_width", fw)) is None
+                else (formed_fw if flat_x and formed_fw is not None else metadata.get("effective_mating_width", fw))
+            ),
+            "effective_mating_width": float(
+                fw
+                if (formed_fw if flat_x and formed_fw is not None else metadata.get("effective_mating_width", fw)) is None
+                else (formed_fw if flat_x and formed_fw is not None else metadata.get("effective_mating_width", fw))
+            ),
             "fold_u": abs(float(side_fold)),
             "fold_v": 0.0 if ytop is None else abs(float(ytop)),
             "clearance": 0.0,
@@ -952,6 +960,15 @@ def _write_json_atomic(path: Path, payload: Mapping[str, object]) -> Path:
     return path
 
 
+def _strict_registry_int(value: object, error_message: str) -> int:
+    if isinstance(value, bool) or isinstance(value, float):
+        raise CertifiedReliefRegistryError(error_message)
+    try:
+        return int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError) as exc:
+        raise CertifiedReliefRegistryError(error_message) from exc
+
+
 def load_relief_rule_candidates(path: str | Path | None = None) -> tuple[dict[str, object], ...]:
     target = Path(path) if path is not None else _default_candidate_registry_path()
     if not target.exists():
@@ -960,10 +977,16 @@ def load_relief_rule_candidates(path: str | Path | None = None) -> tuple[dict[st
         payload = json.loads(target.read_text(encoding="utf-8"))
     except Exception as exc:
         raise CertifiedReliefRegistryError(f"cannot load relief candidates: {target}: {exc}") from exc
-    if int(payload.get("schema_version", 0) or 0) != 1:
+    if not isinstance(payload, Mapping):
+        raise CertifiedReliefRegistryError("relief candidates payload must be an object")
+    schema_version = _strict_registry_int(
+        payload.get("schema_version", 0),
+        "unsupported relief candidate schema_version",
+    )
+    if schema_version != 1:
         raise CertifiedReliefRegistryError("unsupported relief candidate schema_version")
     rows = payload.get("candidates", ())
-    if not isinstance(rows, list):
+    if not isinstance(rows, list) or any(not isinstance(row, Mapping) for row in rows):
         raise CertifiedReliefRegistryError("relief candidates must be an array")
     return tuple(dict(row) for row in rows)
 
@@ -980,7 +1003,10 @@ def _validate_editable_rule_record(record: Mapping[str, object]) -> dict[str, ob
         raise CertifiedReliefRegistryError("candidate has unknown assembly_intent") from exc
     if intent is CornerTypeId.CROSS:
         raise CertifiedReliefRegistryError("candidate assembly_intent must be an assembly type")
-    topology = int(raw.get("topology_levels", 0) or 0)
+    topology = _strict_registry_int(
+        raw.get("topology_levels", 0),
+        "candidate topology_levels must be 1 or 2",
+    )
     if topology not in (1, 2):
         raise CertifiedReliefRegistryError("candidate topology_levels must be 1 or 2")
     if intent is not None:
@@ -1049,7 +1075,11 @@ def promote_relief_rule_candidate(
     certified_path: str | Path | None = None,
 ) -> dict[str, object]:
     evidence = dict(regression_evidence or {})
-    if not bool(evidence.get("matrix_passed")) or int(evidence.get("cases", 0) or 0) < 1 or not bool(evidence.get("zero_penetration")):
+    cases = _strict_registry_int(
+        evidence.get("cases", 0),
+        "promotion requires regression evidence with matrix_passed/cases/zero_penetration",
+    )
+    if evidence.get("matrix_passed") is not True or cases < 1 or evidence.get("zero_penetration") is not True:
         raise CertifiedReliefRegistryError("promotion requires regression evidence with matrix_passed/cases/zero_penetration")
     if evidence.get("candidate_specific") is not True:
         raise CertifiedReliefRegistryError("promotion requires candidate-specific 3D validation evidence")
@@ -1067,12 +1097,20 @@ def promote_relief_rule_candidate(
     rpath = Path(certified_path) if certified_path is not None else _default_external_registry_path()
     if rpath.exists():
         payload = json.loads(rpath.read_text(encoding="utf-8"))
-        if int(payload.get("schema_version", 0) or 0) != 2:
+        schema_ver = _strict_registry_int(
+            payload.get("schema_version", 0) if isinstance(payload, Mapping) else 0,
+            "unsupported certified registry schema_version",
+        )
+        if schema_ver != 2:
             raise CertifiedReliefRegistryError("unsupported certified registry schema_version")
         certified_rows = list(payload.get("rules", ()) or ())
     else:
         certified_rows = []
-    prior_revisions = [int(row.get("revision", 0) or 0) for row in certified_rows if str(row.get("rule_id")) == clean["rule_id"]]
+    prior_revisions = [
+        _strict_registry_int(row.get("revision", 0), "invalid certified rule revision")
+        for row in certified_rows
+        if isinstance(row, Mapping) and str(row.get("rule_id")) == clean["rule_id"]
+    ]
     new_revision = max(prior_revisions, default=0) + 1
     promoted = {k: v for k, v in clean.items() if k not in {"candidate_id", "status", "mutates_registry"}}
     promoted.update({

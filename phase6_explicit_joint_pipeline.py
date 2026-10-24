@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+import math
 from types import SimpleNamespace
 from typing import Callable
 
@@ -521,8 +522,13 @@ def _resolve_piece_side_wrap(request, inventory, decision, ops):
                 illegal_penetration=True,
                 pre_pair_count=pre_pairs,
                 post_pair_count=int(
-                    getattr(residual_projection, "pair_count", post_pairs or pre_pairs)
-                    or 0
+                    getattr(
+                        residual_projection,
+                        "pair_count",
+                        pre_pairs if post_pairs is None else post_pairs,
+                    )
+                    if getattr(residual_projection, "pair_count", None) is not None
+                    else (pre_pairs if post_pairs is None else post_pairs) or 0
                 ),
                 penetration_segments=tuple(all_projection_segments),
                 direction_segment=direction_segment,
@@ -608,10 +614,14 @@ def _resolve_generic_joint(request, inventory, decision, ops):
         return
 
     constraints = dict(getattr(joint, "solver_constraints", {}) or {})
-    try:
-        topology_levels = int(constraints.get("topology_levels"))
-    except Exception:
+    raw_levels = constraints.get("topology_levels")
+    if isinstance(raw_levels, bool) or (isinstance(raw_levels, float) and not raw_levels.is_integer()):
         topology_levels = 0
+    else:
+        try:
+            topology_levels = int(raw_levels)
+        except Exception:
+            topology_levels = 0
     if topology_levels not in (1, 2):
         inventory.diagnostics.append(
             _diagnostic(
@@ -827,12 +837,18 @@ def resolve_explicit_joint_reliefs(
     ops,
 ):
     """Resolve USER_ADDED Joint reliefs through the approved seven stages."""
+    if isinstance(sheet_thickness, bool) or isinstance(clearance, bool):
+        raise ValueError("sheet_thickness and clearance cannot be boolean")
+    t_val = float(sheet_thickness)
+    c_val = float(clearance)
+    if not (math.isfinite(t_val) and t_val > 0.0 and math.isfinite(c_val)):
+        raise ValueError("sheet_thickness must be finite positive and clearance must be finite")
     request = ExplicitJointPipelineRequest(
         parts=tuple(parts or ()),
         joints=tuple(joints or ()),
         finished_dimensions=finished_dimensions,
-        sheet_thickness=float(sheet_thickness),
-        clearance=float(clearance),
+        sheet_thickness=t_val,
+        clearance=c_val,
         committed_state=committed_state,
     )
     inventory = normalize_candidate_inventory(

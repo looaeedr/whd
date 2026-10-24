@@ -472,8 +472,15 @@ def build_existing_receiving_base_with_verified_nfb(
     stable_id = str(base_spec.physical_id or "").strip()
     if not stable_id or stable_id.startswith("base_plate_c"):
         raise ValueError("NFB Base Plate needs its own actual physical identity, not legacy Door-cell plates")
-    if (abs(float(snapshot.get("w",0.)) - float(base_spec.width)) > _TOL
-            or abs(float(snapshot.get("t",0.)) - float(base_spec.thickness)) > _TOL):
+    snap_w = snapshot.get("w") if isinstance(snapshot, Mapping) else None
+    snap_t = snapshot.get("t") if isinstance(snapshot, Mapping) else None
+    if (
+        type(snap_w) not in (int, float)
+        or type(snap_t) not in (int, float)
+        or not (isfinite(float(snap_w)) and isfinite(float(snap_t)))
+        or abs(float(snap_w) - float(base_spec.width)) > _TOL
+        or abs(float(snap_t) - float(base_spec.thickness)) > _TOL
+    ):
         raise ValueError("NFB Base Plate does not belong to current box W/T")
     inner = next((
         row for row in (snapshot.get("inner_doors") or ())
@@ -501,7 +508,7 @@ def build_existing_receiving_base_with_verified_nfb(
         raise ValueError("NFB verified installation group has no holes")
     centers=[]
     for physical_id, x, count, slot, rotation in locations:
-        if not isinstance(x,(int,float)) or not isfinite(float(x)):
+        if type(x) not in (int, float) or not isfinite(float(x)):
             raise ValueError("NFB physical X is not verified")
         yy=project_nfb_inner_door_nominal_y(
             snapshot,inner_door_id,layer_count=count,slot_index=slot,

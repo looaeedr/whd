@@ -116,13 +116,15 @@ def resolve_unique_nfb_lower_reference_handle(source_path, *, profile: NfbUpperS
         raise ValueError("NFB lower source filename does not match verified index")
     if sha256(source.read_bytes()).hexdigest() != profile.source_sha256:
         raise ValueError("NFB lower source SHA does not match verified index")
+    inventory = inspect_nfb_dxf_source(source)
+    color_by_handle = {row.handle_path: row.effective_color_aci for row in inventory.entities}
     document = ezdxf.readfile(source)
     candidates = tuple(
         str(entity.dxf.handle)
         for entity in document.modelspace()
         if entity.dxftype() == "LWPOLYLINE"
         and entity.closed
-        and int(entity.dxf.get("color", 256)) == 3
+        and int(color_by_handle.get(str(entity.dxf.handle), entity.dxf.get("color", 256))) == 3
     )
     if len(candidates) != 1:
         raise ValueError("NFB lower source reference is absent or ambiguous")

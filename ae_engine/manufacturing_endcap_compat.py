@@ -199,7 +199,7 @@ def _baseline_endcap_holes_for_request(resolved, context: ManufacturingContext):
         return ()
     data = _call(
         ae.get_stretched_end_cap_data,
-        model, resolved.width, resolved.height or resolved.depth, resolved.depth,
+        model, resolved.width, resolved.depth if resolved.height is None else resolved.height, resolved.depth,
         resolved.thickness, resolved.frame_width, True, resolved.corner_policy,
         resolved.x_topology, resolved.box_body_formed_fw_left,
         resolved.box_body_formed_fw_right,

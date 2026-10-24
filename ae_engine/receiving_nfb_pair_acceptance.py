@@ -111,12 +111,12 @@ def validate_nfb_door_base_pair(
     )
     if any(abs(y - expected_world[1]) > _TOL for _, y in world_centers):
         raise ValueError("NFB_PAIR_MULTIPLE_INSTALLATION_ROWS_NOT_ONE_PLATE")
-    try:
-        observed_world = tuple(
-            float(x) for x in base_meta["receiving_base_nfb_row_center_world_xy_mm"]
-        )
-    except (KeyError, TypeError, ValueError, OverflowError) as exc:
-        raise ValueError("NFB_PAIR_ACTUAL_BASE_DATUM_MISSING") from exc
+    if "receiving_base_nfb_row_center_world_xy_mm" not in base_meta:
+        raise ValueError("NFB_PAIR_ACTUAL_BASE_DATUM_MISSING")
+    raw_world = base_meta["receiving_base_nfb_row_center_world_xy_mm"]
+    if not isinstance(raw_world, (tuple, list)) or any(type(x) not in (int, float) for x in raw_world):
+        raise ValueError("NFB_PAIR_ACTUAL_BASE_DATUM_MISSING")
+    observed_world = tuple(float(x) for x in raw_world)
     if (len(observed_world) != 2
             or not all(isfinite(x) for x in observed_world)
             or any(abs(a-b) > _TOL for a, b in zip(expected_world, observed_world))):

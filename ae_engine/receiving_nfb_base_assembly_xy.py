@@ -86,6 +86,8 @@ def receiving_source_nfb_base_assembly_xy(snapshot, inner_door_id):
         if not isinstance(row,Mapping):
             raise ValueError("NFB_BASE_XY_HOLE_INVALID")
         count=row.get("layer_count",config.get("layer_count"))
+        if type(count) is not int or count not in (1, 2):
+            raise ValueError("NFB_BASE_XY_LAYER_COUNT_INVALID")
         # User NFB UI schema: layer_index is VERTICAL tier, while
         # slot_index is HORIZONTAL switch position within that tier.
         # One-tier legacy records need no layer_index; multi-tier source

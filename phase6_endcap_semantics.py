@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+import math
 from typing import Mapping
 
 from ae_engine.sheetmetal_geometry import (
@@ -72,18 +73,53 @@ def _default_bottom_wrap_item(snapshot: Mapping[str, object]) -> dict[str, objec
     }
 
 
+def _bool_flag(raw, default: bool = False) -> bool:
+    if raw is None:
+        return default
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, int):
+        return raw != 0
+    if isinstance(raw, str):
+        token = raw.strip().lower()
+        if token in {"1", "true", "yes", "on"}:
+            return True
+        if token in {"0", "false", "no", "off", ""}:
+            return False
+    return bool(raw)
+
+
+def _strict_finite_float(raw, field_name: str) -> float:
+    if isinstance(raw, bool):
+        raise ValueError(f"{field_name} 不可為布林值")
+    value = float(raw)
+    if not math.isfinite(value):
+        raise ValueError(f"{field_name} 必須為有限數值")
+    return value
+
+
 def _normalize_bottom_wrap_item(raw, default):
     raw = raw if isinstance(raw, Mapping) else {}
-    try:
-        reserve_u = max(0.0, float(raw.get("reserve_u", default["reserve_u"])))
-    except (TypeError, ValueError):
+    raw_u = raw.get("reserve_u", default["reserve_u"])
+    if isinstance(raw_u, bool):
         reserve_u = float(default["reserve_u"])
-    try:
-        reserve_v = max(0.0, float(raw.get("reserve_v", default["reserve_v"])))
-    except (TypeError, ValueError):
+    else:
+        try:
+            val_u = float(raw_u)
+            reserve_u = max(0.0, val_u) if math.isfinite(val_u) else float(default["reserve_u"])
+        except (TypeError, ValueError):
+            reserve_u = float(default["reserve_u"])
+    raw_v = raw.get("reserve_v", default["reserve_v"])
+    if isinstance(raw_v, bool):
         reserve_v = float(default["reserve_v"])
+    else:
+        try:
+            val_v = float(raw_v)
+            reserve_v = max(0.0, val_v) if math.isfinite(val_v) else float(default["reserve_v"])
+        except (TypeError, ValueError):
+            reserve_v = float(default["reserve_v"])
     return {
-        "enabled": bool(raw.get("enabled", default["enabled"])),
+        "enabled": _bool_flag(raw.get("enabled", default["enabled"]), default=bool(default["enabled"])),
         "reserve_u": reserve_u,
         "reserve_v": reserve_v,
     }
@@ -162,11 +198,11 @@ def commit_endcap_bottom_wrap(state, part_key: str, *, enabled=None, reserve_u=N
     opposite = WRAP_FOLLOW_TAIL if part_key == "head" else WRAP_FOLLOW_HEAD
     base = dict(state.get(part_key) or {"enabled": True, "reserve_u": 2.0, "reserve_v": 1.0})
     if enabled is not None:
-        base["enabled"] = bool(enabled)
+        base["enabled"] = _bool_flag(enabled, default=False)
     if reserve_u is not None:
-        base["reserve_u"] = max(0.0, float(reserve_u))
+        base["reserve_u"] = max(0.0, _strict_finite_float(reserve_u, "reserve_u"))
     if reserve_v is not None:
-        base["reserve_v"] = max(0.0, float(reserve_v))
+        base["reserve_v"] = max(0.0, _strict_finite_float(reserve_v, "reserve_v"))
     if mode in {WRAP_LINKED, leader}:
         state["mode"] = leader
         state["head"] = dict(base)
@@ -185,10 +221,13 @@ def commit_endcap_bottom_wrap(state, part_key: str, *, enabled=None, reserve_u=N
 
 
 def _num(value, default=0.0):
+    if isinstance(value, bool):
+        return float(default)
     try:
-        return float(value)
+        result = float(value)
     except (TypeError, ValueError):
         return float(default)
+    return result if math.isfinite(result) else float(default)
 
 
 def selection_to_raw(selection):
@@ -249,7 +288,7 @@ def normalize_endcap_fw_state(snapshot: Mapping[str, object]) -> dict[str, objec
         item = raw.get(part) if isinstance(raw, Mapping) else None
         item = item if isinstance(item, Mapping) else {}
         raw_items[part] = {
-            "follow_box": bool(item.get("follow_box", True)),
+            "follow_box": _bool_flag(item.get("follow_box", True), default=True),
             "value": _num(item.get("value", box_fw), box_fw),
         }
 
@@ -283,6 +322,8 @@ def normalize_endcap_fw_state(snapshot: Mapping[str, object]) -> dict[str, objec
 
 def resolve_endcap_fw(snapshot: Mapping[str, object], part_key: str, *, state=None) -> float:
     part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
     box_fw = _num(snapshot.get("fw", 25), 25)
     state = normalize_endcap_fw_state(snapshot) if state is None else state
     mode = str((state or {}).get("mode", FW_INDEPENDENT))
@@ -294,7 +335,7 @@ def resolve_endcap_fw(snapshot: Mapping[str, object], part_key: str, *, state=No
 
 def commit_box_fw(state, value: float) -> dict:
     """Explicit box-FW operator commit: box immediately retakes both end caps."""
-    value = float(value)
+    value = _strict_finite_float(value, "value")
     state["mode"] = FW_FOLLOW_BODY
     for part in ENDCAP_FW_PARTS:
         item = state.setdefault(part, {})
@@ -308,18 +349,22 @@ def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None
     part_key = str(part_key)
     if part_key not in ENDCAP_FW_PARTS:
         raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    value = _strict_finite_float(value, "value")
+    resolved_box_fw = None if box_fw is None else _strict_finite_float(box_fw, "box_fw")
     if "mode" not in state:
-        normalized = normalize_endcap_fw_state({"fw": 25.0 if box_fw is None else box_fw, "endcap_fw": state})
+        normalized = normalize_endcap_fw_state(
+            {"fw": 25.0 if resolved_box_fw is None else resolved_box_fw, "endcap_fw": state}
+        )
         state.clear()
         state.update(normalized)
 
-    value = float(value)
     mode = str(state.get("mode", FW_INDEPENDENT))
     leader_mode = FW_FOLLOW_HEAD if part_key == "head" else FW_FOLLOW_TAIL
     opposite_leader = FW_FOLLOW_TAIL if part_key == "head" else FW_FOLLOW_HEAD
 
+    default_part_fw = value if resolved_box_fw is None else resolved_box_fw
     for part in ENDCAP_FW_PARTS:
-        state.setdefault(part, {"follow_box": False, "value": float(box_fw or value)})
+        state.setdefault(part, {"follow_box": False, "value": default_part_fw})
 
     if mode == FW_FOLLOW_BODY:
         state["mode"] = leader_mode
@@ -348,12 +393,14 @@ def set_endcap_fw_follow(state, part_key: str, follow_box: bool, *, box_fw: floa
     part_key = str(part_key)
     if part_key not in ENDCAP_FW_PARTS:
         raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    resolved_box_fw = _strict_finite_float(box_fw, "box_fw")
+    follow_flag = _bool_flag(follow_box, default=True)
     item = state.setdefault(part_key, {})
-    if not follow_box and bool(item.get("follow_box", True)):
-        item["value"] = float(box_fw)
-    item["follow_box"] = bool(follow_box)
-    item.setdefault("value", float(box_fw))
-    if all(bool((state.get(p) or {}).get("follow_box", True)) for p in ENDCAP_FW_PARTS):
+    if not follow_flag and _bool_flag(item.get("follow_box", True), default=True):
+        item["value"] = resolved_box_fw
+    item["follow_box"] = follow_flag
+    item.setdefault("value", resolved_box_fw)
+    if all(_bool_flag((state.get(p) or {}).get("follow_box", True), default=True) for p in ENDCAP_FW_PARTS):
         state["mode"] = FW_FOLLOW_BODY
     else:
         state["mode"] = FW_INDEPENDENT
@@ -365,9 +412,10 @@ def set_endcap_fw_override(state, part_key: str, value: float) -> dict:
     part_key = str(part_key)
     if part_key not in ENDCAP_FW_PARTS:
         raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    resolved_value = _strict_finite_float(value, "value")
     item = state.setdefault(part_key, {"follow_box": False})
     item["follow_box"] = False
-    item["value"] = float(value)
+    item["value"] = resolved_value
     state["mode"] = FW_INDEPENDENT
     return item
 

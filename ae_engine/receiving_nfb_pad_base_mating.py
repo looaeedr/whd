@@ -126,10 +126,16 @@ def verify_real_pad_mesh_tab_engagement(
     bounds = triangle_bounds(triangles)
     if bounds is None:
         raise ValueError("PAD_MESH_MATING_PHYSICAL_TRIANGLES_EMPTY")
+    if (
+        isinstance(base_front_world_z_mm, bool)
+        or isinstance(world_x_mm, bool)
+        or isinstance(world_y_mm, bool)
+    ):
+        raise ValueError("PAD_MESH_MATING_REAL_PHYSICAL_Z_DRIFT")
     bottom, top = map(float, bounds[2])
     t = float(pattern.plate_thickness_mm)
     base = float(base_front_world_z_mm)
-    if (not all(isfinite(v) for v in (bottom, top, t, base, world_x_mm, world_y_mm))
+    if (not all(isfinite(v) for v in (bottom, top, t, base, float(world_x_mm), float(world_y_mm)))
             or t <= 0
             # PAD-specific formed mid-surface projects both physical legs
             # T/2 farther than their material lengths. True sheet end is
@@ -201,6 +207,12 @@ def verify_pad_solid_inside_real_base_cutouts(
     from shapely.geometry import Point,LineString,Polygon,MultiPoint
     from shapely.ops import unary_union
 
+    if (
+        isinstance(base_front_world_z_mm, bool)
+        or isinstance(thickness_mm, bool)
+        or isinstance(tolerance, bool)
+    ):
+        raise ValueError("PAD_BASE_SLAB_COLLISION_INVALID_TOLERANCE_OR_DATUM")
     base=float(base_front_world_z_mm)
     t=float(thickness_mm)
     tol=float(tolerance)
@@ -246,7 +258,7 @@ def verify_pad_solid_inside_real_base_cutouts(
         for x,y,_ in vertices:
             if not xy or abs(x-xy[-1][0])+abs(y-xy[-1][1])>1e-9:
                 xy.append((x,y))
-        if len(xy)>1 and xy[0]==xy[-1]:
+        if len(xy)>1 and abs(xy[0][0]-xy[-1][0])+abs(xy[0][1]-xy[-1][1])<=1e-9:
             xy.pop()
         if not xy:
             continue

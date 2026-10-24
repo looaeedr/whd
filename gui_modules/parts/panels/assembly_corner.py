@@ -147,16 +147,22 @@ def select_manual_corner(self, corner_key):
     self.manual_active_corner_var.set(corner_key)
     self.refresh_corner_type_panel()
 
+def _finite_corner_control_float(getter) -> float | None:
+    import math
+    try:
+        raw = getter()
+        if isinstance(raw, bool):
+            return None
+        val = float(raw)
+    except (TypeError, ValueError, tk.TclError):
+        return None
+    return val if math.isfinite(val) else None
+
+
 def selection_from_manual_corner_controls(self):
     try:
         type_id = CornerTypeId(self.manual_corner_type_var.get())
     except ValueError:
-        return None
-    try:
-        amount = float(self.manual_corner_amount_var.get())
-        secondary_retain = float(self.manual_corner_secondary_retain_var.get())
-        secondary_depth = float(self.manual_corner_secondary_depth_var.get())
-    except (TypeError, ValueError, tk.TclError):
         return None
     try:
         if type_id is CornerTypeId.CROSS:
@@ -165,17 +171,27 @@ def selection_from_manual_corner_controls(self):
             )
             if mode is CrossCornerMode.STANDARD:
                 return CornerTypeSelection(type_id, cross_mode=mode)
+            amount = _finite_corner_control_float(self.manual_corner_amount_var.get)
+            if amount is None:
+                return None
             direction = self._CORNER_DIRECTION_BY_LABEL.get(self.manual_corner_direction_var.get())
             if direction is None:
                 direction = CornerDirection.WIDTH if mode is CrossCornerMode.RETAIN else CornerDirection.BOTH
             return CornerTypeSelection(
                 type_id, cross_mode=mode, direction=direction, amount_t=amount
             )
+        amount = _finite_corner_control_float(self.manual_corner_amount_var.get)
+        if amount is None:
+            return None
         if type_id is CornerTypeId.OVERLAY:
             return CornerTypeSelection(type_id, amount_t=amount)
         if type_id is CornerTypeId.INSERT:
             return CornerTypeSelection(type_id, amount_t=amount)
         if type_id is CornerTypeId.INSERT_OVERLAY:
+            secondary_retain = _finite_corner_control_float(self.manual_corner_secondary_retain_var.get)
+            secondary_depth = _finite_corner_control_float(self.manual_corner_secondary_depth_var.get)
+            if secondary_retain is None or secondary_depth is None:
+                return None
             return CornerTypeSelection(
                 type_id, amount_t=amount,
                 secondary_retain_t=secondary_retain,
@@ -276,7 +292,9 @@ def refresh_corner_type_panel(self):
             self.manual_corner_cross_mode_var.set(self._CORNER_MODE_LABELS[selection.cross_mode])
         if selection.direction is not None:
             self.manual_corner_direction_var.set(self._CORNER_DIRECTION_LABELS[selection.direction])
-        self.manual_corner_amount_var.set(self._corner_number_text(selection.amount_t or 1.0))
+        self.manual_corner_amount_var.set(
+            self._corner_number_text(selection.amount_t if selection.amount_t is not None else 1.0)
+        )
         self.manual_corner_secondary_retain_var.set(
             self._corner_number_text(selection.secondary_retain_t if selection.secondary_retain_t is not None else 0.5)
         )

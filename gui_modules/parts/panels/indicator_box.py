@@ -56,9 +56,11 @@ def rebuild_layers_config_ui(host):
         widget.destroy()
 
     try:
-        layers = int(host.indicator_l_var.get())
-    except ValueError:
-        layers = 3
+        raw_layers = int(host.indicator_l_var.get())
+    except (ValueError, TypeError, tk.TclError):
+        raw_layers = 3
+    max_layers = max(1, len(getattr(host, "indicator_layer_g_vars", ())))
+    layers = min(max(1, raw_layers), max_layers)
 
     # 逐層建立橫向的組數選擇選單
     for ly in range(layers):

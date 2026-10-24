@@ -147,8 +147,9 @@ def derive_nfb_partial_export_manifest(
     if type(raw) is not bool:
         raise ValueError("NFB submission fact must be a real boolean")
     submitted=raw is True
+    normalized_config = None
     if submitted:
-        normalize_nfb_saved_fields(saved_bay)
+        _, normalized_config = normalize_nfb_saved_fields(saved_bay)
         if not isinstance(set_brand,str) or not set_brand.strip():
             raise ValueError("NFB manifest needs the current Receiving Set brand")
     if saved_bay.get("stable_id")!=scope.bay_id:
@@ -186,12 +187,13 @@ def derive_nfb_partial_export_manifest(
     config_matching=False
     if source_fresh and isinstance(verified_inner_door,NfbValidatedInnerDoorRender):
         try:
-            holes=saved_bay["nfb_config"]["holes"]
+            active_config = normalized_config if normalized_config is not None else saved_bay["nfb_config"]
+            holes=active_config["holes"]
             profile_key=verified_inner_door.indexed_model_key
             if (profile_key[0]!=set_brand or
                     {h["model_filename"] for h in holes}!={profile_key[1]}):
                 raise ValueError("NFB submitted brand/model differs from source")
-            _verify_hole_locations(saved_bay["nfb_config"],verified_inner_door)
+            _verify_hole_locations(active_config,verified_inner_door)
             config_matching=True
         except (ValueError,KeyError,TypeError,IndexError):
             config_matching=False

@@ -23,7 +23,8 @@ from ae_engine.sheetmetal_geometry import Vec2
 
 
 def indicator_box_render_snapshot(host, val):
-    count = max(1, int(host.indicator_l_var.get()))
+    max_layers = max(1, len(getattr(host, "indicator_layer_g_vars", ())))
+    count = min(max(1, int(host.indicator_l_var.get())), max_layers)
     layer_groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
     spec = host._indicator_box_part_spec(
         val, layer_groups, features=host.surface_features["indicator_box"]
@@ -40,7 +41,8 @@ def indicator_box_render_snapshot(host, val):
 
 
 def indicator_door_render_snapshot(host, val):
-    count = max(1, int(host.indicator_l_var.get()))
+    max_layers = max(1, len(getattr(host, "indicator_layer_g_vars", ())))
+    count = min(max(1, int(host.indicator_l_var.get())), max_layers)
     layer_groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
     spec, context = host._indicator_door_part_spec_from_values(
         val, layer_groups, features=host.surface_features["indicator_door"]
@@ -189,7 +191,8 @@ def single_door_render_snapshot(host):
     indicator_hole = None
     if host.is_indicator_box_var.get():
         try:
-            count = max(1, int(host.indicator_l_var.get()))
+            max_box_layers = max(1, len(getattr(host, "indicator_layer_g_vars", ())))
+            count = min(max(1, int(host.indicator_l_var.get())), max_box_layers)
             groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
             indicator_hole = manufacturing_api.indicator_box_opening_size(
                 groups, thickness=door_val["t"]
@@ -200,7 +203,8 @@ def single_door_render_snapshot(host):
     door_indicator = None
     if host.is_door_indicator_var.get():
         try:
-            count = max(1, int(host.door_indicator_l_var.get()))
+            max_door_layers = max(1, len(getattr(host, "door_indicator_layer_g_vars", ())))
+            count = min(max(1, int(host.door_indicator_l_var.get())), max_door_layers)
             door_indicator = tuple(
                 int(host.door_indicator_layer_g_vars[i].get()) for i in range(count)
             )

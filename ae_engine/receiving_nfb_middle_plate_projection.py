@@ -160,9 +160,15 @@ def shadow_nfb_middle_plate_color150(
             or abs((endpoints[1][0] - endpoints[0][0])
                    - span * physical_datum.span_world_x_sign) > 1e-6):
         raise ValueError("NFB middle flat span orientation contradicts physical assembly")
-    core = divider.physical_geometry_contract["core_physical_segment"]
-    band = tuple(core.get("flat_band") or ())
-    if len(band) != 2 or not (float(band[0]) < float(band[1])):
+    contract = getattr(divider, "physical_geometry_contract", None)
+    core = contract.get("core_physical_segment") if isinstance(contract, Mapping) else None
+    raw_band = core.get("flat_band") if isinstance(core, Mapping) else None
+    band = tuple(raw_band) if isinstance(raw_band, (tuple, list)) else ()
+    if (
+        len(band) != 2
+        or any(type(v) not in (int, float) or not isfinite(float(v)) for v in band)
+        or not (float(band[0]) < float(band[1]))
+    ):
         raise ValueError("NFB middle plate physical fold core unavailable")
 
     source = Path(source_path)

@@ -38,6 +38,8 @@ def endcap_preview_geometry(features, width, depth):
     Unsupported values are reported rather than drawn as invented features.
     Coordinates are in finished-face units, Y positive upward.
     """
+    if isinstance(width, bool) or isinstance(depth, bool):
+        raise ValueError("缺少有效封頭尾尺寸，無法預覽")
     w, d = float(width), float(depth)
     if not all(isfinite(v) and v > 0 for v in (w, d)):
         raise ValueError("缺少有效封頭尾尺寸，無法預覽")
@@ -93,9 +95,13 @@ def endcap_preview_geometry(features, width, depth):
 
 def paint_endcap_thumbnail(canvas, features, width, depth, *, title="封頭尾"):
     """Paint source feature outlines into a scaled finished-face rectangle."""
+    if isinstance(width, bool) or isinstance(depth, bool):
+        raise ValueError("缺少有效封頭尾尺寸，無法預覽")
+    w, d = float(width), float(depth)
+    if not all(isfinite(v) and v > 0 for v in (w, d)):
+        raise ValueError("缺少有效封頭尾尺寸，無法預覽")
     shapes, unsupported = (((), 0) if features is None else
                            endcap_preview_geometry(features, width, depth))
-    w, d = float(width), float(depth)
     canvas.delete("all")
     cw = max(170, int(canvas.cget("width")), int(canvas.winfo_width()))
     ch = max(122, int(canvas.cget("height")), int(canvas.winfo_height()))

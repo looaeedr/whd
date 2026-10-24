@@ -104,17 +104,22 @@ def verify_quantity_check_dxf(scene, filepath):
         raise ValueError("quantity CHECK scene must contain exactly one Q")
     text = expected[0]
     doc = ezdxf.readfile(filepath)
+    if "CHECK" not in doc.layers:
+        raise ValueError("staged quantity CHECK DXF is missing CHECK layer")
+    layer = doc.layers.get("CHECK")
     rows = []
+    check_entities = []
     for entity in doc.modelspace():
         if entity.dxftype() not in {"MTEXT", "TEXT"}:
             continue
+        if entity.dxf.layer == "CHECK":
+            check_entities.append(entity)
         value = entity.plain_text() if entity.dxftype() == "MTEXT" else entity.dxf.text
-        if re.fullmatch(r"[Qq][0-9]+", value.strip()):
+        if entity.dxf.layer == "CHECK" and re.fullmatch(r"[Qq][0-9]+", value.strip()):
             rows.append((entity, value))
-    if len(rows) != 1 or rows[0][1] != text.text:
+    if len(check_entities) != 1 or len(rows) != 1 or rows[0][1] != text.text:
         raise ValueError("staged quantity CHECK DXF has missing, duplicate or incorrect Q")
     entity = rows[0][0]
-    layer = doc.layers.get("CHECK")
     if (entity.dxftype() != "MTEXT" or entity.dxf.layer != "CHECK"
             or entity.dxf.color != 2 or entity.dxf.linetype not in {"BYLAYER", "CONTINUOUS"}
             or layer.dxf.color != 2 or layer.dxf.linetype != "CONTINUOUS"

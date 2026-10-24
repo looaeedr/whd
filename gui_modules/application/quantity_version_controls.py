@@ -21,16 +21,23 @@ class QuantityVersionControls:
         self.refreshing = True
         try:
             self.versions.delete(*self.versions.get_children())
-            rows = payload["versions"]
+            rows = list(payload.get("versions") or ())
             for index, row in enumerate(rows, 1):
                 self.versions.insert("", "end", iid=row["version_id"],
                                      values=(f"孔型版本 {index}", row["piece_count"]))
-            selected = payload["selected_version_id"]
+            if not rows:
+                self.count_var.set("0")
+                self.totals_var.set("版本數：0    總件數：0")
+                return
+            selected = payload.get("selected_version_id")
+            row = next((r for r in rows if r["version_id"] == selected), None)
+            if row is None:
+                row = rows[0]
+                selected = row["version_id"]
             self.versions.selection_set(selected)
             self.versions.focus(selected)
-            row = next(row for row in rows if row["version_id"] == selected)
             self.count_var.set(str(row["piece_count"]))
-            self.totals_var.set(f"版本數：{len(rows)}    總件數：{sum(row['piece_count'] for row in rows)}")
+            self.totals_var.set(f"版本數：{len(rows)}    總件數：{sum(r['piece_count'] for r in rows)}")
         finally:
             self.refreshing = False
 
@@ -47,7 +54,7 @@ class QuantityVersionControls:
 
     def delete(self):
         payload = self.ports["snapshot"]()
-        if len(payload["versions"]) == 1:
+        if not isinstance(payload, dict) or len(payload.get("versions") or ()) <= 1:
             messagebox.showinfo("孔型版本", "至少保留一個孔型版本", parent=self.frame)
             return False
         confirmed = messagebox.askyesno("刪除孔型版本", "刪除目前選取的孔型版本？", parent=self.frame)

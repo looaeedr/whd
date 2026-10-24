@@ -81,10 +81,14 @@ def witness_middle_plate_uv_on_folded_assembly(
         raise TypeError("NFB 3D witness requires actual final baseline render")
     if not isinstance(snapshot, Mapping) or baseline.material is None:
         raise ValueError("NFB 3D witness requires current cabinet and final material")
-    if len(uv_xy) != 2 or not all(isfinite(float(v)) for v in uv_xy):
+    if (
+        not isinstance(uv_xy, (tuple, list))
+        or len(uv_xy) != 2
+        or any(type(v) not in (int, float) or not isfinite(float(v)) for v in uv_xy)
+    ):
         raise ValueError("NFB UV witness point must be finite")
     uv = float(uv_xy[0]), float(uv_xy[1])
-    if not isfinite(float(expected_world_x_mm)):
+    if type(expected_world_x_mm) not in (int, float) or not isfinite(float(expected_world_x_mm)):
         raise ValueError("NFB existing verified position must be finite")
     topology = baseline.unfolded_topology
     if topology is None or topology.piece_id != divider.stable_id:

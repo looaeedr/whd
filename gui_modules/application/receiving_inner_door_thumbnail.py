@@ -17,7 +17,7 @@ def inner_door_preview_rows(config):
     """Pure representation for both main and editor thumbnails."""
     if config is None:
         return ()
-    if not isinstance(config, dict) or config.get("layers") not in (1, 2):
+    if not isinstance(config, dict) or type(config.get("layers")) is not int or config.get("layers") not in (1, 2):
         raise ValueError("無效的內門預覽層數")
     models = config.get("models")
     if not isinstance(models, (tuple, list)) or len(models) != 2:

@@ -14,6 +14,7 @@ second relief/final-material result.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import math
 from typing import Callable, Mapping
 
 
@@ -263,11 +264,16 @@ def _divider_object_mating_fold_signs(divider, box_body):
 
 def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: float) -> dict[str, float]:
     """Project canonical Divider/Fold inputs into the certified CROSS formula variables."""
-    t = float(sheet_thickness)
-    if t <= 0:
+    if isinstance(sheet_thickness, bool):
         raise ValueError("Divider certified CROSS requires positive sheet thickness")
-    divider_t = float(getattr(divider, "thickness", t) or t)
-    if abs(divider_t - t) > 1e-9:
+    t = float(sheet_thickness)
+    if not math.isfinite(t) or t <= 0:
+        raise ValueError("Divider certified CROSS requires positive sheet thickness")
+    raw_divider_t = getattr(divider, "thickness", None)
+    if isinstance(raw_divider_t, bool):
+        raise ValueError("Divider thickness disagrees with certified CROSS sheet thickness")
+    divider_t = t if raw_divider_t is None else float(raw_divider_t)
+    if not math.isfinite(divider_t) or abs(divider_t - t) > 1e-9:
         raise ValueError("Divider thickness disagrees with certified CROSS sheet thickness")
 
     metadata = dict(getattr(getattr(divider, "render_data", None), "metadata", {}) or {})
