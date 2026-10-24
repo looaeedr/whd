@@ -31,6 +31,19 @@ def _preferred_number(*values, default=0.0):
     return float(default)
 
 
+def _finite_display_dimension(value) -> float:
+    """Require an actual finite dimension before publishing operator labels."""
+    if isinstance(value, bool):
+        raise ValueError("display dimensions must be finite physical numbers")
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("display dimensions must be finite physical numbers") from exc
+    if not math.isfinite(result):
+        raise ValueError("display dimensions must be finite physical numbers")
+    return result
+
+
 def folded_outside_envelope(triangles, thickness):
     """Return compensated outside AABB for an already-folded FinalScene mesh."""
     # A FinalScene vertex must be a real physical XYZ before becoming a
@@ -108,7 +121,10 @@ def resolve_operator_finished_dimensions(
             return float(measured[0]), float(measured[1])
 
     if fallback_dimensions is not None:
-        return tuple(float(value) for value in fallback_dimensions)
+        try:
+            return tuple(_finite_display_dimension(value) for value in fallback_dimensions)
+        except TypeError as exc:
+            raise ValueError("display dimensions must be finite physical numbers") from exc
 
     dims = dict((snapshot.get("part_dimensions") or {}).get(key, {}) or {})
     if key == "box_body":
@@ -123,8 +139,14 @@ def resolve_operator_finished_dimensions(
             )
         return float(w), float(h), float(d)
 
-    if dims.get("width") and dims.get("height"):
-        return float(dims["width"]), float(dims["height"])
+    # A saved size is physical data, not a GUI truthiness check: True is
+    # not 1 mm, False is not "missing", and NaN must never reach the 2D/3D label.
+    raw_width, raw_height = dims.get("width"), dims.get("height")
+    for raw in (raw_width, raw_height):
+        if raw is not None:
+            _finite_display_dimension(raw)
+    if raw_width and raw_height:
+        return _finite_display_dimension(raw_width), _finite_display_dimension(raw_height)
     if key in {"head", "tail"}:
         return _preferred_number(snapshot.get("w"), settings.get("w")), _preferred_number(snapshot.get("d"), settings.get("d"))
     return None
