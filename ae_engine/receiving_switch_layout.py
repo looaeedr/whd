@@ -16,6 +16,10 @@ RECEIVING_SWITCH_LAYOUT_KEY = "receiving_switch_layout"
 
 
 def _brand(value: object) -> str:
+    # An absent stored brand keeps the established default; a corrupt
+    # false/zero/nontext brand must never silently select another factory.
+    if value is not None and not isinstance(value, str):
+        raise ValueError(f"unsupported Receiving switch brand: {value!r}")
     text = str(value or RECEIVING_SWITCH_BRANDS[0]).strip()
     if text not in RECEIVING_SWITCH_BRANDS:
         raise ValueError(f"unsupported Receiving switch brand: {value!r}")
