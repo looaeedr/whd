@@ -242,6 +242,28 @@ def folded_profile_segment_center_from_full_envelope(
         (float(z0) + float(z1)) / 2.0 - (min_z + max_z) / 2.0,
     )
 
+def folded_profile_segment_front_z_from_full_envelope(
+    profile, segment_index: int,
+) -> float:
+    """Actual front (+Z) end of a folded material segment, in mesh-local Z.
+
+    Use the same folded polyline and *full-envelope* recentering as the
+    3D assembly. The caller selects the physical last 22-mm mating flange;
+    its front is not the midpoint and is never an invented 11-mm constant.
+    """
+    segs = list(profile or ())
+    index = int(segment_index)
+    if index < 0 or index >= len(segs):
+        raise ValueError("folded segment index is outside the fold chain")
+    _boundaries, folded = _profile_geometry(segs)
+    z_coordinates = tuple(float(point[1]) for point in folded)
+    segment_z = (z_coordinates[index], z_coordinates[index + 1])
+    if abs(segment_z[1] - segment_z[0]) <= 1e-9:
+        raise ValueError("selected frame flange has no physical Z span")
+    center_z = (min(z_coordinates) + max(z_coordinates)) / 2.0
+    return max(segment_z) - center_z
+
+
 def _profile_segment_index(position, boundaries):
     value = float(position)
     total = float(boundaries[-1])
