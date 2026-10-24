@@ -325,3 +325,34 @@ def test_ac52_truly_unconfigured_project_can_still_have_no_nfb_config():
     snapshot["nfb_config_submitted"] = False
     snapshot.pop("nfb_config")
     assert _submitted_csv_holes(snapshot) == ()
+
+
+@pytest.mark.parametrize("malformed_submitted", [1, 0, "true", None, [], {}])
+def test_ac52_nonboolean_submission_fact_never_acts_as_legacy_exemption(
+    malformed_submitted, tmp_path,
+):
+    """A damaged submitted fact is not an operator Restore Unconfigured."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    submitted = _valid_project()
+    original_scene = _scene(submitted)
+    broken = deepcopy(submitted)
+    broken["nfb_config_submitted"] = deepcopy(malformed_submitted)
+    original = deepcopy(broken)
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_SUBMISSION_FACT_INVALID"):
+        _submitted_csv_holes(broken)
+    rejected = tmp_path / "rejected"
+    rejected.mkdir()
+    with pytest.raises(ValueError):
+        _export(broken, original_scene, rejected)
+    assert not list(rejected.iterdir())
+    assert broken == original
+
+
+def test_ac52_old_project_without_submission_field_uses_unchanged_legacy_path():
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    snapshot = _valid_project()
+    snapshot.pop("nfb_config_submitted")
+    snapshot.pop("nfb_config", None)
+    assert _submitted_csv_holes(snapshot) == ()
