@@ -55,7 +55,12 @@ def _norm(v):
 
 
 def _normalize(v, tolerance):
-    coords = tuple(float(value) for value in v)
+    raw_coords = tuple(v)
+    # A boolean world coordinate or tolerance is not a physical millimetre.
+    if (len(raw_coords) != 3 or isinstance(tolerance, bool)
+            or any(isinstance(value, bool) for value in raw_coords)):
+        raise ValueError("degenerate vector or nonphysical tolerance")
+    coords = tuple(float(value) for value in raw_coords)
     tol = float(tolerance)
     if (len(coords) != 3 or not all(math.isfinite(v) for v in coords)
             or not math.isfinite(tol) or tol <= 0):
@@ -537,7 +542,10 @@ def backproject_mapped_skin_world_points(
     resolved = []
     for raw in tuple(points or ()):
         try:
-            point = tuple(float(v) for v in raw)
+            raw_point = tuple(raw)
+            if any(isinstance(v, bool) for v in raw_point):
+                raise ValueError("world point must not contain boolean millimetres")
+            point = tuple(float(v) for v in raw_point)
         except (TypeError, ValueError, OverflowError) as exc:
             return LocatorBackprojectionResult(
                 status="SKIPPED_FAIL_CLOSED",
