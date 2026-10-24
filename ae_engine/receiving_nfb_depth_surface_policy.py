@@ -368,7 +368,8 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
         selected=(chosen,bays[bi])
     elif (len(sets)==1 and isinstance(sets[0],Mapping)
           and isinstance(sets[0].get("bays"),(tuple,list))
-          and len(sets[0]["bays"])==1):
+          and len(sets[0]["bays"])==1
+          and isinstance(sets[0]["bays"][0],Mapping)):
         selected=(sets[0],sets[0]["bays"][0])
     else:
         # Ambiguous physical source cannot position a unique flat plate.
