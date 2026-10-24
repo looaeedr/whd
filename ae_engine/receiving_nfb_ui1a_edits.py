@@ -147,7 +147,10 @@ def replace_nfb_slot_model(draft,layer_index,slot_index,filename,*,catalog):
         current["datum_snapshot"]=None
         current.pop("datum_revision",None)
         if current["manual_x_mm"] is not None:
-            current["manual_x_state"]=UNVERIFIED
+            # Direct selection now marks an old confirmed X as needing
+            # reapproval. The wrapper must not downgrade that pending gate.
+            if current["manual_x_state"] != RECONFIRM:
+                current["manual_x_state"]=UNVERIFIED
     return result
 
 
