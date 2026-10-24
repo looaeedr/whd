@@ -148,3 +148,31 @@ def test_r6_98_valid_joint_marking_activation_keeps_actual_dormant_gate_state():
         )
         assert status.activation_enabled is enabled
         assert status.production_policy_count == 0
+
+
+def test_r6_unfolded_material_segments_do_not_coerce_boolean_length_to_one_mm():
+    """A saved raw profile True is not a manufacturing millimetre."""
+    from ae_engine.contracts import FoldProfileSegment
+    from ae_engine.manufacturing_render_data import (
+        MaterialSegment, UnfoldedBlankTopology, _profile_material_segments,
+    )
+
+    with pytest.raises(ValueError, match="MaterialSegment length"):
+        _profile_material_segments(
+            "X", (FoldProfileSegment(length=True, angle=None),),
+            source="saved_fold_profile",
+        )
+    with pytest.raises(ValueError, match="MaterialSegment length"):
+        _profile_material_segments(
+            "Y", (SimpleNamespace(length=False, phase6_key="fold_1"),),
+            source="saved_fold_profile",
+        )
+    x = _profile_material_segments(
+        "X", (FoldProfileSegment(length=25.5, angle=None, phase6_key="fold_1"),),
+        source="saved_fold_profile",
+    )
+    assert x == (MaterialSegment("X", "fold_1", 25.5, "saved_fold_profile"),)
+    assert UnfoldedBlankTopology(
+        piece_id="sample", x_segments=x, y_segments=(),
+        source="saved_fold_profile",
+    ).width == pytest.approx(25.5)
