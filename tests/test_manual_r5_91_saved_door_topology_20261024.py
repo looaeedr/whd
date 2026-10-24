@@ -1,5 +1,4 @@
 """R5 #91: persisted door topology is numeric authority, not UI entry text."""
-from copy import deepcopy
 import pytest
 from phase6_project_file import _normalize_authoritative_door_state
 
@@ -7,12 +6,11 @@ from phase6_project_file import _normalize_authoritative_door_state
 @pytest.mark.parametrize("bad", [True, False, "500", "NaN", float("nan"), float("inf")])
 def test_r5_91_non_numeric_or_non_finite_saved_door_width_is_rejected(bad):
     saved = {"door_layout_columns": [[bad, [700.0]]]}
-    before = deepcopy(saved)
     with pytest.raises(ValueError):
         _normalize_authoritative_door_state(saved)
-    assert saved == before or (
-        str(saved["door_layout_columns"][0][0]) == str(before["door_layout_columns"][0][0])
-    )
+    # A rejected project must not mutate caller-owned source data.
+    assert saved["door_layout_columns"][0][0] is bad
+    assert saved["door_layout_columns"][0][1] == [700.0]
 
 
 @pytest.mark.parametrize("bad", [True, False, "500", "NaN", float("nan"), float("-inf")])
