@@ -193,3 +193,30 @@ def test_r6_v5_model_owns_brand_even_if_legacy_set_brand_is_stale(monkeypatch):
         _source_depth_for_submitted_hole(
             {"model_filename": ref, "source_brand": "東元"}, legacy_set_brand="東元",
         )
+
+@pytest.mark.parametrize("invalid_thickness", [None, True, False])
+def test_r6_flat_nfb_pad_source_rejects_nonphysical_thickness_before_generation(
+    monkeypatch, invalid_thickness,
+):
+    """Never coerce bool->1 mm or None into the physical PAD tooling owner."""
+    from ae_engine import receiving_nfb_depth_surface_policy as policy
+    from ae_engine import receiving_nfb_model_identity as identity
+    from ae_engine import receiving_nfb_numeric_catalog as catalog
+
+    spec = SimpleNamespace(dimensionally_complete=True)
+    monkeypatch.setattr(identity, "selected_numeric_spec", lambda *_: spec)
+    monkeypatch.setattr(catalog, "model_spec", lambda *_: spec)
+    monkeypatch.setattr(
+        policy, "_source_depth_for_submitted_hole",
+        lambda hole, **_kw: 107. if hole["model_filename"].endswith("MODEL_A") else 72.,
+    )
+    rows = [
+        {"model_filename": "nfbv5:士林:MODEL_A", "source_brand": "士林", "slot_index": 0},
+        {"model_filename": "nfbv5:士林:MODEL_B", "source_brand": "士林", "slot_index": 1},
+    ]
+    source = {"t": invalid_thickness, "receiving_layout": {"sets": [{"bays": [{
+        "nfb_config_submitted": True,
+        "nfb_config": {"layer_count": 1, "holes": rows},
+    }]}]}}
+    with pytest.raises(ValueError, match="RECEIVING_FLAT_NFB_PLATE_THICKNESS_INVALID"):
+        policy.committed_receiving_flat_nfb_depth_mm(source)
