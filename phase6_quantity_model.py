@@ -324,7 +324,7 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
             result["receiving_inner_door_candidates"]
         )
     mode = result.get("active_mode", SET_BAY_MODE if receiving else QUANTITY_MODE)
-    if mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):
+    if not isinstance(mode, str) or mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):
         raise ValueError("不合法的箱體操作模式")
     result["active_mode"] = mode
     if for_save:
