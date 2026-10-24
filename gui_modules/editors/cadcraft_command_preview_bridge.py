@@ -79,7 +79,7 @@ def focus_started_cadcraft_window(process_id: int):
     Chrome/another foreground process. No external dependency is required.
     """
     import os
-    if os.name != "nt" or not isinstance(process_id, int) or process_id <= 0:
+    if os.name != "nt" or isinstance(process_id, bool) or not isinstance(process_id, int) or process_id <= 0:
         return False
     import ctypes
     from ctypes import wintypes
@@ -133,8 +133,13 @@ def focus_started_cadcraft_window(process_id: int):
 def prepare_whd_cadcraft_commands(*, surface, features: Sequence,
                                    width: float, height: float) -> tuple[DrawInstruction, ...]:
     """Read-only WHD authority check; captures immutable geometry for worker."""
-    w,h=float(width),float(height)
-    if not all(math.isfinite(v) and v>0 for v in (w,h)):
+    if isinstance(width, bool) or isinstance(height, bool):
+        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
+    try:
+        w, h = float(width), float(height)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS") from exc
+    if not all(math.isfinite(v) and v > 0 for v in (w, h)):
         raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
     originals=tuple(features)
     if len(originals)>100:
