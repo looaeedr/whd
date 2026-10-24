@@ -189,10 +189,22 @@ def _mapped_semantic_axis(mapping, axis, normal, *, remove_axis=None):
     return owner
 
 
+def _finite_overlap_world_rows(points):
+    """Require physical XYZ coordinates before any contact-frame projection."""
+    try:
+        rows = tuple(tuple(float(v) for v in point) for point in tuple(points or ()))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("legal contact overlap must have finite XYZ points") from exc
+    if len(rows) < 3 or any(
+        len(row) != 3 or not all(math.isfinite(value) for value in row)
+        for row in rows
+    ):
+        raise ValueError("legal contact overlap must have three or more finite XYZ points")
+    return rows
+
+
 def _overlap_centroid(points, longitudinal, cross_axis):
-    rows = tuple(tuple(float(v) for v in point) for point in tuple(points or ()))
-    if len(rows) < 3:
-        raise ValueError("legal contact overlap has no bounded polygon")
+    rows = _finite_overlap_world_rows(points)
     anchor = rows[0]
     coords = [
         (
@@ -292,7 +304,7 @@ def resolve_contact_local_frame(
                 "handedness_parity": parity,
             },
         )
-    except (TypeError, ValueError) as exc:
+    except (IndexError, TypeError, ValueError, OverflowError, ZeroDivisionError) as exc:
         return _frame_fail(exc)
 
 
@@ -343,9 +355,7 @@ def resolve_side_boundary_pair(
             raise ValueError("legal contact is unresolved")
         if not isinstance(frame, ContactLocalFrame):
             raise ValueError("contact-local frame is unresolved")
-        rows = tuple(contact.overlap_world or ())
-        if len(rows) < 3:
-            raise ValueError("legal contact overlap is unresolved")
+        rows = _finite_overlap_world_rows(contact.overlap_world)
 
         values = tuple(
             _dot(_sub(point, frame.origin), frame.cross)
@@ -382,7 +392,7 @@ def resolve_side_boundary_pair(
                 "handedness_parity": frame.handedness_parity,
             },
         )
-    except (TypeError, ValueError) as exc:
+    except (IndexError, TypeError, ValueError, OverflowError, ZeroDivisionError) as exc:
         return SemanticBoundaryPairResult(
             status="SKIPPED_FAIL_CLOSED",
             diagnostic_code="BOUNDARY_PAIR_AMBIGUOUS",
