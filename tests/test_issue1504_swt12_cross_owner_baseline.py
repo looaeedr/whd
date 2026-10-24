@@ -69,6 +69,7 @@ def _physical_baseline(state):
         ),
         "divider": (divider.material_lengths, divider.signed_fold_chain, divider.span),
         "base_bounds": tuple(base.material.bounds),
+        "base_mfg2_approved": base.metadata["receiving_nfb_base_mfg2_release_approved"],
         "base_primitives": tuple(base.scene.primitives),
         "rear": rear,
     }
@@ -100,6 +101,7 @@ def test_swt12_current_csv_v5_stage_never_changes_inner_frame_base_divider_or_re
     assert baseline["frame_contracts"][2][1] == (22.0, 20.0, 46.0, 22.0)
     assert baseline["divider"][2] == pytest.approx(796.0)
     assert baseline["base_bounds"] == pytest.approx((0.0, 0.0, 772.0, 240.0))
+    assert baseline["base_mfg2_approved"] is False
     assert len(baseline["rear"]) == 3
     assert all(len(slots) == 4 for _, slots, _ in baseline["rear"])
     assert baseline["rear"][2][2] is not None
@@ -130,3 +132,28 @@ def test_swt12_current_nfb_staging_does_not_change_original_vault_family():
     assert vault == before
     assert original["door"] == pytest.approx({"width": 335.0, "height": 535.0})
     assert after == original
+
+
+@pytest.mark.parametrize("thickness", [1.0, 1.5, 2.0, 3.0])
+def test_swt12_last_22_mating_flange_and_46_plus_2t_formed_occupation(thickness):
+    from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
+
+    frames = derive_inner_door_frames(
+        "upper", spans={"top": 800.0, "left": 1100.0, "right": 1100.0},
+        thickness=thickness, included_sides=("top", "left", "right"),
+    )
+    assert len(frames) == 3
+    assert inner_door_frame_formed_occupation(thickness) == pytest.approx(
+        46.0 + 2.0 * thickness
+    )
+    assert {f.side for f in frames} == {"top", "left", "right"}
+    assert all(f.material_lengths[-2:] == (46.0, 22.0) for f in frames)
+    assert all(f.material_lengths[-1] == 22.0 for f in frames)
+    assert all(f.thickness == thickness for f in frames)
+
+
+def test_swt12_nonphysical_thickness_cannot_claim_frame_occupation():
+    from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
+
+    with pytest.raises(ValueError, match="positive"):
+        inner_door_frame_formed_occupation(0)
