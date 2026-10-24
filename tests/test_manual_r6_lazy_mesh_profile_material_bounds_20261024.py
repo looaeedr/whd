@@ -185,3 +185,34 @@ def test_r6_immutable_set_cannot_hide_nonfinite_manufacturing_signature_value():
 
     with pytest.raises(ValueError, match="nonfinite manufacturing signature value"):
         _phase6_signature_canonical_value(frozenset((float("inf"),)))
+
+@pytest.mark.parametrize("field,bad", [
+    ("source_material_area", True),
+    ("source_material_area", False),
+    ("source_material_area", float("nan")),
+    ("source_material_area", float("inf")),
+    ("source_material_bounds", (0., 0., True, 1.)),
+    ("source_material_bounds", (0., 0., 1., False)),
+    ("source_material_bounds", (0., 0., float("inf"), 1.)),
+])
+def test_r6_saved_relief_cut_cannot_reuse_corrupt_material_evidence(field, bad):
+    from shapely.geometry import box
+    from phase6_manufacturing_geometry import _phase6_joint_relief_state_item_matches
+
+    source = box(0., 0., 1., 1.)
+    joint = SimpleNamespace(
+        joint_id="cut-physical-1", subject_part="door",
+        target_part="box_body", relation="OVERLAY",
+    )
+    evidence = {
+        "joint_id": joint.joint_id,
+        "subject_part": joint.subject_part,
+        "target_part": joint.target_part,
+        "relation": joint.relation,
+        "verified": True,
+        "source_material_bounds": (0., 0., 1., 1.),
+        "source_material_area": 1.,
+    }
+    assert _phase6_joint_relief_state_item_matches(evidence, joint, source) is True
+    evidence[field] = bad
+    assert _phase6_joint_relief_state_item_matches(evidence, joint, source) is False
