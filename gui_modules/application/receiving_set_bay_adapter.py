@@ -176,7 +176,10 @@ class ReceivingSetBayAdapter:
             return
         if self._confirm_destructive is None:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
-        if not bool(self._confirm_destructive(protected)):
+        # Deleting already saved or edited NFB/Receiving Bay data is
+        # destructive. Non-boolean callback values (e.g. 1 or "yes") must
+        # never be coerced into operator authorization.
+        if self._confirm_destructive(protected) is not True:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
 
     def set_bay_count(self, bay_count: int) -> None:
