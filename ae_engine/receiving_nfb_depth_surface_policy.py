@@ -452,8 +452,11 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
             if spec is None or not spec.dimensionally_complete:
                 raise ValueError("RECEIVING_FLAT_NFB_PAD_SOURCE_INCOMPLETE")
             sources.append(spec)
+        raw_t = snapshot.get("t", 0.0)
+        if raw_t is None or isinstance(raw_t, bool):
+            raise ValueError("RECEIVING_FLAT_NFB_PLATE_THICKNESS_INVALID")
         pads = generate_nfb_pad_patterns(
-            sources, plate_thickness_mm=float(snapshot.get("t",0.)),
+            sources, plate_thickness_mm=float(raw_t),
             tooling=read_pad_tooling_rule(),
         )
         required = sum(depth < max(depths)-1e-9 for depth in depths)
