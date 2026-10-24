@@ -246,11 +246,23 @@ def reference_distances(surface: FeatureSurface, features: Iterable[Feature], cu
 
 
 def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, width: float, height: float, *, axis: str, mode: str, value: float, reference_guide: "RectGuide | None" = None) -> Feature:
+    # A hole reference move is actual geometric positioning, not a Tk-only
+    # display field: reject invalid values before reading or moving features.
+    if type(current_index) is not int:
+        raise ValueError("reference feature index must be an integer")
+    if isinstance(value, bool):
+        raise ValueError("reference distance must be finite and not boolean")
+    try:
+        measured = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("reference distance must be finite") from exc
+    if not math.isfinite(measured):
+        raise ValueError("reference distance must be finite")
     items = list(features)
     feature = items[current_index]
     current_ref = feature_reference_point(feature, anchor, width, height)
     distances = reference_distances(surface, items, current_index, anchor, width, height, reference_guide)
-    axis = axis.lower(); mode = mode.lower(); value = float(value)
+    axis = axis.lower(); mode = mode.lower(); value = measured
     target_ref = Vec2(current_ref.x, current_ref.y)
     if axis == "x":
         side = distances.x_side

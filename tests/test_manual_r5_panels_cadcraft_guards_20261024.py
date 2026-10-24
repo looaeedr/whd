@@ -114,3 +114,47 @@ def test_r5_95_malformed_divider_layout_shape_is_controlled_validation_error(bad
             "box_body:divider:1", {"door_layout_columns": bad_columns},
             default_depth=250., default_thickness=2.,
         )
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), "nan", "inf", None, {}])
+def test_r5_79_reference_distance_rejects_bad_physical_position_before_feature_move(bad):
+    from ae_engine.sheetmetal_feature_reference import ReferenceAnchor, move_feature_by_reference_distance
+    from ae_engine.sheetmetal_feature_surface import feature_surface_from_rect
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    surface = feature_surface_from_rect("door", Vec2(0., 0.), Vec2(100., 100.))
+    circle = CircleFeature(
+        diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(25., 40.),
+    )
+    with pytest.raises(ValueError, match="reference distance"):
+        move_feature_by_reference_distance(
+            surface, (circle,), 0, ReferenceAnchor.CENTER,
+            100., 100., axis="x", mode="edge", value=bad,
+        )
+
+
+def test_r5_79_reference_edge_move_keeps_authoritative_valid_position():
+    from ae_engine.sheetmetal_feature_reference import ReferenceAnchor, move_feature_by_reference_distance
+    from ae_engine.sheetmetal_feature_surface import feature_surface_from_rect
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    surface = feature_surface_from_rect("door", Vec2(0., 0.), Vec2(100., 100.))
+    circle = CircleFeature(
+        diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(25., 40.),
+    )
+    placed = move_feature_by_reference_distance(
+        surface, (circle,), 0, ReferenceAnchor.CENTER,
+        100., 100., axis="x", mode="edge", value=30.,
+    )
+    # Placement is allowed to re-anchor to panel center; test the true
+    # finished-face point rather than a non-authoritative stored offset.
+    from ae_engine.sheetmetal_features import feature_finished_point
+    assert feature_finished_point(placed, 100., 100.) == Vec2(30., 40.)
+    with pytest.raises(ValueError, match="reference feature index"):
+        move_feature_by_reference_distance(
+            surface, (circle, circle), True, ReferenceAnchor.CENTER,
+            100., 100., axis="x", mode="edge", value=30.,
+        )
