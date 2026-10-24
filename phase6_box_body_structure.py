@@ -502,10 +502,11 @@ def side_rear_bend_material_length(
     """Resolve the physical/material rear flange exactly once."""
     normalized = normalize_box_body_structure_state(state)
     cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    value = float(cfg.get("side_rear_bend", 15.0))
+    value = _finite_dimension(cfg.get("side_rear_bend", 15.0), field="側板後折")
+    t = _finite_dimension(thickness, field="側板後折板厚")
     if side_rear_bend_dimension_space(normalized) == "OUTSIDE":
-        value -= float(thickness)
-    if value <= 0:
+        value -= t
+    if not math.isfinite(value) or value <= 0:
         raise ValueError("側板後折換算後料尺寸必須大於 0")
     return value
 
@@ -516,10 +517,11 @@ def side_rear_bend_outside_length(
     """Resolve the operator-facing outside rear flange without changing geometry."""
     normalized = normalize_box_body_structure_state(state)
     cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    value = float(cfg.get("side_rear_bend", 15.0))
+    value = _finite_dimension(cfg.get("side_rear_bend", 15.0), field="側板後折")
+    t = _finite_dimension(thickness, field="側板後折板厚")
     if side_rear_bend_dimension_space(normalized) == "MATERIAL":
-        value += float(thickness)
-    if value <= 0:
+        value += t
+    if not math.isfinite(value) or value <= 0:
         raise ValueError("側板後折包外尺寸必須大於 0")
     return value
 
@@ -534,7 +536,7 @@ def set_side_back_geometry(
     """更新側背分離專屬參數；dimension space 必須顯式保存。"""
     values = {}
     if side_rear_bend is not None:
-        bend = float(side_rear_bend)
+        bend = _finite_dimension(side_rear_bend, field="側板後折")
         if bend <= 0:
             raise ValueError("側板後折必須大於 0")
         values["side_rear_bend"] = bend
@@ -544,7 +546,7 @@ def set_side_back_geometry(
             raise ValueError("側板後折 dimension space 只接受 MATERIAL / OUTSIDE")
         values["side_rear_bend_dimension_space"] = space
     if back_width_comp_t is not None:
-        comp = float(back_width_comp_t)
+        comp = _finite_dimension(back_width_comp_t, field="後面板寬補償")
         if comp < 0:
             raise ValueError("後面板寬補償不可小於 0T")
         values["back_width_comp_t"] = comp
