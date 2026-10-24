@@ -998,7 +998,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         **snapshot, "existing_parts": workspace.available_parts,
         # The projected Bay is not allowed to erase existing standalone
         # custom physical sheets from the real workspace catalogue.
-        "custom_parts": workspace.custom_parts_snapshot(),
+        # SharedWorkspaceState.snapshot() owns a deep-copied custom catalog;
+        # Phase6DesignerWorkspace has NO custom_parts_snapshot() method.
+        "custom_parts": workspace.shared_snapshot().get("custom_parts"),
         "part_profiles": workspace.part_profiles_snapshot(),
         "part_features": {**workspace.part_features_snapshot(), **snapshot.get("part_features", {})},
         "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": joint_faces},
