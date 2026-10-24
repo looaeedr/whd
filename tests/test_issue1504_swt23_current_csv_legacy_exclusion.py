@@ -324,6 +324,13 @@ def test_ac52_truly_unconfigured_project_can_still_have_no_nfb_config():
     snapshot = _valid_project()
     snapshot["nfb_config_submitted"] = False
     snapshot.pop("nfb_config")
+    snapshot["receiving_layout"] = update_receiving_bay(
+        snapshot["receiving_layout"], set_index=0, bay_index=0,
+        nfb_config_submitted=False,
+    )
+    bay = snapshot["receiving_layout"]["sets"][0]["bays"][0]
+    assert bay.get("nfb_config_submitted") is not True
+    assert "nfb_config" not in bay
     assert _submitted_csv_holes(snapshot) == ()
 
 
@@ -355,4 +362,35 @@ def test_ac52_old_project_without_submission_field_uses_unchanged_legacy_path():
     snapshot = _valid_project()
     snapshot.pop("nfb_config_submitted")
     snapshot.pop("nfb_config", None)
+    snapshot["receiving_layout"] = update_receiving_bay(
+        snapshot["receiving_layout"], set_index=0, bay_index=0,
+        nfb_config_submitted=False,
+    )
     assert _submitted_csv_holes(snapshot) == ()
+
+
+@pytest.mark.parametrize("root_fact", ["false", "missing"])
+def test_ac52_selected_committed_bay_cannot_be_hidden_by_root_unsubmitted_alias(
+    root_fact, tmp_path,
+):
+    """The selected persisted Bay owns the commit; root aliases are projections."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    valid = _valid_project()
+    previous_scene = _scene(valid)
+    snapshot = deepcopy(valid)
+    bay = snapshot["receiving_layout"]["sets"][0]["bays"][0]
+    assert bay["nfb_config_submitted"] is True
+    if root_fact == "false":
+        snapshot["nfb_config_submitted"] = False
+    else:
+        snapshot.pop("nfb_config_submitted")
+    original = deepcopy(snapshot)
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"):
+        _submitted_csv_holes(snapshot)
+    target = tmp_path / "held"
+    target.mkdir()
+    with pytest.raises(ValueError):
+        _export(snapshot, previous_scene, target)
+    assert not list(target.iterdir())
+    assert snapshot == original
