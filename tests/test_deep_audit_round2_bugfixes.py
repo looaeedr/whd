@@ -712,3 +712,16 @@ def test_r2_14_valid_second_layer_update_keeps_first_layer_unchanged():
     result = set_layer_connection_count(source, layer_index=1, connection_count=3)
     assert [x["connection_count"] for x in result["layers"]] == [1, 3]
     assert [x["connection_count"] for x in source["layers"]] == [1, 1]
+
+@pytest.mark.parametrize("bad", [False, True, 0, 0., 1])
+def test_r2_14_invalid_stored_nfb_brand_never_silently_defaults_to_shihlin(bad):
+    from ae_engine.receiving_switch_layout import (
+        new_receiving_switch_layout, normalize_receiving_switch_layout,
+    )
+    with pytest.raises(ValueError, match="unsupported Receiving switch brand"):
+        new_receiving_switch_layout(brand=bad)
+    stored = new_receiving_switch_layout()
+    stored["switch_brand"] = bad
+    with pytest.raises(ValueError, match="unsupported Receiving switch brand"):
+        normalize_receiving_switch_layout(stored)
+    assert new_receiving_switch_layout()["switch_brand"] == "士林"
