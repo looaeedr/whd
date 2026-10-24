@@ -3193,7 +3193,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         """Single Receiving authority, with real source-verified transient stage."""
         from ae_engine.receiving_nfb_ui1b_bridge import (
             NfbVerifiedDraftSubmission, assert_live_verified_nfb,
-            submit_live_verified_nfb, copy_live_verified_nfb,
+            submit_live_verified_nfb, submit_live_verified_nfb_batch,
+            copy_live_verified_nfb,
         )
 
         def stage_verified(bundle):
@@ -3581,23 +3582,45 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             }
 
         def submit(set_index,bay_indices,confirm):
-            targets=tuple(bay_indices)
-            if len(targets)!=1:
-                raise ValueError("NFB MFG-1 本次僅驗證單一實體連，跨連須逐連確認")
-            bi=targets[0]
-            bundle,reason=eligible_bundle(set_index,bi)
-            if bundle is None:
-                raise ValueError(reason)
-            result=submit_live_verified_nfb(
-                candidate_adapter(),bundle,
-                current_snapshot=nfb_physical_bay_snapshot(
+            # Batch approval is one atomic #1500 transaction, not a loop of
+            # independently committed Bays. Each physical Bay must already
+            # own a separately verified source/DXF/world-X bundle.
+            try:
+                targets=tuple(bay_indices)
+            except TypeError as exc:
+                raise ValueError("NFB 提交請選擇真實連位") from exc
+            layout=candidate_adapter().layout
+            if (type(set_index) is not int or not 0 <= set_index < len(layout["sets"])
+                    or not targets
+                    or any(type(bi) is not int
+                           or not 0 <= bi < len(layout["sets"][set_index]["bays"])
+                           for bi in targets)
+                    or len(targets) != len(set(targets))):
+                raise ValueError("NFB 提交請選擇不重複的真實連位")
+            bundles=[]
+            snapshots={}
+            for bi in sorted(targets):
+                bundle,reason=eligible_bundle(set_index,bi)
+                if bundle is None:
+                    raise ValueError(f"第 {bi + 1} 連：{reason}")
+                bundles.append(bundle)
+                snapshots[bi]=nfb_physical_bay_snapshot(
                     bundle.set_index,bundle.bay_index,
-                ),
-                confirm=confirm,
-            )
+                )
+            adapter=candidate_adapter()
+            if len(bundles)==1:
+                result=submit_live_verified_nfb(
+                    adapter,bundles[0],current_snapshot=snapshots[bundles[0].bay_index],
+                    confirm=confirm,
+                )
+            else:
+                result=submit_live_verified_nfb_batch(
+                    adapter,bundles,current_snapshots=snapshots,confirm=confirm,
+                )
             if result.changed:
-                pending_verified_nfb.pop((set_index,bi),None)
-                committed_nfb_evidence[(set_index,bi)]=bundle
+                for bundle in bundles:
+                    pending_verified_nfb.pop((set_index,bundle.bay_index),None)
+                    committed_nfb_evidence[(set_index,bundle.bay_index)]=bundle
                 flush()
             return result.changed
 
