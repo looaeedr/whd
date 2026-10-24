@@ -129,14 +129,18 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
             # Only the selected INNER_DOOR is written here. The live manifest
             # may also authorize unrelated side/base parts; their eligible
             # quantities are NOT the Q for this single emitted DXF sheet.
+            physical_ids = tuple(row.part_id for row in manifest.rows)
             actual_door_rows = tuple(
                 row for row in manifest.rows
                 if row.part_id == manifest.scope.inner_door_part_id
-                and row.role == INNER_DOOR
             )
             if (manifest.scope.submitted is not True
+                    or len(physical_ids) != len(set(physical_ids))
                     or len(actual_door_rows) != 1
+                    or actual_door_rows[0].role != INNER_DOOR
+                    or actual_door_rows[0].status != "READY"
                     or actual_door_rows[0].may_export is not True
+                    or type(actual_door_rows[0].actual_count) is not int
                     or actual_door_rows[0].actual_count != 1):
                 raise ValueError("NFB partial DXF manufactured part count invalid")
             if (Path(written) != source or source.is_symlink()
