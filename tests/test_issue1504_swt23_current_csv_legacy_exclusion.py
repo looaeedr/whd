@@ -442,3 +442,27 @@ def test_ac52_single_committed_bay_never_falls_back_when_runtime_selector_drifts
         _export(snapshot, original_parts, rejected)
     assert not list(rejected.iterdir())
     assert snapshot == before
+
+
+def test_ac52_an_unconfigured_selected_bay_does_not_inherit_another_bay_submission():
+    """The single-Bay fail-closed fix must not poison independent multiple Bays."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_layout import resize_receiving_bays
+
+    snapshot = _valid_project()
+    snapshot["receiving_layout"] = resize_receiving_bays(
+        snapshot["receiving_layout"], set_index=0, bay_count=2,
+    )
+    snapshot["receiving_layout"] = update_receiving_bay(
+        snapshot["receiving_layout"], set_index=0, bay_index=0,
+        nfb_config_submitted=False,
+    )
+    first, second = snapshot["receiving_layout"]["sets"][0]["bays"]
+    assert first["nfb_config_submitted"] is not True
+    assert second["nfb_config_submitted"] is True
+    snapshot["nfb_config_submitted"] = False
+    snapshot.pop("nfb_config", None)
+    snapshot["_receiving_runtime_selection"]["bay_id"] = first["stable_id"]
+    original = deepcopy(snapshot)
+    assert _submitted_csv_holes(snapshot) == ()
+    assert snapshot == original
