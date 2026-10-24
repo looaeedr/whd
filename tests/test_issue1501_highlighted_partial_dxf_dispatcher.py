@@ -269,6 +269,9 @@ def test_partial_door_export_counts_only_actual_selected_sheet(tmp_path, allow_h
         report = json.loads((tmp_path / "nfb_set1_partial_manifest.json").read_text())
         assert report["actual_export_count"] == 1
         assert report["whole_cabinet_complete"] is False
+        assert report["exported"][0]["actual_export_count"] == 1
+        assert report["exported"][0]["eligible_physical_piece_count"] == 4
+        assert report["exported"][0]["actually_emitted_part_ids"] == ["part-0"]
 
 
 @pytest.mark.parametrize("corruption", (
