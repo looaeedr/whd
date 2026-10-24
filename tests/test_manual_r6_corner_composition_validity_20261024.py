@@ -72,3 +72,22 @@ def test_r6_valid_secondary_corner_and_cross_slot_keep_existing_geometry():
     )
     assert (cross.primary_u, cross.primary_v) == (24., 32.)
     assert (cross.slot_width, cross.slot_straight_depth, cross.slot_radius) == (10., 12., 5.)
+
+@pytest.mark.parametrize("field", [
+    "relief_left_fold", "relief_right_fold",
+    "bottom_relief_left_fold", "bottom_relief_right_fold",
+])
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), "-inf"])
+def test_r6_manual_endcap_relief_overrides_are_real_finite_folds(field, bad):
+    """A bad saved manual override must never become a cutting relief span."""
+    from ae_engine.sheetmetal_geometry import (
+        EndCapGeometry, VAULT_ENDCAP_CORNER_POLICY, _endcap_manual_material_polygon,
+    )
+    geometry = EndCapGeometry(
+        total_width=800., total_depth=350., thickness=2., fw=0.5,
+        left_fold=19., right_fold=19., top_first_fold=29., bottom_fold=29.,
+    )
+    with pytest.raises(GeometryError, match="封頭.*折邊"):
+        _endcap_manual_material_polygon(
+            geometry, VAULT_ENDCAP_CORNER_POLICY, **{field: bad},
+        )

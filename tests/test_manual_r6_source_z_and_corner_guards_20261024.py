@@ -148,3 +148,75 @@ def test_r6_four_corner_fw_cannot_hide_boolean_or_nonfinite_override():
             cfg.fw_for("bottom_left")
     valid = FourCornerTypePolicy(corner, corner, corner, corner, fw=20.)
     assert valid.fw_for("top_right") == 20.
+
+@pytest.mark.parametrize("invalid_bay", [None, False, 0, "bad", [], ()])
+def test_r6_unselected_flat_nfb_depth_rejects_corrupt_one_bay_without_crash(invalid_bay):
+    """A malformed saved Bay cannot become the physical flat-base depth owner."""
+    from ae_engine.receiving_nfb_depth_surface_policy import committed_receiving_flat_nfb_depth_mm
+
+    snapshot = {"receiving_layout": {"sets": [
+        {"stable_id": "set-1", "bays": [invalid_bay]},
+    ]}}
+    assert committed_receiving_flat_nfb_depth_mm(snapshot) is None
+    unsubmitted = {"receiving_layout": {"sets": [
+        {"stable_id": "set-1", "bays": [{"stable_id": "bay-1", "nfb_config_submitted": False}]},
+    ]}}
+    assert committed_receiving_flat_nfb_depth_mm(unsubmitted) is None
+
+@pytest.mark.parametrize("total_rows,unit_rows", [(True, 1), (1, True)])
+def test_r6_flat_base_layer_count_is_exact_integer_not_bool(total_rows, unit_rows):
+    from ae_engine.receiving_nfb_depth_surface_policy import committed_receiving_flat_nfb_depth_mm
+    source = {"receiving_layout": {"sets": [{"bays": [{
+        "nfb_config_submitted": True,
+        "nfb_config": {"layer_count": total_rows, "holes": [{
+            "model_filename": "nfbv5:士林:MODEL_TEST",
+            "layer_count": unit_rows, "slot_index": 0,
+        }]},
+    }]}]}}
+    with pytest.raises(ValueError, match="RECEIVING_FLAT_NFB_MULTIPLE_ROWS_NEED_DISTINCT_BASE"):
+        committed_receiving_flat_nfb_depth_mm(source)
+
+
+def test_r6_v5_model_owns_brand_even_if_legacy_set_brand_is_stale(monkeypatch):
+    from ae_engine import receiving_nfb_model_identity as identity
+    from ae_engine.receiving_nfb_depth_surface_policy import _source_depth_for_submitted_hole
+    ref = "nfbv5:士林:MODEL_TEST"
+    monkeypatch.setattr(
+        identity, "selected_numeric_spec",
+        lambda brand, model: SimpleNamespace(depth_mm=107.)
+        if (brand, model) == ("士林", ref) else None,
+    )
+    assert _source_depth_for_submitted_hole(
+        {"model_filename": ref}, legacy_set_brand="東元",
+    ) == 107.
+    with pytest.raises(ValueError, match="RECEIVING_NFB_DEPTH_V5_BRAND_IDENTITY_MISMATCH"):
+        _source_depth_for_submitted_hole(
+            {"model_filename": ref, "source_brand": "東元"}, legacy_set_brand="東元",
+        )
+
+@pytest.mark.parametrize("invalid_thickness", [None, True, False])
+def test_r6_flat_nfb_pad_source_rejects_nonphysical_thickness_before_generation(
+    monkeypatch, invalid_thickness,
+):
+    """Never coerce bool->1 mm or None into the physical PAD tooling owner."""
+    from ae_engine import receiving_nfb_depth_surface_policy as policy
+    from ae_engine import receiving_nfb_model_identity as identity
+    from ae_engine import receiving_nfb_numeric_catalog as catalog
+
+    spec = SimpleNamespace(dimensionally_complete=True)
+    monkeypatch.setattr(identity, "selected_numeric_spec", lambda *_: spec)
+    monkeypatch.setattr(catalog, "model_spec", lambda *_: spec)
+    monkeypatch.setattr(
+        policy, "_source_depth_for_submitted_hole",
+        lambda hole, **_kw: 107. if hole["model_filename"].endswith("MODEL_A") else 72.,
+    )
+    rows = [
+        {"model_filename": "nfbv5:士林:MODEL_A", "source_brand": "士林", "slot_index": 0},
+        {"model_filename": "nfbv5:士林:MODEL_B", "source_brand": "士林", "slot_index": 1},
+    ]
+    source = {"t": invalid_thickness, "receiving_layout": {"sets": [{"bays": [{
+        "nfb_config_submitted": True,
+        "nfb_config": {"layer_count": 1, "holes": rows},
+    }]}]}}
+    with pytest.raises(ValueError, match="RECEIVING_FLAT_NFB_PLATE_THICKNESS_INVALID"):
+        policy.committed_receiving_flat_nfb_depth_mm(source)

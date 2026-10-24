@@ -192,9 +192,15 @@ def _source_depth_for_submitted_hole(hole, *, legacy_set_brand):
     if not isinstance(filename, str) or not filename:
         raise ValueError("RECEIVING_NFB_DEPTH_MODEL_SOURCE_MISSING")
     parsed = parse_numeric_model_ref(filename)
-    brand = hole.get("source_brand", legacy_set_brand or (
-        parsed[0] if parsed is not None else None
-    ))
+    raw_brand = hole.get("source_brand")
+    # V5 model refs own their brand even if the legacy Set still carries an
+    # unrelated historical switch_brand. An explicit per-hole mismatch fails.
+    if filename.startswith("nfbv5:"):
+        brand = raw_brand if raw_brand is not None else (
+            parsed[0] if parsed is not None else None
+        )
+    else:
+        brand = raw_brand if raw_brand is not None else legacy_set_brand
     if not isinstance(brand, str) or not brand:
         raise ValueError("RECEIVING_NFB_DEPTH_BRAND_SOURCE_MISSING")
     if filename.startswith("nfbv5:"):
@@ -368,7 +374,8 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
         selected=(chosen,bays[bi])
     elif (len(sets)==1 and isinstance(sets[0],Mapping)
           and isinstance(sets[0].get("bays"),(tuple,list))
-          and len(sets[0]["bays"])==1):
+          and len(sets[0]["bays"])==1
+          and isinstance(sets[0]["bays"][0],Mapping)):
         selected=(sets[0],sets[0]["bays"][0])
     else:
         # Ambiguous physical source cannot position a unique flat plate.
@@ -387,8 +394,9 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
     if not all(isinstance(h,Mapping) for h in holes):
         raise ValueError("RECEIVING_FLAT_NFB_INVALID_HOLE_SOURCE")
     count=config.get("layer_count")
-    if count!=1 or any(
-        h.get("layer_count",count)!=1
+    if type(count) is not int or count!=1 or any(
+        type(h.get("layer_count",count)) is not int
+        or h.get("layer_count",count)!=1
         or type(h.get("slot_index",0)) is not int
         or h.get("slot_index",0)<0
         for h in holes
@@ -444,8 +452,11 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
             if spec is None or not spec.dimensionally_complete:
                 raise ValueError("RECEIVING_FLAT_NFB_PAD_SOURCE_INCOMPLETE")
             sources.append(spec)
+        raw_t = snapshot.get("t", 0.0)
+        if raw_t is None or isinstance(raw_t, bool):
+            raise ValueError("RECEIVING_FLAT_NFB_PLATE_THICKNESS_INVALID")
         pads = generate_nfb_pad_patterns(
-            sources, plate_thickness_mm=float(snapshot.get("t",0.)),
+            sources, plate_thickness_mm=float(raw_t),
             tooling=read_pad_tooling_rule(),
         )
         required = sum(depth < max(depths)-1e-9 for depth in depths)
