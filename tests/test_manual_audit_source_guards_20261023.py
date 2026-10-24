@@ -122,3 +122,29 @@ def test_r6_96_world_vector_and_tolerance_refuse_boolean_inputs():
     with pytest.raises(ValueError):
         vector_unit((2., 0., 0.), tolerance=True)
     assert vector_unit((2., 0., 0.), tolerance=1e-6) == (1., 0., 0.)
+
+@pytest.mark.parametrize("bad", ["false", "true", 0, 1, None, (), [], {}])
+def test_r6_98_joint_marking_activation_is_exact_boolean_not_python_truthiness(bad):
+    from ae_engine.contracts import JointMarkingProductionStatus
+
+    with pytest.raises(ValueError, match="activation_enabled must be boolean"):
+        JointMarkingProductionStatus(
+            gate_state="FOUNDATION_MERGED",
+            activation_enabled=bad,
+            export_disposition="UNRESOLVED",
+            production_policy_count=0,
+        )
+
+
+def test_r6_98_valid_joint_marking_activation_keeps_actual_dormant_gate_state():
+    from ae_engine.contracts import JointMarkingProductionStatus
+
+    for enabled in (False, True):
+        status = JointMarkingProductionStatus(
+            gate_state="FOUNDATION_MERGED",
+            activation_enabled=enabled,
+            export_disposition="UNRESOLVED",
+            production_policy_count=0,
+        )
+        assert status.activation_enabled is enabled
+        assert status.production_policy_count == 0
