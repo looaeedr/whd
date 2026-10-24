@@ -125,8 +125,16 @@ def normalize_nfb_saved_fields(row):
         # Importing an old CONFIRMED datum from W800 into a W750 Bay must
         # never silently re-authorize the previous hole X. Check established
         # operator datum key variants, without fabricating a missing datum.
-        if (type(physical_width) not in (int, float)
-                or not isfinite(float(physical_width))):
+        # The existing Receiving Bay _number adapter also accepts numeric
+        # strings from older projects. Match that compatibility while still
+        # rejecting boolean, nonnumeric and nonfinite manufacturing widths.
+        if type(physical_width) is bool:
+            raise ValueError("NFB saved Bay physical width invalid")
+        try:
+            bay_width = float(physical_width)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("NFB saved Bay physical width invalid") from exc
+        if not isfinite(bay_width) or bay_width <= 0:
             raise ValueError("NFB saved Bay physical width invalid")
         for hole in config["holes"]:
             if hole["manual_x_state"] != "CONFIRMED":
@@ -141,7 +149,7 @@ def normalize_nfb_saved_fields(row):
             if any(
                 type(value) not in (int, float)
                 or not isfinite(float(value))
-                or abs(float(value) - float(physical_width)) > 1e-7
+                or abs(float(value) - bay_width) > 1e-7
                 for value in known_widths
             ):
                 hole["manual_x_state"] = "RECONFIRM_REQUIRED"
