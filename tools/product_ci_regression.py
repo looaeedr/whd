@@ -403,6 +403,8 @@ PYTEST_PATHS = (
     "tests/test_manual_audit_r4_61_62_65_20261024.py",
     # R5 #80/#85/#86/#88/#89 independent physical owner and session guards.
     "tests/test_manual_r5_second_source_guards_20261024.py",
+    # Source-reviewed R5 GUI panel and CADCraft bounded numeric guards.
+    "tests/test_manual_r5_panels_cadcraft_guards_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
