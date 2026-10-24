@@ -5,6 +5,7 @@ host/controller seam during T4.
 """
 
 import tkinter as tk
+import math
 from tkinter import ttk, messagebox
 from whd_theme import configure_tk_menu
 
@@ -23,12 +24,15 @@ def collect_door_input(payload):
     return result
 
 def _parse_layout_value(var, label):
+    raw = var.get()
+    if isinstance(raw, bool):
+        raise ValueError(f"{label}不是有效數字")
     try:
-        value = float(var.get())
-    except ValueError as exc:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"{label}不是有效數字") from exc
-    if value <= 0:
-        raise ValueError(f"{label}必須大於 0")
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"{label}必須是有限正數")
     return value
 
 def _reject_door_layout_dimension(host, var, previous_value, message):
@@ -295,6 +299,7 @@ def setup_tab_door_ui(host):
 
 
 def normalize_door_indicator_state(state):
+    """Repair stale indicator presentation inputs without inventing geometry."""
     raw = dict(state or {})
     mode = raw.get("mode")
     if mode not in {"none", "indicator", "indicator_box"}:
@@ -304,30 +309,45 @@ def normalize_door_indicator_state(state):
             mode = "indicator"
         else:
             mode = "none"
-    try:
-        layers = max(1, min(6, int(raw.get("layers", 1))))
-    except (TypeError, ValueError):
-        layers = 1
-    groups = list(raw.get("groups", [2] * 6))
-    while len(groups) < 6:
-        groups.append(2)
-    normalized_groups = []
-    for value in groups[:6]:
+
+    def whole(value, default, *, low=1, high=None):
+        if isinstance(value, bool):
+            return default
         try:
-            normalized_groups.append(max(1, int(value)))
-        except (TypeError, ValueError):
-            normalized_groups.append(2)
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return default
+        if not math.isfinite(number) or not number.is_integer():
+            return default
+        number = int(number)
+        if number < low or high is not None and number > high:
+            return default
+        return number
+
+    def finite_offset(value):
+        if isinstance(value, bool):
+            return 0.0
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return 0.0
+        return number if math.isfinite(number) else 0.0
+
+    layers = whole(raw.get("layers", 1), 1, low=1, high=6)
+    source_groups = raw.get("groups", [2] * 6)
+    groups = source_groups if isinstance(source_groups, (list, tuple)) else ()
+    normalized_groups = [whole(value, 2) for value in groups[:6]]
+    normalized_groups.extend([2] * (6 - len(normalized_groups)))
     return {
         "mode": mode,
         "enabled": mode == "indicator",
         "box_enabled": mode == "indicator_box",
         "layers": layers,
         "groups": normalized_groups,
-        "offset_x": float(raw.get("offset_x", 0.0) or 0.0),
-        "offset_y": float(raw.get("offset_y", 0.0) or 0.0),
+        "offset_x": finite_offset(raw.get("offset_x", 0.0)),
+        "offset_y": finite_offset(raw.get("offset_y", 0.0)),
         "is_box_dist": bool(raw.get("is_box_dist", False)),
     }
-
 
 def destroy_door_layout_entry_widgets(host):
     for widget in list(host.door_layout_width_entries.values()) + list(host.door_layout_height_entries.values()):
