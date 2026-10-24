@@ -994,15 +994,33 @@ def _phase6_request_profiles_for_material(part_input, material):
     key = str(part_input.part_key or "")
     x_prof = [dict(seg) for seg in tuple(part_input.x_profile or ())]
     y_prof = [dict(seg) for seg in tuple(part_input.y_profile or ())]
-    minx, miny, maxx, maxy = material.bounds
+
+    def material_span(axis):
+        # Only the whole Box Body and a one-axis frame/divider need this
+        # geometric fallback. Other physical pieces already own both fold
+        # profiles; inspecting unrelated bounds could abort valid assembly.
+        from math import isfinite
+        try:
+            raw = tuple(material.bounds)
+            if len(raw) != 4 or any(isinstance(v, bool) for v in raw):
+                raise ValueError("material bounds must have four real values")
+            minx, miny, maxx, maxy = (float(value) for value in raw)
+            if not all(isfinite(value) for value in (minx, miny, maxx, maxy)):
+                raise ValueError("material bounds must be finite")
+            span = (maxx - minx) if axis == "x" else (maxy - miny)
+            if not isfinite(span) or span <= 0.0:
+                raise ValueError("derived material span must be positive")
+            return span
+        except (AttributeError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("physical material bounds unavailable for mesh profile") from exc
 
     if key == "box_body":
-        return x_prof, [{"len": float(maxy - miny)}]
+        return x_prof, [{"len": material_span("y")}]
     if key.startswith("box_body:divider:") or (
         key.startswith("inner_door:") and key.endswith("_frame")
     ):
         if x_prof and not y_prof:
-            y_prof = [{"len": float(maxy - miny)}]
+            y_prof = [{"len": material_span("y")}]
         elif y_prof and not x_prof:
-            x_prof = [{"len": float(maxx - minx)}]
+            x_prof = [{"len": material_span("x")}]
     return x_prof, y_prof
