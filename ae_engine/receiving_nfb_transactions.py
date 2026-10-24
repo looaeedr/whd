@@ -18,7 +18,7 @@ from .receiving_nfb_persistence import (
 )
 from .receiving_nfb_part_readiness import (
     NfbPhysicalScope, NfbPartDecision, NfbScopeReadiness,
-    BLOCKED, derive_nfb_part_readiness,
+    BLOCKED, derive_nfb_part_readiness, _verified_physical_hole_locations,
 )
 from .receiving_nfb_dxf_source import NfbSourceInventory
 from .receiving_nfb_manufacturing_release import NfbValidatedInnerDoorRender
@@ -121,6 +121,12 @@ def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
     a new #1497 verification. An old manufactured result never grants an
     unverified new displacement.
     """
+    # Reuse the same source-owned per-hole schema used by physical
+    # readiness: a forged typed render may contain strings, booleans,
+    # nonfinite X, malformed rows or duplicate IDs. Validate before any
+    # operator value subtraction or dictionary construction.
+    if not _verified_physical_hole_locations(door):
+        raise ValueError("NFB verified physical X/Y/rotation evidence invalid")
     witnessed = tuple(door.verified_hole_locations)
     holes = tuple(config["holes"])
     if len(witnessed) != len(holes) or not witnessed:
