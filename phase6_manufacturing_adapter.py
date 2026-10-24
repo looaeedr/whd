@@ -211,7 +211,24 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
         return {}
 
     values = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    values.update(dict(getattr(app, "_settings_values", {}) or {}))
+    settings_overlay = dict(getattr(app, "_settings_values", {}) or {})
+    if (values.get("model") in ("受電箱", "RECEIVING")
+            and isinstance(values.get("_receiving_runtime_selection"), Mapping)):
+        # Exact Set/Bay is the only authority for Door, NFB and placement.
+        # build_manufacturing_request already carries this Bay's dimensions;
+        # do not overwrite projected Door cells with the global settings
+        # during the second part-payload serialization seam.
+        from ae_engine.receiving_layout import (
+            RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
+        )
+        per_bay = set(RECEIVING_DOOR_STATE_KEYS) | {
+            RECEIVING_RUNTIME_SELECTION_KEY, "receiving_layout",
+            "nfb_config", "nfb_config_submitted",
+        }
+        settings_overlay = {
+            k: v for k, v in settings_overlay.items() if k not in per_bay
+        }
+    values.update(settings_overlay)
     values.update(dict(getattr(app, "_phase6_box_whd", {}) or {}))
     workspace = getattr(app, "designer_workspace", None)
     state = getattr(app, "state", None)
@@ -285,10 +302,14 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
         face_features_for(key) if callable(face_features_for) else {}
     )
     if key == 'box_body' and workspace is not None:
+        # Detached Bay previews and minimal manufacturing facades may only
+        # provide the active part. Do not pretend missing physical-piece
+        # feature ownership exists, or crash on absent workspace methods.
+        available_parts = tuple(getattr(workspace, "available_parts", ()) or ())
         values['physical_piece_features'] = {
-            child: workspace.features_for(child)
-            for child in workspace.available_parts
-            if is_box_body_physical_piece_key(child)
+            child: features_for(child)
+            for child in available_parts
+            if is_box_body_physical_piece_key(child) and callable(features_for)
         }
     values["box_body_structure"] = (
         structure_state() if callable(structure_state) else {}
@@ -624,6 +645,15 @@ def build_manufacturing_request(
             axis: box_dimensions[axis] for axis in ("w", "h", "d")
             if axis in box_dimensions
         })
+    # A request assembled from a sparse input snapshot must still carry the
+    # actual operator W/H/D/T of THIS app, never infer geometry from a cached
+    # display or a different Bay. Existing authoritative values take priority.
+    for axis in ("w", "h", "d"):
+        if axis in box_dimensions:
+            snapshot.setdefault(axis, box_dimensions[axis])
+        elif axis in settings:
+            snapshot.setdefault(axis, settings[axis])
+    snapshot.setdefault("t", _num(settings.get("t", snapshot.get("t", 2.0)), 2.0))
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
@@ -686,7 +716,7 @@ def build_manufacturing_request(
         canonical_part_keys=_canonical_part_keys(app),
         parts=tuple(part_inputs),
         operator_finished_dimensions=_finished_dimensions_for_part(
-            app, "", finished_dimensions_provider
+            app, "box_body", finished_dimensions_provider
         ),
         assembly_intent=_assembly_intent(app),
         allow_3d_fallback=bool(
