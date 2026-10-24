@@ -98,8 +98,20 @@ class NfbPartialExportManifest:
         requested=tuple(part_ids)
         if len(set(requested))!=len(requested):
             raise ValueError("NFB partial export request repeats physical part")
-        if self.nfb_config_submitted and not partial and not self.whole_ready:
-            raise ValueError("NFB whole manufacturing not ready; partial only")
+        if self.nfb_config_submitted and not partial:
+            # A typed caller can still supply inconsistent manifest flags.
+            # Full export is NEVER authorized from an asserted whole_ready
+            # flag while any physical part is held or a dependency unresolved.
+            if (self.scope.submitted is not True
+                    or self.whole_ready is not True
+                    or self.unresolved_dependencies
+                    or not self.rows
+                    or any(row.may_export is not True
+                           or row.status not in (READY, UNAFFECTED)
+                           or type(row.actual_count) is not int
+                           or row.actual_count < 1
+                           for row in self.rows)):
+                raise ValueError("NFB whole manufacturing not ready; partial only")
         known={r.part_id:r for r in self.rows}
         if len(known)!=len(self.rows):
             raise ValueError("NFB duplicate physical part BLOCKED in export manifest")
