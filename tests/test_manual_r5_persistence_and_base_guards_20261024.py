@@ -227,6 +227,8 @@ def test_r5_76_dxf_readback_rejects_nonfinite_area_tolerance_on_real_changed_cut
     ((0., 0., float("nan")), (0., 0., 1.)),
     ((0., 0., 0.), (0., 0.)),
     ((0., 0., 0.), (0., float("inf"), 1.)),
+    ((True, 0., 0.), (0., 0., 1.)),
+    ((0., 0., 0.), (0., 0., True)),
 ])
 def test_r5_77_expected_mating_coverage_must_fail_closed_on_bad_plane(origin, normal):
     """Old R5 #77 RED: 2D origin must not raise a bare IndexError."""
