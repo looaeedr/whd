@@ -410,3 +410,36 @@ def test_batch_operator_width_change_demotes_only_selected_confirmed_nfb_x(monke
     assert calls == [1]
     assert all(adapter.layout["sets"][0]["bays"][i]["nfb_config"]["holes"][0][
         "manual_x_state"] == "RECONFIRM_REQUIRED" for i in (0, 2))
+
+
+@pytest.mark.parametrize("response", (1, "yes", [], None, 0, False))
+@pytest.mark.parametrize("kind", ("bay", "set"))
+def test_issue1504_protected_receiving_tail_requires_literal_true(
+    kind, response,
+):
+    """Deleting persisted Receiving/NFB data needs explicit boolean consent."""
+    if kind == "bay":
+        original = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    else:
+        original = append_receiving_set(_layout())
+    before = deepcopy(original)
+    called = []
+
+    def reply(protected):
+        called.append(protected)
+        return response
+
+    adapter = ReceivingSetBayAdapter(
+        original, persisted_ids=receiving_layout_stable_ids(original),
+        confirm_destructive=reply,
+    )
+    with pytest.raises(ReceivingDestructiveEditConfirmationRequired):
+        if kind == "bay":
+            adapter.set_bay_count(1)
+        else:
+            adapter.set_set_count(1)
+    assert len(called) == 1 and called[0]
+    assert adapter.layout == before
+    assert original == before
+    assert adapter.selection.set_index == 0
+    assert adapter.selection.bay_index == 0
