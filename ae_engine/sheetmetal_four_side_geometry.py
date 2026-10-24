@@ -56,10 +56,10 @@ class FourSideBendExtentPolicy:
 
 
 def _validate_four_side_geometry(g: FourSideFlangeGeometry) -> None:
-    for name in ("total_width", "total_height", "thickness", "left_fold", "right_fold", "top_fold", "bottom_fold"):
-        value = getattr(g, name)
+    for value in (g.total_width, g.total_height, g.thickness,
+                  g.left_fold, g.right_fold, g.top_fold, g.bottom_fold):
         if isinstance(value, bool) or not math.isfinite(float(value)):
-            raise GeometryError(f"{name} must be finite, not bool")
+            raise GeometryError("FourSide geometry dimensions must be finite numbers")
     if g.total_width <= 0 or g.total_height <= 0:
         raise GeometryError("blank dimensions must be greater than zero")
     if g.thickness <= 0:
@@ -76,7 +76,7 @@ def _validate_four_side(g: FourSideFlangeGeometry, policy: RectCornerReliefPolic
         policy.bottom_y, policy.top_y,
     )
     if any(isinstance(v, bool) or not math.isfinite(float(v)) for v in values):
-        raise GeometryError("relief dimensions must be finite, not bool")
+        raise GeometryError("relief dimensions must be finite numbers")
     if any(v < 0 for v in values):
         raise GeometryError("relief dimensions must not be negative")
     if policy.bottom_left_x + policy.bottom_right_x >= g.total_width:

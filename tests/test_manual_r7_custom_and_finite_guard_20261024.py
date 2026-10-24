@@ -9,7 +9,7 @@ from ae_engine.sheetmetal_geometry import (
     CornerTypeSelection, CornerTypeId, CrossCornerMode, EndCapGeometry,
     FourSideFlangeGeometry, RectCornerReliefPolicy,
     calculate_endcap_relief_dimensions, build_endcap_topology,
-    build_four_side_outline,
+    build_four_side_outline, ReliefConfig,
 )
 from ae_engine.sheetmetal_strip_geometry import FoldSegment, StripFoldChain, build_strip_outline
 from ae_engine.sheetmetal_part_adapters import (
@@ -136,6 +136,21 @@ def test_r7_part_adapters_reject_invalid_manufacturing_dimensions(bad):
             shrink_left=85., shrink_right=85., bend=bad,
             pattern=RECEIVING_BASE_PATTERN_LEFT,
         )
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf")])
+def test_r7_inner_geometry_rejects_invalid_relief_override_and_rotation(bad):
+    face = FourSideFlangeGeometry(800., 600., 2., 20., 20., 20., 20.)
+    relief = RectCornerReliefPolicy(5., 5., 5., 5., 5., bad)
+    with pytest.raises(ValueError):
+        build_four_side_outline(face, relief)
+    cap = EndCapGeometry(800., 350., 2., 46., 22., 22., 20., 20.)
+    with pytest.raises(ValueError):
+        calculate_endcap_relief_dimensions(
+            cap, ReliefConfig(bottom_y=bad)
+        )
+    with pytest.raises(ValueError):
+        CornerTypeSelection(CornerTypeId.CROSS, rotation_quadrants=bad)
 
 
 def test_r7_positive_inputs_preserve_existing_dimension_calculation():

@@ -14,6 +14,7 @@ projects them into DesignerWorkspace profiles; it owns no GUI state.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Sequence
 
 
@@ -53,6 +54,10 @@ class InnerDoorPanelPart:
         return self.height - 2.0 * self.thickness + self.fold_top + self.fold_bottom
 
     def __post_init__(self):
+        for value in (self.width, self.height, self.thickness,
+                      self.fold_left, self.fold_right, self.fold_top, self.fold_bottom):
+            if isinstance(value, bool) or not math.isfinite(float(value)):
+                raise ValueError("inner-door panel dimensions must be finite numbers")
         if self.width <= 0 or self.height <= 0:
             raise ValueError("inner-door panel dimensions must be positive")
         if self.thickness <= 0:
@@ -81,6 +86,9 @@ def derive_inner_door_panel(
     key = str(cell_key or "").strip()
     if not key:
         raise ValueError("inner-door panel cell_key must be non-empty")
+    for value in (width, height, thickness, fold_left, fold_right, fold_top, fold_bottom):
+        if isinstance(value, bool) or not math.isfinite(float(value)):
+            raise ValueError("inner-door panel dimensions must be finite numbers")
     return InnerDoorPanelPart(
         stable_id=inner_door_panel_stable_id(door_id),
         inner_door_id=door_id,

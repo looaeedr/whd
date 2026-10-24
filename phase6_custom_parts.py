@@ -10,7 +10,7 @@ Profiles and manufacturing geometry belong to the Fold/manufacturing owners.
 Names never serve as IDs; the persisted allocator never recycles deleted IDs.
 """
 from copy import deepcopy
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 import math
 import re
 
@@ -102,47 +102,63 @@ class CustomPartCatalog:
 
 
 def custom_part_only_change(previous, current):
-    """Keep existing cabinet scenes when only existing standalone parts change.
+    """True only when an EXISTING custom sheet changed, with the box untouched.
 
-    Optional empty stores are serialization details: None, absent and {} must
-    compare alike, but changes to non-custom parts or cabinet settings must not.
+    Keep GUI/assembly preview caches alive for custom-sheet edits. Empty and
+    absent optional feature maps mean the same thing; non-custom profiles
+    remain part of the enclosure's physical identity.
     """
     if not isinstance(previous, Mapping) or not isinstance(current, Mapping):
         return False
     old, new = deepcopy(dict(previous)), deepcopy(dict(current))
-    a = dict(old.get("workspace") or {}).get("custom_parts") or old.get("custom_parts") or {}
-    b = dict(new.get("workspace") or {}).get("custom_parts") or new.get("custom_parts") or {}
-    keys = set(dict(a.get("items") or {}))
-    if not keys or keys != set(dict(b.get("items") or {})):
+    old_ws = old.get("workspace") or {}
+    new_ws = new.get("workspace") or {}
+    if not isinstance(old_ws, Mapping) or not isinstance(new_ws, Mapping):
         return False
 
-    changed = False
-    for before, after in ((old, new),
-                          (old.get("workspace") or {}, new.get("workspace") or {})):
-        for name in ("custom_parts", "part_profiles", "part_features", "part_face_features"):
-            # Blank optional stores are not user changes.
-            changed = changed or (before.get(name) or {}) != (after.get(name) or {})
+    old_catalog = old_ws.get("custom_parts") or old.get("custom_parts") or {}
+    new_catalog = new_ws.get("custom_parts") or new.get("custom_parts") or {}
+    if not isinstance(old_catalog, Mapping) or not isinstance(new_catalog, Mapping):
+        return False
+    old_items, new_items = old_catalog.get("items") or {}, new_catalog.get("items") or {}
+    if not isinstance(old_items, Mapping) or not isinstance(new_items, Mapping):
+        return False
+    keys = set(old_items)
+    if not keys or keys != set(new_items):
+        # Added/removed physical sheets change the assembly topology.
+        return False
+
+    changed = old_catalog != new_catalog
+    for before, after in ((old, new), (old_ws, new_ws)):
+        for name in ("part_profiles", "part_features", "part_face_features"):
+            old_rows = before.get(name) or {}
+            new_rows = after.get(name) or {}
+            if not isinstance(old_rows, Mapping) or not isinstance(new_rows, Mapping):
+                return False
+            if any(old_rows.get(key) != new_rows.get(key) for key in keys):
+                changed = True
 
         for block in (before, after):
             catalog = block.get("custom_parts")
             if isinstance(catalog, Mapping):
-                for row in dict(catalog.get("items") or {}).values():
-                    for field in ("display_name", "per_box_count", "fold_axis", "transverse_length"):
-                        row.pop(field, None)
+                items = catalog.get("items")
+                if isinstance(items, Mapping):
+                    for row in items.values():
+                        if isinstance(row, MutableMapping):
+                            for field in ("display_name", "per_box_count",
+                                          "fold_axis", "transverse_length"):
+                                row.pop(field, None)
             for name in ("part_profiles", "part_features", "part_face_features"):
-                mapping = block.get(name)
-                if isinstance(mapping, Mapping):
+                rows = block.get(name)
+                if isinstance(rows, MutableMapping):
                     for key in keys:
-                        mapping.pop(key, None)
-            # Normalize all four optional stores after removing custom-owned
-            # values; never normalize cabinet settings or other part records.
-            for name in ("custom_parts", "part_profiles", "part_features", "part_face_features"):
-                if block.get(name) is None or block.get(name) == {}:
+                        rows.pop(key, None)
+                    if not rows:
+                        block.pop(name, None)
+                elif rows is None:
                     block.pop(name, None)
 
     for block in (old, new):
         for key in ("origin", "revision", "fingerprint", "transaction_id", "delta"):
             block.pop(key, None)
-        if block.get("workspace") is None or block.get("workspace") == {}:
-            block.pop("workspace", None)
     return changed and old == new

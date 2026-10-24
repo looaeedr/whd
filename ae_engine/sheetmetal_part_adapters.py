@@ -75,7 +75,10 @@ class PartitionCompletion:
 def _finite_float(value, name="value") -> float:
     if isinstance(value, bool):
         raise ValueError(f"{name} must not be bool")
-    number = float(value)
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be finite") from exc
     if not math.isfinite(number):
         raise ValueError(f"{name} must be finite")
     return number
@@ -624,13 +627,12 @@ def build_receiving_base_plate_result(
     top/bottom on the center pattern. No drawing's absolute X/Y, holes
     or cut profile may become an installation coordinate by itself.
     """
-    from math import isfinite
     from .sheetmetal_geometry import BendLine
 
     values=(w,h,t,shrink_top,shrink_bottom,shrink_left,shrink_right,bend)
-    if not all(isfinite(_finite_float(v)) for v in values):
-        raise ValueError("Receiving Base Plate has nonfinite dimensions")
-    w,h,t,st,sb,sl,sr,bend=map(_finite_float,values)
+    # Check all source dimensions before derived geometry is built.
+    values = tuple(_finite_float(v) for v in values)
+    w,h,t,st,sb,sl,sr,bend=map(float,values)
     if pattern not in RECEIVING_BASE_PATTERNS:
         raise ValueError("Receiving Base Plate needs a known left/center/right bend pattern")
     if t<=0 or min(st,sb,sl,sr)<0 or w-sl-sr<=0 or h-st-sb<=0:

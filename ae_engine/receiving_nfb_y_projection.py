@@ -79,7 +79,14 @@ def _inner_door_y_basis(snapshot: Mapping[str, object], inner_door_id: str):
             or abs(sum(float(col[0]) for col in columns) - full_w) > 1e-6
             or any(abs(sum(float(v) for v in col[1]) - full_h) > 1e-6
                    for col in columns)):
-        raise ValueError("OPEN-Y-PROJECTION inconsistent box and Door partitions")
+        # Diagnostics preserve strict dimensional refusal while exposing the
+        # exact *input authority* that drifted after a real Set/Bay edit.
+        raise ValueError(
+            "OPEN-Y-PROJECTION inconsistent box and Door partitions: "
+            f"box=({full_w:g},{full_h:g}); "
+            f"columns={tuple((row[0], tuple(row[1])) for row in columns)!r}; "
+            f"selection={data.get('_receiving_runtime_selection')!r}"
+        )
     wanted = str(inner_door_id or "").strip()
     owners = [row for row in data.get("inner_doors", ())
               if isinstance(row, dict) and str(row.get("stable_id", "")).strip() == wanted]

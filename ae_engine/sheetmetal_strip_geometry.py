@@ -31,16 +31,17 @@ class StripFoldChain:
 
 
 def _validate_strip_chain(chain: StripFoldChain) -> None:
-    if isinstance(chain.height, bool) or not math.isfinite(float(chain.height)):
-        raise GeometryError("strip height must be a finite number, not bool")
-    if chain.height <= 0:
+    if (isinstance(chain.height, bool) or not math.isfinite(float(chain.height))
+            or chain.height <= 0):
         raise GeometryError("strip height must be greater than zero")
     if len(chain.segments) < 2:
         raise GeometryError("strip chain requires at least two segments")
     for segment in chain.segments:
-        for name, value in (("length", segment.length), ("compensation", segment.compensation)):
-            if isinstance(value, bool) or not math.isfinite(float(value)):
-                raise GeometryError(f"segment {segment.name} {name} must be finite, not bool")
+        if (isinstance(segment.length, bool)
+                or isinstance(segment.compensation, bool)
+                or not math.isfinite(float(segment.length))
+                or not math.isfinite(float(segment.compensation))):
+            raise GeometryError(f"segment {segment.name} dimensions must be finite numbers")
         if segment.length < 0:
             raise GeometryError(f"segment {segment.name} length must not be negative")
         if segment.length + segment.compensation <= 0:

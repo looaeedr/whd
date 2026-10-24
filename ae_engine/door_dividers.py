@@ -15,6 +15,7 @@ ratio-only geometry changes do not rename parts.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Mapping, Sequence
 
 from .contracts import FoldProfileSegment
@@ -221,9 +222,16 @@ def _part(
     model_name=None,
     frame_width=None,
 ):
-    t = float(thickness)
-    d = float(depth)
-    span = float(span)
+    values = (thickness, depth, span)
+    if any(isinstance(v, bool) for v in values):
+        raise ValueError("divider depth/thickness/span must be finite numbers, not bool")
+    t, d, span = map(float, values)
+    if not all(math.isfinite(v) for v in (t, d, span)):
+        raise ValueError("divider depth/thickness/span must be finite numbers")
+    if frame_width is not None and (
+        isinstance(frame_width, bool) or not math.isfinite(float(frame_width))
+    ):
+        raise ValueError("divider frame_width must be finite")
     if t <= 0 or d <= 0 or span <= 0:
         raise ValueError("divider depth/thickness/span must be > 0")
 
