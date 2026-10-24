@@ -188,3 +188,69 @@ def test_derived_flags_not_saved_and_invalid_nfb_fails_without_fallback(tmp_path
             layout, set_index=0,bay_index=0,
             nfb_config_submitted="true",nfb_config=_config(),
         )
+
+
+def test_receiving_bay_width_change_requires_nfb_x_reconfirmation_and_preserves_sibling(tmp_path):
+    """Changing W invalidates old X datum without deleting model/position."""
+    layout = _layout()
+    for index in (0, 1):
+        layout = update_receiving_bay(
+            layout, set_index=0, bay_index=index,
+            nfb_config_submitted=True,
+            nfb_config=_config(x=0 if index == 0 else 100),
+        )
+    original = deepcopy(layout)
+    same = update_receiving_bay(layout, set_index=0, bay_index=0, width=800)
+    assert same["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+
+    changed = update_receiving_bay(layout, set_index=0, bay_index=0, width=750)
+    left, right = changed["sets"][0]["bays"]
+    assert left["width"] == 750
+    assert left["nfb_config_submitted"] is True
+    moved = left["nfb_config"]["holes"][0]
+    assert moved["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert moved["manual_x_mm"] == 0
+    assert moved["datum_revision"] == "w800t2-rev1"
+    assert moved["datum_snapshot"] == {"width": 800, "thickness": 2}
+    assert moved["model_filename"] == _config()["holes"][0]["model_filename"]
+    assert right == original["sets"][0]["bays"][1]
+    assert layout == original
+
+    # Returning to W800 or issuing a same-width update cannot resurrect the
+    # previous operator confirmation, and Save→Reload cannot grant it.
+    returned = update_receiving_bay(changed, set_index=0, bay_index=0, width=800)
+    returned = update_receiving_bay(returned, set_index=0, bay_index=0, width=800)
+    assert returned["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    project = write_project(tmp_path / "changed-bay.p6fold", _payload(returned))
+    reopened = read_project(project)["snapshot"]["receiving_layout"]["sets"][0]["bays"]
+    assert reopened[0]["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert reopened[0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+    assert reopened[1] == original["sets"][0]["bays"][1]
+
+
+def test_receiving_bay_width_and_new_nfb_config_cannot_smuggle_stale_confirmed_x():
+    layout = _layout()
+    # Same operation changing geometry and installing a legacy W800-confirmed
+    # configuration must not escape the invalidation gate.
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=0, width=750,
+        nfb_config_submitted=True, nfb_config=_config(x=0),
+    )
+    hole = layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert hole["manual_x_mm"] == 0
+
+    # No physical W change: a normal fresh, explicitly submitted NFB config
+    # remains CONFIRMED, so the guard does not block unrelated edits.
+    stable = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=_config(x=8),
+    )
+    assert stable["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+    for state in ("NONE", "UNVERIFIED_BASIS", "RECONFIRM_REQUIRED"):
+        config = _config(x=0, state=state)
+        fresh = update_receiving_bay(
+            stable, set_index=0, bay_index=0,
+            width=780, nfb_config_submitted=True, nfb_config=config,
+        )
+        assert fresh["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == state
