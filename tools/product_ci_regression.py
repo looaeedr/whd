@@ -405,7 +405,11 @@ PYTEST_PATHS = (
     "tests/test_manual_r7_custom_and_finite_guard_20261024.py",
     # R5 #72/#74/#75/#78/#79 source-verified regressions.
     "tests/test_manual_r5_source_numeric_holes_20261024.py",
-    # R6 saved structure locks, conflicting partial widths, and EndCap key bounds.
+    # R5 #80/#85/#86/#88/#89 Set/Bay, source frame, and editor contracts.
+    "tests/test_manual_r5_second_source_guards_20261024.py",
+    # R5 #92/#94/#95 CADCraft and Door/Divider numeric source contract.
+    "tests/test_manual_r5_panels_cadcraft_guards_20261024.py",
+    # R6 persisted lock, three-piece explicit dimensions and EndCap bounds.
     "tests/test_manual_r6_structure_reconciliation_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.

@@ -9,6 +9,7 @@ span from the actual resolved part rather than freezing sample H=1098/696.
 from __future__ import annotations
 
 from hashlib import sha256
+import math
 from pathlib import Path
 
 from ezdxf import bbox
@@ -64,6 +65,15 @@ def receiving_frame_source(role: str, *, material_width: float, span: float,
                            source_path: Path | None = None):
     if role not in ("left", "right", "top"):
         raise ValueError("RECEIVING_FRAME_SOURCE_IS_NOT_AN_INNER_FRAME")
+    # Physical requested dimensions must be valid before opening DXF source.
+    if (isinstance(material_width, bool) or isinstance(span, bool)):
+        raise ValueError("RECEIVING_FRAME_SOURCE_DIMENSIONS_INVALID")
+    try:
+        width, target_span = float(material_width), float(span)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("RECEIVING_FRAME_SOURCE_DIMENSIONS_INVALID") from exc
+    if not math.isfinite(width) or not math.isfinite(target_span) or width <= 0 or target_span <= 0:
+        raise ValueError("RECEIVING_FRAME_SOURCE_DIMENSIONS_INVALID")
     path = Path(source_path or frame_source_file())
     if not path.is_file():
         raise FileNotFoundError(f"受電箱框專用基準檔不存在：{path}")
@@ -72,7 +82,7 @@ def receiving_frame_source(role: str, *, material_width: float, span: float,
         raise ValueError("RECEIVING_FRAME_SOURCE_UNVERIFIED")
     msp = doc.modelspace()
     tag, (sample_width, sample_span), (x0, y0), rotate, outline = _reference_record(msp, role=role)
-    width, span = float(material_width), float(span)
+    width, span = width, target_span
     if abs(width-sample_width) > TOL:
         raise ValueError(f"RECEIVING_FRAME_SOURCE_{tag}_WIDTH_MISMATCH")
     if span <= 110.0:
