@@ -134,6 +134,50 @@ def test_swt12_current_nfb_staging_does_not_change_original_vault_family():
     assert after == original
 
 
+
+def test_swt12_actual_workspace_inner_door_csv_confirm_preserves_other_physical_owners():
+    """A confirmed original-editor hole belongs to the inner panel only."""
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+
+    state = _w800()
+    panel = policy.derive_inner_door_panels(state)[0]
+    state.update({
+        "active_mode": "quantity",
+        "existing_parts": [
+            "box_body", "head", "tail", "door", "base_plate",
+            panel.stable_id,
+        ],
+        "active_part": panel.stable_id,
+    })
+    original_geometry = _physical_baseline(state)
+    workspace = Phase6DesignerWorkspace.from_snapshot(state)
+    before = workspace.part_features_snapshot()
+    staged = editor_nfb_features_from_csv(state, {
+        "layers": 1,
+        "layer_heights_mm": [550.0, 800.0],
+        "models": [numeric_model_ref("士林", "2P400"), ""],
+    })
+    assert len(staged) == 1
+    assert dict(staged[0].source_params)["placement"] == "native_editor_initial"
+    assert "absolute_x_mm" not in dict(staged[0].source_params)
+
+    baseline_inner = build_inner_door_panel_render_data(panel)
+    confirmed_inner = build_inner_door_panel_render_data(panel, features=staged)
+    assert confirmed_inner.metadata["inner_door_hole_feature_count"] == 1
+    assert tuple(confirmed_inner.fold_guides) == tuple(baseline_inner.fold_guides)
+    assert tuple(confirmed_inner.scene.primitives) != tuple(baseline_inner.scene.primitives)
+
+    workspace.stash_features(panel.stable_id, staged)
+    assert workspace.features_for(panel.stable_id) == list(staged)
+    saved = workspace.part_features_snapshot()
+    for owner in ("box_body", "head", "tail", "door", "base_plate"):
+        assert saved.get(owner, []) == before.get(owner, [])
+        assert workspace.features_for(owner) == before.get(owner, [])
+    assert _physical_baseline(state) == original_geometry
+    assert all(k == panel.stable_id or saved[k] == before.get(k, [])
+               for k in saved)
+
+
 @pytest.mark.parametrize("thickness", [1.0, 1.5, 2.0, 3.0])
 def test_swt12_last_22_mating_flange_and_46_plus_2t_formed_occupation(thickness):
     from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
