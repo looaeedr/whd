@@ -73,3 +73,47 @@ def test_r6_complete_divider_profiles_ignore_non_authoritative_bad_material_boun
         part("box_body:divider:mid", x, y),
         SimpleNamespace(bounds=(0.0, 0.0)),
     ) == (x, y)
+
+
+def test_r6_side_fw_mapped_triangle_index_cannot_exceed_world_mesh_rows():
+    from phase6_manufacturing_geometry import _phase6_expand_box_body_fw_world_mid
+
+    triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
+    physical_rows = (triangle,)
+    piece = SimpleNamespace(
+        role="left_side", fold_profile=(
+            SimpleNamespace(length=10., phase6_key="fw_left", formed_length=20., core=None),
+            SimpleNamespace(length=100., phase6_key="d_left", formed_length=None, core="D"),
+        ),
+    )
+    mapped = (
+        SimpleNamespace(flat=((12., 0.), (13., 0.), (12., 1.))),
+        SimpleNamespace(flat=((2., 0.), (3., 0.), (2., 1.))),
+    )
+    # Only mapped index 1 belongs to the FW; physical world has index 0.
+    # Missing physical triangles are never synthesized or indexed out of range.
+    assert _phase6_expand_box_body_fw_world_mid(
+        piece, mapped, physical_rows, sheet_thickness=2.,
+    ) == physical_rows
+
+
+def test_r6_multistage_terminal_world_mapping_cannot_index_missing_triangle():
+    from phase6_manufacturing_geometry import _phase6_shift_multistage_terminal_fold_world_mid
+
+    triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
+    physical_rows = (triangle,)
+    piece = SimpleNamespace(
+        role="right_side", fold_profile=(
+            SimpleNamespace(length=10., formed_length=12., phase6_key="zr1", core=None),
+            SimpleNamespace(length=10., formed_length=None, phase6_key="zr2", core=None),
+            SimpleNamespace(length=10., formed_length=None, phase6_key="fw_right", core=None),
+            SimpleNamespace(length=100., formed_length=None, phase6_key="d_right", core="D"),
+        ),
+    )
+    mapped = (
+        SimpleNamespace(flat=((20., 0.), (21., 0.), (20., 1.))),
+        SimpleNamespace(flat=((2., 0.), (3., 0.), (2., 1.))),
+    )
+    assert _phase6_shift_multistage_terminal_fold_world_mid(
+        piece, mapped, physical_rows,
+    ) == physical_rows
