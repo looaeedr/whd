@@ -15,6 +15,10 @@ from ae_engine.door_dividers import derive_box_body_dividers
 from ae_engine.inner_door_frames import inner_door_frame_formed_occupation, derive_inner_door_frames
 from ae_engine.inner_door_panels import InnerDoorPanelPart, derive_inner_door_panel
 from phase6_custom_parts import custom_part_only_change
+from types import SimpleNamespace
+from gui_modules.application.fold_designer_manufacturing_projection import (
+    _read_live_receiving_snapshot, _query_fold_designer_render_data,
+)
 from phase6_box_body_structure import (
     BoxBodyStructureType, reconcile_box_body_structure_for_total_w_change,
 )
@@ -126,3 +130,15 @@ def test_r4_62_dividers_and_inner_door_frames_do_not_make_nan_geometry():
 def test_r4_62_still_derives_true_frame_web_without_bend_compensation():
     assert inner_door_frame_formed_occupation(2.0) == 50.0
     assert inner_door_frame_formed_occupation(1.5) == 49.0
+
+
+def test_r4_63_live_fold_designer_app_owns_receiving_authorization():
+    live = {"model": "戶外箱", "w": 600., "h": 800., "d": 250., "t": 1.5}
+    host = SimpleNamespace(
+        fold_designer_app=SimpleNamespace(_phase6_input_snapshot=live),
+        _phase6_input_snapshot={"model": "受電箱", "w": 800., "t": 2.},
+    )
+    assert _read_live_receiving_snapshot(host) is live
+    with pytest.raises(ValueError, match="BASE_FIXING_PLATE"):
+        _query_fold_designer_render_data(
+            host, "base_plate:fixing_plate:unknown", {})
