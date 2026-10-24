@@ -168,6 +168,28 @@ def _submitted_csv_holes(snapshot):
     if type(submitted) is not bool:
         raise ValueError("NFB_COMMITTED_CSV_SUBMISSION_FACT_INVALID")
     if not submitted:
+        # This is a projected root alias, not the persisted Set/Bay owner.
+        # If the currently selected physical Bay remains submitted, a stale
+        # false/missing root field must NOT erase its current NFB CUTTING.
+        # Other nonselected Bays may still be submitted independently.
+        selector = snapshot.get("_receiving_runtime_selection")
+        layout = snapshot.get("receiving_layout")
+        if isinstance(selector, Mapping) and isinstance(layout, Mapping):
+            sets = layout.get("sets")
+            si, bi = selector.get("set_index"), selector.get("bay_index")
+            if (isinstance(sets, (tuple, list))
+                    and type(si) is int and 0 <= si < len(sets)
+                    and isinstance(sets[si], Mapping)
+                    and sets[si].get("stable_id") == selector.get("set_id")):
+                bays = sets[si].get("bays")
+                if (isinstance(bays, (tuple, list))
+                        and type(bi) is int and 0 <= bi < len(bays)
+                        and isinstance(bays[bi], Mapping)
+                        and bays[bi].get("stable_id") == selector.get("bay_id")
+                        and bays[bi].get("nfb_config_submitted") is True):
+                    raise ValueError(
+                        "NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"
+                    )
         return ()
     config = snapshot.get("nfb_config")
     if not isinstance(config, Mapping):
