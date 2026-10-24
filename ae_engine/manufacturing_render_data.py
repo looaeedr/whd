@@ -127,7 +127,13 @@ class MaterialSegment:
         import math
         if isinstance(self.length, bool):
             raise ValueError("MaterialSegment length must not be boolean")
-        value = float(self.length)
+        # Saved profiles may carry arbitrarily large JSON integers. Convert
+        # failures at this physical material boundary, not as OverflowError
+        # that escapes a GUI/project/manufacturing transaction.
+        try:
+            value = float(self.length)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("MaterialSegment length must be finite") from exc
         if not math.isfinite(value):
             raise ValueError("MaterialSegment length must be finite")
         object.__setattr__(self, "axis", str(self.axis).upper())

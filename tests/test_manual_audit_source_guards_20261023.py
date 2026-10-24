@@ -207,3 +207,28 @@ def test_r6_manual_116_valid_bend_guides_and_diagonal_filter_remain_unchanged():
         FoldGuide("x", 25., 0., 100.),
         FoldGuide("y", 10., 0., 80.),
     )
+
+
+def test_r6_manual_116_oversized_fold_profile_material_length_is_controlled_invalid():
+    """A JSON-compatible huge length cannot bypass physical material validation."""
+    from ae_engine.manufacturing_render_data import (
+        MaterialSegment, UnfoldedBlankTopology, _profile_material_segments,
+    )
+
+    with pytest.raises(ValueError, match="MaterialSegment length must be finite"):
+        MaterialSegment("X", "oversized", 10 ** 400, "saved_fold_profile")
+    with pytest.raises(ValueError, match="MaterialSegment length must be finite"):
+        _profile_material_segments(
+            "Y", (SimpleNamespace(length=10 ** 400, phase6_key="fold_1"),),
+            source="saved_fold_profile",
+        )
+    with pytest.raises(ValueError, match="MaterialSegment length must be finite"):
+        MaterialSegment("X", "malformed", None, "saved_fold_profile")
+    valid = _profile_material_segments(
+        "X", (SimpleNamespace(length=25.5, phase6_key="fold_1"),),
+        source="saved_fold_profile",
+    )
+    assert valid == (MaterialSegment("X", "fold_1", 25.5, "saved_fold_profile"),)
+    assert UnfoldedBlankTopology(
+        "source_sheet", valid, (), source="saved_fold_profile",
+    ).width == pytest.approx(25.5)
