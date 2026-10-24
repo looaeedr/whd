@@ -458,8 +458,9 @@ def test_ac52_an_unconfigured_selected_bay_does_not_inherit_another_bay_submissi
         nfb_config_submitted=False,
     )
     first, second = snapshot["receiving_layout"]["sets"][0]["bays"]
-    assert first["nfb_config_submitted"] is not True
-    assert second["nfb_config_submitted"] is True
+    # Restore Unconfigured intentionally omits this field; absence is not True.
+    assert first.get("nfb_config_submitted") is not True
+    assert second.get("nfb_config_submitted") is True
     snapshot["nfb_config_submitted"] = False
     snapshot.pop("nfb_config", None)
     snapshot["_receiving_runtime_selection"]["bay_id"] = first["stable_id"]
