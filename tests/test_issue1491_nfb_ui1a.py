@@ -196,3 +196,39 @@ def test_ac23_repeated_effective_brand_changes_preserve_reconfirm_required():
     assert second["layers"][0]["slots"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
     assert second["layers"][0]["slots"][0]["manual_x_mm"] == 0
     assert original["layers"][0]["slots"][0]["datum_revision"] == "old-world-x"
+
+
+def test_ac23_direct_model_selection_cannot_reuse_approved_old_x_datum():
+    """All editor model-selection callers share the same source invalidation."""
+    from copy import deepcopy
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    from ae_engine.receiving_nfb_ui1a_edits import (
+        editable_nfb_draft, replace_nfb_slot_model, set_nfb_manual_x,
+    )
+
+    first = numeric_model_ref("士林", "2P400")
+    second = numeric_model_ref("士林", "3P125SN")
+    options = {"士林": (first, second)}
+    original = editable_nfb_draft(new_nfb_ui1a_draft(
+        set_brand="士林", layer_count=1, model_layers=([first], ""),
+    ))
+    original = set_nfb_manual_x(original, 0, 0, 0, datum={"width": 800})
+    source = original["layers"][0]["slots"][0]
+    source["manual_x_state"] = "CONFIRMED"
+    source["datum_revision"] = "old-model-datum"
+    frozen = deepcopy(original)
+
+    direct = select_nfb_slot_model(original, 0, 0, second, catalog=options)
+    row = direct["layers"][0]["slots"][0]
+    assert row["manual_x_mm"] == 0
+    assert row["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert row["datum_snapshot"] is None
+    assert "datum_revision" not in row
+    assert direct["layers"][0]["slots"][0]["filename"] == second
+
+    wrapped = replace_nfb_slot_model(original, 0, 0, second, catalog=options)
+    assert wrapped["layers"][0]["slots"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert select_nfb_slot_model(
+        original, 0, 0, first, catalog=options,
+    )["layers"][0]["slots"][0] == source
+    assert original == frozen
