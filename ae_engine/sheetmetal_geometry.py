@@ -164,6 +164,12 @@ def line_intersection(
 
 
 def _validate_endcap(g: EndCapGeometry) -> None:
+    for value in (
+        g.total_width, g.total_depth, g.left_fold, g.right_fold,
+        g.top_first_fold, g.fw, g.bottom_fold, g.thickness,
+    ):
+        if isinstance(value, bool) or not math.isfinite(float(value)):
+            raise GeometryError("EndCap geometry dimensions must be finite numbers")
     if g.thickness <= 0:
         raise GeometryError("板厚必須大於 0")
     if g.total_width <= 0 or g.total_depth <= 0:
