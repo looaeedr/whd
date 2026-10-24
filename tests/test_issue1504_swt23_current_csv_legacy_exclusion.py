@@ -91,9 +91,12 @@ def test_swt23_current_csv_same_physical_legacy_hole_blocks_without_writing(tmp_
 
     # NFB_CSV_SOURCE is only a derived Hole Editor alias: its exact opening
     # must not become a second CUTTING hole.
-    alias = _csv_exact_native_opening(
-        snapshot, panel, source_type="NFB_CSV_SOURCE"
-    )
+    # Re-label the already source-derived EXACT SAME geometry rather than
+    # calling the V5 resolver again against the intentionally colliding
+    # legacy owner above. That earlier rejection is expected and remains
+    # a separate required assertion.
+    from dataclasses import replace
+    alias = replace(legacy, source_type="NFB_CSV_SOURCE")
     alias_source = deepcopy(snapshot)
     alias_source["part_features"][panel.stable_id] = (alias,)
     resolved = _scene(alias_source)
