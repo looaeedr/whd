@@ -474,3 +474,48 @@ def test_quantity_current_v5_untrusted_or_conflicting_width_cannot_publish_confi
     assert state["quantity"]["versions"][0]["nfb_config"]["holes"][0][
         "manual_x_state"
     ] == "CONFIRMED"
+
+
+def test_quantity_live_projection_rechecks_shared_w_against_version_x_before_render():
+    """Selected version must not export a stale confirmed X into its live Bay."""
+    from ae_engine.receiving_quantity_box import project_common_box
+
+    model = QuantityModel()
+    old = _config(x=0, filename="nfbv5:士林:2P400")
+    model.set_version_nfb_config(
+        model.selected_version_id, submitted=True, config=old,
+    )
+    snapshot = {
+        "model": "受電箱", "active_mode": "quantity", "t": 2,
+        "receiving_quantity_box": {"w": 750, "h": 1600, "d": 350},
+        "quantity": model.snapshot(),
+    }
+    untouched = deepcopy(snapshot)
+    view = project_common_box(snapshot)
+    assert snapshot == untouched
+    assert view["w"] == 750
+    projected = view["receiving_layout"]["sets"][0]["bays"][0]
+    root = view["nfb_config"]["holes"][0]
+    version = view["quantity"]["versions"][0]["nfb_config"]["holes"][0]
+    assert projected["nfb_config"]["holes"][0] == root == version
+    assert root["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert root["manual_x_mm"] == 0
+    assert root["datum_snapshot"]["width"] == 800
+    assert model.nfb_config_for_version(
+        model.selected_version_id
+    )["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+
+    # Explicitly re-confirming against today's W750 is legal and stable,
+    # without a second confirmation or a synthetic global X formula.
+    fresh = _config(x=0, filename="nfbv5:士林:2P400")
+    fresh["holes"][0]["datum_snapshot"]["width"] = 750
+    model.set_version_nfb_config(
+        model.selected_version_id, submitted=True, config=fresh,
+    )
+    new_source = {**snapshot, "quantity": model.snapshot()}
+    projected_valid = project_common_box(new_source)
+    accepted = projected_valid["receiving_layout"]["sets"][0]["bays"][0][
+        "nfb_config"
+    ]["holes"][0]
+    assert accepted["manual_x_state"] == "CONFIRMED"
+    assert accepted["manual_x_mm"] == 0
