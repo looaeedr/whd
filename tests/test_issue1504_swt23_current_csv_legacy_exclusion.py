@@ -467,3 +467,75 @@ def test_ac52_an_unconfigured_selected_bay_does_not_inherit_another_bay_submissi
     original = deepcopy(snapshot)
     assert _submitted_csv_holes(snapshot) == ()
     assert snapshot == original
+
+
+@pytest.mark.parametrize("root_fact", ("false", "missing"))
+@pytest.mark.parametrize("selection_drift", ("missing", "stale_set", "stale_bay"))
+def test_ac52_multibay_submitted_sibling_requires_resolved_physical_selection(
+    root_fact, selection_drift, tmp_path,
+):
+    """Broken physical selection cannot discard another Bay's committed NFB."""
+    from ae_engine.receiving_layout import resize_receiving_bays
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        _submitted_csv_holes, apply_committed_csv_v5_to_canonical_parts,
+    )
+
+    valid = _valid_project()
+    old_parts = _scene(valid)
+    snapshot = deepcopy(valid)
+    snapshot["receiving_layout"] = resize_receiving_bays(
+        snapshot["receiving_layout"], set_index=0, bay_count=2,
+    )
+    bays = snapshot["receiving_layout"]["sets"][0]["bays"]
+    assert len(bays) == 2
+    assert any(bay.get("nfb_config_submitted") is True for bay in bays)
+    if root_fact == "false":
+        snapshot["nfb_config_submitted"] = False
+    else:
+        snapshot.pop("nfb_config_submitted")
+    snapshot.pop("nfb_config", None)
+    if selection_drift == "missing":
+        snapshot.pop("_receiving_runtime_selection")
+    elif selection_drift == "stale_set":
+        snapshot["_receiving_runtime_selection"]["set_id"] = "unknown-set"
+    else:
+        snapshot["_receiving_runtime_selection"]["bay_id"] = "unknown-bay"
+
+    before = deepcopy(snapshot)
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_ACTIVE_BAY_SELECTION_UNRESOLVED"):
+        _submitted_csv_holes(snapshot)
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_ACTIVE_BAY_SELECTION_UNRESOLVED"):
+        apply_committed_csv_v5_to_canonical_parts(snapshot, old_parts)
+    target = tmp_path / "blocked"
+    target.mkdir()
+    with pytest.raises(ValueError):
+        _export(snapshot, old_parts, target)
+    assert not list(target.iterdir())
+    assert snapshot == before
+
+
+def test_ac52_multibay_all_truly_unconfigured_keeps_legacy_without_selector():
+    """No submitted physical Bay permits original legacy no-NFB operation."""
+    from ae_engine.receiving_layout import resize_receiving_bays
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    snapshot = _valid_project()
+    layout = resize_receiving_bays(
+        snapshot["receiving_layout"], set_index=0, bay_count=2,
+    )
+    for bay_index in range(2):
+        layout = update_receiving_bay(
+            layout, set_index=0, bay_index=bay_index,
+            nfb_config_submitted=False,
+        )
+    snapshot["receiving_layout"] = layout
+    snapshot["nfb_config_submitted"] = False
+    snapshot.pop("nfb_config", None)
+    snapshot.pop("_receiving_runtime_selection", None)
+    assert all(
+        bay.get("nfb_config_submitted") is not True
+        for bay in layout["sets"][0]["bays"]
+    )
+    before = deepcopy(snapshot)
+    assert _submitted_csv_holes(snapshot) == ()
+    assert snapshot == before
