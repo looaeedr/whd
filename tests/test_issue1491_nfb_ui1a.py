@@ -178,3 +178,21 @@ def test_ac23_brand_reselection_revokes_only_changed_effective_x_datum():
     assert changed["datum_snapshot"] is None
     assert "datum_revision" not in changed
     assert overridden["layers"][0]["slots"][1] == initial["layers"][0]["slots"][1]
+
+
+def test_ac23_repeated_effective_brand_changes_preserve_reconfirm_required():
+    from ae_engine.receiving_nfb_ui1a_edits import (
+        editable_nfb_draft, set_nfb_manual_x,
+    )
+
+    original = editable_nfb_draft(_draft())
+    original = set_nfb_manual_x(original, 0, 0, 0)
+    original["layers"][0]["slots"][0]["manual_x_state"] = "RECONFIRM_REQUIRED"
+    original["layers"][0]["slots"][0]["datum_revision"] = "old-world-x"
+    first = reconcile_set_brand(original, "東元")
+    assert first["layers"][0]["slots"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert "datum_revision" not in first["layers"][0]["slots"][0]
+    second = reconcile_set_brand(first, "士林")
+    assert second["layers"][0]["slots"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert second["layers"][0]["slots"][0]["manual_x_mm"] == 0
+    assert original["layers"][0]["slots"][0]["datum_revision"] == "old-world-x"
