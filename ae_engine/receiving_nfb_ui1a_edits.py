@@ -259,6 +259,7 @@ def nfb_x_reset_impact(before, after, layer_index):
             slot["manual_x_mm"] is not None
             or slot["manual_x_state"] != NONE
             or slot["datum_snapshot"] is not None
+            or "datum_revision" in slot
         )
         if not had_basis:
             continue
@@ -267,6 +268,7 @@ def nfb_x_reset_impact(before, after, layer_index):
             current["manual_x_mm"] is None
             and current["manual_x_state"] == NONE
             and current["datum_snapshot"] is None
+            and "datum_revision" not in current
         ):
             affected.append(slot["unit_id"])
     return NfbXResetImpact(layer_index, tuple(affected))
