@@ -428,8 +428,9 @@ def test_r4_52_sparse_current_designer_snapshot_preserves_actual_w_h_d_t_and_pro
     }
     ports = Phase6FoldDesignerComposition(app).final_scene_ports(ns)
     assert ports.operator_dimensions("box_body") == (600., 800., 250.)
-    assert "box_body" in called
-    called.clear()
+    # Current FinalScene has one shared finished-dimension adapter; the
+    # retired app callback must not be invoked by this view-only port.
+    assert called == []
     req = build_manufacturing_request(app)
     assert (req.input_snapshot["w"], req.input_snapshot["h"],
             req.input_snapshot["d"], req.input_snapshot["t"]) == (600., 800., 250., 1.6)
