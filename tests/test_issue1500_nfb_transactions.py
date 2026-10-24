@@ -308,3 +308,44 @@ def test_ac34_nonboolean_operator_confirmation_never_commits_or_restores(nonbool
         submitted, set_index=0, bay_indices=(0,), confirm=lambda _: False,
     )
     assert rejected.changed is False and rejected.layout == submitted
+
+
+@pytest.mark.parametrize(("basis_field", "stale_value"), (
+    ("rotation_deg", 180),
+    ("rotation_deg", "90"),
+    ("model_filename", "different-source-model.dxf"),
+))
+def test_ac23_submitted_x_datum_must_match_recorded_model_and_rotation(
+    basis_field, stale_value,
+):
+    """A genuine ready cutting render cannot reapprove the OLD X datum."""
+    original = layout()
+    frozen = deepcopy(original)
+    submitted = config(owner="nfb:0:slot1")
+    hole = submitted["holes"][0]
+    hole["datum_snapshot"].update({
+        "rotation_deg": 90,
+        "model_filename": hole["model_filename"],
+    })
+    hole["datum_snapshot"][basis_field] = stale_value
+    with pytest.raises(ValueError, match="datum|reconfirm|confirmation"):
+        do_submit(
+            original,
+            configs={0: submitted},
+            evidences={0: evidence(original, 0)},
+        )
+    assert original == frozen
+    assert "nfb_config" not in original["sets"][0]["bays"][0]
+
+
+def test_ac23_matching_explicit_model_rotation_datum_keeps_verified_submit():
+    original = layout()
+    supplied = config(owner="nfb:0:slot1")
+    hole = supplied["holes"][0]
+    hole["datum_snapshot"].update({
+        "rotation_deg": 90,
+        "model_filename": hole["model_filename"],
+    })
+    committed = do_submit(original, configs={0: supplied}).layout
+    assert committed["sets"][0]["bays"][0]["nfb_config_submitted"] is True
+    assert committed["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
