@@ -49,6 +49,8 @@ PYTEST_PATHS = (
     "tests/test_issue1467_quantity_dxf_groups.py",
     "tests/test_issue1468_quantity_check.py",
     "tests/test_issue1501_nfb_check_quantity_gate.py",
+    # #1504 AC39: assert old full-cabinet NFB paths never bypass real partial guards.
+    "tests/test_issue1501_nfb_legacy_export_guard.py",
     "tests/test_issue1501_nfb_manifest_ui.py",
     "tests/test_issue1501_receiving_nfb_partial_ui_export.py",
     "tests/test_issue1501_highlighted_partial_dxf_dispatcher.py",
