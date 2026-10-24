@@ -56,8 +56,7 @@ class InnerDoorPanelPart:
     def __post_init__(self):
         for value in (self.width, self.height, self.thickness,
                       self.fold_left, self.fold_right, self.fold_top, self.fold_bottom):
-            if isinstance(value, bool) or not math.isfinite(float(value)):
-                raise ValueError("inner-door panel dimensions must be finite numbers")
+            _finite_inner_door_panel_mm(value)
         if self.width <= 0 or self.height <= 0:
             raise ValueError("inner-door panel dimensions must be positive")
         if self.thickness <= 0:
@@ -68,6 +67,20 @@ class InnerDoorPanelPart:
             raise ValueError("inner-door panel X core must be positive")
         if self.unfolded_height <= self.fold_bottom + self.fold_top:
             raise ValueError("inner-door panel Y core must be positive")
+
+
+def _finite_inner_door_panel_mm(value):
+    """Validate one physical inner-door source dimension before forming."""
+    message = "inner-door panel dimensions must be finite numbers"
+    if isinstance(value, bool):
+        raise ValueError(message)
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
+    if not math.isfinite(number):
+        raise ValueError(message)
+    return number
 
 
 def derive_inner_door_panel(
@@ -87,8 +100,7 @@ def derive_inner_door_panel(
     if not key:
         raise ValueError("inner-door panel cell_key must be non-empty")
     for value in (width, height, thickness, fold_left, fold_right, fold_top, fold_bottom):
-        if isinstance(value, bool) or not math.isfinite(float(value)):
-            raise ValueError("inner-door panel dimensions must be finite numbers")
+        _finite_inner_door_panel_mm(value)
     return InnerDoorPanelPart(
         stable_id=inner_door_panel_stable_id(door_id),
         inner_door_id=door_id,
