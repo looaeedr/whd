@@ -521,6 +521,167 @@ def test_quantity_live_projection_rechecks_shared_w_against_version_x_before_ren
     assert accepted["manual_x_mm"] == 0
 
 
+@pytest.mark.parametrize("malformed_state", [[], {}, ["CONFIRMED"], {"value": "CONFIRMED"}])
+def test_ac23_unhashable_saved_nfb_x_state_is_a_controlled_rejection(
+    malformed_state, tmp_path,
+):
+    """Malformed saved operator X status must not crash or authorize DXF."""
+    layout = _layout()
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    config["holes"][0]["manual_x_state"] = deepcopy(malformed_state)
+    layout["sets"][0]["bays"][0]["nfb_config_submitted"] = True
+    layout["sets"][0]["bays"][0]["nfb_config"] = config
+    original = deepcopy(layout)
+    with pytest.raises(ValueError, match="manual_x_state"):
+        normalize_receiving_layout(layout)
+    assert layout == original
+    with pytest.raises(ValueError, match="manual_x_state"):
+        write_project(tmp_path / "invalid-x-state.p6fold", _payload(layout))
+
+
+@pytest.mark.parametrize("malformed_schema", [[], {}, ["phase6-quantity-v3"]])
+def test_ac23_unhashable_quantity_schema_fails_closed(malformed_schema):
+    model = QuantityModel().snapshot()
+    model["schema"] = deepcopy(malformed_schema)
+    with pytest.raises(ValueError, match="孔型版本格式"):
+        QuantityModel.from_payload(model)
+
+
+@pytest.mark.parametrize("malformed_mode", [[], {}, ["quantity"]])
+def test_ac23_unhashable_receiving_mode_fails_closed(malformed_mode):
+    from phase6_quantity_model import normalize_quantity_snapshot
+
+    source = {"model": "受電箱", "active_mode": deepcopy(malformed_mode)}
+    before = deepcopy(source)
+    with pytest.raises(ValueError, match="箱體操作模式"):
+        normalize_quantity_snapshot(source, for_save=True)
+    assert source == before
+
+
+@pytest.mark.parametrize(("basis_key", "changed_value"), (
+    ("rotation_deg", 180),
+    ("rotation_deg", "90"),
+    ("model_filename", "nfbv5:士林:3P125SN"),
+))
+def test_ac23_explicit_saved_rotation_or_model_datum_mismatch_requires_reconfirmation(
+    tmp_path, basis_key, changed_value,
+):
+    """A named X owner proof may not survive incompatible saved model/angle."""
+    layout = _layout()
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    hole = config["holes"][0]
+    hole["datum_snapshot"] = {
+        "width": 800, "thickness": 2, "rotation_deg": 90,
+        "model_filename": "nfbv5:士林:2P400",
+    }
+    if basis_key == "rotation_deg" and isinstance(changed_value, str):
+        hole["datum_snapshot"]["rotation_deg"] = changed_value
+    else:
+        hole[basis_key] = changed_value
+    saved = deepcopy(layout)
+    saved["sets"][0]["bays"][0]["nfb_config_submitted"] = True
+    saved["sets"][0]["bays"][0]["nfb_config"] = config
+    before = deepcopy(saved)
+    normalized = normalize_receiving_layout(saved)
+    current = normalized["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert current["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert current["manual_x_mm"] == 0
+    assert current["datum_snapshot"] == hole["datum_snapshot"]
+    assert saved == before
+    path = write_project(tmp_path / "recheck-named-source.p6fold", _payload(saved))
+    reopened = read_project(path)["snapshot"]["receiving_layout"]["sets"][0]["bays"][0]
+    assert reopened["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+
+
+def test_ac23_explicit_matching_rotation_and_model_datum_keeps_confirmation():
+    layout = _layout()
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    config["holes"][0]["datum_snapshot"].update({
+        "rotation_deg": 90, "model_filename": "nfbv5:士林:2P400",
+    })
+    updated = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=config,
+    )
+    assert updated["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+
+
+@pytest.mark.parametrize(("basis_key", "bad_value"), (
+    ("rotation_deg", 180),
+    ("rotation_deg", "90"),
+    ("model_filename", "nfbv5:士林:3P125SN"),
+))
+def test_ac23_explicit_stale_model_or_angle_rechecks_without_bay_width_context(
+    basis_key, bad_value,
+):
+    """A direct saved owner record must reject a contradictory X basis too."""
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    hole = config["holes"][0]
+    hole["datum_snapshot"].update({
+        "rotation_deg": 90, "model_filename": hole["model_filename"],
+    })
+    hole["datum_snapshot"][basis_key] = bad_value
+    source = {"nfb_config_submitted": True, "nfb_config": config}
+    frozen = deepcopy(source)
+    result = normalize_nfb_saved_fields(source)
+    saved = result["nfb_config"]["holes"][0]
+    assert saved["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert saved["manual_x_mm"] == 0
+    assert saved["datum_snapshot"] == hole["datum_snapshot"]
+    assert source == frozen
+
+
+def test_ac23_matching_explicit_source_without_width_does_not_fabricate_reconfirm():
+    config = _config(x=0, filename="nfbv5:士林:2P400")
+    config["holes"][0]["datum_snapshot"].update({
+        "rotation_deg": 90,
+        "model_filename": config["holes"][0]["model_filename"],
+    })
+    row = normalize_nfb_saved_fields({
+        "nfb_config_submitted": True, "nfb_config": config,
+    })
+    assert row["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+
+
+@pytest.mark.parametrize("stale_bay", ("previous-bay", None, True))
+def test_ac23_persisted_named_bay_x_authority_must_match_real_bay_owner(
+    tmp_path, stale_bay,
+):
+    """Saved X evidence from a different Bay may not silently stay CONFIRMED."""
+    original = _layout()
+    config = _config(x=0)
+    config["holes"][0]["datum_snapshot"]["bay_id"] = stale_bay
+    injected = deepcopy(original)
+    bay = injected["sets"][0]["bays"][0]
+    bay["nfb_config_submitted"] = True
+    bay["nfb_config"] = config
+    before = deepcopy(injected)
+    projected = normalize_receiving_layout(injected)
+    current = projected["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert current["manual_x_mm"] == 0
+    assert current["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert injected == before
+    output = write_project(tmp_path / "different-bay-x.p6fold", _payload(injected))
+    reopened = read_project(output)["snapshot"]["receiving_layout"]
+    assert reopened["sets"][0]["bays"][0]["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "RECONFIRM_REQUIRED"
+
+
+def test_ac23_saved_matching_bay_identity_preserves_operator_approved_zero():
+    original = _layout()
+    actual_bay = original["sets"][0]["bays"][0]["stable_id"]
+    config = _config(x=0)
+    config["holes"][0]["datum_snapshot"]["bay_id"] = actual_bay
+    updated = update_receiving_bay(
+        original, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=config,
+    )
+    current = updated["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert current["manual_x_mm"] == 0
+    assert current["manual_x_state"] == "CONFIRMED"
+
+
 @pytest.mark.parametrize("invalid_state", [[], {"state": "CONFIRMED"}, ["NONE"]])
 def test_r6_manual_116_rejects_unhashable_saved_x_state_at_all_source_owners(invalid_state):
     """Corrupt JSON must raise the same validation error, not leak TypeError."""

@@ -18,7 +18,7 @@ from .receiving_nfb_persistence import (
 )
 from .receiving_nfb_part_readiness import (
     NfbPhysicalScope, NfbPartDecision, NfbScopeReadiness,
-    BLOCKED, derive_nfb_part_readiness,
+    BLOCKED, derive_nfb_part_readiness, _verified_physical_hole_locations,
 )
 from .receiving_nfb_dxf_source import NfbSourceInventory
 from .receiving_nfb_manufacturing_release import NfbValidatedInnerDoorRender
@@ -68,9 +68,15 @@ def _selected(layout, set_index: int, bay_indices: Sequence[int]):
     if type(set_index) is not int or not 0 <= set_index < len(normalized["sets"]):
         raise ValueError("NFB transaction requires existing Set")
     bays = normalized["sets"][set_index]["bays"]
-    targets = tuple(bay_indices)
-    if (not targets or len(targets) != len(set(targets))
-            or any(type(i) is not int or i < 0 or i >= len(bays) for i in targets)):
+    try:
+        targets = tuple(bay_indices)
+    except TypeError as exc:
+        raise ValueError("NFB transaction requires distinct real highlighted Bays") from exc
+    # Validate scalar Bay indices BEFORE hashing them: corrupted project/UI
+    # selections can carry unhashable arrays or booleans (True == 1).
+    if (not targets
+            or any(type(i) is not int or i < 0 or i >= len(bays) for i in targets)
+            or len(targets) != len(set(targets))):
         raise ValueError("NFB transaction requires distinct real highlighted Bays")
     return normalized, tuple(sorted(targets))
 
@@ -79,7 +85,15 @@ def _fact(bay):
     return normalize_nfb_saved_fields(bay)
 
 
-def _confirmed_operator_x(config):
+def _confirmed_operator_x(config, *, bay=None):
+    if bay is not None:
+        # Check the *actual* destination Bay before allowing any atomic
+        # submit/copy. Otherwise persistence can quietly demote X after the
+        # transaction already reported operator confirmation succeeded.
+        scoped = normalize_nfb_saved_fields({
+            **bay, "nfb_config_submitted": True, "nfb_config": config,
+        })
+        config = scoped["nfb_config"]
     for hole in config["holes"]:
         if hole["manual_x_state"] != "CONFIRMED":
             raise ValueError("NFB X requires operator confirmation for each physical hole")
@@ -87,6 +101,17 @@ def _confirmed_operator_x(config):
             raise ValueError("NFB X coordinate missing")
         if not hole.get("datum_revision") or not hole.get("datum_snapshot"):
             raise ValueError("NFB physical datum/version is missing")
+        snapshot = hole["datum_snapshot"]
+        if not isinstance(snapshot, Mapping):
+            raise ValueError("NFB physical datum must be a named source mapping")
+        if ("rotation_deg" in snapshot
+                and (type(snapshot["rotation_deg"]) is not int
+                     or snapshot["rotation_deg"] != hole["rotation_deg"])):
+            raise ValueError("NFB physical rotation datum requires operator reconfirmation")
+        if ("model_filename" in snapshot
+                and (not isinstance(snapshot["model_filename"], str)
+                     or snapshot["model_filename"] != hole["model_filename"])):
+            raise ValueError("NFB physical model datum requires operator reconfirmation")
 
 
 def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
@@ -96,6 +121,12 @@ def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
     a new #1497 verification. An old manufactured result never grants an
     unverified new displacement.
     """
+    # Reuse the same source-owned per-hole schema used by physical
+    # readiness: a forged typed render may contain strings, booleans,
+    # nonfinite X, malformed rows or duplicate IDs. Validate before any
+    # operator value subtraction or dictionary construction.
+    if not _verified_physical_hole_locations(door):
+        raise ValueError("NFB verified physical X/Y/rotation evidence invalid")
     witnessed = tuple(door.verified_hole_locations)
     holes = tuple(config["holes"])
     if len(witnessed) != len(holes) or not witnessed:
@@ -117,6 +148,34 @@ def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
         if (len(observed) != 5 or abs(want[1] - observed[1]) > 1e-6
                 or want[2:] != observed[2:]):
             raise ValueError("NFB configured X/Y slot/rotation differs from actual CUTTING")
+
+
+def _verify_explicit_x_datum_owner(
+    config, *, set_id: str, bay_id: str, version_id: str,
+    door: NfbValidatedInnerDoorRender,
+):
+    """A recorded per-hole X scope must match the actual machining owner.
+
+    This checks only fields the operator's original datum actually recorded.
+    A legacy snapshot with no explicit owner is not assigned a fictional ID
+    or source fingerprint. CUTTING SHA is intentionally distinguished from
+    the brand-owned CSV V5 model identity.
+    """
+    expected = {
+        "set_id": set_id,
+        "bay_id": bay_id,
+        "version_id": version_id,
+        "cutting_source_sha256": door.source_sha256,
+    }
+    for hole in config["holes"]:
+        snapshot = hole["datum_snapshot"]
+        for key, value in expected.items():
+            if key in snapshot and (
+                    not isinstance(snapshot[key], str)
+                    or snapshot[key] != value):
+                raise ValueError(
+                    "NFB X datum owner changed; operator reconfirmation required"
+                )
 
 
 def _ready(
@@ -173,7 +232,10 @@ def _apply(
         raise ValueError("NFB transaction blocked: " + ", ".join(preview.blocking_reasons))
     if confirm is None:
         raise ValueError("NFB transaction confirmation callback required")
-    if not bool(confirm(preview)):
+    decision = confirm(preview)
+    if type(decision) is not bool:
+        raise TypeError("NFB operator confirmation must return explicit boolean")
+    if not decision:
         return NfbTransactionOutcome(
             layout=deepcopy(original), preview=preview, receipt=None, changed=False,
         )
@@ -212,13 +274,18 @@ def submit_nfb_bays(
     """Explicit operator Apply of fully verified per-Bay physical NFB locations."""
     state, indices = _selected(layout, set_index, bay_indices)
     set_row = state["sets"][set_index]
-    if set(configs) != set(indices) or set(evidence) != set(indices):
+    # A bool key compares equal to integer 0/1 in Python mappings but is
+    # NOT a real selected Bay index. Check the exact owner-key type first.
+    if (not isinstance(configs, Mapping) or not isinstance(evidence, Mapping)
+            or any(type(i) is not int for i in configs)
+            or any(type(i) is not int for i in evidence)
+            or set(configs) != set(indices) or set(evidence) != set(indices)):
         raise ValueError("NFB configs/evidence must cover exactly highlighted Bays")
     plans, reports = [], []
     for bi in indices:
         config = normalize_nfb_config(configs[bi])
-        _confirmed_operator_x(config)
         bay = set_row["bays"][bi]
+        _confirmed_operator_x(config, bay=bay)
         scope, inventory, door = evidence[bi]
         if not isinstance(door, NfbValidatedInnerDoorRender):
             raise ValueError("NFB configured model has no verified manufacturing result")
@@ -230,6 +297,10 @@ def submit_nfb_bays(
                 or actual_holes != set(door.physical_hole_ids)):
             raise ValueError("NFB configured brand/model/physical-hole IDs differ from verified CUTTING")
         _verify_hole_locations(config, door)
+        _verify_explicit_x_datum_owner(
+            config, set_id=set_row["stable_id"], bay_id=bay["stable_id"],
+            version_id=version_id, door=door,
+        )
         reports.append(_ready(set_row, bay, version_id=version_id,
                               scope=scope, inventory=inventory,
                               verified_inner_door=door))
@@ -283,7 +354,7 @@ def copy_submitted_nfb_bay(
         if ({k:v for k,v in old.items() if k not in excluded}
                 != {k:v for k,v in new.items() if k not in excluded}):
             raise ValueError("NFB copy must preserve model/rotation/offset identity")
-    _confirmed_operator_x(configured)
+    _confirmed_operator_x(configured, bay=target)
     scope, inv, door = evidence
     brand = row.get("switch_brand", "士林")
     actual_models = {hole["model_filename"] for hole in configured["holes"]}
@@ -294,6 +365,10 @@ def copy_submitted_nfb_bay(
             or actual_holes != set(door.physical_hole_ids)):
         raise ValueError("NFB copied source/model/physical-hole IDs not verified for target")
     _verify_hole_locations(configured, door)
+    _verify_explicit_x_datum_owner(
+        configured, set_id=row["stable_id"], bay_id=target["stable_id"],
+        version_id=version_id, door=door,
+    )
     readiness = _ready(row,target,version_id=version_id,scope=scope,
                        inventory=inv,verified_inner_door=door)
     preview = _preview(

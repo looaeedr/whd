@@ -153,3 +153,99 @@ def test_nfb_ac05_mirror_non_quarter_angle_and_unindexed_source_all_rejected():
     assert nfb_ui1a_preview(
         start,bay_width_mm=800,upper_cell_height_mm=1100,
     )["can_manufacture"] is False
+
+
+def test_ac23_rotation_changes_invalidate_only_effectively_rotated_x_and_undo():
+    """Quarter-turn changes require fresh X datum; unaffected owners survive."""
+    from ae_engine.receiving_nfb_ui1a_edits import (
+        NfbUi1aEditSession, RECONFIRM,
+    )
+
+    original = _draft()
+    original = set_nfb_manual_x(original, 0, 0, 0,
+                                datum={"width": 800, "rotation_deg": 0})
+    original = set_nfb_manual_x(original, 0, 1, 17.5,
+                                datum={"width": 800, "rotation_deg": 0})
+    original = set_nfb_manual_x(original, 1, 0, -8.25,
+                                datum={"width": 800, "rotation_deg": 0})
+    # Explicit override whose actual angle will NOT change with the tier.
+    original = set_nfb_slot_rotation(original, 0, 1, mode=OVERRIDE, value=90)
+    for layer in original["layers"]:
+        for slot in layer["slots"]:
+            slot["manual_x_state"] = "CONFIRMED"
+            slot["datum_revision"] = "prior-authorized-source"
+    untouched = deepcopy(original)
+    session = NfbUi1aEditSession(original)
+    assert session.apply("ROTATE_TIER", set_nfb_layer_rotation, 0, 180)
+    first, second = session.current["layers"][0]["slots"]
+    assert first["manual_x_mm"] == 0
+    assert first["manual_x_state"] == RECONFIRM
+    assert first["datum_snapshot"] is None
+    assert "datum_revision" not in first
+    assert second == untouched["layers"][0]["slots"][1]
+    assert session.current["layers"][1] == untouched["layers"][1]
+    assert not nfb_ui1a_preview(
+        session.current, bay_width_mm=800, upper_cell_height_mm=1100,
+    )["can_manufacture"]
+    assert session.undo().action == "ROTATE_TIER"
+    assert session.current == untouched and not session.dirty
+    assert original == untouched
+
+
+def test_ac23_effective_rotation_noop_keeps_basis_changed_slot_invalidates():
+    from ae_engine.receiving_nfb_ui1a_edits import RECONFIRM
+
+    original = _draft()
+    original = set_nfb_manual_x(original, 0, 0, 12.5,
+                                datum={"width": 800, "rotation_deg": 0})
+    original["layers"][0]["slots"][0]["manual_x_state"] = "CONFIRMED"
+    original["layers"][0]["slots"][0]["datum_revision"] = "prior-revision"
+    frozen = deepcopy(original)
+    assert set_nfb_layer_rotation(original, 0, 0) == original
+    assert set_nfb_slot_rotation(
+        original, 0, 0, mode=OVERRIDE, value=0,
+    )["layers"][0]["slots"][0]["datum_revision"] == "prior-revision"
+    rotated = set_nfb_slot_rotation(original, 0, 0, mode=OVERRIDE, value=270)
+    slot = rotated["layers"][0]["slots"][0]
+    assert slot["manual_x_mm"] == 12.5
+    assert slot["manual_x_state"] == RECONFIRM
+    assert slot["datum_snapshot"] is None and "datum_revision" not in slot
+    assert rotated["layers"][0]["slots"][1] == frozen["layers"][0]["slots"][1]
+    same_effective = set_nfb_slot_rotation(rotated, 0, 0, mode=OVERRIDE, value=270)
+    assert same_effective == rotated
+    assert original == frozen
+
+
+def test_ac23_rotation_drops_orphaned_revision_even_without_manual_x():
+    original = _draft()
+    slot = original["layers"][0]["slots"][0]
+    assert slot["manual_x_mm"] is None
+    slot["datum_revision"] = "obsolete-source"
+    slot["datum_snapshot"] = {"width": 800}
+    changed = set_nfb_slot_rotation(original, 0, 0, mode=OVERRIDE, value=90)
+    current = changed["layers"][0]["slots"][0]
+    assert current["manual_x_mm"] is None
+    assert current["manual_x_state"] == NONE
+    assert current["datum_snapshot"] is None
+    assert "datum_revision" not in current
+    assert original["layers"][0]["slots"][0]["datum_revision"] == "obsolete-source"
+
+
+def test_ac23_second_effective_rotation_change_keeps_pending_reconfirmation():
+    """Repeat datum changes must not demote RECONFIRM_REQUIRED to UNVERIFIED."""
+    from ae_engine.receiving_nfb_ui1a_edits import RECONFIRM
+
+    original = _draft()
+    original = set_nfb_manual_x(original, 0, 0, 0)
+    original["layers"][0]["slots"][0]["manual_x_state"] = RECONFIRM
+    original["layers"][0]["slots"][0]["datum_revision"] = "stale-rev"
+    unchanged = deepcopy(original)
+    moved = set_nfb_slot_rotation(original, 0, 0, mode=OVERRIDE, value=90)
+    first = moved["layers"][0]["slots"][0]
+    assert first["manual_x_mm"] == 0
+    assert first["manual_x_state"] == RECONFIRM
+    assert first["datum_snapshot"] is None
+    assert "datum_revision" not in first
+    repeated = set_nfb_slot_rotation(moved, 0, 0, mode=OVERRIDE, value=180)
+    assert repeated["layers"][0]["slots"][0]["manual_x_state"] == RECONFIRM
+    assert original == unchanged
