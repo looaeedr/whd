@@ -37,7 +37,7 @@ class CadcraftControlClient:
     def __init__(self, port: int, *, timeout: float = 3.0):
         if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
             raise CadcraftControlError("CADCRAFT_INVALID_CONTROL_PORT")
-        if not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
             raise CadcraftControlError("CADCRAFT_INVALID_CONTROL_TIMEOUT")
         self.port = port
         self.timeout = float(timeout)

@@ -12,6 +12,8 @@ primitives, but it never owns or mutates manufacturing CUTTING/BEND/material.
 """
 from __future__ import annotations
 
+import math
+
 from dataclasses import dataclass, replace
 
 from .sheetmetal_drawing import CirclePrimitive, LinePrimitive, PolylinePrimitive, TextPrimitive
@@ -61,18 +63,22 @@ class AnnotationLayoutResult:
 
 def _text_region(text: TextPrimitive) -> AnnotationRegion:
     # Deterministic engineering-text approximation.  This is layout geometry,
-    # not manufacturing geometry.  Attachment 5 is center/center in current
-    # annotation planner; other attachments use insertion as lower-left.
+    # not manufacturing geometry.  Supports MTEXT attachment points 1..9.
     height = max(float(text.char_height), 1e-9)
     width = max(height * 0.6 * max(len(str(text.text)), 1), height * 0.6)
     x = float(text.insert.x)
     y = float(text.insert.y)
-    if int(text.attachment_point) == 5:
+    attachment = int(text.attachment_point)
+    if 1 <= attachment <= 9:
+        column = (attachment - 1) % 3
+        row = (attachment - 1) // 3
+        x0 = x - (0.0, width / 2.0, width)[column]
+        y0 = y - (height, height / 2.0, 0.0)[row]
         return AnnotationRegion(
-            x - width / 2.0,
-            y - height / 2.0,
-            x + width / 2.0,
-            y + height / 2.0,
+            x0,
+            y0,
+            x0 + width,
+            y0 + height,
             "ANNOTATION_TEXT",
         )
     return AnnotationRegion(x, y, x + width, y + height, "ANNOTATION_TEXT")
@@ -178,13 +184,14 @@ def _annotation_dimension_line_regions(
             continue
         if not isinstance(primitive, LinePrimitive):
             continue
-        if str(primitive.layer).upper() != "DIMENSION":
+        layer = str(primitive.layer).upper()
+        if layer not in {"DIMENSION", "TEXT"}:
             continue
         rows.append(_line_region(
             primitive.p1,
             primitive.p2,
             max(float(clearance), 0.0),
-            "DIMENSION",
+            "LEADER" if layer == "TEXT" else "DIMENSION",
         ))
     return tuple(rows)
 
@@ -435,14 +442,37 @@ def _quantity_text_box(text):
     """Conservative MTEXT footprint, including multiline/attachment semantics."""
     from shapely.geometry import box
     lines = str(text.text).replace("\\P", "\n").splitlines() or [""]
-    height = float(text.char_height)
+    # Stored annotation geometry is manufacturing CHECK data, never a
+    # Python boolean masquerading as a 1-mm dimension or NaN world point.
+    if isinstance(text.char_height, bool) or any(
+        isinstance(v, bool) for v in (text.insert.x, text.insert.y)
+    ):
+        raise ValueError("quantity text dimensions and insertion must be finite")
+    try:
+        height = float(text.char_height)
+        insert_x, insert_y = float(text.insert.x), float(text.insert.y)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("quantity text dimensions and insertion must be finite") from exc
+    if not all(math.isfinite(v) for v in (height, insert_x, insert_y)) or height <= 0:
+        raise ValueError("quantity text height and insertion must be finite and positive")
     width = max(max(map(len, lines)), 1) * height * 0.8
     total_height = height * (1 + 1.5 * (len(lines) - 1))
-    attachment = int(text.attachment_point)
+    if not (math.isfinite(width) and math.isfinite(total_height)):
+        raise ValueError("quantity text footprint must be finite")
+    # MTEXT attachment belongs to [1..9]; an invalid stored value should
+    # preserve the insertion datum instead of indexing outside this grid.
+    try:
+        attachment = int(text.attachment_point)
+        if isinstance(text.attachment_point, bool) or attachment != float(text.attachment_point):
+            attachment = 7
+    except (TypeError, ValueError, OverflowError):
+        attachment = 7
+    if attachment < 1 or attachment > 9:
+        attachment = 7
     column = (attachment - 1) % 3
     row = (attachment - 1) // 3
-    x = float(text.insert.x) - (0, width / 2, width)[column]
-    y = float(text.insert.y) - (total_height, total_height / 2, 0)[row]
+    x = insert_x - (0, width / 2, width)[column]
+    y = insert_y - (total_height, total_height / 2, 0)[row]
     return box(x, y, x + width, y + total_height)
 
 
@@ -510,7 +540,15 @@ def annotate_quantity_render_data(
     from .sheetmetal_drawing import DrawingScene
     if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity < 1:
         raise ValueError("quantity CHECK requires a positive integer")
-    if (not all(math.isfinite(float(v)) for v in
+    if any(isinstance(v, bool) for v in (char_height, minimum_char_height, clearance)):
+        raise ValueError("invalid readable quantity CHECK layout settings")
+    try:
+        char_height, minimum_char_height, clearance = (
+            float(v) for v in (char_height, minimum_char_height, clearance)
+        )
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("invalid readable quantity CHECK layout settings") from exc
+    if (not all(math.isfinite(v) for v in
                 (char_height, minimum_char_height, clearance))
             or minimum_char_height <= 0 or char_height < minimum_char_height
             or clearance <= 0):

@@ -66,12 +66,29 @@ def _verified_formed_ear_parts(snapshot, original_geometry, *, dimensions, sheet
         reprojection = project_receiving_bay_legacy_aliases(
             project_common_box(snapshot), set_index=0, bay_index=0,
         )
+        # Quantity's Bay projection deliberately clears the transient
+        # Set/Bay selector: it cannot be compared with a manufacturing
+        # invocation's derived selector. Reconstruct expected identity from
+        # the actual selected single-Bay graph and verify it explicitly.
+        layout = reprojection.get("receiving_layout")
+        sets = layout.get("sets") if isinstance(layout, dict) else None
+        singleton = (
+            isinstance(sets, (list, tuple)) and len(sets) == 1
+            and isinstance(sets[0].get("bays"), (list, tuple))
+            and len(sets[0]["bays"]) == 1
+        )
+        expected_selection = ({
+            "set_index": 0, "bay_index": 0,
+            "set_id": sets[0]["stable_id"],
+            "bay_id": sets[0]["bays"][0]["stable_id"],
+        } if singleton else None)
         if (not current or current.get("nfb_config_submitted") is not True
                 or current.get("nfb_config") != snapshot.get("nfb_config")
                 or reprojection.get("nfb_config") != snapshot.get("nfb_config")
                 or reprojection.get("nfb_config_submitted") is not True
-                or reprojection.get("_receiving_runtime_selection")
-                   != snapshot.get("_receiving_runtime_selection")
+                or expected_selection is None
+                or snapshot.get("_receiving_runtime_selection")
+                   != expected_selection
                 or reprojection.get("receiving_layout")
                    != snapshot.get("receiving_layout")):
             raise ValueError("EAR_FORM_MFG_QUANTITY_CURRENT_VERSION_SOURCE_DRIFT")
@@ -404,6 +421,9 @@ def save_verified_receiving_formed_fixing_plate_bundle(
                 written[matched[0]],
                 (segment for row in uv if row.side_piece_id == side
                  for segment in row.marking_segments),
+                # The same current resolved SIDE source generated the DXF.
+                # Independently verify all original + EAR MARKING lines.
+                check_scene=source.scene,
             )
         result = _atomic_commit_staged_dxfs(
             written, root, overwrite=overwrite,

@@ -41,7 +41,15 @@ def _source_center_base_config(data):
     pair = committed_receiving_nfb_depth_pair_mm(data)
     if pair is None:
         return None
-    t = float(data["t"])
+    if isinstance(data.get("t"), bool) or isinstance(data.get("w"), bool):
+        raise ValueError("RECEIVING_CENTER_SOURCE_DIMENSIONS_INVALID")
+    try:
+        t = float(data["t"])
+        box_w = float(data["w"])
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("RECEIVING_CENTER_SOURCE_DIMENSIONS_INVALID") from exc
+    if not isfinite(t) or not isfinite(box_w):
+        raise ValueError("RECEIVING_CENTER_SOURCE_DIMENSIONS_INVALID")
     if abs(t - 2.0) > 1e-6:
         # The actual CENTER folded source is certified only for T2.
         raise ValueError("RECEIVING_CENTER_SOURCE_REQUIRES_T2")
@@ -54,7 +62,6 @@ def _source_center_base_config(data):
     # original-source 20-mm offsets. The 40-mm first side fold spans from
     # blank edge to first BEND. Never copy W800's 670/772 into other widths.
     from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
-    box_w = float(data["w"])
     pitch_x = receiving_source_fixing_pitch_x_mm(
         box_outer_width_mm=box_w, box_side_thickness_mm=t,
     )
@@ -142,10 +149,18 @@ def _source_left_flat_base_config(data):
                 or spec.depth_mm is None
                 or float(spec.depth_mm) > depth + 1e-6):
             return None
-    t = float(data["t"])
+    if isinstance(data.get("t"), bool) or isinstance(data.get("w"), bool):
+        raise ValueError("RECEIVING_LEFT_SOURCE_DIMENSIONS_INVALID")
+    try:
+        t = float(data["t"])
+        box_w = float(data["w"])
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("RECEIVING_LEFT_SOURCE_DIMENSIONS_INVALID") from exc
+    if not isfinite(t) or not isfinite(box_w):
+        raise ValueError("RECEIVING_LEFT_SOURCE_DIMENSIONS_INVALID")
     # Fixed-plate T is the source T2 and independent of the cabinet skin T.
     pitch_x = receiving_source_fixing_pitch_x_mm(
-        box_outer_width_mm=float(data["w"]), box_side_thickness_mm=t,
+        box_outer_width_mm=box_w, box_side_thickness_mm=t,
     )
     source_ear_inset = 20.0  # source LEFT CUTTING EAR column to sheet edge
     blank_width = pitch_x + 2.0 * source_ear_inset
@@ -369,9 +384,11 @@ def receiving_base_plate_values(snapshot):
         raise ValueError("RECEIVING_BASE_PLATE_PATTERN_INVALID")
     values = {}
     for key in _REQUIRED[1:]:
+        if isinstance(config[key], bool):
+            raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID: " + key)
         try:
             value = float(config[key])
-        except (ValueError, TypeError) as exc:
+        except (ValueError, TypeError, OverflowError) as exc:
             raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID: " + key) from exc
         if not isfinite(value):
             raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID: " + key)
@@ -423,8 +440,11 @@ def receiving_base_plate_blank_dimensions(snapshot):
     if override is None:
         return None
     data = dict(snapshot or {})
+    # Pass the original snapshot fields to the canonical physical builder.
+    # Its _finite_float guard rejects bool/NaN/overflow before geometry.
+    # Pre-coercing here turns True into a fabricated 1-mm W/T.
     result = build_receiving_base_plate_result(
-        w=float(data["w"]), h=override["h"], t=float(data["t"]),
+        w=data["w"], h=override["h"], t=data["t"],
         shrink_top=override["base_plate_shrink_top"],
         shrink_bottom=override["base_plate_shrink_bottom"],
         shrink_left=override["base_plate_shrink_left"],

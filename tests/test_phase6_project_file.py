@@ -923,3 +923,32 @@ def test_d2_04_and_d2_05_timestamps_use_taipei_timezone(tmp_path):
     assert "+08:00]" in content
 
 
+@pytest.mark.parametrize("snapshot,fragment", [
+    ({"door_nameplate_center_datum_top": 10 ** 400}, "door_nameplate_center_datum_top"),
+    ({"door_layout_columns": [[10 ** 400, [500.0]]]}, "door layout column width"),
+    ({"door_layout_columns": [[400.0, [10 ** 400]]]}, "door layout cell height"),
+])
+def test_manual_116_r5_91_oversized_saved_door_numbers_fail_with_valueerror(
+    tmp_path, snapshot, fragment,
+):
+    """JSON-valid huge integers must never escape the Door save gate as OverflowError."""
+    from phase6_project_file import _normalize_authoritative_door_state
+    source = {"model": "金庫型", **snapshot}
+    with pytest.raises(ValueError, match=fragment):
+        _normalize_authoritative_door_state(source)
+
+    target = tmp_path / "invalid-door.p6fold"
+    with pytest.raises(ValueError, match=fragment):
+        project.write_project(target, {
+            "schema": project.PROJECT_SCHEMA_V1,
+            "snapshot": source,
+        })
+    assert not target.exists()
+    # Valid persisted dimensions retain their actual values and Door ownership.
+    valid = _normalize_authoritative_door_state({
+        "model": "金庫型",
+        "door_nameplate_center_datum_top": 85.0,
+        "door_layout_columns": [[400.0, [500.0]]],
+    })
+    assert valid["door_nameplate_center_datum_top"] == 85.0
+    assert valid["door_layout_columns"] == [[400.0, [500.0]]]

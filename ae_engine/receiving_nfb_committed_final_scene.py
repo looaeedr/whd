@@ -19,7 +19,9 @@ from .receiving_nfb_v5_configured_inner_door import (
 from .receiving_nfb_v5_live_base_preview import (
     project_csv_v5_onto_existing_assembly_parts,
 )
-from .receiving_nfb_model_identity import parse_numeric_model_ref
+from .receiving_nfb_model_identity import (
+    PREFIX, parse_numeric_model_ref, validate_stored_model_ref,
+)
 
 
 def _physical_feature_from_transport(value):
@@ -160,25 +162,118 @@ def _source_world_x_from_committed_editor_feature(
 def _submitted_csv_holes(snapshot):
     """Get canonical selected Bay's full config; no separate editor authority."""
     if (not isinstance(snapshot, Mapping)
-            or snapshot.get("model") not in ("受電箱", "RECEIVING")
-            or snapshot.get("nfb_config_submitted") is not True):
+            or snapshot.get("model") not in ("受電箱", "RECEIVING")):
+        return ()
+    submitted = snapshot.get("nfb_config_submitted", False)
+    if type(submitted) is not bool:
+        raise ValueError("NFB_COMMITTED_CSV_SUBMISSION_FACT_INVALID")
+    if not submitted:
+        # This is a projected root alias, not the persisted Set/Bay owner.
+        # If the currently selected physical Bay remains submitted, a stale
+        # false/missing root field must NOT erase its current NFB CUTTING.
+        # Other nonselected Bays may still be submitted independently.
+        layout = snapshot.get("receiving_layout")
+        # With exactly one persisted Set/Bay, the physical owner is unique.
+        # A missing or stale runtime selection must not turn that committed
+        # Bay into a legacy no-NFB manufacturing source. Do not apply this
+        # shortcut to multiple Bays: an unconfigured selected Bay can coexist
+        # with another independently committed Bay.
+        if isinstance(layout, Mapping):
+            sets = layout.get("sets")
+            if (isinstance(sets, (tuple, list)) and len(sets) == 1
+                    and isinstance(sets[0], Mapping)):
+                bays = sets[0].get("bays")
+                if (isinstance(bays, (tuple, list)) and len(bays) == 1
+                        and isinstance(bays[0], Mapping)
+                        and bays[0].get("nfb_config_submitted") is True):
+                    raise ValueError(
+                        "NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"
+                    )
+        selector = snapshot.get("_receiving_runtime_selection")
+        selection_resolved = False
+        if isinstance(selector, Mapping) and isinstance(layout, Mapping):
+            sets = layout.get("sets")
+            si, bi = selector.get("set_index"), selector.get("bay_index")
+            if (isinstance(sets, (tuple, list))
+                    and type(si) is int and 0 <= si < len(sets)
+                    and isinstance(sets[si], Mapping)
+                    and sets[si].get("stable_id") == selector.get("set_id")):
+                bays = sets[si].get("bays")
+                if (isinstance(bays, (tuple, list))
+                        and type(bi) is int and 0 <= bi < len(bays)
+                        and isinstance(bays[bi], Mapping)
+                        and bays[bi].get("stable_id") == selector.get("bay_id")):
+                    selection_resolved = True
+                    if bays[bi].get("nfb_config_submitted") is True:
+                        raise ValueError(
+                            "NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"
+                        )
+        if not selection_resolved and isinstance(layout, Mapping):
+            # On multi-Bay projects the missing/stale selection means we
+            # cannot identify WHICH physical Bay is being manufactured.
+            # A different submitted Bay must never be silently ignored.
+            # Preserve legacy output when every actual Bay is unconfigured.
+            sets = layout.get("sets")
+            if isinstance(sets, (tuple, list)) and any(
+                isinstance(a_set, Mapping)
+                and isinstance(a_set.get("bays"), (tuple, list))
+                and any(
+                    isinstance(bay, Mapping)
+                    and bay.get("nfb_config_submitted") is True
+                    for bay in a_set["bays"]
+                )
+                for a_set in sets
+            ):
+                raise ValueError(
+                    "NFB_COMMITTED_CSV_ACTIVE_BAY_SELECTION_UNRESOLVED"
+                )
         return ()
     config = snapshot.get("nfb_config")
     if not isinstance(config, Mapping):
-        return ()
+        raise ValueError("NFB_COMMITTED_CSV_SUBMITTED_CONFIG_INVALID")
     rows = config.get("holes")
     if not isinstance(rows, (tuple, list)) or not rows:
-        return ()
+        raise ValueError("NFB_COMMITTED_CSV_SUBMITTED_CONFIG_INVALID")
     # Old projects with DXF references still use their own existing path;
     # a *mixed* CSV/DXF configuration cannot silently drop physical holes.
     parsed = tuple(
         parse_numeric_model_ref(row.get("model_filename"))
         if isinstance(row, Mapping) else None for row in rows
     )
+    # The legacy DXF pathway is valid only if every row is genuinely legacy.
+    # An unparseable V5-prefixed record is a damaged CSV identity, not a
+    # licence to skip current source-owned CUTTING and manufacture a blank.
+    if any(
+        isinstance(row, Mapping)
+        and isinstance(row.get("model_filename"), str)
+        and row["model_filename"].startswith(PREFIX)
+        and identity is None
+        for row, identity in zip(rows, parsed)
+    ):
+        raise ValueError("NFB_COMMITTED_CSV_MALFORMED_V5_IDENTITY")
     if not any(parsed):
+        # A real historic DXF name may intentionally bypass numeric V5.
+        # None, a missing model, an untrusted path or other malformed value
+        # must not silently acquire that same legacy exemption.
+        for row in rows:
+            value = row.get("model_filename") if isinstance(row, Mapping) else None
+            try:
+                validate_stored_model_ref(value)
+            except ValueError as exc:
+                raise ValueError("NFB_COMMITTED_CSV_STORED_MODEL_INVALID") from exc
         return ()
     if any(p is None for p in parsed):
         raise ValueError("NFB_COMMITTED_CSV_MIXED_UNRESOLVED_SOURCE")
+    # Quantity version parent changed while an INHERIT unit still points at
+    # a different brand's saved V5 model: preserve its identity but forbid
+    # any CURRENT manufacturing source, pending explicit operator reselection.
+    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
+    stale_units = quantity_inherited_nfb_brand_conflicts(snapshot)
+    if stale_units:
+        raise ValueError(
+            "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION:" +
+            ",".join(stale_units)
+        )
     count = config.get("layer_count")
     if type(count) is not int or count not in (1, 2):
         raise ValueError("NFB_COMMITTED_CSV_INVALID_LAYER_COUNT")
@@ -191,6 +286,33 @@ def _submitted_csv_holes(snapshot):
     from .cabinet_types.policy import derive_inner_door_panels
 
     validated = normalize_nfb_config(config)
+    if snapshot.get("active_mode") == "quantity":
+        # A Quantity version is the only persistent NFB authority in this
+        # mode. The synthetic singleton Bay is a calculation projection, not
+        # a separately saved Set/Bay or a second editable NFB configuration.
+        # Resolve its *current* identity here rather than requiring a stale
+        # Set/Bay runtime selector that quantity projection correctly removes.
+        from phase6_quantity_model import QuantityModel
+        from .receiving_quantity_box import project_common_box
+        quantity_model = QuantityModel.from_payload(snapshot.get("quantity"))
+        selected_nfb = quantity_model.nfb_config_for_version(
+            quantity_model.selected_version_id
+        )
+        if (selected_nfb.get("nfb_config_submitted") is not True
+                or selected_nfb.get("nfb_config") != config):
+            raise ValueError("NFB_COMMITTED_CSV_QUANTITY_VERSION_IDENTITY_DRIFT")
+        snapshot = project_common_box(snapshot)
+        layout = snapshot["receiving_layout"]
+        single_set = layout["sets"]
+        if len(single_set) != 1 or len(single_set[0]["bays"]) != 1:
+            raise ValueError("NFB_COMMITTED_CSV_QUANTITY_SINGLETON_REQUIRED")
+        bay = single_set[0]["bays"][0]
+        selector = {
+            "set_index": 0, "bay_index": 0,
+            "set_id": single_set[0]["stable_id"],
+            "bay_id": bay["stable_id"],
+        }
+        snapshot["_receiving_runtime_selection"] = selector
     layout = snapshot.get("receiving_layout")
     selector = snapshot.get("_receiving_runtime_selection")
     if not isinstance(layout, Mapping) or not isinstance(selector, Mapping):
@@ -222,13 +344,31 @@ def _submitted_csv_holes(snapshot):
         return ()
     holes = []
     seen = set()
+    occupied_slots = set()
     for row, model in zip(validated["holes"], parsed):
         tier = row.get("layer_index", 0 if count == 1 else None)
+        unit = row.get("slot_index")
         brand = row.get("source_brand") or model[0]
         hole_id = row.get("physical_hole_id")
-        if (tier not in owners or brand != model[0]
-                or hole_id in seen):
+        # AC-24: the read-only UI marks every unit of a conflicting
+        # (layer, slot) unverified. The ORIGINAL manufacture source must
+        # reject that same conflict even if every model and world X is valid.
+        # No second stored READY or independently invented hole location.
+        if (type(tier) is not int or tier not in owners
+                or type(unit) is not int or unit < 0
+                or type(row.get("layer_count", count)) is not int
+                or row.get("layer_count", count) != count
+                or (tier, unit) in occupied_slots):
+            raise ValueError("NFB_COMMITTED_CSV_LAYER_UNIT_OWNER_INVALID")
+        occupied_slots.add((tier, unit))
+        if (brand != model[0] or hole_id in seen):
             raise ValueError("NFB_COMMITTED_CSV_OWNER_OR_MODEL_MISMATCH")
+        # A Bay width/physical datum change explicitly invalidates its old
+        # confirmed X. An old CSV Hole Editor alias may still have a matching
+        # source hash, but it cannot re-confirm the now-changed Bay by itself.
+        # Preserve the editable blank; do not project old NFB holes or screws.
+        if row.get("manual_x_state") == "RECONFIRM_REQUIRED":
+            return ()
         x = row.get("manual_x_mm")
         if row.get("manual_x_state") != "CONFIRMED" or x is None:
             x = _source_world_x_from_committed_editor_feature(

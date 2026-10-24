@@ -126,12 +126,35 @@ def project_common_box(snapshot):
     result.pop("nfb_config", None)
     quantity = result.get("quantity")
     if isinstance(quantity, Mapping):
-        from phase6_quantity_model import QuantityModel
+        from phase6_quantity_model import QuantityModel, SCHEMA_V3
         model = QuantityModel.from_payload(quantity)
+        # Preserve EXACT pre-v3 common-box projection/cache semantics for all
+        # existing projects. Only an explicitly version-owned V3 brand may
+        # replace the synthetic singleton Set's in-memory NFB parent.
+        # Never write that selected brand back into the common physical box.
+        if quantity.get("schema") == SCHEMA_V3:
+            row["switch_brand"] = model.nfb_parent_brand_for_version(
+                model.selected_version_id, legacy_default=box["switch_brand"],
+            )
         submitted = model.nfb_config_for_version(model.selected_version_id)
         if submitted:
-            bay.update(deepcopy(submitted))
-            result.update(deepcopy(submitted))
+            # The selected Quantity version is the source; the synthetic Bay
+            # is only a 2D/3D projection. Never project a previously
+            # CONFIRMED W800 X into a newly W750 common physical box. Reuse
+            # the canonical Set/Bay datum checker before rendering, without
+            # inventing an X or mutating the caller's saved object.
+            from .receiving_nfb_persistence import normalize_nfb_saved_fields
+            checked = normalize_nfb_saved_fields({
+                **submitted, "width": box["w"],
+            })
+            if checked != submitted:
+                model.set_version_nfb_config(
+                    model.selected_version_id, submitted=True,
+                    config=checked["nfb_config"],
+                )
+                result["quantity"] = model.snapshot()
+            bay.update(deepcopy(checked))
+            result.update(deepcopy(checked))
     row["settings"] = normalize_set_settings(None, row["bays"])
     result["receiving_layout"] = layout
     # Quantity mode has just replaced the entire Set/Bay identity graph.
@@ -183,25 +206,45 @@ def update_common_box(snapshot, changes):
 
 def quantity_feature_errors(snapshot):
     """Re-resolve every version against the existing finished-face authority."""
-    if snapshot.get("active_mode") != "quantity":
+    if not isinstance(snapshot, Mapping) or snapshot.get("active_mode") != "quantity":
         return ()
     from phase6_quantity_model import QuantityModel
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
     from ae_engine.sheetmetal_features import (
         resolve_endcap_finished_face_guide, feature_surface_from_rect,
         feature_is_within_surface,
     )
-    box = normalize_common_box(snapshot.get(BOX_KEY)) if snapshot.get("model") == "受電箱" else {axis: positive_dimension(snapshot.get(axis), axis) for axis in ("w", "d")}
+    box = (
+        normalize_common_box(snapshot.get(BOX_KEY))
+        if (is_receiving_snapshot(snapshot) or BOX_KEY in snapshot)
+        else {axis: positive_dimension(snapshot.get(axis), axis) for axis in ("w", "d")}
+    )
+    raw_t = snapshot.get("t")
     model = QuantityModel.from_payload(snapshot.get("quantity"))
-    guide = resolve_endcap_finished_face_guide(box["w"], box["d"], float(snapshot.get("t", 2)))
-    surface = feature_surface_from_rect("endcap_finished_face", guide.min_point, guide.max_point)
+    # A missing persisted T is not permission to manufacture with a guessed
+    # 2.0-mm sheet. Fail closed for versions containing hole features while
+    # keeping this diagnostic function non-throwing on legacy snapshots.
+    surface = None
+    if raw_t is not None:
+        try:
+            t = positive_dimension(raw_t, "t")
+            guide = resolve_endcap_finished_face_guide(box["w"], box["d"], t)
+            surface = feature_surface_from_rect(
+                "endcap_finished_face", guide.min_point, guide.max_point,
+            )
+        except (TypeError, ValueError, AttributeError, OverflowError):
+            surface = None
     errors = []
     for version in model.snapshot()["versions"]:
         for role in ("head", "tail"):
             for index, feature in enumerate(version[f"{role}_features"], 1):
-                try:
-                    valid = feature_is_within_surface(surface, feature, box["w"], box["d"])
-                except (AttributeError, TypeError, ValueError, KeyError, OverflowError):
+                if surface is None:
                     valid = False
+                else:
+                    try:
+                        valid = feature_is_within_surface(surface, feature, box["w"], box["d"])
+                    except (AttributeError, TypeError, ValueError, KeyError, OverflowError):
+                        valid = False
                 if not valid:
                     errors.append(f'{version["version_id"]}／{"封頭" if role == "head" else "封尾"}／特徵 {index} 越界或失效')
     return tuple(errors)

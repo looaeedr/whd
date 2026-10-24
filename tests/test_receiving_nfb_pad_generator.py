@@ -88,3 +88,53 @@ def test_missing_and_invalid_sources_reject_instead_of_guessing():
     with pytest.raises(ValueError):
         generate_nfb_pad_patterns([good,_spec("士林","C",100,155,69,25,111)],
             plate_thickness_mm=2,tooling=rule)
+
+
+def test_r6_manual_116_huge_json_pad_tooling_and_csv_dimensions_fail_closed(tmp_path):
+    """No oversized physical source number may bypass PAD validation as OverflowError."""
+    import json
+    from dataclasses import replace
+
+    rule = read_pad_tooling_rule()
+    bad_tooling = replace(rule, tab_projection_mm=10 ** 400)
+    with pytest.raises(ValueError, match="PAD 共用加工規則需要有限正數"):
+        bad_tooling.validate()
+
+    # Exercise the actual editable tooling JSON parser, not just the dataclass.
+    path = tmp_path / "large-tooling.json"
+    path.write_text(json.dumps({
+        "schema": "RECEIVING_NFB_PAD_TOOLING_V1",
+        **vars(bad_tooling),
+    }, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="PAD 共用加工規則需要有限正數"):
+        read_pad_tooling_rule(path)
+
+    shallow = _spec("士林", "SHALLOW", 75, 130, 68, 25, 111)
+    deep = _spec("士林", "DEEP", 140, 257, 107, 44, 194)
+    with pytest.raises(ValueError, match="PAD 板厚必須為有限正數"):
+        generate_nfb_pad_patterns(
+            [shallow, deep], plate_thickness_mm=10 ** 400, tooling=rule,
+        )
+    for key in ("width_mm", "height_mm", "depth_mm"):
+        damaged = SimpleNamespace(**{**vars(shallow), key: 10 ** 400})
+        with pytest.raises(ValueError, match="PAD 所選 NFB 寬高深不合法"):
+            generate_nfb_pad_patterns(
+                [damaged, deep], plate_thickness_mm=2, tooling=rule,
+            )
+    for key, bad in (
+        ("screw_pitch_mm", (10 ** 400, 111)),
+        ("screw_diameter_mm", 10 ** 400),
+        ("screw_offset_x_mm", 10 ** 400),
+    ):
+        damaged = SimpleNamespace(**{**vars(shallow), key: bad})
+        with pytest.raises(ValueError, match="PAD NFB CSV 螺絲孔規格不合法"):
+            generate_nfb_pad_patterns(
+                [damaged, deep], plate_thickness_mm=2, tooling=rule,
+            )
+
+    nominal, = generate_nfb_pad_patterns(
+        [shallow, deep], plate_thickness_mm=2, tooling=rule,
+    )
+    assert (nominal.rise_mm, nominal.side_leg_blank_mm,
+            nominal.centre_web_blank_mm, nominal.blank_width_mm) == (39, 37, 71, 145)
+    assert nominal.manufacturing_ready is False

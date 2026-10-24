@@ -31,13 +31,18 @@ def test_batch_signoff_seven_require_independent_real_executed_assertions():
     matrix, rows = _rows()
     assert len(matrix["records"]) == 88
     assert matrix["counts"] == dict(Counter(r["status"] for r in rows.values()))
-    assert matrix["counts"] == {
-        "EVIDENCE_CANDIDATE_ONLY": 26,
-        "BLOCKED_1500_REAL_GUI": 17,
-        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 27,
-        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
-        "DEFERRED_PRODUCT_EVIDENCE": 4,
-    }
+    # The original seven-row signature is fixed, but subsequent fully
+    # evidenced signoffs legitimately increase the live count past 43.
+    # Derive live category totals from all 88 exact rows instead of treating
+    # the historical source-batch timestamp as a permanent upper bound.
+    assert sum(matrix["counts"].values()) == 88
+    assert matrix["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 43
+    assert matrix["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert matrix["counts"]["DEFERRED_PRODUCT_EVIDENCE"] == 4
+    assert all(
+        row["accepted"] == (row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE")
+        for row in rows.values()
+    )
     for key, name in REQUIRED.items():
         row = rows[key]
         assert row["accepted"] is True and row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
@@ -103,4 +108,15 @@ def test_unsigned_high_risk_ac_requirements_remain_blocked():
             "DEFERRED_PRODUCT_EVIDENCE",
         }
     )
-    assert sum(r["accepted"] for r in rows.values()) == 27
+    matrix, rows = _rows()
+    assert sum(r["accepted"] for r in rows.values()) == matrix["counts"][
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    ]
+    assert sum(r["accepted"] for r in rows.values()) >= 43
+    for row in rows.values():
+        if not row["accepted"]:
+            continue
+        proof = row["acceptance_evidence"]
+        assert proof["original_ac_text_unchanged"] is True, row["id"]
+        assert proof.get("factory_release") is not True, row["id"]
+        assert proof.get("human_windows_uat_claimed") is not True, row["id"]

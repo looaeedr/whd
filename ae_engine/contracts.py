@@ -256,6 +256,7 @@ class AssemblyGeometryToleranceContract:
     revision: int = 1
 
     def __post_init__(self):
+        import math
         for name in (
             "coplanar_distance_tolerance",
             "opposed_normal_residual_tolerance",
@@ -263,9 +264,12 @@ class AssemblyGeometryToleranceContract:
             "boundary_separation_tolerance",
             "polygon_robustness_epsilon",
         ):
-            value = float(getattr(self, name))
-            if value <= 0.0:
-                raise ValueError(f"{name} must be > 0")
+            raw = getattr(self, name)
+            if isinstance(raw, bool):
+                raise ValueError(f"{name} must be a finite number > 0")
+            value = float(raw)
+            if not math.isfinite(value) or value <= 0.0:
+                raise ValueError(f"{name} must be a finite number > 0")
 
 
 # Canonical production owner for assembly mating/contact numerical robustness.
@@ -478,7 +482,13 @@ class JointMarkingProductionStatus:
     def __post_init__(self):
         state = str(self.gate_state or "").strip()
         disposition = str(self.export_disposition or "").strip().upper()
-        count = int(self.production_policy_count)
+        if isinstance(self.production_policy_count, bool) or not isinstance(self.production_policy_count, int):
+            raise ValueError("production_policy_count must be an integer")
+        count = self.production_policy_count
+        # A future production-activation flag is not a generic truthy field.
+        # For example bool("false") is True and must never enable MARKING.
+        if type(self.activation_enabled) is not bool:
+            raise ValueError("activation_enabled must be boolean")
         if not state:
             raise ValueError("gate_state must be nonblank")
         if disposition not in {"BLOCK_EXPORT", "ALLOW_EXPORT_WITH_DIAGNOSTIC", "UNRESOLVED"}:
@@ -486,7 +496,7 @@ class JointMarkingProductionStatus:
         if count < 0:
             raise ValueError("production_policy_count must be >= 0")
         object.__setattr__(self, "gate_state", state)
-        object.__setattr__(self, "activation_enabled", bool(self.activation_enabled))
+        object.__setattr__(self, "activation_enabled", self.activation_enabled)
         object.__setattr__(self, "export_disposition", disposition)
         object.__setattr__(self, "production_policy_count", count)
 

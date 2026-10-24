@@ -1047,3 +1047,61 @@ def test_issue1817_real_default_intent_joints_allow_tail_reuse_but_custom_joints
     unknown[0]["target_part"] = "some_other_bay"
     assert not _receiving_default_local_joints_only(unknown)
     assert real_suffix_key(initial, unknown) != real_suffix_key(appended, unknown)
+
+def test_r4_66_real_bay_preview_cache_invalidates_when_live_custom_part_metadata_changes(monkeypatch):
+    """The per-Bay real cache key must include unsaved live custom sheet edits.
+
+    The saved input snapshot can be stale; real temporary Bay manufacturing
+    uses workspace.shared_snapshot().custom_parts instead.
+    """
+    from types import SimpleNamespace
+    from copy import deepcopy
+    import pytest
+    import phase6_fold_profiles
+    import phase6_sync_envelope
+    from ae_engine.cabinet_types import receiving
+    from gui_modules.application.fold_designer_composition_receiving import (
+        receiving_bay_preview_request,
+    )
+    canonical = receiving.apply_family_defaults({"t": 2.})
+    canonical.update(model="受電箱", active_mode="set_bay", receiving_layout=_layout(2))
+    canonical.pop("custom_parts", None)
+    custom = {"next_id": 2, "items": {"custom:1": {
+        "display_name": "支架", "fold_axis": "X",
+        "transverse_length": 300., "per_box_count": 1,
+    }}}
+    workspace = SimpleNamespace(
+        available_parts=("box_body", "custom:1"),
+        shared_snapshot=lambda: {"custom_parts": deepcopy(custom)},
+        part_profiles_snapshot=lambda: {},
+        part_features_snapshot=lambda: {},
+        part_face_features_snapshot=lambda: {},
+    )
+    app = SimpleNamespace(
+        _phase6_input_snapshot=canonical, _settings_values={},
+        designer_workspace=workspace, _phase6_corner_state={},
+        state=SimpleNamespace(profiles_vault={"箱身": ()}),
+    )
+    owner = SimpleNamespace(app=app, _receiving_bay_preview_cache={})
+    captured = []
+    original = phase6_sync_envelope.stable_fingerprint
+    def record_signature(payload):
+        captured.append(payload)
+        return original(payload)
+    monkeypatch.setattr(phase6_sync_envelope, "stable_fingerprint", record_signature)
+    def abort_after_cache_key(*_args, **_kwargs):
+        raise LookupError("after-cache-fingerprint")
+    monkeypatch.setattr(phase6_fold_profiles, "merge_box_body_profile", abort_after_cache_key)
+
+    with pytest.raises(LookupError, match="after-cache-fingerprint"):
+        receiving_bay_preview_request(owner, None, 0, 0)
+    custom["items"]["custom:1"]["per_box_count"] = 3
+    with pytest.raises(LookupError, match="after-cache-fingerprint"):
+        receiving_bay_preview_request(owner, None, 0, 0)
+    assert len(captured) == 2
+    assert captured[0]["snapshot"]["custom_parts"]["items"]["custom:1"]["per_box_count"] == 1
+    assert captured[1]["snapshot"]["custom_parts"]["items"]["custom:1"]["per_box_count"] == 3
+    assert original(captured[0]) != original(captured[1])
+    # Preview must never mutate either the stale saved root or the live catalog.
+    assert "custom_parts" not in app._phase6_input_snapshot
+    assert custom["items"]["custom:1"]["per_box_count"] == 3

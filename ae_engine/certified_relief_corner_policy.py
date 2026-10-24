@@ -178,6 +178,8 @@ def _family_key(value) -> str:
     text = str(value or "").strip()
     if text.upper() == "VAULT":
         return "金庫型"
+    if text.upper() == "RECEIVING":
+        return "受電箱"
     return text or "ANY"
 
 

@@ -447,25 +447,30 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
         inner_w = inner_door_body_clear_width(cell_width=cell.start_width, thickness=t) - 2.0 * formed
         if inner_w <= 0:
             raise ValueError("receiving inner-door horizontal insets leave no valid finished width")
-        included = tuple(
-            side for side in (str(v).strip().lower() for v in item.get("included_frame_sides", ("top", "left", "right")))
-            if side != "bottom"
-        )
-        try:
-            vertical = inner_door_vertical_frame_contract(data, stable_id)
-        except ValueError:
-            # A vertical frame exists only when its two physical terminal
-            # datums resolve uniquely.  Single-door/transient topologies can
-            # legitimately remove the shared Divider; fail closed for this
-            # derived frame item without aborting unrelated Door/Base Plate/
-            # panel synchronization.  The strict terminal resolver remains
-            # authoritative and marking diagnostics surface missing frames.
-            continue
-        spans = {
-            "top": inner_w,
-            "left": float(vertical["span"]),
-            "right": float(vertical["span"]),
-        }
+        raw_sides = (str(v).strip().lower() for v in item.get("included_frame_sides", ("top", "left", "right")))
+        deduped_sides: list[str] = []
+        for side in raw_sides:
+            if side == "bottom":
+                continue
+            if side not in ("top", "left", "right"):
+                raise ValueError(f"unsupported inner-door frame side: {side!r}")
+            if side not in deduped_sides:
+                deduped_sides.append(side)
+        included = tuple(deduped_sides)
+        spans: dict[str, float] = {"top": inner_w}
+        if "left" in included or "right" in included:
+            try:
+                vertical = inner_door_vertical_frame_contract(data, stable_id)
+            except ValueError:
+                # A vertical frame exists only when its two physical terminal
+                # datums resolve uniquely.  Single-door/transient topologies can
+                # legitimately remove the shared Divider; fail closed for this
+                # derived frame item without aborting unrelated Door/Base Plate/
+                # panel synchronization.  The strict terminal resolver remains
+                # authoritative and marking diagnostics surface missing frames.
+                continue
+            spans["left"] = float(vertical["span"])
+            spans["right"] = float(vertical["span"])
         result.append(InnerDoorFrameSet(
             inner_door_id=stable_id,
             spans={side: spans[side] for side in included},
@@ -528,9 +533,10 @@ def is_receiving_snapshot(snapshot) -> bool:
     """Recognize the one model Source of Truth plus the short-lived legacy split field."""
     data = dict(snapshot or {})
     model = str(data.get("model") or "").strip()
-    if model == "受電箱":
+    if model == "受電箱" or model.upper() == "RECEIVING":
         return True
-    return str(data.get("cabinet_type") or "").strip() == "受電箱"
+    cabinet_type = str(data.get("cabinet_type") or "").strip()
+    return cabinet_type == "受電箱" or cabinet_type.upper() == "RECEIVING"
 
 
 def resolve_box_body_structure_state(state=None):
@@ -637,6 +643,8 @@ def resolve_back_panel_contract(
     formed_y_offset = 0.0
 
     if mode is BackPanelMode.HALF:
+        if not bool(data.get("multi_door_enabled", False)):
+            raise ValueError("Receiving half rear panel requires authoritative Door topology")
         columns = list(data.get("door_layout_columns") or ())
         if not columns or len(columns[0]) < 2 or not list(columns[0][1] or ()):
             raise ValueError("Receiving half rear panel requires authoritative Door topology")

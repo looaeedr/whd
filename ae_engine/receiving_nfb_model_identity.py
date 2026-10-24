@@ -41,8 +41,10 @@ def validate_stored_model_ref(value: object) -> str:
         if parse_numeric_model_ref(value) is None:
             raise ValueError("NFB V5 廠牌／型號識別不合法")
         return value
-    if (len(value) <= 4 or not value.lower().endswith(".dxf")
-            or any(ch in value for ch in ("/", "\\", "\x00"))):
+    if (value != value.strip() or len(value) <= 4
+            or not value.lower().endswith(".dxf")
+            or not value[:-4].strip()
+            or any(ch in value for ch in (":", "/", "\\", "\x00"))):
         raise ValueError("NFB 舊型號必須為合法 DXF 檔名")
     return value
 
@@ -50,7 +52,8 @@ def validate_stored_model_ref(value: object) -> str:
 def numeric_model_ref(brand: str, model: str) -> str:
     """Generate only currently indexed V5 identities for GUI selection."""
     if (brand not in BRANDS or not isinstance(model, str)
-            or not model or ":" in model or "/" in model or "\\" in model):
+            or not model or model != model.strip()
+            or any(ch in model for ch in (":", "/", "\\", "\x00"))):
         raise ValueError("NFB V5 型號不合法")
     if model_spec(brand, model) is None:
         raise ValueError("NFB V5 型號不在選定廠牌 CSV")
@@ -64,8 +67,10 @@ def numeric_model_refs(brand: str) -> tuple[str, ...]:
 
 
 def display_model_ref(value: str) -> str:
-    parsed = parse_numeric_model_ref(value)
-    if parsed is not None:
+    if isinstance(value, str) and value.startswith(PREFIX):
+        parsed = parse_numeric_model_ref(value)
+        if parsed is None:
+            raise ValueError("NFB V5 廠牌／型號識別不合法")
         return parsed[1]
     from .receiving_switch_model_catalog import display_model
     return display_model(value)

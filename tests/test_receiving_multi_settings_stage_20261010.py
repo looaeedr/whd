@@ -434,6 +434,8 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
         create_candidate, duplicate_candidate, delete_candidate,
         candidates_for,
     )
+    from ae_engine.sheetmetal_feature_core import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
 
     root = tk.Tk()
     root.geometry("800x600+0+0")
@@ -447,7 +449,13 @@ def test_compact_candidates_and_set_controls_use_original_combobox():
             calls.append(("edit", role, version_id))
             if version_id is None:
                 library["value"], created = create_candidate(
-                    library["value"], role, [{"unit": role}]
+                    library["value"], role, [
+                        CircleFeature(
+                            diameter=10.0,
+                            anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                            offset=Vec2(0.0, 0.0),
+                        )
+                    ]
                 )
                 on_saved(created)
             else:

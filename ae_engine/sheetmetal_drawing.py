@@ -32,6 +32,7 @@ class PolylinePrimitive:
     layer: str
     closed: bool = False
     color: int | None = None
+    semantic_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -76,12 +77,12 @@ class DrawingScene:
     def extend(self, primitives) -> None:
         self.primitives.extend(primitives)
 
-    def add_polyline(self, points, *, layer: str, closed: bool = False, color: int | None = None) -> None:
+    def add_polyline(self, points, *, layer: str, closed: bool = False, color: int | None = None, semantic_id: str | None = None) -> None:
         if color is None:
             color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(layer)
         self.add(PolylinePrimitive(
             tuple(p if isinstance(p, Vec2) else Vec2(float(p[0]), float(p[1])) for p in points),
-            layer, bool(closed), color,
+            layer, bool(closed), color, semantic_id,
         ))
 
     def add_line(self, p1, p2, *, layer: str, color: int | None = None) -> None:
@@ -145,10 +146,13 @@ def mirror_drawing_scene_x(scene: DrawingScene, min_x: float, max_x: float) -> D
                 source_type=primitive.source_type, source_id=primitive.source_id,
             ))
         elif isinstance(primitive, TextPrimitive):
+            attachment = primitive.attachment_point
+            if str(primitive.layer).upper() == "CHECK":
+                attachment = {1: 3, 3: 1, 4: 6, 6: 4, 7: 9, 9: 7}.get(int(attachment), attachment)
             mirrored.add(TextPrimitive(
                 text=primitive.text, insert=mirror_point_x(primitive.insert, min_x, max_x),
                 layer=primitive.layer, char_height=primitive.char_height,
-                attachment_point=primitive.attachment_point, color=primitive.color,
+                attachment_point=attachment, color=primitive.color,
                 semantic_id=primitive.semantic_id,
             ))
         else:
@@ -249,15 +253,37 @@ def resolved_features_to_primitives(features) -> tuple[DrawingPrimitive, ...]:
                 points=tuple(feature.points), layer=feature.layer, closed=True, color=color
             ))
         elif isinstance(feature, ResolvedProfile):
-            if getattr(feature, "layered_profiles", ()):
-                for layer, points, closed in feature.layered_profiles:
-                    color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(layer, 3)
-                    primitives.append(PolylinePrimitive(points=tuple(points), layer=layer, closed=closed, color=color))
-            else:
+            layers = tuple(getattr(feature, "layered_profiles", ()) or ())
+            primary = tuple(feature.points)
+            # The core ProfileFeature contract has one primary contour PLUS
+            # additional process layers. A prior branch here suppressed the
+            # primary CUTTING contour whenever a MARKING layer was present.
+            # FROM_DXF is different: its source bounds are NOT independent
+            # machining geometry; only the imported process layers are.
+            def contour_key(points):
+                pts = tuple(points)
+                return pts[:-1] if len(pts) > 1 and pts[0] == pts[-1] else pts
+
+            represented = any(
+                str(layer).upper() == str(feature.layer).upper()
+                and contour_key(points) == contour_key(primary)
+                for layer, points, _closed in layers
+            )
+            if len(primary) >= 2 and (not layers or (
+                str(feature.layer).upper() != "FROM_DXF" and not represented
+            )):
                 color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(feature.layer, 3)
                 primitives.append(PolylinePrimitive(
-                    points=tuple(feature.points), layer=feature.layer, closed=True, color=color
+                    points=primary, layer=feature.layer,
+                    closed=(len(primary) > 2), color=color
                 ))
+            for layer, points, closed in layers:
+                # A one-point guide is not a physical DXF polyline.
+                if len(points) >= 2:
+                    color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(layer, 3)
+                    primitives.append(PolylinePrimitive(
+                        points=tuple(points), layer=layer, closed=closed, color=color
+                    ))
         else:
             raise TypeError(f"Unsupported resolved feature: {type(feature)!r}")
     return tuple(primitives)
@@ -422,13 +448,21 @@ def build_endcap_check(
     finished_width: float, finished_depth: float, part_label: str,
 ) -> tuple[TextPrimitive, ...]:
     primary, secondary, bottom = _relief_strings(relief)
+    # This annotation is about unfolded material and its actual bends.
+    # finished_width/finished_depth are assembly dimensions and are not
+    # authoritative input for per-flange CUTTING and BEND sizes.
+    core_width = geometry.total_width - abs(geometry.left_fold) - abs(geometry.right_fold)
+    core_depth = (
+        geometry.total_depth - abs(geometry.top_first_fold)
+        - abs(geometry.fw) - abs(geometry.bottom_fold)
+    )
     text = (
         f"W = {_fmt(geometry.total_width)} mm\n"
         f"H = {_fmt(geometry.total_depth)} mm\n"
         f"Part: {part_label}\n"
         f"{primary}\n{secondary}\n{bottom}\n"
-        f"折彎尺寸: {_fmt(finished_width - 4*geometry.thickness)}*{_fmt(finished_depth - 3*geometry.thickness)}\n"
-        f"折彎(寬): {_fmt(abs(geometry.left_fold))} {_fmt(finished_width - 4*geometry.thickness)} {_fmt(abs(geometry.right_fold))}\n"
-        f"折彎(深): {_fmt(geometry.top_first_fold)} {_fmt(geometry.fw)} {_fmt(finished_depth - 3*geometry.thickness)} {_fmt(geometry.bottom_fold)}"
+        f"折彎尺寸: {_fmt(core_width)}*{_fmt(core_depth)}\n"
+        f"折彎(寬): {_fmt(abs(geometry.left_fold))} {_fmt(core_width)} {_fmt(abs(geometry.right_fold))}\n"
+        f"折彎(深): {_fmt(geometry.top_first_fold)} {_fmt(geometry.fw)} {_fmt(core_depth)} {_fmt(geometry.bottom_fold)}"
     )
     return (_check_text(text, geometry.total_width, geometry.total_depth),)

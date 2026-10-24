@@ -119,3 +119,97 @@ def test_ac04_ac19_fractional_mm_bad_input_cancel_and_undo_have_no_partial_mutat
     assert not session.dirty
     with pytest.raises(ValueError, match="no undo"):
         session.undo()
+
+
+@pytest.mark.parametrize("operation,args", [
+    (move_nfb_slot, (0, 0, 1)),
+    (insert_nfb_slot, (0, 1)),
+    (delete_nfb_slot, (0, 0)),
+])
+def test_ac28_q5_q6_q7_clears_obsolete_datum_revision_not_other_layer(operation, args):
+    """Old world-X revision cannot remain after affected-tier X reset."""
+    original = _with_offsets()
+    for layer in original["layers"]:
+        for slot in layer["slots"]:
+            slot["datum_revision"] = "obsolete-world-x-rev"
+    stable = deepcopy(original)
+    session = NfbUi1aEditSession(original)
+    session.apply("REBASE_TIER", operation, *args)
+    assert all(
+        "datum_revision" not in slot
+        and slot["manual_x_state"] == NONE
+        and slot["datum_snapshot"] is None
+        for slot in session.current["layers"][0]["slots"]
+    )
+    assert session.current["layers"][1] == stable["layers"][1]
+    assert session.undo().action == "REBASE_TIER"
+    assert session.current == stable and original == stable
+
+
+def test_ac28_clear_one_x_also_clears_old_revision_and_undo_restores():
+    original = _with_offsets()
+    original["layers"][0]["slots"][0]["datum_revision"] = "obsolete-world-x-rev"
+    before = deepcopy(original)
+    session = NfbUi1aEditSession(original)
+    session.apply("CLEAR_X", set_nfb_manual_x, 0, 0, None)
+    target = session.current["layers"][0]["slots"][0]
+    assert target["manual_x_mm"] is None and target["manual_x_state"] == NONE
+    assert target["datum_snapshot"] is None and "datum_revision" not in target
+    assert session.current["layers"][0]["slots"][1] == before["layers"][0]["slots"][1]
+    session.undo()
+    assert session.current == before
+
+
+def test_ac28_model_reselection_and_new_x_invalidate_old_revision():
+    original = _with_offsets()
+    original["layers"][0]["slots"][0]["datum_revision"] = "obsolete-world-x-rev"
+    baseline = deepcopy(original)
+    changed_model = replace_nfb_slot_model(
+        original, 0, 0, B, catalog={"士林": (A, B)},
+    )
+    selected = changed_model["layers"][0]["slots"][0]
+    assert selected["manual_x_mm"] == 12.5
+    assert selected["manual_x_state"] == UNVERIFIED
+    assert selected["datum_snapshot"] is None
+    assert "datum_revision" not in selected
+
+    reentered = set_nfb_manual_x(
+        original, 0, 0, 14.5, datum={"width": 800},
+    )
+    edited = reentered["layers"][0]["slots"][0]
+    assert edited["manual_x_mm"] == 14.5 and edited["manual_x_state"] == UNVERIFIED
+    assert edited["datum_snapshot"] == {"width": 800}
+    assert "datum_revision" not in edited
+    assert original == baseline
+
+    # A malformed/old unloaded draft can retain a revision even with no X.
+    # Q16 changes the model identity, so no source datum may survive.
+    empty = deepcopy(original)
+    unit = empty["layers"][0]["slots"][0]
+    unit["manual_x_mm"] = None
+    unit["manual_x_state"] = NONE
+    unit["datum_revision"] = "obsolete-without-x"
+    changed_empty = replace_nfb_slot_model(
+        empty, 0, 0, B, catalog={"士林": (A, B)},
+    )["layers"][0]["slots"][0]
+    assert changed_empty["manual_x_mm"] is None
+    assert changed_empty["datum_snapshot"] is None
+    assert "datum_revision" not in changed_empty
+
+
+def test_ac23_revision_only_affected_slot_is_counted_as_cleared():
+    """Old draft metadata-only X revisions still count as cleared basis."""
+    from ae_engine.receiving_nfb_ui1a_edits import nfb_x_reset_impact
+
+    before = _source()
+    old = before["layers"][0]["slots"][0]
+    old["datum_revision"] = "orphaned-world-x-source"
+    old_id = old["unit_id"]
+    old["manual_x_mm"] = None
+    old["manual_x_state"] = NONE
+    old["datum_snapshot"] = None
+    after = set_nfb_manual_x(before, 0, 0, None)
+    assert nfb_x_reset_impact(before, after, 0).unit_ids == (old_id,)
+    assert nfb_x_reset_impact(before, after, 0).count == 1
+    assert nfb_x_reset_impact(before, after, 1).count == 0
+    assert "datum_revision" not in after["layers"][0]["slots"][0]

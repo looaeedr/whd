@@ -11,8 +11,14 @@ from ae_engine.receiving_shared_settings import setting_value
 
 
 def paired_bay_parts(layout, *, set_index, bay_index):
+    if type(set_index) is not int or type(bay_index) is not int:
+        raise ValueError("Receiving Set/Bay indices must be integers, not bool")
     data = normalize_receiving_layout(layout)
+    if not 0 <= set_index < len(data["sets"]):
+        raise IndexError("Receiving set_index out of range")
     set_row = data["sets"][set_index]
+    if not 0 <= bay_index < len(set_row["bays"]):
+        raise IndexError("Receiving bay_index out of range")
     bay = set_row["bays"][bay_index]
     return {
         "set_id": str(set_row["stable_id"]),
@@ -30,7 +36,11 @@ def paired_bay_parts(layout, *, set_index, bay_index):
 
 
 def paired_set_parts(layout, *, set_index):
+    if type(set_index) is not int:
+        raise ValueError("Receiving set_index must be integer, not bool")
     data = normalize_receiving_layout(layout)
+    if not 0 <= set_index < len(data["sets"]):
+        raise IndexError("Receiving set_index out of range")
     return tuple(paired_bay_parts(data, set_index=set_index, bay_index=i)
                  for i in range(len(data["sets"][set_index]["bays"])))
 

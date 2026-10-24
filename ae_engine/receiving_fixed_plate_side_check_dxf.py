@@ -57,7 +57,7 @@ def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
     from .contracts import ResolvedManufacturingGeometry
     if not isinstance(geometry, ResolvedManufacturingGeometry):
         raise ValueError("EAR_SIDE_CHECK_ACTUAL_MANUFACTURING_GEOMETRY_REQUIRED")
-    if (snapshot.get("model") != "受電箱"
+    if (snapshot.get("model") not in ("受電箱", "RECEIVING")
             or snapshot.get("nfb_config_submitted") is not True
             or len(tuple(dimensions or ())) != 3
             or float(snapshot["w"]) <= 0
@@ -116,7 +116,7 @@ def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
     return uv, physical, side_parts, previews
 
 
-def _readback_marking_lines(path, expected_segments):
+def _readback_marking_lines(path, expected_segments, *, original_scene=None, check_scene=None):
     """Strict one-to-one source-world-derived MARKING line readback.
 
     Generic DXF acceptance covers total layer counts and stock geometry;
@@ -143,6 +143,63 @@ def _readback_marking_lines(path, expected_segments):
         if match is None:
             raise ValueError("EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_MISSING")
         actual.pop(match)
+    # All saved MARKING LINEs must be explained by the exact authoritative
+    # CHECK scene. This source scene copies existing SIDE marks and appends the
+    # validated EAR footprints. Round-trip against the *whole* scene rather
+    # than assuming every non-EAR line belongs to a separate original subset.
+    # An unsolicited entity absent from the scene is still rejected.
+    if check_scene is not None:
+        from .sheetmetal_drawing import LinePrimitive
+        full_expected = [
+            (float(p.p1.x), float(p.p1.y), float(p.p2.x), float(p.p2.y))
+            for p in check_scene.primitives
+            if isinstance(p, LinePrimitive) and str(p.layer).upper() == "MARKING"
+        ]
+        complete_actual = [
+            (float(e.dxf.start.x), float(e.dxf.start.y),
+             float(e.dxf.end.x), float(e.dxf.end.y))
+            for e in modelspace
+            if e.dxftype() == "LINE" and str(e.dxf.layer).upper() == "MARKING"
+        ]
+        for source_line in full_expected:
+            matched = next(
+                (i for i, line in enumerate(complete_actual)
+                 if _same_line_geometry(source_line, line, 1e-6)), None,
+            )
+            if matched is None:
+                raise ValueError("EAR_SIDE_CHECK_SAVED_SOURCE_MARKING_LINE_MISSING")
+            complete_actual.pop(matched)
+        if complete_actual:
+            raise ValueError(
+                "EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA"
+                f": actual_lines={len(full_expected)+len(complete_actual)}"
+                f" source_lines={len(full_expected)}"
+                f" remainder={complete_actual[:5]!r}"
+            )
+        return
+    # Backwards-compatible path for independent forged-extra readback tests.
+    if original_scene is not None:
+        from .sheetmetal_drawing import LinePrimitive
+        for primitive in original_scene.primitives:
+            if (not isinstance(primitive, LinePrimitive)
+                    or str(primitive.layer).upper() != "MARKING"):
+                continue
+            source_line=(
+                float(primitive.p1.x), float(primitive.p1.y),
+                float(primitive.p2.x), float(primitive.p2.y),
+            )
+            match=next(
+                (i for i, line in enumerate(actual)
+                 if _same_line_geometry(source_line, line, 1e-6)), None,
+            )
+            if match is None:
+                raise ValueError("EAR_SIDE_CHECK_SAVED_SOURCE_MARKING_LINE_MISSING")
+            actual.pop(match)
+    if actual:
+        raise ValueError(
+            "EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA"
+            f": unmatched={len(actual)} sample={actual[:5]!r}"
+        )
 
 
 def export_receiving_ear_side_check_only_dxf(
@@ -201,6 +258,8 @@ def export_receiving_ear_side_check_only_dxf(
             _readback_marking_lines(
                 staged_path,
                 (segment for row in by_side[side] for segment in row.marking_segments),
+                original_scene=original.scene,
+                check_scene=previews[side],
             )
             staged[side] = staged_path
         committed = _atomic_commit_staged_dxfs(

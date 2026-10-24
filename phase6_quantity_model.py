@@ -12,10 +12,12 @@ from typing import Mapping
 
 SCHEMA = "phase6-quantity-v1"
 SCHEMA_V2 = "phase6-quantity-v2"
+SCHEMA_V3 = "phase6-quantity-v3"
 QUANTITY_MODE = "quantity"
 SET_BAY_MODE = "set_bay"
 _VERSION_KEYS = {"version_id", "piece_count", "head_features", "tail_features"}
 _VERSION_KEYS_V2 = _VERSION_KEYS | {"nfb_config_submitted", "nfb_config"}
+_VERSION_KEYS_V3 = _VERSION_KEYS_V2 | {"nfb_parent_brand"}
 _PAYLOAD_KEYS = {"schema", "versions", "selected_version_id", "next_version_number"}
 _SESSION_KEYS = ("_mode_buffers", "_quantity_session", "_set_bay_session", "_quantitySession", "_setBaySession")
 _ID_PATTERN = re.compile(r"quantity-v([1-9][0-9]*)\Z")
@@ -56,7 +58,7 @@ class QuantityModel:
         if not isinstance(payload, Mapping) or set(payload) != _PAYLOAD_KEYS:
             raise ValueError("不合法的孔型版本資料")
         schema = payload["schema"]
-        if schema not in {SCHEMA, SCHEMA_V2}:
+        if not isinstance(schema, str) or schema not in {SCHEMA, SCHEMA_V2, SCHEMA_V3}:
             raise ValueError("不支援的孔型版本格式")
         from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
         rows = payload["versions"]
@@ -66,7 +68,9 @@ class QuantityModel:
         numbers = set()
         found_submitted = False
         for row in rows:
-            valid_keys = _VERSION_KEYS_V2 if schema == SCHEMA_V2 else _VERSION_KEYS
+            valid_keys = (_VERSION_KEYS_V3 if schema == SCHEMA_V3 else
+                          _VERSION_KEYS_V2 if schema == SCHEMA_V2 else
+                          _VERSION_KEYS)
             if not isinstance(row, Mapping) or set(row) != valid_keys:
                 raise ValueError("孔型版本只能保存封頭／封尾 Features 和件數，不能保存獨立外形")
             match = _ID_PATTERN.fullmatch(str(row["version_id"]))
@@ -79,10 +83,16 @@ class QuantityModel:
                 "head_features": _features(row["head_features"]),
                 "tail_features": _features(row["tail_features"]),
             }
-            if schema == SCHEMA_V2:
+            if schema in (SCHEMA_V2, SCHEMA_V3):
                 saved = normalize_nfb_saved_fields(row)
                 item.update(saved)
                 found_submitted = found_submitted or bool(saved)
+            if schema == SCHEMA_V3:
+                from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+                parent_brand = row["nfb_parent_brand"]
+                if parent_brand not in RECEIVING_SWITCH_BRANDS:
+                    raise ValueError("數量版本 NFB 預設品牌不合法")
+                item["nfb_parent_brand"] = parent_brand
             validated.append(item)
         if schema == SCHEMA_V2 and not found_submitted:
             raise ValueError("NFB quantity v2 requires at least one submitted scope")
@@ -196,6 +206,43 @@ class QuantityModel:
             raise ValueError(f"孔型版本不存在: {version_id}")
         return deepcopy(normalize_nfb_saved_fields(row))
 
+    def nfb_parent_brand_for_version(self, version_id, *, legacy_default=None):
+        """Selected Quantity VERSION owns its NFB inheritance parent.
+
+        Pre-v3 projects fall back to their historical common-box brand.
+        Reading this value never writes a second brand inside NFBConfig.
+        """
+        row = next((r for r in self._versions if r["version_id"] == version_id), None)
+        if row is None:
+            raise ValueError(f"孔型版本不存在: {version_id}")
+        value = row.get("nfb_parent_brand", legacy_default)
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        if value not in RECEIVING_SWITCH_BRANDS:
+            raise ValueError("數量版本預設品牌來源不存在")
+        return value
+
+    def set_version_nfb_parent_brand(self, version_id, value, *, legacy_default):
+        """Atomically migrate old single-common parent into per-version owners."""
+        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        if value not in RECEIVING_SWITCH_BRANDS or legacy_default not in RECEIVING_SWITCH_BRANDS:
+            raise ValueError("數量版本預設品牌不合法")
+        target = next((r for r in self._versions if r["version_id"] == version_id), None)
+        if target is None:
+            raise ValueError(f"孔型版本不存在: {version_id}")
+        # The former common-box selector is a *migration input*, not another
+        # writable owner once a quantity version owns the NFB parent.
+        changed = False
+        for row in self._versions:
+            if "nfb_parent_brand" not in row:
+                row["nfb_parent_brand"] = legacy_default
+                changed = True
+        if target["nfb_parent_brand"] != value:
+            target["nfb_parent_brand"] = value
+            changed = True
+        if changed:
+            self._changed()
+        return changed
+
     def set_version_nfb_config(self, version_id, *, submitted, config=None):
         from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
         row = next((r for r in self._versions if r["version_id"] == version_id), None)
@@ -213,17 +260,46 @@ class QuantityModel:
 
     def snapshot(self):
         committed = any(r.get("nfb_config_submitted") is True for r in self._versions)
+        version_brand = any("nfb_parent_brand" in r for r in self._versions)
         rows = deepcopy(self._versions)
-        if committed:
+        if version_brand and any("nfb_parent_brand" not in r for r in rows):
+            raise ValueError("版本品牌必須由所有版本獨立保存")
+        if committed or version_brand:
             for row in rows:
                 if row.get("nfb_config_submitted") is not True:
                     row["nfb_config_submitted"] = False
                     row["nfb_config"] = None
         return {
-            "schema": SCHEMA_V2 if committed else SCHEMA, "versions": rows,
+            "schema": (SCHEMA_V3 if version_brand else
+                       SCHEMA_V2 if committed else SCHEMA), "versions": rows,
             "selected_version_id": self._selected,
             "next_version_number": self._next_number,
         }
+
+
+def quantity_inherited_nfb_brand_conflicts(snapshot):
+    """Derived current-version inherited-model conflicts, NEVER saved READY."""
+    if not isinstance(snapshot, Mapping) or snapshot.get("active_mode") != QUANTITY_MODE:
+        return ()
+    from ae_engine.receiving_quantity_box import normalize_common_box
+    from ae_engine.receiving_nfb_model_identity import parse_numeric_model_ref
+    model = QuantityModel.from_payload(snapshot["quantity"])
+    fields = model.nfb_config_for_version(model.selected_version_id)
+    if fields.get("nfb_config_submitted") is not True:
+        return ()
+    common = normalize_common_box(snapshot.get("receiving_quantity_box"))
+    parent = model.nfb_parent_brand_for_version(
+        model.selected_version_id, legacy_default=common["switch_brand"],
+    )
+    conflicts = []
+    for hole in fields["nfb_config"]["holes"]:
+        mode = hole.get("brand_mode", "INHERIT")
+        if mode not in ("INHERIT", "OVERRIDE"):
+            raise ValueError("NFB quantity brand override mode invalid")
+        identity = parse_numeric_model_ref(hole["model_filename"])
+        if mode == "INHERIT" and identity is not None and identity[0] != parent:
+            conflicts.append(hole["physical_hole_id"])
+    return tuple(conflicts)
 
 
 def normalize_quantity_snapshot(snapshot, *, for_save=False):
@@ -248,12 +324,19 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
             result["receiving_inner_door_candidates"]
         )
     mode = result.get("active_mode", SET_BAY_MODE if receiving else QUANTITY_MODE)
-    if mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):
+    if not isinstance(mode, str) or mode not in {QUANTITY_MODE, SET_BAY_MODE} or (not receiving and mode != QUANTITY_MODE):
         raise ValueError("不合法的箱體操作模式")
     result["active_mode"] = mode
     if for_save:
         for key in _SESSION_KEYS:
             result.pop(key, None)
+    # Capture canonical nested authority BEFORE scrubbing workspace's
+    # persistence-only aliases, otherwise quantity-version data disappears.
+    workspace_quantity = None
+    workspace_receiving_box = None
+    if isinstance(result.get("workspace"), Mapping):
+        workspace_quantity = result["workspace"].get("quantity")
+        workspace_receiving_box = result["workspace"].get("receiving_quantity_box")
     if for_save and isinstance(result.get("workspace"), Mapping):
         workspace = deepcopy(dict(result["workspace"]))
         for key in _SESSION_KEYS:
@@ -270,6 +353,10 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
         result.pop("receiving_quantity_box", None)
         return result
     payload = result.get("quantity")
+    if payload is None and workspace_quantity is not None:
+        payload = workspace_quantity
+    if receiving and result.get("receiving_quantity_box") is None and workspace_receiving_box is not None:
+        result["receiving_quantity_box"] = workspace_receiving_box
     if payload is None:
         if receiving:
             raise ValueError("受電箱數量模式必須由明確初始化的共用箱體與孔型版本建立")
@@ -283,6 +370,24 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
     if receiving:
         from ae_engine.receiving_quantity_box import BOX_KEY, normalize_common_box
         result[BOX_KEY] = normalize_common_box(result.get(BOX_KEY))
+        # Quantity versions own NFBConfig, but only the common box owns W.
+        # Reuse the very same persisted-Bay datum checker for EACH version,
+        # otherwise W800 CONFIRMED X could survive a shared W750 resize.
+        # This never guesses a new X, reassigns version identity, or grants
+        # manufacturing permission; mismatches become RECONFIRM_REQUIRED.
+        from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
+        for version in model.snapshot()["versions"]:
+            if version.get("nfb_config_submitted") is not True:
+                continue
+            checked = normalize_nfb_saved_fields({
+                **version, "width": result[BOX_KEY]["w"],
+            })
+            if checked["nfb_config"] != version["nfb_config"]:
+                model.set_version_nfb_config(
+                    version["version_id"], submitted=True,
+                    config=checked["nfb_config"],
+                )
+        result["quantity"] = model.snapshot()
         if for_save:
             result.pop("receiving_layout", None)
             result.pop("receiving_switch_layout", None)
@@ -323,11 +428,21 @@ def quantity_only_change(previous, current):
     old, new = deepcopy(dict(previous)), deepcopy(dict(current))
     changed = False
     for payload in (old, new):
-        workspace = payload.get("workspace") or {}
+        workspace = payload.get("workspace")
+        if workspace is not None and not isinstance(workspace, Mapping):
+            return False
+        workspace = workspace or {}
         if payload.get("active_mode", workspace.get("active_mode")) != QUANTITY_MODE:
             return False
+        top_q = payload.get("quantity")
+        nested_q = workspace.get("quantity")
+        if top_q is None and nested_q is None:
+            return False
         try:
-            QuantityModel.from_payload(payload.get("quantity") or workspace.get("quantity"))
+            if top_q is not None:
+                QuantityModel.from_payload(top_q)
+            if nested_q is not None:
+                QuantityModel.from_payload(nested_q)
         except (TypeError, ValueError):
             return False
     for before, after in ((old, new), (old.get("workspace") or {}, new.get("workspace") or {})):

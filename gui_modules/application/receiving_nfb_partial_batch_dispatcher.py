@@ -113,13 +113,35 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
             if manifest.scope.identity != (
                     expected.get("set_id"), expected.get("bay_id"), expected.get("version_id")):
                 raise ValueError("NFB writer Set/Bay/version ownership changed")
+            # Matching Set/Bay/version does not prove that the writer kept the
+            # same physical panel: verify the BEFORE/AFTER inner-door owner.
+            expected_inner_ids = tuple(
+                row.get("part_id") for row in expected.get("rows", ())
+                if isinstance(row, Mapping) and row.get("role") == INNER_DOOR
+                and row.get("status") == "READY"
+                and row.get("may_export") is True
+            )
+            if (len(expected_inner_ids) != 1
+                    or not isinstance(expected_inner_ids[0], str)
+                    or expected_inner_ids[0] != manifest.scope.inner_door_part_id):
+                raise ValueError("NFB writer physical inner-door ownership changed")
             manifest.require_export((manifest.scope.inner_door_part_id,), partial=True)
+            # Only the selected INNER_DOOR is written here. The live manifest
+            # may also authorize unrelated side/base parts; their eligible
+            # quantities are NOT the Q for this single emitted DXF sheet.
+            physical_ids = tuple(row.part_id for row in manifest.rows)
+            actual_door_rows = tuple(
+                row for row in manifest.rows
+                if row.part_id == manifest.scope.inner_door_part_id
+            )
             if (manifest.scope.submitted is not True
-                    or manifest.scope.inner_door_part_id not in
-                    manifest.authorized_part_ids
-                    or any(row.actual_count != 1 for row in manifest.rows
-                           if row.part_id == manifest.scope.inner_door_part_id)
-                    or manifest.actual_export_count != 1):
+                    or len(physical_ids) != len(set(physical_ids))
+                    or len(actual_door_rows) != 1
+                    or actual_door_rows[0].role != INNER_DOOR
+                    or actual_door_rows[0].status != "READY"
+                    or actual_door_rows[0].may_export is not True
+                    or type(actual_door_rows[0].actual_count) is not int
+                    or actual_door_rows[0].actual_count != 1):
                 raise ValueError("NFB partial DXF manufactured part count invalid")
             if (Path(written) != source or source.is_symlink()
                     or not source.is_file()):
@@ -145,7 +167,16 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
             report_source.write_text(json.dumps({
                 "whole_cabinet_complete": False,
                 "actual_export_count": len(staged),
-                "exported": [manifest.report() for _, _, manifest in staged],
+                # The per-Bay manifest counts every potentially eligible
+                # physical piece; this action actually publishes ONE selected
+                # inner-door DXF per Bay. Never report an eligible side/base
+                # sheet as if this partial operation manufactured it.
+                "exported": [{
+                    **manifest.report(),
+                    "eligible_physical_piece_count": manifest.actual_export_count,
+                    "actual_export_count": 1,
+                    "actually_emitted_part_ids": [manifest.scope.inner_door_part_id],
+                } for _, _, manifest in staged],
                 "not_exported_bays": held,
                 "deferred_assembly": ["PAD", "EAR_ATTACHMENT"],
             }, ensure_ascii=False, indent=2), encoding="utf-8")

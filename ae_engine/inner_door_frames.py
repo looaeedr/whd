@@ -15,6 +15,7 @@ change identity.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Mapping, Sequence
 
 from .contracts import FoldProfileSegment
@@ -41,6 +42,19 @@ _FRAME_SIGNED_CHAINS = {
 }
 
 
+def _finite_inner_door_frame_number(value: object, message: str) -> float:
+    """Fail closed on corrupt saved frame dimension values before float coercion."""
+    if isinstance(value, bool):
+        raise ValueError(message)
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
+    if not math.isfinite(number):
+        raise ValueError(message)
+    return number
+
+
 def inner_door_frame_formed_occupation(thickness: float) -> float:
     """Outside occupation of the common 46-mm frame web (NOT the mating face).
 
@@ -48,7 +62,9 @@ def inner_door_frame_formed_occupation(thickness: float) -> float:
     It lies perpendicular to the shared 46-mm web; never treat 50 mm as an
     outer-door-relative inset.  At T=2: web 46 + 2*T = 50 mm.
     """
-    t = float(thickness)
+    t = _finite_inner_door_frame_number(
+        thickness, "inner-door frame material thickness must be a finite number"
+    )
     if t <= 0.0:
         raise ValueError("inner-door frame material thickness must be positive")
     common_webs = (
@@ -193,7 +209,9 @@ def derive_inner_door_frames(
     included_sides: Sequence[str] = FRAME_SIDES,
 ) -> tuple[InnerDoorFramePart, ...]:
     door_id = _stable_inner_door_id(inner_door_id)
-    t = float(thickness)
+    t = _finite_inner_door_frame_number(
+        thickness, "inner-door frame thickness must be a finite number"
+    )
     if t <= 0:
         raise ValueError("inner-door frame thickness must be > 0")
     include = tuple(str(side).strip().lower() for side in included_sides)
@@ -209,7 +227,10 @@ def derive_inner_door_frames(
             continue
         if side not in spans:
             raise ValueError(f"missing explicit inner-door frame span: {side}")
-        span = float(spans[side])
+        raw_span = spans[side]
+        span = _finite_inner_door_frame_number(
+            raw_span, f"inner-door frame span must be finite: {side}"
+        )
         if span <= 0:
             raise ValueError(f"inner-door frame span must be > 0: {side}")
         signed = _FRAME_SIGNED_CHAINS[side]

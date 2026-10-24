@@ -15,7 +15,7 @@ VERIFY=ROOT/"docs"/"superpowers"/"verification"
 AUDIT=VERIFY/"issue1504_79_pending_ac_batch_source_audit.json"
 MATRIX=VERIFY/"issue1504_nfb_v14_ac_traceability.json"
 BATCH={"NFB-AC-48","NFB-AC-49","NFB-AC-50","SWT-AC-28"}
-FOLLOWUP={"NFB-AC-06","NFB-AC-08","NFB-AC-26","NFB-AC-33","NFB-AC-37","SWT-AC-17","SWT-AC-25","NFB-AC-04","NFB-AC-19","NFB-AC-05","NFB-AC-27","SWT-AC-06","NFB-AC-54","SWT-AC-31"}
+FOLLOWUP={"NFB-AC-06","NFB-AC-08","NFB-AC-26","NFB-AC-33","NFB-AC-37","SWT-AC-17","SWT-AC-25","NFB-AC-04","NFB-AC-19","NFB-AC-05","NFB-AC-27","SWT-AC-06","NFB-AC-54","SWT-AC-31","NFB-AC-29","SWT-AC-19","NFB-AC-01","SWT-AC-01","NFB-AC-47","NFB-AC-09","NFB-AC-24","NFB-AC-21","SWT-AC-14","NFB-AC-20","SWT-AC-13","NFB-AC-32","NFB-AC-18","NFB-AC-03","NFB-AC-15","SWT-AC-05"}
 BASELINE_GROUPS={
     "EVIDENCE_CANDIDATE_ONLY":44,
     "BLOCKED_1500_REAL_GUI":17,
@@ -23,9 +23,9 @@ BASELINE_GROUPS={
     "DEFERRED_PRODUCT_EVIDENCE":4,
 }
 AFTER_GROUPS={
-    "EVIDENCE_CANDIDATE_ONLY":26,
+    "EVIDENCE_CANDIDATE_ONLY":10,
     "BLOCKED_1500_REAL_GUI":17,
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE":27,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE":43,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC":14,
     "DEFERRED_PRODUCT_EVIDENCE":4,
 }
@@ -42,13 +42,23 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
     assert audit["source_pending_before_batch"]==len(entries)==79
     assert len({e["id"] for e in entries})==79
     assert audit["batch_signed_candidate_ids"]==sorted(BATCH)
-    assert {e["id"] for e in entries}==(
-        {k for k,v in rows.items() if not v["accepted"]}|BATCH|FOLLOWUP
-    )
+    # This audit is an immutable snapshot of the 79 unsigned ACs when
+    # the batch started. Later evidence-backed signoffs do not remove IDs
+    # from that historical snapshot or require a continually edited allowlist.
+    historical_unsigned={e["id"] for e in entries}
+    assert historical_unsigned.issubset(rows)
+    assert len(set(rows)-historical_unsigned)==audit["already_signed_before_batch"]==9
     assert sum(len(v) for v in audit["grouped_ids"].values())==79
     assert {k:len(v) for k,v in audit["grouped_ids"].items()}==BASELINE_GROUPS
-    assert matrix["counts"]==AFTER_GROUPS
-    assert sum(AFTER_GROUPS.values())==88
+    live_counts={status:sum(row["status"]==status for row in rows.values())
+                 for status in AFTER_GROUPS}
+    assert matrix["counts"]==live_counts
+    assert sum(live_counts.values())==sum(AFTER_GROUPS.values())==88
+    assert live_counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"]>=AFTER_GROUPS[
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    ]
+    assert live_counts["BLOCKED_1500_REAL_GUI"]==17
+    assert live_counts["DEFERRED_PRODUCT_EVIDENCE"]==4
     assert len({e["primary_witness"]["file"] for e in entries})==23
     assert audit["primary_file_selected_count"]==79
     assert "DOES_NOT_IMPLY_FULL_AC" in audit["signoff_boundary"]
@@ -81,10 +91,25 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
             assert entry["previous_status"] == "EVIDENCE_CANDIDATE_ONLY"
             assert row["acceptance_evidence"]["original_ac_text_unchanged"] is True
         else:
-            assert row["accepted"] is False
             assert entry["signed_by_current_batch_candidate"] is False
             assert entry["unverified_scope"], key
-            assert entry["previous_status"]==row["status"]
+            if row["accepted"]:
+                # A later source-scoped signoff must be independently audited
+                # and must not silently grant factory/Windows/UAT authority.
+                assert entry["previous_status"] in {
+                    "EVIDENCE_CANDIDATE_ONLY",
+                    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+                }, key
+                assert row["status"]=="ACCEPTED_AUTOMATED_CURRENT_SCOPE", key
+                assert row["evidence_level"]=="FULL_AC_ASSERTION_AUDITED", key
+                assert row["assertion_review_state"]=="FULL_AC_AUTOMATED_SIGNED", key
+                evidence=row["acceptance_evidence"]
+                assert evidence["original_ac_text_unchanged"] is True, key
+                assert evidence.get("factory_release") is False, key
+                assert evidence.get("human_windows_uat_claimed") is False, key
+                assert evidence.get("integrated_localx_claimed") is False, key
+            else:
+                assert entry["previous_status"]==row["status"], key
 
 def test_four_source_signoffs_require_real_exact_primary_and_negative_tests():
     rows={r["id"]:r for r in _json(MATRIX)["records"]}

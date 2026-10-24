@@ -209,7 +209,6 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         composition.final_scene_set_preview_enabled(False)
         for action in (lambda:ports["change"]("back_panel_mode", "HALF"),
                        lambda:ports["change"]("inner_door_layers", 2),
-                       lambda:ports["brand"]("東元"),
                        lambda:ports["dimensions"](800.75,1700.5,420.25,door_columns=((800.75,(1100,600.5)),))):
             if receipts and not app.preview_3d_enabled:
                 composition.final_scene_set_preview_enabled(True)
@@ -274,7 +273,7 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         print("RECEIVING_COMMON_BOX_PROFILE=" + receipt_path.read_text())
         root.update()
         box = app.designer_workspace.snapshot()["receiving_quantity_box"]
-        assert (box["back_panel_mode"],box["inner_door_layers"],box["switch_brand"]) == ("HALF",2,"東元")
+        assert (box["back_panel_mode"],box["inner_door_layers"],box["switch_brand"]) == ("HALF",2,"士林")
         assert app.designer_workspace.quantity_model.total_piece_count == 8
         win.destroy()
         # A bad unselected version blocks manufacturing, but must not lock the
@@ -296,6 +295,25 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         box = app.designer_workspace.snapshot()["receiving_quantity_box"]
         assert box["w"] == 1000
         win.destroy()
+        # The legacy Common Box brand edit is still supported for old V1/V2
+        # projects, but its inherited Shihlin V5 unit becomes stale on a
+        # Dong Yuan parent. This must invalidate preview without throwing,
+        # forging geometry or blocking a Save/repair of the physical box.
+        assert implementation._open_common_box(composition, namespace)
+        root.update()
+        brand_win = next(c for c in app.root.winfo_children()
+                         if hasattr(c, "_phase6_receiving_preview_2d"))
+        brand_ports = brand_win._phase6_receiving_settings_ports
+        brand_ports["brand"]("東元")
+        root.update()
+        brand_view = brand_win._phase6_receiving_preview_2d
+        assert not brand_view.requests
+        assert "NFB_QUANTITY_INHERITED_MODEL_NEEDS_RESELECTION" in brand_view.status.get()
+        assert app.designer_workspace.snapshot()["receiving_quantity_box"]["switch_brand"] == "東元"
+        # The following Save/Reload equality must compare the latest
+        # committed Common Box, not the pre-brand-change local snapshot.
+        box = deepcopy(app.designer_workspace.snapshot()["receiving_quantity_box"])
+        brand_win.destroy()
         path = tmp_path / "quantity-real.p6fold"
         monkeypatch.setattr(filedialog,"asksaveasfilename",lambda **kw:str(path))
         assert app.save_project_file_as()

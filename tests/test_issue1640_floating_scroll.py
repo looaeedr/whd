@@ -4,6 +4,8 @@ from tkinter import ttk
 from types import SimpleNamespace
 
 from ae_engine.receiving_hole_candidates import create_candidate, candidates_for
+from ae_engine.sheetmetal_feature_core import CircleFeature, FeatureAnchor
+from ae_engine.sheetmetal_geometry import Vec2
 from ae_engine.receiving_layout import new_receiving_layout
 from gui_modules.application import receiving_settings_preview_2d as real_module
 from gui_modules.application.receiving_scroll_view import make_scrollable_frame
@@ -49,7 +51,14 @@ def test_real_popup_reuses_one_nonmodal_toplevel_without_applying_candidate(monk
     root.update()
     calls = []
     views = []
-    saved, version = create_candidate(None, "head", [{"tag": "real"}])
+    # Real Hole Editor Feature, not the pre-contract arbitrary-dict fixture.
+    saved, version = create_candidate(None, "head", [
+        CircleFeature(
+            diameter=10.0,
+            anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=Vec2(0.0, 0.0),
+        )
+    ])
 
     class FakeView:
         def __init__(self, parent, *, tk, ttk, requests):

@@ -53,12 +53,22 @@ class Phase6PartSessionOwner:
         key = app.designer_workspace.active_part
         if not key:
             return
-        if app.designer_workspace.custom_part(key) is not None:
-            app.designer_workspace.stash_profiles(key, {axis:bridge.clone_profile(app.state.profiles.get(axis,())) for axis in ("X","Y")})
-            return
         try:
             app.bend_ui.save()
         except Exception:
+            return
+        custom_spec = app.designer_workspace.custom_part(key)
+        if custom_spec is not None:
+            profiles = {axis: bridge.clone_profile(app.state.profiles.get(axis, ())) for axis in ("X", "Y")}
+            fold_axis = str(getattr(custom_spec, "fold_axis", "X")).upper()
+            t_val = bridge._num(
+                getattr(app, "_settings_values", {}).get(
+                    "t", getattr(app, "_phase6_input_snapshot", {}).get("t", 2.0)
+                ),
+                2.0,
+            )
+            bridge.apply_outside_dimension_compensation(profiles.get(fold_axis, []), float(t_val))
+            app.designer_workspace.stash_profiles(key, profiles)
             return
         bridge._phase6_replace_mapping(app, '_phase6_box_whd', {'w': bridge.original.get_int(app.v_w.get()), 'h': bridge.original.get_int(app.v_h.get()), 'd': bridge.original.get_int(app.v_d.get())})
         if bridge._phase6_is_box_body_physical_piece_key(key):
@@ -196,6 +206,20 @@ class Phase6PartSessionOwner:
                 if geometry_changed:
                     install_profiles(reset=True)
                 app._phase6_input_snapshot["custom_parts"]=app.designer_workspace.snapshot()["custom_parts"]
+                # The custom catalog already lives in the shared Workspace.
+                # Publish the operator's metadata edit directly to that owner
+                # rather than relying on the scene/live-sync fast-path to
+                # classify a display-name-only change as geometry.
+                host = getattr(getattr(app, "_scene_query_callback", None), "__self__", None)
+                workspace_owner = getattr(host, "workspace_controller", None)
+                if workspace_owner is not None:
+                    workspace_owner.update_custom_part_metadata(
+                        key,
+                        **{field: current[field] for field in (
+                            "display_name", "fold_axis",
+                            "transverse_length", "per_box_count",
+                        )},
+                    )
                 prior_metadata=dict(current)
                 app._refresh_part_buttons()
                 if geometry_changed:

@@ -187,7 +187,11 @@ class Phase6HoleEditorCanvasView:
         elif isinstance(resolved_feature, ResolvedRect):
             points = resolved_feature.points
         else:
-            points = resolved_feature.points
+            points = tuple(resolved_feature.points)
+            for layer, contour, closed in tuple(getattr(resolved_feature, "layered_profiles", ()) or ()):
+                points += tuple(contour)
+        if not points:
+            return None
         canvas_points = [tr.world_to_canvas(point) for point in points]
         xs = [point[0] for point in canvas_points]
         ys = [point[1] for point in canvas_points]

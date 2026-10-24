@@ -60,7 +60,7 @@ def approved_nominal_y_mm(layer_count: int) -> tuple[float, ...]:
 def _inner_door_y_basis(snapshot: Mapping[str, object], inner_door_id: str):
     """Resolve real part/placement/core-band; reject unsupported datum changes."""
     data = dict(snapshot or {})
-    if str(data.get("model", "")).strip() != "受電箱":
+    if str(data.get("model", "")).strip() not in {"受電箱", "RECEIVING"}:
         raise ValueError("OPEN-Y-PROJECTION requires Receiving family")
     if not bool(data.get("multi_door_enabled")):
         raise ValueError("OPEN-Y-PROJECTION requires enabled Door topology")
@@ -68,18 +68,30 @@ def _inner_door_y_basis(snapshot: Mapping[str, object], inner_door_id: str):
     if not columns:
         raise ValueError("OPEN-Y-PROJECTION requires authoritative Door cells")
     try:
+        # Original physical W/H/T must remain typed until validation.
+        # bool is not a millimetre; malformed saved huge ints cannot overflow.
+        raw_whd = (data["w"], data["h"], data["t"])
+        if any(isinstance(value, bool) for value in raw_whd):
+            raise ValueError("boolean physical dimension")
         cells = derive_door_layout_cells(columns)
         full_h = float(data["h"])
         full_w = float(data["w"])
         t = float(data["t"])
-    except (KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
         raise ValueError("OPEN-Y-PROJECTION invalid box dimensional authority") from exc
     if (not all(isfinite(v) for v in (full_h, full_w, t))
             or full_h <= 0 or full_w <= 0 or t <= 0
             or abs(sum(float(col[0]) for col in columns) - full_w) > 1e-6
             or any(abs(sum(float(v) for v in col[1]) - full_h) > 1e-6
                    for col in columns)):
-        raise ValueError("OPEN-Y-PROJECTION inconsistent box and Door partitions")
+        # Diagnostics preserve strict dimensional refusal while exposing the
+        # exact *input authority* that drifted after a real Set/Bay edit.
+        raise ValueError(
+            "OPEN-Y-PROJECTION inconsistent box and Door partitions: "
+            f"box=({full_w:g},{full_h:g}); "
+            f"columns={tuple((row[0], tuple(row[1])) for row in columns)!r}; "
+            f"selection={data.get('_receiving_runtime_selection')!r}"
+        )
     wanted = str(inner_door_id or "").strip()
     owners = [row for row in data.get("inner_doors", ())
               if isinstance(row, dict) and str(row.get("stable_id", "")).strip() == wanted]
@@ -182,7 +194,14 @@ def invert_nfb_inner_door_unfolded_y(
     part, placement, _cell_key, full_h, _t, lower_fold, core, _blank_h = (
         _inner_door_y_basis(snapshot, inner_door_id)
     )
-    v = float(unfolded_uv_y_mm)
+    # Unfolded UV is a physical millimetre, not a truth value. A saved
+    # oversized integer must fail as an invalid input, not OverflowError.
+    if isinstance(unfolded_uv_y_mm, bool):
+        raise ValueError("OPEN-Y-PROJECTION invalid unfolded Y input")
+    try:
+        v = float(unfolded_uv_y_mm)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("OPEN-Y-PROJECTION invalid unfolded Y input") from exc
     if not isfinite(v) or not lower_fold < v < lower_fold + core:
         raise ValueError("OPEN-Y-PROJECTION unfolded Y outside inner-door face core")
     world_y = float(placement.world_offset[1]) + v - lower_fold - core / 2.0

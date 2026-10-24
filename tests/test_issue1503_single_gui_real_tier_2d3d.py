@@ -287,6 +287,13 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 assert len(authentic) == 8, (
                     "ACTUAL_TK_OPERATOR_SIDE_EAR_LINES_NOT_VISIBLE:" + side
                 )
+            # ImageGrab captures the actual desktop, not an offscreen Tk
+            # buffer. A different WHD test window may occlude this Canvas
+            # after _pump(), falsely returning zero geometric pixels.
+            # Raise the REAL side-panel window; never add synthetic MARKING.
+            tk_stage.lift()
+            tk_stage.attributes("-topmost", True)
+            _pump(root)
             x, y = stage_canvas.winfo_rootx(), stage_canvas.winfo_rooty()
             w, h = stage_canvas.winfo_width(), stage_canvas.winfo_height()
             assert min(w, h) >= 500, "2D canvas not actually mapped"

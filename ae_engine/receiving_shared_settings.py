@@ -4,6 +4,8 @@ from copy import deepcopy
 from collections.abc import Mapping
 from math import isfinite
 
+from .sheetmetal_feature_core import CircleFeature, RectFeature, ProfileFeature
+
 SETTING_DEFAULTS = {
     "back_panel_mode": "FULL",
     "head_features": [],
@@ -21,6 +23,29 @@ SETTING_DEFAULTS = {
     "tail_version_id": None,
     "inner_door_version_id": None,
 }
+
+def default_receiving_nfb_layer_heights(layer_count):
+    """One manufacturing Y authority for newly chosen 1/2 NFB tiers.
+
+    Keep the stored two-slot schema: in one-tier mode the second slot is
+    inactive, while the visible first tier uses the approved 1100-cell 550.
+    The existing shared 330/830 defaults apply only once two tiers exist.
+    """
+    if type(layer_count) is not int or layer_count not in (1, 2):
+        raise ValueError("NFB height defaults require exactly 1 or 2 tiers")
+    heights = list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
+    if layer_count == 1:
+        from .receiving_nfb_y_projection import approved_nominal_y_mm
+        heights[0] = float(approved_nominal_y_mm(1)[0])
+    return heights
+
+
+def transition_receiving_nfb_layer_heights(heights, *, old_count, new_count):
+    """Change untouched defaults on a tier-count edit, never rewrite custom Y."""
+    old = default_receiving_nfb_layer_heights(old_count)
+    target = default_receiving_nfb_layer_heights(new_count)
+    actual = validate_setting("inner_door_layer_heights_mm", heights)
+    return target if old_count != new_count and actual == old else actual
 
 
 def switch_filenames_in_layer(slot):
@@ -77,7 +102,8 @@ def validate_setting(kind, value):
     elif kind == "inner_door_models":
         value = switch_model_layers(value)
     elif kind == "inner_door_features":
-        from .sheetmetal_features import CircleFeature, RectFeature, ProfileFeature
+        # The feature classes are imported at module scope. A local import
+        # would shadow them for the sibling head/tail branches (UnboundLocalError).
         if not isinstance(value, Mapping):
             raise ValueError("內門孔位必須依實體板件 ID 保存")
         normalized = {}
@@ -95,14 +121,25 @@ def validate_setting(kind, value):
         # retains their original certified nominal 290/790 Y until edited.
         if value is None:
             return None
+        message = "第一層／第二層高度須為正數、由上往下遞增（mm）"
         if (not isinstance(value, (list, tuple)) or len(value) != 2
-                or any(type(v) not in (int, float) or not isfinite(float(v))
-                       or float(v) <= 0 for v in value)
-                or float(value[0]) >= float(value[1])):
-            raise ValueError("第一層／第二層高度須為正數、由上往下遞增（mm）")
-        value = [float(v) for v in value]
-    elif not isinstance(value, (list, tuple)):
+                or any(type(v) not in (int, float) for v in value)):
+            raise ValueError(message)
+        try:
+            heights = [float(v) for v in value]
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(message) from exc
+        if (not all(isfinite(v) and v > 0 for v in heights)
+                or heights[0] >= heights[1]):
+            raise ValueError(message)
+        value = heights
+    elif not isinstance(value, (list, tuple)) or any(
+        not isinstance(f, (CircleFeature, RectFeature, ProfileFeature))
+        for f in value
+    ):
         raise ValueError("封頭尾設定必須是 Hole Editor feature 清單")
+    else:
+        value = list(value)
     return deepcopy(value)
 
 
@@ -143,7 +180,13 @@ def normalize_set_settings(raw, bays):
     return result
 
 
+def _require_valid_index(index, length, message):
+    if isinstance(index, bool) or not isinstance(index, int) or index < 0 or index >= length:
+        raise IndexError(message)
+
+
 def setting_value(set_row, bay_index, kind):
+    _require_valid_index(bay_index, len(set_row["bays"]), "連選取超出範圍")
     bay = set_row["bays"][bay_index]
     if kind not in SETTING_DEFAULTS:
         raise ValueError("不支援的每連設定")
@@ -156,7 +199,9 @@ def setting_value(set_row, bay_index, kind):
 def edit_setting(layout, *, set_index, bay_index, kind, value):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(result["sets"]), "組選取超出範圍")
     selected = result["sets"][set_index]
+    _require_valid_index(bay_index, len(selected["bays"]), "連選取超出範圍")
     selected["settings"] = normalize_set_settings(selected.get("settings"), selected["bays"])
     row = selected["settings"][kind]
     bay_id = selected["bays"][bay_index]["stable_id"]
@@ -167,17 +212,20 @@ def edit_setting(layout, *, set_index, bay_index, kind, value):
 def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(result["sets"]), "組選取超出範圍")
     selected = result["sets"][set_index]
     indices = tuple(dict.fromkeys(bay_indices))
+    if isinstance(source_bay_index, bool) or any(isinstance(i, bool) for i in indices):
+        raise IndexError("連選取超出範圍")
     if len(indices) < 2 or source_bay_index not in indices:
         raise ValueError("連動需選擇至少兩連，並包含來源連")
+    for index in indices:
+        _require_valid_index(index, len(selected["bays"]), "連選取超出範圍")
     selected["settings"] = normalize_set_settings(selected.get("settings"), selected["bays"])
     row = selected["settings"][kind]
     source_id = selected["bays"][source_bay_index]["stable_id"]
     ref = row["refs"][source_id]
     for index in indices:
-        if index < 0 or index >= len(selected["bays"]):
-            raise IndexError("連選取超出範圍")
         row["refs"][selected["bays"][index]["stable_id"]] = ref
     return normalize_receiving_layout(result)
 
@@ -185,7 +233,9 @@ def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
 def unlink_setting(layout, *, set_index, bay_index, kind):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(result["sets"]), "組選取超出範圍")
     selected = result["sets"][set_index]
+    _require_valid_index(bay_index, len(selected["bays"]), "連選取超出範圍")
     selected["settings"] = normalize_set_settings(selected.get("settings"), selected["bays"])
     row = selected["settings"][kind]
     bay_id = selected["bays"][bay_index]["stable_id"]

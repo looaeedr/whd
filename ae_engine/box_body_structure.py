@@ -366,6 +366,20 @@ def _merge_side_back_piece_override(base_rows, override_rows, *, shared_keys):
         result.append(row)
     return result
 
+def _finite_side_back_source(value, name):
+    """Validate saved physical back-panel dimensions before assembled geometry."""
+    from math import isfinite
+    if isinstance(value, bool):
+        raise ValueError(f"{name} 必須為有限尺寸")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} 必須為有限尺寸") from exc
+    if not isfinite(number):
+        raise ValueError(f"{name} 必須為有限尺寸")
+    return number
+
+
 def resolve_box_body_structure(
     profile,
     *,
@@ -403,7 +417,9 @@ def resolve_box_body_structure(
     if type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
         cfg = state["configs"][type_id.value]
         rear_bend = side_rear_bend_material_length(state, float(t))
-        comp_t = float(cfg.get("back_width_comp_t", 0.5))
+        comp_t = _finite_side_back_source(
+            cfg.get("back_width_comp_t", 0.5), "後面板寬補償"
+        )
         if rear_bend <= 0:
             raise ValueError("側板後折必須大於 0")
         if comp_t < 0:
@@ -414,16 +430,24 @@ def resolve_box_body_structure(
             tail_corner_policy=tail_corner_policy,
         )
         left_rows, right_rows = _side_back_rows(profile, rear_bend=rear_bend)
-        back_width = float(w) - comp_t * float(t)
+        back_width = _finite_side_back_source(
+            float(w) - comp_t * float(t), "側背分離後面板寬度"
+        )
         if back_width <= 0:
             raise ValueError("側背分離後面板寬度計算後必須大於 0")
         back_contract = dict(back_panel_contract or {})
         if back_contract:
-            contract_width = float(back_contract.get("panel_width", back_width))
+            contract_width = _finite_side_back_source(
+                back_contract.get("panel_width", back_width), "後面板 contract 寬度"
+            )
             if abs(contract_width - back_width) > 1e-6:
                 raise ValueError("後面板 contract 寬度與 canonical structure 不一致")
-            back_height = float(back_contract.get("material_height", height))
-            back_y_offset = float(back_contract.get("formed_y_offset", 0.0))
+            back_height = _finite_side_back_source(
+                back_contract.get("material_height", height), "後面板 contract 高度"
+            )
+            back_y_offset = _finite_side_back_source(
+                back_contract.get("formed_y_offset", 0.0), "後面板 contract 定位"
+            )
             if back_height <= 0.0 or back_height > float(height) + 1e-6:
                 raise ValueError("後面板 contract 高度超出 canonical structure")
         else:

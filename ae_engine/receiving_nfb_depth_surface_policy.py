@@ -62,6 +62,9 @@ def receiving_nfb_second_side_fold_mm(
     BEND station-to-station material interval or one folded outside envelope
     equals 33, and not approval of manufacture.
     """
+    if any(isinstance(value, bool) for value in
+           (reference_nfb_depth_mm, secondary_nfb_depth_mm, base_plate_thickness_mm)):
+        raise ValueError("NFB depth and base plate T must not be boolean")
     d, s, t = (float(reference_nfb_depth_mm),
                float(secondary_nfb_depth_mm), float(base_plate_thickness_mm))
     if not all(isfinite(x) and x > 0 for x in (d, s, t)):
@@ -92,6 +95,11 @@ def resolve_receiving_nfb_surface_chain(
     Deep base plate and BOTH fixing plates share one translated Z datum.
     The base BACK skin touches the fixing plate FRONT skin with zero gap.
     """
+    if any(isinstance(value, bool) for value in (
+            inner_door_outer_face_from_front_mm, inner_door_thickness_mm,
+            base_plate_thickness_mm, fixing_plate_thickness_mm,
+            reference_nfb_depth_mm, secondary_nfb_depth_mm)):
+        raise ValueError("surface chain dimensions must not be boolean")
     outer, it, bt, ft, deep = (float(inner_door_outer_face_from_front_mm),
                              float(inner_door_thickness_mm),
                              float(base_plate_thickness_mm),
@@ -155,9 +163,12 @@ def selected_receiving_nfb_depth_pair_mm(
             depth = spec.depth_mm if spec is not None else None
         else:
             depth = model_depth_mm(brand, ref)
-        if depth is None:
+        if depth is None or isinstance(depth, bool):
             raise ValueError("NFB physical depth unknown for exact brand/model source")
-        depths.append(float(depth))
+        value = float(depth)
+        if not isfinite(value) or value <= 0:
+            raise ValueError("NFB physical depth must be a positive finite number")
+        depths.append(value)
     return tuple(sorted(depths, reverse=True))
 
 
@@ -181,9 +192,15 @@ def _source_depth_for_submitted_hole(hole, *, legacy_set_brand):
     if not isinstance(filename, str) or not filename:
         raise ValueError("RECEIVING_NFB_DEPTH_MODEL_SOURCE_MISSING")
     parsed = parse_numeric_model_ref(filename)
-    brand = hole.get("source_brand", legacy_set_brand or (
-        parsed[0] if parsed is not None else None
-    ))
+    raw_brand = hole.get("source_brand")
+    # V5 model refs own their brand even if the legacy Set still carries an
+    # unrelated historical switch_brand. An explicit per-hole mismatch fails.
+    if filename.startswith("nfbv5:"):
+        brand = raw_brand if raw_brand is not None else (
+            parsed[0] if parsed is not None else None
+        )
+    else:
+        brand = raw_brand if raw_brand is not None else legacy_set_brand
     if not isinstance(brand, str) or not brand:
         raise ValueError("RECEIVING_NFB_DEPTH_BRAND_SOURCE_MISSING")
     if filename.startswith("nfbv5:"):
@@ -260,7 +277,7 @@ def committed_receiving_nfb_depth_pair_mm(snapshot) -> tuple[float, float] | Non
         raise ValueError("submitted NFBConfig physical holes missing")
     # Only TWO distinct NFBs on the SAME physical row can determine one
     # second side fold; others retain preview and need independent authority.
-    if config.get("layer_count") != 1 or len(holes) != 2:
+    if type(config.get("layer_count")) is not int or config.get("layer_count") != 1 or len(holes) != 2:
         return None
     if not all(isinstance(row, Mapping) for row in holes):
         raise ValueError("submitted NFBConfig invalid physical hole")
@@ -310,10 +327,13 @@ def committed_receiving_nfb_depth_pair_mm(snapshot) -> tuple[float, float] | Non
     ), reverse=True))
     if abs(depths[0] - depths[1]) <= 1e-9:
         return None
+    raw_t = snapshot.get("t", 0)
+    if raw_t is None or isinstance(raw_t, bool):
+        raise ValueError("base plate T must be a positive finite number")
     receiving_nfb_second_side_fold_mm(
         reference_nfb_depth_mm=depths[0],
         secondary_nfb_depth_mm=depths[1],
-        base_plate_thickness_mm=float(snapshot.get("t", 0)),
+        base_plate_thickness_mm=float(raw_t),
     )
     return depths
 
@@ -354,7 +374,8 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
         selected=(chosen,bays[bi])
     elif (len(sets)==1 and isinstance(sets[0],Mapping)
           and isinstance(sets[0].get("bays"),(tuple,list))
-          and len(sets[0]["bays"])==1):
+          and len(sets[0]["bays"])==1
+          and isinstance(sets[0]["bays"][0],Mapping)):
         selected=(sets[0],sets[0]["bays"][0])
     else:
         # Ambiguous physical source cannot position a unique flat plate.
@@ -373,8 +394,9 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
     if not all(isinstance(h,Mapping) for h in holes):
         raise ValueError("RECEIVING_FLAT_NFB_INVALID_HOLE_SOURCE")
     count=config.get("layer_count")
-    if count!=1 or any(
-        h.get("layer_count",count)!=1
+    if type(count) is not int or count!=1 or any(
+        type(h.get("layer_count",count)) is not int
+        or h.get("layer_count",count)!=1
         or type(h.get("slot_index",0)) is not int
         or h.get("slot_index",0)<0
         for h in holes
@@ -430,8 +452,11 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
             if spec is None or not spec.dimensionally_complete:
                 raise ValueError("RECEIVING_FLAT_NFB_PAD_SOURCE_INCOMPLETE")
             sources.append(spec)
+        raw_t = snapshot.get("t", 0.0)
+        if raw_t is None or isinstance(raw_t, bool):
+            raise ValueError("RECEIVING_FLAT_NFB_PLATE_THICKNESS_INVALID")
         pads = generate_nfb_pad_patterns(
-            sources, plate_thickness_mm=float(snapshot.get("t",0.)),
+            sources, plate_thickness_mm=float(raw_t),
             tooling=read_pad_tooling_rule(),
         )
         required = sum(depth < max(depths)-1e-9 for depth in depths)

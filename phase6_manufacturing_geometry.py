@@ -50,19 +50,38 @@ _PHASE6_ASSEMBLY_PLACEMENTS = {
 
 def _phase6_door_part_assembly_placement(snapshot, part_key):
     """Return canonical front-plane placement for one formal Door layout cell."""
+    import math
+
     key = str(part_key or "")
+    source = dict(snapshot or {})
+    raw_columns = tuple(source.get("door_layout_columns") or ())
+    if not raw_columns:
+        raise ValueError(f"門格缺少 authoritative multi-door topology: {key}")
+    # Validation must run before float() so bool is not silently converted
+    # to 1 mm of actual sheet/door material.
+    cells = derive_door_layout_cells(raw_columns)
     columns = tuple(
         (float(row[0]), tuple(float(v) for v in row[1]))
-        for row in tuple(dict(snapshot or {}).get("door_layout_columns") or ())
+        for row in raw_columns
     )
-    if not columns:
-        raise ValueError(f"門格缺少 authoritative multi-door topology: {key}")
-    cells = derive_door_layout_cells(columns)
     cell = next((item for item in cells if door_layout_part_key(item) == key), None)
     if cell is None:
         raise ValueError(f"門格 stable_id 不存在於 authoritative topology: {key}")
-    total_w = float(dict(snapshot or {}).get("w", sum(width for width, _ in columns)))
-    total_h = float(dict(snapshot or {}).get("h", sum(columns[0][1])))
+
+    def outer_axis(value, default, axis):
+        raw = default if value is None else value
+        if isinstance(raw, bool):
+            raise ValueError(f"門格外框 {axis} 必須為有限正數")
+        try:
+            dimension = float(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"門格外框 {axis} 必須為有限正數") from exc
+        if not math.isfinite(dimension) or dimension <= 0:
+            raise ValueError(f"門格外框 {axis} 必須為有限正數")
+        return dimension
+
+    total_w = outer_axis(source.get("w"), sum(width for width, _ in columns), "W")
+    total_h = outer_axis(source.get("h"), sum(columns[0][1]), "H")
     x_before = sum(columns[index][0] for index in range(cell.column_index))
     y_before = sum(columns[cell.column_index][1][:cell.row_index])
     center_x = -total_w / 2.0 + x_before + cell.start_width / 2.0
@@ -99,15 +118,34 @@ def _phase6_assembly_placement_for_part(snapshot, part_key):
     if re.fullmatch(r"door_c\d+_r\d+", key):
         return _phase6_door_part_assembly_placement(snapshot, key)
     if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith(":bottom_frame")):
+        from math import isfinite
+
+        workspace = snapshot.get("workspace") or {}
+        if not isinstance(workspace, Mapping):
+            raise ValueError("assembly workspace must be a mapping")
         placements = (
             snapshot.get("assembly_placements")
-            or (snapshot.get("workspace") or {}).get("assembly_placements")
+            or workspace.get("assembly_placements")
             or {}
         )
+        if not isinstance(placements, Mapping):
+            raise ValueError("assembly placements must be a mapping")
         if key in placements:
             item = placements[key]
-            kind = item.get("placement_kind", "offset")
-            offset = tuple(float(v) for v in item.get("world_offset", (0.0, 0.0, 0.0)))
+            if not isinstance(item, Mapping):
+                raise ValueError(f"invalid stored assembly placement: {key}")
+            kind = str(item.get("placement_kind") or "offset")
+            raw_offset = item.get("world_offset")
+            if (not isinstance(raw_offset, (list, tuple))
+                    or len(raw_offset) != 3
+                    or any(isinstance(v, bool) for v in raw_offset)):
+                raise ValueError(f"invalid 3D assembly offset: {key}")
+            try:
+                offset = tuple(float(v) for v in raw_offset)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(f"invalid numeric assembly offset: {key}") from exc
+            if not all(isfinite(v) for v in offset):
+                raise ValueError(f"nonfinite assembly offset: {key}")
             return kind, offset
         try:
             from ae_engine.assembly_placement import resolve_assembly_placement
@@ -139,13 +177,18 @@ def _phase6_relief_polygon_coords(geometry):
 
 
 def _phase6_assembly_relief_clearance(self):
+    """UI-only clearance is nonnegative finite; never widen manufacturing by infinity."""
+    from math import isfinite
+
     var = getattr(self, "assembly_relief_clearance_var", None)
     raw = var.get() if var is not None else "0"
     try:
         value = float(str(raw).strip() or "0")
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         value = 0.0
-    return max(0.0, value)
+    # Keep the existing invalid-text fallback and negative-value clamp, but
+    # reject NaN/Inf rather than letting +Inf hide every collision residual.
+    return max(0.0, value) if isfinite(value) else 0.0
 
 
 def _phase6_current_cabinet_family(self):
@@ -354,6 +397,9 @@ def _phase6_expand_box_body_fw_world_mid(
         return tuple(world_mid_piece or ())
 
     rows = [tuple(tuple(float(v) for v in point) for point in tri) for tri in tuple(world_mid_piece or ())]
+    selected = [index for index in selected if index < len(rows)]
+    if not selected:
+        return tuple(rows)
     xs = [float(point[0]) for index in selected for point in rows[index]]
     if not xs:
         return tuple(rows)
@@ -369,7 +415,8 @@ def _phase6_expand_box_body_fw_world_mid(
     core_lo, core_hi = core_bands[0]
     core_selected = [
         index for index, item in enumerate(tuple(mapped or ()))
-        if len(tuple(getattr(item, "flat", ()) or ())) == 3
+        if index < len(rows)
+        and len(tuple(getattr(item, "flat", ()) or ())) == 3
         and core_lo + float(tolerance) < (
             sum(float(point[0]) for point in item.flat) / 3.0
         ) < core_hi - float(tolerance)
@@ -488,6 +535,9 @@ def _phase6_shift_multistage_terminal_fold_world_mid(piece, mapped, world_mid_pi
         tuple(tuple(float(v) for v in point) for point in tri)
         for tri in tuple(world_mid_piece or ())
     ]
+    selected = [index for index in selected if index < len(rows)]
+    if not selected:
+        return tuple(rows)
     tangents = []
     mapped_all = tuple(mapped or ())
     for index in selected:
@@ -555,17 +605,30 @@ def _phase6_joint_relief_state_item_matches(item, joint, source_material):
         or str(item.get("subject_part") or "") != str(joint.subject_part)
         or str(item.get("target_part") or "") != str(joint.target_part)
         or str(item.get("relation") or "") != relation
-        or not bool(item.get("verified"))
+        or item.get("verified") is not True
     ):
         return False
+    import math
+    raw_bounds = item.get("source_material_bounds", ())
+    raw_area = item.get("source_material_area")
+    # Saved proof is not a display value: bool must never alias 0/1 mm or
+    # 0/1 mm2 and reuse a previous cutting result after source changes.
+    if (not isinstance(raw_bounds, (tuple, list)) or len(raw_bounds) != 4
+            or isinstance(raw_area, bool)
+            or any(isinstance(v, bool) for v in raw_bounds)):
+        return False
     try:
-        saved_bounds = tuple(float(v) for v in item.get("source_material_bounds", ()))
-        saved_area = float(item.get("source_material_area"))
+        saved_bounds = tuple(float(v) for v in raw_bounds)
+        saved_area = float(raw_area)
         current_bounds = tuple(float(v) for v in source_material.bounds)
         current_area = float(source_material.area)
-    except Exception:
+    except (TypeError, ValueError, OverflowError):
         return False
-    return len(saved_bounds) == 4 and all(abs(a-b) <= 1e-6 for a,b in zip(saved_bounds,current_bounds)) and abs(saved_area-current_area) <= 1e-6
+    if (len(current_bounds) != 4 or not all(math.isfinite(v) for v in
+            (*saved_bounds, *current_bounds, saved_area, current_area))):
+        return False
+    return (all(abs(a-b) <= 1e-6 for a, b in zip(saved_bounds, current_bounds))
+            and abs(saved_area-current_area) <= 1e-6)
 
 
 def _phase6_cut_geometry_from_state_item(item):
@@ -589,12 +652,22 @@ def _phase6_signature_canonical_value(value):
     if isinstance(value, bool) or value is None or isinstance(value, str):
         return value
     if isinstance(value, (int, float)):
-        return round(float(value), 12)
+        from math import isfinite
+
+        # An invalid manufacturing dimension may NEVER share a cache key
+        # with a literal marker such as "__NaN__", or another invalid value.
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("nonfinite manufacturing signature value") from exc
+        if not isfinite(number):
+            raise ValueError("nonfinite manufacturing signature value")
+        return round(number, 12)
     if isinstance(value, Mapping):
         return {str(key): _phase6_signature_canonical_value(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
         return tuple(_phase6_signature_canonical_value(item) for item in value)
-    if isinstance(value, set):
+    if isinstance(value, (set, frozenset)):
         normalized = [_phase6_signature_canonical_value(item) for item in value]
         return tuple(sorted(normalized, key=repr))
     enum_value = getattr(value, "value", None)
@@ -965,15 +1038,33 @@ def _phase6_request_profiles_for_material(part_input, material):
     key = str(part_input.part_key or "")
     x_prof = [dict(seg) for seg in tuple(part_input.x_profile or ())]
     y_prof = [dict(seg) for seg in tuple(part_input.y_profile or ())]
-    minx, miny, maxx, maxy = material.bounds
+
+    def material_span(axis):
+        # Only the whole Box Body and a one-axis frame/divider need this
+        # geometric fallback. Other physical pieces already own both fold
+        # profiles; inspecting unrelated bounds could abort valid assembly.
+        from math import isfinite
+        try:
+            raw = tuple(material.bounds)
+            if len(raw) != 4 or any(isinstance(v, bool) for v in raw):
+                raise ValueError("material bounds must have four real values")
+            minx, miny, maxx, maxy = (float(value) for value in raw)
+            if not all(isfinite(value) for value in (minx, miny, maxx, maxy)):
+                raise ValueError("material bounds must be finite")
+            span = (maxx - minx) if axis == "x" else (maxy - miny)
+            if not isfinite(span) or span <= 0.0:
+                raise ValueError("derived material span must be positive")
+            return span
+        except (AttributeError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("physical material bounds unavailable for mesh profile") from exc
 
     if key == "box_body":
-        return x_prof, [{"len": float(maxy - miny)}]
+        return x_prof, [{"len": material_span("y")}]
     if key.startswith("box_body:divider:") or (
         key.startswith("inner_door:") and key.endswith("_frame")
     ):
         if x_prof and not y_prof:
-            y_prof = [{"len": float(maxy - miny)}]
+            y_prof = [{"len": material_span("y")}]
         elif y_prof and not x_prof:
-            x_prof = [{"len": float(maxx - minx)}]
+            x_prof = [{"len": material_span("x")}]
     return x_prof, y_prof

@@ -19,6 +19,11 @@ DERIVED_KEYS = frozenset({
     "collision", "collisions", "preview", "preview_only", "approved",
     "certified_x_revision", "nfb_trial_export_approved",
     "physical_part_readiness", "diagnostics",
+    # #1504 AC-24 live verification is a READ-ONLY projection; it is not
+    # an operator-entered field, and must never become another saved truth.
+    "configuration_verified", "manufacturing_verified", "source_status",
+    "unit_rows", "part_rows", "derived_state", "unresolved_dependencies",
+    "actual_export_count", "whole_ready",
 })
 NFB_FIELDS = frozenset({"nfb_config_submitted", "nfb_config"})
 
@@ -28,7 +33,14 @@ def _json_value(value, *, location: str):
     if value is None or isinstance(value, (str, bool)):
         return value
     if type(value) in (int, float):
-        if not isfinite(float(value)):
+        # JSON may contain integers larger than Python float's range.
+        # A corrupt saved dimension must fail via the NFB validation gate,
+        # not escape as OverflowError during a project/Bay/quantity load.
+        try:
+            finite = isfinite(float(value))
+        except (OverflowError, ValueError) as exc:
+            raise ValueError(f"{location} must be finite") from exc
+        if not finite:
             raise ValueError(f"{location} must be finite")
         return value
     if isinstance(value, (list, tuple)):
@@ -58,7 +70,8 @@ def normalize_nfb_config(config):
         if not isinstance(hole, dict):
             raise ValueError("NFBConfig hole must be an object")
         owner = hole.get("physical_hole_id")
-        if not isinstance(owner, str) or not owner.strip() or owner in seen:
+        if (not isinstance(owner, str) or not owner.strip()
+                or owner != owner.strip() or owner in seen):
             raise ValueError("NFB physical_hole_id missing/duplicate")
         seen.add(owner)
         model = hole.get("model_filename")
@@ -79,7 +92,7 @@ def normalize_nfb_config(config):
             if source_brand is not None and source_brand != parsed[0]:
                 raise ValueError("NFB V5 model and saved hole source_brand mismatch")
         state = hole.get("manual_x_state", "NONE")
-        if state not in MANUAL_X_STATES:
+        if not isinstance(state, str) or state not in MANUAL_X_STATES:
             raise ValueError("NFB manual_x_state unsupported")
         hole["manual_x_state"] = state
         x = hole.get("manual_x_mm")
@@ -113,9 +126,84 @@ def normalize_nfb_saved_fields(row):
         return {}
     if not has_config or row["nfb_config"] is None:
         raise ValueError("submitted NFB must preserve its actual NFBConfig")
+    config = normalize_nfb_config(row["nfb_config"])
+    # Explicit source model/angle authority belongs to each physical hole,
+    # even when a caller has not supplied the enclosing Bay width yet.
+    for hole in config["holes"]:
+        if hole["manual_x_state"] != "CONFIRMED":
+            continue
+        snapshot = hole.get("datum_snapshot") or {}
+        stale_rotation = (
+            "rotation_deg" in snapshot
+            and (type(snapshot["rotation_deg"]) is not int
+                 or snapshot["rotation_deg"] != hole["rotation_deg"])
+        )
+        stale_model = (
+            "model_filename" in snapshot
+            and (not isinstance(snapshot["model_filename"], str)
+                 or snapshot["model_filename"] != hole["model_filename"])
+        )
+        # A saved physical Bay has a stable identity. Compare it only when
+        # both the datum and this concrete Bay actually record one. Quantity
+        # version rows and old pre-ID snapshots must not invent a Bay owner.
+        bay_owner = row.get("stable_id")
+        stale_bay = (
+            "bay_id" in snapshot
+            and isinstance(bay_owner, str) and bool(bay_owner)
+            and (not isinstance(snapshot["bay_id"], str)
+                 or snapshot["bay_id"] != bay_owner)
+        )
+        if stale_rotation or stale_model or stale_bay:
+            hole["manual_x_state"] = "RECONFIRM_REQUIRED"
+    physical_width = row.get("width")
+    if physical_width is not None:
+        # Every persisted ReceivingLayout Bay carries its own actual width.
+        # Importing an old CONFIRMED datum from W800 into a W750 Bay must
+        # never silently re-authorize the previous hole X. Check established
+        # operator datum key variants, without fabricating a missing datum.
+        # The existing Receiving Bay _number adapter also accepts numeric
+        # strings from older projects. Match that compatibility while still
+        # rejecting boolean, nonnumeric and nonfinite manufacturing widths.
+        if type(physical_width) is bool:
+            raise ValueError("NFB saved Bay physical width invalid")
+        try:
+            bay_width = float(physical_width)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("NFB saved Bay physical width invalid") from exc
+        if not isfinite(bay_width) or bay_width <= 0:
+            raise ValueError("NFB saved Bay physical width invalid")
+        for hole in config["holes"]:
+            if hole["manual_x_state"] != "CONFIRMED":
+                continue
+            snapshot = hole.get("datum_snapshot") or {}
+            known_widths = tuple(
+                snapshot[key] for key in (
+                    "width", "w", "box_width_mm", "bay_width_mm",
+                    "outer_width_mm",
+                ) if key in snapshot
+            )
+            # The current numeric CSV V5 is a model/geometry identity,
+            # NOT an implicit permission to reuse an old world-X datum.
+            # A legacy DXF row may have no structured width evidence, but a
+            # V5 CONFIRMED hole must explicitly bind its manual X to this Bay.
+            # Missing width, conflicting aliases, boolean or nonfinite input
+            # may not silently preserve manufacturing confidence. Retain
+            # the authored coordinate and source for operator reconfirmation.
+            from .receiving_nfb_model_identity import parse_numeric_model_ref
+            missing_v5_width_proof = (
+                parse_numeric_model_ref(hole.get("model_filename")) is not None
+                and not known_widths
+            )
+            if (missing_v5_width_proof or any(
+                        type(value) not in (int, float)
+                        or not isfinite(float(value))
+                        or abs(float(value) - bay_width) > 1e-7
+                        for value in known_widths
+                    )):
+                hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     return {
         "nfb_config_submitted": True,
-        "nfb_config": normalize_nfb_config(row["nfb_config"]),
+        "nfb_config": config,
     }
 
 
@@ -136,13 +224,22 @@ def contains_submitted_nfb(scope):
         return True
     receiving = scope.get("receiving_layout")
     if isinstance(receiving, Mapping):
-        for selected in receiving.get("sets", ()) or ():
-            for bay in selected.get("bays", ()) or ():
-                if isinstance(bay, Mapping) and bay.get("nfb_config_submitted") is True:
-                    return True
+        sets = receiving.get("sets")
+        if isinstance(sets, (tuple, list)):
+            for selected in sets:
+                if not isinstance(selected, Mapping):
+                    continue
+                bays = selected.get("bays")
+                if not isinstance(bays, (tuple, list)):
+                    continue
+                for bay in bays:
+                    if isinstance(bay, Mapping) and bay.get("nfb_config_submitted") is True:
+                        return True
     quantity = scope.get("quantity")
     if isinstance(quantity, Mapping):
-        for version in quantity.get("versions", ()) or ():
-            if isinstance(version, Mapping) and version.get("nfb_config_submitted") is True:
-                return True
+        versions = quantity.get("versions")
+        if isinstance(versions, (tuple, list)):
+            for version in versions:
+                if isinstance(version, Mapping) and version.get("nfb_config_submitted") is True:
+                    return True
     return False

@@ -67,7 +67,10 @@ def load_baseline_dxf_source_with_status(path, *, allow_unverified_source=False)
         return cached, BASELINE_SOURCE_VERIFIED
     try:
         doc = ezdxf.readfile(normalized)
-    except OSError:
+    except (OSError, ezdxf.DXFError):
+        # A changed file may still stat() successfully while its DXF payload
+        # is unreadable. Keep LKG available for explicitly unverified PREVIEW,
+        # but never cache it as VERIFIED or silently use it for manufacturing.
         if allow_unverified_source and normalized in _BASELINE_DXF_LAST_GOOD:
             return _BASELINE_DXF_LAST_GOOD[normalized], BASELINE_SOURCE_UNVERIFIED
         raise
@@ -114,46 +117,76 @@ def baseline_entity_layer(ent):
 
 
 def baseline_cutting_bounds(msp):
-    """Return structural CUTTING bounds without MARKING/DATUM/BLIND_HOLE pollution."""
+    """Bounds of real CUTTING entities, never mixing halves of corrupt points.
+
+    One damaged structural entity invalidates the entire source's bounds
+    instead of constructing a plausible envelope from unrelated X/Y values.
+    MARKING, DATUM and BLIND_HOLE cannot enlarge material bounds.
+    """
     import math
 
     xs, ys = [], []
+
+    def add_points(points):
+        try:
+            coords = tuple((float(x), float(y)) for x, y in points)
+        except (TypeError, ValueError, OverflowError):
+            return False
+        if not coords or not all(
+            math.isfinite(x) and math.isfinite(y) for x, y in coords
+        ):
+            return False
+        xs.extend(x for x, _ in coords)
+        ys.extend(y for _, y in coords)
+        return True
+
     for ent in iter_baseline_entities(msp):
         if baseline_entity_layer(ent) != "CUTTING" or ent.dxftype() == "REGION":
             continue
         kind = ent.dxftype()
-        if kind == "LWPOLYLINE":
-            for pt in ent.get_points():
-                xs.append(float(pt[0]))
-                ys.append(float(pt[1]))
-        elif kind == "LINE":
-            xs.extend([float(ent.dxf.start.x), float(ent.dxf.end.x)])
-            ys.extend([float(ent.dxf.start.y), float(ent.dxf.end.y)])
-        elif kind == "CIRCLE":
-            cx, cy, radius = (
-                float(ent.dxf.center.x),
-                float(ent.dxf.center.y),
-                float(ent.dxf.radius),
-            )
-            xs.extend([cx - radius, cx + radius])
-            ys.extend([cy - radius, cy + radius])
-        elif kind == "ARC":
-            cx, cy, radius = (
-                float(ent.dxf.center.x),
-                float(ent.dxf.center.y),
-                float(ent.dxf.radius),
-            )
-            start_a = float(ent.dxf.start_angle) % 360.0
-            end_a = float(ent.dxf.end_angle) % 360.0
-            span = (end_a - start_a) % 360.0
-            sample_angles = [start_a, end_a]
-            for cardinal in (0.0, 90.0, 180.0, 270.0):
-                if abs(span) <= 1e-9 or ((cardinal - start_a) % 360.0) <= span + 1e-9:
-                    sample_angles.append(cardinal)
-            for deg in sample_angles:
-                rad = math.radians(deg)
-                xs.append(cx + radius * math.cos(rad))
-                ys.append(cy + radius * math.sin(rad))
+        try:
+            if kind == "LWPOLYLINE":
+                points = ((pt[0], pt[1]) for pt in ent.get_points())
+                if not add_points(points):
+                    return None
+            elif kind == "LINE":
+                if not add_points((
+                    (ent.dxf.start.x, ent.dxf.start.y),
+                    (ent.dxf.end.x, ent.dxf.end.y),
+                )):
+                    return None
+            elif kind in {"CIRCLE", "ARC"}:
+                cx = float(ent.dxf.center.x)
+                cy = float(ent.dxf.center.y)
+                # Some old DXF tools encode signed radii; a circle's
+                # geometric envelope uses the magnitude, not its sign.
+                radius = abs(float(ent.dxf.radius))
+                if not all(math.isfinite(v) for v in (cx, cy, radius)) or radius <= 0:
+                    return None
+                if kind == "CIRCLE":
+                    if not add_points(((cx-radius, cy-radius), (cx+radius, cy+radius))):
+                        return None
+                else:
+                    raw_start = float(ent.dxf.start_angle)
+                    raw_end = float(ent.dxf.end_angle)
+                    if not (math.isfinite(raw_start) and math.isfinite(raw_end)):
+                        return None
+                    start_a = raw_start % 360.0
+                    end_a = raw_end % 360.0
+                    span = (end_a - start_a) % 360.0
+                    sample_angles = [start_a, end_a]
+                    for cardinal in (0.0, 90.0, 180.0, 270.0):
+                        if abs(span) <= 1e-9 or ((cardinal - start_a) % 360.0) <= span + 1e-9:
+                            sample_angles.append(cardinal)
+                    if not add_points(
+                        (cx + radius * math.cos(math.radians(angle)),
+                         cy + radius * math.sin(math.radians(angle)))
+                        for angle in sample_angles
+                    ):
+                        return None
+        except (AttributeError, TypeError, ValueError, OverflowError, IndexError):
+            return None
+
     if not xs or not ys:
         return None
     return min(xs), min(ys), max(xs), max(ys)

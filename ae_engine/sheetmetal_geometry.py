@@ -164,6 +164,12 @@ def line_intersection(
 
 
 def _validate_endcap(g: EndCapGeometry) -> None:
+    for value in (
+        g.total_width, g.total_depth, g.left_fold, g.right_fold,
+        g.top_first_fold, g.fw, g.bottom_fold, g.thickness,
+    ):
+        if isinstance(value, bool) or not math.isfinite(float(value)):
+            raise GeometryError("EndCap geometry dimensions must be finite numbers")
     if g.thickness <= 0:
         raise GeometryError("板厚必須大於 0")
     if g.total_width <= 0 or g.total_depth <= 0:
@@ -178,7 +184,15 @@ def _factor_or_override(
     thickness: float,
     name: str,
 ) -> float:
+    # Factory relief overrides feed real CUTTING: finite guards apply to
+    # both explicit measurements and the factor used to derive defaults.
+    if isinstance(factor, bool) or not math.isfinite(float(factor)):
+        raise GeometryError(f"{name} factor must be finite")
+    if isinstance(thickness, bool) or not math.isfinite(float(thickness)):
+        raise GeometryError("thickness must be finite")
     value = override if override is not None else factor * thickness
+    if isinstance(value, bool) or not math.isfinite(float(value)):
+        raise GeometryError(f"{name} must be finite")
     if value < 0:
         raise GeometryError(f"{name} must not be negative")
     return float(value)
@@ -348,13 +362,33 @@ def _endcap_manual_material_polygon(
     """Material polygon for manual/unknown EndCap using CornerType selections."""
     _require_shapely()
     _validate_endcap(g)
-    left_basis = abs(g.left_fold if relief_left_fold is None else float(relief_left_fold))
-    right_basis = abs(g.right_fold if relief_right_fold is None else float(relief_right_fold))
-    bottom_left_basis = abs(
-        left_basis if bottom_relief_left_fold is None else float(bottom_relief_left_fold)
+
+    def finite_fold(value, name):
+        # These overrides drive real CUTTING geometry. bool -> 1 mm and
+        # nonfinite values must never silently become manufactured relief.
+        if isinstance(value, bool):
+            raise GeometryError(f"封頭{name}折邊必須是有限數值")
+        try:
+            amount = float(value)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise GeometryError(f"封頭{name}折邊必須是有限數值") from exc
+        if not math.isfinite(amount):
+            raise GeometryError(f"封頭{name}折邊必須是有限數值")
+        return abs(amount)
+
+    left_basis = finite_fold(
+        g.left_fold if relief_left_fold is None else relief_left_fold, "左側避讓",
     )
-    bottom_right_basis = abs(
-        right_basis if bottom_relief_right_fold is None else float(bottom_relief_right_fold)
+    right_basis = finite_fold(
+        g.right_fold if relief_right_fold is None else relief_right_fold, "右側避讓",
+    )
+    bottom_left_basis = finite_fold(
+        left_basis if bottom_relief_left_fold is None else bottom_relief_left_fold,
+        "下方左側避讓",
+    )
+    bottom_right_basis = finite_fold(
+        right_basis if bottom_relief_right_fold is None else bottom_relief_right_fold,
+        "下方右側避讓",
     )
     specs = {
         "bottom_left": (policy.bottom_left, bottom_left_basis, abs(g.bottom_fold)),

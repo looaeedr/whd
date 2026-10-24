@@ -238,22 +238,35 @@ def test_governance_and_spec_authorities_are_registered() -> None:
         assert meta.role == role, path
 
 
-def test_github_only_publish_is_explicit_scoped_exception_not_default() -> None:
+def test_slash_push_is_github_only_default_without_second_local_approval() -> None:
+    """Retired GitHub-only exception cannot resurrect a Windows UAT gate."""
     agents = read("AGENTS.md")
     skill = read(".agents/skills/engineering/推推/SKILL.md")
     policy = read("docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md")
-    for name, text in (("AGENTS", agents), ("publish skill", skill), ("governance policy", policy)):
-        assert "GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1" in text, name
-        assert "LOCAL_SYNC_PENDING" in text, name
-        assert "GitHub-only" in text, name
-        assert "本機" in text, name
+    for name, doc in (("AGENTS", agents), ("publish skill", skill), ("governance policy", policy)):
+        assert "GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1" in doc, name
+        assert "LOCAL_SYNC_PENDING" in doc, name
+        assert "GitHub-only" in doc, name
+        assert "本機" in doc, name
+        assert "/推推" in doc, name
+
+    assert "`/推推` 預設 GitHub-only" in agents
+    assert "唯一預設路線：GitHub-only" in skill
+    assert "普通 `/推推` 就是 GitHub-only" in policy
+    assert "不讀本機、不另問「GitHub-only」授權" in agents
+    assert "Windows 本機 UAT／同步不作為前置阻擋" in policy
+    assert "不再具有執行權威" in skill
     assert "必要 CI" in agents
     assert "owner" in skill
     assert "不豁免產品測試" in policy
-    assert "當次明確" in agents and "當次明確" in skill and "當次明確" in policy
     assert "不 reset" in agents
     assert "非強制 fast-forward" in skill and "非強制 fast-forward" in policy
-    assert "PUBLISHED_AND_SYNCED" in agents and "PUBLISHED_AND_SYNCED" in skill
+    assert "OFFICIAL_RELEASED" in agents and "OFFICIAL_RELEASED" in skill
+    assert "LOCALX_PUBLISH_OFFICIAL_RELEASE_V1" in policy
+    assert "GOVERNANCE_DIRECT_X" in policy and "已退役" in policy
+    for stale in ("預設產品先在本機", "直接 PR／CI 合併 X，不經 `localX`"):
+        assert stale not in policy
+
 
 
 def test_beta_skill_navigation_does_not_resurrect_retired_preflight() -> None:

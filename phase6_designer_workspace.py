@@ -110,9 +110,11 @@ class Phase6DesignerWorkspace:
         return self._shared_state.existing_parts
 
     def replace_available_parts(self, values) -> tuple[str, ...]:
+        previous = set(self.available_parts)
         parts = self._shared_state.set_existing_parts(values, active_repair="none")
         if self._selected_part not in parts:
             self._selected_part = None
+        self._drop_assembly_placements_for_removed_parts(previous.difference(parts))
         self._prune_assembly_placements(parts)
         return parts
 
@@ -231,7 +233,10 @@ class Phase6DesignerWorkspace:
             self._part_face_features.pop(key, None)
         if self._selected_part == key:
             self._selected_part = None
-        self._assembly_placements.pop(key, None)
+        # A surviving physical part may still be placed relative to the
+        # deleted parent. Drop its stale datum and all dependent placements.
+        self._drop_assembly_placements_for_removed_parts((key,))
+        self._prune_assembly_placements(self.available_parts)
         self._dirty = True
         return True
 
@@ -373,6 +378,35 @@ class Phase6DesignerWorkspace:
             result[key] = placement.to_dict() if hasattr(placement, "to_dict") else deepcopy(dict(placement))
         self._assembly_placements = deepcopy(result)
         return self.assembly_placements_snapshot()
+
+    def _drop_assembly_placements_for_removed_parts(self, removed_parts) -> None:
+        """Discard placement descendants of a deleted physical parent.
+
+        A child part's existence does not validate a world placement whose
+        explicit parent is gone. Unrelated placements remain untouched.
+        """
+        removed_nodes = {str(key) for key in removed_parts}
+        if not removed_nodes:
+            return
+        discarded = set()
+        while True:
+            newly_discarded = set()
+            for key, value in self._assembly_placements.items():
+                if key in discarded:
+                    continue
+                parent = (
+                    value.get("parent_assembly_node")
+                    if isinstance(value, dict)
+                    else getattr(value, "parent_assembly_node", None)
+                )
+                if key in removed_nodes or parent in removed_nodes:
+                    newly_discarded.add(key)
+            if not newly_discarded:
+                break
+            discarded.update(newly_discarded)
+            removed_nodes.update(newly_discarded)
+        for key in discarded:
+            self._assembly_placements.pop(key, None)
 
     def _prune_assembly_placements(self, available_parts) -> None:
         allowed = set(available_parts)

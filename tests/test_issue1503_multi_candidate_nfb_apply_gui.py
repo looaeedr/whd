@@ -59,7 +59,7 @@ def select_two(root,frame,state):
     assert state['layers'].get()==2
     assert state['nfb_physical_layers'].get()==2
 
-def check_heights(state,first='330',second='830'):
+def check_heights(state,first='550',second='830'):
     vals=tuple(round(float(v.get())) for v in state['layer_heights_mm'])
     assert vals==(int(first),int(second)), f'wrong default heights {vals}'
     print('HEIGHTS',vals, flush=True)
@@ -108,7 +108,7 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         add(root,modal,state,0)
         select_two(root,modal,state)
         add(root,modal,state,1)
-        check_heights(state,'300','830')
+        check_heights(state,'330','830')
         assert len(buttons(modal,'取消'))==1
         buttons(modal,'取消')[0].invoke()
         pump(root)
@@ -125,7 +125,7 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         add(root,modal,state,0)
         select_two(root,modal,state)
         add(root,modal,state,1)
-        check_heights(state,'300','830')
+        check_heights(state,'330','830')
         confirm=buttons(modal,'確定')
         assert len(confirm)==1,'missing tab 確定'
         confirm[0].invoke()
@@ -136,7 +136,7 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         assert len(pending)==2,'tab 確定 did not bring 2 holes to main, '+str(len(pending))+', warning='+warning
         assert all(f.source_type=='NFB_CSV_SOURCE' for f in pending)
         staged=getattr(editor,'_receiving_staged_config',None)
-        assert staged is not None and staged['layer_heights_mm']==[300,830]
+        assert staged is not None and staged['layer_heights_mm']==[330,830]
         print('TAB_CONFIRM_NATIVE_HOLES_PASS',len(pending),flush=True)
         # The version editor is a CANDIDATE transaction, not the physical
         # Bay writer. Compare with the exact workspace before entering, while
@@ -157,7 +157,7 @@ def test_real_multi_candidate_nfb_only_activates_after_explicit_bay_apply():
         version=library['versions'][0]
         config=version['config']
         assert len(config['features'][part])==2,'multi candidate missing two typed NFB holes'
-        assert config['layer_heights_mm']==[300,830]
+        assert config['layer_heights_mm']==[330,830]
         physical=designer.designer_workspace.features_for(part)
         assert tuple(physical)==physical_before, (
             'multi candidate unexpectedly modified physical part before explicit Apply'

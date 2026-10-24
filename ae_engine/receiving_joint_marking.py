@@ -161,6 +161,17 @@ def _derived_receiving_frames(snapshot):
     return tuple(derive_all_inner_door_frames(frame_sets))
 
 
+def _diagnostic_inner_door_frame_id(door_id, side):
+    """Preserve source identity for an unresolved frame without inventing geometry."""
+    try:
+        return inner_door_frame_stable_id(door_id, side)
+    except (TypeError, ValueError):
+        # An old/corrupt identifier may itself violate the physical part-ID
+        # contract. Diagnostics must still survive to block a false GREEN.
+        return f"invalid-inner-door:{str(door_id)}:{str(side)}"
+
+
+
 def _part_map(
     geometry: ResolvedManufacturingGeometry,
 ) -> dict[str, ResolvedManufacturingPart]:
@@ -862,11 +873,28 @@ def _emitted_result(
     )
 
 
+def _rollback_staged_joint_marking_results(results, cause):
+    """Fail staged MARKING atomically without losing each physical policy owner."""
+    return tuple(
+        replace(
+            result,
+            status="SKIPPED_FAIL_CLOSED",
+            mark_ids=(),
+            diagnostic_code="MARK_OUTSIDE_FINAL_MATERIAL",
+            diagnostic_detail=str(cause),
+            evidence={},
+        ) if result.status == "EMITTED" else result
+        for result in results
+    )
+
+
 def _write_rows(geometry, rows_by_owner):
     enriched = geometry
     for owner_key, rows in sorted(rows_by_owner.items()):
         data = owner_render_data(enriched, owner_key)
         if data is None:
+            if rows:
+                raise ValueError(f"MISSING_MARKING_OWNER: {owner_key}")
             continue
         scene, metadata = _clean_prior_joint_markings(data)
         ordered = tuple(
@@ -927,7 +955,7 @@ def resolve_receiving_joint_markings(
                 results.append(
                     _fail(
                         locator_part_id="",
-                        attached_part_id=inner_door_frame_stable_id(door_id, str(side)),
+                        attached_part_id=_diagnostic_inner_door_frame_id(door_id, str(side)),
                         diagnostic_code="STALE_STABLE_ID",
                         detail=str(exc),
                     )
@@ -974,14 +1002,47 @@ def resolve_receiving_joint_markings(
 
     snapshot_map = dict(snapshot or {})
     dimensions = tuple(dimensions or ())
-    dividers = derive_box_body_dividers(
-        snapshot_map.get("door_layout_columns") or (),
-        depth=float(snapshot_map.get("d", dimensions[2] if len(dimensions) > 2 else 0.0)),
-        thickness=float(sheet_thickness),
-        layout_scope=str(snapshot_map.get("door_layout_scope") or "receiving-main"),
-        model_name=str(snapshot_map.get("model") or "受電箱"),
-        frame_width=float(snapshot_map.get("fw", 29.0)),
-    )
+    try:
+        dividers = derive_box_body_dividers(
+            snapshot_map.get("door_layout_columns") or (),
+            depth=float(snapshot_map.get("d", dimensions[2] if len(dimensions) > 2 else 0.0)),
+            thickness=float(sheet_thickness),
+            layout_scope=str(snapshot_map.get("door_layout_scope") or "receiving-main"),
+            model_name=str(snapshot_map.get("model") or "受電箱"),
+            frame_width=float(snapshot_map.get("fw", 29.0)),
+        )
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        # A malformed saved Door layout must not escape the MARKING
+        # transaction or silently generate a new divider/contact datum.
+        # Preserve an empty read-only preview when no physical part exists,
+        # but attach fail-closed diagnostics to every affected owner.
+        affected = {str(frame.stable_id) for frame in frames}
+        affected.update(
+            str(getattr(part, "part_key", ""))
+            for part in tuple(geometry.parts or ())
+            if str(getattr(part, "part_key", "")).startswith("box_body:divider:")
+        )
+        for item in items:
+            for side in tuple(item.get("included_frame_sides") or ("top", "left", "right")):
+                if str(side) in {"top", "left", "right"}:
+                    affected.add(_diagnostic_inner_door_frame_id(item["stable_id"], str(side)))
+        results = tuple(
+            _fail(
+                locator_part_id="",
+                attached_part_id=part_id,
+                diagnostic_code="PLACEMENT_UNRESOLVED",
+                detail=f"invalid Receiving Door/Divider layout: {exc}",
+            )
+            for part_id in sorted(affected)
+        )
+        return ReceivingJointMarkingResolution(
+            geometry=replace(
+                geometry,
+                diagnostics=tuple(geometry.diagnostics or ()) + results,
+            ),
+            results=results,
+            status=status,
+        )
     divider_by_id = {str(row.stable_id): row for row in dividers}
 
     rows_by_owner = {}
@@ -1149,17 +1210,7 @@ def resolve_receiving_joint_markings(
     except (KeyError, TypeError, ValueError) as exc:
         # Atomic activation: if any staged receiver line cannot be written to its
         # canonical owner, expose diagnostics but do not publish half a marking set.
-        failed = tuple(
-            _fail(
-                locator_part_id=str(result.locator_part_id),
-                attached_part_id=str(result.attached_part_id),
-                diagnostic_code="MARK_OUTSIDE_FINAL_MATERIAL",
-                detail=str(exc),
-            )
-            if result.status == "EMITTED"
-            else result
-            for result in results
-        )
+        failed = _rollback_staged_joint_marking_results(results, exc)
         enriched = geometry
         results = list(failed)
 

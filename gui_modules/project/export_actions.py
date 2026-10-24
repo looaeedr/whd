@@ -388,10 +388,34 @@ def _export_selected_resolved_parts(self, folder, flags):
                 export_current_receiving_multibay_dxf,
             )
             composition = receiving_bridge._phase6_composition(designer)
+            # AC-09/24: HEAD/TAIL/outer DOOR have no NFB source dependency.
+            # Preview an isolated Bay whose unselected NFB is unsubmitted;
+            # the actual saved source still owns every manufacturing gate.
+            independent_only = (
+                any(bool(flags.get(key)) for key in ("head", "tail", "door"))
+                and not any(bool(value) for key, value in flags.items()
+                            if key not in {"head", "tail", "door"})
+            )
             def actual_bay_geometry(set_index, bay_index):
-                current = composition.receiving_bay_preview_request(
-                    vars(receiving_bridge), set_index, bay_index,
-                )
+                if independent_only:
+                    preview_layout=dict(saved_layout)
+                    preview_sets=list(saved_layout["sets"])
+                    preview_set=dict(preview_sets[set_index])
+                    preview_bays=list(preview_set["bays"])
+                    preview_bay=dict(preview_bays[bay_index])
+                    preview_bay["nfb_config_submitted"]=False
+                    preview_bays[bay_index]=preview_bay
+                    preview_set["bays"]=preview_bays
+                    preview_sets[set_index]=preview_set
+                    preview_layout["sets"]=preview_sets
+                    current=composition.receiving_bay_preview_request(
+                        vars(receiving_bridge), set_index, bay_index,
+                        preview_layout=preview_layout,
+                    )
+                else:
+                    current=composition.receiving_bay_preview_request(
+                        vars(receiving_bridge), set_index, bay_index,
+                    )
                 anchor = receiving_bay_assembly_offsets(
                     saved_layout, set_index=set_index,
                 )[bay_index]
@@ -534,6 +558,12 @@ def _export_selected_resolved_parts(self, folder, flags):
                     for row in receipts if row.side_piece_id == side
                     for segment in row.marking_segments
                 ),
+                # The NORMAL manufacturing SIDE scene contains both the
+                # certified EAR lines and its pre-existing source MARKING.
+                # Compare the entire current resolved physical source to the
+                # independently reopened DXF, not EAR rows alone. The reader
+                # still rejects every unowned or duplicate MARKING LINE.
+                check_scene=physical.scene,
             )
     return ([os.path.basename(path) for path in outputs.values()], [])
 
@@ -985,14 +1015,46 @@ def export_receiving_pad_base_part_only_dxf(self):
             initialvalue=1,minvalue=1)
         if qty is None:
             return
+        # A Quantity version is never a persistent Set/Bay identity.
+        # Derive source proof from exactly its submitted version.
+        quantity_version = None
+        if snapshot.get("active_mode") == "quantity":
+            from phase6_quantity_model import QuantityModel
+            from ae_engine.receiving_quantity_box import project_common_box
+            model = QuantityModel.from_payload(snapshot.get("quantity"))
+            quantity_version = model.selected_version_id
+            committed = model.nfb_config_for_version(quantity_version)
+            if (committed.get("nfb_config_submitted") is not True
+                    or committed.get("nfb_config") != snapshot.get("nfb_config")):
+                raise ValueError("PAD＋底板數量版本的 NFB 來源已失效")
+            snapshot = project_common_box(snapshot)
         runtime=snapshot.get("_receiving_runtime_selection")
-        if not isinstance(runtime, Mapping):
-            raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
-        set_id=str(runtime.get("set_id") or "").strip()
-        bay_id=str(runtime.get("bay_id") or "").strip()
-        if not set_id or not bay_id:
-            raise ValueError("PAD＋底板缺少 Set／Bay 實際識別碼")
-        version_id=f"{set_id}__{bay_id}"
+        if quantity_version is None and not isinstance(runtime, Mapping):
+            # Recover the exact one-Bay source identity only from the current
+            # saved singleton. Never borrow another Bay or a previous selector.
+            layout=snapshot.get("receiving_layout")
+            sets=layout.get("sets") if isinstance(layout, Mapping) else None
+            if (snapshot.get("active_mode", "set_bay") != "set_bay"
+                    or not isinstance(sets, (list, tuple)) or len(sets) != 1
+                    or not isinstance(sets[0].get("bays"), (list, tuple))
+                    or len(sets[0]["bays"]) != 1
+                    or sets[0]["bays"][0].get("nfb_config_submitted") is not True
+                    or sets[0]["bays"][0].get("nfb_config") != snapshot.get("nfb_config")):
+                raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
+            runtime={
+                "set_id": sets[0]["stable_id"],
+                "bay_id": sets[0]["bays"][0]["stable_id"],
+                "set_index": 0, "bay_index": 0,
+            }
+            snapshot={**snapshot, "_receiving_runtime_selection": runtime}
+        if quantity_version is not None:
+            version_id = quantity_version
+        else:
+            set_id=str(runtime.get("set_id") or "").strip()
+            bay_id=str(runtime.get("bay_id") or "").strip()
+            if not set_id or not bay_id:
+                raise ValueError("PAD＋底板缺少 Set／Bay 實際識別碼")
+            version_id=f"{set_id}__{bay_id}"
         root=filedialog.askdirectory(title="選擇 PAD＋底板 CHECK/Q 輸出資料夾")
         if not root:
             return
@@ -1069,3 +1131,9 @@ def _apply_multi_door_indicator_state(self, key, state):
     else:
         target.clear()
         target.update(normalized)
+    designer = getattr(self, "fold_designer_app", None)
+    if designer is not None and isinstance(getattr(designer, "_phase6_input_snapshot", None), dict):
+        designer._phase6_input_snapshot["door_layout_indicator_states"] = {
+            k: dict(v) for k, v in self.door_layout_indicator_states.items()
+        }
+    self._request_phase6_update("geometry")

@@ -1,4 +1,5 @@
 """User holes on derived sheets use their canonical material coordinates."""
+from collections.abc import Mapping
 from dataclasses import replace
 
 from . import ae
@@ -19,7 +20,7 @@ def with_physical_sheet_features(key, render, features):
     if not features:
         return render
     surface, width, height, _ = physical_sheet_feature_context(key, render)
-    normalized = tuple(legacy_hole_to_feature(dict(f)) if isinstance(f, dict) else f
+    normalized = tuple(legacy_hole_to_feature(dict(f)) if isinstance(f, Mapping) else f
                        for f in features)
     resolved = ae.resolve_surface_features(surface, normalized, width, height)
     scene = DrawingScene()

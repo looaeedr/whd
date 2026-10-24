@@ -176,7 +176,10 @@ class ReceivingSetBayAdapter:
             return
         if self._confirm_destructive is None:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
-        if not bool(self._confirm_destructive(protected)):
+        # Deleting already saved or edited NFB/Receiving Bay data is
+        # destructive. Non-boolean callback values (e.g. 1 or "yes") must
+        # never be coerced into operator authorization.
+        if self._confirm_destructive(protected) is not True:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
 
     def set_bay_count(self, bay_count: int) -> None:
@@ -278,11 +281,22 @@ class ReceivingSetBayAdapter:
                 candidate = deepcopy(self._layout)
             # Existing update_receiving_bay() casts numeric inputs to float
             # before canonical normalization; preserve that data contract.
-            candidate["sets"][index]["bays"][bay_index] = {
+            updated_bay = {
                 **current, **{axis: float(value) for axis, value in changes.items()
                               if axis in ("width", "height", "depth")},
                 **({"door_state": changes["door_state"]} if "door_state" in changes else {}),
             }
+            if (float(current["width"]) != width
+                    and updated_bay.get("nfb_config_submitted") is True):
+                # This fast multi-selection operator intentionally bypasses
+                # update_receiving_bay's repeated full-layout normalization.
+                # It must still enforce that same per-Bay X datum invalidation
+                # when the physical width changes; never keep old confirmed X.
+                from ae_engine.receiving_nfb_persistence import reconfirm_copied_nfb_config
+                updated_bay["nfb_config"] = reconfirm_copied_nfb_config(
+                    updated_bay["nfb_config"]
+                )
+            candidate["sets"][index]["bays"][bay_index] = updated_bay
             dirty.append(str(current["stable_id"]))
         if not dirty:
             return 0
@@ -422,11 +436,18 @@ class ReceivingSetBayAdapter:
         version_id = validate_setting("inner_door_version_id", version_id)
         if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
             raise ValueError("選取的套不存在")
-        selected = tuple(sorted(set(bay_indices)))
+        # Validate highlight members *before* set(): True aliases integer
+        # Bay 1 and nested unhashable UI values otherwise raise TypeError.
+        # Neither may alter any physical NFB Bay or candidate assignment.
+        try:
+            supplied = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError("請在簡易圖高亮有效的連") from exc
         count = len(self._layout["sets"][set_index]["bays"])
-        if not selected or any(type(i) is not int or not 0 <= i < count
-                               for i in selected):
+        if (not supplied or any(type(i) is not int or not 0 <= i < count
+                                for i in supplied)):
             raise ValueError("請在簡易圖高亮有效的連")
+        selected = tuple(sorted(set(supplied)))
         # Stage a candidate's current CSV source identities. Merely saving a
         # version does not touch any physical Bay; only explicit Apply can
         # submit the version's existing Hole Editor NFB features into each

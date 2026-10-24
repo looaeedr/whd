@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import combinations
+from math import isfinite
+from collections.abc import Mapping
 
 from .assembly_geometry import detect_world_mesh_surface_interference
 
@@ -78,8 +80,16 @@ def _bounds(triangles):
     count = 0
     for pt in points:
         count += 1
-        for axis in range(3):
-            value = float(pt[axis])
+        try:
+            raw = tuple(pt)
+            if len(raw) != 3 or any(isinstance(v, bool) for v in raw):
+                raise ValueError("nonphysical world vertex")
+            xyz = tuple(float(v) for v in raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("ASSEMBLY_COLLISION_INVALID_WORLD_MESH") from exc
+        if not all(isfinite(v) for v in xyz):
+            raise ValueError("ASSEMBLY_COLLISION_INVALID_WORLD_MESH")
+        for axis, value in enumerate(xyz):
             lo[axis] = min(lo[axis], value)
             hi[axis] = max(hi[axis], value)
     if not count:
@@ -134,15 +144,24 @@ def _certified_pair_allowances(diagnostics):
     for row in tuple(diagnostics or ()):
         if (
             str(getattr(row, "candidate_status", "")) != "CERTIFIED_REGISTRY_VERIFIED"
-            or bool(getattr(row, "illegal_penetration", True))
+            # A real solver emits exact bool, never 0/None/empty containers.
+            or getattr(row, "illegal_penetration", True) is not False
             or str(getattr(row, "target_part", "")) != "box_body"
         ):
             continue
         divider = str(getattr(row, "subject_part", ""))
-        post = dict((getattr(row, "evidence", {}) or {}).get("post") or {})
+        evidence = getattr(row, "evidence", None)
+        if not isinstance(evidence, Mapping):
+            continue
+        post = evidence.get("post")
+        if not isinstance(post, Mapping):
+            continue
         if not divider.startswith("box_body:divider:"):
             continue
-        if int(post.get("true_thickness_penetrating_band_count", -1)) != 0:
+        count = post.get("true_thickness_penetrating_band_count", -1)
+        # This is a manufacturing certification count, not a display field.
+        # False must not certify zero penetrating bands via int(False) == 0.
+        if type(count) is not int or count != 0:
             continue
         for side in ("box_body:left_side", "box_body:right_side"):
             approved.add(frozenset((divider,side)))
@@ -158,12 +177,26 @@ def audit_all_physical_part_pairs(world_triangles_by_part, *,
     All other generated parts (including future panels/frames/endcaps) participate.
     Missing selected mesh is a hard error, never a misleading zero result.
     """
+    # An invalid tolerance must never make the broad-phase report a false
+    # separation or implicitly allow a nonphysical contact at FinalScene.
+    if isinstance(tolerance, bool):
+        raise ValueError("ASSEMBLY_COLLISION_INVALID_TOLERANCE")
+    try:
+        tolerance = float(tolerance)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("ASSEMBLY_COLLISION_INVALID_TOLERANCE") from exc
+    if not isfinite(tolerance) or tolerance < 0:
+        raise ValueError("ASSEMBLY_COLLISION_INVALID_TOLERANCE")
     raw = dict(world_triangles_by_part or {})
     selected = None if visible_part_keys is None else frozenset(visible_part_keys)
     keys = tuple(sorted(k for k, v in raw.items()
                         if k != "box_body" and v and (selected is None or k in selected)))
     if selected is not None:
-        missing = tuple(sorted(key for key in selected if key not in raw))
+        # A visible, named sheet with no triangles is NOT a checked sheet.
+        # Omitting it from the pair list would produce a false "no collision".
+        missing = tuple(sorted(
+            key for key in selected if key not in raw or not raw[key]
+        ))
         if missing:
             raise ValueError("ASSEMBLY_COLLISION_MISSING_VISIBLE_PARTS: " + ", ".join(missing))
     meshes = {key: tuple(raw[key]) for key in keys}
@@ -172,11 +205,11 @@ def audit_all_physical_part_pairs(world_triangles_by_part, *,
     certified_pairs = _certified_pair_allowances(certified_relief_diagnostics)
     for a, b in combinations(keys, 2):
         ba, bb = bounds[a], bounds[b]
-        if not _bbox_touch(ba, bb, float(tolerance)):
+        if not _bbox_touch(ba, bb, tolerance):
             result.append(AssemblyPhysicalPair(a,b,"AABB_SEPARATED",0,()))
             continue
         crossing = detect_world_mesh_surface_interference(
-            meshes[a], meshes[b], tolerance=float(tolerance))
+            meshes[a], meshes[b], tolerance=tolerance)
         if not crossing.pair_count:
             # NO_NONCOPLANAR_CROSSING is not a proof of no 3D overlap.
             status = "NO_NONCOPLANAR_CROSSING"
@@ -185,7 +218,7 @@ def audit_all_physical_part_pairs(world_triangles_by_part, *,
             # positive-thickness penetrating bands for BOTH physical sides.
             status = "VERIFIED_CERTIFIED_RELIEF_CONTACT"
         elif _frame_terminal_contact(
-            a,b,ba,bb,crossing.intersection_points,float(tolerance)):
+            a,b,ba,bb,crossing.intersection_points,tolerance):
             status = "VERIFIED_TERMINAL_CONTACT"
         else:
             status = "UNRESOLVED_CROSSING"

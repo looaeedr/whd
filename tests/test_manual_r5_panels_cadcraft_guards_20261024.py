@@ -1,0 +1,189 @@
+"""Source-verified R5 CADCraft preview and Door/Divider input safety."""
+from types import SimpleNamespace
+import pytest
+from gui_modules.editors.cadcraft_control_bridge import CadcraftControlClient, CadcraftControlError
+from gui_modules.editors.cadcraft_command_preview_bridge import (
+    CadcraftCommandProofError, focus_started_cadcraft_window, prepare_whd_cadcraft_commands,
+)
+from gui_modules.parts.panels.door import _parse_layout_value, normalize_door_indicator_state
+from gui_modules.parts.panels.divider import collect_divider_input
+
+
+def test_r5_92_cadcraft_bool_transport_and_physical_dimensions():
+    with pytest.raises(CadcraftControlError, match="INVALID_CONTROL_TIMEOUT"):
+        CadcraftControlClient(12345, timeout=True)
+    assert focus_started_cadcraft_window(True) is False
+    assert focus_started_cadcraft_window(False) is False
+    with pytest.raises(CadcraftCommandProofError, match="INVALID_WHD_FINISHED_FACE_DIMENSIONS"):
+        prepare_whd_cadcraft_commands(surface=None, features=(), width=True, height=100.)
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf"), -1, 0])
+def test_r5_94_door_dimension_must_be_finite_positive(bad):
+    with pytest.raises(ValueError):
+        _parse_layout_value(SimpleNamespace(get=lambda: bad), "欄寬")
+    assert _parse_layout_value(SimpleNamespace(get=lambda: 400.5), "欄寬") == 400.5
+
+
+def test_r5_94_indicator_corrupt_settings_restore_safe_defaults():
+    state = normalize_door_indicator_state({
+        "layers": True, "groups": "123456",
+        "offset_x": float("nan"), "offset_y": True,
+    })
+    assert state["layers"] == 1
+    assert state["groups"] == [2] * 6
+    assert state["offset_x"] == 0.0
+    assert state["offset_y"] == 0.0
+    valid = normalize_door_indicator_state({
+        "layers": 2, "groups": [2, 3, 4, 5, 6, 7],
+        "offset_x": -15.25, "offset_y": 31.75,
+    })
+    assert valid["layers"] == 2
+    assert valid["groups"] == [2, 3, 4, 5, 6, 7]
+    assert (valid["offset_x"],valid["offset_y"]) == (-15.25,31.75)
+
+
+def test_r5_95_divider_null_depth_and_thickness_use_parent_defaults():
+    result = collect_divider_input(
+        "divider",
+        {"door_layout_columns": [(400., (600.,))], "d": None, "t": None},
+        default_depth=250., default_thickness=2.,
+    )
+    assert result["depth"] == 250.0
+    assert result["thickness"] == 2.0
+    assert result["columns"] == ((400., (600.,)),)
+    for bad in (True, float("nan"), float("inf")):
+        with pytest.raises(ValueError):
+            collect_divider_input(
+                "divider", {"door_layout_columns": [(bad, (600.,))]},
+                default_depth=250., default_thickness=2.,
+            )
+
+
+@pytest.mark.parametrize("bad_mode", [[], {}, ["indicator"], {"kind": "indicator"}])
+def test_r5_94_unhashable_saved_indicator_mode_recovers_without_type_error(bad_mode):
+    """Saved presentation state is not authoritative geometry and must recover safely."""
+    state = normalize_door_indicator_state({
+        "mode": bad_mode, "enabled": True, "groups": [2, 3],
+    })
+    assert state["mode"] == "indicator"
+    assert state["enabled"] is True
+    assert state["groups"] == [2, 3, 2, 2, 2, 2]
+
+
+def test_r5_73_readonly_mapping_is_converted_to_real_sheet_feature(monkeypatch):
+    """The physical-sheet owner must accept a read-only Mapping, not only dict."""
+    from dataclasses import dataclass
+    from types import MappingProxyType
+    import ae_engine.physical_sheet_features as physical
+    from ae_engine.sheetmetal_features import CircleFeature
+
+    @dataclass(frozen=True)
+    class _Render:
+        scene: object
+        material: object = None
+
+    captured = {}
+
+    def resolve_surface(_surface, features, _width, _height):
+        captured["features"] = features
+        return ()
+
+    monkeypatch.setattr(physical, "physical_sheet_feature_context", lambda *_: (None, 800., 1600., None))
+    monkeypatch.setattr(physical.ae, "resolve_surface_features", resolve_surface)
+    monkeypatch.setattr(physical, "resolved_features_to_primitives", lambda _: ())
+    monkeypatch.setattr(physical, "material_polygon_from_final_scene", lambda _: None)
+    hole = MappingProxyType({"type": "圓形", "x": 70., "y": 80., "params": {"diameter": 12.}})
+    result = physical.with_physical_sheet_features("door", _Render(physical.DrawingScene()), (hole,))
+    assert isinstance(captured["features"][0], CircleFeature)
+    assert captured["features"][0].diameter == 12.
+    assert result.scene is not None
+
+@pytest.mark.parametrize("bad_columns", [
+    "400", {"width": 400},
+    ((400.,),),
+    ((400., 600.),),
+    ((400., "600"),),
+    ((400., None),),
+    ((400., (600.,), "extra"),),
+])
+def test_r5_95_malformed_divider_layout_shape_is_controlled_validation_error(bad_columns):
+    """Saved 2D door topology is not an unchecked list of arbitrary Python rows."""
+    with pytest.raises(ValueError, match="中隔缺少 authoritative multi-door topology"):
+        collect_divider_input(
+            "box_body:divider:1", {"door_layout_columns": bad_columns},
+            default_depth=250., default_thickness=2.,
+        )
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), "nan", "inf", None, {}])
+def test_r5_79_reference_distance_rejects_bad_physical_position_before_feature_move(bad):
+    from ae_engine.sheetmetal_feature_reference import ReferenceAnchor, move_feature_by_reference_distance
+    from ae_engine.sheetmetal_feature_surface import feature_surface_from_rect
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    surface = feature_surface_from_rect("door", Vec2(0., 0.), Vec2(100., 100.))
+    circle = CircleFeature(
+        diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(25., 40.),
+    )
+    with pytest.raises(ValueError, match="reference distance"):
+        move_feature_by_reference_distance(
+            surface, (circle,), 0, ReferenceAnchor.CENTER,
+            100., 100., axis="x", mode="edge", value=bad,
+        )
+
+
+def test_r5_79_reference_edge_move_keeps_authoritative_valid_position():
+    from ae_engine.sheetmetal_feature_reference import ReferenceAnchor, move_feature_by_reference_distance
+    from ae_engine.sheetmetal_feature_surface import feature_surface_from_rect
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    surface = feature_surface_from_rect("door", Vec2(0., 0.), Vec2(100., 100.))
+    circle = CircleFeature(
+        diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(25., 40.),
+    )
+    placed = move_feature_by_reference_distance(
+        surface, (circle,), 0, ReferenceAnchor.CENTER,
+        100., 100., axis="x", mode="edge", value=30.,
+    )
+    # Placement is allowed to re-anchor to panel center; test the true
+    # finished-face point rather than a non-authoritative stored offset.
+    from ae_engine.sheetmetal_features import feature_finished_point
+    assert feature_finished_point(placed, 100., 100.) == Vec2(30., 40.)
+    with pytest.raises(ValueError, match="reference feature index"):
+        move_feature_by_reference_distance(
+            surface, (circle, circle), True, ReferenceAnchor.CENTER,
+            100., 100., axis="x", mode="edge", value=30.,
+        )
+
+@pytest.mark.parametrize("setting", ["char_height", "minimum_char_height", "clearance"])
+def test_r5_75_final_quantity_annotation_cannot_treat_true_as_millimetres(setting):
+    """Invalid source cannot make one-mm CHECK Q lettering or tolerance."""
+    from shapely.geometry import box
+    from ae_engine.manufacturing_render_data import PartRenderData
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from ae_engine.drawing_annotation_layout import annotate_quantity_render_data
+
+    data = PartRenderData(scene=DrawingScene(), material=box(0., 0., 200., 200.), fold_guides=())
+    with pytest.raises(ValueError, match="quantity CHECK layout"):
+        annotate_quantity_render_data(data, 2, **{setting: True})
+    valid = annotate_quantity_render_data(data, 2, char_height=10., minimum_char_height=3., clearance=1.)
+    assert any(getattr(p, "text", None) == "Q2" for p in valid.scene.primitives)
+
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf")])
+def test_r5_75_existing_quantity_text_cannot_make_nonfinite_or_boolean_footprint(bad):
+    from dataclasses import replace
+    from ae_engine.sheetmetal_geometry import Vec2
+    from ae_engine.sheetmetal_drawing import TextPrimitive
+    from ae_engine.drawing_annotation_layout import _quantity_text_box
+
+    valid = TextPrimitive("Q2", Vec2(30., 40.), "CHECK", 10., 7)
+    assert tuple(_quantity_text_box(valid).bounds) == pytest.approx((30., 40., 46., 50.))
+    with pytest.raises(ValueError, match="quantity text"):
+        _quantity_text_box(replace(valid, char_height=bad))
+    with pytest.raises(ValueError, match="quantity text"):
+        _quantity_text_box(replace(valid, insert=Vec2(bad, 40.)))

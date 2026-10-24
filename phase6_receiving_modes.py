@@ -134,6 +134,21 @@ class ReceivingModeSession:
             candidate["receiving_hole_candidates"] = normalize_candidates(
                 current["receiving_hole_candidates"]
             )
+        else:
+            candidate.pop("receiving_hole_candidates", None)
+        if "receiving_inner_door_candidates" in current:
+            from ae_engine.receiving_inner_door_candidates import (
+                normalize_inner_candidates,
+            )
+            candidate["receiving_inner_door_candidates"] = (
+                normalize_inner_candidates(
+                    current["receiving_inner_door_candidates"]
+                )
+            )
+        else:
+            # Project-global deletion has an authoritative meaning too.
+            # An inactive mode buffer must not resurrect removed versions.
+            candidate.pop("receiving_inner_door_candidates", None)
         self._buffers[self._mode] = current
         self._active = candidate
         self._mode = target

@@ -93,17 +93,49 @@ class NfbPartialExportManifest:
 
     def require_export(self,part_ids:Sequence[str],*,partial=False):
         """Gate before any DXF IO; never skip blocked pieces in full export."""
+        if type(partial) is not bool:
+            raise TypeError("NFB partial export authorization must be explicit boolean")
         requested=tuple(part_ids)
         if len(set(requested))!=len(requested):
             raise ValueError("NFB partial export request repeats physical part")
-        if self.nfb_config_submitted and not partial and not self.whole_ready:
-            raise ValueError("NFB whole manufacturing not ready; partial only")
+        if self.nfb_config_submitted and not partial:
+            # A typed caller can still supply inconsistent manifest flags.
+            # Full export is NEVER authorized from an asserted whole_ready
+            # flag while any physical part is held or a dependency unresolved.
+            if (self.scope.submitted is not True
+                    or self.whole_ready is not True
+                    or self.unresolved_dependencies
+                    or not self.rows
+                    or any(row.may_export is not True
+                           or row.status not in (READY, UNAFFECTED)
+                           or type(row.actual_count) is not int
+                           or row.actual_count < 1
+                           for row in self.rows)):
+                raise ValueError("NFB whole manufacturing not ready; partial only")
         known={r.part_id:r for r in self.rows}
+        if len(known)!=len(self.rows):
+            raise ValueError("NFB duplicate physical part BLOCKED in export manifest")
+        # A typed manifest from a different Set/Bay/version or a changed
+        # submission identity must not authorize DXF after preflight.
+        if (self.scope.submitted is not self.nfb_config_submitted
+                or any((row.set_id, row.bay_id, row.version_id)
+                       != self.scope.identity for row in self.rows)):
+            raise ValueError("NFB manifest physical owner BLOCKED: Set/Bay/version")
         for part in requested:
             if part not in known:
                 raise ValueError("NFB export part not in current physical scene")
-            if not known[part].may_export:
-                raise ValueError("NFB requested physical part BLOCKED: "+part)
+            row=known[part]
+            if (part == self.scope.inner_door_part_id
+                    and row.role != INNER_DOOR):
+                raise ValueError("NFB requested physical part BLOCKED: inner-door role")
+            # A forged typed report may carry a truthy integer/string or
+            # inconsistent status. Neither is manufacturing authorization.
+            # Preserve unconfigured historical LEGACY only for unsubmitted
+            # scopes and unrelated proven UNAFFECTED physical parts.
+            valid_status=(READY,UNAFFECTED) if self.nfb_config_submitted else (LEGACY,)
+            if (row.may_export is not True or row.status not in valid_status
+                    or type(row.actual_count) is not int or row.actual_count < 1):
+                raise ValueError("NFB requested physical part BLOCKED: "+str(part))
         return requested
 
     def report(self):
@@ -195,10 +227,16 @@ def derive_nfb_partial_export_manifest(
             config_matching=True
         except (ValueError,KeyError,TypeError,IndexError):
             config_matching=False
+    # A hash-current DXF inventory is not proof for a *different saved*
+    # NFBConfig.  After model/X/layer/rotation changes or missing slots,
+    # earlier Color30/150/212 zeros cannot exempt physical base/middle
+    # plates: every dependent part must fail closed until a fresh matched
+    # inner-door source and physical owner are proven.
+    source_owner_current=source_fresh and config_matching
     readiness=derive_nfb_part_readiness(
-        scope,source_inventory=source_inventory if source_fresh else None,
+        scope,source_inventory=(source_inventory if source_owner_current else None),
         verified_inner_door=(verified_inner_door
-                             if source_fresh and config_matching else None),
+                             if source_owner_current else None),
     )
     declared={
         INNER_DOOR:{scope.inner_door_part_id},

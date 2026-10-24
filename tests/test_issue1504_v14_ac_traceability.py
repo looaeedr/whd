@@ -25,6 +25,10 @@ NEEDS = {
     "DEFERRED_PRODUCT_EVIDENCE",
     "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
 }
+# Immutable 43-source-scope signature at the 2026-10-24 audit checkpoint.
+# New exact-GREEN signoffs add rows; they never retract an earlier signed AC.
+HISTORICAL_SIGNED_43 = {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31" , "NFB-AC-29", "SWT-AC-19", "NFB-AC-01", "SWT-AC-01", "NFB-AC-47", "NFB-AC-09", "NFB-AC-24", "NFB-AC-21", "SWT-AC-14", "NFB-AC-20", "SWT-AC-13", "NFB-AC-32", "NFB-AC-18", "NFB-AC-03", "NFB-AC-15", "SWT-AC-05"}
+
 ORIGINAL_SHA = {
     "WHD_受電箱_NFB_UI與開孔編輯整合規格_20261010_v1.4.md":
         "2fcf48521b913435b01639b9fa1b3ef7789ec93724033e332cedd4c85e1d0eef",
@@ -100,7 +104,10 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
     assert set(data["open_gates"]) == {1500, 1504}
     rows = {r["id"]: r for r in data["records"]}
     assert rows["NFB-AC-34"]["status"] == "BLOCKED_1500_REAL_GUI"
-    assert rows["NFB-AC-14"]["status"] == "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+    assert rows["NFB-AC-14"]["status"] in {
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+        "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+    }
     assert rows["NFB-AC-13"]["status"] == "DEFERRED_PRODUCT_EVIDENCE"
     assert rows["SWT-AC-12"]["owning_issues"] == [1504]
     for r in rows.values():
@@ -120,7 +127,7 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
             assert r["accepted"] is False
         else:
             assert not r["blocking_issues"]
-    assert {r["id"] for r in rows.values() if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31"}
+    assert HISTORICAL_SIGNED_43 <= {r["id"] for r in rows.values() if r["accepted"]}
     assert rows["NFB-AC-30"]["blocking_issues"] == []
 
 
@@ -141,10 +148,10 @@ def test_manifest_review_summary_is_recomputed_from_records():
     assert obj["counts"] == counts
     assert counts["DEFERRED_PRODUCT_EVIDENCE"] >= 3
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
-    assert counts["SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"] == 14
+    assert counts.get("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",0) <= 14
     assert counts["BLOCKED_1500_REAL_GUI"] == 17
-    assert counts["EVIDENCE_CANDIDATE_ONLY"] == 26
-    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 27
+    assert counts.get("EVIDENCE_CANDIDATE_ONLY",0) <= 10
+    assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= len(HISTORICAL_SIGNED_43) == 43
 
 
 def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_flags():
@@ -164,10 +171,22 @@ def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_fl
         for witness in witnesses:
             assert witness["path"] in item["regression_candidates"]
             assert witness["accepted"] is item["accepted"]
-            assert witness["witness_scope"] == (
-                "FULL_AC_AUTOMATED_ASSERTIONS" if item["accepted"]
-                else "PARTIAL_AUTOMATED_ASSERTIONS_ONLY"
-            )
+            if item["accepted"]:
+                assert witness["witness_scope"] in {
+                    "FULL_AC_AUTOMATED_ASSERTIONS",
+                    "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+                    "FULL_AC_AUTOMATED_SUPPORTED_CSV_V5_QUANTITY_PARTS",
+                }, item["id"]
+                # An explicitly source-scoped primary witness must retain
+                # its concrete product and manufacturer/Windows limitations.
+                if witness["witness_scope"] != "FULL_AC_AUTOMATED_ASSERTIONS":
+                    proof=item["acceptance_evidence"]
+                    assert proof["original_ac_text_unchanged"] is True, item["id"]
+                    assert proof["factory_release"] is False, item["id"]
+                    assert proof["human_windows_uat_claimed"] is False, item["id"]
+                    assert proof["integrated_localx_claimed"] is False, item["id"]
+            else:
+                assert witness["witness_scope"] == "PARTIAL_AUTOMATED_ASSERTIONS_ONLY", item["id"]
             target = ROOT / witness["path"]
             nodes = ast.parse(target.read_text(encoding="utf-8")).body
             actual = {n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
@@ -190,10 +209,12 @@ def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
 def test_one_full_ac_requires_source_specific_runtime_witness_and_ci_selection():
     obj = _data()
     assert obj["exact_test_function_witnesses_review"].startswith(
-        "88/88 FUNCTION_IDENTITIES_VERIFIED; 27/88 FULL_AC_AUTOMATED_SIGNED"
+        "88/88 FUNCTION_IDENTITIES_VERIFIED; "
+        + str(obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"])
+        + "/88 FULL_AC_AUTOMATED_SIGNED"
     )
     signed = {r["id"]: r for r in obj["records"] if r["accepted"]}
-    assert set(signed) == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31"}
+    assert HISTORICAL_SIGNED_43 <= set(signed)
     from tools.product_ci_regression import PYTEST_PATHS
     # Do not accept a filename or an unrelated witness.  Exact path, native
     # numeric CSV fail-closed and old source-scoped MFG1 preflight are mandatory.
@@ -240,7 +261,7 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
     assert "732-mm" in rule and "Do not infer plate X" in rule
     assert "remain unapproved" in rule
     assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
-    assert {r["id"] for r in obj["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31"}
+    assert HISTORICAL_SIGNED_43 <= {r["id"] for r in obj["records"] if r["accepted"]}
 
     # The human review must not silently retain an older X-centering claim.
     text = MANIFEST.with_suffix(".md").read_text(encoding="utf-8")
@@ -252,20 +273,21 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
 def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     """Closed localX scope cannot be counted as an open blocker or as 88 passes."""
     d = _data()
-    assert d["assessed_on"] == "2026-10-22"
+    assert re.fullmatch(r"20[0-9]{2}-[0-9]{2}-[0-9]{2}",d["assessed_on"])
+    assert d["assessed_on"] >= "2026-10-22"
     assert 1502 not in d["open_gates"]
     assert 1503 not in d["open_gates"]
-    assert d["counts"] == {
-        "BLOCKED_1500_REAL_GUI": 17,
-        "DEFERRED_PRODUCT_EVIDENCE": 4,
-        "EVIDENCE_CANDIDATE_ONLY": 26,
-        "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 27,
-        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 14,
-    }
+    # Original #1502 closure remains immutable; subsequent AC-03 scoped
+    # signoff updates only current matrix, not the 2026-10-22 audit date.
+    assert d["counts"] == dict(Counter(r["status"] for r in d["records"]))
+    assert sum(d["counts"].values()) == 88
+    assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert d["counts"]["DEFERRED_PRODUCT_EVIDENCE"] == 4
+    assert d["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= len(HISTORICAL_SIGNED_43)
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
         "SCOPED_LOCALX_1502_"
     ))
-    assert len(scoped) == 14
+    assert len(scoped) == d["counts"].get("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",0)
     assert all(1502 in r["owning_issues"]
                and not r["blocking_issues"]
                and "PR #2037" in r["delivery_receipt"]
@@ -295,7 +317,7 @@ def test_current_csv_ear_and_true_skin_supersessions_never_mutate_original_ac():
     assert "PAD blank/material/thickness/Z/BOM" in rule
     assert "welding-workmanship certification" in source["cannot_be_inferred"]
     assert "full" not in d["review_status"].lower()
-    assert {r["id"] for r in d["records"] if r["accepted"]} == {"NFB-AC-30", "NFB-AC-17", "SWT-AC-04", "NFB-AC-10", "SWT-AC-02", "NFB-AC-25", "NFB-AC-22", "SWT-AC-15", "SWT-AC-03", "NFB-AC-48", "NFB-AC-49", "NFB-AC-50", "SWT-AC-28", "NFB-AC-06", "NFB-AC-08", "NFB-AC-26", "NFB-AC-33", "NFB-AC-37", "SWT-AC-17", "SWT-AC-25", "NFB-AC-04", "NFB-AC-19", "NFB-AC-05", "NFB-AC-27", "SWT-AC-06", "NFB-AC-54", "SWT-AC-31"}
+    assert HISTORICAL_SIGNED_43 <= {r["id"] for r in d["records"] if r["accepted"]}
     # Historical original AC-13 falsely held Base Plate Z fixed; preserve
     # the original phrase for traceability and declare its current override.
     row = {r["id"]: r for r in d["records"]}
@@ -573,18 +595,27 @@ def test_ac32_visible_x_reset_undo_patch_is_not_falsely_full_gui_signed():
         assert name in functions
         assert any(isinstance(a, ast.Assert) for a in ast.walk(functions[name]))
     row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-32")
-    assert row["accepted"] is False
-    assert row["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    # Historical source-only evidence must remain intact even after the
+    # additional real original Tk transaction is signed for CURRENT scope.
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
     assert path in row["regression_candidates"]
     assert len(row["identified_test_functions"]) == 1
-    assert row["identified_test_functions"][0]["path"] == "tests/test_issue1493_nfb_draft_transactions.py"
+    assert row["identified_test_functions"][0]["path"] == (
+        "tests/test_issue1504_ac32_original_inner_tk_x_undo.py"
+    )
     assert row["additional_partial_witnesses"] == [{
         "path": path,
         "test_name": "test_ac32_q5_q6_q7_reports_exact_layer_count_and_undo_restores_all_basis",
         "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
         "accepted": False,
     }]
-    assert "true integrated Receiving NFB modal" in row["current_scope_remaining_evidence"]
+    proof = row["acceptance_evidence"]
+    assert proof["ui_full_operator_uat_claimed"] is False
+    assert proof["real_two_old_project_windows_gui_uat"] is False
+    assert proof["physical_absolute_position_grant"] is False
+    assert "Windows" in row["current_scope_remaining_evidence"]
+    assert "actual integrated WHD inner-editor Tk" in row["current_scope_remaining_evidence"]
 
 
 def test_ac54_swt31_current_v5_project_schema_exact_regression_and_no_old_binary_claim():
@@ -652,3 +683,530 @@ def test_ac54_swt31_current_v5_project_schema_exact_regression_and_no_old_binary
         assert evidence["factory_release"] is False
         assert evidence["human_windows_uat_claimed"] is False
         assert evidence["original_ac_text_unchanged"] is True
+
+
+def test_ac29_swt19_current_v5_source_drift_has_real_reloaded_project_cutting_and_fail_closed_witnesses():
+    """No legacy DXF/SHADOW or stale flag can stand in for changed CSV geometry."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py"
+    assert PYTEST_PATHS.count(path) == 1
+    names = (
+        "test_ac29_swt19_reload_current_v5_rederives_real_centres_and_cutting",
+        "test_ac29_swt19_csv_bytes_change_requires_fresh_finalscene_and_dxf",
+        "test_ac29_swt19_source_revised_collision_or_boundary_cannot_use_old_green",
+        "test_ac29_swt19_original_hole_editor_csv_proof_from_before_reload_cannot_be_reused",
+    )
+    functions = {
+        node.name: node for node in ast.parse(
+            (ROOT / path).read_text(encoding="utf-8")
+        ).body if isinstance(node, ast.FunctionDef)
+    }
+    for name in names:
+        assert name in functions
+        assert any(isinstance(node, ast.Assert) for node in ast.walk(functions[name]))
+        assert any(isinstance(node, ast.Call) for node in ast.walk(functions[name]))
+    rows = {r["id"]: r for r in _data()["records"]}
+    for key in ("NFB-AC-29", "SWT-AC-19"):
+        row = rows[key]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert len(row["identified_test_functions"]) == 1
+        primary = row["identified_test_functions"][0]
+        assert primary["path"] == path and primary["test_name"] == names[0]
+        assert primary["witness_scope"] == "FULL_AC_AUTOMATED_ASSERTIONS"
+        evidence = row["acceptance_evidence"]
+        assert evidence["primary_assertion"] == path + "::" + names[0]
+        for name in names[1:]:
+            assert path + "::" + name in evidence["other_required_assertions"]
+        for exact in (evidence["primary_assertion"],
+                      *evidence["other_required_assertions"]):
+            file_name, function = exact.split("::")
+            assert PYTEST_PATHS.count(file_name) == 1
+            target = {
+                node.name: node for node in ast.parse(
+                    (ROOT / file_name).read_text(encoding="utf-8")
+                ).body if isinstance(node, ast.FunctionDef)
+            }
+            assert function in target
+            assert any(
+                isinstance(node, ast.Assert)
+                or (isinstance(node, ast.With) and any(
+                    isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Attribute)
+                    and item.context_expr.func.attr == "raises"
+                    for item in node.items
+                ))
+                for node in ast.walk(target[function])
+            ), exact
+        assert evidence["source_dxf_historical_binary_rechecked"] is False
+        assert evidence["real_two_old_project_windows_gui_uat"] is False
+        assert evidence["factory_release"] is False
+        assert evidence["human_windows_uat_claimed"] is False
+        assert evidence["original_ac_text_unchanged"] is True
+
+
+def test_ac21_swt14_current_v5_partial_witnesses_cannot_inflate_29_acceptances():
+    """Verify scoped Tk/version witnesses and keep full Windows UAT separate."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py"
+    assert PYTEST_PATHS.count(path) == 1
+    functions = {
+        node.name: node for node in ast.parse(
+            (ROOT / path).read_text(encoding="utf-8")
+        ).body if isinstance(node, ast.FunctionDef)
+    }
+    required = (
+        "test_ac21_swt14_current_v5_each_version_model_brand_and_operator_basis_are_independent",
+        "test_ac21_swt14_three_tier_current_csv_brand_inheritance_never_rewrites_model",
+        "test_ac21_swt14_invalid_cross_brand_current_v5_submission_is_atomic",
+        "test_ac21_swt14_original_gui_brand_selector_uses_selected_version_only",
+    )
+    for name in required:
+        assert name in functions
+        assert any(isinstance(node, ast.Assert) for node in ast.walk(functions[name]))
+    rows = {r["id"]:r for r in _data()["records"]}
+    for key in ("NFB-AC-21","SWT-AC-14"):
+        row=rows[key]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["source_gap_reproduced_20261023"] is True
+        assert row["current_version_brand_gui_gap_resolved_20261023"] is True
+        assert path in row["regression_candidates"]
+        assert len(row["identified_test_functions"]) == 1
+        assert all(w["accepted"] is False
+                   for w in row["additional_partial_witnesses"])
+        assert "nfb_parent_brand" in row["current_scope_remaining_evidence"]
+
+
+def test_unified_nfb_brand_rule_current_gui_entry_fix_does_not_fake_ac21_swt14_signoff():
+    """Same existing brand algorithm with mode-specific INPUT owner, not 2 rules."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py"
+    assert PYTEST_PATHS.count(path) == 1
+    funcs = {
+        node.name: node for node in ast.parse(
+            (ROOT / path).read_text(encoding="utf-8")
+        ).body if isinstance(node, ast.FunctionDef)
+    }
+    for name in (
+        "test_quantity_brand_projects_original_owner_to_same_nfb_layer_unit_rule",
+        "test_quantity_brand_override_reuses_existing_three_tier_rule_exactly",
+        "test_set_bay_brand_owner_unchanged_by_quantity_entry_routing",
+        "test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner",
+    ):
+        assert name in funcs
+        assert any(isinstance(n, ast.Assert) for n in ast.walk(funcs[name]))
+    rows={r["id"]:r for r in _data()["records"]}
+    for key in ("NFB-AC-21","SWT-AC-14"):
+        row=rows[key]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert len(row["identified_test_functions"]) == 1
+        assert "same effective_nfb_slot_brand" in row["current_scope_remaining_evidence"]
+        assert all(w["accepted"] is False for w in row["additional_partial_witnesses"])
+
+
+def test_ac01_real_receiving_only_tk_entry_has_exact_selected_positive_and_negative_witnesses():
+    """Do not sign a mere file/path name: demand real Tk tests + family gates."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    path = "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py"
+    assert PYTEST_PATHS.count(path) == 1
+    funcs = {
+        node.name: node for node in ast.parse(
+            (ROOT / path).read_text(encoding="utf-8")
+        ).body if isinstance(node, ast.FunctionDef)
+    }
+    expected = {
+        "test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
+        "test_ac01_nonreceiving_family_never_mounts_nfb_dialog_or_mutates_hole_editor",
+        "test_ac01_original_generic_hole_editor_door_entry_remains_unpatched",
+    }
+    assert expected.issubset(funcs)
+    for name in expected:
+        assert any(isinstance(node, ast.Assert) for node in ast.walk(funcs[name]))
+        assert any(isinstance(node, ast.Call) for node in ast.walk(funcs[name]))
+    positive = funcs["test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family"]
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "open_multi_settings"
+        for node in ast.walk(positive)
+    )
+    blocked = funcs["test_ac01_nonreceiving_family_never_mounts_nfb_dialog_or_mutates_hole_editor"]
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "open_receiving_multi_settings"
+        for node in ast.walk(blocked)
+    )
+    rows = {r["id"]:r for r in _data()["records"]}
+    row = rows["NFB-AC-01"]
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["identified_test_functions"] == [{
+        "path":path,
+        "test_name":"test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
+        "witness_scope":"FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted":True,
+    }]
+    evidence=row["acceptance_evidence"]
+    assert evidence["real_tk_widget_created"] is True
+    assert evidence["nonreceiving_canonical_family_gate_verified"] is True
+    assert evidence["human_windows_uat_claimed"] is False
+    assert evidence["ui_full_operator_uat_claimed"] is False
+    for item in (evidence["primary_assertion"], *evidence["other_required_assertions"]):
+        source, func = item.split("::")
+        assert PYTEST_PATHS.count(source) == 1
+        names = {
+            n.name for n in ast.parse(
+                (ROOT / source).read_text(encoding="utf-8")
+            ).body if isinstance(n, ast.FunctionDef)
+        }
+        assert func in names
+    # SWT-AC-01 now independently witnesses the SHARED original count,
+    # not a second layer business rule: inspect its exact complementary
+    # current Tk owner, retired external dropdown, and draft Undo below.
+    assert rows["SWT-AC-01"]["accepted"] is True
+
+
+def test_unified_inner_door_nfb_installed_tier_count_is_one_tk_owner_not_two():
+    from tools.product_ci_regression import PYTEST_PATHS
+    import ast as _ast
+    path = "tests/test_issue1504_unified_inner_nfb_layer_count.py"
+    assert PYTEST_PATHS.count(path) == 1
+    funcs = {_n.name: _n for _n in _ast.parse(
+        (ROOT / path).read_text(encoding="utf-8"),
+    ).body if isinstance(_n, _ast.FunctionDef)}
+    for name in (
+        "test_single_current_layer_count_owns_both_inner_door_and_nfb_mounting_tiers",
+        "test_real_tk_single_variable_reaches_original_draft_and_undo_without_second_owner",
+        "test_existing_legacy_count_and_nfb_draft_no_longer_have_an_inequality_gate",
+    ):
+        assert name in funcs
+        assert any(isinstance(node, _ast.Assert)
+                   for node in _ast.walk(funcs[name]))
+    rows = {r["id"]: r for r in _data()["records"]}
+    row = rows["SWT-AC-01"]
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["identified_test_functions"] == [{
+        "path": path,
+        "test_name": "test_single_current_layer_count_owns_both_inner_door_and_nfb_mounting_tiers",
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+    assert row["acceptance_evidence"]["human_windows_uat_claimed"] is False
+    for item in (row["acceptance_evidence"]["primary_assertion"],
+                 *row["acceptance_evidence"]["other_required_assertions"]):
+        source, name = item.split("::")
+        assert PYTEST_PATHS.count(source) == 1, item
+        names = {_n.name for _n in _ast.parse(
+            (ROOT / source).read_text(encoding="utf-8"),
+        ).body if isinstance(_n, _ast.FunctionDef)}
+        assert name in names, item
+    assert path in rows["NFB-AC-18"]["regression_candidates"]
+
+def test_ac24_required_live_per_unit_real_part_scope_and_no_saved_derived_green():
+    from tools.product_ci_regression import PYTEST_PATHS
+    import ast
+    import json
+    evidence=json.loads(MANIFEST.read_text(encoding="utf-8"))
+    row=next(r for r in evidence["records"] if r["id"]=="NFB-AC-24")
+    assert row["status"]=="ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["accepted"] is True
+    refs=(row["acceptance_evidence"]["primary_assertion"],
+          *row["acceptance_evidence"]["other_required_assertions"])
+    assert len(refs)>=9
+    for ref in refs:
+        path,fn=ref.split("::",1)
+        assert path in PYTEST_PATHS
+        tree=ast.parse((ROOT/path).read_text(encoding="utf-8"))
+        definitions={node.name:node for node in tree.body
+                     if isinstance(node,ast.FunctionDef)}
+        assert fn in definitions
+        # Negative proof is a true executable pytest.raises guard, not a
+        # no-op asserted marker. Test suites can use either form.
+        def _is_negative_assertion(node):
+            return (isinstance(node, ast.With) and any(
+                isinstance(item.context_expr, ast.Call)
+                and isinstance(item.context_expr.func, ast.Attribute)
+                and isinstance(item.context_expr.func.value, ast.Name)
+                and item.context_expr.func.value.id == "pytest"
+                and item.context_expr.func.attr == "raises"
+                for item in node.items))
+        assert any(isinstance(node, ast.Assert) or _is_negative_assertion(node)
+                   for node in ast.walk(definitions[fn]))
+    for flag in ("factory_release","human_windows_uat_claimed",
+                 "ui_full_operator_uat_claimed"):
+        assert row["acceptance_evidence"][flag] is False
+
+
+def test_ac21_swt14_real_native_tk_v3_brand_scoped_signoff_never_implies_windows_or_factory():
+    """Require genuine operator Tk and independent CSV/persistence/negative tests."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    rows = {r["id"]: r for r in _data()["records"]}
+    expected = {
+        "NFB-AC-21": "test_ac21_swt14_real_tk_single_brand_selector_scopes_two_versions",
+        "SWT-AC-14": "test_ac21_swt14_quantity_selected_version_parent_brand_is_single_owner",
+    }
+    for key, fn in expected.items():
+        row = rows[key]
+        proof = row["acceptance_evidence"]
+        witness = row["identified_test_functions"][0]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert witness["accepted"] is True and witness["test_name"] == fn
+        assert proof["primary_assertion"] == witness["path"] + "::" + fn
+        for field in ("factory_release", "human_windows_uat_claimed",
+                      "ui_full_operator_uat_claimed", "real_two_old_project_windows_gui_uat",
+                      "physical_absolute_position_grant", "other_ac_signoff_implied"):
+            assert proof[field] is False, (key, field)
+        assert proof["original_ac_text_unchanged"] is True
+        assert proof["source_sha_pins_unchanged"] is True
+        assert row["current_version_brand_gui_gap_resolved_20261023"] is True
+        proofs = [proof["primary_assertion"], *proof["other_required_assertions"]]
+        assert len(proofs) >= 5 and len(set(proofs)) == len(proofs)
+        for item in proofs:
+            file_path, test_name = item.split("::")
+            assert PYTEST_PATHS.count(file_path) == 1, item
+            tree = ast.parse((ROOT / file_path).read_text(encoding="utf-8"))
+            funcs = [n for n in tree.body
+                     if isinstance(n, ast.FunctionDef) and n.name == test_name]
+            assert len(funcs) == 1, item
+            assert any(isinstance(n, ast.Assert) for n in ast.walk(funcs[0])), item
+        assert "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_real_tk_single_brand_selector_scopes_two_versions" in proofs
+        assert "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py::test_ac21_swt14_changed_quantity_parent_marks_inherited_v5_model_reselect" in proofs
+
+
+def test_ac20_swt13_scoped_signoff_requires_original_native_tk_cancel_undo_and_current_csv_provenance():
+    """Demand actual GUI acceptance and source guards, not just a green counter."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    import ast
+    rows = {r["id"]: r for r in _data()["records"]}
+    expected = {
+        "NFB-AC-20": "test_ac20_original_inner_tk_layer_brand_cancel_confirm_undo",
+        "SWT-AC-13": "test_swt13_original_inner_tk_unit_cancel_and_same_brand_override",
+    }
+    required_native = {
+        "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py"
+        "::test_ac20_original_inner_tk_layer_brand_cancel_confirm_undo",
+        "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py"
+        "::test_swt13_original_inner_tk_unit_cancel_and_same_brand_override",
+    }
+    for ac_id, primary in expected.items():
+        row = rows[ac_id]
+        witness = row["identified_test_functions"][0]
+        evidence = row["acceptance_evidence"]
+        assert row["accepted"] is True
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+        assert row["brand_preview_transaction_gui_scope_completed_20261023"] is True
+        assert witness["test_name"] == primary and witness["accepted"] is True
+        assert evidence["primary_assertion"] == witness["path"] + "::" + primary
+        assert evidence["original_ac_text_unchanged"] is True
+        assert evidence["source_sha_pins_unchanged"] is True
+        assert evidence["factory_release"] is False
+        assert evidence["human_windows_uat_claimed"] is False
+        assert evidence["real_two_old_project_windows_gui_uat"] is False
+        assert evidence["physical_absolute_position_grant"] is False
+        assertions = [evidence["primary_assertion"], *evidence["other_required_assertions"]]
+        assert len(assertions) >= 6 and len(set(assertions)) == len(assertions)
+        assert required_native.issubset(assertions)
+        for exact in assertions:
+            path, function = exact.split("::")
+            assert PYTEST_PATHS.count(path) == 1, exact
+            node = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+            funcs = [f for f in node.body if isinstance(f, ast.FunctionDef)
+                     and f.name == function]
+            assert len(funcs) == 1, exact
+            assert any(isinstance(a, ast.Assert) for a in ast.walk(funcs[0])), exact
+        assert "CSV V5" in row["current_scope_remaining_evidence"]
+        assert "Windows" in row["current_scope_remaining_evidence"]
+
+
+def test_ac32_scoped_signoff_requires_real_original_tk_x_reset_and_undo_proof():
+    """Seed old UI1A draft datum, but require real original Tk removal and Undo."""
+    import ast
+    from tools.product_ci_regression import PYTEST_PATHS
+    row = {r["id"]: r for r in _data()["records"]}["NFB-AC-32"]
+    evidence = row["acceptance_evidence"]
+    witness = row["identified_test_functions"][0]
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert witness["accepted"] is True
+    assert evidence["primary_assertion"] == witness["path"] + "::" + witness["test_name"]
+    assert evidence["original_ac_text_unchanged"] is True
+    assert evidence["source_sha_pins_unchanged"] is True
+    assert evidence["factory_release"] is False
+    assert evidence["human_windows_uat_claimed"] is False
+    assert evidence["real_two_old_project_windows_gui_uat"] is False
+    assert evidence["ui_full_operator_uat_claimed"] is False
+    assert evidence["physical_absolute_position_grant"] is False
+    assert "seeded" in evidence["scope"]
+    refs = [evidence["primary_assertion"], *evidence["other_required_assertions"]]
+    assert len(refs) >= 6 and len(set(refs)) == len(refs)
+    assert refs[0] == (
+        "tests/test_issue1504_ac32_original_inner_tk_x_undo.py"
+        "::test_ac32_original_inner_tk_remove_reports_two_real_x_resets_and_undo_restores"
+    )
+    assert (
+        "tests/test_issue1504_ac32_original_inner_tk_x_undo.py"
+        "::test_ac32_original_inner_cancel_after_pending_x_change_never_writes_candidate"
+    ) in refs
+    for name in refs:
+        path, test = name.split("::")
+        assert PYTEST_PATHS.count(path) == 1, name
+        functions = [
+            n for n in ast.parse((ROOT / path).read_text(encoding="utf-8")).body
+            if isinstance(n, ast.FunctionDef) and n.name == test
+        ]
+        assert len(functions) == 1, name
+        assert any(isinstance(x, ast.Assert) for x in ast.walk(functions[0])), name
+    assert "Windows" in row["current_scope_remaining_evidence"]
+
+
+def test_ac18_original_tk_one_tier_and_unapproved_xy_are_scoped_not_factory_signed():
+    """Guard the *real* Tk event and its nonmanufacturing datum evidence."""
+    import ast
+    from tools.product_ci_regression import PYTEST_PATHS
+    row = {r["id"]: r for r in _data()["records"]}["NFB-AC-18"]
+    proof = row["acceptance_evidence"]
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert row["identified_test_functions"][0]["accepted"] is True
+    assert row["identified_test_functions"][0]["path"] == (
+        "tests/test_issue1504_ac18_original_tk_datum.py"
+    )
+    assert proof["factory_release"] is False
+    assert proof["human_windows_uat_claimed"] is False
+    assert proof["ui_full_operator_uat_claimed"] is False
+    assert proof["real_two_old_project_windows_gui_uat"] is False
+    assert proof["physical_absolute_position_grant"] is False
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    refs = [proof["primary_assertion"], *proof["other_required_assertions"]]
+    assert len(refs) >= 6 and len(set(refs)) == len(refs)
+    assert refs[0].endswith("::test_ac18_original_tk_single_layer_count_changes_only_real_draft_and_undo")
+    assert any("::test_ac18_real_tk_nominal_pitch_not_world_x_and_non1100_y_shows_unknown" in r for r in refs)
+    for exact in refs:
+        path,fn = exact.split("::")
+        assert PYTEST_PATHS.count(path) == 1, exact
+        nodes = [v for v in ast.parse((ROOT/path).read_text(encoding="utf-8")).body
+                 if isinstance(v, ast.FunctionDef) and v.name == fn]
+        assert len(nodes) == 1, exact
+        assert any(isinstance(v, ast.Assert) for v in ast.walk(nodes[0])), exact
+    assert "Windows" in row["current_scope_remaining_evidence"]
+
+
+def test_ac03_native_csv_preview_signoff_requires_real_tk_and_legacy_source_negative_tests():
+    """One current-scope AC; no permission for world-X/Y or full factory NC."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    import ast
+    row = {r["id"]: r for r in _data()["records"]}["NFB-AC-03"]
+    evidence = row["acceptance_evidence"]
+    primary = "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write"
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["accepted"] is True
+    assert evidence["primary_assertion"] == primary
+    assert evidence["original_ac_text_unchanged"] is True
+    assert evidence["source_sha_pins_unchanged"] is True
+    assert row["current_scope_correction_20261021"]["supersedes_original_interpretation_only"] is True
+    assert evidence["current_csv_v5_primary_model_authority"] is True
+    assert len(evidence["other_required_assertions"]) >= 4
+    for field in ("factory_release", "human_windows_uat_claimed",
+                  "ui_full_operator_uat_claimed", "real_two_old_project_windows_gui_uat",
+                  "physical_absolute_position_grant", "other_ac_signoff_implied",
+                  "integrated_localx_claimed"):
+        assert evidence[field] is False
+    for witness in [primary, *evidence["other_required_assertions"]]:
+        path, name = witness.split("::", 1)
+        assert path in PYTEST_PATHS
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        matches = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name]
+        assert len(matches) == 1
+        assert any(isinstance(n, ast.Assert) for n in ast.walk(matches[0]))
+    assert row["identified_test_functions"] == [{
+        "path": primary.split("::", 1)[0],
+        "test_name": primary.split("::", 1)[1],
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+
+
+def test_ac15_scoped_source_performance_requires_real_tk_p95_and_no_3d_rebuild():
+    """Current V5 source-only claim: not Windows UAT or unspecified DXF speed."""
+    import ast
+    from tools.product_ci_regression import PYTEST_PATHS
+    row = {r["id"]: r for r in _data()["records"]}["NFB-AC-15"]
+    evidence = row["acceptance_evidence"]
+    native = "tests/test_issue1504_ac03_ac15_native_source_panel.py"
+    name = "test_ac15_original_tk_two_model_highlight_has_bounded_latency_no_full_3d"
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert evidence["primary_assertion"] == native + "::" + name
+    assert row["identified_test_functions"][0]["test_name"] == name
+    assert row["identified_test_functions"][0]["accepted"] is True
+    assert evidence["original_ac_text_unchanged"] is True
+    assert evidence["source_sha_pins_unchanged"] is True
+    assert evidence["source_scoped_latency_bound_ms"] == {
+        "median_lt": 150, "p95_lt": 300, "sample_count": 24,
+        "runner": "Linux Tk Xvfb",
+    }
+    assert evidence["measured_tk_global_reference_is_not_nfb_dxf_latency_proof"] is True
+    assert evidence["exact_head_ci_and_tk_performance_required"] is True
+    for field in ("factory_release", "human_windows_uat_claimed",
+                  "ui_full_operator_uat_claimed", "real_two_old_project_windows_gui_uat",
+                  "physical_absolute_position_grant", "other_ac_signoff_implied",
+                  "integrated_localx_claimed"):
+        assert evidence[field] is False
+    proof_nodes = None
+    for ref in [evidence["primary_assertion"], *evidence["other_required_assertions"]]:
+        source, target = ref.split("::", 1)
+        assert PYTEST_PATHS.count(source) == 1
+        tree = ast.parse((ROOT / source).read_text(encoding="utf-8"))
+        found = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == target]
+        assert len(found) == 1
+        assert any(isinstance(n, ast.Assert) for n in ast.walk(found[0]))
+        if target == name:
+            proof_nodes = list(ast.walk(found[0]))
+    assert proof_nodes is not None
+    call_names = {n.id for n in proof_nodes if isinstance(n, ast.Name)}
+    assert {"perf_counter", "median", "Phase6FinalSceneRenderer",
+            "Phase6FinalSceneViewAdapter"}.issubset(call_names)
+
+
+def test_swt05_original_tk_csv_source_only_signoff_is_compatible_with_factory_hold():
+    """Current CSV source preview/embedded transactions: never X/Y or MFG grant."""
+    import ast
+    from tools.product_ci_regression import PYTEST_PATHS
+    r = {r["id"]: r for r in _data()["records"]}["SWT-AC-05"]
+    e = r["acceptance_evidence"]
+    primary = ("tests/test_issue1504_ac03_ac15_native_source_panel.py"
+               "::test_swt05_embedded_original_hole_editor_cancel_then_confirm_stages_only")
+    assert r["accepted"] is True
+    assert r["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert r["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert r["identified_test_functions"][0]["test_name"] == primary.split("::")[1]
+    assert r["identified_test_functions"][0]["accepted"] is True
+    assert e["primary_assertion"] == primary
+    assert e["original_ac_text_unchanged"] is True
+    assert e["source_sha_pins_unchanged"] is True
+    assert e["current_csv_v5_authority"] is True
+    assert "CSV V5" in r["current_source_interpretation_20261024"]
+    for key in ("factory_release", "human_windows_uat_claimed",
+                "ui_full_operator_uat_claimed", "real_two_old_project_windows_gui_uat",
+                "physical_absolute_position_grant", "other_ac_signoff_implied",
+                "integrated_localx_claimed"):
+        assert e[key] is False
+    expected_tests = [primary, *e["other_required_assertions"]]
+    assert len(expected_tests) >= 7 and len(set(expected_tests)) == len(expected_tests)
+    for name in expected_tests:
+        source, function = name.split("::", 1)
+        assert PYTEST_PATHS.count(source) == 1
+        definitions = [f for f in ast.parse((ROOT / source).read_text(encoding="utf-8")).body
+                       if isinstance(f, ast.FunctionDef) and f.name == function]
+        assert len(definitions) == 1, name
+        assert any(isinstance(node, ast.Assert) for node in ast.walk(definitions[0])), name

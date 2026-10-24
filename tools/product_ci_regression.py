@@ -49,6 +49,8 @@ PYTEST_PATHS = (
     "tests/test_issue1467_quantity_dxf_groups.py",
     "tests/test_issue1468_quantity_check.py",
     "tests/test_issue1501_nfb_check_quantity_gate.py",
+    # #1504 AC39: assert old full-cabinet NFB paths never bypass real partial guards.
+    "tests/test_issue1501_nfb_legacy_export_guard.py",
     "tests/test_issue1501_nfb_manifest_ui.py",
     "tests/test_issue1501_receiving_nfb_partial_ui_export.py",
     "tests/test_issue1501_highlighted_partial_dxf_dispatcher.py",
@@ -167,7 +169,20 @@ PYTEST_PATHS = (
     "tests/test_issue1504_ac05_v5_physical_rotation_dxf.py",
     "tests/test_issue1504_ac27_swt06_v5_physical_q16_transactions.py",
     "tests/test_issue1504_ac32_nfb_x_impact_operator.py",
+    "tests/test_issue1504_ac32_original_inner_tk_x_undo.py",
     "tests/test_issue1504_ac54_swt31_current_v5_project_schema.py",
+    "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+    "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+    "tests/test_issue1504_ac20_swt13_brand_confirm.py",
+    "tests/test_issue1504_ac20_swt13_native_inner_brand_gui.py",
+    "tests/test_issue1504_one_nfb_brand_rule_mode_projection.py",
+    "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py",
+    "tests/test_issue1504_unified_inner_nfb_layer_count.py",
+    "tests/test_issue1504_ac18_original_tk_datum.py",
+    "tests/test_issue1504_ac47_operator_discard_confirm.py",
+    "tests/test_issue1504_ac09_ac24_current_csv_live_diagnostics.py",
+    "tests/test_issue1504_ac09_ac24_actual_csv_manufacturing_gates.py",
+    "tests/test_issue1504_ac09_ac24_original_multibay_independent_export.py",
     "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
     "tests/test_issue1504_brand_inheritance_current_csv.py",
     "tests/test_issue1504_current_nfb_y_ac10_swt02.py",
@@ -193,6 +208,9 @@ PYTEST_PATHS = (
     # #1503 depth-only PAD predicate: exact 1 layer / 2 units / unequal CSV depths.
     "tests/test_receiving_switch_model_catalog_20261011.py",
     "tests/test_issue1492_nfb_real_dxf_preview.py",
+    "tests/test_issue1504_ac03_ac15_native_source_panel.py",
+    "tests/test_issue1504_swt12_cross_owner_baseline.py",
+    "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py",
     "tests/test_issue1493_nfb_draft_transactions.py",
     "tests/test_issue1497_nfb_cutting_preflight.py",
     "tests/test_issue1497_configured_nfb_manufacturing_release.py",
@@ -201,6 +219,9 @@ PYTEST_PATHS = (
     # even though test cases existed: actual 1100 Y, saved NFB schema,
     # source-scoped per-piece partial export. No duplicate selectors.
     "tests/test_issue1495_receiving_nfb_y_projection.py",
+    # Actual highlighted Set/Bay dimension adapter: NFB X invalidation must
+    # preserve the one-normalization batch performance contract.
+    "tests/test_issue1112_receiving_set_bay_editor.py",
     "tests/test_issue1499_nfb_persistence.py",
     "tests/test_issue1501_nfb_export_manifest.py",
     # #1502 actual BasePlatePartSpec -> EAR slots -> verified NFB -> FinalScene -> DXF.
@@ -368,6 +389,65 @@ PYTEST_PATHS = (
     "tests/test_phase6_project_file.py::test_d2_02_snapshot_and_live_sync_preserve_door_distance_datum_and_per_cell_indicator_states",
     "tests/test_phase6_project_file.py::test_d2_03_fold_designer_part_spec_uses_per_cell_indicator_state_for_multi_door",
     "tests/test_phase6_project_file.py::test_d2_04_and_d2_05_timestamps_use_taipei_timezone",
+    # Bridge registry-choice NameError and Taipei diagnostics output must stay
+    # in the exact-head, no-skip product PR gate (not manual-only verification).
+    "tests/test_phase6_diagnostics_ownership.py",
+    "tests/test_issue446_registry_diagnostics_presentation_owner.py",
+    "tests/test_issue624_phase7_a7_bridge_residual_reduction.py::test_issue1221_registry_presentation_translation_is_panel_owned",
+    # Original 14-bug audit plus independent boundary guards must run on PR
+    # exact HEAD; a manual 27-pass smoke run is not a manufacturing receipt.
+    "tests/test_deep_audit_14_bugs_regression.py",
+    "tests/test_deep_audit_14_bugs_boundary_guards.py",
+    # Manual R4–R6 source repairs: marking, DXF, assembly placement, cache.
+    "tests/test_manual_audit_source_guards_20261023.py",
+    # Directly audited R4 source gaps missing from merged localX.
+    "tests/test_manual_r4_verified_source_gaps_20261024.py",
+    # R5 saved Quantity/Bay, NFB and physical base plate source guarantees.
+    "tests/test_manual_r5_persistence_and_base_guards_20261024.py",
+    # R6 manually traced V5 brand, source EAR-Z and physical corner/DTO guards.
+    "tests/test_manual_r6_source_z_and_corner_guards_20261024.py",
+    # Source-reviewed R4 #61/#62/#65 and explicit readback signoff of #64.
+    "tests/test_manual_audit_r4_61_62_65_20261024.py",
+    # R7 manual source verification, custom-only diff and part adapter finite values.
+    "tests/test_manual_r7_custom_and_finite_guard_20261024.py",
+    # R5 #72/#74/#75/#78/#79 source-verified regressions.
+    "tests/test_manual_r5_source_numeric_holes_20261024.py",
+    # R5 #80/#85/#86/#88/#89 Set/Bay, source frame, and editor contracts.
+    "tests/test_manual_r5_second_source_guards_20261024.py",
+    # R5 #92/#94/#95 CADCraft and Door/Divider numeric source contract.
+    "tests/test_manual_r5_panels_cadcraft_guards_20261024.py",
+    # R6 persisted lock, three-piece explicit dimensions and EndCap bounds.
+    "tests/test_manual_r6_structure_reconciliation_20261024.py",
+    # Source verified R5 #91 persisted Door layout numeric authority.
+    "tests/test_manual_r5_91_saved_door_topology_20261024.py",
+    # R5 #87 malformed Door/Divider topology must not generate unverified marking.
+    "tests/test_manual_r5_87_joint_marking_invalid_layout_20261024.py",
+    # R5 #93 direct Hole Editor reference and round spacing source controls.
+    "tests/test_manual_r5_93_hole_editor_finite_inputs_20261024.py",
+    # R5 #71: primary CUTTING and auxiliary layered process contours remain distinct.
+    "tests/test_manual_r5_71_mixed_profile_primitives_20261024.py",
+    # R6 damaged DXF: last-known-good remains preview-only on parser errors.
+    "tests/test_manual_r6_baseline_dxf_parser_lkg_20261024.py",
+    # R6 actual physical contact polygon must have finite, typed XYZ points.
+    "tests/test_manual_r6_contact_boundary_xyz_20261024.py",
+    # R6 source: complete fold profiles never depend on incidental material bounds.
+    "tests/test_manual_r6_lazy_mesh_profile_material_bounds_20261024.py",
+    # R6 raw Box Body W / join / side Fold ingresses reject nonfinite and boolean sizes.
+    "tests/test_manual_r6_box_body_split_finite_ingress_20261024.py",
+    # R6 direct corner residuals may never bypass cross-slot or secondary-cut validity.
+    "tests/test_manual_r6_corner_composition_validity_20261024.py",
+    # R6 restored side/back panel contract and physical widths are finite.
+    "tests/test_manual_r6_side_back_panel_source_finite_20261024.py",
+    # R6 assembly/collision UI clearance never permits unlimited nonfinite gap.
+    "tests/test_manual_r6_assembly_clearance_finite_20261024.py",
+    "tests/test_deep_audit_round2_bugfixes.py",
+    # The R3 code-only audit and its closure boundary cases are product gates.
+    "tests/test_deep_audit_round3_bugfixes.py",
+    # #2083 native-Tk acceptance: exercise current numeric CSV V5 candidate
+    # identity, stale-model rejection, real highlighted Bay selection and
+    # quantity manager; do not silently rely on legacy DXF-only test fixtures.
+    "tests/test_receiving_inner_door_multi_switch_editor_gui_20261011.py",
+    "tests/test_receiving_inner_door_version_gui_20261011.py",
 )
 
 

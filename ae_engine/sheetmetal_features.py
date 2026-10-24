@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Iterable
+import math
 
 try:
     from shapely.geometry import Point as ShapelyPoint, Polygon as ShapelyPolygon, LineString as ShapelyLineString, box as shapely_box
@@ -233,6 +234,11 @@ class CanvasTransform:
     origin_y: float
 
     def __post_init__(self) -> None:
+        values = (self.scale, self.origin_x, self.origin_y)
+        if any(isinstance(v, bool) for v in values):
+            raise ValueError("CanvasTransform parameters must not be boolean")
+        if not all(math.isfinite(float(v)) for v in values):
+            raise ValueError("CanvasTransform parameters must be finite")
         if self.scale <= 0:
             raise ValueError("scale must be > 0")
 
@@ -281,7 +287,7 @@ def legacy_hole_to_feature(hole: dict) -> Feature:
     htype = hole["type"]
     offset = Vec2(float(hole["x"]), float(hole["y"]))
     params = hole.get("params", {})
-    rotation = int(params.get("rotation_deg", 0))
+    rotation = _normalize_rotation(params.get("rotation_deg", 0))
     explicit_layer = params.get("layer")
 
     if "points" in params:
@@ -354,15 +360,22 @@ def feature_to_legacy_hole(feature: Feature, width: float, height: float) -> dic
 
 
 def expand_linear_pattern(feature: Feature, count: int, pitch: float, axis: str) -> tuple[Feature, ...]:
+    if isinstance(count, bool) or isinstance(pitch, bool):
+        raise ValueError("count and pitch must not be boolean")
+    if isinstance(count, float) and not count.is_integer():
+        raise ValueError("count must be an integer")
     count = int(count)
     if count < 1:
         raise ValueError("count must be >= 1")
-    axis = axis.lower()
+    pitch_val = float(pitch)
+    if not math.isfinite(pitch_val):
+        raise ValueError("pitch must be finite")
+    axis = str(axis or "").strip().lower()
     if axis not in {"x", "y"}:
         raise ValueError("axis must be 'x' or 'y'")
     result = []
     for i in range(count):
-        delta = Vec2(float(pitch) * i, 0.0) if axis == "x" else Vec2(0.0, float(pitch) * i)
+        delta = Vec2(pitch_val * i, 0.0) if axis == "x" else Vec2(0.0, pitch_val * i)
         result.append(replace(feature, offset=feature.offset + delta))
     return tuple(result)
 
@@ -374,14 +387,21 @@ def expand_grid_pattern(
     pitch_x: float,
     pitch_y: float,
 ) -> tuple[Feature, ...]:
+    if any(isinstance(v, bool) for v in (rows, columns, pitch_x, pitch_y)):
+        raise ValueError("grid pattern parameters must not be boolean")
+    if (isinstance(rows, float) and not rows.is_integer()) or (isinstance(columns, float) and not columns.is_integer()):
+        raise ValueError("rows/columns must be integers")
     rows = int(rows)
     columns = int(columns)
     if rows < 1 or columns < 1:
         raise ValueError("rows/columns must be >= 1")
+    px, py = float(pitch_x), float(pitch_y)
+    if not (math.isfinite(px) and math.isfinite(py)):
+        raise ValueError("pitch_x/pitch_y must be finite")
     result = []
     for row in range(rows):
         for column in range(columns):
-            delta = Vec2(float(pitch_x) * column, float(pitch_y) * row)
+            delta = Vec2(px * column, py * row)
             result.append(replace(feature, offset=feature.offset + delta))
     return tuple(result)
 
@@ -545,8 +565,32 @@ class DoorIndicatorContext:
         )
 
 
+def _normalize_indicator_groups(layer_groups) -> tuple[int, ...]:
+    # Saved group counts are a sequence of physical layers; strings and maps
+    # must not masquerade as a list and synthesize a different hole pattern.
+    if not isinstance(layer_groups, (list, tuple)):
+        raise ValueError("indicator groups must be a list or tuple")
+    groups = []
+    for raw in layer_groups:
+        if isinstance(raw, bool):
+            raise ValueError("indicator group counts must not be bool")
+        try:
+            val = int(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("indicator group must be an integer") from exc
+        # No silent rounding or float-to-int truncation of user group counts.
+        if str(raw).strip() not in (str(val),) and not (
+            isinstance(raw, float) and raw.is_integer()
+        ):
+            raise ValueError("indicator group must be an integer")
+        if val <= 0:
+            raise ValueError("indicator group counts must be > 0")
+        groups.append(val)
+    return tuple(groups)
+
+
 def indicator_box_outer_size(layer_groups: list[int] | tuple[int, ...]) -> tuple[float, float]:
-    groups = tuple(int(v) for v in layer_groups)
+    groups = _normalize_indicator_groups(layer_groups)
     if not groups:
         raise ValueError("indicator box requires at least one layer")
     if any(v <= 0 for v in groups):
@@ -563,9 +607,16 @@ def indicator_box_opening_size(
     thickness: float,
 ) -> tuple[float, float]:
     """Door cutout needed by one indicator-box assembly."""
-    outer_w, outer_h = indicator_box_outer_size(layer_groups)
+    if isinstance(thickness, bool):
+        raise ValueError("thickness must not be boolean")
     t = float(thickness)
-    return outer_w - 98.0 - t, outer_h - 98.0 - t
+    if not math.isfinite(t) or t <= 0:
+        raise ValueError("thickness must be > 0")
+    outer_w, outer_h = indicator_box_outer_size(layer_groups)
+    opened_w, opened_h = outer_w - 98.0 - t, outer_h - 98.0 - t
+    if opened_w <= 0 or opened_h <= 0:
+        raise ValueError("indicator box opening size must be > 0")
+    return opened_w, opened_h
 
 
 def resolve_door_indicator_features(
@@ -578,7 +629,7 @@ def resolve_door_indicator_features(
     The returned coordinates are unfolded/world coordinates and are shared by
     GUI preview and DXF serialization.
     """
-    groups = [int(value) for value in layer_groups]
+    groups = list(_normalize_indicator_groups(layer_groups))
     layers = len(groups)
     if layers == 0:
         return []
@@ -769,7 +820,7 @@ def resolve_door_indicator_layout(
     layer_groups: list[int] | tuple[int, ...],
     offset: Vec2 = Vec2(0.0, 0.0),
 ) -> DoorIndicatorLayout:
-    groups = tuple(int(value) for value in layer_groups)
+    groups = _normalize_indicator_groups(layer_groups)
     if not groups:
         raise ValueError("door indicator layout requires at least one layer")
     g_max = max(groups) if groups else 1
@@ -971,7 +1022,17 @@ def hit_test_resolved_features(
     features: Iterable[ResolvedFeature],
     tolerance: float = 0.0,
 ) -> int | None:
-    tolerance = max(0.0, float(tolerance))
+    # The pick radius determines WHICH real Hole Editor feature is edited.
+    # Infinity would match unrelated holes; bool would become a 1-mm radius.
+    if isinstance(tolerance, bool):
+        raise ValueError("hit-test tolerance must be finite and nonboolean")
+    try:
+        measured = float(tolerance)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("hit-test tolerance must be finite") from exc
+    if not math.isfinite(measured):
+        raise ValueError("hit-test tolerance must be finite")
+    tolerance = max(0.0, measured)
     for index, feature in enumerate(features):
         if isinstance(feature, ResolvedCircle):
             dx = point.x - feature.center.x
@@ -984,9 +1045,35 @@ def hit_test_resolved_features(
             if poly.buffer(tolerance).covers(ShapelyPoint(point.x, point.y)):
                 return index
         else:
-            poly = ShapelyPolygon([(p.x, p.y) for p in feature.points])
-            if poly.buffer(tolerance).covers(ShapelyPoint(point.x, point.y)):
-                return index
+            target = ShapelyPoint(point.x, point.y)
+            # A ProfileFeature has ONE selection identity but can expose
+            # multiple physical process contours. Always test every displayed
+            # layer, even if its primary points are nonempty. The saved closed
+            # flag overrides the old >=3-points heuristic for matching points.
+            layered = tuple(
+                (tuple(pts), bool(closed))
+                for _layer, pts, closed in
+                (getattr(feature, "layered_profiles", ()) or ())
+            )
+            primary = tuple(feature.points or ())
+            candidates = layered
+            if primary and not any(pts == primary for pts, _closed in layered):
+                # Legacy primary-only profile has no explicit closure field.
+                candidates += ((primary, len(primary) >= 3),)
+            for pts, closed in candidates:
+                coords = [(p.x, p.y) for p in pts]
+                if len(coords) >= 3 and closed:
+                    geometry = ShapelyPolygon(coords)
+                    matches = geometry.buffer(tolerance).covers(target)
+                elif len(coords) >= 2:
+                    geometry = ShapelyLineString(coords)
+                    matches = geometry.distance(target) <= max(tolerance, 1.5)
+                elif len(coords) == 1:
+                    matches = ShapelyPoint(coords[0]).distance(target) <= max(tolerance, 1.5)
+                else:
+                    matches = False
+                if matches:
+                    return index
     return None
 
 

@@ -1,0 +1,481 @@
+# -*- coding: utf-8 -*-
+"""#1504 AC-09/AC-24: current saved CSV V5 source, scope and operator holds.
+
+No legacy DXF proof, guessed world-X, persisted DRAFT/READY, or whole-cabinet
+fabrication authorization is used to assert source availability.
+"""
+from __future__ import annotations
+
+from copy import deepcopy
+import csv
+from pathlib import Path
+
+import pytest
+
+from ae_engine.receiving_nfb_v5_diagnostics import current_v5_nfb_diagnostics
+from ae_engine.receiving_nfb_numeric_catalog import (
+    HEADER, brand_csv_path, read_numeric_specs,
+)
+from ae_engine.receiving_layout import (
+    new_receiving_layout, resize_receiving_bays, update_receiving_bay,
+)
+from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
+from gui_modules.application.receiving_nfb_manifest_view import (
+    nfb_manifest_display_lines, highlighted_nfb_manifest_lines,
+)
+from phase6_project_file import PROJECT_SCHEMA_V1, PROJECT_SCHEMA_V3, write_project, read_project
+
+
+def _model(brand="士林"):
+    specs = read_numeric_specs(brand)
+    available = [spec.model for spec in specs if spec.dimensionally_complete]
+    assert available, brand
+    return available[0]
+
+
+def _bay(brand="士林", *, count=1, version="b1", state="CONFIRMED"):
+    model = _model(brand)
+    rows = [{
+        "physical_hole_id": f"nfb:{version}:layer:{layer}:unit:0",
+        "model_filename": f"nfbv5:{brand}:{model}",
+        "source_brand": brand,
+        "layer_count": count,
+        "layer_index": layer,
+        "slot_index": 0,
+        "rotation_deg": 0,
+        "manual_x_state": state,
+        "manual_x_mm": 0 if state=="CONFIRMED" else None,
+        **({"datum_revision":"operator-x","datum_snapshot":{"w":800}}
+           if state=="CONFIRMED" else {}),
+    } for layer in range(count)]
+    return {"nfb_config_submitted":True,
+            "nfb_config":{"layer_count":count,"holes":rows}}
+
+
+def _inspect(bay, *, bay_id="B1", version="inner-door-v1"):
+    return current_v5_nfb_diagnostics(
+        bay, set_id="setA", bay_id=bay_id, version_id=version,
+        dependent_part_ids=("inner_door:upper:panel","base_plate"),
+        unaffected_part_ids=("side_panel:left",),
+    )
+
+
+def test_ac09_valid_real_numeric_csv_is_recheck_only_not_manufacturing_ready():
+    view=_inspect(_bay())
+    assert view["status"]=="CSV_V5_SCOPED_DIAGNOSTIC"
+    assert view["derived_state"]=="CONFIGURED"
+    assert view["set_id"]=="setA" and view["bay_id"]=="B1"
+    assert view["version_id"]=="inner-door-v1"
+    assert view["unit_rows"][0]["source_status"]=="SOURCE_PRESENT_RECHECK_ONLY"
+    assert view["unit_rows"][0]["configuration_verified"] is True
+    assert view["unit_rows"][0]["reasons"]==()
+    assert view["unit_rows"][0]["manufacturing_verified"] is False
+    assert view["manufacturing_ready"] is False
+    assert view["actual_export_count"] is None and not view["rows"]
+    assert all(part["status"]=="RECHECK_ONLY" for part in view["part_rows"][:2])
+    assert view["part_rows"][2]["status"]=="NFB_UNAFFECTED"
+    lines=highlighted_nfb_manifest_lines(
+        {"manifest":lambda si,bi:view},0,(0,),
+    )
+    assert any("Set setA／Bay B1／版本 inner-door-v1" in line for line in lines)
+    assert any("第1層／第1顆" in line and "實體待驗" in line for line in lines)
+    assert any("side_panel:left" in line and "不受 NFB 缺項連坐" in line
+               for line in lines)
+    assert not any("可加工 1 片" in line for line in lines)
+
+
+def test_ac24_two_tiers_per_hole_reasons_do_not_hide_draft_or_other_part():
+    bay=_bay(count=2)
+    bay["nfb_config"]["holes"][1]["manual_x_state"]="RECONFIRM_REQUIRED"
+    bay["nfb_config"]["holes"][1]["manual_x_mm"]=None
+    view=_inspect(bay)
+    assert view["derived_state"]=="DRAFT"
+    assert [r["layer_index"] for r in view["unit_rows"]]==[0,1]
+    assert [r["slot_index"] for r in view["unit_rows"]]==[0,0]
+    assert view["unit_rows"][0]["reasons"]==()
+    assert view["unit_rows"][0]["configuration_verified"] is True
+    assert view["unit_rows"][1]["configuration_verified"] is False
+    assert view["unit_rows"][1]["reasons"]==("NFB_WORLD_X_RECONFIRM_REQUIRED",)
+    assert all(x["status"]=="BLOCKED" for x in view["part_rows"][:2])
+    assert view["part_rows"][2]["status"]=="NFB_UNAFFECTED"
+    lines=nfb_manifest_display_lines(view)
+    assert any("第2層／第1顆" in line and "WORLD_X_RECONFIRM_REQUIRED" in line
+               for line in lines)
+    assert any("物理板件 base_plate" in line
+               and "WORLD_X_RECONFIRM_REQUIRED" in line for line in lines)
+    assert any("物理板件 side_panel:left" in line
+               and "不受 NFB 缺項連坐" in line for line in lines)
+    # Derivation is read-only: the submitted config remains persistable.
+    assert bay["nfb_config_submitted"] is True
+    assert "readiness" not in bay["nfb_config"]
+    assert normalize_nfb_saved_fields(bay)["nfb_config"]["layer_count"]==2
+
+
+def test_ac09_missing_model_and_malformed_current_csv_fail_closed_without_rewriting_saved_unit(
+    tmp_path, monkeypatch,
+):
+    brand="士林"
+    original=brand_csv_path(brand).read_bytes()
+    alternate=tmp_path/"NFB數值規格.csv"
+    alternate.write_bytes(original)
+    import ae_engine.receiving_nfb_numeric_catalog as catalog
+    real=catalog.brand_csv_path
+    monkeypatch.setattr(catalog,"brand_csv_path",
+                        lambda name:alternate if name==brand else real(name))
+    bay=_bay(brand)
+    before=deepcopy(bay)
+    assert _inspect(bay)["derived_state"]=="CONFIGURED"
+    # Remove exactly one current model from an ISOLATED CSV copy.
+    with alternate.open(encoding="utf-8-sig",newline="") as stream:
+        rows=list(csv.DictReader(stream))
+    assert rows
+    selected=bay["nfb_config"]["holes"][0]["model_filename"].split(":",2)[2]
+    remaining=[row for row in rows if row["型號"]!=selected]
+    with alternate.open("w",encoding="utf-8-sig",newline="") as stream:
+        writer=csv.DictWriter(stream,fieldnames=HEADER)
+        writer.writeheader()
+        writer.writerows(remaining)
+    missing=_inspect(bay)
+    assert missing["derived_state"]=="DRAFT"
+    assert "NFB_CSV_MODEL_MISSING" in missing["unit_rows"][0]["reasons"]
+    assert missing["part_rows"][0]["status"]=="BLOCKED"
+    assert missing["part_rows"][2]["status"]=="NFB_UNAFFECTED"
+    alternate.write_text("wrong,columns\\n",encoding="utf-8")
+    malformed=_inspect(bay)
+    assert "NFB_CSV_SOURCE_UNAVAILABLE_OR_INVALID" in malformed["unit_rows"][0]["reasons"]
+    alternate.unlink()
+    absent=_inspect(bay)
+    assert "NFB_CSV_SOURCE_UNAVAILABLE_OR_INVALID" in absent["unit_rows"][0]["reasons"]
+    alternate.write_bytes(original)
+    recovered=_inspect(bay)
+    assert recovered["derived_state"]=="CONFIGURED"
+    assert bay==before
+    assert recovered["manufacturing_ready"] is False
+
+
+def test_ac09_two_current_bays_save_reload_source_invalidation_is_per_bay(tmp_path,monkeypatch):
+    first=_bay("士林",version="one")
+    second=_bay("東元",version="two",state="UNVERIFIED_BASIS")
+    layout=new_receiving_layout(width=800,height=1600,depth=350)
+    layout=resize_receiving_bays(layout,set_index=0,bay_count=2)
+    layout=update_receiving_bay(layout,set_index=0,bay_index=0,
+                                nfb_config_submitted=True,
+                                nfb_config=first["nfb_config"])
+    layout=update_receiving_bay(layout,set_index=0,bay_index=1,
+                                nfb_config_submitted=True,
+                                nfb_config=second["nfb_config"])
+    file=write_project(tmp_path/"two-bays.p6fold",{
+        "schema":PROJECT_SCHEMA_V1,
+        "snapshot":{"model":"受電箱","active_mode":"set_bay","receiving_layout":layout},
+    })
+    reopened=read_project(file)
+    assert reopened["schema"]==PROJECT_SCHEMA_V3
+    bays=reopened["snapshot"]["receiving_layout"]["sets"][0]["bays"]
+    id_a,id_b=bays[0]["stable_id"],bays[1]["stable_id"]
+    before=deepcopy(reopened)
+    a=current_v5_nfb_diagnostics(bays[0],set_id="setA",bay_id=id_a,version_id="inner-door-v1")
+    b=current_v5_nfb_diagnostics(bays[1],set_id="setA",bay_id=id_b,version_id="inner-door-v2")
+    assert a["derived_state"]=="CONFIGURED"
+    assert b["derived_state"]=="DRAFT"
+    assert a["unit_rows"][0]["physical_hole_id"]!=b["unit_rows"][0]["physical_hole_id"]
+    import ae_engine.receiving_nfb_numeric_catalog as catalog
+    real=catalog.brand_csv_path
+    monkeypatch.setattr(catalog,"brand_csv_path",lambda brand:
+                        tmp_path/"missing-shihlin.csv" if brand=="士林" else real(brand))
+    stale_a=current_v5_nfb_diagnostics(bays[0],set_id="setA",bay_id=id_a,version_id="inner-door-v1")
+    still_b=current_v5_nfb_diagnostics(bays[1],set_id="setA",bay_id=id_b,version_id="inner-door-v2")
+    assert stale_a["derived_state"]=="DRAFT"
+    assert "SOURCE_UNAVAILABLE" in stale_a["unit_rows"][0]["reasons"][0]
+    assert still_b["unit_rows"][0]["source_status"]=="UNVERIFIED"
+    assert still_b["unit_rows"][0]["reasons"]==("NFB_WORLD_X_RECONFIRM_REQUIRED",)
+    assert reopened==before
+    assert all(row["nfb_config_submitted"] is True for row in bays)
+
+
+def test_ac24_legacy_mixed_and_cross_part_guards():
+    legacy={"nfb_config_submitted":True,
+            "nfb_config":{"layer_count":1,"holes":[{
+                "physical_hole_id":"old","model_filename":"400_140X257_107.dxf",
+                "manual_x_state":"NONE","manual_x_mm":None,
+            }]}}
+    assert current_v5_nfb_diagnostics(
+        legacy,set_id="setA",bay_id="B1",version_id=None,
+    ) is None
+    mixed=_bay()
+    mixed["nfb_config"]["holes"].append(deepcopy(legacy["nfb_config"]["holes"][0]))
+    view=_inspect(mixed)
+    assert view["derived_state"]=="DRAFT"
+    assert "NFB_CURRENT_CSV_LEGACY_MIXED_SOURCE" in view["unit_rows"][1]["reasons"]
+    with pytest.raises(ValueError,match="duplicate or overlapping"):
+        current_v5_nfb_diagnostics(
+            _bay(),set_id="setA",bay_id="B1",version_id="inner-door-v1",
+            dependent_part_ids=("base_plate",),unaffected_part_ids=("base_plate",),
+        )
+    assert current_v5_nfb_diagnostics(
+        {"nfb_config_submitted":False},set_id="setA",bay_id="B1",version_id=None
+    ) is None
+
+
+
+def test_ac24_v5_typed_model_identity_accepts_optional_persisted_source_brand():
+    source=_bay()
+    original=source["nfb_config"]["holes"][0]["source_brand"]
+    source["nfb_config"]["holes"][0].pop("source_brand")
+    assert _inspect(source)["derived_state"]=="CONFIGURED"
+    source["nfb_config"]["holes"][0]["source_brand"]=None
+    assert _inspect(source)["derived_state"]=="CONFIGURED"
+    source["nfb_config"]["holes"][0]["source_brand"]="東元"
+    with pytest.raises(ValueError,match="mismatch"):
+        _inspect(source)
+    assert original=="士林"
+
+
+def test_ac24_duplicate_physical_slot_or_stale_layer_count_keeps_draft_unverified():
+    saved=_bay(count=2)
+    duplicate=deepcopy(saved)
+    duplicate["nfb_config"]["holes"][1]["layer_index"]=0
+    duplicate["nfb_config"]["holes"][1]["slot_index"]=0
+    report=_inspect(duplicate)
+    assert report["derived_state"]=="DRAFT"
+    assert all(
+        "NFB_DUPLICATE_LAYER_UNIT_OWNER" in row["reasons"]
+        and row["configuration_verified"] is False
+        and row["manufacturing_verified"] is False
+        for row in report["unit_rows"]
+    )
+    assert all("配置未驗證" in line for line in
+               nfb_manifest_display_lines(report) if "第" in line and "顆" in line)
+    assert report["part_rows"][0]["status"]=="BLOCKED"
+    mismatched=deepcopy(saved)
+    mismatched["nfb_config"]["holes"][1]["layer_count"]=1
+    report=_inspect(mismatched)
+    assert report["derived_state"]=="DRAFT"
+    assert "NFB_UNIT_LAYER_COUNT_MISMATCH" in report["unit_rows"][1]["reasons"]
+    assert report["part_rows"][-1]["status"]=="NFB_UNAFFECTED"
+    assert saved==_bay(count=2)
+
+
+def test_ac09_missing_real_inner_or_base_source_remains_draft_after_valid_csv():
+    saved=_bay()
+    for roles in (("BASE_PLATE",),("INNER_DOOR",),("INNER_DOOR","BASE_PLATE")):
+        view=current_v5_nfb_diagnostics(
+            saved,set_id="setA",bay_id="B1",version_id="inner-door-v1",
+            dependent_part_ids=("inner_door:upper:panel",),
+            unaffected_part_ids=("side_panel:left",),
+            missing_required_physical_roles=roles,
+        )
+        assert view["derived_state"]=="DRAFT"
+        assert not view["manufacturing_ready"]
+        assert view["unit_rows"][0]["configuration_verified"] is False
+        assert view["unit_rows"][0]["source_status"]=="UNVERIFIED"
+        for role in roles:
+            assert ("NFB_REAL_"+role+"_SOURCE_MISSING"
+                    in view["unit_rows"][0]["reasons"])
+            assert "NFB_REAL_"+role+"_SOURCE_MISSING" in view["unresolved_dependencies"]
+        assert view["part_rows"][0]["status"]=="BLOCKED"
+        assert view["part_rows"][1]["status"]=="NFB_UNAFFECTED"
+        text_lines=nfb_manifest_display_lines(view)
+        for role in roles:
+            assert any("缺少實體板件來源" in line and role in line for line in text_lines)
+    with pytest.raises(ValueError,match="source-derived"):
+        current_v5_nfb_diagnostics(
+            saved,set_id="setA",bay_id="B1",version_id="inner-door-v1",
+            missing_required_physical_roles=("UNKNOWN_ROLE",),
+        )
+
+
+def test_ac09_actual_two_bay_finalscenes_identify_only_real_unrelated_sheets():
+    # Use the same real physical two-Bay resolved PartRenderData consumed by
+    # existing #1502 original selected-DXF manufacturing integration.
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    from ae_engine.receiving_nfb_v5_diagnostics import actual_unrelated_nfb_scene_parts
+    from tests.test_issue1502_current_csv_multi_bay_once import _multi, _provider
+    source=_multi()
+    provide,calls=_provider(source)
+    scopes=[]
+    for index in (0,1):
+        scene=provide(0,index)
+        keys={part.part_key for part in scene.parts}
+        assert "head" in keys and "box_body" in keys and "base_plate" in keys
+        dependent=tuple(key for key in keys
+                        if key=="base_plate" or key.startswith("inner_door:"))
+        independent=actual_unrelated_nfb_scene_parts(
+            scene.parts,dependent_part_ids=dependent,
+        )
+        assert "head" in independent
+        assert "box_body" not in independent  # folded SIDE EAR may depend on NFB
+        assert "base_plate" not in independent
+        assert all(part in keys for part in independent)
+        projected=project_receiving_bay_legacy_aliases(
+            source,set_index=0,bay_index=index,
+        )
+        selected=projected["receiving_layout"]["sets"][0]["bays"][index]
+        scope=current_v5_nfb_diagnostics(
+            selected,set_id=source["receiving_layout"]["sets"][0]["stable_id"],
+            bay_id=selected["stable_id"],version_id=None,
+            dependent_part_ids=dependent,unaffected_part_ids=independent,
+        )
+        assert scope["set_id"]==source["receiving_layout"]["sets"][0]["stable_id"]
+        assert scope["bay_id"]==selected["stable_id"]
+        assert any(r["part_id"]=="head" and r["status"]=="NFB_UNAFFECTED"
+                   for r in scope["part_rows"])
+        assert all(r["status"]!="NFB_UNAFFECTED"
+                   for r in scope["part_rows"] if r["nfb_affected"])
+        assert not scope["manufacturing_ready"]
+        scopes.append(scope)
+    assert calls==[(0,0),(0,1)]
+    assert scopes[0]["bay_id"]!=scopes[1]["bay_id"]
+
+
+def test_ac24_real_scene_independence_requires_unique_current_rendered_part():
+    from ae_engine.receiving_nfb_v5_diagnostics import actual_unrelated_nfb_scene_parts
+    from tests.test_issue1502_current_csv_multi_bay_once import _multi,_provider
+    scene=_provider(_multi())[0](0,0)
+    unrelated=actual_unrelated_nfb_scene_parts(
+        scene.parts,dependent_part_ids=("base_plate",),
+    )
+    assert "head" in unrelated
+    from types import SimpleNamespace
+    forged=SimpleNamespace(part_key="head",render_data=SimpleNamespace(scene=None))
+    assert actual_unrelated_nfb_scene_parts(
+        (forged,),dependent_part_ids=(),
+    )==()
+    with pytest.raises(ValueError,match="duplicate physical owner"):
+        actual_unrelated_nfb_scene_parts(
+            scene.parts+(scene.parts[0],),dependent_part_ids=(),
+        )
+
+
+def test_ac24_quantity_version_saved_reload_uses_selected_version_only(tmp_path):
+    from phase6_quantity_model import QuantityModel
+    from ae_engine.receiving_quantity_box import project_common_box
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+
+    quantity=QuantityModel()
+    first=quantity.selected_version_id
+    quantity.set_version_nfb_config(
+        first,submitted=True,config=_bay(version="one")["nfb_config"],
+    )
+    second=quantity.add_version()
+    quantity.set_version_nfb_config(
+        second,submitted=True,
+        config=_bay(version="two",state="RECONFIRM_REQUIRED")["nfb_config"],
+    )
+    source={"model":"受電箱","active_mode":"quantity",
+            "receiving_quantity_box":{"w":800,"h":1600,"d":350},
+            "quantity":quantity.snapshot()}
+    saved=read_project(write_project(tmp_path/"two-versions.p6fold",{
+        "schema":PROJECT_SCHEMA_V1,"snapshot":source,
+    }))["snapshot"]
+    original=deepcopy(saved)
+    seen={}
+    for vid in (first,second):
+        current=QuantityModel.from_payload(saved["quantity"])
+        current.select(vid)
+        project=project_common_box({
+            **saved,"quantity":current.snapshot(),
+        })
+        bay=project["receiving_layout"]["sets"][0]["bays"][0]
+        row=current_v5_nfb_diagnostics(
+            bay,set_id="quantity-current",bay_id=bay["stable_id"],
+            version_id=vid,
+            dependent_part_ids=("base_plate",),
+            unaffected_part_ids=("head",),
+        )
+        assert row["version_id"]==vid
+        assert row["nfb_config_submitted"] is True
+        assert row["manufacturing_ready"] is False
+        assert row["part_rows"][1]["status"]=="NFB_UNAFFECTED"
+        seen[vid]=row
+    assert seen[first]["derived_state"]=="CONFIGURED"
+    assert seen[first]["unit_rows"][0]["configuration_verified"] is True
+    assert seen[second]["derived_state"]=="DRAFT"
+    assert seen[second]["unit_rows"][0]["configuration_verified"] is False
+    assert seen[second]["unit_rows"][0]["reasons"]==(
+        "NFB_WORLD_X_RECONFIRM_REQUIRED",
+    )
+    assert seen[first]["unit_rows"][0]["physical_hole_id"]!=(
+        seen[second]["unit_rows"][0]["physical_hole_id"])
+    assert saved==original
+
+
+def test_ac24_conflicting_unit_certificate_is_rejected_by_gui():
+    current=_inspect(_bay())
+    unverified={**current,"unit_rows":(
+        {**current["unit_rows"][0],"configuration_verified":False},
+    )}
+    with pytest.raises(ValueError,match="verification/reasons mismatch"):
+        nfb_manifest_display_lines(unverified)
+    incorrect={**current,"unit_rows":(
+        {**current["unit_rows"][0],"manufacturing_verified":True},
+    )}
+    with pytest.raises(ValueError,match="cannot fake manufacturing approval"):
+        nfb_manifest_display_lines(incorrect)
+
+
+def test_ac24_p6fold_save_reload_duplicate_units_both_unverified_without_spread(tmp_path):
+    source=_bay(count=2,version="collision")
+    source["nfb_config"]["holes"][1]["layer_index"]=0
+    saved=new_receiving_layout(width=800,height=1600,depth=350)
+    saved=resize_receiving_bays(saved,set_index=0,bay_count=2)
+    saved=update_receiving_bay(
+        saved,set_index=0,bay_index=0,
+        nfb_config_submitted=True,nfb_config=source["nfb_config"],
+    )
+    other=_bay(version="independent")
+    saved=update_receiving_bay(
+        saved,set_index=0,bay_index=1,
+        nfb_config_submitted=True,nfb_config=other["nfb_config"],
+    )
+    project={"schema":PROJECT_SCHEMA_V1,
+             "snapshot":{"model":"受電箱","active_mode":"set_bay",
+                         "receiving_layout":saved}}
+    reopened=read_project(write_project(tmp_path/"two-bay-owners.p6fold",project))
+    before=deepcopy(reopened)
+    bays=reopened["snapshot"]["receiving_layout"]["sets"][0]["bays"]
+    collision=_inspect(bays[0],bay_id=bays[0]["stable_id"],version="version0")
+    independent=_inspect(bays[1],bay_id=bays[1]["stable_id"],version="version1")
+    assert collision["derived_state"]=="DRAFT"
+    assert len(collision["unit_rows"])==2
+    assert all(not row["configuration_verified"] for row in collision["unit_rows"])
+    assert all("NFB_DUPLICATE_LAYER_UNIT_OWNER" in row["reasons"]
+               for row in collision["unit_rows"])
+    assert collision["part_rows"][0]["status"]=="BLOCKED"
+    assert independent["derived_state"]=="CONFIGURED"
+    assert independent["unit_rows"][0]["configuration_verified"] is True
+    assert independent["part_rows"][-1]["status"]=="NFB_UNAFFECTED"
+    assert reopened==before
+
+
+@pytest.mark.parametrize("key", (
+    "configuration_verified", "manufacturing_verified",
+    "source_status", "unit_rows", "part_rows", "derived_state",
+    "unresolved_dependencies", "actual_export_count", "whole_ready",
+))
+def test_ac24_derived_readiness_must_not_persist_into_canonical_nfb_config(key):
+    record=_bay()
+    record["nfb_config"]["holes"][0][key]="FAKE_GREEN"
+    with pytest.raises(ValueError,match="derived or invalid key"):
+        normalize_nfb_saved_fields(record)
+    source=_bay()
+    source["nfb_config"][key]="FAKE_GREEN"
+    with pytest.raises(ValueError,match="derived or invalid key"):
+        normalize_nfb_saved_fields(source)
+
+
+def test_ac24_forbid_forged_green_status_and_gui_source_is_connected():
+    current=_inspect(_bay())
+    for bad in (
+        {**current,"manufacturing_ready":True},
+        {**current,"actual_export_count":1},
+        {**current,"rows":({"part_id":"fake","may_export":True},)},
+    ):
+        with pytest.raises(ValueError,match="must not claim"):
+            nfb_manifest_display_lines(bad)
+    gui=(Path(__file__).resolve().parents[1] /
+         "gui_modules/application/fold_designer_composition_receiving.py"
+         ).read_text(encoding="utf-8")
+    assert "current_v5_nfb_diagnostics(" in gui
+    assert 'setting_value(\n                        owner, bay_index, "inner_door_version_id",' in gui
+    assert "committed_nfb_evidence.get((set_index,bay_index))" in gui
+    assert 'export_current_csv_nfb_door_base_pair(' in gui

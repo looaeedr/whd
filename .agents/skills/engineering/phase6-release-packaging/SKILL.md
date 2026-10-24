@@ -154,12 +154,12 @@ FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh ex
 
 ## WHD 正式出包／整合路由（依 CURRENT AGENTS.md）
 
-本 Skill 負責 FULL／UPDATE 封包的 baseline、測試、pristine extraction、驗收及 durable checkpoint，**不單獨授權 repository 施工、DC 或 X 發布**。來源、施工位置、PR 與合併流程優先服從正式 X 的 `AGENTS.md`。
+本 Skill 負責 FULL／UPDATE 封包的 baseline、測試、pristine extraction、驗收及 durable checkpoint，**不單獨授權 repository 施工、DC 或 X 發布**。日常施工與 `/推推` 發布流程依最新 GitHub `localX` 的 CURRENT `AGENTS.md`；正式 X 只提供受信任發布 gate，不得拿 X 的舊文件覆蓋現行流程。
 
-1. **`/派工` 的產品施工**：由 GitHub／排程／雲端真正執行器建立合法工作分支，完成修改、測試、提交、push、PR（base=`localX`）、exact HEAD CI。**CI SUCCESS 前不得接觸使用者本機或使用 DC**；CI 通過後僅在 `LOCALX_INTEGRATION` 使用 DC 做本機 `localX` 最終整合／必要驗證／非強制同步回讀，不可在此階段暗改產品。
+1. **`/派工` 的產品施工**：由 GitHub／排程／雲端真正執行器建立合法工作分支，完成修改、測試、提交、push、PR（base=`localX`）、exact HEAD CI；GREEN 後直接進入 `LOCALX_INTEGRATION`，以 GitHub PR 整合遠端 `localX` 並回讀。**不預設 DC、本機同步或 Windows UAT**；本機僅在另有當次明確操作授權時介入，不可暗改產品。
 2. **`/接手`**：只有使用者當次明確授權，才可經 RC → CoreELEC `whd-dev:/workspace/whd` 在本機進行產品施工、測試與交付；此前不能用 Skill 路由、出包要求或普通「繼續」取得 DC 權限。
-3. **非產品治理／技能／專用測試**：受信任 `tools/change_lane_gate.py` 確認所有路徑屬治理白名單，才可由 GitHub／雲端治理分支直接 PR／CI 合併 X，不經 `localX`、不需 `/推推`，亦不得為治理修改探測使用者本機。
-4. **產品正式 X 發布**：先依現行 `localX` 驗收與非強制同步，仍必須使用者**當次 `/推推`**，以及 exact PR／SHA／CI／merge/readback。禁止直接 patch X 或 `main`，也不得把 release ZIP、測試 GREEN 或本 Skill 自身當成發布許可。
+3. **非產品治理／技能／專用測試**：治理與技能變更也先由 GitHub 工作分支 PR + 適用治理 CI 合併 `localX`；正式 X 一律使用使用者當次 `/推推`、受信任 X gate，**不允許治理直送 X**，亦不得為治理修改探測使用者本機。
+4. **產品正式 X 發布**：使用者**當次 `/推推`** 即驗收與 GitHub-only 發布授權，直接以 GitHub 遠端 `localX` 做 exact PR／SHA／owner comment／CI／merge/readback，再安全回同步遠端 `localX` 並核對正式 GitHub Release/tag。Windows 本機未同步／未測試僅列待辦，不阻擋發布、不需額外 GitHub-only 指令。禁止直接 patch X 或 `main`，也不得把 release ZIP、測試 GREEN 或本 Skill 自身當成發布許可。
 5. **維持原本封包與來源嚴格驗證**：必須保留原始 FULL baseline、實際 source/tested SHA、exact diff、CI、必跑產品回歸、pristine 完整性與 drift audit；target 或 touched content 改變就回合法施工環境重驗後再交付，不得使用 root-first unlock、事後補 branch／後補測試的退役交易程序。
 
 已退役的泛用 root-local-first 啟動次序、先在本機 root 改完才允許建立 branch 的規則，不得作為任何正式出包的強制前置。完整製造、2D/3D、DXF、Save→Reload 與封包驗證流程仍依本 Skill 前文各節執行。

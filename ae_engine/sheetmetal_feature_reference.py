@@ -7,15 +7,17 @@
 
 """Reference-edge editing, neighbor spacing, and round-hole fill helpers."""
 from __future__ import annotations
+import math
 
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Iterable
 
 try:
-    from shapely.geometry import LineString as ShapelyLineString
+    from shapely.geometry import LineString as ShapelyLineString, Point as ShapelyPoint
 except Exception:  # pragma: no cover
     ShapelyLineString = None
+    ShapelyPoint = None
 
 from .sheetmetal_geometry import Vec2
 from .sheetmetal_feature_core import (
@@ -140,8 +142,25 @@ def _surface_axis_edges(surface: FeatureSurface, point: Vec2) -> tuple[float, fl
     vi = surface.polygon.intersection(v)
     if hi.is_empty or vi.is_empty:
         return float(minx), float(maxx), float(miny), float(maxy)
-    hminx, _, hmaxx, _ = hi.bounds
-    _, vminy, _, vmaxy = vi.bounds
+    # A cutout or disconnected contour can create multiple segments on a
+    # single axis. Only the segment *containing the seed* defines the local
+    # refill span; the union bounds would bridge empty material.
+    center = ShapelyPoint(float(point.x), float(point.y))
+
+    def local_component(geometry):
+        def lines(item):
+            if item.geom_type == "LineString" and item.length > 0:
+                yield item
+            else:
+                for child in getattr(item, "geoms", ()):
+                    yield from lines(child)
+        candidates = [line for line in lines(geometry) if line.distance(center) <= 1e-7]
+        if candidates:
+            return max(candidates, key=lambda line: float(line.length)).bounds
+        return geometry.bounds
+
+    hminx, _, hmaxx, _ = local_component(hi)
+    _, vminy, _, vmaxy = local_component(vi)
     return float(hminx), float(hmaxx), float(vminy), float(vmaxy)
 
 
@@ -227,11 +246,23 @@ def reference_distances(surface: FeatureSurface, features: Iterable[Feature], cu
 
 
 def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, width: float, height: float, *, axis: str, mode: str, value: float, reference_guide: "RectGuide | None" = None) -> Feature:
+    # A hole reference move is actual geometric positioning, not a Tk-only
+    # display field: reject invalid values before reading or moving features.
+    if type(current_index) is not int:
+        raise ValueError("reference feature index must be an integer")
+    if isinstance(value, bool):
+        raise ValueError("reference distance must be finite and not boolean")
+    try:
+        measured = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("reference distance must be finite") from exc
+    if not math.isfinite(measured):
+        raise ValueError("reference distance must be finite")
     items = list(features)
     feature = items[current_index]
     current_ref = feature_reference_point(feature, anchor, width, height)
     distances = reference_distances(surface, items, current_index, anchor, width, height, reference_guide)
-    axis = axis.lower(); mode = mode.lower(); value = float(value)
+    axis = axis.lower(); mode = mode.lower(); value = measured
     target_ref = Vec2(current_ref.x, current_ref.y)
     if axis == "x":
         side = distances.x_side
@@ -318,15 +349,22 @@ def align_circle_to_neighbor(
 
 def _round_pattern_pitch(feature: CircleFeature, driver: str, value: float) -> float:
     driver = str(driver).lower()
-    value = float(value)
+    if isinstance(value, bool):
+        raise ValueError("round-hole pitch must be a finite number")
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("round-hole pitch must be a finite number") from exc
+    if not math.isfinite(value):
+        raise ValueError("round-hole pitch must be finite")
     if driver == "center":
         pitch = value
     elif driver == "gap":
         pitch = circle_center_distance_from_gap(value, feature.diameter, feature.diameter)
     else:
         raise ValueError("driver must be center or gap")
-    if pitch <= 0:
-        raise ValueError("round-hole pitch must be > 0")
+    if not math.isfinite(pitch) or pitch <= 0:
+        raise ValueError("round-hole pitch must be finite and positive")
     return pitch
 
 
@@ -399,13 +437,15 @@ def generate_round_refill(
         raise ValueError(f"unsupported round refill direction: {direction}")
     pitch = _round_pattern_pitch(seed, driver, value)
     center = feature_finished_point(seed, width, height)
-    minx, miny, maxx, maxy = (float(v) for v in surface.polygon.bounds)
+    minx, maxx, miny, maxy = _surface_axis_edges(surface, center)
     r = float(seed.diameter) / 2.0
 
     horizontal = direction in {"left", "right", "both_horizontal"}
     lo = (minx + r) if horizontal else (miny + r)
     hi = (maxx - r) if horizontal else (maxy - r)
-    span = max(0.0, hi - lo)
+    if hi < lo:
+        return ()
+    span = hi - lo
     count = max(1, int(span // pitch) + 1)
     used = pitch * (count - 1)
     if direction in {"left", "down"}:

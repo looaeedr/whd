@@ -265,7 +265,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         get_candidate_ports=None, get_inner_candidate_ports=None,
                         select_bay=None,
                         on_setting_selected=None, get_brand=None,
-                        set_brand=None, get_settings_ports=None,
+                        set_brand=None, get_brand_change_impact=None,
+                        get_settings_ports=None,
                         get_nfb_transaction_ports=None,
                         get_original_door_marks=None,
                         get_initial_door_marks=None,
@@ -390,8 +391,25 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_selector.pack(side="left")
     def apply_brand(_event=None):
         if set_brand is not None:
+            previous = get_brand() if get_brand else "士林"
+            proposed = brand_var.get()
+            # Do not short-circuit same displayed Set brand: the one global
+            # Set/Bay selector may still need to update other Sets that carry
+            # a different inherited brand. set_brand() owns the no-op check.
             try:
-                if set_brand(brand_var.get()):
+                affected = (get_brand_change_impact(proposed)
+                            if get_brand_change_impact is not None else 0)
+                if affected and not messagebox.askyesno(
+                    "確認切換 NFB 廠牌",
+                    f"此次切換將有 {affected} 顆 NFB 原型號待重選。"
+                    "確認後保留舊型號來源，但禁止未重選前製造。是否繼續？",
+                    parent=win,
+                ):
+                    # ComboboxSelected changes Tk presentation first. Restore
+                    # it without a product write, Undo entry or geometry solve.
+                    brand_var.set(previous)
+                    return
+                if set_brand(proposed):
                     brand_changed["value"] = True
                     win.after_idle(show_setting_controls)
             except (ValueError, IndexError, RuntimeError) as exc:
@@ -622,7 +640,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         ports = get_settings_ports(set_index)
         ports["select"](bay_index)
         active_ports["ports"] = ports
-        from ae_engine.receiving_shared_settings import setting_value
         # Highlighter owns the multi-selection. No second checkbox selector.
         # The canvas highlight, including an empty selection, is the ONLY apply target.
         targets = lambda: tuple(applied["selected_bays"])
@@ -634,28 +651,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 warn(exc)
         candidate_combos.clear()
 
-        def actions(parent, kind, *, role=None):
+        def actions(parent, kind, *, role):
             row = ttk.Frame(parent)
             row.pack(anchor="w", pady=3)
-            if role is None:
-                from ae_engine.receiving_shared_settings import setting_value
-                current = setting_value(ports["row"](), bay_index, kind)
-                value = tk.StringVar(master=win, value=str(current))
-                ttk.Label(row, text="內門層數").pack(side="left")
-                selector = ttk.Combobox(
-                    row, textvariable=value, values=("1", "2"),
-                    width=5, state="readonly",
-                )
-                selector.pack(side="left", padx=3)
-                # Previously "編輯" only committed the layer count.
-                # Choosing 1/2 now applies it immediately to highlighted Bays.
-                selector.bind(
-                    "<<ComboboxSelected>>",
-                    lambda _event: perform(
-                        lambda: ports["change"](kind, int(value.get()), targets())
-                    ),
-                )
-                return
             ttk.Label(
                 row, text={"head": "封頭孔", "tail": "封尾孔",
                            "inner-door": "內門版本"}[role],
@@ -759,7 +757,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理", command=open_manager,
                 ).pack(anchor="e", pady=(5, 0))
         else:
-            actions(settings_host, "inner_door_layers")
             if get_inner_candidate_ports is not None:
                 actions(settings_host, "inner_door_layers", role="inner-door")
                 ttk.Button(

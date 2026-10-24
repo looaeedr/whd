@@ -195,3 +195,61 @@ def test_y_projection_does_not_modify_baseline_cutting_or_add_fake_nfb_apertures
     assert len(cuts) == 1
     ys = [point.y for point in cuts[0].points]
     assert max(ys) - min(ys) == pytest.approx(1075.0)
+
+
+@pytest.mark.parametrize("axis,corrupt", [
+    ("w", True), ("h", False), ("t", True),
+    ("w", 10 ** 400), ("h", 10 ** 400), ("t", 10 ** 400),
+])
+def test_manual_116_nfb_world_y_projection_never_coerces_bad_box_whd(axis, corrupt):
+    """World-Y projection cannot silently turn booleans into physical millimetres."""
+    scene = receiving_snapshot()
+    before = deepcopy(scene)
+    assert project_nfb_inner_door_nominal_y(
+        scene, "upper", layer_count=1, slot_index=0,
+    ).box_world_y_mm == pytest.approx(250.0)
+    corrupt_scene = {**scene, axis: corrupt}
+    with pytest.raises(ValueError, match="OPEN-Y-PROJECTION invalid box dimensional authority"):
+        project_nfb_inner_door_nominal_y(
+            corrupt_scene, "upper", layer_count=1, slot_index=0,
+        )
+    assert scene == before
+
+
+def test_manual_116_nfb_world_y_current_330_830_preserves_approved_true_part():
+    scene = receiving_snapshot()
+    scene["receiving_inner_door_layer_heights_mm"] = [330.0, 830.0]
+    first = project_nfb_inner_door_nominal_y(
+        scene, "upper", layer_count=2, slot_index=0,
+    )
+    second = project_nfb_inner_door_nominal_y(
+        scene, "upper", layer_count=2, slot_index=1,
+    )
+    assert (first.box_world_y_mm, second.box_world_y_mm) == pytest.approx((470.0, -30.0))
+    assert first.unfolded_blank_height_mm == second.unfolded_blank_height_mm == pytest.approx(1075.0)
+
+
+@pytest.mark.parametrize("invalid_uv", [True, False, None, 10 ** 400, "not-a-number"])
+def test_manual_116_inverse_unfolded_y_rejects_nonphysical_raw_input(invalid_uv):
+    """Round 6 real part inverse must fail closed before float() coerces physical UV."""
+    state = receiving_snapshot()
+    before = deepcopy(state)
+    with pytest.raises(ValueError, match="OPEN-Y-PROJECTION invalid unfolded Y input"):
+        invert_nfb_inner_door_unfolded_y(
+            state, "upper", unfolded_uv_y_mm=invalid_uv,
+        )
+    assert state == before
+
+
+def test_manual_116_inverse_unfolded_y_preserves_current_real_part_roundtrip():
+    """Approved two-level operator dimensions use the same true 1075 blank core."""
+    state = receiving_snapshot()
+    state["receiving_inner_door_layer_heights_mm"] = [330.0, 830.0]
+    for slot, expected in ((0, 330.0), (1, 830.0)):
+        physical = project_nfb_inner_door_nominal_y(
+            state, "upper", layer_count=2, slot_index=slot,
+        )
+        assert physical.unfolded_blank_height_mm == pytest.approx(1075.0)
+        assert invert_nfb_inner_door_unfolded_y(
+            state, "upper", unfolded_uv_y_mm=physical.unfolded_uv_y_mm,
+        ) == pytest.approx(expected)

@@ -27,12 +27,17 @@ _DERIVED_LAYOUT_KEYS = {
 
 
 def _number(value: object, *, label: str) -> float:
+    # A Bay is persisted physical WHD authority, never a display/string truth.
+    # float(True) == 1 and NaN <= 0 is false, both unsafe for real sheets.
+    from math import isfinite
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a positive finite number")
     try:
         result = float(value)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"{label} must be numeric") from exc
-    if result <= 0.0:
-        raise ValueError(f"{label} must be > 0")
+    if not isfinite(result) or result <= 0.0:
+        raise ValueError(f"{label} must be a positive finite number")
     return result
 
 
@@ -190,10 +195,10 @@ def primary_bay(layout: Mapping[str, object]) -> dict[str, object]:
 def derive_bay_lock_state(layout: Mapping[str, object], *, set_index: int = 0, bay_index: int = 0) -> tuple[bool, bool]:
     normalized = normalize_receiving_layout(layout)
     sets = normalized["sets"]
-    if set_index < 0 or set_index >= len(sets):
+    if type(set_index) is not int or set_index < 0 or set_index >= len(sets):
         raise IndexError("Receiving set_index out of range")
     bays = sets[set_index]["bays"]
-    if bay_index < 0 or bay_index >= len(bays):
+    if type(bay_index) is not int or bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     return bay_index > 0, bay_index < len(bays) - 1
 
@@ -272,10 +277,15 @@ def ensure_receiving_layout(snapshot: Mapping[str, object] | None) -> dict[str, 
                         bay[f"{role}_features"] = deepcopy(source_features.get(role, []))
                 selected["settings"] = normalize_set_settings(None, template_bays)
     if "door_layout_columns" in result:
-        door_state = {key: deepcopy(result[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in result}
-        for selected in layout["sets"]:
-            for bay in selected["bays"]:
-                bay.setdefault("door_state", deepcopy(door_state))
+        # Legacy root door controls belong to the primary Bay only. They must
+        # neither overwrite an explicitly configured primary Bay nor broadcast
+        # to other Bays (including Bays without any door_state).
+        primary_bay = layout["sets"][0]["bays"][0]
+        if "door_state" not in primary_bay:
+            primary_bay["door_state"] = {
+                key: deepcopy(result[key])
+                for key in RECEIVING_DOOR_STATE_KEYS if key in result
+            }
     result["receiving_layout"] = layout
     return result
 
@@ -329,7 +339,7 @@ class ReceivingBayProjectionError(ValueError):
 def _layout_set(layout: Mapping[str, object], set_index: int) -> tuple[dict[str, object], dict[str, object]]:
     normalized = normalize_receiving_layout(layout)
     sets = normalized["sets"]
-    if set_index < 0 or set_index >= len(sets):
+    if type(set_index) is not int or set_index < 0 or set_index >= len(sets):
         raise IndexError("Receiving set_index out of range")
     return normalized, sets[set_index]
 
@@ -384,6 +394,8 @@ def resize_receiving_bays(layout: Mapping[str, object], *, set_index: int, bay_c
     inherit the previous Joint alignment. Truncation removes only the tail.
     """
     normalized, selected = _layout_set(layout, set_index)
+    if isinstance(bay_count, (bool, float)):
+        raise ValueError("Receiving bay_count must be an integer")
     try:
         wanted = int(bay_count)
     except (TypeError, ValueError) as exc:
@@ -456,6 +468,8 @@ def append_receiving_set(layout: Mapping[str, object]) -> dict[str, object]:
 def resize_receiving_sets(layout: Mapping[str, object], *, set_count: int) -> dict[str, object]:
     """Progressive tail-only Set resize; Set1 is permanent."""
     normalized = normalize_receiving_layout(layout)
+    if isinstance(set_count, (bool, float)):
+        raise ValueError("Receiving set_count must be an integer")
     try:
         wanted = int(set_count)
     except (TypeError, ValueError) as exc:
@@ -473,9 +487,10 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
     """Update persisted per-Bay fields without touching sibling Bay objects."""
     normalized, selected = _layout_set(layout, set_index)
     bays = selected["bays"]
-    if bay_index < 0 or bay_index >= len(bays):
+    if type(bay_index) is not int or bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     bay = deepcopy(dict(bays[bay_index]))
+    original_width = bay["width"]
     allowed = {"width", "height", "depth", "back_panel_mode", "door_state",
                "nfb_config_submitted", "nfb_config"}
     unknown = set(changes) - allowed
@@ -502,6 +517,16 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         bay.pop("nfb_config_submitted", None)
         bay.pop("nfb_config", None)
         bay.update(fields)
+    if (bay["width"] != original_width
+            and bay.get("nfb_config_submitted") is True):
+        # A previously CONFIRMED unit X belongs to the old physical Bay width.
+        # Preserve the operator's value, model, unit ID and old datum for an
+        # explicit comparison; never promote an old X to the new W's authority.
+        # Apply this AFTER optional same-call NFB changes, so an unrelated
+        # pre-confirmed W800 source cannot be smuggled in while setting W750.
+        # The derived manufacturing gate must still re-check each hole.
+        from .receiving_nfb_persistence import reconfirm_copied_nfb_config
+        bay["nfb_config"] = reconfirm_copied_nfb_config(bay["nfb_config"])
     bays[bay_index] = bay
     normalized["sets"][set_index] = {
         **selected,
@@ -567,23 +592,62 @@ def project_receiving_bay_legacy_aliases(
     result = ensure_receiving_layout(snapshot)
     if "receiving_layout" not in result:
         return result
+    is_quantity_mode = result.get("active_mode") == "quantity"
+    if is_quantity_mode:
+        set_index = 0
+        bay_index = 0
     persisted_layout = deepcopy(result["receiving_layout"])
     normalized, selected = _layout_set(persisted_layout, set_index)
     bays = selected["bays"]
-    if bay_index < 0 or bay_index >= len(bays):
+    if type(bay_index) is not int or bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     bay = bays[bay_index]
     result["receiving_layout"] = persisted_layout
-    result[RECEIVING_RUNTIME_SELECTION_KEY] = {
-        "set_index": int(set_index),
-        "bay_index": int(bay_index),
-        "set_id": str(selected["stable_id"]),
-        "bay_id": str(bay["stable_id"]),
-    }
+    if is_quantity_mode:
+        result.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
+    else:
+        result[RECEIVING_RUNTIME_SELECTION_KEY] = {
+            "set_index": int(set_index),
+            "bay_index": int(bay_index),
+            "set_id": str(selected["stable_id"]),
+            "bay_id": str(bay["stable_id"]),
+        }
     if "door_state" in bay:
         for key in RECEIVING_DOOR_STATE_KEYS:
             result.pop(key, None)
         result.update(deepcopy(bay["door_state"]))
+    else:
+        # A legacy root door source may explicitly describe a manufactured
+        # inner-door assembly even when Bay N has no saved door_state. Only in
+        # that fully sourced case should Bay N receive its own *transient*
+        # family-default geometry. A minimal/unconfigured old project must
+        # remain unconfigured: manufacturing cannot invent saved d/t authority.
+        has_manufacturing_door_source = (
+            bool(result.get("multi_door_enabled"))
+            and bool(result.get("door_layout_columns"))
+            and bool(result.get("inner_doors"))
+            and all(result.get(key) is not None for key in ("w", "h", "d", "t"))
+        )
+        for key in RECEIVING_DOOR_STATE_KEYS:
+            result.pop(key, None)
+        if has_manufacturing_door_source:
+            from ae_engine.cabinet_types import receiving
+            template = receiving.default_door_layout_columns()
+            default_height = sum(float(v) for v in template[0][1])
+            bay_height = float(bay["height"])
+            factor = bay_height / default_height
+            heights = [float(v) * factor for v in template[0][1]]
+            heights[-1] = bay_height - sum(heights[:-1])
+            result.update({
+                "multi_door_enabled": True,
+                "door_layout_scope": receiving.DEFAULT_DOOR_LAYOUT_SCOPE,
+                "door_layout_columns": [[float(bay["width"]), heights]],
+                "inner_doors": receiving.default_inner_doors(
+                    thickness=float(result["t"]),
+                    depth=float(bay["depth"]),
+                    frame_width=float(result.get("fw", receiving.BOX_BODY_DEFAULTS["fw"])),
+                ),
+            })
     for key in ("nfb_config_submitted", "nfb_config"):
         result.pop(key, None)
         if key in bay:
@@ -592,10 +656,18 @@ def project_receiving_bay_legacy_aliases(
     result["h"] = float(bay["height"])
     result["d"] = float(bay["depth"])
     _set_transient_back_panel_mode(result, str(bay["back_panel_mode"]))
-    if "settings" in selected:
+    should_project_settings = "settings" in selected or (
+        not is_quantity_mode
+        and any("settings" in row for row in normalized["sets"])
+    )
+    if should_project_settings:
+        effective_selected = (
+            selected if "settings" in selected
+            else {**selected, "settings": normalize_set_settings(None, bays)}
+        )
         features = deepcopy(dict(result.get("surface_features") or {}))
         for role in ("head", "tail"):
-            features[role] = setting_value(selected, bay_index, f"{role}_features")
+            features[role] = setting_value(effective_selected, bay_index, f"{role}_features")
         result["surface_features"] = features
         part_features = deepcopy(dict(result.get("part_features") or {}))
         for role in ("head", "tail"):
@@ -607,9 +679,9 @@ def project_receiving_bay_legacy_aliases(
             for key in tuple(part_features):
                 if str(key).startswith("inner_door:") and str(key).endswith(":panel"):
                     part_features[key] = []
-            part_features.update(setting_value(selected, bay_index, "inner_door_features"))
+            part_features.update(setting_value(effective_selected, bay_index, "inner_door_features"))
         result["part_features"] = part_features
-        result["receiving_inner_door_layers"] = setting_value(selected, bay_index, "inner_door_layers")
+        result["receiving_inner_door_layers"] = setting_value(effective_selected, bay_index, "inner_door_layers")
         result["receiving_inner_door_models"] = setting_value(
             selected, bay_index, "inner_door_models"
         )
@@ -642,7 +714,7 @@ def receiving_joint_alignment_editability(
     """Return whether D/H alignment controls can affect this adjacent Bay pair."""
     _normalized, selected = _layout_set(layout, set_index)
     joints = selected["joints"]
-    if joint_index < 0 or joint_index >= len(joints):
+    if type(joint_index) is not int or joint_index < 0 or joint_index >= len(joints):
         raise IndexError("Receiving joint_index out of range")
     left = selected["bays"][joint_index]
     right = selected["bays"][joint_index + 1]
@@ -663,7 +735,7 @@ def update_receiving_joint_alignment(
     """Update alignment only on axes where unequal dimensions make it meaningful."""
     normalized, selected = _layout_set(layout, set_index)
     joints = selected["joints"]
-    if joint_index < 0 or joint_index >= len(joints):
+    if type(joint_index) is not int or joint_index < 0 or joint_index >= len(joints):
         raise IndexError("Receiving joint_index out of range")
     editable = receiving_joint_alignment_editability(
         normalized, set_index=set_index, joint_index=joint_index
@@ -699,7 +771,12 @@ def receiving_destructive_tail_ids(
     normalized = normalize_receiving_layout(layout)
     removed: list[str] = []
     if set_count is not None:
-        wanted = int(set_count)
+        if isinstance(set_count, (bool, float)):
+            raise ValueError("Receiving set_count must be an integer")
+        try:
+            wanted = int(set_count)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Receiving set_count must be an integer") from exc
         if wanted < 1:
             raise ValueError("Receiving Set1 cannot be removed")
         for row in normalized["sets"][wanted:]:
@@ -710,7 +787,12 @@ def receiving_destructive_tail_ids(
         if set_index is None:
             raise ValueError("set_index is required for Bay truncation")
         _, selected = _layout_set(normalized, set_index)
-        wanted = int(bay_count)
+        if isinstance(bay_count, (bool, float)):
+            raise ValueError("Receiving bay_count must be an integer")
+        try:
+            wanted = int(bay_count)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Receiving bay_count must be an integer") from exc
         if wanted < 1:
             raise ValueError("Receiving Set must contain at least one Bay")
         removed.extend(str(bay["stable_id"]) for bay in selected["bays"][wanted:])
@@ -793,11 +875,11 @@ def receiving_bay_joint_face_features(layout, *, set_index, bay_index, thickness
     """取得本連相鄰接合的 canonical lock feature；原有非接合特徵保留。"""
     from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
     normalized, selected = _layout_set(layout, set_index)
-    if bay_index < 0 or bay_index >= len(selected["bays"]):
+    if type(bay_index) is not int or bay_index < 0 or bay_index >= len(selected["bays"]):
         raise IndexError("連選取超出範圍")
     result = {face: [feature for feature in values if getattr(feature, "source_type", "") != "receiving_joint_side_lock"] for face, values in dict(existing or {}).items()}
     for joint_index in (bay_index - 1, bay_index):
-        if joint_index < 0 or joint_index >= len(selected["joints"]):
+        if type(joint_index) is not int or joint_index < 0 or joint_index >= len(selected["joints"]):
             continue
         resolved = resolve_receiving_joint_lock_pattern(normalized, set_index=set_index, joint_index=joint_index, thickness=thickness, frame_width=frame_width)
         participant = resolved.right_bay if joint_index == bay_index - 1 else resolved.left_bay

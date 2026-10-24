@@ -89,6 +89,7 @@ class FoldGuide:
 def fold_guides_from_final_scene(scene):
     """Extract normalized physical fold coverage from final BEND primitives."""
     from .sheetmetal_drawing import LinePrimitive
+    from math import isfinite
 
     guides = []
     for primitive in getattr(scene, "primitives", ()):
@@ -96,8 +97,17 @@ def fold_guides_from_final_scene(scene):
             continue
         if str(getattr(primitive, "layer", "")).upper() != "BEND":
             continue
-        x1, y1 = float(primitive.p1.x), float(primitive.p1.y)
-        x2, y2 = float(primitive.p2.x), float(primitive.p2.y)
+        # Do not let bool become 0/1 mm, or silently drop a corrupt NaN BEND.
+        # The same finished scene feeds physical render data and manufacture.
+        try:
+            raw = (primitive.p1.x, primitive.p1.y, primitive.p2.x, primitive.p2.y)
+            if any(isinstance(value, bool) for value in raw):
+                raise ValueError("boolean BEND coordinate")
+            x1, y1, x2, y2 = (float(value) for value in raw)
+            if not all(isfinite(value) for value in (x1, y1, x2, y2)):
+                raise ValueError("nonfinite BEND coordinate")
+        except (AttributeError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("INVALID_BEND_GUIDE_COORDINATES") from exc
         if abs(x1 - x2) <= 1e-7 and abs(y1 - y2) > 1e-9:
             guides.append(FoldGuide("x", (x1 + x2) / 2.0, min(y1, y2), max(y1, y2)))
         elif abs(y1 - y2) <= 1e-7 and abs(x1 - x2) > 1e-9:
@@ -114,9 +124,21 @@ class MaterialSegment:
     source: str
 
     def __post_init__(self):
+        import math
+        if isinstance(self.length, bool):
+            raise ValueError("MaterialSegment length must not be boolean")
+        # Saved profiles may carry arbitrarily large JSON integers. Convert
+        # failures at this physical material boundary, not as OverflowError
+        # that escapes a GUI/project/manufacturing transaction.
+        try:
+            value = float(self.length)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("MaterialSegment length must be finite") from exc
+        if not math.isfinite(value):
+            raise ValueError("MaterialSegment length must be finite")
         object.__setattr__(self, "axis", str(self.axis).upper())
         object.__setattr__(self, "name", str(self.name))
-        object.__setattr__(self, "length", max(0.0, float(self.length)))
+        object.__setattr__(self, "length", max(0.0, value))
         object.__setattr__(self, "source", str(self.source))
 
 
@@ -152,7 +174,9 @@ def _profile_material_segments(axis: str, rows, *, source: str) -> tuple[Materia
     result = []
     for index, row in enumerate(tuple(rows or ())):
         name = str(getattr(row, "phase6_key", None) or getattr(row, "core", None) or f"segment_{index}")
-        result.append(MaterialSegment(axis, name, float(getattr(row, "length", 0.0)), source))
+        # Pass raw source to MaterialSegment before float() could turn True/False
+        # into fabricated 1/0 mm of physical blank material.
+        result.append(MaterialSegment(axis, name, getattr(row, "length", 0.0), source))
     return tuple(result)
 
 
@@ -348,7 +372,13 @@ def material_polygon_from_final_scene(scene):
                     poly = poly.buffer(0)
                 if poly.is_empty or float(poly.area) <= 1e-9:
                     continue
-                if primary is None:
+                if str(getattr(primitive, "semantic_id", "") or "").upper() == "OUTER_BOUNDARY":
+                    # Tagged structural stock beats insertion order: a hole can
+                    # appear before the outer contour in translated scenes.
+                    if primary is not None:
+                        secondary.append(primary)
+                    primary = poly
+                elif primary is None:
                     primary = poly
                 else:
                     secondary.append(poly)
@@ -384,14 +414,14 @@ def _translated_scene(scene, dx: float, dy: float = 0.0):
     out = DrawingScene()
     for primitive in scene.primitives:
         if isinstance(primitive, PolylinePrimitive):
-            out.add(PolylinePrimitive(tuple(point(p) for p in primitive.points), primitive.layer, primitive.closed, primitive.color))
+            out.add(PolylinePrimitive(tuple(point(p) for p in primitive.points), primitive.layer, primitive.closed, primitive.color, primitive.semantic_id))
         elif isinstance(primitive, LinePrimitive):
             out.add(LinePrimitive(point(primitive.p1), point(primitive.p2), primitive.layer, primitive.color))
         elif isinstance(primitive, CirclePrimitive):
             out.add(CirclePrimitive(point(primitive.center), primitive.radius, primitive.layer, primitive.color,
                                     primitive.source_type, primitive.source_id))
         elif isinstance(primitive, TextPrimitive):
-            out.add(TextPrimitive(primitive.text, point(primitive.insert), primitive.layer, primitive.char_height, primitive.attachment_point, primitive.color))
+            out.add(TextPrimitive(primitive.text, point(primitive.insert), primitive.layer, primitive.char_height, primitive.attachment_point, primitive.color, primitive.semantic_id))
         else:
             raise TypeError(f"Unsupported drawing primitive: {type(primitive)!r}")
     return out

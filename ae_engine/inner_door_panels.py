@@ -14,6 +14,7 @@ projects them into DesignerWorkspace profiles; it owns no GUI state.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Sequence
 
 
@@ -24,6 +25,19 @@ def _stable_inner_door_id(value: object) -> str:
     if ":" in text:
         raise ValueError("inner_door_id must not contain ':'")
     return text
+
+
+def _finite_inner_door_panel_number(value: object) -> float:
+    """Validate a saved physical number before it is used as door geometry."""
+    if isinstance(value, bool):
+        raise ValueError("inner-door panel dimensions must be finite numbers")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("inner-door panel dimensions must be finite numbers") from exc
+    if not math.isfinite(number):
+        raise ValueError("inner-door panel dimensions must be finite numbers")
+    return number
 
 
 def inner_door_panel_stable_id(inner_door_id: object) -> str:
@@ -53,6 +67,9 @@ class InnerDoorPanelPart:
         return self.height - 2.0 * self.thickness + self.fold_top + self.fold_bottom
 
     def __post_init__(self):
+        for value in (self.width, self.height, self.thickness,
+                      self.fold_left, self.fold_right, self.fold_top, self.fold_bottom):
+            _finite_inner_door_panel_number(value)
         if self.width <= 0 or self.height <= 0:
             raise ValueError("inner-door panel dimensions must be positive")
         if self.thickness <= 0:
@@ -81,6 +98,10 @@ def derive_inner_door_panel(
     key = str(cell_key or "").strip()
     if not key:
         raise ValueError("inner-door panel cell_key must be non-empty")
+    (width, height, thickness, fold_left, fold_right, fold_top, fold_bottom) = tuple(
+        _finite_inner_door_panel_number(value)
+        for value in (width, height, thickness, fold_left, fold_right, fold_top, fold_bottom)
+    )
     return InnerDoorPanelPart(
         stable_id=inner_door_panel_stable_id(door_id),
         inner_door_id=door_id,

@@ -109,3 +109,54 @@ def test_only_revised_t2_source_can_claim_uploaded_bend23():
             fixing_hole_pitch_x_mm=670., fixing_hole_pitch_y_mm=210.,
             ear_weld_edge_to_hole_center_mm=86.,
         )
+
+
+def test_r3_manual_116_fixed_plate_3d_export_notice_matches_real_source_bend(tmp_path, monkeypatch):
+    """Operator-facing 3D source-export text must not revive the superseded no-BEND claim."""
+    from types import SimpleNamespace
+    import tkinter.filedialog as filedialog
+    import tkinter.messagebox as messagebox
+    import ezdxf
+    from gui_modules.application.fold_designer_composition_state import (
+        export_selected_dxf_from_3d,
+    )
+
+    output = tmp_path / "fixed_plate_source_flat.dxf"
+    seen = {}
+
+    def confirm(title, body):
+        seen["confirmation"] = body
+        return True
+
+    monkeypatch.setattr(messagebox, "askokcancel", confirm)
+    monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kwargs: str(output))
+    monkeypatch.setattr(
+        messagebox, "showinfo",
+        lambda title, body: seen.update({"success": body}),
+    )
+    monkeypatch.setattr(
+        messagebox, "showerror",
+        lambda title, body: pytest.fail(f"Unexpected source DXF export error: {body}"),
+    )
+    context = SimpleNamespace(app=SimpleNamespace(
+        designer_workspace=SimpleNamespace(active_part="base_plate:fixing_plate:left"),
+    ))
+    saved = export_selected_dxf_from_3d(context)
+    assert saved is not None and output.is_file()
+    assert "BEND23" in seen["confirmation"]
+    assert "未有正式折線" not in seen["confirmation"]
+    assert "不使用折彎補償" in seen["confirmation"]
+    assert "整箱" in seen["confirmation"]
+    assert "含來源 BEND23" in seen["success"]
+    assert "不代表整箱正式製造放行" in seen["success"]
+
+    # This is the real DXF written by the GUI's source export, not a mocked drawing.
+    doc = ezdxf.readfile(str(output))
+    bends = [entity for entity in doc.modelspace()
+             if entity.dxftype() == "LINE" and entity.dxf.layer == "BEND"]
+    assert any(
+        abs(float(entity.dxf.start.y) - 23.0) < 1e-6
+        and abs(float(entity.dxf.end.y) - 23.0) < 1e-6
+        and abs(abs(float(entity.dxf.end.x) - float(entity.dxf.start.x)) - 256.0) < 1e-6
+        for entity in bends
+    )

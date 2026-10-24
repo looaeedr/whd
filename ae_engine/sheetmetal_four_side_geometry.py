@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 try:
     from shapely.geometry import box, LineString
@@ -54,7 +55,22 @@ class FourSideBendExtentPolicy:
     horizontal_to_blank_edges: bool = False
 
 
+def _finite_four_side_number(value, message: str) -> float:
+    if isinstance(value, bool):
+        raise GeometryError(message)
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise GeometryError(message) from exc
+    if not math.isfinite(number):
+        raise GeometryError(message)
+    return number
+
+
 def _validate_four_side_geometry(g: FourSideFlangeGeometry) -> None:
+    for value in (g.total_width, g.total_height, g.thickness,
+                  g.left_fold, g.right_fold, g.top_fold, g.bottom_fold):
+        _finite_four_side_number(value, "FourSide geometry dimensions must be finite numbers")
     if g.total_width <= 0 or g.total_height <= 0:
         raise GeometryError("blank dimensions must be greater than zero")
     if g.thickness <= 0:
@@ -70,6 +86,8 @@ def _validate_four_side(g: FourSideFlangeGeometry, policy: RectCornerReliefPolic
         policy.top_left_x, policy.top_right_x,
         policy.bottom_y, policy.top_y,
     )
+    for value in values:
+        _finite_four_side_number(value, "relief dimensions must be finite numbers")
     if any(v < 0 for v in values):
         raise GeometryError("relief dimensions must not be negative")
     if policy.bottom_left_x + policy.bottom_right_x >= g.total_width:
@@ -114,6 +132,7 @@ def _four_side_material_polygon(
     g: FourSideFlangeGeometry,
     policy: RectCornerReliefPolicy | FourCornerTypePolicy,
 ):
+    _validate_four_side_geometry(g)
     _require_shapely()
     w, h = g.total_width, g.total_height
     blank = box(0.0, 0.0, w, h)

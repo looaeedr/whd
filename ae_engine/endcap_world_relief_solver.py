@@ -214,6 +214,7 @@ def solve_world_backprojected_endcap_relief(
                         endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
                         endcap_placement=endcap_placement,
                         sheet_thickness=t,
+                        preserve_core_origin=preserve_endcap_core_origin,
                     )
                     mid_clear = not projection_has_material_penetration(
                         mid_projection, probe, tolerance=verification_tolerance
@@ -324,6 +325,7 @@ def solve_world_backprojected_endcap_relief(
                 endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
                 endcap_placement=endcap_placement,
                 sheet_thickness=t,
+                preserve_core_origin=preserve_endcap_core_origin,
             )
             all_projections.append(projection)
             # Solve with a stricter interior tolerance than final refold
@@ -494,6 +496,7 @@ def solve_world_backprojected_endcap_relief(
             endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
             endcap_placement=endcap_placement,
             sheet_thickness=t,
+            preserve_core_origin=preserve_endcap_core_origin,
         )
         penetrates = projection_has_material_penetration(
             projection, probe, tolerance=verification_tolerance
@@ -512,6 +515,7 @@ def solve_world_backprojected_endcap_relief(
                 endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
                 endcap_placement=endcap_placement,
                 sheet_thickness=t,
+                preserve_core_origin=preserve_endcap_core_origin,
             )
             mid_clear = not projection_has_material_penetration(
                 mid_projection, probe, tolerance=verification_tolerance
