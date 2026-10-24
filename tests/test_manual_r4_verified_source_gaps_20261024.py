@@ -389,3 +389,76 @@ def test_r4_69_malformed_certified_relief_evidence_fails_closed_not_crashes(bad_
         evidence=bad_evidence,
     )
     assert _certified_pair_allowances((row,)) == frozenset()
+
+def test_r4_52_sparse_current_designer_snapshot_preserves_actual_w_h_d_t_and_provider():
+    """R4 #52: real manufacturing source, not stale display dimensions."""
+    from types import SimpleNamespace
+    from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
+    from phase6_manufacturing_adapter import build_manufacturing_request
+
+    called = []
+    def provider(part_key=None):
+        called.append(part_key)
+        return (600., 800., 250.)
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "戶外箱"},
+        _settings_values={"t": 1.6},
+        _phase6_box_whd={"w": 600., "h": 800., "d": 250.},
+        _phase6_corner_state={},
+        _phase6_endcap_fw_state={},
+        _phase6_endcap_bottom_wrap_state={},
+        designer_workspace=SimpleNamespace(available_parts=()),
+        _phase6_operator_finished_dimensions=provider,
+    )
+    ns = {
+        "_setting_number_text": str,
+        "_phase6_part_label": lambda key, snapshot=None: str(key),
+        "_phase6_render_data_corner_dimension_text": lambda *a, **kw: "",
+        "_phase6_render_data_for_blank": lambda *a, **kw: None,
+        "_phase6_is_box_body_physical_piece_key": lambda key: str(key).startswith("box_body:"),
+        "_phase6_box_body_piece_render_data": lambda *a, **kw: None,
+        "_phase6_resolve_manufacturing_geometry": lambda *a, **kw: None,
+        "_phase6_scene_query_payload_for_part": lambda *a, **kw: {},
+        "_phase6_operator_finished_dimensions": lambda _app, part_key=None: provider(part_key),
+        "_phase6_current_cabinet_family": lambda *a, **kw: "OUTDOOR",
+        "_phase6_mesh_profiles_for_part": lambda *a, **kw: (),
+        "_phase6_query_final_render_data": lambda *a, **kw: None,
+        "_phase6_final_scene_view_request": lambda *a, **kw: None,
+        "_phase6_update_assembly_diagnostic_status": lambda *a, **kw: None,
+    }
+    ports = Phase6FoldDesignerComposition(app).final_scene_ports(ns)
+    assert ports.operator_dimensions("box_body") == (600., 800., 250.)
+    # Current FinalScene has one shared finished-dimension adapter; the
+    # retired app callback must not be invoked by this view-only port.
+    assert called == []
+    req = build_manufacturing_request(app)
+    assert (req.input_snapshot["w"], req.input_snapshot["h"],
+            req.input_snapshot["d"], req.input_snapshot["t"]) == (600., 800., 250., 1.6)
+    assert req.operator_finished_dimensions == (600., 800., 250.)
+    assert "box_body" in called
+    # Request must not silently persist default-fill back to the live UI state.
+    assert app._phase6_input_snapshot == {"model": "戶外箱"}
+
+
+def test_r4_54_actual_endcap_flange_dimensions_and_two_point_open_marking():
+    """R4 #54: CHECK reads unfolded material, never assumes a fixed 4-mm fold."""
+    two_pt = ResolvedProfile(
+        points=(Vec2(0., 0.), Vec2(40., 0.)), layer="MARKING",
+    )
+    one_pt = ResolvedProfile(points=(Vec2(5., 5.),), layer="MARKING")
+    primitives = resolved_features_to_primitives((two_pt, one_pt))
+    assert len(primitives) == 1
+    assert primitives[0].closed is False
+    geom = EndCapGeometry(
+        total_width=300., total_depth=150.,
+        left_fold=20., right_fold=20., top_first_fold=15.,
+        fw=25., bottom_fold=18., thickness=2.,
+    )
+    relief = calculate_endcap_relief_dimensions(geom)
+    check = build_endcap_check(
+        geometry=geom, relief=relief,
+        finished_width=264., finished_depth=100., part_label="Top Cap",
+    )
+    assert "折彎尺寸: 260*92" in check[0].text
+    assert "折彎(寬): 20 260 20" in check[0].text
+    assert "折彎(深): 15 25 92 18" in check[0].text

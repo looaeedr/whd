@@ -181,13 +181,19 @@ def operator_finished_dimensions_for_app(
 ):
     """Tk/app adapter to the shared finished-dimension provider."""
     key = str(part_key or getattr(app, "active_part_key", "") or "")
-    snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+    # This is a display adapter over LIVE physical values, not a saved
+    # snapshot replacement. Sparse UI snapshots (e.g. immediately after
+    # opening Designer) need the same per-axis WHD fallback as the canonical
+    # manufacturing-request boundary; never write defaults back to the app.
+    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
     settings = dict(getattr(app, "_settings_values", {}) or {})
+    whd = getattr(app, "_phase6_box_whd", {}) or {}
+    for axis in ("w", "h", "d"):
+        if axis not in snapshot and axis in whd:
+            snapshot[axis] = whd[axis]
     if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Manufactured dimensions are the active project/Bay W/H/D, while
-        # Settings W/H/D remain read-only seeds. Never let default W/H/D
-        # override a real Receiving door/layout/body.
-        whd = getattr(app, "_phase6_box_whd", {}) or {}
+        # Keep existing Receiving semantics: live per-Bay values override
+        # Settings seeds; an explicit snapshot Bay owner is never replaced.
         settings.update({axis: whd[axis] for axis in ("w", "h", "d") if axis in whd})
     head_policy = tail_policy = None
     if key == "box_body":
