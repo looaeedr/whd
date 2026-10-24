@@ -9,6 +9,7 @@ It does not own a second hole-coordinate table.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Callable, Mapping
 
 from . import ae
@@ -43,8 +44,25 @@ _CANONICAL_DECIMALS = 9
 
 
 def _canonical_number(value: float) -> float:
-    """Collapse transform round-off at the canonical Joint-frame boundary."""
-    return float(round(float(value), _CANONICAL_DECIMALS))
+    """Collapse real transform round-off; never mint nonphysical Joint coordinates."""
+    if isinstance(value, bool):
+        raise ReceivingJointLockPatternError(
+            RECEIVING_LOCK_PATTERN_BOUNDS_VIOLATION,
+            "certified Joint-frame coordinate must be finite and not boolean",
+        )
+    try:
+        coordinate = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ReceivingJointLockPatternError(
+            RECEIVING_LOCK_PATTERN_BOUNDS_VIOLATION,
+            "certified Joint-frame coordinate must be finite",
+        ) from exc
+    if not isfinite(coordinate):
+        raise ReceivingJointLockPatternError(
+            RECEIVING_LOCK_PATTERN_BOUNDS_VIOLATION,
+            "certified Joint-frame coordinate must be finite",
+        )
+    return float(round(coordinate, _CANONICAL_DECIMALS))
 
 
 class ReceivingJointLockPatternError(ValueError):
