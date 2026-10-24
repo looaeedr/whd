@@ -219,3 +219,21 @@ def test_r4_57_valid_indicator_groups_keep_original_formula():
     from ae_engine.sheetmetal_features import _normalize_indicator_groups, indicator_box_outer_size
     assert _normalize_indicator_groups([2, 3]) == (2, 3)
     assert indicator_box_outer_size([2, 3]) == (486., 725.)
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), "inf", None, {}])
+def test_r4_53_hit_testing_refuses_nonphysical_unlimited_tolerance(bad):
+    """Unbounded pick tolerance can select an unrelated physical hole."""
+    from ae_engine.sheetmetal_features import ResolvedCircle
+
+    circle = ResolvedCircle(center=Vec2(25., 25.), radius=5.)
+    with pytest.raises(ValueError, match="hit-test tolerance"):
+        hit_test_resolved_features(Vec2(95., 95.), (circle,), tolerance=bad)
+
+
+def test_r4_53_hit_testing_keeps_valid_exact_circle_selection():
+    from ae_engine.sheetmetal_features import ResolvedCircle
+
+    circle = ResolvedCircle(center=Vec2(25., 25.), radius=5.)
+    assert hit_test_resolved_features(Vec2(30., 25.), (circle,), tolerance=0.) == 0
+    assert hit_test_resolved_features(Vec2(95., 95.), (circle,), tolerance=0.) is None
+    assert hit_test_resolved_features(Vec2(30.5, 25.), (circle,), tolerance=1.) == 0
