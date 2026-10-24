@@ -417,6 +417,8 @@ PYTEST_PATHS = (
     "tests/test_manual_r5_87_joint_marking_invalid_layout_20261024.py",
     # R5 #93 direct Hole Editor reference and round spacing source controls.
     "tests/test_manual_r5_93_hole_editor_finite_inputs_20261024.py",
+    # R5 #71: primary CUTTING and auxiliary layered process contours remain distinct.
+    "tests/test_manual_r5_71_mixed_profile_primitives_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
