@@ -67,7 +67,10 @@ def load_baseline_dxf_source_with_status(path, *, allow_unverified_source=False)
         return cached, BASELINE_SOURCE_VERIFIED
     try:
         doc = ezdxf.readfile(normalized)
-    except OSError:
+    except (OSError, ezdxf.DXFError):
+        # A changed file may still stat() successfully while its DXF payload
+        # is unreadable. Keep LKG available for explicitly unverified PREVIEW,
+        # but never cache it as VERIFIED or silently use it for manufacturing.
         if allow_unverified_source and normalized in _BASELINE_DXF_LAST_GOOD:
             return _BASELINE_DXF_LAST_GOOD[normalized], BASELINE_SOURCE_UNVERIFIED
         raise
