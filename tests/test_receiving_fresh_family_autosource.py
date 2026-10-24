@@ -61,7 +61,7 @@ def test_first_family_switch_materializes_real_one_tier_one_nfb_and_derived_part
     assert row["bays"][0]["nfb_config"] == data["nfb_config"]
     assert setting_value(row, 0, "inner_door_models") == [MODEL, ""]
     assert setting_value(row, 0, "inner_door_layers") == 1
-    assert setting_value(row, 0, "inner_door_layer_heights_mm") == [330., 830.]
+    assert setting_value(row, 0, "inner_door_layer_heights_mm") == [550., 830.]
     assert len(setting_value(row, 0, "inner_door_features")) == 1
 
 
@@ -107,6 +107,7 @@ def test_fresh_quantity_model_source_stays_single_owner_on_reprojection():
         "quantity", {"w": 800, "h": 1600, "d": 350}, auto_nfb=True,
     )
     _assert_physical_source(new)
+    assert new["receiving_inner_door_layer_heights_mm"] == [550., 830.]
     from ae_engine.receiving_quantity_box import project_common_box
     projected = project_common_box(new)
     _assert_physical_source(projected)

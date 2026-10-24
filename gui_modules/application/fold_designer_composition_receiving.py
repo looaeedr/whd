@@ -2137,7 +2137,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             initial["layer_heights_mm"] = list(
                 SETTING_DEFAULTS["inner_door_layer_heights_mm"]
             )
-        # Fresh receiving-tab drafts use the CURRENT shared 330/830 default.
+        # Existing drafts retain saved heights; new one-tier initializers use
+        # the shared 550 rule, and a two-tier selection uses 330/830.
         # Explicit old-project heights are retained without migration.
         # Fresh Single NFB UI: show one real Shihlin 2P400 by default,
         # sourced from its current CSV. This is only a transient editor
@@ -2479,17 +2480,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     mode=OVERRIDE, value=expected_brand,
                 )
             draft_state["draft"] = added
-            current_first = layer_height_vars[0].get().strip()
-            fresh_first = float(SETTING_DEFAULTS["inner_door_layer_heights_mm"][0])
-            if (index == 1 and len(added["layers"][1]["slots"]) == 1
-                    and current_first in (
-                        "550", "550.0", f"{fresh_first:g}", str(fresh_first)
-                    )):
-                # Adding the first second-row NFB changes an untouched
-                # first-row default to 300. Both the historical 550 and the
-                # current Family 330 are valid untouched defaults. Never
-                # reset another operator-chosen height.
-                layer_height_vars[0].set("300")
+            # The single layer-count control already transitions untouched
+            # 550 -> 330/830 on choosing two tiers. Adding a switch must not
+            # silently rewrite a custom operator height or force legacy 300.
             sync_chosen()
             repaint(index)
             show_x_clear_impact(before_x_change, index)
@@ -2877,10 +2870,29 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             repaint(idx)
 
         def change_layers():
+            previous_count = draft_state["draft"]["layer_count"]
             try:
                 draft_state["draft"] = set_nfb_draft_layer_count(
                     draft_state["draft"], nfb_physical_layers.get(),
                 )
+                if previous_count != nfb_physical_layers.get():
+                    from ae_engine.receiving_shared_settings import (
+                        transition_receiving_nfb_layer_heights,
+                    )
+                    try:
+                        heights = [float(field.get().strip())
+                                   for field in layer_height_vars]
+                        updated = transition_receiving_nfb_layer_heights(
+                            heights, old_count=previous_count,
+                            new_count=nfb_physical_layers.get(),
+                        )
+                    except (ValueError, TypeError):
+                        # Keep invalid user input visible; Save/Preview
+                        # continues to reject it instead of hiding a bad Y.
+                        pass
+                    else:
+                        for field, height in zip(layer_height_vars, updated):
+                            field.set(f"{height:g}")
             except ValueError as exc:
                 nfb_physical_layers.set(draft_state["draft"]["layer_count"])
                 warning.set(str(exc))

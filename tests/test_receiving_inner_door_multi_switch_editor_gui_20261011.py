@@ -140,7 +140,7 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         next(b for b in _buttons(layer_two["section"])
              if b.cget("text") == "＋加入").invoke()
         assert new_state["chosen"][1] == [ref_b]
-        assert new_state["layer_heights_mm"][0].get() == "300"
+        assert new_state["layer_heights_mm"][0].get() == "330"
         assert modal._receiving_inner_preview_status.get() == "尚未儲存的變更"
         csv_path.write_text(
             header + "A,60,100,40,50X90,25X80,5,0,0\n"

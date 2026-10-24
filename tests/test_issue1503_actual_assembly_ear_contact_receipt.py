@@ -75,6 +75,32 @@ def test_single_tier_uses_the_same_real_base_skin_and_ear_contact_rule():
                pytest.approx(r.expected_ear_contact_world_z_mm) for r in receipts)
 
 
+def test_real_primary_base_plate_placement_kind_is_validated_not_mistaken_for_detached():
+    """Original Phase6 scene uses 'base_plate', not fixture's 'offset' kind."""
+    from ae_engine.assembly_placement import resolve_base_plate_placement
+
+    snapshot = _assembled()
+    contract = resolve_base_plate_placement(snapshot, "base_plate")
+    assert contract.placement_kind == "base_plate"
+    installed = replace(
+        _source(snapshot), placement=contract.placement_kind,
+        offset=contract.world_offset,
+    )
+    receipt = validate_receiving_tier_fixing_contact_receipts(snapshot, (installed,))
+    assert len(receipt) == 2
+    assert {row.base_part_id for row in receipt} == {"base_plate"}
+    shifted = replace(installed, offset=(
+        contract.world_offset[0], contract.world_offset[1],
+        contract.world_offset[2] + 2.0,
+    ))
+    with pytest.raises(ValueError, match="ACTUAL_BASE_XYZ_DRIFT"):
+        validate_receiving_tier_fixing_contact_receipts(snapshot, (shifted,))
+    with pytest.raises(ValueError, match="BASE_NOT_OFFSET_PLACED"):
+        validate_receiving_tier_fixing_contact_receipts(
+            snapshot, (replace(installed, placement="standalone"),)
+        )
+
+
 @pytest.mark.parametrize("axis,shift", [(0, 0.5), (1, 5.), (2, -1.)])
 def test_real_base_assembly_must_not_drift_from_ear_source_target(axis, shift):
     snap, physical = _real_two_tier_parts()
