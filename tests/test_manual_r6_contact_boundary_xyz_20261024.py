@@ -109,3 +109,25 @@ def test_r4_69_selected_nonempty_meshes_remain_independently_audited():
     assert result.visible_keys == ("head", "inner_door:upper:panel")
     assert result.evaluated_pair_count == 1
     assert result.pairs[0].status == "AABB_SEPARATED"
+
+
+@pytest.mark.parametrize("invalid_mapping, invalid_points", [
+    (42, ((0., 0., 0.),)),
+    (True, ((0., 0., 0.),)),
+    (object(), ((0., 0., 0.),)),
+    (MAPPING, 42),
+    (MAPPING, True),
+    (MAPPING, object()),
+])
+def test_r6_public_backprojection_noniterable_sources_fail_closed(
+    invalid_mapping, invalid_points,
+):
+    """Malformed archived physical skin sources must never escape as TypeError."""
+    from ae_engine.assembly_marking_geometry import backproject_mapped_skin_world_points
+    result = backproject_mapped_skin_world_points(invalid_mapping, invalid_points)
+    assert result.status == "SKIPPED_FAIL_CLOSED"
+    assert result.diagnostic_code == "BACKPROJECTION_FAILED"
+    assert result.flat_points == ()
+    valid = backproject_mapped_skin_world_points(MAPPING, ((1., 1., 0.),))
+    assert valid.status == "RESOLVED"
+    assert valid.flat_points == pytest.approx(((1., 1.),))
