@@ -425,6 +425,9 @@ def resolve_inner_door_frame_placement(
     from .cabinet_types import policy as cabinet_family_policy
     from .inner_door_frames import derive_inner_door_frames
     from .assembly_geometry import folded_profile_segment_center_from_full_envelope
+    from .assembly_geometry_folded_mesh import (
+        folded_profile_segment_front_z_from_full_envelope,
+    )
 
     side = str(side or "").strip().lower()
     if side == "bottom":
@@ -444,15 +447,25 @@ def resolve_inner_door_frame_placement(
     )[0]
     # Final 22-mm flange is at a constant folded U on each part. Use the
     # same folded *full-envelope* center as the assembly mesh transform.
+    last_segment_index = len(part.fold_profile) - 1
     last_u, _last_depth = folded_profile_segment_center_from_full_envelope(
-        part.fold_profile, len(part.fold_profile) - 1
+        part.fold_profile, last_segment_index
     )
     physical_skin = last_u + t / 2.0
+    # Depth is specified from the outer door to the FRAME FRONT EDGE.
+    # Bending changes the rest of the formed frame, never this front datum.
+    # Compensate only for the mesh's own local folded-envelope origin so the
+    # actual front of each frame reaches the same configured world Z.
+    front_local_z = folded_profile_segment_front_z_from_full_envelope(
+        part.fold_profile, last_segment_index
+    )
+    front_world_z = cz
+    frame_center_z = front_world_z - front_local_z
     if side == "top":
         # Head EndCap inside skin: physical upper Box Body bound H/2-T.
         # The top frame's U points +Y, not -Y.
         head_inner_y = h / 2.0 - t
-        position = (cx, head_inner_y - physical_skin, cz)
+        position = (cx, head_inner_y - physical_skin, frame_center_z)
         target = "head"
     else:
         vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
@@ -466,10 +479,10 @@ def resolve_inner_door_frame_placement(
         sides = SideSheetDatum.from_outside_width(w, t)
         if side == "left":
             # Last flange local +U maps to cabinet -X.
-            position = (sides.inside_face(-1) + physical_skin, frame_center_y, cz)
+            position = (sides.inside_face(-1) + physical_skin, frame_center_y, frame_center_z)
             target = "box_body:left_side"
         else:
-            position = (sides.inside_face(+1) - physical_skin, frame_center_y, cz)
+            position = (sides.inside_face(+1) - physical_skin, frame_center_y, frame_center_z)
             target = "box_body:right_side"
     stable_id = f"inner_door:{str(inner_door_id).strip()}:{side}_frame"
     world = tuple(float(v) for v in position)

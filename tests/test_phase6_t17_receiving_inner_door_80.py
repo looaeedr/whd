@@ -47,9 +47,26 @@ def test_r15_r16_fresh_receiving_inner_door_default_is_80_mm_inward_from_own_out
     expected_z = outer.world_offset[2] + inward[2] * 80.0
     assert expected_z == pytest.approx(95.0)
     assert panel.world_offset[2] == pytest.approx(expected_z)
-    assert top.world_offset[2] == pytest.approx(expected_z)
-    assert left.world_offset[2] == pytest.approx(expected_z)
-    assert right.world_offset[2] == pytest.approx(expected_z)
+    # The 80-mm operator depth is to the physical frame FRONT, not
+    # to the folded-mesh placement center (which depends on its geometry).
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.inner_door_frames import derive_all_inner_door_frames
+    from ae_engine.assembly_geometry_folded_mesh import (
+        folded_profile_segment_front_z_from_full_envelope,
+    )
+    parts = {
+        part.stable_id: part
+        for part in derive_all_inner_door_frames(
+            cabinet_family_policy.derive_inner_door_frame_sets(snap)
+        )
+    }
+    for side, assembled in (("top", top), ("left", left), ("right", right)):
+        key = f"inner_door:upper:{side}_frame"
+        frame = parts[key]
+        local_front = folded_profile_segment_front_z_from_full_envelope(
+            frame.fold_profile, len(frame.fold_profile) - 1
+        )
+        assert assembled.world_offset[2] + local_front == pytest.approx(expected_z)
 
 
 def test_each_inner_door_owns_its_configurable_inward_offset_without_cross_contamination():

@@ -68,8 +68,10 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
 
     top = resolve_assembly_placement(snapshot, "inner_door:upper:top_frame")
     # Final 22-mm flange faces the EndCap's underside at H/2 - T = 798.
+    # Its FRONT Z is 175 - 80 = 95. Translation differs from the front
+    # because formed material extends rearward; the user's 80 is not center.
     assert top.mate_target == "head"
-    assert top.world_offset == pytest.approx((0.0, 774.0, 95.0))
+    assert top.world_offset == pytest.approx((0.0, 774.0, 84.0))
 
     vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
         snapshot, "upper"
@@ -98,8 +100,15 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
         frame = frames[stable_id]
         assert placement.mate_target == mother_plate
         assert placement.world_offset == pytest.approx(
-            (x, vertical["center_y"], 95.0)
+            (x, vertical["center_y"], 84.0)
         )
+        from ae_engine.assembly_geometry_folded_mesh import (
+            folded_profile_segment_front_z_from_full_envelope,
+        )
+        local_front = folded_profile_segment_front_z_from_full_envelope(
+            frame.fold_profile, len(frame.fold_profile) - 1
+        )
+        assert placement.world_offset[2] + local_front == pytest.approx(95.0)
         assert frame.span == pytest.approx(vertical["span"])
         assert placement.world_offset[1] + frame.span / 2.0 == pytest.approx(
             vertical["top_terminal_y"]
@@ -107,6 +116,39 @@ def test_receiving_panel_and_frames_use_physical_box_body_mates():
         assert placement.world_offset[1] - frame.span / 2.0 == pytest.approx(
             vertical["lower_terminal_y"]
         )
+
+
+@pytest.mark.parametrize(
+    "depth,inset,expected_front",
+    ((350.0, 80.0, 95.0), (450.0, 80.0, 145.0),
+     (350.0, 95.0, 80.0)),
+)
+def test_frame_front_not_center_is_outer_door_minus_inset(depth, inset, expected_front):
+    """All three physical frame fronts use the configured upper/front edge."""
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.inner_door_frames import derive_all_inner_door_frames
+    from ae_engine.assembly_geometry_folded_mesh import (
+        folded_profile_segment_front_z_from_full_envelope,
+    )
+
+    snapshot = _snapshot()
+    snapshot["d"] = depth
+    snapshot["inner_doors"][0]["inward_offset_mm"] = inset
+    frames = {
+        part.stable_id: part
+        for part in derive_all_inner_door_frames(
+            cabinet_family_policy.derive_inner_door_frame_sets(snapshot)
+        )
+    }
+    for side in ("left", "right", "top"):
+        frame_id = f"inner_door:upper:{side}_frame"
+        part = frames[frame_id]
+        position = resolve_assembly_placement(snapshot, frame_id)
+        local_front = folded_profile_segment_front_z_from_full_envelope(
+            part.fold_profile, len(part.fold_profile) - 1
+        )
+        assert position.world_offset[2] + local_front == pytest.approx(expected_front)
+    assert expected_front == pytest.approx(depth / 2.0 - inset)
 
 
 @pytest.mark.parametrize("outer_fw,door_gap", [(29.0, 2.0), (35.0, 5.0)])
