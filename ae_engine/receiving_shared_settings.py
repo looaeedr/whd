@@ -98,12 +98,18 @@ def validate_setting(kind, value):
         # retains their original certified nominal 290/790 Y until edited.
         if value is None:
             return None
+        message = "第一層／第二層高度須為正數、由上往下遞增（mm）"
         if (not isinstance(value, (list, tuple)) or len(value) != 2
-                or any(type(v) not in (int, float) or not isfinite(float(v))
-                       or float(v) <= 0 for v in value)
-                or float(value[0]) >= float(value[1])):
-            raise ValueError("第一層／第二層高度須為正數、由上往下遞增（mm）")
-        value = [float(v) for v in value]
+                or any(type(v) not in (int, float) for v in value)):
+            raise ValueError(message)
+        try:
+            heights = [float(v) for v in value]
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(message) from exc
+        if (not all(isfinite(v) and v > 0 for v in heights)
+                or heights[0] >= heights[1]):
+            raise ValueError(message)
+        value = heights
     elif not isinstance(value, (list, tuple)) or any(
         not isinstance(f, (CircleFeature, RectFeature, ProfileFeature))
         for f in value
