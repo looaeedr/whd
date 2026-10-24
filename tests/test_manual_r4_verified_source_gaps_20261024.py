@@ -634,3 +634,27 @@ def test_r4_61_oversized_json_four_side_and_corner_relief_fail_closed():
     with pytest.raises(GeometryError, match="截角量必須為有限數值"):
         CornerTypeSelection(type_id="C01", amount_t=10 ** 400)
     assert CornerTypeSelection(type_id="C01", rotation_quadrants=4).rotation_quadrants == 0
+
+
+def test_r4_67_removed_parent_cannot_leave_live_child_part_placement_or_descendants():
+    """A still-existing part may not keep a placement tied to a removed parent."""
+    source = {
+        "existing_parts": ["box_body", "door", "head", "tail"],
+        "active_part": "box_body",
+        "assembly_placements": {
+            "door": {"parent_assembly_node": "box_body", "offset_x": 1.},
+            "head": {"parent_assembly_node": "door", "offset_x": 2.},
+            "head:detail": {"parent_assembly_node": "head", "offset_x": 3.},
+            "tail": {"parent_assembly_node": "box_body", "offset_x": 4.},
+        },
+    }
+    for remove in (
+        lambda workspace: workspace.remove_part("door"),
+        lambda workspace: workspace.replace_available_parts(("box_body", "head", "tail")),
+    ):
+        ws = Phase6DesignerWorkspace.from_snapshot(source)
+        remove(ws)
+        assert "head" in ws.available_parts  # Preserve the physical part itself.
+        assert ws.assembly_placements_snapshot() == {
+            "tail": {"parent_assembly_node": "box_body", "offset_x": 4.},
+        }
