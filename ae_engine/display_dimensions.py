@@ -33,15 +33,30 @@ def _preferred_number(*values, default=0.0):
 
 def folded_outside_envelope(triangles, thickness):
     """Return compensated outside AABB for an already-folded FinalScene mesh."""
-    tris = [tuple(tri) for tri in (triangles or ()) if len(tuple(tri)) >= 3]
-    points = [tuple(float(v) for v in point) for tri in tris for point in tri[:3]]
-    if not points:
-        return None
+    # A FinalScene vertex must be a real physical XYZ before becoming a
+    # display or manufacturing CHECK dimension. float(True) is not 1 mm.
+    try:
+        source_tris = [tuple(tri) for tri in (triangles or ())]
+        source_tris = [tri for tri in source_tris if len(tri) >= 3]
+        if not source_tris:
+            return None
+        tris = []
+        for tri in source_tris:
+            raw_points = tuple(tuple(pt) for pt in tri[:3])
+            if any(len(pt) != 3 or any(isinstance(v, bool) for v in pt)
+                   for pt in raw_points):
+                raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
+            xyz = tuple(tuple(float(v) for v in pt) for pt in raw_points)
+            if not all(math.isfinite(v) for pt in xyz for v in pt):
+                raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
+            tris.append(xyz)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH") from exc
+    points = [pt for tri in tris for pt in tri]
     mins = [min(point[axis] for point in points) for axis in range(3)]
     maxs = [max(point[axis] for point in points) for axis in range(3)]
     normal_extent = [0.0, 0.0, 0.0]
-    for tri in tris:
-        a, b, c = (tuple(float(v) for v in point) for point in tri[:3])
+    for a, b, c in tris:
         u = tuple(b[i] - a[i] for i in range(3))
         v = tuple(c[i] - a[i] for i in range(3))
         n = (
