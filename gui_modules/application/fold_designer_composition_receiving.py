@@ -2849,7 +2849,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     layer_rows[idx]["slot_brand_var"].set("繼承本層")
                     layer_rows[idx]["unit_rotation_var"].set("跟隨本層")
                     layer_rows[idx]["manual_x_var"].set("")
-                refresh_source(force=True)
+                # Pure highlight/selection must not re-read every brand CSV
+                # and rebuild the available model list. A changed effective
+                # brand or source mtime/size still refreshes via signature.
+                refresh_source()
 
             assigned.bind("<<ListboxSelect>>", lambda event, i=idx: (
                 selected_slot_changed(event,i), preview_assigned(i),

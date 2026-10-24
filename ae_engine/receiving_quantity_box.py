@@ -138,8 +138,23 @@ def project_common_box(snapshot):
             )
         submitted = model.nfb_config_for_version(model.selected_version_id)
         if submitted:
-            bay.update(deepcopy(submitted))
-            result.update(deepcopy(submitted))
+            # The selected Quantity version is the source; the synthetic Bay
+            # is only a 2D/3D projection. Never project a previously
+            # CONFIRMED W800 X into a newly W750 common physical box. Reuse
+            # the canonical Set/Bay datum checker before rendering, without
+            # inventing an X or mutating the caller's saved object.
+            from .receiving_nfb_persistence import normalize_nfb_saved_fields
+            checked = normalize_nfb_saved_fields({
+                **submitted, "width": box["w"],
+            })
+            if checked != submitted:
+                model.set_version_nfb_config(
+                    model.selected_version_id, submitted=True,
+                    config=checked["nfb_config"],
+                )
+                result["quantity"] = model.snapshot()
+            bay.update(deepcopy(checked))
+            result.update(deepcopy(checked))
     row["settings"] = normalize_set_settings(None, row["bays"])
     result["receiving_layout"] = layout
     # Quantity mode has just replaced the entire Set/Bay identity graph.

@@ -485,6 +485,7 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
     if type(bay_index) is not int or bay_index < 0 or bay_index >= len(bays):
         raise IndexError("Receiving bay_index out of range")
     bay = deepcopy(dict(bays[bay_index]))
+    original_width = bay["width"]
     allowed = {"width", "height", "depth", "back_panel_mode", "door_state",
                "nfb_config_submitted", "nfb_config"}
     unknown = set(changes) - allowed
@@ -511,6 +512,16 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         bay.pop("nfb_config_submitted", None)
         bay.pop("nfb_config", None)
         bay.update(fields)
+    if (bay["width"] != original_width
+            and bay.get("nfb_config_submitted") is True):
+        # A previously CONFIRMED unit X belongs to the old physical Bay width.
+        # Preserve the operator's value, model, unit ID and old datum for an
+        # explicit comparison; never promote an old X to the new W's authority.
+        # Apply this AFTER optional same-call NFB changes, so an unrelated
+        # pre-confirmed W800 source cannot be smuggled in while setting W750.
+        # The derived manufacturing gate must still re-check each hole.
+        from .receiving_nfb_persistence import reconfirm_copied_nfb_config
+        bay["nfb_config"] = reconfirm_copied_nfb_config(bay["nfb_config"])
     bays[bay_index] = bay
     normalized["sets"][set_index] = {
         **selected,

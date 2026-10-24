@@ -1,3 +1,32 @@
+## 2026-10-24（台灣）｜#1504 隔離 Draft #2098｜SWT-AC-05 CSV V5 原生 Tk 來源範圍簽核候選（42→43，不合 localX）
+
+- **先前真 GUI 基礎證據**：SHA `9c5541d98d03fa9061ce557dcdd1a9b2acb86bd4` [Product CI #40040819937](https://github.com/looaeedr/whd/actions/runs/40040819937) Preflight、Shard0/1/2、Canonical 全 SUCCESS（2067 passed / 0 failed），[Tk Performance #40040819908](https://github.com/looaeedr/whd/actions/runs/40040819908) SUCCESS。SWT-05 獨立候選視窗「預覽後取消不寫入」「確定只存候選」兩個原生 Tk 測試 PASSED。
+- **原 Hole Editor 嵌入入口**：後續嵌入式單只設定測試在最初缺少真 800×1100 上層內門工作區時被源驗證阻斷（不許硬造）；補足來源一致的實體 cell 後在 Shard1 [Run #40042462774](https://github.com/looaeedr/whd/actions/runs/40042462774) `test_swt05_embedded_original_hole_editor_cancel_then_confirm_stages_only` PASSED：X 基準未定與僅預覽可見、取消不寫、確定只交主編輯器 staged typed `NFB_CSV_SOURCE` Features、此刻不存專案或製造輸出。
+- **來源解讀修正不改原 §7 文本**：當期品牌 NFB 數值 CSV V5 取代 legacy 每顆 DXF 作為新選型來源；legacy DXF 真圖元及缺失來源阻斷仍作歷史相容證據；沒有核准的世界 X/Y、原始舊 DXF pivot、工廠正式 CUTTING 或 Windows 雙舊專案 UAT 均**不放行**。
+- **43/88 僅隔離分支候選，尚須本次簽核 commit exact HEAD 全 Product CI / Tk Performance SUCCESS**。目前分支 43 accepted current scope / 10 candidate / 17 blocked #1500 real GUI / 14 scoped #1502 / 4 deferred，共 88；GitHub localX 仍須 fresh readback，**禁止合併 localX，不發布正式 X**。#1504 OPEN。
+
+---
+
+## 2026-10-24（台灣）｜#1504 Draft #2098｜NFB-AC-15 當期來源互動效能簽核候選（41→42，**不合 localX**）
+
+- 前一 HEAD `34049d8561d5a168d9df2fee4b8b5503b9f66c59` 的 [Product CI #39987562353](https://github.com/looaeedr/whd/actions/runs/39987562353) Preflight、Shard0/1/2、Canonical 全 SUCCESS（2063 passed / 0 failed），[Tk Baseline #39987562346](https://github.com/looaeedr/whd/actions/runs/39987562346) SUCCESS；AC-03 的 41/88 隔離來源範圍候選已獲完整 CI 證據。**此次 AC-15 新 commit 的 exact HEAD 要重新全 CI 驗證，不能沿用舊 SHA 冒簽。**
+- 原 AC-15 不改原文：僅選取高亮應不重建整箱 3D、不每次重讀來源，操作不應卡頓。已修原 Tk 層顆選取強制 CSV catalog reload、預覽每次重新 parse V5 CSV。當期新增 `test_ac15_original_tk_two_model_highlight_has_bounded_latency_no_full_3d`，在真原 NFB Tk 編輯器來回切換兩個實際 V5 型號 24 次，監控原 FinalScene renderer 入口不得進入、量測當期 warm-path median < 150 ms、P95 < 300 ms、僅首兩次讀 CSV，且工程與草稿不變。
+- 其他必要負向驗證：同來源重選不重讀 CSV、兩型號快取最多 8 筆、CSV 版本變更/刪除 fail closed、舊 DXF 缺失與多種圖元來源僅預覽。
+- 範圍嚴格限 **CURRENT CSV V5 原 Tk 來源選取及 Linux Xvfb 雲端效能**；一般 [#39987562346](https://github.com/looaeedr/whd/actions/runs/39987562346) Performance run 未提供原 DXF index/path，**不能冒稱舊 DXF 實測延遲**，不推論 Windows 真機、完整製造、未知 X/Y 或全箱性能。
+- 本獨立分支矩陣候選 **42 ACCEPTED_AUTOMATED_CURRENT_SCOPE／11 EVIDENCE_CANDIDATE_ONLY／17 GUI blocked／14 #1502 scoped／4 deferred = 88**。禁止合併 localX，正式 X 未發布；兩份核准來源原始 AC 與 SHA 不變、2026-10-22 稽核日期不變。#1504 OPEN。
+
+---
+
+## 2026-10-23（台灣）｜#1504 獨立 Draft PR #2098｜AC-03 來源範圍簽核候選（40→41，未整合）
+
+- **隔離狀態**：使用者指示先不要合併 GitHub `localX`；本段為 `fix/issue1504-ac03-ac15-current-v5-signoff-20261023` 的**候選**，必須 exact HEAD Product Regression 全綠才能簽，未合併前不計入 `localX` 已核銷 40/88。
+- **原 88 AC 原文／兩份來源 SHA 完全保留**：NFB-AC-03 歷史 DXF 清單按 2026-10-21 已定現行 CSV V5 數值來源解讀，不把舊 DXF 當作 V5 必須資料；舊 DXF 真 ARC/CIRCLE/BULGE / 缺失來源 fail-closed 保留在相容測試。
+- **原生 GUI 來源證據**：`tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write` 實際從 WHD 原內門編輯器開 Tk，在可見的來源面板選 V5 型號、按放大/縮小/重設和 Canvas 拖曳；project snapshot 不變，沒有創造可製造 CUTTING 或填造世界 X/Y。原 GUI 來源面板於 PR #2095 恢復映射。
+- **AC-15 尚待獨立核對（仍候選）**：發現原 Tk 已配置顆位純選取事件用 `refresh_source(force=True)` 強制更新全廠牌 CSV 清單，改成 `refresh_source()` 保留品牌／來源簽章變更才刷新；新增六次真 Tk 重複選取不重新列舉型號且不改專案／草稿的測試，仍須 exact HEAD CI 與效能回讀，不能拿 AC-03 代簽 AC-15。
+- **候選矩陣**：41 accepted current-scope（僅隔離分支）／12 candidate／17 #1500 Windows 雙舊案全 GUI blocked／14 #1502 scoped／4 deferred，共 88。兩舊 Windows 原始工程完整操作鏈、全箱製造、正式物理 X/Y、焊接驗收均未簽；`#1504` OPEN、正式 X 不動。
+
+---
+
 ## CURRENT｜2026-10-23 NFB-AC-24 逐顆狀態／雙 Bay／多版本／實體板件自動化簽核候選
 
 ## CURRENT｜2026-10-23 AC-18 唯一層數控制與 X/Y 未定可見提示來源範圍候選（39 → 40）

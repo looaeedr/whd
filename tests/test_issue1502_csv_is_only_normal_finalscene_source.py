@@ -331,3 +331,34 @@ def test_frozen_manufacturing_dto_recovers_typed_hole_editor_features():
     projected = _without_derived_csv_door_features(frozen, "upper")
     assert projected["part_features"]["inner_door:upper:panel"] == ()
     assert frozen["part_features"]["inner_door:upper:panel"][0] == raw
+
+
+def test_reconfirmation_required_never_reuses_prior_hole_editor_x_even_if_exact_alias_exists(monkeypatch):
+    """Changed Bay width has priority over a previously matching editor alias.
+
+    NONE/UNVERIFIED_BASIS may still use a source-hashed live editor placement,
+    but RECONFIRM_REQUIRED is an explicit denial of prior X authority.
+    """
+    from ae_engine import receiving_nfb_committed_final_scene as committed
+    snap = _current()
+    config = deepcopy(snap["nfb_config"])
+    assert len(config["holes"]) == 2
+    for hole in config["holes"]:
+        assert hole["manual_x_state"] == "CONFIRMED"
+        hole["manual_x_state"] = "RECONFIRM_REQUIRED"
+    snap["nfb_config"] = config
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(config)
+
+    calls = []
+    def old_editor_feature_still_matches(*args, **kwargs):
+        calls.append((args, kwargs))
+        return 0.0  # A real previously hashed/placed alias might still resolve.
+
+    monkeypatch.setattr(
+        committed, "_source_world_x_from_committed_editor_feature",
+        old_editor_feature_still_matches,
+    )
+    assert committed._submitted_csv_holes(snap) == ()
+    assert calls == []  # Explicit reconfirmation must preempt fallback entirely.
+    assert all(h["manual_x_state"] == "RECONFIRM_REQUIRED"
+               for h in snap["nfb_config"]["holes"])
