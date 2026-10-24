@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-from math import hypot
+from math import hypot, isfinite
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -296,9 +296,15 @@ def _one_to_one_tolerance_match(expected, actual, compatible) -> bool:
     )
 
 
+def _valid_nonnegative_tolerance(value) -> bool:
+    # Acceptance tolerances are physically meaningful numeric limits, not
+    # strings, bools or NaN/Inf capable of bypassing CUTTING comparison.
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and isfinite(value) and value >= 0.)
+
+
 def _rows_close(expected, actual, tolerance: float) -> bool:
-    from math import isfinite
-    if not isfinite(float(tolerance)) or tolerance < 0:
+    if not _valid_nonnegative_tolerance(tolerance):
         return False
 
     def same(erow, arow):
@@ -340,8 +346,7 @@ def _actual_cutting_circles(msp):
 
 
 def _circle_rows_close(expected, actual, tolerance: float) -> bool:
-    from math import isfinite
-    if not isfinite(float(tolerance)) or tolerance < 0:
+    if not _valid_nonnegative_tolerance(tolerance):
         return False
 
     def same(erow, arow):
@@ -437,6 +442,17 @@ def verify_saved_part_render_data_dxf(
     area_tolerance: float = 1e-6,
 ) -> DxfAcceptanceResult:
     """Reopen one saved DXF and compare it with canonical PartRenderData."""
+    for name, tolerance in (
+        ("coordinate_tolerance", coordinate_tolerance),
+        ("area_tolerance", area_tolerance),
+    ):
+        if not _valid_nonnegative_tolerance(tolerance):
+            return DxfAcceptanceResult(False, (
+                DxfAcceptanceIssue(
+                    "INVALID_TOLERANCE",
+                    f"{name} must be a finite, nonnegative real measurement",
+                ),
+            ))
     path = Path(output_path)
     issues: list[DxfAcceptanceIssue] = []
     if not path.is_file():
