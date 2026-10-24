@@ -123,6 +123,17 @@ def test_pair_export_rejects_unsubmitted_and_refuses_silent_overwrite(tmp_path):
     assert Path(first.inner_door_path).read_bytes() == first_bytes
     cleared = deepcopy(snapshot)
     cleared["nfb_config_submitted"] = False
+    cleared.pop("nfb_config", None)
+    # This is a genuinely restored physical Bay, not a stale false root
+    # alias masking a separately persisted submitted NFBConfig.
+    from ae_engine.receiving_layout import update_receiving_bay
+    cleared["receiving_layout"] = update_receiving_bay(
+        cleared["receiving_layout"], set_index=0, bay_index=0,
+        nfb_config_submitted=False,
+    )
+    assert cleared["receiving_layout"]["sets"][0]["bays"][0].get(
+        "nfb_config_submitted"
+    ) is not True
     with pytest.raises(ValueError, match="SOURCE_UNAVAILABLE"):
         _export(cleared, parts, tmp_path)
 
