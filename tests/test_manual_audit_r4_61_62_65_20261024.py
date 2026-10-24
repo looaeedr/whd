@@ -198,3 +198,50 @@ def test_receiving_specific_door_and_nfb_owner_survives_secondary_payload_overla
     assert values["nfb_config_submitted"] is False
     assert "nfb_config" not in values
     assert (values["w"], values["h"], values["d"]) == (900., 1700., 400.)
+
+
+@pytest.mark.parametrize("field", (
+    "width", "height", "thickness", "fold_left", "fold_right",
+    "fold_top", "fold_bottom",
+))
+def test_r4_62_huge_saved_inner_door_panel_number_fails_closed(field):
+    """A JSON-valid oversized dimension cannot escape the physical Door gate."""
+    valid = {
+        "width": 723.0, "height": 1100.0, "thickness": 2.0,
+        "fold_left": 19.0, "fold_right": 19.0,
+        "fold_top": 19.0, "fold_bottom": 19.0,
+    }
+    damaged = {**valid, field: 10 ** 400}
+    with pytest.raises(ValueError, match="inner-door panel dimensions must be finite numbers"):
+        derive_inner_door_panel("door1", cell_key="upper:0", **damaged)
+    with pytest.raises(ValueError, match="inner-door panel dimensions must be finite numbers"):
+        InnerDoorPanelPart(
+            stable_id="inner_door:door1:panel", inner_door_id="door1",
+            cell_key="upper:0", **damaged,
+        )
+    assert valid["width"] == 723.0
+    normal = derive_inner_door_panel("door1", cell_key="upper:0", **valid)
+    assert (normal.width, normal.unfolded_width, normal.unfolded_height) == (
+        723.0, 757.0, 1134.0,
+    )
+
+
+@pytest.mark.parametrize("invalid", (10 ** 400, None, "bad-mm"))
+def test_r4_62_huge_or_bad_saved_frame_thickness_and_span_fail_closed(invalid):
+    spans = {"left": 1100.0, "right": 1100.0, "top": 723.0}
+    with pytest.raises(ValueError, match="inner-door frame material thickness must be a finite number"):
+        inner_door_frame_formed_occupation(invalid)
+    with pytest.raises(ValueError, match="inner-door frame thickness must be a finite number"):
+        derive_inner_door_frames("door1", spans=spans, thickness=invalid)
+    with pytest.raises(ValueError, match="inner-door frame span must be finite: left"):
+        derive_inner_door_frames(
+            "door1", spans={**spans, "left": invalid}, thickness=2.0,
+            included_sides=("top", "left", "right"),
+        )
+
+    assert inner_door_frame_formed_occupation(2.0) == 50.0
+    frames = derive_inner_door_frames(
+        "door1", spans=spans, thickness=2.0,
+        included_sides=("top", "left", "right"),
+    )
+    assert {frame.side: frame.span for frame in frames} == spans
