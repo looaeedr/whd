@@ -290,3 +290,26 @@ def test_verified_w800_three_upper_six_holes_are_valid_with_repeated_layer_slots
         _scope(),source_inventory=_inventory(),verified_inner_door=duplicated,
     )
     assert rejected.for_part("inner_door:upper:panel").status==BLOCKED
+
+
+@pytest.mark.parametrize("invalid_world_x", (10 ** 400, -(10 ** 400)))
+def test_ac28_huge_integer_x_witness_is_blocked_not_overflow(invalid_world_x):
+    """Source-typed but non-finite physical X must fail closed, not crash."""
+    from ae_engine.receiving_nfb_part_readiness import (
+        _verified_physical_hole_locations,
+    )
+
+    bad = replace(
+        _inner(),
+        verified_hole_locations=(("nfb:upper:1", invalid_world_x, 1, 0, 90),),
+    )
+    assert _verified_physical_hole_locations(bad) is False
+    readiness = derive_nfb_part_readiness(
+        _scope(), source_inventory=_inventory(), verified_inner_door=bad,
+    )
+    assert readiness.can_submit is False
+    assert readiness.for_part("inner_door:upper:panel").status == BLOCKED
+    assert readiness.for_part("side_panel:right").status == UNAFFECTED
+    assert derive_nfb_part_readiness(
+        _scope(), source_inventory=_inventory(), verified_inner_door=_inner(),
+    ).can_submit is True
