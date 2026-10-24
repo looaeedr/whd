@@ -15,7 +15,7 @@ from ae_engine.door_dividers import derive_box_body_dividers
 from ae_engine.inner_door_frames import inner_door_frame_formed_occupation, derive_inner_door_frames
 from ae_engine.inner_door_panels import InnerDoorPanelPart, derive_inner_door_panel
 from phase6_custom_parts import custom_part_only_change
-from phase6_manufacturing_adapter import build_manufacturing_request
+from phase6_manufacturing_adapter import build_manufacturing_request, build_scene_payload_for_app
 from types import SimpleNamespace
 from gui_modules.application.fold_designer_manufacturing_projection import (
     _read_live_receiving_snapshot, _query_fold_designer_render_data,
@@ -164,3 +164,37 @@ def test_r4_52_real_box_dimensions_are_owned_by_manufacturing_request():
             req.input_snapshot["d"], req.input_snapshot["t"]) == (600., 800., 250., 1.6)
     assert req.operator_finished_dimensions == (600., 800., 250.)
     assert "box_body" in seen
+
+
+def test_receiving_specific_door_and_nfb_owner_survives_secondary_payload_overlay():
+    projected = {
+        "model": "受電箱", "active_mode": "set_bay",
+        "_receiving_runtime_selection": {
+            "set_index": 0, "bay_index": 2,
+            "set_id": "set1", "bay_id": "bay3",
+        },
+        "w": 900., "h": 1700., "d": 400., "t": 2.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[900., [1100., 600.]]],
+        "nfb_config_submitted": False,
+    }
+    # Root settings can be from a DIFFERENT Bay; these must not steal the
+    # part-specific Door cell or NFB identity during actual material creation.
+    app = SimpleNamespace(
+        _phase6_input_snapshot=projected,
+        _settings_values={
+            "door_layout_columns": [[800., [1100., 500.]]],
+            "nfb_config_submitted": True, "nfb_config": {"layer_count": 2},
+            "w": 800., "h": 1600., "d": 350., "t": 2.,
+        },
+        _phase6_box_whd={"w": 900., "h": 1700., "d": 400.},
+        state=SimpleNamespace(profiles_vault={"箱身": ()}, profiles={}),
+        designer_workspace=SimpleNamespace(active_part="box_body"),
+        _phase6_baseline_initial_model="受電箱",
+        _phase6_endcap_fw_state={}, _phase6_endcap_bottom_wrap_state={},
+    )
+    values = build_scene_payload_for_app(app, "box_body")
+    assert values["door_layout_columns"] == [[900., [1100., 600.]]]
+    assert values["nfb_config_submitted"] is False
+    assert "nfb_config" not in values
+    assert (values["w"], values["h"], values["d"]) == (900., 1700., 400.)
