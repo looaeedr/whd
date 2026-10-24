@@ -951,15 +951,34 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     })
     snapshot["part_dimensions"] = project_part_dimensions(snapshot)
     from phase6_sync_envelope import stable_fingerprint
+    # Physical custom parts come from the live shared workspace, not
+    # necessarily the last committed input snapshot. A cached Bay must
+    # invalidate when a custom sheet's metadata changes before Save.
+    # Avoid snapshotting all profiles on every redraw when there are no
+    # active custom parts (the hot-path preview-cache optimization).
+    workspace = app.designer_workspace
+    live_custom_catalog = None
+    if any(str(key).startswith("custom:") for key in
+           getattr(workspace, "available_parts", ())):
+        reader = getattr(workspace, "shared_snapshot", None)
+        if not callable(reader):
+            raise ValueError("RECEIVING_BAY_CUSTOM_PART_AUTHORITY_MISSING")
+        live_custom_catalog = reader().get("custom_parts")
+        if not live_custom_catalog:
+            raise ValueError("RECEIVING_BAY_CUSTOM_PART_AUTHORITY_MISSING")
+    key_snapshot = (
+        {**snapshot, "custom_parts": live_custom_catalog}
+        if live_custom_catalog is not None else snapshot
+    )
     # Only normal committed Bay previews may rebase world placement. Candidate
     # editors and user-defined/cross-part joints keep the full prefix key.
     allow_rebase = (preview_layout is None and bay_index >= 2
                     and snapshot.get("model") in ("受電箱", "RECEIVING")
                     and snapshot.get("active_mode", "set_bay") == "set_bay"
-                    and not any(snapshot.get(k) for k in (
+                    and not any(key_snapshot.get(k) for k in (
                         "assembly_joints", "custom_parts", "joint_relief_state")))
     fingerprint = stable_fingerprint({"snapshot": _receiving_bay_preview_fingerprint_snapshot(
-        snapshot, set_index=set_index, bay_index=bay_index,
+        key_snapshot, set_index=set_index, bay_index=bay_index,
         allow_upstream_translation=allow_rebase,
         allow_suffix_topology_reuse=(preview_layout is None),
     ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": (_receiving_bay_preview_face_features_key(
