@@ -796,9 +796,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         ).get("can_restore", False)
                         for bi in highlighted
                     )
+                    all_can_submit = all(
+                        status_ports["state"](
+                            set_index, bi, highlighted,
+                        ).get("can_submit", False)
+                        for bi in highlighted
+                    )
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
                     status = {}
                     all_submitted = False
+                    all_can_submit = False
 
                 nfb_row = ttk.Frame(settings_host)
                 nfb_row.pack(anchor="w", pady=(5, 1))
@@ -832,10 +839,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             set_index, current[0], current,
                         )
                         if action == "submit":
-                            if len(current) != 1 or not current_state.get("can_submit"):
+                            # Check every highlighted physical Bay; the
+                            # backend will independently revalidate every
+                            # staged world-X/DXF proof before one atomic commit.
+                            if not all(live["state"](
+                                    set_index, bi, current,
+                            ).get("can_submit", False) for bi in current):
                                 raise ValueError(
-                                    current_state.get("reason")
-                                    or "目前沒有可提交的 NFB 交易證據，請先完成來源核對"
+                                    "高亮的每一連都必須各自完成實體世界 X／原始來源驗證"
                                 )
                             changed = live["submit"](
                                 set_index, current, nfb_confirm,
@@ -882,7 +893,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
                 for label, action, enabled in (
                     ("確認套用 NFB", "submit",
-                     len(highlighted) == 1 and status.get("can_submit", False)),
+                     bool(highlighted) and all_can_submit),
                     ("複製至其他連", "copy",
                      len(highlighted) == 2 and status.get("can_copy", False)),
                     ("還原為未配置", "restore", all_submitted),
