@@ -671,3 +671,24 @@ def test_r2_3_partial_set_bay_commit_does_not_drop_current_layout():
         "active_mode": "set_bay", "part_features": {"door": []},
     })
     assert result["receiving_layout"] == source_layout
+
+@pytest.mark.parametrize("axis", ["width", "height", "depth"])
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), 0., -1., "nan"])
+def test_r2_13_receiving_source_bay_dimensions_must_be_positive_finite_numbers(axis, bad):
+    """A corrupt saved Bay W/H/D must not feed physical enclosure and lock geometry."""
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    valid = {"width": 800., "height": 1600., "depth": 350.}
+    invalid = dict(valid, **{axis: bad})
+    with pytest.raises(ValueError, match="Receiving Bay"):
+        new_receiving_layout(**invalid)
+    saved = new_receiving_layout(**valid)
+    saved["sets"][0]["bays"][0][axis] = bad
+    with pytest.raises(ValueError, match="Receiving Set1 Bay1"):
+        normalize_receiving_layout(saved)
+
+
+def test_r2_13_receiving_valid_bay_keeps_existing_w_h_d_authority():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    bay = normalize_receiving_layout(saved)["sets"][0]["bays"][0]
+    assert (bay["width"], bay["height"], bay["depth"]) == (800., 1600., 350.)
