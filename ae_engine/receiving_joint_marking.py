@@ -161,6 +161,17 @@ def _derived_receiving_frames(snapshot):
     return tuple(derive_all_inner_door_frames(frame_sets))
 
 
+def _diagnostic_inner_door_frame_id(door_id, side):
+    """Preserve source identity for an unresolved frame without inventing geometry."""
+    try:
+        return inner_door_frame_stable_id(door_id, side)
+    except (TypeError, ValueError):
+        # An old/corrupt identifier may itself violate the physical part-ID
+        # contract. Diagnostics must still survive to block a false GREEN.
+        return f"invalid-inner-door:{str(door_id)}:{str(side)}"
+
+
+
 def _part_map(
     geometry: ResolvedManufacturingGeometry,
 ) -> dict[str, ResolvedManufacturingPart]:
@@ -927,7 +938,7 @@ def resolve_receiving_joint_markings(
                 results.append(
                     _fail(
                         locator_part_id="",
-                        attached_part_id=inner_door_frame_stable_id(door_id, str(side)),
+                        attached_part_id=_diagnostic_inner_door_frame_id(door_id, str(side)),
                         diagnostic_code="STALE_STABLE_ID",
                         detail=str(exc),
                     )
@@ -997,7 +1008,7 @@ def resolve_receiving_joint_markings(
         for item in items:
             for side in tuple(item.get("included_frame_sides") or ("top", "left", "right")):
                 if str(side) in {"top", "left", "right"}:
-                    affected.add(inner_door_frame_stable_id(str(item["stable_id"]), str(side)))
+                    affected.add(_diagnostic_inner_door_frame_id(item["stable_id"], str(side)))
         results = tuple(
             _fail(
                 locator_part_id="",
