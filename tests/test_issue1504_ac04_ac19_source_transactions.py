@@ -181,3 +181,17 @@ def test_ac28_model_reselection_and_new_x_invalidate_old_revision():
     assert edited["datum_snapshot"] == {"width": 800}
     assert "datum_revision" not in edited
     assert original == baseline
+
+    # A malformed/old unloaded draft can retain a revision even with no X.
+    # Q16 changes the model identity, so no source datum may survive.
+    empty = deepcopy(original)
+    unit = empty["layers"][0]["slots"][0]
+    unit["manual_x_mm"] = None
+    unit["manual_x_state"] = NONE
+    unit["datum_revision"] = "obsolete-without-x"
+    changed_empty = replace_nfb_slot_model(
+        empty, 0, 0, B, catalog={"士林": (A, B)},
+    )["layers"][0]["slots"][0]
+    assert changed_empty["manual_x_mm"] is None
+    assert changed_empty["datum_snapshot"] is None
+    assert "datum_revision" not in changed_empty
