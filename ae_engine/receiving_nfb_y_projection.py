@@ -68,11 +68,16 @@ def _inner_door_y_basis(snapshot: Mapping[str, object], inner_door_id: str):
     if not columns:
         raise ValueError("OPEN-Y-PROJECTION requires authoritative Door cells")
     try:
+        # Original physical W/H/T must remain typed until validation.
+        # bool is not a millimetre; malformed saved huge ints cannot overflow.
+        raw_whd = (data["w"], data["h"], data["t"])
+        if any(isinstance(value, bool) for value in raw_whd):
+            raise ValueError("boolean physical dimension")
         cells = derive_door_layout_cells(columns)
         full_h = float(data["h"])
         full_w = float(data["w"])
         t = float(data["t"])
-    except (KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
         raise ValueError("OPEN-Y-PROJECTION invalid box dimensional authority") from exc
     if (not all(isfinite(v) for v in (full_h, full_w, t))
             or full_h <= 0 or full_w <= 0 or t <= 0
