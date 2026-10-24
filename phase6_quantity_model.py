@@ -58,7 +58,7 @@ class QuantityModel:
         if not isinstance(payload, Mapping) or set(payload) != _PAYLOAD_KEYS:
             raise ValueError("不合法的孔型版本資料")
         schema = payload["schema"]
-        if schema not in {SCHEMA, SCHEMA_V2, SCHEMA_V3}:
+        if not isinstance(schema, str) or schema not in {SCHEMA, SCHEMA_V2, SCHEMA_V3}:
             raise ValueError("不支援的孔型版本格式")
         from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
         rows = payload["versions"]
