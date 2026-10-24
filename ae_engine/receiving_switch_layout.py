@@ -16,6 +16,10 @@ RECEIVING_SWITCH_LAYOUT_KEY = "receiving_switch_layout"
 
 
 def _brand(value: object) -> str:
+    # An absent stored brand keeps the established default; a corrupt
+    # false/zero/nontext brand must never silently select another factory.
+    if value is not None and not isinstance(value, str):
+        raise ValueError(f"unsupported Receiving switch brand: {value!r}")
     text = str(value or RECEIVING_SWITCH_BRANDS[0]).strip()
     if text not in RECEIVING_SWITCH_BRANDS:
         raise ValueError(f"unsupported Receiving switch brand: {value!r}")
@@ -48,8 +52,10 @@ def new_receiving_switch_layout(*, brand: object = RECEIVING_SWITCH_BRANDS[0]) -
 
 
 def normalize_receiving_switch_layout(layout: Mapping[str, object] | None) -> dict[str, object]:
-    if not isinstance(layout, Mapping):
+    if layout is None:
         return new_receiving_switch_layout()
+    if not isinstance(layout, Mapping):
+        raise ValueError("Receiving switch layout must be a mapping")
     if str(layout.get("schema") or "") != RECEIVING_SWITCH_LAYOUT_SCHEMA:
         raise ValueError(f"unsupported Receiving switch layout schema: {layout.get('schema')!r}")
     raw_layers = layout.get("layers")
@@ -114,8 +120,12 @@ def resize_switch_layers(layout: Mapping[str, object], layer_count: object) -> d
 def set_layer_connection_count(
     layout: Mapping[str, object], *, layer_index: int, connection_count: object
 ) -> dict[str, object]:
+    # This is a physical tier selector: True must never alias index 1,
+    # and fractional values must not be truncated to a different tier.
+    if type(layer_index) is not int:
+        raise ValueError("Receiving switch layer_index must be an integer")
     result = normalize_receiving_switch_layout(layout)
-    index = int(layer_index)
+    index = layer_index
     layers = list(result["layers"])
     if index < 0 or index >= len(layers):
         raise IndexError("Receiving switch layer_index out of range")
