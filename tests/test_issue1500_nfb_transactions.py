@@ -349,3 +349,25 @@ def test_ac23_matching_explicit_model_rotation_datum_keeps_verified_submit():
     committed = do_submit(original, configs={0: supplied}).layout
     assert committed["sets"][0]["bays"][0]["nfb_config_submitted"] is True
     assert committed["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+
+
+@pytest.mark.parametrize("bad_width", (750, None, True))
+def test_ac23_live_bay_width_source_mismatch_blocks_confirmed_submit(bad_width):
+    """A transaction cannot succeed and only *then* demote stale X to draft."""
+    original = layout()
+    frozen = deepcopy(original)
+    supplied = config(owner="nfb:0:slot1")
+    snapshot = supplied["holes"][0]["datum_snapshot"]
+    if bad_width is None:
+        supplied["holes"][0]["model_filename"] = "nfbv5:士林:2P400"
+        snapshot.pop("width")
+    else:
+        snapshot["width"] = bad_width
+    # Source proof matching the current X/Y does NOT authorize the stale Bay datum.
+    with pytest.raises(ValueError, match="operator confirmation|Bay|datum|reconfirm"):
+        do_submit(
+            original, configs={0: supplied},
+            evidences={0: evidence(original, 0)},
+        )
+    assert original == frozen
+    assert "nfb_config" not in original["sets"][0]["bays"][0]
