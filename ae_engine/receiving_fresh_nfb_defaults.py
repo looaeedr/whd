@@ -8,22 +8,12 @@ from __future__ import annotations
 
 from .receiving_nfb_model_identity import numeric_model_ref
 from .receiving_nfb_numeric_catalog import model_spec
-from .receiving_shared_settings import switch_filenames_in_layer
+from .receiving_shared_settings import (
+    switch_filenames_in_layer, default_receiving_nfb_layer_heights,
+)
 
 DEFAULT_BRAND = "士林"
 DEFAULT_MODEL = "2P400"
-
-
-def _fresh_single_layer_heights_mm():
-    """Use the authoritative 1100-upper-cell one-layer Y=550, not two-tier 330.
-
-    The second slot is inactive in one-layer mode; keep its existing stored
-    default for schema compatibility and future explicit two-tier editing.
-    """
-    from .receiving_nfb_y_projection import approved_nominal_y_mm
-    from .receiving_shared_settings import SETTING_DEFAULTS
-    return [float(approved_nominal_y_mm(1)[0]),
-            float(SETTING_DEFAULTS["inner_door_layer_heights_mm"][1])]
 
 
 def initial_fresh_receiving_nfb_models(models, *, layer_count, selected_brand):
@@ -62,7 +52,7 @@ def seed_fresh_receiving_nfb_source(snapshot):
         ensure_receiving_layout, project_receiving_bay_legacy_aliases,
         update_receiving_bay,
     )
-    from .receiving_shared_settings import SETTING_DEFAULTS, edit_setting
+    from .receiving_shared_settings import edit_setting
     from .receiving_nfb_csv_editor_features import editor_nfb_features_from_csv
     from .receiving_nfb_csv_committed_config import committed_csv_nfb_config
 
@@ -91,7 +81,7 @@ def seed_fresh_receiving_nfb_source(snapshot):
     if spec is None or not spec.dimensionally_complete:
         raise ValueError("RECEIVING_DEFAULT_NFB_CURRENT_CSV_INCOMPLETE")
     model = numeric_model_ref(DEFAULT_BRAND, DEFAULT_MODEL)
-    heights = _fresh_single_layer_heights_mm()
+    heights = default_receiving_nfb_layer_heights(1)
     config = {"layers": 1, "models": [model, ""],
               "layer_heights_mm": heights}
     layout = edit_setting(layout, set_index=0, bay_index=0,
@@ -140,8 +130,7 @@ def seed_fresh_receiving_quantity_nfb_source(snapshot):
     from .receiving_nfb_csv_editor_features import editor_nfb_features_from_csv
     from .receiving_nfb_csv_committed_config import committed_csv_nfb_config
     from .receiving_quantity_box import BOX_KEY, project_common_box
-    from .receiving_shared_settings import SETTING_DEFAULTS
-    from phase6_quantity_model import QuantityModel
+        from phase6_quantity_model import QuantityModel
 
     value = deepcopy(dict(snapshot or {}))
     if (value.get("model") not in ("受電箱", "RECEIVING")
@@ -157,7 +146,7 @@ def seed_fresh_receiving_quantity_nfb_source(snapshot):
     if spec is None or not spec.dimensionally_complete:
         raise ValueError("RECEIVING_DEFAULT_NFB_CURRENT_CSV_INCOMPLETE")
     selected = numeric_model_ref(DEFAULT_BRAND, DEFAULT_MODEL)
-    heights = _fresh_single_layer_heights_mm()
+    heights = default_receiving_nfb_layer_heights(1)
     config = {"layers": 1, "models": [selected, ""],
               "layer_heights_mm": heights}
     box["inner_door_layers"] = 1
