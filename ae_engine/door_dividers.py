@@ -209,6 +209,18 @@ def _fold_profile(
     return tuple(rows)
 
 
+def _finite_divider_number(value, message: str) -> float:
+    if isinstance(value, bool):
+        raise ValueError(message)
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
+    if not math.isfinite(number):
+        raise ValueError(message)
+    return number
+
+
 def _part(
     *,
     layout_scope,
@@ -225,13 +237,14 @@ def _part(
     values = (thickness, depth, span)
     if any(isinstance(v, bool) for v in values):
         raise ValueError("divider depth/thickness/span must be finite numbers, not bool")
-    t, d, span = map(float, values)
-    if not all(math.isfinite(v) for v in (t, d, span)):
-        raise ValueError("divider depth/thickness/span must be finite numbers")
-    if frame_width is not None and (
-        isinstance(frame_width, bool) or not math.isfinite(float(frame_width))
-    ):
-        raise ValueError("divider frame_width must be finite")
+    t, d, span = (
+        _finite_divider_number(value, "divider depth/thickness/span must be finite numbers")
+        for value in values
+    )
+    fw = (
+        None if frame_width is None else
+        _finite_divider_number(frame_width, "divider frame_width must be finite")
+    )
     if t <= 0 or d <= 0 or span <= 0:
         raise ValueError("divider depth/thickness/span must be > 0")
 
@@ -242,7 +255,7 @@ def _part(
         depth=d,
         thickness=t,
         handle_side=bool(handle_side),
-        frame_width=(None if frame_width is None else float(frame_width)),
+        frame_width=fw,
     )
     if family_contract is not None:
         material = tuple(float(v) for v in family_contract["material_lengths"])
@@ -312,6 +325,11 @@ def derive_box_body_dividers(
     # Pre-coercion via float() loses bool identity (True becomes 1 mm) and
     # bypasses the only finite numeric gate before manufacturing geometry.
     cells = derive_door_layout_cells(columns)
+    if isinstance(thickness, bool):
+        raise ValueError("divider depth/thickness/span must be finite numbers, not bool")
+    physical_t = _finite_divider_number(
+        thickness, "divider depth/thickness/span must be finite numbers"
+    )
     handles = {str(k): _handle_edge(v) for k, v in dict(handle_edges or {}).items()}
     by_col: dict[int, list[object]] = {}
     for cell in cells:
@@ -358,9 +376,9 @@ def derive_box_body_dividers(
         handle_side = handles.get(upper_key) == "BOTTOM" or handles.get(lower_key) == "TOP"
         span = float(cell.start_width)
         if getattr(cell.edges, "left", False):
-            span -= float(thickness)
+            span -= physical_t
         if getattr(cell.edges, "right", False):
-            span -= float(thickness)
+            span -= physical_t
         result.append(_part(
             layout_scope=layout_scope,
             axis="HORIZONTAL",

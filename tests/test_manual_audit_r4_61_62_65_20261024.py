@@ -245,3 +245,40 @@ def test_r4_62_huge_or_bad_saved_frame_thickness_and_span_fail_closed(invalid):
         included_sides=("top", "left", "right"),
     )
     assert {frame.side: frame.span for frame in frames} == spans
+
+
+def test_r4_62_receiving_horizontal_divider_refuses_invalid_physical_inputs():
+    """A real W800, two-height panel divider must never lose physical T authority."""
+    from ae_engine.door_dividers import _part
+
+    columns = [(800.0, [550.0, 550.0])]
+    original = derive_box_body_dividers(
+        columns, depth=350.0, thickness=2.0, layout_scope="box_body",
+    )
+    assert len(original) == 1
+    assert original[0].axis == "HORIZONTAL"
+    assert original[0].span == pytest.approx(796.0)
+
+    bad = 10 ** 400
+    with pytest.raises(ValueError, match="divider depth/thickness/span must be finite numbers"):
+        derive_box_body_dividers(
+            columns, depth=350.0, thickness=bad, layout_scope="box_body",
+        )
+    with pytest.raises(ValueError, match="divider depth/thickness/span must be finite numbers"):
+        derive_box_body_dividers(
+            columns, depth=bad, thickness=2.0, layout_scope="box_body",
+        )
+    with pytest.raises(ValueError, match="divider frame_width must be finite"):
+        derive_box_body_dividers(
+            columns, depth=350.0, thickness=2.0, layout_scope="box_body",
+            frame_width=bad,
+        )
+    with pytest.raises(ValueError, match="divider depth/thickness/span must be finite numbers"):
+        _part(
+            layout_scope="box_body", axis="HORIZONTAL",
+            boundary_key="manual-invalid", span=bad, depth=350.0,
+            thickness=2.0, handle_side=False, adjacent_cells=("0:0", "0:1"),
+        )
+    # No invalid attempt may mutate the saved source layout or normal mating data.
+    assert columns == [(800.0, [550.0, 550.0])]
+    assert original[0].span == pytest.approx(796.0)
