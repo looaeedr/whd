@@ -294,10 +294,13 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
         _pump(root, 2)
 
         import gui_modules.project.export_actions as export_actions
+        dialogs = []
         monkeypatch.setattr(export_actions.filedialog, "askdirectory", lambda **_kw: str(tmp_path))
         monkeypatch.setattr(export_actions.messagebox, "showinfo", lambda *_a, **_kw: None)
-        monkeypatch.setattr(export_actions.messagebox, "showwarning", lambda *_a, **_kw: None)
-        monkeypatch.setattr(export_actions.messagebox, "showerror", lambda *_a, **_kw: None)
+        monkeypatch.setattr(export_actions.messagebox, "showwarning",
+                            lambda *args, **kw: dialogs.append(("warning", args, kw)))
+        monkeypatch.setattr(export_actions.messagebox, "showerror",
+                            lambda *args, **kw: dialogs.append(("error", args, kw)))
 
         resolved = designer._phase6_resolve_manufacturing_geometry()
         # This generic entry is NOT a source-certified machining path. Its
