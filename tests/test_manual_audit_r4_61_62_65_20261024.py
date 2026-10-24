@@ -15,6 +15,7 @@ from ae_engine.door_dividers import derive_box_body_dividers
 from ae_engine.inner_door_frames import inner_door_frame_formed_occupation, derive_inner_door_frames
 from ae_engine.inner_door_panels import InnerDoorPanelPart, derive_inner_door_panel
 from phase6_custom_parts import custom_part_only_change
+from phase6_manufacturing_adapter import build_manufacturing_request
 from types import SimpleNamespace
 from gui_modules.application.fold_designer_manufacturing_projection import (
     _read_live_receiving_snapshot, _query_fold_designer_render_data,
@@ -142,3 +143,24 @@ def test_r4_63_live_fold_designer_app_owns_receiving_authorization():
     with pytest.raises(ValueError, match="BASE_FIXING_PLATE"):
         _query_fold_designer_render_data(
             host, "base_plate:fixing_plate:unknown", {})
+
+
+def test_r4_52_real_box_dimensions_are_owned_by_manufacturing_request():
+    seen = []
+    def operator_dimensions(key=None):
+        seen.append(key)
+        return (600., 800., 250.)
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "戶外箱"},
+        _settings_values={"t": 1.6},
+        _phase6_box_whd={"w": 600., "h": 800., "d": 250.},
+        _phase6_corner_state={}, _phase6_endcap_fw_state={},
+        _phase6_endcap_bottom_wrap_state={},
+        designer_workspace=SimpleNamespace(available_parts=()),
+        _phase6_operator_finished_dimensions=operator_dimensions,
+    )
+    req = build_manufacturing_request(app)
+    assert (req.input_snapshot["w"], req.input_snapshot["h"],
+            req.input_snapshot["d"], req.input_snapshot["t"]) == (600., 800., 250., 1.6)
+    assert req.operator_finished_dimensions == (600., 800., 250.)
+    assert "box_body" in seen
