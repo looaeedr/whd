@@ -312,3 +312,34 @@ def test_ac39_partial_export_requires_explicit_boolean(invalid_flag, tmp_path):
     assert manifest.require_export(("inner1",), partial=True) == ("inner1",)
     with pytest.raises(ValueError, match="partial only"):
         manifest.require_export(("inner1",), partial=False)
+
+
+@pytest.mark.parametrize(("status", "may_export", "count"), (
+    (BLOCKED, True, 2),
+    (READY, 1, 2),
+    (READY, "true", 2),
+    (READY, True, 0),
+    (READY, True, True),
+    (LEGACY, True, 2),
+))
+def test_ac44_partial_manifest_must_not_authorize_forged_blocked_or_nonboolean_row(
+    tmp_path, status, may_export, count,
+):
+    """Typed holder reports alone must never override true per-part readiness."""
+    from dataclasses import replace
+
+    current = derive_nfb_partial_export_manifest(**_prepared(tmp_path))
+    door = next(row for row in current.rows if row.part_id == "inner1")
+    forged = replace(
+        current, rows=tuple(
+            replace(row, status=status, may_export=may_export, actual_count=count)
+            if row.part_id == "inner1" else row
+            for row in current.rows
+        ),
+    )
+    assert door.status == READY and door.may_export is True
+    with pytest.raises(ValueError, match="BLOCKED"):
+        forged.require_export(("inner1",), partial=True)
+    # A real independently unaffected SIDE must remain available in the
+    # very same manifest; this is per-part, not all-or-nothing blocking.
+    assert forged.require_export(("side1",), partial=True) == ("side1",)
