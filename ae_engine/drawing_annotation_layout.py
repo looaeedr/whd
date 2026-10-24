@@ -12,6 +12,8 @@ primitives, but it never owns or mutates manufacturing CUTTING/BEND/material.
 """
 from __future__ import annotations
 
+import math
+
 from dataclasses import dataclass, replace
 
 from .sheetmetal_drawing import CirclePrimitive, LinePrimitive, PolylinePrimitive, TextPrimitive
