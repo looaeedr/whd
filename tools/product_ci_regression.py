@@ -421,6 +421,8 @@ PYTEST_PATHS = (
     "tests/test_manual_r5_71_mixed_profile_primitives_20261024.py",
     # R6 damaged DXF: last-known-good remains preview-only on parser errors.
     "tests/test_manual_r6_baseline_dxf_parser_lkg_20261024.py",
+    # R6 actual physical contact polygon must have finite, typed XYZ points.
+    "tests/test_manual_r6_contact_boundary_xyz_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
