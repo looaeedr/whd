@@ -274,3 +274,54 @@ def test_ac52_original_pair_writer_rejects_corrupt_reloaded_model_before_dxf_pub
     assert not list(rejected.iterdir())
     assert tuple(path.read_bytes() for path in existing) == original_bytes
     assert broken == broken_before and valid == valid_before
+
+
+@pytest.mark.parametrize("corruption", [
+    "missing_config", "null_config", "list_config",
+    "missing_holes", "empty_holes", "not_a_hole_list",
+])
+def test_ac52_submitted_but_missing_physical_nfb_config_must_fail_closed(
+    corruption, tmp_path,
+):
+    """A committed Bay may not masquerade as an unconfigured legacy source."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    valid = _valid_project()
+    old_scene = _scene(valid)
+    snapshot = deepcopy(valid)
+    if corruption == "missing_config":
+        snapshot.pop("nfb_config")
+    elif corruption == "null_config":
+        snapshot["nfb_config"] = None
+    elif corruption == "list_config":
+        snapshot["nfb_config"] = []
+    else:
+        config = deepcopy(snapshot["nfb_config"])
+        if corruption == "missing_holes":
+            config.pop("holes")
+        elif corruption == "empty_holes":
+            config["holes"] = []
+        else:
+            config["holes"] = {"invalid": "not a list"}
+        snapshot["nfb_config"] = config
+    # Maintain the submitted fact: this is corruption, not a user-requested
+    # Restore Unconfigured transaction. The old FinalScene cannot approve it.
+    before = deepcopy(snapshot)
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_SUBMITTED_CONFIG_INVALID"):
+        _submitted_csv_holes(snapshot)
+    assert snapshot == before
+    out = tmp_path / "rejected"
+    out.mkdir()
+    with pytest.raises(ValueError):
+        _export(snapshot, old_scene, out)
+    assert not list(out.iterdir())
+    assert snapshot == before
+
+
+def test_ac52_truly_unconfigured_project_can_still_have_no_nfb_config():
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    snapshot = _valid_project()
+    snapshot["nfb_config_submitted"] = False
+    snapshot.pop("nfb_config")
+    assert _submitted_csv_holes(snapshot) == ()
