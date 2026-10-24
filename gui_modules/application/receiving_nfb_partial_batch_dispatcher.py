@@ -126,12 +126,18 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
                     or expected_inner_ids[0] != manifest.scope.inner_door_part_id):
                 raise ValueError("NFB writer physical inner-door ownership changed")
             manifest.require_export((manifest.scope.inner_door_part_id,), partial=True)
+            # Only the selected INNER_DOOR is written here. The live manifest
+            # may also authorize unrelated side/base parts; their eligible
+            # quantities are NOT the Q for this single emitted DXF sheet.
+            actual_door_rows = tuple(
+                row for row in manifest.rows
+                if row.part_id == manifest.scope.inner_door_part_id
+                and row.role == INNER_DOOR
+            )
             if (manifest.scope.submitted is not True
-                    or manifest.scope.inner_door_part_id not in
-                    manifest.authorized_part_ids
-                    or any(row.actual_count != 1 for row in manifest.rows
-                           if row.part_id == manifest.scope.inner_door_part_id)
-                    or manifest.actual_export_count != 1):
+                    or len(actual_door_rows) != 1
+                    or actual_door_rows[0].may_export is not True
+                    or actual_door_rows[0].actual_count != 1):
                 raise ValueError("NFB partial DXF manufactured part count invalid")
             if (Path(written) != source or source.is_symlink()
                     or not source.is_file()):
