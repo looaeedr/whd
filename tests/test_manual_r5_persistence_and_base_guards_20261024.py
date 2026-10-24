@@ -266,3 +266,24 @@ def test_r5_77_expected_mating_coverage_rejects_nonfinite_world_polygon_and_keep
     )
     assert invalid.status == "SKIPPED_FAIL_CLOSED"
     assert invalid.diagnostic_code == "OVERLAP_AUTHORITY_MISSING"
+
+
+@pytest.mark.parametrize("available,quantities,assigned", [
+    ("v1", {"v": 1}, {(0, 0): "v"}),  # A string is NOT two valid candidate IDs.
+    (None, {"v1": 1}, {(0, 0): "v1"}),
+    ([["v1"]], {"v1": 1}, {(0, 0): "v1"}),
+    (["v1"], {"v1": 1}, {(0, 0): ["v1"]}),
+    ([True], {True: 1}, {(0, 0): True}),
+    (["v1"], {"v1": 1}, {(0, 0): True}),
+])
+def test_r5_81_corrupt_version_inventory_and_assignment_cannot_authorize_a_bay(
+    available, quantities, assigned,
+):
+    """Only actual candidate ID strings may be assigned to a physical Bay."""
+    layout = {"sets": [{"bays": [{}]}]}
+    with pytest.raises(ValueError):
+        validate_positions(layout, available, quantities, assigned)
+    # Valid candidate strings still work, including a one-shot ID generator.
+    assert validate_positions(
+        layout, (name for name in ("v1",)), {"v1": 1}, {(0, 0): "v1"},
+    ) == ((0, 0),)
