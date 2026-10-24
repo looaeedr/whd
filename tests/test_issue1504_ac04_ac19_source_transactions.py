@@ -195,3 +195,21 @@ def test_ac28_model_reselection_and_new_x_invalidate_old_revision():
     assert changed_empty["manual_x_mm"] is None
     assert changed_empty["datum_snapshot"] is None
     assert "datum_revision" not in changed_empty
+
+
+def test_ac23_revision_only_affected_slot_is_counted_as_cleared():
+    """Old draft metadata-only X revisions still count as cleared basis."""
+    from ae_engine.receiving_nfb_ui1a_edits import nfb_x_reset_impact
+
+    before = _source()
+    old = before["layers"][0]["slots"][0]
+    old["datum_revision"] = "orphaned-world-x-source"
+    old_id = old["unit_id"]
+    old["manual_x_mm"] = None
+    old["manual_x_state"] = NONE
+    old["datum_snapshot"] = None
+    after = set_nfb_manual_x(before, 0, 0, None)
+    assert nfb_x_reset_impact(before, after, 0).unit_ids == (old_id,)
+    assert nfb_x_reset_impact(before, after, 0).count == 1
+    assert nfb_x_reset_impact(before, after, 1).count == 0
+    assert "datum_revision" not in after["layers"][0]["slots"][0]
