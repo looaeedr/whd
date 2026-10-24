@@ -167,10 +167,10 @@ def _submitted_csv_holes(snapshot):
         return ()
     config = snapshot.get("nfb_config")
     if not isinstance(config, Mapping):
-        return ()
+        raise ValueError("NFB_COMMITTED_CSV_SUBMITTED_CONFIG_INVALID")
     rows = config.get("holes")
     if not isinstance(rows, (tuple, list)) or not rows:
-        return ()
+        raise ValueError("NFB_COMMITTED_CSV_SUBMITTED_CONFIG_INVALID")
     # Old projects with DXF references still use their own existing path;
     # a *mixed* CSV/DXF configuration cannot silently drop physical holes.
     parsed = tuple(
