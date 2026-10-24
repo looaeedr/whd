@@ -1055,6 +1055,7 @@ def test_r4_66_real_bay_preview_cache_invalidates_when_live_custom_part_metadata
     uses workspace.shared_snapshot().custom_parts instead.
     """
     from types import SimpleNamespace
+    from copy import deepcopy
     import pytest
     import phase6_fold_profiles
     import phase6_sync_envelope
@@ -1071,7 +1072,7 @@ def test_r4_66_real_bay_preview_cache_invalidates_when_live_custom_part_metadata
     }}}
     workspace = SimpleNamespace(
         available_parts=("box_body", "custom:1"),
-        shared_snapshot=lambda: {"custom_parts": custom},
+        shared_snapshot=lambda: {"custom_parts": deepcopy(custom)},
         part_profiles_snapshot=lambda: {},
         part_features_snapshot=lambda: {},
         part_face_features_snapshot=lambda: {},
