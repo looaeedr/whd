@@ -269,23 +269,28 @@ def test_receiving_side_back_children_keep_independent_profiles_and_back_panel_i
 def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
     tmp_path, monkeypatch
 ):
+    """Fresh Receiving's ORIGINAL button must produce real checked DXFs.
+
+    A generic direct FinalScene serializer intentionally denies unapproved V5
+    previews; the original operator action must use its independently verified
+    CSV/NFB/base/formed-ear/side-marking manufacturing adapter instead.
+    """
     tk, root, app, designer = _open_vault_designer()
     try:
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
-        # A production bottom plate needs an explicitly selected physical
-        # variant. The three sample drawings are candidates, not a universal
-        # default. This fixture chooses a real physical spec before batch DXF.
-        from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
-        designer._phase6_input_snapshot["receiving_base_plate"] = {
-            "pattern": RECEIVING_BASE_PATTERN_CENTER,
-            "height": 280.0, "shrink_top": 20.0, "shrink_bottom": 20.0,
-            "shrink_left": 85.0, "shrink_right": 85.0, "bend": 20.0,
-        }
+        snapshot = designer._phase6_input_snapshot
+        assert snapshot["nfb_config_submitted"] is True
+        assert snapshot["receiving_inner_door_layers"] == 1
+        assert snapshot["receiving_inner_door_layer_heights_mm"][0] == 550.0
+        assert len(snapshot["nfb_config"]["holes"]) == 1
+        # Do not inject a different Base Plate variant: test exactly what
+        # a customer gets immediately after a real first Family switch.
 
-        # Operator asks the actual 3D Output surface to export every selectable kind.
         for var in designer.output_export_vars.values():
             var.set(True)
+        flags = {key: bool(var.get())
+                 for key, var in designer.output_export_vars.items()}
         _pump(root, 2)
 
         import gui_modules.project.export_actions as export_actions
@@ -294,26 +299,59 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
         monkeypatch.setattr(export_actions.messagebox, "showwarning", lambda *_a, **_kw: None)
         monkeypatch.setattr(export_actions.messagebox, "showerror", lambda *_a, **_kw: None)
 
-        expected_root = tmp_path / "_canonical"
-        expected_root.mkdir()
         resolved = designer._phase6_resolve_manufacturing_geometry()
-
-        # A newly selected Receiving Family now contains one *real* CSV NFB
-        # by default. Its BasePlate is source-derived but X/EAR/shop release
-        # is not pre-certified. Both the canonical saver and the actual GUI
-        # bulk-export path must fail closed with ZERO customer DXFs.
-        from ae_engine.manufacturing_api import save_resolved_manufacturing_geometry_dxf
-        assert designer._phase6_input_snapshot["nfb_config_submitted"] is True
-        with pytest.raises(ValueError, match="NFB V5 未驗證試作禁止使用正式製造 DXF 輸出"):
+        # This generic entry is NOT a source-certified machining path. Its
+        # refusal must not be used as the oracle for the normal GUI action.
+        from ae_engine.manufacturing_api import (
+            save_resolved_manufacturing_geometry_dxf,
+            verify_saved_part_render_data_dxf,
+        )
+        generic_root = tmp_path / "_unverified_generic"
+        with pytest.raises(ValueError):
             save_resolved_manufacturing_geometry_dxf(
-                resolved, expected_root, overwrite=True
+                resolved, generic_root, overwrite=True
             )
+        assert not list(generic_root.glob("*.dxf"))
+
         designer.output_export_button.invoke()
         _pump(root, 5)
-        assert not list(expected_root.glob("*.dxf"))
-        assert not list(tmp_path.glob("*.dxf")), (
-            "Actual GUI must not partially export a source-only initial NFB"
+        actual = {p.name: p for p in tmp_path.glob("*.dxf")}
+        assert actual, "Fresh Receiving's normal GUI export must create DXF sheets"
+
+        from ae_engine.receiving_ear_side_manufacturing_marking import (
+            with_verified_receiving_ear_side_markings,
         )
+        from ae_engine.manufacturing_export import (
+            resolved_physical_render_parts, resolved_physical_dxf_filename,
+        )
+        marked = with_verified_receiving_ear_side_markings(
+            snapshot, resolved,
+            dimensions=tuple(float(snapshot[k]) for k in ("w", "h", "d")),
+            sheet_thickness=float(snapshot["t"]),
+        )
+        selected = export_actions._selected_resolved_geometry(marked, flags)
+        expected = {
+            resolved_physical_dxf_filename(key): render
+            for key, render in resolved_physical_render_parts(selected)
+        }
+        assert set(expected).issubset(actual), (
+            f"Missing actual physical DXFs: {sorted(set(expected)-set(actual))!r}"
+        )
+        import ezdxf
+        for filename, render in expected.items():
+            reopened = verify_saved_part_render_data_dxf(render, actual[filename])
+            assert reopened.ok, (filename, reopened.issues)
+        fixing = [name for name in actual if "fixing_plate" in name]
+        assert len(fixing) == 2, (
+            "Fresh one-NFB Receiving must include both source-formed fixing plates"
+        )
+        assert set(actual) == set(expected) | set(fixing)
+        for filename in fixing:
+            drawing = ezdxf.readfile(actual[filename]).modelspace()
+            assert sum(1 for entity in drawing if entity.dxf.layer == "BEND") == 1
+            assert sum(1 for entity in drawing
+                       if entity.dxftype() == "LWPOLYLINE"
+                       and entity.dxf.layer == "CUTTING" and entity.closed) == 5
     finally:
         _close(tk, root, designer)
 
