@@ -262,6 +262,56 @@ def submit_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
     )
 
 
+def submit_live_verified_nfb_batch(
+    adapter, bundles, *, current_snapshots: Mapping[int, Mapping], confirm,
+):
+    """One operator-confirmed atomic transaction for independent real Bays.
+
+    Every bundle must still match its exact original DXF byte SHA, physical
+    inner door, geometry snapshot, owner/version and world X before the first
+    confirmation callback. Never reuse proof from one Bay for another.
+    """
+    try:
+        pending = tuple(bundles)
+    except TypeError as exc:
+        raise ValueError("NFB batch requires verified physical Bays") from exc
+    if (not pending
+            or any(not isinstance(item, NfbVerifiedDraftSubmission)
+                   for item in pending)):
+        raise ValueError("NFB batch requires verified physical Bays")
+    first = pending[0]
+    identities = tuple(item.bay_index for item in pending)
+    if (any(type(item.set_index) is not int
+            or type(item.bay_index) is not int
+            or item.set_index != first.set_index
+            or item.version_id != first.version_id
+            for item in pending)
+            or len(set(identities)) != len(identities)):
+        raise ValueError("NFB batch Set/Bay/version mismatch or duplicate")
+    if (not isinstance(current_snapshots, Mapping)
+            or any(type(i) is not int for i in current_snapshots)
+            or set(current_snapshots) != set(identities)):
+        raise ValueError("NFB batch requires one current snapshot for each Bay")
+    ordered = sorted(pending, key=lambda item: item.bay_index)
+    for item in ordered:
+        assert_live_verified_nfb(
+            adapter, item, current_snapshot=current_snapshots[item.bay_index],
+        )
+    return adapter.submit_nfb_to_bays(
+        set_index=first.set_index,
+        bay_indices=tuple(item.bay_index for item in ordered),
+        version_id=first.version_id,
+        configs={item.bay_index: item.config for item in ordered},
+        evidence={
+            item.bay_index: (
+                item.scope, item.source_inventory, item.verified_door,
+            )
+            for item in ordered
+        },
+        confirm=confirm,
+    )
+
+
 def copy_live_verified_nfb(adapter, *, source_bay_index: int,
                            target_bundle: NfbVerifiedDraftSubmission,
                            current_snapshot, confirm):
