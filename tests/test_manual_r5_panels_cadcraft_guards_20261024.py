@@ -58,3 +58,14 @@ def test_r5_95_divider_null_depth_and_thickness_use_parent_defaults():
                 "divider", {"door_layout_columns": [(bad, (600.,))]},
                 default_depth=250., default_thickness=2.,
             )
+
+
+@pytest.mark.parametrize("bad_mode", [[], {}, ["indicator"], {"kind": "indicator"}])
+def test_r5_94_unhashable_saved_indicator_mode_recovers_without_type_error(bad_mode):
+    """Saved presentation state is not authoritative geometry and must recover safely."""
+    state = normalize_door_indicator_state({
+        "mode": bad_mode, "enabled": True, "groups": [2, 3],
+    })
+    assert state["mode"] == "indicator"
+    assert state["enabled"] is True
+    assert state["groups"] == [2, 3, 2, 2, 2, 2]
