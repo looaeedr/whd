@@ -22,10 +22,10 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 46,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 48,
     "BLOCKED_1500_REAL_GUI": 17,
     "EVIDENCE_CANDIDATE_ONLY": 9,
-    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 12,
+    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 10,
     "DEFERRED_PRODUCT_EVIDENCE": 4
   },
   "records": [
@@ -601,27 +601,86 @@
         "tests/test_issue1502_nfb_finalscene_composite.py",
         "tests/test_issue1502_nfb_middle_3d_witness.py",
         "tests/test_issue1502_nfb_middle_plate_physical_shadow.py",
-        "tests/test_issue1502_nfb_source_regions.py"
+        "tests/test_issue1502_nfb_source_regions.py",
+        "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+        "tests/test_issue1502_quantity_current_csv_full_batch.py",
+        "tests/test_issue1502_paired_real_dxf_check_q.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
-          "test_name": "test_ear_mounting_does_not_invent_base_or_change_verified_inner_NFB",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+          "test_name": "test_ac14_swt11_complete_real_scene_and_saved_dxf_roundtrip",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_delivery_scope": "CURRENT_NUMERIC_CSV_V5_SOURCE_SCOPED_ISOLATED_DRAFT_NOT_LOCALX_NOT_FACTORY",
       "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "#1502 current localX source-scoped actual 2D/3D, current CSV committed FinalScene, original operator DXF saved/reopened, CHECK Q and multi-tier proof exist. Full original AC acceptance is still separately audited.",
         "authority_issue": 1502
+      },
+      "historical_pre_current_review": {
+        "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
+            "test_name": "test_ear_mounting_does_not_invent_base_or_change_verified_inner_NFB",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
+        "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34"
+      },
+      "acceptance_evidence": {
+        "scope": "SUPPORTED_CURRENT_NUMERIC_CSV_V5_W800_REAL_INNER_DOOR_BASE__SAME_2D_FINALSCENE_3D_MESH_SAVE_RELOAD_DXF_GROUPED_CHECK_Q_ONLY__NOT_UNCONDITIONAL_MFG2",
+        "primary_assertion": "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac14_swt11_complete_real_scene_and_saved_dxf_roundtrip",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit",
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac14_swt11_changed_nfb_source_never_reuses_an_old_3d_or_dxf",
+          "tests/test_issue1502_csv_is_only_normal_finalscene_source.py::test_existing_editor_csv_feature_is_alias_not_duplicate_source",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_normal_existing_pair_export_writes_two_verified_actual_csv_dxfs",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_both_actual_versions_sum_five_identical_base_and_ear_pieces",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_changed_second_version_hole_does_not_export_stale_geometry",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_per_version_q_group_last_saved_dxf_failure_rolls_back",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_real_pair_same_geometry_different_source_sha_groups_exact_q",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_real_pair_different_base_machining_does_not_merge_unequal_shapes"
+        ],
+        "actual_3d_adapter": "phase6_final_scene_renderer.Phase6FinalSceneRenderer.render",
+        "actual_3d_profiles": [
+          "ae_engine.inner_door_panels.inner_door_panel_part_profiles",
+          "ae_engine.receiving_base_plate_3d_profiles.receiving_base_plate_3d_profiles"
+        ],
+        "source_to_2d_3d": "ae_engine.receiving_nfb_committed_final_scene.apply_committed_csv_v5_to_canonical_parts",
+        "source_to_dxf": "gui_modules.application.receiving_nfb_pair_partial_export_action.export_current_csv_nfb_door_base_pair",
+        "project_roundtrip": "phase6_project_file.write_project/read_project",
+        "exact_source_commit": "ce37b97c4434ed5822faf5bd67a571da0ea468f5",
+        "product_ci_run": "https://github.com/looaeedr/whd/actions/runs/40056114882",
+        "product_ci_receipt": "WHD_V15_ACCEPTANCE_GREEN requirements=52 passed_cases=2080",
+        "performance_run": "https://github.com/looaeedr/whd/actions/runs/40056114886",
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "physical_absolute_position_grant": false,
+        "arbitrary_unproven_model_mfg_release": false,
+        "pad_weld_contact_approved": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false
       }
     },
     {
@@ -2845,27 +2904,86 @@
         "tests/test_issue1502_nfb_finalscene_composite.py",
         "tests/test_issue1502_nfb_middle_3d_witness.py",
         "tests/test_issue1502_nfb_middle_plate_physical_shadow.py",
-        "tests/test_issue1502_nfb_source_regions.py"
+        "tests/test_issue1502_nfb_source_regions.py",
+        "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+        "tests/test_issue1502_quantity_current_csv_full_batch.py",
+        "tests/test_issue1502_paired_real_dxf_check_q.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1502_nfb_base_source_projection.py",
-          "test_name": "test_one_door_nfb_owner_projects_corresponding_base_cutting_and_marks",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py",
+          "test_name": "test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_delivery_scope": "CURRENT_NUMERIC_CSV_V5_SOURCE_SCOPED_ISOLATED_DRAFT_NOT_LOCALX_NOT_FACTORY",
       "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "#1502 current localX real FinalScene/2D, saved/reopened original DXF and CHECK Q now supply source-scoped physical evidence; full original AC sign-off remains independent.",
         "authority_issue": 1502
+      },
+      "historical_pre_current_review": {
+        "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1502_nfb_base_source_projection.py",
+            "test_name": "test_one_door_nfb_owner_projects_corresponding_base_cutting_and_marks",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
+        "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34"
+      },
+      "acceptance_evidence": {
+        "scope": "SUPPORTED_CURRENT_NUMERIC_CSV_V5_W800_REAL_INNER_DOOR_BASE__SAME_2D_FINALSCENE_3D_MESH_SAVE_RELOAD_DXF_GROUPED_CHECK_Q_ONLY__NOT_UNCONDITIONAL_MFG2",
+        "primary_assertion": "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac14_swt11_complete_real_scene_and_saved_dxf_roundtrip",
+          "tests/test_issue1504_ac29_swt19_v5_reload_source_rederive.py::test_ac14_swt11_changed_nfb_source_never_reuses_an_old_3d_or_dxf",
+          "tests/test_issue1502_csv_is_only_normal_finalscene_source.py::test_existing_editor_csv_feature_is_alias_not_duplicate_source",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_normal_existing_pair_export_writes_two_verified_actual_csv_dxfs",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_both_actual_versions_sum_five_identical_base_and_ear_pieces",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_changed_second_version_hole_does_not_export_stale_geometry",
+          "tests/test_issue1502_quantity_current_csv_full_batch.py::test_per_version_q_group_last_saved_dxf_failure_rolls_back",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_real_pair_same_geometry_different_source_sha_groups_exact_q",
+          "tests/test_issue1502_paired_real_dxf_check_q.py::test_real_pair_different_base_machining_does_not_merge_unequal_shapes"
+        ],
+        "actual_3d_adapter": "phase6_final_scene_renderer.Phase6FinalSceneRenderer.render",
+        "actual_3d_profiles": [
+          "ae_engine.inner_door_panels.inner_door_panel_part_profiles",
+          "ae_engine.receiving_base_plate_3d_profiles.receiving_base_plate_3d_profiles"
+        ],
+        "source_to_2d_3d": "ae_engine.receiving_nfb_committed_final_scene.apply_committed_csv_v5_to_canonical_parts",
+        "source_to_dxf": "gui_modules.application.receiving_nfb_pair_partial_export_action.export_current_csv_nfb_door_base_pair",
+        "project_roundtrip": "phase6_project_file.write_project/read_project",
+        "exact_source_commit": "ce37b97c4434ed5822faf5bd67a571da0ea468f5",
+        "product_ci_run": "https://github.com/looaeedr/whd/actions/runs/40056114882",
+        "product_ci_receipt": "WHD_V15_ACCEPTANCE_GREEN requirements=52 passed_cases=2080",
+        "performance_run": "https://github.com/looaeedr/whd/actions/runs/40056114886",
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "physical_absolute_position_grant": false,
+        "arbitrary_unproven_model_mfg_release": false,
+        "pad_weld_contact_approved": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false
       }
     },
     {
@@ -3851,7 +3969,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 46/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; the 46 accepted rows carry named executable witnesses and a prior exact source HEAD GREEN receipt, but latest incremental cross-stage regression and updated audit guards require a new exact source CI GREEN. Remaining 42 AC retain their individual gates. No localX merge, Windows UAT or unconditional MFG-2 approval.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 48/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-14 and SWT-AC-11 signed using exact 2080-case source CI, actual 2D/3D Fold Profiles, Save-Reload and DXF/Q source parity. Remaining 40 AC keep original scoped gates; Draft unmerged, not Windows UAT or full-cabinet MFG2 release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
@@ -3875,5 +3993,6 @@
     "SWT-AC-24": "Current #1502 part-scoped output complete; first submit, cross-Bay copy, restore and Undo share #1500 live transaction guard and are still pending complete operator acceptance, NOT blocked by a closed #1502 issue.",
     "SWT-AC-32": "Color30/150 inventory is valid for legacy sources but does not manufacture an absent Receiving 中板. Actual current NFB CSV and source material role + real CHECK Q/manifest are the current owner."
   },
-  "historical_pre_20261024_review_text_at_43": "88/88 FUNCTION_IDENTITIES_VERIFIED; 43/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (ISOLATED BRANCH CANDIDATE, EXACT HEAD CI PENDING, NO LOCALX MERGE); remaining 45 AC require separate physical/GUI/product evidence."
+  "historical_pre_20261024_review_text_at_43": "88/88 FUNCTION_IDENTITIES_VERIFIED; 43/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (ISOLATED BRANCH CANDIDATE, EXACT HEAD CI PENDING, NO LOCALX MERGE); remaining 45 AC require separate physical/GUI/product evidence.",
+  "historical_pre_20261024_46ac_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 46/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; the 46 accepted rows carry named executable witnesses and a prior exact source HEAD GREEN receipt, but latest incremental cross-stage regression and updated audit guards require a new exact source CI GREEN. Remaining 42 AC retain their individual gates. No localX merge, Windows UAT or unconditional MFG-2 approval."
 }
