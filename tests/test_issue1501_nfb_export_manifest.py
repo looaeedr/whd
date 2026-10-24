@@ -202,8 +202,17 @@ def test_saved_hole_moved_or_rotated_requires_new_cutting_proof(tmp_path):
         m=derive_nfb_partial_export_manifest(**{**opts,"saved_bay":updated})
         assert "inner1" not in m.authorized_part_ids
         assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in m.unresolved_dependencies
+        # The once-matching source cannot prove that a newly edited model/
+        # position has zero Color30/212 dependencies on the physical base.
+        assert "NFB_SOURCE_COLOR_SCOPE_UNKNOWN" in m.unresolved_dependencies
+        assert next(r for r in m.rows if r.part_id == "base1").status == BLOCKED
+        assert next(r for r in m.rows if r.part_id == "middle1").status == BLOCKED
         assert m.partial_only and not m.whole_ready
-        assert "side1" in m.authorized_part_ids
+        assert m.authorized_part_ids == ("side1",)
+        assert m.actual_export_count == 3
+        assert m.held_actual_count == 7
+        with pytest.raises(ValueError, match="BLOCKED"):
+            m.require_export(("base1",), partial=True)
 
 
 def test_cross_brand_same_filename_must_not_reuse_source_proof(tmp_path):
