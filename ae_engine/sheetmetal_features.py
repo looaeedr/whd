@@ -1046,12 +1046,20 @@ def hit_test_resolved_features(
                 return index
         else:
             target = ShapelyPoint(point.x, point.y)
-            candidates = (
-                ((feature.points, len(feature.points) >= 3),)
-                if feature.points
-                else tuple((pts, bool(closed)) for _layer, pts, closed
-                           in getattr(feature, "layered_profiles", ()))
+            # A ProfileFeature has ONE selection identity but can expose
+            # multiple physical process contours. Always test every displayed
+            # layer, even if its primary points are nonempty. The saved closed
+            # flag overrides the old >=3-points heuristic for matching points.
+            layered = tuple(
+                (tuple(pts), bool(closed))
+                for _layer, pts, closed in
+                (getattr(feature, "layered_profiles", ()) or ())
             )
+            primary = tuple(feature.points or ())
+            candidates = layered
+            if primary and not any(pts == primary for pts, _closed in layered):
+                # Legacy primary-only profile has no explicit closure field.
+                candidates += ((primary, len(primary) >= 3),)
             for pts, closed in candidates:
                 coords = [(p.x, p.y) for p in pts]
                 if len(coords) >= 3 and closed:
