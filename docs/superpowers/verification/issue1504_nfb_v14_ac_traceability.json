@@ -3600,7 +3600,7 @@
         {
           "path": "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py",
           "test_name": "test_swt23_current_csv_same_physical_legacy_hole_blocks_without_writing",
-          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_V5_INNER_DOOR_LEGACY_OWNERSHIP_ONLY",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
           "accepted": true
         }
       ],
@@ -3646,7 +3646,8 @@
         "ui_full_operator_uat_claimed": false,
         "integrated_localx_claimed": false,
         "formal_x_published": false,
-        "other_ac_signoff_implied": false
+        "other_ac_signoff_implied": false,
+        "witness_detail": "CURRENT_CSV_V5_INNER_DOOR_LEGACY_OWNERSHIP_COLLISION_ALIAS_EXCLUSION_AND_UNCONFIGURE_PRESERVATION"
       }
     },
     {
