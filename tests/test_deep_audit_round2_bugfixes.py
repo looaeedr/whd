@@ -692,3 +692,23 @@ def test_r2_13_receiving_valid_bay_keeps_existing_w_h_d_authority():
     saved = new_receiving_layout(width=800., height=1600., depth=350.)
     bay = normalize_receiving_layout(saved)["sets"][0]["bays"][0]
     assert (bay["width"], bay["height"], bay["depth"]) == (800., 1600., 350.)
+
+@pytest.mark.parametrize("bad", [True, False, 1.5, "1", None, {}])
+def test_r2_14_switch_connection_target_index_must_be_exact_integer(bad):
+    """Layer selection is the same physical NFB layer owner, not Python coercion."""
+    from ae_engine.receiving_switch_layout import (
+        new_receiving_switch_layout, set_layer_connection_count,
+    )
+    layout = resize_switch_layers(new_receiving_switch_layout(), 2)
+    with pytest.raises(ValueError, match="layer_index must be an integer"):
+        set_layer_connection_count(layout, layer_index=bad, connection_count=3)
+
+
+def test_r2_14_valid_second_layer_update_keeps_first_layer_unchanged():
+    from ae_engine.receiving_switch_layout import (
+        new_receiving_switch_layout, set_layer_connection_count,
+    )
+    source = resize_switch_layers(new_receiving_switch_layout(), 2)
+    result = set_layer_connection_count(source, layer_index=1, connection_count=3)
+    assert [x["connection_count"] for x in result["layers"]] == [1, 3]
+    assert [x["connection_count"] for x in source["layers"]] == [1, 1]
