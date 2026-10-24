@@ -159,12 +159,31 @@ def normalize_nfb_saved_fields(row):
                 parse_numeric_model_ref(hole.get("model_filename")) is not None
                 and not known_widths
             )
-            if missing_v5_width_proof or any(
-                type(value) not in (int, float)
-                or not isfinite(float(value))
-                or abs(float(value) - bay_width) > 1e-7
-                for value in known_widths
-            ):
+            # Respect *explicitly recorded* datum identity beyond width.
+            # Never infer a rotation/model basis when an older snapshot
+            # does not contain that field. But if it exists and disagrees,
+            # preserving CONFIRMED would silently reapprove stale world-X.
+            recorded_rotation = snapshot.get("rotation_deg")
+            stale_rotation = (
+                "rotation_deg" in snapshot and (
+                    type(recorded_rotation) is not int
+                    or recorded_rotation != hole["rotation_deg"]
+                )
+            )
+            recorded_model = snapshot.get("model_filename")
+            stale_model = (
+                "model_filename" in snapshot and (
+                    not isinstance(recorded_model, str)
+                    or recorded_model != hole["model_filename"]
+                )
+            )
+            if (missing_v5_width_proof or stale_rotation or stale_model
+                    or any(
+                        type(value) not in (int, float)
+                        or not isfinite(float(value))
+                        or abs(float(value) - bay_width) > 1e-7
+                        for value in known_widths
+                    )):
                 hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     return {
         "nfb_config_submitted": True,
