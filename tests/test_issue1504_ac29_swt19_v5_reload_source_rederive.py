@@ -275,3 +275,211 @@ def test_ac29_swt19_original_hole_editor_csv_proof_from_before_reload_cannot_be_
     assert after[0].points[1].x - after[0].points[0].x == pytest.approx(65.)
     assert before[0].points[1].x - before[0].points[0].x == pytest.approx(57.)
     assert before != after
+
+
+def _canonical_cutting_scene_shapes(part):
+    """FinalScene's CUTTING geometry in the same units as reopened DXF."""
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    primitives = tuple(part.render_data.scene.primitives)
+    circles = tuple(sorted(
+        (round(float(p.center.x), 5), round(float(p.center.y), 5),
+         round(float(p.radius), 5))
+        for p in primitives if isinstance(p, CirclePrimitive)
+        and p.layer == "CUTTING"
+    ))
+    polygons = tuple(sorted(
+        tuple(sorted((round(float(pt.x), 5), round(float(pt.y), 5))
+                     for pt in p.points))
+        for p in primitives if isinstance(p, PolylinePrimitive)
+        and p.layer == "CUTTING" and p.closed
+    ))
+    return circles, polygons
+
+
+def test_ac14_swt11_complete_real_scene_and_saved_dxf_roundtrip(monkeypatch, tmp_path):
+    """One current V5 source must survive Set/Bay Save, FinalScene and DXF IO.
+
+    This is a supported source-scoped 2D/3D installed-part check, NOT whole
+    cabinet MFG-2 approval or a physical Windows operator GUI receipt.
+    """
+    _isolated_csv(monkeypatch, tmp_path)
+    original = _valid_project()
+    before = _scene(original)
+    assert {part.part_key for part in before} == {
+        "inner_door:upper:panel", "base_plate"
+    }
+    first = _save(original, before, tmp_path / "before")
+    first_files = _files(first)
+    before_dxf = tuple(_shapes(path) for path in first_files)
+    for index, part in enumerate(before):
+        # A 2D/3D installed part and the written manufacture geometry are
+        # projections of the SAME typed physical FinalScene.
+        assert _canonical_cutting_scene_shapes(part) == before_dxf[index]
+        assert len(tuple(part.render_data.scene.primitives)) > 0
+
+    restored, project_path = _reloaded_project(original, tmp_path)
+    assert project_path.is_file()
+    after = _scene(restored)
+    assert tuple(p.part_key for p in after) == tuple(p.part_key for p in before)
+    for original_part, saved_part in zip(before, after):
+        assert saved_part.offset == original_part.offset
+        assert saved_part.render_data.scene.primitives == original_part.render_data.scene.primitives
+        assert saved_part.render_data.unfolded_topology == original_part.render_data.unfolded_topology
+        assert saved_part.render_data.fold_guides == original_part.render_data.fold_guides
+        assert saved_part.render_data.metadata["stable_id"] == original_part.render_data.metadata["stable_id"]
+    second = _save(restored, after, tmp_path / "after")
+    second_files = _files(second)
+    assert first.source_hole_ids == second.source_hole_ids == ("nfb:0", "nfb:1")
+    assert tuple(_shapes(p) for p in second_files) == before_dxf
+    for index, part in enumerate(after):
+        assert _canonical_cutting_scene_shapes(part) == _shapes(second_files[index])
+
+
+def test_ac14_swt11_changed_nfb_source_never_reuses_an_old_3d_or_dxf(
+    monkeypatch, tmp_path,
+):
+    """Source drift must reconstruct BOTH 2D and installed 3D before DXF."""
+    _isolated_csv(monkeypatch, tmp_path)
+    source = _valid_project()
+    old_parts = _scene(source)
+    old_receipt = _save(source, old_parts, tmp_path / "old")
+    old_paths = _files(old_receipt)
+    old_shapes = tuple(_shapes(path) for path in old_paths)
+    original_bytes = tuple(path.read_bytes() for path in old_paths)
+
+    changed = deepcopy(source)
+    changed["nfb_config"]["holes"][1]["manual_x_mm"] -= 20.
+    changed["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed["nfb_config"]
+    )
+    stale_dir = tmp_path / "stale"
+    stale_dir.mkdir()
+    with pytest.raises(ValueError, match="CURRENT_FINALSCENE|SOURCE|DIFFERS|CSV"):
+        _export(changed, old_parts, stale_dir)
+    assert not list(stale_dir.glob("*.dxf"))
+
+    new_parts = _scene(changed)
+    assert tuple(p.part_key for p in new_parts) == tuple(p.part_key for p in old_parts)
+    assert any(
+        _canonical_cutting_scene_shapes(new) != _canonical_cutting_scene_shapes(old)
+        for old, new in zip(old_parts, new_parts)
+    )
+    assert all(old.offset == new.offset for old, new in zip(old_parts, new_parts))
+    new_receipt = _save(changed, new_parts, tmp_path / "new")
+    new_paths = _files(new_receipt)
+    new_shapes = tuple(_shapes(path) for path in new_paths)
+    assert new_shapes != old_shapes
+    for index, part in enumerate(new_parts):
+        assert _canonical_cutting_scene_shapes(part) == new_shapes[index]
+    assert tuple(path.read_bytes() for path in old_paths) == original_bytes
+
+
+def test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit(
+    monkeypatch, tmp_path,
+):
+    """Render the same genuine installed source through the real 3D adapter.
+
+    No simulated 3D triangles or independent approximations: the renderer
+    triangulates the same physical FinalScene that produces verified DXF.
+    """
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from matplotlib.figure import Figure
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+    from phase6_final_scene_contracts import (
+        AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
+    from ae_engine.receiving_base_plate_3d_profiles import (
+        receiving_base_plate_3d_profiles,
+    )
+
+    _isolated_csv(monkeypatch, tmp_path)
+    original = _valid_project()
+    original_parts = _scene(original)
+
+    def actual_mesh(parts, snapshot):
+        # The _scene() helper is intentionally a 2D/DXF sheet fixture and
+        # carries EMPTY 3D profiles. A genuine 3D request must instead use
+        # the exact manufacturing-owned Fold Profiles from the same source.
+        door_profiles = inner_door_panel_part_profiles(
+            derive_inner_door_panels(snapshot)
+        )
+        base_profiles = receiving_base_plate_3d_profiles(snapshot)
+        assert base_profiles is not None
+        formed_parts = []
+        for part in parts:
+            profile = (door_profiles[part.part_key]
+                       if part.part_key in door_profiles
+                       else base_profiles if part.part_key == "base_plate"
+                       else None)
+            assert profile is not None, part.part_key
+            width = sum(float(v["len"]) for v in profile["X"])
+            height = sum(float(v["len"]) for v in profile["Y"])
+            minx, miny, maxx, maxy = part.render_data.material.bounds
+            assert width == pytest.approx(maxx - minx)
+            assert height == pytest.approx(maxy - miny)
+            formed_parts.append(replace(
+                part,
+                x_profile=tuple(dict(v) for v in profile["X"]),
+                y_profile=tuple(dict(v) for v in profile["Y"]),
+            ))
+
+        figure = Figure(figsize=(5., 4.))
+        ax = figure.add_subplot(111, projection="3d")
+        renderer = Phase6FinalSceneRenderer(SimpleNamespace(ax3d=ax))
+        triangles = renderer.render(FinalSceneViewRequest(
+            part_key="assembly",
+            render_data=AssemblySceneRenderData(
+                assembly_parts=tuple(formed_parts), show_interference=False,
+            ),
+            x_profile=(), y_profile=(),
+            finished_dimensions=(800., 1600., 350.),
+            thickness=2.,
+        ))
+        skins = tuple(x for x in ax.collections
+                      if isinstance(x, Poly3DCollection))
+        assert len(skins) >= len(parts) == 2
+        assert triangles and len(triangles) > 10
+        assert len(renderer.last_cutting_material) == len(parts)
+        assert tuple(renderer.last_cutting_mesh) == tuple(triangles)
+        return tuple(
+            tuple(tuple(round(float(value), 5) for value in vertex)
+                  for vertex in face)
+            for face in triangles
+        )
+
+    old_mesh = actual_mesh(original_parts, original)
+    restored, file = _reloaded_project(original, tmp_path)
+    assert file.exists()
+    reloaded_parts = _scene(restored)
+    assert actual_mesh(reloaded_parts, restored) == old_mesh
+
+    moved = deepcopy(restored)
+    moved["nfb_config"]["holes"][1]["manual_x_mm"] -= 20.
+    moved["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        moved["nfb_config"]
+    )
+    new_parts = _scene(moved)
+    new_mesh = actual_mesh(new_parts, moved)
+    assert new_mesh != old_mesh
+    # The physical part positions stay fixed. Only source CUTTING shifts.
+    assert tuple(p.offset for p in new_parts) == tuple(
+        p.offset for p in original_parts
+    )
+    assert _canonical_cutting_scene_shapes(new_parts[0]) != (
+        _canonical_cutting_scene_shapes(original_parts[0])
+    )
+    # The corresponding base screw-hole set must move in step with the
+    # inner-door source. The cabinet-centred physical sheet itself does not.
+    assert _canonical_cutting_scene_shapes(new_parts[1]) != (
+        _canonical_cutting_scene_shapes(original_parts[1])
+    )
+    assert new_parts[1].render_data.unfolded_topology == (
+        original_parts[1].render_data.unfolded_topology
+    )
+    assert new_parts[1].render_data.fold_guides == (
+        original_parts[1].render_data.fold_guides
+    )
