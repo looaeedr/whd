@@ -149,6 +149,23 @@ def select_nfb_slot_model(draft, layer_index, slot_index, filename, *,
         from .receiving_nfb_model_identity import selected_numeric_spec
         if selected_numeric_spec(actual, filename) is None:
             raise ValueError("NFB V5 model identity/source does not match effective brand CSV")
+    if ((slot.get("filename"), slot.get("source_brand"))
+            != (filename, actual) and any(
+                field in slot for field in (
+                    "manual_x_mm", "manual_x_state",
+                    "datum_snapshot", "datum_revision"
+                ))):
+        # The unwrapped selection API is also called by other UI paths.
+        # Never leave the prior model's world-X proof attached to this unit.
+        slot["datum_snapshot"] = None
+        slot.pop("datum_revision", None)
+        if "manual_x_mm" in slot or "manual_x_state" in slot:
+            if slot.get("manual_x_mm") is None:
+                slot["manual_x_state"] = "NONE"
+            elif slot.get("manual_x_state") in ("CONFIRMED", "RECONFIRM_REQUIRED"):
+                slot["manual_x_state"] = "RECONFIRM_REQUIRED"
+            else:
+                slot["manual_x_state"] = "UNVERIFIED_BASIS"
     slot["filename"] = filename
     slot["source_brand"] = actual
     return updated
