@@ -14,6 +14,18 @@ DEFAULT_BRAND = "士林"
 DEFAULT_MODEL = "2P400"
 
 
+def _fresh_single_layer_heights_mm():
+    """Use the authoritative 1100-upper-cell one-layer Y=550, not two-tier 330.
+
+    The second slot is inactive in one-layer mode; keep its existing stored
+    default for schema compatibility and future explicit two-tier editing.
+    """
+    from .receiving_nfb_y_projection import approved_nominal_y_mm
+    from .receiving_shared_settings import SETTING_DEFAULTS
+    return [float(approved_nominal_y_mm(1)[0]),
+            float(SETTING_DEFAULTS["inner_door_layer_heights_mm"][1])]
+
+
 def initial_fresh_receiving_nfb_models(models, *, layer_count, selected_brand):
     """Return two draft model slots, leaving all existing choices unchanged.
 
@@ -79,7 +91,7 @@ def seed_fresh_receiving_nfb_source(snapshot):
     if spec is None or not spec.dimensionally_complete:
         raise ValueError("RECEIVING_DEFAULT_NFB_CURRENT_CSV_INCOMPLETE")
     model = numeric_model_ref(DEFAULT_BRAND, DEFAULT_MODEL)
-    heights = list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
+    heights = _fresh_single_layer_heights_mm()
     config = {"layers": 1, "models": [model, ""],
               "layer_heights_mm": heights}
     layout = edit_setting(layout, set_index=0, bay_index=0,
@@ -145,7 +157,7 @@ def seed_fresh_receiving_quantity_nfb_source(snapshot):
     if spec is None or not spec.dimensionally_complete:
         raise ValueError("RECEIVING_DEFAULT_NFB_CURRENT_CSV_INCOMPLETE")
     selected = numeric_model_ref(DEFAULT_BRAND, DEFAULT_MODEL)
-    heights = list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
+    heights = _fresh_single_layer_heights_mm()
     config = {"layers": 1, "models": [selected, ""],
               "layer_heights_mm": heights}
     box["inner_door_layers"] = 1
