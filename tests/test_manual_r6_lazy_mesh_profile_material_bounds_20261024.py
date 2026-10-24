@@ -117,3 +117,56 @@ def test_r6_multistage_terminal_world_mapping_cannot_index_missing_triangle():
     assert _phase6_shift_multistage_terminal_fold_world_mid(
         piece, mapped, physical_rows,
     ) == physical_rows
+
+@pytest.mark.parametrize("invalid", [True, False, float("nan"), float("inf"), -100.])
+def test_r6_door_placement_does_not_project_invalid_layout_width(invalid):
+    from phase6_manufacturing_geometry import _phase6_door_part_assembly_placement
+    source = {"door_layout_columns": ((invalid, (500., 600.)), (400., (1100.,)))}
+    with pytest.raises(ValueError):
+        _phase6_door_part_assembly_placement(source, "door_c1_r1")
+
+
+@pytest.mark.parametrize("axis,invalid", [
+    ("w", True), ("h", False),
+    ("w", float("nan")), ("h", float("inf")),
+    ("w", -1.), ("h", 0.),
+])
+def test_r6_door_placement_rejects_nonphysical_outer_dimensions(axis, invalid):
+    from phase6_manufacturing_geometry import _phase6_door_part_assembly_placement
+    source = {
+        "door_layout_columns": ((400., (500., 600.)), (400., (1100.,))),
+        axis: invalid,
+    }
+    with pytest.raises(ValueError):
+        _phase6_door_part_assembly_placement(source, "door_c1_r1")
+
+
+def test_r6_door_placement_missing_optional_outer_size_uses_actual_layout():
+    from phase6_manufacturing_geometry import _phase6_door_part_assembly_placement
+    source = {
+        "door_layout_columns": ((400., (500., 600.)), (400., (1100.,))),
+        "w": None, "h": None,
+    }
+    assert _phase6_door_part_assembly_placement(source, "door_c1_r1") == (
+        "front", (-200., 300., 0.),
+    )
+    assert _phase6_door_part_assembly_placement(source, "door_c2_r1") == (
+        "front", (200., 0., 0.),
+    )
+
+
+@pytest.mark.parametrize("verified", ["false", "true", 1, 0, None, False])
+def test_r6_saved_unverified_joint_cannot_reuse_physical_relief(verified):
+    from shapely.geometry import box
+    from phase6_manufacturing_geometry import _phase6_joint_relief_state_item_matches
+    joint = SimpleNamespace(joint_id="joint-1", subject_part="door",
+                            target_part="box_body", relation="WRAP")
+    saved = {
+        "joint_id": "joint-1", "subject_part": "door",
+        "target_part": "box_body", "relation": "WRAP",
+        "verified": verified, "source_material_bounds": (0., 0., 10., 10.),
+        "source_material_area": 100.,
+    }
+    assert _phase6_joint_relief_state_item_matches(saved, joint, box(0, 0, 10, 10)) is False
+    saved["verified"] = True
+    assert _phase6_joint_relief_state_item_matches(saved, joint, box(0, 0, 10, 10)) is True

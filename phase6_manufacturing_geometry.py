@@ -50,19 +50,38 @@ _PHASE6_ASSEMBLY_PLACEMENTS = {
 
 def _phase6_door_part_assembly_placement(snapshot, part_key):
     """Return canonical front-plane placement for one formal Door layout cell."""
+    import math
+
     key = str(part_key or "")
+    source = dict(snapshot or {})
+    raw_columns = tuple(source.get("door_layout_columns") or ())
+    if not raw_columns:
+        raise ValueError(f"門格缺少 authoritative multi-door topology: {key}")
+    # Validation must run before float() so bool is not silently converted
+    # to 1 mm of actual sheet/door material.
+    cells = derive_door_layout_cells(raw_columns)
     columns = tuple(
         (float(row[0]), tuple(float(v) for v in row[1]))
-        for row in tuple(dict(snapshot or {}).get("door_layout_columns") or ())
+        for row in raw_columns
     )
-    if not columns:
-        raise ValueError(f"門格缺少 authoritative multi-door topology: {key}")
-    cells = derive_door_layout_cells(columns)
     cell = next((item for item in cells if door_layout_part_key(item) == key), None)
     if cell is None:
         raise ValueError(f"門格 stable_id 不存在於 authoritative topology: {key}")
-    total_w = float(dict(snapshot or {}).get("w", sum(width for width, _ in columns)))
-    total_h = float(dict(snapshot or {}).get("h", sum(columns[0][1])))
+
+    def outer_axis(value, default, axis):
+        raw = default if value is None else value
+        if isinstance(raw, bool):
+            raise ValueError(f"門格外框 {axis} 必須為有限正數")
+        try:
+            dimension = float(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"門格外框 {axis} 必須為有限正數") from exc
+        if not math.isfinite(dimension) or dimension <= 0:
+            raise ValueError(f"門格外框 {axis} 必須為有限正數")
+        return dimension
+
+    total_w = outer_axis(source.get("w"), sum(width for width, _ in columns), "W")
+    total_h = outer_axis(source.get("h"), sum(columns[0][1]), "H")
     x_before = sum(columns[index][0] for index in range(cell.column_index))
     y_before = sum(columns[cell.column_index][1][:cell.row_index])
     center_x = -total_w / 2.0 + x_before + cell.start_width / 2.0
@@ -586,7 +605,7 @@ def _phase6_joint_relief_state_item_matches(item, joint, source_material):
         or str(item.get("subject_part") or "") != str(joint.subject_part)
         or str(item.get("target_part") or "") != str(joint.target_part)
         or str(item.get("relation") or "") != relation
-        or not bool(item.get("verified"))
+        or item.get("verified") is not True
     ):
         return False
     try:
