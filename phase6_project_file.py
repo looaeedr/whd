@@ -52,16 +52,25 @@ def _normalize_authoritative_door_state(snapshot):
         result["door_nameplate_center_datum_top"] = float(DOOR_NAMEPLATE_CENTER_DATUM_TOP)
     elif result.get("door_nameplate_center_datum_top") is not None:
         raw = result["door_nameplate_center_datum_top"]
-        if isinstance(raw, bool) or not math.isfinite(float(raw)):
+        if isinstance(raw, bool):
             raise ValueError(f"invalid door_nameplate_center_datum_top: {raw!r}")
-        result["door_nameplate_center_datum_top"] = float(raw)
+        try:
+            datum = float(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"invalid door_nameplate_center_datum_top: {raw!r}") from exc
+        if not math.isfinite(datum):
+            raise ValueError(f"invalid door_nameplate_center_datum_top: {raw!r}")
+        result["door_nameplate_center_datum_top"] = datum
 
     def persisted_layout_mm(value, *, label):
         # Project authority must be JSON numeric, not a Tk entry string or
         # a boolean. Reject malformed topology before divider/DXF derivation.
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError(f"invalid {label}: {value!r}")
-        measured = float(value)
+        try:
+            measured = float(value)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"invalid {label}: {value!r}") from exc
         if not math.isfinite(measured):
             raise ValueError(f"invalid {label}: {value!r}")
         return measured
