@@ -386,3 +386,36 @@ def test_ac44_unsubmitted_legacy_manifest_still_exports_original_physical_parts(
     manifest = derive_nfb_partial_export_manifest(**opts)
     requested = tuple(part.part_id for part in opts["actual_parts"])
     assert manifest.require_export(requested, partial=False) == requested
+
+
+@pytest.mark.parametrize("corruption", (
+    "scope_unsubmitted", "row_other_bay", "row_other_version",
+    "door_disguised_other",
+))
+def test_ac44_manifest_rejects_cross_bay_version_or_submitted_identity_for_export(
+    tmp_path, corruption,
+):
+    from dataclasses import replace
+
+    original = derive_nfb_partial_export_manifest(**_prepared(tmp_path))
+    door = next(row for row in original.rows if row.part_id == "inner1")
+    assert original.require_export(("inner1",), partial=True) == ("inner1",)
+    if corruption == "scope_unsubmitted":
+        invalid = replace(
+            original, scope=replace(original.scope, submitted=False),
+        )
+    else:
+        if corruption == "row_other_bay":
+            altered = replace(door, bay_id="another-bay")
+        elif corruption == "row_other_version":
+            altered = replace(door, version_id="another-version")
+        else:
+            altered = replace(door, role=OTHER, status=UNAFFECTED)
+        invalid = replace(
+            original,
+            rows=tuple(altered if row.part_id == "inner1" else row
+                       for row in original.rows),
+        )
+    with pytest.raises(ValueError, match="BLOCKED"):
+        invalid.require_export(("inner1",), partial=True)
+    # Nothing in a corrupted owner's typed record can approve another DXF.
