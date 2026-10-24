@@ -288,3 +288,21 @@ def test_r4_69_physical_collision_refuses_invalid_aabb_and_intersection_toleranc
     assert valid.pairs[0].status == "AABB_SEPARATED"
     with pytest.raises(ValueError, match="ASSEMBLY_COLLISION_INVALID_TOLERANCE"):
         audit_all_physical_part_pairs({"head": a, "tail": b}, tolerance=bad)
+
+@pytest.mark.parametrize("invalid_count", [False, True, None, "0", [], {}])
+def test_r4_69_certified_collision_allowance_requires_real_zero_penetration_count(invalid_count):
+    """A corrupt post-cutting receipt cannot whitelist divider-side crossings."""
+    from types import SimpleNamespace
+    from ae_engine.assembly_all_parts_collision import _certified_pair_allowances
+
+    diagnostic = SimpleNamespace(
+        candidate_status="CERTIFIED_REGISTRY_VERIFIED",
+        illegal_penetration=False,
+        target_part="box_body",
+        subject_part="box_body:divider:verified",
+        evidence={"post": {"true_thickness_penetrating_band_count": 0}},
+    )
+    approved = _certified_pair_allowances((diagnostic,))
+    assert frozenset(("box_body:divider:verified", "box_body:left_side")) in approved
+    diagnostic.evidence["post"]["true_thickness_penetrating_band_count"] = invalid_count
+    assert _certified_pair_allowances((diagnostic,)) == frozenset()
