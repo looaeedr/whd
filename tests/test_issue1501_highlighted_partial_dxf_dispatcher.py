@@ -188,3 +188,31 @@ def test_writer_cannot_substitute_another_bay_scope(tmp_path):
             allow_held=True,
         )
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("allow_held", (False, True))
+def test_same_bay_writer_cannot_substitute_inner_door_part(tmp_path, allow_held):
+    """Same Set/Bay/version may not conceal another physical door from writer."""
+    from dataclasses import replace
+
+    ports, calls = _ports()
+    original = ports["partial_export"]
+
+    def wrong_physical_owner(si, bi, path):
+        written, manifest = original(si, bi, path)
+        other = manifest.scope.inner_door_part_id + "-other-panel"
+        scope = replace(manifest.scope, inner_door_part_id=other)
+        rows = tuple(
+            replace(row, part_id=other) if row.role == INNER_DOOR else row
+            for row in manifest.rows
+        )
+        return written, replace(manifest, scope=scope, rows=rows)
+
+    ports["partial_export"] = wrong_physical_owner
+    with pytest.raises(ValueError, match="physical inner-door"):
+        batch.export_highlighted_nfb_inner_doors(
+            ports, set_index=0, bay_indices=(0,),
+            output_directory=tmp_path, allow_held=allow_held,
+        )
+    assert len(calls) == 1
+    assert not list(tmp_path.iterdir())
