@@ -387,3 +387,90 @@ def test_current_csv_v5_matching_world_x_width_basis_preserves_explicit_confirme
     assert hole["manual_x_state"] == "CONFIRMED"
     assert hole["manual_x_mm"] == 0
     assert hole["datum_snapshot"]["w"] == 800
+
+
+def test_quantity_common_width_invalidates_only_stale_version_x_across_save_reload(
+    tmp_path,
+):
+    """#1504 X safety: version-owned NFB X cannot outlive shared cabinet W.
+
+    V1 carries a formerly legitimate W800 datum, V2 explicitly confirms
+    W750.  Changing shared physical W to 750 must demote ONLY V1 and never
+    mutate the caller, discard models, or change quantity/version identity.
+    """
+    from phase6_quantity_model import normalize_quantity_snapshot
+
+    model = QuantityModel()
+    v1 = model.selected_version_id
+    old = _config(x=0, filename="nfbv5:士林:2P400")
+    model.set_version_nfb_config(v1, submitted=True, config=old)
+    v2 = model.add_version()
+    confirmed = _config(x=90, filename="nfbv5:士林:2P400")
+    confirmed["holes"][0]["datum_snapshot"]["width"] = 750
+    confirmed["holes"][0]["physical_hole_id"] = "nfb:quantity:version2"
+    model.set_version_nfb_config(v2, submitted=True, config=confirmed)
+    model.set_piece_count(2)
+    snapshot = {
+        "model": "受電箱", "active_mode": "quantity",
+        "quantity": model.snapshot(),
+        "receiving_quantity_box": {"w": 750, "h": 1600, "d": 350},
+    }
+    before = deepcopy(snapshot)
+    normalized = normalize_quantity_snapshot(snapshot)
+    assert snapshot == before
+    rows = normalized["quantity"]["versions"]
+    assert tuple(row["version_id"] for row in rows) == (v1, v2)
+    assert tuple(row["piece_count"] for row in rows) == (1, 2)
+    assert rows[0]["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert rows[0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+    assert rows[0]["nfb_config"]["holes"][0]["datum_snapshot"]["width"] == 800
+    assert rows[1]["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+    assert rows[1]["nfb_config"]["holes"][0]["manual_x_mm"] == 90
+    assert rows[1]["nfb_config"]["holes"][0]["datum_snapshot"]["width"] == 750
+    assert all(row["nfb_config_submitted"] is True for row in rows)
+    assert model.nfb_config_for_version(v1)["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+
+    filename = write_project(
+        tmp_path / "quantity-width-reconfirm.p6fold",
+        {"schema": PROJECT_SCHEMA_V1, "snapshot": snapshot},
+    )
+    raw = json.loads(filename.read_text(encoding="utf-8"))
+    assert raw["schema"] == PROJECT_SCHEMA_V3
+    saved_rows = raw["snapshot"]["quantity"]["versions"]
+    assert saved_rows[0]["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert saved_rows[1]["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
+    loaded = read_project(filename)["snapshot"]
+    restored_rows = loaded["quantity"]["versions"]
+    assert restored_rows == saved_rows
+    assert loaded["receiving_quantity_box"]["w"] == 750
+
+
+@pytest.mark.parametrize("basis", [
+    {"width": 800},
+    {"width": 800, "w": 750},
+    {"height": 1600, "inner_door": "upper"},
+])
+def test_quantity_current_v5_untrusted_or_conflicting_width_cannot_publish_confirmed_x(
+    basis,
+):
+    from phase6_quantity_model import normalize_quantity_snapshot
+
+    model = QuantityModel()
+    candidate = _config(x=0, filename="nfbv5:士林:2P400")
+    candidate["holes"][0]["datum_snapshot"] = basis
+    model.set_version_nfb_config(
+        model.selected_version_id, submitted=True, config=candidate,
+    )
+    state = {
+        "model": "受電箱", "active_mode": "quantity",
+        "quantity": model.snapshot(),
+        "receiving_quantity_box": {"w": 750, "h": 1600, "d": 350},
+    }
+    reviewed = normalize_quantity_snapshot(state)
+    saved = reviewed["quantity"]["versions"][0]["nfb_config"]["holes"][0]
+    assert saved["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert saved["manual_x_mm"] == 0
+    assert saved["datum_snapshot"] == basis
+    assert state["quantity"]["versions"][0]["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "CONFIRMED"
