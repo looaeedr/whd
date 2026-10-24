@@ -78,9 +78,16 @@ def _nfb_config_proof_sha256(config: Mapping[str, object]) -> str:
 
 
 def _world_coordinate(value, unit_id):
-    if type(value) not in (int, float) or not isfinite(float(value)):
-        raise ValueError(f"NFB {unit_id} requires an explicit finite WORLD X; not a draft X offset")
-    return float(value)
+    message = f"NFB {unit_id} requires an explicit finite WORLD X; not a draft X offset"
+    if type(value) not in (int, float):
+        raise ValueError(message)
+    try:
+        world_x = float(value)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError(message) from exc
+    if not isfinite(world_x):
+        raise ValueError(message)
+    return world_x
 
 
 def _active_slots(draft, *, profile):
