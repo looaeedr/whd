@@ -19,6 +19,19 @@ class GeometryError(ValueError):
     """Raised when a sheet-metal geometry definition is invalid."""
 
 
+def finite_geometry_number(value, name="dimension"):
+    """Reject bool and non-finite input before it becomes manufactured geometry."""
+    if isinstance(value, bool):
+        raise GeometryError(f"{name} must be a finite number, not bool")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise GeometryError(f"{name} must be a finite number") from exc
+    if not math.isfinite(number):
+        raise GeometryError(f"{name} must be finite")
+    return number
+
+
 @dataclass(frozen=True)
 class Vec2:
     x: float
@@ -173,16 +186,17 @@ class CornerTypeSelection:
     def __post_init__(self):
         type_id = CornerTypeId(self.type_id)
         object.__setattr__(self, "type_id", type_id)
-        object.__setattr__(self, "rotation_quadrants", int(self.rotation_quadrants) % 4)
+        rotation = finite_geometry_number(self.rotation_quadrants, "corner rotation")
+        object.__setattr__(self, "rotation_quadrants", int(rotation) % 4)
 
         mode = None if self.cross_mode is None else CrossCornerMode(self.cross_mode)
         direction = None if self.direction is None else CornerDirection(self.direction)
-        amount = None if self.amount_t is None else float(self.amount_t)
-        secondary_retain = None if self.secondary_retain_t is None else float(self.secondary_retain_t)
-        secondary_depth = None if self.secondary_depth_t is None else float(self.secondary_depth_t)
-        slot_width = None if self.slot_width is None else float(self.slot_width)
-        slot_straight_depth = None if self.slot_straight_depth is None else float(self.slot_straight_depth)
-        slot_radius = None if self.slot_radius is None else float(self.slot_radius)
+        amount = None if self.amount_t is None else finite_geometry_number(self.amount_t, "amount_t")
+        secondary_retain = None if self.secondary_retain_t is None else finite_geometry_number(self.secondary_retain_t, "secondary_retain_t")
+        secondary_depth = None if self.secondary_depth_t is None else finite_geometry_number(self.secondary_depth_t, "secondary_depth_t")
+        slot_width = None if self.slot_width is None else finite_geometry_number(self.slot_width, "slot_width")
+        slot_straight_depth = None if self.slot_straight_depth is None else finite_geometry_number(self.slot_straight_depth, "slot_straight_depth")
+        slot_radius = None if self.slot_radius is None else finite_geometry_number(self.slot_radius, "slot_radius")
 
         if type_id is CornerTypeId.CROSS:
             mode = mode or CrossCornerMode.STANDARD
