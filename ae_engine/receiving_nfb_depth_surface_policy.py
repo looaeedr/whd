@@ -387,10 +387,13 @@ def committed_receiving_flat_nfb_depth_mm(snapshot) -> float | None:
     if not all(isinstance(h,Mapping) for h in holes):
         raise ValueError("RECEIVING_FLAT_NFB_INVALID_HOLE_SOURCE")
     count=config.get("layer_count")
-    if count!=1 or any(
-        h.get("layer_count",count)!=1
-        or type(h.get("slot_index",0)) is not int
-        or h.get("slot_index",0)<0
+    # A saved bool is not a physical tier count: True == 1 in Python.
+    # Enforce the same integer-count contract as the CENTER depth resolver.
+    if type(count) is not int or count != 1 or any(
+        type(h.get("layer_count", count)) is not int
+        or h.get("layer_count", count) != 1
+        or type(h.get("slot_index", 0)) is not int
+        or h.get("slot_index", 0) < 0
         for h in holes
     ):
         raise ValueError("RECEIVING_FLAT_NFB_MULTIPLE_ROWS_NEED_DISTINCT_BASE")
