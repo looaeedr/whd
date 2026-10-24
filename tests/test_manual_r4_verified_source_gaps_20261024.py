@@ -204,3 +204,18 @@ def test_r4_70_complete_piece_datum_keeps_physical_world_mesh(monkeypatch):
     assert projection._phase6_box_body_true_world_piece_meshes(
         part, dimensions=(800., 1600., 350.), thickness=2.,
     ) == ((piece, (triangle,)),)
+
+@pytest.mark.parametrize("bad", ["23", "2,3", {2: 99}, None, True, 2, {2, 3}])
+def test_r4_57_indicator_groups_require_real_sequence_not_string_or_mapping(bad):
+    """A corrupt saved group source must not silently create extra manufacturing holes."""
+    from ae_engine.sheetmetal_features import _normalize_indicator_groups, indicator_box_outer_size
+    with pytest.raises(ValueError, match="indicator group"):
+        _normalize_indicator_groups(bad)
+    with pytest.raises(ValueError, match="indicator group"):
+        indicator_box_outer_size(bad)
+
+
+def test_r4_57_valid_indicator_groups_keep_original_formula():
+    from ae_engine.sheetmetal_features import _normalize_indicator_groups, indicator_box_outer_size
+    assert _normalize_indicator_groups([2, 3]) == (2, 3)
+    assert indicator_box_outer_size([2, 3]) == (486., 725.)

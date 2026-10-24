@@ -566,6 +566,10 @@ class DoorIndicatorContext:
 
 
 def _normalize_indicator_groups(layer_groups) -> tuple[int, ...]:
+    # Saved group counts are a sequence of physical layers; strings and maps
+    # must not masquerade as a list and synthesize a different hole pattern.
+    if not isinstance(layer_groups, (list, tuple)):
+        raise ValueError("indicator groups must be a list or tuple")
     groups = []
     for raw in layer_groups:
         if isinstance(raw, bool):
