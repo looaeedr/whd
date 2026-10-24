@@ -240,11 +240,20 @@ def test_receiving_bay_width_and_new_nfb_config_cannot_smuggle_stale_confirmed_x
     assert hole["manual_x_state"] == "RECONFIRM_REQUIRED"
     assert hole["manual_x_mm"] == 0
 
-    # No physical W change: a normal fresh, explicitly submitted NFB config
-    # remains CONFIRMED, so the guard does not block unrelated edits.
-    stable = update_receiving_bay(
+    # Even without a simultaneous W edit, a W800 datum may not be
+    # imported into an existing W750 Bay as a new "CONFIRMED" source.
+    stale = update_receiving_bay(
         layout, set_index=0, bay_index=0,
         nfb_config_submitted=True, nfb_config=_config(x=8),
+    )
+    assert stale["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    # Explicit operator-confirmed W750 datum is a different, now-current
+    # source and should not need a gratuitous second confirmation.
+    new_basis = _config(x=8)
+    new_basis["holes"][0]["datum_snapshot"]["width"] = 750
+    stable = update_receiving_bay(
+        stale, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=new_basis,
     )
     assert stable["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "CONFIRMED"
     for state in ("NONE", "UNVERIFIED_BASIS", "RECONFIRM_REQUIRED"):
@@ -254,3 +263,47 @@ def test_receiving_bay_width_and_new_nfb_config_cannot_smuggle_stale_confirmed_x
             width=780, nfb_config_submitted=True, nfb_config=config,
         )
         assert fresh["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == state
+
+
+@pytest.mark.parametrize("basis_key", [
+    "width", "w", "box_width_mm", "bay_width_mm", "outer_width_mm",
+])
+def test_receiving_bay_saved_mismatched_datum_is_invalidated_during_load(
+    tmp_path, basis_key,
+):
+    # A mismatched CONFIRMED state must be corrected at the canonical layout
+    # boundary, including old projects that bypassed the new edit callbacks.
+    source = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0, width=750,
+    )
+    config = _config(x=0)
+    config["holes"][0]["datum_snapshot"] = {basis_key: 800, "thickness": 2}
+    injected = deepcopy(source)
+    injected["sets"][0]["bays"][0]["nfb_config_submitted"] = True
+    injected["sets"][0]["bays"][0]["nfb_config"] = deepcopy(config)
+    before = deepcopy(injected)
+    canonical = normalize_receiving_layout(injected)
+    assert injected == before
+    hole = canonical["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert hole["manual_x_mm"] == 0
+    assert hole["datum_snapshot"][basis_key] == 800
+    saved = write_project(tmp_path / f"mismatch-{basis_key}.p6fold", _payload(injected))
+    reloaded = read_project(saved)["snapshot"]["receiving_layout"]["sets"][0]["bays"][0]
+    assert reloaded["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+
+
+def test_matching_new_width_basis_can_be_explicitly_reconfirmed_without_guesswork():
+    layout = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0, width=750,
+    )
+    config = _config(x=0)
+    config["holes"][0]["datum_snapshot"] = {"width": 750, "thickness": 2}
+    committed = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=config,
+    )
+    hole = committed["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "CONFIRMED"
+    assert hole["manual_x_mm"] == 0
+    assert hole["datum_snapshot"]["width"] == 750
