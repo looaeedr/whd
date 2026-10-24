@@ -388,7 +388,7 @@ def receiving_base_plate_values(snapshot):
             raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID: " + key)
         try:
             value = float(config[key])
-        except (ValueError, TypeError) as exc:
+        except (ValueError, TypeError, OverflowError) as exc:
             raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID: " + key) from exc
         if not isfinite(value):
             raise ValueError("RECEIVING_BASE_PLATE_CONFIG_INVALID: " + key)
