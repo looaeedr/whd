@@ -147,7 +147,8 @@ def test_r3_manual_116_fixed_plate_3d_export_notice_matches_real_source_bend(tmp
     assert "未有正式折線" not in seen["confirmation"]
     assert "不使用折彎補償" in seen["confirmation"]
     assert "整箱" in seen["confirmation"]
-    assert "來源平面" in seen["success"]
+    assert "含來源 BEND23" in seen["success"]
+    assert "不代表整箱正式製造放行" in seen["success"]
 
     # This is the real DXF written by the GUI's source export, not a mocked drawing.
     doc = ezdxf.readfile(str(output))
