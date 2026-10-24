@@ -441,9 +441,20 @@ def _quantity_text_box(text):
     from shapely.geometry import box
     lines = str(text.text).replace("\\P", "\n").splitlines() or [""]
     height = float(text.char_height)
+    if not math.isfinite(height) or height <= 0:
+        raise ValueError("quantity text height must be finite and positive")
     width = max(max(map(len, lines)), 1) * height * 0.8
     total_height = height * (1 + 1.5 * (len(lines) - 1))
-    attachment = int(text.attachment_point)
+    # MTEXT attachment belongs to [1..9]; an invalid stored value should
+    # preserve the insertion datum instead of indexing outside this grid.
+    try:
+        attachment = int(text.attachment_point)
+        if isinstance(text.attachment_point, bool) or attachment != float(text.attachment_point):
+            attachment = 7
+    except (TypeError, ValueError, OverflowError):
+        attachment = 7
+    if attachment < 1 or attachment > 9:
+        attachment = 7
     column = (attachment - 1) % 3
     row = (attachment - 1) // 3
     x = float(text.insert.x) - (0, width / 2, width)[column]
