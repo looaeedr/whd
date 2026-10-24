@@ -19,7 +19,9 @@ from .receiving_nfb_v5_configured_inner_door import (
 from .receiving_nfb_v5_live_base_preview import (
     project_csv_v5_onto_existing_assembly_parts,
 )
-from .receiving_nfb_model_identity import PREFIX, parse_numeric_model_ref
+from .receiving_nfb_model_identity import (
+    PREFIX, parse_numeric_model_ref, validate_stored_model_ref,
+)
 
 
 def _physical_feature_from_transport(value):
@@ -187,6 +189,15 @@ def _submitted_csv_holes(snapshot):
     ):
         raise ValueError("NFB_COMMITTED_CSV_MALFORMED_V5_IDENTITY")
     if not any(parsed):
+        # A real historic DXF name may intentionally bypass numeric V5.
+        # None, a missing model, an untrusted path or other malformed value
+        # must not silently acquire that same legacy exemption.
+        for row in rows:
+            value = row.get("model_filename") if isinstance(row, Mapping) else None
+            try:
+                validate_stored_model_ref(value)
+            except ValueError as exc:
+                raise ValueError("NFB_COMMITTED_CSV_STORED_MODEL_INVALID") from exc
         return ()
     if any(p is None for p in parsed):
         raise ValueError("NFB_COMMITTED_CSV_MIXED_UNRESOLVED_SOURCE")
