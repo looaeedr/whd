@@ -67,8 +67,11 @@ def _is_base_plate_part_key(value) -> bool:
 def _profile_value(profile, key, default=0):
     for seg in profile or ():
         if seg.get("phase6_key") == key:
-            return float(seg.get("len") or 0)
-    return float(default or 0)
+            raw_len = seg.get("len")
+            if raw_len is not None and not isinstance(raw_len, bool):
+                return float(raw_len)
+            break
+    return float(0 if default is None else default)
 
 
 def read_standard_part_profiles(part_key, profiles, original_snapshot):
@@ -215,6 +218,7 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
     values.update(dict(getattr(app, "_phase6_box_whd", {}) or {}))
     workspace = getattr(app, "designer_workspace", None)
     state = getattr(app, "state", None)
+    profiles = {}
 
     try:
         if key == "box_body":
@@ -343,7 +347,8 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
 
     from phase6_custom_parts import is_custom_part
     if is_custom_part(key):
-        values["custom_parts"] = workspace.snapshot()["custom_parts"]
+        if workspace is not None and callable(getattr(workspace, "snapshot", None)):
+            values["custom_parts"] = workspace.snapshot().get("custom_parts", ())
         from phase6_custom_fold_profiles import build_custom_part_profiles
         values["fold_profiles"] = deepcopy(profiles or build_custom_part_profiles(values,key))
     source = getattr(app, "_phase6_input_snapshot", {}) or {}

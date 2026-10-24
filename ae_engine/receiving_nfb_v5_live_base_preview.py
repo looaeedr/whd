@@ -60,8 +60,13 @@ def preview_v5_on_existing_receiving_base(
             raise ValueError("NFB V5 實體層索引不合法")
         if physical_id != f"base_plate:nfb_layer:{tier_slot_index}":
             raise ValueError("NFB V5 實體底板不是本層原始 BasePlatePartSpec")
-    if (abs(float(snapshot.get("w", 0)) - float(base_spec.width)) > _TOL
-            or abs(float(snapshot.get("t", 0)) - float(base_spec.thickness)) > _TOL):
+    raw_snap_w = snapshot.get("w")
+    raw_snap_t = snapshot.get("t")
+    if (any(isinstance(v, bool) or not isinstance(v, (int, float)) or not isfinite(float(v))
+            for v in (raw_snap_w, raw_snap_t, base_spec.width, base_spec.thickness,
+                      base_spec.height, base_spec.bend))
+            or abs(float(raw_snap_w) - float(base_spec.width)) > _TOL
+            or abs(float(raw_snap_t) - float(base_spec.thickness)) > _TOL):
         raise ValueError("NFB V5 底板寬／板厚與目前受電箱不符")
     inner = next((
         row for row in snapshot.get("inner_doors", ())
@@ -77,7 +82,11 @@ def preview_v5_on_existing_receiving_base(
     cells = derive_door_layout_cells(snapshot.get("door_layout_columns") or ())
     cell = next((v for v in cells
                  if (v.column_index, v.row_index) == (col, row)), None)
-    if cell is None or row != 0 or abs(float(cell.start_height) - 1100) > _TOL:
+    if (cell is None or row != 0
+            or isinstance(cell.start_height, bool)
+            or not isinstance(cell.start_height, (int, float))
+            or not isfinite(float(cell.start_height))
+            or abs(float(cell.start_height) - 1100) > _TOL):
         raise ValueError("NFB V5 尚未核對上方 1100 實體作用區")
     if not (0 < float(base_spec.height) <= float(cell.start_height)):
         raise ValueError("NFB V5 原始底板高度超出上方實體作用區")
@@ -135,7 +144,8 @@ def preview_v5_on_existing_receiving_base(
     outer = resolve_outer_door_placement(snapshot, door_layout_part_key(cell))
     lower = float(outer.world_offset[1])-float(cell.start_height)/2
     upper = float(outer.world_offset[1])+float(cell.start_height)/2
-    if (center_world[1]-h/2 < lower-_TOL
+    if (not all(isfinite(v) for v in (w, h, lower, upper))
+            or center_world[1]-h/2 < lower-_TOL
             or center_world[1]+h/2 > upper+_TOL):
         raise ValueError("NFB V5 底板裝配位置超出上方作用區")
     if abs(center_world[0])+float(base_spec.width)/2 > float(snapshot["w"])/2+_TOL:
@@ -270,6 +280,8 @@ def project_csv_v5_onto_existing_assembly_parts(
         )
         offset = getattr(owner, "offset", None)
         if (not isinstance(offset, (tuple, list)) or len(offset) != 3
+                or any(isinstance(v, bool) or not isinstance(v, (int, float))
+                       or not isfinite(float(v)) for v in offset)
                 or abs(float(offset[0])) > _TOL
                 or abs(float(offset[1]) - float(y.box_world_y_mm)) > _TOL):
             raise ValueError("NFB V5 組合體底板安裝位置與同層內門開孔不一致")

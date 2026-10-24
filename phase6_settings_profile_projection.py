@@ -481,7 +481,7 @@ def merge_keyed_profiles(existing_profiles, default_profiles):
             for seg in existing
             if seg.get("phase6_key")
         }
-        if not set(default_by_key).issubset(existing_keys):
+        if not default_by_key or not set(default_by_key).issubset(existing_keys):
             result[axis] = defaults
             continue
         for seg in existing:

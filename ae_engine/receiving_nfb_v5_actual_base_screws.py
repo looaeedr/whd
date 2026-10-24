@@ -125,8 +125,11 @@ def trial_v5_screws_on_existing_receiving_base(
             if physical is None:
                 raise ValueError("PAD NFB 缺少 CSV 型號來源")
             pad_sources.append(physical)
+        raw_t = snapshot.get("t")
+        if isinstance(raw_t, bool) or not isinstance(raw_t, (int, float)):
+            raise ValueError("PAD 板厚必須為有限正數")
         generated = generate_nfb_pad_patterns(
-            pad_sources, plate_thickness_mm=float(snapshot["t"]),
+            pad_sources, plate_thickness_mm=raw_t,
             tooling=read_pad_tooling_rule(),
         )
         pad_by_selected_index = {p.switch_index:p for p in generated}

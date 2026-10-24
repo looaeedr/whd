@@ -936,7 +936,7 @@ def _bind_editor_events(s):
                                 focus_started_cadcraft_window,
                             )
                             pid = getattr(process, "pid", None)
-                            if isinstance(pid, int) and pid > 0:
+                            if not isinstance(pid, bool) and isinstance(pid, int) and pid > 0:
                                 def focus_new_cadcraft(attempt=0):
                                     if not s.editor.winfo_exists():
                                         return

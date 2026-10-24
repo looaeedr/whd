@@ -142,16 +142,18 @@ class Phase6SettingsPanelOwnedRenderMixin:
 
         row = 1
         if mode in {"two_w", "three_w"}:
+            seam_raw = projection.get("seam_bend")
+            seam_val = 12 if seam_raw is None else seam_raw
             self._owned_structure_entry(
                 frame,
                 row,
                 "中央接合折邊",
-                projection.get("seam_bend", 12),
+                seam_val,
                 active_type,
                 "seam_bend",
             )
             row += 1
-            seam = float(projection.get("seam_bend", 12) or 0)
+            seam = float(seam_val or 0)
             if seam >= 50:
                 ttk.Label(
                     frame,

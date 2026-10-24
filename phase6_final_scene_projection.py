@@ -110,7 +110,10 @@ def _phase6_profile_map_with_guides(position, cross_position, profile, *, axis, 
 
 def _phase6_profile_map(position, boundaries, folded):
     """Map one unfolded scalar to a folded cross-section coordinate (u, z)."""
+    import math
     value = float(position)
+    if not math.isfinite(value):
+        value = 0.0
     total = float(boundaries[-1])
     value = min(max(value, 0.0), total)
     index = len(boundaries) - 2
@@ -302,9 +305,14 @@ def _phase6_fold_ownership_exemptions(material, xb, yb):
 
 
 def _default_number_text(value):
+    import math
+    if isinstance(value, bool):
+        return str(value)
     try:
         number = float(value)
     except (TypeError, ValueError):
+        return str(value)
+    if not math.isfinite(number):
         return str(value)
     nearest_int = round(number)
     if abs(number - nearest_int) <= 1e-9:

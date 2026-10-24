@@ -16,6 +16,7 @@ from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 import hashlib
 import json
+import math
 from numbers import Integral, Real
 from typing import Any
 
@@ -86,7 +87,10 @@ def freeze_manufacturing_value(value: Any) -> Any:
     if isinstance(value, Integral):
         return int(value)
     if isinstance(value, Real):
-        return round(float(value), 12)
+        num = float(value)
+        if not math.isfinite(num):
+            raise ValueError(f"non-finite float is not valid manufacturing DTO data: {value!r}")
+        return round(num, 12)
     if callable(value):
         raise TypeError(f"callable is not valid manufacturing DTO data: {value!r}")
     if isinstance(value, Mapping):
@@ -284,7 +288,12 @@ class ManufacturingResolveRequest:
 
         object.__setattr__(self, "assembly_intent", str(self.assembly_intent or ""))
         object.__setattr__(self, "allow_3d_fallback", bool(self.allow_3d_fallback))
-        object.__setattr__(self, "relief_clearance", round(float(self.relief_clearance or 0.0), 12))
+        if isinstance(self.relief_clearance, bool):
+            raise TypeError("relief_clearance must be a real number, not bool")
+        rc_val = float(0.0 if self.relief_clearance is None else self.relief_clearance)
+        if not math.isfinite(rc_val):
+            raise ValueError("relief_clearance must be finite")
+        object.__setattr__(self, "relief_clearance", round(rc_val, 12))
         object.__setattr__(self, "cabinet_model", str(self.cabinet_model or ""))
 
     def semantic_payload(self) -> FrozenMapping:

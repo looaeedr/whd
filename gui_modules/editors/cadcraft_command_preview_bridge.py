@@ -51,7 +51,10 @@ def open_cadcraft_hole_editor(exchange_dxf: Path, *, executable=None, launcher=N
     import subprocess
     from .cadcraft_preview_bridge import find_cadcraft_gui
 
-    path = Path(exchange_dxf).resolve(strict=True)
+    try:
+        path = Path(exchange_dxf).resolve(strict=True)
+    except (OSError, TypeError, ValueError) as exc:
+        raise CadcraftCommandProofError("CADCRAFT_EDIT_EXCHANGE_INVALID") from exc
     if not path.is_file() or path.suffix.lower() != ".dxf":
         raise CadcraftCommandProofError("CADCRAFT_EDIT_EXCHANGE_INVALID")
     binary = find_cadcraft_gui(configured=executable)
@@ -135,7 +138,10 @@ def prepare_whd_cadcraft_commands(*, surface, features: Sequence,
     """Read-only WHD authority check; captures immutable geometry for worker."""
     if isinstance(width, bool) or isinstance(height, bool):
         raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
-    w,h=float(width),float(height)
+    try:
+        w, h = float(width), float(height)
+    except (TypeError, ValueError) as exc:
+        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS") from exc
     if not all(math.isfinite(v) and v>0 for v in (w,h)):
         raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
     originals=tuple(features)

@@ -8,7 +8,7 @@ and contact with the base require an independent physical-skin mating proof.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isclose
+from math import isclose, isfinite
 
 from shapely.geometry import Polygon
 
@@ -53,15 +53,28 @@ def build_nfb_pad_draft_part(
     if pattern.tooling_revision != rule.revision:
         raise ValueError("PAD 共用加工規則已修改，需重新計算")
     p = rule.tab_projection_mm
-    a, b = pattern.bend_stations_x_mm
+    if (not isinstance(pattern.bend_stations_x_mm, (tuple, list))
+            or len(pattern.bend_stations_x_mm) != 2):
+        raise ValueError("PAD 共用折線與含凸耳外框不一致")
+    a_raw, b_raw = pattern.bend_stations_x_mm
+    raw_nums = (
+        a_raw, b_raw, pattern.formed_height_mm, pattern.blank_width_mm,
+        pattern.side_leg_blank_mm, pattern.centre_web_blank_mm,
+        pattern.plate_thickness_mm,
+    )
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not isfinite(float(v))
+           for v in raw_nums):
+        raise ValueError("PAD 共用折線與含凸耳外框不一致")
+    a, b = float(a_raw), float(b_raw)
     h = float(pattern.formed_height_mm)
     total_w = float(pattern.blank_width_mm) + 2*p
-    expected = (pattern.side_leg_blank_mm + p,
-                pattern.side_leg_blank_mm + p + pattern.centre_web_blank_mm)
+    expected = (float(pattern.side_leg_blank_mm) + p,
+                float(pattern.side_leg_blank_mm) + p + float(pattern.centre_web_blank_mm))
     if (not all(isclose(x,y,abs_tol=1e-7) for x,y in zip((a,b),expected))
             or not (0 < a < b < total_w)
             or not isclose(total_w-b,a,abs_tol=1e-7)
-            or h <= 0):
+            or h <= 0
+            or float(pattern.plate_thickness_mm) <= 0):
         raise ValueError("PAD 共用折線與含凸耳外框不一致")
     contour = Polygon(pattern.unfolded_outline_xy_mm)
     if (not contour.is_valid or not isclose(contour.area,

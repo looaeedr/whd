@@ -45,10 +45,13 @@ def inspect_pad_base_seating(skin, pad_draft) -> PadBaseSeatingWitness:
             or not skin.four_tab_mesh_mating_verified):
         raise ValueError("PAD_FIT_REAL_OWNER_AND_FOUR_CUTS_REQUIRED")
     p=pad_draft.pattern
+    if any(isinstance(v, bool) or not isinstance(v, (int, float))
+           for v in (p.plate_thickness_mm, skin.base_front_world_z_mm, p.rise_mm)):
+        raise ValueError("PAD_FIT_ACTUAL_Z_SOURCE_MISSING")
     t=float(p.plate_thickness_mm)
     base=float(skin.base_front_world_z_mm)
     bounds=triangle_bounds(skin.world_triangles)
-    if bounds is None or not isfinite(t) or t <= 0 or not isfinite(base):
+    if bounds is None or not isfinite(t) or t <= 0 or not isfinite(base) or not isfinite(float(p.rise_mm)):
         raise ValueError("PAD_FIT_ACTUAL_Z_SOURCE_MISSING")
     low,high=map(float,bounds[2])
     if (not isfinite(low) or not isfinite(high)

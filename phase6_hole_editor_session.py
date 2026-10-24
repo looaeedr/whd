@@ -238,6 +238,8 @@ class Phase6HoleEditorSession:
         if commit:
             # Confirm All 保留目前畫面上的 transient 結果，但不需要再建立 Undo，
             # 因為 editor 即將關閉。
+            for state in self._contexts.values():
+                state.original = list(state.features)
             self._active_before = None
         else:
             for state in self._contexts.values():

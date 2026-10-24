@@ -124,9 +124,14 @@ def _require_source_derived_real_plate(snapshot, base_spec):
     values = receiving_base_plate_values(snapshot)
     if values is None:
         raise ValueError("CSV_BASE_EXPORT_PHYSICAL_SOURCE_UNRESOLVED")
+    raw_w = snapshot.get("w")
+    raw_t = snapshot.get("t")
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not isfinite(float(v))
+           for v in (raw_w, raw_t)):
+        raise ValueError("CSV_BASE_EXPORT_PARTSPEC_VS_LIVE_SOURCE_MISMATCH")
     expected = {
-        "width": float(snapshot["w"]), "height": values["h"],
-        "thickness": float(snapshot["t"]),
+        "width": float(raw_w), "height": values["h"],
+        "thickness": float(raw_t),
         "shrink_top": values["base_plate_shrink_top"],
         "shrink_bottom": values["base_plate_shrink_bottom"],
         "shrink_left": values["base_plate_shrink_left"],
@@ -136,7 +141,10 @@ def _require_source_derived_real_plate(snapshot, base_spec):
     if (base_spec.receiving_bend_pattern != values["receiving_bend_pattern"]
             or str(base_spec.model_name or "").strip() not in ("受電箱", "RECEIVING")
             or base_spec.features
-            or any(abs(float(getattr(base_spec, key)) - float(v)) > 1e-6
+            or any(isinstance(getattr(base_spec, key), bool)
+                   or not isinstance(getattr(base_spec, key), (int, float))
+                   or not isfinite(float(getattr(base_spec, key)))
+                   or abs(float(getattr(base_spec, key)) - float(v)) > 1e-6
                    for key, v in expected.items())
             or tuple(base_spec.receiving_nfb_depth_pair_mm or ())
                 != tuple(values["receiving_nfb_depth_pair_mm"] or ())):

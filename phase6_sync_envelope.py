@@ -10,17 +10,31 @@ import json
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
+from enum import Enum
 from types import MappingProxyType
 from typing import Any
 
 
 def _json_default(value):
-    enum_value = getattr(value, "value", None)
-    if enum_value is not None:
-        return enum_value
-    if isinstance(value, set):
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, (set, frozenset)):
         return sorted(value, key=repr)
     return repr(value)
+
+
+def _strict_equal(before, after) -> bool:
+    if isinstance(before, bool) != isinstance(after, bool):
+        return False
+    if isinstance(before, Mapping) and isinstance(after, Mapping):
+        if set(before.keys()) != set(after.keys()):
+            return False
+        return all(_strict_equal(before[k], after[k]) for k in before)
+    if isinstance(before, (list, tuple)) and isinstance(after, (list, tuple)):
+        if type(before) is not type(after) or len(before) != len(after):
+            return False
+        return all(_strict_equal(b, a) for b, a in zip(before, after))
+    return before == after
 
 
 def stable_fingerprint(value) -> str:
@@ -46,7 +60,7 @@ def actual_delta(before, after):
             if child is not _UNCHANGED:
                 out[key] = child
         return out if out else _UNCHANGED
-    if before == after:
+    if _strict_equal(before, after):
         return _UNCHANGED
     return deepcopy(after)
 

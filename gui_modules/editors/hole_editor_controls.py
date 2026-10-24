@@ -7,6 +7,7 @@ remain in their existing AE modules.
 
 from __future__ import annotations
 
+import math
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -64,7 +65,7 @@ class HoleEditorCatalogControls:
         self.redraw()
 
     def on_catalog_double_click(self, event=None, source_list=None):
-        source = source_list or (event.widget if event is not None else self.catalog_list)
+        source = source_list if source_list is not None else (event.widget if event is not None else self.catalog_list)
         if event is not None:
             idx = source.nearest(event.y)
             if 0 <= idx < source.size():
@@ -200,18 +201,22 @@ class HoleEditorIndicatorStateCollector:
         groups = []
         for var in self.group_vars_provider():
             try:
-                groups.append(max(1, int(var.get())))
-            except ValueError:
+                groups.append(max(1, min(8, int(var.get()))))
+            except (TypeError, ValueError):
                 groups.append(2)
         while len(groups) < 6:
             groups.append(2)
         try:
             offset_x = float(self.offset_x_var_provider().get())
-        except ValueError:
+            if not math.isfinite(offset_x):
+                offset_x = 0.0
+        except (TypeError, ValueError):
             offset_x = 0.0
         try:
             offset_y = float(self.offset_y_var_provider().get())
-        except ValueError:
+            if not math.isfinite(offset_y):
+                offset_y = 0.0
+        except (TypeError, ValueError):
             offset_y = 0.0
         return self.normalize_state({
             "mode": mode_var.get(),
@@ -237,9 +242,9 @@ class HoleEditorIndicatorGroupControls:
         for child in self.groups_frame.winfo_children():
             child.destroy()
         try:
-            layers = max(1, min(6, int(self.layers_var.get())))
-        except ValueError:
-            layers = 1
+            layers = max(1, min(len(self.group_vars), min(6, int(self.layers_var.get()))))
+        except (TypeError, ValueError):
+            layers = min(1, len(self.group_vars))
         for i in range(layers):
             tk.Label(
                 self.groups_frame, text=f"{i+1}層", bg=self.panel_bg, fg=self.muted_color,

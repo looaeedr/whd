@@ -505,7 +505,9 @@ def draw_door_layout_overview_preview(host, snapshot, canvas):
     top_margin, bottom_margin = 48.0, 24.0
     avail_w = max(1.0, cw - left_margin - right_margin)
     avail_h = max(1.0, ch - top_margin - bottom_margin)
-    scale = min(avail_w / total_w, avail_h / total_h)
+    safe_total_w = max(1.0, float(total_w)) if total_w and total_w > 0 else 1.0
+    safe_total_h = max(1.0, float(total_h)) if total_h and total_h > 0 else 1.0
+    scale = min(avail_w / safe_total_w, avail_h / safe_total_h)
     draw_w = total_w * scale
     draw_h = total_h * scale
     x0 = left_margin + (avail_w - draw_w) / 2.0
@@ -555,7 +557,7 @@ def draw_door_layout_overview_preview(host, snapshot, canvas):
                 y1,
                 y2,
             )
-            _ = cell_map[(column_index, row_index)]
+            _ = cell_map.get((column_index, row_index))
             _draw_door_layout_cell_payload(
                 host,
                 canvas,

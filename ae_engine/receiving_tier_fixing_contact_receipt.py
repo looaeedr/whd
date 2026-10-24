@@ -35,6 +35,8 @@ class TierFixingContactReceipt:
 
 
 def _same(lhs, rhs):
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in (lhs, rhs)):
+        return False
     return (isfinite(float(lhs)) and isfinite(float(rhs))
             and isclose(float(lhs), float(rhs), rel_tol=0,
                         abs_tol=TOLERANCE_MM))
@@ -126,8 +128,12 @@ def validate_receiving_tier_fixing_contact_receipts(
                     or metadata.get("nfb_tier_real_skin_z_resolved") is not True):
                 raise ValueError("EAR_RECEIPT_ACTUAL_BASE_LAYER_SOURCE_DRIFT")
         local = dict(physical)
+        from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+        center_fold = (local.get("receiving_bend_pattern")
+                       == RECEIVING_BASE_PATTERN_CENTER)
         local["receiving_nfb_depth_pair_mm"] = (
-            tuple(depth.source_depths_mm) if len(depth.source_depths_mm) == 2
+            tuple(depth.source_depths_mm)
+            if center_fold and len(depth.source_depths_mm) == 2
             else None
         )
         front, _ = receiving_base_actual_local_nfb_skins(snapshot, local)

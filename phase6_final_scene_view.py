@@ -539,10 +539,16 @@ def _phase6_scale_current_3d_limits(owner, ratio):
 
 
 def _phase6_adjust_zoom_scale(owner, direction):
+    import math
     view = getattr(owner, "final_scene_view", None)
     if view is not None:
         return view.adjust_zoom_scale(direction)
-    old = float(getattr(owner, "_phase6_zoom_scale", 1.0) or 1.0)
+    try:
+        old = float(getattr(owner, "_phase6_zoom_scale", 1.0) or 1.0)
+    except (TypeError, ValueError):
+        old = 1.0
+    if not math.isfinite(old) or old <= 0.0:
+        old = 1.0
     if str(direction).lower() == "up":
         new = max(_PHASE6_ZOOM_MIN, old * _PHASE6_ZOOM_STEP)
     elif str(direction).lower() == "down":

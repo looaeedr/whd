@@ -102,8 +102,12 @@ def resolve_receiving_tier_ear_mating_xy(
         return ()
     if len(centers) not in (1, 2):
         raise ValueError("RECEIVING_EAR_XY_UNSUPPORTED_NFB_TIER_COUNT")
-    w=float(snapshot["w"])
-    t=float(snapshot["t"])
+    raw_w = snapshot.get("w")
+    raw_t = snapshot.get("t")
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in (raw_w, raw_t)):
+        raise ValueError("EAR 焊接腳距來源寬度或板厚無效")
+    w=float(raw_w)
+    t=float(raw_t)
     x_pitch = receiving_source_fixing_pitch_x_mm(
         box_outer_width_mm=w, box_side_thickness_mm=t,
     )

@@ -90,13 +90,21 @@ def create_manual_return_ticket(*, output: Path, features, session,
     if (session.has_active_edit or len(originals) > 100
             or snapshot.features != originals or not all(map(_eligible, originals))):
         raise CadcraftCommandProofError("UNSUPPORTED_OR_DIRTY_WHD_SOURCE")
-    w, h = float(width), float(height)
+    if isinstance(width, bool) or isinstance(height, bool):
+        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
+    try:
+        w, h = float(width), float(height)
+    except (TypeError, ValueError) as exc:
+        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS") from exc
     if not all(math.isfinite(v) and v > 0 for v in (w, h)):
         raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
     expected = (from_whd_resolved(
         tuple(resolve_surface_features(surface, originals, w, h))
     ) if originals else ())
-    path = Path(output).resolve(strict=True)
+    try:
+        path = Path(output).resolve(strict=True)
+    except (OSError, TypeError, ValueError) as exc:
+        raise CadcraftCommandProofError("RETURN_DXF_NOT_FOUND_OR_EMPTY") from exc
     data = _read_limited(path)
     if expected:
         verify_dxf(path, expected)

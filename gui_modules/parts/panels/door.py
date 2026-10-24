@@ -4,6 +4,7 @@ Door-layout committed structures remain owned by the existing authoritative
 host/controller seam during T4.
 """
 
+import copy
 import tkinter as tk
 from tkinter import ttk, messagebox
 from whd_theme import configure_tk_menu
@@ -19,7 +20,7 @@ def collect_door_input(payload):
         "model",
     ):
         if key in data:
-            result[key] = data[key]
+            result[key] = copy.deepcopy(data[key])
     return result
 
 def _parse_layout_value(var, label):
@@ -388,10 +389,14 @@ def rebuild_door_layers_config_ui(host):
     for widget in host.door_layers_config_frame.winfo_children():
         widget.destroy()
 
+    max_layers = min(6, len(getattr(host, "door_indicator_layer_g_vars", ())))
     try:
-        layers = int(host.door_indicator_l_var.get())
-    except ValueError:
-        layers = 1
+        raw_layers = host.door_indicator_l_var.get()
+        if isinstance(raw_layers, bool):
+            raise ValueError("bool is not a valid layer count")
+        layers = max(1, min(max_layers, int(raw_layers))) if max_layers > 0 else 0
+    except (TypeError, ValueError):
+        layers = 1 if max_layers > 0 else 0
 
     for ly in range(layers):
         ly_frame = tk.Frame(host.door_layers_config_frame, bg=host.COLOR_PANEL)

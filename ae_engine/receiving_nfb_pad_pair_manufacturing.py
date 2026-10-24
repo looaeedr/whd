@@ -154,8 +154,13 @@ def export_verified_pad_base_part_only(
                 raise ValueError("PAD_PAIR_TIER_BASE_PHYSICAL_SOURCE_NOT_VERIFIED")
         if set(metadata.get("nfb_v5_hole_ids") or ())!=expected_ids[parent_id]:
             raise ValueError("PAD_PAIR_BASE_NFB_HOLE_TIER_OWNER_DRIFT")
-        if set(dict(metadata.get("nfb_v5_pad_square_owners") or ()))!={
-                row.owner_hole_id for row in members}:
+        raw_owners = tuple(metadata.get("nfb_v5_pad_square_owners") or ())
+        expected_owners = {(row.owner_hole_id, 4) for row in members}
+        if (len(raw_owners) != len(members)
+                or any(not isinstance(item, (tuple, list)) or len(item) != 2
+                       or type(item[1]) is not int
+                       for item in raw_owners)
+                or {(item[0], item[1]) for item in raw_owners} != expected_owners):
             raise ValueError("PAD_PAIR_BASE_PAD_SQUARE_TIER_OWNER_DRIFT")
         _require_real_base_cutting_only(
             parent,len(expected_ids[parent_id]),len(members))

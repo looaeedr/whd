@@ -622,9 +622,6 @@ def _phase6_signature_canonical_value(value):
     if isinstance(value, (set, frozenset)):
         normalized = [_phase6_signature_canonical_value(item) for item in value]
         return tuple(sorted(normalized, key=repr))
-    enum_value = getattr(value, "value", None)
-    if enum_value is not None:
-        return _phase6_signature_canonical_value(enum_value)
     return repr(value)
 
 

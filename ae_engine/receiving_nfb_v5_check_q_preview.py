@@ -223,7 +223,9 @@ def check_csv_v5_base_part_only_groups(
                 recalculated.screw_centres_uv_mm, start=1
             ):
                 observed = actual_screws[f"{hole_id}:screw:{index}"]
-                if (abs(observed.center.x - x) > 1e-6
+                if (not all(isfinite(float(v)) for v in (
+                        observed.center.x, observed.center.y, observed.radius, x, y))
+                        or abs(observed.center.x - x) > 1e-6
                         or abs(observed.center.y - y) > 1e-6
                         or abs(observed.radius - diameter / 2) > 1e-6
                         or observed.color != 30):

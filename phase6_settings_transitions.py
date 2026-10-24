@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+import math
 from typing import Any, Mapping
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
@@ -142,9 +143,13 @@ def normalize_updates(
         elif isinstance(settings_values.get(key), bool):
             value = bool(raw)
         else:
+            if isinstance(raw, bool):
+                continue
             try:
                 value = float(raw)
             except (TypeError, ValueError):
+                continue
+            if not math.isfinite(value):
                 continue
         if external_apply_guard and settings_values.get(key) == value:
             continue
@@ -207,7 +212,11 @@ def apply_box_structure_numeric(
 ) -> dict:
     kind = BoxBodyStructureType(type_id)
     field = str(field)
+    if isinstance(value, bool):
+        raise ValueError("尺寸與結構參數必須為有限數值")
     value = float(value)
+    if not math.isfinite(value):
+        raise ValueError("尺寸與結構參數必須為有限數值")
     if (
         kind is BoxBodyStructureType.TWO_PIECE_W_SPLIT
         and field in {"left", "right"}
@@ -602,23 +611,30 @@ def plan_external_sync(
         return ExternalSyncPlan(
             False, current_revision, "", {}, "WRONG_ORIGIN"
         )
+    raw_rev = raw.get("revision", 0)
+    if isinstance(raw_rev, bool):
+        return ExternalSyncPlan(
+            False, current_revision, "", {}, "INVALID_REVISION"
+        )
     try:
-        revision = int(raw.get("revision", 0) or 0)
-    except (TypeError, ValueError):
+        revision = int(raw_rev or 0)
+    except (TypeError, ValueError, OverflowError):
         return ExternalSyncPlan(
             False, current_revision, "", {}, "INVALID_REVISION"
         )
     if revision <= current_revision:
         return ExternalSyncPlan(
             False,
-            revision,
+            current_revision,
             str(raw.get("transaction_id") or ""),
             {},
             "STALE_REVISION",
         )
     transaction_id = str(raw.get("transaction_id") or "")
-    delta = dict(raw.get("delta") or {})
-    settings = dict(delta.get("settings") or {})
+    raw_delta = raw.get("delta")
+    delta = dict(raw_delta) if isinstance(raw_delta, Mapping) else {}
+    raw_settings = delta.get("settings")
+    settings = dict(raw_settings) if isinstance(raw_settings, Mapping) else {}
     return ExternalSyncPlan(
         True, revision, transaction_id, settings, "OK"
     )

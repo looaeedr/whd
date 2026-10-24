@@ -128,7 +128,7 @@ class CadcraftControlClient:
             raise CadcraftControlError("CADCRAFT_INVALID_ENTITY_COUNTS")
         if sum(counts.values()) != len(rows) or len(rows) > limit:
             raise CadcraftControlError("CADCRAFT_INSPECTION_TRUNCATED")
-        if total < len(rows):
+        if total != len(rows):
             raise CadcraftControlError("CADCRAFT_INSPECTION_COUNT_INCONSISTENT")
         handles = set()
         for row in rows:

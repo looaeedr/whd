@@ -5,6 +5,9 @@ selection semantics.
 """
 
 
+import copy
+
+
 def collect_multipart_input(payload):
     """Copy existing multipart presentation/input values without deriving state."""
-    return dict(payload or {})
+    return {k: copy.deepcopy(v) for k, v in dict(payload or {}).items()}

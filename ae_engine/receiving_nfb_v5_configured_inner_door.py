@@ -144,7 +144,7 @@ def trial_configured_nfb_v5_inner_door_render_data(
                 + x_world - float(placement.world_offset[0]))
         recovered = (float(placement.world_offset[0])
                      + uv_x - panel.fold_left - core_width / 2.0)
-        if abs(x_world - recovered) > 1e-7:
+        if not isfinite(uv_x) or not isfinite(recovered) or abs(x_world - recovered) > 1e-7:
             raise ValueError("NFB V5 裝配 X 到內門展開 UV 反算不一致")
         y = project_nfb_inner_door_nominal_y(
             snapshot, inner_door_id,

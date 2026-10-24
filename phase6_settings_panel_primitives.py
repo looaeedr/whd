@@ -15,9 +15,14 @@ class SettingsPanelExtensionResult:
     state: object = None
 
 def setting_number_text(value) -> str:
+    import math
+    if isinstance(value, bool):
+        return str(value)
     try:
         number = float(value)
     except (TypeError, ValueError):
+        return str(value)
+    if not math.isfinite(number):
         return str(value)
     nearest_int = round(number)
     if abs(number - nearest_int) <= 1e-9:

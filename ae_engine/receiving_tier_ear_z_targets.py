@@ -118,7 +118,7 @@ def _tier_source_depths(legacy_brand, config, layer_index):
         if not isinstance(hole, Mapping):
             raise ValueError("EAR_Z_SOURCE_HOLE_INVALID")
         tier = hole.get("layer_index", 0 if count == 1 else None)
-        if tier != layer_index:
+        if type(tier) is not int or tier != layer_index:
             continue
         filename = hole.get("model_filename")
         if not isinstance(filename, str) or not filename:
@@ -176,7 +176,10 @@ def resolve_receiving_tier_base_z_targets(
     if len(upper) != 1:
         raise ValueError("EAR_Z_UNIQUE_INNER_DOOR_REQUIRED")
     door_id = str(upper[0]["stable_id"])
-    t = float(snapshot["t"])
+    raw_t = snapshot.get("t")
+    if isinstance(raw_t, bool) or not isinstance(raw_t, (int, float)):
+        raise ValueError("EAR_Z_BASE_THICKNESS_INVALID")
+    t = float(raw_t)
     if not isfinite(t) or t <= 0:
         raise ValueError("EAR_Z_BASE_THICKNESS_INVALID")
     groups = {}
@@ -243,11 +246,15 @@ def resolve_receiving_tier_ear_contact_targets(
     }
     if len({r.ear_id for r in rows}) != len(rows):
         raise ValueError("EAR_Z_DUPLICATE_PHYSICAL_EAR")
+    raw_w = snapshot.get("w")
+    raw_t = snapshot.get("t")
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in (raw_w, raw_t)):
+        raise ValueError("EAR_Z_BASE_THICKNESS_INVALID")
     pitch_x = receiving_source_fixing_pitch_x_mm(
-        box_outer_width_mm=float(snapshot["w"]),
-        box_side_thickness_mm=float(snapshot["t"]),
+        box_outer_width_mm=float(raw_w),
+        box_side_thickness_mm=float(raw_t),
     )
-    inside_x = float(snapshot["w"])/2.0 - float(snapshot["t"])
+    inside_x = float(raw_w)/2.0 - float(raw_t)
     output = []
     for row in rows:
         side_sign = {"left": -1.0, "right": 1.0}.get(row.side)

@@ -57,8 +57,11 @@ def committed_nfb_pad_draft_parts(snapshot: Mapping) -> tuple[NfbPadDraftPart, .
             if spec is None or not spec.dimensionally_complete:
                 raise ValueError("PAD_OPERATOR_2D_MODEL_SOURCE_INCOMPLETE")
             specs.append(spec)
+        raw_t = snapshot.get("t")
+        if isinstance(raw_t, bool) or not isinstance(raw_t, (int, float)):
+            raise ValueError("PAD 板厚必須為有限正數")
         patterns = generate_nfb_pad_patterns(
-            specs, plate_thickness_mm=float(snapshot["t"]), tooling=tooling,
+            specs, plate_thickness_mm=raw_t, tooling=tooling,
         )
         parent = ("base_plate" if layers == 1
                   else f"base_plate:nfb_layer:{tier}")

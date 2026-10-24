@@ -154,6 +154,8 @@ class HoleEditorCanvasRenderer:
                     state["is_box_dist"]
                     and context["door_frame_width"] is not None
                     and context["door_thickness"] is not None
+                    and context["door_gap_w"] is not None
+                    and context["door_gap_h"] is not None
                 ):
                     position = self.measure_door_indicator_position(
                         layout, indicator_context,

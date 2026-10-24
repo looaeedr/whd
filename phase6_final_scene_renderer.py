@@ -832,7 +832,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         _scale_current_3d_limits(self.renderer, ratio)
 
     def adjust_zoom_scale(self, direction):
-        old = float(self.zoom_scale or 1.0)
+        import math
+        try:
+            old = float(self.zoom_scale or 1.0)
+        except (TypeError, ValueError):
+            old = 1.0
+        if not math.isfinite(old) or old <= 0.0:
+            old = 1.0
         if str(direction).lower() == "up":
             new = max(_PHASE6_ZOOM_MIN, old * _PHASE6_ZOOM_STEP)
         elif str(direction).lower() == "down":
@@ -845,7 +851,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
     def on_scroll(self, event):
         if getattr(event, "inaxes", None) is not self.renderer.ax3d:
             return
-        old = float(self.zoom_scale or 1.0)
+        import math
+        try:
+            old = float(self.zoom_scale or 1.0)
+        except (TypeError, ValueError):
+            old = 1.0
+        if not math.isfinite(old) or old <= 0.0:
+            old = 1.0
         new = self.adjust_zoom_scale(getattr(event, "button", ""))
         if abs(new - old) <= 1e-12:
             return
@@ -961,8 +973,14 @@ def _configure_3d_only_figure(renderer):
 
 
 def _scale_current_3d_limits(renderer, ratio):
+    import math
     ax = renderer.ax3d
-    ratio = float(ratio)
+    try:
+        ratio = float(ratio)
+    except (TypeError, ValueError):
+        return
+    if not math.isfinite(ratio) or ratio <= 0.0:
+        return
     for getter, setter in (
         (ax.get_xlim3d, ax.set_xlim3d),
         (ax.get_ylim3d, ax.set_ylim3d),

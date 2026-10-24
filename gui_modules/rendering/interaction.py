@@ -14,10 +14,24 @@ def door_layout_cell_at_canvas_point(bounds_by_key, x, y):
     """Return (column_index, row_index) for a point inside one visible cell."""
     for key, bounds in dict(bounds_by_key or {}).items():
         x1, y1, x2, y2 = bounds
-        if x1 <= x <= x2 and y1 <= y <= y2:
+        if min(x1, x2) <= x <= max(x1, x2) and min(y1, y2) <= y <= max(y1, y2):
+            if isinstance(key, tuple) and len(key) == 2:
+                return int(key[0]), int(key[1])
             column_index, row_index = (int(part) for part in str(key).split(":", 1))
             return column_index, row_index
     return None
+
+
+def _safe_event_time_ms(event) -> int:
+    raw = getattr(event, "time", 0)
+    if not isinstance(raw, bool):
+        try:
+            parsed = int(raw or 0)
+            if parsed > 0:
+                return parsed
+        except (TypeError, ValueError):
+            pass
+    return int(time.monotonic() * 1000)
 
 
 def on_door_canvas_press(host, event):
@@ -29,9 +43,7 @@ def on_door_canvas_press(host, event):
             host._door_layout_last_click = None
             return "break"
 
-        event_time = int(getattr(event, "time", 0) or 0)
-        if not event_time:
-            event_time = int(time.monotonic() * 1000)
+        event_time = _safe_event_time_ms(event)
         last = host._door_layout_last_click
         is_manual_double = False
         if last is not None:
@@ -152,9 +164,7 @@ def on_box_body_canvas_press(host, event):
         host._box_body_face_last_click = None
         return "break"
 
-    event_time = int(getattr(event, "time", 0) or 0)
-    if not event_time:
-        event_time = int(time.monotonic() * 1000)
+    event_time = _safe_event_time_ms(event)
 
     last = host._box_body_face_last_click
     is_manual_double = False

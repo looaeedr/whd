@@ -237,12 +237,15 @@ class Phase6HoleEditorCanvasView:
             widget.place(x=int(left), y=int(top), anchor=tk.NW)
 
     def _build_transform(self, frame, cw, ch):
+        import math
         minx, miny, maxx, maxy = frame.surface.polygon.bounds
         guide = frame.reference_guide
         gminx = float(guide.min_point.x)
         gminy = float(guide.min_point.y)
         gmaxx = float(guide.max_point.x)
         gmaxy = float(guide.max_point.y)
+        if not all(math.isfinite(float(v)) for v in (minx, miny, maxx, maxy)):
+            minx, miny, maxx, maxy = gminx, gminy, gmaxx, gmaxy
         extra = frame.extra_bounds
         view_minx = min(minx, gminx, extra[0] if extra else gminx)
         view_miny = min(miny, gminy, extra[1] if extra else gminy)
@@ -271,7 +274,8 @@ class Phase6HoleEditorCanvasView:
         coords = []
         for point in frame.surface.outline:
             coords.extend(tr.world_to_canvas(point))
-        canvas.create_polygon(*coords, outline="#30d158", fill="", width=2)
+        if len(coords) >= 6:
+            canvas.create_polygon(*coords, outline="#30d158", fill="", width=2)
 
         if frame.baseline_scene is not None:
             self._render_secondary_scene(canvas, frame.baseline_scene, tr)

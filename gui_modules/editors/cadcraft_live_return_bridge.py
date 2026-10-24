@@ -56,10 +56,10 @@ def capture_unsaved_cadcraft_return(
         raise CadcraftCommandProofError("WHD_CADCRAFT_RETURN_TICKET_REQUIRED")
     if process is not None and process.poll() is not None:
         raise CadcraftCommandProofError("CADCRAFT_CONTROL_PROCESS_EXITED")
-    origin = Path(ticket.output).resolve(strict=True)
     try:
+        origin = Path(ticket.output).resolve(strict=True)
         source = origin.read_bytes()
-    except OSError as exc:
+    except (OSError, TypeError, ValueError) as exc:
         raise CadcraftCommandProofError("CADCRAFT_ISSUED_SOURCE_NOT_READABLE") from exc
     if sha256(source).hexdigest() != ticket.original_sha256:
         raise CadcraftCommandProofError("CADCRAFT_ISSUED_SOURCE_CHANGED")
@@ -68,7 +68,10 @@ def capture_unsaved_cadcraft_return(
             or original_state.features != ticket.original):
         raise CadcraftCommandProofError("STALE_OR_MODIFIED_WHD_SESSION")
     control = client if client is not None else CadcraftControlClient(port, timeout=4.0)
-    before = control.inspect()
+    try:
+        before = control.inspect()
+    except CadcraftControlError as exc:
+        raise CadcraftCommandProofError(f"CADCRAFT_CONTROL_INSPECT_FAILED:{exc}") from exc
     if (before.space.lower() != "model" or not _same_document(origin, before.path)
             or len(before.entities) > 100):
         raise CadcraftCommandProofError("CADCRAFT_CONTROL_WRONG_ACTIVE_DOCUMENT")
@@ -79,7 +82,10 @@ def capture_unsaved_cadcraft_return(
         })
     except CadcraftControlError as exc:
         raise CadcraftCommandProofError("CADCRAFT_CONTROL_BYTES_UNAVAILABLE") from exc
-    after = control.inspect()
+    try:
+        after = control.inspect()
+    except CadcraftControlError as exc:
+        raise CadcraftCommandProofError(f"CADCRAFT_CONTROL_INSPECT_FAILED:{exc}") from exc
     if before != after:
         raise CadcraftCommandProofError("CADCRAFT_CONTROL_DRAWING_CHANGED_DURING_CAPTURE")
     if ticket.session.snapshot() != original_state:

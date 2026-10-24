@@ -349,4 +349,7 @@ def box_body_baseline_faces(host, val, *, ae_module):
                 tail_corner_policy=tail_policy,
             )
         )
-    return host._box_body_baseline_face_cache[cache_key]
+    return {
+        k: list(v)
+        for k, v in host._box_body_baseline_face_cache[cache_key].items()
+    }
