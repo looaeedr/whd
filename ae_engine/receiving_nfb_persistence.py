@@ -120,6 +120,24 @@ def normalize_nfb_saved_fields(row):
     if not has_config or row["nfb_config"] is None:
         raise ValueError("submitted NFB must preserve its actual NFBConfig")
     config = normalize_nfb_config(row["nfb_config"])
+    # Explicit source model/angle authority belongs to each physical hole,
+    # even when a caller has not supplied the enclosing Bay width yet.
+    for hole in config["holes"]:
+        if hole["manual_x_state"] != "CONFIRMED":
+            continue
+        snapshot = hole.get("datum_snapshot") or {}
+        stale_rotation = (
+            "rotation_deg" in snapshot
+            and (type(snapshot["rotation_deg"]) is not int
+                 or snapshot["rotation_deg"] != hole["rotation_deg"])
+        )
+        stale_model = (
+            "model_filename" in snapshot
+            and (not isinstance(snapshot["model_filename"], str)
+                 or snapshot["model_filename"] != hole["model_filename"])
+        )
+        if stale_rotation or stale_model:
+            hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     physical_width = row.get("width")
     if physical_width is not None:
         # Every persisted ReceivingLayout Bay carries its own actual width.
@@ -159,26 +177,7 @@ def normalize_nfb_saved_fields(row):
                 parse_numeric_model_ref(hole.get("model_filename")) is not None
                 and not known_widths
             )
-            # Respect *explicitly recorded* datum identity beyond width.
-            # Never infer a rotation/model basis when an older snapshot
-            # does not contain that field. But if it exists and disagrees,
-            # preserving CONFIRMED would silently reapprove stale world-X.
-            recorded_rotation = snapshot.get("rotation_deg")
-            stale_rotation = (
-                "rotation_deg" in snapshot and (
-                    type(recorded_rotation) is not int
-                    or recorded_rotation != hole["rotation_deg"]
-                )
-            )
-            recorded_model = snapshot.get("model_filename")
-            stale_model = (
-                "model_filename" in snapshot and (
-                    not isinstance(recorded_model, str)
-                    or recorded_model != hole["model_filename"]
-                )
-            )
-            if (missing_v5_width_proof or stale_rotation or stale_model
-                    or any(
+            if (missing_v5_width_proof or any(
                         type(value) not in (int, float)
                         or not isfinite(float(value))
                         or abs(float(value) - bay_width) > 1e-7
