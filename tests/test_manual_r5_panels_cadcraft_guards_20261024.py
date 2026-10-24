@@ -58,3 +58,43 @@ def test_r5_95_divider_null_depth_and_thickness_use_parent_defaults():
                 "divider", {"door_layout_columns": [(bad, (600.,))]},
                 default_depth=250., default_thickness=2.,
             )
+
+
+@pytest.mark.parametrize("bad_mode", [[], {}, ["indicator"], {"kind": "indicator"}])
+def test_r5_94_unhashable_saved_indicator_mode_recovers_without_type_error(bad_mode):
+    """Saved presentation state is not authoritative geometry and must recover safely."""
+    state = normalize_door_indicator_state({
+        "mode": bad_mode, "enabled": True, "groups": [2, 3],
+    })
+    assert state["mode"] == "indicator"
+    assert state["enabled"] is True
+    assert state["groups"] == [2, 3, 2, 2, 2, 2]
+
+
+def test_r5_73_readonly_mapping_is_converted_to_real_sheet_feature(monkeypatch):
+    """The physical-sheet owner must accept a read-only Mapping, not only dict."""
+    from dataclasses import dataclass
+    from types import MappingProxyType
+    import ae_engine.physical_sheet_features as physical
+    from ae_engine.sheetmetal_features import CircleFeature
+
+    @dataclass(frozen=True)
+    class _Render:
+        scene: object
+        material: object = None
+
+    captured = {}
+
+    def resolve_surface(_surface, features, _width, _height):
+        captured["features"] = features
+        return ()
+
+    monkeypatch.setattr(physical, "physical_sheet_feature_context", lambda *_: (None, 800., 1600., None))
+    monkeypatch.setattr(physical.ae, "resolve_surface_features", resolve_surface)
+    monkeypatch.setattr(physical, "resolved_features_to_primitives", lambda _: ())
+    monkeypatch.setattr(physical, "material_polygon_from_final_scene", lambda _: None)
+    hole = MappingProxyType({"type": "圓形", "x": 70., "y": 80., "params": {"diameter": 12.}})
+    result = physical.with_physical_sheet_features("door", _Render(physical.DrawingScene()), (hole,))
+    assert isinstance(captured["features"][0], CircleFeature)
+    assert captured["features"][0].diameter == 12.
+    assert result.scene is not None

@@ -302,7 +302,7 @@ def normalize_door_indicator_state(state):
     """Repair stale indicator presentation inputs without inventing geometry."""
     raw = dict(state or {})
     mode = raw.get("mode")
-    if mode not in {"none", "indicator", "indicator_box"}:
+    if not isinstance(mode, str) or mode not in {"none", "indicator", "indicator_box"}:
         if raw.get("box_enabled"):
             mode = "indicator_box"
         elif raw.get("enabled"):
