@@ -115,10 +115,19 @@ class NfbPartialExportManifest:
         known={r.part_id:r for r in self.rows}
         if len(known)!=len(self.rows):
             raise ValueError("NFB duplicate physical part BLOCKED in export manifest")
+        # A typed manifest from a different Set/Bay/version or a changed
+        # submission identity must not authorize DXF after preflight.
+        if (self.scope.submitted is not self.nfb_config_submitted
+                or any((row.set_id, row.bay_id, row.version_id)
+                       != self.scope.identity for row in self.rows)):
+            raise ValueError("NFB manifest physical owner BLOCKED: Set/Bay/version")
         for part in requested:
             if part not in known:
                 raise ValueError("NFB export part not in current physical scene")
             row=known[part]
+            if (part == self.scope.inner_door_part_id
+                    and row.role != INNER_DOOR):
+                raise ValueError("NFB requested physical part BLOCKED: inner-door role")
             # A forged typed report may carry a truthy integer/string or
             # inconsistent status. Neither is manufacturing authorization.
             # Preserve unconfigured historical LEGACY only for unsubmitted
