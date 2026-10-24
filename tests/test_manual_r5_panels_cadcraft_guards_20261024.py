@@ -149,7 +149,10 @@ def test_r5_79_reference_edge_move_keeps_authoritative_valid_position():
         surface, (circle,), 0, ReferenceAnchor.CENTER,
         100., 100., axis="x", mode="edge", value=30.,
     )
-    assert placed.offset == Vec2(30., 40.)
+    # Placement is allowed to re-anchor to panel center; test the true
+    # finished-face point rather than a non-authoritative stored offset.
+    from ae_engine.sheetmetal_features import feature_finished_point
+    assert feature_finished_point(placed, 100., 100.) == Vec2(30., 40.)
     with pytest.raises(ValueError, match="reference feature index"):
         move_feature_by_reference_distance(
             surface, (circle, circle), True, ReferenceAnchor.CENTER,
