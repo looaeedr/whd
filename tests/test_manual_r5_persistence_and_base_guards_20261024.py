@@ -221,3 +221,46 @@ def test_r5_76_dxf_readback_rejects_nonfinite_area_tolerance_on_real_changed_cut
     blocked = api.verify_saved_part_render_data_dxf(render, path, area_tolerance=float("nan"))
     assert blocked.ok is False
     assert blocked.issues[0].category == "INVALID_TOLERANCE"
+
+@pytest.mark.parametrize("origin,normal", [
+    ((0., 0.), (0., 0., 1.)),
+    ((0., 0., float("nan")), (0., 0., 1.)),
+    ((0., 0., 0.), (0., 0.)),
+    ((0., 0., 0.), (0., float("inf"), 1.)),
+])
+def test_r5_77_expected_mating_coverage_must_fail_closed_on_bad_plane(origin, normal):
+    """Old R5 #77 RED: 2D origin must not raise a bare IndexError."""
+    from ae_engine.joint_marking_policy import (
+        ResolvedPhysicalMatingRegion, validate_expected_region_coverage,
+    )
+    triangle = ((0., 0., 0.), (10., 0., 0.), (10., 10., 0.))
+    source = ResolvedPhysicalMatingRegion(
+        part_id="panel", region_id="contact", region_role="locator",
+        physical_face_kind="flat",
+        supporting_plane=(origin, normal), outward_normal=normal,
+        world_polygon=triangle,
+    )
+    result = validate_expected_region_coverage(source, triangle)
+    assert result.status == "SKIPPED_FAIL_CLOSED"
+    assert result.diagnostic_code == "OVERLAP_AUTHORITY_MISSING"
+
+
+def test_r5_77_expected_mating_coverage_rejects_nonfinite_world_polygon_and_keeps_valid_contact():
+    from ae_engine.joint_marking_policy import (
+        ResolvedPhysicalMatingRegion, validate_expected_region_coverage,
+    )
+    triangle = ((0., 0., 0.), (10., 0., 0.), (10., 10., 0.))
+    source = ResolvedPhysicalMatingRegion(
+        part_id="panel", region_id="contact", region_role="locator",
+        physical_face_kind="flat",
+        supporting_plane=((0., 0., 0.), (0., 0., 1.)),
+        outward_normal=(0., 0., 1.), world_polygon=triangle,
+    )
+    good = validate_expected_region_coverage(source, triangle)
+    assert good.status == "COVERED"
+    invalid = validate_expected_region_coverage(
+        source,
+        ((0., 0., 0.), (10., float("nan"), 0.), (10., 10., 0.)),
+    )
+    assert invalid.status == "SKIPPED_FAIL_CLOSED"
+    assert invalid.diagnostic_code == "OVERLAP_AUTHORITY_MISSING"
