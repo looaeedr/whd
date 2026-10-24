@@ -440,6 +440,14 @@ def test_ac14_swt11_real_3d_mesh_is_source_owned_after_reload_and_hole_edit(
     assert _canonical_cutting_scene_shapes(new_parts[0]) != (
         _canonical_cutting_scene_shapes(original_parts[0])
     )
-    assert _canonical_cutting_scene_shapes(new_parts[1]) == (
+    # The corresponding base screw-hole set must move in step with the
+    # inner-door source. The cabinet-centred physical sheet itself does not.
+    assert _canonical_cutting_scene_shapes(new_parts[1]) != (
         _canonical_cutting_scene_shapes(original_parts[1])
+    )
+    assert new_parts[1].render_data.unfolded_topology == (
+        original_parts[1].render_data.unfolded_topology
+    )
+    assert new_parts[1].render_data.fold_guides == (
+        original_parts[1].render_data.fold_guides
     )
