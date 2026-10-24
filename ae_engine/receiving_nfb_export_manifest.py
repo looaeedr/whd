@@ -101,11 +101,20 @@ class NfbPartialExportManifest:
         if self.nfb_config_submitted and not partial and not self.whole_ready:
             raise ValueError("NFB whole manufacturing not ready; partial only")
         known={r.part_id:r for r in self.rows}
+        if len(known)!=len(self.rows):
+            raise ValueError("NFB duplicate physical part BLOCKED in export manifest")
         for part in requested:
             if part not in known:
                 raise ValueError("NFB export part not in current physical scene")
-            if not known[part].may_export:
-                raise ValueError("NFB requested physical part BLOCKED: "+part)
+            row=known[part]
+            # A forged typed report may carry a truthy integer/string or
+            # inconsistent status. Neither is manufacturing authorization.
+            # Preserve unconfigured historical LEGACY only for unsubmitted
+            # scopes and unrelated proven UNAFFECTED physical parts.
+            valid_status=(READY,UNAFFECTED) if self.nfb_config_submitted else (LEGACY,)
+            if (row.may_export is not True or row.status not in valid_status
+                    or type(row.actual_count) is not int or row.actual_count < 1):
+                raise ValueError("NFB requested physical part BLOCKED: "+str(part))
         return requested
 
     def report(self):
