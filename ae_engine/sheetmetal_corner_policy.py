@@ -157,12 +157,34 @@ def compose_corner_residual(
         raise GeometryError("截角殘差必須為有限數值")
     if (residual.secondary_u is None) != (residual.secondary_depth is None):
         raise GeometryError("第二級截角參數不完整")
+    # CornerTypeSelection validates user input, but this public composer also
+    # accepts standalone CornerTypeResidual values from other callers.
+    # Never allow bool to be interpreted as a real 1 mm secondary cut.
+    if residual.secondary_u is not None and (
+        isinstance(residual.secondary_u, bool)
+        or not math.isfinite(float(residual.secondary_u))
+    ):
+        raise GeometryError("第二級截角尺寸必須為有限數值")
     slot_fields = (residual.slot_width, residual.slot_straight_depth, residual.slot_radius)
     if any(value is not None for value in slot_fields):
         if not all(value is not None for value in slot_fields):
             raise GeometryError("十字截角槽參數不完整")
         if any(isinstance(v, bool) or not math.isfinite(float(v)) for v in slot_fields):
             raise GeometryError("十字截角槽參數必須為有限值")
+        slot_width, slot_straight_depth, slot_radius = map(float, slot_fields)
+        if any(v <= 0.0 for v in (slot_width, slot_straight_depth, slot_radius)):
+            raise GeometryError("十字截角槽參數必須大於 0")
+        if 2.0 * slot_radius > slot_width + DEFAULT_TOLERANCE:
+            raise GeometryError("十字截角槽 R 不可大於槽寬的一半")
+    if allow_axis_swap:
+        if isinstance(rotation_quadrants, bool):
+            raise GeometryError("截角旋轉必須為整數")
+        try:
+            rotation = float(rotation_quadrants)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise GeometryError("截角旋轉必須為整數") from exc
+        if not math.isfinite(rotation) or not rotation.is_integer():
+            raise GeometryError("截角旋轉必須為有限整數")
     if allow_axis_swap and int(rotation_quadrants) % 2:
         du, dv = dv, du
     primary_u = fu + float(du)

@@ -427,6 +427,8 @@ PYTEST_PATHS = (
     "tests/test_manual_r6_lazy_mesh_profile_material_bounds_20261024.py",
     # R6 raw Box Body W / join / side Fold ingresses reject nonfinite and boolean sizes.
     "tests/test_manual_r6_box_body_split_finite_ingress_20261024.py",
+    # R6 direct corner residuals may never bypass cross-slot or secondary-cut validity.
+    "tests/test_manual_r6_corner_composition_validity_20261024.py",
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
