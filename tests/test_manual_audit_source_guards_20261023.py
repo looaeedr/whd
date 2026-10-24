@@ -102,3 +102,23 @@ def test_nonfinite_manufacturing_inputs_never_alias_literal_cache_key():
         with pytest.raises(ValueError, match="nonfinite manufacturing signature"):
             _phase6_signature_canonical_value(invalid)
     assert _phase6_signature_canonical_value((1, 2.)) == (1., 2.)
+
+@pytest.mark.parametrize("bad", [True, False])
+def test_r6_96_mapped_skin_world_point_never_accepts_boolean_millimetres(bad):
+    """A saved boolean cannot be interpreted as X=1 or X=0 in 3D MARKING."""
+    source = SimpleNamespace(
+        world=((0., 0., 0.), (1., 0., 0.), (0., 1., 0.)),
+        flat=((0., 0.), (1., 0.), (0., 1.)),
+    )
+    assert backproject_mapped_skin_world_points((source,), ((.25, .25, 0.),)).status == "RESOLVED"
+    result = backproject_mapped_skin_world_points((source,), ((bad, 0., 0.),))
+    assert result.status == "SKIPPED_FAIL_CLOSED"
+    assert result.flat_points == ()
+
+
+def test_r6_96_world_vector_and_tolerance_refuse_boolean_inputs():
+    with pytest.raises(ValueError, match="degenerate vector"):
+        _normalize((True, 0., 0.), 1e-6)
+    with pytest.raises(ValueError):
+        vector_unit((2., 0., 0.), tolerance=True)
+    assert vector_unit((2., 0., 0.), tolerance=1e-6) == (1., 0., 0.)
