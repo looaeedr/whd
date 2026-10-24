@@ -157,7 +157,8 @@ def _invalidate_effective_rotation_x(slot):
     slot.pop("datum_revision", None)
     if slot["manual_x_mm"] is not None:
         slot["manual_x_state"] = (
-            RECONFIRM if slot["manual_x_state"] == "CONFIRMED" else UNVERIFIED
+            RECONFIRM if slot["manual_x_state"] in ("CONFIRMED", RECONFIRM)
+            else UNVERIFIED
         )
     else:
         slot["manual_x_state"] = NONE
