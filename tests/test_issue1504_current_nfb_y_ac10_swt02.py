@@ -173,3 +173,39 @@ def test_nfb_ac10_fresh_original_editor_keeps_current_330_830_not_legacy_overrid
             "layer_heights_mm": heights,
         })
         assert stored["layer_heights_mm"] == heights
+
+
+@pytest.mark.parametrize("invalid", [
+    [10 ** 400, 830.0], [330.0, 10 ** 400],
+    [True, 830.0], [330.0, False],
+    [float("nan"), 830.0], [330.0, float("inf")],
+    [830.0, 330.0],
+])
+def test_nfb_ac10_current_y_height_saved_candidate_invalid_source_fails_closed(invalid):
+    """Saved/current V5 physical Y cannot escape typed shared input validation."""
+    from ae_engine.receiving_shared_settings import validate_setting
+    from ae_engine.receiving_inner_door_candidates import (
+        validate_door_config, create_inner_candidate,
+    )
+    with pytest.raises(ValueError, match="第一層／第二層高度須為正數"):
+        validate_setting("inner_door_layer_heights_mm", invalid)
+    draft = {"layers": 2, "models": ["", ""], "layer_heights_mm": invalid}
+    with pytest.raises(ValueError, match="第一層／第二層高度須為正數"):
+        validate_door_config(draft)
+    with pytest.raises(ValueError, match="第一層／第二層高度須為正數"):
+        create_inner_candidate(None, draft)
+
+
+@pytest.mark.parametrize("operator_heights", [
+    [330.0, 830.0], [410.0, 910.0], [550.0, 800.0],
+])
+def test_nfb_ac10_current_y_height_candidate_roundtrips_valid_source(operator_heights):
+    from ae_engine.receiving_inner_door_candidates import (
+        create_inner_candidate, inner_config,
+    )
+    candidate, name = create_inner_candidate(None, {
+        "layers": 2, "models": ["", ""],
+        "layer_heights_mm": operator_heights,
+    })
+    assert inner_config(candidate, name)["layer_heights_mm"] == operator_heights
+    assert operator_heights == list(operator_heights)
