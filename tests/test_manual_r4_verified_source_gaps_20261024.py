@@ -306,3 +306,54 @@ def test_r4_69_certified_collision_allowance_requires_real_zero_penetration_coun
     assert frozenset(("box_body:divider:verified", "box_body:left_side")) in approved
     diagnostic.evidence["post"]["true_thickness_penetrating_band_count"] = invalid_count
     assert _certified_pair_allowances((diagnostic,)) == frozenset()
+
+def test_r4_51_final_scene_headless_owner_obeys_box_piece_and_nfb_tier_visibility():
+    """Re-run original R4 #51 against CURRENT adapter, not the old stale branch."""
+    from types import SimpleNamespace
+    from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
+
+    class Var:
+        def __init__(self, value):
+            self.value = value
+        def get(self):
+            return self.value
+        def set(self, value):
+            self.value = value
+
+    namespace = {
+        "_setting_number_text": str,
+        "_phase6_part_label": lambda key, snapshot=None: str(key),
+        "_phase6_render_data_corner_dimension_text": lambda *a, **kw: "",
+        "_phase6_render_data_for_blank": lambda *a, **kw: None,
+        "_phase6_is_box_body_physical_piece_key": lambda key: str(key).startswith("box_body:"),
+        "_phase6_box_body_piece_render_data": lambda *a, **kw: None,
+        "_phase6_resolve_manufacturing_geometry": lambda *a, **kw: None,
+        "_phase6_scene_query_payload_for_part": lambda *a, **kw: {},
+        "_phase6_current_cabinet_family": lambda *a, **kw: "受電箱",
+        "_phase6_mesh_profiles_for_part": lambda *a, **kw: (),
+        "_phase6_query_final_render_data": lambda *a, **kw: None,
+        "_phase6_final_scene_view_request": lambda *a, **kw: None,
+        "_phase6_update_assembly_diagnostic_status": lambda *a, **kw: None,
+    }
+    app = SimpleNamespace(
+        _phase6_assembly_panel_owner=None,
+        assembly_part_visible_vars={
+            "box_body": Var(True), "base_plate": Var(False), "door": Var(True),
+        },
+        assembly_box_body_piece_visible_vars={
+            "box_body:left": Var(False), "box_body:right": Var(True),
+        },
+    )
+    ports = Phase6FoldDesignerComposition(app).final_scene_ports(namespace)
+    parts = (
+        SimpleNamespace(part_key="box_body", render_data=SimpleNamespace(
+            pieces=(SimpleNamespace(role="left"), SimpleNamespace(role="right")),
+        )),
+        SimpleNamespace(part_key="base_plate"),
+        SimpleNamespace(part_key="base_plate:nfb_layer:0"),
+        SimpleNamespace(part_key="door"),
+    )
+    keys, visible_pieces = ports.assembly_visibility(parts)
+    assert "box_body" in keys and "door" in keys
+    assert "base_plate" not in keys and "base_plate:nfb_layer:0" not in keys
+    assert visible_pieces == ("box_body:right",)
