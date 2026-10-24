@@ -379,3 +379,21 @@ def test_ac23_live_bay_width_source_mismatch_blocks_confirmed_submit(bad_width):
         )
     assert original == frozen
     assert "nfb_config" not in original["sets"][0]["bays"][0]
+
+
+def test_ac23_copied_bay_stale_width_rejects_before_transaction():
+    """Copy needs its own Bay's X authority, not the source Bay approval."""
+    first = do_submit(layout()).layout
+    frozen = deepcopy(first)
+    destination = config(owner="nfb:1:slot1", x=100)
+    destination["holes"][0]["datum_snapshot"]["width"] = 750
+    with pytest.raises(ValueError, match="operator confirmation"):
+        copy_submitted_nfb_bay(
+            first,
+            set_index=0, source_bay_index=0, target_bay_index=1,
+            version_id="v1", target_config=destination,
+            evidence=evidence(first, 1, x=100),
+            confirm=lambda _: True,
+        )
+    assert first == frozen
+    assert "nfb_config" not in first["sets"][0]["bays"][1]
