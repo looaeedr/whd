@@ -363,11 +363,19 @@ def test_ac23_live_bay_width_source_mismatch_blocks_confirmed_submit(bad_width):
         snapshot.pop("width")
     else:
         snapshot["width"] = bad_width
-    # Source proof matching the current X/Y does NOT authorize the stale Bay datum.
+    # Keep the CUTTING proof's model identity aligned even for numeric V5,
+    # so this assertion isolates the missing/stale physical Bay width.
+    current_evidence = evidence(original, 0)
+    if bad_width is None:
+        scope, inventory, verified = current_evidence
+        current_evidence = (
+            scope, inventory,
+            replace(verified, indexed_model_key=("士林", "nfbv5:士林:2P400")),
+        )
     with pytest.raises(ValueError, match="operator confirmation|Bay|datum|reconfirm"):
         do_submit(
             original, configs={0: supplied},
-            evidences={0: evidence(original, 0)},
+            evidences={0: current_evidence},
         )
     assert original == frozen
     assert "nfb_config" not in original["sets"][0]["bays"][0]
