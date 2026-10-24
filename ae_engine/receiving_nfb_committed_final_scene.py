@@ -162,8 +162,12 @@ def _source_world_x_from_committed_editor_feature(
 def _submitted_csv_holes(snapshot):
     """Get canonical selected Bay's full config; no separate editor authority."""
     if (not isinstance(snapshot, Mapping)
-            or snapshot.get("model") not in ("受電箱", "RECEIVING")
-            or snapshot.get("nfb_config_submitted") is not True):
+            or snapshot.get("model") not in ("受電箱", "RECEIVING")):
+        return ()
+    submitted = snapshot.get("nfb_config_submitted", False)
+    if type(submitted) is not bool:
+        raise ValueError("NFB_COMMITTED_CSV_SUBMISSION_FACT_INVALID")
+    if not submitted:
         return ()
     config = snapshot.get("nfb_config")
     if not isinstance(config, Mapping):
