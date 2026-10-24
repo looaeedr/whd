@@ -127,6 +127,34 @@ def normalize_nfb_saved_fields(row):
     if not has_config or row["nfb_config"] is None:
         raise ValueError("submitted NFB must preserve its actual NFBConfig")
     config = normalize_nfb_config(row["nfb_config"])
+    # Explicit source model/angle authority belongs to each physical hole,
+    # even when a caller has not supplied the enclosing Bay width yet.
+    for hole in config["holes"]:
+        if hole["manual_x_state"] != "CONFIRMED":
+            continue
+        snapshot = hole.get("datum_snapshot") or {}
+        stale_rotation = (
+            "rotation_deg" in snapshot
+            and (type(snapshot["rotation_deg"]) is not int
+                 or snapshot["rotation_deg"] != hole["rotation_deg"])
+        )
+        stale_model = (
+            "model_filename" in snapshot
+            and (not isinstance(snapshot["model_filename"], str)
+                 or snapshot["model_filename"] != hole["model_filename"])
+        )
+        # A saved physical Bay has a stable identity. Compare it only when
+        # both the datum and this concrete Bay actually record one. Quantity
+        # version rows and old pre-ID snapshots must not invent a Bay owner.
+        bay_owner = row.get("stable_id")
+        stale_bay = (
+            "bay_id" in snapshot
+            and isinstance(bay_owner, str) and bool(bay_owner)
+            and (not isinstance(snapshot["bay_id"], str)
+                 or snapshot["bay_id"] != bay_owner)
+        )
+        if stale_rotation or stale_model or stale_bay:
+            hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     physical_width = row.get("width")
     if physical_width is not None:
         # Every persisted ReceivingLayout Bay carries its own actual width.
@@ -166,12 +194,12 @@ def normalize_nfb_saved_fields(row):
                 parse_numeric_model_ref(hole.get("model_filename")) is not None
                 and not known_widths
             )
-            if missing_v5_width_proof or any(
-                type(value) not in (int, float)
-                or not isfinite(float(value))
-                or abs(float(value) - bay_width) > 1e-7
-                for value in known_widths
-            ):
+            if (missing_v5_width_proof or any(
+                        type(value) not in (int, float)
+                        or not isfinite(float(value))
+                        or abs(float(value) - bay_width) > 1e-7
+                        for value in known_widths
+                    )):
                 hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     return {
         "nfb_config_submitted": True,

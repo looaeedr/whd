@@ -136,3 +136,99 @@ def test_no_unapproved_geometry_or_persistence_fields():
     result=nfb_ui1a_preview(d,bay_width_mm=600,upper_cell_height_mm=1100)
     assert not result["can_manufacture"]
     assert all(x["absolute_x_mm"] is None for x in result["layers"])
+
+
+def test_ac23_brand_reselection_revokes_only_changed_effective_x_datum():
+    from copy import deepcopy
+    from ae_engine.receiving_nfb_ui1a_edits import (
+        NfbUi1aEditSession, editable_nfb_draft, set_nfb_manual_x,
+    )
+
+    initial = editable_nfb_draft(_draft())
+    for index, offset in ((0, 0), (1, 14.5)):
+        initial = set_nfb_manual_x(
+            initial, 0, index, offset, datum={"width": 800, "brand": "士林"},
+        )
+        part = initial["layers"][0]["slots"][index]
+        part["manual_x_state"] = "CONFIRMED"
+        part["datum_revision"] = "old-brand-source"
+    initial = set_nfb_slot_brand(initial, 0, 0, mode=OVERRIDE, value="士林")
+    frozen = deepcopy(initial)
+    session = NfbUi1aEditSession(initial)
+
+    # Set brand changes but explicitly same-brand unit keeps source authority.
+    assert session.apply("SET_BRAND", reconcile_set_brand, "東元")
+    first, second = session.current["layers"][0]["slots"]
+    assert first == frozen["layers"][0]["slots"][0]
+    assert second["manual_x_mm"] == 14.5
+    assert second["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert second["datum_snapshot"] is None
+    assert "datum_revision" not in second
+    assert session.undo().action == "SET_BRAND"
+    assert session.current == frozen and initial == frozen
+
+    # Same effective brand does not gratuitously invalidate prior X proof.
+    no_op = set_nfb_layer_brand(initial, 0, mode=OVERRIDE, value="士林")
+    assert no_op["layers"][0]["slots"][0]["datum_revision"] == "old-brand-source"
+    assert no_op["layers"][0]["slots"][1]["datum_revision"] == "old-brand-source"
+    overridden = set_nfb_slot_brand(initial, 0, 0, mode=OVERRIDE, value="東元")
+    changed = overridden["layers"][0]["slots"][0]
+    assert changed["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert changed["manual_x_mm"] == 0
+    assert changed["datum_snapshot"] is None
+    assert "datum_revision" not in changed
+    assert overridden["layers"][0]["slots"][1] == initial["layers"][0]["slots"][1]
+
+
+def test_ac23_repeated_effective_brand_changes_preserve_reconfirm_required():
+    from ae_engine.receiving_nfb_ui1a_edits import (
+        editable_nfb_draft, set_nfb_manual_x,
+    )
+
+    original = editable_nfb_draft(_draft())
+    original = set_nfb_manual_x(original, 0, 0, 0)
+    original["layers"][0]["slots"][0]["manual_x_state"] = "RECONFIRM_REQUIRED"
+    original["layers"][0]["slots"][0]["datum_revision"] = "old-world-x"
+    first = reconcile_set_brand(original, "東元")
+    assert first["layers"][0]["slots"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert "datum_revision" not in first["layers"][0]["slots"][0]
+    second = reconcile_set_brand(first, "士林")
+    assert second["layers"][0]["slots"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert second["layers"][0]["slots"][0]["manual_x_mm"] == 0
+    assert original["layers"][0]["slots"][0]["datum_revision"] == "old-world-x"
+
+
+def test_ac23_direct_model_selection_cannot_reuse_approved_old_x_datum():
+    """All editor model-selection callers share the same source invalidation."""
+    from copy import deepcopy
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    from ae_engine.receiving_nfb_ui1a_edits import (
+        editable_nfb_draft, replace_nfb_slot_model, set_nfb_manual_x,
+    )
+
+    first = numeric_model_ref("士林", "2P400")
+    second = numeric_model_ref("士林", "3P125SN")
+    options = {"士林": (first, second)}
+    original = editable_nfb_draft(new_nfb_ui1a_draft(
+        set_brand="士林", layer_count=1, model_layers=([first], ""),
+    ))
+    original = set_nfb_manual_x(original, 0, 0, 0, datum={"width": 800})
+    source = original["layers"][0]["slots"][0]
+    source["manual_x_state"] = "CONFIRMED"
+    source["datum_revision"] = "old-model-datum"
+    frozen = deepcopy(original)
+
+    direct = select_nfb_slot_model(original, 0, 0, second, catalog=options)
+    row = direct["layers"][0]["slots"][0]
+    assert row["manual_x_mm"] == 0
+    assert row["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert row["datum_snapshot"] is None
+    assert "datum_revision" not in row
+    assert direct["layers"][0]["slots"][0]["filename"] == second
+
+    wrapped = replace_nfb_slot_model(original, 0, 0, second, catalog=options)
+    assert wrapped["layers"][0]["slots"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert select_nfb_slot_model(
+        original, 0, 0, first, catalog=options,
+    )["layers"][0]["slots"][0] == source
+    assert original == frozen

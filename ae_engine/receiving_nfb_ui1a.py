@@ -62,11 +62,37 @@ def new_nfb_ui1a_draft(*, set_brand, layer_count=1, model_layers=("", "")):
             "layers": rows, "status": PREVIEW_ONLY}
 
 
+def _revoke_changed_brand_x(before, updated):
+    """Never reuse another effective brand's operator-confirmed X source."""
+    for layer_index, layer in enumerate(updated["layers"]):
+        for slot_index, slot in enumerate(layer["slots"]):
+            if (effective_nfb_slot_brand(before, layer_index, slot_index)
+                    == effective_nfb_slot_brand(updated, layer_index, slot_index)):
+                continue
+            # Bare UI-1A preview slots do not yet have any X evidence.
+            if not any(k in slot for k in (
+                    "manual_x_mm", "manual_x_state",
+                    "datum_snapshot", "datum_revision")):
+                continue
+            slot["datum_snapshot"] = None
+            slot.pop("datum_revision", None)
+            if slot.get("manual_x_mm") is None:
+                slot["manual_x_state"] = "NONE"
+            else:
+                slot["manual_x_state"] = (
+                    "RECONFIRM_REQUIRED"
+                    if slot.get("manual_x_state") in (
+                        "CONFIRMED", "RECONFIRM_REQUIRED"
+                    ) else "UNVERIFIED_BASIS"
+                )
+    return updated
+
+
 def reconcile_set_brand(draft, new_brand):
     """Retain file and provenance on brand change, never replace automatically."""
     updated = deepcopy(draft)
     updated["set_brand"] = _brand(new_brand)
-    return updated
+    return _revoke_changed_brand_x(draft, updated)
 
 
 def set_nfb_draft_layer_count(draft, count):
@@ -83,14 +109,14 @@ def set_nfb_layer_brand(draft, layer_index, *, mode, value=None):
     updated = deepcopy(draft)
     _check_layer(updated, layer_index)
     updated["layers"][layer_index]["brand"] = _override(mode, value)
-    return updated
+    return _revoke_changed_brand_x(draft, updated)
 
 
 def set_nfb_slot_brand(draft, layer_index, slot_index, *, mode, value=None):
     updated = deepcopy(draft)
     slot = _get_slot(updated, layer_index, slot_index)
     slot["brand"] = _override(mode, value)
-    return updated
+    return _revoke_changed_brand_x(draft, updated)
 
 
 def add_nfb_draft_slot(draft, layer_index, *, filename=None, source_brand=None):
@@ -123,6 +149,23 @@ def select_nfb_slot_model(draft, layer_index, slot_index, filename, *,
         from .receiving_nfb_model_identity import selected_numeric_spec
         if selected_numeric_spec(actual, filename) is None:
             raise ValueError("NFB V5 model identity/source does not match effective brand CSV")
+    if ((slot.get("filename"), slot.get("source_brand"))
+            != (filename, actual) and any(
+                field in slot for field in (
+                    "manual_x_mm", "manual_x_state",
+                    "datum_snapshot", "datum_revision"
+                ))):
+        # The unwrapped selection API is also called by other UI paths.
+        # Never leave the prior model's world-X proof attached to this unit.
+        slot["datum_snapshot"] = None
+        slot.pop("datum_revision", None)
+        if "manual_x_mm" in slot or "manual_x_state" in slot:
+            if slot.get("manual_x_mm") is None:
+                slot["manual_x_state"] = "NONE"
+            elif slot.get("manual_x_state") in ("CONFIRMED", "RECONFIRM_REQUIRED"):
+                slot["manual_x_state"] = "RECONFIRM_REQUIRED"
+            else:
+                slot["manual_x_state"] = "UNVERIFIED_BASIS"
     slot["filename"] = filename
     slot["source_brand"] = actual
     return updated

@@ -89,6 +89,7 @@ def _reset_layer_x(layer):
         slot["manual_x_mm"]=None
         slot["manual_x_state"]=NONE
         slot["datum_snapshot"]=None
+        slot.pop("datum_revision",None)
 
 
 def insert_nfb_slot(draft, layer_index, position, *, filename=None, brand=None):
@@ -141,18 +142,43 @@ def replace_nfb_slot_model(draft,layer_index,slot_index,filename,*,catalog):
     result=select_nfb_slot_model(state,layer_index,slot_index,filename,catalog=catalog)
     current=_get_slot(result,layer_index,slot_index)
     if before!=(current["filename"],current["source_brand"]):
+        # A changed model invalidates its old X source revision even when
+        # an older draft carried no explicit coordinate.
+        current["datum_snapshot"]=None
+        current.pop("datum_revision",None)
         if current["manual_x_mm"] is not None:
-            current["manual_x_state"]=UNVERIFIED
-            # Q16 retains the operator offset, but never the old source datum.
-            current["datum_snapshot"]=None
+            # Direct selection now marks an old confirmed X as needing
+            # reapproval. The wrapper must not downgrade that pending gate.
+            if current["manual_x_state"] != RECONFIRM:
+                current["manual_x_state"]=UNVERIFIED
     return result
+
+
+def _invalidate_effective_rotation_x(slot):
+    """Keep the operator's X offset, never reuse an old rotation's datum."""
+    slot["datum_snapshot"] = None
+    slot.pop("datum_revision", None)
+    if slot["manual_x_mm"] is not None:
+        slot["manual_x_state"] = (
+            RECONFIRM if slot["manual_x_state"] in ("CONFIRMED", RECONFIRM)
+            else UNVERIFIED
+        )
+    else:
+        slot["manual_x_state"] = NONE
 
 
 def set_nfb_layer_rotation(draft,layer_index,angle):
     if type(angle) is not int or angle not in ROTATIONS:
         raise ValueError("NFB angle must be 0/90/180/270; mirrors forbidden")
     state=editable_nfb_draft(draft)
-    _get_layer(state,layer_index)["rotation_deg"]=angle
+    layer=_get_layer(state,layer_index)
+    if layer["rotation_deg"] != angle:
+        # Only inheriting slots effectively rotate. Explicit rotations and
+        # all other layers retain their independent X source approvals.
+        for slot in layer["slots"]:
+            if slot["rotation"]["mode"] == INHERIT:
+                _invalidate_effective_rotation_x(slot)
+    layer["rotation_deg"]=angle
     return state
 
 
@@ -162,7 +188,17 @@ def set_nfb_slot_rotation(draft,layer_index,slot_index,*,mode,value=None):
     if mode==INHERIT and value is not None:
         raise ValueError("NFB inherited rotation has no separate value")
     state=editable_nfb_draft(draft)
-    _get_slot(state,layer_index,slot_index)["rotation"]=_rotation_override(mode,value)
+    layer=_get_layer(state,layer_index)
+    slot=_get_slot(state,layer_index,slot_index)
+    old_effective = (
+        slot["rotation"]["value"] if slot["rotation"]["mode"] == OVERRIDE
+        else layer["rotation_deg"]
+    )
+    rotation=_rotation_override(mode,value)
+    next_effective = value if mode == OVERRIDE else layer["rotation_deg"]
+    if old_effective != next_effective:
+        _invalidate_effective_rotation_x(slot)
+    slot["rotation"]=rotation
     return state
 
 
@@ -180,12 +216,15 @@ def set_nfb_manual_x(draft,layer_index,slot_index,offset_mm,*,datum=None):
         slot["manual_x_mm"]=None
         slot["manual_x_state"]=NONE
         slot["datum_snapshot"]=None
+        slot.pop("datum_revision",None)
         return state
     if type(offset_mm) not in (int,float) or not isfinite(offset_mm):
         raise ValueError("NFB manual X offset must be finite, including zero")
     slot["manual_x_mm"]=float(offset_mm)
     slot["manual_x_state"]=UNVERIFIED
     slot["datum_snapshot"]=deepcopy(datum)
+    # A freshly authored draft X is never approved by a prior revision.
+    slot.pop("datum_revision",None)
     return state
 
 
@@ -220,6 +259,7 @@ def nfb_x_reset_impact(before, after, layer_index):
             slot["manual_x_mm"] is not None
             or slot["manual_x_state"] != NONE
             or slot["datum_snapshot"] is not None
+            or "datum_revision" in slot
         )
         if not had_basis:
             continue
@@ -228,6 +268,7 @@ def nfb_x_reset_impact(before, after, layer_index):
             current["manual_x_mm"] is None
             and current["manual_x_state"] == NONE
             and current["datum_snapshot"] is None
+            and "datum_revision" not in current
         ):
             affected.append(slot["unit_id"])
     return NfbXResetImpact(layer_index, tuple(affected))

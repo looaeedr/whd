@@ -123,6 +123,16 @@ def test_pair_export_rejects_unsubmitted_and_refuses_silent_overwrite(tmp_path):
     assert Path(first.inner_door_path).read_bytes() == first_bytes
     cleared = deepcopy(snapshot)
     cleared["nfb_config_submitted"] = False
+    cleared.pop("nfb_config", None)
+    # The original #1502 test uses a minimal Set/Bay manufacturing fixture
+    # (no ReceivingLayout schema), not a persisted normalized layout. Restore
+    # its selected Bay authority directly; only a genuinely unconfigured Bay
+    # may use the original legacy no-NFB path.
+    bay = cleared["receiving_layout"]["sets"][0]["bays"][0]
+    assert bay["nfb_config_submitted"] is True
+    bay["nfb_config_submitted"] = False
+    bay.pop("nfb_config", None)
+    assert "nfb_config" not in bay
     with pytest.raises(ValueError, match="SOURCE_UNAVAILABLE"):
         _export(cleared, parts, tmp_path)
 
@@ -266,3 +276,82 @@ def test_original_operator_does_not_equate_two_brands_on_one_flat_base(tmp_path)
     door = ezdxf.readfile(receipt.inner_door_path).modelspace()
     assert sum(1 for x in door if x.dxftype() == "LWPOLYLINE"
                and x.closed and x.dxf.layer == "CUTTING") >= 3
+
+
+@pytest.mark.parametrize("rotation", (0, 90, 180, 270))
+def test_swt29_current_csv_four_rotations_keep_one_main_cut_and_original_pair(
+    rotation, tmp_path,
+):
+    """Current numeric V5 -> real inner-door FinalScene -> original paired DXFs.
+
+    Reopened DXF must retain one, and only one, source-sized NFB main opening;
+    a legacy Hole Editor alias must not make a second identical CUTTING loop.
+    The four base screw holes belong to the same physical owner but a
+    different original physical plate; this is NOT whole-cabinet approval.
+    """
+    from ae_engine.receiving_nfb_numeric_catalog import model_spec
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+
+    snap = _current()
+    only = deepcopy(snap["nfb_config"]["holes"][0])
+    only.update(slot_index=0, layer_index=0, manual_x_mm=0.,
+                rotation_deg=rotation)
+    snap["nfb_config"]["holes"] = [only]
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    source = deepcopy(snap)
+    inner_door_id, holes = _submitted_csv_holes(snap)
+    assert len(holes) == 1 and holes[0].physical_hole_id == only["physical_hole_id"]
+    trial = trial_configured_nfb_v5_inner_door_render_data(
+        snap, inner_door_id, holes=holes,
+    )
+    expected_opening = model_spec("士林", "2P400").opening_mm
+    assert expected_opening is not None
+    expected_dims = expected_opening[::-1] if rotation in (90, 270) else expected_opening
+    centre = trial.patterns[0].datum.uv_centre_mm
+
+    real_parts = _scene(snap)
+    receipt = _export(snap, real_parts, tmp_path)
+    assert receipt.source_hole_ids == (only["physical_hole_id"],)
+    paths = (Path(receipt.inner_door_path), Path(receipt.base_plate_path))
+    assert len(list(tmp_path.glob("*.dxf"))) == 2
+    door = ezdxf.readfile(paths[0]).modelspace()
+    contours = [p for p in door if p.dxftype() == "LWPOLYLINE"
+                and p.closed and p.dxf.layer == "CUTTING"]
+    def bounds(poly):
+        points = tuple((float(x), float(y)) for x, y in poly.get_points("xy"))
+        xs, ys = zip(*points)
+        return (max(xs)-min(xs), max(ys)-min(ys),
+                (max(xs)+min(xs))/2., (max(ys)+min(ys))/2.)
+    openings = [p for p in contours
+                if tuple(round(x, 5) for x in bounds(p)[:2]) ==
+                tuple(round(x, 5) for x in expected_dims)]
+    assert len(openings) == 1
+    assert bounds(openings[0])[2:] == pytest.approx(centre, abs=1e-5)
+    native_door = next(p.render_data for p in real_parts if p.part_key == trial.part_id)
+    assert sum(isinstance(p, PolylinePrimitive) and p.closed
+               and p.layer == "CUTTING"
+               for p in native_door.scene.primitives) == len(contours)
+
+    base = ezdxf.readfile(paths[1]).modelspace()
+    saved_screws = sorted(
+        (round(float(e.dxf.center.x), 5), round(float(e.dxf.center.y), 5),
+         round(float(e.dxf.radius), 5))
+        for e in base if e.dxftype() == "CIRCLE" and e.dxf.layer == "CUTTING"
+    )
+    native_base = next(p.render_data for p in real_parts if p.part_key == "base_plate")
+    actual_screws = sorted(
+        (round(float(p.center.x), 5), round(float(p.center.y), 5),
+         round(float(p.radius), 5))
+        for p in native_base.scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and p.source_type == "NFB_V5_NUMERIC_BASE_TRIAL"
+    )
+    assert len(saved_screws) == len(actual_screws) == 4
+    assert saved_screws == actual_screws
+    assert snap == source
