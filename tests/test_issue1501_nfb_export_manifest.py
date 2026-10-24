@@ -213,3 +213,82 @@ def test_cross_brand_same_filename_must_not_reuse_source_proof(tmp_path):
     assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in mismatch.unresolved_dependencies
     with pytest.raises(ValueError,match="Set brand"):
         derive_nfb_partial_export_manifest(**{**opts,"set_brand":""})
+
+
+@pytest.mark.parametrize(("aci30", "aci212", "unresolved", "base_status", "actual_count"), (
+    (False, False, False, UNAFFECTED, 6),
+    (True, False, False, BLOCKED, 5),
+    (False, True, False, BLOCKED, 5),
+    (True, False, True, BLOCKED, 3),
+))
+def test_ac38_real_dxf_color_inventory_drives_physical_partial_manifest(
+    tmp_path, aci30, aci212, unresolved, base_status, actual_count,
+):
+    """#1504 AC38: actual DXF reader -> saved physical Bay -> piece manifest.
+
+    This exercises generated *real DXF bytes* and the original source parser;
+    they are not supplier-certified originals nor authority for whole MFG-2.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+
+    options = _prepared(tmp_path)
+    source = tmp_path / "observed-source.dxf"
+    document = ezdxf.new("R2010")
+    scene = document.modelspace()
+    scene.add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    if aci30:
+        scene.add_circle((7, 7), 2, dxfattribs={"color": 30})
+    if aci212:
+        scene.add_line((3, 3), (8, 8), dxfattribs={"color": 212})
+    if unresolved:
+        # Explicit BYBLOCK with no owner is not a certified zero.
+        scene.add_line((1, 1), (2, 2), dxfattribs={"color": 0})
+    document.saveas(source)
+    inventory = inspect_nfb_dxf_source(source)
+    assert inventory.source_sha256 == sha256(source.read_bytes()).hexdigest()
+    assert dict(inventory.process_aci_entity_counts)[150] == 1
+    assert dict(inventory.process_aci_entity_counts)[30] == int(aci30)
+    assert dict(inventory.process_aci_entity_counts)[212] == int(aci212)
+    options.update(
+        source_path=source,
+        source_inventory=inventory,
+        verified_inner_door=replace(
+            options["verified_inner_door"],
+            source_sha256=inventory.source_sha256,
+        ),
+    )
+    manifestation = derive_nfb_partial_export_manifest(**options)
+    rows = {row.part_id: row for row in manifestation.rows}
+    assert rows["base1"].status == base_status
+    assert rows["middle1"].status == BLOCKED
+    assert rows["side1"].status == UNAFFECTED
+    assert rows["side1"].may_export is True
+    assert rows["base1"].may_export is (base_status == UNAFFECTED)
+    assert manifestation.actual_export_count == actual_count
+    assert manifestation.held_actual_count == 10 - actual_count
+    assert manifestation.partial_only and not manifestation.whole_ready
+    assert manifestation.report()["actual_export_count"] == actual_count
+    assert manifestation.require_export(("side1",), partial=True) == ("side1",)
+    with pytest.raises(ValueError, match="partial only"):
+        manifestation.require_export(("side1",))
+    for held in manifestation.held_rows:
+        with pytest.raises(ValueError, match="BLOCKED"):
+            manifestation.require_export((held.part_id,), partial=True)
+    if unresolved:
+        assert inventory.unresolved_color_entities > 0
+        assert "NFB_SOURCE_COLOR_SCOPE_UNKNOWN" in manifestation.unresolved_dependencies
+        assert rows["inner1"].status == BLOCKED
+    else:
+        assert inventory.unresolved_color_entities == 0
+        assert rows["inner1"].status == READY
+    # A changed source has no reusable prior manifest authorization.
+    source.write_bytes(source.read_bytes() + b"\nREMOVED-TRUST")
+    revoked = derive_nfb_partial_export_manifest(**options)
+    assert revoked.authorized_part_ids == ("side1",)
+    assert revoked.actual_export_count == 3
+    assert not revoked.whole_ready
