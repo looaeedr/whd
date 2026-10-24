@@ -465,3 +465,26 @@ def test_ac23_malformed_verified_cutting_witness_rejects_before_operator_confirm
     assert confirmation == []
     assert original == before
     assert "nfb_config" not in original["sets"][0]["bays"][0]
+
+
+@pytest.mark.parametrize("bool_in", ("configs", "evidence"))
+def test_ac23_boolean_bay_mapping_keys_cannot_alias_integer_target(bool_in):
+    """True == 1 in Python, but never a valid NFB Bay ownership key."""
+    original = layout()
+    frozen = deepcopy(original)
+    cfg = {1: config(owner="nfb:1:slot1")}
+    proof = {1: evidence(original, 1)}
+    if bool_in == "configs":
+        cfg = {True: config(owner="nfb:1:slot1")}
+    else:
+        proof = {True: evidence(original, 1)}
+    confirmed = []
+    with pytest.raises(ValueError, match="configs/evidence"):
+        submit_nfb_bays(
+            original, set_index=0, bay_indices=(1,), version_id="v1",
+            configs=cfg, evidence=proof,
+            confirm=lambda _: confirmed.append(True) or True,
+        )
+    assert confirmed == []
+    assert original == frozen
+    assert "nfb_config" not in original["sets"][0]["bays"][1]
