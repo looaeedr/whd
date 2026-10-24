@@ -250,8 +250,10 @@ def reconcile_width_structure(
     state: Mapping[str, object],
     new_w: float,
 ) -> dict:
+    # Keep the original type until the sole physical size gate. float(True)
+    # would otherwise turn a corrupt 1-mm boolean into an apparently valid W.
     return reconcile_box_body_structure_for_total_w_change(
-        state, float(new_w)
+        state, new_w
     )
 
 
