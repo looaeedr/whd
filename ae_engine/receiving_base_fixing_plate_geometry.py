@@ -315,7 +315,7 @@ def build_fixing_plate_source_render_data(
 
 
 def save_independent_source_flat_dxf(part_id, output_path, *, overwrite=False):
-    """Produce only the unbent original-source CUTTING, with round-trip check.
+    """Produce the unbent original-source CUTTING + verified BEND, with round-trip check.
 
     This deliberately bypasses *neither* machine bend certification nor the
     full-assembly EAR/PAD guard: it creates a separate source-flat DXF, not a
