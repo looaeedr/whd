@@ -268,3 +268,50 @@ def test_ac28_inner_candidate_valid_highlight_is_atomic_and_preserves_neighbor()
             after["sets"][0], bay_index, "inner_door_version_id"
         ) == "inner-door-v1"
     assert before == initial
+
+
+@pytest.mark.parametrize("invalid", (
+    (True,), (False,), (0, True), (0, []), ([],),
+    None, 0, ("1",), (99,),
+))
+def test_ac28_live_inner_version_label_invalid_highlight_is_atomic(invalid):
+    """Live candidate label must never accept a forged physical Bay selection."""
+    from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+
+    layout = resize_receiving_bays(
+        new_receiving_layout(width=800, height=1600, depth=350),
+        set_index=0, bay_count=2,
+    )
+    adapter = ReceivingSetBayAdapter(layout)
+    frozen = adapter.layout
+    selection = adapter.selection
+    with pytest.raises(ValueError, match="高亮有效的連"):
+        adapter.mark_live_version_for_bays("inner-door", 0, invalid)
+    assert adapter.layout == frozen
+    assert adapter.selection == selection
+
+
+def test_ac28_live_inner_version_label_valid_selection_is_only_metadata():
+    """Valid multi-Bay instant labels never create or modify physical NFB."""
+    from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays
+    from ae_engine.receiving_shared_settings import setting_value
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+
+    layout = resize_receiving_bays(
+        new_receiving_layout(width=800, height=1600, depth=350),
+        set_index=0, bay_count=3,
+    )
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    result = adapter.mark_live_version_for_bays("inner-door", 0, (2, 0))
+    after = adapter.layout
+    assert result == (0, 2)
+    for index in (0, 2):
+        assert setting_value(
+            after["sets"][0], index, "inner_door_version_id"
+        ) == ""
+        assert after["sets"][0]["bays"][index] == before["sets"][0]["bays"][index]
+    assert setting_value(after["sets"][0], 1, "inner_door_version_id") is None
+    assert after["sets"][0]["bays"][1] == before["sets"][0]["bays"][1]
+    assert adapter.selection.bay_index == 0
