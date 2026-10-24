@@ -188,3 +188,125 @@ def test_writer_cannot_substitute_another_bay_scope(tmp_path):
             allow_held=True,
         )
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("allow_held", (False, True))
+def test_same_bay_writer_cannot_substitute_inner_door_part(tmp_path, allow_held):
+    """Same Set/Bay/version may not conceal another physical door from writer."""
+    from dataclasses import replace
+
+    ports, calls = _ports()
+    original = ports["partial_export"]
+
+    def wrong_physical_owner(si, bi, path):
+        written, manifest = original(si, bi, path)
+        other = manifest.scope.inner_door_part_id + "-other-panel"
+        scope = replace(manifest.scope, inner_door_part_id=other)
+        rows = tuple(
+            replace(row, part_id=other) if row.role == INNER_DOOR else row
+            for row in manifest.rows
+        )
+        return written, replace(manifest, scope=scope, rows=rows)
+
+    ports["partial_export"] = wrong_physical_owner
+    with pytest.raises(ValueError, match="physical inner-door"):
+        batch.export_highlighted_nfb_inner_doors(
+            ports, set_index=0, bay_indices=(0,),
+            output_directory=tmp_path, allow_held=allow_held,
+        )
+    assert len(calls) == 1
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("allow_held", (False, True))
+def test_partial_door_export_counts_only_actual_selected_sheet(tmp_path, allow_held):
+    """Other independently allowed physical pieces are not this door DXF's Q."""
+    import json
+    from dataclasses import replace
+    from ae_engine.receiving_nfb_export_manifest import NfbManifestRow, OTHER
+    from ae_engine.receiving_nfb_part_readiness import UNAFFECTED
+
+    ports, calls = _ports()
+    original_view = ports["manifest"]
+    original_writer = ports["partial_export"]
+
+    def additional_row(identity):
+        return NfbManifestRow(
+            *identity, "side-panel", OTHER, UNAFFECTED, (), 3, True,
+        )
+
+    def view(si, bi):
+        existing = original_view(si, bi)
+        extra = additional_row((existing["set_id"], existing["bay_id"], existing["version_id"]))
+        return {
+            **existing,
+            "rows": [*existing["rows"], {
+                "set_id": extra.set_id, "bay_id": extra.bay_id,
+                "version_id": extra.version_id, "part_id": extra.part_id,
+                "role": extra.role, "status": extra.status,
+                "reasons": list(extra.reasons), "actual_count": extra.actual_count,
+                "may_export": True,
+            }],
+            "actual_export_count": 4,
+        }
+
+    def writer(si, bi, path):
+        written, manifest = original_writer(si, bi, path)
+        extra = additional_row(manifest.scope.identity)
+        return written, replace(manifest, rows=manifest.rows + (extra,))
+
+    ports["manifest"] = view
+    ports["partial_export"] = writer
+    done = batch.export_highlighted_nfb_inner_doors(
+        ports, set_index=0, bay_indices=(0,),
+        output_directory=tmp_path, allow_held=allow_held,
+    )
+    assert len(calls) == 1 and len(done) == 1
+    assert done[0][1].actual_export_count == 4  # eligible, NOT exported Q
+    assert len(list(tmp_path.glob("*.dxf"))) == 1
+    assert Path(done[0][0]).is_file()
+    if allow_held:
+        report = json.loads((tmp_path / "nfb_set1_partial_manifest.json").read_text())
+        assert report["actual_export_count"] == 1
+        assert report["whole_cabinet_complete"] is False
+        assert report["exported"][0]["actual_export_count"] == 1
+        assert report["exported"][0]["eligible_physical_piece_count"] == 4
+        assert report["exported"][0]["actually_emitted_part_ids"] == ["part-0"]
+
+
+@pytest.mark.parametrize("corruption", (
+    "status", "duplicate_physical_id", "wrong_role", "boolean_count",
+))
+def test_partial_writer_rejects_forged_door_row_after_preflight(
+    tmp_path, corruption,
+):
+    """A post-preflight typed manifest cannot reclassify a real door owner."""
+    from dataclasses import replace
+    from ae_engine.receiving_nfb_export_manifest import OTHER
+    from ae_engine.receiving_nfb_part_readiness import BLOCKED
+
+    ports, calls = _ports()
+    original = ports["partial_export"]
+
+    def corrupted(si, bi, path):
+        written, manifest = original(si, bi, path)
+        door = manifest.rows[0]
+        if corruption == "status":
+            rows = (replace(door, status=BLOCKED, may_export=True),)
+        elif corruption == "duplicate_physical_id":
+            rows = (door, replace(door, role=OTHER, actual_count=2))
+        elif corruption == "wrong_role":
+            rows = (replace(door, role=OTHER),)
+        else:
+            rows = (replace(door, actual_count=True),)
+        return written, replace(manifest, rows=rows)
+
+    ports["partial_export"] = corrupted
+    # Rejecting earlier at the shared physical manifest gate is safer.
+    # Either explicit BLOCKED upstream or the downstream count guard is valid.
+    with pytest.raises(ValueError, match=r"(manufactured part count invalid|physical part BLOCKED)"):
+        batch.export_highlighted_nfb_inner_doors(
+            ports, set_index=0, bay_indices=(0,), output_directory=tmp_path,
+        )
+    assert len(calls) == 1
+    assert not list(tmp_path.iterdir())
