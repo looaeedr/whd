@@ -198,3 +198,49 @@ def test_receiving_specific_door_and_nfb_owner_survives_secondary_payload_overla
     assert values["nfb_config_submitted"] is False
     assert "nfb_config" not in values
     assert (values["w"], values["h"], values["d"]) == (900., 1700., 400.)
+
+
+@pytest.mark.parametrize("field", [
+    "width", "height", "thickness", "fold_left", "fold_right", "fold_top", "fold_bottom",
+])
+def test_r4_62_saved_inner_door_panel_oversized_numeric_source_fails_closed(field):
+    """JSON-valid giant physical dimensions must not escape as OverflowError."""
+    data = {
+        "width": 723., "height": 900., "thickness": 2.,
+        "fold_left": 19., "fold_right": 19., "fold_top": 19., "fold_bottom": 19.,
+    }
+    data[field] = 10 ** 400
+    with pytest.raises(ValueError, match="inner-door panel dimensions must be finite"):
+        derive_inner_door_panel("upper", cell_key="0:0", **data)
+    with pytest.raises(ValueError, match="inner-door panel dimensions must be finite"):
+        InnerDoorPanelPart(
+            stable_id="inner_door:upper:panel", inner_door_id="upper",
+            cell_key="0:0", **data,
+        )
+    valid = derive_inner_door_panel(
+        "upper", cell_key="0:0", width=723., height=900., thickness=2.,
+    )
+    assert valid.width == pytest.approx(723.)
+    assert valid.unfolded_width == pytest.approx(757.)
+    assert valid.fold_left == valid.fold_right == 19.
+
+
+@pytest.mark.parametrize("source,field", [
+    ("thickness", "thickness"),
+    ("left", "left"),
+    ("right", "right"),
+    ("top", "top"),
+])
+def test_r4_62_saved_inner_door_frame_numeric_overflow_has_typed_error(source, field):
+    """Same signed 46/22 frame source, no unhandled float conversion."""
+    spans = {"left": 900., "right": 900., "top": 723.}
+    t = 2.
+    if source == "thickness":
+        t = 10 ** 400
+        with pytest.raises(ValueError, match="inner-door frame material thickness must be a finite"):
+            inner_door_frame_formed_occupation(t)
+    else:
+        spans[field] = 10 ** 400
+    with pytest.raises(ValueError, match="inner-door frame (thickness|span) must be"):
+        derive_inner_door_frames("upper", spans=spans, thickness=t)
+    assert inner_door_frame_formed_occupation(2.) == pytest.approx(50.)
