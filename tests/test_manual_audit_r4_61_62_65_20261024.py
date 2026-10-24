@@ -1,0 +1,128 @@
+"""Independent safeguards following manual R4 #61/#62/#64/#65 source review.
+
+Real source code was examined first. These tests prevent a corrected function
+from regressing; they do NOT substitute for the manual source audit.
+"""
+from copy import deepcopy
+import math
+import pytest
+
+from ae_engine.sheetmetal_geometry_core import CornerTypeSelection, GeometryError
+from ae_engine.sheetmetal_four_side_geometry import FourSideFlangeGeometry, _validate_four_side_geometry
+from ae_engine.sheetmetal_geometry import EndCapGeometry, calculate_endcap_relief_dimensions
+from ae_engine.sheetmetal_strip_geometry import FoldSegment, StripFoldChain, build_strip_outline
+from ae_engine.door_dividers import derive_box_body_dividers
+from ae_engine.inner_door_frames import inner_door_frame_formed_occupation, derive_inner_door_frames
+from ae_engine.inner_door_panels import InnerDoorPanelPart, derive_inner_door_panel
+from phase6_custom_parts import custom_part_only_change
+from phase6_box_body_structure import (
+    BoxBodyStructureType, reconcile_box_body_structure_for_total_w_change,
+)
+
+
+def test_r4_64_existing_width_edit_reconciles_default_and_discarded_inactive_values():
+    two = BoxBodyStructureType.TWO_PIECE_W_SPLIT.value
+    other = BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    result = reconcile_box_body_structure_for_total_w_change({
+        "active_type": two,
+        "configs": {two: {"left_w": 300.0, "right_w": 300.0, "driver": "default"}},
+    }, 800.)
+    assert result["configs"][two]["left_w"] == 400.
+    assert result["configs"][two]["right_w"] == 400.
+    result = reconcile_box_body_structure_for_total_w_change({
+        "active_type": other,
+        "configs": {two: {"left_w": 700., "right_w": 100., "driver": "left"}},
+    }, 500.)
+    assert result["configs"][two]["left_w"] is None
+    assert result["configs"][two]["right_w"] is None
+
+
+def _custom_snapshot():
+    return {
+        "available_parts": ["box_body", "custom:1"],
+        "custom_parts": {"next_id": 2, "items": {
+            "custom:1": {
+                "display_name": "外掛板1",
+                "fold_axis": "X", "transverse_length": 300.,
+                "per_box_count": 1,
+            }
+        }},
+        "part_profiles": {
+            "box_body": [{"id": "B1", "len": 20.}],
+            "custom:1": [{"id": "C1", "len": 15.}],
+        },
+        "part_features": {},
+        "part_face_features": {},
+    }
+
+
+def test_r4_65_only_custom_part_edits_leave_entire_box_scene_unchanged():
+    before = _custom_snapshot()
+    after = deepcopy(before)
+    after["part_profiles"]["custom:1"][0]["len"] = 30.
+    after["part_features"] = None
+    after["part_face_features"] = None
+    saved_before = deepcopy(before)
+    saved_after = deepcopy(after)
+    assert custom_part_only_change(before, after) is True
+    assert (before, after) == (saved_before, saved_after)  # comparison cannot mutate callers
+    after["part_profiles"]["box_body"][0]["len"] = 21.
+    assert custom_part_only_change(before, after) is False
+    after = deepcopy(before)
+    after["custom_parts"]["items"]["custom:1"]["per_box_count"] = 2
+    assert custom_part_only_change(before, after) is True
+    after = deepcopy(before)
+    after["custom_parts"]["items"]["custom:2"] = {"display_name": "new"}
+    assert custom_part_only_change(before, after) is False
+
+
+def test_r4_61_rejects_nonfinite_corner_endcap_fourside_and_strip_source_dimensions():
+    for invalid in (True, float("nan"), float("inf")):
+        with pytest.raises(GeometryError):
+            CornerTypeSelection(type_id="C01", amount_t=invalid)
+        with pytest.raises(GeometryError):
+            calculate_endcap_relief_dimensions(EndCapGeometry(
+                total_width=invalid, total_depth=100.,
+                left_fold=15., right_fold=15., top_first_fold=15.,
+                fw=25., bottom_fold=15., thickness=1.5,
+            ))
+        with pytest.raises(GeometryError):
+            _validate_four_side_geometry(FourSideFlangeGeometry(
+                total_width=300., total_height=400., thickness=invalid,
+                left_fold=15., right_fold=15., top_fold=15., bottom_fold=15.,
+            ))
+        with pytest.raises(GeometryError):
+            build_strip_outline(StripFoldChain(
+                segments=(FoldSegment("A", 50.), FoldSegment("B", 50.)),
+                height=invalid,
+            ))
+
+
+def test_r4_62_dividers_and_inner_door_frames_do_not_make_nan_geometry():
+    for bad in (True, float("nan"), float("inf")):
+        with pytest.raises(ValueError):
+            derive_box_body_dividers(
+                [(300., [800.]), (300., [800.])],
+                depth=bad, thickness=1.5, layout_scope="box_body",
+            )
+        with pytest.raises(ValueError):
+            inner_door_frame_formed_occupation(bad)
+        with pytest.raises(ValueError):
+            derive_inner_door_frames(
+                "1", spans={"left": 300., "right": 300., "top": 200.},
+                thickness=bad,
+            )
+        with pytest.raises(ValueError):
+            derive_inner_door_panel("1", cell_key="0:0", width=200.,
+                                    height=300., thickness=bad)
+        with pytest.raises(ValueError):
+            InnerDoorPanelPart(
+                stable_id="inner_door:1:panel", inner_door_id="1", cell_key="0:0",
+                width=bad, height=300., thickness=1.5,
+                fold_left=19., fold_right=19., fold_top=19., fold_bottom=19.,
+            )
+
+
+def test_r4_62_still_derives_true_frame_web_without_bend_compensation():
+    assert inner_door_frame_formed_occupation(2.0) == 50.0
+    assert inner_door_frame_formed_occupation(1.5) == 49.0
