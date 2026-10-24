@@ -235,7 +235,7 @@ class StructuralGeometryResult:
 
 
 def _result(outline, bends, width: float, height: float, topology=None) -> StructuralGeometryResult:
-    return StructuralGeometryResult(tuple(outline), tuple(bends), float(width), float(height), topology)
+    return StructuralGeometryResult(tuple(outline), tuple(bends), _finite_float(width), _finite_float(height), topology)
 
 
 
@@ -302,17 +302,17 @@ def build_box_body_result(
     tail_corner_policy: FourCornerTypePolicy | None = None,
 ):
     lengths = [
-        ("zl1", abs(float(zl1))),
-        ("zl2", float(zl2)),
-        ("fw_left", float(fw)),
-        ("depth_left", float(d) - 2.0 * float(t)),
-        ("front", float(w) - 2.0 * float(t)),
-        ("depth_right", float(d) - 2.0 * float(t)),
+        ("zl1", abs(_finite_float(zl1))),
+        ("zl2", _finite_float(zl2)),
+        ("fw_left", _finite_float(fw)),
+        ("depth_left", _finite_float(d) - 2.0 * _finite_float(t)),
+        ("front", _finite_float(w) - 2.0 * _finite_float(t)),
+        ("depth_right", _finite_float(d) - 2.0 * _finite_float(t)),
     ]
     if include_right_fw:
-        lengths.append(("fw_right", float(fw)))
-    lengths.extend([("zr2", float(zr2)), ("zr1", abs(float(zr1)))])
-    comp = float(z_comp) / len(lengths)
+        lengths.append(("fw_right", _finite_float(fw)))
+    lengths.extend([("zr2", _finite_float(zr2)), ("zr1", abs(_finite_float(zr1)))])
+    comp = _finite_float(z_comp) / len(lengths)
     chain = StripFoldChain(
         segments=tuple(FoldSegment(name, length, comp) for name, length in lengths),
         height=box_body_height_from_corner_policies(
@@ -328,23 +328,23 @@ def build_box_body_result(
 
 
 def build_door_result(*, w, h, t, fw, gap_w, gap_h, fold_left, fold_right, fold_top, fold_bottom, frame_edges: DoorFrameEdges | None = None):
-    t = float(t)
+    t = _finite_float(t)
     finished_w, finished_h = calculate_door_finished_size(
         w=w, h=h, t=t, fw=fw, gap_w=gap_w, gap_h=gap_h, frame_edges=frame_edges,
     )
-    blank_w = finished_w - 2.0 * t + float(fold_left) + float(fold_right)
-    blank_h = finished_h - 2.0 * t + float(fold_top) + float(fold_bottom)
+    blank_w = finished_w - 2.0 * t + _finite_float(fold_left) + _finite_float(fold_right)
+    blank_h = finished_h - 2.0 * t + _finite_float(fold_top) + _finite_float(fold_bottom)
     geometry = FourSideFlangeGeometry(
         total_width=blank_w,
         total_height=blank_h,
         thickness=t,
-        left_fold=float(fold_left),
-        right_fold=float(fold_right),
-        top_fold=float(fold_top),
-        bottom_fold=float(fold_bottom),
+        left_fold=_finite_float(fold_left),
+        right_fold=_finite_float(fold_right),
+        top_fold=_finite_float(fold_top),
+        bottom_fold=_finite_float(fold_bottom),
     )
     from .certified_relief_registry import certified_corner_policy_for_part
-    policy = certified_corner_policy_for_part("金庫型", "door", fw=float(fw))
+    policy = certified_corner_policy_for_part("金庫型", "door", fw=_finite_float(fw))
     return _result(
         build_four_side_outline(geometry, policy),
         build_four_side_bend_segments(geometry, policy),
@@ -360,16 +360,16 @@ def build_unknown_door_result(
     frame_edges: DoorFrameEdges | None = None,
 ):
     """Manual/unknown Door: same fold topology, caller-selected CornerType policy."""
-    t = float(t)
+    t = _finite_float(t)
     finished_w, finished_h = calculate_door_finished_size(
         w=w, h=h, t=t, fw=fw, gap_w=gap_w, gap_h=gap_h, frame_edges=frame_edges,
     )
-    blank_w = finished_w - 2.0 * t + float(fold_left) + float(fold_right)
-    blank_h = finished_h - 2.0 * t + float(fold_top) + float(fold_bottom)
+    blank_w = finished_w - 2.0 * t + _finite_float(fold_left) + _finite_float(fold_right)
+    blank_h = finished_h - 2.0 * t + _finite_float(fold_top) + _finite_float(fold_bottom)
     geometry = FourSideFlangeGeometry(
         total_width=blank_w, total_height=blank_h, thickness=t,
-        left_fold=float(fold_left), right_fold=float(fold_right),
-        top_fold=float(fold_top), bottom_fold=float(fold_bottom),
+        left_fold=_finite_float(fold_left), right_fold=_finite_float(fold_right),
+        top_fold=_finite_float(fold_top), bottom_fold=_finite_float(fold_bottom),
     )
     return _result(
         build_four_side_outline(geometry, corner_policy),
@@ -379,16 +379,16 @@ def build_unknown_door_result(
 
 
 def build_base_plate_result(*, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right, bend):
-    total_width = float(w) - float(shrink_left) - float(shrink_right) + 2.0 * float(bend)
-    total_height = float(h) - float(shrink_top) - float(shrink_bottom) + 2.0 * float(bend)
+    total_width = _finite_float(w) - _finite_float(shrink_left) - _finite_float(shrink_right) + 2.0 * _finite_float(bend)
+    total_height = _finite_float(h) - _finite_float(shrink_top) - _finite_float(shrink_bottom) + 2.0 * _finite_float(bend)
     geometry = FourSideFlangeGeometry(
         total_width=total_width,
         total_height=total_height,
-        thickness=float(t),
-        left_fold=float(bend),
-        right_fold=float(bend),
-        top_fold=float(bend),
-        bottom_fold=float(bend),
+        thickness=_finite_float(t),
+        left_fold=_finite_float(bend),
+        right_fold=_finite_float(bend),
+        top_fold=_finite_float(bend),
+        bottom_fold=_finite_float(bend),
     )
     from .certified_relief_registry import certified_corner_policy_for_part
     policy = certified_corner_policy_for_part("金庫型", "base_plate", fw=0.0)
@@ -405,11 +405,11 @@ def build_unknown_base_plate_result(
     *, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right, bend,
     corner_policy: FourCornerTypePolicy,
 ):
-    total_width = float(w) - float(shrink_left) - float(shrink_right) + 2.0 * float(bend)
-    total_height = float(h) - float(shrink_top) - float(shrink_bottom) + 2.0 * float(bend)
+    total_width = _finite_float(w) - _finite_float(shrink_left) - _finite_float(shrink_right) + 2.0 * _finite_float(bend)
+    total_height = _finite_float(h) - _finite_float(shrink_top) - _finite_float(shrink_bottom) + 2.0 * _finite_float(bend)
     geometry = FourSideFlangeGeometry(
-        total_width=total_width, total_height=total_height, thickness=float(t),
-        left_fold=float(bend), right_fold=float(bend), top_fold=float(bend), bottom_fold=float(bend),
+        total_width=total_width, total_height=total_height, thickness=_finite_float(t),
+        left_fold=_finite_float(bend), right_fold=_finite_float(bend), top_fold=_finite_float(bend), bottom_fold=_finite_float(bend),
     )
     return _result(
         build_four_side_outline(geometry, corner_policy),
@@ -419,11 +419,11 @@ def build_unknown_base_plate_result(
 
 
 def build_indicator_box_result(*, total_width, total_height, t, fold=49.0):
-    fold = float(fold)
-    t = float(t)
+    fold = _finite_float(fold)
+    t = _finite_float(t)
     geometry = FourSideFlangeGeometry(
-        total_width=float(total_width),
-        total_height=float(total_height),
+        total_width=_finite_float(total_width),
+        total_height=_finite_float(total_height),
         thickness=t,
         left_fold=fold,
         right_fold=fold,
@@ -436,8 +436,8 @@ def build_indicator_box_result(*, total_width, total_height, t, fold=49.0):
     return _result(
         build_four_side_outline(geometry, policy),
         build_four_side_bend_segments(geometry, policy, extent),
-        float(total_width),
-        float(total_height),
+        _finite_float(total_width),
+        _finite_float(total_height),
         geometry,
     )
 
@@ -445,16 +445,16 @@ def build_indicator_box_result(*, total_width, total_height, t, fold=49.0):
 def build_unknown_indicator_box_result(
     *, total_width, total_height, t, fold=49.0, corner_policy: FourCornerTypePolicy,
 ):
-    fold = float(fold)
+    fold = _finite_float(fold)
     geometry = FourSideFlangeGeometry(
-        total_width=float(total_width), total_height=float(total_height), thickness=float(t),
+        total_width=_finite_float(total_width), total_height=_finite_float(total_height), thickness=_finite_float(t),
         left_fold=fold, right_fold=fold, top_fold=fold, bottom_fold=fold,
     )
     extent = FourSideBendExtentPolicy(horizontal_to_blank_edges=True)
     return _result(
         build_four_side_outline(geometry, corner_policy),
         build_four_side_bend_segments(geometry, corner_policy, extent),
-        float(total_width), float(total_height), geometry,
+        _finite_float(total_width), _finite_float(total_height), geometry,
     )
 
 
@@ -462,24 +462,24 @@ def build_endcap_result(
     *, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
     relief_config: ReliefConfig, x_topology="folded", depth_comp_t=3.0,
 ):
-    t = float(t)
+    t = _finite_float(t)
     if x_topology not in {"folded", "flat"}:
         raise ValueError(f"unsupported EndCap x_topology: {x_topology}")
     total_width = (
-        float(w)
+        _finite_float(w)
         if x_topology == "flat"
-        else float(w) - 4.0 * t + abs(float(yl1)) + abs(float(yr1))
+        else _finite_float(w) - 4.0 * t + abs(_finite_float(yl1)) + abs(_finite_float(yr1))
     )
-    total_depth = float(d) - float(depth_comp_t) * t + float(ytop1) + float(fw) + float(ybottom1)
+    total_depth = _finite_float(d) - _finite_float(depth_comp_t) * t + _finite_float(ytop1) + _finite_float(fw) + _finite_float(ybottom1)
     geometry = EndCapGeometry(
         total_width=total_width,
         total_depth=total_depth,
         thickness=t,
-        fw=float(fw),
-        left_fold=float(yl1),
-        right_fold=float(yr1),
-        top_first_fold=float(ytop1),
-        bottom_fold=float(ybottom1),
+        fw=_finite_float(fw),
+        left_fold=_finite_float(yl1),
+        right_fold=_finite_float(yr1),
+        top_first_fold=_finite_float(ytop1),
+        bottom_fold=_finite_float(ybottom1),
     )
     return _result(
         build_endcap_outline(geometry, relief_config),
@@ -497,14 +497,14 @@ def build_unknown_endcap_result(
     box_body_formed_fw_left=None, box_body_formed_fw_right=None,
 ):
     """手動／自訂封頭尾：AE 已解析的 X topology 決定結構寬度。"""
-    t = float(t)
+    t = _finite_float(t)
     if x_topology not in {"folded", "flat"}:
         raise ValueError(f"unsupported EndCap x_topology: {x_topology}")
     flat_x = x_topology == "flat"
-    nominal_left = float(yl1 if nominal_yl1 is None else nominal_yl1)
-    nominal_right = float(yr1 if nominal_yr1 is None else nominal_yr1)
-    left_fold = 0.0 if flat_x else float(yl1)
-    right_fold = 0.0 if flat_x else float(yr1)
+    nominal_left = _finite_float(yl1 if nominal_yl1 is None else nominal_yl1)
+    nominal_right = _finite_float(yr1 if nominal_yr1 is None else nominal_yr1)
+    left_fold = 0.0 if flat_x else _finite_float(yl1)
+    right_fold = 0.0 if flat_x else _finite_float(yr1)
     # flat-X removes the physical EndCap X bend, but the top STANDARD corner
     # still uses the nominal material fold evidence.  Formed Box Body FW is
     # shadow/3D evidence only and must not become the manufacturing formula.
@@ -519,15 +519,15 @@ def build_unknown_endcap_result(
     bottom_relief_left_fold = left_fold if flat_x else relief_left_fold
     bottom_relief_right_fold = right_fold if flat_x else relief_right_fold
     total_width = (
-        float(w)
+        _finite_float(w)
         if flat_x
-        else float(w) - 4.0 * t + abs(left_fold) + abs(right_fold)
+        else _finite_float(w) - 4.0 * t + abs(left_fold) + abs(right_fold)
     )
-    total_depth = float(d) - float(depth_comp_t) * t + float(ytop1) + float(fw) + float(ybottom1)
+    total_depth = _finite_float(d) - _finite_float(depth_comp_t) * t + _finite_float(ytop1) + _finite_float(fw) + _finite_float(ybottom1)
     geometry = EndCapGeometry(
-        total_width=total_width, total_depth=total_depth, thickness=t, fw=float(fw),
+        total_width=total_width, total_depth=total_depth, thickness=t, fw=_finite_float(fw),
         left_fold=left_fold, right_fold=right_fold,
-        top_first_fold=float(ytop1), bottom_fold=float(ybottom1),
+        top_first_fold=_finite_float(ytop1), bottom_fold=_finite_float(ybottom1),
     )
     bends = build_endcap_bend_segments_from_corner_types(
         geometry, corner_policy,
@@ -558,8 +558,8 @@ def build_finished_reference_guide(part_key, result: StructuralGeometryResult, *
     does not replace the result outline or FeatureSurface containment polygon.
     """
     key = str(part_key).lower()
-    fw = float(finished_width)
-    fh = float(finished_height)
+    fw = _finite_float(finished_width)
+    fh = _finite_float(finished_height)
     if fw <= 0 or fh <= 0:
         raise ValueError("finished reference dimensions must be > 0")
 
@@ -628,9 +628,9 @@ def build_receiving_base_plate_result(
     from .sheetmetal_geometry import BendLine
 
     values=(w,h,t,shrink_top,shrink_bottom,shrink_left,shrink_right,bend)
-    if not all(isfinite(float(v)) for v in values):
+    if not all(isfinite(_finite_float(v)) for v in values):
         raise ValueError("Receiving Base Plate has nonfinite dimensions")
-    w,h,t,st,sb,sl,sr,bend=map(float,values)
+    w,h,t,st,sb,sl,sr,bend=map(_finite_float,values)
     if pattern not in RECEIVING_BASE_PATTERNS:
         raise ValueError("Receiving Base Plate needs a known left/center/right bend pattern")
     if t<=0 or min(st,sb,sl,sr)<0 or w-sl-sr<=0 or h-st-sb<=0:
@@ -727,5 +727,5 @@ def build_receiving_base_plate_result(
     # 2nd return could incorrectly retain cached manufacturing geometry.
     identity = ("RECEIVING_BASE", pattern, core_w, blank_h, bend, t)
     if nfb_depth_pair_mm is not None:
-        identity += ("NFB_DEPTH_RETURN", float(second))
+        identity += ("NFB_DEPTH_RETURN", _finite_float(second))
     return _result(outline,bends,blank_w,blank_h,identity)
