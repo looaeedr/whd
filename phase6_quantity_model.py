@@ -370,6 +370,24 @@ def normalize_quantity_snapshot(snapshot, *, for_save=False):
     if receiving:
         from ae_engine.receiving_quantity_box import BOX_KEY, normalize_common_box
         result[BOX_KEY] = normalize_common_box(result.get(BOX_KEY))
+        # Quantity versions own NFBConfig, but only the common box owns W.
+        # Reuse the very same persisted-Bay datum checker for EACH version,
+        # otherwise W800 CONFIRMED X could survive a shared W750 resize.
+        # This never guesses a new X, reassigns version identity, or grants
+        # manufacturing permission; mismatches become RECONFIRM_REQUIRED.
+        from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
+        for version in model.snapshot()["versions"]:
+            if version.get("nfb_config_submitted") is not True:
+                continue
+            checked = normalize_nfb_saved_fields({
+                **version, "width": result[BOX_KEY]["w"],
+            })
+            if checked["nfb_config"] != version["nfb_config"]:
+                model.set_version_nfb_config(
+                    version["version_id"], submitted=True,
+                    config=checked["nfb_config"],
+                )
+        result["quantity"] = model.snapshot()
         if for_save:
             result.pop("receiving_layout", None)
             result.pop("receiving_switch_layout", None)
