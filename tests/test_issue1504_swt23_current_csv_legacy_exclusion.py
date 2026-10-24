@@ -394,3 +394,51 @@ def test_ac52_selected_committed_bay_cannot_be_hidden_by_root_unsubmitted_alias(
         _export(snapshot, previous_scene, target)
     assert not list(target.iterdir())
     assert snapshot == original
+
+
+@pytest.mark.parametrize("root_fact", ("false", "missing"))
+@pytest.mark.parametrize("selection_drift", ("missing", "stale_set", "stale_bay"))
+def test_ac52_single_committed_bay_never_falls_back_when_runtime_selector_drifts(
+    root_fact, selection_drift, tmp_path,
+):
+    """One persisted physical Bay is unambiguous even when its runtime alias breaks.
+
+    Exercise the canonical source gate and normal FinalScene projection, then
+    the original paired writer with a previously valid scene. A stale/missing
+    selection cannot manufacture source-less legacy CUTTING.
+    """
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        _submitted_csv_holes, apply_committed_csv_v5_to_canonical_parts,
+    )
+
+    valid = _valid_project()
+    original_parts = _scene(valid)
+    snapshot = deepcopy(valid)
+    bay = snapshot["receiving_layout"]["sets"][0]["bays"][0]
+    assert bay["nfb_config_submitted"] is True
+    assert len(snapshot["receiving_layout"]["sets"]) == 1
+    assert len(snapshot["receiving_layout"]["sets"][0]["bays"]) == 1
+
+    if root_fact == "false":
+        snapshot["nfb_config_submitted"] = False
+    else:
+        snapshot.pop("nfb_config_submitted")
+    if selection_drift == "missing":
+        snapshot.pop("_receiving_runtime_selection")
+    elif selection_drift == "stale_set":
+        snapshot["_receiving_runtime_selection"]["set_id"] = "stale-set"
+    else:
+        snapshot["_receiving_runtime_selection"]["bay_id"] = "stale-bay"
+
+    before = deepcopy(snapshot)
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"):
+        _submitted_csv_holes(snapshot)
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"):
+        apply_committed_csv_v5_to_canonical_parts(snapshot, original_parts)
+
+    rejected = tmp_path / "rejected"
+    rejected.mkdir()
+    with pytest.raises(ValueError):
+        _export(snapshot, original_parts, rejected)
+    assert not list(rejected.iterdir())
+    assert snapshot == before
