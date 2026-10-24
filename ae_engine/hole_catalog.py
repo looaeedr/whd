@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import csv
+import math
 
 from .sheetmetal_geometry import Vec2
 
@@ -83,17 +84,29 @@ def load_pipe_catalog(base_dir) -> list[HoleDefinition]:
     return result
 
 
+def _positive_hole_mm(value, label):
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must be a finite positive dimension")
+    try:
+        dimension = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{label} must be a finite positive dimension") from exc
+    if not math.isfinite(dimension) or dimension <= 0:
+        raise ValueError(f"{label} must be a finite positive dimension")
+    return dimension
+
+
 def custom_circle_definition(diameter: float, *, blind: bool = False) -> HoleDefinition:
     return HoleDefinition(
         name="自訂圓孔", shape="circle", process=("BLIND_HOLE" if blind else "CUTTING"),
-        diameter=float(diameter),
+        diameter=_positive_hole_mm(diameter, 'diameter'),
     )
 
 
 def custom_rectangle_definition(width: float, height: float, *, blind: bool = False) -> HoleDefinition:
     return HoleDefinition(
         name="自訂方孔", shape="rectangle", process=("BLIND_HOLE" if blind else "CUTTING"),
-        width=float(width), height=float(height),
+        width=_positive_hole_mm(width, 'width'), height=_positive_hole_mm(height, 'height'),
     )
 
 
@@ -156,8 +169,9 @@ def feature_from_definition(definition: HoleDefinition, point: Vec2, width: floa
     from .sheetmetal_features import (
         CircleFeature, RectFeature, ProfileFeature, placement_from_finished_point,
     )
+    from .sheetmetal_feature_core import _normalize_rotation
     placement = placement_from_finished_point(point, width, height)
-    rotation = int(rotation_deg) % 360
+    rotation = _normalize_rotation(rotation_deg)
     if definition.shape == 'circle':
         params = ()
         source_type = definition.name
@@ -167,13 +181,14 @@ def feature_from_definition(definition: HoleDefinition, point: Vec2, width: floa
             add_centerline = True
             params = (("code", definition.source_code or definition.name),)
         return CircleFeature(
-            diameter=float(definition.diameter), anchor=placement.anchor, offset=placement.offset,
+            diameter=_positive_hole_mm(definition.diameter, 'diameter'), anchor=placement.anchor, offset=placement.offset,
             layer=definition.process, add_centerline=add_centerline, source_type=source_type,
             source_params=params, rotation_deg=rotation,
         )
     if definition.shape == 'rectangle':
         return RectFeature(
-            width=float(definition.width), height=float(definition.height), anchor=placement.anchor,
+            width=_positive_hole_mm(definition.width, 'width'),
+            height=_positive_hole_mm(definition.height, 'height'), anchor=placement.anchor,
             offset=placement.offset, layer=definition.process, source_type=definition.name,
             rotation_deg=rotation,
         )
