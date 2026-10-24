@@ -194,7 +194,14 @@ def invert_nfb_inner_door_unfolded_y(
     part, placement, _cell_key, full_h, _t, lower_fold, core, _blank_h = (
         _inner_door_y_basis(snapshot, inner_door_id)
     )
-    v = float(unfolded_uv_y_mm)
+    # Unfolded UV is a physical millimetre, not a truth value. A saved
+    # oversized integer must fail as an invalid input, not OverflowError.
+    if isinstance(unfolded_uv_y_mm, bool):
+        raise ValueError("OPEN-Y-PROJECTION invalid unfolded Y input")
+    try:
+        v = float(unfolded_uv_y_mm)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("OPEN-Y-PROJECTION invalid unfolded Y input") from exc
     if not isfinite(v) or not lower_fold < v < lower_fold + core:
         raise ValueError("OPEN-Y-PROJECTION unfolded Y outside inner-door face core")
     world_y = float(placement.world_offset[1]) + v - lower_fold - core / 2.0
