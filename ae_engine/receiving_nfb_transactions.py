@@ -87,6 +87,17 @@ def _confirmed_operator_x(config):
             raise ValueError("NFB X coordinate missing")
         if not hole.get("datum_revision") or not hole.get("datum_snapshot"):
             raise ValueError("NFB physical datum/version is missing")
+        snapshot = hole["datum_snapshot"]
+        if not isinstance(snapshot, Mapping):
+            raise ValueError("NFB physical datum must be a named source mapping")
+        if ("rotation_deg" in snapshot
+                and (type(snapshot["rotation_deg"]) is not int
+                     or snapshot["rotation_deg"] != hole["rotation_deg"])):
+            raise ValueError("NFB physical rotation datum requires operator reconfirmation")
+        if ("model_filename" in snapshot
+                and (not isinstance(snapshot["model_filename"], str)
+                     or snapshot["model_filename"] != hole["model_filename"])):
+            raise ValueError("NFB physical model datum requires operator reconfirmation")
 
 
 def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
