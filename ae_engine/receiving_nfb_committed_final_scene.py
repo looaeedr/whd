@@ -278,6 +278,12 @@ def _submitted_csv_holes(snapshot):
         occupied_slots.add((tier, unit))
         if (brand != model[0] or hole_id in seen):
             raise ValueError("NFB_COMMITTED_CSV_OWNER_OR_MODEL_MISMATCH")
+        # A Bay width/physical datum change explicitly invalidates its old
+        # confirmed X. An old CSV Hole Editor alias may still have a matching
+        # source hash, but it cannot re-confirm the now-changed Bay by itself.
+        # Preserve the editable blank; do not project old NFB holes or screws.
+        if row.get("manual_x_state") == "RECONFIRM_REQUIRED":
+            return ()
         x = row.get("manual_x_mm")
         if row.get("manual_x_state") != "CONFIRMED" or x is None:
             x = _source_world_x_from_committed_editor_feature(
