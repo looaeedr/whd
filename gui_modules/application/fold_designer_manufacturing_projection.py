@@ -483,7 +483,36 @@ def _query_fold_designer_render_data(self, part_key, payload):
         # 3D formed weld contacts; it cannot grant manufacturing release.
         source = dict(payload or {})
         live = _read_live_receiving_snapshot(self)
-        if isinstance(live, Mapping):
+        selection = source.get("_receiving_runtime_selection")
+        if isinstance(selection, Mapping):
+            # Bay-specific material is resolved through an isolated
+            # ManufacturingRequest. Never overwrite Bay3's W/H/D and Door
+            # from an unrelated live Bay1 while drawing a fixing plate.
+            from ae_engine.receiving_layout import (
+                project_receiving_bay_legacy_aliases,
+            )
+            si, bi = selection.get("set_index"), selection.get("bay_index")
+            if type(si) is not int or type(bi) is not int:
+                raise ValueError("BASE_FIXING_PLATE_BAY_SELECTOR_INVALID")
+            authoritative = project_receiving_bay_legacy_aliases(
+                source, set_index=si, bay_index=bi,
+            )
+            for field in (
+                "w", "h", "d", "_receiving_runtime_selection",
+                "multi_door_enabled", "door_layout_columns",
+                "inner_doors", "nfb_config", "nfb_config_submitted",
+            ):
+                if source.get(field) != authoritative.get(field):
+                    raise ValueError(
+                        f"BASE_FIXING_PLATE_BAY_SOURCE_DRIFT:{field}:"
+                        f" selected={selection!r}"
+                    )
+            # Provenanced source includes the selected Bay's committed NFB.
+            # A missing or malformed source is not rescued from another Bay.
+        elif isinstance(live, Mapping):
+            # The direct single-part editor can pass a minimal PartSpec.
+            # Without a verified Bay selector only the LIVE snapshot may
+            # authorize physical fixing-plate geometry.
             for name in ("nfb_config", "nfb_config_submitted"):
                 source.pop(name, None)
             for name in (
