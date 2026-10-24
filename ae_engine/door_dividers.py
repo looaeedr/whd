@@ -308,8 +308,10 @@ def derive_box_body_dividers(
     marks per-column horizontal internal boundaries.  No parallel N-1 layout
     algorithm is maintained here.
     """
-    normalized_columns = tuple((float(w), tuple(float(h) for h in heights)) for w, heights in columns)
-    cells = derive_door_layout_cells(normalized_columns)
+    # Keep raw operator types until the shared cell resolver validates them.
+    # Pre-coercion via float() loses bool identity (True becomes 1 mm) and
+    # bypasses the only finite numeric gate before manufacturing geometry.
+    cells = derive_door_layout_cells(columns)
     handles = {str(k): _handle_edge(v) for k, v in dict(handle_edges or {}).items()}
     by_col: dict[int, list[object]] = {}
     for cell in cells:
