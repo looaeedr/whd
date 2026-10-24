@@ -113,7 +113,8 @@ def test_tab_flow_uses_native_undoable_stage_and_preserves_confirm_owner():
     composition = (
         ROOT / "gui_modules/editors/hole_editor_composition.py"
     ).read_text(encoding="utf-8")
-    assert "initial[\"layer_heights_mm\"] = [550.0, 800.0]" in receiving
+    assert "initial[\"layer_heights_mm\"] = [550.0, 800.0]" not in receiving
+    assert 'SETTING_DEFAULTS["inner_door_layer_heights_mm"]' in receiving
     assert 'layer_height_vars[0].set("300")' in receiving
     assert "stage_in_editor(config, openings)" in receiving
     assert "accept(openings)" in receiving

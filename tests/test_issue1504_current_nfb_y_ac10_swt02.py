@@ -145,3 +145,31 @@ def test_nfb_ac10_outside_source_matrix_remains_unknown_not_centered():
         assert preview["layers"][0]["adjacent_x_mm"] is None
         assert preview["layers"][0]["absolute_x_mm"] is None
         assert preview["can_manufacture"] is False
+
+
+def test_nfb_ac10_fresh_original_editor_keeps_current_330_830_not_legacy_override():
+    """The ACTUAL WHD receiving editor must not revive superseded 550/800 defaults."""
+    from pathlib import Path
+    from ae_engine.receiving_shared_settings import SETTING_DEFAULTS, validate_setting
+    from ae_engine.receiving_inner_door_candidates import validate_door_config
+
+    assert SETTING_DEFAULTS["inner_door_layer_heights_mm"] == [330.0, 830.0]
+    text = (Path(__file__).resolve().parents[1] /
+            "gui_modules/application/fold_designer_composition_receiving.py"
+            ).read_text(encoding="utf-8")
+    start = text.index("    def inner_edit(role, version_id, after_saved,")
+    end = text.index("    def current_inner_editor_config():", start)
+    source = text[start:end]
+    assert 'SETTING_DEFAULTS["inner_door_layer_heights_mm"]' in source
+    assert 'initial["layer_heights_mm"] = [550.0, 800.0]' not in source
+    assert 'for v in initial["layer_heights_mm"]' in source
+    assert 'layer_height_vars = tuple(' in source
+    assert validate_setting("inner_door_layer_heights_mm", [330.0, 830.0]) == [330.0, 830.0]
+    # Historical saved operator heights are legitimate explicit values and
+    # must not be silently migrated to either set of defaults.
+    for heights in ([410.0, 910.0], [550.0, 800.0]):
+        stored = validate_door_config({
+            "layers": 2, "models": ["", ""],
+            "layer_heights_mm": heights,
+        })
+        assert stored["layer_heights_mm"] == heights

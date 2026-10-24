@@ -83,6 +83,7 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         modal = editor(ROLE, None, saved_ids.append)
         root.update()
         state = modal._receiving_inner_switch_state
+        assert [value.get() for value in state["layer_heights_mm"]] == ["330", "830"]
         assert len(state["rows"]) == 2
         assert not hasattr(modal, "_receiving_inner_preview_canvas")
         assert modal._receiving_inner_preview_status.get() == "與已載入版本相同"
@@ -116,7 +117,7 @@ def test_version_editor_add_remove_repeated_switches_and_read_updated_csv(
         saved = inner_config(app._phase6_input_snapshot[KEY], saved_ids[0])
         assert saved["layers"] == 1
         assert saved["models"] == [[ref_a, ref_b, ref_a], ""]
-        assert saved["layer_heights_mm"] == [550.0, 800.0]
+        assert saved["layer_heights_mm"] == [330.0, 830.0]
         assert saved["features"] == {}
 
         modal = editor(ROLE, saved_ids[0], lambda _vid: None)

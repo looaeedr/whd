@@ -2137,11 +2137,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             initial["layer_heights_mm"] = list(
                 SETTING_DEFAULTS["inner_door_layer_heights_mm"]
             )
-        if (not any(switch_filenames_in_layer(row) for row in initial["models"])
-                and list(initial["layer_heights_mm"])
-                == list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])):
-            # Fresh receiving-tab draft, not a global migration of old boxes.
-            initial["layer_heights_mm"] = [550.0, 800.0]
+        # Fresh receiving-tab drafts use the CURRENT shared 330/830 default.
+        # Explicit old-project heights are retained without migration.
         # Fresh Single NFB UI: show one real Shihlin 2P400 by default,
         # sourced from its current CSV. This is only a transient editor
         # draft. A Cancel never persists it; native Confirm All remains the
