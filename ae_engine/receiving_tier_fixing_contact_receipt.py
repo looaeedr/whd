@@ -103,7 +103,19 @@ def validate_receiving_tier_fixing_contact_receipts(
                 or depth.base_back_skin_world_z_mm is None
                 or target.target_ear_contact_world_z_mm is None):
             raise ValueError("EAR_RECEIPT_SOURCE_Z_NOT_VERIFIED")
-        if getattr(base, "placement", None) != "offset":
+        # The original Phase6 assembly labels its real single BasePlate
+        # placement "base_plate" (the canonical placement_kind), whereas
+        # independent assembled-part fixtures use the equivalent "offset".
+        # Both must prove exactly the same source-derived XYZ below. Never
+        # accept an arbitrary placement kind, detached preview or two-tier
+        # plate borrowing the root BasePlate identity.
+        actual_kind = getattr(base, "placement", None)
+        allowed = {"offset"}
+        if xy_row.parent_base_id == "base_plate":
+            from .assembly_placement import resolve_base_plate_placement
+            source_placement = resolve_base_plate_placement(snapshot, "base_plate")
+            allowed.add(source_placement.placement_kind)
+        if actual_kind not in allowed:
             raise ValueError("EAR_RECEIPT_BASE_NOT_OFFSET_PLACED")
         offset = tuple(getattr(base, "offset", ()))
         if (len(offset) != 3
