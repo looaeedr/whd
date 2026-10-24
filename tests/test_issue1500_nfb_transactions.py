@@ -285,3 +285,26 @@ def test_copy_submitted_source_into_independently_verified_target_unit_id():
         evidence=evidence(source,1,x=100),confirm=lambda _:False,
     )
     assert not canceled.changed and canceled.layout==source
+
+
+@pytest.mark.parametrize("nonboolean_reply", [1, "yes", [], None])
+def test_ac34_nonboolean_operator_confirmation_never_commits_or_restores(nonboolean_reply):
+    """Operator callbacks must return actual bool, never truthy/falsy aliases."""
+    original = layout()
+    before = deepcopy(original)
+    with pytest.raises(TypeError, match="explicit boolean"):
+        do_submit(original, yes=nonboolean_reply)
+    assert original == before
+
+    submitted = do_submit(original, yes=True).layout
+    stable = deepcopy(submitted)
+    with pytest.raises(TypeError, match="explicit boolean"):
+        restore_nfb_bays_unconfigured(
+            submitted, set_index=0, bay_indices=(0,),
+            confirm=lambda _: nonboolean_reply,
+        )
+    assert submitted == stable
+    rejected = restore_nfb_bays_unconfigured(
+        submitted, set_index=0, bay_indices=(0,), confirm=lambda _: False,
+    )
+    assert rejected.changed is False and rejected.layout == submitted
