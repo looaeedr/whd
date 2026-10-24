@@ -3911,8 +3911,8 @@
       "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
-          "test_name": "test_swt29_current_csv_four_rotations_keep_one_main_cut_and_original_pair",
+          "path": "tests/test_issue1497_configured_nfb_manufacturing_release.py",
+          "test_name": "test_legacy_same_physical_hole_fails_no_duplicate_cutting",
           "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
           "accepted": true
         }
@@ -3921,8 +3921,9 @@
       "acceptance_evidence": {
         "scope": "CURRENT_NUMERIC_V5_REAL_FINALSCENE_ORIGINAL_PAIRED_DXF_NATIVE_EDITOR_FEATURE_ONLY",
         "original_ac_text_unchanged": true,
-        "primary_assertion": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_swt29_current_csv_four_rotations_keep_one_main_cut_and_original_pair",
+        "primary_assertion": "tests/test_issue1497_configured_nfb_manufacturing_release.py::test_legacy_same_physical_hole_fails_no_duplicate_cutting",
         "other_required_assertions": [
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_swt29_current_csv_four_rotations_keep_one_main_cut_and_original_pair",
           "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py::test_swt23_current_csv_same_physical_legacy_hole_blocks_without_writing",
           "tests/test_issue1504_swt23_current_csv_legacy_exclusion.py::test_swt23_unrelated_legacy_cutting_survives_current_csv_save_reload_and_unconfigure",
           "tests/test_issue1502_csv_is_only_normal_finalscene_source.py::test_existing_editor_csv_feature_is_alias_not_duplicate_source",
