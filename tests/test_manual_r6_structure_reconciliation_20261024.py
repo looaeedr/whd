@@ -93,3 +93,16 @@ def test_r6_two_piece_complete_default_still_rebalances_on_total_width_edit():
     assert changed["configs"][kind]["left_w"] == 500.
     assert changed["configs"][kind]["right_w"] == 500.
     assert changed["configs"][kind]["driver"] == "default"
+
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), 10 ** 400])
+def test_r6_transaction_width_must_preserve_raw_input_for_physical_guard(bad):
+    """The UI transaction must not turn bool into 1 mm or leak JSON overflow."""
+    from phase6_settings_transitions import reconcile_width_structure
+    saved = body.default_box_body_structure_state()
+    untouched = deepcopy(saved)
+    with pytest.raises(ValueError, match="箱身總寬"):
+        reconcile_width_structure(saved, bad)
+    assert saved == untouched
+    valid = reconcile_width_structure(saved, 800.)
+    assert valid == body.reconcile_box_body_structure_for_total_w_change(saved, 800.)
