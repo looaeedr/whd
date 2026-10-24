@@ -151,11 +151,30 @@ def replace_nfb_slot_model(draft,layer_index,slot_index,filename,*,catalog):
     return result
 
 
+def _invalidate_effective_rotation_x(slot):
+    """Keep the operator's X offset, never reuse an old rotation's datum."""
+    slot["datum_snapshot"] = None
+    slot.pop("datum_revision", None)
+    if slot["manual_x_mm"] is not None:
+        slot["manual_x_state"] = (
+            RECONFIRM if slot["manual_x_state"] == "CONFIRMED" else UNVERIFIED
+        )
+    else:
+        slot["manual_x_state"] = NONE
+
+
 def set_nfb_layer_rotation(draft,layer_index,angle):
     if type(angle) is not int or angle not in ROTATIONS:
         raise ValueError("NFB angle must be 0/90/180/270; mirrors forbidden")
     state=editable_nfb_draft(draft)
-    _get_layer(state,layer_index)["rotation_deg"]=angle
+    layer=_get_layer(state,layer_index)
+    if layer["rotation_deg"] != angle:
+        # Only inheriting slots effectively rotate. Explicit rotations and
+        # all other layers retain their independent X source approvals.
+        for slot in layer["slots"]:
+            if slot["rotation"]["mode"] == INHERIT:
+                _invalidate_effective_rotation_x(slot)
+    layer["rotation_deg"]=angle
     return state
 
 
@@ -165,7 +184,17 @@ def set_nfb_slot_rotation(draft,layer_index,slot_index,*,mode,value=None):
     if mode==INHERIT and value is not None:
         raise ValueError("NFB inherited rotation has no separate value")
     state=editable_nfb_draft(draft)
-    _get_slot(state,layer_index,slot_index)["rotation"]=_rotation_override(mode,value)
+    layer=_get_layer(state,layer_index)
+    slot=_get_slot(state,layer_index,slot_index)
+    old_effective = (
+        slot["rotation"]["value"] if slot["rotation"]["mode"] == OVERRIDE
+        else layer["rotation_deg"]
+    )
+    rotation=_rotation_override(mode,value)
+    next_effective = value if mode == OVERRIDE else layer["rotation_deg"]
+    if old_effective != next_effective:
+        _invalidate_effective_rotation_x(slot)
+    slot["rotation"]=rotation
     return state
 
 
