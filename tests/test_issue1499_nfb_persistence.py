@@ -329,3 +329,61 @@ def test_old_project_numeric_string_width_respects_current_x_reconfirmation(
     checked = normalized["sets"][0]["bays"][0]
     assert checked["width"] == pytest.approx(750)
     assert checked["nfb_config"]["holes"][0]["manual_x_state"] == expected_state
+
+
+@pytest.mark.parametrize("datum", [
+    {"reference": "OLD_ABSOLUTE_X_REFERENCE"},
+    {"height": 1600, "inner_door": "upper"},
+    {"width": 800, "w": 750},
+])
+def test_current_csv_v5_missing_world_x_width_basis_cannot_stay_confirmed(
+    tmp_path, datum,
+):
+    """A V5 numerical identity does not establish a manufactured world-X datum.
+
+    Keep exact user X (including zero), model, revision and saved snapshot,
+    but require human reconfirmation when the actual Bay width cannot be
+    established unambiguously from the submitted per-hole datum.  Saving and
+    reopening must never resurrect stale CONFIRMED authority.
+    """
+    model = "nfbv5:士林:2P400"
+    source = _layout()
+    user = _config(x=0, filename=model)
+    user["holes"][0]["datum_snapshot"] = deepcopy(datum)
+    user["holes"][0]["datum_revision"] = "operator-basis-rev1"
+    original = deepcopy(user)
+    layout = update_receiving_bay(
+        source, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=user,
+    )
+    assert user == original
+    assert source == _layout()
+    affected, sibling = layout["sets"][0]["bays"]
+    assert affected["nfb_config_submitted"] is True
+    hole = affected["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert hole["manual_x_mm"] == 0
+    assert hole["datum_snapshot"] == datum
+    assert hole["datum_revision"] == "operator-basis-rev1"
+    assert hole["model_filename"] == model
+    assert sibling == source["sets"][0]["bays"][1]
+    path = write_project(tmp_path / "v5-ambiguous-x.p6fold", _payload(layout))
+    reopened = read_project(path)["snapshot"]["receiving_layout"]["sets"][0]["bays"][0]
+    assert reopened["nfb_config_submitted"] is True
+    assert reopened["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert reopened["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+
+
+def test_current_csv_v5_matching_world_x_width_basis_preserves_explicit_confirmed_zero():
+    """Do not invalidate a genuinely width-matched current CSV V5 owner."""
+    model = "nfbv5:士林:2P400"
+    config = _config(x=0, filename=model)
+    config["holes"][0]["datum_snapshot"] = {"w": 800, "inner_door": "upper"}
+    layout = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=config,
+    )
+    hole = layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "CONFIRMED"
+    assert hole["manual_x_mm"] == 0
+    assert hole["datum_snapshot"]["w"] == 800
