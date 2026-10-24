@@ -78,3 +78,34 @@ def test_r6_bad_xyz_never_produces_a_resolved_contact_frame_or_pair(world):
     assert boundary.status == "SKIPPED_FAIL_CLOSED", boundary
     assert boundary.pair is None
     assert boundary.diagnostic_code == "BOUNDARY_PAIR_AMBIGUOUS"
+
+
+@pytest.mark.parametrize("absent_mesh", [(), [], None])
+def test_r4_69_selected_existing_but_empty_mesh_must_fail_closed(absent_mesh):
+    """A selected 3D sheet with no triangles is MISSING, not collision-free."""
+    from ae_engine.assembly_all_parts_collision import audit_all_physical_part_pairs
+
+    triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
+    scene = {"head": (triangle,), "inner_door:upper:panel": absent_mesh}
+    with pytest.raises(ValueError, match="ASSEMBLY_COLLISION_MISSING_VISIBLE_PARTS: inner_door:upper:panel"):
+        audit_all_physical_part_pairs(
+            scene, visible_part_keys={"head", "inner_door:upper:panel"},
+        )
+    # Optional, unselected placeholders do not make a partial preview fail.
+    allowed = audit_all_physical_part_pairs(scene, visible_part_keys={"head"})
+    assert allowed.visible_keys == ("head",)
+    assert allowed.evaluated_pair_count == 0
+
+
+def test_r4_69_selected_nonempty_meshes_remain_independently_audited():
+    from ae_engine.assembly_all_parts_collision import audit_all_physical_part_pairs
+
+    a = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
+    b = ((10., 0., 0.), (11., 0., 0.), (10., 1., 0.))
+    result = audit_all_physical_part_pairs(
+        {"head": (a,), "inner_door:upper:panel": (b,)},
+        visible_part_keys={"head", "inner_door:upper:panel"},
+    )
+    assert result.visible_keys == ("head", "inner_door:upper:panel")
+    assert result.evaluated_pair_count == 1
+    assert result.pairs[0].status == "AABB_SEPARATED"
