@@ -61,3 +61,35 @@ def test_r6_three_part_valid_partial_and_standard_preserve_outside_width():
 def test_r6_endcap_tab_rejects_unsupported_key_before_widget_mutation():
     with pytest.raises(ValueError, match="Unsupported endcap tab key"):
         setup_tab_endcap_ui(object(),object(),"invalid_key")
+
+
+@pytest.mark.parametrize("saved_driver", [None, "left", "default"])
+def test_r6_two_piece_partial_right_only_remains_the_driver_across_width_edits(saved_driver):
+    """A real saved right-side outside width is not a disposable left fallback."""
+    kind = body.BoxBodyStructureType.TWO_PIECE_W_SPLIT.value
+    original = {
+        "active_type": kind,
+        "configs": {kind: {"left_w": None, "right_w": 200., "driver": saved_driver}},
+    }
+    untouched = deepcopy(original)
+    first = body.reconcile_box_body_structure_for_total_w_change(original, 800.)
+    assert first["configs"][kind]["left_w"] == 600.
+    assert first["configs"][kind]["right_w"] == 200.
+    assert first["configs"][kind]["driver"] == "right"
+    second = body.reconcile_box_body_structure_for_total_w_change(first, 900.)
+    assert second["configs"][kind]["left_w"] == 700.
+    assert second["configs"][kind]["right_w"] == 200.
+    assert second["configs"][kind]["driver"] == "right"
+    assert original == untouched
+
+
+def test_r6_two_piece_complete_default_still_rebalances_on_total_width_edit():
+    kind = body.BoxBodyStructureType.TWO_PIECE_W_SPLIT.value
+    original = {
+        "active_type": kind,
+        "configs": {kind: {"left_w": 400., "right_w": 400., "driver": "default"}},
+    }
+    changed = body.reconcile_box_body_structure_for_total_w_change(original, 1000.)
+    assert changed["configs"][kind]["left_w"] == 500.
+    assert changed["configs"][kind]["right_w"] == 500.
+    assert changed["configs"][kind]["driver"] == "default"
