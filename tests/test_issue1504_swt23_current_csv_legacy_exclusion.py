@@ -199,3 +199,39 @@ def test_ac52_all_invalid_v5_refs_cannot_silently_fall_back_to_blank_finalscene(
         _scene(submitted)
     assert snapshot == before
     assert not list(tmp_path.glob("*.dxf"))
+
+
+@pytest.mark.parametrize("invalid_legacy", [
+    None,
+    "",
+    "NOT_A_DXF",
+    "legacy/escape.dxf",
+    ["unexpected", "list"],
+])
+def test_ac52_all_unparseable_legacy_names_cannot_approve_empty_numeric_source(
+    invalid_legacy,
+):
+    """Submitted damaged legacy names are not a valid all-legacy fallback."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    submitted = _valid_project()
+    for hole in submitted["nfb_config"]["holes"]:
+        hole["model_filename"] = deepcopy(invalid_legacy)
+    submitted["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        submitted["nfb_config"]
+    )
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_STORED_MODEL_INVALID"):
+        _submitted_csv_holes(submitted)
+
+
+def test_ac52_legitimate_historical_dxf_names_still_use_unchanged_legacy_path():
+    """Reject malformed records, but never migrate a legal historical model."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    snapshot = _valid_project()
+    for hole in snapshot["nfb_config"]["holes"]:
+        hole["model_filename"] = "400_140X257_107.dxf"
+    snapshot["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snapshot["nfb_config"]
+    )
+    assert _submitted_csv_holes(snapshot) == ()
