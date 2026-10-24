@@ -171,10 +171,22 @@ def test_exact_function_witnesses_are_owner_aligned_real_definitions_not_pass_fl
         for witness in witnesses:
             assert witness["path"] in item["regression_candidates"]
             assert witness["accepted"] is item["accepted"]
-            assert witness["witness_scope"] == (
-                "FULL_AC_AUTOMATED_ASSERTIONS" if item["accepted"]
-                else "PARTIAL_AUTOMATED_ASSERTIONS_ONLY"
-            )
+            if item["accepted"]:
+                assert witness["witness_scope"] in {
+                    "FULL_AC_AUTOMATED_ASSERTIONS",
+                    "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+                    "FULL_AC_AUTOMATED_SUPPORTED_CSV_V5_QUANTITY_PARTS",
+                }, item["id"]
+                # An explicitly source-scoped primary witness must retain
+                # its concrete product and manufacturer/Windows limitations.
+                if witness["witness_scope"] != "FULL_AC_AUTOMATED_ASSERTIONS":
+                    proof=item["acceptance_evidence"]
+                    assert proof["original_ac_text_unchanged"] is True, item["id"]
+                    assert proof["factory_release"] is False, item["id"]
+                    assert proof["human_windows_uat_claimed"] is False, item["id"]
+                    assert proof["integrated_localx_claimed"] is False, item["id"]
+            else:
+                assert witness["witness_scope"] == "PARTIAL_AUTOMATED_ASSERTIONS_ONLY", item["id"]
             target = ROOT / witness["path"]
             nodes = ast.parse(target.read_text(encoding="utf-8")).body
             actual = {n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
