@@ -1,3 +1,12 @@
+## 2026-10-24（台灣）｜#1504 隔離 Draft #2098｜SWT-AC-05 CSV V5 原生 Tk 來源範圍簽核候選（42→43，不合 localX）
+
+- **先前真 GUI 基礎證據**：SHA `9c5541d98d03fa9061ce557dcdd1a9b2acb86bd4` [Product CI #40040819937](https://github.com/looaeedr/whd/actions/runs/40040819937) Preflight、Shard0/1/2、Canonical 全 SUCCESS（2067 passed / 0 failed），[Tk Performance #40040819908](https://github.com/looaeedr/whd/actions/runs/40040819908) SUCCESS。SWT-05 獨立候選視窗「預覽後取消不寫入」「確定只存候選」兩個原生 Tk 測試 PASSED。
+- **原 Hole Editor 嵌入入口**：後續嵌入式單只設定測試在最初缺少真 800×1100 上層內門工作區時被源驗證阻斷（不許硬造）；補足來源一致的實體 cell 後在 Shard1 [Run #40042462774](https://github.com/looaeedr/whd/actions/runs/40042462774) `test_swt05_embedded_original_hole_editor_cancel_then_confirm_stages_only` PASSED：X 基準未定與僅預覽可見、取消不寫、確定只交主編輯器 staged typed `NFB_CSV_SOURCE` Features、此刻不存專案或製造輸出。
+- **來源解讀修正不改原 §7 文本**：當期品牌 NFB 數值 CSV V5 取代 legacy 每顆 DXF 作為新選型來源；legacy DXF 真圖元及缺失來源阻斷仍作歷史相容證據；沒有核准的世界 X/Y、原始舊 DXF pivot、工廠正式 CUTTING 或 Windows 雙舊專案 UAT 均**不放行**。
+- **43/88 僅隔離分支候選，尚須本次簽核 commit exact HEAD 全 Product CI / Tk Performance SUCCESS**。目前分支 43 accepted current scope / 10 candidate / 17 blocked #1500 real GUI / 14 scoped #1502 / 4 deferred，共 88；GitHub localX 仍須 fresh readback，**禁止合併 localX，不發布正式 X**。#1504 OPEN。
+
+---
+
 ## 2026-10-24（台灣）｜#1504 Draft #2098｜NFB-AC-15 當期來源互動效能簽核候選（41→42，**不合 localX**）
 
 - 前一 HEAD `34049d8561d5a168d9df2fee4b8b5503b9f66c59` 的 [Product CI #39987562353](https://github.com/looaeedr/whd/actions/runs/39987562353) Preflight、Shard0/1/2、Canonical 全 SUCCESS（2063 passed / 0 failed），[Tk Baseline #39987562346](https://github.com/looaeedr/whd/actions/runs/39987562346) SUCCESS；AC-03 的 41/88 隔離來源範圍候選已獲完整 CI 證據。**此次 AC-15 新 commit 的 exact HEAD 要重新全 CI 驗證，不能沿用舊 SHA 冒簽。**
