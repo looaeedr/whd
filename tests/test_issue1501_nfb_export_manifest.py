@@ -355,3 +355,34 @@ def test_ac44_duplicate_physical_part_cannot_hide_a_blocked_legacy_source(tmp_pa
     forged = replace(current, rows=(*current.rows, duplicate))
     with pytest.raises(ValueError, match="duplicate physical part BLOCKED"):
         forged.require_export(("inner1",), partial=True)
+
+
+@pytest.mark.parametrize("forgery", ("whole_ready", "clear_unresolved", "integer_ready"))
+def test_ac44_forged_whole_ready_never_bypasses_blocked_physical_parts(
+    tmp_path, forgery,
+):
+    """A forged full-export flag cannot approve only the independent side."""
+    from dataclasses import replace
+
+    manifest = derive_nfb_partial_export_manifest(**_prepared(tmp_path, color30=1))
+    assert manifest.partial_only and not manifest.whole_ready
+    assert manifest.authorized_part_ids == ("inner1", "side1")
+    if forgery == "whole_ready":
+        forged = replace(manifest, whole_ready=True)
+    elif forgery == "clear_unresolved":
+        forged = replace(manifest, whole_ready=True, unresolved_dependencies=())
+    else:
+        forged = replace(manifest, whole_ready=1)
+    with pytest.raises(ValueError, match="whole manufacturing not ready"):
+        forged.require_export(("side1",), partial=False)
+    # The independently verified OTHER part is still valid for partial-only.
+    assert forged.require_export(("side1",), partial=True) == ("side1",)
+
+
+def test_ac44_unsubmitted_legacy_manifest_still_exports_original_physical_parts(
+    tmp_path,
+):
+    opts = _prepared(tmp_path, submitted=False)
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    requested = tuple(part.part_id for part in opts["actual_parts"])
+    assert manifest.require_export(requested, partial=False) == requested
