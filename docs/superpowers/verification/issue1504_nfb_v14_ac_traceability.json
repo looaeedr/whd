@@ -2326,6 +2326,7 @@
         "tested_product_ci_before_matrix_change": "40079933096 / e3db2489b2db3f4f5d9c1747b58a9ffdaa2afdf2 / 52 checks / 2541 passed",
         "matrix_only_change_requires_exact_head_ci": true,
         "integration_target": "localX, HELD by user; this Draft PR not merged",
+        "integrated_localx_claimed": false,
         "factory_release": false,
         "whole_cabinet_mfg2_granted": false,
         "source_unmapped_brand_or_arbitrary_world_x_granted": false,
