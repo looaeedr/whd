@@ -81,8 +81,9 @@ def _revoke_changed_brand_x(before, updated):
             else:
                 slot["manual_x_state"] = (
                     "RECONFIRM_REQUIRED"
-                    if slot.get("manual_x_state") == "CONFIRMED"
-                    else "UNVERIFIED_BASIS"
+                    if slot.get("manual_x_state") in (
+                        "CONFIRMED", "RECONFIRM_REQUIRED"
+                    ) else "UNVERIFIED_BASIS"
                 )
     return updated
 
