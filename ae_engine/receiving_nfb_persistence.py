@@ -146,7 +146,19 @@ def normalize_nfb_saved_fields(row):
                     "outer_width_mm",
                 ) if key in snapshot
             )
-            if any(
+            # The current numeric CSV V5 is a model/geometry identity,
+            # NOT an implicit permission to reuse an old world-X datum.
+            # A legacy DXF row may have no structured width evidence, but a
+            # V5 CONFIRMED hole must explicitly bind its manual X to this Bay.
+            # Missing width, conflicting aliases, boolean or nonfinite input
+            # may not silently preserve manufacturing confidence. Retain
+            # the authored coordinate and source for operator reconfirmation.
+            from .receiving_nfb_model_identity import parse_numeric_model_ref
+            missing_v5_width_proof = (
+                parse_numeric_model_ref(hole.get("model_filename")) is not None
+                and not known_widths
+            )
+            if missing_v5_width_proof or any(
                 type(value) not in (int, float)
                 or not isfinite(float(value))
                 or abs(float(value) - bay_width) > 1e-7
