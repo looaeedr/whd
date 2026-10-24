@@ -172,8 +172,24 @@ def _submitted_csv_holes(snapshot):
         # If the currently selected physical Bay remains submitted, a stale
         # false/missing root field must NOT erase its current NFB CUTTING.
         # Other nonselected Bays may still be submitted independently.
-        selector = snapshot.get("_receiving_runtime_selection")
         layout = snapshot.get("receiving_layout")
+        # With exactly one persisted Set/Bay, the physical owner is unique.
+        # A missing or stale runtime selection must not turn that committed
+        # Bay into a legacy no-NFB manufacturing source. Do not apply this
+        # shortcut to multiple Bays: an unconfigured selected Bay can coexist
+        # with another independently committed Bay.
+        if isinstance(layout, Mapping):
+            sets = layout.get("sets")
+            if (isinstance(sets, (tuple, list)) and len(sets) == 1
+                    and isinstance(sets[0], Mapping)):
+                bays = sets[0].get("bays")
+                if (isinstance(bays, (tuple, list)) and len(bays) == 1
+                        and isinstance(bays[0], Mapping)
+                        and bays[0].get("nfb_config_submitted") is True):
+                    raise ValueError(
+                        "NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"
+                    )
+        selector = snapshot.get("_receiving_runtime_selection")
         if isinstance(selector, Mapping) and isinstance(layout, Mapping):
             sets = layout.get("sets")
             si, bi = selector.get("set_index"), selector.get("bay_index")
