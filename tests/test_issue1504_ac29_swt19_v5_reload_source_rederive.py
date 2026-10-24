@@ -275,3 +275,100 @@ def test_ac29_swt19_original_hole_editor_csv_proof_from_before_reload_cannot_be_
     assert after[0].points[1].x - after[0].points[0].x == pytest.approx(65.)
     assert before[0].points[1].x - before[0].points[0].x == pytest.approx(57.)
     assert before != after
+
+
+def _canonical_cutting_scene_shapes(part):
+    """FinalScene's CUTTING geometry in the same units as reopened DXF."""
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    primitives = tuple(part.render_data.scene.primitives)
+    circles = tuple(sorted(
+        (round(float(p.center.x), 5), round(float(p.center.y), 5),
+         round(float(p.radius), 5))
+        for p in primitives if isinstance(p, CirclePrimitive)
+        and p.layer == "CUTTING"
+    ))
+    polygons = tuple(sorted(
+        tuple(sorted((round(float(pt.x), 5), round(float(pt.y), 5))
+                     for pt in p.points))
+        for p in primitives if isinstance(p, PolylinePrimitive)
+        and p.layer == "CUTTING" and p.closed
+    ))
+    return circles, polygons
+
+
+def test_ac14_swt11_complete_real_scene_and_saved_dxf_roundtrip(monkeypatch, tmp_path):
+    """One current V5 source must survive Set/Bay Save, FinalScene and DXF IO.
+
+    This is a supported source-scoped 2D/3D installed-part check, NOT whole
+    cabinet MFG-2 approval or a physical Windows operator GUI receipt.
+    """
+    _isolated_csv(monkeypatch, tmp_path)
+    original = _valid_project()
+    before = _scene(original)
+    assert {part.part_key for part in before} == {
+        "inner_door:upper:panel", "base_plate"
+    }
+    first = _save(original, before, tmp_path / "before")
+    first_files = _files(first)
+    before_dxf = tuple(_shapes(path) for path in first_files)
+    for index, part in enumerate(before):
+        # A 2D/3D installed part and the written manufacture geometry are
+        # projections of the SAME typed physical FinalScene.
+        assert _canonical_cutting_scene_shapes(part) == before_dxf[index]
+        assert len(tuple(part.render_data.scene.primitives)) > 0
+
+    restored, project_path = _reloaded_project(original, tmp_path)
+    assert project_path.is_file()
+    after = _scene(restored)
+    assert tuple(p.part_key for p in after) == tuple(p.part_key for p in before)
+    for original_part, saved_part in zip(before, after):
+        assert saved_part.offset == original_part.offset
+        assert saved_part.render_data.scene.primitives == original_part.render_data.scene.primitives
+        assert saved_part.render_data.unfolded_topology == original_part.render_data.unfolded_topology
+        assert saved_part.render_data.fold_guides == original_part.render_data.fold_guides
+        assert saved_part.render_data.metadata["stable_id"] == original_part.render_data.metadata["stable_id"]
+    second = _save(restored, after, tmp_path / "after")
+    second_files = _files(second)
+    assert first.source_hole_ids == second.source_hole_ids == ("nfb:0", "nfb:1")
+    assert tuple(_shapes(p) for p in second_files) == before_dxf
+    for index, part in enumerate(after):
+        assert _canonical_cutting_scene_shapes(part) == _shapes(second_files[index])
+
+
+def test_ac14_swt11_changed_nfb_source_never_reuses_an_old_3d_or_dxf(
+    monkeypatch, tmp_path,
+):
+    """Source drift must reconstruct BOTH 2D and installed 3D before DXF."""
+    _isolated_csv(monkeypatch, tmp_path)
+    source = _valid_project()
+    old_parts = _scene(source)
+    old_receipt = _save(source, old_parts, tmp_path / "old")
+    old_paths = _files(old_receipt)
+    old_shapes = tuple(_shapes(path) for path in old_paths)
+    original_bytes = tuple(path.read_bytes() for path in old_paths)
+
+    changed = deepcopy(source)
+    changed["nfb_config"]["holes"][1]["manual_x_mm"] -= 20.
+    changed["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed["nfb_config"]
+    )
+    stale_dir = tmp_path / "stale"
+    stale_dir.mkdir()
+    with pytest.raises(ValueError, match="CURRENT_FINALSCENE|SOURCE|DIFFERS|CSV"):
+        _export(changed, old_parts, stale_dir)
+    assert not list(stale_dir.glob("*.dxf"))
+
+    new_parts = _scene(changed)
+    assert tuple(p.part_key for p in new_parts) == tuple(p.part_key for p in old_parts)
+    assert any(
+        _canonical_cutting_scene_shapes(new) != _canonical_cutting_scene_shapes(old)
+        for old, new in zip(old_parts, new_parts)
+    )
+    assert all(old.offset == new.offset for old, new in zip(old_parts, new_parts))
+    new_receipt = _save(changed, new_parts, tmp_path / "new")
+    new_paths = _files(new_receipt)
+    new_shapes = tuple(_shapes(path) for path in new_paths)
+    assert new_shapes != old_shapes
+    for index, part in enumerate(new_parts):
+        assert _canonical_cutting_scene_shapes(part) == new_shapes[index]
+    assert tuple(path.read_bytes() for path in old_paths) == original_bytes
