@@ -447,7 +447,7 @@ def set_three_piece_width(
         middle = total - 2.0 * number
         driver = "side"
     if not all(math.isfinite(v) and v > 0.0 for v in (left, middle, right)):
-        raise ValueError("W 三分三個包外尺寸都必須是有限正數")
+        raise ValueError("W 三分三個包外尺寸都必須大於 0 且為有限值")
     result = normalize_box_body_structure_state(state)
     cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_W_SPLIT.value]
     cfg.update({"left_w": left, "middle_w": middle, "right_w": right, "driver": driver})
