@@ -6,7 +6,8 @@ import pytest
 from ae_engine.box_body_structure import resolve_box_body_structure
 from phase6_box_body_structure import (
     BoxBodyStructureType, default_box_body_structure_state,
-    set_active_structure,
+    set_active_structure, set_side_back_geometry,
+    side_rear_bend_material_length, side_rear_bend_outside_length,
 )
 from phase6_fold_profiles import build_box_body_profile
 
@@ -73,3 +74,40 @@ def test_r6_valid_full_and_partial_back_skins_keep_source_dimensions_and_offset(
     assert projected.structural.width == pytest.approx(back.structural.width)
     assert projected.structural.height == pytest.approx(back.structural.height / 2.)
     assert projected.formed_y_offset == pytest.approx(back.structural.height / 4.)
+
+
+@pytest.mark.parametrize("key", ["side_rear_bend", "back_width_comp_t"])
+@pytest.mark.parametrize("bad", [True, False, nan, inf, -inf, "NaN"])
+def test_r6_operator_side_back_source_rejects_nonfinite_or_bool(key, bad):
+    _snapshot, state = _source()
+    with pytest.raises(ValueError, match="必須為有限數值"):
+        set_side_back_geometry(state, **{key: bad})
+
+
+@pytest.mark.parametrize("bad", [True, False, nan, inf, -inf, "NaN"])
+def test_r6_restored_rear_bend_cannot_poison_material_or_outside_conversion(bad):
+    _snapshot, state = _source()
+    cfg = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    cfg["side_rear_bend"] = bad
+    with pytest.raises(ValueError, match="側板後折"):
+        side_rear_bend_material_length(state, 2.)
+    with pytest.raises(ValueError, match="側板後折"):
+        side_rear_bend_outside_length(state, 2.)
+
+
+def test_r6_rear_bend_material_and_outside_authority_stays_reversible():
+    _snapshot, state = _source()
+    material = set_side_back_geometry(
+        state, side_rear_bend=18.,
+        side_rear_bend_dimension_space="MATERIAL", back_width_comp_t=1.,
+    )
+    assert side_rear_bend_material_length(material, 2.) == pytest.approx(18.)
+    assert side_rear_bend_outside_length(material, 2.) == pytest.approx(20.)
+    outside = set_side_back_geometry(
+        state, side_rear_bend=20.,
+        side_rear_bend_dimension_space="OUTSIDE", back_width_comp_t=1.,
+    )
+    assert side_rear_bend_material_length(outside, 2.) == pytest.approx(18.)
+    assert side_rear_bend_outside_length(outside, 2.) == pytest.approx(20.)
+    with pytest.raises(ValueError, match="板厚"):
+        side_rear_bend_material_length(outside, True)
