@@ -115,7 +115,8 @@ def test_tab_flow_uses_native_undoable_stage_and_preserves_confirm_owner():
     ).read_text(encoding="utf-8")
     assert "initial[\"layer_heights_mm\"] = [550.0, 800.0]" not in receiving
     assert 'SETTING_DEFAULTS["inner_door_layer_heights_mm"]' in receiving
-    assert 'layer_height_vars[0].set("300")' in receiving
+    assert 'layer_height_vars[0].set("300")' not in receiving
+    assert "transition_receiving_nfb_layer_heights(" in receiving
     assert "stage_in_editor(config, openings)" in receiving
     assert "accept(openings)" in receiving
     assert "go_to_main_tab()" in receiving
@@ -125,6 +126,34 @@ def test_tab_flow_uses_native_undoable_stage_and_preserves_confirm_owner():
     assert "CSV 開口位置" not in receiving
     assert "檢查 CSV 開口" not in receiving
     assert "open_nfb_world_x_dialog" not in receiving
+
+
+def test_one_and_two_tier_height_defaults_follow_single_rule_without_losing_custom_y():
+    from ae_engine.receiving_shared_settings import (
+        default_receiving_nfb_layer_heights,
+        transition_receiving_nfb_layer_heights,
+    )
+
+    assert default_receiving_nfb_layer_heights(1) == [550.0, 830.0]
+    assert default_receiving_nfb_layer_heights(2) == [330.0, 830.0]
+    assert transition_receiving_nfb_layer_heights(
+        [550.0, 830.0], old_count=1, new_count=2,
+    ) == [330.0, 830.0]
+    assert transition_receiving_nfb_layer_heights(
+        [330.0, 830.0], old_count=2, new_count=1,
+    ) == [550.0, 830.0]
+    assert transition_receiving_nfb_layer_heights(
+        [610.0, 830.0], old_count=1, new_count=2,
+    ) == [610.0, 830.0]
+    assert transition_receiving_nfb_layer_heights(
+        [325.0, 830.0], old_count=2, new_count=1,
+    ) == [325.0, 830.0]
+    with pytest.raises(ValueError):
+        default_receiving_nfb_layer_heights(0)
+    with pytest.raises(ValueError):
+        transition_receiving_nfb_layer_heights(
+            [float("nan"), 830.0], old_count=1, new_count=2,
+        )
 
 
 def test_reenter_receiving_tab_preserves_manually_moved_native_hole():
