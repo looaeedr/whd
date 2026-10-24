@@ -588,3 +588,34 @@ def test_ac28_huge_integer_cutting_x_blocks_batch_before_confirmation(huge_x):
     assert called == []
     assert original == frozen
     assert all("nfb_config" not in bay for bay in original["sets"][0]["bays"])
+
+
+def test_ac28_two_distinct_verified_bays_commit_once_and_undo_atomically():
+    """A real per-Bay MFG-1 proof supports one approval with one Undo receipt."""
+    original = layout()
+    prior = deepcopy(original)
+    previews = []
+    committed = submit_nfb_bays(
+        original, set_index=0, bay_indices=(1, 0), version_id="v1",
+        configs={
+            0: config(owner="nfb:0:slot1"),
+            1: config(owner="nfb:1:slot1"),
+        },
+        evidence={0: evidence(original, 0), 1: evidence(original, 1)},
+        confirm=lambda p: previews.append(p) or True,
+    )
+    assert committed.changed
+    assert len(previews) == 1
+    assert committed.preview.target_bay_ids == (
+        prior["sets"][0]["bays"][0]["stable_id"],
+        prior["sets"][0]["bays"][1]["stable_id"],
+    )
+    assert len(committed.receipt.changes) == 2
+    assert [b["nfb_config_submitted"] for b in
+            committed.layout["sets"][0]["bays"]] == [True, True]
+    assert [b["nfb_config"]["holes"][0]["physical_hole_id"] for b in
+            committed.layout["sets"][0]["bays"]] == [
+        "nfb:0:slot1", "nfb:1:slot1",
+    ]
+    assert undo_nfb_transaction(committed.layout, committed.receipt) == prior
+    assert original == prior
