@@ -167,3 +167,40 @@ def test_r4_removing_door_prunes_stale_child_assembly_placement():
     assert "door" not in placements
     assert "inner_door:1:panel" not in placements
     assert "base_plate" in placements
+
+def test_r4_70_incomplete_piece_width_does_not_enter_true_world_mesh(monkeypatch):
+    """Preview stub has no formed-width datum: do not synthesize a box skin."""
+    from types import SimpleNamespace
+    import phase6_final_scene_projection as projection
+    import phase6_manufacturing_geometry as manufacturing
+
+    stub = SimpleNamespace(role="left")
+    part = SimpleNamespace(part_key="box_body", render_data=SimpleNamespace(pieces=(stub,)))
+
+    def forbidden_manufacturing(*_args, **_kwargs):
+        raise AssertionError("missing formed_w_end cannot enter physical world geometry")
+
+    monkeypatch.setattr(manufacturing, "_phase6_build_joint_world_geometry", forbidden_manufacturing)
+    assert projection._phase6_box_body_true_world_piece_meshes(
+        part, dimensions=(800., 1600., 350.), thickness=2.,
+    ) == ()
+    assert projection._phase6_box_body_structure_meshes(
+        part.render_data, thickness=2.,
+    ) == []
+
+
+def test_r4_70_complete_piece_datum_keeps_physical_world_mesh(monkeypatch):
+    from types import SimpleNamespace
+    import phase6_final_scene_projection as projection
+    import phase6_manufacturing_geometry as manufacturing
+
+    triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
+    piece = SimpleNamespace(role="left", formed_w_end=800.)
+    part = SimpleNamespace(part_key="box_body", render_data=SimpleNamespace(pieces=(piece,)))
+    monkeypatch.setattr(
+        manufacturing, "_phase6_build_joint_world_geometry",
+        lambda *_args, **_kwargs: {"world_triangles_by_part": {"box_body:left": (triangle,)}},
+    )
+    assert projection._phase6_box_body_true_world_piece_meshes(
+        part, dimensions=(800., 1600., 350.), thickness=2.,
+    ) == ((piece, (triangle,)),)
