@@ -79,7 +79,15 @@ def _fact(bay):
     return normalize_nfb_saved_fields(bay)
 
 
-def _confirmed_operator_x(config):
+def _confirmed_operator_x(config, *, bay=None):
+    if bay is not None:
+        # Check the *actual* destination Bay before allowing any atomic
+        # submit/copy. Otherwise persistence can quietly demote X after the
+        # transaction already reported operator confirmation succeeded.
+        scoped = normalize_nfb_saved_fields({
+            **bay, "nfb_config_submitted": True, "nfb_config": config,
+        })
+        config = scoped["nfb_config"]
     for hole in config["holes"]:
         if hole["manual_x_state"] != "CONFIRMED":
             raise ValueError("NFB X requires operator confirmation for each physical hole")
@@ -231,8 +239,8 @@ def submit_nfb_bays(
     plans, reports = [], []
     for bi in indices:
         config = normalize_nfb_config(configs[bi])
-        _confirmed_operator_x(config)
         bay = set_row["bays"][bi]
+        _confirmed_operator_x(config, bay=bay)
         scope, inventory, door = evidence[bi]
         if not isinstance(door, NfbValidatedInnerDoorRender):
             raise ValueError("NFB configured model has no verified manufacturing result")
@@ -297,7 +305,7 @@ def copy_submitted_nfb_bay(
         if ({k:v for k,v in old.items() if k not in excluded}
                 != {k:v for k,v in new.items() if k not in excluded}):
             raise ValueError("NFB copy must preserve model/rotation/offset identity")
-    _confirmed_operator_x(configured)
+    _confirmed_operator_x(configured, bay=target)
     scope, inv, door = evidence
     brand = row.get("switch_brand", "士林")
     actual_models = {hole["model_filename"] for hole in configured["holes"]}
