@@ -2837,7 +2837,13 @@
       ],
       "regression_candidates": [
         "tests/test_issue1469_v15_acceptance.py",
-        "tests/test_receiving_inner_frame_last_flange_contact.py"
+        "tests/test_receiving_inner_frame_last_flange_contact.py",
+        "tests/test_phase6_t04_inner_door_frames.py",
+        "tests/test_receiving_door_dimension_projection_semantics.py",
+        "tests/test_issue1502_receiving_existing_base_plate_patterns.py",
+        "tests/test_issue510_receiving_back_panel_modes.py",
+        "tests/test_issue38_receiving_divider_baseline.py",
+        "tests/test_phase6_t15_inner_door_panels.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -2851,7 +2857,31 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "source_scoped_candidate_review_20261024": {
+        "status": "NOT_SIGNED__CROSS_OWNER_MUTATION_REGRESSION_MISSING",
+        "witness_function_refs": {
+          "last_frame_22": "tests/test_receiving_inner_frame_last_flange_contact.py::test_only_last_22_mm_flat_band_is_mating_flange",
+          "frame_fold_chain": "tests/test_phase6_t04_inner_door_frames.py::test_one_inner_door_derives_four_stable_frame_parts",
+          "door_gap_formed_fw": "tests/test_receiving_door_dimension_projection_semantics.py::test_receiving_multi_door_dimension_projection_uses_formed_fw_29_without_adding_2t_again",
+          "existing_base_plate": "tests/test_issue1502_receiving_existing_base_plate_patterns.py::test_receiving_original_base_part_now_uses_three_real_shaped_bend_patterns",
+          "back_hole_datum": "tests/test_issue510_receiving_back_panel_modes.py::test_back_panel_finalscene_uses_mode_height_four_reference_slots_and_optional_opening",
+          "divider_source_holes": "tests/test_issue38_receiving_divider_baseline.py::test_receiving_divider_render_maps_all_baseline_holes_without_using_baseline_outer_cutting",
+          "vault_19_fold": "tests/test_phase6_t15_inner_door_panels.py::test_inner_door_reuses_vault_certified_sheet_rules_and_fixed_19_folds",
+          "vault_original_editor": "tests/test_phase6_t15_inner_door_panels.py::test_inner_door_editor_reuses_original_vault_hole_editor_and_stashes_per_panel"
+        },
+        "evidence_scope": "Existing physical owner baselines are covered separately; no current integrative before/after receiving NFB edit proof that all baseline geometry stays byte- or geometry-identical.",
+        "missing_assertions": [
+          "46+2T formed occupation proved against varying actual t with 22 mm last-flange geometry",
+          "one original W800 receiving inner-door CSV NFB editor transaction compared before/after for frame, gap, base, back slots, divider and vault-19 folded source",
+          "no regression may mistakenly treat an existing base plate illustration as independent NFB hole XY source"
+        ],
+        "original_text_unchanged": true,
+        "original_source_sha_unchanged": true,
+        "accepted": false,
+        "integrated_localx_claimed": false,
+        "factory_release": false
+      }
     },
     {
       "id": "SWT-AC-13",
