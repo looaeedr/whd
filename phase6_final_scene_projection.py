@@ -450,6 +450,10 @@ def _phase6_box_body_true_world_piece_meshes(part, *, dimensions, thickness):
     pieces = tuple(getattr(getattr(part, "render_data", None), "pieces", ()) or ())
     if not pieces:
         return ()
+    # Preview-only stubs without an assembled outside-width datum are not
+    # authoritative physical skins. Leave the prior non-physical fallback.
+    if max((float(getattr(p, "formed_w_end", 0.0) or 0.0) for p in pieces), default=0.0) <= 0.0:
+        return ()
     if str(getattr(part, "part_key", "")) != "box_body":
         raise ValueError("multi-piece world skins must originate in box_body")
     if dimensions is None or len(dimensions) != 3:
@@ -474,7 +478,11 @@ def _phase6_box_body_structure_meshes(render_data, *, thickness):
     pieces = tuple(getattr(render_data, "pieces", ()) or ())
     if not pieces:
         return []
-    total_w = max(float(getattr(p, "formed_w_end", 0.0)) for p in pieces)
+    total_w = max(float(getattr(p, "formed_w_end", 0.0) or 0.0) for p in pieces)
+    # The local preview has no valid structure-width datum: do not feed 0 mm
+    # into SideSheetDatum or fabricate a physically assembled box.
+    if total_w <= 0.0:
+        return []
     out = []
 
     for piece in pieces:
