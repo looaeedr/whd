@@ -118,9 +118,36 @@ def normalize_nfb_saved_fields(row):
         return {}
     if not has_config or row["nfb_config"] is None:
         raise ValueError("submitted NFB must preserve its actual NFBConfig")
+    config = normalize_nfb_config(row["nfb_config"])
+    physical_width = row.get("width")
+    if physical_width is not None:
+        # Every persisted ReceivingLayout Bay carries its own actual width.
+        # Importing an old CONFIRMED datum from W800 into a W750 Bay must
+        # never silently re-authorize the previous hole X. Check established
+        # operator datum key variants, without fabricating a missing datum.
+        if (type(physical_width) not in (int, float)
+                or not isfinite(float(physical_width))):
+            raise ValueError("NFB saved Bay physical width invalid")
+        for hole in config["holes"]:
+            if hole["manual_x_state"] != "CONFIRMED":
+                continue
+            snapshot = hole.get("datum_snapshot") or {}
+            known_widths = tuple(
+                snapshot[key] for key in (
+                    "width", "w", "box_width_mm", "bay_width_mm",
+                    "outer_width_mm",
+                ) if key in snapshot
+            )
+            if any(
+                type(value) not in (int, float)
+                or not isfinite(float(value))
+                or abs(float(value) - float(physical_width)) > 1e-7
+                for value in known_widths
+            ):
+                hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     return {
         "nfb_config_submitted": True,
-        "nfb_config": normalize_nfb_config(row["nfb_config"]),
+        "nfb_config": config,
     }
 
 
