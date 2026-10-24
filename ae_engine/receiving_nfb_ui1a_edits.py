@@ -142,11 +142,12 @@ def replace_nfb_slot_model(draft,layer_index,slot_index,filename,*,catalog):
     result=select_nfb_slot_model(state,layer_index,slot_index,filename,catalog=catalog)
     current=_get_slot(result,layer_index,slot_index)
     if before!=(current["filename"],current["source_brand"]):
+        # Q16 always invalidates the old source datum, including a malformed
+        # older draft with no X coordinate but a leftover revision.
+        current["datum_snapshot"]=None
+        current.pop("datum_revision",None)
         if current["manual_x_mm"] is not None:
             current["manual_x_state"]=UNVERIFIED
-            # Q16 retains the operator offset, but never the old source datum.
-            current["datum_snapshot"]=None
-            current.pop("datum_revision",None)
     return result
 
 
