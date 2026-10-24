@@ -119,9 +119,56 @@ def normalize_nfb_saved_fields(row):
         return {}
     if not has_config or row["nfb_config"] is None:
         raise ValueError("submitted NFB must preserve its actual NFBConfig")
+    config = normalize_nfb_config(row["nfb_config"])
+    physical_width = row.get("width")
+    if physical_width is not None:
+        # Every persisted ReceivingLayout Bay carries its own actual width.
+        # Importing an old CONFIRMED datum from W800 into a W750 Bay must
+        # never silently re-authorize the previous hole X. Check established
+        # operator datum key variants, without fabricating a missing datum.
+        # The existing Receiving Bay _number adapter also accepts numeric
+        # strings from older projects. Match that compatibility while still
+        # rejecting boolean, nonnumeric and nonfinite manufacturing widths.
+        if type(physical_width) is bool:
+            raise ValueError("NFB saved Bay physical width invalid")
+        try:
+            bay_width = float(physical_width)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("NFB saved Bay physical width invalid") from exc
+        if not isfinite(bay_width) or bay_width <= 0:
+            raise ValueError("NFB saved Bay physical width invalid")
+        for hole in config["holes"]:
+            if hole["manual_x_state"] != "CONFIRMED":
+                continue
+            snapshot = hole.get("datum_snapshot") or {}
+            known_widths = tuple(
+                snapshot[key] for key in (
+                    "width", "w", "box_width_mm", "bay_width_mm",
+                    "outer_width_mm",
+                ) if key in snapshot
+            )
+            # The current numeric CSV V5 is a model/geometry identity,
+            # NOT an implicit permission to reuse an old world-X datum.
+            # A legacy DXF row may have no structured width evidence, but a
+            # V5 CONFIRMED hole must explicitly bind its manual X to this Bay.
+            # Missing width, conflicting aliases, boolean or nonfinite input
+            # may not silently preserve manufacturing confidence. Retain
+            # the authored coordinate and source for operator reconfirmation.
+            from .receiving_nfb_model_identity import parse_numeric_model_ref
+            missing_v5_width_proof = (
+                parse_numeric_model_ref(hole.get("model_filename")) is not None
+                and not known_widths
+            )
+            if missing_v5_width_proof or any(
+                type(value) not in (int, float)
+                or not isfinite(float(value))
+                or abs(float(value) - bay_width) > 1e-7
+                for value in known_widths
+            ):
+                hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     return {
         "nfb_config_submitted": True,
-        "nfb_config": normalize_nfb_config(row["nfb_config"]),
+        "nfb_config": config,
     }
 
 
