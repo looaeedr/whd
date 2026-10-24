@@ -173,7 +173,12 @@ class CornerTypeSelection:
     def __post_init__(self):
         type_id = CornerTypeId(self.type_id)
         object.__setattr__(self, "type_id", type_id)
-        object.__setattr__(self, "rotation_quadrants", int(self.rotation_quadrants) % 4)
+        if isinstance(self.rotation_quadrants, bool):
+            raise GeometryError("corner rotation must not be bool")
+        rotation = float(self.rotation_quadrants)
+        if not math.isfinite(rotation) or not rotation.is_integer():
+            raise GeometryError("corner rotation must be a finite integer")
+        object.__setattr__(self, "rotation_quadrants", int(rotation) % 4)
 
         def numeric(value, field):
             if value is None:
