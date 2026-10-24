@@ -237,3 +237,28 @@ def test_r4_53_hit_testing_keeps_valid_exact_circle_selection():
     assert hit_test_resolved_features(Vec2(30., 25.), (circle,), tolerance=0.) == 0
     assert hit_test_resolved_features(Vec2(95., 95.), (circle,), tolerance=0.) is None
     assert hit_test_resolved_features(Vec2(30.5, 25.), (circle,), tolerance=1.) == 0
+
+def test_r4_53_multilayer_profile_selection_hits_all_visible_process_contours():
+    """A real ProfileFeature can own both primary MARKING and additional CUTTING."""
+    primary = (Vec2(5., 5.), Vec2(20., 5.))
+    hole = (Vec2(60., 60.), Vec2(85., 60.), Vec2(85., 85.), Vec2(60., 85.))
+    other = (Vec2(30., 60.), Vec2(45., 60.))
+    profile = ResolvedProfile(
+        points=primary, layer="MARKING",
+        layered_profiles=(("CUTTING", hole, True), ("MARKING", other, False)),
+    )
+    assert hit_test_resolved_features(Vec2(12., 5.), (profile,), tolerance=0.) == 0
+    assert hit_test_resolved_features(Vec2(72., 72.), (profile,), tolerance=0.) == 0
+    assert hit_test_resolved_features(Vec2(38., 60.), (profile,), tolerance=0.) == 0
+    assert hit_test_resolved_features(Vec2(50., 50.), (profile,), tolerance=0.) is None
+
+
+def test_r4_53_explicit_open_three_point_profile_does_not_pick_empty_triangle_interior():
+    """The layered contour's closed flag is authority for the SAME primary points."""
+    open_path = (Vec2(0., 0.), Vec2(50., 0.), Vec2(50., 50.))
+    profile = ResolvedProfile(
+        points=open_path, layer="MARKING",
+        layered_profiles=(("MARKING", open_path, False),),
+    )
+    assert hit_test_resolved_features(Vec2(50., 20.), (profile,), tolerance=0.) == 0
+    assert hit_test_resolved_features(Vec2(35., 10.), (profile,), tolerance=0.) is None
