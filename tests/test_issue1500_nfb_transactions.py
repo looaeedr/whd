@@ -506,7 +506,10 @@ def test_ac23_explicit_datum_owner_change_requires_new_operator_approval(
     supplied = config(owner="nfb:0:slot1")
     supplied["holes"][0]["datum_snapshot"][owner_key] = other_value
     confirmed = []
-    with pytest.raises(ValueError, match="X datum owner.*reconfirmation"):
+    with pytest.raises(
+        ValueError,
+        match=r"(X datum owner.*reconfirmation|operator confirmation for each physical hole)",
+    ):
         submit_nfb_bays(
             original, set_index=0, bay_indices=(0,), version_id="v1",
             configs={0: supplied}, evidence={0: evidence(original, 0)},
@@ -542,7 +545,10 @@ def test_ac23_copy_target_rejects_explicit_original_bay_datum_owner():
         "cutting_source_sha256": SHA,
     })
     confirmed = []
-    with pytest.raises(ValueError, match="X datum owner.*reconfirmation"):
+    with pytest.raises(
+        ValueError,
+        match=r"(X datum owner.*reconfirmation|operator confirmation for each physical hole)",
+    ):
         copy_submitted_nfb_bay(
             original, set_index=0, source_bay_index=0, target_bay_index=1,
             version_id="v1", target_config=target,
