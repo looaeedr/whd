@@ -3851,7 +3851,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 43/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (ISOLATED BRANCH CANDIDATE, EXACT HEAD CI PENDING, NO LOCALX MERGE); remaining 45 AC require separate physical/GUI/product evidence.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 46/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; the 46 accepted rows carry named executable witnesses and a prior exact source HEAD GREEN receipt, but latest incremental cross-stage regression and updated audit guards require a new exact source CI GREEN. Remaining 42 AC retain their individual gates. No localX merge, Windows UAT or unconditional MFG-2 approval.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
@@ -3874,5 +3874,6 @@
     "SWT-AC-22": "CURRENT EAR is no longer unverified: original 固定片.dxf T2/BEND23 formed-geometry signed +90, real side skin physical contact and original side UV MARKING per-part DXF were verified, including Windows-native Tk 2D/3D. PAD/welding workmanship and unconditional whole-cabinet NC remain unapproved.",
     "SWT-AC-24": "Current #1502 part-scoped output complete; first submit, cross-Bay copy, restore and Undo share #1500 live transaction guard and are still pending complete operator acceptance, NOT blocked by a closed #1502 issue.",
     "SWT-AC-32": "Color30/150 inventory is valid for legacy sources but does not manufacture an absent Receiving 中板. Actual current NFB CSV and source material role + real CHECK Q/manifest are the current owner."
-  }
+  },
+  "historical_pre_20261024_review_text_at_43": "88/88 FUNCTION_IDENTITIES_VERIFIED; 43/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (ISOLATED BRANCH CANDIDATE, EXACT HEAD CI PENDING, NO LOCALX MERGE); remaining 45 AC require separate physical/GUI/product evidence."
 }
