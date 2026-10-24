@@ -8,10 +8,27 @@ from .sheetmetal_geometry import box_body_height_from_corner_policies
 
 
 def _number(value, default=0.0):
-    try:
-        return float(value)
-    except (TypeError, ValueError):
+    if isinstance(value, bool):
         return float(default)
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return float(default)
+    return result if math.isfinite(result) else float(default)
+
+
+def _preferred_number(*values, default=0.0):
+    """Fallback per field to another authoritative finite input, not zero."""
+    for value in values:
+        if isinstance(value, bool):
+            continue
+        try:
+            result = float(value)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if math.isfinite(result):
+            return result
+    return float(default)
 
 
 def folded_outside_envelope(triangles, thickness):
@@ -65,10 +82,7 @@ def resolve_operator_finished_dimensions(
     key = str(part_key or "")
     snapshot = dict(snapshot or {})
     settings = dict(settings or {})
-    t = _number(
-        thickness if thickness is not None else settings.get("t", snapshot.get("t", 2.0)),
-        2.0,
-    )
+    t = _preferred_number(thickness, settings.get("t"), snapshot.get("t"), default=2.0)
 
     if triangles:
         envelope = folded_outside_envelope(triangles, t)
@@ -83,9 +97,9 @@ def resolve_operator_finished_dimensions(
 
     dims = dict((snapshot.get("part_dimensions") or {}).get(key, {}) or {})
     if key == "box_body":
-        w = _number(settings.get("w", snapshot.get("w", 0.0)), 0.0)
-        h = _number(settings.get("h", snapshot.get("h", 0.0)), 0.0)
-        d = _number(settings.get("d", snapshot.get("d", 0.0)), 0.0)
+        w = _preferred_number(settings.get("w"), snapshot.get("w"))
+        h = _preferred_number(settings.get("h"), snapshot.get("h"))
+        d = _preferred_number(settings.get("d"), snapshot.get("d"))
         if head_corner_policy is not None and tail_corner_policy is not None:
             h = box_body_height_from_corner_policies(
                 h, t,
@@ -97,5 +111,5 @@ def resolve_operator_finished_dimensions(
     if dims.get("width") and dims.get("height"):
         return float(dims["width"]), float(dims["height"])
     if key in {"head", "tail"}:
-        return float(snapshot.get("w", 0.0)), float(snapshot.get("d", 0.0))
+        return _preferred_number(snapshot.get("w"), settings.get("w")), _preferred_number(snapshot.get("d"), settings.get("d"))
     return None
