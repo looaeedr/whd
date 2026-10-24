@@ -30,7 +30,7 @@ def test_r5_87_invalid_layout_without_physical_owner_is_noop_not_crash(monkeypat
 
 
 def test_r5_87_invalid_layout_with_inner_frame_has_fail_closed_diagnostics(monkeypatch):
-    frame_id = "receiving:inner:test:frame:left"
+    frame_id = "inner_door:manual-r5-87:left_frame"
     monkeypatch.setattr(
         owner, "_derived_receiving_frames",
         lambda _snapshot: (SimpleNamespace(stable_id=frame_id),),
@@ -39,7 +39,7 @@ def test_r5_87_invalid_layout_with_inner_frame_has_fail_closed_diagnostics(monke
         "model": "受電箱", "multi_door_enabled": True,
         "door_layout_columns": [[800., [float("nan")]]],
         "d": 300., "t": 2.,
-        "inner_doors": [{"stable_id": "receiving:inner:test", "included_frame_sides": ("left",)}],
+        "inner_doors": [{"stable_id": "manual-r5-87", "included_frame_sides": ("left",)}],
     })
     assert result.results
     assert all(row.status == "SKIPPED_FAIL_CLOSED" for row in result.results)
@@ -55,3 +55,37 @@ def test_r5_87_valid_single_column_without_inner_doors_stays_noop(monkeypatch):
         "d": 300., "t": 2.,
     })
     assert result.results == ()
+
+
+def test_r5_87_bad_saved_door_id_does_not_crash_layout_error_diagnostics(monkeypatch):
+    monkeypatch.setattr(
+        owner, "_derived_receiving_frames",
+        lambda _snapshot: (SimpleNamespace(stable_id="physical-diagnostic-owner"),),
+    )
+    result = _resolve({
+        "model": "受電箱", "multi_door_enabled": True,
+        "door_layout_columns": [[800., [float("nan")]]],
+        "d": 300., "t": 2.,
+        "inner_doors": [{"stable_id": "illegal:source:id", "included_frame_sides": ("left",)}],
+    })
+    assert any(str(row.attached_part_id).startswith("invalid-inner-door:") for row in result.results)
+    assert all(row.status == "SKIPPED_FAIL_CLOSED" for row in result.results)
+    assert all(row.diagnostic_code == "PLACEMENT_UNRESOLVED" for row in result.results)
+    assert tuple(result.geometry.diagnostics) == result.results
+
+
+def test_r5_87_bad_saved_door_id_does_not_crash_frame_derivation_diagnostics(monkeypatch):
+    def broken_frames(_snapshot):
+        raise ValueError("inner_door_id must not contain ':'")
+    monkeypatch.setattr(owner, "_derived_receiving_frames", broken_frames)
+    result = _resolve({
+        "model": "受電箱", "multi_door_enabled": True,
+        "door_layout_columns": [[800., [1800.]]],
+        "d": 300., "t": 2.,
+        "inner_doors": [{"stable_id": "illegal:source:id", "included_frame_sides": ("left",)}],
+    })
+    assert len(result.results) == 1
+    assert result.results[0].status == "SKIPPED_FAIL_CLOSED"
+    assert result.results[0].diagnostic_code == "STALE_STABLE_ID"
+    assert result.results[0].attached_part_id.startswith("invalid-inner-door:")
+    assert tuple(result.geometry.diagnostics) == result.results
