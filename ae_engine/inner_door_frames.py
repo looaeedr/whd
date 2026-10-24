@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from .contracts import FoldProfileSegment
+from .sheetmetal_geometry_core import finite_geometry_number
 
 FRAME_SIDES = ("top", "bottom", "left", "right")
 LOWER_TERMINAL_FACE = "LOWER_TERMINAL_FACE"
@@ -48,7 +49,7 @@ def inner_door_frame_formed_occupation(thickness: float) -> float:
     It lies perpendicular to the shared 46-mm web; never treat 50 mm as an
     outer-door-relative inset.  At T=2: web 46 + 2*T = 50 mm.
     """
-    t = float(thickness)
+    t = finite_geometry_number(thickness)
     if t <= 0.0:
         raise ValueError("inner-door frame material thickness must be positive")
     common_webs = (
@@ -59,7 +60,7 @@ def inner_door_frame_formed_occupation(thickness: float) -> float:
         raise ValueError("receiving inner-door frames lost their shared web")
     if any(abs(_FRAME_SIGNED_CHAINS[side][-1]) != 22.0 for side in ("top", "left", "right")):
         raise ValueError("receiving frame mating flange is not the approved last 22 mm")
-    return float(webs[0]) + 2.0 * t
+    return finite_geometry_number(webs[0]) + 2.0 * t
 
 
 
@@ -131,7 +132,7 @@ class InnerDoorFramePart:
 
     @property
     def blank_height(self) -> float:
-        return float(self.span)
+        return finite_geometry_number(self.span)
 
 
 def inner_door_frame_mating_region(
@@ -170,7 +171,7 @@ def _fold_profile_from_signed_chain(side: str, signed_chain: Sequence[float]) ->
     standard frame bend adapter uses one right-angle bend after every segment
     except the last; the sign on a segment selects that bend's direction.
     """
-    values = tuple(float(value) for value in signed_chain)
+    values = tuple(finite_geometry_number(value) for value in signed_chain)
     rows = []
     for index, signed in enumerate(values):
         length = abs(signed)
@@ -193,7 +194,7 @@ def derive_inner_door_frames(
     included_sides: Sequence[str] = FRAME_SIDES,
 ) -> tuple[InnerDoorFramePart, ...]:
     door_id = _stable_inner_door_id(inner_door_id)
-    t = float(thickness)
+    t = finite_geometry_number(thickness)
     if t <= 0:
         raise ValueError("inner-door frame thickness must be > 0")
     include = tuple(str(side).strip().lower() for side in included_sides)
@@ -209,7 +210,7 @@ def derive_inner_door_frames(
             continue
         if side not in spans:
             raise ValueError(f"missing explicit inner-door frame span: {side}")
-        span = float(spans[side])
+        span = finite_geometry_number(spans[side])
         if span <= 0:
             raise ValueError(f"inner-door frame span must be > 0: {side}")
         signed = _FRAME_SIGNED_CHAINS[side]
@@ -259,14 +260,14 @@ def inner_door_frame_part_profiles(frames: Sequence[InnerDoorFramePart]) -> dict
         result[str(frame.stable_id)] = {
             "X": [
                 {
-                    "len": float(row.length),
-                    **({"angle": float(row.angle)} if row.angle is not None else {}),
+                    "len": finite_geometry_number(row.length),
+                    **({"angle": finite_geometry_number(row.angle)} if row.angle is not None else {}),
                     "phase6_key": str(row.phase6_key or ""),
                 }
                 for row in frame.fold_profile
             ],
             "Y": [{
-                "len": float(frame.span),
+                "len": finite_geometry_number(frame.span),
                 "phase6_key": "inner_door_frame_span",
             }],
         }
