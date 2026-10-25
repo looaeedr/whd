@@ -539,6 +539,58 @@ def test_ac23_unhashable_saved_nfb_x_state_is_a_controlled_rejection(
         write_project(tmp_path / "invalid-x-state.p6fold", _payload(layout))
 
 
+@pytest.mark.parametrize("bad_selected", (
+    [], {}, ["quantity-v1"], {"version_id": "quantity-v1"},
+    None, True, 0, "quantity-v999",
+))
+def test_ac16_ac23_quantity_selected_version_rejects_untrusted_identity(
+    tmp_path, bad_selected,
+):
+    """Saved selected version must identify one real version before GUI/reload."""
+    original = QuantityModel().snapshot()
+    corrupted = deepcopy(original)
+    corrupted["selected_version_id"] = deepcopy(bad_selected)
+    frozen = deepcopy(corrupted)
+
+    with pytest.raises(ValueError, match="目前選取的孔型版本不存在"):
+        QuantityModel.from_payload(corrupted)
+    assert corrupted == frozen
+    assert QuantityModel.from_payload(original).selected_version_id == "quantity-v1"
+
+    project = {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "受電箱", "active_mode": "quantity",
+            "quantity": corrupted,
+            "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+        },
+    }
+    with pytest.raises(ValueError, match="目前選取的孔型版本不存在"):
+        write_project(tmp_path / "invalid-selected-quantity.p6fold", project)
+    assert project["snapshot"]["quantity"] == frozen
+
+
+def test_ac16_quantity_saved_project_corrupt_selected_owner_rejected_on_reload(tmp_path):
+    """A real .p6fold cannot load a list/alias as current physical version."""
+    model = QuantityModel()
+    source = {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "受電箱", "active_mode": "quantity",
+            "quantity": model.snapshot(),
+            "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+        },
+    }
+    path = write_project(tmp_path / "quantity-valid.p6fold", source)
+    assert read_project(path)["snapshot"]["quantity"]["selected_version_id"] == "quantity-v1"
+
+    corrupted = json.loads(path.read_text(encoding="utf-8"))
+    corrupted["snapshot"]["quantity"]["selected_version_id"] = ["quantity-v1"]
+    path.write_text(json.dumps(corrupted, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="目前選取的孔型版本不存在"):
+        read_project(path)
+
+
 @pytest.mark.parametrize("malformed_schema", [[], {}, ["phase6-quantity-v3"]])
 def test_ac23_unhashable_quantity_schema_fails_closed(malformed_schema):
     model = QuantityModel().snapshot()
