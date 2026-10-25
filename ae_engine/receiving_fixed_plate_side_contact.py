@@ -25,6 +25,9 @@ class ReceivingEarSideContactSurface:
     world_surface_boundary: tuple[tuple[float, float, float], ...]
     contact_height_world_z_mm: float
     contact_length_world_y_mm: float
+    # Authoritative installation line: BOTTOM of this actual parent BasePlate.
+    # Never infer its Z from the EAR's folded/free-weld-leg length.
+    base_lower_world_z_mm: float
     source_bend_verified: bool = True
     formed_source_skin_verified: bool = True
     side_flat_uv_backprojection_verified: bool = False
@@ -84,7 +87,32 @@ def derive_receiving_ear_side_contact_from_formed_skin(
         ),
         contact_height_world_z_mm=hi_z-lo_z,
         contact_length_world_y_mm=hi_y-lo_y,
+        base_lower_world_z_mm=float(formed.parent_base_back_skin_world_z_mm),
     )
+
+
+def receiving_ear_installation_world_segment(contact: ReceivingEarSideContactSurface):
+    """Single upper installation MARKING, at parent BasePlate's bottom skin.
+
+    The lower edge of the EAR's folded weld leg is not an installation mark.
+    Its real 3D contact face stays available for independent full-skin checks.
+    """
+    if not isinstance(contact, ReceivingEarSideContactSurface):
+        raise TypeError("EAR_INSTALLATION_REQUIRES_PHYSICAL_CONTACT")
+    z = float(contact.base_lower_world_z_mm)
+    x = float(contact.side_inside_skin_world_x_mm)
+    boundary = tuple(contact.world_surface_boundary or ())
+    if len(boundary) != 4:
+        raise ValueError("EAR_INSTALLATION_CONTACT_BOUNDARY_INVALID")
+    y_values = tuple(float(p[1]) for p in boundary)
+    z_values = tuple(float(p[2]) for p in boundary)
+    if (not all(isfinite(v) for v in (x, z, *y_values, *z_values))
+            or max(y_values)-min(y_values) < _TOL
+            or not isclose(z-max(z_values), 1.0, rel_tol=0., abs_tol=0.02)):
+        # The physical T2 surface is 1 mm behind the BasePlate's lower skin.
+        # This verifies contact only; it MUST NOT compute the installation Z.
+        raise ValueError("EAR_INSTALLATION_BASE_LOWER_EDGE_CONTACT_MISMATCH")
+    return ((x, min(y_values), z), (x, max(y_values), z))
 
 
 def resolve_receiving_ear_side_contact_surfaces(
