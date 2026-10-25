@@ -142,7 +142,7 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
                 # Only individually source-audited corrected ACs may advance:
                 # the old illustrated Receiving middle plate must NEVER be
                 # silently restored merely to collect a manufacturing GREEN.
-                assert row["id"] in {"NFB-AC-38", "SWT-AC-21", "NFB-AC-44"}
+                assert row["id"] in {"NFB-AC-38", "SWT-AC-21", "NFB-AC-44", "SWT-AC-32"}
                 assert row["historical_pre_current_review"].get("accepted", False) is False
                 proof = row["acceptance_evidence"]
                 assert proof["original_ac_text_unchanged"] is True
@@ -1561,3 +1561,49 @@ def test_nfb_ac28_signed_only_when_actual_native_two_unit_bay_is_atomic():
     assert "return adapter.submit_nfb_to_bays(" in bridge
     assert "result=submit_live_verified_nfb(" in gui
     assert 'return {"state": state, "stage_verified": stage_verified,' in gui
+
+def test_swt32_current_raw_dxf_to_actual_check_signoff_requires_exact_witness():
+    """Historic raw DXF inventory is diagnostic; no factory or phantom plate."""
+    row = next(x for x in _data()["records"] if x["id"] == "SWT-AC-32")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == (
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+    )
+    assert row["requirement"].startswith("真 DXF Color 30／150")
+    e = row["acceptance_evidence"]
+    assert len(e["requirement_witnesses"]) == 3
+    for key in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "integrated_localx_claimed", "formal_x_published",
+    ):
+        assert e[key] is False
+    assert e["original_ac_text_unchanged"] is True
+    assert e["source_sha_pins_unchanged"] is True
+    from tools.product_ci_regression import PYTEST_PATHS
+    for ref in (e["primary_assertion"], *e["other_required_assertions"]):
+        file_path, test_name = ref.split("::", 1)
+        assert file_path in PYTEST_PATHS
+        tree = ast.parse((ROOT / file_path).read_text(encoding="utf-8"))
+        assert test_name in {
+            node.name for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, ref
+    test = (ROOT / row["identified_test_functions"][0]["path"]).read_text(
+        encoding="utf-8"
+    )
+    for required in (
+        "test_swt32_same_original_dxf_brand_pins_colors_real_part_counts_and_sha_hold",
+        "build_source_coverage_report(",
+        "inspect_nfb_dxf_source(source)",
+        "SOURCE_IDENTITY_MISMATCH_UNKNOWN",
+        "None, None, None",
+        "manifest.actual_export_count == 5",
+        "manifest.held_actual_count == 1",
+        "stale.actual_export_count == 3",
+        "stale.held_actual_count == 3",
+        "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED",
+    ):
+        assert required in test
