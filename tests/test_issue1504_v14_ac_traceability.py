@@ -1291,3 +1291,52 @@ def test_swt22_full_ac_requires_real_native_ear_side_export_and_negative_manufac
     )
     assert "NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED" in negative
     assert "assert calls==[]" in negative
+
+
+
+def test_swt10_native_one_live_config_proves_csv_holes_and_ear_side_source():
+    """SWT-10 requires ONE real source-driven GUI→CUTTING/DXF→EAR/SIDE chain."""
+    row = next(r for r in _data()["records"] if r["id"] == "SWT-AC-10")
+    from tools.product_ci_regression import PYTEST_PATHS
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert row["assertion_review_state"] == "FULL_AC_AUTOMATED_SIGNED"
+    assert row["historical_pre_current_review"]["status"] == (
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+    )
+    proof = row["acceptance_evidence"]
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert proof["factory_release"] is False
+    assert proof["human_windows_uat_claimed"] is False
+    assert proof["welding_workmanship_certified"] is False
+    assert proof["physical_absolute_position_grant"] is False
+    assert proof["other_ac_signoff_implied"] is False
+    assert len(proof["requirement_witnesses"]) == 2
+    for witness in (proof["primary_assertion"], *proof["other_required_assertions"]):
+        path, name = witness.split("::", 1)
+        assert PYTEST_PATHS.count(path) == 1, witness
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert name in {
+            node.name for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, witness
+
+    # Prevent accidental rollback from actual source centres and reopened
+    # operator DXF to mere 'two inner doors' metadata or fake preview counts.
+    original_gui = (
+        ROOT / row["identified_test_functions"][0]["path"]
+    ).read_text(encoding="utf-8")
+    for actual_seam in (
+        "designer.output_export_button.invoke()",
+        "_submitted_csv_holes(current)",
+        "trial_configured_nfb_v5_inner_door_render_data(",
+        "source_info[\"csv_sha256\"] == source_hash",
+        "actual_door = ezdxf.readfile(actual_door_file).modelspace()",
+        "physical_bounds(tuple((float(x), float(y))",
+        "SWT10_SOURCE_NFB_HOLE_CENTRE_OR_SIZE_NOT_IN_ORIGINAL_DXF",
+        "derive_receiving_ear_side_contact_from_formed_skin",
+        "RELOADED_LEFT_RIGHT_EAR_MARKING_MISSING",
+    ):
+        assert actual_seam in original_gui, actual_seam
