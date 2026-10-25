@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Callable, Mapping, Sequence
+import math
 import tkinter as tk
 
 from ae_engine.sheetmetal_features import (
@@ -192,7 +193,16 @@ class Phase6HoleEditorCanvasView:
                 points += tuple(contour)
         if not points:
             return None
-        canvas_points = [tr.world_to_canvas(point) for point in points]
+        try:
+            canvas_points = [tuple(tr.world_to_canvas(point)) for point in points]
+            if any(len(row) != 2 or any(isinstance(v, bool) for v in row)
+                   for row in canvas_points):
+                return None
+            canvas_points = [(float(x), float(y)) for x, y in canvas_points]
+        except (IndexError, TypeError, ValueError, OverflowError):
+            return None
+        if any(not math.isfinite(v) for row in canvas_points for v in row):
+            return None
         xs = [point[0] for point in canvas_points]
         ys = [point[1] for point in canvas_points]
         return (min(xs), min(ys), max(xs), max(ys))
@@ -332,7 +342,12 @@ class Phase6HoleEditorCanvasView:
                 selected_rect = self._resolved_canvas_rect(self._resolved[selected])
             else:
                 selected_rect = (cx-10, cy-10, cx+10, cy+10)
-            self._place_reference_overlays(frame, reference_point, selected_rect)
+            if selected_rect is None:
+                # Invalid or absent geometry cannot own a floating reference
+                # rectangle. Keep the canvas visible, hide only this overlay.
+                self.hide_overlays()
+            else:
+                self._place_reference_overlays(frame, reference_point, selected_rect)
         else:
             self.hide_overlays()
 
