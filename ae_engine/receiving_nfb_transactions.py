@@ -206,7 +206,10 @@ def _operator_x_preview_rows(bay, config):
     config. This is an operator-facing diff, NEVER an additional datum or
     manufacturing authorization. Include removals to avoid invisible losses.
     """
-    prior = _fact(bay).get("nfb_config") or {}
+    # _selected() already returned a canonical normalized Bay. Avoid a
+    # second full NFB normalization merely to paint a confirmation message.
+    prior = bay.get("nfb_config") if bay.get("nfb_config_submitted") is True else None
+    prior = prior or {}
     previous = {h["physical_hole_id"]: h for h in prior.get("holes", ())}
     received = {h["physical_hole_id"] for h in config["holes"]}
     bay_id = bay["stable_id"]
