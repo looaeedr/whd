@@ -680,3 +680,29 @@ def test_r4_57_unrepresentable_saved_indicator_group_never_escapes_as_overflow(b
     assert indicator_box_outer_size([2, 3]) == (486., 725.)
     assert indicator_box_opening_size([2, 3], thickness=2.) == (386., 625.)
     assert resolve_door_indicator_features(context, [2, 3])
+
+
+@pytest.mark.parametrize("bad_groups", [
+    [True], [False], [0], [-1], [1.5], ["NaN"], [],
+    "2,3", {"0": 2}, None, [10 ** 400],
+])
+def test_r4_57_actual_indicator_box_manufacturing_rejects_invalid_groups_before_dxf(
+    tmp_path, bad_groups,
+):
+    """Direct indicator-box DXF must share the validated Door indicator source."""
+    import ae_engine.ae as ae
+    with pytest.raises(ValueError, match="indicator"):
+        ae.get_indicator_box_data(bad_groups)
+    output = tmp_path / "invalid-indicator-box.dxf"
+    with pytest.raises(ValueError, match="indicator"):
+        ae.export_indicator_box_dxf(output, bad_groups)
+    assert not output.exists()
+
+
+def test_r4_57_indicator_box_manufacturing_retains_original_two_layer_geometry():
+    import ae_engine.ae as ae
+    source_groups = [2, 3]
+    data = ae.get_indicator_box_data(source_groups, T_val=2.0)
+    assert (data.params["w"], data.params["h"]) == (486., 725.)
+    assert data.params["layer_groups"] == source_groups
+    assert indicator_box_outer_size(source_groups) == (486., 725.)

@@ -637,14 +637,14 @@ def get_indicator_box_data(layer_groups, T_val=2.0, corner_policy=None):
     每一層、每一列的最上方那一顆指示燈孔的上方 48mm 處均有一對名牌安裝孔 (間距 44)
     每一層均有線槽打標孔，其 X 座標一律對齊最多組的那一層 (居中對稱分佈)，第一層的打標孔位於最上面位置 (Y=378.5)
     """
-    layers = len(layer_groups)
-    g_max = max(layer_groups) if layer_groups else 1
-    
-    if g_max == 1:
-        W_val = 326.0
-    else:
-        W_val = 171.0 + 90.0 * (g_max - 1) + 135.0
-    H_val = 280.0 * max(0, layers - 1) + 445.0
+    # Share the exact validated layer/group and finished box dimensions
+    # with Door preview before any structural scene or DXF holes are emitted.
+    # Keep the caller's original layer_groups metadata for compatibility.
+    from .sheetmetal_features import _normalize_indicator_groups, indicator_box_outer_size
+    groups = _normalize_indicator_groups(layer_groups)
+    W_val, H_val = indicator_box_outer_size(groups)
+    layers = len(groups)
+    g_max = max(groups)
     
     scene = DrawingScene()
     params = {
@@ -670,7 +670,7 @@ def get_indicator_box_data(layer_groups, T_val=2.0, corner_policy=None):
     
     # 3. 逐層生成指示燈與名牌安裝孔 (ly=0 為最頂層，ly=layers-1 為最底層)
     for ly in range(layers):
-        g_current = layer_groups[ly]
+        g_current = groups[ly]
         if g_current <= 0:
             continue
         
