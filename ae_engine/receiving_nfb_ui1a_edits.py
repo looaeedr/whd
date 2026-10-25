@@ -24,6 +24,16 @@ RECONFIRM = "RECONFIRM_REQUIRED"
 ROTATIONS = (0,90,180,270)
 
 
+def _finite_manual_x(value):
+    """Reject unrepresentable JSON integers before draft X normalization."""
+    if type(value) not in (int, float):
+        return False
+    try:
+        return isfinite(value)
+    except (OverflowError, ValueError):
+        return False
+
+
 def _rotation_override(mode=INHERIT,value=None):
     if mode not in (INHERIT,OVERRIDE):
         raise ValueError("NFB rotation override mode invalid")
@@ -75,8 +85,7 @@ def editable_nfb_draft(draft):
                 if type(slot["rotation"]["value"]) is not int or slot["rotation"]["value"] not in ROTATIONS:
                     raise ValueError("NFB slot angle invalid")
             if (slot["manual_x_mm"] is not None
-                    and (type(slot["manual_x_mm"]) not in (int,float)
-                         or not isfinite(slot["manual_x_mm"]))):
+                    and not _finite_manual_x(slot["manual_x_mm"])):
                 raise ValueError("NFB X offset must be finite")
     while f"nfb:ui1a:unit:{next_number}" in reserved:
         next_number+=1
@@ -218,7 +227,7 @@ def set_nfb_manual_x(draft,layer_index,slot_index,offset_mm,*,datum=None):
         slot["datum_snapshot"]=None
         slot.pop("datum_revision",None)
         return state
-    if type(offset_mm) not in (int,float) or not isfinite(offset_mm):
+    if not _finite_manual_x(offset_mm):
         raise ValueError("NFB manual X offset must be finite, including zero")
     slot["manual_x_mm"]=float(offset_mm)
     slot["manual_x_state"]=UNVERIFIED
