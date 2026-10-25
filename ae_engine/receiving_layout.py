@@ -42,10 +42,12 @@ def _number(value: object, *, label: str) -> float:
 
 
 def _stable_id(value: object, *, label: str) -> str:
-    # Boolean values are not persisted physical part identities: True would
-    # otherwise silently become the apparently valid stable_id "True".
-    if isinstance(value, bool):
-        raise ValueError(f"{label} stable_id must not be boolean")
+    # Persisted identifiers are text (legacy finite numeric IDs are accepted
+    # unchanged); never stringify dicts/lists or NaN into manufactured keys.
+    from math import isfinite
+    if (isinstance(value, bool) or not isinstance(value, (str, int, float))
+            or (isinstance(value, float) and not isfinite(value))):
+        raise ValueError(f"{label} stable_id must be text or a finite numeric legacy ID")
     result = str(value or "").strip()
     if not result:
         raise ValueError(f"{label} stable_id must not be empty")
