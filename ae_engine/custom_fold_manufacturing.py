@@ -30,7 +30,7 @@ def _finite_fold_angle(value):
     if isinstance(value, bool):
         return False
     try:
-        return math.isfinite(float(value)) and isinstance(abs(value), (int, float))
+        return math.isfinite(float(value)) and abs(value) >= 0
     except (TypeError, ValueError, OverflowError):
         return False
 
