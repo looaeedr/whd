@@ -486,8 +486,16 @@ def _quantity_obstacles(primitives, clearance):
         if isinstance(primitive, TextPrimitive):
             obstacle = _quantity_text_box(primitive)
         elif isinstance(primitive, CirclePrimitive):
-            obstacle = Point(primitive.center.x, primitive.center.y).buffer(
-                primitive.radius, quad_segs=32).boundary
+            source = (primitive.center.x, primitive.center.y, primitive.radius)
+            if any(isinstance(value, bool) for value in source):
+                raise ValueError("quantity CHECK circle must have finite physical dimensions")
+            try:
+                cx, cy, radius = (float(value) for value in source)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError("quantity CHECK circle must have finite physical dimensions") from exc
+            if not all(math.isfinite(value) for value in (cx, cy, radius)) or radius <= 0.:
+                raise ValueError("quantity CHECK circle must have finite positive radius")
+            obstacle = Point(cx, cy).buffer(radius, quad_segs=32).boundary
         elif isinstance(primitive, LinePrimitive):
             obstacle = LineString(((primitive.p1.x, primitive.p1.y),
                                    (primitive.p2.x, primitive.p2.y)))
