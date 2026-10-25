@@ -108,7 +108,21 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
         "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
     }
-    assert rows["NFB-AC-13"]["status"] == "DEFERRED_PRODUCT_EVIDENCE"
+    ac13 = rows["NFB-AC-13"]
+    assert ac13["status"] in {
+        "DEFERRED_PRODUCT_EVIDENCE", "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+    }
+    if ac13["accepted"]:
+        assert ac13["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        proof = ac13["acceptance_evidence"]
+        assert proof["current_scope_correction_applied"] is True
+        assert proof["original_ac_text_unchanged"] is True
+        assert len(proof["original_ac_clauses_audited"]) >= 3
+        assert proof["factory_release"] is False
+        assert proof["independent_pad_manufacturing_approved"] is False
+        assert proof["human_windows_uat_claimed"] is False
+    else:
+        assert ac13["status"] == "DEFERRED_PRODUCT_EVIDENCE"
     assert rows["SWT-AC-12"]["owning_issues"] == [1504]
     for r in rows.values():
         if r["status"] == "BLOCKED_1500_REAL_GUI":
@@ -159,7 +173,17 @@ def test_manifest_review_summary_is_recomputed_from_records():
     counts = dict(Counter(r["status"] for r in obj["records"]))
     assert sum(counts.values()) == 88
     assert obj["counts"] == counts
-    assert counts["DEFERRED_PRODUCT_EVIDENCE"] >= 3
+    # Four original deferred identities are immutable. Their *current*
+    # accepted/deferred partition changes only on source-audited signoff.
+    historic = {"NFB-AC-13", "NFB-AC-41", "SWT-AC-09", "SWT-AC-22"}
+    by_id = {row["id"]: row for row in obj["records"]}
+    assert counts["DEFERRED_PRODUCT_EVIDENCE"] == sum(
+        by_id[key]["status"] == "DEFERRED_PRODUCT_EVIDENCE"
+        for key in historic
+    )
+    assert counts["DEFERRED_PRODUCT_EVIDENCE"] + sum(
+        by_id[key]["accepted"] for key in historic
+    ) == len(historic) == 4
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
     assert counts.get("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",0) <= 14
     assert counts["BLOCKED_1500_REAL_GUI"] == 17
