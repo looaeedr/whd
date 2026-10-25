@@ -696,3 +696,73 @@ def test_ac28_two_units_one_bay_one_invalid_cannot_batch_confirm(
     assert original == frozen
     assert all("nfb_config" not in row
                for row in original["sets"][0]["bays"])
+
+
+@pytest.mark.parametrize("second_x", (0.0, 0.0000005))
+def test_swt16_same_tier_two_verified_ids_cannot_share_world_center(
+    second_x,
+):
+    """One Bay's typed verified receipt must not bypass physical collision.
+
+    Real source contour preflight independently rejects overlapping areas;
+    the submit boundary must also reject two distinct IDs whose verified
+    X and Y slot are identical, even when every per-ID tuple matches.
+    """
+    before = layout()
+    frozen = deepcopy(before)
+    candidate = config(owner="nfb:0:slot1", x=0)
+    extra = deepcopy(candidate["holes"][0])
+    extra["physical_hole_id"] = "nfb:0:slot2"
+    extra["manual_x_mm"] = second_x
+    candidate["holes"].append(extra)
+    scope, inventory, door = evidence(before, 0)
+    witness = replace(
+        door,
+        physical_hole_ids=("nfb:0:slot1", "nfb:0:slot2"),
+        verified_hole_locations=(
+            ("nfb:0:slot1", 0.0, 1, 0, 90),
+            ("nfb:0:slot2", float(second_x), 1, 0, 90),
+        ),
+    )
+    callbacks = []
+    with pytest.raises(ValueError, match="same-tier physical NFB center collision"):
+        submit_nfb_bays(
+            before, set_index=0, bay_indices=(0,), version_id="v1",
+            configs={0: candidate}, evidence={0: (scope, inventory, witness)},
+            confirm=lambda preview: callbacks.append(preview) or True,
+        )
+    assert callbacks == []
+    assert before == frozen
+    assert all("nfb_config" not in bay for bay in before["sets"][0]["bays"])
+
+
+def test_swt16_same_world_x_in_two_real_layers_does_not_fake_y_collision():
+    """Distinct approved layer slots have different physical Y locations."""
+    base = layout()
+    candidate = config(owner="nfb:0:slot1", x=0)
+    candidate["layer_count"] = 2
+    candidate["holes"][0]["slot_index"] = 0
+    candidate["holes"][0]["layer_count"] = 2
+    extra = deepcopy(candidate["holes"][0])
+    extra["physical_hole_id"] = "nfb:0:slot2"
+    extra["slot_index"] = 1
+    candidate["holes"].append(extra)
+    scope, inventory, door = evidence(base, 0)
+    witness = replace(
+        door, physical_hole_ids=("nfb:0:slot1", "nfb:0:slot2"),
+        verified_hole_locations=(
+            ("nfb:0:slot1", 0.0, 2, 0, 90),
+            ("nfb:0:slot2", 0.0, 2, 1, 90),
+        ),
+    )
+    calls = []
+    result = submit_nfb_bays(
+        base, set_index=0, bay_indices=(0,), version_id="v1",
+        configs={0: candidate}, evidence={0: (scope, inventory, witness)},
+        confirm=lambda preview: calls.append(preview) or True,
+    )
+    assert result.changed is True
+    assert len(calls) == 1 and len(calls[0].operator_x_changes) == 2
+    assert [hole["slot_index"] for hole in
+            result.layout["sets"][0]["bays"][0]["nfb_config"]["holes"]] == [0, 1]
+    assert "nfb_config" not in base["sets"][0]["bays"][0]
