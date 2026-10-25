@@ -912,3 +912,33 @@ def test_r2_13_per_bay_editor_accepts_real_empty_or_populated_door_state():
     for saved in ({}, {"door_layout_columns": [[800., [800., 800.]]]}):
         revised = update_receiving_bay(layout, set_index=0, bay_index=0, door_state=saved)
         assert revised["sets"][0]["bays"][0]["door_state"] == saved
+
+
+@pytest.mark.parametrize("bad", [True, False, 0.5, 1.5, "1.5", None, [], {}])
+def test_r2_14_switch_ui_adapter_rejects_nonintegral_layer_index(bad):
+    """GUI read/write must not alias True to tier 2 or truncate decimal input."""
+    from gui_modules.application.receiving_switch_layout_adapter import ReceivingSwitchLayoutAdapter
+    from ae_engine.receiving_switch_layout import new_receiving_switch_layout
+    adapter = ReceivingSwitchLayoutAdapter(new_receiving_switch_layout())
+    adapter.add_layer()
+    before = adapter.layout
+    with pytest.raises(ValueError, match="layer_index"):
+        adapter.connection_count(bad)
+    with pytest.raises(ValueError, match="layer_index"):
+        adapter.resize_connections(bad, 1)
+    assert adapter.layout == before
+    assert adapter.connection_count("0") == 1
+    assert adapter.connection_count("1") == 1
+
+
+@pytest.mark.parametrize("bad_delta", [True, False, 0.5, 1.5, "1.5", None, [], {}])
+def test_r2_14_switch_ui_adapter_rejects_fractional_or_boolean_connection_delta(bad_delta):
+    from gui_modules.application.receiving_switch_layout_adapter import ReceivingSwitchLayoutAdapter
+    from ae_engine.receiving_switch_layout import new_receiving_switch_layout
+    adapter = ReceivingSwitchLayoutAdapter(new_receiving_switch_layout())
+    before = adapter.layout
+    with pytest.raises(ValueError, match="delta"):
+        adapter.resize_connections("0", bad_delta)
+    assert adapter.layout == before
+    assert adapter.resize_connections("0", "1") is True
+    assert adapter.connection_count(0) == 2
