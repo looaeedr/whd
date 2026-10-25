@@ -85,11 +85,17 @@ class ReferenceDistances:
 
 def feature_reference_anchor(feature: Feature) -> ReferenceAnchor:
     params = dict(getattr(feature, "source_params", ()))
-    raw = params.get("reference_anchor", ReferenceAnchor.CENTER.value)
-    try:
-        return ReferenceAnchor(str(raw))
-    except ValueError:
+    # Missing historic anchor means CENTER. An explicitly saved invalid
+    # anchor must not silently relocate the reference point for hole edits.
+    if "reference_anchor" not in params:
         return ReferenceAnchor.CENTER
+    raw = params["reference_anchor"]
+    if not isinstance(raw, str):
+        raise ValueError("invalid feature reference_anchor")
+    try:
+        return ReferenceAnchor(raw)
+    except ValueError as exc:
+        raise ValueError("invalid feature reference_anchor") from exc
 
 
 def feature_with_reference_anchor(feature: Feature, anchor: ReferenceAnchor) -> Feature:
