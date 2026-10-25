@@ -282,3 +282,69 @@ def test_r4_62_receiving_horizontal_divider_refuses_invalid_physical_inputs():
     # No invalid attempt may mutate the saved source layout or normal mating data.
     assert columns == [(800.0, [550.0, 550.0])]
     assert original[0].span == pytest.approx(796.0)
+
+
+@pytest.mark.parametrize("field", [
+    "width", "height", "thickness",
+    "fold_left", "fold_right", "fold_top", "fold_bottom",
+])
+def test_r4_62_persisted_inner_panel_oversized_sources_have_typed_failure(field):
+    data = {
+        "width": 723., "height": 900., "thickness": 2.,
+        "fold_left": 19., "fold_right": 19.,
+        "fold_top": 19., "fold_bottom": 19.,
+    }
+    data[field] = 10 ** 400
+    with pytest.raises(ValueError, match="inner-door panel dimensions must be finite"):
+        derive_inner_door_panel("upper", cell_key="0:0", **data)
+    with pytest.raises(ValueError, match="inner-door panel dimensions must be finite"):
+        InnerDoorPanelPart(
+            stable_id="inner_door:upper:panel",
+            inner_door_id="upper", cell_key="0:0", **data,
+        )
+    valid = derive_inner_door_panel("upper", cell_key="0:0", width=723., height=900., thickness=2.)
+    assert valid.unfolded_width == pytest.approx(757.)
+    assert valid.fold_left == valid.fold_right == 19.
+
+
+@pytest.mark.parametrize("side", ["thickness", "top", "left", "right"])
+def test_r4_62_receiving_three_side_frame_rejects_oversized_source(side):
+    """Receiving frame has NO bottom part: Divider owns the lower support."""
+    spans = {"top": 723., "left": 900., "right": 900.}
+    thickness = 2.
+    if side == "thickness":
+        thickness = 10 ** 400
+        with pytest.raises(ValueError, match="frame material thickness must be a finite"):
+            inner_door_frame_formed_occupation(thickness)
+    else:
+        spans[side] = 10 ** 400
+    with pytest.raises(ValueError, match="inner-door frame (thickness|span) must be"):
+        derive_inner_door_frames(
+            "upper", spans=spans, thickness=thickness,
+            included_sides=("top", "left", "right"),
+        )
+    assert inner_door_frame_formed_occupation(2.) == pytest.approx(50.)
+    valid = derive_inner_door_frames(
+        "upper", spans={"top": 723., "left": 900., "right": 900.},
+        thickness=2., included_sides=("top", "left", "right"),
+    )
+    assert {frame.side for frame in valid} == {"top", "left", "right"}
+
+
+@pytest.mark.parametrize("source", ["depth", "thickness", "frame_width", "horizontal_thickness"])
+def test_r4_62_divider_oversized_source_rejected_before_forming(source):
+    values = {"depth": 350., "thickness": 2., "frame_width": 29., "layout_scope": "box_body"}
+    columns = [(400., [1100.]), (400., [1100.])]
+    if source == "horizontal_thickness":
+        columns = [(800., [550., 550.])]
+        values["thickness"] = 10 ** 400
+    else:
+        values[source] = 10 ** 400
+    with pytest.raises(ValueError, match="divider (depth/thickness/span|frame_width) must be"):
+        derive_box_body_dividers(columns, **values)
+    vertical = derive_box_body_dividers(
+        [(400., [1100.]), (400., [1100.])],
+        depth=350., thickness=2., frame_width=29., layout_scope="box_body",
+    )
+    assert len(vertical) == 1 and vertical[0].axis == "VERTICAL"
+    assert vertical[0].span == pytest.approx(1100.)
