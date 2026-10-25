@@ -714,3 +714,107 @@ def test_swt21_missing_committed_source_or_slot_never_authorizes_dependent_parts
         manifest.require_export(("inner1",), partial=True)
     assert manifest.require_export(("side1",), partial=True) == ("side1",)
 
+
+
+def test_ac23_one_real_bay_changed_x_datum_survives_project_reopen_and_blocks_dxf(
+    tmp_path,
+):
+    """A former CONFIRMED X must never resurrect from physical Bay W changes.
+
+    Uses the actual saved ReceivingLayout Bay, project writer/reader, source-
+    inspected DXF, and the SAME physical-part manufacturing manifest.
+    Operator reapproval is NOT simulated or fabricated by an approval flag.
+    """
+    from copy import deepcopy
+    from dataclasses import replace
+    import ezdxf
+
+    from ae_engine.receiving_layout import update_receiving_bay
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from phase6_project_file import read_project, write_project
+    from tests.test_issue1499_nfb_persistence import _layout, _payload
+
+    opts = _prepared(tmp_path, color30=1)
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    layout = _layout()
+    set_id = layout["sets"][0]["stable_id"]
+    bay_id = layout["sets"][0]["bays"][0]["stable_id"]
+    opts["scope"] = NfbPhysicalScope(
+        set_id, bay_id, "version-1", True,
+        "inner1", ("base1",), (),
+    )
+    committed_nfb = deepcopy(opts["saved_bay"]["nfb_config"])
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=committed_nfb,
+    )
+    original_sibling = deepcopy(layout["sets"][0]["bays"][1])
+    opts["saved_bay"] = layout["sets"][0]["bays"][0]
+    hole = opts["saved_bay"]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "CONFIRMED"
+    assert hole["manual_x_mm"] == 0
+    assert hole["datum_snapshot"]["w"] == 800
+
+    # Real parsed DXF geometry, not solely invented inventory metadata.
+    source = opts["source_path"]
+    drawing = ezdxf.new("R2010")
+    ms = drawing.modelspace()
+    ms.add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    ms.add_circle((8, 6), 2, dxfattribs={"color": 30})
+    drawing.saveas(source)
+    inventory = inspect_nfb_dxf_source(source)
+    opts["source_inventory"] = inventory
+    opts["verified_inner_door"] = replace(
+        opts["verified_inner_door"],
+        source_sha256=inventory.source_sha256,
+    )
+    baseline = derive_nfb_partial_export_manifest(**opts)
+    assert baseline.authorized_part_ids == ("inner1", "side1")
+    assert baseline.actual_export_count == 5
+    assert baseline.require_export(("inner1", "side1"), partial=True) == (
+        "inner1", "side1",
+    )
+
+    changed = update_receiving_bay(
+        layout, set_index=0, bay_index=0, width=750,
+    )
+    changed_bays = changed["sets"][0]["bays"]
+    assert changed_bays[1] == original_sibling
+    stale = changed_bays[0]["nfb_config"]["holes"][0]
+    assert stale["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert stale["manual_x_mm"] == 0
+    assert stale["datum_snapshot"]["w"] == 800
+    opts["saved_bay"] = changed_bays[0]
+    held = derive_nfb_partial_export_manifest(**opts)
+    assert held.authorized_part_ids == ("side1",)
+    assert held.actual_export_count == 3
+    assert held.held_actual_count == 3
+    assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in (
+        held.unresolved_dependencies
+    )
+    with pytest.raises(ValueError, match="BLOCKED"):
+        held.require_export(("inner1",), partial=True)
+    assert held.require_export(("side1",), partial=True) == ("side1",)
+
+    path = write_project(tmp_path / "ac23_old_x_reopen.p6fold", _payload(changed))
+    reopened = read_project(path)["snapshot"]["receiving_layout"]["sets"][0]["bays"]
+    assert reopened[1] == original_sibling
+    reopened_hole = reopened[0]["nfb_config"]["holes"][0]
+    assert reopened_hole["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert reopened_hole["manual_x_mm"] == 0
+    opts["saved_bay"] = reopened[0]
+    assert derive_nfb_partial_export_manifest(**opts).authorized_part_ids == ("side1",)
+
+    # Restoring W800 alone is NOT an operator's new confirmation.
+    recovered_width = update_receiving_bay(
+        changed, set_index=0, bay_index=0, width=800,
+    )
+    revived = recovered_width["sets"][0]["bays"][0]
+    assert revived["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    opts["saved_bay"] = revived
+    assert derive_nfb_partial_export_manifest(**opts).authorized_part_ids == ("side1",)
