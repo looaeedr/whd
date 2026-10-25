@@ -480,3 +480,21 @@ def test_issue1504_dimension_batch_rejects_noninteger_set_identity(bad_set):
     assert adapter.layout == before
     assert adapter.selection == selected
     assert adapter._session_dirty_ids == set()
+
+
+@pytest.mark.parametrize("axis", ("width", "height", "depth"))
+def test_issue1504_dimension_batch_huge_axis_is_atomic(axis):
+    """Physical dimensions must reject unrepresentable integers before mutation."""
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    selection = adapter.selection
+    dimensions = {"width": 900, "height": 1700, "depth": 400}
+    dimensions[axis] = 10 ** 400
+    with pytest.raises(ValueError, match="超出可表示尺寸"):
+        adapter.apply_dimensions_to_bays(
+            0, (0, 1), expected_count=2, **dimensions,
+        )
+    assert adapter.layout == before
+    assert adapter.selection == selection
+    assert adapter._session_dirty_ids == set()
