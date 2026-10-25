@@ -264,10 +264,37 @@ def resolved_features_to_primitives(features) -> tuple[DrawingPrimitive, ...]:
                 pts = tuple(points)
                 return pts[:-1] if len(pts) > 1 and pts[0] == pts[-1] else pts
 
+            def same_closed_primary(points, closed):
+                owner = contour_key(primary)
+                candidate = contour_key(points)
+                if len(owner) != len(candidate):
+                    return False
+                # Open and closed CUTTING strokes have different machining
+                # semantics; do not suppress the primary closed contour.
+                if bool(closed) != (len(primary) > 2):
+                    return False
+                if owner == candidate:
+                    return True
+                if not closed or len(owner) < 3:
+                    return False
+                # Closed loops can start at any vertex or run clockwise /
+                # counterclockwise. Match from the first shared vertex;
+                # normally unique vertices make this a linear scan.
+                for start, vertex in enumerate(candidate):
+                    if vertex != owner[0]:
+                        continue
+                    if all(owner[i] == candidate[(start + i) % len(owner)]
+                           for i in range(len(owner))):
+                        return True
+                    if all(owner[i] == candidate[(start - i) % len(owner)]
+                           for i in range(len(owner))):
+                        return True
+                return False
+
             represented = any(
                 str(layer).upper() == str(feature.layer).upper()
-                and contour_key(points) == contour_key(primary)
-                for layer, points, _closed in layers
+                and same_closed_primary(points, closed)
+                for layer, points, closed in layers
             )
             if len(primary) >= 2 and (not layers or (
                 str(feature.layer).upper() != "FROM_DXF" and not represented
