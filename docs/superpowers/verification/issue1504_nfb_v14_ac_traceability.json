@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 63,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 64,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 4,
+    "EVIDENCE_CANDIDATE_ONLY": 3,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 1,
     "DEFERRED_PRODUCT_EVIDENCE": 3
   },
@@ -1116,21 +1116,91 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py",
+        "tests/test_issue1500_nfb_transactions.py",
+        "tests/test_issue1501_nfb_export_manifest.py",
+        "tests/test_issue1500_nfb_ui1b_bridge.py",
+        "tests/test_issue1504_ac32_nfb_x_impact_operator.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_verified_dxf",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_pre_current_review": {
+        "status": "EVIDENCE_CANDIDATE_ONLY",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1499_nfb_persistence.py",
+            "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "SAME_W800_SHIHLIN_GENERATED_DXF_PHYSICAL_OPENING__SUBMITTED_BAY_W800_TO_750_TO_800_INVALIDATION__ACTUAL_P6FOLD_RELOAD__NATIVE_TK_OPERATOR_CANCEL_AND_EXPLICIT_RECONFIRM__SOURCE_BOUND_MANUFACTURING_RECHECK_AND_OUTPUT_REOPEN",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_verified_dxf",
+        "other_required_assertions": [
+          "tests/test_issue1501_nfb_export_manifest.py::test_ac23_one_real_bay_changed_x_datum_survives_project_reopen_and_blocks_dxf",
+          "tests/test_issue1500_nfb_transactions.py::test_ac23_explicit_datum_owner_change_requires_new_operator_approval",
+          "tests/test_issue1500_nfb_transactions.py::test_ac23_live_bay_width_source_mismatch_blocks_confirmed_submit",
+          "tests/test_issue1500_nfb_transactions.py::test_ac28_operator_preview_compares_existing_confirmed_x_and_datum_before_consent",
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_source_gate",
+          "tests/test_issue1499_nfb_persistence.py::test_receiving_bay_width_change_requires_nfb_x_reconfirmation_and_preserves_sibling",
+          "tests/test_issue1497_configured_nfb_manufacturing_release.py::test_final_manufacturing_dxf_contains_original_panel_and_color3_hole",
+          "tests/test_issue1500_nfb_ui1b_bridge.py::test_live_submit_rechecks_bay_source_and_snapshot_before_adapter_write"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "新 X 基準確立後，舊位移不能自動生效",
+            "proof": "Same submitted W800 Bay is changed to W750 and back to W800, original X0 retained as a numeric value yet RECONFIRM_REQUIRED. Project Save→Reload preserves state and current source-scoped physical INNER CUTTING is BLOCKED while unrelated SIDE remains authorized."
+          },
+          {
+            "original_clause": "比較原新條件，經原生 GUI 操作員重新確認",
+            "proof": "Exact original Receiving multi-settings Tk displays old physical hole ID, pending-vs-confirmed X and datum revision conditions. Native Cancel leaves the full actual Bay unchanged and no Undo; only subsequent operator consent through real transaction adapter commits the revalidated physical same-source X0. Newly confirmed Bay Save→Reload preserves accepted datum and independent sibling."
+          },
+          {
+            "original_clause": "未確認前草稿與製造阻斷，確認後仍須來源與孔位",
+            "proof": "Before Tk consent, real source-inspected generated DXF manufacturing manifest blocks current physical INNER; after consent it matches source SHA, model, world-X, slot and rotation and actual original DXF CUTTING output reopens with both panel and model hole. Source bytes replaced afterwards immediately revoke INNER authorization. Scope excludes arbitrary vendor/W or original customer Windows UI."
+          }
+        ],
+        "source_owner_paths": [
+          "ae_engine/receiving_layout.py::update_receiving_bay",
+          "phase6_project_file.py::write_project",
+          "phase6_project_file.py::read_project",
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings",
+          "gui_modules/application/receiving_set_bay_adapter.py::submit_nfb_to_bays",
+          "ae_engine/receiving_nfb_export_manifest.py::derive_nfb_partial_export_manifest",
+          "ae_engine/receiving_nfb_manufacturing_release.py::save_configured_nfb_inner_door_dxf"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "pad_unconditional_approved": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "source_fixture_manufacturer_original_certified": false,
+        "all_model_width_x_certified": false,
+        "original_windows_native_operator_manufacturing_tested": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "NFB-AC-24",
@@ -4755,7 +4825,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 63/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 25 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 64/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 24 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
