@@ -383,7 +383,10 @@ def test_receiving_weld_ear_and_sheetmetal_corner_features_geometry_guards():
     with pytest.raises(ValueError, match="boolean"):
         indicator_box_opening_size([1], thickness=True)
 
-    with pytest.raises(GeometryError, match="boolean"):
+    # A boolean override is rejected as nonphysical before becoming a
+    # finite 1-mm factory CUTTING relief. Preserve the current fail-closed
+    # GeometryError contract without requiring historic diagnostic wording.
+    with pytest.raises(GeometryError, match="bend_factor must be finite"):
         _factor_or_override(True, 1.5, 3.0, "bend_factor")
 
 
@@ -461,7 +464,11 @@ def test_phase6_manufacturing_geometry_and_endcap_guards():
 
     assert pmg._phase6_signature_canonical_value(_Color.RED) == "red_val"
     assert pmg._phase6_signature_canonical_value(frozenset([2, 1])) == (1, 2)
-    assert pmg._phase6_signature_canonical_value(float("nan")) == "__NaN__"
+    # Invalid numeric dimensions must never produce a cache key that can
+    # collide with a literal marker such as "__NaN__".
+    with pytest.raises(ValueError, match="nonfinite manufacturing signature value"):
+        pmg._phase6_signature_canonical_value(float("nan"))
+    assert pmg._phase6_signature_canonical_value("__NaN__") == "__NaN__"
 
     fake_piece = SimpleNamespace(
         role="left_side",
