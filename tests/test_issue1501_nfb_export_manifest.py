@@ -591,3 +591,39 @@ def test_swt21_saved_x_datum_drift_is_normalized_before_manufacturing(
             manifest.require_export((part_id,), partial=True)
     assert manifest.require_export(("side1",), partial=True) == ("side1",)
 
+
+@pytest.mark.parametrize("source_loss", ("empty_slots", "pending_model", "missing_dxf", "missing_inventory"))
+def test_swt21_missing_committed_source_or_slot_never_authorizes_dependent_parts(
+    tmp_path, source_loss,
+):
+    """A real submitted owner cannot turn UNKNOWN into Color30/150 zero."""
+    opts = _prepared(tmp_path, color30=1)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    if source_loss == "empty_slots":
+        opts["saved_bay"]["nfb_config"]["holes"] = []
+        with pytest.raises(ValueError, match="explicit hole list"):
+            derive_nfb_partial_export_manifest(**opts)
+        return
+    if source_loss == "pending_model":
+        opts["saved_bay"]["nfb_config"]["holes"][0]["model_filename"] = "reselect.dxf"
+    elif source_loss == "missing_dxf":
+        opts["source_path"] = tmp_path / "unavailable_original.dxf"
+    else:
+        opts["source_inventory"] = None
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    status = {part.part_id: part.status for part in manifest.rows}
+    assert status == {"inner1": BLOCKED, "base1": BLOCKED, "side1": UNAFFECTED}
+    assert manifest.authorized_part_ids == ("side1",)
+    assert manifest.actual_export_count == 3
+    assert manifest.held_actual_count == 3
+    assert not manifest.whole_ready
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("inner1",), partial=True)
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+
