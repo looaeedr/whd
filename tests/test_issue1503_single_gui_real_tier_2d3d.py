@@ -146,7 +146,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         formed = tuple(scene.formed_fixing_plate_skins or ())
         assert len(formed) == 4, "two tiers require four real side-fixed plates"
         assert len({part.part_id for part in formed}) == 4
-        # These must be real source contact geometry, not 16 handmade strokes.
+        # These must be real source contact geometry, not handmade strokes.
         from ae_engine.receiving_fixed_plate_side_contact import (
             derive_receiving_ear_side_contact_from_formed_skin,
         )
@@ -158,7 +158,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         assert all(len(x.world_surface_boundary) == 4 for x in contacts)
         # The scene owning correct DTOs is not sufficient: verify the actual
         # production Matplotlib 3D renderer drew all four formed EAR skins
-        # and eight source-contact MARKING segments on EACH side plate.
+        # and one base-lower/ear-upper MARKING line for EACH fixed plate.
         # No raw/preselected/fabricated lines are passed to the renderer.
         designer._phase6_3d_display_mode = "assembly"
         renderer = designer.final_scene_view
@@ -169,7 +169,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         assert set(renderer.last_formed_ear_display_ids) == {
             row.part_id for row in formed
         }
-        assert len(renderer.last_receiving_ear_marking_segments) == 16
+        assert len(renderer.last_receiving_ear_marking_segments) == 4
         # A segment-count pass is not a visible-pixel pass. Render the SAME
         # physical FinalScene twice at the SAME camera; toggle ONLY the real
         # production renderer's formed-EAR contact overlay. This captures
