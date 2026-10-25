@@ -239,16 +239,22 @@ class ReceivingSetBayAdapter:
     def apply_dimensions_to_bays(self, set_index, bay_indices, *, width, height, depth, expected_count):
         """Apply W/H/D to explicitly highlighted real Bays, atomically."""
         from ae_engine.sheetmetal_part_adapters import complete_partition
-        index = int(set_index)
-        if index < 0 or index >= len(self._layout["sets"]):
-            raise IndexError("套不存在")
+        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
+            raise ValueError("套不存在")
+        index = set_index
         for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
             if type(value) is not int or value <= 0:
                 raise ValueError(f"{label} 必須為正整數")
-        selected = tuple(bay_indices)
+        try:
+            selected = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體") from exc
         bay_count = len(self._layout["sets"][index]["bays"])
-        if (len(selected) != expected_count or len(set(selected)) != len(selected)
-                or any(type(i) is not int or not 0 <= i < bay_count for i in selected)):
+        # Verify every physical Bay ID before hashing; bool aliases int 1
+        # and nested UI arrays otherwise cause unhandled TypeError.
+        if (len(selected) != expected_count
+                or any(type(i) is not int or not 0 <= i < bay_count for i in selected)
+                or len(set(selected)) != len(selected)):
             raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
         # One operator confirmation is one atomic topology transaction. The
         # old loop called update_receiving_bay() for every highlighted Bay;
