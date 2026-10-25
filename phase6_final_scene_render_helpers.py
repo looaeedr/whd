@@ -526,15 +526,14 @@ class Phase6FinalSceneRenderHelpersMixin:
     def _draw_receiving_ear_side_markings(
         self, formed_ear_skins, *, visible_side_piece_keys=None,
     ):
-        """Show only the parent BasePlate-lower / EAR-upper installation mark.
+        """Show base-lower/ear-upper positioning with two 20-mm fold hints.
 
-        The full folded EAR remains 3D material, including its BEND and
-        downward weld leg. Its lower/side contact boundaries are NOT
-        installation MARKING lines. Match the same world source as 2D DXF.
+        Keep the bottom open and preserve actual folded EAR mesh and BEND.
+        These strokes are source-referenced overlay, not bent-part dimensions.
         """
         from ae_engine.receiving_fixed_plate_side_contact import (
             derive_receiving_ear_side_contact_from_formed_skin,
-            receiving_ear_installation_world_segment,
+            receiving_ear_positioning_world_segments,
         )
 
         rows = tuple(formed_ear_skins or ())
@@ -552,9 +551,8 @@ class Phase6FinalSceneRenderHelpersMixin:
             receipt = derive_receiving_ear_side_contact_from_formed_skin(formed)
             if receipt.side_piece_id not in allowed:
                 continue
-            segments.append(receiving_ear_installation_world_segment(receipt))
-        # One real installation Z line per fixed plate. Do not draw lower
-        # outline or mesh triangulation: source BEND/formed legs remain visible.
+            segments.extend(receiving_ear_positioning_world_segments(receipt))
+        # Open-bottom top + short fold hints, never contact rectangle border.
         ax = self.renderer.ax3d
         if callable(getattr(ax, "plot", None)):
             for a, b in segments:
