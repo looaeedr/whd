@@ -17,7 +17,7 @@ from shapely.ops import unary_union
 from .assembly_marking_geometry import backproject_mapped_skin_world_points
 from .receiving_fixed_plate_side_contact import (
     ReceivingEarSideContactSurface, resolve_receiving_ear_side_contact_surfaces,
-    receiving_ear_installation_world_segment,
+    receiving_ear_positioning_world_segments,
 )
 
 _TOL = 0.02
@@ -127,27 +127,29 @@ def project_receiving_ear_contact_to_side_uv(
         if patch.intersects(_fold_guide_flat_segment(guide)):
             raise ValueError("EAR_SIDE_UV_SIDE_BEND_INTERSECTION")
 
-    # Draw ONLY the manufacturing installation upper edge, where the
-    # parent BasePlate's actual bottom skin meets the EAR's upper edge.
-    # The physical 256x22 contact polygon remains checked above, but its
-    # lower/side boundaries are not positioning marks. BEND still belongs
-    # to the unchanged original fixing-plate source DXF.
-    world_line = receiving_ear_installation_world_segment(contact)
-    mark_result = backproject_mapped_skin_world_points(records, world_line)
-    if mark_result.status != "RESOLVED" or len(mark_result.flat_points) != 2:
-        raise ValueError("EAR_SIDE_UV_INSTALLATION_LINE_PROJECTION_FAILED")
-    mark = tuple(tuple(float(v) for v in point) for point in mark_result.flat_points)
-    line = LineString(mark)
-    if line.length <= _UV_TOL:
-        raise ValueError("EAR_SIDE_UV_DEGENERATE_INSTALLATION_MARKING")
-    if not actual_mapped_patch.buffer(_UV_TOL).covers(line):
-        raise ValueError("EAR_SIDE_UV_INSTALLATION_OUTSIDE_TRUE_SIDE_SKIN")
-    if not side_final_material.covers(line):
-        raise ValueError("EAR_SIDE_UV_INSTALLATION_CUTTING_CONFLICT")
-    if any(line.intersects(_fold_guide_flat_segment(guide))
-           for guide in tuple(side_fold_guides or ())):
-        raise ValueError("EAR_SIDE_UV_INSTALLATION_SIDE_BEND_CONFLICT")
-    segments = ((mark[0], mark[1]),)
+    # Upper installation edge plus two schematic 20-mm fold hints at the
+    # endpoints; intentionally NO lower/bottom connecting line. Their length
+    # is only a visual marking convention and never alters the source BEND23,
+    # cutting, forming, parent BasePlate Z or weld-contact verification.
+    world_segments = receiving_ear_positioning_world_segments(contact)
+    segments = []
+    for world_line in world_segments:
+        mark_result = backproject_mapped_skin_world_points(records, world_line)
+        if mark_result.status != "RESOLVED" or len(mark_result.flat_points) != 2:
+            raise ValueError("EAR_SIDE_UV_INSTALLATION_HINT_PROJECTION_FAILED")
+        mark = tuple(tuple(float(v) for v in point) for point in mark_result.flat_points)
+        line = LineString(mark)
+        if line.length <= _UV_TOL:
+            raise ValueError("EAR_SIDE_UV_DEGENERATE_POSITIONING_MARKING")
+        if not actual_mapped_patch.buffer(_UV_TOL).covers(line):
+            raise ValueError("EAR_SIDE_UV_POSITIONING_OUTSIDE_TRUE_SIDE_SKIN")
+        if not side_final_material.covers(line):
+            raise ValueError("EAR_SIDE_UV_POSITIONING_CUTTING_CONFLICT")
+        if any(line.intersects(_fold_guide_flat_segment(guide))
+               for guide in tuple(side_fold_guides or ())):
+            raise ValueError("EAR_SIDE_UV_POSITIONING_SIDE_BEND_CONFLICT")
+        segments.append(mark)
+    segments = tuple(segments)
     return ReceivingEarSideUVReceipt(
         ear_part_id=contact.ear_part_id,
         base_part_id=contact.base_part_id,
