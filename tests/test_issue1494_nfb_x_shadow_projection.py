@@ -508,3 +508,89 @@ def test_w800_canonical_x_rejects_reversed_assembly_axes(monkeypatch):
     monkeypatch.setattr(projected, "resolve_inner_door_panel_placement", reversed_placement)
     with pytest.raises(ValueError, match="physical part/rotation"):
         projected.resolve_w800_three_whd_x(snapshot(), "upper", slot_index=0)
+
+
+def test_swt27_w800_source_shadow_cannot_certify_other_widths_or_main_nfb_cutting():
+    """Physical W800x3 placement reference is NOT a manufacturer NFB main hole.
+
+    Test the complete negative authority chain: spec nominal groups have no
+    absolute world X; only exact W800/T2/upper-1100 is geometrically
+    projectable; even its genuine source Color7 placement apertures cannot
+    pass the actual Color150 manufacturing-source opening gate.
+    """
+    from ae_engine.receiving_nfb_cutting_preflight import (
+        NfbUpperOpeningRequest, preflight_nfb_inner_door_opening,
+    )
+    from tests.test_issue1497_nfb_cutting_preflight import _panel
+
+    # Nominal pitch alone never promotes a width/count combination to MFG-1.
+    for width, count, pitch in (
+        (600, 1, None), (750, 1, None), (800, 1, None),
+        (600, 2, (180.0,)), (750, 2, (310.0,)),
+        (800, 2, (360.0,)), (800, 3, (180.0, 180.0)),
+    ):
+        nominal = nominal_nfb_x_group(width, count)
+        assert nominal.adjacent_distances_mm == pitch
+        assert nominal.status == PREVIEW_ONLY
+        assert nominal.certified_x_revision is None
+        assert nominal.absolute_centers_mm is None
+        assert nominal.manufacturing_ready is False
+        assert nominal.gate == ("OPEN-X-ONE" if count == 1 else "OPEN-X-ROW")
+        if width != 800:
+            # The W800 physical blank resolver may not migrate its source
+            # centers to an unrelated 600/750-mm cabinet, even if the input
+            # changes consistently and a nominal pitch exists.
+            physical = snapshot()
+            physical["w"] = float(width)
+            physical["door_layout_columns"] = [
+                [float(width), [1100.0, 500.0]],
+            ]
+            with pytest.raises(ValueError, match="OPEN-X-W800x3"):
+                resolve_w800_three_whd_x(physical, "upper", slot_index=0)
+
+    source, closed = originals()
+    panel = _panel()
+    for i in range(3):
+        physical = resolve_w800_three_whd_x(
+            snapshot(), "upper", slot_index=i,
+        )
+        shadow = shadow_w800_three_source_x(
+            snapshot(), "upper", slot_index=i,
+            original_source=source, closed_cutting_reference=closed,
+        )
+        assert shadow.blank_uv_x_mm == pytest.approx(physical.blank_uv_x_mm)
+        assert shadow.manufacturing_ready is False
+        assert physical.manufacturing_ready is False
+        assert shadow.certified_x_revision is None
+        assert physical.certified_x_revision is None
+        # The customer's placement source has Color7 apertures, not
+        # manufacturer's upper main-opening Color150 profiles.
+        centre_x = shadow.source_center_x_mm
+        matching = [
+            hole["bbox"] for hole in closed["rectangular_holes"]
+            if abs((hole["bbox"][0] + hole["bbox"][2]) / 2 - centre_x) < 1e-6
+            and hole["bbox"][1] == 1544
+        ]
+        assert len(matching) == 1
+        x0, y0, x1, y1 = matching[0]
+        placement_only = NfbUpperOpeningRequest(
+            physical_hole_id=f"nfb:upper:layer:1:unit:{i+1}",
+            target_part_id=panel.stable_id,
+            source_sha256=source["source_sha256"],
+            source_handle=source["aperture_side_handles"][i][0],
+            source_region="UPPER",
+            source_aci=7,
+            source_outline_xy=((x0, y0), (x1, y0),
+                               (x1, y1), (x0, y1)),
+            source_center_xy=(centre_x, (y0+y1)/2),
+            source_profile_closed=True,
+            source_bulges=(0.0, 0.0, 0.0, 0.0),
+            rotation_deg=0,
+            uv_center_x=physical.blank_uv_x_mm,
+            uv_center_y=563.5,
+            x_rule_revision=physical.revision,
+            y_rule_revision="WHD-RECEIVING-NFB-Y-1100-V1",
+            model_filename="800x3.dxf",
+        )
+        with pytest.raises(ValueError, match="upper Color 150"):
+            preflight_nfb_inner_door_opening(panel, placement_only)
