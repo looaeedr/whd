@@ -80,6 +80,8 @@ def inner_door_frame_formed_occupation(thickness: float) -> float:
 
 
 def _stable_inner_door_id(value: object) -> str:
+    if isinstance(value, bool):
+        raise ValueError("inner_door_id must be a stable non-boolean identifier")
     result = str(value or "").strip()
     if not result:
         raise ValueError("inner_door_id must be a stable non-empty identifier")
