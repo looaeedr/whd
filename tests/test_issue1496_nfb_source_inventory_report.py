@@ -252,3 +252,79 @@ def test_24_real_local_dxf_observations_are_traceable_but_not_certified():
     )
     assert shihlin400["candidate_rectangle"]["handle"] == "585"
     assert not DEFAULT_SOURCE_ROOT.is_relative_to(DEFAULT_INDEX.parent)
+
+
+def test_archive_single_unbranded_basename_cannot_cross_manufacturer_identity(tmp_path):
+    """One A.dxf cannot be attributed to BOTH Shihlin and TECO by basename.
+
+    The canonical switch index deliberately keeps each manufacturer's
+    same-named DXF as an independent source identity. With no original brand
+    folders available, a single unbranded archive member is UNKNOWN for
+    BOTH brands, not two observed or certified files.
+    """
+    index, root, pins, shihlin_source = _case(tmp_path)
+    teco_source = root / "東元" / "A.dxf"
+    archive = tmp_path / "unbranded-legacy.zip"
+    with ZipFile(archive, "w") as file:
+        file.writestr("old_dump/A.dxf", shihlin_source.read_bytes())
+    shihlin_source.unlink()
+    teco_source.unlink()
+    report = build_source_coverage_report(
+        index, source_root=root, pin_path=pins, archive_path=archive,
+    )
+    by_brand = {
+        (row["brand"], row["indexed_filename"]): row
+        for row in report["records"]
+    }
+    for brand in ("士林", "東元"):
+        row = by_brand[(brand, "A.dxf")]
+        assert row["source_storage"] == "ARCHIVE_BRAND_AMBIGUOUS_UNKNOWN"
+        assert row["status"] == "SOURCE_MISSING_UNKNOWN"
+        assert row["source_sha256"] is None
+        assert row["manufacturing_ready"] is False
+        assert all(row[f"color_{c}_entities"] is None for c in (30, 150, 212))
+    assert report["totals"] == {
+        "source_references": 5,
+        "unique_brand_filenames": 4,
+        "observed_uncertified": 0,
+        "unknown": 4,
+    }
+
+
+def test_archive_explicit_brand_members_recover_distinct_same_name_sources(tmp_path):
+    """Exact independently branded ZIP members remain usable for source audit."""
+    index, root, pins, shihlin_source = _case(tmp_path)
+    teco_source = root / "東元" / "A.dxf"
+    shihlin_data = shihlin_source.read_bytes()
+    teco_data = teco_source.read_bytes()
+    assert shihlin_data != teco_data
+    archive = tmp_path / "original_branded_sources.zip"
+    with ZipFile(archive, "w") as file:
+        file.writestr("shop_drawings/士林/A.dxf", shihlin_data)
+        file.writestr("shop_drawings/東元/A.dxf", teco_data)
+    shihlin_source.unlink()
+    teco_source.unlink()
+    report = build_source_coverage_report(
+        index, source_root=root, pin_path=pins, archive_path=archive,
+    )
+    rows = {
+        (row["brand"], row["indexed_filename"]): row
+        for row in report["records"]
+    }
+    for brand, payload in (("士林", shihlin_data), ("東元", teco_data)):
+        row = rows[(brand, "A.dxf")]
+        assert row["source_storage"] == "ARCHIVE_EXACT_BRAND_MEMBER_TEMP"
+        assert row["status"] == "SOURCE_OBSERVED_UNCERTIFIED"
+        assert row["source_sha256"] == sha256(payload).hexdigest()
+        assert row["manufacturing_ready"] is False
+    assert rows[("士林", "A.dxf")]["provenance_pin_matches"] is True
+    assert rows[("士林", "A.dxf")]["color_150_entities"] == 1
+    assert rows[("東元", "A.dxf")]["color_150_entities"] == 0
+    assert report["totals"] == {
+        "source_references": 5,
+        "unique_brand_filenames": 4,
+        "observed_uncertified": 2,
+        "unknown": 2,
+    }
+    assert not shihlin_source.exists()
+    assert not teco_source.exists()
