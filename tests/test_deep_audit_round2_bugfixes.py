@@ -752,3 +752,38 @@ def test_r2_13_canonical_saved_set_bay_stable_ids_remain_identical():
     normalized = normalize_receiving_layout(saved)
     assert normalized["sets"][0]["stable_id"] == saved["sets"][0]["stable_id"]
     assert normalized["sets"][0]["bays"][0]["stable_id"] == saved["sets"][0]["bays"][0]["stable_id"]
+
+
+@pytest.mark.parametrize("bad", [False, 0, "", True])
+def test_r2_13_invalid_explicit_back_panel_mode_never_defaults_to_full(bad):
+    """False and a saved blank are corrupt back-panel authority, not FULL."""
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    with pytest.raises(ValueError, match="back_panel_mode"):
+        new_receiving_layout(width=800., height=1600., depth=350., back_panel_mode=bad)
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    saved["sets"][0]["bays"][0]["back_panel_mode"] = bad
+    with pytest.raises(ValueError, match="back_panel_mode"):
+        normalize_receiving_layout(saved)
+    assert saved["sets"][0]["bays"][0]["back_panel_mode"] is bad
+
+
+def test_r2_13_missing_or_real_back_panel_modes_preserve_authority():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    for mode, expected in [(None, "FULL"), ("HALF", "HALF"), ("BACK_OPENING", "BACK_OPENING")]:
+        saved = new_receiving_layout(
+            width=800., height=1600., depth=350., back_panel_mode=mode,
+        )
+        assert normalize_receiving_layout(saved)["sets"][0]["bays"][0]["back_panel_mode"] == expected
+
+
+@pytest.mark.parametrize("bad", [True, False])
+def test_r2_14_saved_switch_layer_boolean_id_cannot_become_a_string_identity(bad):
+    from ae_engine.receiving_switch_layout import (
+        new_receiving_switch_layout, normalize_receiving_switch_layout,
+    )
+    saved = new_receiving_switch_layout()
+    saved["layers"][0]["stable_id"] = bad
+    with pytest.raises(ValueError, match="stable_id"):
+        normalize_receiving_switch_layout(saved)
+    assert saved["layers"][0]["stable_id"] is bad
+    assert normalize_receiving_switch_layout(new_receiving_switch_layout())["layers"][0]["stable_id"] == "receiving:switch-layer:1"
