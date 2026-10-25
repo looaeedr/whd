@@ -282,7 +282,35 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     assert d["counts"] == dict(Counter(r["status"] for r in d["records"]))
     assert sum(d["counts"].values()) == 88
     assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
-    assert d["counts"]["DEFERRED_PRODUCT_EVIDENCE"] == 4
+    # At the original 79-AC audit snapshot, four physical-source items
+    # were deferred. The historical IDs remain immutable even after each
+    # *individually* gains full source/Tk/negative manufacturing evidence.
+    original_deferred = {"NFB-AC-13", "NFB-AC-41", "SWT-AC-09", "SWT-AC-22"}
+    rows = {r["id"]: r for r in d["records"]}
+    assert len(original_deferred) == 4
+    assert d["counts"]["DEFERRED_PRODUCT_EVIDENCE"] == sum(
+        rows[key]["status"] == "DEFERRED_PRODUCT_EVIDENCE"
+        for key in original_deferred
+    )
+    for key in original_deferred:
+        row = rows[key]
+        if row["accepted"]:
+            assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE", key
+            assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED", key
+            assert row["assertion_review_state"] == "FULL_AC_AUTOMATED_SIGNED", key
+            proof = row["acceptance_evidence"]
+            assert proof["original_ac_text_unchanged"] is True, key
+            assert proof["source_sha_pins_unchanged"] is True, key
+            assert proof["factory_release"] is False, key
+            assert proof["unconditional_mfg2_release"] is False, key
+            assert proof["human_windows_uat_claimed"] is False, key
+            assert len(proof["original_ac_clauses_audited"]) >= 3, key
+            assert len(proof["other_required_assertions"]) >= 2, key
+        else:
+            assert row["status"] == "DEFERRED_PRODUCT_EVIDENCE", key
+    assert sum(rows[key]["accepted"] for key in original_deferred) + (
+        d["counts"]["DEFERRED_PRODUCT_EVIDENCE"]
+    ) == 4
     assert d["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= len(HISTORICAL_SIGNED_43)
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
         "SCOPED_LOCALX_1502_"
