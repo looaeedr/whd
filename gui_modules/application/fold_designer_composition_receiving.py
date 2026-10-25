@@ -2692,7 +2692,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # a detached control underneath the two source lists.
             height_row = ttk.Frame(section)
             height_row.grid(row=0, column=0, sticky="w", padx=5)
-            ttk.Label(height_row, text="CSV 型號").pack(side="left")
+            ttk.Label(height_row, text="CSV 型號｜僅預覽").pack(side="left")
             ttk.Label(height_row, text="高度（距上緣 mm）").pack(
                 side="left", padx=(8, 3),
             )

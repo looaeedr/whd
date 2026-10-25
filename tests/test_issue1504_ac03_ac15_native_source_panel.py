@@ -28,6 +28,20 @@ def test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write
             ]) == 1
         before = deepcopy(app._phase6_input_snapshot)
         assert row["available"].size() > 0
+        # Preview status belongs to the heading, never the selectable text:
+        # existing operator selection and legacy UI automation both rely
+        # on the exact model display name rather than a decorated value.
+        from ae_engine.receiving_nfb_model_identity import (
+            numeric_model_refs, display_model_ref,
+        )
+        first_ref = numeric_model_refs("士林")[0]
+        assert row["available"].get(0) == display_model_ref(first_ref)
+        assert first_ref.startswith("nfbv5:")
+        assert any(
+            isinstance(widget, ttk.Label)
+            and widget.cget("text") == "CSV 型號｜僅預覽"
+            for widget in _walk(row["section"])
+        )
         row["available"].selection_set(0)
         row["available"].event_generate("<<ListboxSelect>>")
         root.update()
