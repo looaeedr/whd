@@ -232,3 +232,38 @@ def test_ac23_direct_model_selection_cannot_reuse_approved_old_x_datum():
         original, 0, 0, first, catalog=options,
     )["layers"][0]["slots"][0] == source
     assert original == frozen
+
+
+@pytest.mark.parametrize("dimension,bad", (
+    ("bay_width_mm", 0), ("bay_width_mm", -800),
+    ("bay_width_mm", 10 ** 400), ("bay_width_mm", -(10 ** 400)),
+    ("bay_width_mm", float("nan")), ("bay_width_mm", float("inf")),
+    ("bay_width_mm", True), ("bay_width_mm", "800"),
+    ("upper_cell_height_mm", 0), ("upper_cell_height_mm", -1100),
+    ("upper_cell_height_mm", 10 ** 400),
+    ("upper_cell_height_mm", -(10 ** 400)),
+    ("upper_cell_height_mm", float("nan")),
+    ("upper_cell_height_mm", float("-inf")),
+    ("upper_cell_height_mm", False), ("upper_cell_height_mm", "1100"),
+))
+def test_ac23_nominal_nfb_preview_rejects_bad_physical_box_dimensions(dimension, bad):
+    """Invalid W/H cannot crash a preview or project an apparent NFB datum."""
+    original = _draft()
+    frozen = deepcopy(original)
+    kwargs = {"bay_width_mm": 800, "upper_cell_height_mm": 1100}
+    kwargs[dimension] = bad
+    expected = "NFB Bay width is invalid" if dimension == "bay_width_mm" else "NFB upper cell height is invalid"
+    with pytest.raises(ValueError, match=expected):
+        nfb_ui1a_preview(original, **kwargs)
+    assert original == frozen
+
+
+def test_ac23_nominal_nfb_preview_preserves_approved_geometry_in_valid_scope():
+    """Guard must preserve ordinary source-approved nominal pitch and Y preview."""
+    original = _draft()
+    result = nfb_ui1a_preview(original, bay_width_mm=800, upper_cell_height_mm=1100)
+    assert result["status"] == PREVIEW_ONLY
+    assert result["layers"][0]["adjacent_x_mm"] == (360.0,)
+    assert result["layers"][0]["nominal_y_from_top_mm"] == 550.0
+    assert result["has_absolute_x"] is False
+    assert original == _draft()
