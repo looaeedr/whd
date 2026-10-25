@@ -272,7 +272,7 @@ class _RoundHoleSettingsDialog:
             value = float(self.round_center.get())
         except (TypeError, ValueError, OverflowError):
             return
-        if not isfinite(value):
+        if not isfinite(value) or value <= 0:
             return
         self.round_driver.set("center")
         self.sync_guard = True
@@ -289,7 +289,7 @@ class _RoundHoleSettingsDialog:
             value = float(self.round_gap.get())
         except (TypeError, ValueError, OverflowError):
             return
-        if not isfinite(value):
+        if not isfinite(value) or value < 0:
             return
         self.round_driver.set("gap")
         self.sync_guard = True
