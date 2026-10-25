@@ -348,3 +348,135 @@ def test_source_revoked_warning_is_live_and_unlink_never_resurfaces(monkeypatch)
         win._receiving_multi_close()
     finally:
         root.destroy()
+
+
+
+def test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_source_gate(
+    monkeypatch,
+):
+    """Original Tk dialog consumes actual #1500 transaction previews, not mocks.
+
+    The typed CUTTING witnesses below are the pre-existing test fixtures, NOT
+    original manufacturer DXF certificates or either old Windows .p6fold.
+    """
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from tests.test_issue1500_nfb_transactions import (
+        layout as transaction_layout, config, evidence,
+    )
+
+    adapter = ReceivingSetBayAdapter(transaction_layout())
+    original = adapter.layout
+    staged = {
+        0: config(x=0, owner="nfb:0:slot1"),
+        1: config(x=125, owner="nfb:1:slot1"),
+    }
+    recorded = []
+    warnings = []
+    decisions = iter((False, True))  # cancel then approve first real Bay
+
+    root = tk.Tk()
+    root.geometry("800x600+0+0")
+    root.update()
+    try:
+        def askyesno(_title, message, *, parent):
+            assert parent is win
+            recorded.append(message)
+            return next(decisions)
+
+        monkeypatch.setattr(view.messagebox, "askyesno", askyesno)
+        monkeypatch.setattr(
+            view.messagebox, "showwarning",
+            lambda _title, message, *, parent: warnings.append(message),
+        )
+
+        def state(si, bi, selection=()):
+            row = adapter.layout["sets"][si]["bays"][bi]
+            return {
+                "submitted": row.get("nfb_config_submitted") is True,
+                "can_submit": bi in staged,
+                "can_copy": False,
+                "can_restore": False,
+                "can_undo": adapter.nfb_can_undo,
+                "reason": "尚未取得本次有效的真來源" if bi not in staged else "",
+                "base_partial_ready": False,
+            }
+
+        def submit(si, ids, confirm):
+            assert si == 0 and len(ids) == 1
+            bi = ids[0]
+            candidate = staged[bi]
+            # The typed fixture deliberately disagrees with Bay 2 X=125.
+            # Genuine per-hole transaction verification must reject it BEFORE
+            # GUI operator confirmation, without mutating the first Bay.
+            manufactured_x = 0 if bi == 0 else 100
+            outcome = adapter.submit_nfb_to_bays(
+                set_index=si, bay_indices=tuple(ids), version_id="v1",
+                configs={bi: candidate},
+                evidence={bi: evidence(adapter.layout, bi, x=manufactured_x)},
+                confirm=confirm,
+            )
+            if outcome.changed:
+                staged.pop(bi)
+            return outcome.changed
+
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda _mode: True,
+            resize_connections=lambda *_: False,
+            get_settings_ports=lambda _si: {
+                "row": lambda: {"bays": [
+                    {"stable_id": original["sets"][0]["bays"][0]["stable_id"]},
+                    {"stable_id": original["sets"][0]["bays"][1]["stable_id"]},
+                ]},
+                "select": lambda _bi: None,
+            },
+            get_nfb_transaction_ports=lambda: {
+                "state": state, "submit": submit,
+                "manifest": lambda *_: {"status": "LEGACY"},
+            },
+        )
+        root.update()
+        assert win._receiving_multi_apply(0)
+        _select_inner(win, root)
+        host = win._receiving_multi_settings_host
+
+        # Actual physical Bay 1: cancel must leave submission + Undo empty.
+        assert _buttons(host)["確認套用 NFB"].instate(("!disabled",))
+        _buttons(host)["確認套用 NFB"].invoke()
+        assert adapter.layout == original and not adapter.nfb_can_undo
+        assert len(recorded) == 1
+        assert original["sets"][0]["bays"][0]["stable_id"] in recorded[0]
+        assert "nfb:0:slot1" in recorded[0]
+        assert "X 未配置 → 0 mm" in recorded[0]
+        assert "基準 未配置 → w800t2" in recorded[0]
+        assert "受影響 NFB／X 基準差異" in recorded[0]
+        assert "尚未製造放行" in recorded[0]
+
+        # Accept the SAME verified physical candidate. Other Bay untouched.
+        _buttons(host)["確認套用 NFB"].invoke()
+        committed = adapter.layout
+        assert committed["sets"][0]["bays"][0]["nfb_config_submitted"] is True
+        assert committed["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+        assert "nfb_config" not in committed["sets"][0]["bays"][1]
+        assert adapter.nfb_can_undo
+        assert len(recorded) == 2
+
+        # Switch actual canvas selection to Bay 2. Its typed CUTTING witness
+        # reports X=100 whereas operator requested 125. The backend must
+        # fail before the native dialog and leave committed Bay 1 intact.
+        _click_bay(win, root, 1)
+        _click_bay(win, root, 0)
+        assert win._receiving_multi_applied["selected_bays"] == (1,)
+        assert _buttons(host)["確認套用 NFB"].instate(("!disabled",))
+        _buttons(host)["確認套用 NFB"].invoke()
+        assert len(recorded) == 2
+        assert warnings and "configured X/Y slot/rotation differs" in warnings[-1]
+        assert adapter.layout == committed
+        assert 1 in staged
+        assert adapter.nfb_can_undo
+
+        win._receiving_multi_close()
+    finally:
+        root.destroy()
