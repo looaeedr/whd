@@ -244,3 +244,17 @@ def test_r6_ear_z_tier_depth_requires_actual_positive_integer_layer_count(bad_co
     assert _tier_source_depths(None, config, 0) == ()
     config["layer_count"] = 1
     assert _tier_source_depths(None, config, 0) == pytest.approx((source.depth_mm,))
+
+
+@pytest.mark.parametrize("bad_holes", [True, False, 42, "not-a-hole-list", {"hole": 1}])
+def test_r6_ear_z_source_rejects_nonsequence_hole_containers_without_raw_typeerror(bad_holes):
+    """The EAR/Z physical source must reject a corrupt hole array safely."""
+    config = {"layer_count": 1, "holes": bad_holes}
+    with pytest.raises(ValueError, match="EAR_Z_SOURCE_HOLE_INVALID"):
+        _tier_source_depths(None, config, 0)
+    assert config["holes"] is bad_holes
+
+
+def test_r6_ear_z_missing_hole_list_is_unresolved_not_certified():
+    assert _tier_source_depths(None, {"layer_count": 1}, 0) == ()
+    assert _tier_source_depths(None, {"layer_count": 1, "holes": []}, 0) == ()
