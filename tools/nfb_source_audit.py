@@ -81,6 +81,15 @@ def _audit_with_optional_archive(
         return catalog, audits, {}
     catalog = unique_nfb_dxfs_from_switch_index(index_path)
     stored = {}
+    # The same indexed basename may belong to different manufacturers.
+    # A single unknown ZIP member is not a brand identity. Only one
+    # uniquely named source across the WHOLE index can use basename-only
+    # fallback; overlapping names require a matching explicit brand folder.
+    brands_by_basename = {}
+    for indexed in catalog.sources:
+        brands_by_basename.setdefault(
+            indexed.filename.casefold(), set()
+        ).add(indexed.brand)
     with ZipFile(archive_path) as archive, TemporaryDirectory(
         prefix="whd-nfb-index-source-audit-"
     ) as scratch:
@@ -101,9 +110,22 @@ def _audit_with_optional_archive(
                 stored[key] = "BRAND_SOURCE_FOLDER"
                 continue
             matches = members_by_basename.get(item.filename.casefold(), ())
-            if len(matches) == 1:
+            explicitly_branded = tuple(info for info in matches if (
+                len(info.filename.split("/")) >= 2
+                and info.filename.split("/")[-2].casefold()
+                    == item.brand.casefold()
+            ))
+            if len(explicitly_branded) == 1:
+                destination.write_bytes(archive.read(explicitly_branded[0]))
+                stored[key] = "ARCHIVE_EXACT_BRAND_MEMBER_TEMP"
+            elif len(explicitly_branded) > 1:
+                stored[key] = "ARCHIVE_AMBIGUOUS_UNKNOWN"
+            elif (len(matches) == 1
+                  and len(brands_by_basename[item.filename.casefold()]) == 1):
                 destination.write_bytes(archive.read(matches[0]))
                 stored[key] = "ARCHIVE_SINGLE_EXACT_BASENAME_TEMP"
+            elif matches and len(brands_by_basename[item.filename.casefold()]) > 1:
+                stored[key] = "ARCHIVE_BRAND_AMBIGUOUS_UNKNOWN"
             else:
                 stored[key] = (
                     "ARCHIVE_AMBIGUOUS_UNKNOWN" if matches
