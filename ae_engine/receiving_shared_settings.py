@@ -145,6 +145,10 @@ def validate_setting(kind, value):
 
 def normalize_set_settings(raw, bays):
     """每項設定各自有 refs/values；只保留仍被實體連引用的值。"""
+    # Only an absent saved source denotes default settings. Explicit [] or
+    # invalid scalar payloads must not silently erase physical Bay references.
+    if raw is not None and not isinstance(raw, Mapping):
+        raise ValueError("共享設定必須為物件")
     source = dict(raw or {})
     legacy_height_absent = (
         "inner_door_layer_heights_mm" not in source
@@ -158,7 +162,10 @@ def normalize_set_settings(raw, bays):
         row = source.get(kind, {})
         if not isinstance(row, Mapping):
             raise ValueError("共享設定必須為物件")
-        refs, values = dict(row.get("refs", {})), dict(row.get("values", {}))
+        raw_refs, raw_values = row.get("refs", {}), row.get("values", {})
+        if not isinstance(raw_refs, Mapping) or not isinstance(raw_values, Mapping):
+            raise ValueError("共享設定 refs/values 必須為物件")
+        refs, values = dict(raw_refs), dict(raw_values)
         new_refs, new_values = {}, {}
         for bay in bays:
             bay_id = str(bay["stable_id"])
