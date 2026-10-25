@@ -75,7 +75,10 @@ def _normalize_authoritative_door_state(snapshot):
             raise ValueError(f"invalid {label}: {value!r}")
         return measured
 
-    raw_columns = list(result.get("door_layout_columns") or ())
+    try:
+        raw_columns = list(result.get("door_layout_columns") or ())
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("invalid door layout columns source") from exc
     columns = []
     for row in raw_columns:
         if (not isinstance(row, (list, tuple)) or len(row) != 2
@@ -92,7 +95,11 @@ def _normalize_authoritative_door_state(snapshot):
 
     handle_aliases = {"左": "LEFT", "右": "RIGHT", "上": "TOP", "下": "BOTTOM"}
     handles = {}
-    for raw_key, raw_value in dict(result.get("door_handle_edges") or {}).items():
+    try:
+        saved_handle_edges = dict(result.get("door_handle_edges") or {})
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("invalid door handle edges source") from exc
+    for raw_key, raw_value in saved_handle_edges.items():
         value = str(raw_value).strip().upper()
         value = handle_aliases.get(value, value)
         if value not in {"LEFT", "RIGHT", "TOP", "BOTTOM"}:
@@ -110,7 +117,10 @@ def _normalize_authoritative_door_state(snapshot):
     if "door_handle_edges" in result or handles:
         result["door_handle_edges"] = handles
 
-    inner_doors = deepcopy(list(result.get("inner_doors") or ()))
+    try:
+        inner_doors = deepcopy(list(result.get("inner_doors") or ()))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("invalid inner doors source") from exc
     for item in inner_doors:
         if isinstance(item, dict):
             # Receiving frame spans / finished dimensions are deterministic
