@@ -208,6 +208,19 @@ def effective_nfb_slot_brand(draft, i, j):
             else effective_nfb_layer_brand(draft,i))
 
 
+def _positive_preview_mm(value, message):
+    """Physical dimensions must be finite positive numbers even in preview."""
+    if type(value) not in (int, float):
+        raise ValueError(message)
+    try:
+        mm = float(value)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError(message) from exc
+    if not isfinite(mm) or mm <= 0:
+        raise ValueError(message)
+    return mm
+
+
 def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
                      catalog: Mapping[str,tuple[str,...]] | None = None,
                      layer_heights_mm=None):
@@ -216,21 +229,8 @@ def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
         raise ValueError("NFB preview requires an unsubmitted draft")
     if type(draft.get("layer_count")) is not int or draft["layer_count"] not in (1,2):
         raise ValueError("NFB physical layer count invalid")
-    # Like the canonical physical Receiving dimensions, preview-only inputs
-    # must still be representable, positive, finite and not boolean.
-    def positive_mm(value, message):
-        if type(value) not in (int, float):
-            raise ValueError(message)
-        try:
-            mm = float(value)
-        except (OverflowError, ValueError) as exc:
-            raise ValueError(message) from exc
-        if not isfinite(mm) or mm <= 0:
-            raise ValueError(message)
-        return mm
-
-    width = positive_mm(bay_width_mm, "NFB Bay width is invalid")
-    upper_height = positive_mm(upper_cell_height_mm, "NFB upper cell height is invalid")
+    width = _positive_preview_mm(bay_width_mm, "NFB Bay width is invalid")
+    upper_height = _positive_preview_mm(upper_cell_height_mm, "NFB upper cell height is invalid")
     if layer_heights_mm is not None:
         from .receiving_shared_settings import validate_setting
         verified_heights = validate_setting(
