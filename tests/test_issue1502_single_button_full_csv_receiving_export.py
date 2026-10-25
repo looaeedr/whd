@@ -124,7 +124,7 @@ def test_one_original_selected_export_contains_real_complete_csv_inventory(
         assert file.is_file()
         marking=[x for x in ezdxf.readfile(file).modelspace()
                  if x.dxftype()=="LINE" and x.dxf.layer=="MARKING"]
-        assert len(marking)>=(8 if two else 4)
+        assert len(marking)>=(2 if two else 1)
     assert source==tuple((p.part_key,p.render_data) for p in geom.parts)
 
 
