@@ -649,22 +649,37 @@ def resolve_back_panel_contract(
     if not is_receiving_snapshot(data):
         raise ValueError("back-panel mode contract is Receiving-only")
 
-    width = float(panel_width)
-    full_height = float(full_panel_height)
-    if width <= 0.0 or full_height <= 0.0:
-        raise ValueError("rear-panel dimensions must be positive")
+    from math import isfinite
+    if isinstance(panel_width, bool) or isinstance(full_panel_height, bool):
+        raise ValueError("rear-panel dimensions must be finite positive numbers")
+    try:
+        width = float(panel_width)
+        full_height = float(full_panel_height)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("rear-panel dimensions must be finite positive numbers") from exc
+    if not (isfinite(width) and isfinite(full_height)
+            and width > 0.0 and full_height > 0.0):
+        raise ValueError("rear-panel dimensions must be finite positive numbers")
 
     mode = back_panel_mode(structure_state)
     material_height = full_height
     formed_y_offset = 0.0
 
     if mode is BackPanelMode.HALF:
-        if not bool(data.get("multi_door_enabled", False)):
+        if data.get("multi_door_enabled", False) is not True:
             raise ValueError("Receiving half rear panel requires authoritative Door topology")
         columns = list(data.get("door_layout_columns") or ())
         if not columns or len(columns[0]) < 2 or not list(columns[0][1] or ()):
             raise ValueError("Receiving half rear panel requires authoritative Door topology")
-        upper_section = float(list(columns[0][1])[0])
+        raw_upper_section = list(columns[0][1])[0]
+        if isinstance(raw_upper_section, bool):
+            raise ValueError("rear-panel upper section must be finite and positive")
+        try:
+            upper_section = float(raw_upper_section)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("rear-panel upper section must be finite and positive") from exc
+        if not isfinite(upper_section) or upper_section <= 0.0:
+            raise ValueError("rear-panel upper section must be finite and positive")
         if abs(upper_section - BACK_PANEL_CERTIFIED_UPPER_SECTION) <= 1e-9:
             material_height = BACK_PANEL_CERTIFIED_HALF_HEIGHT
         else:

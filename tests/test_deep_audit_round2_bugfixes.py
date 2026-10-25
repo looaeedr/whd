@@ -787,3 +787,76 @@ def test_r2_14_saved_switch_layer_boolean_id_cannot_become_a_string_identity(bad
         normalize_receiving_switch_layout(saved)
     assert saved["layers"][0]["stable_id"] is bad
     assert normalize_receiving_switch_layout(new_receiving_switch_layout())["layers"][0]["stable_id"] == "receiving:switch-layer:1"
+
+
+@pytest.mark.parametrize("axis", ["panel_width", "full_panel_height"])
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), 10 ** 400])
+def test_r2_12_rear_panel_manufacturing_contract_rejects_nonphysical_sizes(axis, bad):
+    """Bad direct rear-panel sizes may not escape validation into DXF datums."""
+    from ae_engine.cabinet_types.receiving import resolve_back_panel_contract
+    from ae_engine.cabinet_types.receiving import resolve_box_body_structure_state
+    saved = {"model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2.}
+    kwargs = {"panel_width": 700., "full_panel_height": 1600.}
+    kwargs[axis] = bad
+    with pytest.raises(ValueError, match="rear-panel dimensions"):
+        resolve_back_panel_contract(
+            saved, structure_state=resolve_box_body_structure_state(None), **kwargs
+        )
+    result = resolve_back_panel_contract(
+        saved, structure_state=resolve_box_body_structure_state(None),
+        panel_width=700., full_panel_height=1600.,
+    )
+    assert result["panel_width"] == 700.
+    assert result["material_height"] == 1600.
+    assert len(result["fixed_slot_datums"]) == 4
+
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), 10 ** 400, 0, -1])
+def test_r2_12_half_rear_panel_requires_finite_positive_upper_section(bad):
+    """A corrupt Door section may not become certified HALF rear manufacturing."""
+    from ae_engine.cabinet_types.receiving import resolve_back_panel_contract
+    from ae_engine.cabinet_types.receiving import resolve_box_body_structure_state
+    saved = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2.,
+        "multi_door_enabled": True, "door_layout_columns": [(700., [bad, 500.])],
+    }
+    half = set_side_back_back_panel_mode(
+        resolve_box_body_structure_state(None), BackPanelMode.HALF,
+    )
+    with pytest.raises(ValueError, match="rear-panel upper section"):
+        resolve_back_panel_contract(
+            saved, structure_state=half,
+            panel_width=700., full_panel_height=1600.,
+        )
+    saved["door_layout_columns"] = [(700., [1100., 500.])]
+    valid = resolve_back_panel_contract(
+        saved, structure_state=half,
+        panel_width=700., full_panel_height=1600.,
+    )
+    assert valid["mode"] == "HALF"
+    assert valid["material_height"] > 0
+    assert len(valid["fixed_slot_datums"]) == 4
+
+
+@pytest.mark.parametrize("invalid_flag", ["false", "0", 1, {"enabled": True}])
+def test_r2_12_half_back_panel_requires_explicit_boolean_multi_door_authority(invalid_flag):
+    """A truthy corrupt project flag cannot enable the HALF manufacturing mode."""
+    from ae_engine.cabinet_types.receiving import (
+        resolve_back_panel_contract, resolve_box_body_structure_state,
+    )
+    saved = {
+        "model": "受電箱",
+        "multi_door_enabled": invalid_flag,
+        "door_layout_columns": [(700., [1100., 500.])],
+    }
+    half = set_side_back_back_panel_mode(
+        resolve_box_body_structure_state(None), BackPanelMode.HALF,
+    )
+    with pytest.raises(ValueError, match="requires authoritative Door topology"):
+        resolve_back_panel_contract(
+            saved, structure_state=half, panel_width=700., full_panel_height=1600.,
+        )
+    saved["multi_door_enabled"] = True
+    assert resolve_back_panel_contract(
+        saved, structure_state=half, panel_width=700., full_panel_height=1600.,
+    )["mode"] == "HALF"
