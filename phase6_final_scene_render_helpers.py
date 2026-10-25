@@ -526,15 +526,15 @@ class Phase6FinalSceneRenderHelpersMixin:
     def _draw_receiving_ear_side_markings(
         self, formed_ear_skins, *, visible_side_piece_keys=None,
     ):
-        """Show the real formed-EAR contact outline on the assembled SIDE skin.
+        """Show only the parent BasePlate-lower / EAR-upper installation mark.
 
-        Display only. The four world-space corners come from the same
-        T2/BEND23 physical skin used for the 2D world-to-UV MARKING receipts;
-        never infer a new mark from a 2D bounding box or release welding.
-        Hiding a side panel also hides its overlay.
+        The full folded EAR remains 3D material, including its BEND and
+        downward weld leg. Its lower/side contact boundaries are NOT
+        installation MARKING lines. Match the same world source as 2D DXF.
         """
         from ae_engine.receiving_fixed_plate_side_contact import (
             derive_receiving_ear_side_contact_from_formed_skin,
+            receiving_ear_installation_world_segment,
         )
 
         rows = tuple(formed_ear_skins or ())
@@ -552,12 +552,9 @@ class Phase6FinalSceneRenderHelpersMixin:
             receipt = derive_receiving_ear_side_contact_from_formed_skin(formed)
             if receipt.side_piece_id not in allowed:
                 continue
-            boundary = receipt.world_surface_boundary
-            for i in range(4):
-                a, b = boundary[i], boundary[(i + 1) % 4]
-                segments.append((a, b))
-        # No mesh triangulation edges: just four authentic contact-boundary
-        # lines for each physically present and visible welded fixing plate.
+            segments.append(receiving_ear_installation_world_segment(receipt))
+        # One real installation Z line per fixed plate. Do not draw lower
+        # outline or mesh triangulation: source BEND/formed legs remain visible.
         ax = self.renderer.ax3d
         if callable(getattr(ax, "plot", None)):
             for a, b in segments:
