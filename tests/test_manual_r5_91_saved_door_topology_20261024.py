@@ -96,3 +96,33 @@ def test_r5_91_legacy_sequence_and_mapping_door_state_preserves_normalization():
     assert normalized["door_layout_columns"] == [[400., [500., 500.]]]
     assert normalized["door_handle_edges"] == {"0:0": "LEFT"}
     assert normalized["inner_doors"] == [{"stable_id": "inner-v1"}]
+
+
+@pytest.mark.parametrize("malformed", [
+    "inner-door-v1", {"stable_id": "inner-door-v1"},
+    [None], [True], [42], ["inner-door-v1"],
+    [{"stable_id": "valid"}, None],
+])
+def test_r5_91_inner_door_entries_reject_non_record_persisted_sources(malformed):
+    """Project open must not turn text/maps into a false physical door inventory."""
+    saved = {"inner_doors": malformed}
+    with pytest.raises(ValueError, match="invalid inner doors"):
+        _normalize_authoritative_door_state(saved)
+    assert saved["inner_doors"] == malformed
+
+
+@pytest.mark.parametrize("malformed_role", [True, 42, "not-a-mapping", ["divider-id"]])
+def test_r5_91_malformed_inner_door_lower_role_fails_without_rebinding(malformed_role):
+    saved = {
+        "model": "標準型",
+        "door_layout_columns": [[400., [500., 500.]]],
+        "multi_door_enabled": True,
+        "inner_doors": [{
+            "stable_id": "inner-door-v1",
+            "lower_frame_role": malformed_role,
+        }],
+        "d": 350., "t": 2.,
+    }
+    with pytest.raises(ValueError, match="invalid inner-door lower_frame_role"):
+        _normalize_authoritative_door_state(saved)
+    assert saved["inner_doors"][0]["lower_frame_role"] is malformed_role
