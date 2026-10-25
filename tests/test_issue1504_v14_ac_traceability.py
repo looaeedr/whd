@@ -142,7 +142,7 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
                 # Only individually source-audited corrected ACs may advance:
                 # the old illustrated Receiving middle plate must NEVER be
                 # silently restored merely to collect a manufacturing GREEN.
-                assert row["id"] in {"NFB-AC-38", "SWT-AC-21"}
+                assert row["id"] in {"NFB-AC-38", "SWT-AC-21", "NFB-AC-44"}
                 assert row["historical_pre_current_review"].get("accepted", False) is False
                 proof = row["acceptance_evidence"]
                 assert proof["original_ac_text_unchanged"] is True
@@ -1450,3 +1450,53 @@ def test_swt21_full_current_source_dependency_requires_pending_x_and_absent_sour
         "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING",
     ):
         assert witness in tests
+
+
+def test_ac44_source_scoped_partial_never_implies_full_or_factory_approval():
+    row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-44")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert row["historical_pre_current_review"]["status"] == (
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+    )
+    proof = row["acceptance_evidence"]
+    for limitation in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+    ):
+        assert proof[limitation] is False
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert len(proof["requirement_witnesses"]) == 2
+    from tools.product_ci_regression import PYTEST_PATHS
+    for ref in (proof["primary_assertion"], *proof["other_required_assertions"]):
+        path, test_name = ref.split("::", 1)
+        assert path in PYTEST_PATHS, ref
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert test_name in {
+            node.name for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, ref
+    source = (ROOT / row["identified_test_functions"][0]["path"]).read_text(
+        encoding="utf-8"
+    )
+    for witness in (
+        "test_ac44_live_source_partial_must_not_masquerade_as_whole_export",
+        "inspect_nfb_dxf_source(source)",
+        "source_missing",
+        "no_upper",
+        "upper_and_base",
+        "unknown_aci",
+        "manifest.authorized_part_ids == allowed",
+        "manifest.held_actual_count == 6 - count",
+        "manifest.require_export(allowed, partial=False)",
+        "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY",
+    ):
+        assert witness in source, witness
+    native = (ROOT / "tests/test_issue1503_single_gui_real_tier_2d3d.py").read_text(
+        encoding="utf-8"
+    )
+    assert "designer.output_export_button.invoke()" in native
+    assert "ezdxf.readfile(path)" in native
