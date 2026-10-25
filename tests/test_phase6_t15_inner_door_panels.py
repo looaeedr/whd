@@ -829,3 +829,41 @@ def test_r5_91_direct_vertical_frame_rejects_corrupt_saved_door_identifiers(fiel
     snap["inner_doors"][0][field] = invalid
     with pytest.raises(ValueError, match="invalid inner-door identity"):
         inner_door_vertical_frame_contract(snap, "upper")
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("t", True), ("t", False), ("t", float("nan")), ("t", 10 ** 400),
+    ("door_gap_w", True), ("door_gap_h", False),
+    ("door_gap_w", float("nan")), ("door_gap_h", float("inf")),
+    ("door_gap_w", -1.0), ("door_gap_h", -1.0),
+    ("door_gap_w", 10 ** 400),
+])
+def test_manual_r6_inner_door_panel_input_must_be_physical_numeric_before_cast(field, bad):
+    """Boolean or nonfinite T / clearance never becomes a real formed panel."""
+    from ae_engine.cabinet_types.receiving import derive_inner_door_panels
+    snap = _receiving_snapshot()
+    snap[field] = bad
+    with pytest.raises(ValueError, match="inner-door physical"):
+        derive_inner_door_panels(snap)
+    assert snap[field] is bad
+
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), 10 ** 400])
+def test_manual_r6_inner_door_frame_source_thickness_never_casts_boolean(bad):
+    from ae_engine.cabinet_types.receiving import derive_inner_door_frame_sets
+    snap = _receiving_snapshot()
+    snap["t"] = bad
+    with pytest.raises(ValueError, match="inner-door physical"):
+        derive_inner_door_frame_sets(snap)
+    assert snap["t"] is bad
+
+
+def test_manual_r6_inner_door_thickness_gap_gate_keeps_approved_w800_blank():
+    from ae_engine.cabinet_types.receiving import derive_inner_door_panels, derive_inner_door_frame_sets
+    snap = _receiving_snapshot()
+    panel = derive_inner_door_panels(snap)[0]
+    assert panel.thickness == pytest.approx(2.0)
+    assert panel.unfolded_width == pytest.approx(723.0)
+    assert panel.fold_left == pytest.approx(19.0)
+    assert panel.fold_right == pytest.approx(19.0)
+    assert derive_inner_door_frame_sets(snap)
