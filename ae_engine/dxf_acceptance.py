@@ -299,8 +299,14 @@ def _one_to_one_tolerance_match(expected, actual, compatible) -> bool:
 def _valid_nonnegative_tolerance(value) -> bool:
     # Acceptance tolerances are physically meaningful numeric limits, not
     # strings, bools or NaN/Inf capable of bypassing CUTTING comparison.
-    return (isinstance(value, (int, float)) and not isinstance(value, bool)
-            and isfinite(value) and value >= 0.)
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return isfinite(value) and value >= 0.
+    except OverflowError:
+        # math.isfinite converts huge Python ints to float before checking.
+        # A malformed tolerance must not escape the DXF fail-closed receipt.
+        return False
 
 
 def _rows_close(expected, actual, tolerance: float) -> bool:
