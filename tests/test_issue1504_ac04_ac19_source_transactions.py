@@ -35,6 +35,47 @@ def _with_offsets():
     return set_nfb_manual_x(d, 1, 0, -99.25, datum={"width": 800})
 
 
+@pytest.mark.parametrize("bad_counter", (
+    True, False, 1.5, 1.0, "4", None, [], {}, 0, -1,
+))
+def test_ac02_ac04_ui1a_physical_id_allocator_rejects_noninteger_state(bad_counter):
+    """Corrupt UI-1A unit counters may not be coerced into physical hole IDs."""
+    original = _source()
+    tampered = deepcopy(original)
+    tampered["_next_unit_number"] = deepcopy(bad_counter)
+    frozen = deepcopy(tampered)
+    with pytest.raises(ValueError, match="NFB next unit number"):
+        editable_nfb_draft(tampered)
+    with pytest.raises(ValueError, match="NFB next unit number"):
+        NfbUi1aEditSession(tampered)
+    with pytest.raises(ValueError, match="NFB next unit number"):
+        insert_nfb_slot(tampered, 0, 1)
+    assert tampered == frozen
+    assert original != tampered
+
+
+def test_ac02_ac04_unit_allocator_preserves_real_ids_and_undo_after_insertion():
+    """A valid integer allocator still allocates a fresh ID, not an old alias."""
+    original = _source()
+    original_ids = [slot["unit_id"] for layer in original["layers"]
+                    for slot in layer["slots"]]
+    # Legacy counters may lag real assigned IDs; valid integer input still
+    # advances past reserved physical identities instead of reusing one.
+    original["_next_unit_number"] = 1
+    session = NfbUi1aEditSession(original)
+    before = deepcopy(session.current)
+    receipt = session.apply("INSERT_NFB", insert_nfb_slot, 0, 1)
+    assert receipt is not None
+    ids = [slot["unit_id"] for layer in session.current["layers"]
+           for slot in layer["slots"]]
+    assert len(ids) == len(set(ids))
+    assert set(original_ids).issubset(ids)
+    assert len(ids) == len(original_ids) + 1
+    assert session.undo() == receipt
+    assert session.current == before
+    assert session.cancel() == before
+
+
 @pytest.mark.parametrize("operation,args", [
     (move_nfb_slot, (0, 0, 1)),
     (insert_nfb_slot, (0, 1)),
