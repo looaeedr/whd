@@ -565,7 +565,8 @@ def test_r6_multiple_finite_segments_cannot_overflow_manufacturing_blank(axis):
         MaterialSegment(axis, "first", 1e308, "profile"),
         MaterialSegment(axis, "second", 1e308, "profile"),
     )
-    ordinary = (MaterialSegment("X", "real", 35.0, "profile"),)
+    ordinary_axis = "Y" if axis == "X" else "X"
+    ordinary = (MaterialSegment(ordinary_axis, "real", 35.0, "profile"),)
     topology = UnfoldedBlankTopology(
         piece_id="head", x_segments=overlarge if axis == "X" else ordinary,
         y_segments=overlarge if axis == "Y" else ordinary,
