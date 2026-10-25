@@ -1704,3 +1704,50 @@ def test_swt16_current_two_unit_batch_signed_only_with_true_manufacturing_collis
         "assert not invalid_target.exists()",
     ):
         assert marker in source
+
+
+def test_ac23_native_reconfirmed_reloaded_manufacturing_scope_has_real_witnesses():
+    """A saved X numeral alone can never become approved MFG-1 geometry."""
+    row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-23")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    proof = row["acceptance_evidence"]
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert len(proof["requirement_witnesses"]) == 3
+    for key in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "source_fixture_manufacturer_original_certified",
+        "all_model_width_x_certified", "original_windows_native_operator_manufacturing_tested",
+        "integrated_localx_claimed", "formal_x_published",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+    ):
+        assert proof[key] is False
+    from tools.product_ci_regression import PYTEST_PATHS
+    for witness in (proof["primary_assertion"], *proof["other_required_assertions"]):
+        path, name = witness.split("::", 1)
+        assert path in PYTEST_PATHS, witness
+        parsed = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert name in {
+            n.name for n in parsed.body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, witness
+    source = (ROOT / "tests/test_issue1500_nfb_operator_gui_transactions.py").read_text(
+        encoding="utf-8"
+    )
+    for required in (
+        "test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_verified_dxf",
+        'stale_hole["manual_x_state"] == "RECONFIRM_REQUIRED"',
+        "read_project(before_file)",
+        'assert adapter.layout == before_cancel',
+        'assert "確認狀態變更" in previews[0]',
+        '"manual_x_state"] == "CONFIRMED"',
+        "derive_nfb_partial_export_manifest(",
+        "save_configured_nfb_inner_door_dxf(",
+        "ezdxf.readfile(output)",
+        "SOURCE_REPLACED",
+        "assert revoked.authorized_part_ids ==",
+    ):
+        assert required in source, required
