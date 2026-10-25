@@ -126,10 +126,20 @@ def _normalize_authoritative_door_state(snapshot):
             from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
 
             try:
-                depth = float(result["d"])
-                thickness = float(result["t"])
-            except (KeyError, TypeError, ValueError) as exc:
-                raise ValueError("inner-door shared role requires saved d/t authority") from exc
+                raw_depth, raw_thickness = result["d"], result["t"]
+                # Keep the source types until validation: float(True) would
+                # otherwise authorize a physical 1-mm Door/Divider dimension.
+                if isinstance(raw_depth, bool) or isinstance(raw_thickness, bool):
+                    raise ValueError("saved d/t cannot be boolean")
+                depth = float(raw_depth)
+                thickness = float(raw_thickness)
+                if not (math.isfinite(depth) and math.isfinite(thickness)
+                        and depth > 0.0 and thickness > 0.0):
+                    raise ValueError("saved d/t must be finite positive dimensions")
+            except (KeyError, TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(
+                    "inner-door shared role requires finite positive saved d/t authority"
+                ) from exc
             scope = str(result.get("door_layout_scope") or "main").strip() or "main"
             dividers = derive_box_body_dividers(
                 tuple((w, tuple(hs)) for w, hs in columns),
