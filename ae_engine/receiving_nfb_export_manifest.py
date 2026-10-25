@@ -179,8 +179,12 @@ def derive_nfb_partial_export_manifest(
     if type(raw) is not bool:
         raise ValueError("NFB submission fact must be a real boolean")
     submitted=raw is True
+    normalized_config = None
     if submitted:
-        normalize_nfb_saved_fields(saved_bay)
+        # The canonical saved-field check may revoke a stale CONFIRMED X
+        # when Bay width, model, rotation or physical owner drifted.
+        # Never discard that returned state and manufacture from the raw Bay.
+        normalized_config = normalize_nfb_saved_fields(saved_bay)["nfb_config"]
         if not isinstance(set_brand,str) or not set_brand.strip():
             raise ValueError("NFB manifest needs the current Receiving Set brand")
     if saved_bay.get("stable_id")!=scope.bay_id:
@@ -218,12 +222,17 @@ def derive_nfb_partial_export_manifest(
     config_matching=False
     if source_fresh and isinstance(verified_inner_door,NfbValidatedInnerDoorRender):
         try:
-            holes=saved_bay["nfb_config"]["holes"]
+            holes=normalized_config["holes"]
+            # A matching numeric X is not an operator-approved datum.
+            # This is a manufacturing authorization gate only: pending
+            # UI-1A X can still be previewed, edited, cancelled or undone.
+            if any(hole["manual_x_state"] != "CONFIRMED" for hole in holes):
+                raise ValueError("NFB saved operator X requires reconfirmation")
             profile_key=verified_inner_door.indexed_model_key
             if (profile_key[0]!=set_brand or
                     {h["model_filename"] for h in holes}!={profile_key[1]}):
                 raise ValueError("NFB submitted brand/model differs from source")
-            _verify_hole_locations(saved_bay["nfb_config"],verified_inner_door)
+            _verify_hole_locations(normalized_config,verified_inner_door)
             config_matching=True
         except (ValueError,KeyError,TypeError,IndexError):
             config_matching=False
