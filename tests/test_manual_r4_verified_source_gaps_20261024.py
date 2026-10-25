@@ -39,6 +39,11 @@ def test_r4_rotation_does_not_round_invalid_operator_angle():
         with pytest.raises(ValueError, match="rotation"):
             _normalize_rotation(bad)
     assert _normalize_rotation(360) == 0
+    # Intentionally corrupt persisted angles must fail as an operator
+    # validation error, not escape float() with an unchecked OverflowError.
+    for bad in (10 ** 400, -(10 ** 400)):
+        with pytest.raises(ValueError, match="rotation"):
+            _normalize_rotation(bad)
     for bad in (True, 30):
         with pytest.raises(ValueError, match="rotation"):
             legacy_hole_to_feature({
