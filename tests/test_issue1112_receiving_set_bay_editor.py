@@ -443,3 +443,40 @@ def test_issue1504_protected_receiving_tail_requires_literal_true(
     assert original == before
     assert adapter.selection.set_index == 0
     assert adapter.selection.bay_index == 0
+
+
+@pytest.mark.parametrize("bad_indices", (
+    None, 0, (True,), (False,), (0, True), (0, []),
+    ([],), ("0",), (-1,), (50,), (0, 0),
+))
+def test_issue1504_dimension_batch_rejects_nonphysical_highlights_before_io(bad_indices):
+    """Malformed multi-Bay selection must not alter sizes or any NFB X basis."""
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    selected = adapter.selection
+    expected_count = 2 if isinstance(bad_indices, tuple) and len(bad_indices) == 2 else 1
+    with pytest.raises(ValueError, match="高亮"):
+        adapter.apply_dimensions_to_bays(
+            0, bad_indices, width=900, height=1700, depth=400,
+            expected_count=expected_count,
+        )
+    assert adapter.layout == before
+    assert adapter.selection == selected
+    assert adapter._session_dirty_ids == set()
+
+
+@pytest.mark.parametrize("bad_set", (True, False, "0", 0.0, None, [], {}))
+def test_issue1504_dimension_batch_rejects_noninteger_set_identity(bad_set):
+    """Boolean and coerced Set identifiers can never authorize a Bay edit."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    before = adapter.layout
+    selected = adapter.selection
+    with pytest.raises(ValueError, match="套不存在"):
+        adapter.apply_dimensions_to_bays(
+            bad_set, (0,), width=900, height=1700, depth=400,
+            expected_count=1,
+        )
+    assert adapter.layout == before
+    assert adapter.selection == selected
+    assert adapter._session_dirty_ids == set()
