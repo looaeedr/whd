@@ -76,6 +76,19 @@ def display_model_ref(value: str) -> str:
     return display_model(value)
 
 
+
+def display_unverified_model_choice(value: str) -> str:
+    """Mark a selectable identity as preview-only, never a manufacturing grant.
+
+    The model-picker holds only a (brand, model) identity. It has no actual
+    Bay width, inner-door physical part, approved X/Y datum, source SHA,
+    collision proof or current manufacturer capability. Therefore a complete
+    CSV row or indexed filename cannot truthfully show 可製造（內門） here.
+    The original model ref remains unchanged and is stored separately.
+    """
+    return display_model_ref(value) + "｜僅預覽"
+
+
 def selected_numeric_spec(brand: str, value: str):
     """Return V5 value only for the matching effective brand; no fallback."""
     parsed = parse_numeric_model_ref(value)
