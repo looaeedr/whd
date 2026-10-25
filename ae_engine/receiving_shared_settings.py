@@ -214,13 +214,19 @@ def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
     result = normalize_receiving_layout(layout)
     _require_valid_index(set_index, len(result["sets"]), "組選取超出範圍")
     selected = result["sets"][set_index]
-    indices = tuple(dict.fromkeys(bay_indices))
-    if isinstance(source_bay_index, bool) or any(isinstance(i, bool) for i in indices):
-        raise IndexError("連選取超出範圍")
+    # Validate real Set/Bay owners *before* dict.fromkeys(): bool aliases
+    # integer Bay 1, and nested UI selections may be unhashable.  Neither
+    # can create a valid shared reference for a different physical Bay.
+    try:
+        supplied = tuple(bay_indices)
+    except TypeError as exc:
+        raise IndexError("連選取超出範圍") from exc
+    _require_valid_index(source_bay_index, len(selected["bays"]), "連選取超出範圍")
+    for index in supplied:
+        _require_valid_index(index, len(selected["bays"]), "連選取超出範圍")
+    indices = tuple(dict.fromkeys(supplied))
     if len(indices) < 2 or source_bay_index not in indices:
         raise ValueError("連動需選擇至少兩連，並包含來源連")
-    for index in indices:
-        _require_valid_index(index, len(selected["bays"]), "連選取超出範圍")
     selected["settings"] = normalize_set_settings(selected.get("settings"), selected["bays"])
     row = selected["settings"][kind]
     source_id = selected["bays"][source_bay_index]["stable_id"]
