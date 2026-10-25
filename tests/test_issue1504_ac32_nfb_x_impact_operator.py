@@ -13,7 +13,7 @@ from tkinter import ttk
 import pytest
 
 from ae_engine.receiving_nfb_ui1a_edits import (
-    NfbUi1aEditSession, nfb_x_reset_impact,
+    NfbUi1aEditSession, editable_nfb_draft, nfb_x_reset_impact,
     set_nfb_manual_x, insert_nfb_slot, delete_nfb_slot, move_nfb_slot,
 )
 from tests.test_issue1504_ac04_ac19_source_transactions import _with_offsets
@@ -121,3 +121,32 @@ def test_ac32_compact_original_tk_ui_exposes_affected_count_and_reachable_undo()
         assert str(label.cget("textvariable")) == str(label_var)
     finally:
         root.destroy()
+
+
+@pytest.mark.parametrize("huge_x", (10 ** 400, -(10 ** 400)))
+def test_ac23_huge_nfb_draft_x_is_controlled_rejection_and_atomic(huge_x):
+    """A corrupt large JSON X is invalid, never an uncaught float overflow."""
+    original = _with_offsets()
+    frozen = deepcopy(original)
+    session = NfbUi1aEditSession(original)
+    before = deepcopy(session.current)
+    with pytest.raises(ValueError, match="NFB manual X offset must be finite"):
+        session.apply("INVALID_HUGE_X", set_nfb_manual_x, 0, 1, huge_x)
+    assert session.current == before
+    assert not session.dirty
+    assert session.undo() is None
+    assert original == frozen
+
+    # A stale old draft can also be loaded from outside the live editor.
+    injected = deepcopy(original)
+    injected["layers"][0]["slots"][1]["manual_x_mm"] = huge_x
+    injected_frozen = deepcopy(injected)
+    with pytest.raises(ValueError, match="NFB X offset must be finite"):
+        editable_nfb_draft(injected)
+    assert injected == injected_frozen
+
+    # Legitimate zero remains a distinct user-authored X (not NONE).
+    accepted = set_nfb_manual_x(original, 0, 1, 0)
+    assert accepted["layers"][0]["slots"][1]["manual_x_mm"] == 0.0
+    assert accepted["layers"][0]["slots"][1]["manual_x_state"] == "UNVERIFIED_BASIS"
+    assert original == frozen
