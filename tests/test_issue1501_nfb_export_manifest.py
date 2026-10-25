@@ -511,3 +511,47 @@ def test_ac44_manifest_rejects_cross_bay_version_or_submitted_identity_for_expor
     with pytest.raises(ValueError, match="BLOCKED"):
         invalid.require_export(("inner1",), partial=True)
     # Nothing in a corrupted owner's typed record can approve another DXF.
+
+@pytest.mark.parametrize("pending_x_state", (
+    "NONE", "UNVERIFIED_BASIS", "RECONFIRM_REQUIRED",
+))
+def test_swt21_unconfirmed_saved_world_x_never_reuses_old_manufacturing_proof(
+    tmp_path, pending_x_state,
+):
+    """A matching historic XY numeral does not confirm its operator datum.
+
+    Same real physical Bay, present source bytes, unchanged physical hole and
+    old validated CUTTING remain; operator revoked CONFIRMED X in saved data.
+    Only unrelated real SIDE remains eligible for partial DXF.
+    """
+    opts = _prepared(tmp_path, color30=1)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    hole = opts["saved_bay"]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "CONFIRMED"
+    assert hole["manual_x_mm"] == 0
+    hole["manual_x_state"] = pending_x_state
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    by_id = {part.part_id: part for part in manifest.rows}
+    assert set(by_id) == {"inner1", "base1", "side1"}
+    assert by_id["inner1"].status == BLOCKED
+    assert by_id["base1"].status == BLOCKED
+    assert by_id["side1"].status == UNAFFECTED
+    assert manifest.authorized_part_ids == ("side1",)
+    assert manifest.actual_export_count == 3
+    assert manifest.held_actual_count == 3
+    assert manifest.partial_only
+    assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in (
+        manifest.unresolved_dependencies
+    )
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("inner1",), partial=True)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("base1",), partial=True)
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+
