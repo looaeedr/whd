@@ -555,3 +555,39 @@ def test_swt21_unconfirmed_saved_world_x_never_reuses_old_manufacturing_proof(
         manifest.require_export(("base1",), partial=True)
     assert manifest.require_export(("side1",), partial=True) == ("side1",)
 
+
+@pytest.mark.parametrize("outdated_owner", ("width", "model", "bay", "rotation"))
+def test_swt21_saved_x_datum_drift_is_normalized_before_manufacturing(
+    tmp_path, outdated_owner,
+):
+    """Canonical saved Bay X datum cannot be bypassed by reading raw values."""
+    opts = _prepared(tmp_path, color30=1)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    hole = opts["saved_bay"]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "CONFIRMED"
+    if outdated_owner == "width":
+        opts["saved_bay"]["width"] = 750
+    elif outdated_owner == "model":
+        hole["datum_snapshot"]["model_filename"] = "changed-source.dxf"
+    elif outdated_owner == "bay":
+        hole["datum_snapshot"]["bay_id"] = "other-physical-bay"
+    elif outdated_owner == "rotation":
+        hole["datum_snapshot"]["rotation_deg"] = 180
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    assert manifest.authorized_part_ids == ("side1",)
+    assert manifest.actual_export_count == 3
+    assert manifest.held_actual_count == 3
+    assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in (
+        manifest.unresolved_dependencies
+    )
+    for part_id in ("inner1", "base1"):
+        with pytest.raises(ValueError, match="BLOCKED"):
+            manifest.require_export((part_id,), partial=True)
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+
