@@ -521,6 +521,10 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
             row = selected["settings"]["back_panel_mode"]
             row["values"][row["refs"][bay["stable_id"]]] = mode
     if "door_state" in changes:
+        # The edit boundary must enforce the same persisted Door authority
+        # contract as normalize_receiving_layout. dict([]) silently clears it.
+        if not isinstance(changes["door_state"], Mapping):
+            raise ValueError("每連門分割必須為物件")
         bay["door_state"] = deepcopy(dict(changes["door_state"]))
     if "nfb_config_submitted" in changes or "nfb_config" in changes:
         from .receiving_nfb_persistence import normalize_nfb_saved_fields
