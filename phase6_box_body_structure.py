@@ -131,7 +131,9 @@ def normalize_box_body_structure_state(
     if "locked" in value:
         result["locked"] = _structure_locked_bool(value.get("locked"))
     elif legacy_locked is not None:
-        result["locked"] = bool(legacy_locked)
+        # A partial historic structure snapshot is still serialized input.
+        # bool("false") would reverse the caller's unlocked state.
+        result["locked"] = _structure_locked_bool(legacy_locked)
 
     incoming_configs = value.get("configs")
     if isinstance(incoming_configs, Mapping):
