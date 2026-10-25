@@ -666,7 +666,7 @@ def resolve_back_panel_contract(
     formed_y_offset = 0.0
 
     if mode is BackPanelMode.HALF:
-        if not bool(data.get("multi_door_enabled", False)):
+        if data.get("multi_door_enabled", False) is not True:
             raise ValueError("Receiving half rear panel requires authoritative Door topology")
         columns = list(data.get("door_layout_columns") or ())
         if not columns or len(columns[0]) < 2 or not list(columns[0][1] or ()):
