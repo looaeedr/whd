@@ -710,3 +710,48 @@ def test_r5_78_csv_existing_positive_holes_and_profile_reference_preserved(tmp_p
     ]
     assert defs[2].profile_path == tmp_path / "ASVS.dxf"
     assert load_pipe_catalog(tmp_path)[0].diameter == 116.0
+
+
+@pytest.mark.parametrize("bad_radius", [0.0, -5.0, float("nan"), float("inf")])
+def test_r5_78_dxf_circle_with_nonphysical_radius_never_enters_cutting_profile(tmp_path, bad_radius):
+    import ezdxf
+    from ae_engine.hole_catalog import load_profile_entities
+    path = tmp_path / "bad_profile_radius.dxf"
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_circle((5., 5.), bad_radius, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(path)
+    with pytest.raises(ValueError, match="孔型 DXF"):
+        load_profile_entities(path)
+
+
+@pytest.mark.parametrize("bad_coordinate", [float("nan"), float("inf"), float("-inf")])
+def test_r5_78_dxf_nonfinite_polyline_vertex_cannot_produce_cutting_profile(tmp_path, bad_coordinate):
+    import ezdxf
+    from ae_engine.hole_catalog import load_profile_entities
+    path = tmp_path / "bad_profile_vertex.dxf"
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_lwpolyline(
+        [(0., 0.), (10., 0.), (bad_coordinate, 15.), (0., 15.)],
+        close=True, dxfattribs={"layer": "CUTTING"},
+    )
+    doc.saveas(path)
+    with pytest.raises(ValueError, match="孔型 DXF"):
+        load_profile_entities(path)
+
+
+def test_r5_78_valid_cutting_dxf_circle_still_preserves_layer_and_local_center(tmp_path):
+    import ezdxf
+    from ae_engine.hole_catalog import load_profile_entities
+    path = tmp_path / "valid_profile_circle.dxf"
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_circle((80., 40.), 12., dxfattribs={"layer": "CUTTING"})
+    doc.saveas(path)
+    entities = load_profile_entities(path)
+    assert len(entities) == 1
+    layer, points, closed = entities[0]
+    assert layer == "CUTTING" and closed is True
+    assert len(points) == 64
+    assert min(p.x for p in points) == pytest.approx(-12.)
+    assert max(p.x for p in points) == pytest.approx(12.)
+    assert min(p.y for p in points) == pytest.approx(-12.)
+    assert max(p.y for p in points) == pytest.approx(12.)
