@@ -277,7 +277,10 @@ def _normalize_rotation(rotation_deg: int | float) -> int:
     # A dimension entered as 89.9 degrees is NOT a legal 90-degree fold.
     if isinstance(rotation_deg, bool) or not isinstance(rotation_deg, (int, float)):
         raise ValueError("rotation must be 0/90/180/270/360 degrees")
-    raw = float(rotation_deg)
+    try:
+        raw = float(rotation_deg)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError("rotation must be 0/90/180/270/360 degrees") from exc
     if not math.isfinite(raw) or abs(raw - round(raw)) > 1e-9:
         raise ValueError("rotation must be 0/90/180/270/360 degrees")
     value = int(round(raw)) % 360
