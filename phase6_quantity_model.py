@@ -97,7 +97,7 @@ class QuantityModel:
         if schema == SCHEMA_V2 and not found_submitted:
             raise ValueError("NFB quantity v2 requires at least one submitted scope")
         selected = payload["selected_version_id"]
-        if selected not in {row["version_id"] for row in validated}:
+        if not isinstance(selected, str) or selected not in {row["version_id"] for row in validated}:
             raise ValueError("目前選取的孔型版本不存在")
         next_number = payload["next_version_number"]
         if type(next_number) is not int or next_number <= max(numbers):
