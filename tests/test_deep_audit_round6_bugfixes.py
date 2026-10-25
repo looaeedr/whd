@@ -546,3 +546,32 @@ def test_r6_invalid_tolerance_source_cannot_escape_as_overflow_or_type_error(fie
         AssemblyGeometryToleranceContract(**{**baseline, field: bad})
     # The canonical numerical tolerance source remains unchanged.
     assert AssemblyGeometryToleranceContract(**baseline).coplanar_distance_tolerance == 1e-6
+
+
+@pytest.mark.parametrize("invalid_length", [-1.0, -120.0, -1e-9])
+def test_r6_material_segment_rejects_negative_source_instead_of_clamping(invalid_length):
+    """Physical unfolded material cannot silently convert a bad minus into 0 mm."""
+    with pytest.raises(ValueError, match="MaterialSegment length"):
+        MaterialSegment(axis="X", name="source_fold", length=invalid_length, source="profile")
+    assert MaterialSegment("X", "zero_relief", 0.0, "profile").length == 0.0
+    assert MaterialSegment("X", "real_flat", 29.0, "profile").length == 29.0
+
+
+@pytest.mark.parametrize("axis", ["X", "Y"])
+def test_r6_multiple_finite_segments_cannot_overflow_manufacturing_blank(axis):
+    """Two finite raw lengths may sum to Inf, which is not a physical DXF blank."""
+    from ae_engine.manufacturing_render_data import UnfoldedBlankTopology
+    overlarge = (
+        MaterialSegment(axis, "first", 1e308, "profile"),
+        MaterialSegment(axis, "second", 1e308, "profile"),
+    )
+    ordinary = (MaterialSegment("X", "real", 35.0, "profile"),)
+    topology = UnfoldedBlankTopology(
+        piece_id="head", x_segments=overlarge if axis == "X" else ordinary,
+        y_segments=overlarge if axis == "Y" else ordinary,
+        source="profile",
+    )
+    expected_dimension = "width" if axis == "X" else "height"
+    with pytest.raises(ValueError, match=f"UnfoldedBlankTopology {expected_dimension}.*finite"):
+        _ = topology.width if axis == "X" else topology.height
+    assert (topology.height if axis == "X" else topology.width) == 35.0
