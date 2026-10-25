@@ -468,6 +468,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             self.last_formed_ear_display_ids = ()
             visible_ears = []
             for formed in tuple(getattr(render_data, "formed_fixing_plate_skins", ()) or ()):
+                # Hide only EAR physical surfaces. Source-backed SIDE MARKING
+                # below must remain visible while the owning side is visible.
+                if not bool(getattr(render_data, "show_fixing_plate_mesh", True)):
+                    continue
                 if (not getattr(formed, "source_bend_verified", False)
                         or not getattr(formed, "actual_signed_forming_constructed", False)
                         or getattr(formed, "manufacturing_ready", True)
