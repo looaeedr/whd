@@ -67,3 +67,26 @@ def test_r5_71_one_point_extra_is_not_exported_but_primary_is():
     drawings = resolved_features_to_primitives([source])
     assert len(drawings) == 1
     assert drawings[0].layer == "CUTTING"
+
+
+def test_r5_71_closed_primary_cut_deduplicates_rotated_or_reversed_import():
+    """The same CNC closed cut must not be emitted twice with another start point."""
+    for shifted in (
+        PRIMARY[2:] + PRIMARY[:2],
+        tuple(reversed(PRIMARY)),
+    ):
+        source = ResolvedProfile(
+            points=PRIMARY, layer="CUTTING", source_type="clipped",
+            layered_profiles=(("CUTTING", shifted + (shifted[0],), True),),
+        )
+        drawings = resolved_features_to_primitives((source,))
+        assert len(drawings) == 1
+        assert drawings[0].layer == "CUTTING"
+        assert drawings[0].closed is True
+    # A different physical cut on the same layer remains a separate contour.
+    another = tuple(Vec2(pt.x + 100., pt.y) for pt in PRIMARY)
+    different = ResolvedProfile(
+        points=PRIMARY, layer="CUTTING", source_type="clipped",
+        layered_profiles=(("CUTTING", another + (another[0],), True),),
+    )
+    assert len(resolved_features_to_primitives((different,))) == 2
