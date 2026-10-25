@@ -287,12 +287,21 @@ def test_bug82_83_84_receiving_base_and_fixing_plate_validation():
 
 
 def test_bug85_receiving_frame_baseline_rejects_bool_and_nan():
-    with pytest.raises(ValueError, match="DIMENSIONS_INVALID"):
-        receiving_frame_source("left", material_width=True, span=1000.0)
+    # Reject nonphysical dimensions BEFORE reading any external DXF. A NaN
+    # cannot be treated as a real width mismatch or short physical span.
+    for width, span in (
+        (True, 1000.0),
+        (float("nan"), 1000.0),
+        (90.0, float("nan")),
+    ):
+        with pytest.raises(ValueError, match="DIMENSIONS_INVALID"):
+            receiving_frame_source("left", material_width=width, span=span)
+    # Preserve the distinct, source-verified errors for actual finite geometry:
+    # the A-frame baseline owns width=90 mm, with a minimum longitudinal span.
     with pytest.raises(ValueError, match="WIDTH_MISMATCH"):
-        receiving_frame_source("left", material_width=float("nan"), span=1000.0)
+        receiving_frame_source("left", material_width=91.0, span=1000.0)
     with pytest.raises(ValueError, match="SPAN_TOO_SHORT"):
-        receiving_frame_source("left", material_width=90.0, span=float("nan"))
+        receiving_frame_source("left", material_width=90.0, span=100.0)
 
 
 def test_bug86_receiving_joint_locks_rejects_bool_indices():
