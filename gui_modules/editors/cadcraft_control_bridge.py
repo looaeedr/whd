@@ -109,7 +109,11 @@ class CadcraftControlClient:
         commands = self.request("engine.commands")
         if not isinstance(methods, list) or not isinstance(commands, list):
             raise CadcraftControlError("CADCRAFT_UNKNOWN_COMMAND_CATALOG")
-        available = {row.get("method") for row in methods if isinstance(row, dict)}
+        available = set()
+        for row in methods:
+            if not isinstance(row, dict) or not isinstance(row.get("method"), str):
+                raise CadcraftControlError("CADCRAFT_UNKNOWN_COMMAND_CATALOG")
+            available.add(row["method"])
         if not {"drawing.inspect", "engine.execute"}.issubset(available):
             raise CadcraftControlError("CADCRAFT_REQUIRED_METHOD_UNAVAILABLE")
         return {"method_count": len(methods), "command_count": len(commands)}
