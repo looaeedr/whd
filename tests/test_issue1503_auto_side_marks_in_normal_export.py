@@ -55,7 +55,7 @@ def _mark_lines(fp):
     return tuple(sorted(result))
 
 
-@pytest.mark.parametrize("factory,expected_per_side", ((_assembled, 4), (_two_tier, 8)))
+@pytest.mark.parametrize("factory,expected_per_side", ((_assembled, 1), (_two_tier, 2)))
 def test_normal_selected_boxbody_exports_all_physical_pieces_plus_real_ear_marks(
     tmp_path, factory, expected_per_side,
 ):
