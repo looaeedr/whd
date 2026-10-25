@@ -101,3 +101,16 @@ def test_r5_74_finished_display_fallback_rejects_corrupt_shape_numbers(bad):
     assert resolve_operator_finished_dimensions(
         "head", fallback_dimensions=(800., 350.),
     ) == (800., 350.)
+
+
+@pytest.mark.parametrize("malformed", ["800", "83", b"83", bytearray(b"83")])
+def test_r5_74_character_sequence_is_not_a_finished_dimension_vector(malformed):
+    """A saved scalar text must not become digit-by-digit false W/H data."""
+    with pytest.raises(ValueError, match="display dimensions"):
+        resolve_operator_finished_dimensions(
+            "head", fallback_dimensions=malformed,
+        )
+    # Proper vector sources keep the existing operator dimensions.
+    assert resolve_operator_finished_dimensions(
+        "head", fallback_dimensions=[800., 350.],
+    ) == (800., 350.)
