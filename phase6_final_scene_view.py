@@ -361,9 +361,9 @@ class Phase6FinalSceneViewAdapter:
         visibility = dependencies.assembly_visibility(parts)
         visible_part_keys = tuple(visibility[0] or ())
         visible_box_body_piece_keys = visibility[1]
-        # Legacy visibility providers return two elements; UI providers may
-        # supply the separate display-only fixing-plate mesh switch.
-        show_fixing_plate_mesh = bool(visibility[2]) if len(visibility) > 2 else True
+        # Preserve the historical two-value visibility contract. The optional
+        # display-only EAR switch is carried separately on the result.
+        show_fixing_plate_mesh = bool(getattr(visibility, "show_fixing_plate_mesh", True))
         visible_set = set(visible_part_keys)
         visible_probe_parts = tuple(
             part
