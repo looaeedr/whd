@@ -296,6 +296,9 @@ def test_ac11_source_entity_identity_changes_with_actual_dxf_bytes_and_pivot(tmp
         e.source_id for e in changed.entities
         if e.handle_path == upper.dxf.handle
     )
+    assert changed_id != upper_id
+    with pytest.raises(ValueError, match="uniquely selected"):
+        circle_candidate_pivot(changed, source_entity_id=upper_id)
     assert circle_candidate_pivot(
         changed, source_entity_id=changed_id) == (124.0, 336.0)
     assert changed.main_hole_source_id is None
