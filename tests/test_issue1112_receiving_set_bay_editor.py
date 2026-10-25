@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from types import SimpleNamespace
 
 import pytest
 
@@ -18,9 +19,14 @@ from ae_engine.receiving_layout import (
     update_receiving_joint_alignment,
     strip_legacy_receiving_aliases,
 )
+from gui_modules.application.fold_designer_composition_receiving import (
+    resize_receiving_bays as native_gui_resize_receiving_bays,
+)
+
 from gui_modules.application.receiving_set_bay_adapter import (
     ReceivingDestructiveEditConfirmationRequired,
     ReceivingSetBayAdapter,
+    ReceivingSwitchProjectionAdapter,
     receiving_layout_stable_ids,
 )
 
@@ -731,3 +737,70 @@ def test_ac40_global_brand_reconfirms_each_real_set_without_carrying_other_brand
     with pytest.raises(ValueError, match="開關品牌"):
         adapter.set_global_brand("無效廠牌")
     assert [s["switch_brand"] for s in adapter.layout["sets"]] == ["三菱", "三菱"]
+
+
+
+@pytest.mark.parametrize("bad_index", (
+    True, False, 1.0, 1.5, -1, 2, "1.5", None, [], {},
+))
+def test_ac07_native_layer_resize_rejects_aliases_before_selection_and_dirty(bad_index):
+    """Original GUI must never select a different physical Set via int() alias."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    switch = ReceivingSwitchProjectionAdapter(adapter)
+    calls = []
+    service = SimpleNamespace(
+        receiving_switch_adapter=lambda _: switch,
+        mark_receiving_switch_layout_dirty=lambda *args: calls.append("dirty"),
+        refresh_receiving_set_bay_control=lambda *args: calls.append("refresh"),
+    )
+    frozen = adapter.layout
+    old_selection = adapter.selection
+    with pytest.raises((IndexError, ValueError, TypeError)):
+        native_gui_resize_receiving_bays(service, None, bad_index, 1)
+    assert adapter.layout == frozen
+    assert adapter.selection == old_selection
+    assert calls == []
+
+
+@pytest.mark.parametrize("bad_delta", (
+    True, False, 1.0, 1.5, "1.5", None, [], {},
+))
+def test_ac07_native_layer_resize_rejects_bad_delta_without_touching_set(bad_delta):
+    """Delta validation must precede both Set selection and destructive resize."""
+    adapter = ReceivingSetBayAdapter(append_receiving_set(_layout()))
+    switch = ReceivingSwitchProjectionAdapter(adapter)
+    calls = []
+    service = SimpleNamespace(
+        receiving_switch_adapter=lambda _: switch,
+        mark_receiving_switch_layout_dirty=lambda *args: calls.append("dirty"),
+        refresh_receiving_set_bay_control=lambda *args: calls.append("refresh"),
+    )
+    before = adapter.layout
+    selection = adapter.selection
+    with pytest.raises((TypeError, ValueError)):
+        native_gui_resize_receiving_bays(service, None, 1, bad_delta)
+    assert adapter.layout == before
+    assert adapter.selection == selection
+    assert calls == []
+
+
+def test_ac07_native_layer_resize_keeps_exact_integer_text_and_actual_bays():
+    """Textual integer UI arguments are allowed, without silently aliasing IDs."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    switch = ReceivingSwitchProjectionAdapter(adapter)
+    calls = []
+    service = SimpleNamespace(
+        receiving_switch_adapter=lambda _: switch,
+        mark_receiving_switch_layout_dirty=lambda *args: calls.append("dirty"),
+        refresh_receiving_set_bay_control=lambda *args: calls.append("refresh"),
+    )
+    assert native_gui_resize_receiving_bays(service, None, "0", "1") is True
+    assert switch.connection_counts() == (2,)
+    assert adapter.selection.set_index == 0
+    assert calls == ["dirty", "refresh"]
+    assert native_gui_resize_receiving_bays(service, None, 0, 0) is False
+    assert calls == ["dirty", "refresh"]
+    for bad in (-1, 1, True, 0.5):
+        with pytest.raises((IndexError, ValueError)):
+            switch.connection_count(bad)
+    assert switch.connection_count("0") == 2
