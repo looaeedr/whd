@@ -121,6 +121,10 @@ def resolve_operator_finished_dimensions(
             return float(measured[0]), float(measured[1])
 
     if fallback_dimensions is not None:
+        # A stored scalar string/bytes is not a finished W/H sequence.
+        # Iterating "800" or b"83" would fabricate digit-sized dimensions.
+        if isinstance(fallback_dimensions, (str, bytes, bytearray)):
+            raise ValueError("display dimensions require a numeric dimension sequence")
         try:
             return tuple(_finite_display_dimension(value) for value in fallback_dimensions)
         except TypeError as exc:
