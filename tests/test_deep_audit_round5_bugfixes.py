@@ -635,3 +635,27 @@ def test_r5_73_readonly_mapping_hole_projects_identically_to_mutable_source():
     assert any(isinstance(x, CirclePrimitive) for x in mapped.scene.primitives)
     assert saved_hole["params"]["diameter"] == 10.
     assert len(original.scene.primitives) == 1
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf"), "invalid"])
+def test_bug88_hole_editor_canvas_rect_rejects_nonphysical_screen_coordinates(bad):
+    """Corrupt contours cannot pass Boolean/nonfinite coordinates to Tk overlays."""
+    view = Phase6HoleEditorCanvasView(
+        canvas=SimpleNamespace(),
+        draw_grid=lambda: None,
+        render_secondary_scene=lambda *args: None,
+        render_resolved_features=lambda *args: None,
+    )
+    view.transform = SimpleNamespace(world_to_canvas=lambda pt: (pt.x, pt.y))
+    bad_profile = ResolvedProfile(
+        points=(), layer="FROM_DXF", source_type="saved",
+        layered_profiles=(
+            ("CUTTING", (Vec2(bad, 2.0), Vec2(20.0, 30.0)), False),
+        ),
+    )
+    assert view._resolved_canvas_rect(bad_profile) is None
+    valid_profile = ResolvedProfile(
+        points=(), layer="FROM_DXF", source_type="saved",
+        layered_profiles=(("CUTTING", (Vec2(1., 2.), Vec2(20., 30.)), False),),
+    )
+    assert view._resolved_canvas_rect(valid_profile) == (1., 2., 20., 30.)
