@@ -171,7 +171,7 @@ def test_r5_90_saved_mode_cannot_be_a_noncanonical_object(invalid_mode):
     with pytest.raises(ValueError, match="不合法的箱體操作模式"):
         normalize_quantity_snapshot({"active_mode": invalid_mode}, for_save=True)
 
-@pytest.mark.parametrize("bad", [None, True, False, -1., float("nan"), float("inf"), "-1", "0.1", [], {}])
+@pytest.mark.parametrize("bad", [None, True, False, -1., float("nan"), float("inf"), 10 ** 400, -(10 ** 400), "-1", "0.1", [], {}])
 def test_r5_76_dxf_acceptance_rejects_invalid_tolerances_before_readback(tmp_path, bad):
     """Untrusted verification tolerances must never be able to bless invalid CUTTING."""
     from ae_engine.dxf_acceptance import (
