@@ -19,6 +19,8 @@ from typing import Sequence
 
 
 def _stable_inner_door_id(value: object) -> str:
+    if isinstance(value, bool):
+        raise ValueError("inner_door_id must be a stable non-boolean identifier")
     text = str(value or "").strip()
     if not text:
         raise ValueError("inner_door_id must be a stable non-empty identifier")
