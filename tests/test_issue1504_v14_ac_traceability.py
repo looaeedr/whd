@@ -143,7 +143,7 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
                 # the old illustrated Receiving middle plate must NEVER be
                 # silently restored merely to collect a manufacturing GREEN.
                 assert row["id"] == "NFB-AC-38"
-                assert row["historical_pre_current_review"]["accepted"] is not True if "accepted" in row["historical_pre_current_review"] else True
+                assert row["historical_pre_current_review"].get("accepted", False) is False
                 proof = row["acceptance_evidence"]
                 assert proof["original_ac_text_unchanged"] is True
                 assert proof["source_sha_pins_unchanged"] is True
