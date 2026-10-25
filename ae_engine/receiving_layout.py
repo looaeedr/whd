@@ -168,8 +168,16 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                     f"Receiving Set{set_index} Joint{joint_index + 1} endpoints must match adjacent bays "
                     f"{expected_left!r}->{expected_right!r}; got {left_id!r}->{right_id!r}"
                 )
-            depth_alignment = str(raw_joint.get("depth_alignment") or "FRONT").strip().upper()
-            height_alignment = str(raw_joint.get("height_alignment") or "BOTTOM").strip().upper()
+            # Defaults apply only when an archived Joint omitted alignment.
+            # Explicit false/zero/blank must not shift physical Z/Y datums.
+            raw_depth = raw_joint.get("depth_alignment")
+            raw_height = raw_joint.get("height_alignment")
+            if raw_depth is not None and not isinstance(raw_depth, str):
+                raise ValueError(f"unsupported Receiving depth_alignment: {raw_depth!r}")
+            if raw_height is not None and not isinstance(raw_height, str):
+                raise ValueError(f"unsupported Receiving height_alignment: {raw_height!r}")
+            depth_alignment = "FRONT" if raw_depth is None else raw_depth.strip().upper()
+            height_alignment = "BOTTOM" if raw_height is None else raw_height.strip().upper()
             if depth_alignment not in {"FRONT", "REAR"}:
                 raise ValueError(f"unsupported Receiving depth_alignment: {depth_alignment!r}")
             if height_alignment not in {"TOP", "BOTTOM"}:
