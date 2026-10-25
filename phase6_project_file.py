@@ -126,6 +126,9 @@ def _normalize_authoritative_door_state(snapshot):
         raise ValueError("invalid inner doors entry")
     inner_doors = deepcopy(list(raw_inner_doors or ()))
     for item in inner_doors:
+        # Never stringify a boolean into a physical door or cell identity.
+        if any(isinstance(item.get(field), bool) for field in ("stable_id", "cell_key")):
+            raise ValueError("invalid inner-door identity source")
         # Receiving frame spans / finished dimensions are deterministic
         # derivatives of Door topology + family policy, never project truth.
         item.pop("frame_spans", None)

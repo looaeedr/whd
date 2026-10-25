@@ -798,3 +798,16 @@ def test_r4_62_boolean_inner_door_identity_never_becomes_a_panel_part(invalid_id
     )
     assert valid.stable_id == "inner_door:upper:panel"
     assert valid.unfolded_width == pytest.approx(757.)
+
+
+@pytest.mark.parametrize("field", ["stable_id", "cell_key"])
+@pytest.mark.parametrize("bad", [True, False])
+def test_r5_91_receiving_family_does_not_bypass_boolean_inner_door_identity_gate(field, bad):
+    from ae_engine.cabinet_types.receiving import (
+        derive_inner_door_panels, derive_inner_door_frame_sets,
+    )
+    saved = _receiving_snapshot()
+    saved["inner_doors"][0][field] = bad
+    for derive in (derive_inner_door_panels, derive_inner_door_frame_sets):
+        with pytest.raises(ValueError, match="invalid inner-door identity"):
+            derive(saved)

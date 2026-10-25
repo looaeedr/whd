@@ -368,6 +368,17 @@ def inner_door_panel_vertical_contract(*, cell_height: float, thickness: float, 
     }
 
 
+def _saved_inner_door_identity(row) -> tuple[str, str]:
+    """Keep original saved identity types until both physical owners validate."""
+    if (isinstance(row.get("stable_id"), bool)
+            or isinstance(row.get("cell_key"), bool)):
+        raise ValueError("invalid inner-door identity source")
+    return (
+        str(row.get("stable_id") or "").strip(),
+        str(row.get("cell_key") or "").strip(),
+    )
+
+
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     """Derive inner doors from shared Door folding plus family assembly deductions."""
     from ae_engine.inner_door_panels import derive_inner_door_panel
@@ -390,8 +401,7 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     for item in list(data.get("inner_doors") or ()):
         if not isinstance(item, dict):
             continue
-        stable_id = str(item.get("stable_id") or "").strip()
-        cell_key = str(item.get("cell_key") or "").strip()
+        stable_id, cell_key = _saved_inner_door_identity(item)
         if not stable_id or cell_key not in cells:
             continue
         panel_id = f"inner_door:{stable_id}:panel"
@@ -439,8 +449,7 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
     for item in list(data.get("inner_doors") or ()):
         if not isinstance(item, dict):
             continue
-        stable_id = str(item.get("stable_id") or "").strip()
-        cell_key = str(item.get("cell_key") or "").strip()
+        stable_id, cell_key = _saved_inner_door_identity(item)
         if not stable_id or cell_key not in cells:
             continue
         cell = cells[cell_key]
