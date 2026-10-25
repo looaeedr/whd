@@ -138,3 +138,50 @@ def test_r6_corner_policy_rejects_unrepresentable_thickness_and_fw():
                                fw=10 ** 400)
     with pytest.raises(GeometryError, match="FW"):
         cfg.fw_for("top_left")
+
+
+@pytest.mark.parametrize("invalid", ["false", "0", 1, None])
+def test_r6_saved_bottom_wrap_flag_must_be_explicit_boolean(invalid):
+    """A saved string must not unexpectedly enable physical EndCap WRAP."""
+    from ae_engine.cabinet_types import receiving
+    from phase6_box_body_structure import (
+        BoxBodyStructureType, default_box_body_structure_state,
+    )
+    saved = receiving.resolve_box_body_structure_state(default_box_body_structure_state())
+    cfg = saved["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    cfg["bottom_external_wrap"] = invalid
+    with pytest.raises(ValueError, match="bottom_external_wrap"):
+        receiving.bottom_external_wrap_enabled(saved)
+    with pytest.raises(ValueError, match="bottom_external_wrap"):
+        receiving.set_bottom_external_wrap(saved, invalid)
+    assert cfg["bottom_external_wrap"] == invalid
+
+
+@pytest.mark.parametrize("field", ["reserve_u", "reserve_v"])
+@pytest.mark.parametrize("invalid", [True, False, float("nan"), float("inf"), float("-inf"), 10 ** 400])
+def test_r6_bottom_wrap_reserves_reject_nonphysical_stored_or_operator_values(field, invalid):
+    """A nonfinite relief reserve may not become a silent 0-mm cutout."""
+    from ae_engine.cabinet_types import receiving
+    from phase6_box_body_structure import (
+        BoxBodyStructureType, default_box_body_structure_state,
+    )
+    state = receiving.resolve_box_body_structure_state(default_box_body_structure_state())
+    key = "bottom_relief_reserve_u" if field == "reserve_u" else "bottom_relief_reserve_v"
+    cfg = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    with pytest.raises(ValueError, match=key):
+        receiving.set_bottom_relief_reserves(state, **{field: invalid})
+    cfg[key] = invalid
+    with pytest.raises(ValueError, match=key):
+        receiving.bottom_relief_reserves(state)
+    assert cfg[key] is invalid
+
+
+def test_r6_bottom_wrap_valid_boolean_and_adjustable_reserves_remain_unchanged():
+    from ae_engine.cabinet_types import receiving
+    from phase6_box_body_structure import default_box_body_structure_state
+    state = receiving.resolve_box_body_structure_state(default_box_body_structure_state())
+    assert receiving.bottom_relief_reserves(state) == pytest.approx((2., 1.))
+    disabled = receiving.set_bottom_external_wrap(state, False)
+    assert receiving.bottom_external_wrap_enabled(disabled) is False
+    adjustable = receiving.set_bottom_relief_reserves(state, reserve_u=3.5, reserve_v=2.25)
+    assert receiving.bottom_relief_reserves(adjustable) == pytest.approx((3.5, 2.25))
