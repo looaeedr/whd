@@ -732,3 +732,23 @@ def test_r2_14_corrupt_saved_switch_layout_cannot_reset_brand_and_tiers(bad):
     with pytest.raises(ValueError, match="Receiving switch layout must be a mapping"):
         normalize_receiving_switch_layout(bad)
     assert normalize_receiving_switch_layout(None)["switch_brand"] == "士林"
+
+
+@pytest.mark.parametrize("owner", ["set", "bay"])
+def test_r2_13_boolean_saved_set_bay_identity_cannot_become_physical_part_id(owner):
+    """True is not a stored stable_id and must not become the string 'True'."""
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    target = saved["sets"][0] if owner == "set" else saved["sets"][0]["bays"][0]
+    target["stable_id"] = True
+    with pytest.raises(ValueError, match="stable_id"):
+        normalize_receiving_layout(saved)
+    assert target["stable_id"] is True
+
+
+def test_r2_13_canonical_saved_set_bay_stable_ids_remain_identical():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    normalized = normalize_receiving_layout(saved)
+    assert normalized["sets"][0]["stable_id"] == saved["sets"][0]["stable_id"]
+    assert normalized["sets"][0]["bays"][0]["stable_id"] == saved["sets"][0]["bays"][0]["stable_id"]
