@@ -523,6 +523,96 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
             assert (export_dir/group.filename).is_file()
         for path in actual_dxfs:
             ezdxf.readfile(path)
+
+        # #1504 SWT-AC-10: same ORIGINAL live Tk configuration must prove
+        # that each current numeric CSV NFB MAIN OPENING exists exactly once
+        # in the actual operator DXF, at that hole's own source-derived
+        # finished inner-door UV centre.  Two side EAR contacts and MARKING
+        # alone, or a nameplate/fake rectangle, can never pass this check.
+        from ae_engine.receiving_nfb_committed_final_scene import (
+            _submitted_csv_holes, _without_derived_csv_door_features,
+        )
+        from ae_engine.receiving_nfb_v5_configured_inner_door import (
+            trial_configured_nfb_v5_inner_door_render_data,
+        )
+        from ae_engine.receiving_nfb_numeric_catalog import (
+            model_spec, brand_csv_path,
+        )
+        from hashlib import sha256
+        current = designer._phase6_input_snapshot
+        inner_id, committed_holes = _submitted_csv_holes(current)
+        assert inner_id == "upper"
+        assert len(committed_holes) == 2
+        assert len({row.physical_hole_id for row in committed_holes}) == 2
+        assert {row.slot_index for row in committed_holes} == {0, 1}
+        proof = trial_configured_nfb_v5_inner_door_render_data(
+            _without_derived_csv_door_features(current, inner_id),
+            inner_id, holes=committed_holes,
+        )
+        assert proof.part_id == "inner_door:upper:panel"
+        assert proof.hole_ids == tuple(row.physical_hole_id for row in committed_holes)
+        assert len(proof.patterns) == 2
+        source_hash = sha256(brand_csv_path("士林").read_bytes()).hexdigest()
+        for feature in holes:
+            if feature.source_type != "NFB_CSV_SOURCE":
+                continue
+            source_info = dict(feature.source_params)
+            assert source_info["part_id"] == proof.part_id
+            assert source_info["brand"] == "士林"
+            assert source_info["model"] == "2P400"
+            assert source_info["csv_sha256"] == source_hash
+            assert feature.layer == "CUTTING"
+        assert all(pattern.brand == "士林" and pattern.model == "2P400"
+                   and model_spec(pattern.brand, pattern.model).opening_mm is not None
+                   for pattern in proof.patterns)
+        original_door_groups = [
+            group for group in emitted_groups
+            if any(member.physical_id == proof.part_id for member in group.members)
+        ]
+        assert len(original_door_groups) == 1, (
+            "SWT10_ORIGINAL_OPERATOR_INNER_DOOR_DXF_NOT_UNIQUE"
+        )
+        actual_door_file = export_dir / original_door_groups[0].filename
+        assert actual_door_file.is_file()
+        actual_door = ezdxf.readfile(actual_door_file).modelspace()
+        saved_cuts = [
+            part for part in actual_door
+            if part.dxftype() == "LWPOLYLINE"
+            and part.closed and part.dxf.layer == "CUTTING"
+        ]
+
+        def physical_bounds(points):
+            xs, ys = zip(*points)
+            return (min(xs), max(xs), min(ys), max(ys))
+
+        saved_bounds = tuple(
+            physical_bounds(tuple((float(x), float(y))
+                                  for x, y in contour.get_points("xy")))
+            for contour in saved_cuts
+        )
+        expected_bounds = tuple(
+            physical_bounds(tuple((float(x), float(y))
+                                  for x, y in pattern.opening_uv_mm))
+            for pattern in proof.patterns
+        )
+        assert len({tuple(round(n, 5) for n in row)
+                    for row in expected_bounds}) == 2
+        for expected in expected_bounds:
+            matches = [
+                actual for actual in saved_bounds
+                if all(abs(one-two) < 1e-5
+                       for one, two in zip(actual, expected))
+            ]
+            assert len(matches) == 1, (
+                "SWT10_SOURCE_NFB_HOLE_CENTRE_OR_SIZE_NOT_IN_ORIGINAL_DXF",
+                expected, saved_bounds,
+            )
+        # These same current NFBs also generated the actual four EAR
+        # contacts and left/right SIDE marks proved above; no geometry
+        # fixture, manual X guess, additional output port, or MFG-ready
+        # boolean is inserted into this genuine operator path.
+        assert len(contacts) == len(formed) == 4
+        assert len(renderer.last_receiving_ear_marking_segments) == 12
         assert designer._phase6_input_snapshot.get("receiving_base_plate") is None
 
         # Only now persist the explicitly configured source + Confirm All
