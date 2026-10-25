@@ -774,3 +774,42 @@ def test_r6_manual_116_huge_json_integer_is_a_controlled_invalid_nfb_dimension()
         normalize_nfb_saved_fields({
             "nfb_config_submitted": True, "nfb_config": damaged,
         })
+
+
+@pytest.mark.parametrize("bad", [True, False, 0, -1, 1.0, "1", None])
+def test_manual_116_submitted_nfb_layer_count_has_exact_positive_integer_identity(bad):
+    """A saved submitted NFB may not claim a nonphysical tier count."""
+    damaged = _config(x=0, state="CONFIRMED")
+    damaged["layer_count"] = bad
+    with pytest.raises(ValueError, match="NFB layer_count"):
+        normalize_nfb_config(damaged)
+    with pytest.raises(ValueError, match="NFB layer_count"):
+        normalize_nfb_saved_fields({
+            "nfb_config_submitted": True, "nfb_config": damaged,
+        })
+    assert damaged["layer_count"] is bad
+
+
+@pytest.mark.parametrize("bad", [True, False, -1, 1, 1.0, "0", None])
+def test_manual_116_submitted_nfb_hole_layer_index_matches_saved_tier(bad):
+    """One physical tier cannot silently own a hole in another / boolean tier."""
+    damaged = _config(x=0, state="CONFIRMED")
+    damaged["layer_count"] = 1
+    damaged["holes"][0]["layer_index"] = bad
+    with pytest.raises(ValueError, match="NFB layer_index"):
+        normalize_nfb_config(damaged)
+    assert damaged["holes"][0]["layer_index"] is bad
+
+
+def test_manual_116_submitted_nfb_exact_tier_types_preserve_legacy_and_two_tiers():
+    one = _config(x=0, state="CONFIRMED")
+    one["holes"][0]["layer_index"] = 0
+    assert normalize_nfb_config(one)["holes"][0]["layer_index"] == 0
+    two = _config(x=0, state="CONFIRMED")
+    two["layer_count"] = 2
+    two["holes"][0]["layer_index"] = 1
+    assert normalize_nfb_config(two)["holes"][0]["layer_index"] == 1
+    legacy = _config(x=0, state="CONFIRMED")
+    legacy.pop("layer_count")
+    legacy["holes"][0].pop("layer_index", None)
+    assert "layer_count" not in normalize_nfb_config(legacy)
