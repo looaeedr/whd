@@ -763,7 +763,11 @@ class ReceivingSwitchProjectionAdapter:
         return tuple(len(row["bays"]) for row in self.adapter.layout["sets"])
 
     def connection_count(self, index):
-        return self.connection_counts()[index]
+        index = _operator_integer(index, "Set index")
+        counts = self.connection_counts()
+        if not 0 <= index < len(counts):
+            raise IndexError("Receiving Set index out of range")
+        return counts[index]
 
     def set_brand(self, brand):
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
@@ -784,6 +788,9 @@ class ReceivingSwitchProjectionAdapter:
         return True
 
     def resize_connections(self, index, delta):
+        # Validate both operator inputs before selecting or resizing any Bay.
+        index = _operator_integer(index, "Set index")
+        delta = _operator_integer(delta, "Bay delta")
         current = self.connection_count(index)
         wanted = max(1, current + delta)
         if wanted == current:
