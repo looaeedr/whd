@@ -53,7 +53,13 @@ def _stable_id(value: object, *, label: str) -> str:
 
 
 def _back_panel_mode(value: object) -> str:
-    mode = str(value or "FULL").strip().upper()
+    # A missing source uses the historical FULL default; an explicitly saved
+    # False/0/blank cannot silently create a physical full back panel.
+    if value is None:
+        return "FULL"
+    if not isinstance(value, str):
+        raise ValueError(f"unsupported Receiving back_panel_mode: {value!r}")
+    mode = value.strip().upper()
     if mode not in _ALLOWED_BACK_PANEL_MODES:
         raise ValueError(f"unsupported Receiving back_panel_mode: {value!r}")
     return mode
