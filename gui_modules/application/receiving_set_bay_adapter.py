@@ -93,6 +93,32 @@ def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]
     return tuple(result)
 
 
+def _rebase_set_parent_nfb_brand(set_row, new_brand):
+    """Revoke only stale inherited NFB X proofs; preserve saved source and X."""
+    old_brand = set_row.get("switch_brand", "士林")
+    if old_brand == new_brand:
+        return False
+    from ae_engine.receiving_nfb_brand_transition import saved_parent_reselection_hole_ids
+    from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
+    for bay in set_row["bays"]:
+        impacted = set(saved_parent_reselection_hole_ids(
+            bay, old_brand, new_brand,
+        ))
+        if not impacted:
+            continue
+        saved = normalize_nfb_saved_fields(bay)
+        changed = False
+        for hole in saved["nfb_config"]["holes"]:
+            if (hole["physical_hole_id"] in impacted
+                    and hole["manual_x_state"] == "CONFIRMED"):
+                hole["manual_x_state"] = "RECONFIRM_REQUIRED"
+                changed = True
+        if changed:
+            bay["nfb_config"] = saved["nfb_config"]
+    set_row["switch_brand"] = new_brand
+    return True
+
+
 def _operator_integer(value, name):
     """Allow legacy integer UI text; never coerce a float or bool to a Bay ID."""
     if type(value) is int:
@@ -373,7 +399,10 @@ class ReceivingSetBayAdapter:
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
         if brand not in RECEIVING_SWITCH_BRANDS:
             raise ValueError("不支援的開關品牌")
-        self._layout["sets"][self.selection.set_index]["switch_brand"] = brand
+        candidate = deepcopy(self._layout)
+        if _rebase_set_parent_nfb_brand(
+                candidate["sets"][self.selection.set_index], brand):
+            self._layout = candidate
 
     def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
         """Atomically update ONLY highlighted Bays; preserve other shared refs."""
@@ -661,15 +690,16 @@ class ReceivingSetBayAdapter:
         return receipt
 
     def set_global_brand(self, brand):
-        """Update every Set NFB once, keeping active Set/Bay identity intact."""
+        """Rebase Set brand and affected inherited NFB X in one transaction."""
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
         if brand not in RECEIVING_SWITCH_BRANDS:
             raise ValueError("不支援的開關品牌")
+        candidate = deepcopy(self._layout)
         changed = False
-        for set_row in self._layout["sets"]:
-            if set_row.get("switch_brand", "士林") != brand:
-                set_row["switch_brand"] = brand
-                changed = True
+        for set_row in candidate["sets"]:
+            changed = _rebase_set_parent_nfb_brand(set_row, brand) or changed
+        if changed:
+            self._layout = candidate
         return changed
 
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:

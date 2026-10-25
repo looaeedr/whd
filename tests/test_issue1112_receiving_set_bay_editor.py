@@ -627,3 +627,107 @@ def test_ac07_exact_decimal_text_retains_existing_ui_compatibility():
     assert adapter.bay_count("1") == 2
     adapter.set_set_count("2")
     assert len(adapter.layout["sets"]) == 2
+
+
+
+def _ac40_submitted_parent_brand_config():
+    """Two physical V5 holes: following Set brand vs explicit factory override."""
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    model = numeric_model_ref("士林", "2P400")
+    return {"layer_count": 1, "holes": [
+        {
+            "physical_hole_id": "nfb:real-bay:unit-1",
+            "unit_id": "unit-1",
+            "model_filename": model,
+            "source_brand": "士林",
+            "brand_mode": "INHERIT",
+            "manual_x_mm": 0,
+            "manual_x_state": "CONFIRMED",
+            "datum_revision": "operator-approved-w800",
+            "datum_snapshot": {
+                "width": 800, "rotation_deg": 0, "model_filename": model,
+            },
+            "rotation_deg": 0,
+        },
+        {
+            "physical_hole_id": "nfb:real-bay:unit-2",
+            "unit_id": "unit-2",
+            "model_filename": model,
+            "source_brand": "士林",
+            "brand_mode": "OVERRIDE",
+            "manual_x_mm": 100,
+            "manual_x_state": "CONFIRMED",
+            "datum_revision": "operator-approved-w800-explicit",
+            "datum_snapshot": {
+                "width": 800, "rotation_deg": 0, "model_filename": model,
+            },
+            "rotation_deg": 0,
+        },
+    ]}
+
+
+def test_ac40_set_parent_brand_revokes_only_matching_inherited_confirmed_x(tmp_path):
+    """A changed global Set brand cannot silently retain old inherited WORLD-X."""
+    from phase6_project_file import PROJECT_SCHEMA_V1, read_project, write_project
+
+    initial = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=_ac40_submitted_parent_brand_config(),
+    )
+    frozen = deepcopy(initial)
+    adapter = ReceivingSetBayAdapter(initial)
+    adapter.set_brand("三菱")
+    row = adapter.layout["sets"][0]
+    assert row["switch_brand"] == "三菱"
+    actual = row["bays"][0]
+    assert actual["nfb_config_submitted"] is True
+    following, override = actual["nfb_config"]["holes"]
+    assert following["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert following["manual_x_mm"] == 0
+    assert following["source_brand"] == "士林"
+    assert following["model_filename"] == frozen["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["model_filename"]
+    assert override == frozen["sets"][0]["bays"][0]["nfb_config"]["holes"][1]
+    assert initial == frozen
+
+    # Switching back must never silently re-approve an old X datum.
+    adapter.set_brand("士林")
+    assert adapter.layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+
+    saved = write_project(tmp_path / "brand-stale-x.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "受電箱", "active_mode": "set_bay",
+            "receiving_layout": adapter.layout,
+        },
+    })
+    reloaded = read_project(saved)["snapshot"]["receiving_layout"]["sets"][0]["bays"][0]
+    assert reloaded["nfb_config_submitted"] is True
+    assert [h["manual_x_state"] for h in reloaded["nfb_config"]["holes"]] == [
+        "RECONFIRM_REQUIRED", "CONFIRMED",
+    ]
+
+
+def test_ac40_global_brand_reconfirms_each_real_set_without_carrying_other_brand():
+    original = append_receiving_set(_layout())
+    for si in (0, 1):
+        original = update_receiving_bay(
+            original, set_index=si, bay_index=0,
+            nfb_config_submitted=True, nfb_config=_ac40_submitted_parent_brand_config(),
+        )
+    frozen = deepcopy(original)
+    adapter = ReceivingSetBayAdapter(original)
+    before_selection = adapter.selection
+    assert adapter.set_global_brand("三菱") is True
+    assert [s["switch_brand"] for s in adapter.layout["sets"]] == ["三菱", "三菱"]
+    for set_row in adapter.layout["sets"]:
+        holes = set_row["bays"][0]["nfb_config"]["holes"]
+        assert [h["manual_x_state"] for h in holes] == [
+            "RECONFIRM_REQUIRED", "CONFIRMED",
+        ]
+        assert [h["manual_x_mm"] for h in holes] == [0, 100]
+    assert adapter.selection == before_selection
+    assert adapter.set_global_brand("三菱") is False
+    assert original == frozen
+    with pytest.raises(ValueError, match="開關品牌"):
+        adapter.set_global_brand("無效廠牌")
+    assert [s["switch_brand"] for s in adapter.layout["sets"]] == ["三菱", "三菱"]
