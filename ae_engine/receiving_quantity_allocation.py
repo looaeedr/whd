@@ -45,6 +45,22 @@ class AllocationDraft:
 
     def reconcile(self, counts, available):
         """Invalidate assignments when topology or candidates have changed."""
+        # Validate every source inventory before changing any draft state.
+        # set("v1") would silently authorize bogus candidate IDs "v"/"1".
+        if not isinstance(available, Mapping):
+            raise ValueError("候選版本清單必須是映射")
+        inventories = {}
+        for role in self.roles:
+            try:
+                candidate_rows = available[role]
+                if isinstance(candidate_rows, (str, bytes, Mapping)):
+                    raise ValueError("候選版本 ID 清單不合法")
+                ids = tuple(candidate_rows)
+            except (KeyError, TypeError, ValueError, OverflowError) as exc:
+                raise ValueError("候選版本 ID 清單不合法") from exc
+            if any(not isinstance(value, str) or not value for value in ids):
+                raise ValueError("候選版本 ID 清單不合法")
+            inventories[role] = set(ids)
         latest = tuple(counts)
         if latest != self.counts:
             self.counts = latest
@@ -52,7 +68,7 @@ class AllocationDraft:
                 self.assigned[role].clear()
                 self.step[role] = 1
         for role in self.roles:
-            ids = set(available[role])
+            ids = inventories[role]
             if any(key not in ids for key in self.quantities[role]):
                 self.quantities[role] = {
                     key: qty for key, qty in self.quantities[role].items()
