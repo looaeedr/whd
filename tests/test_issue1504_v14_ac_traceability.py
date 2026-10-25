@@ -282,7 +282,35 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     assert d["counts"] == dict(Counter(r["status"] for r in d["records"]))
     assert sum(d["counts"].values()) == 88
     assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
-    assert d["counts"]["DEFERRED_PRODUCT_EVIDENCE"] == 4
+    # At the original 79-AC audit snapshot, four physical-source items
+    # were deferred. The historical IDs remain immutable even after each
+    # *individually* gains full source/Tk/negative manufacturing evidence.
+    original_deferred = {"NFB-AC-13", "NFB-AC-41", "SWT-AC-09", "SWT-AC-22"}
+    rows = {r["id"]: r for r in d["records"]}
+    assert len(original_deferred) == 4
+    assert d["counts"]["DEFERRED_PRODUCT_EVIDENCE"] == sum(
+        rows[key]["status"] == "DEFERRED_PRODUCT_EVIDENCE"
+        for key in original_deferred
+    )
+    for key in original_deferred:
+        row = rows[key]
+        if row["accepted"]:
+            assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE", key
+            assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED", key
+            assert row["assertion_review_state"] == "FULL_AC_AUTOMATED_SIGNED", key
+            proof = row["acceptance_evidence"]
+            assert proof["original_ac_text_unchanged"] is True, key
+            assert proof["source_sha_pins_unchanged"] is True, key
+            assert proof["factory_release"] is False, key
+            assert proof["unconditional_mfg2_release"] is False, key
+            assert proof["human_windows_uat_claimed"] is False, key
+            assert len(proof["original_ac_clauses_audited"]) >= 3, key
+            assert len(proof["other_required_assertions"]) >= 2, key
+        else:
+            assert row["status"] == "DEFERRED_PRODUCT_EVIDENCE", key
+    assert sum(rows[key]["accepted"] for key in original_deferred) + (
+        d["counts"]["DEFERRED_PRODUCT_EVIDENCE"]
+    ) == 4
     assert d["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= len(HISTORICAL_SIGNED_43)
     scoped = tuple(r for r in d["records"] if r["status"].startswith(
         "SCOPED_LOCALX_1502_"
@@ -1210,3 +1238,56 @@ def test_swt05_original_tk_csv_source_only_signoff_is_compatible_with_factory_ho
                        if isinstance(f, ast.FunctionDef) and f.name == function]
         assert len(definitions) == 1, name
         assert any(isinstance(node, ast.Assert) for node in ast.walk(definitions[0])), name
+
+
+
+def test_swt22_full_ac_requires_real_native_ear_side_export_and_negative_manufacturing():
+    """Signed SWT-22 must execute real GUI/DXF plus real fail-closed paths.
+
+    A source-path existence check alone is never a signed original AC.
+    These product runtime witnesses must ALL be scheduled by Product CI.
+    """
+    row = next(r for r in _data()["records"] if r["id"] == "SWT-AC-22")
+    from tools.product_ci_regression import PYTEST_PATHS
+
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    proof = row["acceptance_evidence"]
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert proof["factory_release"] is False
+    assert proof["welding_workmanship_certified"] is False
+    assert proof["pad_unconditional_approved"] is False
+    assert proof["human_windows_uat_claimed"] is False
+    assert proof["real_two_old_project_windows_gui_uat"] is False
+    assert proof["other_ac_signoff_implied"] is False
+
+    references = (
+        proof["primary_assertion"],
+        *proof["other_required_assertions"],
+    )
+    for reference in references:
+        path, test_name = reference.split("::", 1)
+        assert path in PYTEST_PATHS, reference
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert test_name in {
+            node.name for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, reference
+
+    # Original Tk path must consume the actual GUI export action, reread
+    # produced DXF bytes, and genuinely reopen a saved .p6fold project.
+    native = (ROOT / row["identified_test_functions"][0]["path"]).read_text(
+        encoding="utf-8"
+    )
+    assert "designer.output_export_button.invoke()" in native
+    assert "ezdxf.readfile(path)" in native
+    assert "calc.load_phase6_project(saved_path, open_designer=True)" in native
+
+    # A false 'approved' field must NEVER authorize PAD/EAR drawings.
+    negative = (ROOT / "tests/test_issue1503_deferred_pad_ear_manufacturing.py").read_text(
+        encoding="utf-8"
+    )
+    assert "NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED" in negative
+    assert "assert calls==[]" in negative
