@@ -209,3 +209,24 @@ def test_r5_92_cadcraft_unhashable_engine_command_rejected_before_socket(bad_com
     client = CadcraftControlClient(12345)
     with pytest.raises(CadcraftControlError, match="CADCRAFT_ENGINE_COMMAND_NOT_ALLOWED"):
         client.request("engine.execute", {"command": bad_command})
+
+
+@pytest.mark.parametrize("invalid", [[], {}, ["drawing.inspect"], None, True])
+def test_r5_92_cadcraft_probe_rejects_corrupt_remote_catalog_entries(monkeypatch, invalid):
+    """Malformed external method records cannot escape with TypeError or certify readiness."""
+    client = CadcraftControlClient(12345)
+    replies = {
+        "ping": "pong",
+        "control.methods": [
+            {"method": "drawing.inspect"}, {"method": invalid},
+            {"method": "engine.execute"},
+        ],
+        "engine.commands": [{"id": "circle"}, {"id": "pline"}],
+    }
+    monkeypatch.setattr(client, "request", lambda method: replies[method])
+    with pytest.raises(CadcraftControlError, match="CADCRAFT_UNKNOWN_COMMAND_CATALOG"):
+        client.probe()
+    replies["control.methods"] = [
+        {"method": "drawing.inspect"}, {"method": "engine.execute"}
+    ]
+    assert client.probe() == {"method_count": 2, "command_count": 2}
