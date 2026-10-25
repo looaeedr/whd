@@ -571,6 +571,7 @@ def test_r6_multiple_finite_segments_cannot_overflow_manufacturing_blank(axis):
         y_segments=overlarge if axis == "Y" else ordinary,
         source="profile",
     )
-    with pytest.raises(ValueError, match=f"UnfoldedBlankTopology {axis.lower()}.*finite"):
+    expected_dimension = "width" if axis == "X" else "height"
+    with pytest.raises(ValueError, match=f"UnfoldedBlankTopology {expected_dimension}.*finite"):
         _ = topology.width if axis == "X" else topology.height
     assert (topology.height if axis == "X" else topology.width) == 35.0
