@@ -171,7 +171,11 @@ def test_bug52_final_scene_ports_and_manufacturing_request_use_operator_dimensio
     )
     op_dims = ports.operator_dimensions("box_body")
     assert op_dims == (600.0, 800.0, 250.0)
-    assert "box_body" in called
+    # Current FinalScene reads the LIVE shared dimensions owner, not the
+    # historic namespace provider. Verify source parity and no legacy call.
+    from phase6_manufacturing_adapter import operator_finished_dimensions_for_app
+    assert op_dims == operator_finished_dimensions_for_app(app, "box_body")
+    assert called == []
 
     called.clear()
     req = build_manufacturing_request(app)
