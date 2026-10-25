@@ -49,9 +49,9 @@ def _rotation_override(mode=INHERIT,value=None):
 def editable_nfb_draft(draft):
     state=deepcopy(draft)
     seen=set()
-    next_number=int(state.get("_next_unit_number",1))
-    if next_number < 1:
-        raise ValueError("NFB next unit number must be positive")
+    next_number = state.get("_next_unit_number", 1)
+    if type(next_number) is not int or next_number < 1:
+        raise ValueError("NFB next unit number must be a positive integer")
     # Reserve existing persisted IDs first: mixed legacy rows can lack IDs,
     # while a saved allocator counter can lag behind already-assigned IDs.
     reserved=set()
