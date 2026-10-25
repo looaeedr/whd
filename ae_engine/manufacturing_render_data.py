@@ -136,7 +136,10 @@ class MaterialSegment:
             raise ValueError("MaterialSegment length must be finite") from exc
         if not math.isfinite(value) or value < 0.0:
             raise ValueError("MaterialSegment length must be finite and nonnegative")
-        object.__setattr__(self, "axis", str(self.axis).upper())
+        normalized_axis = str(self.axis).upper()
+        if not isinstance(self.axis, str) or normalized_axis not in {"X", "Y"}:
+            raise ValueError("MaterialSegment axis must be X or Y")
+        object.__setattr__(self, "axis", normalized_axis)
         object.__setattr__(self, "name", str(self.name))
         object.__setattr__(self, "length", max(0.0, value))
         object.__setattr__(self, "source", str(self.source))
@@ -150,6 +153,14 @@ class UnfoldedBlankTopology:
     y_segments: tuple[MaterialSegment, ...]
     source: str
     revision: int = 1
+
+    def __post_init__(self):
+        for axis, segments in (("X", self.x_segments), ("Y", self.y_segments)):
+            if not isinstance(segments, (tuple, list)) or any(
+                not isinstance(item, MaterialSegment) or item.axis != axis
+                for item in segments
+            ):
+                raise ValueError(f"UnfoldedBlankTopology {axis} segments must match the axis")
 
     @property
     def width(self) -> float:

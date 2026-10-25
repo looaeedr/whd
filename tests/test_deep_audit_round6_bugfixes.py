@@ -565,7 +565,8 @@ def test_r6_multiple_finite_segments_cannot_overflow_manufacturing_blank(axis):
         MaterialSegment(axis, "first", 1e308, "profile"),
         MaterialSegment(axis, "second", 1e308, "profile"),
     )
-    ordinary = (MaterialSegment("X", "real", 35.0, "profile"),)
+    ordinary_axis = "Y" if axis == "X" else "X"
+    ordinary = (MaterialSegment(ordinary_axis, "real", 35.0, "profile"),)
     topology = UnfoldedBlankTopology(
         piece_id="head", x_segments=overlarge if axis == "X" else ordinary,
         y_segments=overlarge if axis == "Y" else ordinary,
@@ -575,3 +576,29 @@ def test_r6_multiple_finite_segments_cannot_overflow_manufacturing_blank(axis):
     with pytest.raises(ValueError, match=f"UnfoldedBlankTopology {expected_dimension}.*finite"):
         _ = topology.width if axis == "X" else topology.height
     assert (topology.height if axis == "X" else topology.width) == 35.0
+
+
+@pytest.mark.parametrize("invalid_axis", [True, False, "Z", "CUTTING", "", None])
+def test_r6_unfolded_material_segment_rejects_nonphysical_axis(invalid_axis):
+    """Only source-owned planar X and Y may contribute to an unfolded blank."""
+    with pytest.raises(ValueError, match="MaterialSegment axis"):
+        MaterialSegment(invalid_axis, "core", 35., "profile")
+    assert MaterialSegment("x", "core", 35., "profile").axis == "X"
+    assert MaterialSegment("Y", "core", 35., "profile").axis == "Y"
+
+
+@pytest.mark.parametrize("wrong_axis", ["X", "Y"])
+def test_r6_unfolded_topology_cannot_sum_opposite_axis_material(wrong_axis):
+    """A saved Y profile must not become X blank width (or vice versa)."""
+    from ae_engine.manufacturing_render_data import UnfoldedBlankTopology
+    opposite = "Y" if wrong_axis == "X" else "X"
+    misplaced = MaterialSegment(opposite, "misplaced", 100., "profile")
+    real = MaterialSegment(opposite, "real", 35., "profile")
+    kwargs = {
+        "piece_id": "head",
+        "x_segments": (misplaced,) if wrong_axis == "X" else (real,),
+        "y_segments": (misplaced,) if wrong_axis == "Y" else (real,),
+        "source": "profile",
+    }
+    with pytest.raises(ValueError, match=f"UnfoldedBlankTopology {wrong_axis}"):
+        UnfoldedBlankTopology(**kwargs)
