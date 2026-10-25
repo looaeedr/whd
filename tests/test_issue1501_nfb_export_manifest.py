@@ -395,6 +395,93 @@ def test_ac38_current_receiving_source_guards_only_actual_parts_and_side(
         stale.require_export(("inner1",), partial=True)
 
 
+
+@pytest.mark.parametrize(
+    ("case", "expected_status", "allowed", "count"),
+    (
+        ("upper_only", (READY, UNAFFECTED, UNAFFECTED), ("inner1", "base1", "side1"), 6),
+        ("upper_and_base", (READY, BLOCKED, UNAFFECTED), ("inner1", "side1"), 5),
+        ("no_upper", (BLOCKED, UNAFFECTED, UNAFFECTED), ("base1", "side1"), 4),
+        ("unknown_aci", (BLOCKED, BLOCKED, UNAFFECTED), ("side1",), 3),
+        ("source_missing", (BLOCKED, BLOCKED, UNAFFECTED), ("side1",), 3),
+    ),
+)
+def test_ac44_live_source_partial_must_not_masquerade_as_whole_export(
+    tmp_path, case, expected_status, allowed, count,
+):
+    """Original DXF reader → saved Bay → real-part manifest → export gate.
+
+    A historical Color150 source alone never creates Receiving middle plate.
+    Current numeric CSV V5 and the real output writer have their independent
+    approval requirements. This proves manifest scope only, not factory NC.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+
+    opts = _prepared(tmp_path)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    source = tmp_path / "ac44_actual_source.dxf"
+    dxf = ezdxf.new("R2010")
+    msp = dxf.modelspace()
+    if case not in ("no_upper",):
+        msp.add_lwpolyline(
+            ((0, 0), (57, 0), (57, 96), (0, 96)),
+            close=True, dxfattribs={"color": 150},
+        )
+    if case == "upper_and_base":
+        msp.add_circle((12, 18), 2, dxfattribs={"color": 30})
+    if case == "unknown_aci":
+        msp.add_line((1, 1), (3, 3), dxfattribs={"color": 0})
+    if case == "no_upper":
+        msp.add_line((0, 0), (1, 0), dxfattribs={"color": 3})
+    dxf.saveas(source)
+    observed = inspect_nfb_dxf_source(source)
+    opts.update(
+        source_path=source,
+        source_inventory=observed,
+        verified_inner_door=replace(
+            opts["verified_inner_door"],
+            source_sha256=observed.source_sha256,
+        ),
+    )
+    if case == "source_missing":
+        source.unlink()
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    assert set(row.part_id for row in manifest.rows) == {
+        "inner1", "base1", "side1"
+    }
+    assert tuple(
+        next(row for row in manifest.rows if row.part_id == part_id).status
+        for part_id in ("inner1", "base1", "side1")
+    ) == expected_status
+    assert manifest.authorized_part_ids == allowed
+    assert manifest.actual_export_count == count
+    assert manifest.held_actual_count == 6 - count
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+    assert manifest.report()["assembly_status"] == (
+        "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    )
+    if case != "upper_only":
+        assert manifest.partial_only and not manifest.whole_ready
+        with pytest.raises(ValueError, match="whole manufacturing not ready|partial only"):
+            manifest.require_export(allowed, partial=False)
+        for part in manifest.held_rows:
+            with pytest.raises(ValueError, match="BLOCKED"):
+                manifest.require_export((part.part_id,), partial=True)
+    else:
+        assert manifest.whole_ready
+        assert manifest.require_export(
+            ("inner1", "base1", "side1"), partial=False
+        ) == ("inner1", "base1", "side1")
+
+
 @pytest.mark.parametrize("invalid_flag", (0, 1, None, "", "true", [], {}))
 def test_ac39_partial_export_requires_explicit_boolean(invalid_flag, tmp_path):
     manifest = derive_nfb_partial_export_manifest(**_prepared(tmp_path))
