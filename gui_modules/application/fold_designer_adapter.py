@@ -836,9 +836,12 @@ class Phase6FoldDesignerComposition:
                     )
                     if not root_visible:
                         keys = tuple(k for k in keys if k not in tier_keys)
+                visible_getter = getattr(owner, "is_fixing_plate_visible", None)
                 return AssemblyVisibility(
                     keys, box_pieces,
-                    show_fixing_plate_mesh=owner.is_fixing_plate_visible(),
+                    show_fixing_plate_mesh=(
+                        bool(visible_getter()) if callable(visible_getter) else True
+                    ),
                 )
             visible_vars = getattr(app, "assembly_part_visible_vars", None) or {}
             piece_vars = getattr(app, "assembly_box_body_piece_visible_vars", None) or {}
