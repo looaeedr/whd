@@ -609,3 +609,29 @@ def test_r5_79_invalid_explicit_reference_anchor_never_silently_moves_origin(sav
     corrupt = replace(circle, source_params=(("reference_anchor", saved),))
     with pytest.raises(ValueError, match="reference_anchor"):
         feature_reference_anchor(corrupt)
+
+
+def test_r5_73_readonly_mapping_hole_projects_identically_to_mutable_source():
+    """A real manufactured sheet must retain a hole saved as MappingProxyType."""
+    from ae_engine.manufacturing_render_data import PartRenderData
+    from ae_engine.physical_sheet_features import with_physical_sheet_features
+    from ae_engine.sheetmetal_drawing import DrawingScene, CirclePrimitive
+    from shapely.geometry import Polygon
+
+    outline = ((0., 0.), (200., 0.), (200., 100.), (0., 100.))
+    scene = DrawingScene()
+    scene.add_polyline(outline, layer="CUTTING", closed=True)
+    original = PartRenderData(scene=scene, material=Polygon(outline))
+    saved_hole = {
+        "type": "圓形", "x": 60., "y": 40.,
+        "params": {"diameter": 10.},
+    }
+    readonly = MappingProxyType(saved_hole)
+    mapped = with_physical_sheet_features("base_plate", original, (readonly,))
+    mutable = with_physical_sheet_features("base_plate", original, (saved_hole,))
+    assert mapped.scene.primitives == mutable.scene.primitives
+    assert mapped.material.area == pytest.approx(mutable.material.area)
+    assert mapped.material.area < original.material.area
+    assert any(isinstance(x, CirclePrimitive) for x in mapped.scene.primitives)
+    assert saved_hole["params"]["diameter"] == 10.
+    assert len(original.scene.primitives) == 1
