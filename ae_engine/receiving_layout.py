@@ -42,6 +42,10 @@ def _number(value: object, *, label: str) -> float:
 
 
 def _stable_id(value: object, *, label: str) -> str:
+    # Boolean values are not persisted physical part identities: True would
+    # otherwise silently become the apparently valid stable_id "True".
+    if isinstance(value, bool):
+        raise ValueError(f"{label} stable_id must not be boolean")
     result = str(value or "").strip()
     if not result:
         raise ValueError(f"{label} stable_id must not be empty")
