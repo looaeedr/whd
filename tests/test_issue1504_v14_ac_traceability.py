@@ -138,7 +138,20 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
         if "current_scope_correction" in row:
             assert 1502 in row["owning_issues"]
             assert row["current_scope_correction"]["issue"] == 1502
-            assert row["accepted"] is False
+            if row["accepted"]:
+                # Only individually source-audited corrected ACs may advance:
+                # the old illustrated Receiving middle plate must NEVER be
+                # silently restored merely to collect a manufacturing GREEN.
+                assert row["id"] == "NFB-AC-38"
+                assert row["historical_pre_current_review"].get("accepted", False) is False
+                proof = row["acceptance_evidence"]
+                assert proof["original_ac_text_unchanged"] is True
+                assert proof["source_sha_pins_unchanged"] is True
+                assert proof["factory_release"] is False
+                assert proof["unconditional_mfg2_release"] is False
+                assert proof["other_ac_signoff_implied"] is False
+            else:
+                assert row["accepted"] is False
 
 
 def test_manifest_review_summary_is_recomputed_from_records():
@@ -1340,3 +1353,51 @@ def test_swt10_native_one_live_config_proves_csv_holes_and_ear_side_source():
         "RELOADED_LEFT_RIGHT_EAR_MARKING_MISSING",
     ):
         assert actual_seam in original_gui, actual_seam
+
+
+def test_ac38_current_physical_dependency_signoff_requires_runtime_guards():
+    """Never let a source inventory or a fake middle-only fixture sign AC38."""
+    row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-38")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == (
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+    )
+    assert row["requirement"].startswith("已提交配置對應內門必相依")
+    proof = row["acceptance_evidence"]
+    for limitation in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+    ):
+        assert proof[limitation] is False
+    assert len(proof["requirement_witnesses"]) == 3
+    from tools.product_ci_regression import PYTEST_PATHS
+    for ref in (proof["primary_assertion"], *proof["other_required_assertions"]):
+        path, name = ref.split("::", 1)
+        assert path in PYTEST_PATHS
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert name in {
+            n.name for n in tree.body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, ref
+    primary = (ROOT / row["identified_test_functions"][0]["path"]).read_text(
+        encoding="utf-8"
+    )
+    for actual_assertion in (
+        "test_ac38_current_receiving_source_guards_only_actual_parts_and_side",
+        "inspect_nfb_dxf_source(source)",
+        "set(decisions) == {\"inner1\", \"base1\", \"side1\"}",
+        "manifest.actual_export_count == expected_count",
+        "manifest.require_export((\"side1\",), partial=True)",
+        "SOURCE_REPLACED",
+        "stale.authorized_part_ids == (\"side1\",)",
+        "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED",
+    ):
+        assert actual_assertion in primary
+    native = (
+        ROOT / "tests/test_issue1503_single_gui_real_tier_2d3d.py"
+    ).read_text(encoding="utf-8")
+    assert "designer.output_export_button.invoke()" in native
+    assert "derive_receiving_ear_side_contact_from_formed_skin" in native
+    assert "ezdxf.readfile(path)" in native

@@ -303,6 +303,98 @@ def test_ac38_real_dxf_color_inventory_drives_physical_partial_manifest(
     assert not revoked.whole_ready
 
 
+
+@pytest.mark.parametrize(
+    ("aci30", "aci212", "unresolved", "expected_base", "expected_count"),
+    (
+        (False, False, False, UNAFFECTED, 6),
+        (True, False, False, BLOCKED, 5),
+        (False, True, False, BLOCKED, 5),
+        (False, False, True, BLOCKED, 3),
+    ),
+)
+def test_ac38_current_receiving_source_guards_only_actual_parts_and_side(
+    tmp_path, aci30, aci212, unresolved, expected_base, expected_count,
+):
+    """One submitted Bay, one source, real DXF parsing and only actual parts.
+
+    Historic middle-plate role is NOT silently added to today's Receiving.
+    Real unapproved color evidence holds the Base only; unrelated physically
+    present SIDE is independently verifiable, never collateral damage.
+    This does not certify factory welding or arbitrary V5 models.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+
+    options = _prepared(tmp_path)
+    options["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    options["actual_parts"] = tuple(
+        item for item in options["actual_parts"] if item.part_id != "middle1"
+    )
+    source = tmp_path / "ac38_physical_dxf.dxf"
+    document = ezdxf.new("R2010")
+    sheet = document.modelspace()
+    sheet.add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    if aci30:
+        sheet.add_circle((3, 4), 2, dxfattribs={"color": 30})
+    if aci212:
+        sheet.add_line((1, 2), (8, 2), dxfattribs={"color": 212})
+    if unresolved:
+        sheet.add_line((5, 5), (6, 6), dxfattribs={"color": 0})
+    document.saveas(source)
+    source_inv = inspect_nfb_dxf_source(source)
+    options.update(
+        source_path=source,
+        source_inventory=source_inv,
+        verified_inner_door=replace(
+            options["verified_inner_door"],
+            source_sha256=source_inv.source_sha256,
+        ),
+    )
+    manifest = derive_nfb_partial_export_manifest(**options)
+    decisions = {row.part_id: row for row in manifest.rows}
+    assert set(decisions) == {"inner1", "base1", "side1"}
+    assert decisions["base1"].status == expected_base
+    assert decisions["side1"].status == UNAFFECTED
+    assert decisions["side1"].actual_count == 3
+    assert manifest.actual_export_count == expected_count
+    assert manifest.held_actual_count == 6 - expected_count
+    assert manifest.report()["assembly_status"] != "COMPLETE"
+    assert not any("MIDDLE_PLATE" in token for token in manifest.unresolved_dependencies)
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+    if unresolved:
+        assert decisions["inner1"].status == BLOCKED
+        assert "NFB_SOURCE_COLOR_SCOPE_UNKNOWN" in manifest.unresolved_dependencies
+    else:
+        assert decisions["inner1"].status == READY
+        assert manifest.require_export(("inner1", "side1"), partial=True) == (
+            "inner1", "side1",
+        )
+    if expected_base == BLOCKED:
+        with pytest.raises(ValueError, match="BLOCKED"):
+            manifest.require_export(("base1",), partial=True)
+
+    # A changed original source revokes any previously READY inner/Base
+    # while retaining only the real independent SIDE; never treat an old
+    # source inventory's zero Color30 as a valid present-source zero.
+    source.write_bytes(source.read_bytes() + b"\nSOURCE_REPLACED")
+    stale = derive_nfb_partial_export_manifest(**options)
+    assert stale.authorized_part_ids == ("side1",)
+    assert stale.actual_export_count == 3
+    assert stale.held_actual_count == 3
+    assert stale.partial_only
+    assert "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in stale.unresolved_dependencies
+    with pytest.raises(ValueError, match="BLOCKED"):
+        stale.require_export(("inner1",), partial=True)
+
+
 @pytest.mark.parametrize("invalid_flag", (0, 1, None, "", "true", [], {}))
 def test_ac39_partial_export_requires_explicit_boolean(invalid_flag, tmp_path):
     manifest = derive_nfb_partial_export_manifest(**_prepared(tmp_path))

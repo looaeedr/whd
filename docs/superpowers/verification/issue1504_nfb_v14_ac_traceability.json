@@ -22,10 +22,10 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 56,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 57,
     "BLOCKED_1500_REAL_GUI": 17,
     "EVIDENCE_CANDIDATE_ONLY": 6,
-    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 6,
+    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 5,
     "DEFERRED_PRODUCT_EVIDENCE": 3
   },
   "records": [
@@ -1787,31 +1787,95 @@
         "tests/test_issue1502_nfb_ear_base_assembly_contract.py",
         "tests/test_issue1502_nfb_finalscene_composite.py",
         "tests/test_issue1502_nfb_middle_3d_witness.py",
-        "tests/test_issue1502_nfb_middle_plate_physical_shadow.py"
+        "tests/test_issue1502_nfb_middle_plate_physical_shadow.py",
+        "tests/test_issue1501_nfb_export_manifest.py",
+        "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+        "tests/test_issue1501_live_partial_writer.py",
+        "tests/test_issue1501_nfb_manifest_ui.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "current_scope_correction": {
         "issue": 1502,
         "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
       },
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1498_nfb_part_readiness.py",
-          "test_name": "test_real_base_color30_and_marking212_have_specific_base_dependency",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1501_nfb_export_manifest.py",
+          "test_name": "test_ac38_current_receiving_source_guards_only_actual_parts_and_side",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
       "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT Receiving has no separate middle plate. Color150 can remain an original/source classification elsewhere but MUST NOT fabricate a Receiving 中板. Current committed brand numeric CSV and actual material/real plate dependents own CUTTING/guard, not mandatory old model DXF Color30/150.",
         "authority_issue": 1502
+      },
+      "historical_pre_current_review": {
+        "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1498_nfb_part_readiness.py",
+            "test_name": "test_real_base_color30_and_marking212_have_specific_base_dependency",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
+        "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34"
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_RECEIVING_PHYSICAL_PART_GUARD__SOURCE_OBSERVED_CLOSED_DXF_AND_NUMERIC_CSV_V5_NATIVE_GUI__ACTUAL_INNER_AND_BASE_AND_SIDE_NO_FABRICATED_MIDDLE__NO_UNCONDITIONAL_MFG2",
+        "primary_assertion": "tests/test_issue1501_nfb_export_manifest.py::test_ac38_current_receiving_source_guards_only_actual_parts_and_side",
+        "other_required_assertions": [
+          "tests/test_issue1501_nfb_export_manifest.py::test_ac38_real_dxf_color_inventory_drives_physical_partial_manifest",
+          "tests/test_issue1498_nfb_part_readiness.py::test_unknown_missing_and_ambiguous_sources_are_unknown_not_zero",
+          "tests/test_issue1501_live_partial_writer.py::test_actual_dxf_writer_emits_only_verified_inner_cutting_and_reports_partial",
+          "tests/test_issue1501_nfb_manifest_ui.py::test_live_highlighted_manifest_discloses_real_scope_parts_and_blocked_reason",
+          "tests/test_issue1503_single_gui_real_tier_2d3d.py::test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft",
+          "tests/test_issue1502_nfb_base_batch_export_gate.py::test_one_unreleased_base_rejects_entire_multi_bay_export_before_io"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "已提交配置對應內門必相依；型號未選或來源解析失敗阻斷實際相依底板",
+            "proof": "Actual source-inspected DXF and saved NFB Bay physical scope; changed SHA, unresolved BYBLOCK color, missing source, stale model or hole location fail closed before DXF authorization. Original native GUI current numeric CSV generates real physical inner door/BASE/EAR and emits original SIDE DXF."
+          },
+          {
+            "original_clause": "可信來源依Color30/150類別分流；已證明無相依則恢復匯出",
+            "proof": "Four real ezdxf source scenarios independently detect ACI30/212 and unknown, classify only actual inner1/base1, never create a Receiving middle plate; manifest count and partially authorized parts match real counts. Historic original DXF colors remain diagnostics; V5 numeric CSV is current model authority."
+          },
+          {
+            "original_clause": "EAR延期不阻斷原有側板、不連坐其他件/Bay",
+            "proof": "Independent SIDE source proof remains UNAFFECTED and 3 counted physical pieces, even after source changes; native Tk 2D/3D contact and original GUI SIDE DXF reopen, and multi-Bay negative atomic exporter guard preserve valid unrelated parts."
+          }
+        ],
+        "source_owner_paths": [
+          "ae_engine/receiving_nfb_part_readiness.py::derive_nfb_part_readiness",
+          "ae_engine/receiving_nfb_export_manifest.py::derive_nfb_partial_export_manifest",
+          "ae_engine/receiving_nfb_dxf_source.py::inspect_nfb_dxf_source",
+          "gui_modules/project/export_actions.py::_export_selected_resolved_parts"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "pad_unconditional_approved": false,
+        "welding_workmanship_certified": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "exact_head_ci_and_localx_readback_required": true
       }
     },
     {
@@ -4307,7 +4371,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 56/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 32 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 57/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 31 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
