@@ -488,7 +488,7 @@ def resize_receiving_bays(
     """Resize canonical topology; skip redundant hidden panel refresh in modal."""
     switch = self.receiving_switch_adapter(namespace)
     if not switch.resize_connections(
-        int(layer_index), int(delta)
+        layer_index, delta,
     ):
         return False
     self.mark_receiving_switch_layout_dirty(namespace, switch)
