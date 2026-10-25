@@ -132,3 +132,24 @@ def test_r6_public_backprojection_noniterable_sources_fail_closed(
     assert valid.status == "RESOLVED"
     assert len(valid.flat_points) == 1
     assert valid.flat_points[0] == pytest.approx((1., 1.))
+
+
+@pytest.mark.parametrize("invalid_side", ["world", "flat"])
+def test_r6_bool_mapped_skin_vertex_cannot_become_physical_marking_uv(invalid_side):
+    """A bool in real formed triangle authority cannot be coerced to 0/1 mm."""
+    from ae_engine.assembly_marking_geometry import backproject_mapped_skin_world_points
+    flat = ((0., 0.), (4., 0.), (0., 2.))
+    world = ((0., 0., 0.), (4., 0., 0.), (0., 2., 0.))
+    assert backproject_mapped_skin_world_points(
+        (MappedSkinTriangle(flat=flat, world=world, side=1),), ((1., 1., 0.),),
+    ).status == "RESOLVED"
+    if invalid_side == "world":
+        world = ((False, 0., 0.),) + world[1:]
+    else:
+        flat = ((False, 0.),) + flat[1:]
+    result = backproject_mapped_skin_world_points(
+        (MappedSkinTriangle(flat=flat, world=world, side=1),), ((1., 1., 0.),),
+    )
+    assert result.status == "SKIPPED_FAIL_CLOSED"
+    assert result.diagnostic_code == "BACKPROJECTION_FAILED"
+    assert result.flat_points == ()
