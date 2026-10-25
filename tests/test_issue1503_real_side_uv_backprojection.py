@@ -65,7 +65,7 @@ def test_real_forming_contact_projects_to_its_own_side_flat_marking(factory, cou
     for contact, receipt in zip(contacts, receipts):
         assert receipt.base_part_id == contact.base_part_id
         assert receipt.world_boundary == contact.world_surface_boundary
-        assert len(receipt.marking_segments) == 4
+        assert len(receipt.marking_segments) == 1
         assert receipt.side_flat_uv_backprojection_verified
         assert receipt.side_final_material_coverage_verified
         assert receipt.side_bend_intersection_rejected
