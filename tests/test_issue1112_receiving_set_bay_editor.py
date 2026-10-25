@@ -498,3 +498,61 @@ def test_issue1504_dimension_batch_huge_axis_is_atomic(axis):
     assert adapter.layout == before
     assert adapter.selection == selection
     assert adapter._session_dirty_ids == set()
+
+
+@pytest.mark.parametrize("bad_indices", (
+    None, 1, [0, []], [[], 0], [0, True], [0, 1.0],
+    [0, "1"], [0, {"id": 1}], [0, 999], [0, -1],
+))
+def test_issue1504_shared_setting_rejects_bad_real_bay_highlights(bad_indices):
+    """Sharing physical Bay settings never hashes malformed source selection."""
+    from ae_engine.receiving_shared_settings import share_setting
+
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    before = deepcopy(layout)
+    with pytest.raises(IndexError, match="連選取超出範圍"):
+        share_setting(
+            layout, set_index=0, source_bay_index=0,
+            bay_indices=bad_indices, kind="inner_door_layers",
+        )
+    assert layout == before
+
+
+@pytest.mark.parametrize("bad_source", (None, True, False, 0.0, [], {}))
+def test_issue1504_shared_setting_rejects_bad_source_bay_identity(bad_source):
+    from ae_engine.receiving_shared_settings import share_setting
+
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    before = deepcopy(layout)
+    with pytest.raises(IndexError, match="連選取超出範圍"):
+        share_setting(
+            layout, set_index=0, source_bay_index=bad_source,
+            bay_indices=(0, 1), kind="inner_door_layers",
+        )
+    assert layout == before
+
+
+def test_issue1504_shared_setting_preserves_valid_multi_bay_reference_sharing():
+    from ae_engine.receiving_shared_settings import share_setting, setting_value
+
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
+    before = deepcopy(layout)
+    # Valid duplicate selection is still deduplicated, not interpreted as a
+    # request to share a different physical Bay.
+    changed = share_setting(
+        layout, set_index=0, source_bay_index=0,
+        bay_indices=(2, 0, 2), kind="inner_door_layers",
+    )
+    row = changed["sets"][0]
+    assert row["settings"]["inner_door_layers"]["refs"][
+        row["bays"][0]["stable_id"]
+    ] == row["settings"]["inner_door_layers"]["refs"][
+        row["bays"][2]["stable_id"]
+    ]
+    assert row["settings"]["inner_door_layers"]["refs"][
+        row["bays"][1]["stable_id"]
+    ] != row["settings"]["inner_door_layers"]["refs"][
+        row["bays"][0]["stable_id"]
+    ]
+    assert setting_value(row, 2, "inner_door_layers") == 1
+    assert layout == before
