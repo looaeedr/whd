@@ -1658,3 +1658,49 @@ def test_ac55_current_raw_dxf_source_to_operator_manifest_signoff_is_not_fake_mf
         "SOURCE_MISSING_UNKNOWN",
     ):
         assert proof in body
+
+
+def test_swt16_current_two_unit_batch_signed_only_with_true_manufacturing_collision_proof():
+    """No batch X confirmation can bypass either unit's source geometry."""
+    row = next(x for x in _data()["records"] if x["id"] == "SWT-AC-16")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    proof = row["acceptance_evidence"]
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert len(proof["requirement_witnesses"]) == 2
+    for name in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "formal_x_published",
+        "source_fixture_manufacturer_original_certified",
+        "all_model_width_x_certified", "original_windows_native_operator_manufacturing_tested",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+    ):
+        assert proof[name] is False
+    from tools.product_ci_regression import PYTEST_PATHS
+    for ref in (proof["primary_assertion"], *proof["other_required_assertions"]):
+        path, name = ref.split("::", 1)
+        assert path in PYTEST_PATHS
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert name in {
+            node.name for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, ref
+    source = (ROOT / "tests/test_issue1500_nfb_transactions.py").read_text(
+        encoding="utf-8"
+    )
+    for marker in (
+        "test_swt16_two_real_source_cuttings_require_independent_x_reconfirm_and_collision_gate",
+        "configured_nfb_inner_door_render_data(",
+        "inspect_nfb_dxf_source(source)",
+        '"RECONFIRM_REQUIRED"',
+        'assert consent == []',
+        'assert len(review[0].operator_x_changes) == 2',
+        'assert len(outlines) == 3',
+        'assert undo_nfb_transaction(committed.layout, committed.receipt) == frozen',
+        "save_configured_nfb_inner_door_dxf(",
+        "assert not invalid_target.exists()",
+    ):
+        assert marker in source

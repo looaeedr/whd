@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 62,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 63,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 5,
+    "EVIDENCE_CANDIDATE_ONLY": 4,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 1,
     "DEFERRED_PRODUCT_EVIDENCE": 3
   },
@@ -3710,21 +3710,81 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1500_nfb_transactions.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py",
+        "tests/test_issue1504_ac32_nfb_x_impact_operator.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_transactions.py",
+          "test_name": "test_swt16_two_real_source_cuttings_require_independent_x_reconfirm_and_collision_gate",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_pre_current_review": {
+        "status": "EVIDENCE_CANDIDATE_ONLY",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1499_nfb_persistence.py",
+            "test_name": "test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_APPROVED_PER_MODEL_W800_SHIHLIN_SYNTHETIC_SOURCE_DXF_TWO_PHYSICAL_NFB_UNITS_IN_ONE_BAY__ORIGINAL_TK_ATOMIC_RECONFIRM_DIFFERENCES__REAL_FINISHED_INNER_DOOR_CUTTING_COLLISION_PREVENTS_BATCH_EXPORT__NO_BLANKET_WORLD_X",
+        "primary_assertion": "tests/test_issue1500_nfb_transactions.py::test_swt16_two_real_source_cuttings_require_independent_x_reconfirm_and_collision_gate",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_source_gate",
+          "tests/test_issue1500_nfb_transactions.py::test_ac28_two_units_one_bay_one_invalid_cannot_batch_confirm",
+          "tests/test_issue1500_nfb_transactions.py::test_ac28_operator_preview_compares_existing_confirmed_x_and_datum_before_consent",
+          "tests/test_issue1497_configured_nfb_manufacturing_release.py::test_missing_absolute_x_invalid_y_and_geometry_collision_fail_no_output",
+          "tests/test_issue1497_nfb_cutting_preflight.py::test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap",
+          "tests/test_issue1499_nfb_persistence.py::test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
+          "tests/test_issue1504_ac32_nfb_x_impact_operator.py::test_ac32_compact_original_tk_ui_exposes_affected_count_and_reachable_undo"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "新X基準需逐顆或Bay/配置批次重確認",
+            "proof": "Two separate source-derived physical NFB upper CUTTINGs in one submitted Bay. Fresh first X0 CONFIRMED and second X180 RECONFIRM_REQUIRED fails BEFORE operator callback or mutation; per-hole reconfirmation becomes eligible only after explicit operator confirmation via existing UI-1B preview/transaction; Cancel leaves original unchanged, Confirm records both independent source X values and Undo restores original state. Existing true native Tk AC28 per-hole warning displays both IDs and X old→new."
+          },
+          {
+            "original_clause": "確認後仍逐顆驗證，不得跳過干涉檢查",
+            "proof": "Same runtime configured inner-door manufacturing source builds physically two distinct CUTTING profiles with indexed brand/model, SHA and validated per-hole x/slot/rotation. Changed second displacement to 5 mm collides with first and original save DXF raises before any output. Typed transaction also rejects wrong X, rotation or physical ID for any unit atomically. Manufacturer source fixture is generated in CI, not arbitrary real originals."
+          }
+        ],
+        "source_owner_paths": [
+          "ae_engine/receiving_nfb_manufacturing_release.py::configured_nfb_inner_door_render_data",
+          "ae_engine/receiving_nfb_manufacturing_release.py::save_configured_nfb_inner_door_dxf",
+          "ae_engine/receiving_nfb_transactions.py::submit_nfb_bays",
+          "ae_engine/receiving_nfb_transactions.py::_verify_hole_locations",
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "source_fixture_manufacturer_original_certified": false,
+        "all_model_width_x_certified": false,
+        "original_windows_native_operator_manufacturing_tested": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "SWT-AC-17",
@@ -4695,7 +4755,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 62/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 26 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 63/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 25 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
