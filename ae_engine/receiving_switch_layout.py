@@ -20,7 +20,9 @@ def _brand(value: object) -> str:
     # false/zero/nontext brand must never silently select another factory.
     if value is not None and not isinstance(value, str):
         raise ValueError(f"unsupported Receiving switch brand: {value!r}")
-    text = str(value or RECEIVING_SWITCH_BRANDS[0]).strip()
+    # Only an absent value means the historical default. An explicitly
+    # saved empty string is corrupt vendor authority, not a default request.
+    text = RECEIVING_SWITCH_BRANDS[0] if value is None else value.strip()
     if text not in RECEIVING_SWITCH_BRANDS:
         raise ValueError(f"unsupported Receiving switch brand: {value!r}")
     return text
