@@ -142,7 +142,7 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
                 # Only individually source-audited corrected ACs may advance:
                 # the old illustrated Receiving middle plate must NEVER be
                 # silently restored merely to collect a manufacturing GREEN.
-                assert row["id"] == "NFB-AC-38"
+                assert row["id"] in {"NFB-AC-38", "SWT-AC-21"}
                 assert row["historical_pre_current_review"].get("accepted", False) is False
                 proof = row["acceptance_evidence"]
                 assert proof["original_ac_text_unchanged"] is True
@@ -1401,3 +1401,52 @@ def test_ac38_current_physical_dependency_signoff_requires_runtime_guards():
     assert "designer.output_export_button.invoke()" in native
     assert "derive_receiving_ear_side_contact_from_formed_skin" in native
     assert "ezdxf.readfile(path)" in native
+
+
+def test_swt21_full_current_source_dependency_requires_pending_x_and_absent_source_proofs():
+    """No AC21 signoff without numeric state, old datum and physical DXF gates."""
+    row = next(x for x in _data()["records"] if x["id"] == "SWT-AC-21")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert row["historical_pre_current_review"]["status"] == (
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+    )
+    proof = row["acceptance_evidence"]
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert len(proof["requirement_witnesses"]) == 2
+    for key in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+    ):
+        assert proof[key] is False
+    from tools.product_ci_regression import PYTEST_PATHS
+    for ref in (proof["primary_assertion"], *proof["other_required_assertions"]):
+        path, name = ref.split("::", 1)
+        assert path in PYTEST_PATHS
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert name in {
+            n.name for n in tree.body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, ref
+
+    source = (ROOT / "ae_engine/receiving_nfb_export_manifest.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'normalized_config = normalize_nfb_saved_fields(saved_bay)["nfb_config"]' in source
+    assert 'hole["manual_x_state"] != "CONFIRMED"' in source
+    assert "_verify_hole_locations(normalized_config,verified_inner_door)" in source
+    tests = (ROOT / row["identified_test_functions"][0]["path"]).read_text(
+        encoding="utf-8"
+    )
+    for witness in (
+        "test_swt21_unconfirmed_saved_world_x_never_reuses_old_manufacturing_proof",
+        "RECONFIRM_REQUIRED",
+        "test_swt21_saved_x_datum_drift_is_normalized_before_manufacturing",
+        "test_swt21_missing_committed_source_or_slot_never_authorizes_dependent_parts",
+        "manifest.authorized_part_ids == (\"side1\",)",
+        "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING",
+    ):
+        assert witness in tests
