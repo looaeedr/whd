@@ -126,3 +126,13 @@ def test_r5_91_malformed_inner_door_lower_role_fails_without_rebinding(malformed
     with pytest.raises(ValueError, match="invalid inner-door lower_frame_role"):
         _normalize_authoritative_door_state(saved)
     assert saved["inner_doors"][0]["lower_frame_role"] is malformed_role
+
+
+@pytest.mark.parametrize("field", ["stable_id", "cell_key"])
+@pytest.mark.parametrize("bad", [True, False])
+def test_r5_91_saved_inner_door_bool_identity_never_becomes_project_authority(field, bad):
+    saved = {"inner_doors": [{"stable_id": "upper", "cell_key": "0:0"}]}
+    saved["inner_doors"][0][field] = bad
+    with pytest.raises(ValueError, match="invalid inner-door identity"):
+        _normalize_authoritative_door_state(saved)
+    assert saved["inner_doors"][0][field] is bad
