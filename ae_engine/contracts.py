@@ -267,7 +267,10 @@ class AssemblyGeometryToleranceContract:
             raw = getattr(self, name)
             if isinstance(raw, bool):
                 raise ValueError(f"{name} must be a finite number > 0")
-            value = float(raw)
+            try:
+                value = float(raw)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(f"{name} must be a finite number > 0") from exc
             if not math.isfinite(value) or value <= 0.0:
                 raise ValueError(f"{name} must be a finite number > 0")
 
