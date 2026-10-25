@@ -156,3 +156,17 @@ def test_r5_91_physical_inner_door_panel_cell_identity_must_be_saved_text(bad_ce
     assert legitimate.cell_key == "0:0"
     assert legitimate.stable_id == "inner_door:upper:panel"
     assert legitimate.unfolded_width == pytest.approx(723.)
+
+
+@pytest.mark.parametrize("bad_id", [float("nan"), float("inf"), {}, ["upper"]])
+def test_r5_91_physical_inner_door_stable_id_must_be_real_source_identity(bad_id):
+    """NaN/object identities cannot own hole features or a manufactured panel."""
+    from ae_engine.inner_door_panels import derive_inner_door_panel
+    with pytest.raises(ValueError, match="inner_door_id"):
+        derive_inner_door_panel(
+            bad_id, cell_key="0:0", width=689., height=900., thickness=2.,
+        )
+    legacy_id = derive_inner_door_panel(
+        1, cell_key="0:0", width=689., height=900., thickness=2.,
+    )
+    assert legacy_id.stable_id == "inner_door:1:panel"
