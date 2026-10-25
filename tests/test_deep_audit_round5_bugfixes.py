@@ -548,3 +548,21 @@ def test_bug95_divider_valid_handle_edges_keep_original_geometry_and_depth_defau
     assert actual["handle_edges"] == {"0:0": "LEFT"}
     assert actual["columns"] == ((400., (600.,)),)
     assert (actual["depth"], actual["thickness"]) == (250., 2.)
+
+
+@pytest.mark.parametrize("malformed", [42, True, object()])
+def test_bug84_invalid_xy_mating_snapshot_cannot_escape_as_unhandled_typeerror(malformed):
+    """XY fitting needs authoritative cabinet W/T; nonmapping source fails closed."""
+    with pytest.raises(ValueError, match="FIXING_PLATE_GEOMETRY_NONFINITE"):
+        resolve_base_fixing_plate_xy_mating(malformed, side="left")
+
+
+def test_bug84_actual_xy_mating_still_requires_source_side_and_physical_dimensions():
+    with pytest.raises(ValueError, match="FIXING_PLATE_SIDE_INVALID"):
+        resolve_base_fixing_plate_xy_mating(
+            {"w": 800., "t": 2.}, side="center",
+        )
+    with pytest.raises(ValueError, match="FIXING_PLATE_GEOMETRY_NONFINITE"):
+        resolve_base_fixing_plate_xy_mating(
+            {"w": 800., "t": float("nan")}, side="left",
+        )
