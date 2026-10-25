@@ -65,10 +65,21 @@ def normalize_nfb_config(config):
     holes = value.get("holes")
     if not isinstance(holes, list) or not holes:
         raise ValueError("submitted NFBConfig requires explicit hole list")
+    # Old single-tier saved configs may omit this field. An explicit field
+    # is authoritative and must not let True == 1 or 1.0 == 1 borrow a tier.
+    layer_count = value.get("layer_count")
+    if ("layer_count" in value
+            and (type(layer_count) is not int or layer_count <= 0)):
+        raise ValueError("NFB layer_count must be an exact positive integer")
     seen = set()
     for hole in holes:
         if not isinstance(hole, dict):
             raise ValueError("NFBConfig hole must be an object")
+        if "layer_index" in hole:
+            tier_index = hole["layer_index"]
+            if (type(tier_index) is not int or tier_index < 0
+                    or (layer_count is not None and tier_index >= layer_count)):
+                raise ValueError("NFB layer_index must identify a saved physical tier")
         owner = hole.get("physical_hole_id")
         if (not isinstance(owner, str) or not owner.strip()
                 or owner != owner.strip() or owner in seen):
