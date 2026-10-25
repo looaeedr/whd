@@ -197,11 +197,17 @@ def set_structure_locked(state: Mapping[str, object] | None, locked: bool) -> di
 def _back_panel_mode(value) -> BackPanelMode:
     if isinstance(value, BackPanelMode):
         return value
-    text = str(value or "").strip().upper()
+    # Only the absence of legacy family data means FULL. An explicit corrupt
+    # saved value is not permission to change manufactured rear-panel geometry.
+    if value is None:
+        return BackPanelMode.FULL
+    if not isinstance(value, str):
+        raise ValueError(f"unsupported Receiving back-panel mode: {value!r}")
+    text = value.strip().upper()
     try:
         return BackPanelMode(text)
-    except ValueError:
-        return BackPanelMode.FULL
+    except ValueError as exc:
+        raise ValueError(f"unsupported Receiving back-panel mode: {value!r}") from exc
 
 
 def back_panel_mode(state: Mapping[str, object] | None) -> BackPanelMode:
