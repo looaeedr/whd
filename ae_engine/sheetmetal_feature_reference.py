@@ -227,6 +227,9 @@ def find_reference_neighbor(features: Iterable[Feature], current_index: int, anc
 
 def reference_distances(surface: FeatureSurface, features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, width: float, height: float, reference_guide: "RectGuide | None" = None) -> ReferenceDistances:
     items = list(features)
+    # A negative GUI selection is not a request for the last physical hole.
+    if type(current_index) is not int or not 0 <= current_index < len(items):
+        raise ValueError("reference feature index is out of range")
     feature = items[current_index]
     p = feature_reference_point(feature, anchor, width, height)
     x_side, y_side = reference_edge_directions(surface, feature, anchor, width, height, reference_guide)
