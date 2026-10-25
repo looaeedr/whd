@@ -142,7 +142,7 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
                 # Only individually source-audited corrected ACs may advance:
                 # the old illustrated Receiving middle plate must NEVER be
                 # silently restored merely to collect a manufacturing GREEN.
-                assert row["id"] in {"NFB-AC-38", "SWT-AC-21", "NFB-AC-44", "SWT-AC-32"}
+                assert row["id"] in {"NFB-AC-38", "SWT-AC-21", "NFB-AC-44", "SWT-AC-32", "NFB-AC-55"}
                 assert row["historical_pre_current_review"].get("accepted", False) is False
                 proof = row["acceptance_evidence"]
                 assert proof["original_ac_text_unchanged"] is True
@@ -1607,3 +1607,54 @@ def test_swt32_current_raw_dxf_to_actual_check_signoff_requires_exact_witness():
         "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED",
     ):
         assert required in test
+
+
+def test_ac55_current_raw_dxf_source_to_operator_manifest_signoff_is_not_fake_mfg2():
+    """Only source-owned physical counts and live warnings qualify, not MFG2."""
+    row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-55")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == (
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+    )
+    assert row["requirement"].startswith("逐型號盤點真實 NFB DXF")
+    e = row["acceptance_evidence"]
+    assert e["original_ac_text_unchanged"] is True
+    assert e["source_sha_pins_unchanged"] is True
+    assert len(e["requirement_witnesses"]) == 3
+    for name in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "all_24_manufacturer_original_raw_dxfs_certified",
+        "native_windows_operator_original_old_project_tested",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "integrated_localx_claimed", "formal_x_published",
+    ):
+        assert e[name] is False
+    from tools.product_ci_regression import PYTEST_PATHS
+    for ref in (e["primary_assertion"], *e["other_required_assertions"]):
+        path, test_name = ref.split("::", 1)
+        assert path in PYTEST_PATHS
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert test_name in {
+            x.name for x in tree.body
+            if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, ref
+    body = (ROOT / "tests/test_issue1501_nfb_manifest_ui.py").read_text(
+        encoding="utf-8"
+    )
+    for proof in (
+        "test_ac55_one_raw_dxf_inventory_reaches_current_bay_operator_warning_and_export_gate",
+        "build_source_coverage_report(",
+        "inspect_nfb_dxf_source(source)",
+        "derive_nfb_partial_export_manifest(**options)",
+        "highlighted_nfb_manifest_lines(",
+        "observed[\"manufacturing_ready\"] is False",
+        "manifest",
+        "SOURCE_IDENTITY_MISMATCH_UNKNOWN",
+        "None, None, None",
+        "stale.actual_export_count == 3",
+        "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED",
+        "SOURCE_MISSING_UNKNOWN",
+    ):
+        assert proof in body
