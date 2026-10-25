@@ -128,7 +128,7 @@ def test_native_gui_only_can_show_ear_over_existing_joint_mark_without_manufactu
     )
     assert tuple(owners[target.side_piece_id].scene.primitives) == baseline
     assert sum(p.layer == "MARKING" for scene in shown.values()
-               for p in scene.primitives) == 5  # 4 EAR upper marks + 1 existing independent mark
+               for p in scene.primitives) == 13  # 4 EARs x (upper + two 20-mm hints) + 1 existing mark
     # Display-only exception must NEVER admit CUTTING or source BEND clashes.
     owners[target.side_piece_id].scene.add_line(
         (x - 10., y), (x + 10., y), layer="CUTTING",
