@@ -33,6 +33,8 @@ class NfbTransactionPreview:
     blocking_reasons: tuple[str, ...]
     held_parts: tuple[str, ...] = ()
     dependency_warnings: tuple[str, ...] = ()
+    # Transient, validated operator preview; never a second saved X authority.
+    operator_x_changes: tuple[str, ...] = ()
     requires_confirmation: bool = True
 
     @property
@@ -197,9 +199,58 @@ def _ready(
     )
 
 
+def _operator_x_preview_rows(bay, config):
+    """Describe the actual saved-versus-verified NFB units before consent.
+
+    Read only the canonical saved Bay and the already validated incoming
+    config. This is an operator-facing diff, NEVER an additional datum or
+    manufacturing authorization. Include removals to avoid invisible losses.
+    """
+    # _selected() already returned a canonical normalized Bay. Avoid a
+    # second full NFB normalization merely to paint a confirmation message.
+    prior = bay.get("nfb_config") if bay.get("nfb_config_submitted") is True else None
+    prior = prior or {}
+    previous = {h["physical_hole_id"]: h for h in prior.get("holes", ())}
+    received = {h["physical_hole_id"] for h in config["holes"]}
+    bay_id = bay["stable_id"]
+    rows = []
+    for hole in config["holes"]:
+        hole_id = hole["physical_hole_id"]
+        old = previous.get(hole_id)
+        old_x = old.get("manual_x_mm") if old else "未配置"
+        old_revision = old.get("datum_revision", "未配置") if old else "未配置"
+        differences = []
+        if old is None:
+            differences.append("新增實體孔")
+        else:
+            if old.get("manual_x_mm") != hole["manual_x_mm"]:
+                differences.append("X 數值變更")
+            if old.get("datum_revision") != hole.get("datum_revision"):
+                differences.append("X 基準版次變更")
+            if old.get("datum_snapshot") != hole.get("datum_snapshot"):
+                differences.append("X 基準條件變更")
+            for key, label in (
+                ("model_filename", "型號"),
+                ("rotation_deg", "旋轉"),
+                ("slot_index", "槽位"),
+                ("manual_x_state", "確認狀態"),
+            ):
+                if old.get(key) != hole.get(key):
+                    differences.append(label + "變更")
+        rows.append(
+            f"{bay_id}／{hole_id}：X {old_x} → {hole['manual_x_mm']} mm；"
+            f"基準 {old_revision} → {hole.get('datum_revision')}；"
+            f"條件 {'、'.join(differences) if differences else '與前次相同'}"
+        )
+    for hole_id in previous:
+        if hole_id not in received:
+            rows.append(f"{bay_id}／{hole_id}：將移除原已提交實體孔")
+    return tuple(rows)
+
+
 def _preview(
     action: str, target_ids, *, source_id=None, readiness=(),
-    additionally_blocked=(),
+    additionally_blocked=(), operator_x_changes=(),
 ):
     affected, held, reasons, pending = [], [], list(additionally_blocked), []
     for result in readiness:
@@ -221,6 +272,7 @@ def _preview(
         blocking_reasons=tuple(dict.fromkeys(reasons)),
         held_parts=tuple(dict.fromkeys(held)),
         dependency_warnings=tuple(dict.fromkeys(pending)),
+        operator_x_changes=tuple(operator_x_changes),
     )
 
 
@@ -281,7 +333,7 @@ def submit_nfb_bays(
             or any(type(i) is not int for i in evidence)
             or set(configs) != set(indices) or set(evidence) != set(indices)):
         raise ValueError("NFB configs/evidence must cover exactly highlighted Bays")
-    plans, reports = [], []
+    plans, reports, operator_x_changes = [], [], []
     for bi in indices:
         config = normalize_nfb_config(configs[bi])
         bay = set_row["bays"][bi]
@@ -301,6 +353,7 @@ def submit_nfb_bays(
             config, set_id=set_row["stable_id"], bay_id=bay["stable_id"],
             version_id=version_id, door=door,
         )
+        operator_x_changes.extend(_operator_x_preview_rows(bay, config))
         reports.append(_ready(set_row, bay, version_id=version_id,
                               scope=scope, inventory=inventory,
                               verified_inner_door=door))
@@ -308,7 +361,8 @@ def submit_nfb_bays(
             "nfb_config_submitted": True, "nfb_config": config,
         }))
     preview = _preview("SUBMIT", [set_row["bays"][i]["stable_id"] for i in indices],
-                       readiness=reports)
+                       readiness=reports,
+                       operator_x_changes=operator_x_changes)
     return _apply(state, preview, plans, confirm=confirm)
 
 
@@ -374,6 +428,7 @@ def copy_submitted_nfb_bay(
     preview = _preview(
         "COPY_OVERWRITE" if _fact(target) else "COPY_SUBMIT",
         (target["stable_id"],),source_id=source["stable_id"],readiness=(readiness,),
+        operator_x_changes=_operator_x_preview_rows(target, configured),
     )
     return _apply(state,preview,((set_index,target_bay_index,{
         "nfb_config_submitted":True,"nfb_config":configured,

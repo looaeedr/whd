@@ -83,6 +83,9 @@ def test_gui_submit_cancel_copy_restore_undo_reuses_physical_bay_authority(monke
             impacted_parts=("inner_door:upper:panel",),
             held_parts=("base_plate:upper",),
             dependency_warnings=("PAD 尚未驗證",),
+            operator_x_changes=(
+                "bay-0／nfb:0:slot1：X 未配置 → 0 mm；基準 未配置 → w800t2；條件 新增實體孔",
+            ),
         )
 
     def transition(action, indices, confirm, mutator):
@@ -189,6 +192,9 @@ def test_gui_submit_cancel_copy_restore_undo_reuses_physical_bay_authority(monke
         assert all("影響板件" in p and "尚未製造放行" in p
                    for p in seen_previews[:4])
         assert all("PAD" in p for p in seen_previews[:4])
+        assert all("受影響 NFB／X 基準差異" in p for p in seen_previews[:4])
+        assert all("nfb:0:slot1" in p and "X 未配置 → 0 mm" in p
+                   for p in seen_previews[:4])
         win._receiving_multi_close()
     finally:
         root.destroy()

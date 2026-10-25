@@ -588,3 +588,61 @@ def test_ac28_huge_integer_cutting_x_blocks_batch_before_confirmation(huge_x):
     assert called == []
     assert original == frozen
     assert all("nfb_config" not in bay for bay in original["sets"][0]["bays"])
+
+
+def test_ac28_physical_unit_x_basis_preview_is_from_verified_transaction():
+    """Two-Bay operator review lists each real verified hole; cancel is atomic."""
+    source = layout()
+    before = deepcopy(source)
+    previews = []
+    result = submit_nfb_bays(
+        source, set_index=0, bay_indices=(0, 1), version_id="v1",
+        configs={
+            0: config(x=0, owner="nfb:0:slot1"),
+            1: config(x=100, owner="nfb:1:slot1"),
+        },
+        evidence={
+            0: evidence(source, 0, x=0),
+            1: evidence(source, 1, x=100),
+        },
+        confirm=lambda row: previews.append(row) or False,
+    )
+    assert result.changed is False
+    assert result.receipt is None
+    assert result.layout == before == source
+    assert len(previews) == 1
+    rows = previews[0].operator_x_changes
+    assert len(rows) == 2
+    assert source["sets"][0]["bays"][0]["stable_id"] in rows[0]
+    assert source["sets"][0]["bays"][1]["stable_id"] in rows[1]
+    assert "nfb:0:slot1" in rows[0] and "X 未配置 → 0 mm" in rows[0]
+    assert "nfb:1:slot1" in rows[1] and "X 未配置 → 100 mm" in rows[1]
+    assert all("基準 未配置 → w800t2" in row for row in rows)
+    assert all("新增實體孔" in row for row in rows)
+
+
+def test_ac28_operator_preview_compares_existing_confirmed_x_and_datum_before_consent():
+    """Old/new datum and X changes must be visible without new saved fields."""
+    original = layout()
+    first = do_submit(original)
+    before = deepcopy(first.layout)
+    changed = config(x=25)
+    changed["holes"][0]["datum_revision"] = "w800t2-revised"
+    changed["holes"][0]["datum_snapshot"]["operator_scope"] = "new-review"
+    observed = []
+    outcome = submit_nfb_bays(
+        before, set_index=0, bay_indices=(0,), version_id="v1",
+        configs={0: changed},
+        evidence={0: evidence(before, 0, x=25)},
+        confirm=lambda preview: observed.append(preview) or False,
+    )
+    assert outcome.changed is False and outcome.layout == before
+    assert len(observed) == 1
+    diff = observed[0].operator_x_changes
+    assert len(diff) == 1
+    assert "X 0 → 25 mm" in diff[0]
+    assert "基準 w800t2 → w800t2-revised" in diff[0]
+    assert "X 數值變更" in diff[0]
+    assert "X 基準版次變更" in diff[0]
+    assert "X 基準條件變更" in diff[0]
+    assert "operator_x_changes" not in str(outcome.layout)
