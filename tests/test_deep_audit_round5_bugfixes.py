@@ -566,3 +566,27 @@ def test_bug84_actual_xy_mating_still_requires_source_side_and_physical_dimensio
         resolve_base_fixing_plate_xy_mating(
             {"w": 800., "t": float("nan")}, side="left",
         )
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf"), "invalid"])
+def test_bug88_hole_editor_canvas_rect_rejects_nonphysical_screen_coordinates(bad):
+    """Corrupt saved contours must not pass NaN/bool to Tk floating overlays."""
+    view = Phase6HoleEditorCanvasView(
+        canvas=SimpleNamespace(),
+        draw_grid=lambda: None,
+        render_secondary_scene=lambda *args: None,
+        render_resolved_features=lambda *args: None,
+    )
+    view.transform = SimpleNamespace(world_to_canvas=lambda pt: (pt.x, pt.y))
+    bad_profile = ResolvedProfile(
+        points=(), layer="FROM_DXF", source_type="saved",
+        layered_profiles=(
+            ("CUTTING", (Vec2(bad, 2.0), Vec2(20.0, 30.0)), False),
+        ),
+    )
+    assert view._resolved_canvas_rect(bad_profile) is None
+    valid_profile = ResolvedProfile(
+        points=(), layer="FROM_DXF", source_type="saved",
+        layered_profiles=(("CUTTING", (Vec2(1., 2.), Vec2(20., 30.)), False),),
+    )
+    assert view._resolved_canvas_rect(valid_profile) == (1., 2., 20., 30.)
