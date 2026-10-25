@@ -464,3 +464,43 @@ def test_r3_8_all_current_side_dxf_sinks_check_full_marking_scene():
         assert calls, f"No MARKING readback call: {path}"
         assert all(any(arg.arg == "check_scene" for arg in call.keywords)
                    for call in calls), f"EAR-only readback: {path}"
+
+
+@pytest.mark.parametrize("malformed", [True, 42, "back_panel_mode", []])
+def test_r3_9_corrupt_persisted_shared_setting_root_cannot_reset_bay_links(malformed):
+    """An explicit wrong-shaped source is not an absent setting."""
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    source = new_receiving_layout(width=800., height=1600., depth=350.)
+    source["sets"][0]["settings"] = malformed
+    with pytest.raises(ValueError, match="共享設定"):
+        normalize_receiving_layout(source)
+    assert source["sets"][0]["settings"] == malformed
+
+
+@pytest.mark.parametrize("field, malformed", [
+    ("refs", None), ("refs", []), ("refs", 42),
+    ("values", None), ("values", []), ("values", True),
+])
+def test_r3_9_corrupt_persisted_shared_refs_values_must_not_erase_owners(field, malformed):
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    source = new_receiving_layout(width=800., height=1600., depth=350.)
+    source["sets"][0]["settings"] = {"back_panel_mode": {field: malformed}}
+    with pytest.raises(ValueError, match="共享設定"):
+        normalize_receiving_layout(source)
+    assert source["sets"][0]["settings"]["back_panel_mode"][field] == malformed
+
+
+def test_r3_9_absent_shared_settings_retains_default_and_valid_mapping_round_trip():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    source = new_receiving_layout(width=800., height=1600., depth=350.)
+    pristine = normalize_receiving_layout(source)
+    assert pristine["sets"][0]["bays"][0]["back_panel_mode"] == "FULL"
+    source["sets"][0]["settings"] = {
+        "back_panel_mode": {
+            "refs": {source["sets"][0]["bays"][0]["stable_id"]: "test:mode"},
+            "values": {"test:mode": "HALF"},
+        },
+    }
+    normalized = normalize_receiving_layout(source)
+    assert normalized["sets"][0]["bays"][0]["back_panel_mode"] == "HALF"
+    assert normalized["sets"][0]["settings"]["back_panel_mode"]["refs"] == source["sets"][0]["settings"]["back_panel_mode"]["refs"]
