@@ -97,7 +97,11 @@ def derive_inner_door_panel(
     fold_bottom: float = 19.0,
 ) -> InnerDoorPanelPart:
     door_id = _stable_inner_door_id(inner_door_id)
-    key = str(cell_key or "").strip()
+    # This is a source-owned physical Door grid cell (e.g. "0:0"), not an
+    # arbitrary Python value to stringify into a manufactured part locator.
+    if not isinstance(cell_key, str):
+        raise ValueError("inner-door panel cell_key must be saved text")
+    key = cell_key.strip()
     if not key:
         raise ValueError("inner-door panel cell_key must be non-empty")
     (width, height, thickness, fold_left, fold_right, fold_top, fold_bottom) = tuple(
