@@ -370,6 +370,12 @@ def test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_sourc
         0: config(x=0, owner="nfb:0:slot1"),
         1: config(x=125, owner="nfb:1:slot1"),
     }
+    # Real operator confirmation is per physical Bay, and must display
+    # ALL selected units, not only the first selected NFB in that Bay.
+    second_unit = deepcopy(staged[0]["holes"][0])
+    second_unit["physical_hole_id"] = "nfb:0:slot2"
+    second_unit["manual_x_mm"] = 180
+    staged[0]["holes"].append(second_unit)
     recorded = []
     warnings = []
     decisions = iter((False, True))  # cancel then approve first real Bay
@@ -409,10 +415,21 @@ def test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_sourc
             # Genuine per-hole transaction verification must reject it BEFORE
             # GUI operator confirmation, without mutating the first Bay.
             manufactured_x = 0 if bi == 0 else 100
+            proof = evidence(adapter.layout, bi, x=manufactured_x)
+            if bi == 0:
+                from dataclasses import replace
+                scope, inventory, door = proof
+                proof = (scope, inventory, replace(
+                    door,
+                    physical_hole_ids=("nfb:0:slot1", "nfb:0:slot2"),
+                    verified_hole_locations=(
+                        ("nfb:0:slot1", 0.0, 1, 0, 90),
+                        ("nfb:0:slot2", 180.0, 1, 0, 90),
+                    ),
+                ))
             outcome = adapter.submit_nfb_to_bays(
                 set_index=si, bay_indices=tuple(ids), version_id="v1",
-                configs={bi: candidate},
-                evidence={bi: evidence(adapter.layout, bi, x=manufactured_x)},
+                configs={bi: candidate}, evidence={bi: proof},
                 confirm=confirm,
             )
             if outcome.changed:
@@ -449,7 +466,9 @@ def test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_sourc
         assert len(recorded) == 1
         assert original["sets"][0]["bays"][0]["stable_id"] in recorded[0]
         assert "nfb:0:slot1" in recorded[0]
+        assert "nfb:0:slot2" in recorded[0]
         assert "X 未配置 → 0 mm" in recorded[0]
+        assert "X 未配置 → 180 mm" in recorded[0]
         assert "基準 未配置 → w800t2" in recorded[0]
         assert "受影響 NFB／X 基準差異" in recorded[0]
         assert "尚未製造放行" in recorded[0]
@@ -458,7 +477,8 @@ def test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_sourc
         _buttons(host)["確認套用 NFB"].invoke()
         committed = adapter.layout
         assert committed["sets"][0]["bays"][0]["nfb_config_submitted"] is True
-        assert committed["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+        assert [h["manual_x_mm"] for h in
+                committed["sets"][0]["bays"][0]["nfb_config"]["holes"]] == [0, 180]
         assert "nfb_config" not in committed["sets"][0]["bays"][1]
         assert adapter.nfb_can_undo
         assert len(recorded) == 2

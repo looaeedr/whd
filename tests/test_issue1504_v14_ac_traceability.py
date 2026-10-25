@@ -1500,3 +1500,64 @@ def test_ac44_source_scoped_partial_never_implies_full_or_factory_approval():
     )
     assert "designer.output_export_button.invoke()" in native
     assert "ezdxf.readfile(path)" in native
+
+
+def test_nfb_ac28_signed_only_when_actual_native_two_unit_bay_is_atomic():
+    """Keep GUI source confirmation distinct from any factory MFG2 signoff."""
+    row = next(x for x in _data()["records"] if x["id"] == "NFB-AC-28")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert row["historical_pre_current_review"]["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    proof = row["acceptance_evidence"]
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert len(proof["requirement_witnesses"]) == 3
+    for key in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "other_ac_signoff_implied",
+        "physical_absolute_position_grant",
+        "source_fixture_manufacturer_original_certified",
+    ):
+        assert proof[key] is False
+    assert proof["source_fixture_typed_not_physical_dxf_certificate"] is True
+    from tools.product_ci_regression import PYTEST_PATHS
+    for ref in (proof["primary_assertion"], *proof["other_required_assertions"]):
+        path, name = ref.split("::", 1)
+        assert path in PYTEST_PATHS, ref
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert name in {
+            n.name for n in tree.body
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, ref
+    native = (
+        ROOT / "tests/test_issue1500_nfb_operator_gui_transactions.py"
+    ).read_text(encoding="utf-8")
+    for witness in (
+        'second_unit["physical_hole_id"] = "nfb:0:slot2"',
+        'assert "nfb:0:slot2" in recorded[0]',
+        'assert "X 未配置 → 180 mm" in recorded[0]',
+        'assert adapter.layout == committed',
+        'assert "受影響 NFB／X 基準差異" in recorded[0]',
+    ):
+        assert witness in native, witness
+    atomic = (ROOT / "tests/test_issue1500_nfb_transactions.py").read_text(
+        encoding="utf-8"
+    )
+    for witness in (
+        "test_ac28_two_units_one_bay_one_invalid_cannot_batch_confirm",
+        '"unverified_x", "wrong_x", "wrong_rotation", "wrong_physical_id"',
+        "assert callbacks == []",
+        "assert original == frozen",
+    ):
+        assert witness in atomic, witness
+    bridge = (
+        ROOT / "ae_engine/receiving_nfb_ui1b_bridge.py"
+    ).read_text(encoding="utf-8")
+    gui = (
+        ROOT / "gui_modules/application/fold_designer_composition_receiving.py"
+    ).read_text(encoding="utf-8")
+    assert "return adapter.submit_nfb_to_bays(" in bridge
+    assert "result=submit_live_verified_nfb(" in gui
+    assert 'return {"state": state, "stage_verified": stage_verified,' in gui

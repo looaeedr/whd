@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 59,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 60,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 6,
+    "EVIDENCE_CANDIDATE_ONLY": 5,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 3,
     "DEFERRED_PRODUCT_EVIDENCE": 3
   },
@@ -1342,21 +1342,85 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1497_w800_three_canonical_cutting.py",
-        "tests/test_issue1497_w800_three_ui_worldx.py"
+        "tests/test_issue1497_w800_three_ui_worldx.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py",
+        "tests/test_issue1500_nfb_transactions.py",
+        "tests/test_issue1500_nfb_ui1b_bridge.py",
+        "tests/test_issue1504_ac32_nfb_x_impact_operator.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1497_nfb_cutting_preflight.py",
-          "test_name": "test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_source_gate",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "historical_pre_current_review": {
+        "status": "EVIDENCE_CANDIDATE_ONLY",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1497_nfb_cutting_preflight.py",
+            "test_name": "test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "NATIVE_TK_ACTUAL_MULTI_SETTINGS_CONFIRM_PER_PHYSICAL_BAY__TWO_UNITS_PREVIEW__SAME_BAY_ATOMIC_INVALID_UNIT_FAIL_CLOSED__SOURCE_VERIFIED_TRANSACTION_ONLY_NO_FACTORY_CERTIFICATE",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_source_gate",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_transactions.py::test_ac28_two_units_one_bay_one_invalid_cannot_batch_confirm",
+          "tests/test_issue1500_nfb_transactions.py::test_ac28_operator_preview_compares_existing_confirmed_x_and_datum_before_consent",
+          "tests/test_issue1500_nfb_transactions.py::test_ac28_physical_unit_x_basis_preview_is_from_verified_transaction",
+          "tests/test_issue1500_nfb_ui1b_bridge.py::test_live_submit_rechecks_bay_source_and_snapshot_before_adapter_write",
+          "tests/test_issue1504_ac32_nfb_x_impact_operator.py::test_ac32_compact_original_tk_ui_exposes_affected_count_and_reachable_undo",
+          "tests/test_issue1497_nfb_cutting_preflight.py::test_two_independent_upper_units_require_unique_physical_claims_and_no_overlap"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "未驗證位移至少可按 Bay／配置批次重新確認",
+            "proof": "Original multi-settings native Tk confirms one physical Bay containing two distinct NFB physical units in one action. Actual #1500 transaction preview cancels with no state change, approves with both X sources preserved, and records the same verified target Bay, with distinct other Bay untouched. The UI-to-transaction route is original Tk → Receiving UI-1B bridge → adapter → submit_nfb_bays."
+          },
+          {
+            "original_clause": "先提示條件差異與受影響清單",
+            "proof": "Original Tk dialog uses NfbTransactionPreview.operator_x_changes; it displays BOTH unique NFB unit IDs, X 0 and 180 mm with datum changes, not one aggregate counter. Separate original transaction verifies prior-to-new X, revision and basis text for an already configured physical unit and cancel without mutation."
+          },
+          {
+            "original_clause": "逐顆非法者不能批次放行",
+            "proof": "Four single-Bay multi-unit negative cases: stale reconfirmation, wrong world-X, changed rotation, mismatched physical-hole identity of SECOND unit each rejects before consent and leaves first unit uncommitted. Native Tk two-Bay selection also keeps first committed Bay intact when second Bay has mismatched typed CUTTING proof. Independent actual collision source preflight remains required."
+          }
+        ],
+        "source_owner_paths": [
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings",
+          "gui_modules/application/fold_designer_composition_receiving.py::nfb_transaction_ports",
+          "ae_engine/receiving_nfb_ui1b_bridge.py::submit_live_verified_nfb",
+          "gui_modules/application/receiving_set_bay_adapter.py::submit_nfb_to_bays",
+          "ae_engine/receiving_nfb_transactions.py::submit_nfb_bays",
+          "ae_engine/receiving_nfb_transactions.py::_operator_x_preview_rows"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "source_fixture_manufacturer_original_certified": false,
+        "source_fixture_typed_not_physical_dxf_certificate": true,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "NFB-AC-29",
@@ -4494,7 +4558,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 59/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 29 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 60/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 28 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",

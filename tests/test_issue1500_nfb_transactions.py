@@ -646,3 +646,53 @@ def test_ac28_operator_preview_compares_existing_confirmed_x_and_datum_before_co
     assert "X 基準版次變更" in diff[0]
     assert "X 基準條件變更" in diff[0]
     assert "operator_x_changes" not in str(outcome.layout)
+
+
+@pytest.mark.parametrize("invalid_second", (
+    "unverified_x", "wrong_x", "wrong_rotation", "wrong_physical_id",
+))
+def test_ac28_two_units_one_bay_one_invalid_cannot_batch_confirm(
+    invalid_second,
+):
+    """A batch must not hide any invalid second physical NFB behind one good unit.
+
+    The same Bay/verified source has two concrete physical-hole IDs. Validate
+    EVERY X, slot and rotation before showing operator confirmation; a
+    rejected second hole must not partially commit a valid first one.
+    """
+    original = layout()
+    frozen = deepcopy(original)
+    configured = config(x=0, owner="nfb:0:slot1")
+    additional = deepcopy(configured["holes"][0])
+    additional["physical_hole_id"] = "nfb:0:slot2"
+    additional["manual_x_mm"] = 180
+    configured["holes"].append(additional)
+    scope, inventory, old_door = evidence(original, 0, x=0)
+    verified = replace(
+        old_door,
+        physical_hole_ids=("nfb:0:slot1", "nfb:0:slot2"),
+        verified_hole_locations=(
+            ("nfb:0:slot1", 0.0, 1, 0, 90),
+            ("nfb:0:slot2", 180.0, 1, 0, 90),
+        ),
+    )
+    if invalid_second == "unverified_x":
+        configured["holes"][1]["manual_x_state"] = "RECONFIRM_REQUIRED"
+    elif invalid_second == "wrong_x":
+        configured["holes"][1]["manual_x_mm"] = 185
+    elif invalid_second == "wrong_rotation":
+        configured["holes"][1]["rotation_deg"] = 180
+    else:
+        configured["holes"][1]["physical_hole_id"] = "nfb:other:slot2"
+    callbacks = []
+    with pytest.raises(ValueError):
+        submit_nfb_bays(
+            original, set_index=0, bay_indices=(0,), version_id="v1",
+            configs={0: configured},
+            evidence={0: (scope, inventory, verified)},
+            confirm=lambda preview: callbacks.append(preview) or True,
+        )
+    assert callbacks == []
+    assert original == frozen
+    assert all("nfb_config" not in row
+               for row in original["sets"][0]["bays"])
