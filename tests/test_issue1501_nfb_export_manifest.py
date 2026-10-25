@@ -818,3 +818,106 @@ def test_ac23_one_real_bay_changed_x_datum_survives_project_reopen_and_blocks_dx
     assert revived["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
     opts["saved_bay"] = revived
     assert derive_nfb_partial_export_manifest(**opts).authorized_part_ids == ("side1",)
+
+def test_swt32_same_original_dxf_brand_pins_colors_real_part_counts_and_sha_hold(
+    tmp_path,
+):
+    """Index observation + raw DXF parser + actual Bay/part manifest agree.
+
+    Unknown/foreign brands are never fake color-zero records. The historical
+    source diagnostic cannot certify MFG-2 or create a Receiving middle plate.
+    The typed, pre-verified inner CUTTING fixture is independently required.
+    """
+    from dataclasses import replace
+
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from tests.test_issue1496_nfb_source_inventory_report import _case
+    from tools.nfb_source_audit import build_source_coverage_report
+
+    index, source_root, pins, source = _case(tmp_path)
+    original = source.read_bytes()
+    observed = build_source_coverage_report(
+        index, source_root=source_root, pin_path=pins,
+    )
+    by_brand = {
+        (row["brand"], row["indexed_filename"]): row
+        for row in observed["records"]
+    }
+    trusted = by_brand[("士林", "A.dxf")]
+    unknown = by_brand[("東元", "A.dxf")]
+    assert trusted["source_sha256"] == sha256(original).hexdigest()
+    assert trusted["provenance_pin_matches"] is True
+    assert trusted["status"] == "SOURCE_OBSERVED_UNCERTIFIED"
+    assert tuple(trusted[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        1, 1, 1,
+    )
+    assert unknown["status"] == "SOURCE_IDENTITY_MISMATCH_UNKNOWN"
+    assert unknown["provenance_pin_matches"] is False
+    assert tuple(unknown[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        None, None, None,
+    )
+    assert all(row["manufacturing_ready"] is False for row in observed["records"])
+
+    parsed = inspect_nfb_dxf_source(source)
+    assert parsed.source_sha256 == trusted["source_sha256"]
+    counts = dict(parsed.process_aci_entity_counts)
+    assert tuple(counts[v] for v in (30, 150, 212)) == (1, 1, 1)
+
+    actual = _prepared(tmp_path)
+    actual["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1", ("base1",), (),
+    )
+    actual["actual_parts"] = tuple(
+        part for part in actual["actual_parts"] if part.part_id != "middle1"
+    )
+    actual["saved_bay"]["nfb_config"]["holes"][0]["model_filename"] = "A.dxf"
+    actual["source_path"] = source
+    actual["source_inventory"] = parsed
+    actual["verified_inner_door"] = replace(
+        actual["verified_inner_door"],
+        indexed_model_key=("士林", "A.dxf"),
+        source_sha256=parsed.source_sha256,
+    )
+    manifest = derive_nfb_partial_export_manifest(**actual)
+    statuses = {row.part_id: row.status for row in manifest.rows}
+    assert statuses == {
+        "inner1": READY, "base1": BLOCKED, "side1": UNAFFECTED,
+    }
+    assert manifest.authorized_part_ids == ("inner1", "side1")
+    assert manifest.actual_export_count == 5
+    assert manifest.held_actual_count == 1
+    assert not manifest.whole_ready and manifest.partial_only
+    check = manifest.report()
+    assert len(check["rows"]) == 3
+    assert check["actual_export_count"] == 5
+    assert check["held_actual_count"] == 1
+    assert check["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("base1",), partial=True)
+    with pytest.raises(ValueError, match="partial only"):
+        manifest.require_export(("inner1", "side1"), partial=False)
+
+    # Valid-but-foreign DXF bytes under the formerly indexed source name:
+    # index audit must revoke the process counts, and the current manifest
+    # must revoke all NFB-dependent output while preserving proven SIDE.
+    source.write_bytes((source_root / "東元" / "A.dxf").read_bytes())
+    mismatched = build_source_coverage_report(
+        index, source_root=source_root, pin_path=pins,
+    )
+    foreign = next(
+        row for row in mismatched["records"]
+        if (row["brand"], row["indexed_filename"]) == ("士林", "A.dxf")
+    )
+    assert foreign["status"] == "SOURCE_IDENTITY_MISMATCH_UNKNOWN"
+    assert tuple(foreign[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        None, None, None,
+    )
+    stale = derive_nfb_partial_export_manifest(**actual)
+    assert stale.authorized_part_ids == ("side1",)
+    assert stale.actual_export_count == 3
+    assert stale.held_actual_count == 3
+    assert "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in stale.unresolved_dependencies
+    assert stale.require_export(("side1",), partial=True) == ("side1",)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        stale.require_export(("inner1",), partial=True)
