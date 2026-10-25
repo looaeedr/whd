@@ -267,3 +267,22 @@ def test_ac23_nominal_nfb_preview_preserves_approved_geometry_in_valid_scope():
     assert result["layers"][0]["nominal_y_from_top_mm"] == 550.0
     assert result["has_absolute_x"] is False
     assert original == _draft()
+
+
+def test_ac51_model_catalog_identity_alone_can_only_display_preview():
+    """CSV/DXF model existence is not a physical manufacturing certificate."""
+    import pytest
+    from ae_engine.receiving_nfb_model_identity import (
+        display_model_ref, display_unverified_model_choice,
+    )
+
+    for ref in ("nfbv5:士林:2P400", "nfbv5:東元:TEST", "400_140X257_107.dxf"):
+        label = display_unverified_model_choice(ref)
+        assert label == display_model_ref(ref) + "｜僅預覽"
+        assert "可製造（內門）" not in label
+        assert "nfbv5:" not in label
+        # Rendering must never overwrite the saved brand/model owner.
+        assert ref != label
+    for invalid in ("nfbv5:士林:", "nfbv5:跨品牌:TEST"):
+        with pytest.raises(ValueError):
+            display_unverified_model_choice(invalid)
