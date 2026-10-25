@@ -632,6 +632,7 @@
         "scope": "CORRECTED_1502_PHYSICAL_NFB_DEPTH_BY_OWN_TIER_REAL_BASE_AND_PAIR_OF_EAR_SKINS_WORLD_Z__INNER_DOOR_UNMOVED__NORMAL_FORMED_EAR_DXF__NO_FAKE_PAD_RELEASE",
         "primary_assertion": "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad",
         "other_required_assertions": [
+          "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad",
           "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_source_formed_ear_is_real_production_cutting_bend_and_side_marking",
           "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_original_selected_export_automatically_adds_formed_ear_sheets",
           "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_shifted_actual_base_z_refuses_contact_claim",
@@ -643,7 +644,7 @@
         "requirement_witnesses": [
           {
             "original_clause": "CURRENT #1502 correction supersedes historic Base-does-not-move reading",
-            "proof": "Same live submitted real two-tier Receiving layout: change only second tier original CSV model depth 72→68; first tier world Base+EAR remains fixed, second moves by exactly the source depth difference, actual two Base PartRenderData offsets match source Z, left/right EAR contact targets match same base-back world skin, actual INNER DOOR placement unchanged and BASE physical X remains 0. The historic immutable AC text is preserved with explicit correction."
+            "proof": "Same live submitted real two-tier Receiving layout: change only second tier original CSV model depth 72→68; first tier world Base+EAR remains fixed, second moves by exactly the source depth difference, actual two Base PartRenderData offsets match source Z, left/right EAR contact targets match same base-back world skin, actual INNER DOOR placement unchanged and BASE physical X remains 0. The current Shihlin numeric V5 CSV models 2P400, 3P125SN, and 2P125SN independently prove the same source depths 107, 72, and 68 and re-run actual Base/EAR material Z and scoped DXF reopening. The historic immutable AC text is preserved with explicit correction."
           },
           {
             "original_clause": "Cannot forge independent PAD or bypass unfinished cross-part manufacture",
