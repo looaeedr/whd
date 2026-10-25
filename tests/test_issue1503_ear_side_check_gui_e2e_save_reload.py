@@ -39,7 +39,7 @@ def _marking_signature(paths):
 
 
 @pytest.mark.parametrize("factory,expected_per_side", (
-    (_assembled, 4), (_two_tier, 8),
+    (_assembled, 1), (_two_tier, 2),
 ))
 def test_real_received_project_json_reload_produces_same_side_check_mark_uv(
     factory, expected_per_side, tmp_path,
@@ -103,7 +103,7 @@ def test_actual_gui_action_creates_two_reopened_check_dxfs_not_normal_mfg(
     }
     assert len(list(tmp_path.glob("*.dxf"))) == 2
     assert all("CHECK_ONLY" in Path(path).name for _owner, path in result.output_paths)
-    assert all(len(lines) == 4
+    assert all(len(lines) == 1
                for lines in _marking_signature(result.output_paths).values())
     assert original == tuple(
         tuple(piece.render_data.scene.primitives or ())

@@ -57,9 +57,9 @@ def test_actual_side_uv_receipts_appear_on_display_copy_not_manufacturing(monkey
     assert shown.render_data is not pieces[0].render_data
     assert shown.render_data.material is pieces[0].render_data.material
     assert shown.render_data.metadata["ear_side_mark_preview_only"] is True
-    assert shown.render_data.metadata["ear_side_mark_preview_count"] == 4
+    assert shown.render_data.metadata["ear_side_mark_preview_count"] == 1
     assert shown.render_data.metadata["manufacturing_ready"] is False
-    assert len(shown.render_data.scene.primitives) == 4
+    assert len(shown.render_data.scene.primitives) == 1
     assert all(isinstance(x, LinePrimitive) and x.layer == "MARKING"
                for x in shown.render_data.scene.primitives)
     assert pieces[0].render_data.scene.primitives == []
@@ -219,7 +219,7 @@ def test_real_receiving_box_side_source_world_uv_produces_actual_2d_marks():
             geometry=geometry, dimensions=(800., 1600., 350.),
             sheet_thickness=2.,
         )
-        assert shown.render_data.metadata["ear_side_mark_preview_count"] == 4
-        assert sum(p.layer == "MARKING" for p in shown.render_data.scene.primitives) >= 4
+        assert shown.render_data.metadata["ear_side_mark_preview_count"] == 1
+        assert sum(p.layer == "MARKING" for p in shown.render_data.scene.primitives) >= 1
         assert shown.render_data.material.equals(owner.render_data.material)
         assert shown.render_data is not owner.render_data

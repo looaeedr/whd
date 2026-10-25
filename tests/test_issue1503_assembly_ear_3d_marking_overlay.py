@@ -32,19 +32,20 @@ def test_assembly_3d_marking_follows_source_formed_contact_without_mesh_edges(fa
     renderer, plotted = _renderer()
     segments = renderer._draw_receiving_ear_side_markings(formed)
     assert len(formed) == part_count
-    assert len(segments) == len(plotted) == 4 * part_count
+    assert len(segments) == len(plotted) == part_count
     assert len({pair for pair in segments}) == len(segments)
     for a, b in segments:
         assert a[0] == pytest.approx(b[0])
         assert abs(a[0]) == pytest.approx(398.0)
-        assert (
-            abs(a[1]-b[1]) == pytest.approx(256.)
-            or abs(a[2]-b[2]) == pytest.approx(22.)
-        )
+        # Installed top line is exactly the owning Base Plate's lower Z.
+        assert a[2] == pytest.approx(b[2])
+        assert abs(a[1]-b[1]) == pytest.approx(256.)
+    for (a, b), source in zip(segments, formed):
+        assert a[2] == pytest.approx(source.parent_base_back_skin_world_z_mm)
     assert all(kw["color"] == "#facc15" and kw["zorder"] == 30
                for _xyz, kw in plotted)
-    # Each rectangle's real corners, not triangulation edges or freehand marks.
-    assert len({tuple(round(v, 4) for v in p) for a,b in segments for p in (a,b)}) == part_count * 4
+    # One true installation line, not four sides of a bend-length rectangle.
+    assert len({tuple(round(v, 4) for v in p) for a,b in segments for p in (a,b)}) == part_count * 2
 
 
 def test_hidden_box_body_side_does_not_receive_floating_3d_markings():
@@ -53,7 +54,7 @@ def test_hidden_box_body_side_does_not_receive_floating_3d_markings():
     left = renderer._draw_receiving_ear_side_markings(
         formed, visible_side_piece_keys={"box_body:left_side"}
     )
-    assert len(left) == len(plotted) == 4
+    assert len(left) == len(plotted) == 1
     assert all(a[0] == pytest.approx(-398.) for a, b in left)
     renderer2, plotted2 = _renderer()
     assert renderer2._draw_receiving_ear_side_markings(
