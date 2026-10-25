@@ -2081,8 +2081,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
     from ae_engine.receiving_switch_model_catalog import model_filenames, INDEX_PATH
     from ae_engine.receiving_nfb_model_identity import (
-        numeric_model_refs, display_model_ref, display_unverified_model_choice,
-        validate_stored_model_ref,
+        numeric_model_refs, display_model_ref, validate_stored_model_ref,
     )
     from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
 
@@ -2468,11 +2467,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 source_state["files"][index] = files
                 entry["available"].delete(0, tk.END)
                 for filename in files:
-                    # The available-model list carries no live Bay/MFG proof.
-                    # Keep the actual model identity in source_state["files"].
-                    entry["available"].insert(
-                        tk.END, display_unverified_model_choice(filename),
-                    )
+                    entry["available"].insert(tk.END, display_model_ref(filename))
 
         poll_job = {"id": None}
 
@@ -2697,7 +2692,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # a detached control underneath the two source lists.
             height_row = ttk.Frame(section)
             height_row.grid(row=0, column=0, sticky="w", padx=5)
-            ttk.Label(height_row, text="CSV 型號").pack(side="left")
+            ttk.Label(height_row, text="CSV 型號｜僅預覽").pack(side="left")
             ttk.Label(height_row, text="高度（距上緣 mm）").pack(
                 side="left", padx=(8, 3),
             )
