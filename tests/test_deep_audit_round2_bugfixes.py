@@ -836,3 +836,27 @@ def test_r2_12_half_rear_panel_requires_finite_positive_upper_section(bad):
     assert valid["mode"] == "HALF"
     assert valid["material_height"] > 0
     assert len(valid["fixed_slot_datums"]) == 4
+
+
+@pytest.mark.parametrize("invalid_flag", ["false", "0", 1, {"enabled": True}])
+def test_r2_12_half_back_panel_requires_explicit_boolean_multi_door_authority(invalid_flag):
+    """A truthy corrupt project flag cannot enable the HALF manufacturing mode."""
+    from ae_engine.cabinet_types.receiving import (
+        resolve_back_panel_contract, resolve_box_body_structure_state,
+    )
+    saved = {
+        "model": "受電箱",
+        "multi_door_enabled": invalid_flag,
+        "door_layout_columns": [(700., [1100., 500.])],
+    }
+    half = set_side_back_back_panel_mode(
+        resolve_box_body_structure_state(None), BackPanelMode.HALF,
+    )
+    with pytest.raises(ValueError, match="requires authoritative Door topology"):
+        resolve_back_panel_contract(
+            saved, structure_state=half, panel_width=700., full_panel_height=1600.,
+        )
+    saved["multi_door_enabled"] = True
+    assert resolve_back_panel_contract(
+        saved, structure_state=half, panel_width=700., full_panel_height=1600.,
+    )["mode"] == "HALF"
