@@ -38,11 +38,11 @@ def test_primary_side_2d_uses_committed_designer_when_main_mirror_has_no_nfb(sid
     assert calls == ["real_designer_geometry"]
     assert shown is not source
     assert shown.render_data.metadata["ear_side_mark_preview_owner"] == f"box_body:{side}"
-    assert shown.render_data.metadata["ear_side_mark_preview_count"] == 2
+    assert shown.render_data.metadata["ear_side_mark_preview_count"] == 6
     assert shown.render_data.metadata["ear_side_mark_preview_only"] is True
     actual = [r for r in shown.render_data.scene.primitives
               if getattr(r, "layer", "").upper() == "MARKING"]
-    assert len(actual) >= 2
+    assert len(actual) >= 6
     assert tuple(source.render_data.scene.primitives) == tuple(
         _piece(geometry, side).render_data.scene.primitives
     ), "2D display must not modify source material or production DXF"
@@ -83,7 +83,7 @@ def test_nonreceiving_or_missing_designer_geometry_never_fabricates_marks():
 
 
 @pytest.mark.parametrize("side,expected_marks", (
-    ("left_side", 2), ("right_side", 2),
+    ("left_side", 6), ("right_side", 6),
 ))
 def test_actual_primary_boxbody_2d_panel_must_use_same_designer_side_material(side, expected_marks):
     from gui_modules.application.render_snapshots import box_body_render_snapshot
