@@ -294,7 +294,10 @@ def test_r6_joint_marking_policy_activation_and_revision_never_coerce_corrupt_ty
     for corrupt_activation in ("false", "0", 0, 1, None):
         with pytest.raises(ValueError, match="enabled must be boolean"):
             replace(valid, enabled=corrupt_activation)
-    for corrupt_revision in (True, 1.5, "1", float("nan"), float("inf"), 10 ** 400):
+    for corrupt_revision in (True, 1.5, "1", float("nan"), float("inf"), 0, -1):
         with pytest.raises(ValueError, match="revision must be a positive integer"):
             replace(valid, revision=corrupt_revision)
+    # Positive Python integers remain valid revision identities: this source
+    # defines no arbitrary upper cap, and rejects only fractional/mistyped IDs.
     assert replace(valid, revision=2).revision == 2
+    assert replace(valid, revision=10 ** 400).revision == 10 ** 400
