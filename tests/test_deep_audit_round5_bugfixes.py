@@ -566,3 +566,26 @@ def test_bug84_actual_xy_mating_still_requires_source_side_and_physical_dimensio
         resolve_base_fixing_plate_xy_mating(
             {"w": 800., "t": float("nan")}, side="left",
         )
+
+
+@pytest.mark.parametrize("bad_index", [True, False, 0.0, 1.0, "1"])
+def test_r5_79_neighbor_query_refuses_noninteger_selected_hole(bad_index):
+    """Neighbor lookup is an independent public entry, not only a UI helper."""
+    from ae_engine.sheetmetal_feature_reference import (
+        ReferenceAnchor, find_reference_neighbor,
+    )
+    holes = (
+        CircleFeature(diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                      offset=Vec2(40., 40.)),
+        CircleFeature(diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                      offset=Vec2(150., 40.)),
+    )
+    with pytest.raises(ValueError, match="reference feature index"):
+        find_reference_neighbor(holes, bad_index, ReferenceAnchor.CENTER,
+                                "x", "right", 200., 100.)
+    actual = find_reference_neighbor(holes, 0, ReferenceAnchor.CENTER,
+                                     "x", "right", 200., 100.)
+    assert actual is not None
+    assert actual.index == 1
+    assert find_reference_neighbor(holes, 1, ReferenceAnchor.CENTER,
+                                   "x", "right", 200., 100.) is None

@@ -194,6 +194,10 @@ def reference_edge_directions(surface: FeatureSurface, feature: Feature, anchor:
 
 
 def find_reference_neighbor(features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, axis: str, side: str, width: float, height: float) -> ReferenceNeighbor | None:
+    # This is a public query as well as the downstream display helper. A
+    # boolean/float GUI selection must not alias another physical hole.
+    if type(current_index) is not int:
+        raise ValueError("reference feature index must be an integer")
     items = list(features)
     if not (0 <= current_index < len(items)):
         return None
