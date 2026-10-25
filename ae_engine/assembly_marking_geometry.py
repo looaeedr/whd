@@ -530,6 +530,18 @@ def backproject_mapped_skin_world_points(
     try:
         mapping = tuple(mapping or ())
         world_points = tuple(points or ())
+        # The world→UV triangle is physical source authority. A boolean
+        # stored vertex must not be converted into a plausible 0/1-mm mark.
+        # Validate once per source record, not once per point/triangle pair.
+        for record in mapping:
+            for field in ("world", "flat"):
+                vertices = tuple(getattr(record, field, ()) or ())
+                if any(
+                    isinstance(coordinate, bool)
+                    for vertex in vertices
+                    for coordinate in vertex
+                ):
+                    raise ValueError("boolean mapped-skin vertex is not physical geometry")
     except (TypeError, ValueError, OverflowError) as exc:
         return LocatorBackprojectionResult(
             status="SKIPPED_FAIL_CLOSED",
