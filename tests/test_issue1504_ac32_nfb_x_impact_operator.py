@@ -134,7 +134,8 @@ def test_ac23_huge_nfb_draft_x_is_controlled_rejection_and_atomic(huge_x):
         session.apply("INVALID_HUGE_X", set_nfb_manual_x, 0, 1, huge_x)
     assert session.current == before
     assert not session.dirty
-    assert session.undo() is None
+    with pytest.raises(ValueError, match="no undo transaction"):
+        session.undo()
     assert original == frozen
 
     # A stale old draft can also be loaded from outside the live editor.
