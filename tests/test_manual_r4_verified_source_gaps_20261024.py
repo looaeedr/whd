@@ -663,3 +663,20 @@ def test_r4_67_removed_parent_cannot_leave_live_child_part_placement_or_descenda
         assert ws.assembly_placements_snapshot() == {
             "tail": {"parent_assembly_node": "box_body", "offset_x": 4.},
         }
+
+
+@pytest.mark.parametrize("bad", [10 ** 400, -(10 ** 400)])
+def test_r4_57_unrepresentable_saved_indicator_group_never_escapes_as_overflow(bad):
+    """Reject impossible numeric geometry before allocating any lamp features."""
+    from ae_engine.sheetmetal_features import indicator_box_opening_size, resolve_door_indicator_features
+    context = DoorIndicatorContext(500., 700., 19., 19.)
+    with pytest.raises(ValueError, match="indicator box"):
+        indicator_box_outer_size([bad] if bad > 0 else [abs(bad)])
+    with pytest.raises(ValueError, match="indicator box"):
+        resolve_door_indicator_features(context, [abs(bad)])
+    with pytest.raises(ValueError, match="thickness"):
+        indicator_box_opening_size([2, 3], thickness=bad)
+    # Existing accepted layouts and T2 tooling remain identical.
+    assert indicator_box_outer_size([2, 3]) == (486., 725.)
+    assert indicator_box_opening_size([2, 3], thickness=2.) == (386., 625.)
+    assert resolve_door_indicator_features(context, [2, 3])
