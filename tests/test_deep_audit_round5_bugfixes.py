@@ -513,3 +513,38 @@ def test_r5_79_invalid_reference_selection_never_moves_a_different_hole(bad_inde
     assert feature_finished_point(valid, 200., 100.) == Vec2(30., 40.)
     assert holes[0].offset == Vec2(40., 40.)
     assert holes[1].offset == Vec2(150., 40.)
+
+
+@pytest.mark.parametrize("corrupt", [42, True, object()])
+def test_bug95_divider_corrupt_panel_payload_fails_with_controlled_validation(corrupt):
+    """Corrupt saved input must not crash the 2D/3D divider panel with TypeError."""
+    with pytest.raises(ValueError, match="中隔.*資料"):
+        collect_divider_input(
+            "divider", corrupt, default_depth=250., default_thickness=2.,
+        )
+
+
+@pytest.mark.parametrize("corrupt", [42, True, [("0:0",)]])
+def test_bug95_divider_corrupt_handle_edge_source_fails_before_projection(corrupt):
+    payload = {
+        "door_layout_columns": [(400., (600.,))],
+        "door_handle_edges": corrupt,
+        "d": None, "t": None,
+    }
+    with pytest.raises(ValueError, match="把手"):
+        collect_divider_input(
+            "divider", payload, default_depth=250., default_thickness=2.,
+        )
+    assert payload["door_handle_edges"] is corrupt
+
+
+def test_bug95_divider_valid_handle_edges_keep_original_geometry_and_depth_defaults():
+    actual = collect_divider_input(
+        "divider",
+        {"door_layout_columns": [(400., (600.,))],
+         "door_handle_edges": {"0:0": "LEFT"}, "d": None, "t": None},
+        default_depth=250., default_thickness=2.,
+    )
+    assert actual["handle_edges"] == {"0:0": "LEFT"}
+    assert actual["columns"] == ((400., (600.,)),)
+    assert (actual["depth"], actual["thickness"]) == (250., 2.)
