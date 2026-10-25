@@ -91,3 +91,50 @@ def test_r6_manual_endcap_relief_overrides_are_real_finite_folds(field, bad):
         _endcap_manual_material_polygon(
             geometry, VAULT_ENDCAP_CORNER_POLICY, **{field: bad},
         )
+
+
+@pytest.mark.parametrize("field", [
+    "fold_u", "fold_v", "primary_u", "primary_v",
+    "secondary_u", "secondary_depth",
+    "slot_width", "slot_straight_depth", "slot_radius",
+])
+def test_r6_composer_rejects_unrepresentable_physical_corner_dimensions(field):
+    """Huge saved values must raise the existing geometry error, not OverflowError."""
+    kwargs = {"fold_u": 15., "fold_v": 15.}
+    intrinsic = {"primary": (10., 10.)}
+    if field.startswith("fold_"):
+        kwargs[field] = 10 ** 400
+    elif field.startswith("primary_"):
+        intrinsic["primary"] = (10 ** 400, 10.) if field == "primary_u" else (10., 10 ** 400)
+    elif field.startswith("secondary_"):
+        intrinsic.update(secondary_u=4., secondary_depth=5.)
+        intrinsic[field] = 10 ** 400
+    else:
+        intrinsic.update(slot_width=12., slot_straight_depth=10., slot_radius=3.)
+        intrinsic[field] = 10 ** 400
+    with pytest.raises(GeometryError):
+        compose_corner_residual(CornerTypeResidual(**intrinsic), **kwargs)
+
+
+def test_r6_composer_rejects_finite_inputs_whose_cutting_sum_overflows():
+    with pytest.raises(GeometryError, match="第一級截角尺寸"):
+        compose_corner_residual(
+            CornerTypeResidual(primary=(1e308, 0.)),
+            fold_u=1e308, fold_v=15.,
+        )
+
+
+def test_r6_corner_policy_rejects_unrepresentable_thickness_and_fw():
+    from ae_engine.sheetmetal_corner_policy import (
+        corner_selection_residual, FourCornerTypePolicy,
+    )
+    from ae_engine.sheetmetal_geometry_core import CornerTypeSelection, CornerTypeId
+    selection = CornerTypeSelection(CornerTypeId.CROSS)
+    for dimensions in ({"thickness": 10 ** 400, "fw": 20.},
+                       {"thickness": 2., "fw": 10 ** 400}):
+        with pytest.raises(GeometryError):
+            corner_selection_residual(selection, **dimensions)
+    cfg = FourCornerTypePolicy(selection, selection, selection, selection,
+                               fw=10 ** 400)
+    with pytest.raises(GeometryError, match="FW"):
+        cfg.fw_for("top_left")

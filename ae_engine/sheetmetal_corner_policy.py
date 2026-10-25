@@ -62,6 +62,19 @@ def _directional_delta(direction: CornerDirection, amount: float) -> tuple[float
     raise GeometryError(f"不支援的截角方向：{direction}")
 
 
+def _finite_corner_dimension(value: object, *, message: str) -> float:
+    """Reject malformed/overflowing saved geometry before cutting equations."""
+    if isinstance(value, bool):
+        raise GeometryError(message)
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise GeometryError(message) from exc
+    if not math.isfinite(result):
+        raise GeometryError(message)
+    return result
+
+
 def corner_selection_residual(
     selection: CornerTypeSelection,
     *,
@@ -72,11 +85,11 @@ def corner_selection_residual(
     if isinstance(thickness, bool) or isinstance(fw, bool):
         raise GeometryError("板厚與 FW 不可為布林值")
     selection = normalize_corner_selection(selection)
-    t = float(thickness)
-    frame_width = float(fw)
-    if not math.isfinite(t) or t <= 0:
+    t = _finite_corner_dimension(thickness, message="板厚必須為有限值")
+    frame_width = _finite_corner_dimension(fw, message="FW 必須為有限值")
+    if t <= 0:
         raise GeometryError("板厚必須大於 0")
-    if not math.isfinite(frame_width) or frame_width < 0:
+    if frame_width < 0:
         raise GeometryError("FW 不可小於 0")
 
     if selection.type_id is CornerTypeId.CROSS:
@@ -146,32 +159,30 @@ def compose_corner_residual(
     """Compose an already-defined intrinsic corner rule with fold geometry."""
     if isinstance(fold_u, bool) or isinstance(fold_v, bool):
         raise GeometryError("折邊尺寸不可為布林值")
-    fu = abs(float(fold_u))
-    fv = abs(float(fold_v))
-    if not (math.isfinite(fu) and math.isfinite(fv)):
-        raise GeometryError("折邊尺寸必須為有限值")
+    fu = abs(_finite_corner_dimension(fold_u, message="折邊尺寸必須為有限值"))
+    fv = abs(_finite_corner_dimension(fold_v, message="折邊尺寸必須為有限值"))
     du, dv = residual.primary
-    if isinstance(du, bool) or isinstance(dv, bool) or not all(
-        math.isfinite(float(value)) for value in (du, dv)
-    ):
-        raise GeometryError("截角殘差必須為有限數值")
+    du = _finite_corner_dimension(du, message="截角殘差必須為有限數值")
+    dv = _finite_corner_dimension(dv, message="截角殘差必須為有限數值")
     if (residual.secondary_u is None) != (residual.secondary_depth is None):
         raise GeometryError("第二級截角參數不完整")
     # CornerTypeSelection validates user input, but this public composer also
     # accepts standalone CornerTypeResidual values from other callers.
     # Never allow bool to be interpreted as a real 1 mm secondary cut.
-    if residual.secondary_u is not None and (
-        isinstance(residual.secondary_u, bool)
-        or not math.isfinite(float(residual.secondary_u))
-    ):
-        raise GeometryError("第二級截角尺寸必須為有限數值")
+    secondary_u = (
+        None if residual.secondary_u is None
+        else _finite_corner_dimension(
+            residual.secondary_u, message="第二級截角尺寸必須為有限數值"
+        )
+    )
     slot_fields = (residual.slot_width, residual.slot_straight_depth, residual.slot_radius)
     if any(value is not None for value in slot_fields):
         if not all(value is not None for value in slot_fields):
             raise GeometryError("十字截角槽參數不完整")
-        if any(isinstance(v, bool) or not math.isfinite(float(v)) for v in slot_fields):
-            raise GeometryError("十字截角槽參數必須為有限值")
-        slot_width, slot_straight_depth, slot_radius = map(float, slot_fields)
+        slot_width, slot_straight_depth, slot_radius = tuple(
+            _finite_corner_dimension(v, message="十字截角槽參數必須為有限值")
+            for v in slot_fields
+        )
         if any(v <= 0.0 for v in (slot_width, slot_straight_depth, slot_radius)):
             raise GeometryError("十字截角槽參數必須大於 0")
         if 2.0 * slot_radius > slot_width + DEFAULT_TOLERANCE:
@@ -187,21 +198,23 @@ def compose_corner_residual(
             raise GeometryError("截角旋轉必須為有限整數")
     if allow_axis_swap and int(rotation_quadrants) % 2:
         du, dv = dv, du
-    primary_u = fu + float(du)
-    primary_v = fv + float(dv)
-    actual_secondary_u = None if residual.secondary_u is None else fu + float(residual.secondary_u)
+    primary_u = fu + du
+    primary_v = fv + dv
+    actual_secondary_u = None if secondary_u is None else fu + secondary_u
+    if not (math.isfinite(primary_u) and math.isfinite(primary_v)):
+        raise GeometryError("第一級截角尺寸必須為有限值")
     if primary_u < 0 or primary_v < 0:
         raise GeometryError("折邊與截角類型組合後，第一級截角尺寸不可為負值")
     if actual_secondary_u is not None and (not math.isfinite(actual_secondary_u) or actual_secondary_u < 0):
         raise GeometryError("第二級截角尺寸不可為負值")
-    if residual.secondary_depth is not None and (
-        isinstance(residual.secondary_depth, bool)
-        or not math.isfinite(float(residual.secondary_depth))
-        or float(residual.secondary_depth) < 0
-    ):
-        raise GeometryError("第二級截角深度不可為負值")
+    if residual.secondary_depth is not None:
+        depth = _finite_corner_dimension(
+            residual.secondary_depth, message="第二級截角深度不可為負值"
+        )
+        if depth < 0:
+            raise GeometryError("第二級截角深度不可為負值")
     if residual.slot_width is not None:
-        if residual.slot_width > primary_u + DEFAULT_TOLERANCE:
+        if slot_width > primary_u + DEFAULT_TOLERANCE:
             raise GeometryError("十字截角槽寬不可超過主截角寬")
         if residual.slot_straight_depth is None or residual.slot_radius is None:
             raise GeometryError("十字截角槽參數不完整")
@@ -249,8 +262,8 @@ class FourCornerTypePolicy:
             raw = self.top_fw
         if isinstance(raw, bool):
             raise GeometryError("FW 不可為布林值")
-        number = float(raw)
-        if not math.isfinite(number) or number < 0:
+        number = _finite_corner_dimension(raw, message="FW 必須為有限值")
+        if number < 0:
             raise GeometryError("FW 不可小於 0")
         return number
 
