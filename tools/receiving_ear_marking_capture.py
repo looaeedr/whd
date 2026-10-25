@@ -165,13 +165,13 @@ def _save_2d(snapshot, geometry, tier_count, root):
             geometry=geometry, dimensions=DIMENSIONS, sheet_thickness=2.,
         )
         md = display.render_data.metadata
-        assert md["ear_side_mark_preview_count"] == tier_count
+        assert md["ear_side_mark_preview_count"] == tier_count * 3
         counts = _draw_sheet(
             display.render_data.material, display.render_data.scene, md,
             title=f"WHD {tier_count} NFB TIER(S) / 2D {side} / ALL CONTACT MARKING",
             target=root / f"2d_{side}.png",
         )
-        if counts["joint"] != 2 or counts["ear"] < tier_count:
+        if counts["joint"] != 2 or counts["ear"] < tier_count * 3:
             raise ValueError("FULL_MARKING_2D_SIDE_MISSING:" + side + ":" + repr(counts))
         detail[side] = counts
 
@@ -249,7 +249,7 @@ def _save_3d(snapshot, geometry, tier_count, root):
         render_data=scene, x_profile=(), y_profile=(), part_key="assembly",
         thickness=2., finished_dimensions=DIMENSIONS, alpha_bend=0.18,
     ))
-    if len(renderer.last_receiving_ear_marking_segments) != tier_count * 2:
+    if len(renderer.last_receiving_ear_marking_segments) != tier_count * 6:
         raise ValueError("FULL_MARKING_3D_EAR_LINES_MISSING")
     if len(renderer.last_formed_ear_display_ids) != tier_count * 2:
         raise ValueError("FULL_MARKING_3D_EARS_INVISIBLE")

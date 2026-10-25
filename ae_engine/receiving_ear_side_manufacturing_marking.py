@@ -69,9 +69,9 @@ def with_verified_receiving_ear_side_markings(
         segments = sum(
             len(row.marking_segments) for row in uv if row.side_piece_id == side
         )
-        # One installation line per physically verified fixing plate.
-        # Real source BEND remains on the fixing plate itself.
-        if segments not in (1, 2):
+        # Three SIDE positioning strokes per plate: true upper installation
+        # line and two cosmetic 20-mm fold hints; source EAR BEND unchanged.
+        if segments not in (3, 6):
             raise ValueError("EAR_SIDE_NORMAL_EXPORT_INCOMPLETE_SIDE_MARKING")
         verified = replace(
             source, scene=scenes[side],

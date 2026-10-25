@@ -130,14 +130,14 @@ def test_fresh_single_editor_shows_csv_400_and_can_confirm_without_manual_base(t
                 app, raw_body, piece, "box_body:" + role,
             )
             assert blocker is None, blocker
-            assert shown.render_data.metadata["ear_side_mark_preview_count"] == 1
+            assert shown.render_data.metadata["ear_side_mark_preview_count"] == 3
         designer._phase6_3d_display_mode = "assembly"
         native_view = designer.final_scene_view
         native_request = bridge._phase6_final_scene_adapter(designer).build_request()
         assert native_request is not None
         native_view.render(native_request)
         assert len(native_view.last_formed_ear_display_ids) == 2
-        assert len(native_view.last_receiving_ear_marking_segments) == 2
+        assert len(native_view.last_receiving_ear_marking_segments) == 6
         # Actual Save As and GUI reopen, not a constructed Python snapshot.
         from unittest.mock import patch
         target = tmp_path / "fresh_single_400_saved.p6fold"
@@ -296,7 +296,7 @@ def test_saved_project_real_single_confirm_discloses_missing_source(tmp_path):
         restored_keys = {p.part_key for p in restored.assembly_parts}
         assert {"base_plate:nfb_layer:0", "base_plate:nfb_layer:1"} <= restored_keys
         assert len(restored.formed_fixing_plate_skins) == 4
-        assert len(reloaded_view.last_receiving_ear_marking_segments) == 4
+        assert len(reloaded_view.last_receiving_ear_marking_segments) == 12
         labels = [x.get_text() for x in reloaded_view.renderer.ax3d.texts]
         assert not any(MISSING_MESSAGE in x for x in labels), (
             "SOURCE_DERIVED_RECEIVING_BASE_STILL_MISLABELED_UNCONFIGURED"

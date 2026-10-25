@@ -169,7 +169,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         assert set(renderer.last_formed_ear_display_ids) == {
             row.part_id for row in formed
         }
-        assert len(renderer.last_receiving_ear_marking_segments) == 4
+        assert len(renderer.last_receiving_ear_marking_segments) == 12
         # A segment-count pass is not a visible-pixel pass. Render the SAME
         # physical FinalScene twice at the SAME camera; toggle ONLY the real
         # production renderer's formed-EAR contact overlay. This captures
@@ -284,7 +284,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 authentic = stage_canvas.find_withtag(
                     "receiving_source_ear_marking_preview"
                 )
-                assert len(authentic) == 2, (
+                assert len(authentic) == 6, (
                     "ACTUAL_TK_OPERATOR_SIDE_EAR_LINES_NOT_VISIBLE:" + side
                 )
             # ImageGrab captures the actual desktop, not an offscreen Tk
@@ -347,7 +347,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 calc, box_data, original_side, "box_body:" + side,
             )
             assert blocker is None, blocker
-            assert shown.render_data.metadata["ear_side_mark_preview_count"] == 2
+            assert shown.render_data.metadata["ear_side_mark_preview_count"] == 6
             assert shown.render_data.metadata["ear_side_mark_preview_only"] is True
             assert shown.render_data.metadata["ear_side_existing_marking_overlap_display_mode"] is True
             after_primitives = tuple(shown.render_data.scene.primitives)
@@ -355,7 +355,7 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
                 isinstance(p, LinePrimitive) and
                 str(getattr(p, "layer", "")).upper() == "MARKING"
             ))
-            assert len(after_lines) == len(ear_lines) + 2, (
+            assert len(after_lines) == len(ear_lines) + 6, (
                 "REAL_SOURCE_2D_EAR_PREVIEW_MISSING_TWO_PER_SIDE:" + side
             )
             assert tuple(original_side.render_data.scene.primitives) == primitives, (
@@ -520,10 +520,10 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         restored_request = bridge._phase6_final_scene_adapter(reloaded).build_request()
         assert restored_request is not None
         reloaded_view.render(restored_request)
-        assert len(reloaded_view.last_receiving_ear_marking_segments) == 4
+        assert len(reloaded_view.last_receiving_ear_marking_segments) == 12
         for side, target_x in (("left_side", -398.), ("right_side", 398.)):
             lines = tuple((a,b) for a,b in reloaded_view.last_receiving_ear_marking_segments
                           if abs(a[0]-target_x) < 1e-5 and abs(b[0]-target_x) < 1e-5)
-            assert len(lines) == 2, "RELOADED_LEFT_RIGHT_EAR_MARKING_MISSING:" + side
+            assert len(lines) == 6, "RELOADED_LEFT_RIGHT_EAR_MARKING_MISSING:" + side
     finally:
         root.destroy()

@@ -29,7 +29,7 @@ def test_source_solved_frame_divider_and_ear_all_in_real_2d_sheets(
     assert set(results) == {"left_side", "right_side", "head", "divider"}
     for side in ("left_side", "right_side"):
         assert results[side]["joint"] == 2
-        assert results[side]["ear"] >= tiers
+        assert results[side]["ear"] >= 3 * tiers
     assert results["head"]["joint"] == 1
     assert results["divider"]["joint"] == 2
     assert len(tuple(tmp_path.glob("2d_*.png"))) == 4

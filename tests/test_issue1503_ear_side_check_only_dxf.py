@@ -31,8 +31,8 @@ def _export(snapshot, geometry, directory, *, overwrite=False):
 
 
 @pytest.mark.parametrize("factory,part_count,lines", (
-    (_assembled, 2, 2),
-    (_two_tier, 4, 4),
+    (_assembled, 2, 6),
+    (_two_tier, 4, 12),
 ))
 def test_real_w800_signed_ear_skin_side_uv_saved_dxf_matches_exact_lines(
     tmp_path, factory, part_count, lines,
