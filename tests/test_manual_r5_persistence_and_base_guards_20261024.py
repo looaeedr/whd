@@ -287,3 +287,48 @@ def test_r5_81_corrupt_version_inventory_and_assignment_cannot_authorize_a_bay(
     assert validate_positions(
         layout, (name for name in ("v1",)), {"v1": 1}, {(0, 0): "v1"},
     ) == ((0, 0),)
+
+
+@pytest.mark.parametrize("x,radius", [
+    (True, 5.),
+    (10., True),
+    (10., 0.),
+    (10., -5.),
+    (float("nan"), 5.),
+    (10., float("inf")),
+    (10., 10 ** 400),
+])
+def test_r5_76_saved_dxf_verifier_refuses_nonphysical_source_circle(tmp_path, x, radius):
+    """Saved 1-mm DXF circle cannot certify a boolean or corrupt source hole."""
+    import ezdxf
+    from shapely.geometry import box
+    from ae_engine.dxf_acceptance import (
+        _expected_cutting_circles, _circle_rows_close, verify_saved_part_render_data_dxf,
+    )
+    from ae_engine.manufacturing_render_data import PartRenderData
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, DrawingScene
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    scene = DrawingScene([CirclePrimitive(Vec2(x, 20.), radius, "CUTTING")])
+    with pytest.raises(ValueError, match="CUTTING circle"):
+        _expected_cutting_circles(scene)
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_circle((1., 20.), radius=5., dxfattribs={"layer": "CUTTING"})
+    output = tmp_path / "boolean_source_circle.dxf"
+    doc.saveas(output)
+    result = verify_saved_part_render_data_dxf(
+        PartRenderData(scene=scene, material=box(0., 0., 100., 100.)), output,
+    )
+    assert result.ok is False
+    assert result.issues[0].category == "INVALID_SOURCE"
+
+
+def test_r5_76_matched_bend_and_circle_rows_cannot_float_coerce_boolean_sources():
+    from ae_engine.dxf_acceptance import _rows_close, _circle_rows_close
+    assert _rows_close((("vertical", True, 0., 40.),),
+                       (("vertical", 1., 0., 40.),), 1e-6) is False
+    assert _rows_close((("vertical", 1., 0., 40.),),
+                       (("vertical", True, 0., 40.),), 1e-6) is False
+    assert _circle_rows_close(((True, 20., 5.),), ((1., 20., 5.),), 1e-6) is False
+    assert _circle_rows_close(((1., 20., 5.),), ((True, 20., 5.),), 1e-6) is False
+    assert _circle_rows_close(((10., 20., 5.),), ((10., 20., 5.),), 1e-6) is True

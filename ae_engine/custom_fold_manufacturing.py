@@ -15,27 +15,46 @@ from .sheetmetal_feature_surface import feature_surface_from_outline, resolve_su
 from .sheetmetal_features import legacy_hole_to_feature
 from .manufacturing_render_data import PartRenderData, MaterialSegment, UnfoldedBlankTopology, material_polygon_from_final_scene, fold_guides_from_final_scene
 
+def _positive_finite_fold_number(value):
+    # Keep real, positive source values only. Giant integers must not escape
+    # float() as OverflowError before manufacturing can reject the strip.
+    if isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value)) and value > 0
+    except (TypeError, ValueError, OverflowError):
+        return False
+
+
+def _finite_fold_angle(value):
+    if isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value)) and abs(value) >= 0
+    except (TypeError, ValueError, OverflowError):
+        return False
+
+
 def _validate(spec):
     if not isinstance(spec,CustomFoldPartSpec) or spec.fold_axis not in {"X","Y"}:
         raise ValueError("custom Fold axis must be X or Y")
     if not spec.physical_id.startswith("custom:"):
         raise ValueError("custom physical ID is required")
     for value in (spec.thickness,spec.transverse_length):
-        if isinstance(value,bool) or not math.isfinite(float(value)) or value<=0:
+        if not _positive_finite_fold_number(value):
             raise ValueError("custom thickness/span must be finite and positive")
     rows=spec.fold_profile
     if len(rows)<2 or rows[-1].angle not in (None,0):
         raise ValueError("custom Fold needs a terminal row with no bend")
     for index, row in enumerate(rows):
-        if isinstance(row.length, bool) or not math.isfinite(float(row.length)) or row.length <= 0:
+        if not _positive_finite_fold_number(row.length):
             raise ValueError("custom material segment must be finite and positive")
         if row.formed_length is not None and (
-            isinstance(row.formed_length, bool) or not math.isfinite(float(row.formed_length))
-            or row.formed_length <= 0
+            not _positive_finite_fold_number(row.formed_length)
         ):
             raise ValueError("custom formed segment must be finite and positive")
         if row.angle is not None:
-            if isinstance(row.angle, bool) or not math.isfinite(float(row.angle)):
+            if not _finite_fold_angle(row.angle):
                 raise ValueError("custom fold angle must be finite and not bool")
             if index == len(rows) - 1 and row.angle == 0:
                 continue  # Valid terminal no-bend alias.

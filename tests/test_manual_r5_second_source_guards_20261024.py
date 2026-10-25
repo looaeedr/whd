@@ -84,3 +84,44 @@ def test_r5_86_final_joint_frame_cannot_store_nonphysical_coordinate(invalid):
         _canonical_number(invalid)
     assert _canonical_number(1.2345678904) == 1.23456789
     assert _canonical_number(-0.5) == -0.5
+
+
+@pytest.mark.parametrize("field", [
+    "thickness", "transverse_length", "length", "formed_length", "angle",
+])
+@pytest.mark.parametrize("bad", [10 ** 400, -(10 ** 400)])
+def test_r5_72_saved_custom_fold_unrepresentable_numeric_field_is_validation_error(
+    field, bad,
+):
+    """Malformed physical strip inputs never leak raw float overflow to DXF/3D."""
+    from ae_engine.contracts import CustomFoldPartSpec, FoldProfileSegment
+    from ae_engine.custom_fold_manufacturing import custom_fold_structural_result
+    top = {"thickness": 2.0, "transverse_length": 100.0}
+    first = {"length": 40.0, "angle": 90.0, "formed_length": 42.0}
+    if field in top:
+        top[field] = bad
+    else:
+        first[field] = bad
+    saved = CustomFoldPartSpec(
+        physical_id="custom:strip-test",
+        fold_axis="X",
+        fold_profile=(
+            FoldProfileSegment(**first),
+            FoldProfileSegment(length=60.0, angle=None, formed_length=62.0),
+        ),
+        **top,
+    )
+    with pytest.raises(ValueError, match="custom (?:thickness/span|material segment|formed segment|fold angle)"):
+        custom_fold_structural_result(saved)
+
+    valid = CustomFoldPartSpec(
+        physical_id="custom:strip-test", fold_axis="X",
+        fold_profile=(
+            FoldProfileSegment(length=40., angle=90., formed_length=42.),
+            FoldProfileSegment(length=60., angle=0., formed_length=62.),
+        ),
+        thickness=2., transverse_length=100.,
+    )
+    resolved = custom_fold_structural_result(valid)
+    assert resolved.width == 100.
+    assert len(resolved.bends) == 1

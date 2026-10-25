@@ -659,3 +659,99 @@ def test_bug88_hole_editor_canvas_rect_rejects_nonphysical_screen_coordinates(ba
         layered_profiles=(("CUTTING", (Vec2(1., 2.), Vec2(20., 30.)), False),),
     )
     assert view._resolved_canvas_rect(valid_profile) == (1., 2., 20., 30.)
+
+
+@pytest.mark.parametrize("bad", ["0", "-1", "NaN", "inf", "-inf"])
+def test_r5_78_csv_cutting_circle_rejects_nonphysical_catalog_dimension(tmp_path, bad):
+    from ae_engine.hole_catalog import load_hole_catalog
+    (tmp_path / "開孔.csv").write_text(
+        f"名稱,孔徑,次尺寸\n非法圓孔,{bad},\n", encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="finite positive dimension"):
+        load_hole_catalog(tmp_path)
+
+
+@pytest.mark.parametrize("bad", ["0", "-5", "NaN", "inf", "-inf"])
+@pytest.mark.parametrize("field", ["width", "height"])
+def test_r5_78_csv_cutting_rectangle_rejects_nonphysical_catalog_dimensions(tmp_path, bad, field):
+    from ae_engine.hole_catalog import load_hole_catalog
+    w, h = (bad, "50") if field == "width" else ("90", bad)
+    (tmp_path / "開孔.csv").write_text(
+        f"名稱,孔寬,孔高\n非法方孔,{w},{h}\n", encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="finite positive dimension"):
+        load_hole_catalog(tmp_path)
+
+
+@pytest.mark.parametrize("bad", ["0", "-1", "NaN", "inf"])
+def test_r5_78_csv_blind_pipe_rejects_nonphysical_catalog_diameter(tmp_path, bad):
+    from ae_engine.hole_catalog import load_pipe_catalog
+    (tmp_path / "管孔尺寸清單.csv").write_text(
+        f"代號,孔徑\n*D1,Ø{bad}\n", encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="finite positive dimension"):
+        load_pipe_catalog(tmp_path)
+
+
+def test_r5_78_csv_existing_positive_holes_and_profile_reference_preserved(tmp_path):
+    from ae_engine.hole_catalog import load_hole_catalog, load_pipe_catalog
+    (tmp_path / "開孔.csv").write_text(
+        "名稱,孔徑,次尺寸\n圓孔22,22,\n插座盒,90,50\nASVS,ASVS.dxf,\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "管孔尺寸清單.csv").write_text(
+        "代號,孔徑\n*D1,Ø116\n", encoding="utf-8",
+    )
+    defs = load_hole_catalog(tmp_path)
+    assert [(x.shape, x.diameter, x.width, x.height) for x in defs] == [
+        ("circle", 22.0, None, None),
+        ("rectangle", None, 90.0, 50.0),
+        ("profile", None, None, None),
+    ]
+    assert defs[2].profile_path == tmp_path / "ASVS.dxf"
+    assert load_pipe_catalog(tmp_path)[0].diameter == 116.0
+
+
+@pytest.mark.parametrize("bad_radius", [0.0, -5.0, float("nan"), float("inf")])
+def test_r5_78_dxf_circle_with_nonphysical_radius_never_enters_cutting_profile(tmp_path, bad_radius):
+    import ezdxf
+    from ae_engine.hole_catalog import load_profile_entities
+    path = tmp_path / "bad_profile_radius.dxf"
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_circle((5., 5.), bad_radius, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(path)
+    with pytest.raises(ValueError, match="孔型 DXF"):
+        load_profile_entities(path)
+
+
+@pytest.mark.parametrize("bad_coordinate", [float("nan"), float("inf"), float("-inf")])
+def test_r5_78_dxf_nonfinite_polyline_vertex_cannot_produce_cutting_profile(tmp_path, bad_coordinate):
+    import ezdxf
+    from ae_engine.hole_catalog import load_profile_entities
+    path = tmp_path / "bad_profile_vertex.dxf"
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_lwpolyline(
+        [(0., 0.), (10., 0.), (bad_coordinate, 15.), (0., 15.)],
+        close=True, dxfattribs={"layer": "CUTTING"},
+    )
+    doc.saveas(path)
+    with pytest.raises(ValueError, match="孔型 DXF"):
+        load_profile_entities(path)
+
+
+def test_r5_78_valid_cutting_dxf_circle_still_preserves_layer_and_local_center(tmp_path):
+    import ezdxf
+    from ae_engine.hole_catalog import load_profile_entities
+    path = tmp_path / "valid_profile_circle.dxf"
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_circle((80., 40.), 12., dxfattribs={"layer": "CUTTING"})
+    doc.saveas(path)
+    entities = load_profile_entities(path)
+    assert len(entities) == 1
+    layer, points, closed = entities[0]
+    assert layer == "CUTTING" and closed is True
+    assert len(points) == 64
+    assert min(p.x for p in points) == pytest.approx(-12.)
+    assert max(p.x for p in points) == pytest.approx(12.)
+    assert min(p.y for p in points) == pytest.approx(-12.)
+    assert max(p.y for p in points) == pytest.approx(12.)

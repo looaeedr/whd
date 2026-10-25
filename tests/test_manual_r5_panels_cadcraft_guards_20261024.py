@@ -187,3 +187,46 @@ def test_r5_75_existing_quantity_text_cannot_make_nonfinite_or_boolean_footprint
         _quantity_text_box(replace(valid, char_height=bad))
     with pytest.raises(ValueError, match="quantity text"):
         _quantity_text_box(replace(valid, insert=Vec2(bad, 40.)))
+
+
+@pytest.mark.parametrize("bad_timeout", [10 ** 400, -(10 ** 400)])
+def test_r5_92_cadcraft_unrepresentable_control_timeout_is_rejected(bad_timeout):
+    """Do not leak Python OverflowError before the control-transport guard."""
+    with pytest.raises(CadcraftControlError, match="CADCRAFT_INVALID_CONTROL_TIMEOUT"):
+        CadcraftControlClient(12345, timeout=bad_timeout)
+    assert CadcraftControlClient(12345, timeout=3).timeout == 3.
+
+
+@pytest.mark.parametrize("bad_method", [[], {}, ["ping"]])
+def test_r5_92_cadcraft_unhashable_rpc_method_rejected_before_socket(bad_method):
+    client = CadcraftControlClient(12345)
+    with pytest.raises(CadcraftControlError, match="CADCRAFT_CONTROL_METHOD_NOT_ALLOWED"):
+        client.request(bad_method)
+
+
+@pytest.mark.parametrize("bad_command", [[], {}, ["circle"]])
+def test_r5_92_cadcraft_unhashable_engine_command_rejected_before_socket(bad_command):
+    client = CadcraftControlClient(12345)
+    with pytest.raises(CadcraftControlError, match="CADCRAFT_ENGINE_COMMAND_NOT_ALLOWED"):
+        client.request("engine.execute", {"command": bad_command})
+
+
+@pytest.mark.parametrize("invalid", [[], {}, ["drawing.inspect"], None, True])
+def test_r5_92_cadcraft_probe_rejects_corrupt_remote_catalog_entries(monkeypatch, invalid):
+    """Malformed external method records cannot escape with TypeError or certify readiness."""
+    client = CadcraftControlClient(12345)
+    replies = {
+        "ping": "pong",
+        "control.methods": [
+            {"method": "drawing.inspect"}, {"method": invalid},
+            {"method": "engine.execute"},
+        ],
+        "engine.commands": [{"id": "circle"}, {"id": "pline"}],
+    }
+    monkeypatch.setattr(client, "request", lambda method: replies[method])
+    with pytest.raises(CadcraftControlError, match="CADCRAFT_UNKNOWN_COMMAND_CATALOG"):
+        client.probe()
+    replies["control.methods"] = [
+        {"method": "drawing.inspect"}, {"method": "engine.execute"}
+    ]
+    assert client.probe() == {"method_count": 2, "command_count": 2}
