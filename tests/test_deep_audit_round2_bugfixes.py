@@ -787,3 +787,25 @@ def test_r2_14_saved_switch_layer_boolean_id_cannot_become_a_string_identity(bad
         normalize_receiving_switch_layout(saved)
     assert saved["layers"][0]["stable_id"] is bad
     assert normalize_receiving_switch_layout(new_receiving_switch_layout())["layers"][0]["stable_id"] == "receiving:switch-layer:1"
+
+
+@pytest.mark.parametrize("axis", ["panel_width", "full_panel_height"])
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), 10 ** 400])
+def test_r2_12_rear_panel_manufacturing_contract_rejects_nonphysical_sizes(axis, bad):
+    """Bad direct rear-panel sizes may not escape validation into DXF datums."""
+    from ae_engine.cabinet_types.receiving import resolve_back_panel_contract
+    from ae_engine.cabinet_types.receiving import resolve_box_body_structure_state
+    saved = {"model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2.}
+    kwargs = {"panel_width": 700., "full_panel_height": 1600.}
+    kwargs[axis] = bad
+    with pytest.raises(ValueError, match="rear-panel dimensions"):
+        resolve_back_panel_contract(
+            saved, structure_state=resolve_box_body_structure_state(None), **kwargs
+        )
+    result = resolve_back_panel_contract(
+        saved, structure_state=resolve_box_body_structure_state(None),
+        panel_width=700., full_panel_height=1600.,
+    )
+    assert result["panel_width"] == 700.
+    assert result["material_height"] == 1600.
+    assert len(result["fixed_slot_datums"]) == 4
