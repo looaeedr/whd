@@ -274,6 +274,7 @@ class Phase6FinalSceneViewAdapter:
         selected_joint_id=None,
         preserve_endcap_core_origin=False,
         formed_fixing_plate_skins=(),
+        show_fixing_plate_mesh=True,
         formed_nfb_pad_skins=(),
         warnings=(),
         render_data_cls=None,
@@ -290,6 +291,7 @@ class Phase6FinalSceneViewAdapter:
             selected_joint_id=selected_joint_id,
             preserve_endcap_core_origin=preserve_endcap_core_origin,
             formed_fixing_plate_skins=formed_fixing_plate_skins,
+            show_fixing_plate_mesh=show_fixing_plate_mesh,
             formed_nfb_pad_skins=formed_nfb_pad_skins,
             warnings=warnings,
             render_data_cls=render_data_cls,
@@ -359,6 +361,9 @@ class Phase6FinalSceneViewAdapter:
         visibility = dependencies.assembly_visibility(parts)
         visible_part_keys = tuple(visibility[0] or ())
         visible_box_body_piece_keys = visibility[1]
+        # Legacy visibility providers return two elements; UI providers may
+        # supply the separate display-only fixing-plate mesh switch.
+        show_fixing_plate_mesh = bool(visibility[2]) if len(visibility) > 2 else True
         visible_set = set(visible_part_keys)
         visible_probe_parts = tuple(
             part
@@ -397,6 +402,7 @@ class Phase6FinalSceneViewAdapter:
             preserve_endcap_core_origin=(cabinet_family == "受電箱"),
             warnings=visible_warnings,
             formed_fixing_plate_skins=formed_ear_skins,
+            show_fixing_plate_mesh=show_fixing_plate_mesh,
             formed_nfb_pad_skins=formed_pad_skins,
             render_data_cls=dependencies.assembly_render_data_cls,
         )
