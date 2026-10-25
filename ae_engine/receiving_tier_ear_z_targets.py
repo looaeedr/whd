@@ -121,7 +121,12 @@ def _tier_source_depths(legacy_brand, config, layer_index):
             or not 0 <= layer_index < count):
         return ()
     depths = []
-    for hole in config.get("holes") or ():
+    holes = config.get("holes")
+    if holes is None:
+        return ()
+    if not isinstance(holes, (list, tuple)):
+        raise ValueError("EAR_Z_SOURCE_HOLE_INVALID")
+    for hole in holes:
         if not isinstance(hole, Mapping):
             raise ValueError("EAR_Z_SOURCE_HOLE_INVALID")
         tier = hole.get("layer_index", 0 if count == 1 else None)
