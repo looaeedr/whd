@@ -455,3 +455,30 @@ def test_bug94_95_door_and_divider_panels_reject_bool_nan_and_handle_none_defaul
             default_depth=250.0,
             default_thickness=2.0,
         )
+
+
+@pytest.mark.parametrize("saved,mode,box_distance", [
+    ({"enabled": "false", "box_enabled": "false", "is_box_dist": "false"}, "none", False),
+    ({"enabled": "true", "box_enabled": "false", "is_box_dist": "0"}, "indicator", False),
+    ({"enabled": "false", "box_enabled": "true", "is_box_dist": "1"}, "indicator_box", True),
+    ({"enabled": "0", "box_enabled": "0", "is_box_dist": "off"}, "none", False),
+    ({"enabled": "garbled", "box_enabled": "unknown", "is_box_dist": "garbled"}, "none", False),
+    ({"enabled": True, "box_enabled": False, "is_box_dist": True}, "indicator", True),
+])
+def test_r5_94_saved_indicator_boolean_text_never_mints_unrequested_holes(
+    saved, mode, box_distance,
+):
+    """Legacy Tk string 'false' must not become a manufactured indicator box."""
+    result = normalize_door_indicator_state(saved)
+    assert result["mode"] == mode
+    assert result["enabled"] is (mode == "indicator")
+    assert result["box_enabled"] is (mode == "indicator_box")
+    assert result["is_box_dist"] is box_distance
+
+
+def test_r5_94_explicit_valid_mode_remains_primary_saved_indicator_authority():
+    result = normalize_door_indicator_state({
+        "mode": "indicator_box", "box_enabled": "false", "enabled": "false",
+    })
+    assert result["mode"] == "indicator_box"
+    assert result["box_enabled"] is True
