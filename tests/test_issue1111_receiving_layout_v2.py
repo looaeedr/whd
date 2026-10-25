@@ -180,3 +180,29 @@ def test_derived_layout_fields_never_survive_canonicalization():
     normalized = normalize_receiving_layout(layout)
     assert "left_locked" not in normalized["sets"][0]["bays"][0]
     assert "effective_D" not in normalized["sets"][0]["joints"][0]
+
+
+@pytest.mark.parametrize("field,invalid", [
+    ("depth_alignment", False), ("depth_alignment", 0), ("depth_alignment", ""),
+    ("height_alignment", False), ("height_alignment", 0), ("height_alignment", ""),
+])
+def test_manual_116_joint_saved_explicit_falsy_alignment_never_defaults_to_datums(field, invalid):
+    """An invalid persisted alignment cannot silently change Z/height origin."""
+    source = _two_bay_layout()
+    joint = source["sets"][0]["joints"][0]
+    joint[field] = invalid
+    with pytest.raises(ValueError, match=field):
+        normalize_receiving_layout(source)
+    assert joint[field] is invalid
+
+
+def test_manual_116_joint_absent_alignment_defaults_but_real_axes_preserve_authority():
+    source = _two_bay_layout()
+    joint = source["sets"][0]["joints"][0]
+    joint.pop("depth_alignment")
+    joint.pop("height_alignment")
+    default = normalize_receiving_layout(source)["sets"][0]["joints"][0]
+    assert (default["depth_alignment"], default["height_alignment"]) == ("FRONT", "BOTTOM")
+    joint.update(depth_alignment="REAR", height_alignment="TOP")
+    explicit = normalize_receiving_layout(source)["sets"][0]["joints"][0]
+    assert (explicit["depth_alignment"], explicit["height_alignment"]) == ("REAR", "TOP")
