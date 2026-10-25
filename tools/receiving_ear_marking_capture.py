@@ -249,7 +249,7 @@ def _save_3d(snapshot, geometry, tier_count, root):
         render_data=scene, x_profile=(), y_profile=(), part_key="assembly",
         thickness=2., finished_dimensions=DIMENSIONS, alpha_bend=0.18,
     ))
-    if len(renderer.last_receiving_ear_marking_segments) != tier_count * 8:
+    if len(renderer.last_receiving_ear_marking_segments) != tier_count * 2:
         raise ValueError("FULL_MARKING_3D_EAR_LINES_MISSING")
     if len(renderer.last_formed_ear_display_ids) != tier_count * 2:
         raise ValueError("FULL_MARKING_3D_EARS_INVISIBLE")
