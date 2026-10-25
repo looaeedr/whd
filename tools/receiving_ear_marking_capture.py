@@ -144,7 +144,7 @@ def _draw_sheet(material, scene, metadata, *, title, target):
     ax.grid(False)
     fig.text(
         0.025, 0.012,
-        "ORANGE = frame/divider real contact     YELLOW = fixed-plate weld contact"
+        "ORANGE = frame/divider real contact     YELLOW = fixed-plate upper installation line"
         "     |   WHD source render / NOT live Tk or welding approval",
         fontsize=8,
     )
@@ -165,13 +165,13 @@ def _save_2d(snapshot, geometry, tier_count, root):
             geometry=geometry, dimensions=DIMENSIONS, sheet_thickness=2.,
         )
         md = display.render_data.metadata
-        assert md["ear_side_mark_preview_count"] == tier_count * 4
+        assert md["ear_side_mark_preview_count"] == tier_count
         counts = _draw_sheet(
             display.render_data.material, display.render_data.scene, md,
             title=f"WHD {tier_count} NFB TIER(S) / 2D {side} / ALL CONTACT MARKING",
             target=root / f"2d_{side}.png",
         )
-        if counts["joint"] != 2 or counts["ear"] < tier_count * 4:
+        if counts["joint"] != 2 or counts["ear"] < tier_count:
             raise ValueError("FULL_MARKING_2D_SIDE_MISSING:" + side + ":" + repr(counts))
         detail[side] = counts
 
