@@ -835,7 +835,7 @@ class Phase6FoldDesignerComposition:
                     )
                     if not root_visible:
                         keys = tuple(k for k in keys if k not in tier_keys)
-                return keys, box_pieces
+                return keys, box_pieces, owner.is_fixing_plate_visible()
             visible_vars = getattr(app, "assembly_part_visible_vars", None) or {}
             piece_vars = getattr(app, "assembly_box_body_piece_visible_vars", None) or {}
             keys, box_pieces = Phase6AssemblyPanel._resolve_visibility_with_vars(
@@ -843,7 +843,7 @@ class Phase6FoldDesignerComposition:
             )
             if not bool(getattr(visible_vars.get("base_plate"), "get", lambda: True)()):
                 keys = tuple(k for k in keys if not str(k).startswith("base_plate:nfb_layer:"))
-            return keys, box_pieces
+            return keys, box_pieces, True
 
         def render_committed():
             if not getattr(app, "preview_3d_enabled", True):
