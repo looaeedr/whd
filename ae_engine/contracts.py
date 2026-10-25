@@ -435,7 +435,13 @@ class JointMarkingPolicy:
         ):
             if not str(getattr(self, name) or "").strip():
                 raise ValueError(f"{name} must be nonblank")
-        if isinstance(self.revision, bool) or int(self.revision) <= 0:
+        # This registry selects actual MARKING policies by enabled.  A
+        # persisted "false" would otherwise be truthy and activate a policy.
+        if type(self.enabled) is not bool:
+            raise ValueError("enabled must be boolean")
+        # int(1.5) silently truncates and int("1") accepts a mistyped
+        # revision. Keep exact positive integer identity, with no size cap.
+        if type(self.revision) is not int or self.revision <= 0:
             raise ValueError("revision must be a positive integer")
         if not isinstance(self.boundary_frame_contract, Mapping):
             raise TypeError("boundary_frame_contract must be a mapping")
