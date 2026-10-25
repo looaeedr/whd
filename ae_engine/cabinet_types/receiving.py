@@ -671,7 +671,15 @@ def resolve_back_panel_contract(
         columns = list(data.get("door_layout_columns") or ())
         if not columns or len(columns[0]) < 2 or not list(columns[0][1] or ()):
             raise ValueError("Receiving half rear panel requires authoritative Door topology")
-        upper_section = float(list(columns[0][1])[0])
+        raw_upper_section = list(columns[0][1])[0]
+        if isinstance(raw_upper_section, bool):
+            raise ValueError("rear-panel upper section must be finite and positive")
+        try:
+            upper_section = float(raw_upper_section)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("rear-panel upper section must be finite and positive") from exc
+        if not isfinite(upper_section) or upper_section <= 0.0:
+            raise ValueError("rear-panel upper section must be finite and positive")
         if abs(upper_section - BACK_PANEL_CERTIFIED_UPPER_SECTION) <= 1e-9:
             material_height = BACK_PANEL_CERTIFIED_HALF_HEIGHT
         else:
