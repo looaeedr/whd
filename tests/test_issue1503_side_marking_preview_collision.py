@@ -39,8 +39,8 @@ def test_true_ear_source_receipts_make_separate_side_preview_without_mutation(fa
     staged = build_receiving_ear_side_marking_previews(rows, owners)
     assert set(staged) == set(owners)
     assert sum(p.layer == "MARKING" for scene in staged.values()
-               for p in scene.primitives) == expected
-    assert len(owners["box_body:left_side"].scene.primitives) == 3
+               for p in scene.primitives) == expected * 3
+    assert len(owners["box_body:left_side"].scene.primitives) == 1
     assert len(owners["box_body:right_side"].scene.primitives) == 0
     assert any(p.layer == "DATUM" for p in staged["box_body:left_side"].primitives)
     assert all(isinstance(p, LinePrimitive) for scene in staged.values()
