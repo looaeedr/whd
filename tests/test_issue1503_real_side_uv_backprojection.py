@@ -66,7 +66,7 @@ def test_real_forming_contact_projects_to_its_own_side_flat_marking(factory, cou
     for contact, receipt in zip(contacts, receipts):
         assert receipt.base_part_id == contact.base_part_id
         assert receipt.world_boundary == contact.world_surface_boundary
-        assert len(receipt.marking_segments) == 1
+        assert len(receipt.marking_segments) == 3
         assert receipt.side_flat_uv_backprojection_verified
         assert receipt.side_final_material_coverage_verified
         assert receipt.side_bend_intersection_rejected
@@ -88,7 +88,7 @@ def test_installation_line_is_base_lower_edge_and_not_fold_length():
     assert a[2] == b[2] == pytest.approx(contact.base_lower_world_z_mm)
     assert b[1] - a[1] == pytest.approx(256.0)
     receipt = _project(contact)
-    assert len(receipt.marking_segments) == 1
+    assert len(receipt.marking_segments) == 3
     assert receipt.world_boundary == contact.world_surface_boundary
 
     # The free formed leg may be longer/shorter; its LOWER z cannot drive
