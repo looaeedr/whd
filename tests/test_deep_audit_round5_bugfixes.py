@@ -482,3 +482,34 @@ def test_r5_94_explicit_valid_mode_remains_primary_saved_indicator_authority():
     })
     assert result["mode"] == "indicator_box"
     assert result["box_enabled"] is True
+
+
+@pytest.mark.parametrize("bad_index", [-2, -1, 2, 100, True, False])
+def test_r5_79_invalid_reference_selection_never_moves_a_different_hole(bad_index):
+    """No selected hole (index -1) must not silently select Python's last."""
+    from ae_engine.sheetmetal_features import feature_surface_from_rect, feature_finished_point
+    from ae_engine.sheetmetal_feature_reference import ReferenceAnchor
+    surface = feature_surface_from_rect("reference", Vec2(0., 0.), Vec2(200., 100.))
+    holes = (
+        CircleFeature(diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE, offset=Vec2(40., 40.)),
+        CircleFeature(diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE, offset=Vec2(150., 40.)),
+    )
+    with pytest.raises(ValueError, match="reference feature index"):
+        move_feature_by_reference_distance(
+            surface, holes, bad_index, ReferenceAnchor.CENTER,
+            200., 100., axis="x", mode="edge", value=30.,
+        )
+    # The distance display must not silently show another hole either.
+    from ae_engine.sheetmetal_feature_reference import reference_distances
+    with pytest.raises(ValueError, match="reference feature index"):
+        reference_distances(
+            surface, holes, bad_index, ReferenceAnchor.CENTER, 200., 100.,
+        )
+    # A valid index must still move exactly the intended physical hole.
+    valid = move_feature_by_reference_distance(
+        surface, holes, 0, ReferenceAnchor.CENTER,
+        200., 100., axis="x", mode="edge", value=30.,
+    )
+    assert feature_finished_point(valid, 200., 100.) == Vec2(30., 40.)
+    assert holes[0].offset == Vec2(40., 40.)
+    assert holes[1].offset == Vec2(150., 40.)

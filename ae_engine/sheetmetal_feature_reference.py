@@ -227,6 +227,9 @@ def find_reference_neighbor(features: Iterable[Feature], current_index: int, anc
 
 def reference_distances(surface: FeatureSurface, features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, width: float, height: float, reference_guide: "RectGuide | None" = None) -> ReferenceDistances:
     items = list(features)
+    # A negative GUI selection is not a request for the last physical hole.
+    if type(current_index) is not int or not 0 <= current_index < len(items):
+        raise ValueError("reference feature index is out of range")
     feature = items[current_index]
     p = feature_reference_point(feature, anchor, width, height)
     x_side, y_side = reference_edge_directions(surface, feature, anchor, width, height, reference_guide)
@@ -259,6 +262,10 @@ def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterab
     if not math.isfinite(measured):
         raise ValueError("reference distance must be finite")
     items = list(features)
+    # Tk uses -1 for "no selection"; Python would otherwise select the last
+    # physical hole, while neighboring UI paths already reject invalid IDs.
+    if not 0 <= current_index < len(items):
+        raise ValueError("reference feature index is out of range")
     feature = items[current_index]
     current_ref = feature_reference_point(feature, anchor, width, height)
     distances = reference_distances(surface, items, current_index, anchor, width, height, reference_guide)
