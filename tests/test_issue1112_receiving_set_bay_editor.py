@@ -804,3 +804,48 @@ def test_ac07_native_layer_resize_keeps_exact_integer_text_and_actual_bays():
         with pytest.raises((IndexError, ValueError)):
             switch.connection_count(bad)
     assert switch.connection_count("0") == 2
+
+
+
+@pytest.mark.parametrize("invalid_joint", (
+    True, False, 0.5, 1.0, 1.5, "1.5", None, [], {}, -1, 2,
+))
+def test_ac07_joint_operator_rejects_bool_fraction_or_nested_without_moving_mating_joint(
+    invalid_joint,
+):
+    """The original Receiving topology has physical Joints, not Python aliases."""
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=1, depth=500, height=1800)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=2, depth=620, height=1900)
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    with pytest.raises((IndexError, ValueError), match="integer|out of range"):
+        adapter.current_joint_editability(invalid_joint)
+    with pytest.raises((IndexError, ValueError), match="integer|out of range"):
+        adapter.update_joint_alignment(
+            invalid_joint, depth_alignment="REAR", height_alignment="TOP",
+        )
+    assert adapter.layout == before
+    assert adapter.selection.set_index == 0
+    assert adapter.selection.bay_index == 0
+
+
+def test_ac07_joint_operator_preserves_exact_integer_text_and_physical_mating():
+    """Do not change placement geometry; only validate original physical Joint ID."""
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=1, depth=500, height=1800)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=2, depth=620, height=1900)
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    assert adapter.current_joint_editability("1") == {
+        "depth_alignment": True,
+        "height_alignment": True,
+    }
+    adapter.update_joint_alignment("1", depth_alignment="REAR", height_alignment="TOP")
+    after = adapter.layout
+    assert after["sets"][0]["joints"][0] == before["sets"][0]["joints"][0]
+    assert after["sets"][0]["joints"][1]["depth_alignment"] == "REAR"
+    assert after["sets"][0]["joints"][1]["height_alignment"] == "TOP"
+    assert [x["stable_id"] for x in after["sets"][0]["joints"]] == [
+        x["stable_id"] for x in before["sets"][0]["joints"]
+    ]
