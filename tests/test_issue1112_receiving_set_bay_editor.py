@@ -559,7 +559,7 @@ def test_issue1504_shared_setting_preserves_valid_multi_bay_reference_sharing():
 
 
 
-@pytest.mark.parametrize("bad", (True, False, 1.5, 2.0, "1.5", None, [], {}, [1]))
+@pytest.mark.parametrize("bad", (True, False, 1.5, 2.0, "1.5", [], {}, [1]))
 @pytest.mark.parametrize("method", (
     "select_set", "select_bay", "set_bay_count", "set_set_count", "bay_count",
 ))
@@ -581,6 +581,21 @@ def test_ac07_selection_and_counts_reject_noninteger_alias_without_side_effect(
     assert adapter.layout == before_layout
     assert adapter.selection == before_selection
     assert asked == []
+
+
+
+
+@pytest.mark.parametrize("method", (
+    "select_set", "select_bay", "set_bay_count", "set_set_count",
+))
+def test_ac07_none_is_invalid_except_explicit_current_set_lookup(method):
+    """None is the documented default only for bay_count(set_index=None)."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    before = adapter.layout
+    with pytest.raises(ValueError, match="integer"):
+        getattr(adapter, method)(None)
+    assert adapter.layout == before
+    assert adapter.bay_count(None) == 1
 
 
 @pytest.mark.parametrize("method,value", (
