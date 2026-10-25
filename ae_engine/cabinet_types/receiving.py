@@ -771,40 +771,62 @@ def _side_back_config(state=None):
     return result, cfg
 
 
+def _finite_bottom_relief_reserve(value, *, key: str) -> float:
+    """Keep user-adjustable reserves while rejecting impossible CUTTING values."""
+    from math import isfinite
+    if isinstance(value, bool):
+        raise ValueError(f"{key} must be finite numeric millimetres")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{key} must be finite numeric millimetres") from exc
+    if not isfinite(number):
+        raise ValueError(f"{key} must be finite numeric millimetres")
+    return max(0.0, number)
+
+
 def bottom_external_wrap_enabled(state=None) -> bool:
     """Return the receiving EndCap lower-face external-WRAP option."""
     _state, cfg = _side_back_config(state)
-    return bool(cfg.get("bottom_external_wrap", True))
+    enabled = cfg.get("bottom_external_wrap", True)
+    if not isinstance(enabled, bool):
+        raise ValueError("bottom_external_wrap must be boolean")
+    return enabled
 
 
 def set_bottom_external_wrap(state, enabled: bool) -> dict:
     """Return a canonical structure-state copy with lower WRAP enabled/disabled."""
+    if not isinstance(enabled, bool):
+        raise ValueError("bottom_external_wrap must be boolean")
     result, cfg = _side_back_config(state)
-    cfg["bottom_external_wrap"] = bool(enabled)
+    cfg["bottom_external_wrap"] = enabled
     return result
 
 
 def bottom_relief_reserves(state=None) -> tuple[float, float]:
     """Return explicit millimetre reserves ``(X, Y)`` for receiving lower WRAP."""
     _state, cfg = _side_back_config(state)
-    try:
-        reserve_u = max(0.0, float(cfg.get("bottom_relief_reserve_u", 2.0)))
-    except (TypeError, ValueError):
-        reserve_u = 2.0
-    try:
-        reserve_v = max(0.0, float(cfg.get("bottom_relief_reserve_v", 1.0)))
-    except (TypeError, ValueError):
-        reserve_v = 1.0
-    return reserve_u, reserve_v
+    return (
+        _finite_bottom_relief_reserve(
+            cfg.get("bottom_relief_reserve_u", 2.0), key="bottom_relief_reserve_u",
+        ),
+        _finite_bottom_relief_reserve(
+            cfg.get("bottom_relief_reserve_v", 1.0), key="bottom_relief_reserve_v",
+        ),
+    )
 
 
 def set_bottom_relief_reserves(state, *, reserve_u=None, reserve_v=None) -> dict:
     """Return a canonical structure-state copy with explicit X/Y reserve values."""
     result, cfg = _side_back_config(state)
     if reserve_u is not None:
-        cfg["bottom_relief_reserve_u"] = max(0.0, float(reserve_u))
+        cfg["bottom_relief_reserve_u"] = _finite_bottom_relief_reserve(
+            reserve_u, key="bottom_relief_reserve_u",
+        )
     if reserve_v is not None:
-        cfg["bottom_relief_reserve_v"] = max(0.0, float(reserve_v))
+        cfg["bottom_relief_reserve_v"] = _finite_bottom_relief_reserve(
+            reserve_v, key="bottom_relief_reserve_v",
+        )
     return result
 
 
