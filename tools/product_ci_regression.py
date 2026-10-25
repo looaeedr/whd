@@ -398,6 +398,11 @@ PYTEST_PATHS = (
     # exact HEAD; a manual 27-pass smoke run is not a manufacturing receipt.
     "tests/test_deep_audit_14_bugs_regression.py",
     "tests/test_deep_audit_14_bugs_boundary_guards.py",
+    # Original R4–R6 audit source suites: 48 direct test functions for 66
+    # reported fixes, in addition to (not instead of) later manual guards.
+    "tests/test_deep_audit_round4_bugfixes.py",
+    "tests/test_deep_audit_round5_bugfixes.py",
+    "tests/test_deep_audit_round6_bugfixes.py",
     # Manual R4–R6 source repairs: marking, DXF, assembly placement, cache.
     "tests/test_manual_audit_source_guards_20261023.py",
     # Directly audited R4 source gaps missing from merged localX.
