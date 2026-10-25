@@ -53,13 +53,13 @@ def load_hole_catalog(base_dir) -> list[HoleDefinition]:
             except ValueError:
                 result.append(HoleDefinition(name=name, shape='profile', process='FROM_DXF', profile_path=base / values[0]))
             else:
-                result.append(HoleDefinition(name=name, shape='circle', process='CUTTING', diameter=diameter))
+                result.append(HoleDefinition(name=name, shape='circle', process='CUTTING', diameter=_positive_hole_mm(diameter, 'diameter')))
         else:
             try:
                 width, height = float(values[0]), float(values[1])
             except ValueError as exc:
                 raise ValueError(f'開孔.csv 尺寸格式錯誤: {name}') from exc
-            result.append(HoleDefinition(name=name, shape='rectangle', process='CUTTING', width=width, height=height))
+            result.append(HoleDefinition(name=name, shape='rectangle', process='CUTTING', width=_positive_hole_mm(width, 'width'), height=_positive_hole_mm(height, 'height')))
     return result
 
 
@@ -80,7 +80,7 @@ def load_pipe_catalog(base_dir) -> list[HoleDefinition]:
             diameter = float(raw_diameter)
         except ValueError:
             continue
-        result.append(HoleDefinition(name=cells[0], shape='circle', process='BLIND_HOLE', diameter=diameter, source_code=cells[0]))
+        result.append(HoleDefinition(name=cells[0], shape='circle', process='BLIND_HOLE', diameter=_positive_hole_mm(diameter, 'diameter'), source_code=cells[0]))
     return result
 
 

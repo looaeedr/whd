@@ -114,3 +114,75 @@ def test_r5_74_character_sequence_is_not_a_finished_dimension_vector(malformed):
     assert resolve_operator_finished_dimensions(
         "head", fallback_dimensions=[800., 350.],
     ) == (800., 350.)
+
+
+@pytest.mark.parametrize("cx, cy, radius", [
+    (True, 30., 5.),
+    (50., False, 5.),
+    (float("nan"), 30., 5.),
+    (50., float("inf"), 5.),
+    (50., 30., True),
+    (50., 30., 0.),
+    (50., 30., -5.),
+    (50., 30., float("nan")),
+    (50., 30., 10 ** 400),
+])
+def test_r5_75_quantity_check_cannot_ignore_invalid_cutting_circle(cx, cy, radius):
+    """A bad CUTTING circle cannot become an empty Q-placement obstacle."""
+    from ae_engine.drawing_annotation_layout import _quantity_obstacles, annotate_quantity_render_data
+    from ae_engine.manufacturing_render_data import PartRenderData
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, DrawingScene
+    from shapely.geometry import box
+
+    circle = CirclePrimitive(center=Vec2(cx, cy), radius=radius, layer="CUTTING")
+    with pytest.raises(ValueError, match="quantity CHECK circle"):
+        _quantity_obstacles((circle,), 1.)
+    scene = DrawingScene([circle])
+    part = PartRenderData(scene=scene, material=box(0., 0., 200., 100.))
+    with pytest.raises(ValueError, match="quantity CHECK circle"):
+        annotate_quantity_render_data(part, 2, char_height=10., minimum_char_height=3.)
+    # An ordinary physical circle remains a genuine positive-area exclusion.
+    valid = CirclePrimitive(center=Vec2(50., 30.), radius=5., layer="CUTTING")
+    regions = _quantity_obstacles((valid,), 1.)
+    assert len(regions) == 1 and not regions[0].is_empty
+    assert regions[0].area > 0.
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf"), 10 ** 400])
+@pytest.mark.parametrize("kind", ["line", "polyline"])
+def test_r5_75_quantity_check_cannot_float_coerce_invalid_cutting_vertices(kind, bad):
+    """A bad final 2D source vertex cannot become a false Q-free corridor."""
+    from shapely.geometry import box
+    from ae_engine.drawing_annotation_layout import _quantity_obstacles, annotate_quantity_render_data
+    from ae_engine.manufacturing_render_data import PartRenderData
+    from ae_engine.sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
+
+    if kind == "line":
+        obstacle = LinePrimitive(Vec2(bad, 10.), Vec2(80., 50.), "CUTTING")
+    else:
+        obstacle = PolylinePrimitive(
+            (Vec2(10., 10.), Vec2(bad, 20.), Vec2(80., 50.)),
+            "CUTTING", closed=False,
+        )
+    with pytest.raises(ValueError, match="quantity CHECK obstacle vertices"):
+        _quantity_obstacles((obstacle,), 1.)
+    source = PartRenderData(
+        scene=DrawingScene([obstacle]), material=box(0., 0., 200., 100.),
+    )
+    with pytest.raises(ValueError, match="quantity CHECK obstacle vertices"):
+        annotate_quantity_render_data(source, 2, char_height=10.)
+
+
+def test_r5_75_valid_cutting_line_and_open_polyline_still_exclude_q_regions():
+    from ae_engine.drawing_annotation_layout import _quantity_obstacles
+    from ae_engine.sheetmetal_drawing import LinePrimitive, PolylinePrimitive
+    primitives = (
+        LinePrimitive(Vec2(10., 10.), Vec2(40., 10.), "CUTTING"),
+        PolylinePrimitive(
+            (Vec2(30., 20.), Vec2(50., 20.), Vec2(50., 40.)),
+            "CUTTING", closed=False,
+        ),
+    )
+    exclusions = _quantity_obstacles(primitives, 1.)
+    assert len(exclusions) == 2
+    assert all(not region.is_empty and region.area > 0 for region in exclusions)

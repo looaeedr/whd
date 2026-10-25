@@ -126,3 +126,18 @@ def test_r6_operator_total_width_must_be_positive_even_without_active_split(inva
     assert reconcile_width_structure(good, 800.) == (
         body.reconcile_box_body_structure_for_total_w_change(good, 800.)
     )
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("false", False), ("0", False), ("off", False), ("no", False),
+    ("true", True), ("1", True), ("on", True), ("yes", True),
+])
+def test_r6_legacy_structure_lock_fallback_uses_same_saved_boolean_parser(raw, expected):
+    """Non-empty partial structures must not turn legacy "false" into True."""
+    for value in (None, {}, {"configs": {}}, {"active_type": body.DEFAULT_STRUCTURE_TYPE.value}):
+        normalized = body.normalize_box_body_structure_state(value, legacy_locked=raw)
+        assert normalized["locked"] is expected
+    explicit = body.normalize_box_body_structure_state(
+        {"locked": False}, legacy_locked="true",
+    )
+    assert explicit["locked"] is False

@@ -258,3 +258,46 @@ def test_r6_ear_z_source_rejects_nonsequence_hole_containers_without_raw_typeerr
 def test_r6_ear_z_missing_hole_list_is_unresolved_not_certified():
     assert _tier_source_depths(None, {"layer_count": 1}, 0) == ()
     assert _tier_source_depths(None, {"layer_count": 1, "holes": []}, 0) == ()
+
+
+def test_r6_joint_marking_policy_activation_and_revision_never_coerce_corrupt_types():
+    """A saved "false" must never activate a manufactured Joint MARKING policy."""
+    from dataclasses import replace
+    from ae_engine.contracts import JointMarkingPolicy
+    from ae_engine.joint_marking_policy import JointMarkingPolicyRegistry
+
+    valid = JointMarkingPolicy(
+        policy_id="RECEIVING_TEST_POLICY",
+        revision=1,
+        enabled=False,
+        locator_selector="RECEIVING_DIVIDER",
+        attached_selector="RECEIVING_INNER_FRAME",
+        locator_contact_region="CORE_PHYSICAL_SEGMENT",
+        attached_contact_region="LOWER_TERMINAL_FACE",
+        footprint_mode="SIDE_BOUNDARY_PAIR",
+        boundary_frame_contract={"frame_version": "CONTACT_LOCAL_FRAME_V1"},
+        contact_span_contract="EXPECTED_REGION_COVERAGE",
+        allowed_overlap_contract="NONE",
+    )
+    disabled = JointMarkingPolicyRegistry((valid,)).resolve(
+        locator_selector=valid.locator_selector,
+        attached_selector=valid.attached_selector,
+    )
+    assert disabled.status == "NO_POLICY_REQUIRED"
+    assert disabled.policy is None
+    active = replace(valid, enabled=True)
+    assert JointMarkingPolicyRegistry((active,)).resolve(
+        locator_selector=valid.locator_selector,
+        attached_selector=valid.attached_selector,
+    ).policy == active
+
+    for corrupt_activation in ("false", "0", 0, 1, None):
+        with pytest.raises(ValueError, match="enabled must be boolean"):
+            replace(valid, enabled=corrupt_activation)
+    for corrupt_revision in (True, 1.5, "1", float("nan"), float("inf"), 0, -1):
+        with pytest.raises(ValueError, match="revision must be a positive integer"):
+            replace(valid, revision=corrupt_revision)
+    # Positive Python integers remain valid revision identities: this source
+    # defines no arbitrary upper cap, and rejects only fractional/mistyped IDs.
+    assert replace(valid, revision=2).revision == 2
+    assert replace(valid, revision=10 ** 400).revision == 10 ** 400

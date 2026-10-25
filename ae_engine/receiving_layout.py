@@ -168,8 +168,8 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                     f"Receiving Set{set_index} Joint{joint_index + 1} endpoints must match adjacent bays "
                     f"{expected_left!r}->{expected_right!r}; got {left_id!r}->{right_id!r}"
                 )
-            # Defaults apply only when an archived Joint omitted alignment.
-            # Explicit false/zero/blank must not shift physical Z/Y datums.
+            # Defaults are valid only for missing archived Joint datums.
+            # Explicit falsy values must not silently move a real Bay origin.
             raw_depth = raw_joint.get("depth_alignment")
             raw_height = raw_joint.get("height_alignment")
             if raw_depth is not None and not isinstance(raw_depth, str):

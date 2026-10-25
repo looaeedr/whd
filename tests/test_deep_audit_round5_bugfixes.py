@@ -635,3 +635,78 @@ def test_r5_73_readonly_mapping_hole_projects_identically_to_mutable_source():
     assert any(isinstance(x, CirclePrimitive) for x in mapped.scene.primitives)
     assert saved_hole["params"]["diameter"] == 10.
     assert len(original.scene.primitives) == 1
+
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf"), "invalid"])
+def test_bug88_hole_editor_canvas_rect_rejects_nonphysical_screen_coordinates(bad):
+    """Corrupt contours cannot pass Boolean/nonfinite coordinates to Tk overlays."""
+    view = Phase6HoleEditorCanvasView(
+        canvas=SimpleNamespace(),
+        draw_grid=lambda: None,
+        render_secondary_scene=lambda *args: None,
+        render_resolved_features=lambda *args: None,
+    )
+    view.transform = SimpleNamespace(world_to_canvas=lambda pt: (pt.x, pt.y))
+    bad_profile = ResolvedProfile(
+        points=(), layer="FROM_DXF", source_type="saved",
+        layered_profiles=(
+            ("CUTTING", (Vec2(bad, 2.0), Vec2(20.0, 30.0)), False),
+        ),
+    )
+    assert view._resolved_canvas_rect(bad_profile) is None
+    valid_profile = ResolvedProfile(
+        points=(), layer="FROM_DXF", source_type="saved",
+        layered_profiles=(("CUTTING", (Vec2(1., 2.), Vec2(20., 30.)), False),),
+    )
+    assert view._resolved_canvas_rect(valid_profile) == (1., 2., 20., 30.)
+
+
+@pytest.mark.parametrize("bad", ["0", "-1", "NaN", "inf", "-inf"])
+def test_r5_78_csv_cutting_circle_rejects_nonphysical_catalog_dimension(tmp_path, bad):
+    from ae_engine.hole_catalog import load_hole_catalog
+    (tmp_path / "開孔.csv").write_text(
+        f"名稱,孔徑,次尺寸\n非法圓孔,{bad},\n", encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="finite positive dimension"):
+        load_hole_catalog(tmp_path)
+
+
+@pytest.mark.parametrize("bad", ["0", "-5", "NaN", "inf", "-inf"])
+@pytest.mark.parametrize("field", ["width", "height"])
+def test_r5_78_csv_cutting_rectangle_rejects_nonphysical_catalog_dimensions(tmp_path, bad, field):
+    from ae_engine.hole_catalog import load_hole_catalog
+    w, h = (bad, "50") if field == "width" else ("90", bad)
+    (tmp_path / "開孔.csv").write_text(
+        f"名稱,孔寬,孔高\n非法方孔,{w},{h}\n", encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="finite positive dimension"):
+        load_hole_catalog(tmp_path)
+
+
+@pytest.mark.parametrize("bad", ["0", "-1", "NaN", "inf"])
+def test_r5_78_csv_blind_pipe_rejects_nonphysical_catalog_diameter(tmp_path, bad):
+    from ae_engine.hole_catalog import load_pipe_catalog
+    (tmp_path / "管孔尺寸清單.csv").write_text(
+        f"代號,孔徑\n*D1,Ø{bad}\n", encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="finite positive dimension"):
+        load_pipe_catalog(tmp_path)
+
+
+def test_r5_78_csv_existing_positive_holes_and_profile_reference_preserved(tmp_path):
+    from ae_engine.hole_catalog import load_hole_catalog, load_pipe_catalog
+    (tmp_path / "開孔.csv").write_text(
+        "名稱,孔徑,次尺寸\n圓孔22,22,\n插座盒,90,50\nASVS,ASVS.dxf,\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "管孔尺寸清單.csv").write_text(
+        "代號,孔徑\n*D1,Ø116\n", encoding="utf-8",
+    )
+    defs = load_hole_catalog(tmp_path)
+    assert [(x.shape, x.diameter, x.width, x.height) for x in defs] == [
+        ("circle", 22.0, None, None),
+        ("rectangle", None, 90.0, 50.0),
+        ("profile", None, None, None),
+    ]
+    assert defs[2].profile_path == tmp_path / "ASVS.dxf"
+    assert load_pipe_catalog(tmp_path)[0].diameter == 116.0
