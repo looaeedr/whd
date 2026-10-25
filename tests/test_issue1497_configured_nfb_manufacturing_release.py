@@ -172,3 +172,30 @@ def test_final_manufacturing_dxf_contains_original_panel_and_color3_hole(tmp_pat
           and e.dxf.layer=="CUTTING" and e.closed]
     assert len(cuts)==2
     assert cuts[-1].dxf.color==3
+
+
+@pytest.mark.parametrize(("bad_size", "position"), [
+    (float("nan"), 0), (float("nan"), 1),
+    (float("inf"), 0), (float("inf"), 1),
+    (float("-inf"), 0), (True, 0), ("57", 0),
+])
+def test_1504_typed_same_sha_profile_never_bypasses_invalid_source_mm(
+    tmp_path, bad_size, position,
+):
+    """Even a dataclass directly passed to the actual CUTTING path is untrusted.
+
+    When source SHA already matches, an invalid dimension must not pass
+    through abs(source_size - NaN) > tolerance, which is always false.
+    """
+    index, source, verified = _source(tmp_path)
+    dimensions = list(verified.upper_size_mm)
+    dimensions[position] = bad_size
+    unsafe = replace(verified, upper_size_mm=tuple(dimensions))
+    with pytest.raises(ValueError, match="NFB source profile upper dimensions invalid"):
+        configured_nfb_inner_door_render_data(
+            _state(), "upper", holes=(_hole(),),
+            index_path=index, source_path=source, profile=unsafe,
+        )
+    # Invalid typed source never mutates the original profile or source DXF.
+    assert verified.upper_size_mm == (57., 96.)
+    assert sha256(source.read_bytes()).hexdigest() == verified.source_sha256

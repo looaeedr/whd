@@ -148,6 +148,9 @@ PYTEST_PATHS = (
     "tests/test_issue1496_nfb_index_unique_sources.py::test_no_matching_file_is_sentinel_not_corrupt_dxf_filename",
     "tests/test_issue1496_real_nfb_source_observation.py::test_source_witness_has_traceable_region_partition_and_no_false_certs",
     "tests/test_issue1496_nfb_source_inventory_report.py",
+    # Real legacy DXF Color150 profile and invalid mm source must be exercised
+    # by canonical full product CI, not just a dormant file in the tree.
+    "tests/test_issue1497_shihlin400_cutting_trial.py",
     "tests/test_issue1497_w800_three_canonical_cutting.py",
     "tests/test_issue1497_w800_three_ui_worldx.py",
     "tests/test_issue1498_nfb_part_readiness.py",
