@@ -136,3 +136,37 @@ def test_r5_91_saved_inner_door_bool_identity_never_becomes_project_authority(fi
     with pytest.raises(ValueError, match="invalid inner-door identity"):
         _normalize_authoritative_door_state(saved)
     assert saved["inner_doors"][0][field] is bad
+
+
+@pytest.mark.parametrize("bad_cell", [
+    True, False, 42, float("nan"), float("inf"),
+    {"col": 0, "row": 0}, ["0:0"],
+])
+def test_r5_91_physical_inner_door_panel_cell_identity_must_be_saved_text(bad_cell):
+    """No boolean/NaN/object alias may become a physical 2D/3D door cell."""
+    from ae_engine.inner_door_panels import derive_inner_door_panel
+
+    with pytest.raises(ValueError, match="inner-door panel cell_key"):
+        derive_inner_door_panel(
+            "upper", cell_key=bad_cell, width=689., height=900., thickness=2.,
+        )
+    legitimate = derive_inner_door_panel(
+        "upper", cell_key="0:0", width=689., height=900., thickness=2.,
+    )
+    assert legitimate.cell_key == "0:0"
+    assert legitimate.stable_id == "inner_door:upper:panel"
+    assert legitimate.unfolded_width == pytest.approx(723.)
+
+
+@pytest.mark.parametrize("bad_id", [float("nan"), float("inf"), {}, ["upper"]])
+def test_r5_91_physical_inner_door_stable_id_must_be_real_source_identity(bad_id):
+    """NaN/object identities cannot own hole features or a manufactured panel."""
+    from ae_engine.inner_door_panels import derive_inner_door_panel
+    with pytest.raises(ValueError, match="inner_door_id"):
+        derive_inner_door_panel(
+            bad_id, cell_key="0:0", width=689., height=900., thickness=2.,
+        )
+    legacy_id = derive_inner_door_panel(
+        1, cell_key="0:0", width=689., height=900., thickness=2.,
+    )
+    assert legacy_id.stable_id == "inner_door:1:panel"

@@ -19,8 +19,11 @@ from typing import Sequence
 
 
 def _stable_inner_door_id(value: object) -> str:
-    if isinstance(value, bool):
-        raise ValueError("inner_door_id must be a stable non-boolean identifier")
+    # Legacy finite numeric IDs remain accepted, but an object/NaN cannot
+    # become a fabricated 2D/3D and hole-feature stable part identity.
+    if (isinstance(value, bool) or not isinstance(value, (str, int, float))
+            or (isinstance(value, float) and not math.isfinite(value))):
+        raise ValueError("inner_door_id must be a stable text or finite numeric identifier")
     text = str(value or "").strip()
     if not text:
         raise ValueError("inner_door_id must be a stable non-empty identifier")
@@ -97,7 +100,11 @@ def derive_inner_door_panel(
     fold_bottom: float = 19.0,
 ) -> InnerDoorPanelPart:
     door_id = _stable_inner_door_id(inner_door_id)
-    key = str(cell_key or "").strip()
+    # This is a source-owned physical Door grid cell (e.g. "0:0"), not an
+    # arbitrary Python value to stringify into a manufactured part locator.
+    if not isinstance(cell_key, str):
+        raise ValueError("inner-door panel cell_key must be saved text")
+    key = cell_key.strip()
     if not key:
         raise ValueError("inner-door panel cell_key must be non-empty")
     (width, height, thickness, fold_left, fold_right, fold_top, fold_bottom) = tuple(
