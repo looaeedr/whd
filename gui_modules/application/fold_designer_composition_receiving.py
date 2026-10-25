@@ -130,6 +130,28 @@ from gui_modules.application.fold_designer_snapshot_projection import (
     _make_original_fold_designer_snapshot,
 )
 
+def _checked_nfb_copy_selection(layout, set_index, selected_bays):
+    """Resolve two unique physical Bay indices before any UI copy side effect."""
+    message = "NFB 複製請在同一套高亮來源連及目標連（恰好兩連）"
+    if type(set_index) is not int:
+        raise ValueError("NFB 複製的套位已不存在")
+    try:
+        if not 0 <= set_index < len(layout["sets"]):
+            raise ValueError("NFB 複製的套位已不存在")
+        bays = layout["sets"][set_index]["bays"]
+    except (TypeError, KeyError, IndexError) as exc:
+        raise ValueError("NFB 複製的套位已不存在") from exc
+    try:
+        indices = tuple(selected_bays)
+    except TypeError as exc:
+        raise ValueError(message) from exc
+    if (len(indices) != 2
+            or any(type(i) is not int or not 0 <= i < len(bays) for i in indices)
+            or len(set(indices)) != 2):
+        raise ValueError(message)
+    return indices, {i: bays[i] for i in indices}
+
+
 def receiving_layout_applicable(self):
     return self._capabilities.receiving.applicable()
 
@@ -3231,15 +3253,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             two Bays. The source may be active or the destination may be
             active. If both directions could apply, fail closed.
             """
-            indices=tuple(selected_bays)
-            if (len(indices)!=2 or len(indices)!=len(set(indices))):
-                raise ValueError("NFB 複製請在同一套高亮來源連及目標連（恰好兩連）")
             layout=candidate_adapter().layout
-            try:
-                bays=layout["sets"][set_index]["bays"]
-                selected={i:bays[i] for i in indices}
-            except (IndexError,KeyError,TypeError) as exc:
-                raise ValueError("NFB 複製的連位已不存在") from exc
+            indices, selected = _checked_nfb_copy_selection(
+                layout, set_index, selected_bays,
+            )
             options=[]
             for source_bi in indices:
                 if selected[source_bi].get("nfb_config_submitted") is not True:

@@ -9,10 +9,57 @@ from types import SimpleNamespace
 import tkinter as tk
 from tkinter import ttk
 
+import pytest
+
+from gui_modules.application.fold_designer_composition_receiving import (
+    _checked_nfb_copy_selection,
+)
 from gui_modules.application.receiving_multi_settings_window import (
     open_multi_settings,
 )
 from gui_modules.application import receiving_multi_settings_window as view
+
+
+def _copy_layout():
+    return {"sets": [{"stable_id": "set-actual", "bays": [
+        {"stable_id": "bay-a", "nfb_config_submitted": True},
+        {"stable_id": "bay-b", "nfb_config_submitted": False},
+    ]}]}
+
+
+@pytest.mark.parametrize("bad_set", (True, False, 0.0, "0", None, [], {}, -1, 1))
+def test_ac07_gui_nfb_copy_requires_actual_set_identity_before_selection(bad_set):
+    source = _copy_layout()
+    frozen = deepcopy(source)
+    with pytest.raises(ValueError, match="套位"):
+        _checked_nfb_copy_selection(source, bad_set, (0, 1))
+    assert source == frozen
+
+
+@pytest.mark.parametrize("bad_selection", (
+    None, 1, (), (0,), (0, 0),
+    (0, True), (0, False), (0, 1.0), (0, "1"),
+    (0, []), ([], 0), (0, {}), (0, 2), (0, -1),
+))
+def test_ac07_gui_nfb_copy_rejects_invalid_highlights_before_owner_alias(bad_selection):
+    source = _copy_layout()
+    frozen = deepcopy(source)
+    with pytest.raises(ValueError, match="高亮"):
+        _checked_nfb_copy_selection(source, 0, bad_selection)
+    assert source == frozen
+
+
+def test_ac07_gui_nfb_copy_preserves_two_valid_bay_owners_and_direction():
+    source = _copy_layout()
+    frozen = deepcopy(source)
+    indices, selected = _checked_nfb_copy_selection(source, 0, (1, 0))
+    assert indices == (1, 0)
+    assert selected[1] is source["sets"][0]["bays"][1]
+    assert selected[0] is source["sets"][0]["bays"][0]
+    assert {v["stable_id"] for v in selected.values()} == {"bay-a", "bay-b"}
+    assert selected[0]["nfb_config_submitted"] is True
+    assert selected[1]["nfb_config_submitted"] is False
+    assert source == frozen
 
 
 def _buttons(host):
