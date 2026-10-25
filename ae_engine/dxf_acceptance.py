@@ -316,6 +316,8 @@ def _rows_close(expected, actual, tolerance: float) -> bool:
     def same(erow, arow):
         if len(erow) != len(arow) or erow[0] != arow[0]:
             return False
+        if any(isinstance(v, bool) for v in (*erow[1:], *arow[1:])):
+            return False
         try:
             pairs = tuple((float(ev), float(av)) for ev, av in zip(erow[1:], arow[1:]))
         except (TypeError, ValueError, OverflowError):
@@ -327,16 +329,21 @@ def _rows_close(expected, actual, tolerance: float) -> bool:
 
 
 def _expected_cutting_circles(scene):
-    return tuple(sorted(
-        (
-            float(p.center.x),
-            float(p.center.y),
-            float(p.radius),
-        )
-        for p in getattr(scene, "primitives", ())
-        if isinstance(p, CirclePrimitive)
-        and str(getattr(p, "layer", "")).upper() == "CUTTING"
-    ))
+    circles = []
+    for p in getattr(scene, "primitives", ()):
+        if not isinstance(p, CirclePrimitive) or str(getattr(p, "layer", "")).upper() != "CUTTING":
+            continue
+        raw = (p.center.x, p.center.y, p.radius)
+        if any(isinstance(value, bool) for value in raw):
+            raise ValueError("canonical CUTTING circle must have real physical coordinates")
+        try:
+            cx, cy, radius = (float(value) for value in raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("canonical CUTTING circle must have real physical coordinates") from exc
+        if not all(isfinite(v) for v in (cx, cy, radius)) or radius <= 0:
+            raise ValueError("canonical CUTTING circle must have finite positive radius")
+        circles.append((cx, cy, radius))
+    return tuple(sorted(circles))
 
 
 def _actual_cutting_circles(msp):
@@ -356,6 +363,10 @@ def _circle_rows_close(expected, actual, tolerance: float) -> bool:
         return False
 
     def same(erow, arow):
+        if len(erow) != len(arow) or any(
+            isinstance(v, bool) for v in (*erow, *arow)
+        ):
+            return False
         try:
             values = tuple((float(ev), float(av)) for ev, av in zip(erow, arow))
         except (TypeError, ValueError, OverflowError):
@@ -476,6 +487,15 @@ def verify_saved_part_render_data_dxf(
         )
     msp = doc.modelspace()
 
+    # Fail closed BEFORE layer matching float-coerces a malformed source hole.
+    # The reopened DXF must never certify a boolean/NaN physical CUTTING circle.
+    try:
+        expected_circles = _expected_cutting_circles(render_data.scene)
+    except ValueError as exc:
+        return DxfAcceptanceResult(False, (
+            DxfAcceptanceIssue("INVALID_SOURCE", str(exc)),
+        ))
+
     issues.extend(_find_layer_mismatches(
         render_data.scene, msp, float(coordinate_tolerance)
     ))
@@ -517,7 +537,6 @@ def verify_saved_part_render_data_dxf(
             actual_bends,
         ))
 
-    expected_circles = _expected_cutting_circles(render_data.scene)
     actual_circles = _actual_cutting_circles(msp)
     if not _circle_rows_close(expected_circles, actual_circles, float(coordinate_tolerance)):
         issues.append(DxfAcceptanceIssue(
