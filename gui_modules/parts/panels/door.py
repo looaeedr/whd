@@ -301,11 +301,23 @@ def setup_tab_door_ui(host):
 def normalize_door_indicator_state(state):
     """Repair stale indicator presentation inputs without inventing geometry."""
     raw = dict(state or {})
+
+    def saved_flag(value):
+        # Tk-originated persisted booleans can be textual. bool("false") is
+        # True in Python and must never silently enable physical hole features.
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        if type(value) is int:
+            return value == 1
+        return False
+
     mode = raw.get("mode")
     if not isinstance(mode, str) or mode not in {"none", "indicator", "indicator_box"}:
-        if raw.get("box_enabled"):
+        if saved_flag(raw.get("box_enabled")):
             mode = "indicator_box"
-        elif raw.get("enabled"):
+        elif saved_flag(raw.get("enabled")):
             mode = "indicator"
         else:
             mode = "none"
@@ -346,7 +358,7 @@ def normalize_door_indicator_state(state):
         "groups": normalized_groups,
         "offset_x": finite_offset(raw.get("offset_x", 0.0)),
         "offset_y": finite_offset(raw.get("offset_y", 0.0)),
-        "is_box_dist": bool(raw.get("is_box_dist", False)),
+        "is_box_dist": saved_flag(raw.get("is_box_dist", False)),
     }
 
 def destroy_door_layout_entry_widgets(host):
