@@ -782,3 +782,19 @@ def test_receiving_inner_door_work_area_scales_with_multicolumn_layout():
         assert (guide.width, guide.height) == pytest.approx(
             (500, 1100) if panel.cell_key == "1:0" else (300, 600)
         )
+
+
+@pytest.mark.parametrize("invalid_id", [True, False])
+def test_r4_62_boolean_inner_door_identity_never_becomes_a_panel_part(invalid_id):
+    from ae_engine.inner_door_panels import derive_inner_door_panel, inner_door_panel_stable_id
+    with pytest.raises(ValueError, match="inner_door_id"):
+        derive_inner_door_panel(
+            invalid_id, cell_key="0:0", width=723., height=900., thickness=2.,
+        )
+    with pytest.raises(ValueError, match="inner_door_id"):
+        inner_door_panel_stable_id(invalid_id)
+    valid = derive_inner_door_panel(
+        "upper", cell_key="0:0", width=723., height=900., thickness=2.,
+    )
+    assert valid.stable_id == "inner_door:upper:panel"
+    assert valid.unfolded_width == pytest.approx(757.)
