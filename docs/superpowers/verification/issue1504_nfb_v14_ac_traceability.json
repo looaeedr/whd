@@ -604,7 +604,7 @@
         {
           "path": "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py",
           "test_name": "test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad",
-          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_1502_CORRECTED_SCOPE",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
           "accepted": true
         }
       ],
