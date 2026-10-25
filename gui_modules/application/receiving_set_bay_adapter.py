@@ -703,10 +703,11 @@ class ReceivingSetBayAdapter:
         return changed
 
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:
+        index = _operator_integer(joint_index, "Joint index")
         return receiving_joint_alignment_editability(
             self._layout,
             set_index=self._selection.set_index,
-            joint_index=int(joint_index),
+            joint_index=index,
         )
 
     def update_joint_alignment(
@@ -716,14 +717,16 @@ class ReceivingSetBayAdapter:
         depth_alignment: object | None = None,
         height_alignment: object | None = None,
     ) -> None:
-        self._layout = update_receiving_joint_alignment(
+        index = _operator_integer(joint_index, "Joint index")
+        candidate = update_receiving_joint_alignment(
             self._layout,
             set_index=self._selection.set_index,
-            joint_index=int(joint_index),
+            joint_index=index,
             depth_alignment=depth_alignment,
             height_alignment=height_alignment,
         )
-        row = self._layout["sets"][self._selection.set_index]["joints"][int(joint_index)]
+        self._layout = candidate
+        row = self._layout["sets"][self._selection.set_index]["joints"][index]
         self._session_dirty_ids.add(str(row["stable_id"]))
 
     def project_current_bay(self, snapshot: Mapping[str, object]) -> dict[str, object]:
