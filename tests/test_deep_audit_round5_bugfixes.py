@@ -589,3 +589,23 @@ def test_r5_79_neighbor_query_refuses_noninteger_selected_hole(bad_index):
     assert actual.index == 1
     assert find_reference_neighbor(holes, 1, ReferenceAnchor.CENTER,
                                    "x", "right", 200., 100.) is None
+
+
+@pytest.mark.parametrize("saved", [None, "", "diagonal", True, 42, " top_left "])
+def test_r5_79_invalid_explicit_reference_anchor_never_silently_moves_origin(saved):
+    """A corrupt stored anchor must not silently use CENTER for hole edits."""
+    from dataclasses import replace
+    from ae_engine.sheetmetal_feature_reference import (
+        ReferenceAnchor, feature_reference_anchor,
+    )
+    circle = CircleFeature(
+        diameter=10., anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(40., 40.),
+    )
+    # Absence is the pre-existing CENTER default, not an error.
+    assert feature_reference_anchor(circle) is ReferenceAnchor.CENTER
+    valid = replace(circle, source_params=(("reference_anchor", "top_left"),))
+    assert feature_reference_anchor(valid) is ReferenceAnchor.TOP_LEFT
+    corrupt = replace(circle, source_params=(("reference_anchor", saved),))
+    with pytest.raises(ValueError, match="reference_anchor"):
+        feature_reference_anchor(corrupt)
