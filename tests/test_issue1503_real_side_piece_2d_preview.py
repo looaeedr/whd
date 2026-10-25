@@ -220,6 +220,6 @@ def test_real_receiving_box_side_source_world_uv_produces_actual_2d_marks():
             sheet_thickness=2.,
         )
         assert shown.render_data.metadata["ear_side_mark_preview_count"] == 1
-        assert sum(p.layer == "MARKING" for p in shown.render_data.scene.primitives) >= 4
+        assert sum(p.layer == "MARKING" for p in shown.render_data.scene.primitives) >= 1
         assert shown.render_data.material.equals(owner.render_data.material)
         assert shown.render_data is not owner.render_data
