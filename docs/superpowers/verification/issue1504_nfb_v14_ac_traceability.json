@@ -22,11 +22,11 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 64,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 65,
     "BLOCKED_1500_REAL_GUI": 17,
     "EVIDENCE_CANDIDATE_ONLY": 3,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 1,
-    "DEFERRED_PRODUCT_EVIDENCE": 3
+    "DEFERRED_PRODUCT_EVIDENCE": 2
   },
   "records": [
     {
@@ -590,27 +590,116 @@
         1503
       ],
       "regression_candidates": [
-        "tests/test_issue1503_deferred_pad_ear_manufacturing.py"
+        "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+        "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py",
+        "tests/test_receiving_tier_ear_z_targets.py",
+        "tests/test_receiving_two_tier_physical_base_parts.py",
+        "tests/test_issue1503_real_ear_side_weld_skin_mating.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "DEFERRED_PRODUCT_EVIDENCE",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
-          "test_name": "test_unapproved_brand_pad_depth_does_not_move_or_cut_base",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py",
+          "test_name": "test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT correction: a submitted NFB depth NEVER moves the inner door; it DOES move the real BasePlate and its left/right EARs together in world Z to keep their true contact skins. Base X remains centered; Y follows the tier NFB aperture height, and per-switch X only moves NFB screws. Unapproved independent PAD blank is still blocked.",
         "authority_issue": 1502
       },
-      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED",
+      "historical_pre_current_review": {
+        "status": "DEFERRED_PRODUCT_EVIDENCE",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+            "test_name": "test_unapproved_brand_pad_depth_does_not_move_or_cut_base",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "CORRECTED_1502_PHYSICAL_NFB_DEPTH_BY_OWN_TIER_REAL_BASE_AND_PAIR_OF_EAR_SKINS_WORLD_Z__INNER_DOOR_UNMOVED__NORMAL_FORMED_EAR_DXF__NO_FAKE_PAD_RELEASE",
+        "primary_assertion": "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad",
+        "original_ac_clauses_audited": [
+          {
+            "requirement": "原條文『底板不因 NFB 深度變更位移』：保留原文，依 #1502 最新核准修正為已提交選型深度帶動該層真底板及左右固定片的世界 Z，第一層保持原位",
+            "source_owner": "ae_engine.receiving_tier_ear_z_targets.resolve_receiving_tier_base_z_targets / resolve_receiving_tier_ear_contact_targets; numeric V5 per-brand CSV depth 107/72/68",
+            "witnesses": [
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad",
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad"
+            ]
+          },
+          {
+            "requirement": "修改 NFB 型號只能改其物理安裝深度，不得推走內門；底板背皮與兩片固定片安裝接觸面同 Z，真組件必須可輸出並重開來源驗證的板件 DXF",
+            "source_owner": "ae_engine.receiving_nfb_layer_physical_parts.expand_receiving_nfb_layer_parts → ae_engine.receiving_fixed_plate_formed_manufacturing.save_verified_receiving_formed_fixing_plate_bundle",
+            "witnesses": [
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad",
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_shifted_actual_base_z_refuses_contact_claim"
+            ]
+          },
+          {
+            "requirement": "原條文『墊高未施工時禁止產出假 DXF』：來源深度差不得自動取得 PAD 正式製造資格，連偽造核准旗標的 per-part / atomic 途徑也必須拒絕",
+            "source_owner": "ae_engine.manufacturing_export._reject_unapproved_nfb_pad_ear_manufacturing; ae_engine.receiving_nfb_pad_delivery",
+            "witnesses": [
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch"
+            ]
+          }
+        ],
+        "other_required_assertions": [
+          "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad",
+          "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_source_formed_ear_is_real_production_cutting_bend_and_side_marking",
+          "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_original_selected_export_automatically_adds_formed_ear_sheets",
+          "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_shifted_actual_base_z_refuses_contact_claim",
+          "tests/test_receiving_tier_ear_z_targets.py::test_each_tier_uses_identical_real_skin_z_formula_and_own_source_depth",
+          "tests/test_receiving_two_tier_physical_base_parts.py::test_two_source_nfb_layers_produce_two_distinct_real_blank_finalscenes",
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+          "tests/test_issue1503_real_ear_side_weld_skin_mating.py::test_real_source_body_side_and_formed_ear_make_complete_signed_skin_contact"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "CURRENT #1502 correction supersedes historic Base-does-not-move reading",
+            "proof": "Same live submitted real two-tier Receiving layout: change only second tier original CSV model depth 72→68; first tier world Base+EAR remains fixed, second moves by exactly the source depth difference, actual two Base PartRenderData offsets match source Z, left/right EAR contact targets match same base-back world skin, actual INNER DOOR placement unchanged and BASE physical X remains 0. The current Shihlin numeric V5 CSV models 2P400, 3P125SN, and 2P125SN independently prove the same source depths 107, 72, and 68 and re-run actual Base/EAR material Z and scoped DXF reopening. The historic immutable AC text is preserved with explicit correction."
+          },
+          {
+            "original_clause": "Cannot forge independent PAD or bypass unfinished cross-part manufacture",
+            "proof": "Same changed source mounted through real cabinet SIDE skins, independently generated two per-tier BaseParts and four formed source EARs, original selected partial CUTTING/BEND and SIDE MARKING DXFs all reopened. No PAD generated by a per-tier depth difference. Separate current exact CI denies forged PAD/EAR roles in both part-only and atomic exporter, even with forged approved flags. Does not certify independent PAD T2 full-contact MFG2 or whole-cabinet welding."
+          }
+        ],
+        "source_owner_paths": [
+          "ae_engine/receiving_tier_ear_z_targets.py::resolve_receiving_tier_base_z_targets",
+          "ae_engine/receiving_tier_ear_z_targets.py::resolve_receiving_tier_ear_contact_targets",
+          "ae_engine/receiving_nfb_layer_physical_parts.py::expand_receiving_nfb_layer_parts",
+          "ae_engine/receiving_fixed_plate_formed_manufacturing.py::save_verified_receiving_formed_fixing_plate_bundle",
+          "ae_engine/manufacturing_export.py::_reject_unapproved_nfb_pad_ear_manufacturing"
+        ],
+        "original_ac_text_unchanged": true,
+        "current_scope_correction_applied": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "full_cabinet_welding_certified": false,
+        "independent_pad_manufacturing_approved": false,
+        "entire_pad_ear_assembly_approved": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "original_unrevised_base_immobility_claimed": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "NFB-AC-14",
@@ -4825,7 +4914,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 64/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 24 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 65/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 23 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
