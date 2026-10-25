@@ -631,6 +631,32 @@
       "acceptance_evidence": {
         "scope": "CORRECTED_1502_PHYSICAL_NFB_DEPTH_BY_OWN_TIER_REAL_BASE_AND_PAIR_OF_EAR_SKINS_WORLD_Z__INNER_DOOR_UNMOVED__NORMAL_FORMED_EAR_DXF__NO_FAKE_PAD_RELEASE",
         "primary_assertion": "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad",
+        "original_ac_clauses_audited": [
+          {
+            "requirement": "原條文『底板不因 NFB 深度變更位移』：保留原文，依 #1502 最新核准修正為已提交選型深度帶動該層真底板及左右固定片的世界 Z，第一層保持原位",
+            "source_owner": "ae_engine.receiving_tier_ear_z_targets.resolve_receiving_tier_base_z_targets / resolve_receiving_tier_ear_contact_targets; numeric V5 per-brand CSV depth 107/72/68",
+            "witnesses": [
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad",
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad"
+            ]
+          },
+          {
+            "requirement": "修改 NFB 型號只能改其物理安裝深度，不得推走內門；底板背皮與兩片固定片安裝接觸面同 Z，真組件必須可輸出並重開來源驗證的板件 DXF",
+            "source_owner": "ae_engine.receiving_nfb_layer_physical_parts.expand_receiving_nfb_layer_parts → ae_engine.receiving_fixed_plate_formed_manufacturing.save_verified_receiving_formed_fixing_plate_bundle",
+            "witnesses": [
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad",
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_shifted_actual_base_z_refuses_contact_claim"
+            ]
+          },
+          {
+            "requirement": "原條文『墊高未施工時禁止產出假 DXF』：來源深度差不得自動取得 PAD 正式製造資格，連偽造核准旗標的 per-part / atomic 途徑也必須拒絕",
+            "source_owner": "ae_engine.manufacturing_export._reject_unapproved_nfb_pad_ear_manufacturing; ae_engine.receiving_nfb_pad_delivery",
+            "witnesses": [
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch"
+            ]
+          }
+        ],
         "other_required_assertions": [
           "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad",
           "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_source_formed_ear_is_real_production_cutting_bend_and_side_marking",
