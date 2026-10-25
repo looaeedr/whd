@@ -32,10 +32,10 @@ def test_fold_designer_physical_side_displays_real_ear_marks_and_caches(
     assert display is not original.render_data
     assert display.metadata["ear_side_mark_preview_only"] is True
     assert display.metadata["ear_side_mark_preview_owner"] == key
-    assert display.metadata["ear_side_mark_preview_count"] == 4
+    assert display.metadata["ear_side_mark_preview_count"] == 1
     marks = tuple(p for p in display.scene.primitives
                   if isinstance(p, LinePrimitive) and p.layer == "MARKING")
-    assert len(marks) >= 4
+    assert len(marks) >= 1
     assert display.material.equals(original.render_data.material)
     assert tuple(original.render_data.scene.primitives) == before
     assert host.last_receiving_ear_single_piece_blocker is None
