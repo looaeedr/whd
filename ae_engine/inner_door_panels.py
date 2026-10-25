@@ -19,8 +19,11 @@ from typing import Sequence
 
 
 def _stable_inner_door_id(value: object) -> str:
-    if isinstance(value, bool):
-        raise ValueError("inner_door_id must be a stable non-boolean identifier")
+    # Legacy finite numeric IDs remain accepted, but an object/NaN cannot
+    # become a fabricated 2D/3D and hole-feature stable part identity.
+    if (isinstance(value, bool) or not isinstance(value, (str, int, float))
+            or (isinstance(value, float) and not math.isfinite(value))):
+        raise ValueError("inner_door_id must be a stable text or finite numeric identifier")
     text = str(value or "").strip()
     if not text:
         raise ValueError("inner_door_id must be a stable non-empty identifier")
