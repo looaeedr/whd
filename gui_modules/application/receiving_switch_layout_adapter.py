@@ -13,6 +13,21 @@ from ae_engine.receiving_switch_layout import (
 )
 
 
+def _ui_exact_integer(value: object, *, label: str) -> int:
+    """Retain supported integer entry text without coercing physical tier IDs."""
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError(f"Receiving switch {label} must be an integer")
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw or not raw.lstrip("+-").isdecimal():
+            raise ValueError(f"Receiving switch {label} must be an integer")
+        try:
+            return int(raw)
+        except ValueError as exc:
+            raise ValueError(f"Receiving switch {label} must be an integer") from exc
+    return value
+
+
 class ReceivingSwitchLayoutAdapter:
     """Own UI edits over one receiving_switch_layout value only.
 
@@ -36,7 +51,7 @@ class ReceivingSwitchLayoutAdapter:
         return tuple(int(row["connection_count"]) for row in self._layout["layers"])
 
     def connection_count(self, layer_index: int) -> int:
-        index = int(layer_index)
+        index = _ui_exact_integer(layer_index, label="layer_index")
         rows = self._layout["layers"]
         if index < 0 or index >= len(rows):
             raise IndexError("Receiving switch layer_index out of range")
@@ -59,13 +74,15 @@ class ReceivingSwitchLayoutAdapter:
         return True
 
     def resize_connections(self, layer_index: int, delta: int) -> bool:
-        current = self.connection_count(layer_index)
-        wanted = max(1, current + int(delta))
+        index = _ui_exact_integer(layer_index, label="layer_index")
+        adjustment = _ui_exact_integer(delta, label="delta")
+        current = self.connection_count(index)
+        wanted = max(1, current + adjustment)
         if wanted == current:
             return False
         self._layout = set_layer_connection_count(
             self._layout,
-            layer_index=int(layer_index),
+            layer_index=index,
             connection_count=wanted,
         )
         return True
