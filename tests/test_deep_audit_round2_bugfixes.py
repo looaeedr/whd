@@ -888,3 +888,27 @@ def test_r2_13_legacy_finite_numeric_stable_id_is_not_unnecessarily_reassigned()
     saved = new_receiving_layout(width=800., height=1600., depth=350.)
     saved["sets"][0]["stable_id"] = 42
     assert normalize_receiving_layout(saved)["sets"][0]["stable_id"] == "42"
+
+
+@pytest.mark.parametrize("bad", [None, False, True, 42, "door", [], [("door_layout_columns", [])]])
+def test_r2_13_per_bay_editor_rejects_non_mapping_door_state_without_erasing_owner(bad):
+    """The edit path must keep the same Door ownership rule as project reload."""
+    from ae_engine.receiving_layout import (
+        new_receiving_layout, normalize_receiving_layout, update_receiving_bay,
+    )
+    layout = new_receiving_layout(width=800., height=1600., depth=350.)
+    layout["sets"][0]["bays"][0]["door_state"] = {
+        "door_layout_columns": [[800., [800., 800.]]],
+    }
+    original = normalize_receiving_layout(layout)
+    with pytest.raises(ValueError, match="每連門分割必須為物件"):
+        update_receiving_bay(layout, set_index=0, bay_index=0, door_state=bad)
+    assert normalize_receiving_layout(layout) == original
+
+
+def test_r2_13_per_bay_editor_accepts_real_empty_or_populated_door_state():
+    from ae_engine.receiving_layout import new_receiving_layout, update_receiving_bay
+    layout = new_receiving_layout(width=800., height=1600., depth=350.)
+    for saved in ({}, {"door_layout_columns": [[800., [800., 800.]]]}):
+        revised = update_receiving_bay(layout, set_index=0, bay_index=0, door_state=saved)
+        assert revised["sets"][0]["bays"][0]["door_state"] == saved
