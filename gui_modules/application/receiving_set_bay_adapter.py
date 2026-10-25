@@ -245,6 +245,13 @@ class ReceivingSetBayAdapter:
         for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
             if type(value) is not int or value <= 0:
                 raise ValueError(f"{label} 必須為正整數")
+            if label != "數量":
+                # The canonical Receiving _number() rejects unrepresentable
+                # physical dimensions. Reject before even staging a Bay edit.
+                try:
+                    float(value)
+                except (OverflowError, ValueError) as exc:
+                    raise ValueError(f"{label} 超出可表示尺寸") from exc
         try:
             selected = tuple(bay_indices)
         except TypeError as exc:
