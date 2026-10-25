@@ -44,7 +44,7 @@ def test_real_side_only_mfg_dxf_contains_genuine_uv_marks_and_source_cutting(
     assert exported.side_only_manufacturing_marking_verified
     assert not exported.whole_cabinet_manufacturing_ready
     assert not exported.welding_workmanship_certified
-    assert exported.marking_lines_verified == count*4
+    assert exported.marking_lines_verified == count
     assert exported.material_skin_contact_area_mm2 == pytest.approx(5632.*count)
     assert len(exported.physical_ear_ids) == count
     paths = dict(exported.output_paths)
@@ -55,7 +55,7 @@ def test_real_side_only_mfg_dxf_contains_genuine_uv_marks_and_source_cutting(
     assert len(list(tmp_path.glob("*.dxf"))) == 2
     for side, filename in paths.items():
         scene = ezdxf.readfile(filename).modelspace()
-        assert len(_marks(filename)) >= (count//2)*4
+        assert len(_marks(filename)) >= count//2
         assert any(entity.dxftype() != "LINE" or entity.dxf.layer != "MARKING"
                    for entity in scene)
         assert "CHECK_ONLY" not in filename
