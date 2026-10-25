@@ -22,10 +22,10 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 60,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 61,
     "BLOCKED_1500_REAL_GUI": 17,
     "EVIDENCE_CANDIDATE_ONLY": 5,
-    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 3,
+    "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 2,
     "DEFERRED_PRODUCT_EVIDENCE": 3
   },
   "records": [
@@ -4501,31 +4501,98 @@
         "tests/test_issue1502_existing_base_nfb_assembly.py",
         "tests/test_issue1502_lower_four_nfb_mount_source.py",
         "tests/test_issue1502_nfb_base_batch_export_gate.py",
-        "tests/test_issue1502_nfb_base_source_projection.py"
+        "tests/test_issue1502_nfb_base_source_projection.py",
+        "tests/test_issue1501_nfb_export_manifest.py",
+        "tests/test_issue1498_nfb_part_readiness.py",
+        "tests/test_issue1501_live_partial_writer.py",
+        "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+        "tests/test_issue1502_current_csv_multi_bay_once.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "current_scope_correction": {
         "issue": 1502,
         "rule": "The user's Oct 11 corrected #1502 authority supersedes historic illustration wording: the middle figure in the sample is a folded base-plate pattern, not an independent physical middle plate. Do not fabricate or register any middle part from Color150 alone; retain genuine existing divider parts and part-level guards. Original AC text stays unchanged."
       },
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1496_index_color_evidence.py",
-          "test_name": "test_unique_model_links_keep_missing_unknown_distinct_from_real_zero",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1501_nfb_export_manifest.py",
+          "test_name": "test_swt32_same_original_dxf_brand_pins_colors_real_part_counts_and_sha_hold",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
       "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "Color30/150 inventory is valid for legacy sources but does not manufacture an absent Receiving 中板. Actual current NFB CSV and source material role + real CHECK Q/manifest are the current owner.",
         "authority_issue": 1502
+      },
+      "historical_pre_current_review": {
+        "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1496_index_color_evidence.py",
+            "test_name": "test_unique_model_links_keep_missing_unknown_distinct_from_real_zero",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
+        "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34"
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_SOURCE_SCOPED_NFB_INDEX_24_MODELS_UNKNOWN_NOT_ZERO__ACTUAL_SAME_RAW_DXF_INSPECTOR_AND_BY_BRAND_SHA__PER_PHYSICAL_PART_DEPENDENCY_SIDE_PARTIAL_CHECK_Q__NO_FABRICATED_MIDDLE_OR_UNCONDITIONAL_FACTORY",
+        "primary_assertion": "tests/test_issue1501_nfb_export_manifest.py::test_swt32_same_original_dxf_brand_pins_colors_real_part_counts_and_sha_hold",
+        "other_required_assertions": [
+          "tests/test_issue1496_nfb_source_inventory_report.py::test_native_original_index_is_42_rows_24_sources_and_64_references",
+          "tests/test_issue1496_nfb_source_inventory_report.py::test_complete_per_brand_audit_has_exact_links_and_null_unknown",
+          "tests/test_issue1496_nfb_source_inventory_report.py::test_24_real_local_dxf_observations_are_traceable_but_not_certified",
+          "tests/test_issue1498_nfb_part_readiness.py::test_real_base_color30_and_marking212_have_specific_base_dependency",
+          "tests/test_issue1501_live_partial_writer.py::test_actual_dxf_writer_emits_only_verified_inner_cutting_and_reports_partial",
+          "tests/test_issue1503_single_gui_real_tier_2d3d.py::test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft",
+          "tests/test_issue1502_current_csv_multi_bay_once.py::test_both_distinct_bays_one_atomic_export_with_exact_source_ear_side"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "逐檔Color30/150/212來源盤點；無原始檔不得填零",
+            "proof": "Same live generated source is indexed and SHA-pinned by manufacturer, parsed into exact 1/1/1 ACI counts; original source-index 42 rows / 24 unique / 64 refs remains UNKNOWN with nulls when source unavailable, and mismatched original SHA reverses numeric counts to null rather than zero. Local 24-source observations remain NOT certified; original two distinct raw Library bytes are historical independent evidence, not bundled into CI."
+          },
+          {
+            "original_clause": "MFG2未完成只阻擋相依底板／存在的中板，無相依側板不連坐",
+            "proof": "Same raw DXF inventory feeds actual submitted physical Bay with INNER and BASE and independent SIDE, never fabricated Receiving middle. Explicit Color30 and 212 block Base (1), valid source/typed separate CUTTING evidence keeps actual inner (2), proven SIDE (3) partial output eligible; SHA replacement revokes INNER/BASE but keeps SIDE (3). Existing real typed MIDDLE guard and native Tk physical SIDE evidence remain in CI."
+          },
+          {
+            "original_clause": "部分出圖與manifest／CHECK實際件數不污染",
+            "proof": "Manifest report checks real 3 physical rows, actual_export_count=5 held_actual_count=1; after source mismatch export=3 held=3, FULL refuses while allowed SIDE remains. Original partial writer and full real multi-Bay export assert CHECK/source parity independently. No unconditional MFG2 or total-cabinet manufacturing approval."
+          }
+        ],
+        "source_owner_paths": [
+          "tools/nfb_source_audit.py::build_source_coverage_report",
+          "ae_engine/receiving_nfb_dxf_source.py::inspect_nfb_dxf_source",
+          "ae_engine/receiving_nfb_part_readiness.py::derive_nfb_part_readiness",
+          "ae_engine/receiving_nfb_export_manifest.py::derive_nfb_partial_export_manifest",
+          "ae_engine/receiving_nfb_partial_export_writer.py::export_current_nfb_inner_door_partial_dxf"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "pad_unconditional_approved": false,
+        "welding_workmanship_certified": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "exact_head_ci_and_localx_readback_required": true
       }
     }
   ],
@@ -4558,7 +4625,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 60/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 28 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 61/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 27 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
