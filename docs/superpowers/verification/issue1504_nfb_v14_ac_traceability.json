@@ -22,11 +22,11 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 54,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 55,
     "BLOCKED_1500_REAL_GUI": 17,
     "EVIDENCE_CANDIDATE_ONLY": 6,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 7,
-    "DEFERRED_PRODUCT_EVIDENCE": 4
+    "DEFERRED_PRODUCT_EVIDENCE": 3
   },
   "records": [
     {
@@ -3676,27 +3676,98 @@
         1503
       ],
       "regression_candidates": [
-        "tests/test_issue1503_deferred_pad_ear_manufacturing.py"
+        "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+        "tests/test_issue1503_single_gui_real_tier_2d3d.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "DEFERRED_PRODUCT_EVIDENCE",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
-          "test_name": "test_existing_base_ear_slots_are_not_confused_with_unapproved_ear_parts",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+          "test_name": "test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT EAR is no longer unverified: original 固定片.dxf T2/BEND23 formed-geometry signed +90, real side skin physical contact and original side UV MARKING per-part DXF were verified, including Windows-native Tk 2D/3D. PAD/welding workmanship and unconditional whole-cabinet NC remain unapproved.",
         "authority_issue": 1503
       },
-      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED",
+      "historical_pre_current_review": {
+        "status": "DEFERRED_PRODUCT_EVIDENCE",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+            "test_name": "test_existing_base_ear_slots_are_not_confused_with_unapproved_ear_parts",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
+      },
+      "acceptance_evidence": {
+        "scope": "ORIGINAL_SWT_AC_22_VERIFIED_EAR_SIDE_SHEET_MARKING_ONLY__UNAPPROVED_EAR_PAD_BLOCKED__UNRELATED_LEGACY_OUTPUT_UNCHANGED__NO_WHOLE_CABINET_MFG2",
+        "primary_assertion": "tests/test_issue1503_single_gui_real_tier_2d3d.py::test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft",
+        "original_ac_clauses_audited": [
+          {
+            "requirement": "未核准 EAR/PAD 不得憑空產生側板焊接 MARKING 或 PAD/EAR 假製造件",
+            "source_owner": "ae_engine.receiving_ear_side_manufacturing_marking.with_verified_receiving_ear_side_markings → receiving_fixed_plate_side_check_dxf._verified_pair requires actual T2/BEND23 source skin, physical contact and UV marks; refuses preview/approval taint",
+            "witnesses": [
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch"
+            ]
+          },
+          {
+            "requirement": "僅 EAR 未完成不得阻斷原本合法側板；證實的 EAR 才添加側板標記",
+            "source_owner": "gui_modules.project.export_actions._export_selected_resolved_parts → source-checked ordinary SIDE export; only two real box_body left/right side sheets and real source-verified contact markings",
+            "witnesses": [
+              "tests/test_issue1503_single_gui_real_tier_2d3d.py::test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft",
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_existing_base_ear_slots_are_not_confused_with_unapproved_ear_parts"
+            ]
+          },
+          {
+            "requirement": "已核准 SIDE CUTTING/BEND/MARKING 與獨立板件依原製造守衛正常加工",
+            "source_owner": "ae_engine.receiving_ear_side_manufacturing_marking.export_receiving_ear_side_manufacturing_marking_dxf → existing atomic writer + actual reopen + MARKING coordinate readback; original GUI final scene, operator DXF Save/Reload proves same owner",
+            "witnesses": [
+              "tests/test_issue1503_single_gui_real_tier_2d3d.py::test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft",
+              "tests/test_issue1502_nfb_base_batch_export_gate.py::test_unrelated_and_unconfigured_parts_keep_their_valid_export_path"
+            ]
+          }
+        ],
+        "other_required_assertions": [
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch",
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_existing_base_ear_slots_are_not_confused_with_unapproved_ear_parts",
+          "tests/test_issue1502_nfb_base_batch_export_gate.py::test_unrelated_and_unconfigured_parts_keep_their_valid_export_path"
+        ],
+        "source_owner_paths": [
+          "gui_modules/project/export_actions.py::_export_selected_resolved_parts",
+          "ae_engine/receiving_ear_side_manufacturing_marking.py::with_verified_receiving_ear_side_markings",
+          "ae_engine/receiving_ear_side_manufacturing_marking.py::export_receiving_ear_side_manufacturing_marking_dxf",
+          "ae_engine/receiving_fixed_plate_side_check_dxf.py::_verified_pair/_readback_marking_lines"
+        ],
+        "historical_windows_acceptance_receipt": "GitHub #1503 CURRENT 2026-10-22 reports 32/32 R5-2600 native Windows tests on earlier exact localX; source/Tk/DXF/Save-Reload EAR/PAD PART_ONLY scope only, NOT a fresh Windows UAT of this PR head",
+        "source_dxf_scope": "Verified historical source 固定片.dxf T2 BEND23 and W800/T2 left/right SIDE sheets; no unconditional pad manufacturing or material/NC certificate",
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "welding_workmanship_certified": false,
+        "pad_unconditional_approved": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "SWT-AC-23",
@@ -4175,7 +4246,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 54/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 34 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 55/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 33 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
