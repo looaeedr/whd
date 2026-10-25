@@ -375,6 +375,21 @@ def inner_door_panel_vertical_contract(*, cell_height: float, thickness: float, 
     }
 
 
+def _inner_door_physical_mm(value: object, *, label: str, allow_zero: bool = False) -> float:
+    """Validate physical T and Door clearance before float can erase input types."""
+    import math
+    if isinstance(value, bool):
+        raise ValueError(f"inner-door physical {label} must be a finite number")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"inner-door physical {label} must be a finite number") from exc
+    if (not math.isfinite(number) or number < 0
+            or (number == 0 and not allow_zero)):
+        raise ValueError(f"inner-door physical {label} must be positive and finite")
+    return number
+
+
 def _saved_inner_door_identity(row) -> tuple[str, str]:
     """Keep original saved identity types until both physical owners validate."""
     if (isinstance(row.get("stable_id"), bool)
@@ -398,10 +413,16 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
         return ()
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
-    t = float(data.get("t", 2.0))
+    t = _inner_door_physical_mm(data.get("t", 2.0), label="thickness")
     formed = inner_door_frame_formed_occupation(t)
-    gap_w = float(data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]))
-    gap_h = float(data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]))
+    gap_w = _inner_door_physical_mm(
+        data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]),
+        label="horizontal clearance", allow_zero=True,
+    )
+    gap_h = _inner_door_physical_mm(
+        data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]),
+        label="vertical clearance", allow_zero=True,
+    )
 
     result = []
     seen = set()
@@ -449,7 +470,7 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
         return ()
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
-    t = float(data.get("t", 2.0))
+    t = _inner_door_physical_mm(data.get("t", 2.0), label="thickness")
     formed = inner_door_frame_formed_occupation(t)
 
     result = []
