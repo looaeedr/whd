@@ -500,3 +500,221 @@ def test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_sourc
         win._receiving_multi_close()
     finally:
         root.destroy()
+
+def test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_verified_dxf(
+    tmp_path, monkeypatch,
+):
+    """One Bay: manufacture -> commit -> datum drift -> disk -> native GUI re-approve.
+
+    Never fabricate a CONFIRMED state on reload: an original Tk operator
+    approval is essential and only that same approved per-hole geometry may
+    become exportable again. The source is a generated DXF used by the actual
+    production parser, NOT an original customer project or blanket MFG-2.
+    """
+    from ae_engine.receiving_layout import update_receiving_bay
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from ae_engine.receiving_nfb_export_manifest import (
+        INNER_DOOR, OTHER, NfbActualPart, derive_nfb_partial_export_manifest,
+    )
+    from ae_engine.receiving_nfb_manufacturing_release import (
+        configured_nfb_inner_door_render_data, save_configured_nfb_inner_door_dxf,
+    )
+    from ae_engine.receiving_nfb_transactions import submit_nfb_bays
+    from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    from ae_engine.receiving_nfb_manufacturing_release import NfbValidatedInnerDoorRender
+    from phase6_project_file import write_project, read_project
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from tests.test_issue1497_configured_nfb_manufacturing_release import (
+        _source, _hole, _state,
+    )
+    from tests.test_issue1499_nfb_persistence import _payload
+    from tests.test_issue1500_nfb_transactions import (
+        layout as transaction_layout, config, evidence,
+    )
+
+    index, source, profile = _source(tmp_path)
+    physical_id = "nfb:0:slot1"
+    manufacturer = configured_nfb_inner_door_render_data(
+        _state(), "upper", holes=(_hole(id=physical_id, x=0, angle=90),),
+        index_path=index, source_path=source, profile=profile,
+    )
+    assert isinstance(manufacturer, NfbValidatedInnerDoorRender)
+    assert manufacturer.manufacturing_ready
+    assert manufacturer.verified_hole_locations == (
+        (physical_id, 0.0, 1, 0, 90),
+    )
+    source_evidence = inspect_nfb_dxf_source(source)
+    original = transaction_layout()
+    original_bay = original["sets"][0]["bays"][0]
+    source_scope, _, _ = evidence(original, 0)
+    initial = submit_nfb_bays(
+        original, set_index=0, bay_indices=(0,), version_id="v1",
+        configs={0: config(x=0, owner=physical_id)},
+        evidence={0: (source_scope, source_evidence, manufacturer)},
+        confirm=lambda _: True,
+    ).layout
+    assert initial["sets"][0]["bays"][0]["nfb_config_submitted"] is True
+
+    changed = update_receiving_bay(initial, set_index=0, bay_index=0, width=750)
+    changed = update_receiving_bay(changed, set_index=0, bay_index=0, width=800)
+    stale_hole = changed["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert stale_hole["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert stale_hole["manual_x_mm"] == 0
+    assert changed["sets"][0]["bays"][1] == original["sets"][0]["bays"][1]
+
+    before_file = write_project(tmp_path / "ac23_pending_reconfirm.p6fold", _payload(changed))
+    reopened = read_project(before_file)["snapshot"]["receiving_layout"]
+    assert reopened["sets"][0]["bays"][0]["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "RECONFIRM_REQUIRED"
+
+    def physical_manifest(layout):
+        bays = layout["sets"][0]["bays"]
+        scope = NfbPhysicalScope(
+            layout["sets"][0]["stable_id"], bays[0]["stable_id"], "v1",
+            True, manufacturer.part_id, (), (),
+        )
+        return derive_nfb_partial_export_manifest(
+            scope=scope,
+            actual_parts=(
+                NfbActualPart(manufacturer.part_id, INNER_DOOR, 1),
+                NfbActualPart("independent-side", OTHER, 1),
+            ),
+            saved_bay=bays[0], set_brand="士林",
+            source_inventory=source_evidence,
+            verified_inner_door=manufacturer,
+            source_path=source,
+            proven_unaffected_part_ids=("independent-side",),
+        )
+
+    held = physical_manifest(reopened)
+    assert held.authorized_part_ids == ("independent-side",)
+    assert not held.whole_ready
+    with pytest.raises(ValueError, match="BLOCKED"):
+        held.require_export((manufacturer.part_id,), partial=True)
+
+    adapter = ReceivingSetBayAdapter(reopened)
+    staged = deepcopy(reopened["sets"][0]["bays"][0]["nfb_config"])
+    staged["holes"][0]["manual_x_state"] = "CONFIRMED"
+    staged["holes"][0]["datum_revision"] = "w800t2-native-reconfirmed"
+    assert staged["holes"][0]["manual_x_mm"] == 0
+    previews = []
+    warnings = []
+    approvals = iter((False, True))
+    root = tk.Tk()
+    root.geometry("800x600+0+0")
+    root.update()
+    try:
+        def askyesno(_title, message, *, parent):
+            assert parent is win
+            previews.append(message)
+            return next(approvals)
+
+        monkeypatch.setattr(view.messagebox, "askyesno", askyesno)
+        monkeypatch.setattr(
+            view.messagebox, "showwarning",
+            lambda _title, msg, *, parent: warnings.append(msg),
+        )
+
+        def state(si, bi, selection=()):
+            row = adapter.layout["sets"][si]["bays"][bi]
+            return {
+                "submitted": row.get("nfb_config_submitted") is True,
+                "can_submit": bi == 0,
+                "can_copy": False, "can_restore": True,
+                "can_undo": adapter.nfb_can_undo,
+                "reason": "", "base_partial_ready": False,
+            }
+
+        def submit(si, selected, confirm):
+            assert si == 0 and tuple(selected) == (0,)
+            scope, _, _ = evidence(adapter.layout, 0)
+            outcome = adapter.submit_nfb_to_bays(
+                set_index=0, bay_indices=(0,), version_id="v1",
+                configs={0: staged},
+                evidence={0: (scope, source_evidence, manufacturer)},
+                confirm=confirm,
+            )
+            return outcome.changed
+
+        win = open_multi_settings(
+            root, get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda _: True, resize_connections=lambda *_: False,
+            get_settings_ports=lambda _: {
+                "row": lambda: {"bays": [
+                    {"stable_id": b["stable_id"]}
+                    for b in adapter.layout["sets"][0]["bays"]
+                ]},
+                "select": lambda _: None,
+            },
+            get_nfb_transaction_ports=lambda: {
+                "state": state, "submit": submit,
+                "manifest": lambda *_: {"status": "BLOCKED",
+                                         "reason": "舊 X 待重新確認"},
+            },
+        )
+        root.update()
+        assert win._receiving_multi_apply(0)
+        _select_inner(win, root)
+        button = _buttons(win._receiving_multi_settings_host)["確認套用 NFB"]
+        assert button.instate(("!disabled",))
+        before_cancel = deepcopy(adapter.layout)
+        button.invoke()
+        assert adapter.layout == before_cancel
+        assert not adapter.nfb_can_undo
+        assert len(previews) == 1
+        assert physical_id in previews[0]
+        assert "確認狀態變更" in previews[0]
+        assert "X 基準版次變更" in previews[0]
+        assert "尚未製造放行" in previews[0]
+
+        button = _buttons(win._receiving_multi_settings_host)["確認套用 NFB"]
+        button.invoke()
+        assert not warnings
+        assert len(previews) == 2
+        approved_hole = adapter.layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+        assert approved_hole["manual_x_state"] == "CONFIRMED"
+        assert approved_hole["manual_x_mm"] == 0
+        assert approved_hole["datum_revision"] == "w800t2-native-reconfirmed"
+        assert adapter.nfb_can_undo
+        assert adapter.layout["sets"][0]["bays"][1] == original["sets"][0]["bays"][1]
+        win._receiving_multi_close()
+    finally:
+        root.destroy()
+
+    saved = write_project(
+        tmp_path / "ac23_native_reconfirmed.p6fold", _payload(adapter.layout),
+    )
+    reopened_approved = read_project(saved)["snapshot"]["receiving_layout"]
+    final_hole = reopened_approved["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert final_hole["manual_x_state"] == "CONFIRMED"
+    assert final_hole["manual_x_mm"] == 0
+
+    accepted = physical_manifest(reopened_approved)
+    assert manufacturer.part_id in accepted.authorized_part_ids
+    assert accepted.require_export((manufacturer.part_id,), partial=True) == (
+        manufacturer.part_id,
+    )
+    output = tmp_path / "ac23_native_reconfirmed_actual_cutting.dxf"
+    save_configured_nfb_inner_door_dxf(
+        _state(), "upper", output,
+        holes=(_hole(id=physical_id, x=final_hole["manual_x_mm"], angle=90),),
+        index_path=index, source_path=source, profile=profile,
+    )
+    assert output.is_file()
+    import ezdxf
+    output_cutting = [
+        part for part in ezdxf.readfile(output).modelspace()
+        if part.dxftype() == "LWPOLYLINE"
+        and part.dxf.layer == "CUTTING" and part.closed
+    ]
+    assert len(output_cutting) == 2
+
+    # The same revived X permission is still byte-bound to the original.
+    source.write_bytes(source.read_bytes() + b"\nSOURCE_REPLACED")
+    revoked = physical_manifest(reopened_approved)
+    assert revoked.authorized_part_ids == ("independent-side",)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        revoked.require_export((manufacturer.part_id,), partial=True)
