@@ -170,6 +170,32 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
             row.part_id for row in formed
         }
         assert len(renderer.last_receiving_ear_marking_segments) == 12
+        # The independent Tk display control hides only EAR physical mesh,
+        # not the parent Base Plate or SIDE installation/fold MARKING.
+        panel = designer._phase6_assembly_panel_owner
+        toggle = next(
+            w for w in _walk(panel.fixing_plate_visibility_entry)
+            if isinstance(w, ttk.Checkbutton)
+            and str(w.cget("text")) == "顯示底板固定片（3D）"
+        )
+        assert panel.is_fixing_plate_visible() is True
+        toggle.invoke()
+        assert panel.is_fixing_plate_visible() is False
+        hidden_request = adapter.build_request()
+        assert hidden_request.render_data.show_fixing_plate_mesh is False
+        assert len(hidden_request.render_data.formed_fixing_plate_skins) == 4
+        renderer.render(hidden_request)
+        assert renderer.last_formed_ear_display_ids == ()
+        assert len(renderer.last_receiving_ear_marking_segments) == 12
+        toggle.invoke()
+        assert panel.is_fixing_plate_visible() is True
+        restored_request = adapter.build_request()
+        assert restored_request.render_data.show_fixing_plate_mesh is True
+        renderer.render(restored_request)
+        assert set(renderer.last_formed_ear_display_ids) == {
+            row.part_id for row in formed
+        }
+        assert len(renderer.last_receiving_ear_marking_segments) == 12
         # A segment-count pass is not a visible-pixel pass. Render the SAME
         # physical FinalScene twice at the SAME camera; toggle ONLY the real
         # production renderer's formed-EAR contact overlay. This captures

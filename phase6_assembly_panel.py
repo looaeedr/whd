@@ -50,6 +50,16 @@ class Phase6AssemblyPanel:
             command=self.actions.on_multi_settings,
         )
         self.multi_settings_button.pack(side=tk.LEFT)
+        # EAR is a display-only child of Base Plate, not an ordinary PartSpec.
+        # Keep its 3D visibility independent from the base and side MARKING.
+        self.fixing_plate_visible_var = tk.BooleanVar(master=self.host, value=True)
+        self.fixing_plate_visibility_entry = ttk.Frame(self.host)
+        ttk.Checkbutton(
+            self.fixing_plate_visibility_entry,
+            text="顯示底板固定片（3D）",
+            variable=self.fixing_plate_visible_var,
+            command=self.actions.on_visibility_changed,
+        ).pack(anchor=tk.W, padx=(6, 0))
         scroll_host = ttk.Frame(self.host)
         scroll_host.pack(fill=tk.BOTH, expand=True)
 
@@ -121,8 +131,17 @@ class Phase6AssemblyPanel:
         if visible and self.actions.on_multi_settings is not None:
             if not self.multi_settings_entry.winfo_manager():
                 self.multi_settings_entry.pack(fill=tk.X, before=self.canvas.master, pady=(0, 6))
+            if not self.fixing_plate_visibility_entry.winfo_manager():
+                self.fixing_plate_visibility_entry.pack(
+                    fill=tk.X, before=self.canvas.master, pady=(0, 4)
+                )
         else:
             self.multi_settings_entry.pack_forget()
+            self.fixing_plate_visibility_entry.pack_forget()
+
+    def is_fixing_plate_visible(self) -> bool:
+        """3D-only UI preference; never included in the saved manufacturing model."""
+        return bool(self.fixing_plate_visible_var.get())
 
     def _on_content_configure(self, _event=None) -> None:
         try:
