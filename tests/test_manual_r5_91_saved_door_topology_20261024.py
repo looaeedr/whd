@@ -68,3 +68,31 @@ def test_r5_91_inner_door_valid_numeric_or_legacy_numeric_string_dt_stays_suppor
     result = _normalize_authoritative_door_state(saved)
     assert result["d"] == "350" and result["t"] == "2"
     assert result["door_layout_columns"] == [[400., [500., 500.]]]
+
+
+@pytest.mark.parametrize("field, malformed", [
+    ("door_layout_columns", 42),
+    ("door_layout_columns", True),
+    ("door_handle_edges", 42),
+    ("door_handle_edges", True),
+    ("inner_doors", 42),
+    ("inner_doors", True),
+])
+def test_r5_91_corrupt_persisted_door_collections_fail_as_project_value_errors(field, malformed):
+    """Top-level saved layout collections may never crash GUI project reopen."""
+    saved = {field: malformed}
+    with pytest.raises(ValueError, match="invalid .* (?:columns|edges|doors)"):
+        _normalize_authoritative_door_state(saved)
+    assert saved[field] is malformed
+
+
+def test_r5_91_legacy_sequence_and_mapping_door_state_preserves_normalization():
+    saved = {
+        "door_layout_columns": ((400., (500., 500.)),),
+        "door_handle_edges": {"0:0": "LEFT"},
+        "inner_doors": ({"stable_id": "inner-v1", "frame_spans": (3.,)},),
+    }
+    normalized = _normalize_authoritative_door_state(saved)
+    assert normalized["door_layout_columns"] == [[400., [500., 500.]]]
+    assert normalized["door_handle_edges"] == {"0:0": "LEFT"}
+    assert normalized["inner_doors"] == [{"stable_id": "inner-v1"}]
