@@ -298,6 +298,17 @@ def test_archive_explicit_brand_members_recover_distinct_same_name_sources(tmp_p
     shihlin_data = shihlin_source.read_bytes()
     teco_data = teco_source.read_bytes()
     assert shihlin_data != teco_data
+    # The shared _case fixture intentionally pins TECO A.dxf to a wrong SHA
+    # to test rejection. For this separate *positive* explicitly branded
+    # archive case, record the actual TECO original bytes as the trusted pin.
+    # Never weaken source-identity verification to make a mismatch GREEN.
+    pins_text = pins.read_text(encoding="utf-8-sig")
+    invalid_pin = "0" * 64
+    assert pins_text.count(invalid_pin) == 1
+    pins.write_text(
+        pins_text.replace(invalid_pin, sha256(teco_data).hexdigest()),
+        encoding="utf-8-sig",
+    )
     archive = tmp_path / "original_branded_sources.zip"
     with ZipFile(archive, "w") as file:
         file.writestr("shop_drawings/士林/A.dxf", shihlin_data)
