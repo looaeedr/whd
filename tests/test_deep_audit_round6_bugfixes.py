@@ -495,7 +495,28 @@ def test_phase6_manufacturing_geometry_and_endcap_guards():
         [{"len": 20.0}],
     )
     good_bounds_material = SimpleNamespace(bounds=(0.0, 10.0, 100.0, 210.0))
+    # A physical SIDE has its own authoritative Y fold profile. A mesh
+    # envelope for an unrelated view must never overwrite its 20-mm input.
     assert pmg._phase6_request_profiles_for_material(part_input, good_bounds_material) == (
+        [{"len": 10.0}],
+        [{"len": 20.0}],
+    )
+    # Only the WHOLE box body uses material height unconditionally; a
+    # single-axis divider/frame may borrow the missing axis, not overwrite
+    # a completed physical profile.
+    whole_body = SimpleNamespace(
+        part_key="box_body",
+        x_profile=[{"len": 10.0}], y_profile=[{"len": 20.0}],
+    )
+    assert pmg._phase6_request_profiles_for_material(whole_body, good_bounds_material) == (
+        [{"len": 10.0}],
+        [{"len": 200.0}],
+    )
+    frame = SimpleNamespace(
+        part_key="box_body:divider:middle",
+        x_profile=[{"len": 10.0}], y_profile=[],
+    )
+    assert pmg._phase6_request_profiles_for_material(frame, good_bounds_material) == (
         [{"len": 10.0}],
         [{"len": 200.0}],
     )
