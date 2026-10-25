@@ -259,6 +259,10 @@ def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterab
     if not math.isfinite(measured):
         raise ValueError("reference distance must be finite")
     items = list(features)
+    # Tk uses -1 for "no selection"; Python would otherwise select the last
+    # physical hole, while neighboring UI paths already reject invalid IDs.
+    if not 0 <= current_index < len(items):
+        raise ValueError("reference feature index is out of range")
     feature = items[current_index]
     current_ref = feature_reference_point(feature, anchor, width, height)
     distances = reference_distances(surface, items, current_index, anchor, width, height, reference_guide)
