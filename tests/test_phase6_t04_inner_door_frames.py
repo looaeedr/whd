@@ -115,3 +115,20 @@ def test_workspace_sync_adds_selectable_frames_and_removes_orphans():
     assert second == ()
     assert all(not key.startswith("inner_door:upper-A:") for key in workspace.available_parts)
     assert workspace.selected_part is None
+
+
+@pytest.mark.parametrize("invalid_id", [True, False])
+def test_r4_62_boolean_inner_door_identity_never_becomes_a_frame_part(invalid_id):
+    from ae_engine.inner_door_frames import derive_inner_door_frames
+    with pytest.raises(ValueError, match="inner_door_id"):
+        derive_inner_door_frames(
+            invalid_id,
+            spans={"top": 723., "left": 900., "right": 900.},
+            thickness=2., included_sides=("top", "left", "right"),
+        )
+    frames = derive_inner_door_frames(
+        "upper", spans={"top": 723., "left": 900., "right": 900.},
+        thickness=2., included_sides=("top", "left", "right"),
+    )
+    assert all(frame.inner_door_id == "upper" for frame in frames)
+    assert len(frames) == 3
