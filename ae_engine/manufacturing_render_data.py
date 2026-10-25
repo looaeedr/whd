@@ -134,8 +134,8 @@ class MaterialSegment:
             value = float(self.length)
         except (TypeError, ValueError, OverflowError) as exc:
             raise ValueError("MaterialSegment length must be finite") from exc
-        if not math.isfinite(value):
-            raise ValueError("MaterialSegment length must be finite")
+        if not math.isfinite(value) or value < 0.0:
+            raise ValueError("MaterialSegment length must be finite and nonnegative")
         object.__setattr__(self, "axis", str(self.axis).upper())
         object.__setattr__(self, "name", str(self.name))
         object.__setattr__(self, "length", max(0.0, value))
@@ -153,11 +153,19 @@ class UnfoldedBlankTopology:
 
     @property
     def width(self) -> float:
-        return sum(float(item.length) for item in self.x_segments)
+        import math
+        width = sum(float(item.length) for item in self.x_segments)
+        if not math.isfinite(width):
+            raise ValueError("UnfoldedBlankTopology width must be finite")
+        return width
 
     @property
     def height(self) -> float:
-        return sum(float(item.length) for item in self.y_segments)
+        import math
+        height = sum(float(item.length) for item in self.y_segments)
+        if not math.isfinite(height):
+            raise ValueError("UnfoldedBlankTopology height must be finite")
+        return height
 
     @property
     def fingerprint(self) -> str:
