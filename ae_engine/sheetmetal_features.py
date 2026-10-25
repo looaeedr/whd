@@ -596,8 +596,14 @@ def indicator_box_outer_size(layer_groups: list[int] | tuple[int, ...]) -> tuple
     if any(v <= 0 for v in groups):
         raise ValueError("indicator box group counts must be > 0")
     g_max = max(groups)
-    width = 326.0 if g_max == 1 else 171.0 + 90.0 * (g_max - 1) + 135.0
-    height = 445.0 + 280.0 * (len(groups) - 1)
+    try:
+        width = 326.0 if g_max == 1 else 171.0 + 90.0 * (g_max - 1) + 135.0
+        height = 445.0 + 280.0 * (len(groups) - 1)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError("indicator box dimensions must be finite") from exc
+    if not (math.isfinite(width) and math.isfinite(height)
+            and width > 0 and height > 0):
+        raise ValueError("indicator box dimensions must be finite and positive")
     return width, height
 
 
@@ -609,7 +615,10 @@ def indicator_box_opening_size(
     """Door cutout needed by one indicator-box assembly."""
     if isinstance(thickness, bool):
         raise ValueError("thickness must not be boolean")
-    t = float(thickness)
+    try:
+        t = float(thickness)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("thickness must be finite and positive") from exc
     if not math.isfinite(t) or t <= 0:
         raise ValueError("thickness must be > 0")
     outer_w, outer_h = indicator_box_outer_size(layer_groups)
@@ -634,12 +643,9 @@ def resolve_door_indicator_features(
     if layers == 0:
         return []
     g_max = max(groups) if groups else 1
-
-    if g_max == 1:
-        box_width = 326.0
-    else:
-        box_width = 171.0 + 90.0 * (g_max - 1) + 135.0
-    box_height = 280.0 * max(0, layers - 1) + 445.0
+    # Resolve the existing exact geometry once, and fail before looping over
+    # unrepresentable saved group counts (no arbitrary manufacturing group cap).
+    box_width, box_height = indicator_box_outer_size(groups)
 
     center = context.group_center(groups) + offset
     resolved: list[ResolvedCircle] = []
