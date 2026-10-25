@@ -713,7 +713,7 @@ def test_r2_14_valid_second_layer_update_keeps_first_layer_unchanged():
     assert [x["connection_count"] for x in result["layers"]] == [1, 3]
     assert [x["connection_count"] for x in source["layers"]] == [1, 1]
 
-@pytest.mark.parametrize("bad", [False, True, 0, 0., 1])
+@pytest.mark.parametrize("bad", [False, True, 0, 0., 1, "", "   "])
 def test_r2_14_invalid_stored_nfb_brand_never_silently_defaults_to_shihlin(bad):
     from ae_engine.receiving_switch_layout import (
         new_receiving_switch_layout, normalize_receiving_switch_layout,
