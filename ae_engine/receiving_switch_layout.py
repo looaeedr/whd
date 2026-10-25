@@ -68,7 +68,10 @@ def normalize_receiving_switch_layout(layout: Mapping[str, object] | None) -> di
     for index, raw in enumerate(raw_layers, start=1):
         if not isinstance(raw, Mapping):
             raise ValueError(f"Receiving switch layer {index} must be a mapping")
-        stable_id = str(raw.get("stable_id") or f"receiving:switch-layer:{index}").strip()
+        source_id = raw.get("stable_id")
+        if isinstance(source_id, bool):
+            raise ValueError(f"invalid Receiving switch layer stable_id: {source_id!r}")
+        stable_id = str(source_id or f"receiving:switch-layer:{index}").strip()
         if not stable_id or stable_id in seen:
             raise ValueError(f"invalid or duplicate Receiving switch layer stable_id: {stable_id!r}")
         seen.add(stable_id)
