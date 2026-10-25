@@ -170,3 +170,96 @@ def test_no_new_ui_button_or_full_cabinet_global_ear_bypass():
     guard=inspect.getsource(sink._reject_unapproved_nfb_pad_ear_manufacturing)
     assert "save_verified_receiving_formed_fixing_plate_bundle" in source
     assert "BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED" in guard
+
+
+def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
+    tmp_path,
+):
+    """One submitted model swap: REAL per-tier Base and EAR follow the same Z.
+
+    Current #1502 correction supersedes the older "Base never moves" wording.
+    A depth change must neither move the Inner Door nor fabricate an NFB PAD.
+    This exercises original physical source DXF and scoped formed-EAR output;
+    it does not certify arbitrary brand, solder/weld quality or full MFG-2.
+    """
+    from copy import deepcopy
+    from ae_engine.receiving_tier_ear_z_targets import (
+        resolve_receiving_tier_base_z_targets,
+        resolve_receiving_tier_ear_contact_targets,
+    )
+    from tests.test_issue1503_ear_side_check_only_dxf import _actual
+
+    first = _two_tier()
+    altered = deepcopy(first)
+    source_holes = altered["nfb_config"]["holes"]
+    assert len(source_holes) == 2
+    assert source_holes[1]["model_filename"] == "125_90X155_72.dxf"
+    source_holes[1]["model_filename"] = "100_75X130_68.dxf"
+    altered["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        altered["nfb_config"]
+    )
+
+    before = resolve_receiving_tier_base_z_targets(first)
+    after = resolve_receiving_tier_base_z_targets(altered)
+    assert [r.source_depths_mm for r in before] == [(107.0,), (72.0,)]
+    assert [r.source_depths_mm for r in after] == [(107.0,), (68.0,)]
+    assert all(r.physical_skin_z_resolved for r in (*before, *after))
+    # Only the changed second NFB tier moves; the first is unchanged.
+    assert after[0].world_offset_z_mm == pytest.approx(before[0].world_offset_z_mm)
+    assert abs(after[1].world_offset_z_mm - before[1].world_offset_z_mm) == pytest.approx(4.0)
+
+    original_ears = resolve_receiving_tier_ear_contact_targets(first)
+    shifted_ears = resolve_receiving_tier_ear_contact_targets(altered)
+    assert len(original_ears) == len(shifted_ears) == 4
+    for previous, current in zip(original_ears, shifted_ears):
+        tier = current.layer_index
+        assert current.parent_base_id == previous.parent_base_id
+        assert current.target_ear_contact_world_z_mm == pytest.approx(
+            after[tier].base_back_skin_world_z_mm
+        )
+        assert previous.target_ear_contact_world_z_mm == pytest.approx(
+            before[tier].base_back_skin_world_z_mm
+        )
+        assert current.base_skin_z_source_verified is True
+        assert not current.manufacturing_ready  # target alone is not release
+        if tier == 0:
+            assert current.target_ear_contact_world_z_mm == pytest.approx(
+                previous.target_ear_contact_world_z_mm
+            )
+        else:
+            assert abs(
+                current.target_ear_contact_world_z_mm -
+                previous.target_ear_contact_world_z_mm
+            ) == pytest.approx(4.0)
+
+    from ae_engine.assembly_placement import resolve_assembly_placement
+    assert resolve_assembly_placement(
+        first, "inner_door:upper:panel"
+    ).world_offset == resolve_assembly_placement(
+        altered, "inner_door:upper:panel"
+    ).world_offset
+
+    # Production source route, not a hand-built ear/side SVG or DTO:
+    # actual cabinet SIDE skins → two physical BaseParts → real formed
+    # fixing plates → original selected partial DXF export with reopen.
+    saved, side_scene = _actual(lambda: deepcopy(altered))
+    root = _source(saved)
+    installed = expand_receiving_nfb_layer_parts(saved, (root,))
+    assert len(installed) == 2
+    assert [p.part_key for p in installed] == [
+        "base_plate:nfb_layer:0", "base_plate:nfb_layer:1",
+    ]
+    assert [p.offset[2] for p in installed] == pytest.approx(
+        [r.world_offset_z_mm for r in after]
+    )
+    assert all(p.offset[0] == pytest.approx(0.0) for p in installed)
+    geometry = replace(side_scene, parts=side_scene.parts + tuple(installed))
+    receipt = _run(saved, geometry, tmp_path / "depth_swap_output")
+    assert len(receipt.formed_part_ids) == 4
+    assert receipt.physical_contact_area_mm2 == pytest.approx(4 * 5632.0)
+    files = dict(receipt.output_paths)
+    assert set(receipt.formed_part_ids).issubset(files)
+    assert all(Path(path).is_file() for path in files.values())
+    assert all("pad" not in Path(path).stem.casefold() for path in files.values())
+    for file_path in files.values():
+        ezdxf.readfile(file_path)
