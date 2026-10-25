@@ -11,6 +11,8 @@ from ae_engine.manufacturing_render_data import FoldGuide
 from ae_engine.receiving_fixed_plate_side_contact import (
     resolve_receiving_ear_side_contact_surfaces,
     receiving_ear_installation_world_segment,
+    receiving_ear_positioning_world_segments,
+    EAR_FOLD_HINT_LENGTH_MM,
 )
 from ae_engine.receiving_fixed_plate_side_uv_marking import (
     project_receiving_ear_contact_to_side_uv,
@@ -90,6 +92,18 @@ def test_installation_line_is_base_lower_edge_and_not_fold_length():
     receipt = _project(contact)
     assert len(receipt.marking_segments) == 3
     assert receipt.world_boundary == contact.world_surface_boundary
+    assert EAR_FOLD_HINT_LENGTH_MM == 20.0
+    top, left, right = receiving_ear_positioning_world_segments(contact)
+    assert top == (a, b)
+    assert left[0] == a and right[0] == b
+    assert left[1] == pytest.approx((a[0], a[1], a[2] - 20.0))
+    assert right[1] == pytest.approx((b[0], b[1], b[2] - 20.0))
+    assert all(not (u[2] == v[2] == a[2] - 20.0)
+               for u, v in (top, left, right))
+    from shapely.geometry import LineString
+    assert [LineString(pair).length for pair in receipt.marking_segments] == pytest.approx(
+        [256.0, 20.0, 20.0]
+    )
 
     # The free formed leg may be longer/shorter; its LOWER z cannot drive
     # the upper installation datum. This is an isolated helper contract,
