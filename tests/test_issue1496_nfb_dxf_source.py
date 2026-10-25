@@ -254,3 +254,49 @@ def test_upper_color150_rejects_unclosed_or_bulged_profile(tmp_path):
             resolve_upper_color150_reference(
                 evidence, upper_source_entity_ids=(ids[row.dxf.handle],),
             )
+
+
+def test_ac11_source_entity_identity_changes_with_actual_dxf_bytes_and_pivot(tmp_path):
+    """A changed manufacturer DXF must not reuse an old source or pivot witness.
+
+    This is a synthetic boundary regression, NOT an original manufacturer
+    certificate nor approval for a source-less MFG-2 release.
+    """
+    source = tmp_path / "AC11_source.dxf"
+    doc = ezdxf.new("R2010")
+    doc.layers.new("UPPER", dxfattribs={"color": 150})
+    doc.layers.new("LOWER", dxfattribs={"color": 30})
+    upper = doc.modelspace().add_circle(
+        (120, 330), 12, dxfattribs={"layer": "UPPER"})
+    doc.modelspace().add_arc(
+        (140, 330), 7, 20, 170, dxfattribs={"layer": "UPPER"})
+    doc.modelspace().add_circle(
+        (800, -420), 16, dxfattribs={"layer": "LOWER"})
+    doc.saveas(source)
+
+    observed = inspect_nfb_dxf_source(source)
+    original_sha = observed.source_sha256
+    upper_id = next(
+        e.source_id for e in observed.entities
+        if e.handle_path == upper.dxf.handle
+    )
+    assert circle_candidate_pivot(
+        observed, source_entity_id=upper_id) == (120.0, 330.0)
+    assert observed.main_hole_source_id is None
+    assert observed.approved_manufacturing_rule_revision is None
+
+    # Mutate the actual entity and rewrite original bytes. Unchanged
+    # handles are not proof that a previously observed source remains valid.
+    altered = ezdxf.readfile(source)
+    altered.modelspace().query("CIRCLE")[0].dxf.center = (124, 336, 0)
+    altered.saveas(source)
+    changed = inspect_nfb_dxf_source(source)
+    assert changed.source_sha256 != original_sha
+    changed_id = next(
+        e.source_id for e in changed.entities
+        if e.handle_path == upper.dxf.handle
+    )
+    assert circle_candidate_pivot(
+        changed, source_entity_id=changed_id) == (124.0, 336.0)
+    assert changed.main_hole_source_id is None
+    assert changed.approved_manufacturing_rule_revision is None
