@@ -527,7 +527,16 @@ def backproject_mapped_skin_world_points(
     Receiving pairing MARKING. It never invents a mirror/rotation after the
     mapped-skin transform and it does not infer machining side semantics.
     """
-    mapping = tuple(mapping or ())
+    try:
+        mapping = tuple(mapping or ())
+        world_points = tuple(points or ())
+    except (TypeError, ValueError, OverflowError) as exc:
+        return LocatorBackprojectionResult(
+            status="SKIPPED_FAIL_CLOSED",
+            diagnostic_code="BACKPROJECTION_FAILED",
+            flat_points=(),
+            evidence={"reason": f"invalid mapped-skin or world-point source: {exc}"},
+        )
     if not mapping:
         return LocatorBackprojectionResult(
             status="SKIPPED_FAIL_CLOSED",
@@ -540,7 +549,7 @@ def backproject_mapped_skin_world_points(
         PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.flat_world_mapping_tolerance
     )
     resolved = []
-    for raw in tuple(points or ()):
+    for raw in world_points:
         try:
             raw_point = tuple(raw)
             if any(isinstance(v, bool) for v in raw_point):
