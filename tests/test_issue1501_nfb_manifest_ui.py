@@ -235,3 +235,143 @@ def test_manifest_ear_current_source_does_not_revert_to_obsolete_all_deferred():
     text = nfb_manifest_display_lines(record)[0]
     assert "PAD" in text and "整箱製造" in text
     assert "耳朵尚未驗收" not in text
+
+
+def test_ac55_source_verified_colors_reach_real_bay_operator_warning_and_check(
+    tmp_path,
+):
+    """Live source audit → submitted Bay warning → physical partial CHECK.
+
+    The historical Color30/150/212 DXF is diagnostic, while a distinct typed
+    verified inner-door CUTTING witness is still necessary. This does not
+    fabricate a Receiving middle plate or grant whole-cabinet MFG-2.
+    """
+    from copy import deepcopy
+    from dataclasses import replace
+    from hashlib import sha256
+
+    from ae_engine.receiving_layout import new_receiving_layout
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from ae_engine.receiving_nfb_export_manifest import (
+        derive_nfb_partial_export_manifest,
+    )
+    from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
+    from ae_engine.receiving_nfb_transactions import submit_nfb_bays
+    from tests.test_issue1496_nfb_source_inventory_report import _case
+    from tests.test_issue1501_nfb_export_manifest import _prepared
+    from tools.nfb_source_audit import build_source_coverage_report
+
+    index, originals, pins, raw_dxf = _case(tmp_path)
+    original_bytes = raw_dxf.read_bytes()
+    audit = build_source_coverage_report(
+        index, source_root=originals, pin_path=pins,
+    )
+    indexed = {(row["brand"], row["indexed_filename"]): row
+               for row in audit["records"]}
+    trusted = indexed[("士林", "A.dxf")]
+    assert trusted["source_sha256"] == sha256(original_bytes).hexdigest()
+    assert tuple(trusted[f"color_{c}_entities"] for c in (30, 150, 212)) == (
+        1, 1, 1,
+    )
+    assert tuple(indexed[("東元", "A.dxf")][f"color_{c}_entities"]
+                 for c in (30, 150, 212)) == (None, None, None)
+    assert trusted["manufacturing_ready"] is False
+
+    parsed = inspect_nfb_dxf_source(raw_dxf)
+    actual_state = new_receiving_layout(width=800, height=1600, depth=350)
+    set_row = actual_state["sets"][0]
+    bay = set_row["bays"][0]
+    physical = _prepared(tmp_path)
+    configured = deepcopy(physical["saved_bay"]["nfb_config"])
+    configured["holes"][0]["model_filename"] = "A.dxf"
+    physical["saved_bay"] = {
+        **bay, "nfb_config_submitted": True, "nfb_config": configured,
+    }
+    physical["scope"] = NfbPhysicalScope(
+        set_row["stable_id"], bay["stable_id"], "version-1",
+        True, "inner1", ("base1",), (),
+    )
+    physical["actual_parts"] = tuple(
+        row for row in physical["actual_parts"] if row.part_id != "middle1"
+    )
+    physical["source_inventory"] = parsed
+    physical["source_path"] = raw_dxf
+    physical["verified_inner_door"] = replace(
+        physical["verified_inner_door"],
+        indexed_model_key=("士林", "A.dxf"),
+        source_sha256=parsed.source_sha256,
+    )
+    manifest = derive_nfb_partial_export_manifest(**physical)
+    assert manifest.actual_export_count == 5
+    assert manifest.held_actual_count == 1
+    assert manifest.authorized_part_ids == ("inner1", "side1")
+    assert not manifest.whole_ready
+    view = dict(manifest.report(), status="PARTIAL_ONLY")
+    operator_lines = highlighted_nfb_manifest_lines(
+        {"manifest": lambda set_index, bay_index: view}, 0, (0,),
+    )
+    assert any("版本 version-1" in line and bay["stable_id"] in line
+               for line in operator_lines)
+    assert any("可加工 5 片" in line for line in operator_lines)
+    assert any("base1" in line and "受阻" in line and "1 片" in line
+               for line in operator_lines)
+    assert any("side1" in line and "可出" in line and "3 片" in line
+               for line in operator_lines)
+    assert any("部分製造清單" in line for line in operator_lines)
+    assert all("middle1" not in line for line in operator_lines)
+
+    # Actual verified Bay transaction calls the same operator preview. A
+    # refused confirmation never persists a physical NFB configuration.
+    observed = []
+    cancelled = submit_nfb_bays(
+        actual_state, set_index=0, bay_indices=(0,),
+        version_id="version-1", configs={0: configured},
+        evidence={0: (
+            physical["scope"], parsed, physical["verified_inner_door"],
+        )},
+        confirm=lambda preview: observed.append(preview) or False,
+    )
+    assert cancelled.changed is False
+    assert cancelled.layout == actual_state
+    assert len(observed) == 1
+    assert "base1" in observed[0].held_parts
+    assert len(observed[0].operator_x_changes) == 1
+    assert "nfb:bay1:slot1" in observed[0].operator_x_changes[0]
+    assert "X 未配置 → 0 mm" in observed[0].operator_x_changes[0]
+
+    # Once the original source is replaced by another manufacturer's valid
+    # bytes, both source inventory and operator display must lose fake
+    # authority. Never convert a missing/untrusted source into Color=0.
+    raw_dxf.write_bytes((originals / "東元" / "A.dxf").read_bytes())
+    revoked = build_source_coverage_report(
+        index, source_root=originals, pin_path=pins,
+    )
+    lost = next(row for row in revoked["records"]
+                if row["brand"] == "士林" and row["indexed_filename"] == "A.dxf")
+    assert lost["status"] == "SOURCE_IDENTITY_MISMATCH_UNKNOWN"
+    assert tuple(lost[f"color_{c}_entities"] for c in (30, 150, 212)) == (
+        None, None, None,
+    )
+    stale = derive_nfb_partial_export_manifest(**physical)
+    assert stale.authorized_part_ids == ("side1",)
+    assert stale.actual_export_count == 3
+    assert stale.held_actual_count == 3
+    stale_lines = nfb_manifest_display_lines(
+        dict(stale.report(), status="PARTIAL_ONLY")
+    )
+    assert any("可加工 3 片" in line for line in stale_lines)
+    assert any("inner1" in line and "受阻" in line for line in stale_lines)
+    assert any("base1" in line and "受阻" in line for line in stale_lines)
+    assert any("side1" in line and "可出" in line for line in stale_lines)
+    assert all("middle1" not in line for line in stale_lines)
+    calls = []
+    with pytest.raises(ValueError, match="NFB transaction blocked"):
+        submit_nfb_bays(
+            actual_state, set_index=0, bay_indices=(0,),
+            version_id="version-1", configs={0: configured},
+            evidence={0: (
+                physical["scope"], None, physical["verified_inner_door"],
+            )},
+            confirm=lambda preview: calls.append(preview) or True,
+        )
+    assert not calls
