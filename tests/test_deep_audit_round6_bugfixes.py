@@ -523,3 +523,26 @@ def test_phase6_manufacturing_geometry_and_endcap_guards():
 
     with pytest.raises(ValueError, match="Unsupported endcap tab key"):
         setup_tab_endcap_ui(object(), object(), "invalid_key")
+
+
+@pytest.mark.parametrize("field", [
+    "coplanar_distance_tolerance",
+    "opposed_normal_residual_tolerance",
+    "flat_world_mapping_tolerance",
+    "boundary_separation_tolerance",
+    "polygon_robustness_epsilon",
+])
+@pytest.mark.parametrize("bad", [10 ** 400, -(10 ** 400), "not-a-distance"])
+def test_r6_invalid_tolerance_source_cannot_escape_as_overflow_or_type_error(field, bad):
+    """Physical contact tolerances fail with the existing ValueError contract."""
+    baseline = {
+        "coplanar_distance_tolerance": 1e-6,
+        "opposed_normal_residual_tolerance": 1e-7,
+        "flat_world_mapping_tolerance": 1e-7,
+        "boundary_separation_tolerance": 1e-7,
+        "polygon_robustness_epsilon": 1e-9,
+    }
+    with pytest.raises(ValueError, match=field):
+        AssemblyGeometryToleranceContract(**{**baseline, field: bad})
+    # The canonical numerical tolerance source remains unchanged.
+    assert AssemblyGeometryToleranceContract(**baseline).coplanar_distance_tolerance == 1e-6
