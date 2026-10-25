@@ -556,3 +556,74 @@ def test_issue1504_shared_setting_preserves_valid_multi_bay_reference_sharing():
     ]
     assert setting_value(row, 2, "inner_door_layers") == 1
     assert layout == before
+
+
+
+@pytest.mark.parametrize("bad", (True, False, 1.5, 2.0, "1.5", [], {}, [1]))
+@pytest.mark.parametrize("method", (
+    "select_set", "select_bay", "set_bay_count", "set_set_count", "bay_count",
+))
+def test_ac07_selection_and_counts_reject_noninteger_alias_without_side_effect(
+    bad, method,
+):
+    """A bool/fraction/list must never become a real Set/Bay or deletion count."""
+    original = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    asked = []
+    adapter = ReceivingSetBayAdapter(
+        original,
+        persisted_ids=receiving_layout_stable_ids(original),
+        confirm_destructive=lambda ids: asked.append(ids) or True,
+    )
+    before_layout = adapter.layout
+    before_selection = adapter.selection
+    with pytest.raises((ValueError, IndexError), match="integer|index"):
+        getattr(adapter, method)(bad)
+    assert adapter.layout == before_layout
+    assert adapter.selection == before_selection
+    assert asked == []
+
+
+
+
+@pytest.mark.parametrize("method", (
+    "select_set", "select_bay", "set_bay_count", "set_set_count",
+))
+def test_ac07_none_is_invalid_except_explicit_current_set_lookup(method):
+    """None is the documented default only for bay_count(set_index=None)."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    before = adapter.layout
+    with pytest.raises(ValueError, match="integer"):
+        getattr(adapter, method)(None)
+    assert adapter.layout == before
+    assert adapter.bay_count(None) == 1
+
+
+@pytest.mark.parametrize("method,value", (
+    ("select_set", 0),
+    ("select_bay", 0),
+    ("bay_count", -1),
+    ("bay_count", 999),
+))
+def test_ac07_set_bay_real_selection_never_uses_negative_python_alias(method, value):
+    adapter = ReceivingSetBayAdapter(
+        resize_receiving_bays(_layout(), set_index=0, bay_count=2),
+    )
+    before = adapter.layout
+    selection = adapter.selection
+    with pytest.raises(IndexError):
+        getattr(adapter, method)(value)
+    assert adapter.layout == before
+    assert adapter.selection == selection
+
+
+def test_ac07_exact_decimal_text_retains_existing_ui_compatibility():
+    """The original UI may pass a typed integer string, never a decimal float."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    assert adapter.select_set("2") is True
+    assert adapter.selection.set_index == 1
+    adapter.set_bay_count("2")
+    adapter.select_bay("2")
+    assert adapter.selection.bay_index == 1
+    assert adapter.bay_count("1") == 2
+    adapter.set_set_count("2")
+    assert len(adapter.layout["sets"]) == 2

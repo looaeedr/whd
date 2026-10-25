@@ -93,6 +93,18 @@ def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]
     return tuple(result)
 
 
+def _operator_integer(value, name):
+    """Allow legacy integer UI text; never coerce a float or bool to a Bay ID."""
+    if type(value) is int:
+        return value
+    if type(value) is str:
+        try:
+            return int(value)
+        except (ValueError, OverflowError) as exc:
+            raise ValueError(f"Receiving {name} must be an integer") from exc
+    raise ValueError(f"Receiving {name} must be an integer")
+
+
 @dataclass(frozen=True)
 class ReceivingSelection:
     set_index: int = 0
@@ -130,11 +142,14 @@ class ReceivingSetBayAdapter:
         return tuple(range(1, count + 2))
 
     def bay_count(self, set_index: int | None = None) -> int:
-        index = self._selection.set_index if set_index is None else int(set_index)
+        index = (self._selection.set_index if set_index is None
+                 else _operator_integer(set_index, "Set index"))
+        if not 0 <= index < len(self._layout["sets"]):
+            raise IndexError("Receiving Set index out of range")
         return len(self._layout["sets"][index]["bays"])
 
     def select_set(self, set_number: int) -> bool:
-        wanted = int(set_number)
+        wanted = _operator_integer(set_number, "Set number")
         existing = len(self._layout["sets"])
         if wanted < 1 or wanted > existing + 1:
             raise IndexError("Receiving Set selection is not progressively available")
@@ -145,7 +160,7 @@ class ReceivingSetBayAdapter:
         return created
 
     def select_bay(self, bay_number: int) -> None:
-        wanted = int(bay_number)
+        wanted = _operator_integer(bay_number, "Bay number")
         count = self.bay_count()
         if wanted < 1 or wanted > count:
             raise IndexError("Receiving Bay selection out of range")
@@ -183,7 +198,7 @@ class ReceivingSetBayAdapter:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
 
     def set_bay_count(self, bay_count: int) -> None:
-        wanted = int(bay_count)
+        wanted = _operator_integer(bay_count, "Bay count")
         current = self.bay_count()
         if wanted < current:
             removed = receiving_destructive_tail_ids(
@@ -221,7 +236,7 @@ class ReceivingSetBayAdapter:
         )
 
     def set_set_count(self, set_count: int) -> None:
-        wanted = int(set_count)
+        wanted = _operator_integer(set_count, "Set count")
         current = len(self._layout["sets"])
         if wanted < current:
             removed = receiving_destructive_tail_ids(self._layout, set_count=wanted)
