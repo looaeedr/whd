@@ -142,7 +142,7 @@ def test_1502_newer_corrected_base_plate_scope_is_not_lost():
                 # Only individually source-audited corrected ACs may advance:
                 # the old illustrated Receiving middle plate must NEVER be
                 # silently restored merely to collect a manufacturing GREEN.
-                assert row["id"] in {"NFB-AC-38", "SWT-AC-21", "NFB-AC-44", "SWT-AC-32"}
+                assert row["id"] in {"NFB-AC-38", "SWT-AC-21", "NFB-AC-44", "SWT-AC-32", "NFB-AC-55"}
                 assert row["historical_pre_current_review"].get("accepted", False) is False
                 proof = row["acceptance_evidence"]
                 assert proof["original_ac_text_unchanged"] is True
@@ -1607,3 +1607,50 @@ def test_swt32_current_raw_dxf_to_actual_check_signoff_requires_exact_witness():
         "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED",
     ):
         assert required in test
+
+
+def test_ac55_source_color_and_operator_warning_are_same_physical_bay():
+    """The AC's real source audit must reach UI warning and actual CHECK."""
+    row = next(r for r in _data()["records"] if r["id"] == "NFB-AC-55")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == (
+        "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+    )
+    proof = row["acceptance_evidence"]
+    assert len(proof["requirement_witnesses"]) == 3
+    for limited in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "integrated_localx_claimed", "formal_x_published",
+    ):
+        assert proof[limited] is False
+    assert proof["original_ac_text_unchanged"]
+    assert proof["source_sha_pins_unchanged"]
+    from tools.product_ci_regression import PYTEST_PATHS
+    for ref in (proof["primary_assertion"], *proof["other_required_assertions"]):
+        path, name = ref.split("::", 1)
+        assert path in PYTEST_PATHS
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        assert name in {
+            obj.name for obj in tree.body
+            if isinstance(obj, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }, ref
+    test = (ROOT / row["identified_test_functions"][0]["path"]).read_text(
+        encoding="utf-8"
+    )
+    for exact in (
+        "test_ac55_source_verified_colors_reach_real_bay_operator_warning_and_check",
+        "build_source_coverage_report(",
+        "inspect_nfb_dxf_source(raw_dxf)",
+        "submit_nfb_bays(",
+        "highlighted_nfb_manifest_lines(",
+        "cancelled.layout == actual_state",
+        "base1",
+        "SOURCE_IDENTITY_MISMATCH_UNKNOWN",
+        "None, None, None",
+        "stale.actual_export_count == 3",
+        "stale.held_actual_count == 3",
+    ):
+        assert exact in test
