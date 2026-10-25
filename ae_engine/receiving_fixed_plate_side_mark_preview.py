@@ -124,9 +124,19 @@ def build_receiving_ear_side_marking_previews(
                     permit_independent_source_marking_crossing
                 ),
             )
+            # Only the installed EAR UPPER edge is marked: it is on the
+            # parent BasePlate's real bottom Z, 1 mm forward of the T2
+            # physical weld-contact skin. Validate proximity as a material
+            # witness, not as the installation datum (which the UV receipt
+            # already derives from the parent BasePlate).
+            if len(row.marking_segments) != 1:
+                raise ValueError("EAR_MARK_PREVIEW_ONLY_UPPER_INSTALLATION_LINE")
             for p1, p2 in row.marking_segments:
-                if not patch.covers(LineString((p1, p2))):
-                    raise ValueError("EAR_MARK_PREVIEW_MARK_OUTSIDE_RECEIPT")
+                line = LineString((p1, p2))
+                if (abs(line.length - 256.0) > 0.02
+                        or abs(line.distance(patch) - 1.0) > 0.02
+                        or not owner.material.covers(line)):
+                    raise ValueError("EAR_MARK_PREVIEW_INSTALLATION_OUTSIDE_REAL_SIDE")
                 scene.add_line(p1, p2, layer="MARKING")
             patches.append(patch)
         result[side] = scene
