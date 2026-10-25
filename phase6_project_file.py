@@ -117,16 +117,19 @@ def _normalize_authoritative_door_state(snapshot):
     if "door_handle_edges" in result or handles:
         result["door_handle_edges"] = handles
 
-    try:
-        inner_doors = deepcopy(list(result.get("inner_doors") or ()))
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError("invalid inner doors source") from exc
+    raw_inner_doors = result.get("inner_doors")
+    # A project persists a list of door records. list("door") and list({...})
+    # would otherwise fabricate invalid physical door entries on reopen.
+    if raw_inner_doors is not None and not isinstance(raw_inner_doors, (list, tuple)):
+        raise ValueError("invalid inner doors source")
+    if any(not isinstance(item, dict) for item in (raw_inner_doors or ())):
+        raise ValueError("invalid inner doors entry")
+    inner_doors = deepcopy(list(raw_inner_doors or ()))
     for item in inner_doors:
-        if isinstance(item, dict):
-            # Receiving frame spans / finished dimensions are deterministic
-            # derivatives of Door topology + family policy, never project truth.
-            item.pop("frame_spans", None)
-            item.pop("inner_door_finished_size", None)
+        # Receiving frame spans / finished dimensions are deterministic
+        # derivatives of Door topology + family policy, never project truth.
+        item.pop("frame_spans", None)
+        item.pop("inner_door_finished_size", None)
     if inner_doors:
         if not columns or not bool(result.get("multi_door_enabled", False)):
             for item in inner_doors:
@@ -165,7 +168,10 @@ def _normalize_authoritative_door_state(snapshot):
                 if not door_id:
                     item.pop("lower_frame_role", None)
                     continue
-                previous = dict(item.get("lower_frame_role") or {}).get("divider_stable_id")
+                previous_role = item.get("lower_frame_role")
+                if previous_role is not None and not isinstance(previous_role, dict):
+                    raise ValueError("invalid inner-door lower_frame_role source")
+                previous = (previous_role or {}).get("divider_stable_id")
                 role = resolve_inner_door_lower_frame_role(
                     door_id,
                     dividers,
