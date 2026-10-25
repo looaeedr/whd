@@ -860,3 +860,31 @@ def test_r2_12_half_back_panel_requires_explicit_boolean_multi_door_authority(in
     assert resolve_back_panel_contract(
         saved, structure_state=half, panel_width=700., full_panel_height=1600.,
     )["mode"] == "HALF"
+
+
+@pytest.mark.parametrize("owner", ["set", "bay", "joint"])
+@pytest.mark.parametrize("invalid_id", [{"bad": 1}, ["bad"], ("bad",), float("nan"), float("inf")])
+def test_r2_13_corrupt_saved_identity_source_must_not_mint_physical_id(owner, invalid_id):
+    """Persisted structured/nonfinite IDs may not stringify into valid part keys."""
+    from ae_engine.receiving_layout import (
+        new_receiving_layout, normalize_receiving_layout, resize_receiving_bays,
+    )
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    if owner == "joint":
+        saved = resize_receiving_bays(saved, set_index=0, bay_count=2)
+    target = (
+        saved["sets"][0] if owner == "set" else
+        saved["sets"][0]["bays"][0] if owner == "bay" else
+        saved["sets"][0]["joints"][0]
+    )
+    target["stable_id"] = invalid_id
+    with pytest.raises(ValueError, match="stable_id"):
+        normalize_receiving_layout(saved)
+    assert target["stable_id"] is invalid_id
+
+
+def test_r2_13_legacy_finite_numeric_stable_id_is_not_unnecessarily_reassigned():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    saved["sets"][0]["stable_id"] = 42
+    assert normalize_receiving_layout(saved)["sets"][0]["stable_id"] == "42"
