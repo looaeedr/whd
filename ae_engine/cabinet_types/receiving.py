@@ -246,14 +246,21 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
     from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
 
     data = dict(snapshot or {})
+    if isinstance(inner_door_id, bool):
+        raise ValueError("invalid inner-door identity source")
     wanted = str(inner_door_id or '').strip()
     if not wanted:
         raise ValueError("inner_door_id must be non-empty")
-    item = next(
-        (row for row in list(data.get('inner_doors') or ())
-         if isinstance(row, dict) and str(row.get('stable_id') or '').strip() == wanted),
-        None,
-    )
+    item = None
+    for row in list(data.get('inner_doors') or ()):
+        if not isinstance(row, dict):
+            continue
+        # Do not stringify persisted Boolean identities before matching the
+        # vertical frame's authoritative Door; share panel/frame validation.
+        row_id, _cell_key = _saved_inner_door_identity(row)
+        if row_id == wanted:
+            item = row
+            break
     if item is None:
         raise ValueError(f"inner door stable id is missing from authoritative state: {wanted!r}")
 
@@ -262,7 +269,7 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
         raise ValueError("Receiving vertical frame contract requires enabled Door topology")
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f'{cell.column_index}:{cell.row_index}': cell for cell in derive_door_layout_cells(normalized)}
-    cell_key = str(item.get('cell_key') or '').strip()
+    _door_id, cell_key = _saved_inner_door_identity(item)
     if cell_key not in cells:
         raise ValueError(f"inner-door cell outside authoritative Door topology: {cell_key!r}")
     cell = cells[cell_key]

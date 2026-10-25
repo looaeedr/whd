@@ -811,3 +811,21 @@ def test_r5_91_receiving_family_does_not_bypass_boolean_inner_door_identity_gate
     for derive in (derive_inner_door_panels, derive_inner_door_frame_sets):
         with pytest.raises(ValueError, match="invalid inner-door identity"):
             derive(saved)
+
+
+@pytest.mark.parametrize("invalid", [True, False])
+def test_r5_91_direct_vertical_frame_boolean_selector_must_not_become_text(invalid):
+    from ae_engine.cabinet_types.receiving import inner_door_vertical_frame_contract
+    snap = _receiving_snapshot()
+    with pytest.raises(ValueError, match="invalid inner-door identity"):
+        inner_door_vertical_frame_contract(snap, invalid)
+
+
+@pytest.mark.parametrize("field", ["stable_id", "cell_key"])
+@pytest.mark.parametrize("invalid", [True, False])
+def test_r5_91_direct_vertical_frame_rejects_corrupt_saved_door_identifiers(field, invalid):
+    from ae_engine.cabinet_types.receiving import inner_door_vertical_frame_contract
+    snap = _receiving_snapshot()
+    snap["inner_doors"][0][field] = invalid
+    with pytest.raises(ValueError, match="invalid inner-door identity"):
+        inner_door_vertical_frame_contract(snap, "upper")
