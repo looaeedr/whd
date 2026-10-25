@@ -72,9 +72,14 @@ def receiving_base_fixing_plate_previews(
     source contact and material checks still gate manufacture. A missing explicit base variant is previewable with
     the 210-mm outer slot pair, but remains *unconfigured* and never releasable.
     """
-    data = dict(snapshot or {})
+    try:
+        data = dict(snapshot or {})
+        parts = set(str(value) for value in tuple(available_parts or ()))
+    except (TypeError, ValueError, OverflowError):
+        # Preview is not manufacturing authority: malformed saved sources
+        # cannot create a plausible (but unowned) child fixing plate.
+        return ()
     model = str(data.get("model") or data.get("baseline_model") or "").strip()
-    parts=set(str(value) for value in tuple(available_parts or ()))
     if (model not in RECEIVING_FAMILIES
             or (BASE_FIXING_PLATE_PARENT_ID not in parts
                 and not any(p.startswith("base_plate:nfb_layer:") for p in parts))):
@@ -139,8 +144,12 @@ def receiving_base_fixing_plate_previews(
             and isinstance(config_nfb,Mapping)
             and config_nfb.get("layer_count")==2):
         from .receiving_nfb_base_assembly_xy import receiving_nfb_layer_centers
+        try:
+            stored_inner_doors = tuple(data.get("inner_doors") or ())
+        except (TypeError, ValueError, OverflowError):
+            return ()
         upper=tuple(
-            row for row in tuple(data.get("inner_doors") or ())
+            row for row in stored_inner_doors
             if isinstance(row,Mapping)
             and str(row.get("cell_key") or "").split(":")[-1]=="0"
             and str(row.get("stable_id") or "").strip()

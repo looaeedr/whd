@@ -196,3 +196,30 @@ def test_single_tier_source_flat_render_still_uses_real_original_one_pair():
         assert render.metadata["base_skin_z_source_verified"] is True
         assert not render.metadata["formed_geometry_verified"]
         assert not render.metadata["manufacturing_ready"]
+
+
+@pytest.mark.parametrize("malformed", [42, True, object()])
+def test_r5_83_fixing_preview_rejects_corrupt_input_containers(malformed):
+    """No unhandled TypeError or fake ear when preview DTO/list is corrupt."""
+    assert receiving_base_fixing_plate_previews(
+        malformed, available_parts=("base_plate",),
+    ) == ()
+    assert receiving_base_fixing_plate_previews(
+        _assembled(), available_parts=malformed,
+    ) == ()
+
+
+@pytest.mark.parametrize("malformed", [42, True, object()])
+def test_r5_83_corrupt_two_tier_door_inventory_cannot_mint_four_ear_owners(malformed):
+    """Source-owned NFB tier ear identity requires one actual upper Door."""
+    source = _two_tier()
+    source["inner_doors"] = malformed
+    assert receiving_base_fixing_plate_previews(
+        source, available_parts=("base_plate",),
+    ) == ()
+    # Real two-tier input still projects exactly four independent ears.
+    correct = receiving_base_fixing_plate_previews(
+        _two_tier(), available_parts=("base_plate",),
+    )
+    assert len(correct) == 4
+    assert len({ear.part_id for ear in correct}) == 4
