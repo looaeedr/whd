@@ -216,21 +216,32 @@ def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
         raise ValueError("NFB preview requires an unsubmitted draft")
     if type(draft.get("layer_count")) is not int or draft["layer_count"] not in (1,2):
         raise ValueError("NFB physical layer count invalid")
-    if type(bay_width_mm) not in (int,float) or not isfinite(float(bay_width_mm)):
-        raise ValueError("NFB Bay width is invalid")
-    if type(upper_cell_height_mm) not in (int,float) or not isfinite(float(upper_cell_height_mm)):
-        raise ValueError("NFB upper cell height is invalid")
+    # Like the canonical physical Receiving dimensions, preview-only inputs
+    # must still be representable, positive, finite and not boolean.
+    def positive_mm(value, message):
+        if type(value) not in (int, float):
+            raise ValueError(message)
+        try:
+            mm = float(value)
+        except (OverflowError, ValueError) as exc:
+            raise ValueError(message) from exc
+        if not isfinite(mm) or mm <= 0:
+            raise ValueError(message)
+        return mm
+
+    width = positive_mm(bay_width_mm, "NFB Bay width is invalid")
+    upper_height = positive_mm(upper_cell_height_mm, "NFB upper cell height is invalid")
     if layer_heights_mm is not None:
         from .receiving_shared_settings import validate_setting
         verified_heights = validate_setting(
             "inner_door_layer_heights_mm", layer_heights_mm,
         )
-        if verified_heights[draft["layer_count"] - 1] >= float(upper_cell_height_mm):
+        if verified_heights[draft["layer_count"] - 1] >= upper_height:
             raise ValueError("每層高度須位於目前作業區的頂部至底部之間")
         ys = tuple(verified_heights[:draft["layer_count"]])
     else:
         ys = (approved_nominal_y_mm(draft["layer_count"])
-              if abs(float(upper_cell_height_mm)-1100.0)<1e-6 else None)
+              if abs(upper_height-1100.0)<1e-6 else None)
     # One live CSV read per effective brand, not one per slot. The original
     # CSV may disappear between selection and preview; stale V5 references
     # must become NEEDS_RESELECTION rather than MODEL_SELECTED.
@@ -252,7 +263,7 @@ def nfb_ui1a_preview(draft, *, bay_width_mm, upper_cell_height_mm,
         pitch = None
         if len(slots):
             try:
-                pitch = nominal_nfb_x_group(int(bay_width_mm), len(slots)).adjacent_distances_mm if float(bay_width_mm).is_integer() else None
+                pitch = nominal_nfb_x_group(int(width), len(slots)).adjacent_distances_mm if width.is_integer() else None
             except ValueError:
                 pitch = None
         values = []
