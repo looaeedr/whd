@@ -649,10 +649,17 @@ def resolve_back_panel_contract(
     if not is_receiving_snapshot(data):
         raise ValueError("back-panel mode contract is Receiving-only")
 
-    width = float(panel_width)
-    full_height = float(full_panel_height)
-    if width <= 0.0 or full_height <= 0.0:
-        raise ValueError("rear-panel dimensions must be positive")
+    from math import isfinite
+    if isinstance(panel_width, bool) or isinstance(full_panel_height, bool):
+        raise ValueError("rear-panel dimensions must be finite positive numbers")
+    try:
+        width = float(panel_width)
+        full_height = float(full_panel_height)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("rear-panel dimensions must be finite positive numbers") from exc
+    if not (isfinite(width) and isfinite(full_height)
+            and width > 0.0 and full_height > 0.0):
+        raise ValueError("rear-panel dimensions must be finite positive numbers")
 
     mode = back_panel_mode(structure_state)
     material_height = full_height
